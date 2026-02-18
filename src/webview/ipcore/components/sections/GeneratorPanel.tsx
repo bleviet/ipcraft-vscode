@@ -72,9 +72,7 @@ function mapBusType(interfaceType: string): BusType | null {
  * Detect bus interface with memory map reference
  */
 function detectBusWithMemoryMap(ipCore: IpCore): DetectedBusInfo | null {
-  // Runtime data uses camelCase (busInterfaces, memoryMapRef)
-  const busInterfaces =
-    (ipCore as any).busInterfaces || ipCore.bus_interfaces || [];
+  const busInterfaces = ipCore.bus_interfaces || [];
 
   for (const bus of busInterfaces) {
     // Check both camelCase (runtime) and snake_case (type def)
@@ -106,12 +104,12 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({ ipCore }) => {
     return savedState && savedState.generationOptions
       ? savedState.generationOptions
       : {
-          busType: detectedBus?.busType || "axil",
-          includeVhdl: true,
-          includeRegfile: true,
-          vendorFiles: "none",
-          includeTestbench: false,
-        };
+        busType: detectedBus?.busType || "axil",
+        includeVhdl: true,
+        includeRegfile: true,
+        vendorFiles: "none",
+        includeTestbench: false,
+      };
   });
 
   // Persist options state
@@ -390,25 +388,25 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({ ipCore }) => {
               )}
               {(options.vendorFiles === "intel" ||
                 options.vendorFiles === "both") && (
-                <div style={{ paddingLeft: "16px" }}>
-                  <div>├── intel/</div>
-                  <div style={{ paddingLeft: "24px", opacity: 0.8 }}>
-                    └── {ipName}_hw.tcl
+                  <div style={{ paddingLeft: "16px" }}>
+                    <div>├── intel/</div>
+                    <div style={{ paddingLeft: "24px", opacity: 0.8 }}>
+                      └── {ipName}_hw.tcl
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
               {(options.vendorFiles === "xilinx" ||
                 options.vendorFiles === "both") && (
-                <div style={{ paddingLeft: "16px" }}>
-                  <div>└── xilinx/</div>
-                  <div style={{ paddingLeft: "24px", opacity: 0.8 }}>
-                    ├── component.xml
+                  <div style={{ paddingLeft: "16px" }}>
+                    <div>└── xilinx/</div>
+                    <div style={{ paddingLeft: "24px", opacity: 0.8 }}>
+                      ├── component.xml
+                    </div>
+                    <div style={{ paddingLeft: "24px", opacity: 0.8 }}>
+                      └── xgui/{ipName}_v*.tcl
+                    </div>
                   </div>
-                  <div style={{ paddingLeft: "24px", opacity: 0.8 }}>
-                    └── xgui/{ipName}_v*.tcl
-                  </div>
-                </div>
-              )}
+                )}
             </div>
             <div style={{ marginTop: "8px", fontSize: "10px", opacity: 0.7 }}>
               {(() => {

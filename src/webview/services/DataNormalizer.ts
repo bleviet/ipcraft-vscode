@@ -172,7 +172,7 @@ export class DataNormalizer {
    * Normalize a complete memory map
    */
   static normalizeMemoryMap(data: any): MemoryMap {
-    const blocks = data.addressBlocks ?? data.address_blocks ?? [];
+    const blocks = data.address_blocks ?? data.addressBlocks ?? [];
     return {
       name: data.name,
       description: data.description,

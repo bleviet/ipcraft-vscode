@@ -394,7 +394,7 @@ export interface IpCore {
   clocks?: Clocks;
   resets?: Resets;
   ports?: Ports;
-  busInterfaces?: Businterfaces;
+  bus_interfaces?: Businterfaces;
   memoryMaps?: Memorymaps;
   fileSets?: Filesets;
   parameters?: Parameters;
@@ -468,6 +468,7 @@ export interface BusInterface {
   associatedClock?: Associatedclock;
   associatedReset?: Associatedreset;
   memoryMapRef?: Memorymapref;
+  memory_map_ref?: Memorymapref;
   useOptionalPorts?: Useoptionalports;
   portWidthOverrides?: Portwidthoverrides;
   /**
@@ -501,6 +502,7 @@ export interface ArrayConfig {
 export interface MemoryMap {
   name: Name5;
   description?: Description5;
+  address_blocks?: Addressblocks;
   addressBlocks?: Addressblocks;
 }
 /**
@@ -510,6 +512,7 @@ export interface MemoryMap {
  */
 export interface AddressBlock {
   name: Name6;
+  base_address?: number;
   baseAddress?: Baseaddress;
   range?: Range;
   usage?: BlockUsage;
