@@ -27,14 +27,14 @@ export function useMemoryMapState() {
     }
 
     try {
-      const parsed = YamlService.parse(text);
+      const parsed = YamlService.parse(text) as Record<string, unknown> | unknown[];
 
       // Handle different YAML structures (same as original code)
-      let map: any;
+      let map: unknown;
       if (Array.isArray(parsed)) {
         map = parsed[0];
-      } else if (parsed.memory_maps) {
-        map = parsed.memory_maps[0];
+      } else if ((parsed as Record<string, unknown>).memory_maps) {
+        map = ((parsed as Record<string, unknown>).memory_maps as unknown[])[0];
       } else {
         map = parsed;
       }
@@ -58,14 +58,14 @@ export function useMemoryMapState() {
 
     // Try to update memory map as well
     try {
-      const parsed = YamlService.parse(text);
+      const parsed = YamlService.parse(text) as Record<string, unknown> | unknown[];
 
       // Handle different YAML structures
-      let map: any;
+      let map: unknown;
       if (Array.isArray(parsed)) {
         map = parsed[0];
-      } else if (parsed.memory_maps) {
-        map = parsed.memory_maps[0];
+      } else if ((parsed as Record<string, unknown>).memory_maps) {
+        map = ((parsed as Record<string, unknown>).memory_maps as unknown[])[0];
       } else {
         map = parsed;
       }

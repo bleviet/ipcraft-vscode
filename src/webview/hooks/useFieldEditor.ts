@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { SpatialInsertionService } from "../services/SpatialInsertionService";
+import { fieldToBitsString } from "../utils/BitFieldUtils";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -75,15 +76,9 @@ export function useFieldEditor(
     // Internal helpers
     // ---------------------------------------------------------------------------
 
-    /** Converts bit_offset + bit_width → "[MSB:LSB]" string. */
-    const toBits = useCallback((f: any): string => {
-        const o = Number(f?.bit_offset ?? 0);
-        const w = Number(f?.bit_width ?? 1);
-        if (!Number.isFinite(o) || !Number.isFinite(w)) {
-            return "[?:?]";
-        }
-        const msb = o + w - 1;
-        return `[${msb}:${o}]`;
+    /** Converts bit_offset + bit_width → "[MSB:LSB]" string. Delegates to the shared fieldToBitsString utility. */
+    const toBits = useCallback((f: { bit_offset?: number | null; bit_width?: number | null; bits?: string }): string => {
+        return fieldToBitsString(f);
     }, []);
 
     const refocusTableSoon = useCallback(() => {

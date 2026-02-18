@@ -2,48 +2,18 @@
  * Bit field repacking algorithms for maintaining proper bit field layouts
  */
 
-/**
- * Parse a bits range string like "[31:0]" or "[5]"
- * @returns [msb, lsb] tuple or null if invalid
- */
-export function parseBitsRange(bits: string): [number, number] | null {
-  if (!bits) {
-    return null;
-  }
-  const m = bits.match(/^\[(\d+):(\d+)\]$/);
-  if (m) {
-    return [parseInt(m[1], 10), parseInt(m[2], 10)];
-  }
-  const s = bits.match(/^\[(\d+)\]$/);
-  if (s) {
-    return [parseInt(s[1], 10), parseInt(s[1], 10)];
-  }
-  return null;
-}
+import {
+  parseBitsRange,
+  formatBitsRange as formatBits,
+  fieldToBitsString,
+} from '../utils/BitFieldUtils';
 
-/**
- * Format a bits range as a string
- * Always outputs full range format [MSB:LSB] for YAML compatibility
- */
-export function formatBits(msb: number, lsb: number): string {
-  if (msb === lsb) {
-    return `[${msb}]`;
-  }
-  return `[${msb}:${lsb}]`;
-}
-
-/**
- * Helper to convert field to bits string
- */
-function toBitsString(f: any): string {
-  const o = Number(f?.bit_offset ?? 0);
-  const w = Number(f?.bit_width ?? 1);
-  if (!Number.isFinite(o) || !Number.isFinite(w)) {
-    return "[?:?]";
-  }
-  const msb = o + w - 1;
-  return `[${msb}:${o}]`;
-}
+// Re-export canonical implementations from BitFieldUtils so that
+// BitFieldRepacker consumers and test suites continue to work unchanged.
+export {
+  parseBitsRange,
+  formatBitsRange as formatBits,
+} from '../utils/BitFieldUtils';
 
 /**
  * Repack only the updated field and subsequent fields, preserving order
@@ -62,10 +32,7 @@ export function repackFieldsFrom(
   if (startIdx > 0) {
     // Previous field's LSB
     const prev = fields[startIdx - 1];
-    const prevBits = prev.bits;
-    const prevRange = parseBitsRange(
-      typeof prevBits === "string" ? prevBits : toBitsString(prev),
-    );
+    const prevRange = parseBitsRange(fieldToBitsString(prev));
     if (prevRange) {
       nextMsb = prevRange[1] - 1;
     }
@@ -73,10 +40,7 @@ export function repackFieldsFrom(
   const newFields = [...fields];
   for (let i = startIdx; i < fields.length; ++i) {
     let width = 1;
-    const bitsStr = newFields[i].bits;
-    const parsed = parseBitsRange(
-      typeof bitsStr === "string" ? bitsStr : toBitsString(newFields[i]),
-    );
+    const parsed = parseBitsRange(fieldToBitsString(newFields[i]));
     if (parsed) {
       width = Math.abs(parsed[0] - parsed[1]) + 1;
     }
@@ -114,16 +78,14 @@ export function repackFieldsForward(
     fromIndex > 0
       ? (() => {
           const prev = newFields[fromIndex - 1];
-          const prevBits = prev.bits || toBitsString(prev);
-          const prevRange = parseBitsRange(prevBits);
+          const prevRange = parseBitsRange(fieldToBitsString(prev));
           return prevRange ? prevRange[0] + 1 : 0; // Previous MSB + 1
         })()
       : 0;
 
   for (let i = fromIndex; i < newFields.length; i++) {
     const field = newFields[i];
-    const bitsStr = field.bits || toBitsString(field);
-    const parsed = parseBitsRange(bitsStr);
+    const parsed = parseBitsRange(fieldToBitsString(field));
     const width = parsed ? Math.abs(parsed[0] - parsed[1]) + 1 : 1;
 
     const lsb = nextLsb;
@@ -158,16 +120,14 @@ export function repackFieldsBackward(
     fromIndex < newFields.length - 1
       ? (() => {
           const next = newFields[fromIndex + 1];
-          const nextBits = next.bits || toBitsString(next);
-          const nextRange = parseBitsRange(nextBits);
+          const nextRange = parseBitsRange(fieldToBitsString(next));
           return nextRange ? nextRange[1] - 1 : regWidth - 1; // Next LSB - 1
         })()
       : regWidth - 1;
 
   for (let i = fromIndex; i >= 0; i--) {
     const field = newFields[i];
-    const bitsStr = field.bits || toBitsString(field);
-    const parsed = parseBitsRange(bitsStr);
+    const parsed = parseBitsRange(fieldToBitsString(field));
     const width = parsed ? Math.abs(parsed[0] - parsed[1]) + 1 : 1;
 
     const msb = nextMsb;

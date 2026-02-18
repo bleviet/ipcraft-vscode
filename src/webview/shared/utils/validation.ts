@@ -1,14 +1,17 @@
 /**
- * VHDL identifier validation
- * Must start with letter, contain only letters, numbers, and underscores
+ * VHDL identifier validation.
+ * Must start with a letter, contain only letters, digits, and underscores,
+ * with no consecutive underscores and no trailing underscore.
  */
 export function validateVhdlIdentifier(value: string): string | null {
-  if (!value) {
-    return 'Required';
+  const trimmed = (value ?? '').trim();
+  if (!trimmed) {
+    return 'Name is required';
   }
 
-  if (!/^[a-zA-Z][a-zA-Z0-9_]*$/.test(value)) {
-    return 'Must start with letter, contain only letters, numbers, and underscores';
+  const re = /^[A-Za-z](?:[A-Za-z0-9]*(_[A-Za-z0-9]+)*)?$/;
+  if (!re.test(trimmed)) {
+    return 'VHDL name must start with a letter and contain only letters, digits, and single underscores';
   }
 
   return null;

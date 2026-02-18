@@ -17,6 +17,7 @@ import {
     repackFieldsForward,
     repackFieldsBackward,
 } from "../algorithms/BitFieldRepacker";
+import { fieldToBitsString } from "../utils/BitFieldUtils";
 import {
     repackRegistersForward,
     repackRegistersBackward,
@@ -90,14 +91,6 @@ export interface AddressBlockRuntimeDef {
 // Internal helpers
 // ---------------------------------------------------------------------------
 
-/** Convert `bit_offset` + `bit_width` to a `[msb:lsb]` range string. */
-function fieldToBitsStr(field: BitFieldRuntimeDef): string {
-    const lo = Number(field.bit_offset ?? 0);
-    const width = Number(field.bit_width ?? 1);
-    const msb = lo + width - 1;
-    return `[${msb}:${lo}]`;
-}
-
 /** Compute the next sequential name of the form `<prefix><N+1>`. */
 function nextSequentialName(items: { name?: string }[], prefix: string): string {
     let maxN = 0;
@@ -112,8 +105,8 @@ function nextSequentialName(items: { name?: string }[], prefix: string): string 
 /** Sort fields ascending by LSB. */
 function sortFieldsByLsb(fields: BitFieldRuntimeDef[]): BitFieldRuntimeDef[] {
     return [...fields].sort((a, b) => {
-        const aBits = parseBitsRange(fieldToBitsStr(a));
-        const bBits = parseBitsRange(fieldToBitsStr(b));
+        const aBits = parseBitsRange(fieldToBitsString(a));
+        const bBits = parseBitsRange(fieldToBitsString(b));
         if (!aBits || !bBits) return 0;
         return aBits[1] - bBits[1];
     });
@@ -186,7 +179,7 @@ export class SpatialInsertionService {
 
         const selIdx = selectedIndex >= 0 ? selectedIndex : fields.length - 1;
         const selected = fields[selIdx];
-        const selectedBits = parseBitsRange(fieldToBitsStr(selected));
+        const selectedBits = parseBitsRange(fieldToBitsString(selected));
         if (!selectedBits) {
             return {
                 items: fields,
@@ -209,7 +202,7 @@ export class SpatialInsertionService {
         // Collision check.
         for (const field of fields) {
             if (field === selected) continue;
-            const bits = parseBitsRange(fieldToBitsStr(field));
+            const bits = parseBitsRange(fieldToBitsString(field));
             if (!bits) continue;
             const [fMsb, fLsb] = bits;
             if (fLsb <= newMsb && fMsb >= newLsb) {
@@ -243,7 +236,7 @@ export class SpatialInsertionService {
         // Validate: no field may have a negative LSB.
         let minLsb = Infinity;
         for (const field of newFields) {
-            const bits = parseBitsRange(fieldToBitsStr(field));
+            const bits = parseBitsRange(fieldToBitsString(field));
             if (bits) minLsb = Math.min(minLsb, bits[1]);
         }
         if (minLsb < 0) {
@@ -292,7 +285,7 @@ export class SpatialInsertionService {
 
         const selIdx = selectedIndex >= 0 ? selectedIndex : fields.length - 1;
         const selected = fields[selIdx];
-        const selectedBits = parseBitsRange(fieldToBitsStr(selected));
+        const selectedBits = parseBitsRange(fieldToBitsString(selected));
         if (!selectedBits) {
             return {
                 items: fields,
@@ -315,7 +308,7 @@ export class SpatialInsertionService {
         // Collision check.
         for (const field of fields) {
             if (field === selected) continue;
-            const bits = parseBitsRange(fieldToBitsStr(field));
+            const bits = parseBitsRange(fieldToBitsString(field));
             if (!bits) continue;
             const [fMsb, fLsb] = bits;
             if (fLsb <= newMsb && fMsb >= newLsb) {
@@ -353,7 +346,7 @@ export class SpatialInsertionService {
         // Validate: no field may exceed register size.
         let maxMsb = -Infinity;
         for (const field of newFields) {
-            const bits = parseBitsRange(fieldToBitsStr(field));
+            const bits = parseBitsRange(fieldToBitsString(field));
             if (bits) maxMsb = Math.max(maxMsb, bits[0]);
         }
         if (maxMsb >= regSize) {

@@ -1,5 +1,15 @@
 import { YamlService } from '../../../webview/services/YamlService';
 
+/** Helper: cast cleanForYaml result to a plain object map for assertions. */
+function asObj(v: unknown): Record<string, unknown> {
+  return v as Record<string, unknown>;
+}
+
+/** Helper: cast cleanForYaml result to an array of plain object maps. */
+function asArr(v: unknown): Array<Record<string, unknown>> {
+  return v as Array<Record<string, unknown>>;
+}
+
 describe('YamlService', () => {
   describe('cleanForYaml', () => {
     it('should convert bit_offset and bit_width to bits format', () => {
@@ -11,7 +21,7 @@ describe('YamlService', () => {
         description: 'Enable bit',
       };
 
-      const result = YamlService.cleanForYaml(input);
+      const result = asObj(YamlService.cleanForYaml(input));
 
       expect(result.bits).toBe('[0:0]');
       expect(result.bit_offset).toBeUndefined();
@@ -29,7 +39,7 @@ describe('YamlService', () => {
         access: 'read-write',
       };
 
-      const result = YamlService.cleanForYaml(input);
+      const result = asObj(YamlService.cleanForYaml(input));
 
       expect(result.bits).toBe('[2:1]');
       expect(result.bit_offset).toBeUndefined();
@@ -45,7 +55,7 @@ describe('YamlService', () => {
         access: 'read-only',
       };
 
-      const result = YamlService.cleanForYaml(input);
+      const result = asObj(YamlService.cleanForYaml(input));
 
       expect(result.bits).toBe('[7:4]');
       expect(result.bit_offset).toBeUndefined();
@@ -70,13 +80,14 @@ describe('YamlService', () => {
         ],
       };
 
-      const result = YamlService.cleanForYaml(input);
+      const result = asObj(YamlService.cleanForYaml(input));
+      const fields = result.fields as Array<Record<string, unknown>>;
 
-      expect(result.fields).toHaveLength(2);
-      expect(result.fields[0].bits).toBe('[0:0]');
-      expect(result.fields[0].bit_offset).toBeUndefined();
-      expect(result.fields[1].bits).toBe('[2:1]');
-      expect(result.fields[1].bit_offset).toBeUndefined();
+      expect(fields).toHaveLength(2);
+      expect(fields[0].bits).toBe('[0:0]');
+      expect(fields[0].bit_offset).toBeUndefined();
+      expect(fields[1].bits).toBe('[2:1]');
+      expect(fields[1].bit_offset).toBeUndefined();
     });
 
     it('should handle arrays of fields', () => {
@@ -93,7 +104,7 @@ describe('YamlService', () => {
         },
       ];
 
-      const result = YamlService.cleanForYaml(input);
+      const result = asArr(YamlService.cleanForYaml(input));
 
       expect(result).toHaveLength(2);
       expect(result[0].bits).toBe('[0:0]');
@@ -158,11 +169,12 @@ fields:
     access: read-write
 `;
 
-      const result = YamlService.parse(yaml);
+      const result = asObj(YamlService.parse(yaml));
 
       expect(result.name).toBe('Test');
-      expect(result.fields[0].name).toBe('ENABLE');
-      expect(result.fields[0].bits).toBe('[0:0]');
+      const fields = result.fields as Array<Record<string, unknown>>;
+      expect(fields[0].name).toBe('ENABLE');
+      expect(fields[0].bits).toBe('[0:0]');
     });
   });
 

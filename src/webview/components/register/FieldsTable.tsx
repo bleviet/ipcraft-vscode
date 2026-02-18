@@ -7,6 +7,7 @@ import {
 } from "@vscode/webview-ui-toolkit/react";
 import { FIELD_COLORS, getFieldColor } from "../../shared/colors";
 import { parseBitsRange, formatBits } from "../../algorithms/BitFieldRepacker";
+import { validateVhdlIdentifier } from "../../shared/utils/validation";
 import type { FieldEditorState } from "../../hooks/useFieldEditor";
 
 // ---------------------------------------------------------------------------
@@ -98,19 +99,6 @@ function parseReset(text: string): number | null {
     }
     const v = Number.parseInt(s, 0);
     return Number.isFinite(v) ? v : null;
-}
-
-/** Validates that `name` is a VHDL basic identifier. */
-export function validateVhdlIdentifier(name: string): string | null {
-    const trimmed = name.trim();
-    if (!trimmed) {
-        return "Name is required";
-    }
-    const re = /^[A-Za-z](?:[A-Za-z0-9]*(_[A-Za-z0-9]+)*)?$/;
-    if (!re.test(trimmed)) {
-        return "VHDL name must start with a letter and contain only letters, digits, and single underscores";
-    }
-    return null;
 }
 
 function getFieldBitWidth(f: any): number {

@@ -6,6 +6,64 @@ export interface BitsRange {
   bit_width: number;
 }
 
+// ---------------------------------------------------------------------------
+// Standalone functional exports (preferred API for new code)
+// ---------------------------------------------------------------------------
+
+/**
+ * Parses a bits string '[hi:lo]' or '[n]' into [hi, lo].
+ * Returns null if the format is unrecognised.
+ */
+export function parseBitsRange(bits: string): [number, number] | null {
+  if (!bits) {
+    return null;
+  }
+  const rangeMatch = bits.match(/^\[(\d+):(\d+)\]$/);
+  if (rangeMatch) {
+    return [parseInt(rangeMatch[1], 10), parseInt(rangeMatch[2], 10)];
+  }
+  const singleMatch = bits.match(/^\[(\d+)\]$/);
+  if (singleMatch) {
+    return [parseInt(singleMatch[1], 10), parseInt(singleMatch[1], 10)];
+  }
+  return null;
+}
+
+/**
+ * Formats a bit range as '[hi:lo]' or '[hi]' for single bits.
+ *
+ * @param hi Most-significant bit index.
+ * @param lo Least-significant bit index.
+ */
+export function formatBitsRange(hi: number, lo: number): string {
+  return hi === lo ? `[${hi}]` : `[${hi}:${lo}]`;
+}
+
+/**
+ * Converts a field definition to its canonical bits string.
+ * Computes from `bit_offset`/`bit_width` when available; falls back to the
+ * `bits` property; returns `'[?:?]'` when neither can be determined.
+ */
+export function fieldToBitsString(field: {
+  bit_offset?: number | null;
+  bit_width?: number | null;
+  bits?: string;
+}): string {
+  const offset = Number(field?.bit_offset ?? NaN);
+  const width = Number(field?.bit_width ?? NaN);
+  if (Number.isFinite(offset) && Number.isFinite(width) && width >= 1) {
+    return formatBitsRange(offset + width - 1, offset);
+  }
+  if (typeof field?.bits === 'string' && field.bits) {
+    return field.bits;
+  }
+  return '[?:?]';
+}
+
+// ---------------------------------------------------------------------------
+// Class-based API (legacy — kept for backward compatibility)
+// ---------------------------------------------------------------------------
+
 /**
  * Utility functions for bit field formatting and parsing
  */
