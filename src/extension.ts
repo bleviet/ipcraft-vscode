@@ -10,6 +10,24 @@ import {
 import { registerGeneratorCommands } from "./commands/GenerateCommands";
 
 /**
+ * Register a command, ignoring "already exists" errors that occur when the
+ * extension host restarts without a full deactivation cycle.
+ */
+function safeRegisterCommand(
+  context: vscode.ExtensionContext,
+  command: string,
+  handler: (...args: any[]) => any,
+): void {
+  try {
+    context.subscriptions.push(
+      vscode.commands.registerCommand(command, handler),
+    );
+  } catch {
+    // Command was already registered by a previous (stale) activation
+  }
+}
+
+/**
  * Extension activation entry point
  */
 export function activate(context: vscode.ExtensionContext): void {
@@ -19,54 +37,47 @@ export function activate(context: vscode.ExtensionContext): void {
   logger.info("Extension activating");
 
   // Register Memory Map custom editor provider
-  context.subscriptions.push(
-    vscode.window.registerCustomEditorProvider(
-      "fpgaMemoryMap.editor",
-      new MemoryMapEditorProvider(context),
-      {
-        webviewOptions: {
-          retainContextWhenHidden: true,
+  try {
+    context.subscriptions.push(
+      vscode.window.registerCustomEditorProvider(
+        "fpgaMemoryMap.editor",
+        new MemoryMapEditorProvider(context),
+        {
+          webviewOptions: {
+            retainContextWhenHidden: true,
+          },
+          supportsMultipleEditorsPerDocument: false,
         },
-        supportsMultipleEditorsPerDocument: false,
-      },
-    ),
-  );
-  logger.info("Memory Map editor registered");
+      ),
+    );
+    logger.info("Memory Map editor registered");
+  } catch (e) {
+    logger.warn("fpgaMemoryMap.editor already registered – skipping");
+  }
 
   // Register IP Core custom editor provider
-  context.subscriptions.push(
-    vscode.window.registerCustomEditorProvider(
-      "fpgaIpCore.editor",
-      new IpCoreEditorProvider(context),
-      {
-        webviewOptions: {
-          retainContextWhenHidden: true,
+  try {
+    context.subscriptions.push(
+      vscode.window.registerCustomEditorProvider(
+        "fpgaIpCore.editor",
+        new IpCoreEditorProvider(context),
+        {
+          webviewOptions: {
+            retainContextWhenHidden: true,
+          },
+          supportsMultipleEditorsPerDocument: false,
         },
-        supportsMultipleEditorsPerDocument: false,
-      },
-    ),
-  );
-  logger.info("IP Core editor registered");
+      ),
+    );
+    logger.info("IP Core editor registered");
+  } catch (e) {
+    logger.warn("fpgaIpCore.editor already registered – skipping");
+  }
 
   // Register File Creation Commands
-  context.subscriptions.push(
-    vscode.commands.registerCommand(
-      "fpga-ip-core.createIpCore",
-      createIpCoreCommand,
-    ),
-  );
-  context.subscriptions.push(
-    vscode.commands.registerCommand(
-      "fpga-ip-core.createMemoryMap",
-      createMemoryMapCommand,
-    ),
-  );
-  context.subscriptions.push(
-    vscode.commands.registerCommand(
-      "fpga-ip-core.createIpCoreWithMemoryMap",
-      createIpCoreWithMemoryMapCommand,
-    ),
-  );
+  safeRegisterCommand(context, "fpga-ip-core.createIpCore", createIpCoreCommand);
+  safeRegisterCommand(context, "fpga-ip-core.createMemoryMap", createMemoryMapCommand);
+  safeRegisterCommand(context, "fpga-ip-core.createIpCoreWithMemoryMap", createIpCoreWithMemoryMapCommand);
 
   // Register VHDL Generator Commands
   registerGeneratorCommands(context);

@@ -48,6 +48,12 @@
         "title": "Create IP YAML from VHDL",
         "category": "FPGA IP Core",
         "icon": "$(file-code)"
+      },
+      {
+        "command": "fpga-ip-core.viewBusDefinitions",
+        "title": "View Bus Definitions",
+        "category": "FPGA IP Core",
+        "icon": "$(list-unordered)"
       }
     ],
     "menus": {
@@ -71,9 +77,6 @@
         "viewType": "fpgaMemoryMap.editor",
         "displayName": "Memory Map Visual Editor",
         "selector": [
-          {
-            "filenamePattern": "*.mm.yml"
-          },
           {
             "filenamePattern": "*.mm.yml"
           }

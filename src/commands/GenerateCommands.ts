@@ -17,38 +17,76 @@ const logger = new Logger("GenerateCommands");
 /**
  * Register all generator commands with VS Code
  */
+/**
+ * Register a command, ignoring "already exists" errors that occur when the
+ * extension host restarts without a full deactivation cycle.
+ */
+function safeRegisterCommand(
+  context: vscode.ExtensionContext,
+  command: string,
+  handler: (...args: any[]) => any,
+): void {
+  try {
+    context.subscriptions.push(
+      vscode.commands.registerCommand(command, handler),
+    );
+  } catch {
+    // Command was already registered by a previous (stale) activation
+  }
+}
+
 export function registerGeneratorCommands(
   context: vscode.ExtensionContext,
 ): void {
   // Generate VHDL command (auto-detects bus from YAML)
-  const command = "fpga-ip-core.generateVHDL";
-  const commandHandler = async () => {
+  safeRegisterCommand(context, "fpga-ip-core.generateVHDL", async () => {
     await generateVHDL(context);
-  };
-  context.subscriptions.push(
-    vscode.commands.registerCommand(command, commandHandler),
-  );
+  });
 
   // Legacy command - now just calls main generate
-  context.subscriptions.push(
-    vscode.commands.registerCommand(
-      "fpga-ip-core.generateVHDLWithBus",
-      async () => {
-        // Bus type is now auto-detected from YAML
-        await generateVHDL(context);
-      },
-    ),
-  );
+  safeRegisterCommand(context, "fpga-ip-core.generateVHDLWithBus", async () => {
+    // Bus type is now auto-detected from YAML
+    await generateVHDL(context);
+  });
 
   // Parse VHDL and create IP core YAML
-  context.subscriptions.push(
-    vscode.commands.registerCommand(
-      "fpga-ip-core.parseVHDL",
-      async (uri?: vscode.Uri) => {
-        await parseVHDL(uri);
-      },
-    ),
+  safeRegisterCommand(context, "fpga-ip-core.parseVHDL", async (uri?: vscode.Uri) => {
+    await parseVHDL(uri);
+  });
+
+  // View bundled bus definitions YAML
+  safeRegisterCommand(context, "fpga-ip-core.viewBusDefinitions", async () => {
+    await viewBusDefinitions(context);
+  });
+}
+
+/**
+ * Open the bundled bus_definitions.yml in a read-only editor tab
+ */
+async function viewBusDefinitions(
+  context: vscode.ExtensionContext,
+): Promise<void> {
+  const builtInPath = path.join(
+    context.extensionPath,
+    "dist",
+    "resources",
+    "bus_definitions.yml",
   );
+
+  const uri = vscode.Uri.file(builtInPath);
+
+  try {
+    const doc = await vscode.workspace.openTextDocument(uri);
+    await vscode.window.showTextDocument(doc, {
+      preview: true,
+      preserveFocus: false,
+    });
+  } catch (error) {
+    vscode.window.showErrorMessage(
+      `Failed to open bus definitions: ${error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  }
 }
 
 /**
