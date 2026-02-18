@@ -8,10 +8,7 @@ import {
 import { KeyboardShortcutsButton } from "../../shared/components";
 import RegisterMapVisualizer from "../RegisterMapVisualizer";
 import { FIELD_COLORS, FIELD_COLOR_KEYS } from "../../shared/colors";
-import {
-    repackRegistersForward,
-    repackRegistersBackward,
-} from "../../algorithms/RegisterRepacker";
+import { SpatialInsertionService } from "../../services/SpatialInsertionService";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -126,96 +123,27 @@ export function BlockEditor({
     useEffect(() => {
         const liveRegisters = block?.registers || [];
 
-        const getNextRegName = () => {
-            let maxN = 0;
-            for (const r of liveRegisters) {
-                const m = String(r.name || "").match(/^reg(\d+)$/);
-                if (m) maxN = Math.max(maxN, parseInt(m[1], 10));
-            }
-            return `reg${maxN + 1}`;
-        };
-
-        const defaultReg = (name: string, offset: number) => ({
-            name,
-            address_offset: offset,
-            offset,
-            access: "read-write",
-            description: "",
-        });
-
         const tryInsertReg = (after: boolean) => {
             setInsertError(null);
-            if (liveRegisters.length === 0) {
-                const name = getNextRegName();
-                onUpdate(["registers"], [defaultReg(name, 0)]);
-                setSelectedRegIndex(0);
-                setHoveredRegIndex(0);
-                setRegActiveCell({ rowIndex: 0, key: "name" });
-                window.setTimeout(() => {
-                    document.querySelector(`tr[data-reg-idx="0"]`)?.scrollIntoView({ block: "center" });
-                }, 100);
+            const result = after
+                ? SpatialInsertionService.insertRegisterAfter(liveRegisters, selectedRegIndex)
+                : SpatialInsertionService.insertRegisterBefore(liveRegisters, selectedRegIndex);
+
+            if (result.error) {
+                setInsertError(result.error);
                 return;
             }
 
-            const selIdx = selectedRegIndex >= 0 ? selectedRegIndex : liveRegisters.length - 1;
-            const selected = liveRegisters[selIdx];
-            const selectedOffset = selected.address_offset ?? selected.offset ?? 0;
-
-            if (after) {
-                let selectedSize = 4;
-                if ((selected as any).__kind === "array") {
-                    selectedSize = ((selected as any).count || 1) * ((selected as any).stride || 4);
-                }
-                const newOffset = selectedOffset + selectedSize;
-                const name = getNextRegName();
-                let newRegs = [
-                    ...liveRegisters.slice(0, selIdx + 1),
-                    defaultReg(name, newOffset),
-                    ...liveRegisters.slice(selIdx + 1),
-                ];
-                newRegs = repackRegistersForward(newRegs, selIdx + 2);
-                newRegs.sort(
-                    (a, b) => (a.address_offset ?? a.offset ?? 0) - (b.address_offset ?? b.offset ?? 0),
-                );
-                const newIdx = newRegs.findIndex((r) => r.name === name);
-                onUpdate(["registers"], newRegs);
-                setSelectedRegIndex(newIdx);
-                setHoveredRegIndex(newIdx);
-                setRegActiveCell({ rowIndex: newIdx, key: "name" });
-                window.setTimeout(() => {
-                    document.querySelector(`tr[data-reg-idx="${newIdx}"]`)?.scrollIntoView({ block: "center" });
-                }, 100);
-            } else {
-                const newOffset = selectedOffset - 4;
-                if (newOffset < 0) {
-                    setInsertError("Cannot insert before: offset would be negative");
-                    return;
-                }
-                const name = getNextRegName();
-                let newRegs = [
-                    ...liveRegisters.slice(0, selIdx),
-                    defaultReg(name, newOffset),
-                    ...liveRegisters.slice(selIdx),
-                ];
-                newRegs = repackRegistersBackward(newRegs, selIdx - 1 >= 0 ? selIdx - 1 : 0);
-                newRegs.sort(
-                    (a, b) => (a.address_offset ?? a.offset ?? 0) - (b.address_offset ?? b.offset ?? 0),
-                );
-                const newIdx = newRegs.findIndex((r) => r.name === name);
-                for (const r of newRegs) {
-                    if ((r.address_offset ?? r.offset ?? 0) < 0) {
-                        setInsertError("Cannot insert: not enough offset space for repacking");
-                        return;
-                    }
-                }
-                onUpdate(["registers"], newRegs);
-                setSelectedRegIndex(newIdx);
-                setHoveredRegIndex(newIdx);
-                setRegActiveCell({ rowIndex: newIdx, key: "name" });
-                window.setTimeout(() => {
-                    document.querySelector(`tr[data-reg-idx="${newIdx}"]`)?.scrollIntoView({ block: "center" });
-                }, 100);
-            }
+            const newIdx = result.newIndex;
+            onUpdate(["registers"], result.items);
+            setSelectedRegIndex(newIdx);
+            setHoveredRegIndex(newIdx);
+            setRegActiveCell({ rowIndex: newIdx, key: "name" });
+            window.setTimeout(() => {
+                document
+                    .querySelector(`tr[data-reg-idx="${newIdx}"]`)
+                    ?.scrollIntoView({ block: "center" });
+            }, 100);
         };
 
         const onKeyDown = (e: KeyboardEvent) => {

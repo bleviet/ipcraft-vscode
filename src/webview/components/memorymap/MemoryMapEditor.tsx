@@ -6,10 +6,7 @@ import {
 import { KeyboardShortcutsButton } from "../../shared/components";
 import AddressMapVisualizer from "../AddressMapVisualizer";
 import { FIELD_COLORS, FIELD_COLOR_KEYS } from "../../shared/colors";
-import {
-    repackBlocksForward,
-    repackBlocksBackward,
-} from "../../algorithms/AddressBlockRepacker";
+import { SpatialInsertionService } from "../../services/SpatialInsertionService";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -156,138 +153,27 @@ export function MemoryMapEditor({
         const liveBlocks =
             memoryMap?.address_blocks || memoryMap?.addressBlocks || [];
 
-        const getNextBlockName = () => {
-            let maxN = 0;
-            for (const b of liveBlocks) {
-                const m = String(b.name || "").match(/^block(\d+)$/);
-                if (m) maxN = Math.max(maxN, parseInt(m[1], 10));
-            }
-            return `block${maxN + 1}`;
-        };
-
-        const defaultBlock = (name: string, base_address: number) => ({
-            name,
-            base_address,
-            size: 4,
-            usage: "register",
-            description: "",
-            registers: [
-                {
-                    name: "reg0",
-                    address_offset: 0,
-                    offset: 0,
-                    access: "read-write",
-                    description: "",
-                    fields: [
-                        { name: "data", bits: "[31:0]", access: "read-write", description: "" },
-                    ],
-                },
-            ],
-        });
-
         const tryInsertBlock = (after: boolean) => {
             setInsertError(null);
+            const result = after
+                ? SpatialInsertionService.insertBlockAfter(liveBlocks, selectedBlockIndex)
+                : SpatialInsertionService.insertBlockBefore(liveBlocks, selectedBlockIndex);
 
-            if (liveBlocks.length === 0) {
-                const name = getNextBlockName();
-                onUpdate(["addressBlocks"], [defaultBlock(name, 0)]);
-                setSelectedBlockIndex(0);
-                setHoveredBlockIndex(0);
-                setBlockActiveCell({ rowIndex: 0, key: "name" });
-                window.setTimeout(() => {
-                    document
-                        .querySelector(`tr[data-block-idx="0"]`)
-                        ?.scrollIntoView({ block: "center" });
-                }, 100);
+            if (result.error) {
+                setInsertError(result.error);
                 return;
             }
 
-            const selIdx =
-                selectedBlockIndex >= 0 ? selectedBlockIndex : liveBlocks.length - 1;
-            const selected = liveBlocks[selIdx];
-            const selectedBase = selected.base_address ?? selected.offset ?? 0;
-            const selectedRegisters = selected.registers || [];
-            const selectedSize =
-                selectedRegisters.length > 0
-                    ? selectedRegisters.length * 4
-                    : (selected.size ?? selected.range ?? 4);
-
-            if (after) {
-                const newBase = selectedBase + selectedSize;
-                const name = getNextBlockName();
-                let newBlocks = [
-                    ...liveBlocks.slice(0, selIdx + 1),
-                    defaultBlock(name, newBase),
-                    ...liveBlocks.slice(selIdx + 1),
-                ];
-                newBlocks = repackBlocksForward(newBlocks, selIdx + 2);
-                newBlocks.sort(
-                    (a, b) =>
-                        (a.base_address ?? a.offset ?? 0) - (b.base_address ?? b.offset ?? 0),
-                );
-                const newIdx = newBlocks.findIndex((b) => b.name === name);
-                onUpdate(["addressBlocks"], newBlocks);
-                setSelectedBlockIndex(newIdx);
-                setHoveredBlockIndex(newIdx);
-                setBlockActiveCell({ rowIndex: newIdx, key: "name" });
-                window.setTimeout(() => {
-                    document
-                        .querySelector(`tr[data-block-idx="${newIdx}"]`)
-                        ?.scrollIntoView({ block: "center" });
-                }, 100);
-            } else {
-                const newSize = 4;
-                const newEnd = selectedBase - 1;
-                const newBase = Math.max(0, newEnd - newSize + 1);
-                if (newBase < 0) {
-                    setInsertError("Cannot insert before: not enough address space");
-                    return;
-                }
-                const name = getNextBlockName();
-                let newBlocks = [
-                    ...liveBlocks.slice(0, selIdx),
-                    defaultBlock(name, newBase),
-                    ...liveBlocks.slice(selIdx),
-                ];
-                if (selIdx > 0) {
-                    const prevBlock = newBlocks[selIdx - 1];
-                    const prevBase = prevBlock.base_address ?? prevBlock.offset ?? 0;
-                    const prevRegisters = prevBlock.registers || [];
-                    const prevSize =
-                        prevRegisters.length > 0
-                            ? prevRegisters.length * 4
-                            : (prevBlock.size ?? prevBlock.range ?? 4);
-                    const prevEnd = prevBase + prevSize - 1;
-                    if (prevEnd >= newBase) {
-                        const newPrevSize = newBase - prevBase;
-                        if (newPrevSize <= 0) {
-                            setInsertError(
-                                "Cannot insert before: insufficient space, previous block would have zero or negative size",
-                            );
-                            return;
-                        }
-                        newBlocks[selIdx - 1] = { ...prevBlock, size: newPrevSize };
-                    }
-                }
-                newBlocks = repackBlocksBackward(
-                    newBlocks,
-                    selIdx - 1 >= 0 ? selIdx - 1 : 0,
-                );
-                newBlocks.sort(
-                    (a, b) =>
-                        (a.base_address ?? a.offset ?? 0) - (b.base_address ?? b.offset ?? 0),
-                );
-                const newIdx = newBlocks.findIndex((b) => b.name === name);
-                onUpdate(["addressBlocks"], newBlocks);
-                setSelectedBlockIndex(newIdx);
-                setHoveredBlockIndex(newIdx);
-                setBlockActiveCell({ rowIndex: newIdx, key: "name" });
-                window.setTimeout(() => {
-                    document
-                        .querySelector(`tr[data-block-idx="${newIdx}"]`)
-                        ?.scrollIntoView({ block: "center" });
-                }, 100);
-            }
+            const newIdx = result.newIndex;
+            onUpdate(["addressBlocks"], result.items);
+            setSelectedBlockIndex(newIdx);
+            setHoveredBlockIndex(newIdx);
+            setBlockActiveCell({ rowIndex: newIdx, key: "name" });
+            window.setTimeout(() => {
+                document
+                    .querySelector(`tr[data-block-idx="${newIdx}"]`)
+                    ?.scrollIntoView({ block: "center" });
+            }, 100);
         };
 
         const onKeyDown = (e: KeyboardEvent) => {

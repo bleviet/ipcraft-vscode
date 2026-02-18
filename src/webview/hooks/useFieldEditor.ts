@@ -1,10 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-    parseBitsRange,
-    formatBits,
-    repackFieldsForward,
-    repackFieldsBackward,
-} from "../algorithms/BitFieldRepacker";
+import { SpatialInsertionService } from "../services/SpatialInsertionService";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -206,64 +201,14 @@ export function useFieldEditor(
             return;
         }
 
-        const getNextFieldName = () => {
-            let maxN = 0;
-            for (const f of fields) {
-                const m = String(f.name || "").match(/^field(\d+)$/);
-                if (m) {
-                    maxN = Math.max(maxN, parseInt(m[1], 10));
-                }
-            }
-            return `field${maxN + 1}`;
-        };
-
         const tryInsertField = (after: boolean) => {
             setInsertError(null);
-            const regSize = registerSize || 32;
-            const newFieldWidth = 1;
+            const result = after
+                ? SpatialInsertionService.insertFieldAfter(fields, selectedFieldIndex, registerSize)
+                : SpatialInsertionService.insertFieldBefore(fields, selectedFieldIndex, registerSize);
 
-            if (fields.length === 0) {
-                const name = getNextFieldName();
-                const newField = {
-                    name,
-                    bits: formatBits(0, 0),
-                    bit_offset: 0,
-                    bit_width: 1,
-                    bit_range: [0, 0],
-                    access: "read-write",
-                    reset_value: 0,
-                    description: "",
-                };
-                onUpdate(["fields"], [newField]);
-                setSelectedFieldIndex(0);
-                setHoveredFieldIndex(0);
-                setActiveCell({ rowIndex: 0, key: "name" });
-                setBitsDrafts({});
-                setBitsErrors({});
-                setNameDrafts({});
-                setNameErrors({});
-                window.setTimeout(() => {
-                    const row = document.querySelector(`tr[data-field-idx="0"]`);
-                    row?.scrollIntoView({ block: "center" });
-                }, 100);
-                return;
-            }
-
-            const selIdx =
-                selectedFieldIndex >= 0 ? selectedFieldIndex : fields.length - 1;
-            const selected = fields[selIdx];
-            const o = Number(selected?.bit_offset ?? 0);
-            const w = Number(selected?.bit_width ?? 1);
-            const selectedMsb = o + w - 1;
-            const selectedLsb = o;
-            const selectedBits = parseBitsRange(`[${selectedMsb}:${selectedLsb}]`);
-            if (!selectedBits) {
-                setInsertError("Cannot determine selected field position");
-                return;
-            }
-            const [resolvedMsb, resolvedLsb] = selectedBits;
-
-            const scrollToError = () => {
+            if (result.error) {
+                setInsertError(result.error);
                 window.setTimeout(
                     () =>
                         errorRef.current?.scrollIntoView({
@@ -272,209 +217,23 @@ export function useFieldEditor(
                         }),
                     0,
                 );
-            };
-
-            if (after) {
-                const newMsb = resolvedMsb + 1;
-                const newLsb = newMsb - newFieldWidth + 1;
-
-                if (newLsb < 0 || newMsb >= regSize) {
-                    setInsertError(
-                        `Cannot insert after: would place field at [${newMsb}:${newLsb}], outside register bounds`,
-                    );
-                    scrollToError();
-                    return;
-                }
-
-                const innerToBits = (f: any) => {
-                    const fo = Number(f?.bit_offset ?? 0);
-                    const fw = Number(f?.bit_width ?? 1);
-                    const msb = fo + fw - 1;
-                    return `[${msb}:${fo}]`;
-                };
-
-                for (const f of fields) {
-                    if (f === selected) {
-                        continue;
-                    }
-                    const bits = parseBitsRange(innerToBits(f));
-                    if (!bits) {
-                        continue;
-                    }
-                    const [fMsb, fLsb] = bits;
-                    if (fLsb <= newMsb && fMsb >= newLsb) {
-                        setInsertError(
-                            `Cannot insert: bits [${newMsb}:${newLsb}] already occupied by ${f.name}`,
-                        );
-                        scrollToError();
-                        return;
-                    }
-                }
-
-                const name = getNextFieldName();
-                const newField = {
-                    name,
-                    bits: formatBits(newMsb, newLsb),
-                    bit_offset: newLsb,
-                    bit_width: newFieldWidth,
-                    bit_range: [newMsb, newLsb],
-                    access: "read-write",
-                    reset_value: 0,
-                    description: "",
-                };
-
-                let newFields = [
-                    ...fields.slice(0, selIdx + 1),
-                    newField,
-                    ...fields.slice(selIdx + 1),
-                ];
-                newFields = repackFieldsForward(newFields, selIdx + 2, regSize);
-                newFields.sort((a, b) => {
-                    const aBits = parseBitsRange(
-                        `[${Number(a?.bit_offset ?? 0) + Number(a?.bit_width ?? 1) - 1}:${Number(a?.bit_offset ?? 0)}]`,
-                    );
-                    const bBits = parseBitsRange(
-                        `[${Number(b?.bit_offset ?? 0) + Number(b?.bit_width ?? 1) - 1}:${Number(b?.bit_offset ?? 0)}]`,
-                    );
-                    if (!aBits || !bBits) {
-                        return 0;
-                    }
-                    return aBits[1] - bBits[1];
-                });
-
-                const newIdx = newFields.findIndex((f) => f.name === name);
-                let minLsb = Infinity;
-                for (const f of newFields) {
-                    const bits = parseBitsRange(
-                        `[${Number(f?.bit_offset ?? 0) + Number(f?.bit_width ?? 1) - 1}:${Number(f?.bit_offset ?? 0)}]`,
-                    );
-                    if (bits) {
-                        minLsb = Math.min(minLsb, bits[1]);
-                    }
-                }
-                if (minLsb < 0) {
-                    setInsertError("Cannot insert: not enough space for repacking");
-                    scrollToError();
-                    return;
-                }
-
-                onUpdate(["fields"], newFields);
-                setSelectedFieldIndex(newIdx);
-                setHoveredFieldIndex(newIdx);
-                setActiveCell({ rowIndex: newIdx, key: "name" });
-                setBitsDrafts({});
-                setBitsErrors({});
-                setNameDrafts({});
-                setNameErrors({});
-                window.setTimeout(() => {
-                    const row = document.querySelector(
-                        `tr[data-field-idx="${newIdx}"]`,
-                    );
-                    row?.scrollIntoView({ block: "center" });
-                }, 100);
-            } else {
-                const newLsb = resolvedLsb - 1;
-                const newMsb = newLsb + newFieldWidth - 1;
-
-                if (newLsb < 0 || newMsb >= regSize) {
-                    setInsertError(
-                        `Cannot insert before: would place field at [${newMsb}:${newLsb}], outside register bounds`,
-                    );
-                    scrollToError();
-                    return;
-                }
-
-                const innerToBits2 = (f: any) => {
-                    const fo = Number(f?.bit_offset ?? 0);
-                    const fw = Number(f?.bit_width ?? 1);
-                    const msb = fo + fw - 1;
-                    return `[${msb}:${fo}]`;
-                };
-
-                for (const f of fields) {
-                    if (f === selected) {
-                        continue;
-                    }
-                    const bits = parseBitsRange(innerToBits2(f));
-                    if (!bits) {
-                        continue;
-                    }
-                    const [fMsb, fLsb] = bits;
-                    if (fLsb <= newMsb && fMsb >= newLsb) {
-                        setInsertError(
-                            `Cannot insert: bits [${newMsb}:${newLsb}] already occupied by ${f.name}`,
-                        );
-                        scrollToError();
-                        return;
-                    }
-                }
-
-                const name = getNextFieldName();
-                const newField = {
-                    name,
-                    bits: formatBits(newMsb, newLsb),
-                    bit_offset: newLsb,
-                    bit_width: newFieldWidth,
-                    bit_range: [newMsb, newLsb],
-                    access: "read-write",
-                    reset_value: 0,
-                    description: "",
-                };
-
-                let newFields = [
-                    ...fields.slice(0, selIdx),
-                    newField,
-                    ...fields.slice(selIdx),
-                ];
-                newFields = repackFieldsBackward(
-                    newFields,
-                    selIdx - 1 >= 0 ? selIdx - 1 : 0,
-                    regSize,
-                );
-                newFields.sort((a, b) => {
-                    const aBits = parseBitsRange(
-                        `[${Number(a?.bit_offset ?? 0) + Number(a?.bit_width ?? 1) - 1}:${Number(a?.bit_offset ?? 0)}]`,
-                    );
-                    const bBits = parseBitsRange(
-                        `[${Number(b?.bit_offset ?? 0) + Number(b?.bit_width ?? 1) - 1}:${Number(b?.bit_offset ?? 0)}]`,
-                    );
-                    if (!aBits || !bBits) {
-                        return 0;
-                    }
-                    return aBits[1] - bBits[1];
-                });
-
-                const newIdx = newFields.findIndex((f) => f.name === name);
-                let maxMsb = -Infinity;
-                for (const f of newFields) {
-                    const bits = parseBitsRange(
-                        `[${Number(f?.bit_offset ?? 0) + Number(f?.bit_width ?? 1) - 1}:${Number(f?.bit_offset ?? 0)}]`,
-                    );
-                    if (bits) {
-                        maxMsb = Math.max(maxMsb, bits[0]);
-                    }
-                }
-                if (maxMsb >= regSize) {
-                    setInsertError("Cannot insert: not enough space for repacking");
-                    scrollToError();
-                    return;
-                }
-
-                onUpdate(["fields"], newFields);
-                setSelectedFieldIndex(newIdx);
-                setHoveredFieldIndex(newIdx);
-                setActiveCell({ rowIndex: newIdx, key: "name" });
-                setBitsDrafts({});
-                setBitsErrors({});
-                setNameDrafts({});
-                setNameErrors({});
-                window.setTimeout(() => {
-                    const row = document.querySelector(
-                        `tr[data-field-idx="${newIdx}"]`,
-                    );
-                    row?.scrollIntoView({ block: "center" });
-                }, 100);
+                return;
             }
+
+            const newIdx = result.newIndex;
+            onUpdate(["fields"], result.items);
+            setSelectedFieldIndex(newIdx);
+            setHoveredFieldIndex(newIdx);
+            setActiveCell({ rowIndex: newIdx, key: "name" });
+            setBitsDrafts({});
+            setBitsErrors({});
+            setNameDrafts({});
+            setNameErrors({});
+            window.setTimeout(() => {
+                document
+                    .querySelector(`tr[data-field-idx="${newIdx}"]`)
+                    ?.scrollIntoView({ block: "center" });
+            }, 100);
         };
 
         const onKeyDown = (e: KeyboardEvent) => {
