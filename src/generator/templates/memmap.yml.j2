@@ -1,0 +1,51 @@
+{# Template to generate Python driver compatible memory map YAML #}
+{# Helper macro to get clean access string from Enum or string #}
+{%- macro access_str(access) -%}
+{%- if access is string -%}
+{{- access | lower | replace('_', '-') -}}
+{%- elif access.value is defined -%}
+{{- access.value | lower -}}
+{%- else -%}
+read-write
+{%- endif -%}
+{%- endmacro -%}
+
+{# Helper macro to get clean usage string #}
+{%- macro usage_str(usage) -%}
+{%- if usage is string -%}
+{{- usage | lower -}}
+{%- elif usage.value is defined -%}
+{{- usage.value | lower -}}
+{%- else -%}
+register
+{%- endif -%}
+{%- endmacro -%}
+{% for map in memory_maps %}
+- name: {{ map.name }}
+  description: "{{ map.description | default('') }}"
+  addressBlocks:
+{% for block in map.address_blocks %}
+    - name: {{ block.name }}
+      offset: {{ block.base_address | default(0) }}
+      range: {{ block.range | default(4096) }}
+      usage: {{ usage_str(block.usage) }}
+      registers:
+{% for reg in block.registers %}
+        - name: {{ reg.name }}
+          offset: {{ reg.address_offset | default(0) }}
+          description: "{{ reg.description | default('') }}"
+          access: {{ access_str(reg.access) }}
+{% if reg.count is defined and reg.count > 1 %}
+          count: {{ reg.count }}
+          stride: {{ reg.stride | default(4) }}
+{% endif %}
+          fields:
+{% for field in reg.fields %}
+            - name: {{ field.name }}
+              bits: "[{{ (field.bit_offset | default(0)) + (field.bit_width | default(1)) - 1 }}:{{ field.bit_offset | default(0) }}]"
+              access: {{ access_str(field.access) }}
+              description: "{{ field.description | default('') }}"
+{% endfor %}
+{% endfor %}
+{% endfor %}
+{% endfor %}

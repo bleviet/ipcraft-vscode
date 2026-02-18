@@ -1,0 +1,28 @@
+library ieee;
+use ieee.std_logic_1164.all;
+{%- if has_std_logic_vector %}
+use ieee.numeric_std.all;
+{%- endif %}
+
+entity {{ entity_name }} is
+{%- if generics %}
+    generic (
+{%- for generic in generics %}
+{%- if loop.last %}
+        {{ generic.name }} : {{ generic.type }}{% if generic.default_value %} := {{ generic.default_value }}{% endif %}
+{%- else %}
+        {{ generic.name }} : {{ generic.type }}{% if generic.default_value %} := {{ generic.default_value }}{% endif %};
+{%- endif %}
+{%- endfor %}
+    );
+{%- endif %}
+    port (
+{%- for port in ports %}
+{%- if loop.last %}
+        {{ port.name }} : {{ port.direction }} {{ port.type }}
+{%- else %}
+        {{ port.name }} : {{ port.direction }} {{ port.type }};
+{%- endif %}
+{%- endfor %}
+    );
+end entity {{ entity_name }};

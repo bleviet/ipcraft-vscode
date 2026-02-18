@@ -1,0 +1,35 @@
+name: Test Memory Map
+description: Sample memory map for testing
+address_blocks:
+- name: Control Block
+  offset: 0
+  range: 4096
+  usage: register
+  description: Main control registers
+  registers:
+  - name: CTRL_REG
+    offset: 0
+    size: 32
+    access: read-write
+    reset_value: 0
+    description: Control register
+    fields:
+    - name: ENABLE
+      bits: '[0:0]'
+      access: read-write
+      reset_value: 0
+      description: Enable bit
+    - name: MODE
+      bits: '[2:1]'
+      access: read-write
+      reset_value: 0
+      description: Operating mode
+    - name: STATUS
+      bits: '[7:4]'
+      access: read-only
+      description: Status bits
+  - name: DATA_REG
+    offset: 4
+    size: 32
+    access: read-write
+    description: Data register

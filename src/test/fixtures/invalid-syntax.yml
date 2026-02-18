@@ -1,0 +1,7 @@
+name: Invalid Map
+description: This YAML has syntax errors
+address_blocks:
+  - name: Bad Block
+    offset: 0x0000
+    registers: [
+      # Missing closing bracket - syntax error

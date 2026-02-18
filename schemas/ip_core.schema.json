@@ -1,0 +1,878 @@
+{
+  "$defs": {
+    "AccessType": {
+      "description": "Register/field access types.",
+      "enum": [
+        "read-only",
+        "write-only",
+        "read-write",
+        "write-1-to-clear",
+        "read-write-1-to-clear",
+        "read-only",
+        "write-only",
+        "read-write",
+        "write-1-to-clear"
+      ],
+      "title": "AccessType",
+      "type": "string"
+    },
+    "AddressBlock": {
+      "additionalProperties": false,
+      "description": "Contiguous address block within a memory map.\n\nCan contain registers, memory, or reserved space.",
+      "properties": {
+        "name": {
+          "description": "Block name",
+          "title": "Name",
+          "type": "string"
+        },
+        "base_address": {
+          "description": "Block starting address",
+          "minimum": 0,
+          "title": "Base Address",
+          "type": "integer"
+        },
+        "range": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Block size (bytes or '4K', '1M', etc.)",
+          "title": "Range"
+        },
+        "usage": {
+          "$ref": "#/$defs/BlockUsage",
+          "default": "register",
+          "description": "Block usage type"
+        },
+        "access": {
+          "$ref": "#/$defs/AccessType",
+          "default": "read-write",
+          "description": "Default access"
+        },
+        "description": {
+          "default": "",
+          "description": "Block description",
+          "title": "Description",
+          "type": "string"
+        },
+        "registers": {
+          "description": "Registers in block",
+          "items": {
+            "$ref": "#/$defs/Register"
+          },
+          "title": "Registers",
+          "type": "array"
+        },
+        "register_arrays": {
+          "description": "Register arrays",
+          "items": {
+            "$ref": "#/$defs/RegisterArray"
+          },
+          "title": "Register Arrays",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "base_address",
+        "range"
+      ],
+      "title": "AddressBlock",
+      "type": "object"
+    },
+    "ArrayConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for array of bus interfaces.\n\nEnables creation of multiple interface instances (e.g., 4 AXI Stream channels).",
+      "properties": {
+        "count": {
+          "description": "Number of instances",
+          "minimum": 1,
+          "title": "Count",
+          "type": "integer"
+        },
+        "index_start": {
+          "default": 0,
+          "description": "Starting index",
+          "title": "Index Start",
+          "type": "integer"
+        },
+        "naming_pattern": {
+          "description": "Naming pattern with {index} placeholder (e.g., 'M_AXIS_CH{index}_EVENTS')",
+          "title": "Naming Pattern",
+          "type": "string"
+        },
+        "physical_prefix_pattern": {
+          "description": "Physical prefix pattern with {index} placeholder",
+          "title": "Physical Prefix Pattern",
+          "type": "string"
+        }
+      },
+      "required": [
+        "count",
+        "naming_pattern",
+        "physical_prefix_pattern"
+      ],
+      "title": "ArrayConfig",
+      "type": "object"
+    },
+    "BitField": {
+      "additionalProperties": false,
+      "description": "Bit field within a register.\n\nRepresents a named range of bits with specific access semantics.",
+      "properties": {
+        "name": {
+          "description": "Bit field name",
+          "title": "Name",
+          "type": "string"
+        },
+        "bit_offset": {
+          "description": "Starting bit position (LSB = 0)",
+          "minimum": 0,
+          "title": "Bit Offset",
+          "type": "integer"
+        },
+        "bit_width": {
+          "description": "Number of bits",
+          "minimum": 1,
+          "title": "Bit Width",
+          "type": "integer"
+        },
+        "access": {
+          "$ref": "#/$defs/AccessType",
+          "default": "read-write",
+          "description": "Access type"
+        },
+        "reset_value": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Reset/default value",
+          "title": "Reset Value"
+        },
+        "description": {
+          "default": "",
+          "description": "Field description",
+          "title": "Description",
+          "type": "string"
+        },
+        "enumerated_values": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Enumeration mapping {value: name}",
+          "title": "Enumerated Values"
+        }
+      },
+      "required": [
+        "name",
+        "bit_offset",
+        "bit_width"
+      ],
+      "title": "BitField",
+      "type": "object"
+    },
+    "BlockUsage": {
+      "description": "Address block usage type.",
+      "enum": [
+        "register",
+        "memory",
+        "reserved"
+      ],
+      "title": "BlockUsage",
+      "type": "string"
+    },
+    "BusInterface": {
+      "additionalProperties": false,
+      "description": "Bus interface definition for an IP core.\n\nRepresents a standardized bus connection (AXI, Avalon, etc.) with\noptional width overrides, clock/reset associations, and array support.",
+      "properties": {
+        "name": {
+          "description": "Logical interface name",
+          "title": "Name",
+          "type": "string"
+        },
+        "type": {
+          "description": "Bus type from library (e.g., 'AXI4L', 'AXIS')",
+          "title": "Type",
+          "type": "string"
+        },
+        "mode": {
+          "$ref": "#/$defs/BusInterfaceMode",
+          "description": "Interface mode: 'master' or 'slave'"
+        },
+        "physical_prefix": {
+          "description": "Prefix for physical port names (e.g., 's_axi_')",
+          "title": "Physical Prefix",
+          "type": "string"
+        },
+        "associated_clock": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Logical clock name this interface uses",
+          "title": "Associated Clock"
+        },
+        "associated_reset": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Logical reset name this interface uses",
+          "title": "Associated Reset"
+        },
+        "memory_map_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Memory map name for register access",
+          "title": "Memory Map Ref"
+        },
+        "use_optional_ports": {
+          "description": "List of optional ports to include",
+          "items": {
+            "type": "string"
+          },
+          "title": "Use Optional Ports",
+          "type": "array"
+        },
+        "port_width_overrides": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "description": "Port width overrides {port_name: width}",
+          "title": "Port Width Overrides",
+          "type": "object"
+        },
+        "array": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ArrayConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Array configuration for multiple instances"
+        },
+        "description": {
+          "default": "",
+          "description": "Interface description",
+          "title": "Description",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "type",
+        "mode",
+        "physical_prefix"
+      ],
+      "title": "BusInterface",
+      "type": "object"
+    },
+    "BusInterfaceMode": {
+      "description": "Enumeration for bus interface modes.",
+      "enum": [
+        "master",
+        "slave",
+        "source",
+        "sink"
+      ],
+      "title": "BusInterfaceMode",
+      "type": "string"
+    },
+    "Clock": {
+      "additionalProperties": false,
+      "description": "Clock definition for an IP core.\n\nDefines both logical (internal) and physical (port) names for clock signals.\nInherits from Port, typically with width=1.",
+      "properties": {
+        "name": {
+          "description": "Logical port name",
+          "title": "Name",
+          "type": "string"
+        },
+        "physical_port": {
+          "description": "Physical port name in HDL",
+          "title": "Physical Port",
+          "type": "string"
+        },
+        "direction": {
+          "$ref": "#/$defs/PortDirection",
+          "default": "in",
+          "description": "Port direction (typically 'in')"
+        },
+        "width": {
+          "default": 1,
+          "description": "Port width in bits",
+          "title": "Width",
+          "type": "integer"
+        },
+        "description": {
+          "default": "",
+          "description": "Port description",
+          "title": "Description",
+          "type": "string"
+        },
+        "frequency": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Clock frequency (e.g., '100MHz')",
+          "title": "Frequency"
+        }
+      },
+      "required": [
+        "name",
+        "physical_port"
+      ],
+      "title": "Clock",
+      "type": "object"
+    },
+    "File": {
+      "additionalProperties": false,
+      "description": "File reference within a file set.\n\nRepresents a file that is part of the IP core (source, constraint, doc, etc.).",
+      "properties": {
+        "path": {
+          "description": "Relative or absolute file path",
+          "title": "Path",
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/FileType",
+          "description": "File type"
+        },
+        "description": {
+          "default": "",
+          "description": "File description",
+          "title": "Description",
+          "type": "string"
+        },
+        "is_include_file": {
+          "default": false,
+          "description": "Whether file is an include file",
+          "title": "Is Include File",
+          "type": "boolean"
+        },
+        "logical_name": {
+          "default": "",
+          "description": "Logical name (e.g., library name for VHDL)",
+          "title": "Logical Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "type"
+      ],
+      "title": "File",
+      "type": "object"
+    },
+    "FileSet": {
+      "additionalProperties": false,
+      "description": "Named collection of files for an IP core.\n\nGroups related files together (e.g., RTL sources, C API, documentation).",
+      "properties": {
+        "name": {
+          "description": "File set name",
+          "title": "Name",
+          "type": "string"
+        },
+        "description": {
+          "default": "",
+          "description": "File set description",
+          "title": "Description",
+          "type": "string"
+        },
+        "files": {
+          "description": "Files in this set",
+          "items": {
+            "$ref": "#/$defs/File"
+          },
+          "title": "Files",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "FileSet",
+      "type": "object"
+    },
+    "FileType": {
+      "description": "File type enumeration.",
+      "enum": [
+        "vhdl",
+        "verilog",
+        "systemverilog",
+        "xdc",
+        "sdc",
+        "ucf",
+        "cHeader",
+        "cSource",
+        "cppHeader",
+        "cppSource",
+        "pdf",
+        "markdown",
+        "text",
+        "tcl",
+        "yaml",
+        "json",
+        "unknown"
+      ],
+      "title": "FileType",
+      "type": "string"
+    },
+    "MemoryMap": {
+      "additionalProperties": false,
+      "description": "Complete memory map for an IP core.\n\nOrganizes registers into address blocks with validation.",
+      "properties": {
+        "name": {
+          "description": "Memory map name",
+          "title": "Name",
+          "type": "string"
+        },
+        "description": {
+          "default": "",
+          "description": "Memory map description",
+          "title": "Description",
+          "type": "string"
+        },
+        "address_blocks": {
+          "description": "Address blocks",
+          "items": {
+            "$ref": "#/$defs/AddressBlock"
+          },
+          "title": "Address Blocks",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "MemoryMap",
+      "type": "object"
+    },
+    "Parameter": {
+      "additionalProperties": false,
+      "description": "Generic parameter/generic definition for IP cores.\n\nUsed for VHDL generics, Verilog parameters, or component configuration.",
+      "properties": {
+        "name": {
+          "description": "Parameter name",
+          "title": "Name",
+          "type": "string"
+        },
+        "value": {
+          "description": "Default value",
+          "title": "Value"
+        },
+        "data_type": {
+          "$ref": "#/$defs/ParameterType",
+          "default": "integer",
+          "description": "Data type"
+        },
+        "description": {
+          "default": "",
+          "description": "Parameter description",
+          "title": "Description",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "value"
+      ],
+      "title": "Parameter",
+      "type": "object"
+    },
+    "ParameterType": {
+      "description": "Enumeration for standard IP-XACT/HDL parameter types.",
+      "enum": [
+        "integer",
+        "natural",
+        "positive",
+        "real",
+        "boolean",
+        "string"
+      ],
+      "title": "ParameterType",
+      "type": "string"
+    },
+    "Polarity": {
+      "description": "Reset polarity enumeration.",
+      "enum": [
+        "activeHigh",
+        "activeLow"
+      ],
+      "title": "Polarity",
+      "type": "string"
+    },
+    "Port": {
+      "additionalProperties": false,
+      "description": "Generic port definition for IP cores.\n\nUsed for data and control ports that are not part of clock, reset, or bus interfaces.",
+      "properties": {
+        "name": {
+          "description": "Logical port name",
+          "title": "Name",
+          "type": "string"
+        },
+        "physical_port": {
+          "description": "Physical port name in HDL",
+          "title": "Physical Port",
+          "type": "string"
+        },
+        "direction": {
+          "$ref": "#/$defs/PortDirection",
+          "description": "Port direction"
+        },
+        "width": {
+          "default": 1,
+          "description": "Port width in bits",
+          "title": "Width",
+          "type": "integer"
+        },
+        "description": {
+          "default": "",
+          "description": "Port description",
+          "title": "Description",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "physical_port",
+        "direction"
+      ],
+      "title": "Port",
+      "type": "object"
+    },
+    "PortDirection": {
+      "description": "Port direction enumeration.",
+      "enum": [
+        "in",
+        "out",
+        "inout"
+      ],
+      "title": "PortDirection",
+      "type": "string"
+    },
+    "Register": {
+      "additionalProperties": false,
+      "description": "Register definition within a memory map.\n\nRepresents a memory-mapped register with bit fields.",
+      "properties": {
+        "name": {
+          "description": "Register name",
+          "title": "Name",
+          "type": "string"
+        },
+        "address_offset": {
+          "description": "Offset from address block base",
+          "minimum": 0,
+          "title": "Address Offset",
+          "type": "integer"
+        },
+        "size": {
+          "default": 32,
+          "description": "Register width in bits",
+          "title": "Size",
+          "type": "integer"
+        },
+        "access": {
+          "$ref": "#/$defs/AccessType",
+          "default": "read-write",
+          "description": "Default access type"
+        },
+        "reset_value": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 0,
+          "description": "Reset value for entire register",
+          "title": "Reset Value"
+        },
+        "description": {
+          "default": "",
+          "description": "Register description",
+          "title": "Description",
+          "type": "string"
+        },
+        "fields": {
+          "description": "Bit fields",
+          "items": {
+            "$ref": "#/$defs/BitField"
+          },
+          "title": "Fields",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "address_offset"
+      ],
+      "title": "Register",
+      "type": "object"
+    },
+    "RegisterArray": {
+      "additionalProperties": false,
+      "description": "Array of registers with automatic address calculation.\n\nUsed for repeated register structures (e.g., per-channel registers).",
+      "properties": {
+        "name": {
+          "description": "Base name for array",
+          "title": "Name",
+          "type": "string"
+        },
+        "base_address": {
+          "description": "Starting address",
+          "minimum": 0,
+          "title": "Base Address",
+          "type": "integer"
+        },
+        "count": {
+          "description": "Number of instances",
+          "minimum": 1,
+          "title": "Count",
+          "type": "integer"
+        },
+        "stride": {
+          "description": "Address increment between instances",
+          "minimum": 4,
+          "title": "Stride",
+          "type": "integer"
+        },
+        "template": {
+          "$ref": "#/$defs/Register",
+          "description": "Register template for each instance"
+        },
+        "description": {
+          "default": "",
+          "description": "Array description",
+          "title": "Description",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "base_address",
+        "count",
+        "stride",
+        "template"
+      ],
+      "title": "RegisterArray",
+      "type": "object"
+    },
+    "Reset": {
+      "additionalProperties": false,
+      "description": "Reset definition for an IP core.\n\nDefines both logical (internal) and physical (port) names for reset signals,\nincluding polarity information.\nInherits from Port, typically with width=1.",
+      "properties": {
+        "name": {
+          "description": "Logical port name",
+          "title": "Name",
+          "type": "string"
+        },
+        "physical_port": {
+          "description": "Physical port name in HDL",
+          "title": "Physical Port",
+          "type": "string"
+        },
+        "direction": {
+          "$ref": "#/$defs/PortDirection",
+          "default": "in",
+          "description": "Port direction (typically 'in')"
+        },
+        "width": {
+          "default": 1,
+          "description": "Port width in bits",
+          "title": "Width",
+          "type": "integer"
+        },
+        "description": {
+          "default": "",
+          "description": "Port description",
+          "title": "Description",
+          "type": "string"
+        },
+        "polarity": {
+          "$ref": "#/$defs/Polarity",
+          "default": "activeHigh",
+          "description": "Reset polarity (activeHigh or activeLow)"
+        }
+      },
+      "required": [
+        "name",
+        "physical_port"
+      ],
+      "title": "Reset",
+      "type": "object"
+    },
+    "VLNV": {
+      "description": "Vendor-Library-Name-Version identifier for IP cores.\n\nThis uniquely identifies an IP core in the IP-XACT standard format.\n\nNote: This model is frozen (immutable) to ensure safe hashing for use\nin sets and as dictionary keys.",
+      "properties": {
+        "vendor": {
+          "description": "Vendor identifier (e.g., 'my-company.com')",
+          "title": "Vendor",
+          "type": "string"
+        },
+        "library": {
+          "description": "Library name (e.g., 'processing')",
+          "title": "Library",
+          "type": "string"
+        },
+        "name": {
+          "description": "IP core name (e.g., 'my_timer_core')",
+          "title": "Name",
+          "type": "string"
+        },
+        "version": {
+          "description": "Version string (e.g., '1.2.0')",
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "vendor",
+        "library",
+        "name",
+        "version"
+      ],
+      "title": "VLNV",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Complete IP core definition - the single source of truth.\n\nThis is the canonical data model that all parsers produce and\nall generators consume. It includes:\n- Metadata (VLNV, description)\n- Interface definitions (clocks, resets, ports, buses)\n- Memory maps (registers, bit fields)\n- Files (HDL sources, constraints, documentation)\n- Parameters/generics",
+  "properties": {
+    "api_version": {
+      "description": "Schema version (e.g., 'my-ip-schema/v2.3')",
+      "title": "Api Version",
+      "type": "string"
+    },
+    "vlnv": {
+      "$ref": "#/$defs/VLNV",
+      "description": "Unique identifier"
+    },
+    "description": {
+      "default": "",
+      "description": "IP core description",
+      "title": "Description",
+      "type": "string"
+    },
+    "clocks": {
+      "description": "Clock definitions",
+      "items": {
+        "$ref": "#/$defs/Clock"
+      },
+      "title": "Clocks",
+      "type": "array"
+    },
+    "resets": {
+      "description": "Reset definitions",
+      "items": {
+        "$ref": "#/$defs/Reset"
+      },
+      "title": "Resets",
+      "type": "array"
+    },
+    "ports": {
+      "description": "Data/control ports",
+      "items": {
+        "$ref": "#/$defs/Port"
+      },
+      "title": "Ports",
+      "type": "array"
+    },
+    "bus_interfaces": {
+      "description": "Bus interface definitions",
+      "items": {
+        "$ref": "#/$defs/BusInterface"
+      },
+      "title": "Bus Interfaces",
+      "type": "array"
+    },
+    "memory_maps": {
+      "description": "Memory maps",
+      "items": {
+        "$ref": "#/$defs/MemoryMap"
+      },
+      "title": "Memory Maps",
+      "type": "array"
+    },
+    "file_sets": {
+      "description": "File sets",
+      "items": {
+        "$ref": "#/$defs/FileSet"
+      },
+      "title": "File Sets",
+      "type": "array"
+    },
+    "parameters": {
+      "description": "Generics/parameters",
+      "items": {
+        "$ref": "#/$defs/Parameter"
+      },
+      "title": "Parameters",
+      "type": "array"
+    },
+    "use_bus_library": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Path to bus definitions library",
+      "title": "Use Bus Library"
+    }
+  },
+  "required": [
+    "api_version",
+    "vlnv"
+  ],
+  "title": "IpCore",
+  "type": "object"
+}

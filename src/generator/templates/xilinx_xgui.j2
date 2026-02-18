@@ -1,0 +1,25 @@
+# Definitional proc to organize widgets for parameters.
+proc init_gui { IPINST } {
+  ipgui::add_param $IPINST -name "Component_Name"
+  #Adding Page
+  set Page_0 [ipgui::add_page $IPINST -name "Page 0"]
+{% for generic in generics %}
+  ipgui::add_param $IPINST -name "{{ generic.name }}" -parent ${Page_0}
+{% endfor %}
+
+
+}
+
+{% for generic in generics %}
+proc update_PARAM_VALUE.{{ generic.name }} { PARAM_VALUE.{{ generic.name }} } {
+	# Procedure called to update {{ generic.name }} when any of the dependent parameters in the arguments change
+}
+
+proc validate_PARAM_VALUE.{{ generic.name }} { PARAM_VALUE.{{ generic.name }} } {
+	# Procedure called to validate {{ generic.name }}
+	return true
+}
+{% if not loop.last %}
+
+{% endif %}
+{% endfor %}

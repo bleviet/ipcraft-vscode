@@ -1,0 +1,305 @@
+{
+  "$defs": {
+    "AccessType": {
+      "description": "Register/field access types.",
+      "enum": [
+        "read-only",
+        "write-only",
+        "read-write",
+        "write-1-to-clear",
+        "read-write-1-to-clear",
+        "read-only",
+        "write-only",
+        "read-write",
+        "write-1-to-clear"
+      ],
+      "title": "AccessType",
+      "type": "string"
+    },
+    "AddressBlock": {
+      "additionalProperties": false,
+      "description": "Contiguous address block within a memory map.\n\nCan contain registers, memory, or reserved space.",
+      "properties": {
+        "name": {
+          "description": "Block name",
+          "title": "Name",
+          "type": "string"
+        },
+        "base_address": {
+          "description": "Block starting address",
+          "minimum": 0,
+          "title": "Base Address",
+          "type": "integer"
+        },
+        "range": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Block size (bytes or '4K', '1M', etc.)",
+          "title": "Range"
+        },
+        "usage": {
+          "$ref": "#/$defs/BlockUsage",
+          "default": "register",
+          "description": "Block usage type"
+        },
+        "access": {
+          "$ref": "#/$defs/AccessType",
+          "default": "read-write",
+          "description": "Default access"
+        },
+        "description": {
+          "default": "",
+          "description": "Block description",
+          "title": "Description",
+          "type": "string"
+        },
+        "registers": {
+          "description": "Registers in block",
+          "items": {
+            "$ref": "#/$defs/Register"
+          },
+          "title": "Registers",
+          "type": "array"
+        },
+        "register_arrays": {
+          "description": "Register arrays",
+          "items": {
+            "$ref": "#/$defs/RegisterArray"
+          },
+          "title": "Register Arrays",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "base_address",
+        "range"
+      ],
+      "title": "AddressBlock",
+      "type": "object"
+    },
+    "BitField": {
+      "additionalProperties": false,
+      "description": "Bit field within a register.\n\nRepresents a named range of bits with specific access semantics.",
+      "properties": {
+        "name": {
+          "description": "Bit field name",
+          "title": "Name",
+          "type": "string"
+        },
+        "bit_offset": {
+          "description": "Starting bit position (LSB = 0)",
+          "minimum": 0,
+          "title": "Bit Offset",
+          "type": "integer"
+        },
+        "bit_width": {
+          "description": "Number of bits",
+          "minimum": 1,
+          "title": "Bit Width",
+          "type": "integer"
+        },
+        "access": {
+          "$ref": "#/$defs/AccessType",
+          "default": "read-write",
+          "description": "Access type"
+        },
+        "reset_value": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Reset/default value",
+          "title": "Reset Value"
+        },
+        "description": {
+          "default": "",
+          "description": "Field description",
+          "title": "Description",
+          "type": "string"
+        },
+        "enumerated_values": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Enumeration mapping {value: name}",
+          "title": "Enumerated Values"
+        }
+      },
+      "required": [
+        "name",
+        "bit_offset",
+        "bit_width"
+      ],
+      "title": "BitField",
+      "type": "object"
+    },
+    "BlockUsage": {
+      "description": "Address block usage type.",
+      "enum": [
+        "register",
+        "memory",
+        "reserved"
+      ],
+      "title": "BlockUsage",
+      "type": "string"
+    },
+    "Register": {
+      "additionalProperties": false,
+      "description": "Register definition within a memory map.\n\nRepresents a memory-mapped register with bit fields.",
+      "properties": {
+        "name": {
+          "description": "Register name",
+          "title": "Name",
+          "type": "string"
+        },
+        "address_offset": {
+          "description": "Offset from address block base",
+          "minimum": 0,
+          "title": "Address Offset",
+          "type": "integer"
+        },
+        "size": {
+          "default": 32,
+          "description": "Register width in bits",
+          "title": "Size",
+          "type": "integer"
+        },
+        "access": {
+          "$ref": "#/$defs/AccessType",
+          "default": "read-write",
+          "description": "Default access type"
+        },
+        "reset_value": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 0,
+          "description": "Reset value for entire register",
+          "title": "Reset Value"
+        },
+        "description": {
+          "default": "",
+          "description": "Register description",
+          "title": "Description",
+          "type": "string"
+        },
+        "fields": {
+          "description": "Bit fields",
+          "items": {
+            "$ref": "#/$defs/BitField"
+          },
+          "title": "Fields",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "address_offset"
+      ],
+      "title": "Register",
+      "type": "object"
+    },
+    "RegisterArray": {
+      "additionalProperties": false,
+      "description": "Array of registers with automatic address calculation.\n\nUsed for repeated register structures (e.g., per-channel registers).",
+      "properties": {
+        "name": {
+          "description": "Base name for array",
+          "title": "Name",
+          "type": "string"
+        },
+        "base_address": {
+          "description": "Starting address",
+          "minimum": 0,
+          "title": "Base Address",
+          "type": "integer"
+        },
+        "count": {
+          "description": "Number of instances",
+          "minimum": 1,
+          "title": "Count",
+          "type": "integer"
+        },
+        "stride": {
+          "description": "Address increment between instances",
+          "minimum": 4,
+          "title": "Stride",
+          "type": "integer"
+        },
+        "template": {
+          "$ref": "#/$defs/Register",
+          "description": "Register template for each instance"
+        },
+        "description": {
+          "default": "",
+          "description": "Array description",
+          "title": "Description",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "base_address",
+        "count",
+        "stride",
+        "template"
+      ],
+      "title": "RegisterArray",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Complete memory map for an IP core.\n\nOrganizes registers into address blocks with validation.",
+  "properties": {
+    "name": {
+      "description": "Memory map name",
+      "title": "Name",
+      "type": "string"
+    },
+    "description": {
+      "default": "",
+      "description": "Memory map description",
+      "title": "Description",
+      "type": "string"
+    },
+    "address_blocks": {
+      "description": "Address blocks",
+      "items": {
+        "$ref": "#/$defs/AddressBlock"
+      },
+      "title": "Address Blocks",
+      "type": "array"
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "title": "MemoryMap",
+  "type": "object"
+}
