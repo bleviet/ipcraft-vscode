@@ -197,13 +197,13 @@ export class DataNormalizer {
           description: block.description,
           // NOTE: this intentionally holds both registers and arrays; treated as "any" in consumers.
           registers: normalizedRegs as any,
-          register_arrays: (block.register_arrays ?? []).map((arr: any) => ({
-            name: arr.name,
-            base_address: DataNormalizer.parseNumber(arr.base_address, 0),
-            count: DataNormalizer.parseNumber(arr.count, 1),
-            stride: DataNormalizer.parseNumber(arr.stride, defaultRegBytes),
-            template: DataNormalizer.normalizeRegister(arr.template || {}),
-            description: arr.description,
+          register_arrays: (block.register_arrays ?? []).map((registerArray: any) => ({
+            name: registerArray.name,
+            base_address: DataNormalizer.parseNumber(registerArray.base_address, 0),
+            count: DataNormalizer.parseNumber(registerArray.count, 1),
+            stride: DataNormalizer.parseNumber(registerArray.stride, defaultRegBytes),
+            template: DataNormalizer.normalizeRegister(registerArray.template || {}),
+            description: registerArray.description,
           })),
         };
       }),

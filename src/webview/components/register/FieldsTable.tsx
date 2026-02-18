@@ -7,6 +7,7 @@ import {
 } from "@vscode/webview-ui-toolkit/react";
 import { FIELD_COLORS, getFieldColor } from "../../shared/colors";
 import { parseBitsRange, formatBits } from "../../algorithms/BitFieldRepacker";
+import { fieldToBitsString } from "../../utils/BitFieldUtils";
 import { validateVhdlIdentifier } from "../../shared/utils/validation";
 import type { FieldEditorState } from "../../hooks/useFieldEditor";
 
@@ -190,7 +191,6 @@ export function FieldsTable({
         insertError,
         focusRef,
         errorRef,
-        toBits,
         ensureDraftsInitialized,
         moveSelectedField,
     } = fieldEditor;
@@ -265,10 +265,10 @@ export function FieldsTable({
                             </tr>
                         </thead>
                         <tbody className="divide-y vscode-border text-sm">
-                            {fields.map((field, idx) => {
-                                const bits = toBits(field);
+                            {fields.map((field, index) => {
+                                const bits = fieldToBitsString(field);
                                 const color = getFieldColor(
-                                    field.name || `field${idx}`,
+                                    field.name || `field${index}`,
                                     field.bit_offset,
                                 );
                                 const resetDisplay =
@@ -277,38 +277,38 @@ export function FieldsTable({
                                         : "";
 
                                 const fieldKey =
-                                    field && field.name ? `${field.name}` : `idx-${idx}`;
+                                    field && field.name ? `${field.name}` : `index-${index}`;
                                 const nameValue =
                                     nameDrafts[fieldKey] ?? String(field.name ?? "");
                                 const nameErr = nameErrors[fieldKey] ?? null;
 
-                                const previewRange = dragPreviewRanges[idx];
+                                const previewRange = dragPreviewRanges[index];
                                 const bitsValue = previewRange
                                     ? `[${previewRange[0]}:${previewRange[1]}]`
-                                    : (bitsDrafts[idx] ?? bits);
-                                const bitsErr = bitsErrors[idx] ?? null;
+                                    : (bitsDrafts[index] ?? bits);
+                                const bitsErr = bitsErrors[index] ?? null;
                                 const resetValue =
-                                    resetDrafts[idx] ?? (resetDisplay || "0x0");
-                                const resetErr = resetErrors[idx] ?? null;
+                                    resetDrafts[index] ?? (resetDisplay || "0x0");
+                                const resetErr = resetErrors[index] ?? null;
 
                                 return (
                                     <tr
-                                        key={idx}
-                                        data-field-idx={idx}
-                                        className={`group transition-colors border-l-4 border-transparent h-12 ${idx === selectedFieldIndex
+                                        key={index}
+                                        data-field-index={index}
+                                        className={`group transition-colors border-l-4 border-transparent h-12 ${index === selectedFieldIndex
                                                 ? "vscode-focus-border vscode-row-selected"
-                                                : idx === hoveredFieldIndex
+                                                : index === hoveredFieldIndex
                                                     ? "vscode-focus-border vscode-row-hover"
                                                     : ""
                                             }`}
                                         style={{ position: "relative" }}
-                                        onMouseEnter={() => setHoveredFieldIndex(idx)}
+                                        onMouseEnter={() => setHoveredFieldIndex(index)}
                                         onMouseLeave={() => setHoveredFieldIndex(null)}
                                         onClick={() => {
-                                            setSelectedFieldIndex(idx);
-                                            setHoveredFieldIndex(idx);
-                                            setActiveCell((prev) => ({ rowIndex: idx, key: prev.key }));
-                                            ensureDraftsInitialized(idx);
+                                            setSelectedFieldIndex(index);
+                                            setHoveredFieldIndex(index);
+                                            setActiveCell((prev) => ({ rowIndex: index, key: prev.key }));
+                                            ensureDraftsInitialized(index);
                                         }}
                                         id={`row-${field.name?.toLowerCase().replace(/[^a-z0-9_]/g, "-")}`}
                                     >
@@ -316,17 +316,17 @@ export function FieldsTable({
                                             {/* NAME */}
                                             <td
                                                 data-col-key="name"
-                                                className={`px-6 py-2 font-medium align-middle ${activeCell.rowIndex === idx && activeCell.key === "name"
+                                                className={`px-6 py-2 font-medium align-middle ${activeCell.rowIndex === index && activeCell.key === "name"
                                                         ? "vscode-cell-active"
                                                         : ""
                                                     }`}
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    ensureDraftsInitialized(idx);
-                                                    setSelectedFieldIndex(idx);
-                                                    setHoveredFieldIndex(idx);
+                                                    ensureDraftsInitialized(index);
+                                                    setSelectedFieldIndex(index);
+                                                    setHoveredFieldIndex(index);
                                                     setSelectedEditKey("name");
-                                                    setActiveCell({ rowIndex: idx, key: "name" });
+                                                    setActiveCell({ rowIndex: index, key: "name" });
                                                 }}
                                             >
                                                 <div className="flex flex-col justify-center">
@@ -346,11 +346,11 @@ export function FieldsTable({
                                                             className="flex-1"
                                                             value={nameValue}
                                                             onFocus={() => {
-                                                                ensureDraftsInitialized(idx);
-                                                                setSelectedFieldIndex(idx);
-                                                                setHoveredFieldIndex(idx);
+                                                                ensureDraftsInitialized(index);
+                                                                setSelectedFieldIndex(index);
+                                                                setHoveredFieldIndex(index);
                                                                 setSelectedEditKey("name");
-                                                                setActiveCell({ rowIndex: idx, key: "name" });
+                                                                setActiveCell({ rowIndex: index, key: "name" });
                                                             }}
                                                             onInput={(e: any) => {
                                                                 const next = String(e.target.value ?? "");
@@ -369,7 +369,7 @@ export function FieldsTable({
                                                                 const err = validateVhdlIdentifier(next);
                                                                 if (!err) {
                                                                     onUpdate(
-                                                                        ["fields", idx, "name"],
+                                                                        ["fields", index, "name"],
                                                                         next.trim(),
                                                                     );
                                                                 }
@@ -387,17 +387,17 @@ export function FieldsTable({
                                             {/* BITS */}
                                             <td
                                                 data-col-key="bits"
-                                                className={`px-4 py-2 font-mono vscode-muted align-middle ${activeCell.rowIndex === idx && activeCell.key === "bits"
+                                                className={`px-4 py-2 font-mono vscode-muted align-middle ${activeCell.rowIndex === index && activeCell.key === "bits"
                                                         ? "vscode-cell-active"
                                                         : ""
                                                     }`}
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    ensureDraftsInitialized(idx);
-                                                    setSelectedFieldIndex(idx);
-                                                    setHoveredFieldIndex(idx);
+                                                    ensureDraftsInitialized(index);
+                                                    setSelectedFieldIndex(index);
+                                                    setHoveredFieldIndex(index);
                                                     setSelectedEditKey("bits");
-                                                    setActiveCell({ rowIndex: idx, key: "bits" });
+                                                    setActiveCell({ rowIndex: index, key: "bits" });
                                                 }}
                                             >
                                                 <div className="flex items-center h-10">
@@ -407,17 +407,17 @@ export function FieldsTable({
                                                             className="w-full font-mono"
                                                             value={bitsValue}
                                                             onFocus={() => {
-                                                                ensureDraftsInitialized(idx);
-                                                                setSelectedFieldIndex(idx);
-                                                                setHoveredFieldIndex(idx);
+                                                                ensureDraftsInitialized(index);
+                                                                setSelectedFieldIndex(index);
+                                                                setHoveredFieldIndex(index);
                                                                 setSelectedEditKey("bits");
-                                                                setActiveCell({ rowIndex: idx, key: "bits" });
+                                                                setActiveCell({ rowIndex: index, key: "bits" });
                                                             }}
                                                             onInput={(e: any) => {
                                                                 const next = String(e.target.value ?? "");
                                                                 setBitsDrafts((prev) => ({
                                                                     ...prev,
-                                                                    [idx]: next,
+                                                                    [index]: next,
                                                                 }));
                                                                 let err = validateBitsString(next);
                                                                 if (!err) {
@@ -425,11 +425,11 @@ export function FieldsTable({
                                                                     if (thisWidth !== null) {
                                                                         let total = 0;
                                                                         for (let i = 0; i < fields.length; ++i) {
-                                                                            if (i === idx) {
+                                                                            if (i === index) {
                                                                                 total += thisWidth;
                                                                             } else {
                                                                                 const b =
-                                                                                    bitsDrafts[i] ?? toBits(fields[i]);
+                                                                                    bitsDrafts[i] ?? fieldToBitsString(fields[i]);
                                                                                 const w = parseBitsWidth(b);
                                                                                 if (w) {
                                                                                     total += w;
@@ -443,11 +443,11 @@ export function FieldsTable({
                                                                 }
                                                                 setBitsErrors((prev) => ({
                                                                     ...prev,
-                                                                    [idx]: err,
+                                                                    [index]: err,
                                                                 }));
                                                                 if (!err) {
                                                                     const updatedFields = fields.map((f, i) => {
-                                                                        if (i !== idx) {
+                                                                        if (i !== index) {
                                                                             return { ...f };
                                                                         }
                                                                         const parsed = parseBitsInput(next);
@@ -463,13 +463,13 @@ export function FieldsTable({
                                                                             return { ...f, bits: next };
                                                                         }
                                                                     });
-                                                                    const curr = updatedFields[idx];
+                                                                    const curr = updatedFields[index];
                                                                     const currMSB = curr.bit_range
                                                                         ? curr.bit_range[0]
                                                                         : curr.bit_offset + curr.bit_width - 1;
                                                                     let prevMSB = currMSB;
                                                                     for (
-                                                                        let i = idx + 1;
+                                                                        let i = index + 1;
                                                                         i < updatedFields.length;
                                                                         ++i
                                                                     ) {
@@ -502,7 +502,7 @@ export function FieldsTable({
                                             {/* ACCESS */}
                                             <td
                                                 data-col-key="access"
-                                                className={`px-4 py-2 align-middle ${activeCell.rowIndex === idx &&
+                                                className={`px-4 py-2 align-middle ${activeCell.rowIndex === index &&
                                                         activeCell.key === "access"
                                                         ? "vscode-cell-active"
                                                         : ""
@@ -510,11 +510,11 @@ export function FieldsTable({
                                                 style={{ overflow: "visible", position: "relative" }}
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    ensureDraftsInitialized(idx);
-                                                    setSelectedFieldIndex(idx);
-                                                    setHoveredFieldIndex(idx);
+                                                    ensureDraftsInitialized(index);
+                                                    setSelectedFieldIndex(index);
+                                                    setHoveredFieldIndex(index);
                                                     setSelectedEditKey("access");
-                                                    setActiveCell({ rowIndex: idx, key: "access" });
+                                                    setActiveCell({ rowIndex: index, key: "access" });
                                                 }}
                                             >
                                                 <div className="flex items-center h-10">
@@ -524,14 +524,14 @@ export function FieldsTable({
                                                         className="w-full"
                                                         position="below"
                                                         onFocus={() => {
-                                                            setSelectedFieldIndex(idx);
-                                                            setHoveredFieldIndex(idx);
+                                                            setSelectedFieldIndex(index);
+                                                            setHoveredFieldIndex(index);
                                                             setSelectedEditKey("access");
-                                                            setActiveCell({ rowIndex: idx, key: "access" });
+                                                            setActiveCell({ rowIndex: index, key: "access" });
                                                         }}
                                                         onInput={(e: any) =>
                                                             onUpdate(
-                                                                ["fields", idx, "access"],
+                                                                ["fields", index, "access"],
                                                                 e.target.value,
                                                             )
                                                         }
@@ -548,18 +548,18 @@ export function FieldsTable({
                                             {/* RESET */}
                                             <td
                                                 data-col-key="reset"
-                                                className={`px-4 py-2 font-mono vscode-muted align-middle ${activeCell.rowIndex === idx &&
+                                                className={`px-4 py-2 font-mono vscode-muted align-middle ${activeCell.rowIndex === index &&
                                                         activeCell.key === "reset"
                                                         ? "vscode-cell-active"
                                                         : ""
                                                     }`}
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    ensureDraftsInitialized(idx);
-                                                    setSelectedFieldIndex(idx);
-                                                    setHoveredFieldIndex(idx);
+                                                    ensureDraftsInitialized(index);
+                                                    setSelectedFieldIndex(index);
+                                                    setHoveredFieldIndex(index);
                                                     setSelectedEditKey("reset");
-                                                    setActiveCell({ rowIndex: idx, key: "reset" });
+                                                    setActiveCell({ rowIndex: index, key: "reset" });
                                                 }}
                                             >
                                                 <div className="flex flex-col justify-center h-10">
@@ -568,36 +568,36 @@ export function FieldsTable({
                                                         className="w-full font-mono"
                                                         value={resetValue}
                                                         onFocus={() => {
-                                                            ensureDraftsInitialized(idx);
-                                                            setSelectedFieldIndex(idx);
-                                                            setHoveredFieldIndex(idx);
+                                                            ensureDraftsInitialized(index);
+                                                            setSelectedFieldIndex(index);
+                                                            setHoveredFieldIndex(index);
                                                             setSelectedEditKey("reset");
-                                                            setActiveCell({ rowIndex: idx, key: "reset" });
+                                                            setActiveCell({ rowIndex: index, key: "reset" });
                                                         }}
                                                         onInput={(e: any) => {
                                                             const raw = String(e.target.value ?? "");
                                                             setResetDrafts((prev) => ({
                                                                 ...prev,
-                                                                [idx]: raw,
+                                                                [index]: raw,
                                                             }));
                                                             const trimmed = raw.trim();
                                                             if (!trimmed) {
                                                                 setResetErrors((prev) => ({
                                                                     ...prev,
-                                                                    [idx]: null,
+                                                                    [index]: null,
                                                                 }));
-                                                                onUpdate(["fields", idx, "reset_value"], null);
+                                                                onUpdate(["fields", index, "reset_value"], null);
                                                                 return;
                                                             }
                                                             const parsed = parseReset(raw);
                                                             const err = validateResetForField(field, parsed);
                                                             setResetErrors((prev) => ({
                                                                 ...prev,
-                                                                [idx]: err,
+                                                                [index]: err,
                                                             }));
                                                             if (!err && parsed !== null) {
                                                                 onUpdate(
-                                                                    ["fields", idx, "reset_value"],
+                                                                    ["fields", index, "reset_value"],
                                                                     parsed,
                                                                 );
                                                             }
@@ -614,7 +614,7 @@ export function FieldsTable({
                                             {/* DESCRIPTION */}
                                             <td
                                                 data-col-key="description"
-                                                className={`px-6 py-2 vscode-muted align-middle ${activeCell.rowIndex === idx &&
+                                                className={`px-6 py-2 vscode-muted align-middle ${activeCell.rowIndex === index &&
                                                         activeCell.key === "description"
                                                         ? "vscode-cell-active"
                                                         : ""
@@ -622,11 +622,11 @@ export function FieldsTable({
                                                 style={{ width: "40%", minWidth: "240px" }}
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    ensureDraftsInitialized(idx);
-                                                    setSelectedFieldIndex(idx);
-                                                    setHoveredFieldIndex(idx);
+                                                    ensureDraftsInitialized(index);
+                                                    setSelectedFieldIndex(index);
+                                                    setHoveredFieldIndex(index);
                                                     setSelectedEditKey("description");
-                                                    setActiveCell({ rowIndex: idx, key: "description" });
+                                                    setActiveCell({ rowIndex: index, key: "description" });
                                                 }}
                                             >
                                                 <div className="flex items-center h-10">
@@ -641,17 +641,17 @@ export function FieldsTable({
                                                         rows={1}
                                                         value={field.description || ""}
                                                         onFocus={() => {
-                                                            setSelectedFieldIndex(idx);
-                                                            setHoveredFieldIndex(idx);
+                                                            setSelectedFieldIndex(index);
+                                                            setHoveredFieldIndex(index);
                                                             setSelectedEditKey("description");
                                                             setActiveCell({
-                                                                rowIndex: idx,
+                                                                rowIndex: index,
                                                                 key: "description",
                                                             });
                                                         }}
                                                         onInput={(e: any) =>
                                                             onUpdate(
-                                                                ["fields", idx, "description"],
+                                                                ["fields", index, "description"],
                                                                 e.target.value,
                                                             )
                                                         }

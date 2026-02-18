@@ -80,17 +80,17 @@ const App = () => {
    */
   const resolveFromSelection = useCallback(
     (
-      sel: Selection | null,
+      selection: Selection | null,
     ): {
       type: Selection["type"];
       object: any;
       breadcrumbs: string[];
     } | null => {
-      if (!sel || !memoryMap) {
+      if (!selection || !memoryMap) {
         return null;
       }
 
-      if (sel.type === "memoryMap") {
+      if (selection.type === "memoryMap") {
         return {
           type: "memoryMap",
           object: memoryMap,
@@ -99,7 +99,7 @@ const App = () => {
       }
 
       // Selection paths are YAML-style: ['addressBlocks', blockIndex, ...]
-      const blockIndex = typeof sel.path[1] === "number" ? sel.path[1] : null;
+      const blockIndex = typeof selection.path[1] === "number" ? selection.path[1] : null;
       if (blockIndex === null) {
         return null;
       }
@@ -108,7 +108,7 @@ const App = () => {
         return null;
       }
 
-      if (sel.type === "block") {
+      if (selection.type === "block") {
         return {
           type: "block",
           object: block,
@@ -120,27 +120,27 @@ const App = () => {
         NormalizedRegister | NormalizedRegisterArray
       >;
 
-      if (sel.type === "array") {
-        const regIndex = typeof sel.path[3] === "number" ? sel.path[3] : null;
+      if (selection.type === "array") {
+        const regIndex = typeof selection.path[3] === "number" ? selection.path[3] : null;
         if (regIndex === null) {
           return null;
         }
         const node = blockRegs[regIndex];
         if (node && (node as any).__kind === "array") {
-          const arr = node as NormalizedRegisterArray;
+          const registerArray = node as NormalizedRegisterArray;
           return {
             type: "array",
-            object: arr,
-            breadcrumbs: [memoryMap.name || "Memory Map", block.name, arr.name],
+            object: registerArray,
+            breadcrumbs: [memoryMap.name || "Memory Map", block.name, registerArray.name],
           };
         }
         return null;
       }
 
-      if (sel.type === "register") {
+      if (selection.type === "register") {
         // Direct register: ['addressBlocks', b, 'registers', r]
-        if (sel.path.length === 4) {
-          const regIndex = typeof sel.path[3] === "number" ? sel.path[3] : null;
+        if (selection.path.length === 4) {
+          const regIndex = typeof selection.path[3] === "number" ? selection.path[3] : null;
           if (regIndex === null) {
             return null;
           }
@@ -157,19 +157,19 @@ const App = () => {
         }
 
         // Nested register inside array: ['addressBlocks', b, 'registers', r, 'registers', rr]
-        if (sel.path.length === 6) {
-          const arrIndex = typeof sel.path[3] === "number" ? sel.path[3] : null;
+        if (selection.path.length === 6) {
+          const arrayIndex = typeof selection.path[3] === "number" ? selection.path[3] : null;
           const nestedIndex =
-            typeof sel.path[5] === "number" ? sel.path[5] : null;
-          if (arrIndex === null || nestedIndex === null) {
+            typeof selection.path[5] === "number" ? selection.path[5] : null;
+          if (arrayIndex === null || nestedIndex === null) {
             return null;
           }
-          const node = blockRegs[arrIndex];
+          const node = blockRegs[arrayIndex];
           if (!node || (node as any).__kind !== "array") {
             return null;
           }
-          const arr = node as NormalizedRegisterArray;
-          const reg = arr.registers?.[nestedIndex];
+          const registerArray = node as NormalizedRegisterArray;
+          const reg = registerArray.registers?.[nestedIndex];
           if (!reg) {
             return null;
           }
@@ -179,7 +179,7 @@ const App = () => {
             breadcrumbs: [
               memoryMap.name || "Memory Map",
               block.name,
-              arr.name,
+              registerArray.name,
               reg.name,
             ],
           };
@@ -198,8 +198,8 @@ const App = () => {
    */
   const handleUpdate = useCallback(
     (path: YamlPath, value: any) => {
-      const sel = selectionRef.current;
-      if (!sel) {
+      const selection = selectionRef.current;
+      if (!selection) {
         return;
       }
 
@@ -210,11 +210,11 @@ const App = () => {
         return;
       }
 
-      const { root, mapPrefix } = YamlPathResolver.getMapRootInfo(rootObj);
+      const { root, selectionRootPath } = YamlPathResolver.getMapRootInfo(rootObj);
 
       // Handle field operations
-      if (path[0] === "__op" && sel.type === "register") {
-        handleFieldOperations(path, value, root, mapPrefix, sel);
+      if (path[0] === "__op" && selection.type === "register") {
+        handleFieldOperations(path, value, root, selectionRootPath, selection);
         const newText = YamlService.dump(root);
         updateRawText(newText);
         sendUpdate(newText);
@@ -222,7 +222,7 @@ const App = () => {
       }
 
       // Handle regular property updates
-      const fullPath: YamlPath = [...mapPrefix, ...sel.path, ...path];
+      const fullPath: YamlPath = [...selectionRootPath, ...selection.path, ...path];
       try {
         YamlPathResolver.setAtPath(root, fullPath, value);
         const newText = YamlService.dump(root);
@@ -243,12 +243,12 @@ const App = () => {
     path: YamlPath,
     value: any,
     root: any,
-    mapPrefix: YamlPath,
-    sel: Selection,
+    selectionRootPath: YamlPath,
+    selection: Selection,
   ) => {
-    const op = String(path[1] ?? "");
+    const operationType = String(path[1] ?? "");
     const payload = value ?? {};
-    const registerYamlPath: YamlPath = [...mapPrefix, ...sel.path];
+    const registerYamlPath: YamlPath = [...selectionRootPath, ...selection.path];
     const fieldsPath: YamlPath = [...registerYamlPath, "fields"];
     const current = YamlPathResolver.getAtPath(root, fieldsPath);
     if (!Array.isArray(current)) {
@@ -260,18 +260,18 @@ const App = () => {
       return;
     }
 
-    if (op === "field-add") {
+    if (operationType === "field-add") {
       const afterIndex =
         typeof payload.afterIndex === "number" ? payload.afterIndex : -1;
       const insertIndex = Math.max(
         0,
         Math.min(fieldsArr.length, afterIndex + 1),
       );
-      const currentFields = (sel.object?.fields ?? []) as any[];
+      const currentFields = (selection.object?.fields ?? []) as any[];
       const used = new Set<number>();
-      for (const f of currentFields) {
-        const o = Number(f?.bit_offset ?? 0);
-        const w = Number(f?.bit_width ?? 1);
+      for (const field of currentFields) {
+        const o = Number(field?.bit_offset ?? 0);
+        const w = Number(field?.bit_width ?? 1);
         for (let b = o; b < o + w; b++) {
           used.add(b);
         }
@@ -290,14 +290,14 @@ const App = () => {
       });
     }
 
-    if (op === "field-delete") {
+    if (operationType === "field-delete") {
       const index = typeof payload.index === "number" ? payload.index : -1;
       if (index >= 0 && index < fieldsArr.length) {
         fieldsArr.splice(index, 1);
       }
     }
 
-    if (op === "field-move") {
+    if (operationType === "field-move") {
       const index = typeof payload.index === "number" ? payload.index : -1;
       const delta = typeof payload.delta === "number" ? payload.delta : 0;
       const next = index + delta;
@@ -316,30 +316,30 @@ const App = () => {
         // Important: Create clean field objects to avoid modifying shared references
         let offset = 0;
         for (let i = 0; i < fieldsArr.length; i++) {
-          const f = fieldsArr[i];
+          const field = fieldsArr[i];
 
           // Parse width from bits string (primary source of truth in YAML)
           let width = 1; // default
-          if (typeof f?.bits === "string") {
-            const parsed = BitFieldUtils.parseBitsLike(f.bits);
+          if (typeof field?.bits === "string") {
+            const parsed = BitFieldUtils.parseBitsLike(field.bits);
             if (parsed && parsed.bit_width > 0) {
               width = parsed.bit_width;
             }
           }
           // Fall back to bit_width property if bits is not available
-          else if (Number.isFinite(f?.bit_width) && f.bit_width > 0) {
-            width = Number(f.bit_width);
+          else if (Number.isFinite(field?.bit_width) && field.bit_width > 0) {
+            width = Number(field.bit_width);
           }
           width = Math.max(1, Math.min(32, Math.trunc(width)));
 
           // Replace field with clean object containing only YAML-persisted properties
           fieldsArr[i] = {
-            name: f.name,
+            name: field.name,
             bits: BitFieldUtils.formatBitsLike(offset, width),
-            access: f.access,
-            reset_value: f.reset_value,
-            description: f.description,
-            enumerated_values: f.enumerated_values,
+            access: field.access,
+            reset_value: field.reset_value,
+            description: field.description,
+            enumerated_values: field.enumerated_values,
           };
 
           offset += width;
@@ -531,9 +531,9 @@ const App = () => {
                 console.warn("Cannot apply rename: YAML parse failed");
                 return;
               }
-              const { root, mapPrefix } =
+              const { root, selectionRootPath } =
                 YamlPathResolver.getMapRootInfo(rootObj);
-              const fullPath = [...mapPrefix, ...path];
+              const fullPath = [...selectionRootPath, ...path];
               try {
                 YamlPathResolver.setAtPath(root, fullPath, newName);
                 const newText = YamlService.dump(root);

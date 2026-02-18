@@ -76,11 +76,6 @@ export function useFieldEditor(
     // Internal helpers
     // ---------------------------------------------------------------------------
 
-    /** Converts bit_offset + bit_width → "[MSB:LSB]" string. Delegates to the shared fieldToBitsString utility. */
-    const toBits = useCallback((f: { bit_offset?: number | null; bit_width?: number | null; bits?: string }): string => {
-        return fieldToBitsString(f);
-    }, []);
-
     const refocusTableSoon = useCallback(() => {
         window.setTimeout(() => {
             focusRef.current?.focus();
@@ -89,7 +84,7 @@ export function useFieldEditor(
 
     const focusFieldEditor = useCallback((rowIndex: number, key: EditKey) => {
         window.setTimeout(() => {
-            const row = document.querySelector(`tr[data-field-idx="${rowIndex}"]`);
+            const row = document.querySelector(`tr[data-field-index="${rowIndex}"]`);
             const el = row?.querySelector(
                 `[data-edit-key="${key}"]`,
             ) as HTMLElement | null;
@@ -105,47 +100,47 @@ export function useFieldEditor(
     // Public helpers returned to consumers
     // ---------------------------------------------------------------------------
 
-    /** Initialises drafts for row `idx` if they haven't been set yet. */
+    /** Initialises drafts for row `index` if they haven't been set yet. */
     const ensureDraftsInitialized = useCallback(
-        (idx: number) => {
-            const f = fields[idx];
-            if (!f) {
+        (index: number) => {
+            const field = fields[index];
+            if (!field) {
                 return;
             }
-            const key = f.name ? `${f.name}` : `idx-${idx}`;
+            const key = field.name ? `${field.name}` : `idx-${index}`;
             setNameDrafts((prev) =>
-                prev[key] !== undefined ? prev : { ...prev, [key]: String(f.name ?? "") },
+                prev[key] !== undefined ? prev : { ...prev, [key]: String(field.name ?? "") },
             );
             setBitsDrafts((prev) =>
-                prev[idx] !== undefined ? prev : { ...prev, [idx]: toBits(f) },
+                prev[index] !== undefined ? prev : { ...prev, [index]: fieldToBitsString(field) },
             );
             setResetDrafts((prev) => {
-                if (prev[idx] !== undefined) {
+                if (prev[index] !== undefined) {
                     return prev;
                 }
-                const v = f?.reset_value;
+                const v = field?.reset_value;
                 const display =
                     v !== null && v !== undefined
                         ? `0x${Number(v).toString(16).toUpperCase()}`
                         : "0x0";
-                return { ...prev, [idx]: display };
+                return { ...prev, [index]: display };
             });
         },
-        [fields, toBits],
+        [fields],
     );
 
     /** Moves the currently selected field up (-1) or down (+1). */
     const moveSelectedField = useCallback(
         (delta: -1 | 1) => {
-            const idx = selectedFieldIndex;
-            if (idx < 0) {
+            const index = selectedFieldIndex;
+            if (index < 0) {
                 return;
             }
-            const next = idx + delta;
+            const next = index + delta;
             if (next < 0 || next >= fields.length) {
                 return;
             }
-            onUpdate(["__op", "field-move"], { index: idx, delta });
+            onUpdate(["__op", "field-move"], { index, delta });
             setBitsDrafts({});
             setBitsErrors({});
             setNameDrafts({});
@@ -215,18 +210,18 @@ export function useFieldEditor(
                 return;
             }
 
-            const newIdx = result.newIndex;
+            const newIndex = result.newIndex;
             onUpdate(["fields"], result.items);
-            setSelectedFieldIndex(newIdx);
-            setHoveredFieldIndex(newIdx);
-            setActiveCell({ rowIndex: newIdx, key: "name" });
+            setSelectedFieldIndex(newIndex);
+            setHoveredFieldIndex(newIndex);
+            setActiveCell({ rowIndex: newIndex, key: "name" });
             setBitsDrafts({});
             setBitsErrors({});
             setNameDrafts({});
             setNameErrors({});
             window.setTimeout(() => {
                 document
-                    .querySelector(`tr[data-field-idx="${newIdx}"]`)
+                    .querySelector(`tr[data-field-index="${newIndex}"]`)
                     ?.scrollIntoView({ block: "center" });
             }, 100);
         };
@@ -294,7 +289,7 @@ export function useFieldEditor(
             const scrollToCell = (rowIndex: number, key: EditKey) => {
                 window.setTimeout(() => {
                     const row = document.querySelector(
-                        `tr[data-field-idx="${rowIndex}"]`,
+                        `tr[data-field-index="${rowIndex}"]`,
                     );
                     row?.scrollIntoView({
                         block: rowIndex === 0 ? "center" : "nearest",
@@ -343,7 +338,7 @@ export function useFieldEditor(
                 }
                 e.preventDefault();
                 e.stopPropagation();
-                const newFields = fields.filter((_, idx) => idx !== currentRow);
+                const newFields = fields.filter((_, index) => index !== currentRow);
                 onUpdate(["fields"], newFields);
                 const nextRow =
                     currentRow > 0 ? currentRow - 1 : newFields.length > 0 ? 0 : -1;
@@ -493,7 +488,6 @@ export function useFieldEditor(
         focusRef,
         errorRef,
         // helpers
-        toBits,
         ensureDraftsInitialized,
         moveSelectedField,
         focusFieldEditor,

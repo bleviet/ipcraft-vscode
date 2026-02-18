@@ -8,7 +8,7 @@ export type YamlPath = Array<string | number>;
  */
 export interface MapRootInfo {
   root: any;
-  mapPrefix: YamlPath;
+  selectionRootPath: YamlPath;
   map: any;
 }
 
@@ -84,11 +84,11 @@ export class YamlPathResolver {
    */
   static getMapRootInfo(data: any): MapRootInfo {
     if (Array.isArray(data)) {
-      return { root: data, mapPrefix: [0], map: data[0] };
+      return { root: data, selectionRootPath: [0], map: data[0] };
     }
     if (data && typeof data === 'object' && Array.isArray(data.memory_maps)) {
-      return { root: data, mapPrefix: ['memory_maps', 0], map: data.memory_maps[0] };
+      return { root: data, selectionRootPath: ['memory_maps', 0], map: data.memory_maps[0] };
     }
-    return { root: data, mapPrefix: [], map: data };
+    return { root: data, selectionRootPath: [], map: data };
   }
 }

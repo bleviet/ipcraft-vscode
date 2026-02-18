@@ -23,16 +23,6 @@ interface BitFieldVisualizerProps {
   ) => void;
 }
 
-function toBits(field: any) {
-  if (field.bit_range) {
-    const [hi, lo] = field.bit_range;
-    return hi === lo ? `${hi}` : `${hi}:${lo}`;
-  }
-  if (field.bit !== undefined) {
-    return `${field.bit}`;
-  }
-  return "";
-}
 
 function getFieldRange(field: any): { lo: number; hi: number } | null {
   if (
