@@ -20,39 +20,39 @@
     "commands": [
       {
         "command": "fpga-ip-core.createIpCore",
-        "title": "Create New IP Core",
-        "category": "FPGA IP Core"
+        "title": "New IP Core",
+        "category": "IPCraft"
       },
       {
         "command": "fpga-ip-core.createMemoryMap",
-        "title": "Create New Memory Map",
-        "category": "FPGA IP Core"
+        "title": "New Memory Map",
+        "category": "IPCraft"
       },
       {
         "command": "fpga-ip-core.createIpCoreWithMemoryMap",
-        "title": "Create IP Core with Memory Map",
-        "category": "FPGA IP Core"
+        "title": "New IP Core + Memory Map",
+        "category": "IPCraft"
       },
       {
         "command": "fpga-ip-core.generateVHDL",
-        "title": "Generate VHDL (AXI-Lite)",
-        "category": "FPGA IP Core"
+        "title": "Generate VHDL",
+        "category": "IPCraft"
       },
       {
         "command": "fpga-ip-core.generateVHDLWithBus",
-        "title": "Generate VHDL (Select Bus Type)",
-        "category": "FPGA IP Core"
+        "title": "Generate VHDL (Select Bus)",
+        "category": "IPCraft"
       },
       {
         "command": "fpga-ip-core.parseVHDL",
-        "title": "Create IP YAML from VHDL",
-        "category": "FPGA IP Core",
+        "title": "Import from VHDL",
+        "category": "IPCraft",
         "icon": "$(file-code)"
       },
       {
         "command": "fpga-ip-core.viewBusDefinitions",
         "title": "View Bus Definitions",
-        "category": "FPGA IP Core",
+        "category": "IPCraft",
         "icon": "$(list-unordered)"
       }
     ],
