@@ -9,7 +9,7 @@ import * as path from "path";
 import * as YAML from "yaml";
 import { Logger } from "../utils/Logger";
 import { TemplateLoader } from "../generator/TemplateLoader";
-import { VhdlGenerator } from "../generator/VhdlGenerator";
+import { IpCoreScaffolder } from "../generator/IpCoreScaffolder";
 import { VhdlParser } from "../parser/VhdlParser";
 
 const logger = new Logger("GenerateCommands");
@@ -146,7 +146,7 @@ async function generateVHDL(context: vscode.ExtensionContext): Promise<void> {
       cancellable: false,
     },
     async () => {
-      const generator = new VhdlGenerator(
+      const generator = new IpCoreScaffolder(
         logger,
         new TemplateLoader(logger),
         context,

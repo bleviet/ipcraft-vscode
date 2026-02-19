@@ -9,7 +9,7 @@ import { YamlValidator } from "../services/YamlValidator";
 import { DocumentManager } from "../services/DocumentManager";
 import { ImportResolver } from "../services/ImportResolver";
 import { TemplateLoader } from "../generator/TemplateLoader";
-import { VhdlGenerator } from "../generator/VhdlGenerator";
+import { IpCoreScaffolder } from "../generator/IpCoreScaffolder";
 
 /**
  * Custom editor provider for FPGA IP core YAML files.
@@ -301,7 +301,7 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
           // Create output directory: <selected>/<ip_name>/
           const outputBaseDir = path.join(folderUris[0].fsPath, ipName);
 
-          const generator = new VhdlGenerator(
+          const generator = new IpCoreScaffolder(
             this.logger,
             new TemplateLoader(this.logger),
             this.context,

@@ -18,7 +18,7 @@ type BusDefinition = {
 
 type BusDefinitions = Record<string, BusDefinition>;
 
-export class VhdlGenerator {
+export class IpCoreScaffolder {
   private readonly logger: Logger;
   private readonly templates: TemplateLoader;
   private readonly busLibraryService: BusLibraryService;
@@ -180,7 +180,7 @@ export class VhdlGenerator {
       const mode = this.getString(bus?.mode);
       if (mode === "slave") {
         const rawType = this.getString(bus?.type).toUpperCase();
-        return VhdlGenerator.BUS_TYPE_MAP[rawType] || "axil";
+        return IpCoreScaffolder.BUS_TYPE_MAP[rawType] || "axil";
       }
     }
 
