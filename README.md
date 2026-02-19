@@ -164,51 +164,27 @@ npm run generate-types   # Generate types from schema
 
 ### npm install Fails with Husky Error
 
-**Problem:** Running `npm install` fails with error:
-```
-husky - .git can't be found
-npm error command failed
-npm error command sh -c husky install
-```
+**Problem:** Running `npm install` fails with error related to `husky` and `.git` not found.
 
-**Cause:** This extension is part of a monorepo where the `.git` directory is located in a parent folder. Husky expects `.git` to be in the same directory as `package.json`.
+**Cause:** Husky requires a git repository to be initialized before it can install its git hooks.
 
-**Solution 1: Skip Husky (Quick Fix)**
+**Solution:** Initialize a git repository before running `npm install`.
+
 ```bash
-npm install --ignore-scripts
+git init
+npm install
 ```
-
-**Solution 2: Configure Husky for Monorepo (Recommended for Development)**
-
-If you need git hooks functionality:
-
-1. Install dependencies first:
-   ```bash
-   npm install --ignore-scripts
-   ```
-
-2. Manually configure husky to use the parent repository:
-   ```bash
-   npx husky install ../../.git/hooks
-   ```
-
-3. Set up git hooks (optional):
-   ```bash
-   npx husky add ../../.git/hooks/pre-commit "cd ipcore_tools/vscode/ipcore_editor && npm run lint-staged"
-   ```
 
 **What is Husky?**
 
 Husky manages Git hooks to run scripts before commits, pushes, etc. It's used in this project to:
-- Run ESLint on staged files before commit
-- Run Prettier to format code automatically
+- Run ESLint and Prettier on staged files before commit (`lint-staged`)
 - Ensure code quality standards
 
 **Do I Need Husky?**
 
-- **For building/using the extension:** No, it's optional
-- **For contributing code:** Yes, it ensures consistent code style
-- **For casual development:** No, you can run `npm run lint` manually
+- **For building/using the extension:** It is highly recommended. It will be installed automatically with `npm install`.
+- **For contributing code:** Yes, it ensures consistent code style before pushing changes.
 
 ### Extension Not Loading
 

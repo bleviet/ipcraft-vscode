@@ -113,7 +113,8 @@
     "test:unit:watch": "jest --watch",
     "test:unit:coverage": "jest --coverage",
     "test:all": "npm run test:unit && npm run test",
-    "generate-types": "json2ts -i node_modules/ipcraft-spec/schemas/memory_map.schema.json -o src/webview/types/memoryMap.d.ts && json2ts -i node_modules/ipcraft-spec/schemas/ip_core.schema.json -o src/webview/types/ipCore.d.ts"
+    "generate-types": "json2ts -i node_modules/ipcraft-spec/schemas/memory_map.schema.json -o src/webview/types/memoryMap.d.ts && json2ts -i node_modules/ipcraft-spec/schemas/ip_core.schema.json -o src/webview/types/ipCore.d.ts",
+    "prepare": "husky install"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",
