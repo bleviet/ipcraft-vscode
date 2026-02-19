@@ -57,4 +57,4 @@ npm run generate-types    # Generate types from schema
 
 ## License
 
-[Add your license here]
+MIT License
