@@ -7,20 +7,20 @@ export interface EditableTableColumn {
 }
 
 export interface EditableTableProps<T> {
-  title: string;
+  title?: string;
   rows: T[];
-  rowLabelSingular: string;
+  rowLabelSingular?: string;
   rowLabelPlural?: string;
   keyboardHint?: string;
-  addButtonLabel: string;
-  onAdd: () => void;
+  addButtonLabel?: string;
+  onAdd?: () => void;
   disableAdd?: boolean;
-  columns: EditableTableColumn[];
-  editingIndex: number | null;
-  isAdding: boolean;
-  renderDisplayRow: (row: T, index: number) => React.ReactNode;
-  renderEditRow: (isNew: boolean) => React.ReactNode;
-  emptyMessage: string;
+  columns?: EditableTableColumn[];
+  editingIndex?: number | null;
+  isAdding?: boolean;
+  renderDisplayRow?: (row: T, index: number) => React.ReactNode;
+  renderEditRow?: (isNew: boolean) => React.ReactNode;
+  emptyMessage?: string;
   emptyColSpan?: number;
   containerRef?: React.RefObject<HTMLDivElement>;
   showHeaderSection?: boolean;
@@ -36,20 +36,20 @@ export interface EditableTableProps<T> {
  * Row rendering and edit controls are provided by consumers.
  */
 export function EditableTable<T>({
-  title,
+  title = '',
   rows,
-  rowLabelSingular,
+  rowLabelSingular = 'item',
   rowLabelPlural,
   keyboardHint,
-  addButtonLabel,
+  addButtonLabel = 'Add',
   onAdd,
   disableAdd = false,
-  columns,
-  editingIndex,
-  isAdding,
+  columns = [],
+  editingIndex = null,
+  isAdding = false,
   renderDisplayRow,
   renderEditRow,
-  emptyMessage,
+  emptyMessage = '',
   emptyColSpan,
   containerRef,
   showHeaderSection = true,
@@ -60,6 +60,10 @@ export function EditableTable<T>({
   renderTableContent,
 }: EditableTableProps<T>) {
   const resolvedPlural = rowLabelPlural ?? `${rowLabelSingular}s`;
+  const effectiveOnAdd = onAdd ?? (() => undefined);
+  const effectiveRenderDisplayRow =
+    renderDisplayRow ?? (() => null);
+  const effectiveRenderEditRow = renderEditRow ?? (() => null);
 
   return (
     <div ref={containerRef} className={containerClassName} tabIndex={0}>
@@ -77,7 +81,7 @@ export function EditableTable<T>({
             </p>
           </div>
           <button
-            onClick={onAdd}
+            onClick={effectiveOnAdd}
             disabled={disableAdd}
             className="px-4 py-2 rounded text-sm font-medium flex items-center gap-2"
             style={{
@@ -123,13 +127,13 @@ export function EditableTable<T>({
               <tbody>
                 {rows.map((row, index) => {
                   if (editingIndex === index) {
-                    return <React.Fragment key={index}>{renderEditRow(false)}</React.Fragment>;
+                    return <React.Fragment key={index}>{effectiveRenderEditRow(false)}</React.Fragment>;
                   }
 
-                  return renderDisplayRow(row, index);
+                  return effectiveRenderDisplayRow(row, index);
                 })}
 
-                {isAdding && renderEditRow(true)}
+                {isAdding && effectiveRenderEditRow(true)}
 
                 {rows.length === 0 && !isAdding && (
                   <tr>

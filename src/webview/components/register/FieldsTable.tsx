@@ -248,18 +248,8 @@ export function FieldsTable({
                     ) : null}
 
                     <EditableTable
-                        title=""
                         rows={fields}
-                        rowLabelSingular="field"
-                        addButtonLabel=""
-                        onAdd={() => undefined}
-                        disableAdd
                         columns={FIELD_TABLE_COLUMNS}
-                        editingIndex={null}
-                        isAdding={false}
-                        renderDisplayRow={() => null}
-                        renderEditRow={() => null}
-                        emptyMessage=""
                         showHeaderSection={false}
                         showTableBorder={false}
                         containerClassName=""
