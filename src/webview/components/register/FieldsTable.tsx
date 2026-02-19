@@ -6,6 +6,7 @@ import {
     VSCodeTextField,
     VSCodeTextArea,
 } from "@vscode/webview-ui-toolkit/react";
+import { EditableTable } from "../../shared/components";
 import { FIELD_COLORS, getFieldColor } from "../../shared/colors";
 import { parseBitsRange, formatBits } from "../../algorithms/BitFieldRepacker";
 import { fieldToBitsString } from "../../utils/BitFieldUtils";
@@ -22,6 +23,14 @@ const ACCESS_OPTIONS = [
     "read-write",
     "write-1-to-clear",
     "read-write-1-to-clear",
+];
+
+const FIELD_TABLE_COLUMNS = [
+    { key: "name", header: "Name" },
+    { key: "bits", header: "Bit(s)" },
+    { key: "access", header: "Access" },
+    { key: "reset", header: "Reset" },
+    { key: "description", header: "Description" },
 ];
 
 // ---------------------------------------------------------------------------
@@ -238,34 +247,53 @@ export function FieldsTable({
                         </div>
                     ) : null}
 
-                    <table className="w-full text-left border-collapse table-fixed">
-                        <colgroup>
-                            <col className="w-[18%] min-w-[120px]" />
-                            <col className="w-[14%] min-w-[100px]" />
-                            <col className="w-[14%] min-w-[120px]" />
-                            <col className="w-[14%] min-w-[110px]" />
-                            <col className="w-[40%] min-w-[240px]" />
-                        </colgroup>
-                        <thead className="vscode-surface-alt text-xs font-semibold vscode-muted uppercase tracking-wider sticky top-0 z-10 shadow-sm">
-                            <tr className="h-12">
-                                <th className="px-6 py-3 border-b vscode-border align-middle">
-                                    Name
-                                </th>
-                                <th className="px-4 py-3 border-b vscode-border align-middle">
-                                    Bit(s)
-                                </th>
-                                <th className="px-4 py-3 border-b vscode-border align-middle">
-                                    Access
-                                </th>
-                                <th className="px-4 py-3 border-b vscode-border align-middle">
-                                    Reset
-                                </th>
-                                <th className="px-6 py-3 border-b vscode-border align-middle">
-                                    Description
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y vscode-border text-sm">
+                    <EditableTable
+                        title=""
+                        rows={fields}
+                        rowLabelSingular="field"
+                        addButtonLabel=""
+                        onAdd={() => undefined}
+                        disableAdd
+                        columns={FIELD_TABLE_COLUMNS}
+                        editingIndex={null}
+                        isAdding={false}
+                        renderDisplayRow={() => null}
+                        renderEditRow={() => null}
+                        emptyMessage=""
+                        showHeaderSection={false}
+                        showTableBorder={false}
+                        containerClassName=""
+                        tableWrapperClassName=""
+                        tableClassName="w-full text-left border-collapse table-fixed"
+                        renderTableContent={() => (
+                            <>
+                                <colgroup>
+                                    <col className="w-[18%] min-w-[120px]" />
+                                    <col className="w-[14%] min-w-[100px]" />
+                                    <col className="w-[14%] min-w-[120px]" />
+                                    <col className="w-[14%] min-w-[110px]" />
+                                    <col className="w-[40%] min-w-[240px]" />
+                                </colgroup>
+                                <thead className="vscode-surface-alt text-xs font-semibold vscode-muted uppercase tracking-wider sticky top-0 z-10 shadow-sm">
+                                    <tr className="h-12">
+                                        <th className="px-6 py-3 border-b vscode-border align-middle">
+                                            Name
+                                        </th>
+                                        <th className="px-4 py-3 border-b vscode-border align-middle">
+                                            Bit(s)
+                                        </th>
+                                        <th className="px-4 py-3 border-b vscode-border align-middle">
+                                            Access
+                                        </th>
+                                        <th className="px-4 py-3 border-b vscode-border align-middle">
+                                            Reset
+                                        </th>
+                                        <th className="px-6 py-3 border-b vscode-border align-middle">
+                                            Description
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y vscode-border text-sm">
                             {fields.map((field, index) => {
                                 const bits = fieldToBitsString(field);
                                 const color = getFieldColor(
@@ -663,8 +691,10 @@ export function FieldsTable({
                                     </tr>
                                 );
                             })}
-                        </tbody>
-                    </table>
+                                </tbody>
+                            </>
+                        )}
+                    />
                 </div>
             </div>
         </div>
