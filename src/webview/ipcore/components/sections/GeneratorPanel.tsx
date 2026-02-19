@@ -210,7 +210,7 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({ ipCore }) => {
   return (
     <div ref={containerRef} style={{ padding: "16px" }}>
       <h2 style={{ fontSize: "16px", fontWeight: 600, marginBottom: "16px" }}>
-        Generate HDL
+        Project Scaffold
       </h2>
 
       <p style={{ fontSize: "12px", opacity: 0.8, marginBottom: "16px" }}>

@@ -86,7 +86,7 @@ const SECTIONS: SectionItem[] = [
     count: (ip) => (ip as Record<string, unknown[]>)?.fileSets?.length || 0,
   },
   // Separator - Generate is an action, not a data section
-  { id: "generate", label: "Generate HDL", icon: "tools" },
+  { id: "generate", label: "Project Scaffold", icon: "tools" },
 ];
 
 /**
