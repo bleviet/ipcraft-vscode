@@ -1,6 +1,6 @@
 # IPCraft for VS Code
 
-Visual editor for IP Core (IPCraft) and Memory Map specifications.
+Visual editor for IP Core and Memory Map specifications.
 
 ## Features
 
@@ -10,11 +10,6 @@ Visual editor for IP Core (IPCraft) and Memory Map specifications.
 - **Keyboard Navigation**: Full keyboard support with Vim-style shortcuts
 - **Visualization**: Visual representation of register bit fields and address spaces
 - **Bi-directional Sync**: Changes reflected in both visual editor and YAML source
-
-## Requirements
-
-No Python runtime is required. HDL generation uses bundled templates.
-The extension includes default bus definitions from `ipcraft-spec`.
 
 ## Installation
 
