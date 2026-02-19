@@ -82,7 +82,7 @@ export class DataNormalizer {
     let bit_width = (field.bit_width as number) || 1;
 
     if (field.bits && typeof field.bits === 'string') {
-      const match = (field.bits as string).match(/\[(\d+)(?::(\d+))?\]/);
+      const match = (field.bits ).match(/\[(\d+)(?::(\d+))?\]/);
       if (match) {
         const high = parseInt(match[1], 10);
         const low = match[2] ? parseInt(match[2], 10) : high;

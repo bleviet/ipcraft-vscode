@@ -305,13 +305,13 @@ function findResizeBoundary(
   registerSize: number,
 ): number {
   const thisRange = getFieldRange(fields[fieldIndex]);
-  if (!thisRange) return edge === "msb" ? registerSize - 1 : 0;
+  if (!thisRange) {return edge === "msb" ? registerSize - 1 : 0;}
 
   if (edge === "msb") {
     // Find nearest field above our MSB
     let limit = registerSize - 1;
     for (let i = 0; i < fields.length; i++) {
-      if (i === fieldIndex) continue;
+      if (i === fieldIndex) {continue;}
       const r = getFieldRange(fields[i]);
       if (r && r.lo > thisRange.hi) {
         limit = Math.min(limit, r.lo - 1);
@@ -322,7 +322,7 @@ function findResizeBoundary(
     // Find nearest field below our LSB
     let limit = 0;
     for (let i = 0; i < fields.length; i++) {
-      if (i === fieldIndex) continue;
+      if (i === fieldIndex) {continue;}
       const r = getFieldRange(fields[i]);
       if (r && r.hi < thisRange.lo) {
         limit = Math.max(limit, r.hi + 1);
@@ -511,8 +511,8 @@ const BitFieldVisualizer: React.FC<BitFieldVisualizerProps> = ({
    * Handle Ctrl+PointerDown to start reorder mode.
    */
   const handleCtrlPointerDown = (bit: number, e: React.PointerEvent) => {
-    if (!e.ctrlKey && !e.metaKey) return;
-    if (e.button !== 0) return;
+    if (!e.ctrlKey && !e.metaKey) {return;}
+    if (e.button !== 0) {return;}
 
     e.preventDefault();
     e.stopPropagation();
@@ -532,8 +532,8 @@ const BitFieldVisualizer: React.FC<BitFieldVisualizerProps> = ({
    * Handle Shift+PointerDown to start resize or create mode.
    */
   const handleShiftPointerDown = (bit: number, e: React.PointerEvent) => {
-    if (!e.shiftKey) return;
-    if (e.button !== 0) return;
+    if (!e.shiftKey) {return;}
+    if (e.button !== 0) {return;}
 
     e.preventDefault();
     e.stopPropagation();
@@ -543,7 +543,7 @@ const BitFieldVisualizer: React.FC<BitFieldVisualizerProps> = ({
     if (fieldAtBit !== null) {
       // RESIZE mode - redefine field range via drag selection
       const fieldRange = getFieldRange(fields[fieldAtBit]);
-      if (!fieldRange) return;
+      if (!fieldRange) {return;}
 
       // Allow dragging anywhere from collision boundary on LSB side to collision boundary on MSB side
       const minBit = findResizeBoundary(
@@ -600,7 +600,7 @@ const BitFieldVisualizer: React.FC<BitFieldVisualizerProps> = ({
    * Handle pointer move during shift-drag.
    */
   const handleShiftPointerMove = (bit: number) => {
-    if (!shiftDrag.active) return;
+    if (!shiftDrag.active) {return;}
     const clampedBit = Math.max(
       shiftDrag.minBit,
       Math.min(bit, shiftDrag.maxBit),
@@ -615,7 +615,7 @@ const BitFieldVisualizer: React.FC<BitFieldVisualizerProps> = ({
    * Uses a repacking algorithm that allows field swapping.
    */
   const handleCtrlPointerMove = (bit: number) => {
-    if (!ctrlDrag.active || ctrlDrag.draggedFieldIndex === null) return;
+    if (!ctrlDrag.active || ctrlDrag.draggedFieldIndex === null) {return;}
 
     // 1. Get original segments (MSB -> LSB)
     const originalSegments = buildProLayoutSegments(fields, registerSize);
@@ -624,10 +624,10 @@ const BitFieldVisualizer: React.FC<BitFieldVisualizerProps> = ({
     const draggedSegIndex = originalSegments.findIndex(
       (s) => s.type === "field" && s.idx === ctrlDrag.draggedFieldIndex,
     );
-    if (draggedSegIndex === -1) return;
+    if (draggedSegIndex === -1) {return;}
 
     const draggedSeg = originalSegments[draggedSegIndex];
-    if (draggedSeg.type !== "field") return; // Should not happen
+    if (draggedSeg.type !== "field") {return;} // Should not happen
 
     // Remove it from the list for calculations
     const cleanSegments = [...originalSegments];
@@ -1002,9 +1002,9 @@ const BitFieldVisualizer: React.FC<BitFieldVisualizerProps> = ({
                               handleCtrlPointerMove(bit);
                             }}
                             onPointerEnter={() => {
-                              if (shiftDrag.active) handleShiftPointerMove(bit);
+                              if (shiftDrag.active) {handleShiftPointerMove(bit);}
                               if (ctrlDragRef.current.active)
-                                handleCtrlPointerMove(bit);
+                                {handleCtrlPointerMove(bit);}
                             }}
                           >
                             <span className="text-sm font-mono vscode-muted select-none">

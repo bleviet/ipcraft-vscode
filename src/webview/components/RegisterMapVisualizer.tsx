@@ -88,9 +88,9 @@ const RegisterMapVisualizer: React.FC<RegisterMapVisualizerProps> = ({
   }, [ctrlDrag, registers, onReorderRegisters]);
 
   const handleCtrlPointerDown = (regIdx: number, e: React.PointerEvent) => {
-    if (!e.ctrlKey && !e.metaKey) return;
-    if (e.button !== 0) return;
-    if (!onReorderRegisters) return;
+    if (!e.ctrlKey && !e.metaKey) {return;}
+    if (e.button !== 0) {return;}
+    if (!onReorderRegisters) {return;}
 
     e.preventDefault();
     e.stopPropagation();
@@ -103,7 +103,7 @@ const RegisterMapVisualizer: React.FC<RegisterMapVisualizerProps> = ({
   };
 
   const handlePointerMove = (regIdx: number) => {
-    if (!ctrlDrag.active) return;
+    if (!ctrlDrag.active) {return;}
     if (ctrlDrag.targetIndex !== regIdx) {
       setCtrlDrag((prev) => ({ ...prev, targetIndex: regIdx }));
     }
@@ -192,7 +192,7 @@ const RegisterMapVisualizer: React.FC<RegisterMapVisualizerProps> = ({
                 onPointerDown={(e) => handleCtrlPointerDown(group.idx, e)}
                 onPointerMove={() => handlePointerMove(displayIdx)}
                 onPointerEnter={() => {
-                  if (ctrlDrag.active) handlePointerMove(displayIdx);
+                  if (ctrlDrag.active) {handlePointerMove(displayIdx);}
                 }}
               >
                 <div

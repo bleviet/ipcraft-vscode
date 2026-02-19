@@ -75,10 +75,10 @@ export const FileSetsEditor: React.FC<FileSetsEditorProps> = ({
   useEffect(() => {
     const allPaths = fileSets.flatMap((fs) => {
       const paths = (fs.files || []).map((f) => f.path);
-      if (fs.import) paths.push(fs.import);
+      if (fs.import) {paths.push(fs.import);}
       return paths;
     });
-    if (allPaths.length === 0) return;
+    if (allPaths.length === 0) {return;}
 
     // Send message to extension to check file existence
     vscode?.postMessage({
@@ -350,12 +350,12 @@ export const FileSetsEditor: React.FC<FileSetsEditorProps> = ({
                     className="p-4 rounded border-l-4"
                     style={{
                       background:
-                        fileExistence[fileSet.import!] === false
+                        fileExistence[fileSet.import] === false
                           ? "rgba(255, 0, 0, 0.1)"
                           : "var(--vscode-editor-background)",
                       border: "1px solid var(--vscode-panel-border)",
                       borderLeftColor:
-                        fileExistence[fileSet.import!] === false
+                        fileExistence[fileSet.import] === false
                           ? "var(--vscode-errorForeground)"
                           : "var(--vscode-textLink-foreground)",
                     }}
@@ -363,7 +363,7 @@ export const FileSetsEditor: React.FC<FileSetsEditorProps> = ({
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
                         <h3 className="font-semibold">External File Set</h3>
-                        {fileExistence[fileSet.import!] === false && (
+                        {fileExistence[fileSet.import] === false && (
                           <span
                             className="text-xs px-1.5 py-0.5 rounded"
                             style={{
@@ -401,7 +401,7 @@ export const FileSetsEditor: React.FC<FileSetsEditorProps> = ({
                       Open File Set
                     </button>
 
-                    {fileExistence[fileSet.import!] === false && (
+                    {fileExistence[fileSet.import] === false && (
                       <div
                         className="mt-3 text-xs flex items-center gap-2"
                         style={{ color: "var(--vscode-errorForeground)" }}

@@ -109,7 +109,7 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
      * Start inline edit mode for the given item.
      */
     const startEditing = (id: string, currentName: string) => {
-      if (!onRename) return;
+      if (!onRename) {return;}
       setEditingId(id);
       setEditingValue(currentName);
       // Focus input after render
@@ -123,7 +123,7 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
      * Commit the rename and exit edit mode.
      */
     const commitEdit = (path: YamlPath) => {
-      if (!onRename || !editingId) return;
+      if (!onRename || !editingId) {return;}
       const trimmed = editingValue.trim();
       if (trimmed) {
         onRename([...path, "name"], trimmed);
@@ -741,7 +741,7 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
 
     const onTreeKeyDown = (e: React.KeyboardEvent) => {
       // If currently editing, don't handle tree navigation
-      if (editingId) return;
+      if (editingId) {return;}
 
       const keyLower = (e.key || "").toLowerCase();
       const isDown = e.key === "ArrowDown" || keyLower === "j";

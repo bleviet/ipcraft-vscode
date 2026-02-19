@@ -73,14 +73,14 @@ export function RegisterArrayEditor({
         const isInsertAfter = keyLower === "o" && !e.shiftKey;
         const isInsertBefore = keyLower === "o" && e.shiftKey;
 
-        if (!isArrow && !isEdit && !isDelete && !isInsertAfter && !isInsertBefore) return;
-        if (e.ctrlKey || e.metaKey) return;
+        if (!isArrow && !isEdit && !isDelete && !isInsertAfter && !isInsertBefore) {return;}
+        if (e.ctrlKey || e.metaKey) {return;}
 
         const target = e.target as HTMLElement | null;
         const isTypingTarget = !!target?.closest(
             'input, textarea, select, [contenteditable="true"], vscode-text-field, vscode-text-area, vscode-dropdown',
         );
-        if (isTypingTarget) return;
+        if (isTypingTarget) {return;}
 
         const currentRow = selectedRegIndex >= 0 ? selectedRegIndex : 0;
 
@@ -91,7 +91,7 @@ export function RegisterArrayEditor({
             let maxN = 0;
             for (const r of nestedRegisters) {
                 const match = r.name?.match(/^reg(\d+)$/i);
-                if (match) maxN = Math.max(maxN, parseInt(match[1], 10));
+                if (match) {maxN = Math.max(maxN, parseInt(match[1], 10));}
             }
             const newName = `reg${maxN + 1}`;
             const selIdx = selectedRegIndex >= 0 ? selectedRegIndex : nestedRegisters.length - 1;
@@ -135,7 +135,7 @@ export function RegisterArrayEditor({
         }
 
         if (isDelete) {
-            if (currentRow < 0 || currentRow >= nestedRegisters.length) return;
+            if (currentRow < 0 || currentRow >= nestedRegisters.length) {return;}
             e.preventDefault();
             e.stopPropagation();
             const newRegs = nestedRegisters.filter((_: any, i: number) => i !== currentRow);
@@ -210,7 +210,7 @@ export function RegisterArrayEditor({
                             value={String(arr?.count || 1)}
                             onInput={(e: any) => {
                                 const val = parseInt(e.target.value, 10);
-                                if (!isNaN(val) && val > 0) onUpdate(["count"], val);
+                                if (!isNaN(val) && val > 0) {onUpdate(["count"], val);}
                             }}
                             className="w-24"
                         />
@@ -221,7 +221,7 @@ export function RegisterArrayEditor({
                             value={String(arr?.stride || 4)}
                             onInput={(e: any) => {
                                 const val = parseInt(e.target.value, 10);
-                                if (!isNaN(val) && val > 0) onUpdate(["stride"], val);
+                                if (!isNaN(val) && val > 0) {onUpdate(["stride"], val);}
                             }}
                             className="w-24"
                         />

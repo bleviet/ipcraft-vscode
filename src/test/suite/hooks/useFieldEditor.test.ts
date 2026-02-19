@@ -15,7 +15,7 @@ import type { BitFieldRecord } from '../../../webview/types/editor';
 function makeField(
   name: string,
   bitOffset: number,
-  bitWidth: number = 1,
+  bitWidth = 1,
 ): BitFieldRecord {
   const hi = bitOffset + bitWidth - 1;
   return {

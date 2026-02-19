@@ -74,7 +74,7 @@ export function BlockEditor({
 
     // Auto-focus on explicit request.
     useEffect(() => {
-        if (!selectionMeta?.focusDetails) return;
+        if (!selectionMeta?.focusDetails) {return;}
         const id = window.setTimeout(() => focusRef.current?.focus(), 0);
         return () => window.clearTimeout(id);
     }, [selectionMeta?.focusDetails, block?.name]);
@@ -88,8 +88,8 @@ export function BlockEditor({
             return;
         }
         setSelectedRegIndex((prev) => {
-            if (prev < 0) return 0;
-            if (prev >= regs.length) return regs.length - 1;
+            if (prev < 0) {return 0;}
+            if (prev >= regs.length) {return regs.length - 1;}
             return prev;
         });
         setRegActiveCell((prev) => {
@@ -103,14 +103,14 @@ export function BlockEditor({
     // Escape: return focus back to the table.
     useEffect(() => {
         const onKeyDown = (e: KeyboardEvent) => {
-            if (e.key !== "Escape") return;
+            if (e.key !== "Escape") {return;}
             const activeEl = document.activeElement as HTMLElement | null;
-            if (!activeEl) return;
+            if (!activeEl) {return;}
             const inRegs =
                 !!focusRef.current &&
                 focusRef.current.contains(activeEl) &&
                 activeEl !== focusRef.current;
-            if (!inRegs) return;
+            if (!inRegs) {return;}
             e.preventDefault();
             e.stopPropagation();
             try { (activeEl as any).blur?.(); } catch { /* ignore */ }
@@ -150,10 +150,10 @@ export function BlockEditor({
         const onKeyDown = (e: KeyboardEvent) => {
             let keyLower = (e.key || "").toLowerCase();
             if (e.altKey && e.code) {
-                if (e.code === "KeyH") keyLower = "h";
-                if (e.code === "KeyJ") keyLower = "j";
-                if (e.code === "KeyK") keyLower = "k";
-                if (e.code === "KeyL") keyLower = "l";
+                if (e.code === "KeyH") {keyLower = "h";}
+                if (e.code === "KeyJ") {keyLower = "j";}
+                if (e.code === "KeyK") {keyLower = "k";}
+                if (e.code === "KeyL") {keyLower = "l";}
             }
             const vimToArrow: Record<string, "ArrowLeft" | "ArrowDown" | "ArrowUp" | "ArrowRight"> = {
                 h: "ArrowLeft", j: "ArrowDown", k: "ArrowUp", l: "ArrowRight",
@@ -169,21 +169,21 @@ export function BlockEditor({
             const isInsertArrayBefore = keyLower === "i" && e.shiftKey;
 
             if (!isArrow && !isEdit && !isDelete && !isInsertAfter && !isInsertBefore &&
-                !isInsertArrayAfter && !isInsertArrayBefore) return;
-            if (e.ctrlKey || e.metaKey) return;
+                !isInsertArrayAfter && !isInsertArrayBefore) {return;}
+            if (e.ctrlKey || e.metaKey) {return;}
 
             const activeEl = document.activeElement as HTMLElement | null;
             const isInRegsArea =
                 !!focusRef.current &&
                 !!activeEl &&
                 (activeEl === focusRef.current || focusRef.current.contains(activeEl));
-            if (!isInRegsArea) return;
+            if (!isInRegsArea) {return;}
 
             const target = e.target as HTMLElement | null;
             const isTypingTarget = !!target?.closest(
                 'input, textarea, select, [contenteditable="true"], vscode-text-field, vscode-text-area, vscode-dropdown',
             );
-            if (isTypingTarget) return;
+            if (isTypingTarget) {return;}
 
             const scrollToCell = (rowIndex: number, key: RegEditKey) => {
                 window.setTimeout(() => {
@@ -213,7 +213,7 @@ export function BlockEditor({
                 : "name";
 
             if (isEdit) {
-                if (currentRow < 0 || currentRow >= liveRegisters.length) return;
+                if (currentRow < 0 || currentRow >= liveRegisters.length) {return;}
                 e.preventDefault(); e.stopPropagation();
                 setSelectedRegIndex(currentRow);
                 setHoveredRegIndex(currentRow);
@@ -231,15 +231,15 @@ export function BlockEditor({
                 let maxN = 0;
                 for (const r of liveRegisters) {
                     const match = r.name?.match(/^ARRAY_(\d+)$/i);
-                    if (match) maxN = Math.max(maxN, parseInt(match[1], 10));
+                    if (match) {maxN = Math.max(maxN, parseInt(match[1], 10));}
                 }
                 const arrayName = `ARRAY_${maxN + 1}`;
                 const selIdx = selectedRegIndex >= 0 ? selectedRegIndex : liveRegisters.length - 1;
                 const selected = liveRegisters[selIdx];
                 const selectedOffset = selected?.address_offset ?? selected?.offset ?? 0;
                 let selectedSize = 4;
-                if ((selected as any)?.__kind === "array") {
-                    selectedSize = ((selected as any).count || 1) * ((selected as any).stride || 4);
+                if ((selected )?.__kind === "array") {
+                    selectedSize = ((selected ).count || 1) * ((selected ).stride || 4);
                 }
                 const newArraySize = 8;
                 const baseOffset = isInsertArrayAfter ? selectedOffset + selectedSize : selectedOffset;
@@ -290,7 +290,7 @@ export function BlockEditor({
                 return;
             }
             if (isDelete) {
-                if (currentRow < 0 || currentRow >= liveRegisters.length) return;
+                if (currentRow < 0 || currentRow >= liveRegisters.length) {return;}
                 e.preventDefault(); e.stopPropagation();
                 const newRegs = liveRegisters.filter((_: any, i: number) => i !== currentRow);
                 onUpdate(["registers"], newRegs);
@@ -302,15 +302,15 @@ export function BlockEditor({
             }
 
             e.preventDefault(); e.stopPropagation();
-            if (liveRegisters.length === 0) return;
+            if (liveRegisters.length === 0) {return;}
 
             const isVertical = normalizedKey === "ArrowUp" || normalizedKey === "ArrowDown";
             const delta = normalizedKey === "ArrowUp" || normalizedKey === "ArrowLeft" ? -1 : 1;
 
             if (e.altKey && isVertical) {
-                if (selectedRegIndex < 0) return;
+                if (selectedRegIndex < 0) {return;}
                 const next = selectedRegIndex + delta;
-                if (next < 0 || next >= liveRegisters.length) return;
+                if (next < 0 || next >= liveRegisters.length) {return;}
                 const newRegs = [...liveRegisters];
                 const temp = newRegs[selectedRegIndex];
                 newRegs[selectedRegIndex] = newRegs[next];

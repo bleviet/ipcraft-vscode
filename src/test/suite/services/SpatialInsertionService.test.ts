@@ -12,7 +12,7 @@ import {
 function makeField(
     name: string,
     lsb: number,
-    width: number = 1,
+    width = 1,
 ): BitFieldRuntimeDef {
     const msb = lsb + width - 1;
     return {
@@ -34,7 +34,7 @@ function makeRegister(name: string, offset: number): RegisterRuntimeDef {
 function makeBlock(
     name: string,
     base: number,
-    size: number = 4,
+    size = 4,
 ): AddressBlockRuntimeDef {
     return { name, base_address: base, size, usage: "register", description: "" };
 }

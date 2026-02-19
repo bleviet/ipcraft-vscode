@@ -411,11 +411,11 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({ ipCore }) => {
             <div style={{ marginTop: "8px", fontSize: "10px", opacity: 0.7 }}>
               {(() => {
                 let count = 0;
-                if (options.includeVhdl) count += 5; // pkg, top, core, bus, regs
-                if (options.vendorFiles === "intel") count += 1;
-                if (options.vendorFiles === "xilinx") count += 2; // component.xml + xgui
-                if (options.vendorFiles === "both") count += 3; // intel hw.tcl + xilinx 2 files
-                if (options.includeTestbench) count += 2;
+                if (options.includeVhdl) {count += 5;} // pkg, top, core, bus, regs
+                if (options.vendorFiles === "intel") {count += 1;}
+                if (options.vendorFiles === "xilinx") {count += 2;} // component.xml + xgui
+                if (options.vendorFiles === "both") {count += 3;} // intel hw.tcl + xilinx 2 files
+                if (options.includeTestbench) {count += 2;}
                 return `${count} file(s) will be generated`;
               })()}
             </div>

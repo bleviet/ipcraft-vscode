@@ -110,8 +110,8 @@ export function MemoryMapEditor({
             return;
         }
         setSelectedBlockIndex((prev) => {
-            if (prev < 0) return 0;
-            if (prev >= currentBlocks.length) return currentBlocks.length - 1;
+            if (prev < 0) {return 0;}
+            if (prev >= currentBlocks.length) {return currentBlocks.length - 1;}
             return prev;
         });
         setBlockActiveCell((prev) => {
@@ -128,14 +128,14 @@ export function MemoryMapEditor({
     // Escape: return focus from inline editor back to the table.
     useEffect(() => {
         const onKeyDown = (e: KeyboardEvent) => {
-            if (e.key !== "Escape") return;
+            if (e.key !== "Escape") {return;}
             const activeEl = document.activeElement as HTMLElement | null;
-            if (!activeEl) return;
+            if (!activeEl) {return;}
             const inBlocks =
                 !!focusRef.current &&
                 focusRef.current.contains(activeEl) &&
                 activeEl !== focusRef.current;
-            if (!inBlocks) return;
+            if (!inBlocks) {return;}
             e.preventDefault();
             e.stopPropagation();
             try {
@@ -180,10 +180,10 @@ export function MemoryMapEditor({
         const onKeyDown = (e: KeyboardEvent) => {
             let keyLower = (e.key || "").toLowerCase();
             if (e.altKey && e.code) {
-                if (e.code === "KeyH") keyLower = "h";
-                if (e.code === "KeyJ") keyLower = "j";
-                if (e.code === "KeyK") keyLower = "k";
-                if (e.code === "KeyL") keyLower = "l";
+                if (e.code === "KeyH") {keyLower = "h";}
+                if (e.code === "KeyJ") {keyLower = "j";}
+                if (e.code === "KeyK") {keyLower = "k";}
+                if (e.code === "KeyL") {keyLower = "l";}
             }
             const vimToArrow: Record<string, "ArrowLeft" | "ArrowDown" | "ArrowUp" | "ArrowRight"> = {
                 h: "ArrowLeft", j: "ArrowDown", k: "ArrowUp", l: "ArrowRight",
@@ -195,21 +195,21 @@ export function MemoryMapEditor({
             const isDelete = keyLower === "d" || e.key === "Delete";
             const isInsertAfter = keyLower === "o" && !e.shiftKey;
             const isInsertBefore = keyLower === "o" && e.shiftKey;
-            if (!isArrow && !isEdit && !isDelete && !isInsertAfter && !isInsertBefore) return;
-            if (e.ctrlKey || e.metaKey) return;
+            if (!isArrow && !isEdit && !isDelete && !isInsertAfter && !isInsertBefore) {return;}
+            if (e.ctrlKey || e.metaKey) {return;}
 
             const activeEl = document.activeElement as HTMLElement | null;
             const isInBlocksArea =
                 !!focusRef.current &&
                 !!activeEl &&
                 (activeEl === focusRef.current || focusRef.current.contains(activeEl));
-            if (!isInBlocksArea) return;
+            if (!isInBlocksArea) {return;}
 
             const target = e.target as HTMLElement | null;
             const isTypingTarget = !!target?.closest(
                 'input, textarea, select, [contenteditable="true"], vscode-text-field, vscode-text-area, vscode-dropdown',
             );
-            if (isTypingTarget) return;
+            if (isTypingTarget) {return;}
 
             const scrollToCell = (rowIndex: number, key: BlockEditKey) => {
                 window.setTimeout(() => {
@@ -239,7 +239,7 @@ export function MemoryMapEditor({
                 : "name";
 
             if (isEdit) {
-                if (currentRow < 0 || currentRow >= liveBlocks.length) return;
+                if (currentRow < 0 || currentRow >= liveBlocks.length) {return;}
                 e.preventDefault(); e.stopPropagation();
                 setSelectedBlockIndex(currentRow);
                 setHoveredBlockIndex(currentRow);
@@ -253,7 +253,7 @@ export function MemoryMapEditor({
                 return;
             }
             if (isDelete) {
-                if (currentRow < 0 || currentRow >= liveBlocks.length) return;
+                if (currentRow < 0 || currentRow >= liveBlocks.length) {return;}
                 e.preventDefault(); e.stopPropagation();
                 const newBlocks = liveBlocks.filter((_: any, i: number) => i !== currentRow);
                 onUpdate(["addressBlocks"], newBlocks);
@@ -265,7 +265,7 @@ export function MemoryMapEditor({
             }
 
             e.preventDefault(); e.stopPropagation();
-            if (liveBlocks.length === 0) return;
+            if (liveBlocks.length === 0) {return;}
 
             const isVertical = normalizedKey === "ArrowUp" || normalizedKey === "ArrowDown";
             const delta = normalizedKey === "ArrowUp" || normalizedKey === "ArrowLeft" ? -1 : 1;

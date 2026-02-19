@@ -650,7 +650,7 @@ export const BusInterfacesEditor: React.FC<BusInterfacesEditorProps> = ({
   // Scroll Bus Interface into view
   useEffect(() => {
     const container = containerRef.current;
-    if (!container) return;
+    if (!container) {return;}
     requestAnimationFrame(() => {
       const el = container.querySelector(`[data-bus-index="${selectedIndex}"]`);
       el?.scrollIntoView({ block: "nearest" });
@@ -659,9 +659,9 @@ export const BusInterfacesEditor: React.FC<BusInterfacesEditorProps> = ({
 
   // Scroll Port into view
   useEffect(() => {
-    if (!expandedIndexes.has(selectedIndex)) return;
+    if (!expandedIndexes.has(selectedIndex)) {return;}
     const container = containerRef.current;
-    if (!container) return;
+    if (!container) {return;}
     requestAnimationFrame(() => {
       const busEl = container.querySelector(
         `[data-bus-index="${selectedIndex}"]`,

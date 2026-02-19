@@ -571,7 +571,7 @@ const App = () => {
                   const block = selectedObject as Record<string, unknown>;
                   const registers = (block?.registers as unknown[]) || [];
                   const reg = registers[regIndex] as Record<string, unknown>;
-                  if (!reg) return;
+                  if (!reg) {return;}
 
                   // Determine if it's an array or register
                   const isArray = reg.__kind === "array";
@@ -604,7 +604,7 @@ const App = () => {
                   const arr = selectedObject as Record<string, unknown>; // NormalizedRegisterArray with meta
                   const registers = (arr.registers as unknown[]) || [];
                   const reg = registers[regIndex] as Record<string, unknown>;
-                  if (!reg) return;
+                  if (!reg) {return;}
 
                   // Path logic verified from Outline.tsx: [...arrayPath, 'registers', childIndex]
                   const newPath = [
@@ -639,9 +639,9 @@ const App = () => {
               }}
               onNavigateToBlock={(blockIndex) => {
                 // Navigate to address block in Outline
-                if (!memoryMap || !memoryMap.address_blocks) return;
+                if (!memoryMap || !memoryMap.address_blocks) {return;}
                 const block = memoryMap.address_blocks[blockIndex];
-                if (!block) return;
+                if (!block) {return;}
 
                 handleSelect({
                   id: `block-${blockIndex}`,

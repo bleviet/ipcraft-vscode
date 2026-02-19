@@ -37,7 +37,7 @@ export function useFieldEditor(
     fields: BitFieldRecord[],
     registerSize: number,
     onUpdate: YamlUpdateHandler,
-    isActive: boolean = true,
+    isActive = true,
 ) {
     // ---- selection / hover ----
     const [selectedFieldIndex, setSelectedFieldIndex] = useState<number>(-1);
@@ -233,10 +233,10 @@ export function useFieldEditor(
         const onKeyDown = (e: KeyboardEvent) => {
             let keyLower = (e.key || "").toLowerCase();
             if (e.altKey && e.code) {
-                if (e.code === "KeyH") keyLower = "h";
-                if (e.code === "KeyJ") keyLower = "j";
-                if (e.code === "KeyK") keyLower = "k";
-                if (e.code === "KeyL") keyLower = "l";
+                if (e.code === "KeyH") {keyLower = "h";}
+                if (e.code === "KeyJ") {keyLower = "j";}
+                if (e.code === "KeyK") {keyLower = "k";}
+                if (e.code === "KeyL") {keyLower = "l";}
             }
             const vimToArrow: Record<
                 string,

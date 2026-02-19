@@ -406,7 +406,7 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
               newFiles: string[],
               fileTypeMap: (f: string) => string,
             ) => {
-              if (newFiles.length === 0) return;
+              if (newFiles.length === 0) {return;}
 
               let targetSetIndex = fileSets.findIndex(
                 (fs: any) => fs && fs.name && setNames.includes(fs.name),
@@ -454,8 +454,8 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
               "Simulation Files",
               simFiles,
               (f) => {
-                if (f.endsWith("Makefile")) return "unknown";
-                if (f.endsWith(".py")) return "python";
+                if (f.endsWith("Makefile")) {return "unknown";}
+                if (f.endsWith(".py")) {return "python";}
                 return "vhdl";
               },
             );
@@ -464,8 +464,8 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
               "Integration Files",
               integrationFiles,
               (f) => {
-                if (f.endsWith(".tcl")) return "tcl";
-                if (f.endsWith(".xml")) return "unknown";
+                if (f.endsWith(".tcl")) {return "tcl";}
+                if (f.endsWith(".xml")) {return "unknown";}
                 return "vhdl";
               },
             );

@@ -116,13 +116,12 @@
     "generate-types": "json2ts -i node_modules/ipcraft-spec/schemas/memory_map.schema.json -o src/webview/types/memoryMap.d.ts && json2ts -i node_modules/ipcraft-spec/schemas/ip_core.schema.json -o src/webview/types/ipCore.d.ts"
   },
   "devDependencies": {
-    "ipcraft-spec": "file:../ipcraft-spec",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^14.3.1",
     "@testing-library/user-event": "^14.6.1",
     "@types/glob": "^8.1.0",
     "@types/jest": "^29.5.14",
-    "@types/node": "20.2.5",
+    "@types/node": "^20.19.33",
     "@types/vscode": "^1.80.0",
     "@typescript-eslint/eslint-plugin": "^5.59.8",
     "@typescript-eslint/parser": "^5.59.8",
@@ -132,6 +131,7 @@
     "glob": "^8.1.0",
     "husky": "^8.0.3",
     "identity-obj-proxy": "^3.0.0",
+    "ipcraft-spec": "file:./ipcraft-spec",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
     "json-schema-to-typescript": "^13.0.0",

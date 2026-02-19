@@ -95,7 +95,7 @@ export class TemplateLoader {
     const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
     const candidates = [path.join(__dirname, "templates")].filter(
       Boolean,
-    ) as string[];
+    ) ;
 
     for (const candidate of candidates) {
       if (fs.existsSync(candidate)) {

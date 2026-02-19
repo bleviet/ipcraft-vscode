@@ -130,9 +130,9 @@ const DetailsPanel = React.forwardRef<DetailsPanelHandle, DetailsPanelProps>(
     const reg = isRegister ? (selectedObject as Register) : null;
 
     const fields = useMemo(() => {
-      if (!reg?.fields) return [];
+      if (!reg?.fields) {return [];}
       return reg.fields.map((f) => {
-        if (f.bit_range) return f;
+        if (f.bit_range) {return f;}
         if (f.bit_offset !== undefined && f.bit_width !== undefined) {
           const lo = Number(f.bit_offset);
           const width = Number(f.bit_width);

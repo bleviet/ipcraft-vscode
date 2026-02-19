@@ -46,7 +46,7 @@ const extensionConfig = {
           to: "templates",
         },
         {
-          from: path.resolve(__dirname, "src", "resources"),
+          from: path.resolve(__dirname, "ipcraft-spec", "common", "bus_definitions.yml"),
           to: "resources",
         },
       ],

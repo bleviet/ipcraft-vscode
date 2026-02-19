@@ -306,7 +306,7 @@ async function updateFileSetsInYaml(
       newFiles: string[],
       fileTypeMap: (filePath: string) => string,
     ) => {
-      if (newFiles.length === 0) return;
+      if (newFiles.length === 0) {return;}
 
       let targetSetIndex = fileSets.findIndex(
         (fs: any) => fs && fs.name && setNames.includes(fs.name),
@@ -352,8 +352,8 @@ async function updateFileSetsInYaml(
       "Simulation Files",
       simFiles,
       (file) => {
-        if (file.endsWith("Makefile")) return "unknown";
-        if (file.endsWith(".py")) return "python";
+        if (file.endsWith("Makefile")) {return "unknown";}
+        if (file.endsWith(".py")) {return "python";}
         return "vhdl";
       },
     );
@@ -362,8 +362,8 @@ async function updateFileSetsInYaml(
       "Integration Files",
       integrationFiles,
       (file) => {
-        if (file.endsWith(".tcl")) return "tcl";
-        if (file.endsWith(".xml")) return "unknown";
+        if (file.endsWith(".tcl")) {return "tcl";}
+        if (file.endsWith(".xml")) {return "unknown";}
         return "vhdl";
       },
     );

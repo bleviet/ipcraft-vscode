@@ -97,7 +97,7 @@ function nextSequentialName(items: { name?: string }[], prefix: string): string 
     const re = new RegExp(`^${prefix}(\\d+)$`);
     for (const item of items) {
         const m = String(item.name ?? "").match(re);
-        if (m) maxN = Math.max(maxN, parseInt(m[1], 10));
+        if (m) {maxN = Math.max(maxN, parseInt(m[1], 10));}
     }
     return `${prefix}${maxN + 1}`;
 }
@@ -107,7 +107,7 @@ function sortFieldsByLsb(fields: BitFieldRuntimeDef[]): BitFieldRuntimeDef[] {
     return [...fields].sort((a, b) => {
         const aBits = parseBitsRange(fieldToBitsString(a));
         const bBits = parseBitsRange(fieldToBitsString(b));
-        if (!aBits || !bBits) return 0;
+        if (!aBits || !bBits) {return 0;}
         return aBits[1] - bBits[1];
     });
 }
@@ -201,9 +201,9 @@ export class SpatialInsertionService {
 
         // Collision check.
         for (const field of fields) {
-            if (field === selected) continue;
+            if (field === selected) {continue;}
             const bits = parseBitsRange(fieldToBitsString(field));
-            if (!bits) continue;
+            if (!bits) {continue;}
             const [fMsb, fLsb] = bits;
             if (fLsb <= newMsb && fMsb >= newLsb) {
                 return {
@@ -237,7 +237,7 @@ export class SpatialInsertionService {
         let minLsb = Infinity;
         for (const field of newFields) {
             const bits = parseBitsRange(fieldToBitsString(field));
-            if (bits) minLsb = Math.min(minLsb, bits[1]);
+            if (bits) {minLsb = Math.min(minLsb, bits[1]);}
         }
         if (minLsb < 0) {
             return {
@@ -307,9 +307,9 @@ export class SpatialInsertionService {
 
         // Collision check.
         for (const field of fields) {
-            if (field === selected) continue;
+            if (field === selected) {continue;}
             const bits = parseBitsRange(fieldToBitsString(field));
-            if (!bits) continue;
+            if (!bits) {continue;}
             const [fMsb, fLsb] = bits;
             if (fLsb <= newMsb && fMsb >= newLsb) {
                 return {
@@ -347,7 +347,7 @@ export class SpatialInsertionService {
         let maxMsb = -Infinity;
         for (const field of newFields) {
             const bits = parseBitsRange(fieldToBitsString(field));
-            if (bits) maxMsb = Math.max(maxMsb, bits[0]);
+            if (bits) {maxMsb = Math.max(maxMsb, bits[0]);}
         }
         if (maxMsb >= regSize) {
             return {

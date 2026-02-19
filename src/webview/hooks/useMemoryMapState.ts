@@ -33,8 +33,8 @@ export function useMemoryMapState() {
       let map: unknown;
       if (Array.isArray(parsed)) {
         map = parsed[0];
-      } else if ((parsed as Record<string, unknown>).memory_maps) {
-        map = ((parsed as Record<string, unknown>).memory_maps as unknown[])[0];
+      } else if ((parsed ).memory_maps) {
+        map = ((parsed ).memory_maps as unknown[])[0];
       } else {
         map = parsed;
       }
@@ -64,8 +64,8 @@ export function useMemoryMapState() {
       let map: unknown;
       if (Array.isArray(parsed)) {
         map = parsed[0];
-      } else if ((parsed as Record<string, unknown>).memory_maps) {
-        map = ((parsed as Record<string, unknown>).memory_maps as unknown[])[0];
+      } else if ((parsed ).memory_maps) {
+        map = ((parsed ).memory_maps as unknown[])[0];
       } else {
         map = parsed;
       }
