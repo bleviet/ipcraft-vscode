@@ -1,4 +1,5 @@
 import React, { useRef } from "react";
+import type { YamlUpdateHandler } from "../../../types/editor";
 import { FormField, SelectField } from "../../../shared/components";
 import {
   validateVhdlIdentifier,
@@ -19,9 +20,9 @@ interface BusInterface {
 }
 
 interface ClocksTableProps {
-  clocks: Clock[];
-  busInterfaces?: BusInterface[];
-  onUpdate: (path: Array<string | number>, value: any) => void;
+  clocks: unknown[];
+  busInterfaces?: unknown[];
+  onUpdate: YamlUpdateHandler;
 }
 
 const createEmptyClock = (): Clock => ({
@@ -76,10 +77,12 @@ const getUsedByInterfaces = (
  * - Escape: Cancel editing
  */
 export const ClocksTable: React.FC<ClocksTableProps> = ({
-  clocks,
-  busInterfaces = [],
+  clocks: rawClocks,
+  busInterfaces: rawBusInterfaces = [],
   onUpdate,
 }) => {
+  const clocks = rawClocks as Clock[];
+  const busInterfaces = rawBusInterfaces as BusInterface[];
   const {
     selectedIndex,
     activeColumn,

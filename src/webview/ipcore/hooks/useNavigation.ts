@@ -14,7 +14,7 @@ export type Section =
 export interface SectionMeta {
   selectedIndex?: number;
   expandedIndices?: Set<number>;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**

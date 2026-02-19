@@ -4,7 +4,7 @@ import { Section } from "../../hooks/useNavigation";
 interface NavigationSidebarProps {
   selectedSection: Section;
   onNavigate: (section: Section) => void;
-  ipCore: any;
+  ipCore: unknown;
   isFocused?: boolean;
   onFocus?: () => void;
   panelRef?: RefObject<HTMLDivElement>;
@@ -16,7 +16,7 @@ interface SectionItem {
   label: string;
   icon?: string;
   customIcon?: React.ReactNode;
-  count?: (ipCore: any) => number;
+  count?: (ipCore: unknown) => number;
 }
 
 // Custom square wave icon for clocks (single pulse pattern)
@@ -44,44 +44,46 @@ const SECTIONS: SectionItem[] = [
     id: "clocks",
     label: "Clocks",
     customIcon: <SquareWaveIcon />,
-    count: (ip) => ip?.clocks?.length || 0,
+    count: (ip) => (ip as Record<string, unknown[]>)?.clocks?.length || 0,
   },
   {
     id: "resets",
     label: "Resets",
     icon: "debug-restart",
-    count: (ip) => ip?.resets?.length || 0,
+    count: (ip) => (ip as Record<string, unknown[]>)?.resets?.length || 0,
   },
   {
     id: "ports",
     label: "Ports",
     icon: "plug",
-    count: (ip) => ip?.ports?.length || 0,
+    count: (ip) => (ip as Record<string, unknown[]>)?.ports?.length || 0,
   },
   {
     id: "busInterfaces",
     label: "Bus Interfaces",
     icon: "circuit-board",
-    count: (ip) => ip?.busInterfaces?.length || 0,
+    count: (ip) => (ip as Record<string, unknown[]>)?.busInterfaces?.length || 0,
   },
   {
     id: "memoryMaps",
     label: "Memory Maps",
     icon: "circuit-board",
-    count: (ip) =>
-      ip?.memoryMaps?.length || ip?.imports?.memoryMaps?.length || 0,
+    count: (ip) => {
+      const r = ip as Record<string, unknown>;
+      return (r?.memoryMaps as unknown[])?.length || ((r?.imports as Record<string, unknown>)?.memoryMaps as unknown[])?.length || 0;
+    },
   },
   {
     id: "parameters",
     label: "Parameters",
     icon: "symbol-parameter",
-    count: (ip) => ip?.parameters?.length || 0,
+    count: (ip) => (ip as Record<string, unknown[]>)?.parameters?.length || 0,
   },
   {
     id: "fileSets",
     label: "File Sets",
     icon: "files",
-    count: (ip) => ip?.fileSets?.length || 0,
+    count: (ip) => (ip as Record<string, unknown[]>)?.fileSets?.length || 0,
   },
   // Separator - Generate is an action, not a data section
   { id: "generate", label: "Generate HDL", icon: "tools" },

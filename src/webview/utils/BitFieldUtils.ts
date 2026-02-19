@@ -47,7 +47,7 @@ export function formatBitsRange(hi: number, lo: number): string {
 export function fieldToBitsString(field: {
   bit_offset?: number | null;
   bit_width?: number | null;
-  bits?: string;
+  bits?: string | null;
 }): string {
   const offset = Number(field?.bit_offset ?? NaN);
   const width = Number(field?.bit_width ?? NaN);

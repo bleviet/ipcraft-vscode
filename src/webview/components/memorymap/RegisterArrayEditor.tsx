@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import type { YamlUpdateHandler } from "../../types/editor";
 import {
     VSCodeDropdown,
     VSCodeTextField,
@@ -17,7 +18,7 @@ const REG_COLUMN_ORDER: RegEditKey[] = ["name", "offset", "access", "description
 export interface RegisterArrayEditorProps {
     /** The register array definition object. */
     registerArray: any;
-    onUpdate: (path: Array<string | number>, value: unknown) => void;
+    onUpdate: YamlUpdateHandler;
 }
 
 // ---------------------------------------------------------------------------

@@ -83,7 +83,7 @@ const App = () => {
       selection: Selection | null,
     ): {
       type: Selection["type"];
-      object: any;
+      object: unknown;
       breadcrumbs: string[];
     } | null => {
       if (!selection || !memoryMap) {
@@ -197,7 +197,7 @@ const App = () => {
    * Handle updates from DetailsPanel
    */
   const handleUpdate = useCallback(
-    (path: YamlPath, value: any) => {
+    (path: YamlPath, value: unknown) => {
       const selection = selectionRef.current;
       if (!selection) {
         return;
@@ -241,13 +241,13 @@ const App = () => {
    */
   const handleFieldOperations = (
     path: YamlPath,
-    value: any,
-    root: any,
+    value: unknown,
+    root: unknown,
     selectionRootPath: YamlPath,
     selection: Selection,
   ) => {
     const operationType = String(path[1] ?? "");
-    const payload = value ?? {};
+    const payload = (value ?? {}) as Record<string, unknown>;
     const registerYamlPath: YamlPath = [...selectionRootPath, ...selection.path];
     const fieldsPath: YamlPath = [...registerYamlPath, "fields"];
     const current = YamlPathResolver.getAtPath(root, fieldsPath);
@@ -255,7 +255,7 @@ const App = () => {
       YamlPathResolver.setAtPath(root, fieldsPath, []);
     }
     const fieldsArr = (YamlPathResolver.getAtPath(root, fieldsPath) ??
-      []) as any[];
+      []) as Record<string, unknown>[];
     if (!Array.isArray(fieldsArr)) {
       return;
     }
@@ -267,11 +267,11 @@ const App = () => {
         0,
         Math.min(fieldsArr.length, afterIndex + 1),
       );
-      const currentFields = (selection.object?.fields ?? []) as any[];
+      const currentFields = ((selection.object as Record<string, unknown>)?.fields as unknown[]) ?? [];
       const used = new Set<number>();
       for (const field of currentFields) {
-        const o = Number(field?.bit_offset ?? 0);
-        const w = Number(field?.bit_width ?? 1);
+        const o = Number((field as Record<string, unknown>)?.bit_offset ?? 0);
+        const w = Number((field as Record<string, unknown>)?.bit_width ?? 1);
         for (let b = o; b < o + w; b++) {
           used.add(b);
         }
@@ -327,7 +327,7 @@ const App = () => {
             }
           }
           // Fall back to bit_width property if bits is not available
-          else if (Number.isFinite(field?.bit_width) && field.bit_width > 0) {
+          else if (Number.isFinite(field?.bit_width as number) && (field.bit_width as number) > 0) {
             width = Number(field.bit_width);
           }
           width = Math.max(1, Math.min(32, Math.trunc(width)));
@@ -568,9 +568,9 @@ const App = () => {
                 // CASE 1: Block View (Direct registers/arrays)
                 if (selectionRef.current.type === "block") {
                   const currentPath = selectionRef.current.path || [];
-                  const block = selectedObject;
-                  const registers = block?.registers || [];
-                  const reg = registers[regIndex];
+                  const block = selectedObject as Record<string, unknown>;
+                  const registers = (block?.registers as unknown[]) || [];
+                  const reg = registers[regIndex] as Record<string, unknown>;
                   if (!reg) return;
 
                   // Determine if it's an array or register
@@ -588,7 +588,7 @@ const App = () => {
                     object: reg,
                     breadcrumbs: [
                       ...(selectionRef.current.breadcrumbs || []),
-                      reg.name || `Register ${regIndex}`,
+                      String(reg.name ?? `Register ${regIndex}`),
                     ],
                     path: newPath,
                     // Block children (top-level) absolute address is calculated in Outline, but we can approximate or omit if Outline recalculates?
@@ -601,9 +601,9 @@ const App = () => {
                 // CASE 2: Array Element View (Nested registers)
                 // When masquerading as a Block for an Array Element, clicking a register should select the template register in the Outline under that element.
                 if (selectionRef.current.type === "array") {
-                  const arr = selectedObject as any; // NormalizedRegisterArray with meta
-                  const registers = arr.registers || [];
-                  const reg = registers[regIndex];
+                  const arr = selectedObject as Record<string, unknown>; // NormalizedRegisterArray with meta
+                  const registers = (arr.registers as unknown[]) || [];
+                  const reg = registers[regIndex] as Record<string, unknown>;
                   if (!reg) return;
 
                   // Path logic verified from Outline.tsx: [...arrayPath, 'registers', childIndex]
@@ -617,8 +617,8 @@ const App = () => {
                   const id = `${selectionRef.current.id}-reg-${regIndex}`;
 
                   // Calculate absolute address for the specific child
-                  const elementBase = arr.__element_base ?? 0;
-                  const absoluteAddr = elementBase + (reg.address_offset ?? 0);
+                  const elementBase = (arr.__element_base as number) ?? 0;
+                  const absoluteAddr = elementBase + ((reg.address_offset as number) ?? 0);
 
                   handleSelect({
                     id,
@@ -626,12 +626,12 @@ const App = () => {
                     object: reg,
                     breadcrumbs: [
                       ...(selectionRef.current.breadcrumbs || []),
-                      reg.name || `Register ${regIndex}`,
+                      String(reg.name ?? `Register ${regIndex}`),
                     ],
                     path: newPath,
                     meta: {
                       absoluteAddress: absoluteAddr,
-                      relativeOffset: reg.address_offset ?? 0,
+                      relativeOffset: (reg.address_offset as number) ?? 0,
                     },
                   });
                   return;
@@ -667,16 +667,16 @@ const App = () => {
  */
 class ErrorBoundary extends React.Component<
   { children: ReactNode },
-  { error: any; info: any }
+  { error: unknown; info: unknown }
 > {
-  constructor(props: any) {
+  constructor(props: { children: ReactNode }) {
     super(props);
     this.state = { error: null, info: null };
   }
-  static getDerivedStateFromError(error: any) {
+  static getDerivedStateFromError(error: unknown) {
     return { error, info: null };
   }
-  componentDidCatch(error: any, info: ErrorInfo) {
+  componentDidCatch(error: unknown, info: ErrorInfo) {
     this.setState({ error, info });
   }
   render() {
@@ -691,10 +691,10 @@ class ErrorBoundary extends React.Component<
           }}
         >
           <h2 style={{ fontWeight: "bold" }}>UI Error</h2>
-          <div>{this.state.error?.message || String(this.state.error)}</div>
-          {this.state.info && (
+          <div>{(this.state.error as Error)?.message || String(this.state.error)}</div>
+          {!!this.state.info && (
             <pre style={{ marginTop: 16, fontSize: 12 }}>
-              {this.state.info.componentStack}
+              {(this.state.info as { componentStack?: string })?.componentStack}
             </pre>
           )}
         </div>

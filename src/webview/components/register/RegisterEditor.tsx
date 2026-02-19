@@ -3,6 +3,7 @@ import React, {
     useImperativeHandle,
     useMemo,
 } from "react";
+import type { YamlUpdateHandler, BitFieldRecord } from "../../types/editor";
 import BitFieldVisualizer from "../BitFieldVisualizer";
 import { KeyboardShortcutsButton } from "../../shared/components";
 import { FieldsTable } from "./FieldsTable";
@@ -17,13 +18,13 @@ export interface RegisterEditorProps {
     /** The register to display and edit. */
     register: Register;
     /** Normalised bit fields (with bit_range / bit_offset / bit_width). */
-    fields: any[];
+    fields: BitFieldRecord[];
     selectionMeta?: {
         absoluteAddress?: number;
         relativeOffset?: number;
         focusDetails?: boolean;
     };
-    onUpdate: (path: Array<string | number>, value: unknown) => void;
+    onUpdate: YamlUpdateHandler;
 }
 
 export type RegisterEditorHandle = {

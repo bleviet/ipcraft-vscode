@@ -11,6 +11,7 @@ import React, {
   useRef,
 } from "react";
 import { Register } from "../types/memoryMap";
+import type { YamlUpdateHandler, YamlPath } from "../types/editor";
 
 import { RegisterEditor, RegisterEditorHandle } from "./register/RegisterEditor";
 import { MemoryMapEditor } from "./memorymap/MemoryMapEditor";
@@ -23,13 +24,13 @@ import { RegisterArrayEditor } from "./memorymap/RegisterArrayEditor";
 
 export interface DetailsPanelProps {
   selectedType: "memoryMap" | "block" | "register" | "array" | null;
-  selectedObject: any;
+  selectedObject: unknown;
   selectionMeta?: {
     absoluteAddress?: number;
     relativeOffset?: number;
     focusDetails?: boolean;
   };
-  onUpdate: (path: Array<string | number>, value: any) => void;
+  onUpdate: YamlUpdateHandler;
   onNavigateToRegister?: (regIndex: number) => void;
   onNavigateToBlock?: (blockIndex: number) => void;
 }
@@ -67,10 +68,10 @@ const DetailsPanel = React.forwardRef<DetailsPanelHandle, DetailsPanelProps>(
 
     if (
       rawSelectedType === "array" &&
-      (rawSelectedObject as any)?.__element_index !== undefined
+      (rawSelectedObject as Record<string, unknown>)?.__element_index !== undefined
     ) {
-      const arr = rawSelectedObject as any;
-      const registers = arr.registers || [];
+      const arr = rawSelectedObject as Record<string, unknown> & { registers?: unknown[] };
+      const registers: unknown[] = (arr.registers as unknown[]) || [];
 
       if (registers.length === 1) {
         // Single Register: Masquerade as a single Register View
@@ -80,11 +81,11 @@ const DetailsPanel = React.forwardRef<DetailsPanelHandle, DetailsPanelProps>(
         if (arr.__element_base !== undefined) {
           selectionMeta = {
             ...(rawSelectionMeta || {}),
-            absoluteAddress: arr.__element_base,
+            absoluteAddress: arr.__element_base as number,
           };
         }
 
-        onUpdate = (path: any[], value: any) => {
+        onUpdate = (path: YamlPath, value: unknown) => {
           rawOnUpdate(["registers", 0, ...path], value);
         };
       } else {
@@ -96,7 +97,7 @@ const DetailsPanel = React.forwardRef<DetailsPanelHandle, DetailsPanelProps>(
           selectedObject = { ...arr, base_address: arr.__element_base };
           selectionMeta = {
             ...(rawSelectionMeta || {}),
-            absoluteAddress: arr.__element_base,
+            absoluteAddress: arr.__element_base as number,
           };
         }
         // Updates to ['registers', idx, prop] work natively on the Array object.
@@ -130,7 +131,7 @@ const DetailsPanel = React.forwardRef<DetailsPanelHandle, DetailsPanelProps>(
 
     const fields = useMemo(() => {
       if (!reg?.fields) return [];
-      return reg.fields.map((f: any) => {
+      return reg.fields.map((f) => {
         if (f.bit_range) return f;
         if (f.bit_offset !== undefined && f.bit_width !== undefined) {
           const lo = Number(f.bit_offset);

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import type { YamlUpdateHandler } from "../../../types/editor";
 import {
   FormField,
   TextAreaField,
@@ -20,8 +21,8 @@ interface FileSet {
 }
 
 interface FileSetsEditorProps {
-  fileSets: FileSet[];
-  onUpdate: (path: Array<string | number>, value: any) => void;
+  fileSets: unknown[];
+  onUpdate: YamlUpdateHandler;
 }
 
 /**
@@ -29,9 +30,10 @@ interface FileSetsEditorProps {
  * Supports adding/editing file sets and files within them
  */
 export const FileSetsEditor: React.FC<FileSetsEditorProps> = ({
-  fileSets,
+  fileSets: rawFileSets,
   onUpdate,
 }) => {
+  const fileSets = rawFileSets as FileSet[];
   const [expandedSets, setExpandedSets] = useState<Set<number>>(new Set([0]));
   const [editingSet, setEditingSet] = useState<number | null>(null);
   const [editingFile, setEditingFile] = useState<{

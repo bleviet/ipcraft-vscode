@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { SpatialInsertionService } from "../services/SpatialInsertionService";
+import type { BitFieldRuntimeDef } from "../services/SpatialInsertionService";
 import { fieldToBitsString } from "../utils/BitFieldUtils";
+import type { BitFieldRecord, YamlUpdateHandler } from "../types/editor";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -32,9 +34,9 @@ export const COLUMN_ORDER: EditKey[] = [
  * @param isActive When false the keyboard handler is not installed.
  */
 export function useFieldEditor(
-    fields: any[],
+    fields: BitFieldRecord[],
     registerSize: number,
-    onUpdate: (path: Array<string | number>, value: unknown) => void,
+    onUpdate: YamlUpdateHandler,
     isActive: boolean = true,
 ) {
     // ---- selection / hover ----
@@ -193,9 +195,11 @@ export function useFieldEditor(
 
         const tryInsertField = (after: boolean) => {
             setInsertError(null);
+            // BitFieldRecord is structurally compatible with BitFieldRuntimeDef at runtime
+            const typedFields = fields as unknown as BitFieldRuntimeDef[];
             const result = after
-                ? SpatialInsertionService.insertFieldAfter(fields, selectedFieldIndex, registerSize)
-                : SpatialInsertionService.insertFieldBefore(fields, selectedFieldIndex, registerSize);
+                ? SpatialInsertionService.insertFieldAfter(typedFields, selectedFieldIndex, registerSize)
+                : SpatialInsertionService.insertFieldBefore(typedFields, selectedFieldIndex, registerSize);
 
             if (result.error) {
                 setInsertError(result.error);

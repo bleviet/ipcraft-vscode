@@ -230,8 +230,8 @@ export class SpatialInsertionService {
             newField,
             ...fields.slice(selIdx + 1),
         ];
-        newFields = repackFieldsForward(newFields, selIdx + 2, regSize);
-        newFields = sortFieldsByLsb(newFields);
+        newFields = repackFieldsForward(newFields, selIdx + 2, regSize) as unknown as BitFieldRuntimeDef[];
+        newFields = sortFieldsByLsb(newFields as unknown as BitFieldRuntimeDef[]);
 
         // Validate: no field may have a negative LSB.
         let minLsb = Infinity;
@@ -340,8 +340,8 @@ export class SpatialInsertionService {
             newFields,
             selIdx - 1 >= 0 ? selIdx - 1 : 0,
             regSize,
-        );
-        newFields = sortFieldsByLsb(newFields);
+        ) as unknown as BitFieldRuntimeDef[];
+        newFields = sortFieldsByLsb(newFields as unknown as BitFieldRuntimeDef[]);
 
         // Validate: no field may exceed register size.
         let maxMsb = -Infinity;
@@ -410,8 +410,8 @@ export class SpatialInsertionService {
             defaultReg(name, newOffset),
             ...registers.slice(selIdx + 1),
         ];
-        newRegisters = repackRegistersForward(newRegisters, selIdx + 2);
-        newRegisters = sortRegistersByOffset(newRegisters);
+        newRegisters = repackRegistersForward(newRegisters, selIdx + 2) as unknown as RegisterRuntimeDef[];
+        newRegisters = sortRegistersByOffset(newRegisters as unknown as RegisterRuntimeDef[]);
 
         const newIndex = newRegisters.findIndex((r) => r.name === name);
         return { items: newRegisters, newIndex };
@@ -464,8 +464,8 @@ export class SpatialInsertionService {
         newRegisters = repackRegistersBackward(
             newRegisters,
             selIdx - 1 >= 0 ? selIdx - 1 : 0,
-        );
-        newRegisters = sortRegistersByOffset(newRegisters);
+        ) as unknown as RegisterRuntimeDef[];
+        newRegisters = sortRegistersByOffset(newRegisters as unknown as RegisterRuntimeDef[]);
 
         // Validate: no register should end up with a negative offset.
         for (const reg of newRegisters) {
@@ -541,8 +541,8 @@ export class SpatialInsertionService {
             defaultBlock(name, newBase),
             ...blocks.slice(selIdx + 1),
         ];
-        newBlocks = repackBlocksForward(newBlocks, selIdx + 2);
-        newBlocks = sortBlocksByBase(newBlocks);
+        newBlocks = repackBlocksForward(newBlocks, selIdx + 2) as unknown as AddressBlockRuntimeDef[];
+        newBlocks = sortBlocksByBase(newBlocks as unknown as AddressBlockRuntimeDef[]);
 
         const newIndex = newBlocks.findIndex((b) => b.name === name);
         return { items: newBlocks, newIndex };
@@ -635,8 +635,8 @@ export class SpatialInsertionService {
         newBlocks = repackBlocksBackward(
             newBlocks,
             selIdx - 1 >= 0 ? selIdx - 1 : 0,
-        );
-        newBlocks = sortBlocksByBase(newBlocks);
+        ) as unknown as AddressBlockRuntimeDef[];
+        newBlocks = sortBlocksByBase(newBlocks as unknown as AddressBlockRuntimeDef[]);
 
         const newIndex = newBlocks.findIndex((b) => b.name === name);
         return { items: newBlocks, newIndex };

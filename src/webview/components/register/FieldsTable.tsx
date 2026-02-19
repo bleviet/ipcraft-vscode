@@ -1,4 +1,5 @@
 import React from "react";
+import type { YamlUpdateHandler } from "../../types/editor";
 import {
     VSCodeDropdown,
     VSCodeOption,
@@ -147,7 +148,7 @@ export interface FieldsTableProps {
     /** Register width in bits (used for overflow validation). */
     registerSize: number;
     /** Callback to commit a YAML path + value change. */
-    onUpdate: (path: Array<string | number>, value: unknown) => void;
+    onUpdate: YamlUpdateHandler;
     /** All editing state from the useFieldEditor hook. */
     fieldEditor: FieldEditorState;
 }

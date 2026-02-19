@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import type { YamlUpdateHandler } from "../../types/editor";
 import {
     VSCodeTextField,
     VSCodeTextArea,
@@ -30,7 +31,7 @@ export interface MemoryMapEditorProps {
         relativeOffset?: number;
         focusDetails?: boolean;
     };
-    onUpdate: (path: Array<string | number>, value: unknown) => void;
+    onUpdate: YamlUpdateHandler;
     onNavigateToBlock?: (blockIndex: number) => void;
 }
 

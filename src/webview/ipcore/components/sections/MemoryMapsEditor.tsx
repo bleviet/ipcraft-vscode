@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect } from "react";
+import type { YamlUpdateHandler } from "../../../types/editor";
 import { vscode } from "../../../vscode";
 
 interface MemoryMapsEditorProps {
-  memoryMaps: any;
-  imports?: { memoryMaps?: any[] };
-  onUpdate: (path: Array<string | number>, value: any) => void;
+  memoryMaps: unknown;
+  imports?: { memoryMaps?: unknown[] };
+  onUpdate: YamlUpdateHandler;
 }
 
 export const MemoryMapsEditor: React.FC<MemoryMapsEditorProps> = ({
@@ -12,12 +13,14 @@ export const MemoryMapsEditor: React.FC<MemoryMapsEditorProps> = ({
   imports,
   onUpdate,
 }) => {
+  // Cast to a typed record for internal use
+  const memMaps = memoryMaps as Record<string, unknown> | null;
   // Check if it's an import object (as per schema using 'import' keyword)
   // The memoryMaps field in the yaml is usually:
   // memoryMaps:
   //   import: "path/to/file"
-  const importFile = memoryMaps?.import;
-  const detectedMaps = imports?.memoryMaps || [];
+  const importFile = memMaps?.import as string | undefined;
+  const detectedMaps = (imports?.memoryMaps || []) as Record<string, unknown>[];
 
   const handleLinkFile = useCallback(() => {
     // Send message to extension to open file picker with filter
@@ -123,7 +126,7 @@ export const MemoryMapsEditor: React.FC<MemoryMapsEditorProps> = ({
             <h3 className="text-sm font-semibold mb-3">Detected Memory Maps</h3>
             {detectedMaps.length > 0 ? (
               <div className="space-y-3">
-                {detectedMaps.map((map: any, idx: number) => (
+                {detectedMaps.map((map, idx: number) => (
                   <div
                     key={idx}
                     className="p-4 rounded border"
@@ -136,7 +139,7 @@ export const MemoryMapsEditor: React.FC<MemoryMapsEditorProps> = ({
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="font-medium text-sm">
-                            {map.name}
+                            {map.name as string}
                           </span>
                           <span
                             className="text-xs px-2 py-0.5 rounded"
@@ -145,20 +148,20 @@ export const MemoryMapsEditor: React.FC<MemoryMapsEditorProps> = ({
                               color: "var(--vscode-badge-foreground)",
                             }}
                           >
-                            {map.addressBlocks?.length || 0} Block
-                            {map.addressBlocks?.length !== 1 ? "s" : ""}
+                            {(map.addressBlocks as unknown[])?.length || 0} Block
+                            {(map.addressBlocks as unknown[])?.length !== 1 ? "s" : ""}
                           </span>
                         </div>
-                        {map.description && (
+                        {!!map.description && (
                           <p className="text-sm mt-1" style={{ opacity: 0.8 }}>
-                            {map.description}
+                            {map.description as string}
                           </p>
                         )}
                       </div>
                     </div>
 
                     {/* Address Blocks Preview */}
-                    {map.addressBlocks && map.addressBlocks.length > 0 && (
+                    {(map.addressBlocks as unknown[]) && (map.addressBlocks as unknown[]).length > 0 && (
                       <div
                         className="mt-3 pl-4 border-l-2"
                         style={{ borderColor: "var(--vscode-panel-border)" }}
@@ -170,15 +173,15 @@ export const MemoryMapsEditor: React.FC<MemoryMapsEditorProps> = ({
                           ADDRESS BLOCKS
                         </p>
                         <div className="grid gap-1">
-                          {map.addressBlocks.map((block: any, bIdx: number) => (
+                          {(map.addressBlocks as Record<string, unknown>[]).map((block, bIdx: number) => (
                             <div
                               key={bIdx}
                               className="text-sm font-mono flex items-center gap-3"
                               style={{ opacity: 0.8 }}
                             >
-                              <span>{block.name}</span>
+                              <span>{String(block.name ?? '')}</span>
                               <span style={{ opacity: 0.5 }}>
-                                Offset: {block.offset || block.baseAddress || 0}
+                                Offset: {String(block.offset ?? block.baseAddress ?? 0)}
                               </span>
                             </div>
                           ))}

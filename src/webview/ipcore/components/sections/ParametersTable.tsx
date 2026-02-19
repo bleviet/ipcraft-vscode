@@ -1,4 +1,5 @@
 import React from "react";
+import type { YamlUpdateHandler } from "../../../types/editor";
 import {
   FormField,
   SelectField,
@@ -14,13 +15,13 @@ import { useVimTableNavigation } from "../../hooks/useVimTableNavigation";
 interface Parameter {
   name: string;
   dataType: string;
-  defaultValue: any;
+  defaultValue: unknown;
   description?: string;
 }
 
 interface ParametersTableProps {
-  parameters: Parameter[];
-  onUpdate: (path: Array<string | number>, value: any) => void;
+  parameters: unknown[];
+  onUpdate: YamlUpdateHandler;
 }
 
 const createEmptyParameter = (): Parameter => ({
@@ -37,9 +38,10 @@ const COLUMN_KEYS = ["name", "dataType", "defaultValue", "description"];
  * Vim-style: h/j/k/l navigate cells, e edit, d delete, o add
  */
 export const ParametersTable: React.FC<ParametersTableProps> = ({
-  parameters,
+  parameters: rawParameters,
   onUpdate,
 }) => {
+  const parameters = rawParameters as Parameter[];
   const {
     selectedIndex,
     activeColumn,
@@ -64,7 +66,7 @@ export const ParametersTable: React.FC<ParametersTableProps> = ({
   });
 
   const handleDataTypeChange = (newType: string) => {
-    let newDefault: any = "";
+    let newDefault: unknown = "";
     if (newType === "integer") {
       newDefault = 0;
     } else if (newType === "boolean") {

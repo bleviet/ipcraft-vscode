@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
+import type { YamlUpdateHandler } from "../../../types/editor";
 import { vscode } from "../../../vscode";
 
 interface BusPort {
@@ -42,13 +43,13 @@ interface Reset {
 }
 
 interface BusInterfacesEditorProps {
-  busInterfaces: BusInterface[];
-  busLibrary?: Record<string, { ports?: BusPort[] }>;
-  clocks?: Clock[];
-  resets?: Reset[];
-  onUpdate: (path: Array<string | number>, value: any) => void;
+  busInterfaces: unknown[];
+  busLibrary?: unknown;
+  clocks?: unknown[];
+  resets?: unknown[];
+  onUpdate: YamlUpdateHandler;
   highlight?: { entityName: string; field: string };
-  imports?: { memoryMaps?: any[] };
+  imports?: { memoryMaps?: unknown[] };
 }
 
 // Consistent text styles
@@ -102,14 +103,18 @@ function getEffectivePorts(
  * Bus Interfaces Editor - Clean consistent styling
  */
 export const BusInterfacesEditor: React.FC<BusInterfacesEditorProps> = ({
-  busInterfaces,
-  busLibrary,
+  busInterfaces: rawBusInterfaces,
+  busLibrary: rawBusLibrary,
   imports,
-  clocks = [],
-  resets = [],
+  clocks: rawClocks = [],
+  resets: rawResets = [],
   onUpdate,
   highlight,
 }) => {
+  const busInterfaces = rawBusInterfaces as BusInterface[];
+  const busLibrary = rawBusLibrary as Record<string, { ports?: BusPort[] }> | undefined;
+  const clocks = rawClocks as Clock[];
+  const resets = rawResets as Reset[];
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [expandedIndexes, setExpandedIndexes] = useState<Set<number>>(
     new Set(),

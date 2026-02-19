@@ -1,4 +1,5 @@
 import React from "react";
+import type { YamlUpdateHandler } from "../../../types/editor";
 import {
   FormField,
   SelectField,
@@ -17,8 +18,8 @@ interface Port {
 }
 
 interface PortsTableProps {
-  ports: Port[];
-  onUpdate: (path: Array<string | number>, value: any) => void;
+  ports: unknown[];
+  onUpdate: YamlUpdateHandler;
 }
 
 const createEmptyPort = (): Port => ({
@@ -57,7 +58,8 @@ const COLUMN_KEYS = ["name", "direction", "width"];
  * Editable table for IP Core ports
  * Vim-style: h/j/k/l navigate cells, e edit, d delete, o add
  */
-export const PortsTable: React.FC<PortsTableProps> = ({ ports, onUpdate }) => {
+export const PortsTable: React.FC<PortsTableProps> = ({ ports: rawPorts, onUpdate }) => {
+  const ports = rawPorts as Port[];
   const {
     selectedIndex,
     activeColumn,

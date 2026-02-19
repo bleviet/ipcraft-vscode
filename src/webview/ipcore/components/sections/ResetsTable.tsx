@@ -1,4 +1,5 @@
 import React from "react";
+import type { YamlUpdateHandler } from "../../../types/editor";
 import { FormField, SelectField } from "../../../shared/components";
 import {
   validateVhdlIdentifier,
@@ -19,9 +20,9 @@ interface BusInterface {
 }
 
 interface ResetsTableProps {
-  resets: Reset[];
-  busInterfaces?: BusInterface[];
-  onUpdate: (path: Array<string | number>, value: any) => void;
+  resets: unknown[];
+  busInterfaces?: unknown[];
+  onUpdate: YamlUpdateHandler;
 }
 
 const createEmptyReset = (): Reset => ({
@@ -82,10 +83,12 @@ const getUsedByInterfaces = (
  * Vim-style: h/j/k/l navigate cells, e edit, d delete, o add
  */
 export const ResetsTable: React.FC<ResetsTableProps> = ({
-  resets,
-  busInterfaces = [],
+  resets: rawResets,
+  busInterfaces: rawBusInterfaces = [],
   onUpdate,
 }) => {
+  const resets = rawResets as Reset[];
+  const busInterfaces = rawBusInterfaces as BusInterface[];
   const {
     selectedIndex,
     activeColumn,

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import type { YamlUpdateHandler } from "../../types/editor";
 import {
     VSCodeDropdown,
     VSCodeOption,
@@ -34,7 +35,7 @@ export interface BlockEditorProps {
         relativeOffset?: number;
         focusDetails?: boolean;
     };
-    onUpdate: (path: Array<string | number>, value: unknown) => void;
+    onUpdate: YamlUpdateHandler;
     onNavigateToRegister?: (regIndex: number) => void;
 }
 

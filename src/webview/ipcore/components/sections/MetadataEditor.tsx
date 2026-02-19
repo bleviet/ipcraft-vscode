@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
+import type { YamlUpdateHandler } from "../../../types/editor";
+import type { IpCore } from "../../../types/ipCore";
 import {
   FormField,
   SelectField,
@@ -10,15 +12,15 @@ import {
 } from "../../../shared/utils/validation";
 
 interface MetadataEditorProps {
-  ipCore: any;
-  onUpdate: (path: Array<string | number>, value: any) => void;
+  ipCore: IpCore;
+  onUpdate: YamlUpdateHandler;
 }
 
 interface MetadataRow {
   key: string;
   label: string;
   path: (string | number)[];
-  getValue: (ipCore: any) => string;
+  getValue: (ipCore: IpCore) => string;
   type?: "text" | "select" | "textarea";
   options?: { value: string; label: string }[];
   validator?: (value: string) => string | null;

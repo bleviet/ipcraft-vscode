@@ -1,4 +1,6 @@
 import React, { RefObject, useEffect, useRef } from 'react';
+import type { YamlUpdateHandler } from '../../../types/editor';
+import type { IpCore } from '../../../types/ipCore';
 import { vscode } from '../../../vscode';
 import { MetadataEditor } from '../sections/MetadataEditor';
 import { ClocksTable } from '../sections/ClocksTable';
@@ -13,9 +15,9 @@ import { Section } from '../../hooks/useNavigation';
 
 interface EditorPanelProps {
   selectedSection: Section;
-  ipCore: any;
-  imports?: { busLibrary?: any; memoryMaps?: any[] };
-  onUpdate: (path: Array<string | number>, value: any) => void;
+  ipCore: IpCore | null;
+  imports?: { busLibrary?: unknown; memoryMaps?: unknown[] };
+  onUpdate: YamlUpdateHandler;
   isFocused?: boolean;
   onFocus?: () => void;
   panelRef?: RefObject<HTMLDivElement>;
@@ -36,6 +38,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
   highlight,
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
+  const ip = ipCore as IpCore;
 
   // Auto-focus the inner table container when panel receives focus
   useEffect(() => {
@@ -48,7 +51,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
     }
   }, [isFocused]);
 
-  if (!ipCore) {
+  if (!ip) {
     return (
       <div className="flex-1 flex items-center justify-center text-gray-500">
         <p>No IP core loaded</p>
@@ -59,47 +62,47 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
   const renderSection = () => {
     switch (selectedSection) {
       case 'metadata':
-        return <MetadataEditor ipCore={ipCore} onUpdate={onUpdate} />;
+        return <MetadataEditor ipCore={ip} onUpdate={onUpdate} />;
       case 'clocks':
         return (
           <ClocksTable
-            clocks={ipCore.clocks || []}
-            busInterfaces={ipCore.busInterfaces || []}
+            clocks={ip.clocks || []}
+            busInterfaces={ip.bus_interfaces || []}
             onUpdate={onUpdate}
           />
         );
       case 'resets':
         return (
           <ResetsTable
-            resets={ipCore.resets || []}
-            busInterfaces={ipCore.busInterfaces || []}
+            resets={ip.resets || []}
+            busInterfaces={ip.bus_interfaces || []}
             onUpdate={onUpdate}
           />
         );
       case 'ports':
-        return <PortsTable ports={ipCore.ports || []} onUpdate={onUpdate} />;
+        return <PortsTable ports={ip.ports || []} onUpdate={onUpdate} />;
       case 'busInterfaces':
         return (
           <BusInterfacesEditor
-            busInterfaces={ipCore.busInterfaces || []}
+            busInterfaces={ip.bus_interfaces || []}
             busLibrary={imports.busLibrary}
             imports={imports}
-            clocks={ipCore.clocks || []}
-            resets={ipCore.resets || []}
+            clocks={ip.clocks || []}
+            resets={ip.resets || []}
             onUpdate={onUpdate}
             highlight={highlight}
           />
         );
       case 'memoryMaps':
         return (
-          <MemoryMapsEditor memoryMaps={ipCore.memoryMaps} imports={imports} onUpdate={onUpdate} />
+          <MemoryMapsEditor memoryMaps={ip.memoryMaps} imports={imports} onUpdate={onUpdate} />
         );
       case 'parameters':
-        return <ParametersTable parameters={ipCore.parameters || []} onUpdate={onUpdate} />;
+        return <ParametersTable parameters={ip.parameters || []} onUpdate={onUpdate} />;
       case 'fileSets':
-        return <FileSetsEditor fileSets={ipCore.fileSets || []} onUpdate={onUpdate} />;
+        return <FileSetsEditor fileSets={ip.fileSets || []} onUpdate={onUpdate} />;
       case 'generate':
-        return <GeneratorPanel ipCore={ipCore} />;
+        return <GeneratorPanel ipCore={ip} />;
       default:
         return <div>Unknown section</div>;
     }

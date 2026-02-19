@@ -7,9 +7,9 @@ export type YamlPath = Array<string | number>;
  * Information about the memory map root in the YAML structure
  */
 export interface MapRootInfo {
-  root: any;
+  root: unknown;
   selectionRootPath: YamlPath;
-  map: any;
+  map: unknown;
 }
 
 /**
@@ -19,35 +19,35 @@ export class YamlPathResolver {
   /**
    * Set a value at a specific path in the YAML structure
    */
-  static setAtPath(root: any, path: YamlPath, value: any): void {
+  static setAtPath(root: unknown, path: YamlPath, value: unknown): void {
     if (!path.length) {
       throw new Error('Cannot set empty path');
     }
-    let cursor = root;
+    let cursor: unknown = root;
     for (let i = 0; i < path.length - 1; i++) {
       const key = path[i];
       if (cursor == null) {
         throw new Error(`Path not found at ${String(key)}`);
       }
-      cursor = cursor[key as any];
+      cursor = (cursor as Record<string | number, unknown>)[key];
     }
     const last = path[path.length - 1];
     if (cursor == null) {
       throw new Error(`Path not found at ${String(last)}`);
     }
-    cursor[last as any] = value;
+    (cursor as Record<string | number, unknown>)[last] = value;
   }
 
   /**
    * Get a value at a specific path in the YAML structure
    */
-  static getAtPath(root: any, path: YamlPath): any {
-    let cursor = root;
+  static getAtPath(root: unknown, path: YamlPath): unknown {
+    let cursor: unknown = root;
     for (const key of path) {
       if (cursor == null) {
         return undefined;
       }
-      cursor = cursor[key as any];
+      cursor = (cursor as Record<string | number, unknown>)[key];
     }
     return cursor;
   }
@@ -55,17 +55,17 @@ export class YamlPathResolver {
   /**
    * Delete a value at a specific path in the YAML structure
    */
-  static deleteAtPath(root: any, path: YamlPath): void {
+  static deleteAtPath(root: unknown, path: YamlPath): void {
     if (!path.length) {
       return;
     }
-    let cursor = root;
+    let cursor: unknown = root;
     for (let i = 0; i < path.length - 1; i++) {
       const key = path[i];
       if (cursor == null) {
         return;
       }
-      cursor = cursor[key as any];
+      cursor = (cursor as Record<string | number, unknown>)[key];
     }
     const last = path[path.length - 1];
     if (cursor == null) {
@@ -75,19 +75,19 @@ export class YamlPathResolver {
       cursor.splice(last, 1);
       return;
     }
-    delete cursor[last as any];
+    delete (cursor as Record<string | number, unknown>)[last];
   }
 
   /**
    * Determine the root structure of the memory map YAML
    * Handles both standalone maps and maps nested in arrays or objects
    */
-  static getMapRootInfo(data: any): MapRootInfo {
+  static getMapRootInfo(data: unknown): MapRootInfo {
     if (Array.isArray(data)) {
       return { root: data, selectionRootPath: [0], map: data[0] };
     }
-    if (data && typeof data === 'object' && Array.isArray(data.memory_maps)) {
-      return { root: data, selectionRootPath: ['memory_maps', 0], map: data.memory_maps[0] };
+    if (data && typeof data === 'object' && Array.isArray((data as Record<string, unknown>).memory_maps)) {
+      return { root: data, selectionRootPath: ['memory_maps', 0], map: ((data as Record<string, unknown>).memory_maps as unknown[])[0] };
     }
     return { root: data, selectionRootPath: [], map: data };
   }

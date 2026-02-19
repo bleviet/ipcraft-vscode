@@ -4,7 +4,7 @@ import { useEffect } from "react";
  * VSCode API wrapper type
  */
 interface VsCodeApi {
-  postMessage: (message: any) => void;
+  postMessage: (message: Record<string, unknown>) => void;
 }
 
 /**
@@ -14,7 +14,7 @@ interface ExtensionMessage {
   type: string;
   text?: string;
   fileName?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**
@@ -55,7 +55,7 @@ export function useYamlSync(
   /**
    * Send a command to the extension
    */
-  const sendCommand = (command: string, payload?: any) => {
+  const sendCommand = (command: string, payload?: Record<string, unknown>) => {
     vscode?.postMessage({ type: "command", command, ...payload });
   };
 

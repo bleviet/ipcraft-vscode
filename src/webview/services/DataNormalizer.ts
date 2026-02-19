@@ -1,4 +1,17 @@
-import type { MemoryMap } from '../types/memoryMap';
+import type { MemoryMap, AddressBlock } from '../types/memoryMap';
+
+/**
+ * Normalized field type
+ */
+export type NormalizedField = {
+  name: string;
+  bit_offset: number;
+  bit_width: number;
+  access?: string;
+  reset_value?: number | null;
+  description?: string;
+  enumerated_values?: Record<string, string>;
+};
 
 /**
  * Normalized register type
@@ -10,7 +23,7 @@ export type NormalizedRegister = {
   access?: string;
   reset_value?: number;
   description?: string;
-  fields?: any[];
+  fields?: NormalizedField[];
 };
 
 /**
@@ -33,7 +46,7 @@ export class DataNormalizer {
   /**
    * Parse a value to a number with fallback
    */
-  static parseNumber(value: any, fallback = 0): number {
+  static parseNumber(value: unknown, fallback = 0): number {
     if (typeof value === 'number' && Number.isFinite(value)) {
       return value;
     }
@@ -51,9 +64,9 @@ export class DataNormalizer {
   /**
    * Get default register bytes from a block
    */
-  static getDefaultRegBytes(block: any): number {
+  static getDefaultRegBytes(block: Record<string, unknown>): number {
     const bits = DataNormalizer.parseNumber(
-      block.defaultRegWidth ?? block.default_reg_width ?? 32,
+      (block.defaultRegWidth ?? block.default_reg_width ?? 32),
       32
     );
     const bytes = Math.max(1, Math.floor(bits / 8));
@@ -63,13 +76,13 @@ export class DataNormalizer {
   /**
    * Normalize a field object
    */
-  static normalizeField(field: any): any {
+  static normalizeField(field: Record<string, unknown>): NormalizedField {
     // Parse bits field if it's a string like "[31:0]" or "[0:0]"
-    let bit_offset = field.bit_offset || 0;
-    let bit_width = field.bit_width || 1;
+    let bit_offset = (field.bit_offset as number) || 0;
+    let bit_width = (field.bit_width as number) || 1;
 
     if (field.bits && typeof field.bits === 'string') {
-      const match = field.bits.match(/\[(\d+)(?::(\d+))?\]/);
+      const match = (field.bits as string).match(/\[(\d+)(?::(\d+))?\]/);
       if (match) {
         const high = parseInt(match[1], 10);
         const low = match[2] ? parseInt(match[2], 10) : high;
@@ -83,28 +96,28 @@ export class DataNormalizer {
     bit_width = Number.isFinite(Number(bit_width)) && Number(bit_width) > 0 ? Number(bit_width) : 1;
 
     return {
-      name: field.name,
+      name: String(field.name ?? ''),
       bit_offset,
       bit_width,
-      access: field.access,
-      reset_value: field.reset_value ?? field.resetValue ?? field.reset,
-      description: field.description,
-      enumerated_values: field.enumerated_values,
+      access: field.access as string | undefined,
+      reset_value: (field.reset_value ?? field.resetValue ?? field.reset) as number | null | undefined,
+      description: field.description as string | undefined,
+      enumerated_values: field.enumerated_values as Record<string, string> | undefined,
     };
   }
 
   /**
    * Normalize a register object
    */
-  static normalizeRegister(reg: any): any {
+  static normalizeRegister(reg: Record<string, unknown>): NormalizedRegister {
     return {
-      name: reg.name,
-      address_offset: reg.offset || reg.address_offset || 0,
-      size: reg.size || 32,
-      access: reg.access,
-      reset_value: reg.reset_value,
-      description: reg.description,
-      fields: reg.fields?.map((field: any) => DataNormalizer.normalizeField(field)),
+      name: String(reg.name ?? ''),
+      address_offset: ((reg.offset as number) || (reg.address_offset as number)) || 0,
+      size: (reg.size as number) || 32,
+      access: reg.access as string | undefined,
+      reset_value: reg.reset_value as number | undefined,
+      description: reg.description as string | undefined,
+      fields: (reg.fields as Record<string, unknown>[])?.map((field) => DataNormalizer.normalizeField(field)),
     };
   }
 
@@ -112,40 +125,41 @@ export class DataNormalizer {
    * Normalize a list of registers (including arrays)
    */
   static normalizeRegisterList(
-    regs: any[],
+    regs: unknown[],
     defaultRegBytes: number
   ): Array<NormalizedRegister | NormalizedRegisterArray> {
     const out: Array<NormalizedRegister | NormalizedRegisterArray> = [];
     let currentOffset = 0;
 
     for (const entry of regs ?? []) {
-      const explicitOffset = entry.offset ?? entry.address_offset ?? entry.addressOffset;
+      const e = entry as Record<string, unknown>;
+      const explicitOffset = e.offset ?? e.address_offset ?? e.addressOffset;
       if (explicitOffset !== undefined) {
         currentOffset = DataNormalizer.parseNumber(explicitOffset, currentOffset);
       }
 
       const isArray =
-        entry &&
-        typeof entry === 'object' &&
-        entry.count !== undefined &&
-        entry.stride !== undefined &&
-        Array.isArray(entry.registers);
+        e &&
+        typeof e === 'object' &&
+        e.count !== undefined &&
+        e.stride !== undefined &&
+        Array.isArray(e.registers);
       if (isArray) {
         const arrayOffset = currentOffset;
-        const count = Math.max(1, DataNormalizer.parseNumber(entry.count, 1));
-        const stride = Math.max(1, DataNormalizer.parseNumber(entry.stride, defaultRegBytes));
+        const count = Math.max(1, DataNormalizer.parseNumber(e.count, 1));
+        const stride = Math.max(1, DataNormalizer.parseNumber(e.stride, defaultRegBytes));
         const nested = DataNormalizer.normalizeRegisterList(
-          entry.registers,
+          e.registers as unknown[],
           defaultRegBytes
         ) as NormalizedRegister[];
         out.push({
           __kind: 'array',
-          name: entry.name,
+          name: String(e.name ?? ''),
           address_offset: arrayOffset,
           count,
           stride,
-          description: entry.description,
-          registers: nested.filter((n) => (n as any).__kind !== 'array'),
+          description: e.description as string | undefined,
+          registers: nested.filter((n) => (n as Record<string, unknown>).__kind !== 'array'),
         });
         currentOffset = arrayOffset + count * stride;
         continue;
@@ -153,13 +167,13 @@ export class DataNormalizer {
 
       const regOffset = currentOffset;
       const normalizedReg: NormalizedRegister = {
-        name: entry.name,
+        name: String(e.name ?? ''),
         address_offset: regOffset,
-        size: DataNormalizer.parseNumber(entry.size, 32),
-        access: entry.access,
-        reset_value: entry.reset_value,
-        description: entry.description,
-        fields: entry.fields?.map((field: any) => DataNormalizer.normalizeField(field)),
+        size: DataNormalizer.parseNumber(e.size, 32),
+        access: e.access as string | undefined,
+        reset_value: e.reset_value as number | undefined,
+        description: e.description as string | undefined,
+        fields: (e.fields as Record<string, unknown>[])?.map((field) => DataNormalizer.normalizeField(field)),
       };
       out.push(normalizedReg);
       currentOffset = regOffset + defaultRegBytes;
@@ -171,12 +185,13 @@ export class DataNormalizer {
   /**
    * Normalize a complete memory map
    */
-  static normalizeMemoryMap(data: any): MemoryMap {
-    const blocks = data.address_blocks ?? data.addressBlocks ?? [];
+  static normalizeMemoryMap(data: unknown): MemoryMap {
+    const d = data as Record<string, unknown>;
+    const blocks = (d.address_blocks ?? d.addressBlocks ?? []) as Record<string, unknown>[];
     return {
-      name: data.name,
-      description: data.description,
-      address_blocks: (blocks ?? []).map((block: any) => {
+      name: String(d.name ?? ''),
+      description: d.description as string | undefined,
+      address_blocks: (blocks ?? []).map((block) => {
         const defaultRegBytes = DataNormalizer.getDefaultRegBytes(block);
         const baseAddress = DataNormalizer.parseNumber(
           block.offset ?? block.base_address ?? block.baseAddress ?? 0,
@@ -184,29 +199,29 @@ export class DataNormalizer {
         );
 
         const normalizedRegs = DataNormalizer.normalizeRegisterList(
-          block.registers ?? [],
+          (block.registers as unknown[]) ?? [],
           defaultRegBytes
         );
 
         return {
-          name: block.name,
+          name: String(block.name ?? ''),
           base_address: baseAddress,
-          range: block.range || 4096,
-          usage: block.usage || 'register',
-          access: block.access,
-          description: block.description,
-          // NOTE: this intentionally holds both registers and arrays; treated as "any" in consumers.
-          registers: normalizedRegs as any,
-          register_arrays: (block.register_arrays ?? []).map((registerArray: any) => ({
-            name: registerArray.name,
+          range: (block.range as number) || 4096,
+          usage: (block.usage as string) || 'register',
+          access: block.access as string | undefined,
+          description: block.description as string | undefined,
+          // NOTE: this intentionally holds both registers and arrays; treated as mixed in consumers.
+          registers: normalizedRegs as NormalizedRegister[],
+          register_arrays: ((block.register_arrays as Record<string, unknown>[]) ?? []).map((registerArray) => ({
+            name: String(registerArray.name ?? ''),
             base_address: DataNormalizer.parseNumber(registerArray.base_address, 0),
             count: DataNormalizer.parseNumber(registerArray.count, 1),
             stride: DataNormalizer.parseNumber(registerArray.stride, defaultRegBytes),
-            template: DataNormalizer.normalizeRegister(registerArray.template || {}),
-            description: registerArray.description,
+            template: DataNormalizer.normalizeRegister((registerArray.template as Record<string, unknown>) || {}),
+            description: registerArray.description as string | undefined,
           })),
         };
-      }),
+      }) as unknown as AddressBlock[],
     };
   }
 }

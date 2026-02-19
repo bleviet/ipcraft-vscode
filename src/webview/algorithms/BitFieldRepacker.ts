@@ -2,6 +2,7 @@
  * Bit field repacking algorithms for maintaining proper bit field layouts
  */
 
+import type { BitFieldRecord } from '../types/editor';
 import {
   parseBitsRange,
   formatBitsRange as formatBits,
@@ -23,10 +24,10 @@ export {
  * @returns New array with repacked fields
  */
 export function repackFieldsFrom(
-  fields: any[],
+  fields: BitFieldRecord[],
   regWidth: number,
   startIdx: number,
-): any[] {
+): BitFieldRecord[] {
   // Calculate starting MSB for the updated field
   let nextMsb = regWidth - 1;
   if (startIdx > 0) {
@@ -56,7 +57,7 @@ export function repackFieldsFrom(
       bits: formatBits(msb, lsb),
       bit_offset: lsb,
       bit_width: width,
-      bit_range: [msb, lsb],
+      bit_range: [msb, lsb] as [number, number],
     };
   }
   return newFields;
@@ -68,10 +69,10 @@ export function repackFieldsFrom(
  * Ensures fields[i] is placed immediately after fields[i-1].
  */
 export function repackFieldsForward(
-  fields: any[],
+  fields: BitFieldRecord[],
   fromIndex: number,
   regWidth: number,
-): any[] {
+): BitFieldRecord[] {
   const newFields = [...fields];
 
   let nextLsb =
@@ -97,7 +98,7 @@ export function repackFieldsForward(
       bits: formatBits(msb, lsb),
       bit_offset: lsb,
       bit_width: width,
-      bit_range: [msb, lsb],
+      bit_range: [msb, lsb] as [number, number],
     };
   }
 
@@ -110,10 +111,10 @@ export function repackFieldsForward(
  * Ensures fields[i] is placed immediately before fields[i+1].
  */
 export function repackFieldsBackward(
-  fields: any[],
+  fields: BitFieldRecord[],
   fromIndex: number,
   regWidth: number,
-): any[] {
+): BitFieldRecord[] {
   const newFields = [...fields];
 
   let nextMsb =
@@ -139,7 +140,7 @@ export function repackFieldsBackward(
       bits: formatBits(msb, lsb),
       bit_offset: lsb,
       bit_width: width,
-      bit_range: [msb, lsb],
+      bit_range: [msb, lsb] as [number, number],
     };
   }
 

@@ -11,7 +11,7 @@ export type YamlPath = Array<string | number>;
 export interface Selection {
   id: string;
   type: 'memoryMap' | 'block' | 'register' | 'array';
-  object: any;
+  object: unknown;
   breadcrumbs: string[];
   path: YamlPath;
   meta?: {
@@ -29,7 +29,7 @@ const MAX_HISTORY_SIZE = 50;
 export function useSelection() {
   const [selectedId, setSelectedId] = useState<string>('');
   const [selectedType, setSelectedType] = useState<Selection['type'] | null>(null);
-  const [selectedObject, setSelectedObject] = useState<any>(null);
+  const [selectedObject, setSelectedObject] = useState<unknown>(null);
   const [breadcrumbs, setBreadcrumbs] = useState<string[]>([]);
   const [selectionMeta, setSelectionMeta] = useState<Selection['meta'] | undefined>(undefined);
   const [canGoBack, setCanGoBack] = useState(false);

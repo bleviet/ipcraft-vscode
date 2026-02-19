@@ -2,13 +2,15 @@
  * Address block repacking algorithms for maintaining proper block layouts
  */
 
+import type { AddressBlockRecord, RegisterRecord } from '../types/editor';
+
 /**
  * Calculate block size based on registers and register arrays
  * For regular registers: 4 bytes per register
  * For register arrays: count * stride bytes
  */
-function calculateBlockSize(block: any): number {
-  const registers = block?.registers || [];
+function calculateBlockSize(block: AddressBlockRecord): number {
+  const registers: RegisterRecord[] = block?.registers || [];
   if (registers.length === 0) {
     return typeof block?.size === "number" ? block.size : 4;
   }
@@ -36,14 +38,14 @@ function calculateBlockSize(block: any): number {
  * @param fromIndex Starting index for repacking (inclusive)
  * @returns New array with repacked blocks
  */
-export function repackBlocksForward(blocks: any[], fromIndex: number): any[] {
+export function repackBlocksForward(blocks: AddressBlockRecord[], fromIndex: number): AddressBlockRecord[] {
   const newBlocks = [...blocks];
 
   // Start from the block just before fromIndex to determine the starting position
   let nextBase = 0;
   if (fromIndex > 0) {
     const prevBlock = newBlocks[fromIndex - 1];
-    const prevBase =
+    const prevBase: number =
       typeof prevBlock.base_address === "number" ? prevBlock.base_address : 0;
     const prevSize = calculateBlockSize(prevBlock);
     nextBase = prevBase + prevSize;
@@ -72,23 +74,23 @@ export function repackBlocksForward(blocks: any[], fromIndex: number): any[] {
  * @param fromIndex Starting index for repacking (inclusive), goes backward to index 0
  * @returns New array with repacked blocks
  */
-export function repackBlocksBackward(blocks: any[], fromIndex: number): any[] {
+export function repackBlocksBackward(blocks: AddressBlockRecord[], fromIndex: number): AddressBlockRecord[] {
   const newBlocks = [...blocks];
   if (newBlocks.length === 0) {
     return [];
   }
 
   // Start from the block just after fromIndex to determine the starting position
-  let nextEnd =
+  let nextEnd: number =
     fromIndex < newBlocks.length - 1
-      ? newBlocks[fromIndex + 1].base_address - 1
+      ? (newBlocks[fromIndex + 1].base_address ?? 0) - 1
       : Infinity;
 
   for (let i = fromIndex; i >= 0; i--) {
     const block = newBlocks[i];
     const size = calculateBlockSize(block);
 
-    const base = nextEnd === Infinity ? block.base_address : nextEnd - size + 1;
+    const base = nextEnd === Infinity ? (block.base_address ?? 0) : nextEnd - size + 1;
     newBlocks[i] = {
       ...block,
       base_address: Math.max(0, base),
