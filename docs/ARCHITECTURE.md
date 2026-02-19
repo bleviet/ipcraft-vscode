@@ -2,7 +2,7 @@
 
 ## Overview
 
-The FPGA Memory Map Visual Editor is a VSCode extension that provides a visual interface for editing memory map YAML files. This document describes the architecture after the Phase 2-3 refactoring.
+The FPGA Memory Map Visual Editor is a VSCode extension that provides a visual interface for editing memory map YAML files. This document describes the architecture after the DetailsPanel decomposition and spatial-insertion/service refactoring.
 
 ## HDL Generation
 
@@ -34,8 +34,16 @@ graph TB
 
     subgraph "Webview (React)"
         APP[index.tsx<br/>Main App<br/>445 lines]
-        DETAILS[DetailsPanel.tsx<br/>Property Editor<br/>2,073 lines]
+        DETAILS[DetailsPanel.tsx<br/>Routing Coordinator<br/>~200 lines]
         OUTLINE[Outline.tsx<br/>Tree View<br/>588 lines]
+
+        subgraph "Editors"
+            MMEDITOR[MemoryMapEditor]
+            REGEDITOR[RegisterEditor]
+            BLOCKEDITOR[BlockEditor]
+            ARRAYEDITOR[RegisterArrayEditor]
+            FIELDSTABLE[FieldsTable]
+        end
 
         subgraph "Webview Services"
             NORM[DataNormalizer<br/>Data Transformation]
@@ -48,12 +56,17 @@ graph TB
             SELECT[useSelection<br/>Selection State]
             SYNC[useYamlSync<br/>Message Sync]
             TABNAV[useTableNavigation<br/>Keyboard Nav]
+            FIELDEDITOR[useFieldEditor<br/>Bit-field Editing]
         end
 
         subgraph "Algorithms"
             BITREPACK[BitFieldRepacker<br/>5 functions]
             BLOCKREPACK[AddressBlockRepacker<br/>2 functions]
             REGREPACK[RegisterRepacker<br/>2 functions]
+        end
+
+        subgraph "Webview Domain Services"
+            INSERTION[SpatialInsertionService<br/>Insert/Repack Pipeline]
         end
 
         subgraph "Visualizers"
@@ -79,16 +92,29 @@ graph TB
     APP --> DETAILS
     APP --> OUTLINE
 
-    DETAILS --> NORM
-    DETAILS --> PATH
-    DETAILS --> YAMLSVC
-    DETAILS --> TABNAV
-    DETAILS --> BITREPACK
-    DETAILS --> BLOCKREPACK
-    DETAILS --> REGREPACK
-    DETAILS --> BITVIS
-    DETAILS --> ADDRVIS
-    DETAILS --> REGVIS
+    DETAILS --> MMEDITOR
+    DETAILS --> REGEDITOR
+    DETAILS --> BLOCKEDITOR
+    DETAILS --> ARRAYEDITOR
+
+    REGEDITOR --> FIELDSTABLE
+    REGEDITOR --> FIELDEDITOR
+    REGEDITOR --> TABNAV
+    REGEDITOR --> INSERTION
+    REGEDITOR --> BITREPACK
+
+    BLOCKEDITOR --> INSERTION
+    BLOCKEDITOR --> BLOCKREPACK
+    BLOCKEDITOR --> REGREPACK
+
+    MMEDITOR --> NORM
+    REGEDITOR --> PATH
+    REGEDITOR --> YAMLSVC
+    BLOCKEDITOR --> PATH
+    BLOCKEDITOR --> YAMLSVC
+    REGEDITOR --> BITVIS
+    BLOCKEDITOR --> ADDRVIS
+    BLOCKEDITOR --> REGVIS
 
     MAPSTATE --> NORM
     MAPSTATE --> YAMLSVC
@@ -189,19 +215,21 @@ index.tsx (Main App)
 ├── Outline
 │   └── Tree rendering logic
 └── DetailsPanel
-    ├── useTableNavigation (keyboard nav)
-    ├── PropertyEditor (inline)
-    ├── FieldsTable (inline)
-    ├── BlocksTable (inline)
-    ├── RegistersTable (inline)
-    ├── Algorithms
+    ├── MemoryMapEditor
+    ├── RegisterEditor
+    │   ├── FieldsTable
+    │   ├── useFieldEditor
+    │   ├── useTableNavigation
     │   ├── BitFieldRepacker
+    │   ├── SpatialInsertionService
+    │   └── BitFieldVisualizer
+    ├── BlockEditor
     │   ├── AddressBlockRepacker
-    │   └── RegisterRepacker
-    └── Visualizers
-        ├── BitFieldVisualizer
-        ├── AddressMapVisualizer
-        └── RegisterMapVisualizer
+    │   ├── RegisterRepacker
+    │   ├── SpatialInsertionService
+    │   ├── AddressMapVisualizer
+    │   └── RegisterMapVisualizer
+    └── RegisterArrayEditor
 ```
 
 ## State Management
@@ -230,11 +258,11 @@ Managed by React hooks:
 - `breadcrumbs`: Navigation path
 - `selectionMeta`: Additional metadata
 
-**DetailsPanel (local state):**
-- Active cell positions for tables
-- Hover states
-- Insert error messages
-- Focus references
+**Detail editors (local state):**
+- `RegisterEditor` + `useFieldEditor`: active cell state, field drafts, field validation errors
+- `BlockEditor`: block insertion/selection state and insertion error messaging
+- `RegisterArrayEditor` and `MemoryMapEditor`: focused form editing state
+- `DetailsPanel`: routing + imperative focus delegation only
 
 ## Message Passing Protocol
 
@@ -370,7 +398,7 @@ interface WebviewMessage {
 1. Create module in `src/webview/algorithms/`
 2. Export pure functions
 3. Write unit tests in `src/test/suite/algorithms/`
-4. Import in DetailsPanel or other components
+4. Import in the appropriate sub-editor (`RegisterEditor`, `BlockEditor`, etc.)
 
 ## Performance Considerations
 

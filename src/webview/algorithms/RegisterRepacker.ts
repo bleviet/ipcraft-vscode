@@ -47,7 +47,8 @@ export function repackRegistersBackward(
     return [];
   }
 
-  // Start from the register just after fromIndex to determine the starting position
+  // Start from the register just after fromIndex to determine the starting position.
+  // `Infinity` means "preserve current offset" for the first processed element.
   let nextOffset: number =
     fromIndex < newRegs.length - 1
       ? ((newRegs[fromIndex + 1].offset ?? 0) as number) - 4

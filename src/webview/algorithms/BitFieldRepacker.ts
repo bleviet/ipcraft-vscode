@@ -90,6 +90,7 @@ export function repackFieldsForward(
     const width = parsed ? Math.abs(parsed[0] - parsed[1]) + 1 : 1;
 
     const lsb = nextLsb;
+    // Clamp MSB so partially invalid source widths cannot overflow the register.
     const msb = Math.min(regWidth - 1, lsb + width - 1);
     nextLsb = msb + 1;
 
@@ -132,6 +133,7 @@ export function repackFieldsBackward(
     const width = parsed ? Math.abs(parsed[0] - parsed[1]) + 1 : 1;
 
     const msb = nextMsb;
+    // Clamp to bit 0 so backward repacking never produces negative bit indices.
     const lsb = Math.max(0, msb - width + 1);
     nextMsb = lsb - 1;
 
@@ -147,6 +149,8 @@ export function repackFieldsBackward(
   return newFields;
 }
 
-// Deprecated aliases kept for compatibility if needed, but should be replaced
-export const repackFieldsDownward = repackFieldsBackward; // Wait, old Downward was toward LSB? No, old Downward was weird.
-// Let's NOT export aliases to force update in DetailsPanel
+/**
+ * Backward-compatible alias for callers that still reference the old API name.
+ * Prefer `repackFieldsBackward` in new code.
+ */
+export const repackFieldsDownward = repackFieldsBackward;

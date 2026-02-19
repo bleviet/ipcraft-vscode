@@ -80,7 +80,9 @@ export function repackBlocksBackward(blocks: AddressBlockRecord[], fromIndex: nu
     return [];
   }
 
-  // Start from the block just after fromIndex to determine the starting position
+  // Start from the block just after fromIndex to determine the starting position.
+  // `nextEnd` tracks an inclusive end address; `Infinity` preserves the current
+  // block base for the first processed element when repacking from the tail.
   let nextEnd: number =
     fromIndex < newBlocks.length - 1
       ? (newBlocks[fromIndex + 1].base_address ?? 0) - 1
@@ -90,6 +92,7 @@ export function repackBlocksBackward(blocks: AddressBlockRecord[], fromIndex: nu
     const block = newBlocks[i];
     const size = calculateBlockSize(block);
 
+    // Use inclusive-address arithmetic: base = end - size + 1.
     const base = nextEnd === Infinity ? (block.base_address ?? 0) : nextEnd - size + 1;
     newBlocks[i] = {
       ...block,
