@@ -394,7 +394,7 @@ export interface IpCore {
   clocks?: Clocks;
   resets?: Resets;
   ports?: Ports;
-  bus_interfaces?: Businterfaces;
+  busInterfaces?: Businterfaces;
   memoryMaps?: Memorymaps;
   fileSets?: Filesets;
   parameters?: Parameters;

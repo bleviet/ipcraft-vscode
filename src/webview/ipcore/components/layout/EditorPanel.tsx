@@ -67,7 +67,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
         return (
           <ClocksTable
             clocks={ip.clocks || []}
-            busInterfaces={ip.bus_interfaces || []}
+            busInterfaces={ip.busInterfaces || []}
             onUpdate={onUpdate}
           />
         );
@@ -75,7 +75,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
         return (
           <ResetsTable
             resets={ip.resets || []}
-            busInterfaces={ip.bus_interfaces || []}
+            busInterfaces={ip.busInterfaces || []}
             onUpdate={onUpdate}
           />
         );
@@ -84,7 +84,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
       case 'busInterfaces':
         return (
           <BusInterfacesEditor
-            busInterfaces={ip.bus_interfaces || []}
+            busInterfaces={ip.busInterfaces || []}
             busLibrary={imports.busLibrary}
             imports={imports}
             clocks={ip.clocks || []}

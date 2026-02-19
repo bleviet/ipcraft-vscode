@@ -72,7 +72,7 @@ function mapBusType(interfaceType: string): BusType | null {
  * Detect bus interface with memory map reference
  */
 function detectBusWithMemoryMap(ipCore: IpCore): DetectedBusInfo | null {
-  const busInterfaces = ipCore.bus_interfaces || [];
+  const busInterfaces = ipCore.busInterfaces || [];
 
   for (const bus of busInterfaces) {
     // Check both camelCase (runtime) and snake_case (type def)

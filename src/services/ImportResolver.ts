@@ -44,12 +44,21 @@ export class ImportResolver {
     const resolved: ResolvedImports = {};
 
     try {
-      // Resolve bus library - first try explicit path, then default via Python backend
+      // Resolve bus library - first try explicit path, then fall back to default
       if (ipCoreData.useBusLibrary) {
-        resolved.busLibrary = await this.resolveBusLibrary(
-          ipCoreData.useBusLibrary,
-          baseDir,
-        );
+        try {
+          resolved.busLibrary = await this.resolveBusLibrary(
+            ipCoreData.useBusLibrary,
+            baseDir,
+          );
+        } catch (busError) {
+          this.logger.warn(
+            `Could not load bus library from '${ipCoreData.useBusLibrary}' ` +
+            `(resolved to: ${path.resolve(baseDir, ipCoreData.useBusLibrary)}). ` +
+            `Falling back to default bus library. Reason: ${(busError as Error).message}`,
+          );
+          resolved.busLibrary = await this.loadDefaultBusLibrary();
+        }
       } else {
         // Load default bus library from Python backend
         resolved.busLibrary = await this.loadDefaultBusLibrary();
