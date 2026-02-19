@@ -8,217 +8,53 @@ Visual editor for IP Core (IPCraft) and Memory Map specifications.
 - **Real-time Validation**: YAML syntax validation with helpful error messages
 - **Spatial Operations**: Insert fields/registers/blocks with automatic repacking
 - **Keyboard Navigation**: Full keyboard support with Vim-style shortcuts
-- **Bit Visualization**: Visual representation of register bit fields
-- **Address Map View**: Visual address space visualization
+- **Visualization**: Visual representation of register bit fields and address spaces
 - **Bi-directional Sync**: Changes reflected in both visual editor and YAML source
 
 ## Requirements
 
 No Python runtime is required. HDL generation uses bundled templates.
-The extension includes default bus definitions (`bus_definitions.yml`) from `ipcraft-spec`.
+The extension includes default bus definitions from `ipcraft-spec`.
 
 ## Installation
-
-### From Source
-
-```bash
-cd ipcraft-vscode
-npm install
-npm run compile
-```
-
-Press `F5` to launch the Extension Development Host.
-
-
-## Usage
-
-### Opening Files
-
-1. Create or open a `.mm.yml` file
-2. The visual editor opens automatically
-3. Use the split view to see YAML source alongside the editor
-
-### Editing Memory Maps
-
-**Memory Map Properties:**
-- Name, version, description
-- Bit/byte order, default register size
-
-**Address Blocks:**
-- Add, delete, move blocks
-- Auto-repacking maintains address continuity
-- Insert with `Shift+O` (after) or `Shift+I` (before)
-
-**Registers:**
-- Edit offset, access type, description
-- Insert with `Shift+O`/`Shift+I`
-- Delete with `Shift+D`
-
-**Bit Fields:**
-- Visual bit allocation display
-- Edit bit ranges, access, reset values
-- Spatial insertion prevents overlaps
-- Move fields with `Alt+↑`/`Alt+↓`
-
-### Keyboard Shortcuts
-
-**Navigation:**
-- Arrow keys or `h`/`j`/`k`/`l` (Vim)
-- `Tab` / `Shift+Tab` between tables
-- `Escape` to unfocus
-
-**Editing:**
-- `F2` or `e` to edit cell
-- `Enter` to save
-- `Escape` to cancel
-
-**Operations:**
-- `Shift+O` - Insert after selected item
-- `Shift+I` - Insert before selected item
-- `Shift+D` - Delete selected item
-- `Alt+↑` / `Alt+↓` - Move field/block
-
-## Architecture
-
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed architecture documentation including:
-- System architecture diagrams
-- Data flow diagrams
-- Component hierarchy
-- State management
-- Message passing protocol
-
-## Development
-
-See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for developer guide including:
-- Setup instructions
-- Development workflow
-- Testing procedures
-- Debugging tips
-- Common tasks
-
-## Contributing
-
-See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for contribution guidelines including:
-- Code style guidelines
-- Testing requirements
-- Pull request process
-- Documentation standards
-
-## Testing
-
-```bash
-# Run unit tests
-npm run test
-
-# Run with coverage
-npm run test -- --coverage
-
-# Run linter
-npm run lint
-```
-
-## Project Structure
-
-```
-vscode-extension/
-├── src/
-│   ├── extension.ts           # Extension entry point
-│   ├── providers/             # Custom editor provider
-│   ├── services/              # Extension services
-│   ├── utils/                 # Logger, ErrorHandler
-│   └── webview/
-│       ├── index.tsx          # Webview React app
-│       ├── components/        # React components
-│       ├── hooks/             # Custom React hooks
-│       ├── services/          # Data normalization, YAML ops
-│       ├── algorithms/        # Repacking algorithms
-│       └── utils/             # Utilities
-├── docs/                      # Documentation
-├── schemas/                   # YAML schemas
-└── package.json
-```
-
-## Refactoring Status
-
-**Completed (Phases 2-3):**
-- ✅ Extracted 18 modular components from monolithic files
-- ✅ 76% reduction in extension.ts (159 → 38 lines)
-- ✅ 44% reduction in index.tsx (798 → 445 lines)
-- ✅ Created 53 unit tests (72% passing)
-- ✅ Zero ESLint errors, zero TypeScript errors
-- ✅ Full functionality maintained
-
-See [docs/walkthrough.md](file:///home/balevision/.gemini/antigravity/brain/f5101e73-7772-4e6b-bbaa-c536336b10d8/walkthrough.md) for complete refactoring details.
-
-## Scripts
-
-```bash
-npm run compile           # Build extension and webview
-npm run watch            # Watch mode for development
-npm run test             # Run unit tests
-npm run lint             # Run ESLint
-npm run generate-types   # Generate types from schema
-```
-
-## Troubleshooting
-
-### npm install Fails with Husky Error
-
-**Problem:** Running `npm install` fails with error related to `husky` and `.git` not found.
-
-**Cause:** Husky requires a git repository to be initialized before it can install its git hooks.
-
-**Solution:** Initialize a git repository before running `npm install`.
 
 ```bash
 git init
 npm install
-```
-
-**What is Husky?**
-
-Husky manages Git hooks to run scripts before commits, pushes, etc. It's used in this project to:
-- Run ESLint and Prettier on staged files before commit (`lint-staged`)
-- Ensure code quality standards
-
-**Do I Need Husky?**
-
-- **For building/using the extension:** It is highly recommended. It will be installed automatically with `npm install`.
-- **For contributing code:** Yes, it ensures consistent code style before pushing changes.
-
-### Extension Not Loading
-
-1. Check Output panel: `View → Output → Extension Host`
-2. Verify activation events in `package.json`
-3. Check for JavaScript errors in console
-
-### Webview Not Updating
-
-1. Open Developer Tools: `Help → Toggle Developer Tools`
-2. Check browser console for errors
-3. Verify message passing between extension and webview
-
-### Build Errors
-
-```bash
-# Clean and rebuild
-rm -rf out/ dist/ node_modules/
-npm install --ignore-scripts
 npm run compile
 ```
 
-## Documentation
+Press `F5` in VS Code to launch the Extension Development Host.
 
-For developers interested in learning how this extension works or contributing to it:
+## Usage
 
-*   **[Beginner's Guide](docs/BEGINNERS_GUIDE.md)**: A high-level introduction to VS Code extension architecture and patterns (Start Here!).
-*   **[Development Guide](docs/DEVELOPMENT.md)**: Setup instructions, build commands, and testing workflows.
-*   **[Architecture](docs/ARCHITECTURE.md)**: Detailed system design and component diagrams.
+1. Create or open a `.mm.yml` or `.ip.yml` file.
+2. The visual editor opens automatically.
+3. Use the split view to see YAML source alongside the editor.
+
+### Keyboard Shortcuts
+
+- **Navigation**: Arrow keys or `h`/`j`/`k`/`l` (Vim), `Tab` / `Shift+Tab`, `Escape` to unfocus
+- **Editing**: `F2` or `e` to edit cell, `Enter` to save, `Escape` to cancel
+- **Operations**: `Shift+O` (Insert after), `Shift+I` (Insert before), `Shift+D` (Delete), `Alt+UP`/`Alt+DOWN` (Move item)
+
+## Development and Documentation
+
+- [docs/BEGINNERS_GUIDE.md](docs/BEGINNERS_GUIDE.md): Introduction to the architecture and patterns.
+- [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md): Setup, workflow, and debugging.
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): System design and components.
+- [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md): Contribution guidelines.
+
+### Available Scripts
+
+```bash
+npm run compile           # Build extension and webview
+npm run watch             # Watch mode for development
+npm run test              # Run unit tests
+npm run lint              # Run ESLint
+npm run generate-types    # Generate types from schema
+```
 
 ## License
 
 [Add your license here]
-
-## Credits
-
-Developed for FPGA memory map editing workflows.
