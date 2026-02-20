@@ -197,3 +197,73 @@ describe('useFieldEditor — insertError state', () => {
     expect(result.current.insertError).toBeNull();
   });
 });
+
+// ---------------------------------------------------------------------------
+// Reorder synchronization
+// ---------------------------------------------------------------------------
+
+describe('useFieldEditor — reorder synchronization', () => {
+  it('clears index-keyed drafts when field order changes', () => {
+    const initialFields: BitFieldRecord[] = [
+      makeField('IRQ_ENABLE', 31, 1),
+      makeField('RESERVED', 3, 28),
+      makeField('PWM_ENABLE', 1, 1),
+      makeField('ENABLE', 0, 1),
+    ];
+
+    const reorderedFields: BitFieldRecord[] = [
+      makeField('RESERVED', 3, 28),
+      makeField('IRQ_ENABLE', 31, 1),
+      makeField('PWM_ENABLE', 1, 1),
+      makeField('ENABLE', 0, 1),
+    ];
+
+    const { result, rerender } = renderHook(
+      ({ fields }) => useFieldEditor(fields, 32, noop, true),
+      { initialProps: { fields: initialFields } }
+    );
+
+    act(() => {
+      result.current.setBitsDrafts({
+        0: '[30:3]',
+        1: '[31:31]',
+      });
+      result.current.setBitsErrors({ 0: 'stale error' });
+      result.current.setDragPreviewRanges({ 0: [30, 3] });
+      result.current.setResetDrafts({ 0: '0x7', 1: '0x1' });
+      result.current.setResetErrors({ 1: 'stale reset error' });
+    });
+
+    act(() => {
+      rerender({ fields: reorderedFields });
+    });
+
+    expect(result.current.bitsDrafts).toEqual({});
+    expect(result.current.bitsErrors).toEqual({});
+    expect(result.current.dragPreviewRanges).toEqual({});
+    expect(result.current.resetDrafts).toEqual({});
+    expect(result.current.resetErrors).toEqual({});
+  });
+
+  it('keeps drafts when field signature is unchanged', () => {
+    const fieldsA: BitFieldRecord[] = [makeField('A', 0, 1), makeField('B', 1, 1)];
+    const fieldsB: BitFieldRecord[] = [makeField('A', 0, 1), makeField('B', 1, 1)];
+
+    const { result, rerender } = renderHook(
+      ({ fields }) => useFieldEditor(fields, 32, noop, true),
+      { initialProps: { fields: fieldsA } }
+    );
+
+    act(() => {
+      result.current.setBitsDrafts({ 0: '[0:0]' });
+      result.current.setResetDrafts({ 0: '0x1' });
+    });
+
+    act(() => {
+      rerender({ fields: fieldsB });
+    });
+
+    expect(result.current.bitsDrafts).toEqual({ 0: '[0:0]' });
+    expect(result.current.resetDrafts).toEqual({ 0: '0x1' });
+  });
+});

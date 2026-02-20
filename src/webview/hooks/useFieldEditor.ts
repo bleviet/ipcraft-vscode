@@ -57,6 +57,7 @@ export function useFieldEditor(
   // ---- DOM refs ----
   const focusRef = useRef<HTMLDivElement | null>(null);
   const errorRef = useRef<HTMLDivElement | null>(null);
+  const previousOrderSignatureRef = useRef<string | null>(null);
 
   // ---------------------------------------------------------------------------
   // Internal helpers
@@ -424,6 +425,32 @@ export function useFieldEditor(
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [isActive, refocusTableSoon]);
+
+  // ---------------------------------------------------------------------------
+  // Keep index-keyed drafts aligned with field order
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    const orderSignature = fields
+      .map((field, index) => {
+        const name = String(field?.name ?? `idx-${index}`);
+        const bits = fieldToBitsString(field);
+        return `${name}|${bits}`;
+      })
+      .join('||');
+
+    const previousSignature = previousOrderSignatureRef.current;
+    previousOrderSignatureRef.current = orderSignature;
+
+    if (previousSignature === null || previousSignature === orderSignature) {
+      return;
+    }
+
+    setBitsDrafts({});
+    setBitsErrors({});
+    setDragPreviewRanges({});
+    setResetDrafts({});
+    setResetErrors({});
+  }, [fields]);
 
   return {
     // selection / hover
