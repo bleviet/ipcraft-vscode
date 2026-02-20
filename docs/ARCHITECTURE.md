@@ -2,422 +2,144 @@
 
 ## Overview
 
-The FPGA Memory Map Visual Editor is a VSCode extension that provides a visual interface for editing memory map YAML files. This document describes the architecture after the DetailsPanel decomposition and spatial-insertion/service refactoring.
+`ipcraft-vscode` is a VS Code extension that provides two custom editors:
 
-## HDL Generation
+- **Memory Map editor** for `*.mm.yml`
+- **IP Core editor** for `*.ip.yml`
 
-The extension performs HDL generation and VHDL parsing in TypeScript using Nunjucks templates synced from the
-Python generator. We chose this approach to keep the extension fully standalone and responsive, avoiding the
-latency and environment drift that comes from invoking a Python backend at runtime. Templates remain the
-shared source of truth to preserve output parity across implementations.
+Both editors share common extension-host services (message handling, document update, validation, HTML bootstrapping) while keeping editor-specific UI and domain workflows separate.
 
-## System Architecture
+---
 
-```mermaid
-graph TB
-    subgraph "VSCode Extension Host"
-        EXT[extension.ts<br/>Entry Point<br/>38 lines]
-        PROVIDER[MemoryMapEditorProvider<br/>Custom Editor Provider<br/>68 lines]
+## High-Level Architecture
 
-        subgraph "Services"
-            HTML[HtmlGenerator<br/>Webview HTML Generation]
-            DOC[DocumentManager<br/>File Operations]
-            MSG[MessageHandler<br/>Message Processing]
-            YAML[YamlValidator<br/>YAML Validation]
-        end
+### 1) Extension Host (VS Code side)
 
-        subgraph "Utilities"
-            LOG[Logger<br/>Structured Logging]
-            ERR[ErrorHandler<br/>Error Management]
-        end
-    end
+Core entry points and providers:
 
-    subgraph "Webview (React)"
-        APP[index.tsx<br/>Main App<br/>445 lines]
-        DETAILS[DetailsPanel.tsx<br/>Routing Coordinator<br/>~200 lines]
-        OUTLINE[Outline.tsx<br/>Tree View<br/>588 lines]
+- `src/extension.ts`
+- `src/providers/MemoryMapEditorProvider.ts`
+- `src/providers/IpCoreEditorProvider.ts`
 
-        subgraph "Editors"
-            MMEDITOR[MemoryMapEditor]
-            REGEDITOR[RegisterEditor]
-            BLOCKEDITOR[BlockEditor]
-            ARRAYEDITOR[RegisterArrayEditor]
-            FIELDSTABLE[FieldsTable]
-        end
+Shared host-side services:
 
-        subgraph "Webview Services"
-            NORM[DataNormalizer<br/>Data Transformation]
-            PATH[YamlPathResolver<br/>Path Operations]
-            YAMLSVC[YamlService<br/>YAML Serialization]
-        end
+- `src/services/HtmlGenerator.ts`
+- `src/services/MessageHandler.ts`
+- `src/services/DocumentManager.ts`
+- `src/services/YamlValidator.ts`
+- `src/services/ImportResolver.ts` (IP Core flow)
 
-        subgraph "Custom Hooks"
-            MAPSTATE[useMemoryMapState<br/>State Management]
-            SELECT[useSelection<br/>Selection State]
-            SYNC[useYamlSync<br/>Message Sync]
-            TABNAV[useTableNavigation<br/>Keyboard Nav]
-            FIELDEDITOR[useFieldEditor<br/>Bit-field Editing]
-        end
+Generator/parsing commands:
 
-        subgraph "Algorithms"
-            BITREPACK[BitFieldRepacker<br/>5 functions]
-            BLOCKREPACK[AddressBlockRepacker<br/>2 functions]
-            REGREPACK[RegisterRepacker<br/>2 functions]
-        end
+- `src/commands/FileCreationCommands.ts`
+- `src/commands/GenerateCommands.ts`
+- `src/generator/*` (TypeScript scaffolding + Nunjucks templates)
+- `src/parser/VhdlParser.ts`
 
-        subgraph "Webview Domain Services"
-            INSERTION[SpatialInsertionService<br/>Insert/Repack Pipeline]
-        end
+### 2) Webview (React side)
 
-        subgraph "Visualizers"
-            BITVIS[BitFieldVisualizer]
-            ADDRVIS[AddressMapVisualizer]
-            REGVIS[RegisterMapVisualizer]
-        end
-    end
+Memory Map app entry:
 
-    EXT --> PROVIDER
-    PROVIDER --> HTML
-    PROVIDER --> MSG
-    PROVIDER --> DOC
-    PROVIDER --> YAML
-    PROVIDER --> LOG
-    PROVIDER --> ERR
+- `src/webview/index.tsx`
 
-    PROVIDER <-->|postMessage| APP
+IP Core app entry:
 
-    APP --> MAPSTATE
-    APP --> SELECT
-    APP --> SYNC
-    APP --> DETAILS
-    APP --> OUTLINE
+- `src/webview/ipcore/IpCoreApp.tsx`
 
-    DETAILS --> MMEDITOR
-    DETAILS --> REGEDITOR
-    DETAILS --> BLOCKEDITOR
-    DETAILS --> ARRAYEDITOR
+Memory Map UI structure:
 
-    REGEDITOR --> FIELDSTABLE
-    REGEDITOR --> FIELDEDITOR
-    REGEDITOR --> TABNAV
-    REGEDITOR --> INSERTION
-    REGEDITOR --> BITREPACK
+- `Outline` tree/navigation (`src/webview/components/Outline.tsx`)
+- `DetailsPanel` router (`src/webview/components/DetailsPanel.tsx`)
+- detail editors:
+  - register editor: `src/webview/components/register/*`
+  - block editor: `src/webview/components/memorymap/BlockEditor.tsx`
+  - memory map editor: `src/webview/components/memorymap/MemoryMapEditor.tsx`
+  - register-array editor: `src/webview/components/memorymap/RegisterArrayEditor.tsx`
 
-    BLOCKEDITOR --> INSERTION
-    BLOCKEDITOR --> BLOCKREPACK
-    BLOCKEDITOR --> REGREPACK
+Key webview domain services and hooks:
 
-    MMEDITOR --> NORM
-    REGEDITOR --> PATH
-    REGEDITOR --> YAMLSVC
-    BLOCKEDITOR --> PATH
-    BLOCKEDITOR --> YAMLSVC
-    REGEDITOR --> BITVIS
-    BLOCKEDITOR --> ADDRVIS
-    BLOCKEDITOR --> REGVIS
+- `src/webview/services/DataNormalizer.ts`
+- `src/webview/services/YamlPathResolver.ts`
+- `src/webview/services/YamlService.ts`
+- `src/webview/services/SpatialInsertionService.ts`
+- `src/webview/hooks/useMemoryMapState.ts`
+- `src/webview/hooks/useSelection.ts`
+- `src/webview/hooks/useYamlSync.ts`
+- `src/webview/hooks/useFieldEditor.ts`
 
-    MAPSTATE --> NORM
-    MAPSTATE --> YAMLSVC
-    SELECT --> PATH
-    SYNC -->|postMessage| PROVIDER
-```
+---
 
 ## Data Flow
 
-### 1. Document Loading
+### Document open / refresh
 
-```mermaid
-sequenceDiagram
-    participant User
-    participant VSCode
-    participant Provider
-    participant DocumentManager
-    participant Webview
-    participant useMemoryMapState
+1. VS Code opens a matching YAML file.
+2. Provider resolves webview HTML and waits for `type: 'ready'`.
+3. Provider sends `type: 'update'` with text (+ filename; IP Core may include resolved imports).
+4. Webview parses + normalizes, then renders state.
 
-    User->>VSCode: Open .mm.yml file
-    VSCode->>Provider: resolveCustomTextEditor()
-    Provider->>DocumentManager: getText(document)
-    Provider->>Webview: postMessage({type: 'update', text, fileName})
-    Webview->>useMemoryMapState: updateFromYaml(text, fileName)
-    useMemoryMapState->>useMemoryMapState: Parse YAML
-    useMemoryMapState->>useMemoryMapState: Normalize data
-    useMemoryMapState-->>Webview: Updated state
-    Webview-->>User: Render UI
-```
+### User edit
 
-### 2. User Edits
+1. User edits in webview UI.
+2. Webview updates in-memory model and serializes YAML.
+3. Webview posts `type: 'update'` with full text.
+4. Host `MessageHandler` routes to `DocumentManager.updateDocument(...)`.
+5. VS Code document updates and re-syncs if needed.
 
-```mermaid
-sequenceDiagram
-    participant User
-    participant DetailsPanel
-    participant YamlPathResolver
-    participant useYamlSync
-    participant Provider
-    participant DocumentManager
+### Host command flow
 
-    User->>DetailsPanel: Edit field value
-    DetailsPanel->>YamlPathResolver: setAtPath(data, path, value)
-    YamlPathResolver-->>DetailsPanel: Updated data
-    DetailsPanel->>useYamlSync: sendUpdate(yamlText)
-    useYamlSync->>Provider: postMessage({type: 'update', text})
-    Provider->>DocumentManager: updateDocument(document, text)
-    DocumentManager->>DocumentManager: Apply edit
-    DocumentManager-->>Provider: Success
-```
+Webview can post `type: 'command'` (`save`, `validate`, `openFile`).
+Host executes VS Code actions and may show notifications.
 
-### 3. Document Synchronization
+---
 
-```mermaid
-sequenceDiagram
-    participant ExternalEdit
-    participant VSCode
-    participant Provider
-    participant Webview
-    participant useMemoryMapState
+## Memory Map Editing Model
 
-    ExternalEdit->>VSCode: Edit .mm.yml externally
-    VSCode->>Provider: onDidChangeTextDocument()
-    Provider->>Webview: postMessage({type: 'update', text})
-    Webview->>useMemoryMapState: updateFromYaml(text)
-    useMemoryMapState-->>Webview: Updated state
-    Webview-->>User: Re-render with new data
-```
+The Memory Map editor keeps a normalized model for UI behavior while preserving YAML round-tripping:
 
-## Component Hierarchy
+- Input YAML can vary in shape (`memory_maps`, arrays, direct object).
+- `DataNormalizer` produces consistent in-app structures.
+- `YamlPathResolver` applies precise updates back to parsed YAML object.
+- `YamlService` handles parse/dump and bit-field cleanup format.
 
-### Extension Host
+Spatial editing is implemented with pure functions/services:
 
-```
-extension.ts (Entry Point)
-└── MemoryMapEditorProvider
-    ├── HtmlGenerator
-    ├── DocumentManager
-    ├── MessageHandler
-    │   ├── YamlValidator
-    │   └── DocumentManager
-    ├── Logger
-    └── ErrorHandler
-```
+- bit fields: `BitFieldRepacker` + `SpatialInsertionService.insertField*`
+- registers: `RegisterRepacker` + `SpatialInsertionService.insertRegister*`
+- blocks: `AddressBlockRepacker` + `SpatialInsertionService.insertBlock*`
 
-### Webview
+---
 
-```
-index.tsx (Main App)
-├── useMemoryMapState
-│   ├── YamlService
-│   └── DataNormalizer
-├── useSelection
-│   └── YamlPathResolver
-├── useYamlSync
-│   └── vscode.postMessage
-├── Outline
-│   └── Tree rendering logic
-└── DetailsPanel
-    ├── MemoryMapEditor
-    ├── RegisterEditor
-    │   ├── FieldsTable
-    │   ├── useFieldEditor
-    │   ├── useTableNavigation
-    │   ├── BitFieldRepacker
-    │   ├── SpatialInsertionService
-    │   └── BitFieldVisualizer
-    ├── BlockEditor
-    │   ├── AddressBlockRepacker
-    │   ├── RegisterRepacker
-    │   ├── SpatialInsertionService
-    │   ├── AddressMapVisualizer
-    │   └── RegisterMapVisualizer
-    └── RegisterArrayEditor
-```
+## Testing Architecture
 
-## State Management
+### Unit tests (Jest)
 
-### Extension Host State
+- Location: `src/test/suite/**`
+- Focus: algorithms, services, hooks, and selected components
 
-Managed by VSCode:
-- Document content (TextDocument)
-- Webview lifecycle
-- File system watchers
+### Extension tests (VS Code harness)
 
-### Webview State
+- Location: `test/**`
+- Run through extension test entrypoint (`npm run test`)
 
-Managed by React hooks:
+---
 
-**useMemoryMapState:**
-- `memoryMap`: Normalized memory map object
-- `rawText`: YAML source text
-- `parseError`: Parsing errors
-- `fileName`: Current file name
+## Build & Packaging
 
-**useSelection:**
-- `selectedId`: Selected item ID
-- `selectedType`: Type of selection (memoryMap/block/register/array)
-- `selectedObject`: Selected object data
-- `breadcrumbs`: Navigation path
-- `selectionMeta`: Additional metadata
+- `npm run compile` builds extension + webview for development
+- `npm run package` creates production webpack output
+- `npm run type-check` validates TypeScript without emit
 
-**Detail editors (local state):**
-- `RegisterEditor` + `useFieldEditor`: active cell state, field drafts, field validation errors
-- `BlockEditor`: block insertion/selection state and insertion error messaging
-- `RegisterArrayEditor` and `MemoryMapEditor`: focused form editing state
-- `DetailsPanel`: routing + imperative focus delegation only
+Generated assets:
 
-## Message Passing Protocol
+- extension bundle: `dist/extension.js`
+- webview bundle: `dist/webview.js`
+- compiled tests: `out/**`
 
-### Extension → Webview
+---
 
-```typescript
-interface UpdateMessage {
-  type: 'update';
-  text: string;        // YAML content
-  fileName: string;    // File name for display
-}
-```
+## Security Notes
 
-### Webview → Extension
+Webview HTML is generated with CSP in `HtmlGenerator` and currently permits Tailwind CDN and inline script/style in order to support current runtime styling setup.
 
-```typescript
-interface UpdateMessage {
-  type: 'update';
-  text: string;        // Modified YAML content
-}
-
-interface CommandMessage {
-  type: 'command';
-  command: 'save' | 'validate';
-}
-```
-
-## Data Normalization
-
-The `DataNormalizer` service transforms various YAML structures into a consistent format:
-
-```typescript
-// Input: YAML (can be array, nested, or direct)
-const parsed = YamlService.parse(yamlText);
-
-// Normalize structure
-let map;
-if (Array.isArray(parsed)) {
-  map = parsed[0];
-} else if (parsed.memory_maps) {
-  map = parsed.memory_maps[0];
-} else {
-  map = parsed;
-}
-
-// Normalize data
-const normalized = DataNormalizer.normalizeMemoryMap(map);
-// Output: Consistent MemoryMap type
-```
-
-## Build Process
-
-```mermaid
-graph LR
-    TS[TypeScript Source] --> TSC[TypeScript Compiler]
-    TSC --> OUT[out/ directory]
-
-    WEBVIEW[Webview Source] --> WEBPACK[Webpack]
-    WEBPACK --> DIST[dist/webview.js]
-
-    SCHEMA[YAML Schema] --> CODEGEN[json-schema-to-typescript]
-    CODEGEN --> TYPES[Generated Types]
-
-    OUT --> VSIX[Extension Package]
-    DIST --> VSIX
-```
-
-**Commands:**
-- `npm run compile`: Build extension and webview
-- `npm run watch`: Watch mode for development
-- `npm run generate-types`: Generate types from schema
-- `npm run test`: Run unit tests
-
-## Testing Strategy
-
-### Unit Tests (Jest)
-
-- **Algorithm modules**: BitFieldRepacker, AddressBlockRepacker, RegisterRepacker
-- **Services**: DataNormalizer, YamlPathResolver, YamlService
-- **Utilities**: Logger, ErrorHandler
-
-### Integration Tests (Mocha)
-
-- Extension activation
-- Custom editor registration
-- Document operations
-
-### Manual Testing
-
-- Extension Development Host
-- Sample YAML files in `src/test/fixtures/`
-
-## Security Considerations
-
-### Content Security Policy
-
-Currently using relaxed CSP (includes CDN):
-```html
-<meta http-equiv="Content-Security-Policy"
-      content="default-src 'none';
-               style-src ${webview.cspSource} 'unsafe-inline' https://cdn.tailwindcss.com;
-               script-src ${webview.cspSource} 'unsafe-inline';">
-```
-
-**TODO**: Remove CDN dependencies and tighten CSP.
-
-### Message Validation
-
-All webview messages are type-checked:
-```typescript
-interface WebviewMessage {
-  type: string;
-  [key: string]: unknown;
-}
-```
-
-## Extension Points
-
-### Adding a New Service
-
-1. Create service in `src/services/`
-2. Inject into `MemoryMapEditorProvider` constructor
-3. Use in provider methods
-
-### Adding a New Webview Service
-
-1. Create service in `src/webview/services/`
-2. Import in components that need it
-3. Call static methods or instantiate
-
-### Adding a New Algorithm
-
-1. Create module in `src/webview/algorithms/`
-2. Export pure functions
-3. Write unit tests in `src/test/suite/algorithms/`
-4. Import in the appropriate sub-editor (`RegisterEditor`, `BlockEditor`, etc.)
-
-## Performance Considerations
-
-- Webview bundle size: ~5.6 MB (with source maps)
-- Extension bundle size: ~395 KB
-- Initial load time: <2s for typical files
-- Re-render on edit: <100ms
-
-**Optimization opportunities:**
-- Code splitting for webview
-- Lazy loading of visualizers
-- Memoization of expensive computations
-- Virtual scrolling for large tables
-
-## Future Enhancements
-
-- Command palette commands
-- Export to C header files
-- Generate documentation
-- Custom themes
-- Multi-file editing
-- Validation against custom schemas
+If CSP tightening is required, first migrate external/runtime styling dependencies to local bundled assets.

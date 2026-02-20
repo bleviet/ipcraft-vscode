@@ -1,320 +1,110 @@
-# Contributing to FPGA Memory Map Visual Editor
+# Contributing
 
-Thank you for your interest in contributing! This document provides guidelines for contributing to this project.
+Thanks for contributing to `ipcraft-vscode`.
 
-## Code of Conduct
+## Workflow
 
-- Be respectful and inclusive
-- Focus on constructive feedback
-- Help others learn and grow
+1. Create a branch from your target base branch.
+2. Make focused changes.
+3. Add/update tests.
+4. Run lint/type-check/tests.
+5. Open a PR with a clear summary.
 
-## Getting Started
+---
 
-1. Fork the repository
-2. Clone your fork
-3. Create a feature branch
-4. Make your changes
-5. Submit a pull request
+## Local Validation Checklist
 
-See [DEVELOPMENT.md](DEVELOPMENT.md) for detailed setup instructions.
-
-## Development Workflow
-
-### 1. Create a Feature Branch
+Run these before opening a PR:
 
 ```bash
-git checkout -b feature/my-feature
-# or
-git checkout -b fix/bug-description
-```
-
-### 2. Make Your Changes
-
-- Write clean, maintainable code
-- Follow existing code style
-- Add tests for new functionality
-- Update documentation as needed
-
-### 3. Test Your Changes
-
-```bash
-# Run unit tests
-npm run test
-
-# Run linter
 npm run lint
-
-# Test in Extension Development Host (F5)
+npm run type-check
+npm run test:unit
+npm run compile
 ```
 
-### 4. Commit Your Changes
-
-Use clear, descriptive commit messages:
+If your change affects extension-host behavior or custom editor integration, also run:
 
 ```bash
-git commit -m "feat: add new algorithm for register repacking"
-git commit -m "fix: resolve issue with empty field handling"
-git commit -m "docs: update architecture diagram"
+npm run test
 ```
 
-**Commit Message Format:**
-- `feat`: New feature
-- `fix`: Bug fix
-- `docs`: Documentation changes
-- `test`: Adding or updating tests
-- `refactor`: Code refactoring
-- `chore`: Maintenance tasks
+---
 
-### 5. Push and Create PR
+## Commit Message Guidance
 
-```bash
-git push origin feature/my-feature
-```
+Use concise, action-focused messages. Conventional prefixes are recommended:
 
-Then create a Pull Request on GitHub.
+- `feat:` new functionality
+- `fix:` bug fix
+- `docs:` documentation only
+- `test:` test additions/updates
+- `refactor:` code reshaping without behavior change
+- `chore:` maintenance/tooling
 
-## Code Style Guidelines
+Examples:
 
-### TypeScript
+- `fix: clear field table drafts after reorder`
+- `test: add useFieldEditor reorder synchronization regression`
+- `docs: refresh architecture and development guides`
 
-**Use TypeScript strict mode:**
-```typescript
-// Good
-function processData(input: string): number {
-  return parseInt(input, 10);
-}
+---
 
-// Avoid
-function processData(input: any): any {
-  return parseInt(input, 10);
-}
-```
+## Code Guidelines
 
-**Prefer interfaces for object shapes:**
-```typescript
-// Good
-interface User {
-  name: string;
-  age: number;
-}
+- Keep changes scoped to the problem.
+- Prefer pure functions for algorithms/services.
+- Preserve existing naming and style conventions.
+- Avoid `any`; use `unknown` + type guards when needed.
+- Update docs if behavior or workflow changes.
 
-// Avoid (unless you need union/intersection types)
-type User = {
-  name: string;
-  age: number;
-};
-```
+### Frontend patterns
 
-**Use type guards instead of any:**
-```typescript
-// Good
-function process(value: unknown): void {
-  if (typeof value === 'string') {
-    console.log(value.toUpperCase());
-  }
-}
+- Keep components focused and composable.
+- Move complex interaction logic into hooks/services.
+- Keep YAML mutation path centralized through current resolver/service flow.
 
-// Avoid
-function process(value: any): void {
-  console.log(value.toUpperCase());
-}
-```
+### Extension-host patterns
 
-### React Components
+- Use provider/service boundaries.
+- Keep message contracts explicit and simple.
+- Avoid direct webview/business coupling in providers.
 
-**Use functional components:**
-```typescript
-// Good
-export function MyComponent({ data }: MyComponentProps) {
-  return <div>{data}</div>;
-}
+---
 
-// Avoid class components (legacy codebase compatibility only)
-```
+## Testing Expectations
 
-**Extract complex logic to hooks:**
-```typescript
-// Good
-function useComplexLogic(input: string) {
-  const [state, setState] = useState(input);
-  // ... complex logic
-  return { state, setState };
-}
+Add or update tests for:
 
-function MyComponent() {
-  const { state } = useComplexLogic('initial');
-  return <div>{state}</div>;
-}
-```
+- bug fixes (regression test preferred)
+- algorithm behavior changes
+- hook/service behavior changes
 
-**Keep components focused:**
-- Single responsibility
-- ~200 lines maximum
-- Extract sub-components if needed
+Current unit test tree lives under:
 
-### Naming Conventions
+- `src/test/suite/algorithms`
+- `src/test/suite/services`
+- `src/test/suite/hooks`
+- `src/test/suite/components`
 
-| Type | Convention | Example |
-|------|------------|---------|
-| Files (Components) | PascalCase | `MyComponent.tsx` |
-| Files (Utilities) | camelCase | `myUtility.ts` |
-| Functions | camelCase | `processData()` |
-| Classes | PascalCase | `DataProcessor` |
-| Interfaces | PascalCase | `UserData` |
-| React Hooks | use + PascalCase | `useMyHook()` |
-| Constants | UPPER_SNAKE_CASE | `MAX_RETRIES` |
+---
 
-## Testing Requirements
+## Documentation Expectations
 
-### Unit Tests
+When relevant, update one or more of:
 
-**All new algorithms must have unit tests:**
-```typescript
-describe('MyAlgorithm', () => {
-  it('should handle normal case', () => {
-    expect(myAlgorithm(input)).toEqual(expected);
-  });
+- `README.md`
+- `docs/ARCHITECTURE.md`
+- `docs/DEVELOPMENT.md`
+- interaction-specific docs in `docs/`
 
-  it('should handle edge case', () => {
-    expect(myAlgorithm(edgeInput)).toEqual(edgeExpected);
-  });
+---
 
-  it('should handle empty input', () => {
-    expect(myAlgorithm([])).toEqual([]);
-  });
-});
-```
+## Pull Request Notes
 
-**Target Coverage:**
-- Algorithms: 90%+
-- Services: 80%+
-- Utilities: 80%+
+Include in PR description:
 
-### Manual Testing
-
-Before submitting PR:
-1. Launch Extension Development Host (F5)
-2. Open sample `.mm.yml` file
-3. Test your changes thoroughly
-4. Test edge cases (empty files, large files, invalid data)
-
-## Documentation Requirements
-
-### Code Documentation
-
-**Add JSDoc for public APIs:**
-```typescript
-/**
- * Processes user data and returns formatted result
- * @param data - User data to process
- * @param options - Processing options
- * @returns Formatted result string
- * @throws {Error} If data is invalid
- */
-export function processUserData(
-  data: UserData,
-  options: Options
-): string {
-  // implementation
-}
-```
-
-**Document complex logic:**
-```typescript
-// Calculate the next available bit position
-// We need to find gaps in the existing bit allocations
-const nextPosition = findGapInBitAllocations(fields);
-```
-
-### Documentation Files
-
-Update relevant docs when making changes:
-- `README.md` - For user-facing features
-- `docs/ARCHITECTURE.md` - For architectural changes
-- `docs/DEVELOPMENT.md` - For development workflow changes
-
-## Pull Request Guidelines
-
-### PR Title
-
-Use the same format as commit messages:
-- `feat: Add register array support`
-- `fix: Resolve field overlap detection`
-- `docs: Update architecture diagrams`
-
-### PR Description
-
-Include:
-1. **What**: What does this PR do?
-2. **Why**: Why is this change needed?
-3. **How**: How does it work?
-4. **Testing**: How was it tested?
-
-**Example:**
-```markdown
-## What
-Adds support for detecting overlapping bit fields in registers.
-
-## Why
-Users were able to create invalid memory maps with overlapping fields.
-
-## How
-Added validation in the BitFieldRepacker that checks for overlaps
-before inserting new fields.
-
-## Testing
-- Added unit tests for overlap detection
-- Manually tested with sample files
-- Verified error messages are clear
-```
-
-### PR Checklist
-
-Before submitting:
-- [ ] Code follows style guidelines
-- [ ] Tests added/updated and passing
-- [ ] Linter passes (`npm run lint`)
-- [ ] Documentation updated
-- [ ] Manually tested in Extension Development Host
-- [ ] No console errors or warnings
-
-## Review Process
-
-1. **Automated Checks**: CI/CD runs tests and linter
-2. **Code Review**: Maintainer reviews code
-3. **Feedback**: Address review comments
-4. **Approval**: PR is approved
-5. **Merge**: PR is merged to main
-
-## Common Contribution Areas
-
-### Easy First Issues
-
-- Documentation improvements
-- Test coverage improvements
-- Code comments
-- Bug fixes with clear reproduction
-
-### Medium Complexity
-
-- New utility functions
-- Algorithm improvements
-- UI enhancements
-- Performance optimizations
-
-### Advanced
-
-- New features
-- Architecture changes
-- Major refactoring
-- Integration with other tools
-
-## Questions?
-
-- Open an issue for questions
-- Check existing issues for similar questions
-- Review [DEVELOPMENT.md](DEVELOPMENT.md) for technical details
-
-## License
-
-By contributing, you agree that your contributions will be licensed under the same license as the project.
+1. What changed
+2. Why it changed
+3. How it was validated (commands + results)
+4. Any known follow-up work
