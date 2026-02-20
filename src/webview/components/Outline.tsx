@@ -1,15 +1,10 @@
-import React, { useImperativeHandle, useMemo, useRef, useState } from "react";
-import {
-  MemoryMap,
-  AddressBlock,
-  Register,
-  RegisterArray,
-} from "../types/memoryMap";
+import React, { useImperativeHandle, useMemo, useRef, useState } from 'react';
+import { MemoryMap, AddressBlock, Register, RegisterArray } from '../types/memoryMap';
 
 type YamlPath = Array<string | number>;
 
 type RegisterArrayNode = {
-  __kind: "array";
+  __kind: 'array';
   name: string;
   address_offset: number;
   count: number;
@@ -18,25 +13,28 @@ type RegisterArrayNode = {
   registers: Register[];
 };
 
-const isArrayNode = (node: any): node is RegisterArrayNode => {
-  return (
-    !!node &&
-    typeof node === "object" &&
-    node.__kind === "array" &&
-    typeof node.count === "number" &&
-    typeof node.stride === "number"
-  );
+const isArrayNode = (node: unknown): node is RegisterArrayNode => {
+  if (!node || typeof node !== 'object') {
+    return false;
+  }
+  const n = node as Record<string, unknown>;
+  return n.__kind === 'array' && typeof n.count === 'number' && typeof n.stride === 'number';
 };
 
 const toHex = (n: number) => `0x${Math.max(0, n).toString(16).toUpperCase()}`;
+
+export interface BlockNode extends AddressBlock {
+  registers?: (Register | RegisterArrayNode)[];
+  register_arrays?: RegisterArray[];
+}
 
 interface OutlineProps {
   memoryMap: MemoryMap;
   selectedId: string | null;
   onSelect: (selection: {
     id: string;
-    type: "memoryMap" | "block" | "register" | "array";
-    object: any;
+    type: 'memoryMap' | 'block' | 'register' | 'array';
+    object: unknown;
     breadcrumbs: string[];
     path: YamlPath;
     meta?: {
@@ -57,31 +55,31 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
   ({ memoryMap, selectedId, onSelect, onRename }, ref) => {
     // By default, expand all blocks and registers
     const allIds = useMemo(() => {
-      const ids = new Set<string>(["root"]);
+      const ids = new Set<string>(['root']);
       (memoryMap.address_blocks ?? []).forEach((block, blockIdx) => {
         const blockId = `block-${blockIdx}`;
         ids.add(blockId);
-        const regs = ((block as any).registers ?? []) as any[];
+        const regs = (block as BlockNode).registers ?? [];
         regs.forEach((reg, regIdx) => {
-          if (reg && reg.__kind === "array") {
+          if (reg && reg.__kind === 'array') {
             ids.add(`block-${blockIdx}-arrreg-${regIdx}`);
           }
         });
-        ((block as any).register_arrays ?? []).forEach(
-          (arr: any, arrIdx: number) => {
+        ((block as BlockNode).register_arrays ?? []).forEach(
+          (arr: RegisterArray, arrIdx: number) => {
             ids.add(`block-${blockIdx}-arr-${arrIdx}`);
-          },
+          }
         );
       });
       return ids;
     }, [memoryMap]);
     const [expanded, setExpanded] = useState<Set<string>>(allIds);
-    const [query, setQuery] = useState("");
+    const [query, setQuery] = useState('');
     const treeFocusRef = useRef<HTMLDivElement | null>(null);
 
     // Inline editing state
     const [editingId, setEditingId] = useState<string | null>(null);
-    const [editingValue, setEditingValue] = useState("");
+    const [editingValue, setEditingValue] = useState('');
     const editInputRef = useRef<HTMLInputElement | null>(null);
 
     useImperativeHandle(
@@ -91,7 +89,7 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
           treeFocusRef.current?.focus();
         },
       }),
-      [],
+      []
     );
 
     const toggleExpand = (id: string, e: React.MouseEvent) => {
@@ -109,7 +107,9 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
      * Start inline edit mode for the given item.
      */
     const startEditing = (id: string, currentName: string) => {
-      if (!onRename) {return;}
+      if (!onRename) {
+        return;
+      }
       setEditingId(id);
       setEditingValue(currentName);
       // Focus input after render
@@ -123,13 +123,15 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
      * Commit the rename and exit edit mode.
      */
     const commitEdit = (path: YamlPath) => {
-      if (!onRename || !editingId) {return;}
+      if (!onRename || !editingId) {
+        return;
+      }
       const trimmed = editingValue.trim();
       if (trimmed) {
-        onRename([...path, "name"], trimmed);
+        onRename([...path, 'name'], trimmed);
       }
       setEditingId(null);
-      setEditingValue("");
+      setEditingValue('');
       treeFocusRef.current?.focus();
     };
 
@@ -138,19 +140,14 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
      */
     const cancelEdit = () => {
       setEditingId(null);
-      setEditingValue("");
+      setEditingValue('');
       treeFocusRef.current?.focus();
     };
 
     /**
      * Render either an inline edit input or the static name text.
      */
-    const renderNameOrEdit = (
-      id: string,
-      name: string,
-      path: YamlPath,
-      className?: string,
-    ) => {
+    const renderNameOrEdit = (id: string, name: string, path: YamlPath, className?: string) => {
       if (editingId === id) {
         return (
           <input
@@ -158,20 +155,20 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
             type="text"
             className="outline-inline-edit px-1 py-0 text-sm rounded border"
             style={{
-              background: "var(--vscode-input-background)",
-              color: "var(--vscode-input-foreground)",
-              borderColor: "var(--vscode-focusBorder)",
-              minWidth: "80px",
+              background: 'var(--vscode-input-background)',
+              color: 'var(--vscode-input-foreground)',
+              borderColor: 'var(--vscode-focusBorder)',
+              minWidth: '80px',
               width: `${Math.max(80, editingValue.length * 8)}px`,
             }}
             value={editingValue}
             onChange={(e) => setEditingValue(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") {
+              if (e.key === 'Enter') {
                 e.preventDefault();
                 e.stopPropagation();
                 commitEdit(path);
-              } else if (e.key === "Escape") {
+              } else if (e.key === 'Escape') {
                 e.preventDefault();
                 e.stopPropagation();
                 cancelEdit();
@@ -185,11 +182,7 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
       return <span className={className}>{name}</span>;
     };
 
-    const renderLeafRegister = (
-      reg: Register,
-      blockIndex: number,
-      regIndex: number,
-    ) => {
+    const renderLeafRegister = (reg: Register, blockIndex: number, regIndex: number) => {
       const id = `block-${blockIndex}-reg-${regIndex}`;
       const isSelected = selectedId === id;
       const block = memoryMap.address_blocks?.[blockIndex];
@@ -197,39 +190,37 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
       return (
         <div
           key={id}
-          className={`tree-item ${isSelected ? "selected" : ""} gap-2 text-sm`}
+          className={`tree-item ${isSelected ? 'selected' : ''} gap-2 text-sm`}
           onClick={() => {
             treeFocusRef.current?.focus();
             onSelect({
               id,
-              type: "register",
+              type: 'register',
               object: reg,
               breadcrumbs: [
-                memoryMap.name || "Memory Map",
-                memoryMap.address_blocks?.[blockIndex]?.name ?? "",
+                memoryMap.name || 'Memory Map',
+                memoryMap.address_blocks?.[blockIndex]?.name ?? '',
                 reg.name,
               ],
-              path: ["addressBlocks", blockIndex, "registers", regIndex],
+              path: ['addressBlocks', blockIndex, 'registers', regIndex],
               meta: {
                 absoluteAddress: absolute,
                 relativeOffset: reg.address_offset ?? 0,
               },
             });
           }}
-          style={{ paddingLeft: "40px" }}
+          style={{ paddingLeft: '40px' }}
         >
           <span
-            className={`codicon codicon-symbol-variable text-[16px] ${isSelected ? "" : "opacity-70"}`}
+            className={`codicon codicon-symbol-variable text-[16px] ${isSelected ? '' : 'opacity-70'}`}
           ></span>
           {renderNameOrEdit(
             id,
             reg.name,
-            ["addressBlocks", blockIndex, "registers", regIndex],
-            "flex-1",
+            ['addressBlocks', blockIndex, 'registers', regIndex],
+            'flex-1'
           )}
-          <span className="text-[10px] vscode-muted font-mono">
-            {toHex(reg.address_offset)}
-          </span>
+          <span className="text-[10px] vscode-muted font-mono">{toHex(reg.address_offset)}</span>
         </div>
       );
     };
@@ -238,7 +229,7 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
       arr: RegisterArrayNode,
       block: AddressBlock,
       blockIndex: number,
-      regIndex: number,
+      regIndex: number
     ) => {
       const id = `block-${blockIndex}-arrreg-${regIndex}`;
       const isSelected = selectedId === id;
@@ -250,38 +241,31 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
       return (
         <div key={id}>
           <div
-            className={`tree-item ${isSelected ? "selected" : ""}`}
+            className={`tree-item ${isSelected ? 'selected' : ''}`}
             onClick={() => {
               treeFocusRef.current?.focus();
               onSelect({
                 id,
-                type: "array",
+                type: 'array',
                 object: arr,
-                breadcrumbs: [
-                  memoryMap.name || "Memory Map",
-                  block.name,
-                  arr.name,
-                ],
-                path: ["addressBlocks", blockIndex, "registers", regIndex],
+                breadcrumbs: [memoryMap.name || 'Memory Map', block.name, arr.name],
+                path: ['addressBlocks', blockIndex, 'registers', regIndex],
               });
             }}
-            style={{ paddingLeft: "40px" }}
+            style={{ paddingLeft: '40px' }}
           >
             <span
-              className={`codicon codicon-chevron-${isExpanded ? "down" : "right"}`}
+              className={`codicon codicon-chevron-${isExpanded ? 'down' : 'right'}`}
               onClick={(e) => toggleExpand(id, e)}
-              style={{ marginRight: "6px", cursor: "pointer" }}
+              style={{ marginRight: '6px', cursor: 'pointer' }}
             ></span>
-            <span
-              className="codicon codicon-symbol-array"
-              style={{ marginRight: "6px" }}
-            ></span>
+            <span className="codicon codicon-symbol-array" style={{ marginRight: '6px' }}></span>
             {renderNameOrEdit(id, arr.name, [
-              "addressBlocks",
+              'addressBlocks',
               blockIndex,
-              "registers",
+              'registers',
               regIndex,
-            ])}{" "}
+            ])}{' '}
             <span className="opacity-50">
               @ {toHex(start)}-{toHex(end)} [{arr.count}]
             </span>
@@ -296,37 +280,32 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
                 return (
                   <div key={elementId}>
                     <div
-                      className={`tree-item ${isElementSelected ? "selected" : ""}`}
+                      className={`tree-item ${isElementSelected ? 'selected' : ''}`}
                       onClick={() => {
                         treeFocusRef.current?.focus();
                         onSelect({
                           id: elementId,
-                          type: "array",
+                          type: 'array',
                           object: {
                             ...arr,
                             __element_index: elementIndex,
                             __element_base: elementBase,
                           },
                           breadcrumbs: [
-                            memoryMap.name || "Memory Map",
+                            memoryMap.name || 'Memory Map',
                             block.name,
                             `${arr.name}[${elementIndex}]`,
                           ],
-                          path: [
-                            "addressBlocks",
-                            blockIndex,
-                            "registers",
-                            regIndex,
-                          ],
+                          path: ['addressBlocks', blockIndex, 'registers', regIndex],
                         });
                       }}
-                      style={{ paddingLeft: "60px" }}
+                      style={{ paddingLeft: '60px' }}
                     >
                       <span
                         className="codicon codicon-symbol-namespace"
-                        style={{ marginRight: "6px" }}
+                        style={{ marginRight: '6px' }}
                       ></span>
-                      {arr.name}[{elementIndex}]{" "}
+                      {arr.name}[{elementIndex}]{' '}
                       <span className="opacity-50">@ {toHex(elementBase)}</span>
                     </div>
 
@@ -337,25 +316,25 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
                       return (
                         <div
                           key={childId}
-                          className={`tree-item ${isChildSelected ? "selected" : ""}`}
+                          className={`tree-item ${isChildSelected ? 'selected' : ''}`}
                           onClick={() => {
                             treeFocusRef.current?.focus();
                             onSelect({
                               id: childId,
-                              type: "register",
+                              type: 'register',
                               object: reg,
                               breadcrumbs: [
-                                memoryMap.name || "Memory Map",
+                                memoryMap.name || 'Memory Map',
                                 block.name,
                                 `${arr.name}[${elementIndex}]`,
                                 reg.name,
                               ],
                               path: [
-                                "addressBlocks",
+                                'addressBlocks',
                                 blockIndex,
-                                "registers",
+                                'registers',
                                 regIndex,
-                                "registers",
+                                'registers',
                                 childIndex,
                               ],
                               meta: {
@@ -364,23 +343,21 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
                               },
                             });
                           }}
-                          style={{ paddingLeft: "80px" }}
+                          style={{ paddingLeft: '80px' }}
                         >
                           <span
                             className="codicon codicon-symbol-variable"
-                            style={{ marginRight: "6px" }}
+                            style={{ marginRight: '6px' }}
                           ></span>
                           {renderNameOrEdit(childId, reg.name, [
-                            "addressBlocks",
+                            'addressBlocks',
                             blockIndex,
-                            "registers",
+                            'registers',
                             regIndex,
-                            "registers",
+                            'registers',
                             childIndex,
-                          ])}{" "}
-                          <span className="opacity-50">
-                            @ {toHex(absolute)}
-                          </span>
+                          ])}{' '}
+                          <span className="opacity-50">@ {toHex(absolute)}</span>
                         </div>
                       );
                     })}
@@ -393,56 +370,48 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
       );
     };
 
-    const renderArray = (arr: any, blockIndex: number, arrayIndex: number) => {
+    const renderArray = (arr: RegisterArray, blockIndex: number, arrayIndex: number) => {
       const id = `block-${blockIndex}-arr-${arrayIndex}`;
       const isSelected = selectedId === id;
       const isExpanded = expanded.has(id);
       return (
         <div key={id}>
           <div
-            className={`tree-item ${isSelected ? "selected" : ""}`}
+            className={`tree-item ${isSelected ? 'selected' : ''}`}
             onClick={() => {
               treeFocusRef.current?.focus();
               onSelect({
                 id,
-                type: "array",
+                type: 'array',
                 object: arr,
                 breadcrumbs: [
-                  memoryMap.name || "Memory Map",
-                  memoryMap.address_blocks?.[blockIndex]?.name ?? "",
+                  memoryMap.name || 'Memory Map',
+                  memoryMap.address_blocks?.[blockIndex]?.name ?? '',
                   arr.name,
                 ],
-                path: [
-                  "addressBlocks",
-                  blockIndex,
-                  "register_arrays",
-                  arrayIndex,
-                ],
+                path: ['addressBlocks', blockIndex, 'register_arrays', arrayIndex],
               });
             }}
-            style={{ paddingLeft: "40px" }}
+            style={{ paddingLeft: '40px' }}
           >
             <span
-              className={`codicon codicon-chevron-${isExpanded ? "down" : "right"}`}
+              className={`codicon codicon-chevron-${isExpanded ? 'down' : 'right'}`}
               onClick={(e) => toggleExpand(id, e)}
-              style={{ marginRight: "6px", cursor: "pointer" }}
+              style={{ marginRight: '6px', cursor: 'pointer' }}
             ></span>
-            <span
-              className="codicon codicon-symbol-array"
-              style={{ marginRight: "6px" }}
-            ></span>
+            <span className="codicon codicon-symbol-array" style={{ marginRight: '6px' }}></span>
             {renderNameOrEdit(id, arr.name, [
-              "addressBlocks",
+              'addressBlocks',
               blockIndex,
-              "register_arrays",
+              'register_arrays',
               arrayIndex,
-            ])}{" "}
+            ])}{' '}
             <span className="opacity-50">[{arr.count}]</span>
           </div>
-          {isExpanded && Array.isArray(arr.children_registers) && (
+          {isExpanded && Array.isArray(arr.registers) && (
             <div>
-              {arr.children_registers.map((reg: Register, idx: number) =>
-                renderLeafRegister(reg, blockIndex, idx),
+              {arr.registers.map((reg: Register, idx: number) =>
+                renderLeafRegister(reg, blockIndex, idx)
               )}
             </div>
           )}
@@ -455,37 +424,32 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
       const isExpanded = expanded.has(id);
       const isSelected = selectedId === id;
 
-      const regsAny = ((block as any).registers ?? []) as any[];
+      const regsAny = (block as BlockNode).registers ?? [];
 
       return (
         <div key={id}>
           <div
-            className={`tree-item ${isSelected ? "selected" : ""}`}
+            className={`tree-item ${isSelected ? 'selected' : ''}`}
             onClick={() => {
               treeFocusRef.current?.focus();
               onSelect({
                 id,
-                type: "block",
+                type: 'block',
                 object: block,
-                breadcrumbs: [memoryMap.name || "Memory Map", block.name],
-                path: ["addressBlocks", blockIndex],
+                breadcrumbs: [memoryMap.name || 'Memory Map', block.name],
+                path: ['addressBlocks', blockIndex],
               });
             }}
-            style={{ paddingLeft: "20px" }}
+            style={{ paddingLeft: '20px' }}
           >
             <span
-              className={`codicon codicon-chevron-${isExpanded ? "down" : "right"}`}
+              className={`codicon codicon-chevron-${isExpanded ? 'down' : 'right'}`}
               onClick={(e) => toggleExpand(id, e)}
-              style={{ marginRight: "6px", cursor: "pointer" }}
+              style={{ marginRight: '6px', cursor: 'pointer' }}
             ></span>
-            <span
-              className="codicon codicon-package"
-              style={{ marginRight: "6px" }}
-            ></span>
-            {renderNameOrEdit(id, block.name, ["addressBlocks", blockIndex])}{" "}
-            <span className="opacity-50">
-              @ 0x{block.base_address.toString(16).toUpperCase()}
-            </span>
+            <span className="codicon codicon-package" style={{ marginRight: '6px' }}></span>
+            {renderNameOrEdit(id, block.name, ['addressBlocks', blockIndex])}{' '}
+            <span className="opacity-50">@ 0x{block.base_address.toString(16).toUpperCase()}</span>
           </div>
           {isExpanded && (
             <div>
@@ -493,11 +457,10 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
                 if (isArrayNode(node)) {
                   return renderArrayRegister(node, block, blockIndex, idx);
                 }
-                return renderLeafRegister(node as Register, blockIndex, idx);
+                return renderLeafRegister(node, blockIndex, idx);
               })}
-              {(block as any).register_arrays?.map(
-                (arr: RegisterArray, idx: number) =>
-                  renderArray(arr, blockIndex, idx),
+              {(block as BlockNode).register_arrays?.map((arr: RegisterArray, idx: number) =>
+                renderArray(arr, blockIndex, idx)
               )}
             </div>
           )}
@@ -505,7 +468,7 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
       );
     };
 
-    const rootId = "root";
+    const rootId = 'root';
     const isRootExpanded = expanded.has(rootId);
     const isRootSelected = selectedId === rootId;
 
@@ -520,17 +483,17 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
       }
 
       return blocks.filter(({ block }) => {
-        if ((block.name ?? "").toLowerCase().includes(q)) {
+        if ((block.name ?? '').toLowerCase().includes(q)) {
           return true;
         }
-        const regs = ((block as any).registers ?? []) as any[];
+        const regs = (block as BlockNode).registers ?? [];
         if (
           regs.some((r) => {
             if (!r) {
               return false;
             }
             if (
-              String(r.name ?? "")
+              String(r.name ?? '')
                 .toLowerCase()
                 .includes(q)
             ) {
@@ -538,9 +501,9 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
             }
             if (isArrayNode(r)) {
               return (r.registers ?? []).some((rr) =>
-                String(rr.name ?? "")
+                String(rr.name ?? '')
                   .toLowerCase()
-                  .includes(q),
+                  .includes(q)
               );
             }
             return false;
@@ -548,8 +511,8 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
         ) {
           return true;
         }
-        const arrays = ((block as any).register_arrays ?? []) as any[];
-        if (arrays.some((a) => (a.name ?? "").toLowerCase().includes(q))) {
+        const arrays = (block as BlockNode).register_arrays ?? [];
+        if (arrays.some((a) => (a.name ?? '').toLowerCase().includes(q))) {
           return true;
         }
         return false;
@@ -557,16 +520,15 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
     }, [memoryMap, query]);
 
     const visibleSelections = useMemo(() => {
-      const items: Array<
-        OutlineProps["onSelect"] extends (arg: infer A) => any ? A : never
-      > = [];
+      const items: Array<OutlineProps['onSelect'] extends (arg: infer A) => unknown ? A : never> =
+        [];
 
       // Root
       items.push({
         id: rootId,
-        type: "memoryMap",
+        type: 'memoryMap',
         object: memoryMap,
-        breadcrumbs: [memoryMap.name || "Memory Map"],
+        breadcrumbs: [memoryMap.name || 'Memory Map'],
         path: [],
       });
 
@@ -578,31 +540,27 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
         const blockId = `block-${blockIndex}`;
         items.push({
           id: blockId,
-          type: "block",
+          type: 'block',
           object: block,
-          breadcrumbs: [memoryMap.name || "Memory Map", block.name],
-          path: ["addressBlocks", blockIndex],
+          breadcrumbs: [memoryMap.name || 'Memory Map', block.name],
+          path: ['addressBlocks', blockIndex],
         });
 
         if (!expanded.has(blockId)) {
           return;
         }
 
-        const regsAny = ((block as any).registers ?? []) as any[];
-        regsAny.forEach((node: any, regIndex: number) => {
+        const regsAny = (block as BlockNode).registers ?? [];
+        regsAny.forEach((node: unknown, regIndex: number) => {
           if (isArrayNode(node)) {
             const arr = node;
             const arrId = `block-${blockIndex}-arrreg-${regIndex}`;
             items.push({
               id: arrId,
-              type: "array",
+              type: 'array',
               object: arr,
-              breadcrumbs: [
-                memoryMap.name || "Memory Map",
-                block.name,
-                arr.name,
-              ],
-              path: ["addressBlocks", blockIndex, "registers", regIndex],
+              breadcrumbs: [memoryMap.name || 'Memory Map', block.name, arr.name],
+              path: ['addressBlocks', blockIndex, 'registers', regIndex],
             });
 
             if (!expanded.has(arrId)) {
@@ -615,67 +573,64 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
               const elementBase = start + elementIndex * arr.stride;
               items.push({
                 id: elementId,
-                type: "array",
+                type: 'array',
                 object: {
                   ...arr,
                   __element_index: elementIndex,
                   __element_base: elementBase,
                 },
                 breadcrumbs: [
-                  memoryMap.name || "Memory Map",
+                  memoryMap.name || 'Memory Map',
                   block.name,
                   `${arr.name}[${elementIndex}]`,
                 ],
-                path: ["addressBlocks", blockIndex, "registers", regIndex],
+                path: ['addressBlocks', blockIndex, 'registers', regIndex],
               });
 
-              (arr.registers ?? []).forEach(
-                (reg: Register, childIndex: number) => {
-                  const childId = `${elementId}-reg-${childIndex}`;
-                  const absolute = elementBase + (reg.address_offset ?? 0);
-                  items.push({
-                    id: childId,
-                    type: "register",
-                    object: reg,
-                    breadcrumbs: [
-                      memoryMap.name || "Memory Map",
-                      block.name,
-                      `${arr.name}[${elementIndex}]`,
-                      reg.name,
-                    ],
-                    path: [
-                      "addressBlocks",
-                      blockIndex,
-                      "registers",
-                      regIndex,
-                      "registers",
-                      childIndex,
-                    ],
-                    meta: {
-                      absoluteAddress: absolute,
-                      relativeOffset: reg.address_offset ?? 0,
-                    },
-                  });
-                },
-              );
+              (arr.registers ?? []).forEach((reg: Register, childIndex: number) => {
+                const childId = `${elementId}-reg-${childIndex}`;
+                const absolute = elementBase + (reg.address_offset ?? 0);
+                items.push({
+                  id: childId,
+                  type: 'register',
+                  object: reg,
+                  breadcrumbs: [
+                    memoryMap.name || 'Memory Map',
+                    block.name,
+                    `${arr.name}[${elementIndex}]`,
+                    reg.name,
+                  ],
+                  path: [
+                    'addressBlocks',
+                    blockIndex,
+                    'registers',
+                    regIndex,
+                    'registers',
+                    childIndex,
+                  ],
+                  meta: {
+                    absoluteAddress: absolute,
+                    relativeOffset: reg.address_offset ?? 0,
+                  },
+                });
+              });
             });
             return;
           }
 
           const reg = node as Register;
           const regId = `block-${blockIndex}-reg-${regIndex}`;
-          const absolute =
-            (block.base_address ?? 0) + (reg.address_offset ?? 0);
+          const absolute = (block.base_address ?? 0) + (reg.address_offset ?? 0);
           items.push({
             id: regId,
-            type: "register",
+            type: 'register',
             object: reg,
             breadcrumbs: [
-              memoryMap.name || "Memory Map",
-              memoryMap.address_blocks?.[blockIndex]?.name ?? "",
+              memoryMap.name || 'Memory Map',
+              memoryMap.address_blocks?.[blockIndex]?.name ?? '',
               reg.name,
             ],
-            path: ["addressBlocks", blockIndex, "registers", regIndex],
+            path: ['addressBlocks', blockIndex, 'registers', regIndex],
             meta: {
               absoluteAddress: absolute,
               relativeOffset: reg.address_offset ?? 0,
@@ -683,56 +638,48 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
           });
         });
 
-        ((block as any).register_arrays ?? []).forEach(
-          (arr: any, arrayIndex: number) => {
+        ((block as BlockNode).register_arrays ?? []).forEach(
+          (arr: RegisterArray, arrayIndex: number) => {
             const arrId = `block-${blockIndex}-arr-${arrayIndex}`;
             items.push({
               id: arrId,
-              type: "array",
+              type: 'array',
               object: arr,
               breadcrumbs: [
-                memoryMap.name || "Memory Map",
-                memoryMap.address_blocks?.[blockIndex]?.name ?? "",
+                memoryMap.name || 'Memory Map',
+                memoryMap.address_blocks?.[blockIndex]?.name ?? '',
                 arr.name,
               ],
-              path: [
-                "addressBlocks",
-                blockIndex,
-                "register_arrays",
-                arrayIndex,
-              ],
+              path: ['addressBlocks', blockIndex, 'register_arrays', arrayIndex],
             });
 
             if (!expanded.has(arrId)) {
               return;
             }
-            if (!Array.isArray(arr.children_registers)) {
+            if (!Array.isArray(arr.registers)) {
               return;
             }
-            arr.children_registers.forEach(
-              (reg: Register, regIndex: number) => {
-                // Matches existing render behavior (renderLeafRegister)
-                const regId = `block-${blockIndex}-reg-${regIndex}`;
-                const absolute =
-                  (block.base_address ?? 0) + (reg.address_offset ?? 0);
-                items.push({
-                  id: regId,
-                  type: "register",
-                  object: reg,
-                  breadcrumbs: [
-                    memoryMap.name || "Memory Map",
-                    memoryMap.address_blocks?.[blockIndex]?.name ?? "",
-                    reg.name,
-                  ],
-                  path: ["addressBlocks", blockIndex, "registers", regIndex],
-                  meta: {
-                    absoluteAddress: absolute,
-                    relativeOffset: reg.address_offset ?? 0,
-                  },
-                });
-              },
-            );
-          },
+            arr.registers.forEach((reg: Register, regIndex: number) => {
+              // Matches existing render behavior (renderLeafRegister)
+              const regId = `block-${blockIndex}-reg-${regIndex}`;
+              const absolute = (block.base_address ?? 0) + (reg.address_offset ?? 0);
+              items.push({
+                id: regId,
+                type: 'register',
+                object: reg,
+                breadcrumbs: [
+                  memoryMap.name || 'Memory Map',
+                  memoryMap.address_blocks?.[blockIndex]?.name ?? '',
+                  reg.name,
+                ],
+                path: ['addressBlocks', blockIndex, 'registers', regIndex],
+                meta: {
+                  absoluteAddress: absolute,
+                  relativeOffset: reg.address_offset ?? 0,
+                },
+              });
+            });
+          }
         );
       });
 
@@ -741,18 +688,17 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
 
     const onTreeKeyDown = (e: React.KeyboardEvent) => {
       // If currently editing, don't handle tree navigation
-      if (editingId) {return;}
+      if (editingId) {
+        return;
+      }
 
-      const keyLower = (e.key || "").toLowerCase();
-      const isDown = e.key === "ArrowDown" || keyLower === "j";
-      const isUp = e.key === "ArrowUp" || keyLower === "k";
-      const isToggleExpand =
-        e.key === " " || (e.key === "Enter" && !e.shiftKey);
+      const keyLower = (e.key || '').toLowerCase();
+      const isDown = e.key === 'ArrowDown' || keyLower === 'j';
+      const isUp = e.key === 'ArrowUp' || keyLower === 'k';
+      const isToggleExpand = e.key === ' ' || (e.key === 'Enter' && !e.shiftKey);
       const isFocusDetails =
-        (e.key === "Enter" && !isToggleExpand) ||
-        e.key === "ArrowRight" ||
-        keyLower === "l";
-      const isRename = e.key === "F2" || keyLower === "e";
+        (e.key === 'Enter' && !isToggleExpand) || e.key === 'ArrowRight' || keyLower === 'l';
+      const isRename = e.key === 'F2' || keyLower === 'e';
 
       if (!isDown && !isUp && !isFocusDetails && !isToggleExpand && !isRename) {
         return;
@@ -764,10 +710,9 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
       const currentId = selectedId ?? rootId;
       const currentIndex = Math.max(
         0,
-        visibleSelections.findIndex((s) => s.id === currentId),
+        visibleSelections.findIndex((s) => s.id === currentId)
       );
-      const currentSel =
-        visibleSelections[currentIndex] ?? visibleSelections[0];
+      const currentSel = visibleSelections[currentIndex] ?? visibleSelections[0];
       if (!currentSel) {
         return;
       }
@@ -776,7 +721,7 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
       if (isRename && onRename) {
         e.preventDefault();
         e.stopPropagation();
-        const name = currentSel.object?.name ?? "";
+        const name = (currentSel.object as { name?: string })?.name ?? '';
         if (name) {
           startEditing(currentId, name);
         }
@@ -793,26 +738,19 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
           if (currentId === rootId) {
             return true; // Root always has blocks
           }
-          if (currentId.startsWith("block-") && !currentId.includes("-reg-")) {
-            const blockIdx = parseInt(currentId.split("-")[1], 10);
+          if (currentId.startsWith('block-') && !currentId.includes('-reg-')) {
+            const blockIdx = parseInt(currentId.split('-')[1], 10);
             const block = memoryMap.address_blocks?.[blockIdx];
-            return (
-              block &&
-              Array.isArray(block.registers) &&
-              block.registers.length > 0
-            );
+            return block && Array.isArray(block.registers) && block.registers.length > 0;
           }
-          if (
-            currentId.includes("-reg-") &&
-            currentId.split("-reg-")[1].includes("-")
-          ) {
+          if (currentId.includes('-reg-') && currentId.split('-reg-')[1].includes('-')) {
             // This is a register array
-            const parts = currentId.split("-");
+            const parts = currentId.split('-');
             const blockIdx = parseInt(parts[1], 10);
             const regIdx = parseInt(parts[3], 10);
             const block = memoryMap.address_blocks?.[blockIdx];
-            const reg = block?.registers?.[regIdx] as any;
-            return reg && (reg.count ?? 0) > 1;
+            const reg = block?.registers?.[regIdx] as RegisterArrayNode | undefined;
+            return Boolean(reg && (reg.count ?? 0) > 1);
           }
           return false;
         })();
@@ -869,12 +807,10 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
           </div>
           <button
             className="outline-filter-button ml-2 p-2 rounded flex items-center justify-center"
-            title={
-              expanded.size === allIds.size ? "Collapse All" : "Expand All"
-            }
+            title={expanded.size === allIds.size ? 'Collapse All' : 'Expand All'}
             onClick={() => {
               if (expanded.size === allIds.size) {
-                setExpanded(new Set(["root"]));
+                setExpanded(new Set(['root']));
               } else {
                 setExpanded(new Set(allIds));
               }
@@ -882,12 +818,7 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
           >
             {expanded.size === allIds.size ? (
               // Collapse All SVG icon
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 20 20"
-                xmlns="http://www.w3.org/2000/svg"
-              >
+              <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                 <rect
                   x="3"
                   y="3"
@@ -898,23 +829,11 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
                   stroke="currentColor"
                   strokeWidth="1.5"
                 />
-                <rect
-                  x="6"
-                  y="9"
-                  width="8"
-                  height="2"
-                  rx="1"
-                  fill="currentColor"
-                />
+                <rect x="6" y="9" width="8" height="2" rx="1" fill="currentColor" />
               </svg>
             ) : (
               // Expand All SVG icon
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 20 20"
-                xmlns="http://www.w3.org/2000/svg"
-              >
+              <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                 <rect
                   x="3"
                   y="3"
@@ -925,22 +844,8 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
                   stroke="currentColor"
                   strokeWidth="1.5"
                 />
-                <rect
-                  x="6"
-                  y="9"
-                  width="8"
-                  height="2"
-                  rx="1"
-                  fill="currentColor"
-                />
-                <rect
-                  x="9"
-                  y="6"
-                  width="2"
-                  height="8"
-                  rx="1"
-                  fill="currentColor"
-                />
+                <rect x="6" y="9" width="8" height="2" rx="1" fill="currentColor" />
+                <rect x="9" y="6" width="2" height="8" rx="1" fill="currentColor" />
               </svg>
             )}
           </button>
@@ -956,47 +861,37 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
             className="outline-none focus:outline-none"
           >
             <div
-              className={`tree-item ${isRootSelected ? "selected" : ""} gap-2 text-sm`}
+              className={`tree-item ${isRootSelected ? 'selected' : ''} gap-2 text-sm`}
               onClick={() => {
                 treeFocusRef.current?.focus();
                 onSelect({
                   id: rootId,
-                  type: "memoryMap",
+                  type: 'memoryMap',
                   object: memoryMap,
-                  breadcrumbs: [memoryMap.name || "Memory Map"],
+                  breadcrumbs: [memoryMap.name || 'Memory Map'],
                   path: [],
                 });
               }}
             >
               <span
-                className={`codicon codicon-chevron-${isRootExpanded ? "down" : "right"} text-[16px] ${isRootSelected ? "" : "opacity-70"}`}
+                className={`codicon codicon-chevron-${isRootExpanded ? 'down' : 'right'} text-[16px] ${isRootSelected ? '' : 'opacity-70'}`}
                 onClick={(e) => toggleExpand(rootId, e)}
               ></span>
               <span
-                className={`codicon codicon-map text-[16px] ${isRootSelected ? "" : "opacity-70"}`}
+                className={`codicon codicon-map text-[16px] ${isRootSelected ? '' : 'opacity-70'}`}
               ></span>
-              {renderNameOrEdit(
-                rootId,
-                memoryMap.name || "Memory Map",
-                [],
-                "flex-1",
-              )}
+              {renderNameOrEdit(rootId, memoryMap.name || 'Memory Map', [], 'flex-1')}
             </div>
-            {isRootExpanded &&
-              filteredBlocks.map(({ block, index }) =>
-                renderBlock(block, index),
-              )}
+            {isRootExpanded && filteredBlocks.map(({ block, index }) => renderBlock(block, index))}
           </div>
         </div>
         <div className="outline-footer p-3 text-xs vscode-muted flex justify-between">
           <span>{filteredBlocks.length} Items</span>
-          <span>
-            Base: {toHex(memoryMap.address_blocks?.[0]?.base_address ?? 0)}
-          </span>
+          <span>Base: {toHex(memoryMap.address_blocks?.[0]?.base_address ?? 0)}</span>
         </div>
       </>
     );
-  },
+  }
 );
 
 export default Outline;

@@ -1,15 +1,8 @@
-import React from "react";
-import type { YamlUpdateHandler } from "../../../types/editor";
-import {
-  FormField,
-  SelectField,
-  NumberField,
-} from "../../../shared/components";
-import {
-  validateVhdlIdentifier,
-  validateUniqueName,
-} from "../../../shared/utils/validation";
-import { useVimTableNavigation } from "../../hooks/useVimTableNavigation";
+import React from 'react';
+import type { YamlUpdateHandler } from '../../../types/editor';
+import { FormField, SelectField, NumberField } from '../../../shared/components';
+import { validateVhdlIdentifier, validateUniqueName } from '../../../shared/utils/validation';
+import { useVimTableNavigation } from '../../hooks/useVimTableNavigation';
 
 interface Port {
   name: string;
@@ -23,36 +16,36 @@ interface PortsTableProps {
 }
 
 const createEmptyPort = (): Port => ({
-  name: "",
-  direction: "input",
+  name: '',
+  direction: 'input',
   width: 1,
 });
 
 const normalizePort = (port: Port): Port => {
   // Normalize direction from in/out to input/output
   const dirMap: { [key: string]: string } = {
-    in: "input",
-    out: "output",
-    inout: "inout",
-    input: "input",
-    output: "output",
+    in: 'input',
+    out: 'output',
+    inout: 'inout',
+    input: 'input',
+    output: 'output',
   };
-  return { ...port, direction: dirMap[port.direction] || "input" };
+  return { ...port, direction: dirMap[port.direction] || 'input' };
 };
 
 // Helper to display normalized direction
 const displayDirection = (dir: string): string => {
   const dirMap: { [key: string]: string } = {
-    in: "input",
-    out: "output",
-    inout: "inout",
-    input: "input",
-    output: "output",
+    in: 'input',
+    out: 'output',
+    inout: 'inout',
+    input: 'input',
+    output: 'output',
   };
   return dirMap[dir] || dir;
 };
 
-const COLUMN_KEYS = ["name", "direction", "width"];
+const COLUMN_KEYS = ['name', 'direction', 'width'];
 
 /**
  * Editable table for IP Core ports
@@ -61,8 +54,6 @@ const COLUMN_KEYS = ["name", "direction", "width"];
 export const PortsTable: React.FC<PortsTableProps> = ({ ports: rawPorts, onUpdate }) => {
   const ports = rawPorts as Port[];
   const {
-    selectedIndex,
-    activeColumn,
     editingIndex,
     isAdding,
     draft,
@@ -78,25 +69,22 @@ export const PortsTable: React.FC<PortsTableProps> = ({ ports: rawPorts, onUpdat
   } = useVimTableNavigation<Port>({
     items: ports,
     onUpdate,
-    dataKey: "ports",
+    dataKey: 'ports',
     createEmptyItem: createEmptyPort,
     normalizeItem: normalizePort,
     columnKeys: COLUMN_KEYS,
   });
 
-  const existingNames = ports
-    .map((p) => p.name)
-    .filter((_, i) => i !== editingIndex);
+  const existingNames = ports.map((p) => p.name).filter((_, i) => i !== editingIndex);
   const nameError =
-    validateVhdlIdentifier(draft.name) ||
-    validateUniqueName(draft.name, existingNames);
+    validateVhdlIdentifier(draft.name) || validateUniqueName(draft.name, existingNames);
   const canSave = !nameError;
 
   const renderEditRow = (isNew: boolean) => (
     <tr
       style={{
-        background: "var(--vscode-list-activeSelectionBackground)",
-        borderBottom: "1px solid var(--vscode-panel-border)",
+        background: 'var(--vscode-list-activeSelectionBackground)',
+        borderBottom: '1px solid var(--vscode-panel-border)',
       }}
       data-row-idx={editingIndex ?? ports.length}
     >
@@ -118,9 +106,9 @@ export const PortsTable: React.FC<PortsTableProps> = ({ ports: rawPorts, onUpdat
           label=""
           value={draft.direction}
           options={[
-            { value: "input", label: "input" },
-            { value: "output", label: "output" },
-            { value: "inout", label: "inout" },
+            { value: 'input', label: 'input' },
+            { value: 'output', label: 'output' },
+            { value: 'inout', label: 'inout' },
           ]}
           onChange={(v: string) => setDraft({ ...draft, direction: v })}
           data-edit-key="direction"
@@ -146,20 +134,20 @@ export const PortsTable: React.FC<PortsTableProps> = ({ ports: rawPorts, onUpdat
           className="px-3 py-1 rounded text-xs mr-2"
           style={{
             background: canSave
-              ? "var(--vscode-button-background)"
-              : "var(--vscode-button-secondaryBackground)",
-            color: "var(--vscode-button-foreground)",
+              ? 'var(--vscode-button-background)'
+              : 'var(--vscode-button-secondaryBackground)',
+            color: 'var(--vscode-button-foreground)',
             opacity: canSave ? 1 : 0.5,
           }}
         >
-          {isNew ? "Add" : "Save"}
+          {isNew ? 'Add' : 'Save'}
         </button>
         <button
           onClick={handleCancel}
           className="px-3 py-1 rounded text-xs"
           style={{
-            background: "var(--vscode-button-secondaryBackground)",
-            color: "var(--vscode-button-foreground)",
+            background: 'var(--vscode-button-secondaryBackground)',
+            color: 'var(--vscode-button-foreground)',
           }}
         >
           Cancel
@@ -174,7 +162,7 @@ export const PortsTable: React.FC<PortsTableProps> = ({ ports: rawPorts, onUpdat
         <div>
           <h2 className="text-xl font-medium">Ports</h2>
           <p className="text-sm mt-1" style={{ opacity: 0.7 }}>
-            {ports.length} port{ports.length !== 1 ? "s" : ""} •
+            {ports.length} port{ports.length !== 1 ? 's' : ''} •
             <span className="ml-2 text-xs font-mono" style={{ opacity: 0.5 }}>
               h/j/k/l: navigate • e: edit • d: delete • o: add
             </span>
@@ -187,9 +175,9 @@ export const PortsTable: React.FC<PortsTableProps> = ({ ports: rawPorts, onUpdat
           style={{
             background:
               isAdding || editingIndex !== null
-                ? "var(--vscode-button-secondaryBackground)"
-                : "var(--vscode-button-background)",
-            color: "var(--vscode-button-foreground)",
+                ? 'var(--vscode-button-secondaryBackground)'
+                : 'var(--vscode-button-background)',
+            color: 'var(--vscode-button-foreground)',
             opacity: isAdding || editingIndex !== null ? 0.5 : 1,
           }}
         >
@@ -199,14 +187,14 @@ export const PortsTable: React.FC<PortsTableProps> = ({ ports: rawPorts, onUpdat
 
       <div
         className="rounded overflow-hidden"
-        style={{ border: "1px solid var(--vscode-panel-border)" }}
+        style={{ border: '1px solid var(--vscode-panel-border)' }}
       >
         <table className="w-full">
           <thead>
             <tr
               style={{
-                background: "var(--vscode-editor-background)",
-                borderBottom: "1px solid var(--vscode-panel-border)",
+                background: 'var(--vscode-editor-background)',
+                borderBottom: '1px solid var(--vscode-panel-border)',
               }}
             >
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase opacity-70">
@@ -226,35 +214,18 @@ export const PortsTable: React.FC<PortsTableProps> = ({ ports: rawPorts, onUpdat
           <tbody>
             {ports.map((port, index) => {
               if (editingIndex === index) {
-                return (
-                  <React.Fragment key={index}>
-                    {renderEditRow(false)}
-                  </React.Fragment>
-                );
+                return <React.Fragment key={index}>{renderEditRow(false)}</React.Fragment>;
               }
               const rowProps = getRowProps(index);
               return (
-                <tr
-                  key={index}
-                  {...rowProps}
-                  onDoubleClick={() => handleEdit(index)}
-                >
-                  <td
-                    className="px-4 py-3 text-sm font-mono"
-                    {...getCellProps(index, "name")}
-                  >
+                <tr key={index} {...rowProps} onDoubleClick={() => handleEdit(index)}>
+                  <td className="px-4 py-3 text-sm font-mono" {...getCellProps(index, 'name')}>
                     {port.name}
                   </td>
-                  <td
-                    className="px-4 py-3 text-sm"
-                    {...getCellProps(index, "direction")}
-                  >
+                  <td className="px-4 py-3 text-sm" {...getCellProps(index, 'direction')}>
                     {displayDirection(port.direction)}
                   </td>
-                  <td
-                    className="px-4 py-3 text-sm"
-                    {...getCellProps(index, "width")}
-                  >
+                  <td className="px-4 py-3 text-sm" {...getCellProps(index, 'width')}>
                     {port.width || 1}
                   </td>
                   <td className="px-4 py-3 text-right">
@@ -276,7 +247,7 @@ export const PortsTable: React.FC<PortsTableProps> = ({ ports: rawPorts, onUpdat
                       }}
                       disabled={isAdding || editingIndex !== null}
                       className="p-1"
-                      style={{ color: "var(--vscode-errorForeground)" }}
+                      style={{ color: 'var(--vscode-errorForeground)' }}
                       title="Delete (d)"
                     >
                       <span className="codicon codicon-trash"></span>
@@ -288,11 +259,7 @@ export const PortsTable: React.FC<PortsTableProps> = ({ ports: rawPorts, onUpdat
             {isAdding && renderEditRow(true)}
             {ports.length === 0 && !isAdding && (
               <tr>
-                <td
-                  colSpan={4}
-                  className="px-4 py-8 text-center text-sm"
-                  style={{ opacity: 0.6 }}
-                >
+                <td colSpan={4} className="px-4 py-8 text-center text-sm" style={{ opacity: 0.6 }}>
                   No ports defined. Press 'o' or click "Add Port".
                 </td>
               </tr>

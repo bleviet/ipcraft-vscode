@@ -1,11 +1,8 @@
-import React from "react";
-import type { YamlUpdateHandler } from "../../../types/editor";
-import { EditableTable, FormField, SelectField } from "../../../shared/components";
-import {
-  validateVhdlIdentifier,
-  validateUniqueName,
-} from "../../../shared/utils/validation";
-import { useVimTableNavigation } from "../../hooks/useVimTableNavigation";
+import React from 'react';
+import type { YamlUpdateHandler } from '../../../types/editor';
+import { EditableTable, FormField, SelectField } from '../../../shared/components';
+import { validateVhdlIdentifier, validateUniqueName } from '../../../shared/utils/validation';
+import { useVimTableNavigation } from '../../hooks/useVimTableNavigation';
 
 interface Clock {
   name: string; // Physical port name
@@ -26,53 +23,48 @@ interface ClocksTableProps {
 }
 
 const createEmptyClock = (): Clock => ({
-  name: "",
-  logicalName: "CLK",
-  frequency: "",
-  direction: "input",
+  name: '',
+  logicalName: 'CLK',
+  frequency: '',
+  direction: 'input',
 });
 
 // Normalize direction from in/out to input/output
 const normalizeClock = (clock: Clock): Clock => {
   const dirMap: { [key: string]: string } = {
-    in: "input",
-    out: "output",
-    input: "input",
-    output: "output",
+    in: 'input',
+    out: 'output',
+    input: 'input',
+    output: 'output',
   };
-  return { ...clock, direction: dirMap[clock.direction || "input"] || "input" };
+  return { ...clock, direction: dirMap[clock.direction || 'input'] || 'input' };
 };
 
 // Helper to display normalized direction
 const displayDirection = (dir?: string): string => {
   const dirMap: { [key: string]: string } = {
-    in: "input",
-    out: "output",
-    input: "input",
-    output: "output",
+    in: 'input',
+    out: 'output',
+    input: 'input',
+    output: 'output',
   };
-  return dirMap[dir || "input"] || "input";
+  return dirMap[dir || 'input'] || 'input';
 };
 
-const COLUMN_KEYS = ["name", "logicalName", "frequency", "direction", "usedBy"];
+const COLUMN_KEYS = ['name', 'logicalName', 'frequency', 'direction', 'usedBy'];
 const TABLE_COLUMNS = [
-  { key: "name", header: "Physical Name" },
-  { key: "logicalName", header: "Logical Name" },
-  { key: "frequency", header: "Frequency" },
-  { key: "direction", header: "Direction" },
-  { key: "usedBy", header: "Used By" },
-  { key: "actions", header: "Actions", align: "right" as const },
+  { key: 'name', header: 'Physical Name' },
+  { key: 'logicalName', header: 'Logical Name' },
+  { key: 'frequency', header: 'Frequency' },
+  { key: 'direction', header: 'Direction' },
+  { key: 'usedBy', header: 'Used By' },
+  { key: 'actions', header: 'Actions', align: 'right' as const },
 ];
-const KEYBOARD_HINT = "• h/j/k/l: navigate • e: edit • d: delete • o: add";
+const KEYBOARD_HINT = '• h/j/k/l: navigate • e: edit • d: delete • o: add';
 
 // Helper to find which interfaces use a clock
-const getUsedByInterfaces = (
-  clockName: string,
-  busInterfaces: BusInterface[],
-): string[] => {
-  return busInterfaces
-    .filter((bus) => bus.associatedClock === clockName)
-    .map((bus) => bus.name);
+const getUsedByInterfaces = (clockName: string, busInterfaces: BusInterface[]): string[] => {
+  return busInterfaces.filter((bus) => bus.associatedClock === clockName).map((bus) => bus.name);
 };
 
 /**
@@ -93,8 +85,6 @@ export const ClocksTable: React.FC<ClocksTableProps> = ({
   const clocks = rawClocks as Clock[];
   const busInterfaces = rawBusInterfaces as BusInterface[];
   const {
-    selectedIndex,
-    activeColumn,
     editingIndex,
     isAdding,
     draft,
@@ -110,25 +100,22 @@ export const ClocksTable: React.FC<ClocksTableProps> = ({
   } = useVimTableNavigation<Clock>({
     items: clocks,
     onUpdate,
-    dataKey: "clocks",
+    dataKey: 'clocks',
     createEmptyItem: createEmptyClock,
     normalizeItem: normalizeClock,
     columnKeys: COLUMN_KEYS,
   });
 
-  const existingNames = clocks
-    .map((c) => c.name)
-    .filter((_, i) => i !== editingIndex);
+  const existingNames = clocks.map((c) => c.name).filter((_, i) => i !== editingIndex);
   const nameError =
-    validateVhdlIdentifier(draft.name) ||
-    validateUniqueName(draft.name, existingNames);
+    validateVhdlIdentifier(draft.name) || validateUniqueName(draft.name, existingNames);
   const canSave = !nameError;
 
   const renderEditRow = (isNew: boolean) => (
     <tr
       style={{
-        background: "var(--vscode-list-activeSelectionBackground)",
-        borderBottom: "1px solid var(--vscode-panel-border)",
+        background: 'var(--vscode-list-activeSelectionBackground)',
+        borderBottom: '1px solid var(--vscode-panel-border)',
       }}
       data-row-idx={editingIndex ?? clocks.length}
     >
@@ -148,7 +135,7 @@ export const ClocksTable: React.FC<ClocksTableProps> = ({
       <td className="px-4 py-3">
         <FormField
           label=""
-          value={draft.logicalName || "CLK"}
+          value={draft.logicalName || 'CLK'}
           onChange={(v: string) => setDraft({ ...draft, logicalName: v })}
           placeholder="CLK"
           data-edit-key="logicalName"
@@ -159,7 +146,7 @@ export const ClocksTable: React.FC<ClocksTableProps> = ({
       <td className="px-4 py-3">
         <FormField
           label=""
-          value={draft.frequency || ""}
+          value={draft.frequency || ''}
           onChange={(v: string) => setDraft({ ...draft, frequency: v })}
           placeholder="100 MHz"
           data-edit-key="frequency"
@@ -170,10 +157,10 @@ export const ClocksTable: React.FC<ClocksTableProps> = ({
       <td className="px-4 py-3">
         <SelectField
           label=""
-          value={draft.direction || "input"}
+          value={draft.direction || 'input'}
           options={[
-            { value: "input", label: "input" },
-            { value: "output", label: "output" },
+            { value: 'input', label: 'input' },
+            { value: 'output', label: 'output' },
           ]}
           onChange={(v: string) => setDraft({ ...draft, direction: v })}
           data-edit-key="direction"
@@ -189,20 +176,20 @@ export const ClocksTable: React.FC<ClocksTableProps> = ({
             className="px-3 py-1 rounded text-xs font-medium"
             style={{
               background: canSave
-                ? "var(--vscode-button-background)"
-                : "var(--vscode-button-secondaryBackground)",
-              color: "var(--vscode-button-foreground)",
+                ? 'var(--vscode-button-background)'
+                : 'var(--vscode-button-secondaryBackground)',
+              color: 'var(--vscode-button-foreground)',
               opacity: canSave ? 1 : 0.5,
             }}
           >
-            {isNew ? "Add" : "Save"}
+            {isNew ? 'Add' : 'Save'}
           </button>
           <button
             onClick={handleCancel}
             className="px-3 py-1 rounded text-xs font-medium"
             style={{
-              background: "var(--vscode-button-secondaryBackground)",
-              color: "var(--vscode-button-foreground)",
+              background: 'var(--vscode-button-secondaryBackground)',
+              color: 'var(--vscode-button-foreground)',
             }}
           >
             Cancel
@@ -230,19 +217,19 @@ export const ClocksTable: React.FC<ClocksTableProps> = ({
         const usedBy = getUsedByInterfaces(clock.name, busInterfaces);
         return (
           <tr key={index} {...rowProps} onDoubleClick={() => handleEdit(index)}>
-            <td className="px-4 py-3 text-sm font-mono" {...getCellProps(index, "name")}>
+            <td className="px-4 py-3 text-sm font-mono" {...getCellProps(index, 'name')}>
               {clock.name}
             </td>
-            <td className="px-4 py-3 text-sm font-mono" {...getCellProps(index, "logicalName")}>
-              {clock.logicalName || "CLK"}
+            <td className="px-4 py-3 text-sm font-mono" {...getCellProps(index, 'logicalName')}>
+              {clock.logicalName || 'CLK'}
             </td>
-            <td className="px-4 py-3 text-sm" {...getCellProps(index, "frequency")}>
-              {clock.frequency || "—"}
+            <td className="px-4 py-3 text-sm" {...getCellProps(index, 'frequency')}>
+              {clock.frequency || '—'}
             </td>
-            <td className="px-4 py-3 text-sm" {...getCellProps(index, "direction")}>
+            <td className="px-4 py-3 text-sm" {...getCellProps(index, 'direction')}>
               {displayDirection(clock.direction)}
             </td>
-            <td className="px-4 py-3 text-sm" {...getCellProps(index, "usedBy")}>
+            <td className="px-4 py-3 text-sm" {...getCellProps(index, 'usedBy')}>
               {usedBy.length > 0 ? (
                 <div className="flex flex-wrap gap-1">
                   {usedBy.map((name, i) => (
@@ -250,8 +237,8 @@ export const ClocksTable: React.FC<ClocksTableProps> = ({
                       key={i}
                       className="px-2 py-0.5 rounded text-xs font-mono"
                       style={{
-                        background: "var(--vscode-badge-background)",
-                        color: "var(--vscode-badge-foreground)",
+                        background: 'var(--vscode-badge-background)',
+                        color: 'var(--vscode-badge-foreground)',
                       }}
                     >
                       {name}
@@ -286,7 +273,7 @@ export const ClocksTable: React.FC<ClocksTableProps> = ({
                   disabled={isAdding || editingIndex !== null}
                   className="p-1 rounded"
                   style={{
-                    color: "var(--vscode-errorForeground)",
+                    color: 'var(--vscode-errorForeground)',
                     opacity: isAdding || editingIndex !== null ? 0.3 : 1,
                   }}
                   title="Delete (d)"

@@ -1,7 +1,6 @@
 import React, { RefObject, useEffect, useRef } from 'react';
 import type { YamlUpdateHandler } from '../../../types/editor';
 import type { IpCore } from '../../../types/ipCore';
-import { vscode } from '../../../vscode';
 import { MetadataEditor } from '../sections/MetadataEditor';
 import { ClocksTable } from '../sections/ClocksTable';
 import { ResetsTable } from '../sections/ResetsTable';
@@ -66,29 +65,29 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
       case 'clocks':
         return (
           <ClocksTable
-            clocks={ip.clocks || []}
-            busInterfaces={ip.busInterfaces || []}
+            clocks={ip.clocks ?? []}
+            busInterfaces={ip.busInterfaces ?? []}
             onUpdate={onUpdate}
           />
         );
       case 'resets':
         return (
           <ResetsTable
-            resets={ip.resets || []}
-            busInterfaces={ip.busInterfaces || []}
+            resets={ip.resets ?? []}
+            busInterfaces={ip.busInterfaces ?? []}
             onUpdate={onUpdate}
           />
         );
       case 'ports':
-        return <PortsTable ports={ip.ports || []} onUpdate={onUpdate} />;
+        return <PortsTable ports={ip.ports ?? []} onUpdate={onUpdate} />;
       case 'busInterfaces':
         return (
           <BusInterfacesEditor
-            busInterfaces={ip.busInterfaces || []}
+            busInterfaces={ip.busInterfaces ?? []}
             busLibrary={imports.busLibrary}
             imports={imports}
-            clocks={ip.clocks || []}
-            resets={ip.resets || []}
+            clocks={ip.clocks ?? []}
+            resets={ip.resets ?? []}
             onUpdate={onUpdate}
             highlight={highlight}
           />
@@ -98,9 +97,9 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
           <MemoryMapsEditor memoryMaps={ip.memoryMaps} imports={imports} onUpdate={onUpdate} />
         );
       case 'parameters':
-        return <ParametersTable parameters={ip.parameters || []} onUpdate={onUpdate} />;
+        return <ParametersTable parameters={ip.parameters ?? []} onUpdate={onUpdate} />;
       case 'fileSets':
-        return <FileSetsEditor fileSets={ip.fileSets || []} onUpdate={onUpdate} />;
+        return <FileSetsEditor fileSets={ip.fileSets ?? []} onUpdate={onUpdate} />;
       case 'generate':
         return <GeneratorPanel ipCore={ip} />;
       default:
@@ -127,13 +126,13 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
 };
 
 // Placeholder section components (will be replaced as we build editors in Phase 2)
-const ClocksSection: React.FC<any> = ({ clocks }) => (
+export const ClocksSection: React.FC<{ clocks: Record<string, unknown>[] }> = ({ clocks }) => (
   <div className="p-6 space-y-4">
     <h2 className="text-2xl font-semibold">Clocks</h2>
     <p className="text-sm" style={{ opacity: 0.7 }}>
       Found {clocks.length} clock(s)
     </p>
-    {clocks.map((clock: any, idx: number) => (
+    {clocks.map((clock, idx: number) => (
       <div
         key={idx}
         className="p-4 rounded shadow"
@@ -142,25 +141,25 @@ const ClocksSection: React.FC<any> = ({ clocks }) => (
           border: '1px solid var(--vscode-panel-border)',
         }}
       >
-        <p className="font-semibold">{clock.name}</p>
+        <p className="font-semibold">{String(clock.name)}</p>
         <p className="text-sm" style={{ opacity: 0.7 }}>
-          Physical Port: {clock.physicalPort}
+          Physical Port: {String(clock.physicalPort)}
         </p>
         <p className="text-sm" style={{ opacity: 0.7 }}>
-          Frequency: {clock.frequency || 'N/A'}
+          Frequency: {clock.frequency ? String(clock.frequency) : 'N/A'}
         </p>
       </div>
     ))}
   </div>
 );
 
-const ResetsSection: React.FC<any> = ({ resets }) => (
+export const ResetsSection: React.FC<{ resets: Record<string, unknown>[] }> = ({ resets }) => (
   <div className="p-6 space-y-4">
     <h2 className="text-2xl font-semibold">Resets</h2>
     <p className="text-sm" style={{ opacity: 0.7 }}>
       Found {resets.length} reset(s)
     </p>
-    {resets.map((reset: any, idx: number) => (
+    {resets.map((reset, idx: number) => (
       <div
         key={idx}
         className="p-4 rounded shadow"
@@ -169,19 +168,19 @@ const ResetsSection: React.FC<any> = ({ resets }) => (
           border: '1px solid var(--vscode-panel-border)',
         }}
       >
-        <p className="font-semibold">{reset.name}</p>
+        <p className="font-semibold">{String(reset.name)}</p>
         <p className="text-sm" style={{ opacity: 0.7 }}>
-          Physical Port: {reset.physicalPort}
+          Physical Port: {String(reset.physicalPort)}
         </p>
         <p className="text-sm" style={{ opacity: 0.7 }}>
-          Polarity: {reset.polarity}
+          Polarity: {String(reset.polarity)}
         </p>
       </div>
     ))}
   </div>
 );
 
-const PortsSection: React.FC<any> = ({ ports }) => (
+export const PortsSection: React.FC<{ ports: Record<string, unknown>[] }> = ({ ports }) => (
   <div className="p-6 space-y-4">
     <h2 className="text-2xl font-semibold">Ports</h2>
     <p className="text-sm" style={{ opacity: 0.7 }}>
@@ -190,13 +189,15 @@ const PortsSection: React.FC<any> = ({ ports }) => (
   </div>
 );
 
-const BusInterfacesSection: React.FC<any> = ({ busInterfaces }) => (
+export const BusInterfacesSection: React.FC<{ busInterfaces: Record<string, unknown>[] }> = ({
+  busInterfaces,
+}) => (
   <div className="p-6 space-y-4">
     <h2 className="text-2xl font-semibold">Bus Interfaces</h2>
     <p className="text-sm" style={{ opacity: 0.7 }}>
       Found {busInterfaces.length} bus interface(s)
     </p>
-    {busInterfaces.map((bus: any, idx: number) => (
+    {busInterfaces.map((bus, idx: number) => (
       <div
         key={idx}
         className="p-4 rounded shadow"
@@ -205,19 +206,21 @@ const BusInterfacesSection: React.FC<any> = ({ busInterfaces }) => (
           border: '1px solid var(--vscode-panel-border)',
         }}
       >
-        <p className="font-semibold">{bus.name}</p>
+        <p className="font-semibold">{String(bus.name)}</p>
         <p className="text-sm" style={{ opacity: 0.7 }}>
-          Type: {bus.type}
+          Type: {String(bus.type)}
         </p>
         <p className="text-sm" style={{ opacity: 0.7 }}>
-          Mode: {bus.mode}
+          Mode: {String(bus.mode)}
         </p>
       </div>
     ))}
   </div>
 );
 
-const ParametersSection: React.FC<any> = ({ parameters }) => (
+export const ParametersSection: React.FC<{ parameters: Record<string, unknown>[] }> = ({
+  parameters,
+}) => (
   <div className="p-6 space-y-4">
     <h2 className="text-2xl font-semibold">Parameters</h2>
     <p className="text-sm" style={{ opacity: 0.7 }}>
@@ -226,7 +229,9 @@ const ParametersSection: React.FC<any> = ({ parameters }) => (
   </div>
 );
 
-const FileSetsSection: React.FC<any> = ({ fileSets }) => (
+export const FileSetsSection: React.FC<{ fileSets: Record<string, unknown>[] }> = ({
+  fileSets,
+}) => (
   <div className="p-6 space-y-4">
     <h2 className="text-2xl font-semibold">File Sets</h2>
     <p className="text-sm" style={{ opacity: 0.7 }}>

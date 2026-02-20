@@ -7,22 +7,29 @@
  * - useBusLibrary: "path/to/bus_definitions.yml"
  */
 
-import * as vscode from "vscode";
-import * as path from "path";
-import * as yaml from "js-yaml";
-import { Logger } from "../utils/Logger";
-import { BusLibraryService } from "./BusLibraryService";
+import * as vscode from 'vscode';
+import * as path from 'path';
+import * as yaml from 'js-yaml';
+import { Logger } from '../utils/Logger';
+import { BusLibraryService } from './BusLibraryService';
 
 export interface ResolvedImports {
-  memoryMaps?: any[];
-  fileSets?: any[];
-  busLibrary?: any;
+  memoryMaps?: Record<string, unknown>[];
+  fileSets?: Record<string, unknown>[];
+  busLibrary?: Record<string, unknown>;
+}
+
+export interface IpCoreDataNode {
+  useBusLibrary?: string;
+  memoryMaps?: { import?: string; [key: string]: unknown };
+  fileSets?: Array<{ import?: string; [key: string]: unknown }>;
+  [key: string]: unknown;
 }
 
 export class ImportResolver {
   private readonly logger: Logger;
-  private busLibraryCache: Map<string, any> = new Map();
-  private defaultBusLibraryCache: any = null;
+  private busLibraryCache: Map<string, Record<string, unknown>> = new Map();
+  private defaultBusLibraryCache: Record<string, unknown> | null = null;
   private busLibraryService: BusLibraryService;
 
   constructor(logger: Logger, context: vscode.ExtensionContext) {
@@ -37,25 +44,19 @@ export class ImportResolver {
    * @param baseDir Directory containing the IP core YAML file
    * @returns Resolved imports
    */
-  async resolveImports(
-    ipCoreData: any,
-    baseDir: string,
-  ): Promise<ResolvedImports> {
+  async resolveImports(ipCoreData: IpCoreDataNode, baseDir: string): Promise<ResolvedImports> {
     const resolved: ResolvedImports = {};
 
     try {
       // Resolve bus library - first try explicit path, then fall back to default
       if (ipCoreData.useBusLibrary) {
         try {
-          resolved.busLibrary = await this.resolveBusLibrary(
-            ipCoreData.useBusLibrary,
-            baseDir,
-          );
+          resolved.busLibrary = await this.resolveBusLibrary(ipCoreData.useBusLibrary, baseDir);
         } catch (busError) {
           this.logger.warn(
-            `Could not load bus library from '${ipCoreData.useBusLibrary}' ` +
-            `(resolved to: ${path.resolve(baseDir, ipCoreData.useBusLibrary)}). ` +
-            `Falling back to default bus library. Reason: ${(busError as Error).message}`,
+            `Could not load bus library from '${String(ipCoreData.useBusLibrary)}' ` +
+              `(resolved to: ${path.resolve(baseDir, String(ipCoreData.useBusLibrary))}). ` +
+              `Falling back to default bus library. Reason: ${(busError as Error).message}`
           );
           resolved.busLibrary = await this.loadDefaultBusLibrary();
         }
@@ -68,21 +69,18 @@ export class ImportResolver {
       if (ipCoreData.memoryMaps?.import) {
         resolved.memoryMaps = await this.resolveMemoryMapImport(
           ipCoreData.memoryMaps.import,
-          baseDir,
+          baseDir
         );
       }
 
       // Resolve file set imports
       if (Array.isArray(ipCoreData.fileSets)) {
-        resolved.fileSets = await this.resolveFileSetImports(
-          ipCoreData.fileSets,
-          baseDir,
-        );
+        resolved.fileSets = await this.resolveFileSetImports(ipCoreData.fileSets, baseDir);
       }
 
       return resolved;
     } catch (error) {
-      this.logger.error("Import resolution failed", error as Error);
+      this.logger.error('Import resolution failed', error as Error);
       throw error;
     }
   }
@@ -91,13 +89,13 @@ export class ImportResolver {
    * Load default bus library from ipcore_spec.
    * Returns the library in the format expected by the UI: { [key]: { ports: [...] } }
    */
-  private async loadDefaultBusLibrary(): Promise<any> {
+  private async loadDefaultBusLibrary(): Promise<Record<string, unknown>> {
     // Use cached result if available
     if (this.defaultBusLibraryCache) {
       return this.defaultBusLibraryCache;
     }
 
-    const library = await this.busLibraryService.loadDefaultLibrary();
+    const library = (await this.busLibraryService.loadDefaultLibrary()) as Record<string, unknown>;
     this.defaultBusLibraryCache = library;
     const count = library ? Object.keys(library).length : 0;
     this.logger.info(`Loaded ${count} bus types from local library`);
@@ -113,32 +111,27 @@ export class ImportResolver {
    */
   async resolveMemoryMapImport(
     importPath: string,
-    baseDir: string,
-  ): Promise<any[]> {
+    baseDir: string
+  ): Promise<Record<string, unknown>[]> {
     const absolutePath = path.resolve(baseDir, importPath);
     this.logger.info(`Resolving memory map import: ${absolutePath}`);
 
     try {
       const uri = vscode.Uri.file(absolutePath);
       const fileData = await vscode.workspace.fs.readFile(uri);
-      const content = Buffer.from(fileData).toString("utf8");
+      const content = Buffer.from(fileData).toString('utf8');
       const parsed = yaml.load(content);
 
       // Memory map files are typically a list
       if (Array.isArray(parsed)) {
-        return parsed;
+        return parsed as Record<string, unknown>[];
       }
 
       // Fallback: wrap single item in array
-      return [parsed];
+      return [parsed as Record<string, unknown>];
     } catch (error) {
-      this.logger.error(
-        `Failed to resolve memory map import: ${importPath}`,
-        error as Error,
-      );
-      throw new Error(
-        `Failed to load memory map from ${importPath}: ${(error as Error).message}`,
-      );
+      this.logger.error(`Failed to resolve memory map import: ${importPath}`, error as Error);
+      throw new Error(`Failed to load memory map from ${importPath}: ${(error as Error).message}`);
     }
   }
 
@@ -150,10 +143,10 @@ export class ImportResolver {
    * @returns Resolved file sets
    */
   async resolveFileSetImports(
-    fileSets: any[],
-    baseDir: string,
-  ): Promise<any[]> {
-    const resolved: any[] = [];
+    fileSets: Array<{ import?: string; [key: string]: unknown }>,
+    baseDir: string
+  ): Promise<Record<string, unknown>[]> {
+    const resolved: Record<string, unknown>[] = [];
 
     for (const fileSet of fileSets) {
       if (fileSet.import) {
@@ -165,19 +158,19 @@ export class ImportResolver {
         try {
           const uri = vscode.Uri.file(absolutePath);
           const fileData = await vscode.workspace.fs.readFile(uri);
-          const content = Buffer.from(fileData).toString("utf8");
+          const content = Buffer.from(fileData).toString('utf8');
           const parsed = yaml.load(content);
 
           // Add to resolved list
           if (Array.isArray(parsed)) {
-            resolved.push(...parsed);
+            resolved.push(...(parsed as Record<string, unknown>[]));
           } else {
-            resolved.push(parsed);
+            resolved.push(parsed as Record<string, unknown>);
           }
         } catch (error) {
           this.logger.error(
-            `Failed to resolve file set import: ${importPath}`,
-            error as Error,
+            `Failed to resolve file set import: ${String(importPath)}`,
+            error as Error
           );
           // Continue with other imports
         }
@@ -197,13 +190,13 @@ export class ImportResolver {
    * @param baseDir Base directory for resolution
    * @returns Parsed bus library data
    */
-  async resolveBusLibrary(libraryPath: string, baseDir: string): Promise<any> {
+  async resolveBusLibrary(libraryPath: string, baseDir: string): Promise<Record<string, unknown>> {
     const absolutePath = path.resolve(baseDir, libraryPath);
 
     // Check cache
     if (this.busLibraryCache.has(absolutePath)) {
       this.logger.info(`Using cached bus library: ${absolutePath}`);
-      return this.busLibraryCache.get(absolutePath);
+      return this.busLibraryCache.get(absolutePath) as Record<string, unknown>;
     }
 
     this.logger.info(`Loading bus library: ${absolutePath}`);
@@ -211,20 +204,17 @@ export class ImportResolver {
     try {
       const uri = vscode.Uri.file(absolutePath);
       const fileData = await vscode.workspace.fs.readFile(uri);
-      const content = Buffer.from(fileData).toString("utf8");
-      const parsed = yaml.load(content);
+      const content = Buffer.from(fileData).toString('utf8');
+      const parsed = yaml.load(content) as Record<string, unknown>;
 
       // Cache for future use
       this.busLibraryCache.set(absolutePath, parsed);
 
       return parsed;
     } catch (error) {
-      this.logger.error(
-        `Failed to load bus library: ${libraryPath}`,
-        error as Error,
-      );
+      this.logger.error(`Failed to load bus library: ${libraryPath}`, error as Error);
       throw new Error(
-        `Failed to load bus library from ${libraryPath}: ${(error as Error).message}`,
+        `Failed to load bus library from ${libraryPath}: ${(error as Error).message}`
       );
     }
   }
@@ -234,6 +224,6 @@ export class ImportResolver {
    */
   clearCache(): void {
     this.busLibraryCache.clear();
-    this.logger.info("Bus library cache cleared");
+    this.logger.info('Bus library cache cleared');
   }
 }

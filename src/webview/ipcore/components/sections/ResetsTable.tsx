@@ -1,11 +1,8 @@
-import React from "react";
-import type { YamlUpdateHandler } from "../../../types/editor";
-import { EditableTable, FormField, SelectField } from "../../../shared/components";
-import {
-  validateVhdlIdentifier,
-  validateUniqueName,
-} from "../../../shared/utils/validation";
-import { useVimTableNavigation } from "../../hooks/useVimTableNavigation";
+import React from 'react';
+import type { YamlUpdateHandler } from '../../../types/editor';
+import { EditableTable, FormField, SelectField } from '../../../shared/components';
+import { validateVhdlIdentifier, validateUniqueName } from '../../../shared/utils/validation';
+import { useVimTableNavigation } from '../../hooks/useVimTableNavigation';
 
 interface Reset {
   name: string; // Physical port name
@@ -26,28 +23,28 @@ interface ResetsTableProps {
 }
 
 const createEmptyReset = (): Reset => ({
-  name: "",
-  logicalName: "RESET_N",
-  polarity: "activeLow",
-  direction: "input",
+  name: '',
+  logicalName: 'RESET_N',
+  polarity: 'activeLow',
+  direction: 'input',
 });
 
 const normalizeReset = (reset: Reset): Reset => {
   // Normalize polarity from snake_case (active_low) to camelCase (activeLow)
   let normalizedPolarity = reset.polarity;
-  if (reset.polarity === "active_low") {
-    normalizedPolarity = "activeLow";
-  } else if (reset.polarity === "active_high") {
-    normalizedPolarity = "activeHigh";
+  if (reset.polarity === 'active_low') {
+    normalizedPolarity = 'activeLow';
+  } else if (reset.polarity === 'active_high') {
+    normalizedPolarity = 'activeHigh';
   }
   // Normalize direction from in/out to input/output
   const dirMap: { [key: string]: string } = {
-    in: "input",
-    out: "output",
-    input: "input",
-    output: "output",
+    in: 'input',
+    out: 'output',
+    input: 'input',
+    output: 'output',
   };
-  const normalizedDirection = dirMap[reset.direction || "input"] || "input";
+  const normalizedDirection = dirMap[reset.direction || 'input'] || 'input';
   return {
     ...reset,
     polarity: normalizedPolarity,
@@ -58,33 +55,28 @@ const normalizeReset = (reset: Reset): Reset => {
 // Helper to display normalized direction
 const displayDirection = (dir?: string): string => {
   const dirMap: { [key: string]: string } = {
-    in: "input",
-    out: "output",
-    input: "input",
-    output: "output",
+    in: 'input',
+    out: 'output',
+    input: 'input',
+    output: 'output',
   };
-  return dirMap[dir || "input"] || "input";
+  return dirMap[dir || 'input'] || 'input';
 };
 
-const COLUMN_KEYS = ["name", "logicalName", "polarity", "direction", "usedBy"];
+const COLUMN_KEYS = ['name', 'logicalName', 'polarity', 'direction', 'usedBy'];
 const TABLE_COLUMNS = [
-  { key: "name", header: "Physical Name" },
-  { key: "logicalName", header: "Logical Name" },
-  { key: "polarity", header: "Polarity" },
-  { key: "direction", header: "Direction" },
-  { key: "usedBy", header: "Used By" },
-  { key: "actions", header: "Actions", align: "right" as const },
+  { key: 'name', header: 'Physical Name' },
+  { key: 'logicalName', header: 'Logical Name' },
+  { key: 'polarity', header: 'Polarity' },
+  { key: 'direction', header: 'Direction' },
+  { key: 'usedBy', header: 'Used By' },
+  { key: 'actions', header: 'Actions', align: 'right' as const },
 ];
-const KEYBOARD_HINT = "• h/j/k/l: navigate • e: edit • d: delete • o: add";
+const KEYBOARD_HINT = '• h/j/k/l: navigate • e: edit • d: delete • o: add';
 
 // Helper to find which interfaces use a reset
-const getUsedByInterfaces = (
-  resetName: string,
-  busInterfaces: BusInterface[],
-): string[] => {
-  return busInterfaces
-    .filter((bus) => bus.associatedReset === resetName)
-    .map((bus) => bus.name);
+const getUsedByInterfaces = (resetName: string, busInterfaces: BusInterface[]): string[] => {
+  return busInterfaces.filter((bus) => bus.associatedReset === resetName).map((bus) => bus.name);
 };
 
 /**
@@ -99,8 +91,6 @@ export const ResetsTable: React.FC<ResetsTableProps> = ({
   const resets = rawResets as Reset[];
   const busInterfaces = rawBusInterfaces as BusInterface[];
   const {
-    selectedIndex,
-    activeColumn,
     editingIndex,
     isAdding,
     draft,
@@ -116,25 +106,22 @@ export const ResetsTable: React.FC<ResetsTableProps> = ({
   } = useVimTableNavigation<Reset>({
     items: resets,
     onUpdate,
-    dataKey: "resets",
+    dataKey: 'resets',
     createEmptyItem: createEmptyReset,
     normalizeItem: normalizeReset,
     columnKeys: COLUMN_KEYS,
   });
 
-  const existingNames = resets
-    .map((r) => r.name)
-    .filter((_, i) => i !== editingIndex);
+  const existingNames = resets.map((r) => r.name).filter((_, i) => i !== editingIndex);
   const nameError =
-    validateVhdlIdentifier(draft.name) ||
-    validateUniqueName(draft.name, existingNames);
+    validateVhdlIdentifier(draft.name) || validateUniqueName(draft.name, existingNames);
   const canSave = !nameError;
 
   const renderEditRow = (isNew: boolean) => (
     <tr
       style={{
-        background: "var(--vscode-list-activeSelectionBackground)",
-        borderBottom: "1px solid var(--vscode-panel-border)",
+        background: 'var(--vscode-list-activeSelectionBackground)',
+        borderBottom: '1px solid var(--vscode-panel-border)',
       }}
       data-row-idx={editingIndex ?? resets.length}
     >
@@ -154,19 +141,16 @@ export const ResetsTable: React.FC<ResetsTableProps> = ({
       <td className="px-4 py-3">
         <SelectField
           label=""
-          value={
-            draft.logicalName ||
-            (draft.polarity === "activeLow" ? "RESET_N" : "RESET")
-          }
+          value={draft.logicalName || (draft.polarity === 'activeLow' ? 'RESET_N' : 'RESET')}
           options={[
-            { value: "RESET_N", label: "RESET_N" },
-            { value: "RESET", label: "RESET" },
+            { value: 'RESET_N', label: 'RESET_N' },
+            { value: 'RESET', label: 'RESET' },
           ]}
           onChange={(v: string) =>
             setDraft({
               ...draft,
               logicalName: v,
-              polarity: v === "RESET_N" ? "activeLow" : "activeHigh",
+              polarity: v === 'RESET_N' ? 'activeLow' : 'activeHigh',
             })
           }
           data-edit-key="logicalName"
@@ -179,14 +163,14 @@ export const ResetsTable: React.FC<ResetsTableProps> = ({
           label=""
           value={draft.polarity}
           options={[
-            { value: "activeLow", label: "activeLow" },
-            { value: "activeHigh", label: "activeHigh" },
+            { value: 'activeLow', label: 'activeLow' },
+            { value: 'activeHigh', label: 'activeHigh' },
           ]}
           onChange={(v: string) =>
             setDraft({
               ...draft,
               polarity: v,
-              logicalName: v === "activeLow" ? "RESET_N" : "RESET",
+              logicalName: v === 'activeLow' ? 'RESET_N' : 'RESET',
             })
           }
           data-edit-key="polarity"
@@ -197,10 +181,10 @@ export const ResetsTable: React.FC<ResetsTableProps> = ({
       <td className="px-4 py-3">
         <SelectField
           label=""
-          value={draft.direction || "input"}
+          value={draft.direction || 'input'}
           options={[
-            { value: "input", label: "input" },
-            { value: "output", label: "output" },
+            { value: 'input', label: 'input' },
+            { value: 'output', label: 'output' },
           ]}
           onChange={(v: string) => setDraft({ ...draft, direction: v })}
           data-edit-key="direction"
@@ -215,20 +199,20 @@ export const ResetsTable: React.FC<ResetsTableProps> = ({
           className="px-3 py-1 rounded text-xs mr-2"
           style={{
             background: canSave
-              ? "var(--vscode-button-background)"
-              : "var(--vscode-button-secondaryBackground)",
-            color: "var(--vscode-button-foreground)",
+              ? 'var(--vscode-button-background)'
+              : 'var(--vscode-button-secondaryBackground)',
+            color: 'var(--vscode-button-foreground)',
             opacity: canSave ? 1 : 0.5,
           }}
         >
-          {isNew ? "Add" : "Save"}
+          {isNew ? 'Add' : 'Save'}
         </button>
         <button
           onClick={handleCancel}
           className="px-3 py-1 rounded text-xs"
           style={{
-            background: "var(--vscode-button-secondaryBackground)",
-            color: "var(--vscode-button-foreground)",
+            background: 'var(--vscode-button-secondaryBackground)',
+            color: 'var(--vscode-button-foreground)',
           }}
         >
           Cancel
@@ -255,20 +239,19 @@ export const ResetsTable: React.FC<ResetsTableProps> = ({
         const usedBy = getUsedByInterfaces(reset.name, busInterfaces);
         return (
           <tr key={index} {...rowProps} onDoubleClick={() => handleEdit(index)}>
-            <td className="px-4 py-3 text-sm font-mono" {...getCellProps(index, "name")}>
+            <td className="px-4 py-3 text-sm font-mono" {...getCellProps(index, 'name')}>
               {reset.name}
             </td>
-            <td className="px-4 py-3 text-sm font-mono" {...getCellProps(index, "logicalName")}>
-              {reset.logicalName ||
-                (reset.polarity === "activeLow" ? "RESET_N" : "RESET")}
+            <td className="px-4 py-3 text-sm font-mono" {...getCellProps(index, 'logicalName')}>
+              {reset.logicalName || (reset.polarity === 'activeLow' ? 'RESET_N' : 'RESET')}
             </td>
-            <td className="px-4 py-3 text-sm" {...getCellProps(index, "polarity")}>
+            <td className="px-4 py-3 text-sm" {...getCellProps(index, 'polarity')}>
               {reset.polarity}
             </td>
-            <td className="px-4 py-3 text-sm" {...getCellProps(index, "direction")}>
+            <td className="px-4 py-3 text-sm" {...getCellProps(index, 'direction')}>
               {displayDirection(reset.direction)}
             </td>
-            <td className="px-4 py-3 text-sm" {...getCellProps(index, "usedBy")}>
+            <td className="px-4 py-3 text-sm" {...getCellProps(index, 'usedBy')}>
               {usedBy.length > 0 ? (
                 <div className="flex flex-wrap gap-1">
                   {usedBy.map((name, i) => (
@@ -276,8 +259,8 @@ export const ResetsTable: React.FC<ResetsTableProps> = ({
                       key={i}
                       className="px-2 py-0.5 rounded text-xs font-mono"
                       style={{
-                        background: "var(--vscode-badge-background)",
-                        color: "var(--vscode-badge-foreground)",
+                        background: 'var(--vscode-badge-background)',
+                        color: 'var(--vscode-badge-foreground)',
                       }}
                     >
                       {name}
@@ -307,7 +290,7 @@ export const ResetsTable: React.FC<ResetsTableProps> = ({
                 }}
                 disabled={isAdding || editingIndex !== null}
                 className="p-1"
-                style={{ color: "var(--vscode-errorForeground)" }}
+                style={{ color: 'var(--vscode-errorForeground)' }}
                 title="Delete (d)"
               >
                 <span className="codicon codicon-trash"></span>

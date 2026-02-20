@@ -132,7 +132,7 @@ export function useVimTableNavigation<T>({
         }
         // For adding, the new row is at the end (items.length)
         const targetRowIdx = isAdding ? items.length : editingIndex;
-        const row = container.querySelector(`tr[data-row-idx="${targetRowIdx}"]`);
+        const row = container.querySelector(`tr[data-row-idx="${String(targetRowIdx)}"]`);
         if (!row) {
           return;
         }

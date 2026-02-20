@@ -26,13 +26,13 @@ export class YamlPathResolver {
     let cursor: unknown = root;
     for (let i = 0; i < path.length - 1; i++) {
       const key = path[i];
-      if (cursor == null) {
+      if (cursor === null || cursor === undefined) {
         throw new Error(`Path not found at ${String(key)}`);
       }
       cursor = (cursor as Record<string | number, unknown>)[key];
     }
     const last = path[path.length - 1];
-    if (cursor == null) {
+    if (cursor === null || cursor === undefined) {
       throw new Error(`Path not found at ${String(last)}`);
     }
     (cursor as Record<string | number, unknown>)[last] = value;
@@ -44,7 +44,7 @@ export class YamlPathResolver {
   static getAtPath(root: unknown, path: YamlPath): unknown {
     let cursor: unknown = root;
     for (const key of path) {
-      if (cursor == null) {
+      if (cursor === null || cursor === undefined) {
         return undefined;
       }
       cursor = (cursor as Record<string | number, unknown>)[key];
@@ -62,13 +62,13 @@ export class YamlPathResolver {
     let cursor: unknown = root;
     for (let i = 0; i < path.length - 1; i++) {
       const key = path[i];
-      if (cursor == null) {
+      if (cursor === null || cursor === undefined) {
         return;
       }
       cursor = (cursor as Record<string | number, unknown>)[key];
     }
     const last = path[path.length - 1];
-    if (cursor == null) {
+    if (cursor === null || cursor === undefined) {
       return;
     }
     if (Array.isArray(cursor) && typeof last === 'number') {
@@ -86,8 +86,16 @@ export class YamlPathResolver {
     if (Array.isArray(data)) {
       return { root: data, selectionRootPath: [0], map: data[0] };
     }
-    if (data && typeof data === 'object' && Array.isArray((data as Record<string, unknown>).memory_maps)) {
-      return { root: data, selectionRootPath: ['memory_maps', 0], map: ((data as Record<string, unknown>).memory_maps as unknown[])[0] };
+    if (
+      data &&
+      typeof data === 'object' &&
+      Array.isArray((data as Record<string, unknown>).memory_maps)
+    ) {
+      return {
+        root: data,
+        selectionRootPath: ['memory_maps', 0],
+        map: ((data as Record<string, unknown>).memory_maps as unknown[])[0],
+      };
     }
     return { root: data, selectionRootPath: [], map: data };
   }

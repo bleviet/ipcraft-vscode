@@ -102,7 +102,7 @@ export class MessageHandler {
       this.logger.info('Opened file:', targetUri.toString());
     } catch (e) {
       this.logger.error('Failed to open file', e as Error);
-      vscode.window.showErrorMessage(`Failed to open file: ${filePath}`);
+      void vscode.window.showErrorMessage(`Failed to open file: ${filePath}`);
     }
   }
 

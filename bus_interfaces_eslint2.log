@@ -1,0 +1,15 @@
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/ipcore/components/sections/BusInterfacesEditor.tsx:592:9: Prefer using an optional chain expression instead, as it's more concise and easier to read. [Warning/@typescript-eslint/prefer-optional-chain]
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/ipcore/components/sections/BusInterfacesEditor.tsx:1276:47: Unexpected any. Specify a different type. [Warning/@typescript-eslint/no-explicit-any]
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/ipcore/components/sections/BusInterfacesEditor.tsx:1278:50: Unsafe assignment of an `any` value. [Warning/@typescript-eslint/no-unsafe-assignment]
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/ipcore/components/sections/BusInterfacesEditor.tsx:1278:50: Unsafe member access .name on an `any` value. [Warning/@typescript-eslint/no-unsafe-member-access]
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/ipcore/components/sections/BusInterfacesEditor.tsx:1279:52: Unsafe assignment of an `any` value. [Warning/@typescript-eslint/no-unsafe-assignment]
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/ipcore/components/sections/BusInterfacesEditor.tsx:1279:52: Unsafe member access .name on an `any` value. [Warning/@typescript-eslint/no-unsafe-member-access]
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/ipcore/components/sections/BusInterfacesEditor.tsx:1281:46: Unsafe member access .name on an `any` value. [Warning/@typescript-eslint/no-unsafe-member-access]
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/ipcore/components/sections/BusInterfacesEditor.tsx:1291:43: Unexpected any. Specify a different type. [Warning/@typescript-eslint/no-explicit-any]
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/ipcore/components/sections/BusInterfacesEditor.tsx:1291:51: Unsafe member access .name on an `any` value. [Warning/@typescript-eslint/no-unsafe-member-access]
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/ipcore/components/sections/BusInterfacesEditor.tsx:1410:37: Forbidden non-null assertion. [Warning/@typescript-eslint/no-non-null-assertion]
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/ipcore/components/sections/BusInterfacesEditor.tsx:1497:37: Forbidden non-null assertion. [Warning/@typescript-eslint/no-non-null-assertion]
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/ipcore/components/sections/BusInterfacesEditor.tsx:1585:37: Forbidden non-null assertion. [Warning/@typescript-eslint/no-non-null-assertion]
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/ipcore/components/sections/BusInterfacesEditor.tsx:1677:37: Forbidden non-null assertion. [Warning/@typescript-eslint/no-non-null-assertion]
+
+13 problems

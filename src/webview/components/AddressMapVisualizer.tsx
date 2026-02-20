@@ -1,11 +1,10 @@
-import React, { useMemo, useState } from "react";
-import { FIELD_COLORS, FIELD_COLOR_KEYS } from "../shared/colors";
+import React, { useMemo } from 'react';
+import { FIELD_COLORS, FIELD_COLOR_KEYS } from '../shared/colors';
 
 interface AddressMapVisualizerProps {
   blocks: any[];
   hoveredBlockIndex?: number | null;
   setHoveredBlockIndex?: (idx: number | null) => void;
-  totalAddressSpace?: number;
   onBlockClick?: (blockIndex: number) => void;
 }
 
@@ -31,7 +30,7 @@ function calculateBlockSize(block: any): number {
 
   let totalSize = 0;
   for (const reg of registers) {
-    if (reg.__kind === "array") {
+    if (reg.__kind === 'array') {
       // Register array: size = count * stride
       const count = reg.count || 1;
       const stride = reg.stride || 4;
@@ -47,23 +46,9 @@ function calculateBlockSize(block: any): number {
 const AddressMapVisualizer: React.FC<AddressMapVisualizerProps> = ({
   blocks,
   hoveredBlockIndex = null,
-  setHoveredBlockIndex = () => {},
-  totalAddressSpace = 65536, // Default 64KB
+  setHoveredBlockIndex = (_idx: number | null) => undefined,
   onBlockClick,
 }) => {
-  // Calculate max address to determine total range
-  const maxAddress = useMemo(() => {
-    if (!blocks || blocks.length === 0) {
-      return totalAddressSpace;
-    }
-    const max = blocks.reduce((acc, block) => {
-      const base = block.base_address ?? block.offset ?? 0;
-      const size = calculateBlockSize(block);
-      return Math.max(acc, base + size);
-    }, 0);
-    return Math.max(max, totalAddressSpace);
-  }, [blocks, totalAddressSpace]);
-
   // Group blocks by address ranges
   const groups = useMemo(() => {
     return blocks.map((block, idx) => {
@@ -72,11 +57,11 @@ const AddressMapVisualizer: React.FC<AddressMapVisualizerProps> = ({
       return {
         idx,
         name: block.name || `Block ${idx}`,
-        start: base,
-        end: base + size - 1,
+        start: Number(base),
+        end: Number(base) + Number(size) - 1,
         size,
         color: getBlockColor(idx),
-        usage: block.usage || "register",
+        usage: block.usage || 'register',
       };
     });
   }, [blocks]);
@@ -89,13 +74,12 @@ const AddressMapVisualizer: React.FC<AddressMapVisualizerProps> = ({
         <div className="relative flex flex-row items-end gap-0 pl-4 pr-2 pt-12 pb-2 min-h-[64px] w-full">
           {groups.map((group, groupIdx) => {
             const isHovered = hoveredBlockIndex === group.idx;
-            const separatorShadow =
-              "inset 0 0 0 1px var(--vscode-panel-border)";
+            const separatorShadow = 'inset 0 0 0 1px var(--vscode-panel-border)';
             return (
               <div
                 key={group.idx}
-                className={`relative flex-1 flex flex-col items-center justify-end select-none min-w-[120px] ${isHovered ? "z-10" : ""}`}
-                style={{ cursor: onBlockClick ? "pointer" : "default" }}
+                className={`relative flex-1 flex flex-col items-center justify-end select-none min-w-[120px] ${isHovered ? 'z-10' : ''}`}
+                style={{ cursor: onBlockClick ? 'pointer' : 'default' }}
                 onMouseEnter={() => setHoveredBlockIndex(group.idx)}
                 onMouseLeave={() => setHoveredBlockIndex(null)}
                 onClick={() => onBlockClick?.(group.idx)}
@@ -105,10 +89,8 @@ const AddressMapVisualizer: React.FC<AddressMapVisualizerProps> = ({
                   style={{
                     background: FIELD_COLORS[group.color],
                     opacity: 1,
-                    transform: isHovered ? "translateY(-2px)" : undefined,
-                    filter: isHovered
-                      ? "saturate(1.15) brightness(1.05)"
-                      : undefined,
+                    transform: isHovered ? 'translateY(-2px)' : undefined,
+                    filter: isHovered ? 'saturate(1.15) brightness(1.05)' : undefined,
                     boxShadow: isHovered
                       ? `${separatorShadow}, 0 0 0 2px var(--vscode-focusBorder), 0 10px 20px color-mix(in srgb, var(--vscode-foreground) 22%, transparent)`
                       : separatorShadow,
@@ -116,21 +98,21 @@ const AddressMapVisualizer: React.FC<AddressMapVisualizerProps> = ({
                 >
                   <div className="flex flex-col items-center gap-0.5">
                     <span className="text-lg select-none">
-                      {group.usage === "memory" ? "📦" : "📋"}
+                      {group.usage === 'memory' ? '📦' : '📋'}
                     </span>
                     <span className="text-[10px] font-mono text-white/80 font-semibold select-none text-center leading-tight">
-                      {group.usage === "memory" ? "MEM" : "REG"}
+                      {group.usage === 'memory' ? 'MEM' : 'REG'}
                     </span>
                   </div>
                 </div>
                 <div
                   className={`absolute -top-12 px-2 py-0.5 rounded border shadow text-xs whitespace-nowrap pointer-events-none ${
-                    groupIdx === 0 ? "left-0" : "left-1/2 -translate-x-1/2"
+                    groupIdx === 0 ? 'left-0' : 'left-1/2 -translate-x-1/2'
                   }`}
                   style={{
-                    background: "var(--vscode-editorWidget-background)",
-                    color: "var(--vscode-foreground)",
-                    borderColor: "var(--vscode-panel-border)",
+                    background: 'var(--vscode-editorWidget-background)',
+                    color: 'var(--vscode-foreground)',
+                    borderColor: 'var(--vscode-panel-border)',
                   }}
                 >
                   <div className="font-bold">

@@ -1,17 +1,15 @@
-import * as vscode from "vscode";
-import { Logger } from "../utils/Logger";
-import { HtmlGenerator } from "../services/HtmlGenerator";
-import { MessageHandler } from "../services/MessageHandler";
-import { YamlValidator } from "../services/YamlValidator";
-import { DocumentManager } from "../services/DocumentManager";
+import * as vscode from 'vscode';
+import { Logger } from '../utils/Logger';
+import { HtmlGenerator } from '../services/HtmlGenerator';
+import { MessageHandler } from '../services/MessageHandler';
+import { YamlValidator } from '../services/YamlValidator';
+import { DocumentManager } from '../services/DocumentManager';
 
 /**
  * Custom editor provider for FPGA memory map YAML files
  */
-export class MemoryMapEditorProvider
-  implements vscode.CustomTextEditorProvider
-{
-  private readonly logger = new Logger("MemoryMapEditorProvider");
+export class MemoryMapEditorProvider implements vscode.CustomTextEditorProvider {
+  private readonly logger = new Logger('MemoryMapEditorProvider');
   private readonly htmlGenerator: HtmlGenerator;
   private readonly messageHandler: MessageHandler;
   private readonly documentManager: DocumentManager;
@@ -20,12 +18,9 @@ export class MemoryMapEditorProvider
     this.htmlGenerator = new HtmlGenerator(context);
     this.documentManager = new DocumentManager();
     const yamlValidator = new YamlValidator();
-    this.messageHandler = new MessageHandler(
-      yamlValidator,
-      this.documentManager,
-    );
+    this.messageHandler = new MessageHandler(yamlValidator, this.documentManager);
 
-    this.logger.info("MemoryMapEditorProvider initialized");
+    this.logger.info('MemoryMapEditorProvider initialized');
   }
 
   /**
@@ -34,12 +29,9 @@ export class MemoryMapEditorProvider
   public resolveCustomTextEditor(
     document: vscode.TextDocument,
     webviewPanel: vscode.WebviewPanel,
-    _token: vscode.CancellationToken,
+    _token: vscode.CancellationToken
   ): void {
-    this.logger.info(
-      "Resolving custom text editor for document",
-      document.uri.toString(),
-    );
+    this.logger.info('Resolving custom text editor for document', document.uri.toString());
 
     // Configure webview
     webviewPanel.webview.options = {
@@ -47,41 +39,34 @@ export class MemoryMapEditorProvider
     };
 
     // Set HTML content
-    webviewPanel.webview.html = this.htmlGenerator.generateHtml(
-      webviewPanel.webview,
-    );
+    webviewPanel.webview.html = this.htmlGenerator.generateHtml(webviewPanel.webview);
 
     let isReady = false;
-    let pendingUpdate = false;
 
     // Send update to webview when ready
     const updateWebview = () => {
       if (!isReady) {
-        pendingUpdate = true;
         return;
       }
-      pendingUpdate = false;
       this.messageHandler.sendUpdate(webviewPanel.webview, document);
     };
 
     // Listen for document changes
-    const changeDocumentSubscription = vscode.workspace.onDidChangeTextDocument(
-      (e) => {
-        if (e.document.uri.toString() === document.uri.toString()) {
-          updateWebview();
-        }
-      },
-    );
+    const changeDocumentSubscription = vscode.workspace.onDidChangeTextDocument((e) => {
+      if (e.document.uri.toString() === document.uri.toString()) {
+        updateWebview();
+      }
+    });
 
     // Clean up subscriptions when webview is disposed
     webviewPanel.onDidDispose(() => {
       changeDocumentSubscription.dispose();
-      this.logger.debug("Webview panel disposed");
+      this.logger.debug('Webview panel disposed');
     });
 
     // Handle messages from the webview
     webviewPanel.webview.onDidReceiveMessage((message) => {
-      if (message.type === "ready") {
+      if (message.type === 'ready') {
         isReady = true;
         updateWebview();
         return;

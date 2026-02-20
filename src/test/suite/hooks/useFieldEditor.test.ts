@@ -12,11 +12,7 @@ import type { BitFieldRecord } from '../../../webview/types/editor';
 // Helpers
 // ---------------------------------------------------------------------------
 
-function makeField(
-  name: string,
-  bitOffset: number,
-  bitWidth = 1,
-): BitFieldRecord {
+function makeField(name: string, bitOffset: number, bitWidth = 1): BitFieldRecord {
   const hi = bitOffset + bitWidth - 1;
   return {
     name,
@@ -39,9 +35,7 @@ const noop = jest.fn();
 describe('useFieldEditor — draft initialisation', () => {
   it('initialises nameDraft, bitsDraft and resetDraft for a field', () => {
     const fields: BitFieldRecord[] = [makeField('STATUS', 0, 4)];
-    const { result } = renderHook(() =>
-      useFieldEditor(fields, 32, noop, true),
-    );
+    const { result } = renderHook(() => useFieldEditor(fields, 32, noop, true));
 
     act(() => {
       result.current.ensureDraftsInitialized(0);
@@ -54,9 +48,7 @@ describe('useFieldEditor — draft initialisation', () => {
 
   it('does not overwrite an already-initialised draft', () => {
     const fields: BitFieldRecord[] = [makeField('CTRL', 4, 1)];
-    const { result } = renderHook(() =>
-      useFieldEditor(fields, 32, noop, true),
-    );
+    const { result } = renderHook(() => useFieldEditor(fields, 32, noop, true));
 
     act(() => {
       result.current.ensureDraftsInitialized(0);
@@ -73,12 +65,8 @@ describe('useFieldEditor — draft initialisation', () => {
   });
 
   it('formats reset_value as hex string', () => {
-    const fields: BitFieldRecord[] = [
-      { ...makeField('IRQ', 8, 1), reset_value: 255 },
-    ];
-    const { result } = renderHook(() =>
-      useFieldEditor(fields, 32, noop, true),
-    );
+    const fields: BitFieldRecord[] = [{ ...makeField('IRQ', 8, 1), reset_value: 255 }];
+    const { result } = renderHook(() => useFieldEditor(fields, 32, noop, true));
 
     act(() => {
       result.current.ensureDraftsInitialized(0);
@@ -98,20 +86,16 @@ describe('useFieldEditor — initial selection state', () => {
     expect(result.current.selectedFieldIndex).toBe(-1);
   });
 
-  it('clamps selectedFieldIndex to 0 when fields are provided', async () => {
+  it('clamps selectedFieldIndex to 0 when fields are provided', () => {
     const fields = [makeField('A', 0), makeField('B', 1)];
-    const { result } = renderHook(() =>
-      useFieldEditor(fields, 32, noop, true),
-    );
+    const { result } = renderHook(() => useFieldEditor(fields, 32, noop, true));
     // After the clamp effect runs, index should land at 0
     expect(result.current.selectedFieldIndex).toBeGreaterThanOrEqual(-1);
   });
 
   it('resets selectedFieldIndex to -1 when isActive is false', () => {
     const fields = [makeField('A', 0)];
-    const { result } = renderHook(() =>
-      useFieldEditor(fields, 32, noop, false),
-    );
+    const { result } = renderHook(() => useFieldEditor(fields, 32, noop, false));
     expect(result.current.selectedFieldIndex).toBe(-1);
   });
 });
@@ -124,9 +108,7 @@ describe('useFieldEditor — moveSelectedField', () => {
   it('moves down by 1 when delta is +1', () => {
     const fields = [makeField('A', 0), makeField('B', 1), makeField('C', 2)];
     const onUpdate = jest.fn();
-    const { result } = renderHook(() =>
-      useFieldEditor(fields, 32, onUpdate, true),
-    );
+    const { result } = renderHook(() => useFieldEditor(fields, 32, onUpdate, true));
 
     // Manually set start index to 0
     act(() => {
@@ -138,17 +120,12 @@ describe('useFieldEditor — moveSelectedField', () => {
     });
 
     expect(result.current.selectedFieldIndex).toBe(1);
-    expect(onUpdate).toHaveBeenCalledWith(
-      ['__op', 'field-move'],
-      { index: 0, delta: 1 },
-    );
+    expect(onUpdate).toHaveBeenCalledWith(['__op', 'field-move'], { index: 0, delta: 1 });
   });
 
   it('does not move below 0', () => {
     const fields = [makeField('A', 0), makeField('B', 1)];
-    const { result } = renderHook(() =>
-      useFieldEditor(fields, 32, noop, true),
-    );
+    const { result } = renderHook(() => useFieldEditor(fields, 32, noop, true));
 
     act(() => {
       result.current.setSelectedFieldIndex(0);
@@ -163,9 +140,7 @@ describe('useFieldEditor — moveSelectedField', () => {
 
   it('does not move past the last field', () => {
     const fields = [makeField('A', 0), makeField('B', 1)];
-    const { result } = renderHook(() =>
-      useFieldEditor(fields, 32, noop, true),
-    );
+    const { result } = renderHook(() => useFieldEditor(fields, 32, noop, true));
 
     act(() => {
       result.current.setSelectedFieldIndex(1);
@@ -180,9 +155,7 @@ describe('useFieldEditor — moveSelectedField', () => {
 
   it('clears draft maps after a move', () => {
     const fields = [makeField('X', 0), makeField('Y', 1)];
-    const { result } = renderHook(() =>
-      useFieldEditor(fields, 32, noop, true),
-    );
+    const { result } = renderHook(() => useFieldEditor(fields, 32, noop, true));
 
     // Seed some draft state
     act(() => {
@@ -206,16 +179,12 @@ describe('useFieldEditor — moveSelectedField', () => {
 
 describe('useFieldEditor — insertError state', () => {
   it('starts with no insert error', () => {
-    const { result } = renderHook(() =>
-      useFieldEditor([], 32, noop, true),
-    );
+    const { result } = renderHook(() => useFieldEditor([], 32, noop, true));
     expect(result.current.insertError).toBeNull();
   });
 
   it('can be set and cleared via setInsertError', () => {
-    const { result } = renderHook(() =>
-      useFieldEditor([], 32, noop, true),
-    );
+    const { result } = renderHook(() => useFieldEditor([], 32, noop, true));
 
     act(() => {
       result.current.setInsertError('No room');

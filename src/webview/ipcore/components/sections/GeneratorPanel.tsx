@@ -5,22 +5,16 @@
  * and testbenches from IP Core definitions.
  */
 
-import React, {
-  useState,
-  useCallback,
-  useMemo,
-  useRef,
-  useEffect,
-} from "react";
-import { IpCore, BusInterface } from "../../../types/ipCore";
-import { vscode } from "../../../vscode";
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import { IpCore, BusInterface } from '../../../types/ipCore';
+import { vscode } from '../../../vscode';
 
 interface GeneratorPanelProps {
   ipCore: IpCore;
 }
 
-type BusType = "axil" | "avmm";
-type VendorType = "none" | "intel" | "xilinx" | "both";
+type BusType = 'axil' | 'avmm';
+type VendorType = 'none' | 'intel' | 'xilinx' | 'both';
 
 interface GenerationOptions {
   busType: BusType;
@@ -31,7 +25,7 @@ interface GenerationOptions {
 }
 
 interface GenerationStatus {
-  status: "idle" | "generating" | "success" | "error";
+  status: 'idle' | 'generating' | 'success' | 'error';
   message?: string;
   files?: string[];
 }
@@ -52,17 +46,13 @@ function mapBusType(interfaceType: string): BusType | null {
   const type = interfaceType.toLowerCase();
 
   // Check Avalon first (prioritize specific matches)
-  if (
-    type.includes("avalon") ||
-    type === "avmm" ||
-    type.includes("avalon-mm")
-  ) {
-    return "avmm";
+  if (type.includes('avalon') || type === 'avmm' || type.includes('avalon-mm')) {
+    return 'avmm';
   }
 
   // Check AXI
-  if (type.includes("axi") || type === "axi4l" || type === "axi4lite") {
-    return "axil";
+  if (type.includes('axi') || type === 'axi4l' || type === 'axi4lite') {
+    return 'axil';
   }
 
   return null;
@@ -97,28 +87,28 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({ ipCore }) => {
   const detectedBus = useMemo(() => detectBusWithMemoryMap(ipCore), [ipCore]);
 
   // Get IP name for preview
-  const ipName = ipCore.vlnv?.name?.toLowerCase() || "ip_core";
+  const ipName = ipCore.vlnv?.name?.toLowerCase() || 'ip_core';
 
   const [options, setOptions] = useState<GenerationOptions>(() => {
-    const savedState = vscode.getState();
-    return savedState && savedState.generationOptions
-      ? savedState.generationOptions
+    const savedState = (vscode?.getState() as Record<string, unknown>) || {};
+    return Object.keys(savedState).length > 0 && savedState.generationOptions
+      ? (savedState.generationOptions as GenerationOptions)
       : {
-        busType: detectedBus?.busType || "axil",
-        includeVhdl: true,
-        includeRegfile: true,
-        vendorFiles: "none",
-        includeTestbench: false,
-      };
+          busType: detectedBus?.busType || 'axil',
+          includeVhdl: true,
+          includeRegfile: true,
+          vendorFiles: 'none',
+          includeTestbench: false,
+        };
   });
 
   // Persist options state
   useEffect(() => {
-    const currentState = vscode.getState() || {};
-    vscode.setState({ ...currentState, generationOptions: options });
+    const currentState = (vscode?.getState() as Record<string, unknown>) || {};
+    vscode?.setState({ ...currentState, generationOptions: options });
   }, [options]);
 
-  const [status, setStatus] = useState<GenerationStatus>({ status: "idle" });
+  const [status, setStatus] = useState<GenerationStatus>({ status: 'idle' });
 
   // Responsive layout - detect container width
   const containerRef = useRef<HTMLDivElement>(null);
@@ -139,11 +129,11 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({ ipCore }) => {
   }, []);
 
   const handleGenerate = useCallback(() => {
-    setStatus({ status: "generating", message: "Generating files..." });
+    setStatus({ status: 'generating', message: 'Generating files...' });
 
     // Send message to extension to trigger generation
-    vscode.postMessage({
-      type: "generate",
+    vscode?.postMessage({
+      type: 'generate',
       options: {
         busType: detectedBus?.busType || options.busType,
         includeVhdl: options.includeVhdl,
@@ -158,78 +148,74 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({ ipCore }) => {
   React.useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       const message = event.data;
-      if (message.type === "generateResult") {
+      if (message.type === 'generateResult') {
         if (message.success) {
           setStatus({
-            status: "success",
-            message: `Generated ${message.files?.length || 0} files`,
+            status: 'success',
+            message: `Generated ${String(message.files?.length || 0)} files`,
             files: message.files,
           });
         } else {
           setStatus({
-            status: "error",
-            message: message.error || "Generation failed",
+            status: 'error',
+            message: message.error || 'Generation failed',
           });
         }
       }
     };
 
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
   }, []);
 
   const labelStyle: React.CSSProperties = {
-    fontSize: "12px",
+    fontSize: '12px',
     fontWeight: 500,
-    marginBottom: "4px",
-    display: "block",
+    marginBottom: '4px',
+    display: 'block',
   };
 
   const sectionStyle: React.CSSProperties = {
-    marginBottom: "20px",
-    padding: "12px",
-    background: "var(--vscode-input-background)",
-    borderRadius: "4px",
-    border: "1px solid var(--vscode-input-border)",
+    marginBottom: '20px',
+    padding: '12px',
+    background: 'var(--vscode-input-background)',
+    borderRadius: '4px',
+    border: '1px solid var(--vscode-input-border)',
   };
 
   const checkboxRowStyle: React.CSSProperties = {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    marginBottom: "8px",
-    fontSize: "12px",
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    marginBottom: '8px',
+    fontSize: '12px',
   };
 
   const infoStyle: React.CSSProperties = {
-    fontSize: "11px",
+    fontSize: '11px',
     opacity: 0.8,
-    marginTop: "4px",
+    marginTop: '4px',
   };
 
   return (
-    <div ref={containerRef} style={{ padding: "16px" }}>
-      <h2 style={{ fontSize: "16px", fontWeight: 600, marginBottom: "16px" }}>
-        Project Scaffold
-      </h2>
+    <div ref={containerRef} style={{ padding: '16px' }}>
+      <h2 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '16px' }}>Project Scaffold</h2>
 
-      <p style={{ fontSize: "12px", opacity: 0.8, marginBottom: "16px" }}>
-        Generate VHDL files, vendor integration files, and testbenches for{" "}
+      <p style={{ fontSize: '12px', opacity: 0.8, marginBottom: '16px' }}>
+        Generate VHDL files, vendor integration files, and testbenches for{' '}
         <strong>{ipCore.vlnv?.name}</strong>.
       </p>
 
       {/* Responsive layout wrapper */}
       <div
         style={{
-          display: "flex",
-          flexDirection: isWideLayout ? "row" : "column",
-          gap: "16px",
+          display: 'flex',
+          flexDirection: isWideLayout ? 'row' : 'column',
+          gap: '16px',
         }}
       >
         {/* Left column: Options */}
-        <div
-          style={{ flex: isWideLayout ? "1 1 50%" : "1 1 auto", minWidth: 0 }}
-        >
+        <div style={{ flex: isWideLayout ? '1 1 50%' : '1 1 auto', minWidth: 0 }}>
           {/* Detected Bus Interface Section */}
           <div style={sectionStyle}>
             <label style={labelStyle}>Bus Interface</label>
@@ -237,19 +223,17 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({ ipCore }) => {
               <div>
                 <div
                   style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    padding: "8px 12px",
-                    background: "var(--vscode-inputValidation-infoBackground)",
-                    borderRadius: "4px",
-                    fontSize: "12px",
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '8px 12px',
+                    background: 'var(--vscode-inputValidation-infoBackground)',
+                    borderRadius: '4px',
+                    fontSize: '12px',
                   }}
                 >
                   <span style={{ fontWeight: 500 }}>
-                    {detectedBus.busType === "axil"
-                      ? "🔵 AXI-Lite"
-                      : "🟢 Avalon-MM"}
+                    {detectedBus.busType === 'axil' ? '🔵 AXI-Lite' : '🟢 Avalon-MM'}
                   </span>
                   <span style={{ opacity: 0.7 }}>
                     (detected from {detectedBus.busInterface.name})
@@ -262,14 +246,13 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({ ipCore }) => {
             ) : (
               <div
                 style={{
-                  padding: "8px 12px",
-                  background: "var(--vscode-inputValidation-warningBackground)",
-                  borderRadius: "4px",
-                  fontSize: "12px",
+                  padding: '8px 12px',
+                  background: 'var(--vscode-inputValidation-warningBackground)',
+                  borderRadius: '4px',
+                  fontSize: '12px',
                 }}
               >
-                ⚠️ No bus interface with memory map detected. Using default:
-                AXI-Lite
+                ⚠️ No bus interface with memory map detected. Using default: AXI-Lite
               </div>
             )}
           </div>
@@ -305,13 +288,13 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({ ipCore }) => {
                 })
               }
               style={{
-                width: "100%",
-                padding: "6px 8px",
-                fontSize: "12px",
-                background: "var(--vscode-dropdown-background)",
-                color: "var(--vscode-dropdown-foreground)",
-                border: "1px solid var(--vscode-dropdown-border)",
-                borderRadius: "2px",
+                width: '100%',
+                padding: '6px 8px',
+                fontSize: '12px',
+                background: 'var(--vscode-dropdown-background)',
+                color: 'var(--vscode-dropdown-foreground)',
+                border: '1px solid var(--vscode-dropdown-border)',
+                borderRadius: '2px',
               }}
             >
               <option value="none">None</option>
@@ -328,9 +311,7 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({ ipCore }) => {
               <input
                 type="checkbox"
                 checked={options.includeTestbench}
-                onChange={(e) =>
-                  setOptions({ ...options, includeTestbench: e.target.checked })
-                }
+                onChange={(e) => setOptions({ ...options, includeTestbench: e.target.checked })}
               />
               cocotb Python tests + Makefile (GHDL)
             </label>
@@ -338,84 +319,70 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({ ipCore }) => {
         </div>
 
         {/* Right column: Preview */}
-        <div
-          style={{ flex: isWideLayout ? "1 1 50%" : "1 1 auto", minWidth: 0 }}
-        >
+        <div style={{ flex: isWideLayout ? '1 1 50%' : '1 1 auto', minWidth: 0 }}>
           {/* Preview Section */}
           <div
             style={{
               ...sectionStyle,
-              background: "var(--vscode-textBlockQuote-background)",
-              fontFamily: "monospace",
-              fontSize: "11px",
+              background: 'var(--vscode-textBlockQuote-background)',
+              fontFamily: 'monospace',
+              fontSize: '11px',
             }}
           >
             <label style={labelStyle}>📁 Preview: Output Structure</label>
-            <div style={{ marginTop: "8px", lineHeight: "1.6" }}>
-              <div style={{ color: "var(--vscode-textPreformat-foreground)" }}>
-                {ipName}/
-              </div>
+            <div style={{ marginTop: '8px', lineHeight: '1.6' }}>
+              <div style={{ color: 'var(--vscode-textPreformat-foreground)' }}>{ipName}/</div>
               {options.includeVhdl && (
-                <div style={{ paddingLeft: "16px" }}>
+                <div style={{ paddingLeft: '16px' }}>
                   <div>├── rtl/</div>
-                  <div style={{ paddingLeft: "24px", opacity: 0.8 }}>
-                    ├── {ipName}_pkg.vhd
+                  <div style={{ paddingLeft: '24px', opacity: 0.8 }}>├── {ipName}_pkg.vhd</div>
+                  <div style={{ paddingLeft: '24px', opacity: 0.8 }}>├── {ipName}.vhd</div>
+                  <div style={{ paddingLeft: '24px', opacity: 0.8 }}>├── {ipName}_core.vhd</div>
+                  <div style={{ paddingLeft: '24px', opacity: 0.8 }}>
+                    ├── {ipName}_{detectedBus?.busType || 'axil'}.vhd
                   </div>
-                  <div style={{ paddingLeft: "24px", opacity: 0.8 }}>
-                    ├── {ipName}.vhd
-                  </div>
-                  <div style={{ paddingLeft: "24px", opacity: 0.8 }}>
-                    ├── {ipName}_core.vhd
-                  </div>
-                  <div style={{ paddingLeft: "24px", opacity: 0.8 }}>
-                    ├── {ipName}_{detectedBus?.busType || "axil"}.vhd
-                  </div>
-                  <div style={{ paddingLeft: "24px", opacity: 0.8 }}>
-                    └── {ipName}_regs.vhd
-                  </div>
+                  <div style={{ paddingLeft: '24px', opacity: 0.8 }}>└── {ipName}_regs.vhd</div>
                 </div>
               )}
               {options.includeTestbench && (
-                <div style={{ paddingLeft: "16px" }}>
+                <div style={{ paddingLeft: '16px' }}>
                   <div>├── tb/</div>
-                  <div style={{ paddingLeft: "24px", opacity: 0.8 }}>
-                    ├── {ipName}_test.py
-                  </div>
-                  <div style={{ paddingLeft: "24px", opacity: 0.8 }}>
-                    └── Makefile
-                  </div>
+                  <div style={{ paddingLeft: '24px', opacity: 0.8 }}>├── {ipName}_test.py</div>
+                  <div style={{ paddingLeft: '24px', opacity: 0.8 }}>└── Makefile</div>
                 </div>
               )}
-              {(options.vendorFiles === "intel" ||
-                options.vendorFiles === "both") && (
-                  <div style={{ paddingLeft: "16px" }}>
-                    <div>├── intel/</div>
-                    <div style={{ paddingLeft: "24px", opacity: 0.8 }}>
-                      └── {ipName}_hw.tcl
-                    </div>
-                  </div>
-                )}
-              {(options.vendorFiles === "xilinx" ||
-                options.vendorFiles === "both") && (
-                  <div style={{ paddingLeft: "16px" }}>
-                    <div>└── xilinx/</div>
-                    <div style={{ paddingLeft: "24px", opacity: 0.8 }}>
-                      ├── component.xml
-                    </div>
-                    <div style={{ paddingLeft: "24px", opacity: 0.8 }}>
-                      └── xgui/{ipName}_v*.tcl
-                    </div>
-                  </div>
-                )}
+              {(options.vendorFiles === 'intel' || options.vendorFiles === 'both') && (
+                <div style={{ paddingLeft: '16px' }}>
+                  <div>├── intel/</div>
+                  <div style={{ paddingLeft: '24px', opacity: 0.8 }}>└── {ipName}_hw.tcl</div>
+                </div>
+              )}
+              {(options.vendorFiles === 'xilinx' || options.vendorFiles === 'both') && (
+                <div style={{ paddingLeft: '16px' }}>
+                  <div>└── xilinx/</div>
+                  <div style={{ paddingLeft: '24px', opacity: 0.8 }}>├── component.xml</div>
+                  <div style={{ paddingLeft: '24px', opacity: 0.8 }}>└── xgui/{ipName}_v*.tcl</div>
+                </div>
+              )}
             </div>
-            <div style={{ marginTop: "8px", fontSize: "10px", opacity: 0.7 }}>
+            <div style={{ marginTop: '8px', fontSize: '10px', opacity: 0.7 }}>
               {(() => {
                 let count = 0;
-                if (options.includeVhdl) {count += 5;} // pkg, top, core, bus, regs
-                if (options.vendorFiles === "intel") {count += 1;}
-                if (options.vendorFiles === "xilinx") {count += 2;} // component.xml + xgui
-                if (options.vendorFiles === "both") {count += 3;} // intel hw.tcl + xilinx 2 files
-                if (options.includeTestbench) {count += 2;}
+                if (options.includeVhdl) {
+                  count += 5;
+                } // pkg, top, core, bus, regs
+                if (options.vendorFiles === 'intel') {
+                  count += 1;
+                }
+                if (options.vendorFiles === 'xilinx') {
+                  count += 2;
+                } // component.xml + xgui
+                if (options.vendorFiles === 'both') {
+                  count += 3;
+                } // intel hw.tcl + xilinx 2 files
+                if (options.includeTestbench) {
+                  count += 2;
+                }
                 return `${count} file(s) will be generated`;
               })()}
             </div>
@@ -424,41 +391,37 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({ ipCore }) => {
           {/* Generate Button */}
           <button
             onClick={handleGenerate}
-            disabled={status.status === "generating"}
+            disabled={status.status === 'generating'}
             style={{
-              width: "100%",
-              padding: "10px 16px",
-              fontSize: "13px",
+              width: '100%',
+              padding: '10px 16px',
+              fontSize: '13px',
               fontWeight: 500,
-              background: "var(--vscode-button-background)",
-              color: "var(--vscode-button-foreground)",
-              border: "none",
-              borderRadius: "4px",
-              cursor: status.status === "generating" ? "wait" : "pointer",
-              opacity: status.status === "generating" ? 0.7 : 1,
+              background: 'var(--vscode-button-background)',
+              color: 'var(--vscode-button-foreground)',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: status.status === 'generating' ? 'wait' : 'pointer',
+              opacity: status.status === 'generating' ? 0.7 : 1,
             }}
           >
-            {status.status === "generating"
-              ? "⏳ Generating..."
-              : "🔧 Generate Files"}
+            {status.status === 'generating' ? '⏳ Generating...' : '🔧 Generate Files'}
           </button>
 
           {/* Status Display */}
-          {status.status === "success" && (
+          {status.status === 'success' && (
             <div
               style={{
-                marginTop: "16px",
-                padding: "12px",
-                background: "var(--vscode-inputValidation-infoBackground)",
-                borderRadius: "4px",
-                fontSize: "12px",
+                marginTop: '16px',
+                padding: '12px',
+                background: 'var(--vscode-inputValidation-infoBackground)',
+                borderRadius: '4px',
+                fontSize: '12px',
               }}
             >
-              <p style={{ fontWeight: 500, marginBottom: "8px" }}>
-                ✅ {status.message}
-              </p>
+              <p style={{ fontWeight: 500, marginBottom: '8px' }}>✅ {status.message}</p>
               {status.files && (
-                <ul style={{ margin: 0, paddingLeft: "16px" }}>
+                <ul style={{ margin: 0, paddingLeft: '16px' }}>
                   {status.files.map((file, idx) => (
                     <li key={idx}>{file}</li>
                   ))}
@@ -467,16 +430,16 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({ ipCore }) => {
             </div>
           )}
 
-          {status.status === "error" && (
+          {status.status === 'error' && (
             <div
               style={{
-                marginTop: "16px",
-                padding: "12px",
-                background: "var(--vscode-inputValidation-errorBackground)",
-                border: "1px solid var(--vscode-inputValidation-errorBorder)",
-                borderRadius: "4px",
-                fontSize: "12px",
-                color: "var(--vscode-errorForeground)",
+                marginTop: '16px',
+                padding: '12px',
+                background: 'var(--vscode-inputValidation-errorBackground)',
+                border: '1px solid var(--vscode-inputValidation-errorBorder)',
+                borderRadius: '4px',
+                fontSize: '12px',
+                color: 'var(--vscode-errorForeground)',
               }}
             >
               ❌ {status.message}

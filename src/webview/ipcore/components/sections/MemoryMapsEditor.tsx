@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect } from "react";
-import type { YamlUpdateHandler } from "../../../types/editor";
-import { vscode } from "../../../vscode";
+import React, { useCallback } from 'react';
+import type { YamlUpdateHandler } from '../../../types/editor';
+import { vscode } from '../../../vscode';
 
 interface MemoryMapsEditorProps {
   memoryMaps: unknown;
@@ -25,34 +25,30 @@ export const MemoryMapsEditor: React.FC<MemoryMapsEditorProps> = ({
   const handleLinkFile = useCallback(() => {
     // Send message to extension to open file picker with filter
     vscode?.postMessage({
-      type: "selectFiles",
+      type: 'selectFiles',
       multi: false, // Single file selection
-      filters: { "Memory Map": ["memmap.yml", "yml"] },
+      filters: { 'Memory Map': ['memmap.yml', 'yml'] },
     });
 
     // Listen for response
     const handler = (event: MessageEvent) => {
       const message = event.data;
-      if (
-        message.type === "filesSelected" &&
-        message.files &&
-        message.files.length > 0
-      ) {
+      if (message.type === 'filesSelected' && message.files && message.files.length > 0) {
         // Update the memory map import
         // We update the whole memoryMaps object to be { import: "path" }
         // Use onUpdate(['memoryMaps'], { import: filePath })
         const filePath = message.files[0];
-        onUpdate(["memoryMaps"], { import: filePath });
+        onUpdate(['memoryMaps'], { import: filePath });
 
-        window.removeEventListener("message", handler);
+        window.removeEventListener('message', handler);
       }
     };
-    window.addEventListener("message", handler);
+    window.addEventListener('message', handler);
   }, [onUpdate]);
 
   const handleUnlink = useCallback(() => {
     // Clear the memoryMaps object or set it to undefined/empty
-    onUpdate(["memoryMaps"], undefined);
+    onUpdate(['memoryMaps'], undefined);
   }, [onUpdate]);
 
   return (
@@ -64,9 +60,9 @@ export const MemoryMapsEditor: React.FC<MemoryMapsEditorProps> = ({
           <div
             className="p-4 rounded border-l-4"
             style={{
-              background: "var(--vscode-editor-background)",
-              border: "1px solid var(--vscode-panel-border)",
-              borderLeftColor: "var(--vscode-textLink-foreground)",
+              background: 'var(--vscode-editor-background)',
+              border: '1px solid var(--vscode-panel-border)',
+              borderLeftColor: 'var(--vscode-textLink-foreground)',
             }}
           >
             <div className="flex items-center justify-between mb-4">
@@ -82,7 +78,7 @@ export const MemoryMapsEditor: React.FC<MemoryMapsEditorProps> = ({
                 <button
                   onClick={handleUnlink}
                   className="p-1.5 rounded opacity-70 hover:opacity-100"
-                  style={{ color: "var(--vscode-errorForeground)" }}
+                  style={{ color: 'var(--vscode-errorForeground)' }}
                   title="Unlink File"
                 >
                   <span className="codicon codicon-close"></span>
@@ -91,11 +87,11 @@ export const MemoryMapsEditor: React.FC<MemoryMapsEditorProps> = ({
             </div>
 
             <p className="text-sm mb-4" style={{ opacity: 0.8 }}>
-              Linked file:{" "}
+              Linked file:{' '}
               <code
                 className="px-1 py-0.5 rounded"
                 style={{
-                  background: "var(--vscode-textBlockQuote-background)",
+                  background: 'var(--vscode-textBlockQuote-background)',
                 }}
               >
                 {importFile}
@@ -104,16 +100,16 @@ export const MemoryMapsEditor: React.FC<MemoryMapsEditorProps> = ({
 
             <button
               onClick={() =>
-                vscode.postMessage({
-                  type: "command",
-                  command: "openFile",
+                vscode?.postMessage({
+                  type: 'command',
+                  command: 'openFile',
                   path: importFile,
                 })
               }
               className="px-4 py-2 rounded text-sm flex items-center gap-2"
               style={{
-                background: "var(--vscode-button-background)",
-                color: "var(--vscode-button-foreground)",
+                background: 'var(--vscode-button-background)',
+                color: 'var(--vscode-button-foreground)',
               }}
             >
               <span className="codicon codicon-go-to-file"></span>
@@ -131,25 +127,23 @@ export const MemoryMapsEditor: React.FC<MemoryMapsEditorProps> = ({
                     key={idx}
                     className="p-4 rounded border"
                     style={{
-                      background: "var(--vscode-editor-background)",
-                      borderColor: "var(--vscode-panel-border)",
+                      background: 'var(--vscode-editor-background)',
+                      borderColor: 'var(--vscode-panel-border)',
                     }}
                   >
                     <div className="flex items-start justify-between">
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-medium text-sm">
-                            {map.name as string}
-                          </span>
+                          <span className="font-medium text-sm">{map.name as string}</span>
                           <span
                             className="text-xs px-2 py-0.5 rounded"
                             style={{
-                              background: "var(--vscode-badge-background)",
-                              color: "var(--vscode-badge-foreground)",
+                              background: 'var(--vscode-badge-background)',
+                              color: 'var(--vscode-badge-foreground)',
                             }}
                           >
                             {(map.addressBlocks as unknown[])?.length || 0} Block
-                            {(map.addressBlocks as unknown[])?.length !== 1 ? "s" : ""}
+                            {(map.addressBlocks as unknown[])?.length !== 1 ? 's' : ''}
                           </span>
                         </div>
                         {!!map.description && (
@@ -161,33 +155,33 @@ export const MemoryMapsEditor: React.FC<MemoryMapsEditorProps> = ({
                     </div>
 
                     {/* Address Blocks Preview */}
-                    {(map.addressBlocks as unknown[]) && (map.addressBlocks as unknown[]).length > 0 && (
-                      <div
-                        className="mt-3 pl-4 border-l-2"
-                        style={{ borderColor: "var(--vscode-panel-border)" }}
-                      >
-                        <p
-                          className="text-xs font-semibold mb-1"
-                          style={{ opacity: 0.6 }}
+                    {(map.addressBlocks as unknown[]) &&
+                      (map.addressBlocks as unknown[]).length > 0 && (
+                        <div
+                          className="mt-3 pl-4 border-l-2"
+                          style={{ borderColor: 'var(--vscode-panel-border)' }}
                         >
-                          ADDRESS BLOCKS
-                        </p>
-                        <div className="grid gap-1">
-                          {(map.addressBlocks as Record<string, unknown>[]).map((block, bIdx: number) => (
-                            <div
-                              key={bIdx}
-                              className="text-sm font-mono flex items-center gap-3"
-                              style={{ opacity: 0.8 }}
-                            >
-                              <span>{String(block.name ?? '')}</span>
-                              <span style={{ opacity: 0.5 }}>
-                                Offset: {String(block.offset ?? block.baseAddress ?? 0)}
-                              </span>
-                            </div>
-                          ))}
+                          <p className="text-xs font-semibold mb-1" style={{ opacity: 0.6 }}>
+                            ADDRESS BLOCKS
+                          </p>
+                          <div className="grid gap-1">
+                            {(map.addressBlocks as Record<string, unknown>[]).map(
+                              (block, bIdx: number) => (
+                                <div
+                                  key={bIdx}
+                                  className="text-sm font-mono flex items-center gap-3"
+                                  style={{ opacity: 0.8 }}
+                                >
+                                  <span>{String(block.name ?? '')}</span>
+                                  <span style={{ opacity: 0.5 }}>
+                                    Offset: {String(block.offset ?? block.baseAddress ?? 0)}
+                                  </span>
+                                </div>
+                              )
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
                   </div>
                 ))}
               </div>
@@ -196,8 +190,8 @@ export const MemoryMapsEditor: React.FC<MemoryMapsEditorProps> = ({
                 className="p-8 text-center text-sm"
                 style={{
                   opacity: 0.6,
-                  border: "1px dashed var(--vscode-panel-border)",
-                  borderRadius: "4px",
+                  border: '1px dashed var(--vscode-panel-border)',
+                  borderRadius: '4px',
                 }}
               >
                 No memory maps found in the linked file.
@@ -210,8 +204,8 @@ export const MemoryMapsEditor: React.FC<MemoryMapsEditorProps> = ({
           className="p-8 text-center"
           style={{
             opacity: 0.6,
-            border: "1px dashed var(--vscode-panel-border)",
-            borderRadius: "4px",
+            border: '1px dashed var(--vscode-panel-border)',
+            borderRadius: '4px',
           }}
         >
           <p className="text-sm mb-4">No external memory map linked.</p>
@@ -219,16 +213,15 @@ export const MemoryMapsEditor: React.FC<MemoryMapsEditorProps> = ({
             onClick={handleLinkFile}
             className="px-4 py-2 rounded text-sm flex items-center justify-center gap-2 mx-auto"
             style={{
-              background: "var(--vscode-button-secondaryBackground)",
-              color: "var(--vscode-button-secondaryForeground)",
+              background: 'var(--vscode-button-secondaryBackground)',
+              color: 'var(--vscode-button-secondaryForeground)',
             }}
           >
             <span className="codicon codicon-link"></span>
             Link .mm.yml
           </button>
           <p className="text-xs mt-2 opacity-80">
-            Link an existing memory map file to include its address blocks and
-            registers.
+            Link an existing memory map file to include its address blocks and registers.
           </p>
         </div>
       )}

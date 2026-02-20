@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import type { MemoryMap } from '../types/memoryMap';
 import { YamlService } from '../services/YamlService';
 import { DataNormalizer } from '../services/DataNormalizer';
@@ -33,8 +33,8 @@ export function useMemoryMapState() {
       let map: unknown;
       if (Array.isArray(parsed)) {
         map = parsed[0];
-      } else if ((parsed ).memory_maps) {
-        map = ((parsed ).memory_maps as unknown[])[0];
+      } else if (parsed.memory_maps) {
+        map = (parsed.memory_maps as unknown[])[0];
       } else {
         map = parsed;
       }
@@ -64,8 +64,8 @@ export function useMemoryMapState() {
       let map: unknown;
       if (Array.isArray(parsed)) {
         map = parsed[0];
-      } else if ((parsed ).memory_maps) {
-        map = ((parsed ).memory_maps as unknown[])[0];
+      } else if (parsed.memory_maps) {
+        map = (parsed.memory_maps as unknown[])[0];
       } else {
         map = parsed;
       }

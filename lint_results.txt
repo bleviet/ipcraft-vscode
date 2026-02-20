@@ -1,0 +1,340 @@
+
+> ipcraft-vscode@0.1.0 lint
+> eslint src --ext ts,tsx
+
+
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/extension.ts
+  19:22  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  19:32  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/generator/IpCoreScaffolder.ts
+  221:11  warning  Unsafe assignment of an `any` value  @typescript-eslint/no-unsafe-assignment
+
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/generator/TemplateLoader.ts
+  14:40  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  69:9   warning  Unsafe return of an `any[]` typed value                                                                    @typescript-eslint/no-unsafe-return
+  88:7   warning  Unsafe return of an `any[]` typed value                                                                    @typescript-eslint/no-unsafe-return
+
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/parser/VhdlParser.ts
+   64:32  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+   65:34  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+   67:34  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  153:11  warning  Prefer using an optional chain expression instead, as it's more concise and easier to read                 @typescript-eslint/prefer-optional-chain
+  184:11  warning  Prefer using an optional chain expression instead, as it's more concise and easier to read                 @typescript-eslint/prefer-optional-chain
+  363:9   warning  Prefer using an optional chain expression instead, as it's more concise and easier to read                 @typescript-eslint/prefer-optional-chain
+
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/providers/MemoryMapEditorProvider.ts
+  80:11  warning  Unsafe member access .type on an `any` value                                    @typescript-eslint/no-unsafe-member-access
+  85:46  warning  Unsafe argument of type `any` assigned to a parameter of type `WebviewMessage`  @typescript-eslint/no-unsafe-argument
+
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/services/BusLibraryService.ts
+   8:33  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  16:39  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  18:7   warning  Unsafe return of an `any` typed value     @typescript-eslint/no-unsafe-return
+  54:7   warning  Unsafe return of an `any` typed value     @typescript-eslint/no-unsafe-return
+
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/services/MessageHandler.ts
+  81:52  warning  Unsafe argument of type `any` assigned to a parameter of type `string`  @typescript-eslint/no-unsafe-argument
+  81:52  warning  Unsafe member access .path on an `any` value                            @typescript-eslint/no-unsafe-member-access
+  81:64  warning  Unexpected any. Specify a different type                                @typescript-eslint/no-explicit-any
+
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/test/__mocks__/vscode.ts
+  22:37  warning  Unsafe return of an `any` typed value             @typescript-eslint/no-unsafe-return
+  22:37  warning  Unsafe member access .toString on an `any` value  @typescript-eslint/no-unsafe-member-access
+  22:37  warning  Unsafe call of an `any` typed value               @typescript-eslint/no-unsafe-call
+  27:32  warning  Unexpected any. Specify a different type          @typescript-eslint/no-explicit-any
+
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/test/suite/algorithms/AddressBlockRepacker.test.ts
+  177:43  warning  Unsafe argument of type `any[]` assigned to a parameter of type `AddressBlockRecord[]`  @typescript-eslint/no-unsafe-argument
+
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/utils/Logger.ts
+   99:16  warning  Unexpected console statement  no-console
+  101:16  warning  Unexpected console statement  no-console
+  107:16  warning  Unexpected console statement  no-console
+
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/algorithms/AddressBlockRepacker.ts
+  13:56  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  22:31  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  23:33  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/components/AddressMapVisualizer.tsx
+   5:11  warning  Unexpected any. Specify a different type              @typescript-eslint/no-explicit-any
+  25:36  warning  Unexpected any. Specify a different type              @typescript-eslint/no-explicit-any
+  26:9   warning  Unsafe assignment of an `any` value                   @typescript-eslint/no-unsafe-assignment
+  26:21  warning  Unsafe member access .registers on an `any` value     @typescript-eslint/no-unsafe-member-access
+  27:7   warning  Unsafe member access .length on an `any` value        @typescript-eslint/no-unsafe-member-access
+  28:5   warning  Unsafe return of an `any` typed value                 @typescript-eslint/no-unsafe-return
+  28:12  warning  Unsafe member access .size on an `any` value          @typescript-eslint/no-unsafe-member-access
+  28:27  warning  Unsafe member access .range on an `any` value         @typescript-eslint/no-unsafe-member-access
+  33:9   warning  Unsafe member access .__kind on an `any` value        @typescript-eslint/no-unsafe-member-access
+  35:13  warning  Unsafe assignment of an `any` value                   @typescript-eslint/no-unsafe-assignment
+  35:21  warning  Unsafe member access .count on an `any` value         @typescript-eslint/no-unsafe-member-access
+  36:13  warning  Unsafe assignment of an `any` value                   @typescript-eslint/no-unsafe-assignment
+  36:22  warning  Unsafe member access .stride on an `any` value        @typescript-eslint/no-unsafe-member-access
+  55:13  warning  Unsafe assignment of an `any` value                   @typescript-eslint/no-unsafe-assignment
+  55:20  warning  Unsafe member access .base_address on an `any` value  @typescript-eslint/no-unsafe-member-access
+  55:42  warning  Unsafe member access .offset on an `any` value        @typescript-eslint/no-unsafe-member-access
+  59:9   warning  Unsafe assignment of an `any` value                   @typescript-eslint/no-unsafe-assignment
+  59:15  warning  Unsafe member access .name on an `any` value          @typescript-eslint/no-unsafe-member-access
+  64:9   warning  Unsafe assignment of an `any` value                   @typescript-eslint/no-unsafe-assignment
+  64:16  warning  Unsafe member access .usage on an `any` value         @typescript-eslint/no-unsafe-member-access
+
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/components/DetailsPanel.tsx
+  83:34  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  99:34  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/components/memorymap/BlockEditor.tsx
+   82:40  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  108:39  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  124:40  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  139:20  warning  This assertion is unnecessary since it does not change the type of the expression                          @typescript-eslint/no-unnecessary-type-assertion
+  148:48  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  266:54  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  266:81  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  380:42  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  383:49  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  384:43  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  474:73  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  524:71  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  552:76  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/components/memorymap/MemoryMapEditor.tsx
+   57:40  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+   90:35  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+   90:63  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  118:39  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  118:67  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  137:53  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  137:81  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  153:17  warning  Unsafe member access .blur on an `any` value                                                               @typescript-eslint/no-unsafe-member-access
+  153:17  warning  Unsafe call of an `any` typed value                                                                        @typescript-eslint/no-unsafe-call
+  153:30  warning  Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+  166:39  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  166:67  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  316:46  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  319:53  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  468:66  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  488:78  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/components/memorymap/RegisterArrayEditor.tsx
+   53:44  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  198:40  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  201:47  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  201:82  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  202:42  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  212:46  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  224:54  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  235:55  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  249:71  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  249:98  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  252:39  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  252:60  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  335:73  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  393:75  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  414:69  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  434:80  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  465:68  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  466:38  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/components/register/FieldsTable.tsx
+   15:15  error    'BitFieldRuntimeDef' is defined but never used. Allowed unused vars must match /^_/u                       @typescript-eslint/no-unused-vars
+  303:56  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  312:45  warning  Prefer using an optional chain expression instead, as it's more concise and easier to read                 @typescript-eslint/prefer-optional-chain
+  345:78  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  372:84  warning  Prefer using an optional chain expression instead, as it's more concise and easier to read                 @typescript-eslint/prefer-optional-chain
+
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/components/register/RegisterEditor.tsx
+  174:57  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/hooks/useFieldEditor.ts
+  451:17  warning  Unsafe member access .blur on an `any` value  @typescript-eslint/no-unsafe-member-access
+  451:17  warning  Unsafe call of an `any` typed value           @typescript-eslint/no-unsafe-call
+  451:30  warning  Unexpected any. Specify a different type      @typescript-eslint/no-explicit-any
+
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/index.tsx
+  119:26  warning  Unsafe member access .registers on an `any` value                                           @typescript-eslint/no-unsafe-member-access
+  119:36  warning  Unexpected any. Specify a different type                                                    @typescript-eslint/no-explicit-any
+  129:21  warning  Unsafe member access .__kind on an `any` value                                              @typescript-eslint/no-unsafe-member-access
+  129:30  warning  Unexpected any. Specify a different type                                                    @typescript-eslint/no-explicit-any
+  148:24  warning  Unsafe member access .__kind on an `any` value                                              @typescript-eslint/no-unsafe-member-access
+  148:33  warning  Unexpected any. Specify a different type                                                    @typescript-eslint/no-explicit-any
+  168:24  warning  Unsafe member access .__kind on an `any` value                                              @typescript-eslint/no-unsafe-member-access
+  168:33  warning  Unexpected any. Specify a different type                                                    @typescript-eslint/no-explicit-any
+  372:14  warning  Forbidden non-null assertion                                                                @typescript-eslint/no-non-null-assertion
+  642:21  warning  Prefer using an optional chain expression instead, as it's more concise and easier to read  @typescript-eslint/prefer-optional-chain
+
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/ipcore/IpCoreApp.tsx
+  88:13  warning  Unsafe assignment of an `any` value                                                                  @typescript-eslint/no-unsafe-assignment
+  90:15  warning  Unsafe member access .type on an `any` value                                                         @typescript-eslint/no-unsafe-member-access
+  92:26  warning  Unsafe argument of type `any` assigned to a parameter of type `string`                               @typescript-eslint/no-unsafe-argument
+  92:26  warning  Unsafe member access .text on an `any` value                                                         @typescript-eslint/no-unsafe-member-access
+  92:40  warning  Unsafe argument of type `any` assigned to a parameter of type `string`                               @typescript-eslint/no-unsafe-argument
+  92:40  warning  Unsafe member access .fileName on an `any` value                                                     @typescript-eslint/no-unsafe-member-access
+  92:58  warning  Unsafe argument of type `any` assigned to a parameter of type `Record<string, unknown> | undefined`  @typescript-eslint/no-unsafe-argument
+  92:58  warning  Unsafe member access .imports on an `any` value                                                      @typescript-eslint/no-unsafe-member-access
+
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/ipcore/components/sections/ClocksTable.tsx
+   43:56  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+   54:21  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  121:40  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  138:28  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  149:36  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  160:34  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  171:34  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  235:34  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  238:32  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/ipcore/components/sections/FileSetsEditor.tsx
+   91:13  warning  Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+   92:11  warning  Unsafe member access .type on an `any` value                                                               @typescript-eslint/no-unsafe-member-access
+   92:50  warning  Unsafe member access .results on an `any` value                                                            @typescript-eslint/no-unsafe-member-access
+   93:37  warning  Unsafe return of an `any` typed value                                                                      @typescript-eslint/no-unsafe-return
+   93:51  warning  Unsafe member access .results on an `any` value                                                            @typescript-eslint/no-unsafe-member-access
+  151:13  warning  Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+  153:9   warning  Unsafe member access .type on an `any` value                                                               @typescript-eslint/no-unsafe-member-access
+  154:9   warning  Unsafe member access .files on an `any` value                                                              @typescript-eslint/no-unsafe-member-access
+  155:9   warning  Unsafe member access .files on an `any` value                                                              @typescript-eslint/no-unsafe-member-access
+  177:30  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  182:15  warning  Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+  182:26  warning  Unsafe member access .files on an `any` value                                                              @typescript-eslint/no-unsafe-member-access
+  182:26  warning  Unsafe call of an `any` typed value                                                                        @typescript-eslint/no-unsafe-call
+  187:57  warning  Unsafe spread of an `any` value in an array                                                                @typescript-eslint/no-unsafe-assignment
+  189:41  warning  Unsafe assignment of type any[] to a variable of type FileEntry[]                                          @typescript-eslint/no-unsafe-assignment
+  324:60  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  393:53  warning  Forbidden non-null assertion                                                                               @typescript-eslint/no-non-null-assertion
+
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/ipcore/components/sections/GeneratorPanel.tsx
+   75:46  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+   79:40  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  107:39  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  148:39  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  160:13  warning  Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+  161:11  warning  Unsafe member access .type on an `any` value                                                               @typescript-eslint/no-unsafe-member-access
+  162:13  warning  Unsafe member access .success on an `any` value                                                            @typescript-eslint/no-unsafe-member-access
+  165:42  warning  Unsafe member access .files on an `any` value                                                              @typescript-eslint/no-unsafe-member-access
+  166:13  warning  Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+  166:20  warning  Unsafe member access .files on an `any` value                                                              @typescript-eslint/no-unsafe-member-access
+  171:13  warning  Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+  171:22  warning  Unsafe member access .error on an `any` value                                                              @typescript-eslint/no-unsafe-member-access
+  371:56  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/ipcore/components/sections/MemoryMapsEditor.tsx
+  23:45  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  35:13  warning  Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+  37:9   warning  Unsafe member access .type on an `any` value                                                               @typescript-eslint/no-unsafe-member-access
+  38:9   warning  Unsafe member access .files on an `any` value                                                              @typescript-eslint/no-unsafe-member-access
+  39:9   warning  Unsafe member access .files on an `any` value                                                              @typescript-eslint/no-unsafe-member-access
+  44:15  warning  Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+  44:26  warning  Unsafe member access .files on an `any` value                                                              @typescript-eslint/no-unsafe-member-access
+  45:36  warning  Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/ipcore/components/sections/MetadataEditor.tsx
+   91:39  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  224:34  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  298:34  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/ipcore/components/sections/ParametersTable.tsx
+   82:40  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  149:28  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  176:36  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  313:40  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/ipcore/components/sections/PortsTable.tsx
+   89:40  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  106:28  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  132:30  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  256:33  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/ipcore/components/sections/ResetsTable.tsx
+   50:54  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+   66:21  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  127:40  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  144:28  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  156:31  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  198:34  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  260:34  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/shared/components/CheckboxField.tsx
+  29:21  warning  Unexpected any. Specify a different type                                 @typescript-eslint/no-explicit-any
+  29:38  warning  Unsafe argument of type `any` assigned to a parameter of type `boolean`  @typescript-eslint/no-unsafe-argument
+  29:38  warning  Unsafe member access .target on an `any` value                           @typescript-eslint/no-unsafe-member-access
+
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/shared/components/FormField.tsx
+  52:29  warning  Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+  65:9   warning  Unsafe member access .key on an `any` value                                                                @typescript-eslint/no-unsafe-member-access
+  68:16  warning  Unsafe member access .key on an `any` value                                                                @typescript-eslint/no-unsafe-member-access
+  73:30  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  89:22  warning  Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+  90:17  warning  Unsafe assignment of an `any` value                                                                        @typescript-eslint/no-unsafe-assignment
+  90:28  warning  Unsafe member access .target on an `any` value                                                             @typescript-eslint/no-unsafe-member-access
+  91:20  warning  Unsafe argument of type `any` assigned to a parameter of type `string`                                     @typescript-eslint/no-unsafe-argument
+  93:47  warning  Unsafe argument of type `any` assigned to a parameter of type `string`                                     @typescript-eslint/no-unsafe-argument
+
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/shared/components/NumberField.tsx
+  50:29  warning  Unexpected any. Specify a different type                                @typescript-eslint/no-explicit-any
+  51:9   warning  Unsafe member access .key on an `any` value                             @typescript-eslint/no-unsafe-member-access
+  53:16  warning  Unsafe member access .key on an `any` value                             @typescript-eslint/no-unsafe-member-access
+  71:22  warning  Unexpected any. Specify a different type                                @typescript-eslint/no-explicit-any
+  71:43  warning  Unsafe argument of type `any` assigned to a parameter of type `string`  @typescript-eslint/no-unsafe-argument
+  71:43  warning  Unsafe member access .target on an `any` value                          @typescript-eslint/no-unsafe-member-access
+
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/shared/components/ReferenceField.tsx
+  130:18  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/shared/components/SelectField.tsx
+  37:29  warning  Unexpected any. Specify a different type                                @typescript-eslint/no-explicit-any
+  38:9   warning  Unsafe member access .key on an `any` value                             @typescript-eslint/no-unsafe-member-access
+  40:16  warning  Unsafe member access .key on an `any` value                             @typescript-eslint/no-unsafe-member-access
+  58:23  warning  Unexpected any. Specify a different type                                @typescript-eslint/no-explicit-any
+  58:40  warning  Unsafe argument of type `any` assigned to a parameter of type `string`  @typescript-eslint/no-unsafe-argument
+  58:40  warning  Unsafe member access .target on an `any` value                          @typescript-eslint/no-unsafe-member-access
+
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/shared/components/TextAreaField.tsx
+  39:29  warning  Unexpected any. Specify a different type                                @typescript-eslint/no-explicit-any
+  40:9   warning  Unsafe member access .key on an `any` value                             @typescript-eslint/no-unsafe-member-access
+  40:31  warning  Unsafe member access .ctrlKey on an `any` value                         @typescript-eslint/no-unsafe-member-access
+  40:44  warning  Unsafe member access .metaKey on an `any` value                         @typescript-eslint/no-unsafe-member-access
+  42:16  warning  Unsafe member access .key on an `any` value                             @typescript-eslint/no-unsafe-member-access
+  62:22  warning  Unexpected any. Specify a different type                                @typescript-eslint/no-explicit-any
+  62:39  warning  Unsafe argument of type `any` assigned to a parameter of type `string`  @typescript-eslint/no-unsafe-argument
+  62:39  warning  Unsafe member access .target on an `any` value                          @typescript-eslint/no-unsafe-member-access
+
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/shared/utils/yamlKeyMapper.ts
+  26:50  warning  Unsafe return of an `any` typed value                                                                           @typescript-eslint/no-unsafe-return
+  26:50  warning  Unsafe member access .toUpperCase on an `any` value                                                             @typescript-eslint/no-unsafe-member-access
+  26:50  warning  Unsafe call of an `any` typed value                                                                             @typescript-eslint/no-unsafe-call
+  33:41  warning  Unexpected any. Specify a different type                                                                        @typescript-eslint/no-explicit-any
+  33:47  warning  Unexpected any. Specify a different type                                                                        @typescript-eslint/no-explicit-any
+  39:5   warning  Unsafe return of an `any[]` typed value                                                                         @typescript-eslint/no-unsafe-return
+  43:19  warning  Unexpected any. Specify a different type                                                                        @typescript-eslint/no-explicit-any
+  44:47  warning  Unsafe argument of type `any` assigned to a parameter of type `ArrayLike<unknown> | { [s: string]: unknown; }`  @typescript-eslint/no-unsafe-argument
+  46:7   warning  Unsafe assignment of an `any` value                                                                             @typescript-eslint/no-unsafe-assignment
+  46:7   warning  Unsafe member access [camelKey] on an `any` value                                                               @typescript-eslint/no-unsafe-member-access
+  58:41  warning  Unexpected any. Specify a different type                                                                        @typescript-eslint/no-explicit-any
+  58:47  warning  Unexpected any. Specify a different type                                                                        @typescript-eslint/no-explicit-any
+  64:5   warning  Unsafe return of an `any[]` typed value                                                                         @typescript-eslint/no-unsafe-return
+  68:19  warning  Unexpected any. Specify a different type                                                                        @typescript-eslint/no-explicit-any
+  69:47  warning  Unsafe argument of type `any` assigned to a parameter of type `ArrayLike<unknown> | { [s: string]: unknown; }`  @typescript-eslint/no-unsafe-argument
+  71:7   warning  Unsafe assignment of an `any` value                                                                             @typescript-eslint/no-unsafe-assignment
+  71:7   warning  Unsafe member access [snakeKey] on an `any` value                                                               @typescript-eslint/no-unsafe-member-access
+
+/home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/utils/BitFieldUtils.ts
+  124:28  warning  Unexpected any. Specify a different type                                @typescript-eslint/no-explicit-any
+  126:29  warning  Unsafe member access .bit_offset on an `any` value                      @typescript-eslint/no-unsafe-member-access
+  127:28  warning  Unsafe member access .bit_width on an `any` value                       @typescript-eslint/no-unsafe-member-access
+  141:30  warning  Unexpected any. Specify a different type                                @typescript-eslint/no-explicit-any
+  144:29  warning  Unsafe member access .bit_offset on an `any` value                      @typescript-eslint/no-unsafe-member-access
+  145:28  warning  Unsafe member access .bit_width on an `any` value                       @typescript-eslint/no-unsafe-member-access
+  162:43  warning  Unexpected any. Specify a different type                                @typescript-eslint/no-explicit-any
+  162:51  warning  Unexpected any. Specify a different type                                @typescript-eslint/no-explicit-any
+  165:26  warning  Unsafe member access .bit_width on an `any` value                       @typescript-eslint/no-unsafe-member-access
+  167:52  warning  Unsafe argument of type `any` assigned to a parameter of type `string`  @typescript-eslint/no-unsafe-argument
+  167:52  warning  Unsafe member access .bits on an `any` value                            @typescript-eslint/no-unsafe-member-access
+  172:7   warning  Unsafe member access .bit_offset on an `any` value                      @typescript-eslint/no-unsafe-member-access
+  173:7   warning  Unsafe member access .bit_width on an `any` value                       @typescript-eslint/no-unsafe-member-access
+  175:18  warning  Unsafe member access .bits on an `any` value                            @typescript-eslint/no-unsafe-member-access
+  176:9   warning  Unsafe member access .bits on an `any` value                            @typescript-eslint/no-unsafe-member-access
+
+✖ 258 problems (1 error, 257 warnings)
+  0 errors and 1 warning potentially fixable with the `--fix` option.
+
