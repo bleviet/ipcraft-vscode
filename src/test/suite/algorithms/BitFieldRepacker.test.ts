@@ -34,9 +34,9 @@ describe('BitFieldRepacker', () => {
 
   describe('formatBits', () => {
     it('should format as single bit when MSB equals LSB', () => {
-      expect(formatBits(5, 5)).toBe('[5]');
-      expect(formatBits(0, 0)).toBe('[0]');
-      expect(formatBits(31, 31)).toBe('[31]');
+      expect(formatBits(5, 5)).toBe('[5:5]');
+      expect(formatBits(0, 0)).toBe('[0:0]');
+      expect(formatBits(31, 31)).toBe('[31:31]');
     });
 
     it('should format as range when MSB differs from LSB', () => {
@@ -84,7 +84,7 @@ describe('BitFieldRepacker', () => {
     });
 
     it('should start from MSB+1 of previous field', () => {
-       const fields = [
+      const fields = [
         { name: 'field1', bits: '[3:0]', bit_offset: 0, bit_width: 4 },
         { name: 'field2', bits: '[3:0]', bit_offset: 0, bit_width: 4 },
       ];
@@ -98,7 +98,7 @@ describe('BitFieldRepacker', () => {
 
   describe('repackFieldsBackward (LSB-Ascending)', () => {
     it('should move fields toward LSB (Down) going backward from index', () => {
-       // Input sorted LSB-Ascending
+      // Input sorted LSB-Ascending
       const fields = [
         { name: 'field1', bits: '[15:8]', bit_offset: 8, bit_width: 8 },
         { name: 'field2', bits: '[15:8]', bit_offset: 8, bit_width: 8 }, // Overlap
@@ -123,12 +123,12 @@ describe('BitFieldRepacker', () => {
         { name: 'field2', bits: '[10:9]', bit_offset: 9, bit_width: 2 }, // example
         { name: 'field3', bits: '[20:16]', bit_offset: 16, bit_width: 5 },
       ];
-      
+
       // Assume we repack index 1 down.
       // Next is index 2 [20:16]. LSB=16.
       // Index 1 should end at 15. Width 2 -> [15:14].
       const result = repackFieldsBackward(fields, 1, 32);
-      
+
       expect(result[1].bits).toBe('[15:14]');
     });
   });

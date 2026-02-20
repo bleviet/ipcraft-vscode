@@ -29,9 +29,9 @@ describe('BitFieldUtils — standalone exports', () => {
     it('returns null for invalid formats', () => {
       expect(parseBitsRange('')).toBeNull();
       expect(parseBitsRange('invalid')).toBeNull();
-      expect(parseBitsRange('7:4')).toBeNull();       // missing brackets
-      expect(parseBitsRange('[7-4]')).toBeNull();     // wrong separator
-      expect(parseBitsRange('[a:b]')).toBeNull();     // non-numeric
+      expect(parseBitsRange('7:4')).toBeNull(); // missing brackets
+      expect(parseBitsRange('[7-4]')).toBeNull(); // wrong separator
+      expect(parseBitsRange('[a:b]')).toBeNull(); // non-numeric
     });
   });
 
@@ -44,10 +44,10 @@ describe('BitFieldUtils — standalone exports', () => {
       expect(formatBitsRange(31, 0)).toBe('[31:0]');
     });
 
-    it('formats a single-bit range as [n]', () => {
-      expect(formatBitsRange(5, 5)).toBe('[5]');
-      expect(formatBitsRange(0, 0)).toBe('[0]');
-      expect(formatBitsRange(31, 31)).toBe('[31]');
+    it('formats a single-bit range as [n:n]', () => {
+      expect(formatBitsRange(5, 5)).toBe('[5:5]');
+      expect(formatBitsRange(0, 0)).toBe('[0:0]');
+      expect(formatBitsRange(31, 31)).toBe('[31:31]');
     });
   });
 
@@ -56,7 +56,7 @@ describe('BitFieldUtils — standalone exports', () => {
   // -------------------------------------------------------------------------
   describe('fieldToBitsString', () => {
     it('computes from bit_offset and bit_width when both are present', () => {
-      expect(fieldToBitsString({ bit_offset: 0, bit_width: 1 })).toBe('[0]');
+      expect(fieldToBitsString({ bit_offset: 0, bit_width: 1 })).toBe('[0:0]');
       expect(fieldToBitsString({ bit_offset: 4, bit_width: 4 })).toBe('[7:4]');
       expect(fieldToBitsString({ bit_offset: 0, bit_width: 32 })).toBe('[31:0]');
     });

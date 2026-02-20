@@ -42,7 +42,7 @@ export function parseBitsRange(bits: string): [number, number] | null {
  * @param lo Least-significant bit index.
  */
 export function formatBitsRange(hi: number, lo: number): string {
-  return hi === lo ? `[${hi}]` : `[${hi}:${lo}]`;
+  return `[${hi}:${lo}]`;
 }
 
 /**
