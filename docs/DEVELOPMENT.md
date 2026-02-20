@@ -63,13 +63,13 @@ npm run type-check
 ```bash
 npm run test:unit          # Jest unit suites (src/test/suite/**)
 npm run test:unit -- useFieldEditor.test.ts
-npm run test               # VS Code extension test harness
-npm run test:all           # unit + extension tests
+npm run test               # default test command (currently same as test:unit)
+npm run test:all           # unit tests + default test command
 ```
 
 Notes:
 
-- `pretest` runs compile-tests + compile + lint before extension tests.
+- `pretest` runs compile-tests + compile + lint before `npm run test`.
 - For fast local iteration, run targeted `test:unit` first.
 
 ---

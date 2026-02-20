@@ -108,7 +108,7 @@
     "format": "prettier --write \"src/**/*.{ts,tsx}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx}\"",
     "type-check": "tsc --noEmit",
-    "test": "node ./out/test/runTest.js",
+    "test": "npm run test:unit",
     "test:unit": "jest",
     "test:unit:watch": "jest --watch",
     "test:unit:coverage": "jest --coverage",

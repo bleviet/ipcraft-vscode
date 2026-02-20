@@ -87,7 +87,7 @@ npm run watch
 # Unit tests (Jest)
 npm run test:unit
 
-# Extension tests (VS Code integration harness)
+# Default test command
 npm run test
 
 # Type checking

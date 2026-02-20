@@ -117,10 +117,10 @@ Spatial editing is implemented with pure functions/services:
 - Location: `src/test/suite/**`
 - Focus: algorithms, services, hooks, and selected components
 
-### Extension tests (VS Code harness)
+### Default test entrypoint
 
-- Location: `test/**`
-- Run through extension test entrypoint (`npm run test`)
+- `npm run test` currently runs the Jest suite (`npm run test:unit`)
+- no dedicated VS Code extension-harness script is currently wired in `package.json`
 
 ---
 
