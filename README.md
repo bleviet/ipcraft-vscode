@@ -14,12 +14,9 @@ Visual editor for IP Core and Memory Map specifications.
 ## Installation
 
 ```bash
-git init
 npm install
 npm run compile
 ```
-
-Press `F5` in VS Code to launch the Extension Development Host.
 
 ## Usage
 
