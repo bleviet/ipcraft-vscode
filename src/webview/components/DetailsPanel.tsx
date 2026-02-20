@@ -74,7 +74,7 @@ const DetailsPanel = React.forwardRef<DetailsPanelHandle, DetailsPanelProps>((pr
 
       if (arr.__element_base !== undefined) {
         selectionMeta = {
-          ...(rawSelectionMeta || {}),
+          ...(rawSelectionMeta ?? {}),
           absoluteAddress: arr.__element_base as number,
         };
       }
@@ -90,7 +90,7 @@ const DetailsPanel = React.forwardRef<DetailsPanelHandle, DetailsPanelProps>((pr
       if (arr.__element_base !== undefined) {
         selectedObject = { ...arr, base_address: arr.__element_base };
         selectionMeta = {
-          ...(rawSelectionMeta || {}),
+          ...(rawSelectionMeta ?? {}),
           absoluteAddress: arr.__element_base as number,
         };
       }

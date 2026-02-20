@@ -44,7 +44,7 @@ export interface RegisterArrayEditorProps {
  */
 export function RegisterArrayEditor({ registerArray, onUpdate }: RegisterArrayEditorProps) {
   const arr = registerArray;
-  const nestedRegisters = arr?.registers || [];
+  const nestedRegisters = arr?.registers ?? [];
   const baseOffset = arr?.address_offset ?? 0;
 
   const [selectedRegIndex, setSelectedRegIndex] = useState<number>(-1);
@@ -197,11 +197,11 @@ export function RegisterArrayEditor({ registerArray, onUpdate }: RegisterArrayEd
         <div className="flex justify-between items-start">
           <div>
             <h2 className="text-2xl font-bold font-mono tracking-tight">
-              {arr?.name || 'Register Array'}
+              {arr?.name ?? 'Register Array'}
             </h2>
             <p className="vscode-muted text-sm mt-1 max-w-2xl">
-              {arr?.description || 'Register array'} • {arr?.count || 1} instances ×{' '}
-              {arr?.stride || 4} bytes
+              {arr?.description ?? 'Register array'} • {arr?.count ?? 1} instances ×{' '}
+              {arr?.stride ?? 4} bytes
             </p>
           </div>
         </div>
@@ -211,7 +211,7 @@ export function RegisterArrayEditor({ registerArray, onUpdate }: RegisterArrayEd
           <div>
             <label className="text-xs vscode-muted block mb-1">Name</label>
             <VSCodeTextField
-              value={arr?.name || ''}
+              value={arr?.name ?? ''}
               onInput={(e: Event | React.FormEvent<HTMLElement>) =>
                 onUpdate(['name'], (e.target as HTMLInputElement).value)
               }
@@ -225,7 +225,7 @@ export function RegisterArrayEditor({ registerArray, onUpdate }: RegisterArrayEd
           <div>
             <label className="text-xs vscode-muted block mb-1">Count</label>
             <VSCodeTextField
-              value={String(arr?.count || 1)}
+              value={String(arr?.count ?? 1)}
               onInput={(e: Event | React.FormEvent<HTMLElement>) => {
                 const val = parseInt((e.target as HTMLInputElement).value, 10);
                 if (!isNaN(val) && val > 0) {
@@ -238,7 +238,7 @@ export function RegisterArrayEditor({ registerArray, onUpdate }: RegisterArrayEd
           <div>
             <label className="text-xs vscode-muted block mb-1">Stride (bytes)</label>
             <VSCodeTextField
-              value={String(arr?.stride || 4)}
+              value={String(arr?.stride ?? 4)}
               onInput={(e: Event | React.FormEvent<HTMLElement>) => {
                 const val = parseInt((e.target as HTMLInputElement).value, 10);
                 if (!isNaN(val) && val > 0) {
@@ -254,9 +254,9 @@ export function RegisterArrayEditor({ registerArray, onUpdate }: RegisterArrayEd
         <div className="text-sm vscode-muted">
           <span className="font-mono">
             {toHex(Number(baseOffset))} →{' '}
-            {toHex(Number(baseOffset) + Number(arr?.count || 1) * Number(arr?.stride || 4) - 1)}
+            {toHex(Number(baseOffset) + Number(arr?.count ?? 1) * Number(arr?.stride ?? 4) - 1)}
           </span>
-          <span className="ml-2">({(arr?.count || 1) * (arr?.stride || 4)} bytes total)</span>
+          <span className="ml-2">({(arr?.count ?? 1) * (arr?.stride ?? 4)} bytes total)</span>
         </div>
 
         {/* RegisterMapVisualizer for nested registers */}
@@ -340,7 +340,7 @@ export function RegisterArrayEditor({ registerArray, onUpdate }: RegisterArrayEd
                       >
                         {regActiveCell.rowIndex === idx && regActiveCell.key === 'name' ? (
                           <VSCodeTextField
-                            value={reg.name || ''}
+                            value={reg.name ?? ''}
                             onInput={(e: Event | React.FormEvent<HTMLElement>) =>
                               onUpdate(
                                 ['registers', idx, 'name'],
@@ -403,7 +403,7 @@ export function RegisterArrayEditor({ registerArray, onUpdate }: RegisterArrayEd
                       >
                         {regActiveCell.rowIndex === idx && regActiveCell.key === 'access' ? (
                           <VSCodeDropdown
-                            value={reg.access || 'read-write'}
+                            value={reg.access ?? 'read-write'}
                             onInput={(e: Event | React.FormEvent<HTMLElement>) =>
                               onUpdate(
                                 ['registers', idx, 'access'],
@@ -428,7 +428,7 @@ export function RegisterArrayEditor({ registerArray, onUpdate }: RegisterArrayEd
                                   : 'bg-green-500 text-green-500'
                             }`}
                           >
-                            {reg.access || 'RW'}
+                            {reg.access ?? 'RW'}
                           </span>
                         )}
                       </td>
@@ -449,7 +449,7 @@ export function RegisterArrayEditor({ registerArray, onUpdate }: RegisterArrayEd
                       >
                         {regActiveCell.rowIndex === idx && regActiveCell.key === 'description' ? (
                           <VSCodeTextField
-                            value={reg.description || ''}
+                            value={reg.description ?? ''}
                             onInput={(e: Event | React.FormEvent<HTMLElement>) =>
                               onUpdate(
                                 ['registers', idx, 'description'],
@@ -483,7 +483,7 @@ export function RegisterArrayEditor({ registerArray, onUpdate }: RegisterArrayEd
 
         <div className="flex-none p-4 bg-vscode-editor-background border-t vscode-border flex justify-between items-center">
           <p className="text-xs vscode-muted">
-            These registers are replicated {arr?.count || 1} times at {arr?.stride || 4}-byte
+            These registers are replicated {arr?.count ?? 1} times at {arr?.stride ?? 4}-byte
             intervals.
           </p>
           <KeyboardShortcutsButton context="array" />

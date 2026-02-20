@@ -19,12 +19,12 @@ export const window = {
 export const workspace = {
   onDidChangeTextDocument: jest.fn(),
   applyEdit: jest.fn(),
-  asRelativePath: jest.fn((path) => path.toString()),
+  asRelativePath: jest.fn((path: { toString: () => string }) => path.toString()),
 };
 
 export const Uri = {
   file: jest.fn((path: string) => ({ fsPath: path, toString: () => path })),
-  joinPath: jest.fn((...paths: any[]) => ({
+  joinPath: jest.fn((...paths: Array<{ toString: () => string }>) => ({
     fsPath: paths.join('/'),
     toString: () => paths.join('/'),
   })),

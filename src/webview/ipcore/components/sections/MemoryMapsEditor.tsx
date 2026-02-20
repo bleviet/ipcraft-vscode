@@ -20,7 +20,7 @@ export const MemoryMapsEditor: React.FC<MemoryMapsEditorProps> = ({
   // memoryMaps:
   //   import: "path/to/file"
   const importFile = memMaps?.import as string | undefined;
-  const detectedMaps = (imports?.memoryMaps || []) as Record<string, unknown>[];
+  const detectedMaps = (imports?.memoryMaps ?? []) as Record<string, unknown>[];
 
   const handleLinkFile = useCallback(() => {
     // Send message to extension to open file picker with filter
@@ -32,7 +32,7 @@ export const MemoryMapsEditor: React.FC<MemoryMapsEditorProps> = ({
 
     // Listen for response
     const handler = (event: MessageEvent) => {
-      const message = event.data;
+      const message = event.data as { type?: string; files?: string[] };
       if (message.type === 'filesSelected' && message.files && message.files.length > 0) {
         // Update the memory map import
         // We update the whole memoryMaps object to be { import: "path" }

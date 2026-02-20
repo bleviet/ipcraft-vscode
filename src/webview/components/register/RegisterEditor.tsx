@@ -156,7 +156,7 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
               onCreateField={(newField) => {
                 let maxN = 0;
                 for (const f of fields) {
-                  const m = String(f.name || '').match(/^field(\d+)$/);
+                  const m = String(f.name ?? '').match(/^field(\d+)$/);
                   if (m) {
                     maxN = Math.max(maxN, parseInt(m[1], 10));
                   }

@@ -26,7 +26,11 @@ export const CheckboxField: React.FC<CheckboxFieldProps> = ({
       data-edit-key={dataEditKey}
       checked={checked}
       disabled={disabled}
-      onChange={(e: any) => onChange(e.target.checked)}
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      onChange={(e: any) => {
+        const event = e as unknown as React.ChangeEvent<HTMLInputElement>;
+        onChange(event.target.checked);
+      }}
     >
       {label}
     </VSCodeCheckbox>

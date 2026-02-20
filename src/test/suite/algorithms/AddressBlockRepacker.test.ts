@@ -1,15 +1,15 @@
 import {
   repackBlocksForward,
   repackBlocksBackward,
-} from "../../../webview/algorithms/AddressBlockRepacker";
+} from '../../../webview/algorithms/AddressBlockRepacker';
 
-describe("AddressBlockRepacker", () => {
-  describe("repackBlocksForward", () => {
-    it("should repack blocks forward maintaining sizes", () => {
+describe('AddressBlockRepacker', () => {
+  describe('repackBlocksForward', () => {
+    it('should repack blocks forward maintaining sizes', () => {
       const blocks = [
-        { name: "Block1", base_address: 0x0000, size: 0x1000 },
-        { name: "Block2", base_address: 0x2000, size: 0x1000 },
-        { name: "Block3", base_address: 0x5000, size: 0x2000 },
+        { name: 'Block1', base_address: 0x0000, size: 0x1000 },
+        { name: 'Block2', base_address: 0x2000, size: 0x1000 },
+        { name: 'Block3', base_address: 0x5000, size: 0x2000 },
       ];
 
       const result = repackBlocksForward(blocks, 1);
@@ -20,10 +20,10 @@ describe("AddressBlockRepacker", () => {
       expect(result[2].base_address).toBe(0x2000); // After block 1
     });
 
-    it("should handle repacking from index 0", () => {
+    it('should handle repacking from index 0', () => {
       const blocks = [
-        { name: "Block1", base_address: 0x1000, size: 0x1000 },
-        { name: "Block2", base_address: 0x5000, size: 0x2000 },
+        { name: 'Block1', base_address: 0x1000, size: 0x1000 },
+        { name: 'Block2', base_address: 0x5000, size: 0x2000 },
       ];
 
       const result = repackBlocksForward(blocks, 0);
@@ -33,11 +33,11 @@ describe("AddressBlockRepacker", () => {
       expect(result[1].base_address).toBe(0x1000);
     });
 
-    it("should handle blocks with varying sizes", () => {
+    it('should handle blocks with varying sizes', () => {
       const blocks = [
-        { name: "Block1", base_address: 0x0000, size: 0x100 },
-        { name: "Block2", base_address: 0x1000, size: 0x2000 },
-        { name: "Block3", base_address: 0x5000, size: 0x500 },
+        { name: 'Block1', base_address: 0x0000, size: 0x100 },
+        { name: 'Block2', base_address: 0x1000, size: 0x2000 },
+        { name: 'Block3', base_address: 0x5000, size: 0x500 },
       ];
 
       const result = repackBlocksForward(blocks, 1);
@@ -47,10 +47,10 @@ describe("AddressBlockRepacker", () => {
       expect(result[2].base_address).toBe(0x2100); // 0x100 + 0x2000
     });
 
-    it("should preserve original array", () => {
+    it('should preserve original array', () => {
       const blocks = [
-        { name: "Block1", base_address: 0x0000, size: 0x1000 },
-        { name: "Block2", base_address: 0x2000, size: 0x1000 },
+        { name: 'Block1', base_address: 0x0000, size: 0x1000 },
+        { name: 'Block2', base_address: 0x2000, size: 0x1000 },
       ];
 
       const result = repackBlocksForward(blocks, 1);
@@ -60,23 +60,23 @@ describe("AddressBlockRepacker", () => {
       expect(result[1].base_address).toBe(0x1000);
     });
 
-    it("should handle single block", () => {
-      const blocks = [{ name: "Block1", base_address: 0x5000, size: 0x1000 }];
+    it('should handle single block', () => {
+      const blocks = [{ name: 'Block1', base_address: 0x5000, size: 0x1000 }];
 
       const result = repackBlocksForward(blocks, 0);
 
       expect(result[0].base_address).toBe(0);
     });
 
-    it("should handle empty array", () => {
+    it('should handle empty array', () => {
       const result = repackBlocksForward([], 0);
       expect(result).toEqual([]);
     });
 
-    it("should handle type coercion for size property", () => {
+    it('should handle type coercion for size property', () => {
       const blocks = [
-        { name: "Block1", base_address: 0x0000, size: 0x1000 },
-        { name: "Block2", base_address: 0x2000, size: undefined as any },
+        { name: 'Block1', base_address: 0x0000, size: 0x1000 },
+        { name: 'Block2', base_address: 0x2000, size: undefined as any },
       ];
 
       const result = repackBlocksForward(blocks, 1);
@@ -86,12 +86,12 @@ describe("AddressBlockRepacker", () => {
     });
   });
 
-  describe("repackBlocksBackward", () => {
-    it("should repack blocks backward maintaining sizes", () => {
+  describe('repackBlocksBackward', () => {
+    it('should repack blocks backward maintaining sizes', () => {
       const blocks = [
-        { name: "Block1", base_address: 0x0000, size: 0x1000 },
-        { name: "Block2", base_address: 0x2000, size: 0x1000 },
-        { name: "Block3", base_address: 0x5000, size: 0x2000 },
+        { name: 'Block1', base_address: 0x0000, size: 0x1000 },
+        { name: 'Block2', base_address: 0x2000, size: 0x1000 },
+        { name: 'Block3', base_address: 0x5000, size: 0x2000 },
       ];
 
       const result = repackBlocksBackward(blocks, 1);
@@ -102,10 +102,10 @@ describe("AddressBlockRepacker", () => {
       expect(result[0].base_address).toBe(0x3000); // 0x4000 - 0x1000
     });
 
-    it("should handle repacking to end when fromIndex is last", () => {
+    it('should handle repacking to end when fromIndex is last', () => {
       const blocks = [
-        { name: "Block1", base_address: 0x0000, size: 0x1000 },
-        { name: "Block2", base_address: 0x1000, size: 0x2000 },
+        { name: 'Block1', base_address: 0x0000, size: 0x1000 },
+        { name: 'Block2', base_address: 0x1000, size: 0x2000 },
       ];
 
       const result = repackBlocksBackward(blocks, 1);
@@ -115,10 +115,10 @@ describe("AddressBlockRepacker", () => {
       expect(result[0].base_address).toBeGreaterThanOrEqual(0);
     });
 
-    it("should clamp to address 0", () => {
+    it('should clamp to address 0', () => {
       const blocks = [
-        { name: "Block1", base_address: 0x1000, size: 0x5000 }, // Too large
-        { name: "Block2", base_address: 0x2000, size: 0x1000 },
+        { name: 'Block1', base_address: 0x1000, size: 0x5000 }, // Too large
+        { name: 'Block2', base_address: 0x2000, size: 0x1000 },
       ];
 
       const result = repackBlocksBackward(blocks, 0);
@@ -127,10 +127,10 @@ describe("AddressBlockRepacker", () => {
       expect(result[0].base_address).toBe(0);
     });
 
-    it("should preserve original array", () => {
+    it('should preserve original array', () => {
       const blocks = [
-        { name: "Block1", base_address: 0x0000, size: 0x1000 },
-        { name: "Block2", base_address: 0x5000, size: 0x2000 },
+        { name: 'Block1', base_address: 0x0000, size: 0x1000 },
+        { name: 'Block2', base_address: 0x5000, size: 0x2000 },
       ];
 
       const result = repackBlocksBackward(blocks, 0);
@@ -140,13 +140,13 @@ describe("AddressBlockRepacker", () => {
       expect(result).not.toBe(blocks);
     });
 
-    it("should handle empty array", () => {
+    it('should handle empty array', () => {
       const result = repackBlocksBackward([], 0);
       expect(result).toEqual([]);
     });
 
-    it("should handle single block", () => {
-      const blocks = [{ name: "Block1", base_address: 0x5000, size: 0x1000 }];
+    it('should handle single block', () => {
+      const blocks = [{ name: 'Block1', base_address: 0x5000, size: 0x1000 }];
 
       const result = repackBlocksBackward(blocks, 0);
 
@@ -154,11 +154,11 @@ describe("AddressBlockRepacker", () => {
     });
   });
 
-  describe("Edge cases", () => {
-    it("should handle zero-sized blocks", () => {
+  describe('Edge cases', () => {
+    it('should handle zero-sized blocks', () => {
       const blocks = [
-        { name: "Block1", base_address: 0x0000, size: 0 },
-        { name: "Block2", base_address: 0x1000, size: 0x1000 },
+        { name: 'Block1', base_address: 0x0000, size: 0 },
+        { name: 'Block2', base_address: 0x1000, size: 0x1000 },
       ];
 
       const forward = repackBlocksForward(blocks, 1);
@@ -168,20 +168,21 @@ describe("AddressBlockRepacker", () => {
       expect(backward[0].base_address).toBeGreaterThanOrEqual(0);
     });
 
-    it("should handle missing size property", () => {
+    it('should handle missing size property', () => {
       const blocks = [
-        { name: "Block1", base_address: 0x0000 } as any,
-        { name: "Block2", base_address: 0x1000, size: 0x1000 },
+        { name: 'Block1', base_address: 0x0000 } as any,
+        { name: 'Block2', base_address: 0x1000, size: 0x1000 },
       ];
 
-      const forward = repackBlocksForward(blocks, 0);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      const forward = repackBlocksForward(blocks as any, 0);
       expect(forward[0].base_address).toBe(0);
     });
 
-    it("should handle very large addresses", () => {
+    it('should handle very large addresses', () => {
       const blocks = [
-        { name: "Block1", base_address: 0xffff0000, size: 0x1000 },
-        { name: "Block2", base_address: 0xffff5000, size: 0x1000 },
+        { name: 'Block1', base_address: 0xffff0000, size: 0x1000 },
+        { name: 'Block2', base_address: 0xffff5000, size: 0x1000 },
       ];
 
       const result = repackBlocksForward(blocks, 1);

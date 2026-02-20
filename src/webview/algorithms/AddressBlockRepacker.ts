@@ -10,17 +10,17 @@ import type { AddressBlockRecord, RegisterRecord } from '../types/editor';
  * For register arrays: count * stride bytes
  */
 function calculateBlockSize(block: AddressBlockRecord): number {
-  const registers: RegisterRecord[] = block?.registers || [];
+  const registers: RegisterRecord[] = block?.registers ?? [];
   if (registers.length === 0) {
-    return typeof block?.size === "number" ? block.size : 4;
+    return typeof block?.size === 'number' ? block.size : 4;
   }
 
   let totalSize = 0;
   for (const reg of registers) {
-    if (reg.__kind === "array") {
+    if (reg.__kind === 'array') {
       // Register array: size = count * stride
-      const count = reg.count || 1;
-      const stride = reg.stride || 4;
+      const count = reg.count ?? 1;
+      const stride = reg.stride ?? 4;
       totalSize += count * stride;
     } else {
       // Regular register: 4 bytes
@@ -38,7 +38,10 @@ function calculateBlockSize(block: AddressBlockRecord): number {
  * @param fromIndex Starting index for repacking (inclusive)
  * @returns New array with repacked blocks
  */
-export function repackBlocksForward(blocks: AddressBlockRecord[], fromIndex: number): AddressBlockRecord[] {
+export function repackBlocksForward(
+  blocks: AddressBlockRecord[],
+  fromIndex: number
+): AddressBlockRecord[] {
   const newBlocks = [...blocks];
 
   // Start from the block just before fromIndex to determine the starting position
@@ -46,7 +49,7 @@ export function repackBlocksForward(blocks: AddressBlockRecord[], fromIndex: num
   if (fromIndex > 0) {
     const prevBlock = newBlocks[fromIndex - 1];
     const prevBase: number =
-      typeof prevBlock.base_address === "number" ? prevBlock.base_address : 0;
+      typeof prevBlock.base_address === 'number' ? prevBlock.base_address : 0;
     const prevSize = calculateBlockSize(prevBlock);
     nextBase = prevBase + prevSize;
   }
@@ -74,7 +77,10 @@ export function repackBlocksForward(blocks: AddressBlockRecord[], fromIndex: num
  * @param fromIndex Starting index for repacking (inclusive), goes backward to index 0
  * @returns New array with repacked blocks
  */
-export function repackBlocksBackward(blocks: AddressBlockRecord[], fromIndex: number): AddressBlockRecord[] {
+export function repackBlocksBackward(
+  blocks: AddressBlockRecord[],
+  fromIndex: number
+): AddressBlockRecord[] {
   const newBlocks = [...blocks];
   if (newBlocks.length === 0) {
     return [];
@@ -84,9 +90,7 @@ export function repackBlocksBackward(blocks: AddressBlockRecord[], fromIndex: nu
   // `nextEnd` tracks an inclusive end address; `Infinity` preserves the current
   // block base for the first processed element when repacking from the tail.
   let nextEnd: number =
-    fromIndex < newBlocks.length - 1
-      ? (newBlocks[fromIndex + 1].base_address ?? 0) - 1
-      : Infinity;
+    fromIndex < newBlocks.length - 1 ? (newBlocks[fromIndex + 1].base_address ?? 0) - 1 : Infinity;
 
   for (let i = fromIndex; i >= 0; i--) {
     const block = newBlocks[i];

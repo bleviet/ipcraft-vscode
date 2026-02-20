@@ -37,7 +37,7 @@ const normalizeClock = (clock: Clock): Clock => {
     input: 'input',
     output: 'output',
   };
-  return { ...clock, direction: dirMap[clock.direction || 'input'] || 'input' };
+  return { ...clock, direction: dirMap[clock.direction ?? 'input'] || 'input' };
 };
 
 // Helper to display normalized direction
@@ -48,7 +48,7 @@ const displayDirection = (dir?: string): string => {
     input: 'input',
     output: 'output',
   };
-  return dirMap[dir || 'input'] || 'input';
+  return dirMap[dir ?? 'input'] || 'input';
 };
 
 const COLUMN_KEYS = ['name', 'logicalName', 'frequency', 'direction', 'usedBy'];
@@ -108,7 +108,7 @@ export const ClocksTable: React.FC<ClocksTableProps> = ({
 
   const existingNames = clocks.map((c) => c.name).filter((_, i) => i !== editingIndex);
   const nameError =
-    validateVhdlIdentifier(draft.name) || validateUniqueName(draft.name, existingNames);
+    validateVhdlIdentifier(draft.name) ?? validateUniqueName(draft.name, existingNames);
   const canSave = !nameError;
 
   const renderEditRow = (isNew: boolean) => (
@@ -124,7 +124,7 @@ export const ClocksTable: React.FC<ClocksTableProps> = ({
           label=""
           value={draft.name}
           onChange={(v: string) => setDraft({ ...draft, name: v })}
-          error={nameError || undefined}
+          error={nameError ?? undefined}
           placeholder="i_clk_sys"
           required
           data-edit-key="name"
@@ -135,7 +135,7 @@ export const ClocksTable: React.FC<ClocksTableProps> = ({
       <td className="px-4 py-3">
         <FormField
           label=""
-          value={draft.logicalName || 'CLK'}
+          value={draft.logicalName ?? 'CLK'}
           onChange={(v: string) => setDraft({ ...draft, logicalName: v })}
           placeholder="CLK"
           data-edit-key="logicalName"
@@ -146,7 +146,7 @@ export const ClocksTable: React.FC<ClocksTableProps> = ({
       <td className="px-4 py-3">
         <FormField
           label=""
-          value={draft.frequency || ''}
+          value={draft.frequency ?? ''}
           onChange={(v: string) => setDraft({ ...draft, frequency: v })}
           placeholder="100 MHz"
           data-edit-key="frequency"
@@ -157,7 +157,7 @@ export const ClocksTable: React.FC<ClocksTableProps> = ({
       <td className="px-4 py-3">
         <SelectField
           label=""
-          value={draft.direction || 'input'}
+          value={draft.direction ?? 'input'}
           options={[
             { value: 'input', label: 'input' },
             { value: 'output', label: 'output' },
@@ -221,10 +221,10 @@ export const ClocksTable: React.FC<ClocksTableProps> = ({
               {clock.name}
             </td>
             <td className="px-4 py-3 text-sm font-mono" {...getCellProps(index, 'logicalName')}>
-              {clock.logicalName || 'CLK'}
+              {clock.logicalName ?? 'CLK'}
             </td>
             <td className="px-4 py-3 text-sm" {...getCellProps(index, 'frequency')}>
-              {clock.frequency || '—'}
+              {clock.frequency ?? '—'}
             </td>
             <td className="px-4 py-3 text-sm" {...getCellProps(index, 'direction')}>
               {displayDirection(clock.direction)}

@@ -62,11 +62,11 @@ function mapBusType(interfaceType: string): BusType | null {
  * Detect bus interface with memory map reference
  */
 function detectBusWithMemoryMap(ipCore: IpCore): DetectedBusInfo | null {
-  const busInterfaces = ipCore.busInterfaces || [];
+  const busInterfaces = ipCore.busInterfaces ?? [];
 
   for (const bus of busInterfaces) {
     // Check both camelCase (runtime) and snake_case (type def)
-    const memMapRef = bus.memoryMapRef || bus.memory_map_ref;
+    const memMapRef = bus.memoryMapRef ?? bus.memory_map_ref;
     if (memMapRef) {
       const busType = mapBusType(bus.type);
       if (busType) {
@@ -94,7 +94,7 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({ ipCore }) => {
     return Object.keys(savedState).length > 0 && savedState.generationOptions
       ? (savedState.generationOptions as GenerationOptions)
       : {
-          busType: detectedBus?.busType || 'axil',
+          busType: detectedBus?.busType ?? 'axil',
           includeVhdl: true,
           includeRegfile: true,
           vendorFiles: 'none',
@@ -135,7 +135,7 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({ ipCore }) => {
     vscode?.postMessage({
       type: 'generate',
       options: {
-        busType: detectedBus?.busType || options.busType,
+        busType: detectedBus?.busType ?? options.busType,
         includeVhdl: options.includeVhdl,
         includeRegfile: options.includeRegfile,
         vendorFiles: options.vendorFiles,
@@ -147,18 +147,23 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({ ipCore }) => {
   // Listen for generation result messages
   React.useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      const message = event.data;
+      const message = event.data as {
+        type?: string;
+        success?: boolean;
+        files?: string[];
+        error?: string;
+      };
       if (message.type === 'generateResult') {
         if (message.success) {
           setStatus({
             status: 'success',
-            message: `Generated ${String(message.files?.length || 0)} files`,
+            message: `Generated ${String(message.files?.length ?? 0)} files`,
             files: message.files,
           });
         } else {
           setStatus({
             status: 'error',
-            message: message.error || 'Generation failed',
+            message: message.error ?? 'Generation failed',
           });
         }
       }
@@ -339,7 +344,7 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({ ipCore }) => {
                   <div style={{ paddingLeft: '24px', opacity: 0.8 }}>├── {ipName}.vhd</div>
                   <div style={{ paddingLeft: '24px', opacity: 0.8 }}>├── {ipName}_core.vhd</div>
                   <div style={{ paddingLeft: '24px', opacity: 0.8 }}>
-                    ├── {ipName}_{detectedBus?.busType || 'axil'}.vhd
+                    ├── {ipName}_{detectedBus?.busType ?? 'axil'}.vhd
                   </div>
                   <div style={{ paddingLeft: '24px', opacity: 0.8 }}>└── {ipName}_regs.vhd</div>
                 </div>

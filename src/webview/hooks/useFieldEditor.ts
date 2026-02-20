@@ -415,7 +415,7 @@ export function useFieldEditor(
       e.preventDefault();
       e.stopPropagation();
       try {
-        (activeEl as any).blur?.();
+        activeEl.blur?.();
       } catch {
         // ignore
       }

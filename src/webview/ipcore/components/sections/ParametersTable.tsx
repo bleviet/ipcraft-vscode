@@ -69,7 +69,7 @@ export const ParametersTable: React.FC<ParametersTableProps> = ({
 
   const existingNames = parameters.map((p) => p.name).filter((_, i) => i !== editingIndex);
   const nameError =
-    validateVhdlIdentifier(draft.name) || validateUniqueName(draft.name, existingNames);
+    validateVhdlIdentifier(draft.name) ?? validateUniqueName(draft.name, existingNames);
   const canSave = !nameError;
 
   const renderDefaultValueField = () => {
@@ -133,7 +133,7 @@ export const ParametersTable: React.FC<ParametersTableProps> = ({
           label=""
           value={draft.name}
           onChange={(v: string) => setDraft({ ...draft, name: v })}
-          error={nameError || undefined}
+          error={nameError ?? undefined}
           placeholder="PARAM_NAME"
           required
           data-edit-key="name"
@@ -160,7 +160,7 @@ export const ParametersTable: React.FC<ParametersTableProps> = ({
       <td className="px-4 py-3">
         <FormField
           label=""
-          value={draft.description || ''}
+          value={draft.description ?? ''}
           onChange={(v: string) => setDraft({ ...draft, description: v })}
           placeholder="Optional description"
           data-edit-key="description"
@@ -283,7 +283,7 @@ export const ParametersTable: React.FC<ParametersTableProps> = ({
                       opacity: param.description ? 1 : 0.5,
                     }}
                   >
-                    {param.description || '—'}
+                    {param.description ?? '—'}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <button

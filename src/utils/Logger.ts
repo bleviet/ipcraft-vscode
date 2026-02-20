@@ -1,13 +1,13 @@
-import * as vscode from "vscode";
+import * as vscode from 'vscode';
 
 /**
  * Log levels for extension logging
  */
 export enum LogLevel {
-  DEBUG = "DEBUG",
-  INFO = "INFO",
-  WARN = "WARN",
-  ERROR = "ERROR",
+  DEBUG = 'DEBUG',
+  INFO = 'INFO',
+  WARN = 'WARN',
+  ERROR = 'ERROR',
 }
 
 /**
@@ -22,10 +22,7 @@ export class Logger {
   /**
    * Initialize the logger with a VS Code output channel
    */
-  static initialize(
-    channelName: string,
-    level: LogLevel = LogLevel.INFO,
-  ): void {
+  static initialize(channelName: string, level: LogLevel = LogLevel.INFO): void {
     this.outputChannel = vscode.window.createOutputChannel(channelName);
     this.logLevel = level;
   }
@@ -35,9 +32,7 @@ export class Logger {
    */
   private static getChannel(): vscode.OutputChannel {
     if (!this.outputChannel) {
-      this.outputChannel = vscode.window.createOutputChannel(
-        "FPGA Memory Map Editor",
-      );
+      this.outputChannel = vscode.window.createOutputChannel('FPGA Memory Map Editor');
     }
     return this.outputChannel;
   }
@@ -55,13 +50,13 @@ export class Logger {
   private log(level: LogLevel, message: string, ...args: unknown[]): void {
     const channel = Logger.getChannel();
     const timestamp = new Date().toISOString();
-    const formattedArgs = args.map((arg) => this.formatArg(arg)).join(" ");
-    const logMessage = `[${timestamp}] [${level}] [${this.context}] ${message}${formattedArgs ? " " + formattedArgs : ""}`;
+    const formattedArgs = args.map((arg) => this.formatArg(arg)).join(' ');
+    const logMessage = `[${timestamp}] [${level}] [${this.context}] ${message}${formattedArgs ? ' ' + formattedArgs : ''}`;
 
     channel?.appendLine(logMessage);
 
     // Also log to console in development
-    if (process.env.NODE_ENV === "development") {
+    if (process.env.NODE_ENV === 'development') {
       const consoleMethod = this.getConsoleMethod(level);
       consoleMethod(`[${this.context}]`, message, ...args);
     }
@@ -72,15 +67,15 @@ export class Logger {
    */
   private formatArg(arg: unknown): string {
     if (arg === null) {
-      return "null";
+      return 'null';
     }
     if (arg === undefined) {
-      return "undefined";
+      return 'undefined';
     }
     if (arg instanceof Error) {
-      return `Error: ${arg.message}\n${arg.stack ?? ""}`;
+      return `Error: ${arg.message}\n${arg.stack ?? ''}`;
     }
-    if (typeof arg === "object") {
+    if (typeof arg === 'object') {
       try {
         return JSON.stringify(arg, null, 2);
       } catch {
@@ -96,14 +91,17 @@ export class Logger {
   private getConsoleMethod(level: LogLevel): (...args: unknown[]) => void {
     switch (level) {
       case LogLevel.DEBUG:
+        // eslint-disable-next-line no-console
         return console.debug;
       case LogLevel.INFO:
+        // eslint-disable-next-line no-console
         return console.info;
       case LogLevel.WARN:
         return console.warn;
       case LogLevel.ERROR:
         return console.error;
       default:
+        // eslint-disable-next-line no-console
         return console.log;
     }
   }
@@ -112,12 +110,7 @@ export class Logger {
    * Check if a log level should be logged based on current log level
    */
   private shouldLog(level: LogLevel): boolean {
-    const levels = [
-      LogLevel.DEBUG,
-      LogLevel.INFO,
-      LogLevel.WARN,
-      LogLevel.ERROR,
-    ];
+    const levels = [LogLevel.DEBUG, LogLevel.INFO, LogLevel.WARN, LogLevel.ERROR];
     const currentIndex = levels.indexOf(Logger.logLevel);
     const messageIndex = levels.indexOf(level);
     return messageIndex >= currentIndex;

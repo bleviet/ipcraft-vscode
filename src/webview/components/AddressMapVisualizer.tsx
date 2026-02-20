@@ -1,8 +1,22 @@
 import React, { useMemo } from 'react';
 import { FIELD_COLORS, FIELD_COLOR_KEYS } from '../shared/colors';
 
+export interface VisualizerAddressBlock {
+  name?: string;
+  base_address?: number | string;
+  offset?: number | string;
+  size?: number | string;
+  range?: number | string;
+  usage?: string;
+  registers?: Array<{
+    __kind?: string;
+    count?: number | string;
+    stride?: number | string;
+  }>;
+}
+
 interface AddressMapVisualizerProps {
-  blocks: any[];
+  blocks: VisualizerAddressBlock[];
   hoveredBlockIndex?: number | null;
   setHoveredBlockIndex?: (idx: number | null) => void;
   onBlockClick?: (blockIndex: number) => void;
@@ -22,18 +36,18 @@ function toHex(n: number): string {
  * For register arrays: count * stride bytes
  * Falls back to explicit size if no registers
  */
-function calculateBlockSize(block: any): number {
-  const registers = block?.registers || [];
+function calculateBlockSize(block: VisualizerAddressBlock): number {
+  const registers = block?.registers ?? [];
   if (registers.length === 0) {
-    return block?.size ?? block?.range ?? 4;
+    return Number(block?.size ?? block?.range ?? 4);
   }
 
   let totalSize = 0;
   for (const reg of registers) {
     if (reg.__kind === 'array') {
       // Register array: size = count * stride
-      const count = reg.count || 1;
-      const stride = reg.stride || 4;
+      const count = Number(reg.count ?? 1);
+      const stride = Number(reg.stride ?? 4);
       totalSize += count * stride;
     } else {
       // Regular register: 4 bytes
@@ -56,12 +70,12 @@ const AddressMapVisualizer: React.FC<AddressMapVisualizerProps> = ({
       const size = calculateBlockSize(block);
       return {
         idx,
-        name: block.name || `Block ${idx}`,
+        name: block.name ?? `Block ${idx}`,
         start: Number(base),
         end: Number(base) + Number(size) - 1,
         size,
         color: getBlockColor(idx),
-        usage: block.usage || 'register',
+        usage: block.usage ?? 'register',
       };
     });
   }, [blocks]);

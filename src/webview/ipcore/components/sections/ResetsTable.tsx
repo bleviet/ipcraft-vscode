@@ -44,7 +44,7 @@ const normalizeReset = (reset: Reset): Reset => {
     input: 'input',
     output: 'output',
   };
-  const normalizedDirection = dirMap[reset.direction || 'input'] || 'input';
+  const normalizedDirection = dirMap[reset.direction ?? 'input'] || 'input';
   return {
     ...reset,
     polarity: normalizedPolarity,
@@ -60,7 +60,7 @@ const displayDirection = (dir?: string): string => {
     input: 'input',
     output: 'output',
   };
-  return dirMap[dir || 'input'] || 'input';
+  return dirMap[dir ?? 'input'] || 'input';
 };
 
 const COLUMN_KEYS = ['name', 'logicalName', 'polarity', 'direction', 'usedBy'];
@@ -114,7 +114,7 @@ export const ResetsTable: React.FC<ResetsTableProps> = ({
 
   const existingNames = resets.map((r) => r.name).filter((_, i) => i !== editingIndex);
   const nameError =
-    validateVhdlIdentifier(draft.name) || validateUniqueName(draft.name, existingNames);
+    validateVhdlIdentifier(draft.name) ?? validateUniqueName(draft.name, existingNames);
   const canSave = !nameError;
 
   const renderEditRow = (isNew: boolean) => (
@@ -130,7 +130,7 @@ export const ResetsTable: React.FC<ResetsTableProps> = ({
           label=""
           value={draft.name}
           onChange={(v: string) => setDraft({ ...draft, name: v })}
-          error={nameError || undefined}
+          error={nameError ?? undefined}
           placeholder="i_rst_n_sys"
           required
           data-edit-key="name"
@@ -141,7 +141,7 @@ export const ResetsTable: React.FC<ResetsTableProps> = ({
       <td className="px-4 py-3">
         <SelectField
           label=""
-          value={draft.logicalName || (draft.polarity === 'activeLow' ? 'RESET_N' : 'RESET')}
+          value={draft.logicalName ?? (draft.polarity === 'activeLow' ? 'RESET_N' : 'RESET')}
           options={[
             { value: 'RESET_N', label: 'RESET_N' },
             { value: 'RESET', label: 'RESET' },
@@ -181,7 +181,7 @@ export const ResetsTable: React.FC<ResetsTableProps> = ({
       <td className="px-4 py-3">
         <SelectField
           label=""
-          value={draft.direction || 'input'}
+          value={draft.direction ?? 'input'}
           options={[
             { value: 'input', label: 'input' },
             { value: 'output', label: 'output' },
@@ -243,7 +243,7 @@ export const ResetsTable: React.FC<ResetsTableProps> = ({
               {reset.name}
             </td>
             <td className="px-4 py-3 text-sm font-mono" {...getCellProps(index, 'logicalName')}>
-              {reset.logicalName || (reset.polarity === 'activeLow' ? 'RESET_N' : 'RESET')}
+              {reset.logicalName ?? (reset.polarity === 'activeLow' ? 'RESET_N' : 'RESET')}
             </td>
             <td className="px-4 py-3 text-sm" {...getCellProps(index, 'polarity')}>
               {reset.polarity}

@@ -84,7 +84,12 @@ const IpCoreApp: React.FC = () => {
   // Listen for messages from extension
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      const message = event.data;
+      const message = event.data as {
+        type?: string;
+        text: string;
+        fileName: string;
+        imports?: Record<string, unknown>;
+      };
 
       switch (message.type) {
         case 'update':

@@ -65,13 +65,15 @@ export class MemoryMapEditorProvider implements vscode.CustomTextEditorProvider 
     });
 
     // Handle messages from the webview
-    webviewPanel.webview.onDidReceiveMessage((message) => {
+    webviewPanel.webview.onDidReceiveMessage((m: unknown) => {
+      const message = m as { type?: string; command: string };
       if (message.type === 'ready') {
         isReady = true;
         updateWebview();
         return;
       }
-      void this.messageHandler.handleMessage(message, document);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
+      void this.messageHandler.handleMessage(message as any, document);
     });
 
     // Queue initial content until webview signals readiness

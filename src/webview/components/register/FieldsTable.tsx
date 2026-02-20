@@ -280,7 +280,7 @@ export function FieldsTable({ fields, registerSize, onUpdate, fieldEditor }: Fie
                   {fields.map((field, index) => {
                     const bits = fieldToBitsString(field);
                     const color = getFieldColor(
-                      field.name || `field${index}`,
+                      field.name ?? `field${index}`,
                       field.bit_offset ?? undefined
                     );
                     const resetDisplay =
@@ -288,8 +288,7 @@ export function FieldsTable({ fields, registerSize, onUpdate, fieldEditor }: Fie
                         ? `0x${Number(field.reset_value).toString(16).toUpperCase()}`
                         : '';
 
-                    const fieldKey =
-                      field && field.name ? `${String(field.name)}` : `index-${index}`;
+                    const fieldKey = field?.name ? `${String(field.name)}` : `index-${index}`;
                     const nameValue = nameDrafts[fieldKey] ?? String(field.name ?? '');
                     const nameErr = nameErrors[fieldKey] ?? null;
 
@@ -321,7 +320,7 @@ export function FieldsTable({ fields, registerSize, onUpdate, fieldEditor }: Fie
                           setActiveCell((prev) => ({ rowIndex: index, key: prev.key }));
                           ensureDraftsInitialized(index);
                         }}
-                        id={`row-${String(field.name || '')
+                        id={`row-${String(field.name ?? '')
                           .toLowerCase()
                           .replace(/[^a-z0-9_]/g, '-')}`}
                       >
@@ -349,9 +348,7 @@ export function FieldsTable({ fields, registerSize, onUpdate, fieldEditor }: Fie
                                   className="w-2.5 h-2.5 rounded-sm"
                                   style={{
                                     backgroundColor:
-                                      color === 'gray'
-                                        ? '#e5e7eb'
-                                        : (FIELD_COLORS && FIELD_COLORS[color]) || color,
+                                      color === 'gray' ? '#e5e7eb' : FIELD_COLORS?.[color] || color,
                                   }}
                                 />
                                 <VSCodeTextField

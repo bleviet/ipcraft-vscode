@@ -36,10 +36,12 @@ export const TextAreaField: React.FC<TextAreaFieldProps> = ({
   onSave,
   onCancel,
 }) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleKeyDown = (e: any) => {
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+    const event = e as unknown as KeyboardEvent;
+    if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
       onSave?.();
-    } else if (e.key === 'Escape') {
+    } else if (event.key === 'Escape') {
       onCancel?.();
     }
   };
@@ -59,7 +61,11 @@ export const TextAreaField: React.FC<TextAreaFieldProps> = ({
         rows={rows}
         placeholder={placeholder}
         disabled={disabled}
-        onInput={(e: any) => onChange(e.target.value ?? '')}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        onInput={(e: any) => {
+          const event = e as unknown as React.ChangeEvent<HTMLTextAreaElement>;
+          onChange(event.target.value ?? '');
+        }}
         onKeyDown={handleKeyDown}
         style={
           {

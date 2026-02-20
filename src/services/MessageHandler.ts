@@ -78,7 +78,7 @@ export class MessageHandler {
         await this.handleValidateCommand(document);
         break;
       case 'openFile':
-        await this.handleOpenFileCommand(document, (message as any).path);
+        await this.handleOpenFileCommand(document, (message as unknown as { path: string }).path);
         break;
       default:
         this.logger.warn('Unknown command', message.command);

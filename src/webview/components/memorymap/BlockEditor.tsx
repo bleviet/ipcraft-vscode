@@ -79,7 +79,7 @@ export function BlockEditor({
   onUpdate,
   onNavigateToRegister,
 }: BlockEditorProps) {
-  const registers = block?.registers || [];
+  const registers = block?.registers ?? [];
   const baseAddress = Number(block?.base_address ?? block?.offset ?? 0);
 
   const [selectedRegIndex, setSelectedRegIndex] = useState<number>(-1);
@@ -107,7 +107,7 @@ export function BlockEditor({
 
   // Clamp selection when block changes.
   useEffect(() => {
-    const regs = block?.registers || [];
+    const regs = block?.registers ?? [];
     if (!Array.isArray(regs) || regs.length === 0) {
       setSelectedRegIndex(-1);
       setRegActiveCell({ rowIndex: -1, key: 'name' });
@@ -127,7 +127,7 @@ export function BlockEditor({
       const key = REG_COLUMN_ORDER.includes(prev.key) ? prev.key : 'name';
       return { rowIndex, key };
     });
-  }, [block?.name, (block?.registers || []).length]);
+  }, [block?.name, (block?.registers ?? []).length]);
 
   // Escape: return focus back to the table.
   useEffect(() => {
@@ -159,7 +159,7 @@ export function BlockEditor({
 
   // Keyboard shortcuts (o/O insert, arrow nav, F2/e edit, d delete, Shift+A/I array insert).
   useEffect(() => {
-    const liveRegisters = block?.registers || [];
+    const liveRegisters = block?.registers ?? [];
 
     const tryInsertReg = (after: boolean) => {
       setInsertError(null);
@@ -314,7 +314,7 @@ export function BlockEditor({
         const selectedOffset = selected?.address_offset ?? selected?.offset ?? 0;
         let selectedSize = 4;
         if (selected?.__kind === 'array') {
-          selectedSize = (selected.count || 1) * (selected.stride || 4);
+          selectedSize = (selected.count ?? 1) * (selected.stride ?? 4);
         }
         const newArraySize = 8;
         const baseOffset = isInsertArrayAfter
@@ -443,10 +443,10 @@ export function BlockEditor({
         <div className="flex justify-between items-start relative z-10">
           <div>
             <h2 className="text-2xl font-bold font-mono tracking-tight">
-              {block?.name || 'Address Block'}
+              {block?.name ?? 'Address Block'}
             </h2>
             <p className="vscode-muted text-sm mt-1 max-w-2xl">
-              {block?.description || `Base: ${toHex(baseAddress)}`} • {block?.usage || 'register'}
+              {block?.description ?? `Base: ${toHex(baseAddress)}`} • {block?.usage ?? 'register'}
             </p>
           </div>
         </div>
@@ -538,7 +538,7 @@ export function BlockEditor({
                           <VSCodeTextField
                             data-edit-key="name"
                             className="flex-1"
-                            value={reg.name || ''}
+                            value={reg.name ?? ''}
                             onBlur={(e: Event | React.FormEvent<HTMLElement>) =>
                               onUpdate(
                                 ['registers', idx, 'name'],
@@ -593,7 +593,7 @@ export function BlockEditor({
                         <VSCodeDropdown
                           data-edit-key="access"
                           className="w-full"
-                          value={reg.access || 'read-write'}
+                          value={reg.access ?? 'read-write'}
                           onInput={(e: Event | React.FormEvent<HTMLElement>) =>
                             onUpdate(
                               ['registers', idx, 'access'],
@@ -627,7 +627,7 @@ export function BlockEditor({
                           data-edit-key="description"
                           className="w-full"
                           rows={1}
-                          value={reg.description || ''}
+                          value={reg.description ?? ''}
                           onInput={(e: Event | React.FormEvent<HTMLElement>) =>
                             onUpdate(
                               ['registers', idx, 'description'],

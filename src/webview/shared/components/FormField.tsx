@@ -49,28 +49,21 @@ export const FormField: React.FC<FormFieldProps> = ({
     onBlur?.();
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleKeyDown = (e: any) => {
+    const event = e as unknown as KeyboardEvent;
     // VSCodeTextField uses CustomEvent-like synthetic events but we can access original event
     // Note: The VS Code Webview UI Toolkit components wrap native inputs.
-    // The event passed to onKeyDown might be the native keyboard event directly if attached to the web component?
-    // Actually for React wrapper, let's try standard React KeyboardEvent but typing might be tricky.
-    // It seems VSCodeTextField doesn't expose onKeyDown directly in standard React props interface efficiently
-    // unless we cast it or it just bubbles. Let's assume standard bubbling works on the wrapper div or we attach to component.
-    // However, the toolkit components often stop propagation?
-    // Let's attach to the div wrapper or try to pass it to the component.
 
-    // Wait, looking at the previous code, we didn't have onKeyDown on VSCodeTextField.
-    // We will attach it to the VSCodeTextField.
-
-    if (e.key === 'Enter') {
+    if (event.key === 'Enter') {
       // For text fields, Enter usually means save.
       onSave?.();
-    } else if (e.key === 'Escape') {
+    } else if (event.key === 'Escape') {
       onCancel?.();
     }
   };
 
-  const displayError = error || localError;
+  const displayError = error ?? localError;
 
   return (
     <div className="flex flex-col gap-1">
@@ -86,8 +79,10 @@ export const FormField: React.FC<FormFieldProps> = ({
         value={value}
         placeholder={placeholder}
         disabled={disabled}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         onInput={(e: any) => {
-          const newValue = e.target.value ?? '';
+          const event = e as unknown as React.ChangeEvent<HTMLInputElement>;
+          const newValue = event.target.value ?? '';
           onChange(newValue);
           if (localError && validator) {
             const validationError = validator(newValue);

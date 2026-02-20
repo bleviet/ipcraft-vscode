@@ -23,14 +23,14 @@ export function toSnakeCase(str: string): string {
  * @example toCamelCase('memory_map_ref') => 'memoryMapRef'
  */
 export function toCamelCase(str: string): string {
-  return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+  return str.replace(/_([a-z])/g, (_: string, letter: string) => letter.toUpperCase());
 }
 
 /**
  * Recursively convert object keys from snake_case to camelCase
  * Used when converting pydantic model data to YAML format
  */
-export function mapKeysToCamelCase(obj: any): any {
+export function mapKeysToCamelCase(obj: unknown): unknown {
   if (obj === null || obj === undefined) {
     return obj;
   }
@@ -40,8 +40,8 @@ export function mapKeysToCamelCase(obj: any): any {
   }
 
   if (typeof obj === 'object') {
-    const result: any = {};
-    for (const [key, value] of Object.entries(obj)) {
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
       const camelKey = toCamelCase(key);
       result[camelKey] = mapKeysToCamelCase(value);
     }
@@ -55,7 +55,7 @@ export function mapKeysToCamelCase(obj: any): any {
  * Recursively convert object keys from camelCase to snake_case
  * Used when converting YAML data to match pydantic model structure
  */
-export function mapKeysToSnakeCase(obj: any): any {
+export function mapKeysToSnakeCase(obj: unknown): unknown {
   if (obj === null || obj === undefined) {
     return obj;
   }
@@ -65,8 +65,8 @@ export function mapKeysToSnakeCase(obj: any): any {
   }
 
   if (typeof obj === 'object') {
-    const result: any = {};
-    for (const [key, value] of Object.entries(obj)) {
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
       const snakeKey = toSnakeCase(key);
       result[snakeKey] = mapKeysToSnakeCase(value);
     }

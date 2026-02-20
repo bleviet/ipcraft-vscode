@@ -1,11 +1,11 @@
-import * as path from "path";
-import * as vscode from "vscode";
-import * as yaml from "js-yaml";
-import { Logger } from "../utils/Logger";
+import * as path from 'path';
+import * as vscode from 'vscode';
+import * as yaml from 'js-yaml';
+import { Logger } from '../utils/Logger';
 
 export class BusLibraryService {
   private readonly logger: Logger;
-  private cachedDefaultLibrary: any | null = null;
+  private cachedDefaultLibrary: Record<string, unknown> | null = null;
   private readonly context: vscode.ExtensionContext;
 
   constructor(logger: Logger, context: vscode.ExtensionContext) {
@@ -13,16 +13,16 @@ export class BusLibraryService {
     this.context = context;
   }
 
-  async loadDefaultLibrary(): Promise<any> {
+  async loadDefaultLibrary(): Promise<Record<string, unknown>> {
     if (this.cachedDefaultLibrary) {
       return this.cachedDefaultLibrary;
     }
 
     const builtInPath = path.join(
       this.context.extensionPath,
-      "dist",
-      "resources",
-      "bus_definitions.yml",
+      'dist',
+      'resources',
+      'bus_definitions.yml'
     );
 
     // Provide only one path since webpack handles resources
@@ -34,7 +34,7 @@ export class BusLibraryService {
       try {
         const uri = vscode.Uri.file(candidate);
         const fileData = await vscode.workspace.fs.readFile(uri);
-        loadedContent = Buffer.from(fileData).toString("utf8");
+        loadedContent = Buffer.from(fileData).toString('utf8');
         loadedPath = candidate;
         break;
       } catch (e) {
@@ -43,21 +43,18 @@ export class BusLibraryService {
     }
 
     if (!loadedContent || !loadedPath) {
-      this.logger.error("Default bus library not found in extension resources");
-      return {};
+      this.logger.error('Default bus library not found in extension resources');
+      return {} as Record<string, unknown>;
     }
 
     try {
       const parsed = yaml.load(loadedContent);
-      this.cachedDefaultLibrary = parsed ?? {};
+      this.cachedDefaultLibrary = (parsed as Record<string, unknown>) ?? {};
       this.logger.info(`Loaded default bus library from ${loadedPath}`);
       return this.cachedDefaultLibrary;
     } catch (error) {
-      this.logger.error(
-        `Failed to parse default bus library from ${loadedPath}`,
-        error as Error,
-      );
-      return {};
+      this.logger.error(`Failed to parse default bus library from ${loadedPath}`, error as Error);
+      return {} as Record<string, unknown>;
     }
   }
 

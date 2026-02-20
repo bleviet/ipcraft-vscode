@@ -48,7 +48,7 @@ export interface MemoryMapEditorProps {
  * Calculates block size in bytes based on its registers or explicit size field.
  */
 function calculateBlockSize(block: MemoryMapBlockDef): number {
-  const registers = block?.registers || [];
+  const registers = block?.registers ?? [];
   if (registers.length === 0) {
     const sz = block?.size ?? block?.range ?? 4;
     return typeof sz === 'string' ? Number.parseInt(sz, 10) || 4 : sz;
@@ -80,7 +80,7 @@ export function MemoryMapEditor({
   onUpdate,
   onNavigateToBlock,
 }: MemoryMapEditorProps) {
-  const blocks = memoryMap?.address_blocks || memoryMap?.addressBlocks || [];
+  const blocks = memoryMap?.address_blocks ?? memoryMap?.addressBlocks ?? [];
 
   const [selectedBlockIndex, setSelectedBlockIndex] = useState<number>(-1);
   const [hoveredBlockIndex, setHoveredBlockIndex] = useState<number | null>(null);
@@ -105,7 +105,7 @@ export function MemoryMapEditor({
 
   // Clamp selection when map changes.
   useEffect(() => {
-    const currentBlocks = memoryMap?.address_blocks || memoryMap?.addressBlocks || [];
+    const currentBlocks = memoryMap?.address_blocks ?? memoryMap?.addressBlocks ?? [];
     if (!Array.isArray(currentBlocks) || currentBlocks.length === 0) {
       setSelectedBlockIndex(-1);
       setBlockActiveCell({ rowIndex: -1, key: 'name' });
@@ -125,7 +125,7 @@ export function MemoryMapEditor({
       const key = BLOCK_COLUMN_ORDER.includes(prev.key) ? prev.key : 'name';
       return { rowIndex, key };
     });
-  }, [memoryMap?.name, (memoryMap?.address_blocks || memoryMap?.addressBlocks || []).length]);
+  }, [memoryMap?.name, (memoryMap?.address_blocks ?? memoryMap?.addressBlocks ?? []).length]);
 
   // Escape: return focus from inline editor back to the table.
   useEffect(() => {
@@ -145,7 +145,7 @@ export function MemoryMapEditor({
       e.preventDefault();
       e.stopPropagation();
       try {
-        (activeEl as any).blur?.();
+        activeEl.blur?.();
       } catch {
         // ignore
       }
@@ -157,7 +157,7 @@ export function MemoryMapEditor({
 
   // Keyboard shortcuts.
   useEffect(() => {
-    const liveBlocks = memoryMap?.address_blocks || memoryMap?.addressBlocks || [];
+    const liveBlocks = memoryMap?.address_blocks ?? memoryMap?.addressBlocks ?? [];
 
     const tryInsertBlock = (after: boolean) => {
       setInsertError(null);
@@ -336,10 +336,10 @@ export function MemoryMapEditor({
         <div className="flex justify-between items-start relative z-10">
           <div>
             <h2 className="text-2xl font-bold font-mono tracking-tight">
-              {memoryMap?.name || 'Memory Map'}
+              {memoryMap?.name ?? 'Memory Map'}
             </h2>
             <p className="vscode-muted text-sm mt-1 max-w-2xl">
-              {memoryMap?.description || 'Address space layout'}
+              {memoryMap?.description ?? 'Address space layout'}
             </p>
           </div>
         </div>
@@ -496,7 +496,7 @@ export function MemoryMapEditor({
                         }}
                       >
                         <span className="px-2 py-0.5 rounded text-xs font-medium vscode-badge whitespace-nowrap">
-                          {block.usage || 'register'}
+                          {block.usage ?? 'register'}
                         </span>
                       </td>
                       <td
@@ -517,7 +517,7 @@ export function MemoryMapEditor({
                           data-edit-key="description"
                           className="w-full"
                           rows={1}
-                          value={block.description || ''}
+                          value={block.description ?? ''}
                           onInput={(e: Event | React.FormEvent<HTMLElement>) =>
                             onUpdate(
                               ['addressBlocks', idx, 'description'],

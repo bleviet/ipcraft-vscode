@@ -1,6 +1,6 @@
-import * as fs from "fs/promises";
-import * as path from "path";
-import * as yaml from "js-yaml";
+import * as fs from 'fs/promises';
+import * as path from 'path';
+import * as yaml from 'js-yaml';
 
 export interface ParsedPort {
   name: string;
@@ -29,16 +29,13 @@ export interface ParseResult {
 }
 
 export class VhdlParser {
-  async parseFile(
-    vhdlPath: string,
-    options: ParseOptions = {},
-  ): Promise<ParseResult> {
-    const content = await fs.readFile(vhdlPath, "utf8");
+  async parseFile(vhdlPath: string, options: ParseOptions = {}): Promise<ParseResult> {
+    const content = await fs.readFile(vhdlPath, 'utf8');
     const cleaned = this.stripComments(content);
 
     const entityName = this.extractEntityName(cleaned);
     if (!entityName) {
-      throw new Error("No VHDL entity found in file");
+      throw new Error('No VHDL entity found in file');
     }
 
     const parameters = this.extractParameters(cleaned);
@@ -59,12 +56,12 @@ export class VhdlParser {
     const userPorts = ports.filter((port) => !excludedNames.has(port.name));
 
     const yamlData: Record<string, unknown> = {
-      apiVersion: "ipcore/v1.0",
+      apiVersion: 'ipcore/v1.0',
       vlnv: {
-        vendor: options.vendor || "user",
-        library: options.library || "ip",
+        vendor: options.vendor ?? 'user',
+        library: options.library ?? 'ip',
         name: entityName,
-        version: options.version || "1.0",
+        version: options.version ?? '1.0',
       },
       description: `Generated from ${path.basename(vhdlPath)}`,
     };
@@ -72,7 +69,7 @@ export class VhdlParser {
     if (clockReset.clocks.length > 0) {
       yamlData.clocks = clockReset.clocks.map((clock) => ({
         name: clock.name,
-        description: "",
+        description: '',
       }));
     }
 
@@ -80,7 +77,7 @@ export class VhdlParser {
       yamlData.resets = clockReset.resets.map((reset) => ({
         name: reset.name,
         polarity: reset.polarity,
-        description: "",
+        description: '',
       }));
     }
 
@@ -94,7 +91,7 @@ export class VhdlParser {
         type: bus.type,
         mode: bus.mode,
         physicalPrefix: bus.physicalPrefix,
-        description: "",
+        description: '',
       }));
     }
 
@@ -108,9 +105,9 @@ export class VhdlParser {
 
     yamlData.fileSets = [
       {
-        name: "RTL_Sources",
-        description: "RTL source files",
-        files: [{ path: path.basename(vhdlPath), type: "vhdl" }],
+        name: 'RTL_Sources',
+        description: 'RTL source files',
+        files: [{ path: path.basename(vhdlPath), type: 'vhdl' }],
       },
     ];
 
@@ -129,9 +126,9 @@ export class VhdlParser {
 
   private stripComments(content: string): string {
     return content
-      .split("\n")
-      .map((line) => line.replace(/--.*$/, ""))
-      .join("\n");
+      .split('\n')
+      .map((line) => line.replace(/--.*$/, ''))
+      .join('\n');
   }
 
   private extractEntityName(content: string): string | null {
@@ -140,7 +137,7 @@ export class VhdlParser {
   }
 
   private extractParameters(content: string): ParsedParameter[] {
-    const body = this.extractBlockContent(content, "generic");
+    const body = this.extractBlockContent(content, 'generic');
     if (!body) {
       return [];
     }
@@ -149,16 +146,16 @@ export class VhdlParser {
     const params: ParsedParameter[] = [];
 
     for (const entry of entries) {
-      const cleaned = entry.replace(/\s+/g, " ").trim();
-      if (!cleaned || !cleaned.includes(":")) {
+      const cleaned = entry.replace(/\s+/g, ' ').trim();
+      if (!cleaned?.includes(':')) {
         continue;
       }
-      const [namesPart, typePart] = cleaned.split(":");
+      const [namesPart, typePart] = cleaned.split(':');
       const names = namesPart
-        .split(",")
+        .split(',')
         .map((name) => name.trim())
         .filter(Boolean);
-      const typeMatch = typePart.split(":=");
+      const typeMatch = typePart.split(':=');
       const type = typeMatch[0].trim();
       const value = typeMatch[1]?.trim();
 
@@ -171,7 +168,7 @@ export class VhdlParser {
   }
 
   private extractPorts(content: string): ParsedPort[] {
-    const body = this.extractBlockContent(content, "port");
+    const body = this.extractBlockContent(content, 'port');
     if (!body) {
       return [];
     }
@@ -180,13 +177,13 @@ export class VhdlParser {
     const ports: ParsedPort[] = [];
 
     for (const entry of entries) {
-      const cleaned = entry.replace(/\s+/g, " ").trim();
-      if (!cleaned || !cleaned.includes(":")) {
+      const cleaned = entry.replace(/\s+/g, ' ').trim();
+      if (!cleaned?.includes(':')) {
         continue;
       }
-      const [namesPart, typePart] = cleaned.split(":");
+      const [namesPart, typePart] = cleaned.split(':');
       const names = namesPart
-        .split(",")
+        .split(',')
         .map((name) => name.trim())
         .filter(Boolean);
       const dirMatch = typePart.trim().match(/^(in|out|inout)\s+(.+)$/i);
@@ -233,7 +230,7 @@ export class VhdlParser {
 
   private portToDict(port: ParsedPort): Record<string, unknown> {
     let logicalName = port.name.toUpperCase();
-    ["I_", "O_", "IO_"].forEach((prefix) => {
+    ['I_', 'O_', 'IO_'].forEach((prefix) => {
       if (logicalName.startsWith(prefix)) {
         logicalName = logicalName.slice(prefix.length);
       }
@@ -246,7 +243,7 @@ export class VhdlParser {
     };
 
     if (port.width !== undefined) {
-      if (typeof port.width === "number") {
+      if (typeof port.width === 'number') {
         if (port.width > 1) {
           result.width = port.width;
         }
@@ -282,7 +279,7 @@ export class VhdlParser {
 
     ports.forEach((port) => {
       const name = port.name.toLowerCase();
-      if (port.direction !== "in") {
+      if (port.direction !== 'in') {
         return;
       }
       if (/(^|_)(clk|clock|aclk)$/.test(name)) {
@@ -290,13 +287,10 @@ export class VhdlParser {
         return;
       }
       if (/(^|_)(rst|reset|aresetn|reset_n|rst_n)$/.test(name)) {
-        const activeLow =
-          name.endsWith("n") ||
-          name.includes("reset_n") ||
-          name.includes("rst_n");
+        const activeLow = name.endsWith('n') || name.includes('reset_n') || name.includes('rst_n');
         resets.push({
           name: port.name,
-          polarity: activeLow ? "activeLow" : "activeHigh",
+          polarity: activeLow ? 'activeLow' : 'activeHigh',
         });
       }
     });
@@ -315,25 +309,25 @@ export class VhdlParser {
   } {
     const lowerPorts = ports.map((port) => port.name.toLowerCase());
     const axiSignals = [
-      "awaddr",
-      "awvalid",
-      "awready",
-      "wdata",
-      "wstrb",
-      "wvalid",
-      "wready",
-      "bresp",
-      "bvalid",
-      "bready",
-      "araddr",
-      "arvalid",
-      "arready",
-      "rdata",
-      "rresp",
-      "rvalid",
-      "rready",
+      'awaddr',
+      'awvalid',
+      'awready',
+      'wdata',
+      'wstrb',
+      'wvalid',
+      'wready',
+      'bresp',
+      'bvalid',
+      'bready',
+      'araddr',
+      'arvalid',
+      'arready',
+      'rdata',
+      'rresp',
+      'rvalid',
+      'rready',
     ];
-    const avalonSignals = ["address", "read", "write", "writedata", "readdata"];
+    const avalonSignals = ['address', 'read', 'write', 'writedata', 'readdata'];
 
     const axiMatch = this.findBestPrefix(lowerPorts, axiSignals);
     const avalonMatch = this.findBestPrefix(lowerPorts, avalonSignals);
@@ -341,7 +335,7 @@ export class VhdlParser {
     let selected: {
       prefix: string;
       count: number;
-      type: "AXI4L" | "AVALON_MM";
+      type: 'AXI4L' | 'AVALON_MM';
     } | null = null;
 
     if (axiMatch.count >= 4 || avalonMatch.count >= 3) {
@@ -349,23 +343,23 @@ export class VhdlParser {
         selected = {
           prefix: axiMatch.prefix,
           count: axiMatch.count,
-          type: "AXI4L",
+          type: 'AXI4L',
         };
       } else {
         selected = {
           prefix: avalonMatch.prefix,
           count: avalonMatch.count,
-          type: "AVALON_MM",
+          type: 'AVALON_MM',
         };
       }
     }
 
-    if (!selected || !selected.prefix) {
+    if (!selected?.prefix) {
       return { busInterfaces: [], busPortNames: new Set() };
     }
 
     const physicalPrefix = selected.prefix;
-    const busName = physicalPrefix.replace(/_+$/, "") || "bus";
+    const busName = physicalPrefix.replace(/_+$/, '') || 'bus';
     const busPortNames = new Set<string>();
     ports.forEach((port) => {
       if (port.name.toLowerCase().startsWith(physicalPrefix)) {
@@ -378,7 +372,7 @@ export class VhdlParser {
         {
           name: busName,
           type: selected.type,
-          mode: "slave",
+          mode: 'slave',
           physicalPrefix: physicalPrefix,
         },
       ],
@@ -386,10 +380,7 @@ export class VhdlParser {
     };
   }
 
-  private findBestPrefix(
-    ports: string[],
-    signals: string[],
-  ): { prefix: string; count: number } {
+  private findBestPrefix(ports: string[], signals: string[]): { prefix: string; count: number } {
     const counts = new Map<string, number>();
     ports.forEach((name) => {
       signals.forEach((signal) => {
@@ -400,7 +391,7 @@ export class VhdlParser {
       });
     });
 
-    let bestPrefix = "";
+    let bestPrefix = '';
     let bestCount = 0;
     counts.forEach((count, prefix) => {
       if (count > bestCount) {
@@ -413,12 +404,12 @@ export class VhdlParser {
   }
 
   private extractBlockContent(content: string, keyword: string): string | null {
-    const match = content.match(new RegExp(`\\b${keyword}\\b`, "i"));
+    const match = content.match(new RegExp(`\\b${keyword}\\b`, 'i'));
     if (!match || match.index === undefined) {
       return null;
     }
 
-    const startIndex = content.indexOf("(", match.index);
+    const startIndex = content.indexOf('(', match.index);
     if (startIndex === -1) {
       return null;
     }
@@ -426,9 +417,9 @@ export class VhdlParser {
     let depth = 0;
     for (let i = startIndex; i < content.length; i += 1) {
       const char = content[i];
-      if (char === "(") {
+      if (char === '(') {
         depth += 1;
-      } else if (char === ")") {
+      } else if (char === ')') {
         depth -= 1;
         if (depth === 0) {
           return content.slice(startIndex + 1, i);
@@ -442,22 +433,22 @@ export class VhdlParser {
   private splitEntries(body: string): string[] {
     const entries: string[] = [];
     let depth = 0;
-    let current = "";
+    let current = '';
 
     for (let i = 0; i < body.length; i += 1) {
       const char = body[i];
-      if (char === "(") {
+      if (char === '(') {
         depth += 1;
-      } else if (char === ")") {
+      } else if (char === ')') {
         depth = Math.max(0, depth - 1);
       }
 
-      if (char === ";" && depth === 0) {
+      if (char === ';' && depth === 0) {
         const trimmed = current.trim();
         if (trimmed) {
           entries.push(trimmed);
         }
-        current = "";
+        current = '';
       } else {
         current += char;
       }

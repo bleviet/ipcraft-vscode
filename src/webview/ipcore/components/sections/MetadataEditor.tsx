@@ -81,7 +81,7 @@ const METADATA_ROWS: MetadataRow[] = [
     key: 'description',
     label: 'Description',
     path: ['description'],
-    getValue: (ip) => ip?.description || '',
+    getValue: (ip) => ip?.description ?? '',
     type: 'textarea',
     placeholder: 'Describe the IP core...',
   },
@@ -207,7 +207,7 @@ export const MetadataEditor: React.FC<MetadataEditorProps> = ({ ipCore, onUpdate
           <SelectField
             label=""
             value={draft}
-            options={row.options || []}
+            options={row.options ?? []}
             onChange={setDraft}
             data-edit-key={row.key}
             {...commonProps}
@@ -281,7 +281,7 @@ export const MetadataEditor: React.FC<MetadataEditorProps> = ({ ipCore, onUpdate
           value={draft}
           onChange={setDraft}
           placeholder={row.placeholder}
-          error={validationError || undefined}
+          error={validationError ?? undefined}
           required={row.required}
           data-edit-key={row.key}
           {...commonProps}

@@ -47,10 +47,12 @@ export const NumberField: React.FC<NumberFieldProps> = ({
     }
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleKeyDown = (e: any) => {
-    if (e.key === 'Enter') {
+    const event = e as unknown as KeyboardEvent;
+    if (event.key === 'Enter') {
       onSave?.();
-    } else if (e.key === 'Escape') {
+    } else if (event.key === 'Escape') {
       onCancel?.();
     }
   };
@@ -68,7 +70,11 @@ export const NumberField: React.FC<NumberFieldProps> = ({
         className={className}
         value={String(value)}
         disabled={disabled}
-        onInput={(e: any) => handleChange(e.target.value ?? '')}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        onInput={(e: any) => {
+          const event = e as unknown as React.ChangeEvent<HTMLInputElement>;
+          handleChange(event.target.value ?? '');
+        }}
         onKeyDown={handleKeyDown}
         style={
           {

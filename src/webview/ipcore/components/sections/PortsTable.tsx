@@ -77,7 +77,7 @@ export const PortsTable: React.FC<PortsTableProps> = ({ ports: rawPorts, onUpdat
 
   const existingNames = ports.map((p) => p.name).filter((_, i) => i !== editingIndex);
   const nameError =
-    validateVhdlIdentifier(draft.name) || validateUniqueName(draft.name, existingNames);
+    validateVhdlIdentifier(draft.name) ?? validateUniqueName(draft.name, existingNames);
   const canSave = !nameError;
 
   const renderEditRow = (isNew: boolean) => (
@@ -93,7 +93,7 @@ export const PortsTable: React.FC<PortsTableProps> = ({ ports: rawPorts, onUpdat
           label=""
           value={draft.name}
           onChange={(v: string) => setDraft({ ...draft, name: v })}
-          error={nameError || undefined}
+          error={nameError ?? undefined}
           placeholder="port_name"
           required
           data-edit-key="name"
@@ -119,7 +119,7 @@ export const PortsTable: React.FC<PortsTableProps> = ({ ports: rawPorts, onUpdat
       <td className="px-4 py-3">
         <NumberField
           label=""
-          value={draft.width || 1}
+          value={draft.width ?? 1}
           onChange={(v: number) => setDraft({ ...draft, width: v })}
           min={1}
           data-edit-key="width"
@@ -226,7 +226,7 @@ export const PortsTable: React.FC<PortsTableProps> = ({ ports: rawPorts, onUpdat
                     {displayDirection(port.direction)}
                   </td>
                   <td className="px-4 py-3 text-sm" {...getCellProps(index, 'width')}>
-                    {port.width || 1}
+                    {port.width ?? 1}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <button

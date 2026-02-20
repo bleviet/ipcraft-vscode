@@ -102,7 +102,7 @@ const App = () => {
         };
       }
 
-      const blockRegs = ((block as any).registers ?? []) as Array<
+      const blockRegs = ((block as { registers?: unknown[] }).registers ?? []) as Array<
         NormalizedRegister | NormalizedRegisterArray
       >;
 
@@ -112,7 +112,7 @@ const App = () => {
           return null;
         }
         const node = blockRegs[regIndex];
-        if (node && (node as any).__kind === 'array') {
+        if (node && (node as { __kind?: string }).__kind === 'array') {
           const registerArray = node as NormalizedRegisterArray;
           return {
             type: 'array',
@@ -131,7 +131,7 @@ const App = () => {
             return null;
           }
           const node = blockRegs[regIndex];
-          if (!node || (node as any).__kind === 'array') {
+          if (!node || (node as { __kind?: string }).__kind === 'array') {
             return null;
           }
           const reg = node as NormalizedRegister;
@@ -150,7 +150,7 @@ const App = () => {
             return null;
           }
           const node = blockRegs[arrayIndex];
-          if (!node || (node as any).__kind !== 'array') {
+          if (!node || (node as { __kind?: string }).__kind !== 'array') {
             return null;
           }
           const registerArray = node as NormalizedRegisterArray;
@@ -341,9 +341,9 @@ const App = () => {
       didInitSelectionRef.current = true;
     } else {
       const resolved = resolveFromSelection(selectionRef.current);
-      if (resolved) {
+      if (resolved && selectionRef.current) {
         handleSelect({
-          ...selectionRef.current!,
+          ...selectionRef.current,
           type: resolved.type,
           object: resolved.object,
           breadcrumbs: resolved.breadcrumbs,
@@ -602,7 +602,7 @@ const App = () => {
               }}
               onNavigateToBlock={(blockIndex) => {
                 // Navigate to address block in Outline
-                if (!memoryMap || !memoryMap.address_blocks) {
+                if (!memoryMap?.address_blocks) {
                   return;
                 }
                 const block = memoryMap.address_blocks[blockIndex];

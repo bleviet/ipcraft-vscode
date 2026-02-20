@@ -10,6 +10,12 @@ export interface BitsRange {
 // Standalone functional exports (preferred API for new code)
 // ---------------------------------------------------------------------------
 
+export interface BitFieldDef {
+  bit_offset?: number | null;
+  bit_width?: number | null;
+  bits?: string | null;
+}
+
 /**
  * Parses a bits string '[hi:lo]' or '[n]' into [hi, lo].
  * Returns null if the format is unrecognised.
@@ -44,11 +50,7 @@ export function formatBitsRange(hi: number, lo: number): string {
  * Computes from `bit_offset`/`bit_width` when available; falls back to the
  * `bits` property; returns `'[?:?]'` when neither can be determined.
  */
-export function fieldToBitsString(field: {
-  bit_offset?: number | null;
-  bit_width?: number | null;
-  bits?: string | null;
-}): string {
+export function fieldToBitsString(field: BitFieldDef): string {
   const offset = Number(field?.bit_offset ?? NaN);
   const width = Number(field?.bit_width ?? NaN);
   if (Number.isFinite(offset) && Number.isFinite(width) && width >= 1) {
@@ -121,7 +123,7 @@ export class BitFieldUtils {
    * @param bitPosition Bit position to check
    * @returns True if the bit is used
    */
-  static isBitUsed(fields: any[], bitPosition: number): boolean {
+  static isBitUsed(fields: BitFieldDef[], bitPosition: number): boolean {
     for (const f of fields) {
       const offset = Number(f?.bit_offset ?? 0);
       const width = Number(f?.bit_width ?? 1);
@@ -138,7 +140,7 @@ export class BitFieldUtils {
    * @param maxBits Maximum bit position to check (default 32)
    * @returns First free bit position or maxBits if all are used
    */
-  static findFreeBit(fields: any[], maxBits = 32): number {
+  static findFreeBit(fields: BitFieldDef[], maxBits = 32): number {
     const used = new Set<number>();
     for (const f of fields) {
       const offset = Number(f?.bit_offset ?? 0);
@@ -159,12 +161,12 @@ export class BitFieldUtils {
    * @param fields Array of field objects to repack
    * @returns Updated array of fields with sequential bit offsets
    */
-  static repackFieldsSequentially(fields: any[]): any[] {
+  static repackFieldsSequentially(fields: BitFieldDef[]): BitFieldDef[] {
     let offset = 0;
     for (const f of fields) {
       let width = Number(f?.bit_width);
       if (!Number.isFinite(width)) {
-        const parsed = BitFieldUtils.parseBitsLike(f?.bits);
+        const parsed = BitFieldUtils.parseBitsLike(f?.bits ?? '');
         width = parsed?.bit_width ?? 1;
       }
       width = Math.max(1, Math.min(32, Math.trunc(width)));

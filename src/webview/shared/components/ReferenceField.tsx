@@ -127,7 +127,7 @@ export const ReferenceField: React.FC<ReferenceFieldProps> = ({
       </div>
       {(error || (!isValid && value)) && (
         <span className="text-xs" style={{ color: 'var(--vscode-errorForeground)' }}>
-          {error || `"${value}" is not a valid reference`}
+          {error ?? `"${value}" is not a valid reference`}
         </span>
       )}
     </div>

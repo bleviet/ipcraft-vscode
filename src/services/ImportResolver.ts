@@ -95,7 +95,7 @@ export class ImportResolver {
       return this.defaultBusLibraryCache;
     }
 
-    const library = (await this.busLibraryService.loadDefaultLibrary()) as Record<string, unknown>;
+    const library = await this.busLibraryService.loadDefaultLibrary();
     this.defaultBusLibraryCache = library;
     const count = library ? Object.keys(library).length : 0;
     this.logger.info(`Loaded ${count} bus types from local library`);
