@@ -112,6 +112,17 @@ Spatial editing is implemented with pure functions/services:
 
 ## Testing Architecture
 
+## YAML Libraries
+
+This project uses two YAML libraries by design:
+
+| Library | Package | When to use |
+|---------|---------|-------------|
+| `js-yaml` (v4) | `js-yaml` | Simple parse/dump operations where comment preservation is not needed |
+| `yaml` (v2) | `yaml` | When `YAML.parseDocument()` is needed for comment-preserving, round-trip document manipulation |
+
+Rule of thumb: if you are only reading YAML, use `js-yaml`; if you need to modify YAML and write it back while preserving comments/formatting, use `yaml` v2 with `parseDocument`.
+
 ### Unit tests (Jest)
 
 - Location: `src/test/suite/**`

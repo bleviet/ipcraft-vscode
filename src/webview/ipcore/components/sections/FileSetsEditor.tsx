@@ -206,7 +206,7 @@ export const FileSetsEditor: React.FC<FileSetsEditorProps> = ({
       const updated = [...fileSets];
       updated[setIdx] = { ...fileSet, files: updatedFiles };
       onUpdate(['fileSets'], updated);
-    } else if (editingFile && editingFile.setIdx === setIdx) {
+    } else if (editingFile?.setIdx === setIdx) {
       const updatedFiles = [...(fileSet.files || [])];
       updatedFiles[editingFile.fileIdx] = fileDraft;
       const updated = [...fileSets];

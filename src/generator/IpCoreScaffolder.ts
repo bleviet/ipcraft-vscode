@@ -515,12 +515,14 @@ export class IpCoreScaffolder {
     const processRegister = (reg: Record<string, unknown>, baseOffset: number, prefix: string) => {
       const currentOffset =
         baseOffset + this.parseNumber(reg.address_offset ?? reg.addressOffset ?? reg.offset ?? 0);
-      const regName = reg.name || 'REG';
+      const regName = reg.name ?? 'REG';
 
-      const nestedRegs = reg.registers || [];
+      const nestedRegs = reg.registers ?? [];
       if (Array.isArray(nestedRegs) && nestedRegs.length > 0) {
-        const count = Number(reg.count ?? 1) || 1;
-        const stride = Number(reg.stride ?? 0) || 0;
+        const countValue = Number(reg.count ?? 1);
+        const count = Number.isFinite(countValue) && countValue > 0 ? countValue : 1;
+        const strideValue = Number(reg.stride ?? 0);
+        const stride = Number.isFinite(strideValue) ? strideValue : 0;
         for (let i = 0; i < count; i += 1) {
           const instanceOffset = currentOffset + i * stride;
           const instancePrefix =
@@ -532,7 +534,7 @@ export class IpCoreScaffolder {
         return;
       }
 
-      const fields = ((reg.fields as Array<Record<string, unknown>>) || []).map((field) => {
+      const fields = ((reg.fields as Array<Record<string, unknown>>) ?? []).map((field) => {
         let bitOffset = field.bit_offset ?? field.bitOffset ?? field.bit_range;
         let bitWidth = field.bit_width ?? field.bitWidth ?? field.bitWidth;
 
@@ -546,7 +548,7 @@ export class IpCoreScaffolder {
           }
         }
 
-        const access = this.getString(field.access || reg.access || 'read-write');
+        const access = this.getString(field.access ?? reg.access ?? 'read-write');
         const resetValue = field.reset_value ?? field.resetValue ?? field.reset ?? 0;
 
         return {
@@ -555,24 +557,24 @@ export class IpCoreScaffolder {
           width: Number(bitWidth ?? 1),
           access: access.toLowerCase(),
           reset_value: resetValue,
-          description: field.description || '',
+          description: field.description ?? '',
         };
       });
 
-      const regAccess = this.getString(reg.access || 'read-write');
+      const regAccess = this.getString(reg.access ?? 'read-write');
       registers.push({
         name: `${prefix}${String(regName)}`,
         offset: currentOffset,
         access: regAccess.toLowerCase(),
-        description: reg.description || '',
+        description: reg.description ?? '',
         fields,
       });
     };
 
     memoryMaps.forEach((map) => {
       const blocks =
-        (map.addressBlocks as Array<Record<string, unknown>>) ||
-        (map.address_blocks as Array<Record<string, unknown>>) ||
+        (map.addressBlocks as Array<Record<string, unknown>>) ??
+        (map.address_blocks as Array<Record<string, unknown>>) ??
         [];
       blocks.forEach((block) => {
         const baseOffset = this.parseNumber(
@@ -609,7 +611,7 @@ export class IpCoreScaffolder {
       return value;
     }
     if (typeof value === 'string') {
-      const parsed = Number.parseInt(value, 0);
+      const parsed = Number(value.trim());
       return Number.isFinite(parsed) ? parsed : 0;
     }
     return 0;

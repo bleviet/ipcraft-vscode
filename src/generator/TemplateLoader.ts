@@ -1,6 +1,5 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import * as vscode from 'vscode';
 import * as nunjucks from 'nunjucks';
 import { Logger } from '../utils/Logger';
 
@@ -83,7 +82,6 @@ export class TemplateLoader {
   }
 
   static resolveTemplatesPath(): string {
-    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
     const candidates = [path.join(__dirname, 'templates')].filter(Boolean);
 
     for (const candidate of candidates) {
@@ -92,7 +90,7 @@ export class TemplateLoader {
       }
     }
 
-    return workspaceRoot ? workspaceRoot : process.cwd();
+    return process.cwd();
   }
 
   getTemplatesPath(): string {

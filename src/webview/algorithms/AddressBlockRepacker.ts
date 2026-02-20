@@ -43,6 +43,9 @@ export function repackBlocksForward(
   fromIndex: number
 ): AddressBlockRecord[] {
   const newBlocks = [...blocks];
+  if (fromIndex < 0 || fromIndex >= newBlocks.length) {
+    return newBlocks;
+  }
 
   // Start from the block just before fromIndex to determine the starting position
   let nextBase = 0;
@@ -61,7 +64,7 @@ export function repackBlocksForward(
     newBlocks[i] = {
       ...block,
       base_address: nextBase,
-      size: blockSize,
+      size: block.size ?? blockSize,
     };
     nextBase += blockSize;
   }
@@ -84,6 +87,9 @@ export function repackBlocksBackward(
   const newBlocks = [...blocks];
   if (newBlocks.length === 0) {
     return [];
+  }
+  if (fromIndex < 0 || fromIndex >= newBlocks.length) {
+    return newBlocks;
   }
 
   // Start from the block just after fromIndex to determine the starting position.

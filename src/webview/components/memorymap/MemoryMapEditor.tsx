@@ -8,6 +8,8 @@ import {
   SpatialInsertionService,
   AddressBlockRuntimeDef,
 } from '../../services/SpatialInsertionService';
+import { toHex } from '../../utils/formatUtils';
+import { useTableNavigation } from '../../hooks/useTableNavigation';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -155,178 +157,74 @@ export function MemoryMapEditor({
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
 
-  // Keyboard shortcuts.
-  useEffect(() => {
-    const liveBlocks = memoryMap?.address_blocks ?? memoryMap?.addressBlocks ?? [];
+  const liveBlocks = memoryMap?.address_blocks ?? memoryMap?.addressBlocks ?? [];
 
-    const tryInsertBlock = (after: boolean) => {
-      setInsertError(null);
-      const result = after
-        ? SpatialInsertionService.insertBlockAfter(liveBlocks, selectedBlockIndex)
-        : SpatialInsertionService.insertBlockBefore(liveBlocks, selectedBlockIndex);
+  const tryInsertBlock = (after: boolean) => {
+    setInsertError(null);
+    const result = after
+      ? SpatialInsertionService.insertBlockAfter(liveBlocks, selectedBlockIndex)
+      : SpatialInsertionService.insertBlockBefore(liveBlocks, selectedBlockIndex);
 
-      if (result.error) {
-        setInsertError(result.error);
+    if (result.error) {
+      setInsertError(result.error);
+      return;
+    }
+
+    const newIdx = result.newIndex;
+    onUpdate(['addressBlocks'], result.items);
+    setSelectedBlockIndex(newIdx);
+    setHoveredBlockIndex(newIdx);
+    setBlockActiveCell({ rowIndex: newIdx, key: 'name' });
+    window.setTimeout(() => {
+      document.querySelector(`tr[data-row-idx="${newIdx}"]`)?.scrollIntoView({ block: 'center' });
+    }, 100);
+  };
+
+  useTableNavigation<BlockEditKey>({
+    activeCell: blockActiveCell,
+    setActiveCell: (cell) => {
+      setBlockActiveCell(cell);
+      if (cell.rowIndex >= 0 && cell.rowIndex < liveBlocks.length) {
+        setSelectedBlockIndex(cell.rowIndex);
+        setHoveredBlockIndex(cell.rowIndex);
+      }
+    },
+    rowCount: liveBlocks.length,
+    columnOrder: BLOCK_COLUMN_ORDER,
+    containerRef: focusRef as React.RefObject<HTMLElement>,
+    onEdit: (rowIndex, key) => {
+      if (rowIndex < 0 || rowIndex >= liveBlocks.length) {
         return;
       }
-
-      const newIdx = result.newIndex;
-      onUpdate(['addressBlocks'], result.items);
-      setSelectedBlockIndex(newIdx);
-      setHoveredBlockIndex(newIdx);
-      setBlockActiveCell({ rowIndex: newIdx, key: 'name' });
+      setSelectedBlockIndex(rowIndex);
+      setHoveredBlockIndex(rowIndex);
+      setBlockActiveCell({ rowIndex, key });
       window.setTimeout(() => {
-        document
-          .querySelector(`tr[data-block-idx="${newIdx}"]`)
-          ?.scrollIntoView({ block: 'center' });
-      }, 100);
-    };
-
-    const onKeyDown = (e: KeyboardEvent) => {
-      let keyLower = (e.key || '').toLowerCase();
-      if (e.altKey && e.code) {
-        if (e.code === 'KeyH') {
-          keyLower = 'h';
-        }
-        if (e.code === 'KeyJ') {
-          keyLower = 'j';
-        }
-        if (e.code === 'KeyK') {
-          keyLower = 'k';
-        }
-        if (e.code === 'KeyL') {
-          keyLower = 'l';
-        }
-      }
-      const vimToArrow: Record<string, 'ArrowLeft' | 'ArrowDown' | 'ArrowUp' | 'ArrowRight'> = {
-        h: 'ArrowLeft',
-        j: 'ArrowDown',
-        k: 'ArrowUp',
-        l: 'ArrowRight',
-      };
-      const normalizedKey: string = vimToArrow[keyLower] ?? e.key;
-
-      const isArrow = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(normalizedKey);
-      const isEdit = normalizedKey === 'F2' || keyLower === 'e';
-      const isDelete = keyLower === 'd' || e.key === 'Delete';
-      const isInsertAfter = keyLower === 'o' && !e.shiftKey;
-      const isInsertBefore = keyLower === 'o' && e.shiftKey;
-      if (!isArrow && !isEdit && !isDelete && !isInsertAfter && !isInsertBefore) {
+        const row = document.querySelector(`tr[data-row-idx="${rowIndex}"]`);
+        const editor = row?.querySelector(`[data-edit-key="${key}"]`) as HTMLElement | null;
+        editor?.focus?.();
+      }, 0);
+    },
+    onDelete: (rowIndex) => {
+      if (rowIndex < 0 || rowIndex >= liveBlocks.length) {
         return;
       }
-      if (e.ctrlKey || e.metaKey) {
-        return;
-      }
-
-      const activeEl = document.activeElement as HTMLElement | null;
-      const isInBlocksArea =
-        !!focusRef.current &&
-        !!activeEl &&
-        (activeEl === focusRef.current || focusRef.current.contains(activeEl));
-      if (!isInBlocksArea) {
-        return;
-      }
-
-      const target = e.target as HTMLElement | null;
-      const isTypingTarget = !!target?.closest(
-        'input, textarea, select, [contenteditable="true"], vscode-text-field, vscode-text-area, vscode-dropdown'
-      );
-      if (isTypingTarget) {
-        return;
-      }
-
-      const scrollToCell = (rowIndex: number, key: BlockEditKey) => {
-        window.setTimeout(() => {
-          const row = document.querySelector(`tr[data-block-idx="${rowIndex}"]`);
-          row?.scrollIntoView({ block: 'nearest' });
-          const cell = row?.querySelector(`td[data-col-key="${key}"]`) as HTMLElement | null;
-          cell?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-        }, 0);
-      };
-
-      const focusEditor = (rowIndex: number, key: BlockEditKey) => {
-        window.setTimeout(() => {
-          const row = document.querySelector(`tr[data-block-idx="${rowIndex}"]`);
-          const editor = row?.querySelector(`[data-edit-key="${key}"]`) as HTMLElement | null;
-          editor?.focus?.();
-        }, 0);
-      };
-
-      const currentRow =
-        blockActiveCell.rowIndex >= 0
-          ? blockActiveCell.rowIndex
-          : selectedBlockIndex >= 0
-            ? selectedBlockIndex
-            : 0;
       const currentKey: BlockEditKey = BLOCK_COLUMN_ORDER.includes(blockActiveCell.key)
         ? blockActiveCell.key
         : 'name';
+      const newBlocks = liveBlocks.filter((_: unknown, i: number) => i !== rowIndex);
+      onUpdate(['addressBlocks'], newBlocks);
+      const nextRow = rowIndex > 0 ? rowIndex - 1 : newBlocks.length > 0 ? 0 : -1;
+      setSelectedBlockIndex(nextRow);
+      setHoveredBlockIndex(nextRow);
+      setBlockActiveCell({ rowIndex: nextRow, key: currentKey });
+    },
+    onInsertAfter: () => tryInsertBlock(true),
+    onInsertBefore: () => tryInsertBlock(false),
+    isActive: true,
+    rowSelectorAttr: 'data-block-idx',
+  });
 
-      if (isEdit) {
-        if (currentRow < 0 || currentRow >= liveBlocks.length) {
-          return;
-        }
-        e.preventDefault();
-        e.stopPropagation();
-        setSelectedBlockIndex(currentRow);
-        setHoveredBlockIndex(currentRow);
-        setBlockActiveCell({ rowIndex: currentRow, key: currentKey });
-        focusEditor(currentRow, currentKey);
-        return;
-      }
-      if (isInsertAfter || isInsertBefore) {
-        e.preventDefault();
-        e.stopPropagation();
-        tryInsertBlock(isInsertAfter);
-        return;
-      }
-      if (isDelete) {
-        if (currentRow < 0 || currentRow >= liveBlocks.length) {
-          return;
-        }
-        e.preventDefault();
-        e.stopPropagation();
-        const newBlocks = liveBlocks.filter((_: unknown, i: number) => i !== currentRow);
-        onUpdate(['addressBlocks'], newBlocks);
-        const nextRow = currentRow > 0 ? currentRow - 1 : newBlocks.length > 0 ? 0 : -1;
-        setSelectedBlockIndex(nextRow);
-        setHoveredBlockIndex(nextRow);
-        setBlockActiveCell({ rowIndex: nextRow, key: currentKey });
-        return;
-      }
-
-      e.preventDefault();
-      e.stopPropagation();
-      if (liveBlocks.length === 0) {
-        return;
-      }
-
-      const isVertical = normalizedKey === 'ArrowUp' || normalizedKey === 'ArrowDown';
-      const delta = normalizedKey === 'ArrowUp' || normalizedKey === 'ArrowLeft' ? -1 : 1;
-
-      if (isVertical) {
-        const nextRow = Math.max(0, Math.min(liveBlocks.length - 1, currentRow + delta));
-        setSelectedBlockIndex(nextRow);
-        setHoveredBlockIndex(nextRow);
-        setBlockActiveCell({ rowIndex: nextRow, key: currentKey });
-        scrollToCell(nextRow, currentKey);
-        return;
-      }
-
-      const currentCol = Math.max(0, BLOCK_COLUMN_ORDER.indexOf(currentKey));
-      const nextCol = Math.max(0, Math.min(BLOCK_COLUMN_ORDER.length - 1, currentCol + delta));
-      const nextKey = BLOCK_COLUMN_ORDER[nextCol] ?? 'name';
-      setSelectedBlockIndex(currentRow);
-      setHoveredBlockIndex(currentRow);
-      setBlockActiveCell({ rowIndex: currentRow, key: nextKey });
-      scrollToCell(currentRow, nextKey);
-    };
-
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [memoryMap, selectedBlockIndex, hoveredBlockIndex, blockActiveCell, onUpdate]);
-
-  const toHex = (n: number) => `0x${Math.max(0, n).toString(16).toUpperCase()}`;
   const getBlockColor = (idx: number) => FIELD_COLOR_KEYS[idx % FIELD_COLOR_KEYS.length];
 
   return (
@@ -391,6 +289,7 @@ export function MemoryMapEditor({
                   return (
                     <tr
                       key={idx}
+                      data-row-idx={idx}
                       data-block-idx={idx}
                       className={`group transition-colors border-l-4 border-transparent h-12 ${
                         idx === selectedBlockIndex

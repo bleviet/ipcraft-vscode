@@ -1,6 +1,12 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { VSCodeTextField } from '@vscode/webview-ui-toolkit/react';
-import { FIELD_COLORS, getFieldColor } from '../shared/colors';
+import React, { useEffect, useMemo, useState } from 'react';
+import { getFieldColor } from '../shared/colors';
+import { type ProSegment } from './bitfield/types';
+import { useShiftDrag } from './bitfield/useShiftDrag';
+import { useCtrlDrag } from './bitfield/useCtrlDrag';
+import { useValueEditing } from './bitfield/useValueEditing';
+import ValueBar from './bitfield/ValueBar';
+import DefaultLayoutView from './bitfield/DefaultLayoutView';
+import ProLayoutView from './bitfield/ProLayoutView';
 
 export interface FieldModel {
   name?: string;
@@ -73,7 +79,7 @@ function parseRegisterValue(text: string): number | null {
     return null;
   }
   // Accept decimal or 0x-prefixed hex.
-  const v = Number.parseInt(s, 0);
+  const v = Number(s);
   if (!Number.isFinite(v)) {
     return null;
   }
@@ -126,24 +132,13 @@ function groupFields(fields: FieldModel[]) {
       start,
       end,
       name: field.name ?? '',
-      color: getFieldColor(field.name ?? `field${idx}`, start),
+      color: getFieldColor(field.name ?? `field${idx}`),
     });
   });
   // Sort by start bit descending (MSB on left)
   groups.sort((a, b) => b.start - a.start);
   return groups;
 }
-
-type ProSegment =
-  | {
-      type: 'field';
-      idx: number;
-      start: number;
-      end: number;
-      name: string;
-      color: string;
-    }
-  | { type: 'gap'; start: number; end: number };
 
 /**
  * Build layout segments including fields and gaps, ordered MSB to LSB.
@@ -173,6 +168,27 @@ function buildProLayoutSegments(fields: FieldModel[], registerSize: number): Pro
   }
 
   return segments;
+}
+
+function repackSegments(segments: ProSegment[]): ProSegment[] {
+  let currentBit = 0;
+  return segments
+    .slice()
+    .reverse()
+    .map((seg) => {
+      const width = seg.end - seg.start + 1;
+      const lo = currentBit;
+      const hi = currentBit + width - 1;
+      currentBit += width;
+      return { ...seg, start: lo, end: hi };
+    })
+    .reverse();
+}
+
+function toFieldRangeUpdates(segments: ProSegment[]): { idx: number; range: [number, number] }[] {
+  return segments
+    .filter((seg): seg is Extract<ProSegment, { type: 'field' }> => seg.type === 'field')
+    .map((seg) => ({ idx: seg.idx, range: [seg.end, seg.start] }));
 }
 
 /**
@@ -219,46 +235,6 @@ function getResizableEdges(
     right: { canShrink, canExpand: hasGapRight },
   };
 }
-
-// ============================================================================
-// Shift-Drag Types and Helpers
-// ============================================================================
-
-interface ShiftDragState {
-  active: boolean;
-  mode: 'resize' | 'create';
-  targetFieldIndex: number | null;
-  resizeEdge: 'msb' | 'lsb' | null;
-  originalRange: { lo: number; hi: number } | null;
-  anchorBit: number;
-  currentBit: number;
-  minBit: number;
-  maxBit: number;
-}
-
-const SHIFT_DRAG_INITIAL: ShiftDragState = {
-  active: false,
-  mode: 'resize',
-  targetFieldIndex: null,
-  resizeEdge: null,
-  originalRange: null,
-  anchorBit: 0,
-  currentBit: 0,
-  minBit: 0,
-  maxBit: 31,
-};
-
-interface CtrlDragState {
-  active: boolean;
-  draggedFieldIndex: number | null;
-  previewSegments: ProSegment[] | null;
-}
-
-const CTRL_DRAG_INITIAL: CtrlDragState = {
-  active: false,
-  draggedFieldIndex: null,
-  previewSegments: null,
-};
 
 /**
  * Find the boundaries of the gap containing startBit.
@@ -329,7 +305,7 @@ function findResizeBoundary(
   }
 }
 
-const BitFieldVisualizer: React.FC<BitFieldVisualizerProps> = ({
+const BitFieldVisualizerInner: React.FC<BitFieldVisualizerProps> = ({
   fields,
   hoveredFieldIndex = null,
   setHoveredFieldIndex = () => undefined,
@@ -341,63 +317,45 @@ const BitFieldVisualizer: React.FC<BitFieldVisualizerProps> = ({
   onCreateField,
   onDragPreview,
 }) => {
-  const [valueView, setValueView] = useState<'hex' | 'dec'>('hex');
-  const [valueDraft, setValueDraft] = useState<string>('');
-  const [valueEditing, setValueEditing] = useState(false);
-  const [valueError, setValueError] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [dragSetTo, setDragSetTo] = useState<0 | 1>(0);
   const [dragLast, setDragLast] = useState<string | null>(null);
 
-  // Shift-drag state for resizing/creating fields
-  const [shiftDrag, setShiftDrag] = useState<ShiftDragState>(SHIFT_DRAG_INITIAL);
+  const keyboardHelpId = 'bitfield-keyboard-help';
 
-  // Ctrl-drag state for reordering fields
-  const [ctrlDrag, setCtrlDrag] = useState<CtrlDragState>(CTRL_DRAG_INITIAL);
+  const commitRangeUpdates = (updates: { idx: number; range: [number, number] }[]) => {
+    if (updates.length === 0) {
+      return;
+    }
+    if (onBatchUpdateFields) {
+      onBatchUpdateFields(updates);
+      return;
+    }
+    if (onUpdateFieldRange) {
+      updates.forEach((update) => onUpdateFieldRange(update.idx, update.range));
+    }
+  };
 
-  // Ref to track ctrlDrag state synchronously (avoids stale closures in event handlers)
-  const ctrlDragRef = useRef<CtrlDragState>(ctrlDrag);
-  useEffect(() => {
-    ctrlDragRef.current = ctrlDrag;
-  }, [ctrlDrag]);
+  const { ctrlDrag, setCtrlDrag, ctrlDragRef, ctrlHeld } = useCtrlDrag({
+    onCommitPreview: (previewSegments) => {
+      const updates = previewSegments
+        .filter((seg): seg is Extract<ProSegment, { type: 'field' }> => seg.type === 'field')
+        .map((seg) => ({ idx: seg.idx, range: [seg.end, seg.start] as [number, number] }));
+      commitRangeUpdates(updates);
+    },
+    onCancelPreview: () => {
+      onDragPreview?.(null);
+    },
+  });
 
-  // Track Shift key held (for showing resize handles)
-  const [shiftHeld, setShiftHeld] = useState(false);
-
-  // Track Ctrl/Meta key held (for grab cursor)
-  const [ctrlHeld, setCtrlHeld] = useState(false);
-
-  // Listen for Shift key press/release globally
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Shift' && !shiftDrag.active) {
-        setShiftHeld(true);
-      }
-      if ((e.key === 'Control' || e.key === 'Meta') && !ctrlDrag.active) {
-        setCtrlHeld(true);
-      }
-    };
-    const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.key === 'Shift') {
-        setShiftHeld(false);
-      }
-      if (e.key === 'Control' || e.key === 'Meta') {
-        setCtrlHeld(false);
-      }
-    };
-    const handleBlur = () => {
-      setShiftHeld(false);
-      setCtrlHeld(false);
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-    window.addEventListener('blur', handleBlur);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-      window.removeEventListener('blur', handleBlur);
-    };
-  }, [shiftDrag.active, ctrlDrag.active]);
+  const { shiftDrag, setShiftDrag, shiftHeld } = useShiftDrag({
+    onResizeCommit: (fieldIndex, newRange) => {
+      onUpdateFieldRange?.(fieldIndex, newRange);
+    },
+    onCreateCommit: (newRange) => {
+      onCreateField?.({ bit_range: newRange, name: 'new_field' });
+    },
+  });
 
   useEffect(() => {
     if (!dragActive) {
@@ -416,86 +374,6 @@ const BitFieldVisualizer: React.FC<BitFieldVisualizerProps> = ({
       window.removeEventListener('blur', stop);
     };
   }, [dragActive]);
-
-  // Shift-drag: cleanup on pointer up
-  useEffect(() => {
-    if (!shiftDrag.active) {
-      return;
-    }
-    const commitShiftDrag = () => {
-      if (shiftDrag.mode === 'resize' && shiftDrag.targetFieldIndex !== null) {
-        // Redefine field range to the dragged selection
-        const newLo = Math.min(shiftDrag.anchorBit, shiftDrag.currentBit);
-        const newHi = Math.max(shiftDrag.anchorBit, shiftDrag.currentBit);
-        if (onUpdateFieldRange && newLo <= newHi) {
-          onUpdateFieldRange(shiftDrag.targetFieldIndex, [newHi, newLo]);
-        }
-      } else if (shiftDrag.mode === 'create') {
-        const lo = Math.min(shiftDrag.anchorBit, shiftDrag.currentBit);
-        const hi = Math.max(shiftDrag.anchorBit, shiftDrag.currentBit);
-        if (onCreateField && lo <= hi) {
-          onCreateField({ bit_range: [hi, lo], name: 'new_field' });
-        }
-      }
-      setShiftDrag(SHIFT_DRAG_INITIAL);
-    };
-    window.addEventListener('pointerup', commitShiftDrag);
-    window.addEventListener('pointercancel', () => setShiftDrag(SHIFT_DRAG_INITIAL));
-    window.addEventListener('blur', () => setShiftDrag(SHIFT_DRAG_INITIAL));
-    return () => {
-      window.removeEventListener('pointerup', commitShiftDrag);
-      window.removeEventListener('pointercancel', () => setShiftDrag(SHIFT_DRAG_INITIAL));
-      window.removeEventListener('blur', () => setShiftDrag(SHIFT_DRAG_INITIAL));
-    };
-  }, [shiftDrag, onUpdateFieldRange, onCreateField]);
-
-  // Ctrl-drag: cleanup on pointer up
-  useEffect(() => {
-    if (!ctrlDrag.active) {
-      return;
-    }
-    const commitCtrlDrag = () => {
-      if (ctrlDrag.previewSegments) {
-        // Commit the new layout
-        // Group by field index and update ranges
-        const updates: { idx: number; range: [number, number] }[] = [];
-
-        ctrlDrag.previewSegments.forEach((seg) => {
-          if (seg.type === 'field') {
-            updates.push({ idx: seg.idx, range: [seg.end, seg.start] });
-          }
-        });
-
-        // Apply updates
-        if (onBatchUpdateFields && updates.length > 0) {
-          onBatchUpdateFields(updates);
-        } else if (onUpdateFieldRange) {
-          // Fallback (might cause race conditions)
-          updates.forEach((update) => {
-            onUpdateFieldRange(update.idx, update.range);
-          });
-        }
-      }
-      // Clear preview in parent
-      onDragPreview?.(null);
-      // Delay clearing preview to next frame to avoid flash back to original position
-      requestAnimationFrame(() => {
-        setCtrlDrag(CTRL_DRAG_INITIAL);
-      });
-    };
-    const cancelCtrlDrag = () => {
-      onDragPreview?.(null);
-      setCtrlDrag(CTRL_DRAG_INITIAL);
-    };
-    window.addEventListener('pointerup', commitCtrlDrag);
-    window.addEventListener('pointercancel', cancelCtrlDrag);
-    window.addEventListener('blur', cancelCtrlDrag);
-    return () => {
-      window.removeEventListener('pointerup', commitCtrlDrag);
-      window.removeEventListener('pointercancel', cancelCtrlDrag);
-      window.removeEventListener('blur', cancelCtrlDrag);
-    };
-  }, [ctrlDrag, onUpdateFieldRange, onBatchUpdateFields, onDragPreview]);
 
   /**
    * Handle Ctrl+PointerDown to start reorder mode.
@@ -724,18 +602,7 @@ const BitFieldVisualizer: React.FC<BitFieldVisualizerProps> = ({
     }
 
     // 5. Final Repack for Preview
-    currentBit = 0;
-    const finalSegments = newSegments
-      .slice()
-      .reverse()
-      .map((seg) => {
-        const width = seg.end - seg.start + 1;
-        const lo = currentBit;
-        const hi = currentBit + Number(width) - 1;
-        currentBit += Number(width);
-        return { ...seg, start: lo, end: hi };
-      })
-      .reverse();
+    const finalSegments = repackSegments(newSegments);
 
     setCtrlDrag((prev) => ({ ...prev, previewSegments: finalSegments }));
 
@@ -749,6 +616,58 @@ const BitFieldVisualizer: React.FC<BitFieldVisualizerProps> = ({
         }));
       onDragPreview(previewUpdates);
     }
+  };
+
+  const applyKeyboardReorder = (fieldIndex: number, direction: 'msb' | 'lsb') => {
+    const segments = buildProLayoutSegments(fields, registerSize);
+    const sourceIndex = segments.findIndex((seg) => seg.type === 'field' && seg.idx === fieldIndex);
+    if (sourceIndex === -1) {
+      return;
+    }
+
+    const targetIndex = direction === 'msb' ? sourceIndex - 1 : sourceIndex + 1;
+    if (targetIndex < 0 || targetIndex >= segments.length) {
+      return;
+    }
+
+    const reordered = [...segments];
+    const [moved] = reordered.splice(sourceIndex, 1);
+    reordered.splice(targetIndex, 0, moved);
+
+    const repacked = repackSegments(reordered);
+    commitRangeUpdates(toFieldRangeUpdates(repacked));
+  };
+
+  const applyKeyboardResize = (fieldIndex: number, edge: 'msb' | 'lsb') => {
+    const range = getFieldRange(fields[fieldIndex]);
+    if (!range || !onUpdateFieldRange) {
+      return;
+    }
+
+    let newLo = range.lo;
+    let newHi = range.hi;
+
+    if (edge === 'msb') {
+      const maxMsb = findResizeBoundary(fieldIndex, 'msb', fields, registerSize);
+      if (range.hi < maxMsb) {
+        newHi = range.hi + 1;
+      } else if (range.hi > range.lo) {
+        newHi = range.hi - 1;
+      }
+    } else {
+      const minLsb = findResizeBoundary(fieldIndex, 'lsb', fields, registerSize);
+      if (range.lo > minLsb) {
+        newLo = range.lo - 1;
+      } else if (range.hi > range.lo) {
+        newLo = range.lo + 1;
+      }
+    }
+
+    if (newHi === range.hi && newLo === range.lo) {
+      return;
+    }
+
+    onUpdateFieldRange(fieldIndex, [newHi, newLo]);
   };
 
   const applyBit = (fieldIndex: number, localBit: number, desired: 0 | 1) => {
@@ -804,38 +723,6 @@ const BitFieldVisualizer: React.FC<BitFieldVisualizerProps> = ({
     return v;
   }, [bitValues, registerSize]);
 
-  const registerValueText = useMemo(() => {
-    if (valueView === 'dec') {
-      return registerValue.toString(10);
-    }
-    return `0x${registerValue.toString(16).toUpperCase()}`;
-  }, [registerValue, valueView]);
-
-  useEffect(() => {
-    if (valueEditing) {
-      return;
-    }
-    setValueDraft(registerValueText);
-    setValueError(null);
-  }, [registerValueText, valueEditing]);
-
-  const validateRegisterValue = (v: number | null): string | null => {
-    if (v === null) {
-      return 'Value is required';
-    }
-    if (!Number.isFinite(v)) {
-      return 'Invalid number';
-    }
-    if (v < 0) {
-      return 'Value must be >= 0';
-    }
-    const max = maxForBits(registerSize);
-    if (v > max) {
-      return `Value too large for ${registerSize} bit(s)`;
-    }
-    return null;
-  };
-
   const applyRegisterValue = (v: number) => {
     if (!onUpdateFieldReset) {
       return;
@@ -851,623 +738,127 @@ const BitFieldVisualizer: React.FC<BitFieldVisualizerProps> = ({
     });
   };
 
-  const commitRegisterValueDraft = () => {
-    const parsed = parseRegisterValue(valueDraft);
-    const err = validateRegisterValue(parsed);
-    setValueError(err);
-    if (err || parsed === null) {
-      return;
-    }
-    applyRegisterValue(parsed);
-  };
-
-  const renderValueBar = () => (
-    <div
-      className="mt-3 flex items-center justify-start gap-3 p-3 rounded"
-      style={{ background: 'var(--vscode-editor-background)' }}
-    >
-      <div className="text-sm vscode-muted font-mono font-semibold">Value:</div>
-      <div className="min-w-[320px] text-base">
-        <VSCodeTextField
-          className="w-full"
-          value={valueDraft}
-          onFocus={() => setValueEditing(true)}
-          onBlur={() => {
-            setValueEditing(false);
-            commitRegisterValueDraft();
-          }}
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          onInput={(e: any) => {
-            const event = e as unknown as React.ChangeEvent<HTMLInputElement>;
-            const next = String(event.target.value ?? '');
-            setValueDraft(next);
-            const parsed = parseRegisterValue(next);
-            setValueError(validateRegisterValue(parsed));
-          }}
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          onKeyDown={(e: any) => {
-            const event = e as unknown as React.KeyboardEvent<HTMLInputElement>;
-            if (event.key !== 'Enter') {
-              return;
-            }
-            event.preventDefault();
-            event.stopPropagation();
-            commitRegisterValueDraft();
-            setValueEditing(false);
-            // Return focus to the visualizer root.
-            event.currentTarget?.blur?.();
-          }}
-        />
-        {valueError ? <div className="text-xs vscode-error mt-1">{valueError}</div> : null}
-      </div>
-      <button
-        type="button"
-        className="px-3 py-2 text-sm font-semibold border rounded"
-        style={{
-          borderColor: 'var(--vscode-button-border, var(--vscode-panel-border))',
-          background: 'var(--vscode-button-background)',
-          color: 'var(--vscode-button-foreground)',
-        }}
-        onMouseEnter={(e) => {
-          (e.currentTarget as HTMLButtonElement).style.background =
-            'var(--vscode-button-hoverBackground)';
-        }}
-        onMouseLeave={(e) => {
-          (e.currentTarget as HTMLButtonElement).style.background =
-            'var(--vscode-button-background)';
-        }}
-        onClick={() => setValueView((v) => (v === 'hex' ? 'dec' : 'hex'))}
-        title="Toggle hex/dec"
-      >
-        {valueView.toUpperCase()}
-      </button>
-    </div>
-  );
+  const {
+    valueView,
+    setValueView,
+    valueDraft,
+    setValueDraft,
+    setValueEditing,
+    valueError,
+    setValueError,
+    validateRegisterValue,
+    commitRegisterValueDraft,
+  } = useValueEditing({
+    registerSize,
+    registerValue,
+    parseRegisterValue,
+    maxForBits,
+    applyRegisterValue,
+  });
 
   if (layout === 'pro') {
-    // Grouped, modern layout with floating labels and grid - includes gaps
     const segments =
       ctrlDrag.active && ctrlDrag.previewSegments
         ? ctrlDrag.previewSegments
         : buildProLayoutSegments(fields, registerSize);
     return (
-      <div className="w-full">
-        <div className="relative w-full flex items-start overflow-x-auto pb-2">
-          {/* Bit grid background */}
-          <div className="relative flex flex-row items-end gap-0.5 pl-4 pr-2 pt-12 pb-2 min-h-[64px] w-full min-w-max">
-            {/* Render each segment (field or gap) */}
-            {segments.map((segment, segIdx) => {
-              const width = segment.end - segment.start + 1;
-
-              if (segment.type === 'gap') {
-                // Render gap segment
-                return (
-                  <div
-                    key={`gap-${segIdx}`}
-                    className="relative flex flex-col items-center justify-end select-none"
-                    style={{ width: `calc(${width} * 2rem)` }}
-                  >
-                    <div className="h-20 w-full rounded-t-md overflow-hidden flex">
-                      {Array.from({ length: width }).map((_, i) => {
-                        const bit = segment.end - i;
-                        // Check if this bit is in the active drag range (for both create and resize extending into gap)
-                        const isInDragRange =
-                          shiftDrag.active &&
-                          (shiftDrag.mode === 'create' || shiftDrag.mode === 'resize') &&
-                          bit >= Math.min(shiftDrag.anchorBit, shiftDrag.currentBit) &&
-                          bit <= Math.max(shiftDrag.anchorBit, shiftDrag.currentBit);
-                        return (
-                          <div
-                            key={i}
-                            className="w-10 h-20 flex items-center justify-center touch-none"
-                            style={{
-                              background: isInDragRange
-                                ? 'var(--vscode-editor-selectionBackground, #264f78)'
-                                : 'var(--vscode-editor-background)',
-                              opacity: isInDragRange ? 0.9 : 0.5,
-                              border: isInDragRange
-                                ? '2px solid var(--vscode-focusBorder)'
-                                : undefined,
-                              cursor: ctrlDrag.active ? 'grabbing' : ctrlHeld ? 'grab' : 'pointer',
-                            }}
-                            onPointerDown={(e) => {
-                              if (e.shiftKey) {
-                                handleShiftPointerDown(bit, e);
-                                return;
-                              }
-                              if (e.ctrlKey || e.metaKey) {
-                                handleCtrlPointerDown(bit, e);
-                                return;
-                              }
-                            }}
-                            onPointerMove={() => {
-                              handleShiftPointerMove(bit);
-                              handleCtrlPointerMove(bit);
-                            }}
-                            onPointerEnter={() => {
-                              if (shiftDrag.active) {
-                                handleShiftPointerMove(bit);
-                              }
-                              if (ctrlDragRef.current.active) {
-                                handleCtrlPointerMove(bit);
-                              }
-                            }}
-                          >
-                            <span className="text-sm font-mono vscode-muted select-none">
-                              {isInDragRange ? '+' : '-'}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    {/* Per-bit numbers below */}
-                    <div className="flex flex-row w-full">
-                      {Array.from({ length: width }).map((_, i) => {
-                        const bit = segment.end - i;
-                        return (
-                          <div
-                            key={bit}
-                            className="w-10 text-center text-[11px] vscode-muted font-mono mt-1"
-                          >
-                            {bit}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              }
-
-              // Render field segment
-              const group = segment;
-              const isHovered = hoveredFieldIndex === group.idx;
-              const field = fields[group.idx];
-              const fieldReset =
-                field?.reset_value === null || field?.reset_value === undefined
-                  ? 0
-                  : Number(field.reset_value);
-              const isSingleBit = width === 1;
-
-              return (
-                <div
-                  key={group.idx}
-                  className={`relative flex flex-col items-center justify-end select-none ${isHovered ? 'z-10' : ''}`}
-                  style={{ width: `calc(${width} * 2rem)` }}
-                  onMouseEnter={() => setHoveredFieldIndex(group.idx)}
-                  onMouseLeave={() => setHoveredFieldIndex(null)}
-                >
-                  <div
-                    className="h-20 w-full rounded-t-md overflow-hidden flex relative"
-                    style={{
-                      opacity: 1,
-                      transform: isHovered ? 'translateY(-2px)' : undefined,
-                      filter: isHovered ? 'saturate(1.15) brightness(1.05)' : undefined,
-                      boxShadow: isHovered
-                        ? '0 0 0 2px var(--vscode-focusBorder), 0 10px 20px color-mix(in srgb, var(--vscode-foreground) 22%, transparent)'
-                        : undefined,
-                    }}
-                  >
-                    {/* Resize handles - show when Shift is held and hovering this field */}
-                    {shiftHeld &&
-                      isHovered &&
-                      !shiftDrag.active &&
-                      (() => {
-                        const edges = getResizableEdges(
-                          group.start,
-                          group.end,
-                          bitOwners,
-                          registerSize
-                        );
-                        // Visual left = MSB edge (edges.right), Visual right = LSB edge (edges.left)
-                        const showVisualLeft = edges.right.canShrink || edges.right.canExpand;
-                        const showVisualRight = edges.left.canShrink || edges.left.canExpand;
-                        const visualLeftBidirectional =
-                          edges.right.canShrink && edges.right.canExpand;
-                        const visualRightBidirectional =
-                          edges.left.canShrink && edges.left.canExpand;
-
-                        return (
-                          <>
-                            {/* Left handle (MSB side - visual left) */}
-                            {showVisualLeft && (
-                              <div
-                                className="absolute left-0 top-0 bottom-0 w-6 flex items-center justify-center z-20 pointer-events-none"
-                                style={{
-                                  background:
-                                    'linear-gradient(90deg, rgba(0,0,0,0.5) 0%, transparent 100%)',
-                                }}
-                              >
-                                <svg
-                                  width="16"
-                                  height="16"
-                                  viewBox="0 0 16 16"
-                                  fill="none"
-                                  className="drop-shadow-lg"
-                                >
-                                  {visualLeftBidirectional ? (
-                                    /* Bidirectional arrow ↔ - cleaner, wider design */
-                                    <>
-                                      <path
-                                        d="M2 8H14"
-                                        stroke="white"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                      />
-                                      <path
-                                        d="M5 5L2 8L5 11"
-                                        stroke="white"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                      />
-                                      <path
-                                        d="M11 5L14 8L11 11"
-                                        stroke="white"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                      />
-                                    </>
-                                  ) : edges.right.canExpand ? (
-                                    /* Outward arrow ← (expand) */
-                                    <path
-                                      d="M10 4L6 8L10 12"
-                                      stroke="white"
-                                      strokeWidth="2.5"
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                    />
-                                  ) : (
-                                    /* Inward arrow → (shrink) */
-                                    <path
-                                      d="M6 4L10 8L6 12"
-                                      stroke="white"
-                                      strokeWidth="2.5"
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                    />
-                                  )}
-                                </svg>
-                              </div>
-                            )}
-                            {/* Right handle (LSB side - visual right) */}
-                            {showVisualRight && (
-                              <div
-                                className="absolute right-0 top-0 bottom-0 w-6 flex items-center justify-center z-20 pointer-events-none"
-                                style={{
-                                  background:
-                                    'linear-gradient(270deg, rgba(0,0,0,0.5) 0%, transparent 100%)',
-                                }}
-                              >
-                                <svg
-                                  width="16"
-                                  height="16"
-                                  viewBox="0 0 16 16"
-                                  fill="none"
-                                  className="drop-shadow-lg"
-                                >
-                                  {visualRightBidirectional ? (
-                                    /* Bidirectional arrow ↔ - cleaner, wider design */
-                                    <>
-                                      <path
-                                        d="M2 8H14"
-                                        stroke="white"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                      />
-                                      <path
-                                        d="M5 5L2 8L5 11"
-                                        stroke="white"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                      />
-                                      <path
-                                        d="M11 5L14 8L11 11"
-                                        stroke="white"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                      />
-                                    </>
-                                  ) : edges.left.canExpand ? (
-                                    /* Outward arrow → (expand) */
-                                    <path
-                                      d="M6 4L10 8L6 12"
-                                      stroke="white"
-                                      strokeWidth="2.5"
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                    />
-                                  ) : (
-                                    /* Inward arrow ← (shrink) */
-                                    <path
-                                      d="M10 4L6 8L10 12"
-                                      stroke="white"
-                                      strokeWidth="2.5"
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                    />
-                                  )}
-                                </svg>
-                              </div>
-                            )}
-                          </>
-                        );
-                      })()}
-                    {Array.from({ length: width }).map((_, i) => {
-                      const bit = group.end - i;
-                      const localBit = bit - group.start;
-                      const v = bitAt(fieldReset, localBit);
-                      const dragKey = `${group.idx}:${localBit}`;
-
-                      // Check if we're resizing this field
-                      const isResizingThisField =
-                        shiftDrag.active &&
-                        shiftDrag.mode === 'resize' &&
-                        shiftDrag.targetFieldIndex === group.idx;
-
-                      // Check if this bit is within the new drag selection range
-                      const isInNewRange =
-                        isResizingThisField &&
-                        bit >= Math.min(shiftDrag.anchorBit, shiftDrag.currentBit) &&
-                        bit <= Math.max(shiftDrag.anchorBit, shiftDrag.currentBit);
-
-                      // Check if this bit will be removed (outside new range)
-                      const isOutOfNewRange = isResizingThisField && !isInNewRange;
-
-                      return (
-                        <div
-                          key={i}
-                          className={`w-10 h-20 flex items-center justify-center touch-none ${
-                            v === 1 && !isOutOfNewRange ? 'ring-1 ring-white/70 ring-inset' : ''
-                          } ${
-                            isSingleBit
-                              ? 'rounded-md'
-                              : i === 0
-                                ? 'rounded-l-md'
-                                : i === width - 1
-                                  ? 'rounded-r-md'
-                                  : ''
-                          }`}
-                          style={{
-                            background: isOutOfNewRange
-                              ? 'var(--vscode-editor-background)'
-                              : FIELD_COLORS[group.color],
-                            opacity: isOutOfNewRange ? 0.3 : 1,
-                            border: isInNewRange
-                              ? '2px solid var(--vscode-focusBorder)'
-                              : undefined,
-                            cursor: ctrlDrag.active ? 'grabbing' : ctrlHeld ? 'grab' : 'pointer',
-                          }}
-                          onPointerDown={(e) => {
-                            // Shift-drag for resize
-                            if (e.shiftKey) {
-                              handleShiftPointerDown(bit, e);
-                              return;
-                            }
-                            // Ctrl-drag for reorder
-                            if (e.ctrlKey || e.metaKey) {
-                              handleCtrlPointerDown(bit, e);
-                              return;
-                            }
-                            // Normal bit toggle
-                            if (!onUpdateFieldReset) {
-                              return;
-                            }
-                            if (e.button !== 0) {
-                              return;
-                            }
-                            e.preventDefault();
-                            e.stopPropagation();
-
-                            const desired: 0 | 1 = v === 1 ? 0 : 1;
-                            setDragActive(true);
-                            setDragSetTo(desired);
-                            setDragLast(dragKey);
-                            applyBit(group.idx, localBit, desired);
-                          }}
-                          onPointerMove={() => {
-                            handleShiftPointerMove(bit);
-                            handleCtrlPointerMove(bit);
-                          }}
-                          onPointerEnter={(e) => {
-                            // Handle shift-drag move
-                            if (shiftDrag.active) {
-                              handleShiftPointerMove(bit);
-                              return;
-                            }
-                            if (ctrlDragRef.current.active) {
-                              handleCtrlPointerMove(bit);
-                              return;
-                            }
-                            // Normal bit drag
-                            if (!dragActive) {
-                              return;
-                            }
-                            if (!onUpdateFieldReset) {
-                              return;
-                            }
-                            if (dragLast === dragKey) {
-                              return;
-                            }
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setDragLast(dragKey);
-                            applyBit(group.idx, localBit, dragSetTo);
-                          }}
-                        >
-                          <span
-                            className={`text-sm font-mono text-white/90 select-none ${v === 1 ? 'font-bold' : 'font-normal'}`}
-                          >
-                            {v}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div
-                    className={`absolute -top-12 px-2 py-0.5 rounded border shadow text-xs whitespace-nowrap pointer-events-none ${
-                      segIdx === 0 ? 'left-0' : 'left-1/2 -translate-x-1/2'
-                    }`}
-                    style={{
-                      background: 'var(--vscode-editorWidget-background)',
-                      color: 'var(--vscode-foreground)',
-                      borderColor: 'var(--vscode-panel-border)',
-                    }}
-                  >
-                    <div className="font-bold">
-                      {group.name}
-                      <span className="ml-2 vscode-muted font-mono text-[11px]">
-                        [{Math.max(group.start, group.end)}:{Math.min(group.start, group.end)}]
-                      </span>
-                    </div>
-                    <div className="text-[11px] vscode-muted font-mono">
-                      {valueView === 'dec'
-                        ? Math.trunc(fieldReset).toString(10)
-                        : `0x${Math.trunc(fieldReset).toString(16).toUpperCase()}`}
-                    </div>
-                  </div>
-                  {/* Per-bit numbers below, LSB (right) to MSB (left) */}
-                  <div className="flex flex-row w-full">
-                    {Array.from({ length: width }).map((_, i) => {
-                      const bit = group.end - i;
-                      return (
-                        <div
-                          key={bit}
-                          className="w-10 text-center text-[11px] vscode-muted font-mono mt-1"
-                        >
-                          {bit}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {renderValueBar()}
-      </div>
+      <ProLayoutView
+        fields={fields}
+        segments={segments}
+        keyboardHelpId={keyboardHelpId}
+        hoveredFieldIndex={hoveredFieldIndex}
+        setHoveredFieldIndex={setHoveredFieldIndex}
+        shiftDrag={shiftDrag}
+        shiftHeld={shiftHeld}
+        ctrlDragActive={ctrlDrag.active}
+        ctrlHeld={ctrlHeld}
+        isCtrlDragActive={() => ctrlDragRef.current.active}
+        bitOwners={bitOwners}
+        registerSize={registerSize}
+        valueView={valueView}
+        dragActive={dragActive}
+        dragSetTo={dragSetTo}
+        dragLast={dragLast}
+        setDragActive={setDragActive}
+        setDragSetTo={setDragSetTo}
+        setDragLast={setDragLast}
+        onUpdateFieldReset={onUpdateFieldReset}
+        handleShiftPointerDown={handleShiftPointerDown}
+        handleCtrlPointerDown={handleCtrlPointerDown}
+        handleShiftPointerMove={handleShiftPointerMove}
+        handleCtrlPointerMove={handleCtrlPointerMove}
+        applyKeyboardReorder={applyKeyboardReorder}
+        applyKeyboardResize={applyKeyboardResize}
+        applyBit={applyBit}
+        bitAt={bitAt}
+        getResizableEdges={getResizableEdges}
+        valueBar={
+          <ValueBar
+            valueDraft={valueDraft}
+            valueError={valueError}
+            valueView={valueView}
+            setValueDraft={setValueDraft}
+            setValueEditing={setValueEditing}
+            setValueError={setValueError}
+            setValueView={setValueView}
+            parseRegisterValue={parseRegisterValue}
+            validateRegisterValue={validateRegisterValue}
+            commitRegisterValueDraft={commitRegisterValueDraft}
+          />
+        }
+      />
     );
   }
 
-  // Default: simple per-bit grid
   return (
-    <div className="w-full flex flex-col items-center">
-      <div className="flex flex-row-reverse gap-0.5 select-none">
-        {bits.map((fieldIdx, bit) => {
-          const isHovered = fieldIdx !== null && fieldIdx === hoveredFieldIndex;
-          const range = fieldIdx !== null ? getFieldRange(fields[fieldIdx]) : null;
-          const isSingleBit = range ? range.hi === range.lo : false;
-          const cornerClass = range
-            ? isSingleBit
-              ? 'rounded-md'
-              : bit === range.hi
-                ? 'rounded-l-md'
-                : bit === range.lo
-                  ? 'rounded-r-md'
-                  : ''
-            : '';
-          return (
-            <div
-              key={bit}
-              className={`w-10 h-20 flex flex-col items-center justify-end cursor-pointer group ${
-                fieldIdx !== null ? 'bg-blue-500' : 'vscode-surface-alt'
-              } ${isHovered ? 'z-10' : ''} ${cornerClass}`}
-              style={{
-                boxShadow: isHovered ? 'inset 0 0 0 2px var(--vscode-focusBorder)' : undefined,
-              }}
-              onMouseEnter={() => fieldIdx !== null && setHoveredFieldIndex(fieldIdx)}
-              onMouseLeave={() => setHoveredFieldIndex(null)}
-              onPointerDown={(e) => {
-                // Shift-drag for resize/create
-                if (e.shiftKey) {
-                  handleShiftPointerDown(bit, e);
-                  return;
-                }
-                // Normal bit toggle
-                if (!onUpdateFieldReset) {
-                  return;
-                }
-                if (fieldIdx === null) {
-                  return;
-                }
-                if (e.button !== 0) {
-                  return;
-                }
-                const r = getFieldRange(fields[fieldIdx]);
-                if (!r) {
-                  return;
-                }
-                const localBit = bit - r.lo;
-                if (localBit < 0 || localBit > r.hi - r.lo) {
-                  return;
-                }
-                const raw = fields[fieldIdx]?.reset_value;
-                const current = raw === null || raw === undefined ? 0 : Number(raw);
-                const curBit = bitAt(current, localBit);
-                const desired: 0 | 1 = curBit === 1 ? 0 : 1;
-                e.preventDefault();
-                e.stopPropagation();
-                setDragActive(true);
-                setDragSetTo(desired);
-                setDragLast(`${fieldIdx}:${localBit}`);
-                applyBit(fieldIdx, localBit, desired);
-              }}
-              onPointerMove={() => handleShiftPointerMove(bit)}
-              onPointerEnter={(e) => {
-                // Handle shift-drag move
-                if (shiftDrag.active) {
-                  handleShiftPointerMove(bit);
-                  return;
-                }
-                // Normal bit drag
-                if (!dragActive) {
-                  return;
-                }
-                if (!onUpdateFieldReset) {
-                  return;
-                }
-                if (fieldIdx === null) {
-                  return;
-                }
-                const r = getFieldRange(fields[fieldIdx]);
-                if (!r) {
-                  return;
-                }
-                const localBit = bit - r.lo;
-                if (localBit < 0 || localBit > r.hi - r.lo) {
-                  return;
-                }
-                const key = `${fieldIdx}:${localBit}`;
-                if (dragLast === key) {
-                  return;
-                }
-                e.preventDefault();
-                e.stopPropagation();
-                setDragLast(key);
-                applyBit(fieldIdx, localBit, dragSetTo);
-              }}
-            >
-              <span className="text-[10px] vscode-muted font-mono">{bit}</span>
-              <span className="text-[11px] font-mono mb-1">{bitValues[bit]}</span>
-            </div>
-          );
-        })}
-      </div>
-      <div className="flex flex-row-reverse gap-0.5 mt-1">
-        {bits.map((fieldIdx, bit) => (
-          <div key={bit} className="w-7 text-center text-[10px] vscode-muted font-mono">
-            {fieldIdx !== null ? fields[fieldIdx].name : ''}
-          </div>
-        ))}
-      </div>
-
-      <div className="w-full">{renderValueBar()}</div>
-    </div>
+    <DefaultLayoutView
+      bits={bits}
+      fields={fields}
+      bitValues={bitValues}
+      hoveredFieldIndex={hoveredFieldIndex}
+      setHoveredFieldIndex={setHoveredFieldIndex}
+      onUpdateFieldReset={onUpdateFieldReset}
+      getFieldRange={getFieldRange}
+      handleShiftPointerDown={handleShiftPointerDown}
+      handleShiftPointerMove={handleShiftPointerMove}
+      dragActive={dragActive}
+      dragSetTo={dragSetTo}
+      dragLast={dragLast}
+      setDragActive={setDragActive}
+      setDragSetTo={setDragSetTo}
+      setDragLast={setDragLast}
+      applyBit={applyBit}
+      valueBar={
+        <ValueBar
+          valueDraft={valueDraft}
+          valueError={valueError}
+          valueView={valueView}
+          setValueDraft={setValueDraft}
+          setValueEditing={setValueEditing}
+          setValueError={setValueError}
+          setValueView={setValueView}
+          parseRegisterValue={parseRegisterValue}
+          validateRegisterValue={validateRegisterValue}
+          commitRegisterValueDraft={commitRegisterValueDraft}
+        />
+      }
+    />
   );
 };
+
+const BitFieldVisualizer = React.memo(
+  BitFieldVisualizerInner,
+  (prev, next) =>
+    prev.fields === next.fields &&
+    prev.hoveredFieldIndex === next.hoveredFieldIndex &&
+    prev.setHoveredFieldIndex === next.setHoveredFieldIndex &&
+    prev.registerSize === next.registerSize &&
+    prev.layout === next.layout &&
+    prev.onUpdateFieldReset === next.onUpdateFieldReset &&
+    prev.onUpdateFieldRange === next.onUpdateFieldRange &&
+    prev.onBatchUpdateFields === next.onBatchUpdateFields &&
+    prev.onCreateField === next.onCreateField &&
+    prev.onDragPreview === next.onDragPreview
+);
 
 export default BitFieldVisualizer;

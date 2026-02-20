@@ -2,6 +2,7 @@ import {
   repackBlocksForward,
   repackBlocksBackward,
 } from '../../../webview/algorithms/AddressBlockRepacker';
+import type { AddressBlockRecord } from '../../../webview/types/editor';
 
 describe('AddressBlockRepacker', () => {
   describe('repackBlocksForward', () => {
@@ -187,6 +188,34 @@ describe('AddressBlockRepacker', () => {
 
       const result = repackBlocksForward(blocks, 1);
       expect(result[1].base_address).toBe(0xffff1000);
+    });
+
+    it('should return an unchanged copy for out-of-range fromIndex', () => {
+      const blocks = [
+        { name: 'Block1', base_address: 0x0000, size: 0x1000 },
+        { name: 'Block2', base_address: 0x2000, size: 0x1000 },
+      ];
+
+      expect(repackBlocksForward(blocks, -1)).toEqual(blocks);
+      expect(repackBlocksForward(blocks, 2)).toEqual(blocks);
+      expect(repackBlocksBackward(blocks, -1)).toEqual(blocks);
+      expect(repackBlocksBackward(blocks, 2)).toEqual(blocks);
+    });
+
+    it('should preserve explicit size when repacking forward', () => {
+      const blocks: AddressBlockRecord[] = [
+        { name: 'Block1', base_address: 0x0000, size: 0x1000 },
+        {
+          name: 'Block2',
+          base_address: 0x2000,
+          size: 0x3000,
+          registers: [{ name: 'R0', offset: 0 }],
+        },
+      ];
+
+      const result = repackBlocksForward(blocks, 1);
+      expect(result[1].base_address).toBe(0x1000);
+      expect(result[1].size).toBe(0x3000);
     });
   });
 });

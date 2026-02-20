@@ -10,6 +10,9 @@ import { KeyboardShortcutsButton } from '../../shared/components';
 import RegisterMapVisualizer from '../RegisterMapVisualizer';
 import { FIELD_COLORS, FIELD_COLOR_KEYS } from '../../shared/colors';
 import { SpatialInsertionService } from '../../services/SpatialInsertionService';
+import type { RegisterModel } from '../../types/registerModel';
+import { toHex } from '../../utils/formatUtils';
+import { useTableNavigation } from '../../hooks/useTableNavigation';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -18,20 +21,6 @@ import { SpatialInsertionService } from '../../services/SpatialInsertionService'
 type RegEditKey = 'name' | 'offset' | 'access' | 'description';
 type RegActiveCell = { rowIndex: number; key: RegEditKey };
 const REG_COLUMN_ORDER: RegEditKey[] = ['name', 'offset', 'access', 'description'];
-
-export interface RegisterModel {
-  name?: string;
-  offset?: number | string;
-  address_offset?: number | string;
-  __kind?: string;
-  count?: number;
-  stride?: number;
-  access?: string;
-  description?: string;
-  registers?: RegisterModel[];
-  fields?: unknown[];
-  [key: string]: unknown;
-}
 
 export interface AddressBlockModel {
   name?: string;
@@ -93,7 +82,6 @@ export function BlockEditor({
   const focusRef = useRef<HTMLDivElement | null>(null);
   const errorRef = useRef<HTMLDivElement | null>(null);
 
-  const toHex = (n: number) => `0x${Math.max(0, n).toString(16).toUpperCase()}`;
   const getRegColor = (idx: number) => FIELD_COLOR_KEYS[idx % FIELD_COLOR_KEYS.length];
 
   // Auto-focus on explicit request.
@@ -157,79 +145,109 @@ export function BlockEditor({
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
 
-  // Keyboard shortcuts (o/O insert, arrow nav, F2/e edit, d delete, Shift+A/I array insert).
-  useEffect(() => {
-    const liveRegisters = block?.registers ?? [];
+  const liveRegisters = block?.registers ?? [];
 
-    const tryInsertReg = (after: boolean) => {
-      setInsertError(null);
-      type TargetArray = Parameters<typeof SpatialInsertionService.insertRegisterAfter>[0];
-      const result = after
-        ? SpatialInsertionService.insertRegisterAfter(
-            liveRegisters as unknown as TargetArray,
-            selectedRegIndex
-          )
-        : SpatialInsertionService.insertRegisterBefore(
-            liveRegisters as unknown as TargetArray,
-            selectedRegIndex
-          );
+  const tryInsertReg = (after: boolean) => {
+    setInsertError(null);
+    type TargetArray = Parameters<typeof SpatialInsertionService.insertRegisterAfter>[0];
+    const result = after
+      ? SpatialInsertionService.insertRegisterAfter(
+          liveRegisters as unknown as TargetArray,
+          selectedRegIndex
+        )
+      : SpatialInsertionService.insertRegisterBefore(
+          liveRegisters as unknown as TargetArray,
+          selectedRegIndex
+        );
 
-      if (result.error) {
-        setInsertError(result.error);
+    if (result.error) {
+      setInsertError(result.error);
+      return;
+    }
+
+    const newIdx = result.newIndex;
+    onUpdate(['registers'], result.items as unknown[]);
+    setSelectedRegIndex(newIdx);
+    setHoveredRegIndex(newIdx);
+    setRegActiveCell({ rowIndex: newIdx, key: 'name' });
+    window.setTimeout(() => {
+      document.querySelector(`tr[data-row-idx="${newIdx}"]`)?.scrollIntoView({ block: 'center' });
+    }, 100);
+  };
+
+  useTableNavigation<RegEditKey>({
+    activeCell: regActiveCell,
+    setActiveCell: (cell) => {
+      setRegActiveCell(cell);
+      if (cell.rowIndex >= 0 && cell.rowIndex < liveRegisters.length) {
+        setSelectedRegIndex(cell.rowIndex);
+        setHoveredRegIndex(cell.rowIndex);
+      }
+    },
+    rowCount: liveRegisters.length,
+    columnOrder: REG_COLUMN_ORDER,
+    containerRef: focusRef as React.RefObject<HTMLElement>,
+    onEdit: (rowIndex, key) => {
+      if (rowIndex < 0 || rowIndex >= liveRegisters.length) {
         return;
       }
-
-      const newIdx = result.newIndex;
-      onUpdate(['registers'], result.items as unknown[]);
-      setSelectedRegIndex(newIdx);
-      setHoveredRegIndex(newIdx);
-      setRegActiveCell({ rowIndex: newIdx, key: 'name' });
+      setSelectedRegIndex(rowIndex);
+      setHoveredRegIndex(rowIndex);
+      setRegActiveCell({ rowIndex, key });
       window.setTimeout(() => {
-        document.querySelector(`tr[data-reg-idx="${newIdx}"]`)?.scrollIntoView({ block: 'center' });
-      }, 100);
-    };
-
-    const onKeyDown = (e: KeyboardEvent) => {
-      let keyLower = (e.key || '').toLowerCase();
-      if (e.altKey && e.code) {
-        if (e.code === 'KeyH') {
-          keyLower = 'h';
-        }
-        if (e.code === 'KeyJ') {
-          keyLower = 'j';
-        }
-        if (e.code === 'KeyK') {
-          keyLower = 'k';
-        }
-        if (e.code === 'KeyL') {
-          keyLower = 'l';
-        }
+        const row = document.querySelector(`tr[data-row-idx="${rowIndex}"]`);
+        const editor = row?.querySelector(`[data-edit-key="${key}"]`) as HTMLElement | null;
+        editor?.focus?.();
+      }, 0);
+    },
+    onDelete: (rowIndex) => {
+      if (rowIndex < 0 || rowIndex >= liveRegisters.length) {
+        return;
       }
-      const vimToArrow: Record<string, 'ArrowLeft' | 'ArrowDown' | 'ArrowUp' | 'ArrowRight'> = {
-        h: 'ArrowLeft',
-        j: 'ArrowDown',
-        k: 'ArrowUp',
-        l: 'ArrowRight',
-      };
-      const normalizedKey: string = vimToArrow[keyLower] ?? e.key;
+      const currentKey: RegEditKey = REG_COLUMN_ORDER.includes(regActiveCell.key)
+        ? regActiveCell.key
+        : 'name';
+      const newRegs = liveRegisters.filter((_: RegisterModel, i: number) => i !== rowIndex);
+      onUpdate(['registers'], newRegs as unknown[]);
+      const nextRow = rowIndex > 0 ? rowIndex - 1 : newRegs.length > 0 ? 0 : -1;
+      setSelectedRegIndex(nextRow);
+      setHoveredRegIndex(nextRow);
+      setRegActiveCell({ rowIndex: nextRow, key: currentKey });
+    },
+    onMove: (fromIndex, delta) => {
+      const next = fromIndex + delta;
+      if (
+        fromIndex < 0 ||
+        fromIndex >= liveRegisters.length ||
+        next < 0 ||
+        next >= liveRegisters.length
+      ) {
+        return;
+      }
+      const newRegs = [...liveRegisters];
+      const temp = newRegs[fromIndex];
+      newRegs[fromIndex] = newRegs[next];
+      newRegs[next] = temp;
+      newRegs.forEach((r, i) => {
+        r.offset = i * 4;
+        r.address_offset = i * 4;
+      });
+      onUpdate(['registers'], newRegs as unknown[]);
+      setSelectedRegIndex(next);
+      setHoveredRegIndex(next);
+      setRegActiveCell((prev) => ({ rowIndex: next, key: prev.key }));
+    },
+    onInsertAfter: () => tryInsertReg(true),
+    onInsertBefore: () => tryInsertReg(false),
+    isActive: true,
+  });
 
-      const isArrow = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(normalizedKey);
-      const isEdit = normalizedKey === 'F2' || keyLower === 'e';
-      const isDelete = keyLower === 'd' || e.key === 'Delete';
-      const isInsertAfter = keyLower === 'o' && !e.shiftKey;
-      const isInsertBefore = keyLower === 'o' && e.shiftKey;
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const keyLower = (e.key || '').toLowerCase();
       const isInsertArrayAfter = keyLower === 'a' && e.shiftKey;
       const isInsertArrayBefore = keyLower === 'i' && e.shiftKey;
-
-      if (
-        !isArrow &&
-        !isEdit &&
-        !isDelete &&
-        !isInsertAfter &&
-        !isInsertBefore &&
-        !isInsertArrayAfter &&
-        !isInsertArrayBefore
-      ) {
+      if (!isInsertArrayAfter && !isInsertArrayBefore) {
         return;
       }
       if (e.ctrlKey || e.metaKey) {
@@ -253,188 +271,77 @@ export function BlockEditor({
         return;
       }
 
-      const scrollToCell = (rowIndex: number, key: RegEditKey) => {
-        window.setTimeout(() => {
-          const row = document.querySelector(`tr[data-reg-idx="${rowIndex}"]`);
-          row?.scrollIntoView({ block: 'nearest' });
-          const cell = row?.querySelector(`td[data-col-key="${key}"]`) as HTMLElement | null;
-          cell?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-        }, 0);
-      };
-
-      const focusEditor = (rowIndex: number, key: RegEditKey) => {
-        window.setTimeout(() => {
-          const row = document.querySelector(`tr[data-reg-idx="${rowIndex}"]`);
-          const editor = row?.querySelector(`[data-edit-key="${key}"]`) as HTMLElement | null;
-          editor?.focus?.();
-        }, 0);
-      };
-
-      const currentRow =
-        regActiveCell.rowIndex >= 0
-          ? regActiveCell.rowIndex
-          : selectedRegIndex >= 0
-            ? selectedRegIndex
-            : 0;
-      const currentKey: RegEditKey = REG_COLUMN_ORDER.includes(regActiveCell.key)
-        ? regActiveCell.key
-        : 'name';
-
-      if (isEdit) {
-        if (currentRow < 0 || currentRow >= liveRegisters.length) {
-          return;
-        }
-        e.preventDefault();
-        e.stopPropagation();
-        setSelectedRegIndex(currentRow);
-        setHoveredRegIndex(currentRow);
-        setRegActiveCell({ rowIndex: currentRow, key: currentKey });
-        focusEditor(currentRow, currentKey);
-        return;
-      }
-      if (isInsertAfter || isInsertBefore) {
-        e.preventDefault();
-        e.stopPropagation();
-        tryInsertReg(isInsertAfter);
-        return;
-      }
-      if (isInsertArrayAfter || isInsertArrayBefore) {
-        e.preventDefault();
-        e.stopPropagation();
-        let maxN = 0;
-        for (const r of liveRegisters) {
-          const match = r.name?.match(/^ARRAY_(\d+)$/i);
-          if (match) {
-            maxN = Math.max(maxN, parseInt(match[1], 10));
-          }
-        }
-        const arrayName = `ARRAY_${maxN + 1}`;
-        const selIdx = selectedRegIndex >= 0 ? selectedRegIndex : liveRegisters.length - 1;
-        const selected = liveRegisters[selIdx];
-        const selectedOffset = selected?.address_offset ?? selected?.offset ?? 0;
-        let selectedSize = 4;
-        if (selected?.__kind === 'array') {
-          selectedSize = (selected.count ?? 1) * (selected.stride ?? 4);
-        }
-        const newArraySize = 8;
-        const baseOffset = isInsertArrayAfter
-          ? Number(selectedOffset) + Number(selectedSize)
-          : selectedOffset;
-        const newArray = {
-          __kind: 'array',
-          name: arrayName,
-          address_offset: baseOffset,
-          offset: baseOffset,
-          count: 2,
-          stride: 4,
-          description: '',
-          registers: [
-            {
-              name: 'reg0',
-              offset: 0,
-              address_offset: 0,
-              access: 'read-write',
-              description: '',
-              fields: [{ name: 'data', bits: '[31:0]', access: 'read-write', description: '' }],
-            },
-          ],
-        };
-        let newRegs: RegisterModel[];
-        let newIdx: number;
-        if (isInsertArrayAfter) {
-          newRegs = [
-            ...liveRegisters.slice(0, selIdx + 1),
-            newArray,
-            ...liveRegisters.slice(selIdx + 1),
-          ];
-          newIdx = selIdx + 1;
-        } else {
-          newRegs = [
-            ...liveRegisters.slice(0, selIdx),
-            newArray,
-            ...liveRegisters.slice(selIdx).map((r: RegisterModel) => ({
-              ...r,
-              offset: Number(r.offset ?? r.address_offset ?? 0) + newArraySize,
-              address_offset: Number(r.address_offset ?? r.offset ?? 0) + newArraySize,
-            })),
-          ];
-          newIdx = selIdx;
-        }
-        onUpdate(['registers'], newRegs as unknown[]);
-        setSelectedRegIndex(newIdx);
-        setHoveredRegIndex(newIdx);
-        setRegActiveCell({ rowIndex: newIdx, key: 'name' });
-        return;
-      }
-      if (isDelete) {
-        if (currentRow < 0 || currentRow >= liveRegisters.length) {
-          return;
-        }
-        e.preventDefault();
-        e.stopPropagation();
-        const newRegs = liveRegisters.filter((_: RegisterModel, i: number) => i !== currentRow);
-        onUpdate(['registers'], newRegs as unknown[]);
-        const nextRow = currentRow > 0 ? currentRow - 1 : newRegs.length > 0 ? 0 : -1;
-        setSelectedRegIndex(nextRow);
-        setHoveredRegIndex(nextRow);
-        setRegActiveCell({ rowIndex: nextRow, key: currentKey });
-        return;
-      }
-
       e.preventDefault();
       e.stopPropagation();
-      if (liveRegisters.length === 0) {
-        return;
-      }
 
-      const isVertical = normalizedKey === 'ArrowUp' || normalizedKey === 'ArrowDown';
-      const delta = normalizedKey === 'ArrowUp' || normalizedKey === 'ArrowLeft' ? -1 : 1;
-
-      if (e.altKey && isVertical) {
-        if (selectedRegIndex < 0) {
-          return;
+      let maxN = 0;
+      for (const r of liveRegisters) {
+        const match = r.name?.match(/^ARRAY_(\d+)$/i);
+        if (match) {
+          maxN = Math.max(maxN, parseInt(match[1], 10));
         }
-        const next = selectedRegIndex + delta;
-        if (next < 0 || next >= liveRegisters.length) {
-          return;
-        }
-        const newRegs = [...liveRegisters];
-        const temp = newRegs[selectedRegIndex];
-        newRegs[selectedRegIndex] = newRegs[next];
-        newRegs[next] = temp;
-        newRegs.forEach((r, i) => {
-          r.offset = i * 4;
-          r.address_offset = i * 4;
-        });
-        onUpdate(['registers'], newRegs as unknown[]);
-        setSelectedRegIndex(next);
-        setHoveredRegIndex(next);
-        setRegActiveCell((prev) => ({ rowIndex: next, key: prev.key }));
-        scrollToCell(next, currentKey);
-        return;
       }
-
-      if (isVertical) {
-        const nextRow = Math.max(0, Math.min(liveRegisters.length - 1, currentRow + delta));
-        setSelectedRegIndex(nextRow);
-        setHoveredRegIndex(nextRow);
-        setRegActiveCell({ rowIndex: nextRow, key: currentKey });
-        scrollToCell(nextRow, currentKey);
-        return;
+      const arrayName = `ARRAY_${maxN + 1}`;
+      const selIdx = selectedRegIndex >= 0 ? selectedRegIndex : liveRegisters.length - 1;
+      const selected = liveRegisters[selIdx];
+      const selectedOffset = selected?.address_offset ?? selected?.offset ?? 0;
+      let selectedSize = 4;
+      if (selected?.__kind === 'array') {
+        selectedSize = (selected.count ?? 1) * (selected.stride ?? 4);
       }
-
-      const currentCol = Math.max(0, REG_COLUMN_ORDER.indexOf(currentKey));
-      const nextCol = Math.max(0, Math.min(REG_COLUMN_ORDER.length - 1, currentCol + delta));
-      const nextKey = REG_COLUMN_ORDER[nextCol] ?? 'name';
-      setSelectedRegIndex(currentRow);
-      setHoveredRegIndex(currentRow);
-      setRegActiveCell({ rowIndex: currentRow, key: nextKey });
-      scrollToCell(currentRow, nextKey);
+      const newArraySize = 8;
+      const baseOffset = isInsertArrayAfter
+        ? Number(selectedOffset) + Number(selectedSize)
+        : selectedOffset;
+      const newArray = {
+        __kind: 'array',
+        name: arrayName,
+        address_offset: baseOffset,
+        offset: baseOffset,
+        count: 2,
+        stride: 4,
+        description: '',
+        registers: [
+          {
+            name: 'reg0',
+            offset: 0,
+            address_offset: 0,
+            access: 'read-write',
+            description: '',
+            fields: [{ name: 'data', bits: '[31:0]', access: 'read-write', description: '' }],
+          },
+        ],
+      };
+      let newRegs: RegisterModel[];
+      let newIdx: number;
+      if (isInsertArrayAfter) {
+        newRegs = [
+          ...liveRegisters.slice(0, selIdx + 1),
+          newArray,
+          ...liveRegisters.slice(selIdx + 1),
+        ];
+        newIdx = selIdx + 1;
+      } else {
+        newRegs = [
+          ...liveRegisters.slice(0, selIdx),
+          newArray,
+          ...liveRegisters.slice(selIdx).map((r: RegisterModel) => ({
+            ...r,
+            offset: Number(r.offset ?? r.address_offset ?? 0) + newArraySize,
+            address_offset: Number(r.address_offset ?? r.offset ?? 0) + newArraySize,
+          })),
+        ];
+        newIdx = selIdx;
+      }
+      onUpdate(['registers'], newRegs as unknown[]);
+      setSelectedRegIndex(newIdx);
+      setHoveredRegIndex(newIdx);
+      setRegActiveCell({ rowIndex: newIdx, key: 'name' });
     };
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [block, selectedRegIndex, hoveredRegIndex, regActiveCell, onUpdate]);
+  }, [liveRegisters, onUpdate, selectedRegIndex]);
 
   return (
     <div className="flex flex-col w-full h-full min-h-0">
@@ -498,7 +405,8 @@ export function BlockEditor({
 
                   return (
                     <tr
-                      key={idx}
+                      key={`${String(reg.name ?? `reg-${idx}`)}-${String(reg.address_offset ?? reg.offset ?? idx * 4)}`}
+                      data-row-idx={idx}
                       data-reg-idx={idx}
                       className={`group transition-colors border-l-4 border-transparent h-12 ${
                         idx === selectedRegIndex

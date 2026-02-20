@@ -427,7 +427,7 @@ export const BusInterfacesEditor: React.FC<BusInterfacesEditorProps> = ({
       }
       const { field } = editingBusField;
 
-      const valueToSave = overrideValue !== undefined ? overrideValue : draftBusValue;
+      const valueToSave = overrideValue ?? draftBusValue;
 
       if (valueToSave.trim()) {
         onUpdate(['busInterfaces', busIndex, field], valueToSave.trim());

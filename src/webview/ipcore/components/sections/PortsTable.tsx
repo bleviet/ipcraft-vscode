@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { YamlUpdateHandler } from '../../../types/editor';
 import { FormField, SelectField, NumberField } from '../../../shared/components';
 import { validateVhdlIdentifier, validateUniqueName } from '../../../shared/utils/validation';
-import { useVimTableNavigation } from '../../hooks/useVimTableNavigation';
+import { useTableNavigation } from '../../../hooks/useTableNavigation';
 
 interface Port {
   name: string;
@@ -53,27 +53,166 @@ const COLUMN_KEYS = ['name', 'direction', 'width'];
  */
 export const PortsTable: React.FC<PortsTableProps> = ({ ports: rawPorts, onUpdate }) => {
   const ports = rawPorts as Port[];
-  const {
-    editingIndex,
-    isAdding,
-    draft,
-    setDraft,
-    handleEdit,
-    handleAdd,
-    handleSave,
-    handleCancel,
-    handleDelete,
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [activeColumn, setActiveColumn] = useState(COLUMN_KEYS[0] || '');
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [isAdding, setIsAdding] = useState(false);
+  const [draft, setDraft] = useState<Port>(createEmptyPort());
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (editingIndex === null && !isAdding) {
+      return;
+    }
+
+    const timerId = setTimeout(() => {
+      const container = containerRef.current;
+      if (!container) {
+        return;
+      }
+      const targetRowIdx = isAdding ? ports.length : editingIndex;
+      const row = container.querySelector(`tr[data-row-idx="${String(targetRowIdx)}"]`);
+      if (!row) {
+        return;
+      }
+      const targetColumn = isAdding ? COLUMN_KEYS[0] : activeColumn;
+      const cell = row.querySelector<HTMLElement>(`[data-edit-key="${targetColumn}"]`);
+      cell?.focus();
+    }, 0);
+
+    return () => clearTimeout(timerId);
+  }, [editingIndex, isAdding, activeColumn, ports.length]);
+
+  const handleAdd = useCallback(() => {
+    setIsAdding(true);
+    setDraft(createEmptyPort());
+  }, []);
+
+  const handleEdit = useCallback(
+    (index: number) => {
+      setEditingIndex(index);
+      setDraft(normalizePort(ports[index]));
+    },
+    [ports]
+  );
+
+  const handleSave = useCallback(() => {
+    if (isAdding) {
+      onUpdate(['ports'], [...ports, draft]);
+      setSelectedIndex(ports.length);
+    } else if (editingIndex !== null) {
+      const updated = [...ports];
+      updated[editingIndex] = draft;
+      onUpdate(['ports'], updated);
+    }
+
+    setIsAdding(false);
+    setEditingIndex(null);
+    setDraft(createEmptyPort());
+    setTimeout(() => containerRef.current?.focus(), 0);
+  }, [isAdding, editingIndex, draft, onUpdate, ports]);
+
+  const handleCancel = useCallback(() => {
+    setIsAdding(false);
+    setEditingIndex(null);
+    setDraft(createEmptyPort());
+    setTimeout(() => containerRef.current?.focus(), 0);
+  }, []);
+
+  const handleDelete = useCallback(
+    (index: number) => {
+      const updated = ports.filter((_, i) => i !== index);
+      onUpdate(['ports'], updated);
+      if (selectedIndex >= updated.length) {
+        setSelectedIndex(Math.max(0, updated.length - 1));
+      }
+    },
+    [ports, onUpdate, selectedIndex]
+  );
+
+  useTableNavigation<string>({
+    activeCell: { rowIndex: selectedIndex, key: activeColumn || COLUMN_KEYS[0] || '' },
+    setActiveCell: (cell) => {
+      setSelectedIndex(cell.rowIndex);
+      setActiveColumn(cell.key);
+    },
+    rowCount: ports.length,
+    columnOrder: COLUMN_KEYS,
     containerRef,
-    getRowProps,
-    getCellProps,
-  } = useVimTableNavigation<Port>({
-    items: ports,
-    onUpdate,
-    dataKey: 'ports',
-    createEmptyItem: createEmptyPort,
-    normalizeItem: normalizePort,
-    columnKeys: COLUMN_KEYS,
+    onEdit: (rowIndex) => {
+      if (ports.length > 0 && rowIndex >= 0 && rowIndex < ports.length) {
+        handleEdit(rowIndex);
+      }
+    },
+    onDelete: (rowIndex) => {
+      if (ports.length > 0 && rowIndex >= 0 && rowIndex < ports.length) {
+        handleDelete(rowIndex);
+      }
+    },
+    onInsertAfter: handleAdd,
+    isActive: editingIndex === null && !isAdding,
   });
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) {
+      return;
+    }
+
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && (editingIndex !== null || isAdding)) {
+        e.preventDefault();
+        handleCancel();
+      }
+    };
+
+    container.addEventListener('keydown', handleEscape);
+    return () => container.removeEventListener('keydown', handleEscape);
+  }, [editingIndex, isAdding, handleCancel]);
+
+  const getRowProps = useCallback(
+    (index: number) => ({
+      tabIndex: 0,
+      onKeyDown: (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' && editingIndex === null && !isAdding) {
+          e.preventDefault();
+          handleEdit(index);
+        }
+      },
+      onClick: () => {
+        setSelectedIndex(index);
+      },
+      style: {
+        background:
+          selectedIndex === index
+            ? 'var(--vscode-list-activeSelectionBackground)'
+            : 'var(--vscode-editor-background)',
+        borderBottom: '1px solid var(--vscode-panel-border)',
+        cursor: 'pointer',
+      } as React.CSSProperties,
+      'data-row-idx': index,
+    }),
+    [selectedIndex, editingIndex, isAdding, handleEdit]
+  );
+
+  const getCellProps = useCallback(
+    (rowIndex: number, columnKey: string) => ({
+      'data-col-key': columnKey,
+      onClick: (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setSelectedIndex(rowIndex);
+        setActiveColumn(columnKey);
+      },
+      style: {
+        outline:
+          selectedIndex === rowIndex && activeColumn === columnKey
+            ? '2px solid var(--vscode-focusBorder)'
+            : 'none',
+        outlineOffset: '-2px',
+      } as React.CSSProperties,
+    }),
+    [selectedIndex, activeColumn]
+  );
 
   const existingNames = ports.map((p) => p.name).filter((_, i) => i !== editingIndex);
   const nameError =

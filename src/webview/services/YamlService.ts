@@ -1,5 +1,5 @@
 import jsyaml from 'js-yaml';
-import { BitFieldUtils } from '../utils/BitFieldUtils';
+import { formatBitsLike } from '../utils/BitFieldUtils';
 
 /**
  * Service for YAML serialization and parsing operations
@@ -60,7 +60,7 @@ export class YamlService {
       const bit_width = Number(record['bit_width']);
 
       if (Number.isFinite(bit_offset) && Number.isFinite(bit_width)) {
-        bitsValue = BitFieldUtils.formatBitsLike(bit_offset, bit_width);
+        bitsValue = formatBitsLike(bit_offset, bit_width);
       }
     }
 

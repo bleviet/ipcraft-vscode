@@ -39,6 +39,8 @@ export interface UseTableNavigationProps<T extends ColumnKey> {
   onInsertBefore?: () => void;
   /** Whether the table is currently active/focused */
   isActive: boolean;
+  /** Optional row selector attribute name (default: data-row-idx) */
+  rowSelectorAttr?: string;
 }
 
 /**
@@ -63,18 +65,22 @@ export function useTableNavigation<T extends ColumnKey>({
   onInsertAfter,
   onInsertBefore,
   isActive,
+  rowSelectorAttr = 'data-row-idx',
 }: UseTableNavigationProps<T>) {
   /**
    * Scroll a cell into view
    */
-  const scrollToCell = useCallback((rowIndex: number, key: T) => {
-    window.setTimeout(() => {
-      const row = document.querySelector(`tr[data-row-idx="${rowIndex}"]`);
-      row?.scrollIntoView({ block: rowIndex === 0 ? 'center' : 'nearest' });
-      const cell = row?.querySelector(`td[data-col-key="${key}"]`) as HTMLElement | null;
-      cell?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-    }, 0);
-  }, []);
+  const scrollToCell = useCallback(
+    (rowIndex: number, key: T) => {
+      window.setTimeout(() => {
+        const row = document.querySelector(`tr[${rowSelectorAttr}="${rowIndex}"]`);
+        row?.scrollIntoView({ block: rowIndex === 0 ? 'center' : 'nearest' });
+        const cell = row?.querySelector(`td[data-col-key="${key}"]`) as HTMLElement | null;
+        cell?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      }, 0);
+    },
+    [rowSelectorAttr]
+  );
 
   /**
    * Handle keyboard events
@@ -85,7 +91,21 @@ export function useTableNavigation<T extends ColumnKey>({
     }
 
     const onKeyDown = (e: KeyboardEvent) => {
-      const keyLower = (e.key || '').toLowerCase();
+      let keyLower = (e.key || '').toLowerCase();
+      if (e.altKey && e.code) {
+        if (e.code === 'KeyH') {
+          keyLower = 'h';
+        }
+        if (e.code === 'KeyJ') {
+          keyLower = 'j';
+        }
+        if (e.code === 'KeyK') {
+          keyLower = 'k';
+        }
+        if (e.code === 'KeyL') {
+          keyLower = 'l';
+        }
+      }
       const vimToArrow: Record<string, 'ArrowLeft' | 'ArrowDown' | 'ArrowUp' | 'ArrowRight'> = {
         h: 'ArrowLeft',
         j: 'ArrowDown',
@@ -237,6 +257,7 @@ export function useTableNavigation<T extends ColumnKey>({
     onInsertBefore,
     setActiveCell,
     scrollToCell,
+    rowSelectorAttr,
   ]);
 
   return {

@@ -10,7 +10,7 @@ import { useYamlSync } from './hooks/useYamlSync';
 import { YamlPathResolver, type YamlPath } from './services/YamlPathResolver';
 import { YamlService } from './services/YamlService';
 import type { NormalizedRegister, NormalizedRegisterArray } from './services/DataNormalizer';
-import { BitFieldUtils } from './utils/BitFieldUtils';
+import { formatBitsLike, parseBitsLike } from './utils/BitFieldUtils';
 import './index.css';
 
 /**
@@ -21,7 +21,7 @@ const App = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // State management hooks
-  const { memoryMap, rawText, rawTextRef, parseError, fileName, updateFromYaml, updateRawText } =
+  const { memoryMap, rawTextRef, parseError, fileName, updateFromYaml, updateRawText } =
     useMemoryMapState();
   const {
     selectedId,
@@ -41,8 +41,6 @@ const App = () => {
     vscode?.postMessage({ type: 'ready' });
   }, []);
 
-  // Local state
-  const [activeTab] = useState<'properties' | 'yaml'>('properties');
   const didInitSelectionRef = useRef(false);
   const outlineRef = useRef<OutlineHandle | null>(null);
   const detailsRef = useRef<DetailsPanelHandle | null>(null);
@@ -295,7 +293,7 @@ const App = () => {
           // Parse width from bits string (primary source of truth in YAML)
           let width = 1; // default
           if (typeof field?.bits === 'string') {
-            const parsed = BitFieldUtils.parseBitsLike(field.bits);
+            const parsed = parseBitsLike(field.bits);
             if (parsed && parsed.bit_width > 0) {
               width = parsed.bit_width;
             }
@@ -309,7 +307,7 @@ const App = () => {
           // Replace field with clean object containing only YAML-persisted properties
           fieldsArr[i] = {
             name: field.name,
-            bits: BitFieldUtils.formatBitsLike(offset, width),
+            bits: formatBitsLike(offset, width),
             access: field.access,
             reset_value: field.reset_value,
             description: field.description,
@@ -425,6 +423,7 @@ const App = () => {
             className="sidebar-toggle-btn p-2 rounded-md transition-colors vscode-icon-button"
             onClick={() => setSidebarOpen(!sidebarOpen)}
             title="Toggle sidebar"
+            aria-label="Toggle sidebar"
           >
             <span className="codicon codicon-menu"></span>
           </button>
@@ -450,6 +449,7 @@ const App = () => {
             className="p-2 rounded-md transition-colors vscode-icon-button"
             onClick={() => sendCommand('save')}
             title="Save"
+            aria-label="Save"
           >
             <span className="codicon codicon-save"></span>
           </button>
@@ -457,6 +457,7 @@ const App = () => {
             className="p-2 rounded-md transition-colors vscode-icon-button"
             onClick={() => sendCommand('validate')}
             title="Validate"
+            aria-label="Validate"
           >
             <span className="codicon codicon-check"></span>
           </button>
@@ -464,12 +465,14 @@ const App = () => {
           <button
             className="p-2 rounded-md transition-colors vscode-icon-button"
             title="Export Header"
+            aria-label="Export Header"
           >
             <span className="codicon codicon-code"></span>
           </button>
           <button
             className="p-2 rounded-md transition-colors vscode-icon-button"
             title="Documentation"
+            aria-label="Documentation"
           >
             <span className="codicon codicon-book"></span>
           </button>
@@ -510,120 +513,109 @@ const App = () => {
             }}
           />
         </aside>
-        {activeTab === 'yaml' ? (
-          <section className="flex-1 vscode-surface overflow-auto min-w-0">
-            <div className="p-6">
-              <pre className="font-mono text-sm">{rawText}</pre>
-            </div>
-          </section>
-        ) : (
-          <section className="flex-1 overflow-hidden min-w-0">
-            <DetailsPanel
-              ref={detailsRef}
-              selectedType={selectedType}
-              selectedObject={selectedObject}
-              selectionMeta={selectionMeta}
-              onUpdate={handleUpdate}
-              onNavigateToRegister={(regIndex) => {
-                // Navigate to register in Outline when clicking on visualizer
-                if (!memoryMap || !selectionRef.current) {
+        <section className="flex-1 overflow-hidden min-w-0">
+          <DetailsPanel
+            ref={detailsRef}
+            selectedType={selectedType}
+            selectedObject={selectedObject}
+            selectionMeta={selectionMeta}
+            onUpdate={handleUpdate}
+            onNavigateToRegister={(regIndex) => {
+              // Navigate to register in Outline when clicking on visualizer
+              if (!memoryMap || !selectionRef.current) {
+                return;
+              }
+
+              // CASE 1: Block View (Direct registers/arrays)
+              if (selectionRef.current.type === 'block') {
+                const currentPath = selectionRef.current.path || [];
+                const block = selectedObject as Record<string, unknown>;
+                const registers = (block?.registers as unknown[]) || [];
+                const reg = registers[regIndex] as Record<string, unknown>;
+                if (!reg) {
                   return;
                 }
 
-                // CASE 1: Block View (Direct registers/arrays)
-                if (selectionRef.current.type === 'block') {
-                  const currentPath = selectionRef.current.path || [];
-                  const block = selectedObject as Record<string, unknown>;
-                  const registers = (block?.registers as unknown[]) || [];
-                  const reg = registers[regIndex] as Record<string, unknown>;
-                  if (!reg) {
-                    return;
-                  }
+                // Determine if it's an array or register
+                const isArray = reg.__kind === 'array';
+                const newPath = [...currentPath, 'registers', regIndex];
 
-                  // Determine if it's an array or register
-                  const isArray = reg.__kind === 'array';
-                  const newPath = [...currentPath, 'registers', regIndex];
-
-                  // Outline uses different ID schemes for arrays vs registers
-                  const idSuffix = isArray ? `-arrreg-${regIndex}` : `-reg-${regIndex}`;
-
-                  handleSelect({
-                    id: `${selectionRef.current.id}${idSuffix}`,
-                    type: isArray ? 'array' : 'register',
-                    object: reg,
-                    breadcrumbs: [
-                      ...(selectionRef.current.breadcrumbs || []),
-                      String(reg.name ?? `Register ${regIndex}`),
-                    ],
-                    path: newPath,
-                    // Block children (top-level) absolute address is calculated in Outline, but we can approximate or omit if Outline recalculates?
-                    // Usually safe to omit if DetailsPanel Recalcs or if Outline pass provides it.
-                    // For consistency, let's leave meta undefined (or copy from existing logic which didn't set it? Existing logic DID NOT set meta).
-                  });
-                  return;
-                }
-
-                // CASE 2: Array Element View (Nested registers)
-                // When masquerading as a Block for an Array Element, clicking a register should select the template register in the Outline under that element.
-                if (selectionRef.current.type === 'array') {
-                  const arr = selectedObject as Record<string, unknown>; // NormalizedRegisterArray with meta
-                  const registers = (arr.registers as unknown[]) || [];
-                  const reg = registers[regIndex] as Record<string, unknown>;
-                  if (!reg) {
-                    return;
-                  }
-
-                  // Path logic verified from Outline.tsx: [...arrayPath, 'registers', childIndex]
-                  const newPath = [...(selectionRef.current.path || []), 'registers', regIndex];
-
-                  // ID suffix logic verified from Outline.tsx: `${elementId}-reg-${childIndex}`
-                  const id = `${selectionRef.current.id}-reg-${regIndex}`;
-
-                  // Calculate absolute address for the specific child
-                  const elementBase = (arr.__element_base as number) ?? 0;
-                  const absoluteAddr = elementBase + ((reg.address_offset as number) ?? 0);
-
-                  handleSelect({
-                    id,
-                    type: 'register',
-                    object: reg,
-                    breadcrumbs: [
-                      ...(selectionRef.current.breadcrumbs || []),
-                      String(reg.name ?? `Register ${regIndex}`),
-                    ],
-                    path: newPath,
-                    meta: {
-                      absoluteAddress: absoluteAddr,
-                      relativeOffset: (reg.address_offset as number) ?? 0,
-                    },
-                  });
-                  return;
-                }
-              }}
-              onNavigateToBlock={(blockIndex) => {
-                // Navigate to address block in Outline
-                if (!memoryMap?.address_blocks) {
-                  return;
-                }
-                const block = memoryMap.address_blocks[blockIndex];
-                if (!block) {
-                  return;
-                }
+                // Outline uses different ID schemes for arrays vs registers
+                const idSuffix = isArray ? `-arrreg-${regIndex}` : `-reg-${regIndex}`;
 
                 handleSelect({
-                  id: `block-${blockIndex}`,
-                  type: 'block',
-                  object: block,
+                  id: `${selectionRef.current.id}${idSuffix}`,
+                  type: isArray ? 'array' : 'register',
+                  object: reg,
                   breadcrumbs: [
-                    memoryMap.name || 'Memory Map',
-                    block.name || `Block ${blockIndex}`,
+                    ...(selectionRef.current.breadcrumbs || []),
+                    String(reg.name ?? `Register ${regIndex}`),
                   ],
-                  path: ['addressBlocks', blockIndex],
+                  path: newPath,
+                  // Block children (top-level) absolute address is calculated in Outline, but we can approximate or omit if Outline recalculates?
+                  // Usually safe to omit if DetailsPanel Recalcs or if Outline pass provides it.
+                  // For consistency, let's leave meta undefined (or copy from existing logic which didn't set it? Existing logic DID NOT set meta).
                 });
-              }}
-            />
-          </section>
-        )}
+                return;
+              }
+
+              // CASE 2: Array Element View (Nested registers)
+              // When masquerading as a Block for an Array Element, clicking a register should select the template register in the Outline under that element.
+              if (selectionRef.current.type === 'array') {
+                const arr = selectedObject as Record<string, unknown>; // NormalizedRegisterArray with meta
+                const registers = (arr.registers as unknown[]) || [];
+                const reg = registers[regIndex] as Record<string, unknown>;
+                if (!reg) {
+                  return;
+                }
+
+                // Path logic verified from Outline.tsx: [...arrayPath, 'registers', childIndex]
+                const newPath = [...(selectionRef.current.path || []), 'registers', regIndex];
+
+                // ID suffix logic verified from Outline.tsx: `${elementId}-reg-${childIndex}`
+                const id = `${selectionRef.current.id}-reg-${regIndex}`;
+
+                // Calculate absolute address for the specific child
+                const elementBase = (arr.__element_base as number) ?? 0;
+                const absoluteAddr = elementBase + ((reg.address_offset as number) ?? 0);
+
+                handleSelect({
+                  id,
+                  type: 'register',
+                  object: reg,
+                  breadcrumbs: [
+                    ...(selectionRef.current.breadcrumbs || []),
+                    String(reg.name ?? `Register ${regIndex}`),
+                  ],
+                  path: newPath,
+                  meta: {
+                    absoluteAddress: absoluteAddr,
+                    relativeOffset: (reg.address_offset as number) ?? 0,
+                  },
+                });
+                return;
+              }
+            }}
+            onNavigateToBlock={(blockIndex) => {
+              // Navigate to address block in Outline
+              if (!memoryMap?.address_blocks) {
+                return;
+              }
+              const block = memoryMap.address_blocks[blockIndex];
+              if (!block) {
+                return;
+              }
+
+              handleSelect({
+                id: `block-${blockIndex}`,
+                type: 'block',
+                object: block,
+                breadcrumbs: [memoryMap.name || 'Memory Map', block.name || `Block ${blockIndex}`],
+                path: ['addressBlocks', blockIndex],
+              });
+            }}
+          />
+        </section>
       </main>
     </>
   );
@@ -651,10 +643,10 @@ class ErrorBoundary extends React.Component<
       return (
         <div
           style={{
-            background: '#fff0f0',
-            color: '#b91c1c',
+            background: 'var(--vscode-inputValidation-errorBackground, #fff0f0)',
+            color: 'var(--vscode-errorForeground, #b91c1c)',
             padding: 32,
-            fontFamily: 'monospace',
+            fontFamily: 'var(--vscode-editor-font-family, monospace)',
           }}
         >
           <h2 style={{ fontWeight: 'bold' }}>UI Error</h2>

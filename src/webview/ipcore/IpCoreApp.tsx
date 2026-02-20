@@ -6,6 +6,7 @@ import { useIpCoreState } from './hooks/useIpCoreState';
 import { useNavigation } from './hooks/useNavigation';
 import { useIpCoreSync } from './hooks/useIpCoreSync';
 import { vscode } from '../vscode';
+import '../index.css';
 
 export type FocusedPanel = 'left' | 'right';
 
@@ -127,6 +128,7 @@ const IpCoreApp: React.FC = () => {
               className="sidebar-toggle-btn p-2 rounded-md transition-colors vscode-icon-button"
               onClick={() => setSidebarOpen(!sidebarOpen)}
               title="Toggle navigation"
+              aria-label="Toggle navigation"
               type="button"
             >
               <span className="codicon codicon-menu"></span>

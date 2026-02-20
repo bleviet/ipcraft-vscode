@@ -83,7 +83,7 @@ function validateBitsString(bits: string): string | null {
 
 /** Parses a bit string like "[7:4]" or "[3]" into {bit_offset, bit_width, bit_range}. */
 function parseBitsInput(text: string) {
-  const trimmed = text.trim().replace(/[\[\]]/g, ''); // eslint-disable-line no-useless-escape
+  const trimmed = text.trim().replace(/[\[\]]/g, '');
   if (!trimmed) {
     return null;
   }
@@ -120,7 +120,7 @@ function parseReset(text: string): number | null {
   if (!s) {
     return null;
   }
-  const v = Number.parseInt(s, 0);
+  const v = Number(s);
   return Number.isFinite(v) ? v : null;
 }
 
@@ -279,10 +279,7 @@ export function FieldsTable({ fields, registerSize, onUpdate, fieldEditor }: Fie
                 <tbody className="divide-y vscode-border text-sm">
                   {fields.map((field, index) => {
                     const bits = fieldToBitsString(field);
-                    const color = getFieldColor(
-                      field.name ?? `field${index}`,
-                      field.bit_offset ?? undefined
-                    );
+                    const color = getFieldColor(field.name ?? `field${index}`);
                     const resetDisplay =
                       field.reset_value !== null && field.reset_value !== undefined
                         ? `0x${Number(field.reset_value).toString(16).toUpperCase()}`
@@ -302,7 +299,8 @@ export function FieldsTable({ fields, registerSize, onUpdate, fieldEditor }: Fie
 
                     return (
                       <tr
-                        key={index}
+                        key={`${String(field.name ?? `field-${index}`)}-${String(field.bit_offset ?? bits ?? index)}`}
+                        data-row-idx={index}
                         data-field-index={index}
                         className={`group transition-colors border-l-4 border-transparent h-12 ${
                           index === selectedFieldIndex

@@ -11,39 +11,18 @@ import { Logger } from '../utils/Logger';
 import { TemplateLoader } from '../generator/TemplateLoader';
 import { IpCoreScaffolder } from '../generator/IpCoreScaffolder';
 import { VhdlParser } from '../parser/VhdlParser';
+import { safeRegisterCommand } from '../utils/vscodeHelpers';
+import { updateFileSets } from '../services/FileSetUpdater';
 
 const logger = new Logger('GenerateCommands');
 
 /**
  * Register all generator commands with VS Code
  */
-/**
- * Register a command, ignoring "already exists" errors that occur when the
- * extension host restarts without a full deactivation cycle.
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function safeRegisterCommand(
-  context: vscode.ExtensionContext,
-  command: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  handler: (...args: any[]) => any
-): void {
-  try {
-    context.subscriptions.push(vscode.commands.registerCommand(command, handler));
-  } catch {
-    // Command was already registered by a previous (stale) activation
-  }
-}
 
 export function registerGeneratorCommands(context: vscode.ExtensionContext): void {
   // Generate VHDL command (auto-detects bus from YAML)
   safeRegisterCommand(context, 'fpga-ip-core.generateVHDL', async () => {
-    await generateVHDL(context);
-  });
-
-  // Legacy command - now just calls main generate
-  safeRegisterCommand(context, 'fpga-ip-core.generateVHDLWithBus', async () => {
-    // Bus type is now auto-detected from YAML
     await generateVHDL(context);
   });
 
@@ -240,16 +219,6 @@ async function updateFileSetsInYaml(
       return path.relative(baseDir, absolutePath);
     });
 
-    const rtlFiles = yamlRelativeFiles.filter(
-      (file) => file.endsWith('.vhd') && !file.endsWith('_regs.vhd') && !file.endsWith('_tb.vhd')
-    );
-    const simFiles = yamlRelativeFiles.filter(
-      (file) => file.endsWith('.py') || file.endsWith('Makefile') || file.endsWith('_tb.vhd')
-    );
-    const integrationFiles = yamlRelativeFiles.filter(
-      (file) => file.endsWith('.tcl') || file.endsWith('.xml') || file.endsWith('_regs.vhd')
-    );
-
     const currentData = doc.toJSON() as Record<string, unknown>;
     let fileSets = (currentData.fileSets ?? currentData.file_sets ?? []) as Array<{
       name?: string;
@@ -265,80 +234,7 @@ async function updateFileSetsInYaml(
     if (!Array.isArray(fileSets)) {
       fileSets = [];
     }
-
-    const updateFileSet = (
-      setNames: string[],
-      setDescription: string,
-      newFiles: string[],
-      fileTypeMap: (filePath: string) => string
-    ) => {
-      if (newFiles.length === 0) {
-        return;
-      }
-
-      let targetSetIndex = fileSets.findIndex((fs) => fs?.name && setNames.includes(fs.name));
-
-      let usedName = setNames[0];
-
-      if (targetSetIndex === -1) {
-        fileSets.push({
-          name: usedName,
-          description: setDescription,
-          files: [],
-        });
-        targetSetIndex = fileSets.length - 1;
-      } else {
-        usedName = fileSets[targetSetIndex].name as string;
-      }
-
-      if (!fileSets[targetSetIndex].files) {
-        fileSets[targetSetIndex].files = [];
-      }
-      const existingFiles = fileSets[targetSetIndex].files as Array<{
-        path?: string;
-        type?: string;
-      }>;
-
-      newFiles.forEach((filePath) => {
-        const exists = existingFiles.some((f) => f.path === filePath);
-        if (!exists) {
-          existingFiles.push({
-            path: filePath,
-            type: fileTypeMap(filePath),
-          });
-        }
-      });
-    };
-
-    updateFileSet(
-      ['RTL_Sources', 'rtl_sources', 'rtl', 'RTL'],
-      'RTL Sources',
-      rtlFiles,
-      () => 'vhdl'
-    );
-    updateFileSet(
-      ['Simulation_Resources', 'simulation', 'tb'],
-      'Simulation Files',
-      simFiles,
-      (file) => {
-        if (file.endsWith('Makefile')) {
-          return 'unknown';
-        }
-        if (file.endsWith('.py')) {
-          return 'python';
-        }
-        return 'vhdl';
-      }
-    );
-    updateFileSet(['Integration', 'integration'], 'Integration Files', integrationFiles, (file) => {
-      if (file.endsWith('.tcl')) {
-        return 'tcl';
-      }
-      if (file.endsWith('.xml')) {
-        return 'unknown';
-      }
-      return 'vhdl';
-    });
+    fileSets = updateFileSets(fileSets, yamlRelativeFiles);
 
     doc.setIn([key], fileSets);
     const newText = doc.toString();

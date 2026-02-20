@@ -405,7 +405,7 @@ export class VhdlParser {
 
   private extractBlockContent(content: string, keyword: string): string | null {
     const match = content.match(new RegExp(`\\b${keyword}\\b`, 'i'));
-    if (!match || match.index === undefined) {
+    if (match?.index === undefined) {
       return null;
     }
 

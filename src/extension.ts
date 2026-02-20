@@ -8,23 +8,7 @@ import {
   createIpCoreWithMemoryMapCommand,
 } from './commands/FileCreationCommands';
 import { registerGeneratorCommands } from './commands/GenerateCommands';
-
-/**
- * Register a command, ignoring "already exists" errors that occur when the
- * extension host restarts without a full deactivation cycle.
- */
-function safeRegisterCommand(
-  context: vscode.ExtensionContext,
-  command: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  handler: (...args: any[]) => any
-): void {
-  try {
-    context.subscriptions.push(vscode.commands.registerCommand(command, handler));
-  } catch {
-    // Command was already registered by a previous (stale) activation
-  }
-}
+import { safeRegisterCommand } from './utils/vscodeHelpers';
 
 /**
  * Extension activation entry point

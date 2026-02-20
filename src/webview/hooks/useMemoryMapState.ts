@@ -3,6 +3,21 @@ import type { MemoryMap } from '../types/memoryMap';
 import { YamlService } from '../services/YamlService';
 import { DataNormalizer } from '../services/DataNormalizer';
 
+function parseAndNormalize(text: string): MemoryMap {
+  const parsed = YamlService.parse(text) as Record<string, unknown> | unknown[];
+
+  let map: unknown;
+  if (Array.isArray(parsed)) {
+    map = parsed[0];
+  } else if (parsed.memory_maps) {
+    map = (parsed.memory_maps as unknown[])[0];
+  } else {
+    map = parsed;
+  }
+
+  return DataNormalizer.normalizeMemoryMap(map);
+}
+
 /**
  * Hook for managing memory map state including YAML parsing and normalization
  */
@@ -27,19 +42,7 @@ export function useMemoryMapState() {
     }
 
     try {
-      const parsed = YamlService.parse(text) as Record<string, unknown> | unknown[];
-
-      // Handle different YAML structures (same as original code)
-      let map: unknown;
-      if (Array.isArray(parsed)) {
-        map = parsed[0];
-      } else if (parsed.memory_maps) {
-        map = (parsed.memory_maps as unknown[])[0];
-      } else {
-        map = parsed;
-      }
-
-      const normalized = DataNormalizer.normalizeMemoryMap(map);
+      const normalized = parseAndNormalize(text);
       setMemoryMap(normalized);
       setParseError(null);
     } catch (err) {
@@ -58,19 +61,7 @@ export function useMemoryMapState() {
 
     // Try to update memory map as well
     try {
-      const parsed = YamlService.parse(text) as Record<string, unknown> | unknown[];
-
-      // Handle different YAML structures
-      let map: unknown;
-      if (Array.isArray(parsed)) {
-        map = parsed[0];
-      } else if (parsed.memory_maps) {
-        map = (parsed.memory_maps as unknown[])[0];
-      } else {
-        map = parsed;
-      }
-
-      const normalized = DataNormalizer.normalizeMemoryMap(map);
+      const normalized = parseAndNormalize(text);
       setMemoryMap(normalized);
       setParseError(null);
     } catch (err) {

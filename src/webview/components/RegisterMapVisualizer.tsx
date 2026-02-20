@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { FIELD_COLORS, FIELD_COLOR_KEYS } from '../shared/colors';
+import { FIELD_COLORS, FIELD_COLOR_KEYS, getFieldPatternOverlay } from '../shared/colors';
+import { toHex } from '../utils/formatUtils';
 
 export interface VisualizerRegister {
   name?: string;
@@ -25,10 +26,6 @@ function getRegColor(idx: number) {
   return FIELD_COLOR_KEYS[idx % FIELD_COLOR_KEYS.length];
 }
 
-function toHex(n: number): string {
-  return `0x${Math.max(0, n).toString(16).toUpperCase()}`;
-}
-
 // Ctrl-drag state for reordering registers
 interface CtrlDragState {
   active: boolean;
@@ -42,7 +39,7 @@ const CTRL_DRAG_INITIAL: CtrlDragState = {
   targetIndex: null,
 };
 
-const RegisterMapVisualizer: React.FC<RegisterMapVisualizerProps> = ({
+const RegisterMapVisualizerInner: React.FC<RegisterMapVisualizerProps> = ({
   registers,
   hoveredRegIndex = null,
   setHoveredRegIndex = () => undefined,
@@ -215,10 +212,12 @@ const RegisterMapVisualizer: React.FC<RegisterMapVisualizerProps> = ({
                 }}
               >
                 <div
-                  className={`h-20 w-full overflow-hidden flex items-center justify-center px-2 rounded-md ${group.isArray ? 'border-2 border-dashed border-white/30' : ''}`}
+                  className={`h-20 w-full overflow-hidden flex items-center justify-center px-2 rounded-md ${group.isArray ? 'border-2 border-dashed' : ''}`}
                   style={{
-                    background: FIELD_COLORS[group.color],
+                    backgroundColor: FIELD_COLORS[group.color],
+                    backgroundImage: getFieldPatternOverlay(group.idx),
                     opacity: 1,
+                    borderColor: group.isArray ? 'var(--ipcraft-pattern-border)' : undefined,
                     transform: isHovered ? 'translateY(-2px)' : undefined,
                     filter: isHovered ? 'saturate(1.15) brightness(1.05)' : undefined,
                     boxShadow: isDropTarget
@@ -230,7 +229,7 @@ const RegisterMapVisualizer: React.FC<RegisterMapVisualizerProps> = ({
                 >
                   <div className="flex flex-col items-center gap-0.5">
                     <span className="text-lg select-none">{group.isArray ? '📦' : '📋'}</span>
-                    <span className="text-[10px] font-mono text-white/80 font-semibold select-none text-center leading-tight">
+                    <span className="ipcraft-pattern-label text-[10px] font-mono font-semibold select-none text-center leading-tight">
                       {group.isArray ? `[${String(group.count)}]` : 'REG'}
                     </span>
                   </div>
@@ -267,5 +266,16 @@ const RegisterMapVisualizer: React.FC<RegisterMapVisualizerProps> = ({
     </div>
   );
 };
+
+const RegisterMapVisualizer = React.memo(
+  RegisterMapVisualizerInner,
+  (prev, next) =>
+    prev.registers === next.registers &&
+    prev.hoveredRegIndex === next.hoveredRegIndex &&
+    prev.setHoveredRegIndex === next.setHoveredRegIndex &&
+    prev.baseAddress === next.baseAddress &&
+    prev.onReorderRegisters === next.onReorderRegisters &&
+    prev.onRegisterClick === next.onRegisterClick
+);
 
 export default RegisterMapVisualizer;

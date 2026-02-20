@@ -11,7 +11,23 @@
         "rootDir": "src",
         "strict": true,
         "jsx": "react",
-        "esModuleInterop": true
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "baseUrl": ".",
+        "paths": {
+            "@/*": [
+                "src/*"
+            ],
+            "@webview/*": [
+                "src/webview/*"
+            ],
+            "@services/*": [
+                "src/services/*"
+            ],
+            "@utils/*": [
+                "src/utils/*"
+            ]
+        }
     },
     "exclude": [
         "node_modules",

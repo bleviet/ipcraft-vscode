@@ -55,7 +55,7 @@ export class DataNormalizer {
       if (!s) {
         return fallback;
       }
-      const n = Number.parseInt(s, 0);
+      const n = Number(s);
       return Number.isFinite(n) ? n : fallback;
     }
     return fallback;
@@ -66,7 +66,7 @@ export class DataNormalizer {
    */
   static getDefaultRegBytes(block: Record<string, unknown>): number {
     const bits = DataNormalizer.parseNumber(
-      (block.defaultRegWidth ?? block.default_reg_width ?? 32),
+      block.defaultRegWidth ?? block.default_reg_width ?? 32,
       32
     );
     const bytes = Math.max(1, Math.floor(bits / 8));
@@ -82,7 +82,7 @@ export class DataNormalizer {
     let bit_width = (field.bit_width as number) || 1;
 
     if (field.bits && typeof field.bits === 'string') {
-      const match = (field.bits ).match(/\[(\d+)(?::(\d+))?\]/);
+      const match = field.bits.match(/\[(\d+)(?::(\d+))?\]/);
       if (match) {
         const high = parseInt(match[1], 10);
         const low = match[2] ? parseInt(match[2], 10) : high;
@@ -100,7 +100,10 @@ export class DataNormalizer {
       bit_offset,
       bit_width,
       access: field.access as string | undefined,
-      reset_value: (field.reset_value ?? field.resetValue ?? field.reset) as number | null | undefined,
+      reset_value: (field.reset_value ?? field.resetValue ?? field.reset) as
+        | number
+        | null
+        | undefined,
       description: field.description as string | undefined,
       enumerated_values: field.enumerated_values as Record<string, string> | undefined,
     };
@@ -112,12 +115,14 @@ export class DataNormalizer {
   static normalizeRegister(reg: Record<string, unknown>): NormalizedRegister {
     return {
       name: String(reg.name ?? ''),
-      address_offset: ((reg.offset as number) || (reg.address_offset as number)) || 0,
+      address_offset: (reg.offset as number) || (reg.address_offset as number) || 0,
       size: (reg.size as number) || 32,
       access: reg.access as string | undefined,
       reset_value: reg.reset_value as number | undefined,
       description: reg.description as string | undefined,
-      fields: (reg.fields as Record<string, unknown>[])?.map((field) => DataNormalizer.normalizeField(field)),
+      fields: (reg.fields as Record<string, unknown>[])?.map((field) =>
+        DataNormalizer.normalizeField(field)
+      ),
     };
   }
 
@@ -173,7 +178,9 @@ export class DataNormalizer {
         access: e.access as string | undefined,
         reset_value: e.reset_value as number | undefined,
         description: e.description as string | undefined,
-        fields: (e.fields as Record<string, unknown>[])?.map((field) => DataNormalizer.normalizeField(field)),
+        fields: (e.fields as Record<string, unknown>[])?.map((field) =>
+          DataNormalizer.normalizeField(field)
+        ),
       };
       out.push(normalizedReg);
       currentOffset = regOffset + defaultRegBytes;
@@ -212,14 +219,18 @@ export class DataNormalizer {
           description: block.description as string | undefined,
           // NOTE: this intentionally holds both registers and arrays; treated as mixed in consumers.
           registers: normalizedRegs as NormalizedRegister[],
-          register_arrays: ((block.register_arrays as Record<string, unknown>[]) ?? []).map((registerArray) => ({
-            name: String(registerArray.name ?? ''),
-            base_address: DataNormalizer.parseNumber(registerArray.base_address, 0),
-            count: DataNormalizer.parseNumber(registerArray.count, 1),
-            stride: DataNormalizer.parseNumber(registerArray.stride, defaultRegBytes),
-            template: DataNormalizer.normalizeRegister((registerArray.template as Record<string, unknown>) || {}),
-            description: registerArray.description as string | undefined,
-          })),
+          register_arrays: ((block.register_arrays as Record<string, unknown>[]) ?? []).map(
+            (registerArray) => ({
+              name: String(registerArray.name ?? ''),
+              base_address: DataNormalizer.parseNumber(registerArray.base_address, 0),
+              count: DataNormalizer.parseNumber(registerArray.count, 1),
+              stride: DataNormalizer.parseNumber(registerArray.stride, defaultRegBytes),
+              template: DataNormalizer.normalizeRegister(
+                (registerArray.template as Record<string, unknown>) || {}
+              ),
+              description: registerArray.description as string | undefined,
+            })
+          ),
         };
       }) as unknown as AddressBlock[],
     };

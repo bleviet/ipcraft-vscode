@@ -21,18 +21,31 @@ export interface Selection {
   };
 }
 
+interface SelectionState {
+  id: string;
+  type: Selection['type'] | null;
+  object: unknown;
+  breadcrumbs: string[];
+  meta: Selection['meta'] | undefined;
+  canGoBack: boolean;
+}
+
+const INITIAL_STATE: SelectionState = {
+  id: '',
+  type: null,
+  object: null,
+  breadcrumbs: [],
+  meta: undefined,
+  canGoBack: false,
+};
+
 const MAX_HISTORY_SIZE = 50;
 
 /**
  * Hook for managing selection state with history for back navigation
  */
 export function useSelection() {
-  const [selectedId, setSelectedId] = useState<string>('');
-  const [selectedType, setSelectedType] = useState<Selection['type'] | null>(null);
-  const [selectedObject, setSelectedObject] = useState<unknown>(null);
-  const [breadcrumbs, setBreadcrumbs] = useState<string[]>([]);
-  const [selectionMeta, setSelectionMeta] = useState<Selection['meta'] | undefined>(undefined);
-  const [canGoBack, setCanGoBack] = useState(false);
+  const [state, setState] = useState<SelectionState>(INITIAL_STATE);
 
   // Use ref for callbacks that need current selection
   const selectionRef = useRef<Selection | null>(null);
@@ -52,15 +65,17 @@ export function useSelection() {
       if (historyRef.current.length > MAX_HISTORY_SIZE) {
         historyRef.current.shift();
       }
-      setCanGoBack(true);
     }
 
     selectionRef.current = selection;
-    setSelectedId(selection.id);
-    setSelectedType(selection.type);
-    setSelectedObject(selection.object);
-    setBreadcrumbs(selection.breadcrumbs);
-    setSelectionMeta(selection.meta);
+    setState({
+      id: selection.id,
+      type: selection.type,
+      object: selection.object,
+      breadcrumbs: selection.breadcrumbs,
+      meta: selection.meta,
+      canGoBack: historyRef.current.length > 0,
+    });
   }, []);
 
   /**
@@ -75,14 +90,15 @@ export function useSelection() {
     if (previous) {
       // Use handleSelect without adding to history to prevent cycles
       selectionRef.current = previous;
-      setSelectedId(previous.id);
-      setSelectedType(previous.type);
-      setSelectedObject(previous.object);
-      setBreadcrumbs(previous.breadcrumbs);
-      setSelectionMeta(previous.meta);
+      setState({
+        id: previous.id,
+        type: previous.type,
+        object: previous.object,
+        breadcrumbs: previous.breadcrumbs,
+        meta: previous.meta,
+        canGoBack: historyRef.current.length > 0,
+      });
     }
-
-    setCanGoBack(historyRef.current.length > 0);
     return true;
   }, []);
 
@@ -91,23 +107,19 @@ export function useSelection() {
    */
   const clearSelection = useCallback(() => {
     selectionRef.current = null;
-    setSelectedId('');
-    setSelectedType(null);
-    setSelectedObject(null);
-    setBreadcrumbs([]);
-    setSelectionMeta(undefined);
+    setState(INITIAL_STATE);
   }, []);
 
   return {
-    selectedId,
-    selectedType,
-    selectedObject,
-    breadcrumbs,
-    selectionMeta,
+    selectedId: state.id,
+    selectedType: state.type,
+    selectedObject: state.object,
+    breadcrumbs: state.breadcrumbs,
+    selectionMeta: state.meta,
     selectionRef,
     handleSelect,
     clearSelection,
     goBack,
-    canGoBack,
+    canGoBack: state.canGoBack,
   };
 }

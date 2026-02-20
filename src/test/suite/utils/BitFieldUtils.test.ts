@@ -1,8 +1,11 @@
 import {
+  findFreeBit,
+  formatBitsLike,
   parseBitsRange,
+  parseBitsLike,
   formatBitsRange,
   fieldToBitsString,
-  BitFieldUtils,
+  isBitUsed,
 } from '../../../webview/utils/BitFieldUtils';
 
 describe('BitFieldUtils — standalone exports', () => {
@@ -87,61 +90,58 @@ describe('BitFieldUtils — standalone exports', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// BitFieldUtils class (legacy static API)
-// ---------------------------------------------------------------------------
-describe('BitFieldUtils class', () => {
+describe('BitFieldUtils standalone helpers', () => {
   describe('parseBitsLike', () => {
     it('parses [hi:lo] to {bit_offset, bit_width}', () => {
-      expect(BitFieldUtils.parseBitsLike('[7:4]')).toEqual({ bit_offset: 4, bit_width: 4 });
-      expect(BitFieldUtils.parseBitsLike('[31:0]')).toEqual({ bit_offset: 0, bit_width: 32 });
+      expect(parseBitsLike('[7:4]')).toEqual({ bit_offset: 4, bit_width: 4 });
+      expect(parseBitsLike('[31:0]')).toEqual({ bit_offset: 0, bit_width: 32 });
     });
 
     it('parses [n] as a single bit', () => {
-      expect(BitFieldUtils.parseBitsLike('[5]')).toEqual({ bit_offset: 5, bit_width: 1 });
+      expect(parseBitsLike('[5]')).toEqual({ bit_offset: 5, bit_width: 1 });
     });
 
     it('returns null for invalid strings', () => {
-      expect(BitFieldUtils.parseBitsLike('')).toBeNull();
-      expect(BitFieldUtils.parseBitsLike('invalid')).toBeNull();
+      expect(parseBitsLike('')).toBeNull();
+      expect(parseBitsLike('invalid')).toBeNull();
     });
   });
 
   describe('formatBitsLike', () => {
     it('formats bit_offset and bit_width as [msb:lsb]', () => {
-      expect(BitFieldUtils.formatBitsLike(4, 4)).toBe('[7:4]');
-      expect(BitFieldUtils.formatBitsLike(0, 32)).toBe('[31:0]');
-      expect(BitFieldUtils.formatBitsLike(0, 1)).toBe('[0:0]');
+      expect(formatBitsLike(4, 4)).toBe('[7:4]');
+      expect(formatBitsLike(0, 32)).toBe('[31:0]');
+      expect(formatBitsLike(0, 1)).toBe('[0:0]');
     });
   });
 
   describe('isBitUsed', () => {
     it('returns true when a bit falls inside a field', () => {
       const fields = [{ bit_offset: 4, bit_width: 4 }];
-      expect(BitFieldUtils.isBitUsed(fields, 4)).toBe(true);
-      expect(BitFieldUtils.isBitUsed(fields, 7)).toBe(true);
+      expect(isBitUsed(fields, 4)).toBe(true);
+      expect(isBitUsed(fields, 7)).toBe(true);
     });
 
     it('returns false when a bit is outside all fields', () => {
       const fields = [{ bit_offset: 4, bit_width: 4 }];
-      expect(BitFieldUtils.isBitUsed(fields, 0)).toBe(false);
-      expect(BitFieldUtils.isBitUsed(fields, 8)).toBe(false);
+      expect(isBitUsed(fields, 0)).toBe(false);
+      expect(isBitUsed(fields, 8)).toBe(false);
     });
   });
 
   describe('findFreeBit', () => {
     it('finds the first unused bit position', () => {
       const fields = [{ bit_offset: 0, bit_width: 4 }];
-      expect(BitFieldUtils.findFreeBit(fields, 32)).toBe(4);
+      expect(findFreeBit(fields, 32)).toBe(4);
     });
 
     it('returns 0 when no fields are defined', () => {
-      expect(BitFieldUtils.findFreeBit([], 32)).toBe(0);
+      expect(findFreeBit([], 32)).toBe(0);
     });
 
     it('returns maxBits when all bits are used', () => {
       const fields = [{ bit_offset: 0, bit_width: 4 }];
-      expect(BitFieldUtils.findFreeBit(fields, 4)).toBe(4);
+      expect(findFreeBit(fields, 4)).toBe(4);
     });
   });
 });

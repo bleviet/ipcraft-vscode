@@ -226,5 +226,17 @@ describe('RegisterRepacker', () => {
       expect(result[2].offset).toBe(0x14); // After REG2
       expect(result[3].offset).toBe(0x18);
     });
+
+    it('should return an unchanged copy for out-of-range fromIndex', () => {
+      const registers = [
+        { name: 'REG1', offset: 0x00 },
+        { name: 'REG2', offset: 0x10 },
+      ];
+
+      expect(repackRegistersForward(registers, -1)).toEqual(registers);
+      expect(repackRegistersForward(registers, 2)).toEqual(registers);
+      expect(repackRegistersBackward(registers, -1)).toEqual(registers);
+      expect(repackRegistersBackward(registers, 2)).toEqual(registers);
+    });
   });
 });

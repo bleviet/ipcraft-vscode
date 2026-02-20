@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import type { YamlUpdateHandler } from '../../types/editor';
 import { VSCodeDropdown, VSCodeTextField } from '@vscode/webview-ui-toolkit/react';
 import { KeyboardShortcutsButton } from '../../shared/components';
 import RegisterMapVisualizer from '../RegisterMapVisualizer';
+import type { RegisterModel } from '../../types/registerModel';
+import { toHex } from '../../utils/formatUtils';
+import { useTableNavigation } from '../../hooks/useTableNavigation';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -11,20 +14,6 @@ import RegisterMapVisualizer from '../RegisterMapVisualizer';
 type RegEditKey = 'name' | 'offset' | 'access' | 'description';
 type RegActiveCell = { rowIndex: number; key: RegEditKey };
 const REG_COLUMN_ORDER: RegEditKey[] = ['name', 'offset', 'access', 'description'];
-
-export interface RegisterModel {
-  name?: string;
-  offset?: number | string;
-  address_offset?: number | string;
-  __kind?: string;
-  count?: number;
-  stride?: number;
-  access?: string;
-  description?: string;
-  registers?: RegisterModel[];
-  fields?: unknown[];
-  [key: string]: unknown;
-}
 
 export interface RegisterArrayEditorProps {
   /** The register array definition object. */
@@ -53,8 +42,7 @@ export function RegisterArrayEditor({ registerArray, onUpdate }: RegisterArrayEd
     rowIndex: -1,
     key: 'name',
   });
-
-  const toHex = (n: number) => `0x${Math.max(0, n).toString(16).toUpperCase()}`;
+  const tableRef = useRef<HTMLDivElement | null>(null);
 
   const scrollToCell = (rowIndex: number, key: string) => {
     window.setTimeout(() => {
@@ -65,130 +53,86 @@ export function RegisterArrayEditor({ registerArray, onUpdate }: RegisterArrayEd
     }, 0);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    const keyLower = e.key.toLowerCase();
-    const vimToArrow: Record<string, string> = {
-      h: 'ArrowLeft',
-      j: 'ArrowDown',
-      k: 'ArrowUp',
-      l: 'ArrowRight',
+  const insertNestedReg = (after: boolean) => {
+    let maxN = 0;
+    for (const r of nestedRegisters) {
+      const match = r.name?.match(/^reg(\d+)$/i);
+      if (match) {
+        maxN = Math.max(maxN, parseInt(match[1], 10));
+      }
+    }
+    const newName = `reg${maxN + 1}`;
+    const selIdx = selectedRegIndex >= 0 ? selectedRegIndex : nestedRegisters.length - 1;
+    const selected = nestedRegisters[selIdx];
+    const selectedOffset = selected?.address_offset ?? selected?.offset ?? 0;
+    const newOffset = after ? Number(selectedOffset) + 4 : Math.max(0, Number(selectedOffset) - 4);
+
+    const newReg = {
+      name: newName,
+      offset: newOffset,
+      address_offset: newOffset,
+      access: 'read-write',
+      description: '',
+      fields: [{ name: 'data', bits: '[31:0]', access: 'read-write', description: '' }],
     };
-    const normalizedKey = vimToArrow[keyLower] ?? e.key;
 
-    const isArrow = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(normalizedKey);
-    const isEdit = normalizedKey === 'F2' || keyLower === 'e' || keyLower === 'enter';
-    const isDelete = keyLower === 'd' || e.key === 'Delete';
-    const isInsertAfter = keyLower === 'o' && !e.shiftKey;
-    const isInsertBefore = keyLower === 'o' && e.shiftKey;
-
-    if (!isArrow && !isEdit && !isDelete && !isInsertAfter && !isInsertBefore) {
-      return;
-    }
-    if (e.ctrlKey || e.metaKey) {
-      return;
-    }
-
-    const target = e.target as HTMLElement | null;
-    const isTypingTarget = !!target?.closest(
-      'input, textarea, select, [contenteditable="true"], vscode-text-field, vscode-text-area, vscode-dropdown'
-    );
-    if (isTypingTarget) {
-      return;
+    let newRegs: RegisterModel[];
+    let newIdx: number;
+    if (after) {
+      newRegs = [
+        ...nestedRegisters.slice(0, selIdx + 1),
+        newReg,
+        ...nestedRegisters.slice(selIdx + 1),
+      ];
+      newIdx = selIdx + 1;
+    } else {
+      newRegs = [...nestedRegisters.slice(0, selIdx), newReg, ...nestedRegisters.slice(selIdx)];
+      newIdx = selIdx;
     }
 
-    const currentRow = selectedRegIndex >= 0 ? selectedRegIndex : 0;
+    onUpdate(['registers'], newRegs as unknown[]);
+    setSelectedRegIndex(newIdx);
+    setHoveredRegIndex(newIdx);
+    setRegActiveCell({ rowIndex: newIdx, key: 'name' });
+    scrollToCell(newIdx, 'name');
+  };
 
-    if (isInsertAfter || isInsertBefore) {
-      e.preventDefault();
-      e.stopPropagation();
-
-      let maxN = 0;
-      for (const r of nestedRegisters) {
-        const match = r.name?.match(/^reg(\d+)$/i);
-        if (match) {
-          maxN = Math.max(maxN, parseInt(match[1], 10));
-        }
+  useTableNavigation<RegEditKey>({
+    activeCell: regActiveCell,
+    setActiveCell: (cell) => {
+      setRegActiveCell(cell);
+      if (cell.rowIndex >= 0 && cell.rowIndex < nestedRegisters.length) {
+        setSelectedRegIndex(cell.rowIndex);
+        setHoveredRegIndex(cell.rowIndex);
       }
-      const newName = `reg${maxN + 1}`;
-      const selIdx = selectedRegIndex >= 0 ? selectedRegIndex : nestedRegisters.length - 1;
-      const selected = nestedRegisters[selIdx];
-      const selectedOffset = selected?.address_offset ?? selected?.offset ?? 0;
-      const newOffset = isInsertAfter
-        ? Number(selectedOffset) + 4
-        : Math.max(0, Number(selectedOffset) - 4);
-
-      const newReg = {
-        name: newName,
-        offset: newOffset,
-        address_offset: newOffset,
-        access: 'read-write',
-        description: '',
-        fields: [{ name: 'data', bits: '[31:0]', access: 'read-write', description: '' }],
-      };
-
-      let newRegs: RegisterModel[];
-      let newIdx: number;
-      if (isInsertAfter) {
-        newRegs = [
-          ...nestedRegisters.slice(0, selIdx + 1),
-          newReg,
-          ...nestedRegisters.slice(selIdx + 1),
-        ];
-        newIdx = selIdx + 1;
-      } else {
-        newRegs = [...nestedRegisters.slice(0, selIdx), newReg, ...nestedRegisters.slice(selIdx)];
-        newIdx = selIdx;
-      }
-
-      onUpdate(['registers'], newRegs as unknown[]);
-      setSelectedRegIndex(newIdx);
-      setHoveredRegIndex(newIdx);
-      setRegActiveCell({ rowIndex: newIdx, key: 'name' });
-      scrollToCell(newIdx, 'name');
-      return;
-    }
-
-    if (isDelete) {
-      if (currentRow < 0 || currentRow >= nestedRegisters.length) {
+    },
+    rowCount: nestedRegisters.length,
+    columnOrder: REG_COLUMN_ORDER,
+    containerRef: tableRef as React.RefObject<HTMLElement>,
+    onEdit: (rowIndex, key) => {
+      if (rowIndex < 0 || rowIndex >= nestedRegisters.length) {
         return;
       }
-      e.preventDefault();
-      e.stopPropagation();
-      const newRegs = nestedRegisters.filter((_: RegisterModel, i: number) => i !== currentRow);
+      setSelectedRegIndex(rowIndex);
+      setHoveredRegIndex(rowIndex);
+      setRegActiveCell({ rowIndex, key });
+    },
+    onDelete: (rowIndex) => {
+      if (rowIndex < 0 || rowIndex >= nestedRegisters.length) {
+        return;
+      }
+      const newRegs = nestedRegisters.filter((_: RegisterModel, i: number) => i !== rowIndex);
       onUpdate(['registers'], newRegs as unknown[]);
-      const nextRow = currentRow > 0 ? currentRow - 1 : newRegs.length > 0 ? 0 : -1;
+      const nextRow = rowIndex > 0 ? rowIndex - 1 : newRegs.length > 0 ? 0 : -1;
       setSelectedRegIndex(nextRow);
       setHoveredRegIndex(nextRow);
-      return;
-    }
-
-    if (isArrow) {
-      e.preventDefault();
-      const isVertical = normalizedKey === 'ArrowUp' || normalizedKey === 'ArrowDown';
-      const delta = normalizedKey === 'ArrowUp' || normalizedKey === 'ArrowLeft' ? -1 : 1;
-
-      if (isVertical) {
-        const next = Math.max(0, Math.min(nestedRegisters.length - 1, currentRow + delta));
-        setSelectedRegIndex(next);
-        setHoveredRegIndex(next);
-        setRegActiveCell({ rowIndex: next, key: regActiveCell.key });
-        scrollToCell(next, regActiveCell.key);
-      } else {
-        const currentKey = regActiveCell.key;
-        const currentCol = Math.max(0, REG_COLUMN_ORDER.indexOf(currentKey));
-        const nextCol = Math.max(0, Math.min(REG_COLUMN_ORDER.length - 1, currentCol + delta));
-        const nextKey = REG_COLUMN_ORDER[nextCol];
-        setRegActiveCell({ rowIndex: currentRow, key: nextKey });
-        scrollToCell(currentRow, nextKey);
-      }
-    }
-
-    if (isEdit) {
-      e.preventDefault();
-      e.stopPropagation();
-      setRegActiveCell({ rowIndex: currentRow, key: regActiveCell.key });
-    }
-  };
+      setRegActiveCell((prev) => ({ rowIndex: nextRow, key: prev.key }));
+    },
+    onInsertAfter: () => insertNestedReg(true),
+    onInsertBefore: () => insertNestedReg(false),
+    isActive: true,
+    rowSelectorAttr: 'data-reg-idx',
+  });
 
   return (
     <div className="flex flex-col w-full h-full min-h-0">
@@ -279,10 +223,10 @@ export function RegisterArrayEditor({ registerArray, onUpdate }: RegisterArrayEd
       <div className="flex-1 flex overflow-hidden min-h-0">
         <div className="flex-1 vscode-surface min-h-0 flex flex-col">
           <div
+            ref={tableRef}
             tabIndex={0}
             data-registers-table="true"
             className="flex-1 overflow-auto min-h-0 outline-none focus:outline-none"
-            onKeyDown={handleKeyDown}
           >
             <table className="w-full text-left border-collapse table-fixed">
               <colgroup>
@@ -307,7 +251,8 @@ export function RegisterArrayEditor({ registerArray, onUpdate }: RegisterArrayEd
 
                   return (
                     <tr
-                      key={idx}
+                      key={`${String(reg.name ?? `reg-${idx}`)}-${String(reg.address_offset ?? reg.offset ?? idx * 4)}`}
+                      data-row-idx={idx}
                       data-reg-idx={idx}
                       className={`group transition-colors border-l-4 border-transparent h-12 ${
                         isSelected
@@ -375,7 +320,6 @@ export function RegisterArrayEditor({ registerArray, onUpdate }: RegisterArrayEd
                             onInput={(e: Event | React.FormEvent<HTMLElement>) => {
                               const val = parseInt((e.target as HTMLInputElement).value, 10);
                               if (!isNaN(val) && val >= 0) {
-                                onUpdate(['registers', idx, 'offset'], val);
                                 onUpdate(['registers', idx, 'address_offset'], val);
                               }
                             }}

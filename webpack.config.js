@@ -1,11 +1,26 @@
 const path = require("path");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
+const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 
 const commonResolve = {
   extensions: [".ts", ".tsx", ".js", ".jsx", ".json"],
 };
 
-const commonModuleRules = {
+const extensionModuleRules = {
+  rules: [
+    {
+      test: /\.tsx?$/,
+      use: "ts-loader",
+      exclude: /node_modules/,
+    },
+    {
+      test: /\.(woff2?|ttf|eot|otf)$/,
+      type: "asset/resource",
+    },
+  ],
+};
+
+const webviewModuleRules = {
   rules: [
     {
       test: /\.tsx?$/,
@@ -14,7 +29,11 @@ const commonModuleRules = {
     },
     {
       test: /\.css$/,
-      use: ["style-loader", "css-loader"],
+      use: [MiniCssExtractPlugin.loader, "css-loader", "postcss-loader"],
+    },
+    {
+      test: /\.(woff2?|ttf|eot|otf)$/,
+      type: "asset/resource",
     },
   ],
 };
@@ -37,7 +56,7 @@ const extensionConfig = {
     vscode: "commonjs vscode",
   },
   resolve: commonResolve,
-  module: commonModuleRules,
+  module: extensionModuleRules,
   plugins: [
     new CopyWebpackPlugin({
       patterns: [
@@ -70,7 +89,8 @@ const webviewConfig = {
     // NOTE: do NOT set libraryTarget to commonjs* for the webview.
   },
   resolve: commonResolve,
-  module: commonModuleRules,
+  module: webviewModuleRules,
+  plugins: [new MiniCssExtractPlugin({ filename: "[name].css" })],
 };
 
 module.exports = [extensionConfig, webviewConfig];

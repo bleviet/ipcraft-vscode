@@ -1,16 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
     --sidebar-width: 300px;
     --sidebar-width-tablet: 240px;
     --sidebar-width-mobile: 280px;
     --header-height: 40px;
-    
+
     /* Responsive breakpoints */
     --breakpoint-mobile: 640px;
     --breakpoint-tablet: 900px;
     --breakpoint-desktop: 1200px;
-    
+
     /* Touch target minimum */
     --touch-target-min: 44px;
+
+    /* Pattern/readability contrast tokens */
+    --ipcraft-pattern-line: color-mix(in srgb, var(--vscode-foreground) 34%, transparent);
+    --ipcraft-pattern-label-fg: color-mix(in srgb, white 96%, var(--vscode-foreground) 4%);
+    --ipcraft-pattern-label-shadow: color-mix(in srgb, black 55%, transparent);
+    --ipcraft-pattern-border: color-mix(in srgb, white 48%, transparent);
+    --ipcraft-pattern-ring: color-mix(in srgb, white 78%, transparent);
+    --ipcraft-pattern-handle-scrim: color-mix(in srgb, black 58%, transparent);
+}
+
+@media (forced-colors: active),
+(prefers-contrast: more) {
+    :root {
+        --ipcraft-pattern-line: color-mix(in srgb, var(--vscode-foreground) 70%, transparent);
+        --ipcraft-pattern-label-fg: var(--vscode-foreground);
+        --ipcraft-pattern-label-shadow: transparent;
+        --ipcraft-pattern-border: var(--vscode-foreground);
+        --ipcraft-pattern-ring: var(--vscode-foreground);
+        --ipcraft-pattern-handle-scrim: color-mix(in srgb, var(--vscode-editor-background) 30%, var(--vscode-foreground) 70%);
+    }
+}
+
+.ipcraft-pattern-label {
+    color: var(--ipcraft-pattern-label-fg);
+    text-shadow: 0 1px 2px var(--ipcraft-pattern-label-shadow);
 }
 
 html,
@@ -856,6 +885,7 @@ body {
    ======================================== */
 
 @media (max-width: 640px) {
+
     .app-header,
     header {
         flex-wrap: wrap;
@@ -893,6 +923,7 @@ body {
 
 /* Hide non-essential columns on tablet */
 @media (min-width: 641px) and (max-width: 900px) {
+
     /* In field tables, hide Access column (3rd) */
     .fields-table th:nth-child(3),
     .fields-table td:nth-child(3) {
@@ -902,15 +933,16 @@ body {
 
 /* Mobile: Card view for tables */
 @media (max-width: 640px) {
+
     /* Hide table, show card view */
     .fields-table {
         display: none;
     }
-    
+
     .fields-table-mobile {
         display: block;
     }
-    
+
     /* Card styling */
     .field-card {
         border: 1px solid var(--vscode-panel-border);
@@ -919,11 +951,11 @@ body {
         margin-bottom: 8px;
         background: var(--vscode-editor-background);
     }
-    
+
     .field-card:hover {
         background: var(--vscode-list-hoverBackground);
     }
-    
+
     .field-card-header {
         display: flex;
         justify-content: space-between;
@@ -932,12 +964,12 @@ body {
         padding-bottom: 8px;
         border-bottom: 1px solid var(--vscode-panel-border);
     }
-    
+
     .field-card-title {
         font-weight: 600;
         font-size: 14px;
     }
-    
+
     .field-card-badge {
         font-size: 11px;
         padding: 2px 6px;
@@ -946,37 +978,38 @@ body {
         color: var(--vscode-badge-foreground);
         font-family: var(--vscode-font-family);
     }
-    
+
     .field-card-body {
         display: grid;
         grid-template-columns: auto 1fr;
         gap: 4px 12px;
         font-size: 13px;
     }
-    
+
     .field-card-label {
         color: var(--vscode-descriptionForeground);
         font-weight: 600;
     }
-    
+
     .field-card-value {
         font-family: monospace;
     }
-    
+
     /* Compact form grid: 1 column on mobile */
     .compact-form-grid {
         grid-template-columns: 1fr;
     }
-    
+
     /* Make all inputs larger for touch */
     input,
     select,
     textarea,
     button {
         min-height: var(--touch-target-min);
-        font-size: 16px; /* Prevents zoom on iOS */
+        font-size: 16px;
+        /* Prevents zoom on iOS */
     }
-    
+
     .form-group label {
         font-size: 14px;
     }
@@ -987,7 +1020,7 @@ body {
     .fields-table-mobile {
         display: none;
     }
-    
+
     .fields-table {
         font-size: 12px;
     }
@@ -1004,12 +1037,13 @@ body {
 
 /* BitFieldVisualizer: Smaller bit cells on mobile/tablet */
 @media (max-width: 900px) {
+
     /* Reduce bit cell size from 2.5rem (40px) to 1.5rem (24px) */
     .bitfield-visualizer .bit-cell {
         width: 1.5rem !important;
         height: 1.5rem !important;
     }
-    
+
     /* Adjust field group width calculation */
     .bitfield-visualizer [style*="calc"] {
         width: calc(var(--bit-count, 1) * 1.5rem) !important;
@@ -1021,11 +1055,13 @@ body {
 /* Responsive tooltips: Smaller font on mobile */
 @media (max-width: 640px) {
     .visualizer-tooltip {
-        font-size: 0.625rem; /* 10px */
+        font-size: 0.625rem;
+        /* 10px */
         padding: 0.25rem 0.5rem;
     }
-    
+
     .visualizer-tooltip .font-bold {
-        font-size: 0.6875rem; /* 11px */
+        font-size: 0.6875rem;
+        /* 11px */
     }
 }

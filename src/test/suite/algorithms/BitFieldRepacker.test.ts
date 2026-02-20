@@ -131,5 +131,17 @@ describe('BitFieldRepacker', () => {
 
       expect(result[1].bits).toBe('[15:14]');
     });
+
+    it('should return an unchanged copy for out-of-range fromIndex', () => {
+      const fields = [
+        { name: 'field1', bits: '[3:0]', bit_offset: 0, bit_width: 4 },
+        { name: 'field2', bits: '[7:4]', bit_offset: 4, bit_width: 4 },
+      ];
+
+      expect(repackFieldsForward(fields, -1, 32)).toEqual(fields);
+      expect(repackFieldsForward(fields, 2, 32)).toEqual(fields);
+      expect(repackFieldsBackward(fields, -1, 32)).toEqual(fields);
+      expect(repackFieldsBackward(fields, 2, 32)).toEqual(fields);
+    });
   });
 });

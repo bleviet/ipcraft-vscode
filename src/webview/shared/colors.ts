@@ -5,57 +5,67 @@
 
 export const FIELD_COLORS: Record<string, string> = {
   // Primary colors
-  blue: "#3b82f6",
-  red: "#ef4444",
-  green: "#10b981",
-  yellow: "#eab308",
-  purple: "#a855f7",
-  pink: "#ec4899",
-  cyan: "#06b6d4",
-  orange: "#f97316",
+  blue: '#3b82f6',
+  red: '#ef4444',
+  green: '#10b981',
+  yellow: '#eab308',
+  purple: '#a855f7',
+  pink: '#ec4899',
+  cyan: '#06b6d4',
+  orange: '#f97316',
 
   // Secondary variations
-  indigo: "#6366f1",
-  violet: "#8b5cf6",
-  fuchsia: "#d946ef",
-  rose: "#f43f5e",
-  sky: "#0ea5e9",
-  teal: "#14b8a6",
-  emerald: "#059669",
-  lime: "#84cc16",
+  indigo: '#6366f1',
+  violet: '#8b5cf6',
+  fuchsia: '#d946ef',
+  rose: '#f43f5e',
+  sky: '#0ea5e9',
+  teal: '#14b8a6',
+  emerald: '#059669',
+  lime: '#84cc16',
 
   // Tertiary variations
-  amber: "#f59e0b",
-  coral: "#ff6b6b",
-  mint: "#4ade80",
-  lavender: "#c084fc",
-  peach: "#fb923c",
-  aqua: "#22d3ee",
-  salmon: "#fb7185",
-  olive: "#a3e635",
+  amber: '#f59e0b',
+  coral: '#ff6b6b',
+  mint: '#4ade80',
+  lavender: '#c084fc',
+  peach: '#fb923c',
+  aqua: '#22d3ee',
+  salmon: '#fb7185',
+  olive: '#a3e635',
 
   // Additional colors
-  plum: "#9333ea",
-  turquoise: "#2dd4bf",
-  crimson: "#dc2626",
-  chartreuse: "#bef264",
-  periwinkle: "#818cf8",
-  tangerine: "#f97316",
-  jade: "#22c55e",
-  magenta: "#e879f9",
+  plum: '#9333ea',
+  turquoise: '#2dd4bf',
+  crimson: '#dc2626',
+  chartreuse: '#bef264',
+  periwinkle: '#818cf8',
+  tangerine: '#f97316',
+  jade: '#22c55e',
+  magenta: '#e879f9',
 };
 
 export const FIELD_COLOR_KEYS = Object.keys(FIELD_COLORS);
+
+const FIELD_PATTERN_OVERLAYS = [
+  'repeating-linear-gradient(45deg, var(--ipcraft-pattern-line) 0 6px, transparent 6px 12px)',
+  'repeating-linear-gradient(-45deg, var(--ipcraft-pattern-line) 0 6px, transparent 6px 12px)',
+  'repeating-linear-gradient(0deg, var(--ipcraft-pattern-line) 0 4px, transparent 4px 8px)',
+  'repeating-linear-gradient(90deg, var(--ipcraft-pattern-line) 0 4px, transparent 4px 8px)',
+];
+
+export function getFieldPatternOverlay(index: number): string {
+  return FIELD_PATTERN_OVERLAYS[Math.abs(index) % FIELD_PATTERN_OVERLAYS.length];
+}
 
 /**
  * Get a stable color for a field based on its name only.
  * This ensures fields maintain their color when reordered.
  *
  * @param fieldName The name of the field
- * @param _bitOffset Deprecated, ignored for stability during repositioning
  * @returns A color name from FIELD_COLORS
  */
-export function getFieldColor(fieldName: string, _bitOffset?: number): string {
+export function getFieldColor(fieldName: string): string {
   // Simple hash function for string - uses only name for stability
   let hash = 0;
   for (let i = 0; i < fieldName.length; i++) {

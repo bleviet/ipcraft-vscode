@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
-import { FIELD_COLORS, FIELD_COLOR_KEYS } from '../shared/colors';
+import { FIELD_COLORS, FIELD_COLOR_KEYS, getFieldPatternOverlay } from '../shared/colors';
+import { toHex } from '../utils/formatUtils';
 
 export interface VisualizerAddressBlock {
   name?: string;
@@ -24,10 +25,6 @@ interface AddressMapVisualizerProps {
 
 function getBlockColor(idx: number) {
   return FIELD_COLOR_KEYS[idx % FIELD_COLOR_KEYS.length];
-}
-
-function toHex(n: number): string {
-  return `0x${Math.max(0, n).toString(16).toUpperCase()}`;
 }
 
 /**
@@ -57,7 +54,7 @@ function calculateBlockSize(block: VisualizerAddressBlock): number {
   return totalSize;
 }
 
-const AddressMapVisualizer: React.FC<AddressMapVisualizerProps> = ({
+const AddressMapVisualizerInner: React.FC<AddressMapVisualizerProps> = ({
   blocks,
   hoveredBlockIndex = null,
   setHoveredBlockIndex = (_idx: number | null) => undefined,
@@ -101,7 +98,8 @@ const AddressMapVisualizer: React.FC<AddressMapVisualizerProps> = ({
                 <div
                   className="h-20 w-full overflow-hidden flex items-center justify-center px-2 rounded-md"
                   style={{
-                    background: FIELD_COLORS[group.color],
+                    backgroundColor: FIELD_COLORS[group.color],
+                    backgroundImage: getFieldPatternOverlay(group.idx),
                     opacity: 1,
                     transform: isHovered ? 'translateY(-2px)' : undefined,
                     filter: isHovered ? 'saturate(1.15) brightness(1.05)' : undefined,
@@ -114,7 +112,7 @@ const AddressMapVisualizer: React.FC<AddressMapVisualizerProps> = ({
                     <span className="text-lg select-none">
                       {group.usage === 'memory' ? '📦' : '📋'}
                     </span>
-                    <span className="text-[10px] font-mono text-white/80 font-semibold select-none text-center leading-tight">
+                    <span className="ipcraft-pattern-label text-[10px] font-mono font-semibold select-none text-center leading-tight">
                       {group.usage === 'memory' ? 'MEM' : 'REG'}
                     </span>
                   </div>
@@ -156,5 +154,14 @@ const AddressMapVisualizer: React.FC<AddressMapVisualizerProps> = ({
     </div>
   );
 };
+
+const AddressMapVisualizer = React.memo(
+  AddressMapVisualizerInner,
+  (prev, next) =>
+    prev.blocks === next.blocks &&
+    prev.hoveredBlockIndex === next.hoveredBlockIndex &&
+    prev.setHoveredBlockIndex === next.setHoveredBlockIndex &&
+    prev.onBlockClick === next.onBlockClick
+);
 
 export default AddressMapVisualizer;

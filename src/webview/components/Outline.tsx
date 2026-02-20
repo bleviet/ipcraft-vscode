@@ -1,49 +1,23 @@
 import React, { useImperativeHandle, useMemo, useRef, useState } from 'react';
-import { MemoryMap, AddressBlock, Register, RegisterArray } from '../types/memoryMap';
-
-type YamlPath = Array<string | number>;
-
-type RegisterArrayNode = {
-  __kind: 'array';
-  name: string;
-  address_offset: number;
-  count: number;
-  stride: number;
-  description?: string;
-  registers: Register[];
-};
-
-const isArrayNode = (node: unknown): node is RegisterArrayNode => {
-  if (!node || typeof node !== 'object') {
-    return false;
-  }
-  const n = node as Record<string, unknown>;
-  return n.__kind === 'array' && typeof n.count === 'number' && typeof n.stride === 'number';
-};
-
-const toHex = (n: number) => `0x${Math.max(0, n).toString(16).toUpperCase()}`;
-
-export interface BlockNode extends AddressBlock {
-  registers?: (Register | RegisterArrayNode)[];
-  register_arrays?: RegisterArray[];
-}
+import { MemoryMap, Register, RegisterArray } from '../types/memoryMap';
+import { toHex } from '../utils/formatUtils';
+import {
+  BlockNode as OutlineBlockNode,
+  OutlineHeader,
+  RegisterArrayNode,
+  RegisterNode,
+} from './outline';
+import {
+  type BlockNode as BlockModel,
+  type OutlineSelection,
+  type YamlPath,
+  isArrayNode,
+} from './outline/types';
 
 interface OutlineProps {
   memoryMap: MemoryMap;
   selectedId: string | null;
-  onSelect: (selection: {
-    id: string;
-    type: 'memoryMap' | 'block' | 'register' | 'array';
-    object: unknown;
-    breadcrumbs: string[];
-    path: YamlPath;
-    meta?: {
-      absoluteAddress?: number;
-      relativeOffset?: number;
-      focusDetails?: boolean;
-    };
-  }) => void;
-  /** Called when user renames an item via F2 or 'e' key */
+  onSelect: (selection: OutlineSelection) => void;
   onRename?: (path: YamlPath, newName: string) => void;
 }
 
@@ -53,31 +27,30 @@ export type OutlineHandle = {
 
 const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
   ({ memoryMap, selectedId, onSelect, onRename }, ref) => {
-    // By default, expand all blocks and registers
     const allIds = useMemo(() => {
       const ids = new Set<string>(['root']);
       (memoryMap.address_blocks ?? []).forEach((block, blockIdx) => {
         const blockId = `block-${blockIdx}`;
         ids.add(blockId);
-        const regs = (block as BlockNode).registers ?? [];
-        regs.forEach((reg, regIdx) => {
-          if (reg && reg.__kind === 'array') {
+        const regs = (block as BlockModel).registers ?? [];
+        regs.forEach((reg: Register | { __kind?: string }, regIdx: number) => {
+          if (reg?.__kind === 'array') {
             ids.add(`block-${blockIdx}-arrreg-${regIdx}`);
           }
         });
-        ((block as BlockNode).register_arrays ?? []).forEach(
-          (arr: RegisterArray, arrIdx: number) => {
+        ((block as BlockModel).register_arrays ?? []).forEach(
+          (_: RegisterArray, arrIdx: number) => {
             ids.add(`block-${blockIdx}-arr-${arrIdx}`);
           }
         );
       });
       return ids;
     }, [memoryMap]);
+
     const [expanded, setExpanded] = useState<Set<string>>(allIds);
     const [query, setQuery] = useState('');
     const treeFocusRef = useRef<HTMLDivElement | null>(null);
 
-    // Inline editing state
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editingValue, setEditingValue] = useState('');
     const editInputRef = useRef<HTMLInputElement | null>(null);
@@ -103,25 +76,18 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
       setExpanded(newExpanded);
     };
 
-    /**
-     * Start inline edit mode for the given item.
-     */
     const startEditing = (id: string, currentName: string) => {
       if (!onRename) {
         return;
       }
       setEditingId(id);
       setEditingValue(currentName);
-      // Focus input after render
       setTimeout(() => {
         editInputRef.current?.focus();
         editInputRef.current?.select();
       }, 0);
     };
 
-    /**
-     * Commit the rename and exit edit mode.
-     */
     const commitEdit = (path: YamlPath) => {
       if (!onRename || !editingId) {
         return;
@@ -135,18 +101,12 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
       treeFocusRef.current?.focus();
     };
 
-    /**
-     * Cancel editing without saving.
-     */
     const cancelEdit = () => {
       setEditingId(null);
       setEditingValue('');
       treeFocusRef.current?.focus();
     };
 
-    /**
-     * Render either an inline edit input or the static name text.
-     */
     const renderNameOrEdit = (id: string, name: string, path: YamlPath, className?: string) => {
       if (editingId === id) {
         return (
@@ -182,302 +142,9 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
       return <span className={className}>{name}</span>;
     };
 
-    const renderLeafRegister = (reg: Register, blockIndex: number, regIndex: number) => {
-      const id = `block-${blockIndex}-reg-${regIndex}`;
-      const isSelected = selectedId === id;
-      const block = memoryMap.address_blocks?.[blockIndex];
-      const absolute = (block?.base_address ?? 0) + (reg.address_offset ?? 0);
-      return (
-        <div
-          key={id}
-          className={`tree-item ${isSelected ? 'selected' : ''} gap-2 text-sm`}
-          onClick={() => {
-            treeFocusRef.current?.focus();
-            onSelect({
-              id,
-              type: 'register',
-              object: reg,
-              breadcrumbs: [
-                memoryMap.name || 'Memory Map',
-                memoryMap.address_blocks?.[blockIndex]?.name ?? '',
-                reg.name,
-              ],
-              path: ['addressBlocks', blockIndex, 'registers', regIndex],
-              meta: {
-                absoluteAddress: absolute,
-                relativeOffset: reg.address_offset ?? 0,
-              },
-            });
-          }}
-          style={{ paddingLeft: '40px' }}
-        >
-          <span
-            className={`codicon codicon-symbol-variable text-[16px] ${isSelected ? '' : 'opacity-70'}`}
-          ></span>
-          {renderNameOrEdit(
-            id,
-            reg.name,
-            ['addressBlocks', blockIndex, 'registers', regIndex],
-            'flex-1'
-          )}
-          <span className="text-[10px] vscode-muted font-mono">{toHex(reg.address_offset)}</span>
-        </div>
-      );
-    };
-
-    const renderArrayRegister = (
-      arr: RegisterArrayNode,
-      block: AddressBlock,
-      blockIndex: number,
-      regIndex: number
-    ) => {
-      const id = `block-${blockIndex}-arrreg-${regIndex}`;
-      const isSelected = selectedId === id;
-      const isExpanded = expanded.has(id);
-
-      const start = (block.base_address ?? 0) + (arr.address_offset ?? 0);
-      const end = start + Math.max(1, arr.count) * Math.max(1, arr.stride) - 1;
-
-      return (
-        <div key={id}>
-          <div
-            className={`tree-item ${isSelected ? 'selected' : ''}`}
-            onClick={() => {
-              treeFocusRef.current?.focus();
-              onSelect({
-                id,
-                type: 'array',
-                object: arr,
-                breadcrumbs: [memoryMap.name || 'Memory Map', block.name, arr.name],
-                path: ['addressBlocks', blockIndex, 'registers', regIndex],
-              });
-            }}
-            style={{ paddingLeft: '40px' }}
-          >
-            <span
-              className={`codicon codicon-chevron-${isExpanded ? 'down' : 'right'}`}
-              onClick={(e) => toggleExpand(id, e)}
-              style={{ marginRight: '6px', cursor: 'pointer' }}
-            ></span>
-            <span className="codicon codicon-symbol-array" style={{ marginRight: '6px' }}></span>
-            {renderNameOrEdit(id, arr.name, [
-              'addressBlocks',
-              blockIndex,
-              'registers',
-              regIndex,
-            ])}{' '}
-            <span className="opacity-50">
-              @ {toHex(start)}-{toHex(end)} [{arr.count}]
-            </span>
-          </div>
-
-          {isExpanded && (
-            <div>
-              {Array.from({ length: arr.count }).map((_, elementIndex) => {
-                const elementId = `${id}-el-${elementIndex}`;
-                const elementBase = start + elementIndex * arr.stride;
-                const isElementSelected = selectedId === elementId;
-                return (
-                  <div key={elementId}>
-                    <div
-                      className={`tree-item ${isElementSelected ? 'selected' : ''}`}
-                      onClick={() => {
-                        treeFocusRef.current?.focus();
-                        onSelect({
-                          id: elementId,
-                          type: 'array',
-                          object: {
-                            ...arr,
-                            __element_index: elementIndex,
-                            __element_base: elementBase,
-                          },
-                          breadcrumbs: [
-                            memoryMap.name || 'Memory Map',
-                            block.name,
-                            `${arr.name}[${elementIndex}]`,
-                          ],
-                          path: ['addressBlocks', blockIndex, 'registers', regIndex],
-                        });
-                      }}
-                      style={{ paddingLeft: '60px' }}
-                    >
-                      <span
-                        className="codicon codicon-symbol-namespace"
-                        style={{ marginRight: '6px' }}
-                      ></span>
-                      {arr.name}[{elementIndex}]{' '}
-                      <span className="opacity-50">@ {toHex(elementBase)}</span>
-                    </div>
-
-                    {arr.registers?.map((reg, childIndex) => {
-                      const childId = `${elementId}-reg-${childIndex}`;
-                      const isChildSelected = selectedId === childId;
-                      const absolute = elementBase + (reg.address_offset ?? 0);
-                      return (
-                        <div
-                          key={childId}
-                          className={`tree-item ${isChildSelected ? 'selected' : ''}`}
-                          onClick={() => {
-                            treeFocusRef.current?.focus();
-                            onSelect({
-                              id: childId,
-                              type: 'register',
-                              object: reg,
-                              breadcrumbs: [
-                                memoryMap.name || 'Memory Map',
-                                block.name,
-                                `${arr.name}[${elementIndex}]`,
-                                reg.name,
-                              ],
-                              path: [
-                                'addressBlocks',
-                                blockIndex,
-                                'registers',
-                                regIndex,
-                                'registers',
-                                childIndex,
-                              ],
-                              meta: {
-                                absoluteAddress: absolute,
-                                relativeOffset: reg.address_offset ?? 0,
-                              },
-                            });
-                          }}
-                          style={{ paddingLeft: '80px' }}
-                        >
-                          <span
-                            className="codicon codicon-symbol-variable"
-                            style={{ marginRight: '6px' }}
-                          ></span>
-                          {renderNameOrEdit(childId, reg.name, [
-                            'addressBlocks',
-                            blockIndex,
-                            'registers',
-                            regIndex,
-                            'registers',
-                            childIndex,
-                          ])}{' '}
-                          <span className="opacity-50">@ {toHex(absolute)}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      );
-    };
-
-    const renderArray = (arr: RegisterArray, blockIndex: number, arrayIndex: number) => {
-      const id = `block-${blockIndex}-arr-${arrayIndex}`;
-      const isSelected = selectedId === id;
-      const isExpanded = expanded.has(id);
-      return (
-        <div key={id}>
-          <div
-            className={`tree-item ${isSelected ? 'selected' : ''}`}
-            onClick={() => {
-              treeFocusRef.current?.focus();
-              onSelect({
-                id,
-                type: 'array',
-                object: arr,
-                breadcrumbs: [
-                  memoryMap.name || 'Memory Map',
-                  memoryMap.address_blocks?.[blockIndex]?.name ?? '',
-                  arr.name,
-                ],
-                path: ['addressBlocks', blockIndex, 'register_arrays', arrayIndex],
-              });
-            }}
-            style={{ paddingLeft: '40px' }}
-          >
-            <span
-              className={`codicon codicon-chevron-${isExpanded ? 'down' : 'right'}`}
-              onClick={(e) => toggleExpand(id, e)}
-              style={{ marginRight: '6px', cursor: 'pointer' }}
-            ></span>
-            <span className="codicon codicon-symbol-array" style={{ marginRight: '6px' }}></span>
-            {renderNameOrEdit(id, arr.name, [
-              'addressBlocks',
-              blockIndex,
-              'register_arrays',
-              arrayIndex,
-            ])}{' '}
-            <span className="opacity-50">[{arr.count}]</span>
-          </div>
-          {isExpanded && Array.isArray(arr.registers) && (
-            <div>
-              {arr.registers.map((reg: Register, idx: number) =>
-                renderLeafRegister(reg, blockIndex, idx)
-              )}
-            </div>
-          )}
-        </div>
-      );
-    };
-
-    const renderBlock = (block: AddressBlock, blockIndex: number) => {
-      const id = `block-${blockIndex}`;
-      const isExpanded = expanded.has(id);
-      const isSelected = selectedId === id;
-
-      const regsAny = (block as BlockNode).registers ?? [];
-
-      return (
-        <div key={id}>
-          <div
-            className={`tree-item ${isSelected ? 'selected' : ''}`}
-            onClick={() => {
-              treeFocusRef.current?.focus();
-              onSelect({
-                id,
-                type: 'block',
-                object: block,
-                breadcrumbs: [memoryMap.name || 'Memory Map', block.name],
-                path: ['addressBlocks', blockIndex],
-              });
-            }}
-            style={{ paddingLeft: '20px' }}
-          >
-            <span
-              className={`codicon codicon-chevron-${isExpanded ? 'down' : 'right'}`}
-              onClick={(e) => toggleExpand(id, e)}
-              style={{ marginRight: '6px', cursor: 'pointer' }}
-            ></span>
-            <span className="codicon codicon-package" style={{ marginRight: '6px' }}></span>
-            {renderNameOrEdit(id, block.name, ['addressBlocks', blockIndex])}{' '}
-            <span className="opacity-50">@ 0x{block.base_address.toString(16).toUpperCase()}</span>
-          </div>
-          {isExpanded && (
-            <div>
-              {regsAny.map((node, idx) => {
-                if (isArrayNode(node)) {
-                  return renderArrayRegister(node, block, blockIndex, idx);
-                }
-                return renderLeafRegister(node, blockIndex, idx);
-              })}
-              {(block as BlockNode).register_arrays?.map((arr: RegisterArray, idx: number) =>
-                renderArray(arr, blockIndex, idx)
-              )}
-            </div>
-          )}
-        </div>
-      );
-    };
-
-    const rootId = 'root';
-    const isRootExpanded = expanded.has(rootId);
-    const isRootSelected = selectedId === rootId;
-
     const filteredBlocks = useMemo(() => {
       const q = query.trim().toLowerCase();
-      const blocks = (memoryMap.address_blocks ?? []).map((block, index) => ({
-        block,
-        index,
-      }));
+      const blocks = (memoryMap.address_blocks ?? []).map((block, index) => ({ block, index }));
       if (!q) {
         return blocks;
       }
@@ -486,9 +153,9 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
         if ((block.name ?? '').toLowerCase().includes(q)) {
           return true;
         }
-        const regs = (block as BlockNode).registers ?? [];
+        const regs = (block as BlockModel).registers ?? [];
         if (
-          regs.some((r) => {
+          regs.some((r: Register | { name?: string }) => {
             if (!r) {
               return false;
             }
@@ -511,19 +178,18 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
         ) {
           return true;
         }
-        const arrays = (block as BlockNode).register_arrays ?? [];
-        if (arrays.some((a) => (a.name ?? '').toLowerCase().includes(q))) {
-          return true;
-        }
-        return false;
+        const arrays = (block as BlockModel).register_arrays ?? [];
+        return arrays.some((a: RegisterArray) => (a.name ?? '').toLowerCase().includes(q));
       });
     }, [memoryMap, query]);
 
-    const visibleSelections = useMemo(() => {
-      const items: Array<OutlineProps['onSelect'] extends (arg: infer A) => unknown ? A : never> =
-        [];
+    const rootId = 'root';
+    const isRootExpanded = expanded.has(rootId);
+    const isRootSelected = selectedId === rootId;
 
-      // Root
+    const visibleSelections = useMemo(() => {
+      const items: OutlineSelection[] = [];
+
       items.push({
         id: rootId,
         type: 'memoryMap',
@@ -550,7 +216,7 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
           return;
         }
 
-        const regsAny = (block as BlockNode).registers ?? [];
+        const regsAny = (block as BlockModel).registers ?? [];
         regsAny.forEach((node: unknown, regIndex: number) => {
           if (isArrayNode(node)) {
             const arr = node;
@@ -638,7 +304,7 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
           });
         });
 
-        ((block as BlockNode).register_arrays ?? []).forEach(
+        ((block as BlockModel).register_arrays ?? []).forEach(
           (arr: RegisterArray, arrayIndex: number) => {
             const arrId = `block-${blockIndex}-arr-${arrayIndex}`;
             items.push({
@@ -653,14 +319,11 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
               path: ['addressBlocks', blockIndex, 'register_arrays', arrayIndex],
             });
 
-            if (!expanded.has(arrId)) {
+            if (!expanded.has(arrId) || !Array.isArray(arr.registers)) {
               return;
             }
-            if (!Array.isArray(arr.registers)) {
-              return;
-            }
+
             arr.registers.forEach((reg: Register, regIndex: number) => {
-              // Matches existing render behavior (renderLeafRegister)
               const regId = `block-${blockIndex}-reg-${regIndex}`;
               const absolute = (block.base_address ?? 0) + (reg.address_offset ?? 0);
               items.push({
@@ -686,8 +349,156 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
       return items;
     }, [memoryMap, expanded, filteredBlocks]);
 
+    const renderLeafRegister = (
+      reg: Register,
+      blockIndex: number,
+      regIndex: number,
+      paddingLeft = '40px'
+    ) => {
+      const id = `block-${blockIndex}-reg-${regIndex}`;
+      const isSelected = selectedId === id;
+      const block = memoryMap.address_blocks?.[blockIndex];
+      const absolute = (block?.base_address ?? 0) + (reg.address_offset ?? 0);
+      const path: YamlPath = ['addressBlocks', blockIndex, 'registers', regIndex];
+
+      return (
+        <RegisterNode
+          key={id}
+          id={id}
+          isSelected={isSelected}
+          onClick={() => {
+            treeFocusRef.current?.focus();
+            onSelect({
+              id,
+              type: 'register',
+              object: reg,
+              breadcrumbs: [
+                memoryMap.name || 'Memory Map',
+                memoryMap.address_blocks?.[blockIndex]?.name ?? '',
+                reg.name,
+              ],
+              path,
+              meta: {
+                absoluteAddress: absolute,
+                relativeOffset: reg.address_offset ?? 0,
+              },
+            });
+          }}
+          paddingLeft={paddingLeft}
+          name={renderNameOrEdit(id, reg.name, path, 'flex-1')}
+          offsetLabel={toHex(reg.address_offset)}
+        />
+      );
+    };
+
+    const renderArray = (arr: RegisterArray, blockIndex: number, arrayIndex: number) => {
+      const id = `block-${blockIndex}-arr-${arrayIndex}`;
+      const isSelected = selectedId === id;
+      const isExpanded = expanded.has(id);
+
+      return (
+        <div key={id}>
+          <div
+            className={`tree-item ${isSelected ? 'selected' : ''}`}
+            role="treeitem"
+            aria-expanded={isExpanded}
+            aria-selected={isSelected}
+            onClick={() => {
+              treeFocusRef.current?.focus();
+              onSelect({
+                id,
+                type: 'array',
+                object: arr,
+                breadcrumbs: [
+                  memoryMap.name || 'Memory Map',
+                  memoryMap.address_blocks?.[blockIndex]?.name ?? '',
+                  arr.name,
+                ],
+                path: ['addressBlocks', blockIndex, 'register_arrays', arrayIndex],
+              });
+            }}
+            style={{ paddingLeft: '40px' }}
+          >
+            <span
+              className={`codicon codicon-chevron-${isExpanded ? 'down' : 'right'}`}
+              onClick={(e) => toggleExpand(id, e)}
+              style={{ marginRight: '6px', cursor: 'pointer' }}
+            ></span>
+            <span className="codicon codicon-symbol-array" style={{ marginRight: '6px' }}></span>
+            {renderNameOrEdit(id, arr.name, [
+              'addressBlocks',
+              blockIndex,
+              'register_arrays',
+              arrayIndex,
+            ])}{' '}
+            <span className="opacity-50">[{arr.count}]</span>
+          </div>
+          {isExpanded && Array.isArray(arr.registers) && (
+            <div>
+              {arr.registers.map((reg: Register, idx: number) =>
+                renderLeafRegister(reg, blockIndex, idx)
+              )}
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    const renderBlock = (block: BlockModel, blockIndex: number) => {
+      const id = `block-${blockIndex}`;
+      const isExpanded = expanded.has(id);
+      const isSelected = selectedId === id;
+      const regsAny = block.registers ?? [];
+
+      return (
+        <OutlineBlockNode
+          key={id}
+          id={id}
+          block={block}
+          isSelected={isSelected}
+          isExpanded={isExpanded}
+          onClick={() => {
+            treeFocusRef.current?.focus();
+            onSelect({
+              id,
+              type: 'block',
+              object: block,
+              breadcrumbs: [memoryMap.name || 'Memory Map', block.name],
+              path: ['addressBlocks', blockIndex],
+            });
+          }}
+          onToggleExpand={(e) => toggleExpand(id, e)}
+          name={renderNameOrEdit(id, block.name, ['addressBlocks', blockIndex])}
+        >
+          {regsAny.map((node, idx) => {
+            if (isArrayNode(node)) {
+              return (
+                <RegisterArrayNode
+                  key={`arrreg-${blockIndex}-${idx}`}
+                  arrayNode={node}
+                  block={block}
+                  blockIndex={blockIndex}
+                  regIndex={idx}
+                  memoryMapName={memoryMap.name || 'Memory Map'}
+                  selectedId={selectedId}
+                  expanded={expanded}
+                  onToggleExpand={toggleExpand}
+                  onFocusTree={() => treeFocusRef.current?.focus()}
+                  onSelect={onSelect}
+                  renderNameOrEdit={renderNameOrEdit}
+                />
+              );
+            }
+            return renderLeafRegister(node, blockIndex, idx);
+          })}
+          {block.register_arrays?.map((arr: RegisterArray, idx: number) =>
+            renderArray(arr, blockIndex, idx)
+          )}
+        </OutlineBlockNode>
+      );
+    };
+
     const onTreeKeyDown = (e: React.KeyboardEvent) => {
-      // If currently editing, don't handle tree navigation
       if (editingId) {
         return;
       }
@@ -717,7 +528,6 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
         return;
       }
 
-      // Handle F2 or 'e' to start renaming
       if (isRename && onRename) {
         e.preventDefault();
         e.stopPropagation();
@@ -728,28 +538,25 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
         return;
       }
 
-      // Handle Space or Enter to toggle expand/collapse
       if (isToggleExpand) {
         e.preventDefault();
         e.stopPropagation();
 
-        // Check if current node has children
         const hasChildren = (() => {
           if (currentId === rootId) {
-            return true; // Root always has blocks
+            return true;
           }
           if (currentId.startsWith('block-') && !currentId.includes('-reg-')) {
-            const blockIdx = parseInt(currentId.split('-')[1], 10);
+            const blockIdx = Number.parseInt(currentId.split('-')[1], 10);
             const block = memoryMap.address_blocks?.[blockIdx];
             return block && Array.isArray(block.registers) && block.registers.length > 0;
           }
           if (currentId.includes('-reg-') && currentId.split('-reg-')[1].includes('-')) {
-            // This is a register array
             const parts = currentId.split('-');
-            const blockIdx = parseInt(parts[1], 10);
-            const regIdx = parseInt(parts[3], 10);
+            const blockIdx = Number.parseInt(parts[1], 10);
+            const regIdx = Number.parseInt(parts[3], 10);
             const block = memoryMap.address_blocks?.[blockIdx];
-            const reg = block?.registers?.[regIdx] as RegisterArrayNode | undefined;
+            const reg = block?.registers?.[regIdx] as { count?: number } | undefined;
             return Boolean(reg && (reg.count ?? 0) > 1);
           }
           return false;
@@ -794,62 +601,18 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
 
     return (
       <>
-        <div className="p-3 border-b vscode-border vscode-surface flex items-center gap-2">
-          <div className="relative flex-1">
-            <span className="codicon codicon-search absolute left-2.5 top-2 vscode-muted text-[18px]"></span>
-            <input
-              className="outline-filter-input w-full pl-9 pr-3 py-1.5 text-sm rounded-md outline-none"
-              placeholder="Filter registers..."
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-          </div>
-          <button
-            className="outline-filter-button ml-2 p-2 rounded flex items-center justify-center"
-            title={expanded.size === allIds.size ? 'Collapse All' : 'Expand All'}
-            onClick={() => {
-              if (expanded.size === allIds.size) {
-                setExpanded(new Set(['root']));
-              } else {
-                setExpanded(new Set(allIds));
-              }
-            }}
-          >
-            {expanded.size === allIds.size ? (
-              // Collapse All SVG icon
-              <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                <rect
-                  x="3"
-                  y="3"
-                  width="14"
-                  height="14"
-                  rx="3"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                />
-                <rect x="6" y="9" width="8" height="2" rx="1" fill="currentColor" />
-              </svg>
-            ) : (
-              // Expand All SVG icon
-              <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                <rect
-                  x="3"
-                  y="3"
-                  width="14"
-                  height="14"
-                  rx="3"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                />
-                <rect x="6" y="9" width="8" height="2" rx="1" fill="currentColor" />
-                <rect x="9" y="6" width="2" height="8" rx="1" fill="currentColor" />
-              </svg>
-            )}
-          </button>
-        </div>
+        <OutlineHeader
+          query={query}
+          onQueryChange={setQuery}
+          isAllExpanded={expanded.size === allIds.size}
+          onToggleAll={() => {
+            if (expanded.size === allIds.size) {
+              setExpanded(new Set(['root']));
+            } else {
+              setExpanded(new Set(allIds));
+            }
+          }}
+        />
         <div className="flex-1 overflow-y-auto py-2">
           <div className="px-3 mb-2 text-xs font-bold vscode-muted uppercase tracking-wider">
             Memory Map
@@ -857,11 +620,16 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
           <div
             ref={treeFocusRef}
             tabIndex={0}
+            role="tree"
+            aria-label="Memory map outline"
             onKeyDown={onTreeKeyDown}
             className="outline-none focus:outline-none"
           >
             <div
               className={`tree-item ${isRootSelected ? 'selected' : ''} gap-2 text-sm`}
+              role="treeitem"
+              aria-expanded={isRootExpanded}
+              aria-selected={isRootSelected}
               onClick={() => {
                 treeFocusRef.current?.focus();
                 onSelect({
@@ -874,7 +642,9 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
               }}
             >
               <span
-                className={`codicon codicon-chevron-${isRootExpanded ? 'down' : 'right'} text-[16px] ${isRootSelected ? '' : 'opacity-70'}`}
+                className={`codicon codicon-chevron-${isRootExpanded ? 'down' : 'right'} text-[16px] ${
+                  isRootSelected ? '' : 'opacity-70'
+                }`}
                 onClick={(e) => toggleExpand(rootId, e)}
               ></span>
               <span
@@ -882,7 +652,8 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
               ></span>
               {renderNameOrEdit(rootId, memoryMap.name || 'Memory Map', [], 'flex-1')}
             </div>
-            {isRootExpanded && filteredBlocks.map(({ block, index }) => renderBlock(block, index))}
+            {isRootExpanded &&
+              filteredBlocks.map(({ block, index }) => renderBlock(block as BlockModel, index))}
           </div>
         </div>
         <div className="outline-footer p-3 text-xs vscode-muted flex justify-between">

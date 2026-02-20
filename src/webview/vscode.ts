@@ -20,7 +20,7 @@ if (!window.__vscodeApi && window.acquireVsCodeApi) {
     window.__vscodeApi = window.acquireVsCodeApi();
   } catch (e) {
     // API already acquired by another bundle, use the existing instance
-    // eslint-disable-next-line no-console
+
     console.warn('VS Code API already acquired, using existing instance');
   }
 }

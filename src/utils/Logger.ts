@@ -31,9 +31,7 @@ export class Logger {
    * Get the output channel (create if doesn't exist)
    */
   private static getChannel(): vscode.OutputChannel {
-    if (!this.outputChannel) {
-      this.outputChannel = vscode.window.createOutputChannel('FPGA Memory Map Editor');
-    }
+    this.outputChannel ??= vscode.window.createOutputChannel('FPGA Memory Map Editor');
     return this.outputChannel;
   }
 

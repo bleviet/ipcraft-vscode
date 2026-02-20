@@ -8,6 +8,7 @@ import { MessageHandler } from '../services/MessageHandler';
 import { YamlValidator } from '../services/YamlValidator';
 import { DocumentManager } from '../services/DocumentManager';
 import { ImportResolver } from '../services/ImportResolver';
+import { updateFileSets } from '../services/FileSetUpdater';
 import { TemplateLoader } from '../generator/TemplateLoader';
 import { IpCoreScaffolder } from '../generator/IpCoreScaffolder';
 
@@ -216,7 +217,7 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
         // Handle file selection dialog
         this.logger.info('Opening file picker dialog');
         const options: vscode.OpenDialogOptions = {
-          canSelectMany: message.multi !== undefined ? message.multi : true,
+          canSelectMany: message.multi ?? true,
           openLabel: 'Select Files',
           canSelectFiles: true,
           canSelectFolders: false,
@@ -347,21 +348,6 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
               return path.relative(baseDir, absolutePath);
             });
 
-            // Categorize files
-            const rtlFiles = yamlRelativeFiles.filter(
-              (f) => f.endsWith('.vhd') && !f.endsWith('_regs.vhd') && !f.endsWith('_tb.vhd')
-            );
-            const simFiles = yamlRelativeFiles.filter(
-              (f) => f.endsWith('.py') || f.endsWith('Makefile') || f.endsWith('_tb.vhd')
-            );
-            const integrationFiles = yamlRelativeFiles.filter(
-              (f) => f.endsWith('.tcl') || f.endsWith('.xml') || f.endsWith('_regs.vhd')
-            );
-
-            this.logger.info(
-              `Categorized files - RTL: ${rtlFiles.length}, Sim: ${simFiles.length}, Integration: ${integrationFiles.length}`
-            );
-
             // Get current fileSets
             const currentData = doc.toJSON() as Record<string, unknown>;
             type FileSet = {
@@ -382,88 +368,8 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
                 ? 'file_sets'
                 : 'fileSets';
 
-            const updateFileSet = (
-              setNames: string[],
-              setDescription: string,
-              newFiles: string[],
-              fileTypeMap: (f: string) => string
-            ) => {
-              if (newFiles.length === 0) {
-                return;
-              }
-
-              let targetSetIndex = fileSets.findIndex(
-                (fs) => fs?.name && setNames.includes(fs.name)
-              );
-
-              let usedName = setNames[0];
-
-              if (targetSetIndex === -1) {
-                fileSets.push({
-                  name: usedName,
-                  description: setDescription,
-                  files: [],
-                });
-                targetSetIndex = fileSets.length - 1;
-              } else {
-                usedName = fileSets[targetSetIndex].name ?? usedName;
-              }
-
-              if (!fileSets[targetSetIndex].files) {
-                fileSets[targetSetIndex].files = [];
-              }
-              const existingFiles = fileSets[targetSetIndex].files as {
-                path: string;
-                type: string;
-              }[];
-
-              for (const filePath of newFiles) {
-                const exists = existingFiles.some((f) => f.path === filePath);
-                if (!exists) {
-                  existingFiles.push({
-                    path: filePath,
-                    type: fileTypeMap(filePath),
-                  });
-                }
-              }
-            };
-
-            updateFileSet(
-              ['RTL_Sources', 'rtl_sources', 'rtl', 'RTL'],
-              'RTL Sources',
-              rtlFiles,
-              () => 'vhdl'
-            );
-            updateFileSet(
-              ['Simulation_Resources', 'simulation', 'tb'],
-              'Simulation Files',
-              simFiles,
-              (f) => {
-                if (f.endsWith('Makefile')) {
-                  return 'unknown';
-                }
-                if (f.endsWith('.py')) {
-                  return 'python';
-                }
-                return 'vhdl';
-              }
-            );
-            updateFileSet(
-              ['Integration', 'integration'],
-              'Integration Files',
-              integrationFiles,
-              (f) => {
-                if (f.endsWith('.tcl')) {
-                  return 'tcl';
-                }
-                if (f.endsWith('.xml')) {
-                  return 'unknown';
-                }
-                return 'vhdl';
-              }
-            );
-
-            doc.setIn([key], fileSets);
+            const updatedFileSets = updateFileSets(fileSets, yamlRelativeFiles) as FileSet[];
+            doc.setIn([key], updatedFileSets);
 
             const newText = doc.toString();
             const updateSuccess = await this.documentManager.updateDocument(document, newText);

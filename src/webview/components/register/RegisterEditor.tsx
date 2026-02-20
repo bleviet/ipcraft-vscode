@@ -114,7 +114,7 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
               fields={normalisedFields}
               hoveredFieldIndex={hoveredFieldIndex}
               setHoveredFieldIndex={setHoveredFieldIndex}
-              registerSize={32}
+              registerSize={registerSize}
               layout="pro"
               onUpdateFieldReset={(fieldIndex, resetValue) => {
                 onUpdate(['fields', fieldIndex, 'reset_value'], resetValue);

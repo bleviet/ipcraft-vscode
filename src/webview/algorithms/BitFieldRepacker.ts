@@ -11,10 +11,7 @@ import {
 
 // Re-export canonical implementations from BitFieldUtils so that
 // BitFieldRepacker consumers and test suites continue to work unchanged.
-export {
-  parseBitsRange,
-  formatBitsRange as formatBits,
-} from '../utils/BitFieldUtils';
+export { parseBitsRange, formatBitsRange as formatBits } from '../utils/BitFieldUtils';
 
 /**
  * Repack only the updated field and subsequent fields, preserving order
@@ -26,7 +23,7 @@ export {
 export function repackFieldsFrom(
   fields: BitFieldRecord[],
   regWidth: number,
-  startIdx: number,
+  startIdx: number
 ): BitFieldRecord[] {
   // Calculate starting MSB for the updated field
   let nextMsb = regWidth - 1;
@@ -71,9 +68,12 @@ export function repackFieldsFrom(
 export function repackFieldsForward(
   fields: BitFieldRecord[],
   fromIndex: number,
-  regWidth: number,
+  regWidth: number
 ): BitFieldRecord[] {
   const newFields = [...fields];
+  if (fromIndex < 0 || fromIndex >= newFields.length) {
+    return newFields;
+  }
 
   let nextLsb =
     fromIndex > 0
@@ -92,13 +92,14 @@ export function repackFieldsForward(
     const lsb = nextLsb;
     // Clamp MSB so partially invalid source widths cannot overflow the register.
     const msb = Math.min(regWidth - 1, lsb + width - 1);
+    const clampedWidth = msb - lsb + 1;
     nextLsb = msb + 1;
 
     newFields[i] = {
       ...field,
       bits: formatBits(msb, lsb),
       bit_offset: lsb,
-      bit_width: width,
+      bit_width: clampedWidth,
       bit_range: [msb, lsb] as [number, number],
     };
   }
@@ -114,9 +115,12 @@ export function repackFieldsForward(
 export function repackFieldsBackward(
   fields: BitFieldRecord[],
   fromIndex: number,
-  regWidth: number,
+  regWidth: number
 ): BitFieldRecord[] {
   const newFields = [...fields];
+  if (fromIndex < 0 || fromIndex >= newFields.length) {
+    return newFields;
+  }
 
   let nextMsb =
     fromIndex < newFields.length - 1
@@ -135,13 +139,14 @@ export function repackFieldsBackward(
     const msb = nextMsb;
     // Clamp to bit 0 so backward repacking never produces negative bit indices.
     const lsb = Math.max(0, msb - width + 1);
+    const clampedWidth = msb - lsb + 1;
     nextMsb = lsb - 1;
 
     newFields[i] = {
       ...field,
       bits: formatBits(msb, lsb),
       bit_offset: lsb,
-      bit_width: width,
+      bit_width: clampedWidth,
       bit_range: [msb, lsb] as [number, number],
     };
   }

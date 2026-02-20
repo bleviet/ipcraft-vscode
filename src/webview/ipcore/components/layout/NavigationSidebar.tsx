@@ -197,9 +197,7 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({
               }}
             >
               <div className="flex items-center gap-2">
-                {section.customIcon ? (
-                  section.customIcon
-                ) : (
+                {section.customIcon ?? (
                   <span className={`codicon codicon-${String(section.icon)}`} />
                 )}
                 <span className="text-sm">{section.label}</span>
