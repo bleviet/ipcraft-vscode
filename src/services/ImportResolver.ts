@@ -29,7 +29,6 @@ export interface IpCoreDataNode {
 export class ImportResolver {
   private readonly logger: Logger;
   private busLibraryCache: Map<string, Record<string, unknown>> = new Map();
-  private defaultBusLibraryCache: Record<string, unknown> | null = null;
   private busLibraryService: BusLibraryService;
 
   constructor(logger: Logger, context: vscode.ExtensionContext) {
@@ -90,13 +89,7 @@ export class ImportResolver {
    * Returns the library in the format expected by the UI: { [key]: { ports: [...] } }
    */
   private async loadDefaultBusLibrary(): Promise<Record<string, unknown>> {
-    // Use cached result if available
-    if (this.defaultBusLibraryCache) {
-      return this.defaultBusLibraryCache;
-    }
-
     const library = await this.busLibraryService.loadDefaultLibrary();
-    this.defaultBusLibraryCache = library;
     const count = library ? Object.keys(library).length : 0;
     this.logger.info(`Loaded ${count} bus types from local library`);
     return library;
@@ -224,6 +217,7 @@ export class ImportResolver {
    */
   clearCache(): void {
     this.busLibraryCache.clear();
+    this.busLibraryService.clearCache();
     this.logger.info('Bus library cache cleared');
   }
 }

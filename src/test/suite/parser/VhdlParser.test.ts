@@ -53,4 +53,26 @@ describe('VhdlParser', () => {
 
     expect((parsed.busInterfaces as unknown[] | undefined)?.length ?? 0).toBeGreaterThan(0);
   });
+
+  it('strips IO_ prefix only once for logical port names', async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ipcraft-vhdl-'));
+    const filePath = path.join(tempDir, 'io_prefix.vhd');
+    const vhdl = `
+      entity io_prefix is
+        port (
+          IO_I_DATA : in std_logic_vector(7 downto 0)
+        );
+      end entity io_prefix;
+    `;
+
+    await fs.writeFile(filePath, vhdl, 'utf8');
+    const parser = new VhdlParser();
+    const result = await parser.parseFile(filePath);
+    const parsed = yaml.load(result.yamlText) as Record<string, unknown>;
+    const ports = (parsed.ports as Array<Record<string, unknown>>) ?? [];
+
+    expect(ports).toHaveLength(1);
+    expect(ports[0].name).toBe('IO_I_DATA');
+    expect(ports[0].logicalName).toBe('I_DATA');
+  });
 });

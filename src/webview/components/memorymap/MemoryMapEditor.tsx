@@ -357,7 +357,7 @@ export function MemoryMapEditor({
                           className="w-full font-mono"
                           value={toHex(base)}
                           onInput={(e: Event | React.FormEvent<HTMLElement>) => {
-                            const val = Number.parseInt((e.target as HTMLInputElement).value, 0);
+                            const val = Number((e.target as HTMLInputElement).value);
                             if (!Number.isNaN(val)) {
                               onUpdate(['addressBlocks', idx, 'offset'], val);
                             }

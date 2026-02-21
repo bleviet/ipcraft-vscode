@@ -467,10 +467,6 @@ export class IpCoreScaffolder {
       key = 'AXI4L';
     } else if (['AVMM', 'AVALON-MM'].includes(key)) {
       key = 'AVALON_MM';
-    } else if (key === 'AXIS') {
-      key = 'AXIS';
-    } else if (key === 'AVALON_ST') {
-      key = 'AVALON_ST';
     }
     return key;
   }
@@ -536,7 +532,7 @@ export class IpCoreScaffolder {
 
       const fields = ((reg.fields as Array<Record<string, unknown>>) ?? []).map((field) => {
         let bitOffset = field.bit_offset ?? field.bitOffset ?? field.bit_range;
-        let bitWidth = field.bit_width ?? field.bitWidth ?? field.bitWidth;
+        let bitWidth = field.bit_width ?? field.bitWidth;
 
         if (bitOffset === undefined || bitWidth === undefined) {
           const parsedBits = this.parseBits(this.getString(field.bits));

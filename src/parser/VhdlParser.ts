@@ -230,11 +230,12 @@ export class VhdlParser {
 
   private portToDict(port: ParsedPort): Record<string, unknown> {
     let logicalName = port.name.toUpperCase();
-    ['I_', 'O_', 'IO_'].forEach((prefix) => {
+    for (const prefix of ['IO_', 'I_', 'O_']) {
       if (logicalName.startsWith(prefix)) {
         logicalName = logicalName.slice(prefix.length);
+        break;
       }
-    });
+    }
 
     const result: Record<string, unknown> = {
       name: port.name,

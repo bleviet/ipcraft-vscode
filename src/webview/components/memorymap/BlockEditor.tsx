@@ -476,7 +476,7 @@ export function BlockEditor({
                           className="w-full font-mono"
                           value={toHex(offset as number)}
                           onInput={(e: Event | React.FormEvent<HTMLElement>) => {
-                            const val = Number.parseInt((e.target as HTMLInputElement).value, 0);
+                            const val = Number((e.target as HTMLInputElement).value);
                             if (!Number.isNaN(val)) {
                               onUpdate(['registers', idx, 'offset'], val);
                             }
