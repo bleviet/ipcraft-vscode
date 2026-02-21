@@ -13,44 +13,40 @@ export class HtmlGenerator {
    * Generate the complete HTML document for the webview
    */
   generateHtml(webview: vscode.Webview): string {
-    const scriptUri = this.getWebviewUri(webview, 'dist', 'webview.js');
-    const stylesheetUri = this.getWebviewUri(webview, 'dist', 'webview.css');
-    const codiconsUri = this.getWebviewUri(
-      webview,
-      'node_modules',
-      '@vscode/codicons',
-      'dist',
-      'codicon.css'
-    );
-
-    const csp = this.getContentSecurityPolicy(webview);
-
-    this.logger.debug('Generating HTML for webview');
-
-    return `
-      <!DOCTYPE html>
-      <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        ${csp}
-        ${this.getStylesheets(codiconsUri, stylesheetUri)}
-        <title>Memory Map Editor</title>
-      </head>
-      <body class="bg-gray-50 text-gray-900 font-sans h-screen flex flex-col overflow-hidden">
-        <div id="root"></div>
-        <script src="${scriptUri.toString()}"></script>
-      </body>
-      </html>
-    `;
+    return this.generateHtmlForEditor(webview, {
+      scriptName: 'webview.js',
+      styleName: 'webview.css',
+      rootId: 'root',
+      title: 'Memory Map Editor',
+      logMessage: 'Generating HTML for webview',
+    });
   }
 
   /**
    * Generate HTML for IP Core editor webview
    */
   generateIpCoreHtml(webview: vscode.Webview): string {
-    const scriptUri = this.getWebviewUri(webview, 'dist', 'ipcore.js');
-    const stylesheetUri = this.getWebviewUri(webview, 'dist', 'ipcore.css');
+    return this.generateHtmlForEditor(webview, {
+      scriptName: 'ipcore.js',
+      styleName: 'ipcore.css',
+      rootId: 'ipcore-root',
+      title: 'IP Core Editor',
+      logMessage: 'Generating IP Core HTML for webview',
+    });
+  }
+
+  private generateHtmlForEditor(
+    webview: vscode.Webview,
+    options: {
+      scriptName: string;
+      styleName: string;
+      rootId: string;
+      title: string;
+      logMessage: string;
+    }
+  ): string {
+    const scriptUri = this.getWebviewUri(webview, 'dist', options.scriptName);
+    const stylesheetUri = this.getWebviewUri(webview, 'dist', options.styleName);
     const codiconsUri = this.getWebviewUri(
       webview,
       'node_modules',
@@ -61,7 +57,7 @@ export class HtmlGenerator {
 
     const csp = this.getContentSecurityPolicy(webview);
 
-    this.logger.debug('Generating IP Core HTML for webview');
+    this.logger.debug(options.logMessage);
 
     return `
       <!DOCTYPE html>
@@ -71,10 +67,10 @@ export class HtmlGenerator {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         ${csp}
         ${this.getStylesheets(codiconsUri, stylesheetUri)}
-        <title>IP Core Editor</title>
+        <title>${options.title}</title>
       </head>
       <body class="bg-gray-50 text-gray-900 font-sans h-screen flex flex-col overflow-hidden">
-        <div id="ipcore-root"></div>
+        <div id="${options.rootId}"></div>
         <script src="${scriptUri.toString()}"></script>
       </body>
       </html>

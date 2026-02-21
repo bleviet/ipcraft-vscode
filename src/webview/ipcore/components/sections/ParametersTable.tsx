@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { YamlUpdateHandler } from '../../../types/editor';
 import { FormField, SelectField, NumberField, CheckboxField } from '../../../shared/components';
+import { focusContainer } from '../../../shared/utils/focus';
 import { validateVhdlIdentifier, validateUniqueName } from '../../../shared/utils/validation';
 import { useTableNavigation } from '../../../hooks/useTableNavigation';
 
@@ -90,14 +91,14 @@ export const ParametersTable: React.FC<ParametersTableProps> = ({
     setIsAdding(false);
     setEditingIndex(null);
     setDraft(createEmptyParameter());
-    setTimeout(() => containerRef.current?.focus(), 0);
+    focusContainer(containerRef);
   }, [isAdding, editingIndex, draft, onUpdate, parameters]);
 
   const handleCancel = useCallback(() => {
     setIsAdding(false);
     setEditingIndex(null);
     setDraft(createEmptyParameter());
-    setTimeout(() => containerRef.current?.focus(), 0);
+    focusContainer(containerRef);
   }, []);
 
   const handleDelete = useCallback(

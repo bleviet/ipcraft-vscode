@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { YamlUpdateHandler } from '../../../types/editor';
 import { EditableTable, FormField, SelectField } from '../../../shared/components';
+import { focusContainer } from '../../../shared/utils/focus';
+import { displayDirection } from '../../../shared/utils/formatters';
 import { validateVhdlIdentifier, validateUniqueName } from '../../../shared/utils/validation';
 import { useTableNavigation } from '../../../hooks/useTableNavigation';
 
@@ -31,24 +33,7 @@ const createEmptyClock = (): Clock => ({
 
 // Normalize direction from in/out to input/output
 const normalizeClock = (clock: Clock): Clock => {
-  const dirMap: { [key: string]: string } = {
-    in: 'input',
-    out: 'output',
-    input: 'input',
-    output: 'output',
-  };
-  return { ...clock, direction: dirMap[clock.direction ?? 'input'] || 'input' };
-};
-
-// Helper to display normalized direction
-const displayDirection = (dir?: string): string => {
-  const dirMap: { [key: string]: string } = {
-    in: 'input',
-    out: 'output',
-    input: 'input',
-    output: 'output',
-  };
-  return dirMap[dir ?? 'input'] || 'input';
+  return { ...clock, direction: displayDirection(clock.direction, 'input') };
 };
 
 const COLUMN_KEYS = ['name', 'logicalName', 'frequency', 'direction', 'usedBy'];
@@ -140,14 +125,14 @@ export const ClocksTable: React.FC<ClocksTableProps> = ({
     setIsAdding(false);
     setEditingIndex(null);
     setDraft(createEmptyClock());
-    setTimeout(() => containerRef.current?.focus(), 0);
+    focusContainer(containerRef);
   }, [isAdding, editingIndex, draft, onUpdate, clocks]);
 
   const handleCancel = useCallback(() => {
     setIsAdding(false);
     setEditingIndex(null);
     setDraft(createEmptyClock());
-    setTimeout(() => containerRef.current?.focus(), 0);
+    focusContainer(containerRef);
   }, []);
 
   const handleDelete = useCallback(

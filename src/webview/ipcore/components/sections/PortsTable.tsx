@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { YamlUpdateHandler } from '../../../types/editor';
 import { FormField, SelectField, NumberField } from '../../../shared/components';
+import { focusContainer } from '../../../shared/utils/focus';
+import { displayDirection } from '../../../shared/utils/formatters';
 import { validateVhdlIdentifier, validateUniqueName } from '../../../shared/utils/validation';
 import { useTableNavigation } from '../../../hooks/useTableNavigation';
 
@@ -22,27 +24,16 @@ const createEmptyPort = (): Port => ({
 });
 
 const normalizePort = (port: Port): Port => {
-  // Normalize direction from in/out to input/output
-  const dirMap: { [key: string]: string } = {
-    in: 'input',
-    out: 'output',
-    inout: 'inout',
-    input: 'input',
-    output: 'output',
+  const normalizedDirection = displayDirection(port.direction, 'input');
+  return {
+    ...port,
+    direction:
+      normalizedDirection === 'input' ||
+      normalizedDirection === 'output' ||
+      normalizedDirection === 'inout'
+        ? normalizedDirection
+        : 'input',
   };
-  return { ...port, direction: dirMap[port.direction] || 'input' };
-};
-
-// Helper to display normalized direction
-const displayDirection = (dir: string): string => {
-  const dirMap: { [key: string]: string } = {
-    in: 'input',
-    out: 'output',
-    inout: 'inout',
-    input: 'input',
-    output: 'output',
-  };
-  return dirMap[dir] || dir;
 };
 
 const COLUMN_KEYS = ['name', 'direction', 'width'];
@@ -109,14 +100,14 @@ export const PortsTable: React.FC<PortsTableProps> = ({ ports: rawPorts, onUpdat
     setIsAdding(false);
     setEditingIndex(null);
     setDraft(createEmptyPort());
-    setTimeout(() => containerRef.current?.focus(), 0);
+    focusContainer(containerRef);
   }, [isAdding, editingIndex, draft, onUpdate, ports]);
 
   const handleCancel = useCallback(() => {
     setIsAdding(false);
     setEditingIndex(null);
     setDraft(createEmptyPort());
-    setTimeout(() => containerRef.current?.focus(), 0);
+    focusContainer(containerRef);
   }, []);
 
   const handleDelete = useCallback(

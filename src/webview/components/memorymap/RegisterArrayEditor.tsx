@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import type { YamlUpdateHandler } from '../../types/editor';
 import { VSCodeDropdown, VSCodeTextField } from '@vscode/webview-ui-toolkit/react';
 import { KeyboardShortcutsButton } from '../../shared/components';
+import { BASIC_ACCESS_OPTIONS } from '../../shared/constants';
 import RegisterMapVisualizer from '../RegisterMapVisualizer';
 import type { RegisterModel } from '../../types/registerModel';
 import { toHex } from '../../utils/formatUtils';
@@ -356,7 +357,7 @@ export function RegisterArrayEditor({ registerArray, onUpdate }: RegisterArrayEd
                             }
                             className="w-full"
                           >
-                            {['read-write', 'read-only', 'write-only'].map((opt) => (
+                            {BASIC_ACCESS_OPTIONS.map((opt) => (
                               <option key={opt} value={opt}>
                                 {opt}
                               </option>

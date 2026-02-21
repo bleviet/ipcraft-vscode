@@ -7,6 +7,8 @@ import {
   VSCodeTextArea,
 } from '@vscode/webview-ui-toolkit/react';
 import { KeyboardShortcutsButton } from '../../shared/components';
+import { ACCESS_OPTIONS } from '../../shared/constants';
+import { focusContainer } from '../../shared/utils/focus';
 import RegisterMapVisualizer from '../RegisterMapVisualizer';
 import { FIELD_COLORS, FIELD_COLOR_KEYS } from '../../shared/colors';
 import { SpatialInsertionService } from '../../services/SpatialInsertionService';
@@ -31,14 +33,6 @@ export interface AddressBlockModel {
   registers?: RegisterModel[];
   [key: string]: unknown;
 }
-
-const ACCESS_OPTIONS = [
-  'read-only',
-  'write-only',
-  'read-write',
-  'write-1-to-clear',
-  'read-write-1-to-clear',
-];
 
 export interface BlockEditorProps {
   /** The address block object (has name, base_address, registers, etc.). */
@@ -89,7 +83,7 @@ export function BlockEditor({
     if (!selectionMeta?.focusDetails) {
       return;
     }
-    const id = window.setTimeout(() => focusRef.current?.focus(), 0);
+    const id = focusContainer(focusRef);
     return () => window.clearTimeout(id);
   }, [selectionMeta?.focusDetails, block?.name]);
 
@@ -139,7 +133,7 @@ export function BlockEditor({
       } catch {
         /* ignore */
       }
-      window.setTimeout(() => focusRef.current?.focus(), 0);
+      focusContainer(focusRef);
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);

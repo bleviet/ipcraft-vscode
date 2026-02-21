@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import type { MemoryMap } from '../types/memoryMap';
 import { YamlService } from '../services/YamlService';
 import { DataNormalizer } from '../services/DataNormalizer';
@@ -30,45 +30,49 @@ export function useMemoryMapState() {
   // Use refs for values that need to be accessed in callbacks
   const rawTextRef = useRef<string>('');
 
+  const applyYamlUpdate = useCallback(
+    (text: string, options?: { filename?: string; clearMemoryMapOnError?: boolean }) => {
+      rawTextRef.current = text;
+      setRawText(text);
+
+      if (options?.filename) {
+        setFileName(options.filename);
+      }
+
+      try {
+        const normalized = parseAndNormalize(text);
+        setMemoryMap(normalized);
+        setParseError(null);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        setParseError(message);
+        if (options?.clearMemoryMapOnError) {
+          setMemoryMap(null);
+        }
+      }
+    },
+    []
+  );
+
   /**
    * Update the memory map from YAML text
    */
-  const updateFromYaml = (text: string, filename?: string) => {
-    rawTextRef.current = text;
-    setRawText(text);
-
-    if (filename) {
-      setFileName(filename);
-    }
-
-    try {
-      const normalized = parseAndNormalize(text);
-      setMemoryMap(normalized);
-      setParseError(null);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      setParseError(message);
-      setMemoryMap(null);
-    }
-  };
+  const updateFromYaml = useCallback(
+    (text: string, filename?: string) => {
+      applyYamlUpdate(text, { filename, clearMemoryMapOnError: true });
+    },
+    [applyYamlUpdate]
+  );
 
   /**
    * Update the raw YAML text (for programmatic updates)
    */
-  const updateRawText = (text: string) => {
-    rawTextRef.current = text;
-    setRawText(text);
-
-    // Try to update memory map as well
-    try {
-      const normalized = parseAndNormalize(text);
-      setMemoryMap(normalized);
-      setParseError(null);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      setParseError(message);
-    }
-  };
+  const updateRawText = useCallback(
+    (text: string) => {
+      applyYamlUpdate(text, { clearMemoryMapOnError: false });
+    },
+    [applyYamlUpdate]
+  );
 
   return {
     memoryMap,

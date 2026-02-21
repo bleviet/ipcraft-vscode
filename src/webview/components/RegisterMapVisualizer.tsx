@@ -227,7 +227,6 @@ const RegisterMapVisualizerInner: React.FC<RegisterMapVisualizerProps> = ({
                   }}
                 >
                   <div className="flex flex-col items-center gap-0.5">
-                    <span className="text-lg select-none">{group.isArray ? '📦' : '📋'}</span>
                     <span className="ipcraft-pattern-label text-[10px] font-mono font-semibold select-none text-center leading-tight">
                       {group.isArray ? `[${String(group.count)}]` : 'REG'}
                     </span>

@@ -4,10 +4,12 @@ import { VSCodeTextField, VSCodeTextArea } from '@vscode/webview-ui-toolkit/reac
 import { KeyboardShortcutsButton } from '../../shared/components';
 import AddressMapVisualizer from '../AddressMapVisualizer';
 import { FIELD_COLORS, FIELD_COLOR_KEYS } from '../../shared/colors';
+import { focusContainer } from '../../shared/utils/focus';
 import {
   SpatialInsertionService,
   AddressBlockRuntimeDef,
 } from '../../services/SpatialInsertionService';
+import { calculateBlockSize } from '../../utils/blockSize';
 import { toHex } from '../../utils/formatUtils';
 import { useTableNavigation } from '../../hooks/useTableNavigation';
 
@@ -46,28 +48,6 @@ export interface MemoryMapEditorProps {
 // Helpers
 // ---------------------------------------------------------------------------
 
-/**
- * Calculates block size in bytes based on its registers or explicit size field.
- */
-function calculateBlockSize(block: MemoryMapBlockDef): number {
-  const registers = block?.registers ?? [];
-  if (registers.length === 0) {
-    const sz = block?.size ?? block?.range ?? 4;
-    return typeof sz === 'string' ? Number.parseInt(sz, 10) || 4 : sz;
-  }
-  let totalSize = 0;
-  for (const reg of registers as Record<string, unknown>[]) {
-    if (reg.__kind === 'array') {
-      const count = (reg.count as number) || 1;
-      const stride = (reg.stride as number) || 4;
-      totalSize += count * stride;
-    } else {
-      totalSize += 4;
-    }
-  }
-  return totalSize;
-}
-
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -99,9 +79,7 @@ export function MemoryMapEditor({
     if (!selectionMeta?.focusDetails) {
       return;
     }
-    const id = window.setTimeout(() => {
-      focusRef.current?.focus();
-    }, 0);
+    const id = focusContainer(focusRef);
     return () => window.clearTimeout(id);
   }, [selectionMeta?.focusDetails, memoryMap?.name]);
 
@@ -151,7 +129,7 @@ export function MemoryMapEditor({
       } catch {
         // ignore
       }
-      window.setTimeout(() => focusRef.current?.focus(), 0);
+      focusContainer(focusRef);
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);

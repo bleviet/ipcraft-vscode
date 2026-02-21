@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import type { YamlUpdateHandler } from '../../../types/editor';
 import type { IpCore } from '../../../types/ipCore';
 import { FormField, SelectField, TextAreaField } from '../../../shared/components';
+import { focusContainer } from '../../../shared/utils/focus';
 import { validateRequired, validateVersion } from '../../../shared/utils/validation';
 
 interface MetadataEditorProps {
@@ -116,13 +117,13 @@ export const MetadataEditor: React.FC<MetadataEditorProps> = ({ ipCore, onUpdate
     }
     setEditingKey(null);
     setDraft('');
-    setTimeout(() => containerRef.current?.focus(), 0);
+    focusContainer(containerRef);
   }, [editingKey, draft, onUpdate]);
 
   const handleCancel = useCallback(() => {
     setEditingKey(null);
     setDraft('');
-    setTimeout(() => containerRef.current?.focus(), 0);
+    focusContainer(containerRef);
   }, []);
 
   // Auto-focus input when editing starts

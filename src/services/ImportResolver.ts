@@ -95,6 +95,13 @@ export class ImportResolver {
     return library;
   }
 
+  private async readYamlFile(absolutePath: string): Promise<unknown> {
+    const uri = vscode.Uri.file(absolutePath);
+    const fileData = await vscode.workspace.fs.readFile(uri);
+    const content = Buffer.from(fileData).toString('utf8');
+    return yaml.load(content);
+  }
+
   /**
    * Resolve memory map import.
    *
@@ -110,10 +117,7 @@ export class ImportResolver {
     this.logger.info(`Resolving memory map import: ${absolutePath}`);
 
     try {
-      const uri = vscode.Uri.file(absolutePath);
-      const fileData = await vscode.workspace.fs.readFile(uri);
-      const content = Buffer.from(fileData).toString('utf8');
-      const parsed = yaml.load(content);
+      const parsed = await this.readYamlFile(absolutePath);
 
       // Memory map files are typically a list
       if (Array.isArray(parsed)) {
@@ -149,10 +153,7 @@ export class ImportResolver {
         this.logger.info(`Resolving file set import: ${absolutePath}`);
 
         try {
-          const uri = vscode.Uri.file(absolutePath);
-          const fileData = await vscode.workspace.fs.readFile(uri);
-          const content = Buffer.from(fileData).toString('utf8');
-          const parsed = yaml.load(content);
+          const parsed = await this.readYamlFile(absolutePath);
 
           // Add to resolved list
           if (Array.isArray(parsed)) {
@@ -195,10 +196,7 @@ export class ImportResolver {
     this.logger.info(`Loading bus library: ${absolutePath}`);
 
     try {
-      const uri = vscode.Uri.file(absolutePath);
-      const fileData = await vscode.workspace.fs.readFile(uri);
-      const content = Buffer.from(fileData).toString('utf8');
-      const parsed = yaml.load(content) as Record<string, unknown>;
+      const parsed = (await this.readYamlFile(absolutePath)) as Record<string, unknown>;
 
       // Cache for future use
       this.busLibraryCache.set(absolutePath, parsed);

@@ -40,7 +40,7 @@ export const FIELD_COLORS: Record<string, string> = {
   crimson: '#dc2626',
   chartreuse: '#bef264',
   periwinkle: '#818cf8',
-  tangerine: '#f97316',
+  tangerine: '#fb8500',
   jade: '#22c55e',
   magenta: '#e879f9',
 };

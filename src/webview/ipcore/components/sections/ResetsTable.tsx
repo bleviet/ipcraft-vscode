@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { YamlUpdateHandler } from '../../../types/editor';
 import { EditableTable, FormField, SelectField } from '../../../shared/components';
+import { focusContainer } from '../../../shared/utils/focus';
+import { displayDirection } from '../../../shared/utils/formatters';
 import { validateVhdlIdentifier, validateUniqueName } from '../../../shared/utils/validation';
 import { useTableNavigation } from '../../../hooks/useTableNavigation';
 
@@ -37,30 +39,12 @@ const normalizeReset = (reset: Reset): Reset => {
   } else if (reset.polarity === 'active_high') {
     normalizedPolarity = 'activeHigh';
   }
-  // Normalize direction from in/out to input/output
-  const dirMap: { [key: string]: string } = {
-    in: 'input',
-    out: 'output',
-    input: 'input',
-    output: 'output',
-  };
-  const normalizedDirection = dirMap[reset.direction ?? 'input'] || 'input';
+  const normalizedDirection = displayDirection(reset.direction, 'input');
   return {
     ...reset,
     polarity: normalizedPolarity,
     direction: normalizedDirection,
   };
-};
-
-// Helper to display normalized direction
-const displayDirection = (dir?: string): string => {
-  const dirMap: { [key: string]: string } = {
-    in: 'input',
-    out: 'output',
-    input: 'input',
-    output: 'output',
-  };
-  return dirMap[dir ?? 'input'] || 'input';
 };
 
 const COLUMN_KEYS = ['name', 'logicalName', 'polarity', 'direction', 'usedBy'];
@@ -146,14 +130,14 @@ export const ResetsTable: React.FC<ResetsTableProps> = ({
     setIsAdding(false);
     setEditingIndex(null);
     setDraft(createEmptyReset());
-    setTimeout(() => containerRef.current?.focus(), 0);
+    focusContainer(containerRef);
   }, [isAdding, editingIndex, draft, onUpdate, resets]);
 
   const handleCancel = useCallback(() => {
     setIsAdding(false);
     setEditingIndex(null);
     setDraft(createEmptyReset());
-    setTimeout(() => containerRef.current?.focus(), 0);
+    focusContainer(containerRef);
   }, []);
 
   const handleDelete = useCallback(

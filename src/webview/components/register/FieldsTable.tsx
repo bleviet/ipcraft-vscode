@@ -7,6 +7,7 @@ import {
   VSCodeTextArea,
 } from '@vscode/webview-ui-toolkit/react';
 import { EditableTable } from '../../shared/components';
+import { ACCESS_OPTIONS } from '../../shared/constants';
 import { FIELD_COLORS, getFieldColor } from '../../shared/colors';
 import { formatBitsRange as formatBits, fieldToBitsString } from '../../utils/BitFieldUtils';
 import { validateVhdlIdentifier } from '../../shared/utils/validation';
@@ -27,14 +28,6 @@ export interface FieldDef {
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
-
-const ACCESS_OPTIONS = [
-  'read-only',
-  'write-only',
-  'read-write',
-  'write-1-to-clear',
-  'read-write-1-to-clear',
-];
 
 const FIELD_TABLE_COLUMNS = [
   { key: 'name', header: 'Name' },

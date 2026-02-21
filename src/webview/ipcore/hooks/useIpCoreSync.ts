@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { vscode } from '../../vscode';
 
 /**
@@ -8,14 +8,14 @@ export function useIpCoreSync(rawYaml: string) {
   /**
    * Send update to extension
    */
-  const sendUpdate = (yamlText: string) => {
+  const sendUpdate = useCallback((yamlText: string) => {
     if (vscode) {
       vscode.postMessage({
         type: 'update',
         text: yamlText,
       });
     }
-  };
+  }, []);
 
   /**
    * Auto-send updates when YAML changes
@@ -31,7 +31,7 @@ export function useIpCoreSync(rawYaml: string) {
     }, 500); // 500ms debounce
 
     return () => clearTimeout(timeoutId);
-  }, [rawYaml]);
+  }, [rawYaml, sendUpdate]);
 
   return { sendUpdate };
 }

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import type { YamlUpdateHandler } from '../../../types/editor';
+import { focusContainer } from '../../../shared/utils/focus';
 interface BusPort {
   name: string;
   width?: number;
@@ -176,7 +177,7 @@ export const BusInterfacesEditor: React.FC<BusInterfacesEditorProps> = ({
       onUpdate(['busInterfaces', index, 'physicalPrefix'], draftPrefix);
       setEditingPrefix(null);
       setDraftPrefix('');
-      setTimeout(() => containerRef.current?.focus(), 0);
+      focusContainer(containerRef);
     },
     [draftPrefix, onUpdate]
   );
@@ -184,7 +185,7 @@ export const BusInterfacesEditor: React.FC<BusInterfacesEditorProps> = ({
   const cancelEditPrefix = useCallback(() => {
     setEditingPrefix(null);
     setDraftPrefix('');
-    setTimeout(() => containerRef.current?.focus(), 0);
+    focusContainer(containerRef);
   }, []);
 
   // Port name editing - only edit the suffix, not the prefix
@@ -221,7 +222,7 @@ export const BusInterfacesEditor: React.FC<BusInterfacesEditorProps> = ({
       );
       setEditingPortName(null);
       setDraftPortName('');
-      setTimeout(() => containerRef.current?.focus(), 0);
+      focusContainer(containerRef);
     },
     [busInterfaces, draftPortName, onUpdate]
   );
@@ -229,7 +230,7 @@ export const BusInterfacesEditor: React.FC<BusInterfacesEditorProps> = ({
   const cancelEditPortName = useCallback(() => {
     setEditingPortName(null);
     setDraftPortName('');
-    setTimeout(() => containerRef.current?.focus(), 0);
+    focusContainer(containerRef);
   }, []);
 
   // Width editing
@@ -259,7 +260,7 @@ export const BusInterfacesEditor: React.FC<BusInterfacesEditorProps> = ({
       );
       setEditingPortWidth(null);
       setDraftPortWidth('');
-      setTimeout(() => containerRef.current?.focus(), 0);
+      focusContainer(containerRef);
     },
     [busInterfaces, draftPortWidth, onUpdate]
   );
@@ -267,7 +268,7 @@ export const BusInterfacesEditor: React.FC<BusInterfacesEditorProps> = ({
   const cancelEditPortWidth = useCallback(() => {
     setEditingPortWidth(null);
     setDraftPortWidth('');
-    setTimeout(() => containerRef.current?.focus(), 0);
+    focusContainer(containerRef);
   }, []);
 
   // Array field editing
@@ -305,7 +306,7 @@ export const BusInterfacesEditor: React.FC<BusInterfacesEditorProps> = ({
 
       setEditingArrayField(null);
       setDraftArrayValue('');
-      setTimeout(() => containerRef.current?.focus(), 0);
+      focusContainer(containerRef);
     },
     [editingArrayField, draftArrayValue, onUpdate]
   );
@@ -313,7 +314,7 @@ export const BusInterfacesEditor: React.FC<BusInterfacesEditorProps> = ({
   const cancelEditArrayField = useCallback(() => {
     setEditingArrayField(null);
     setDraftArrayValue('');
-    setTimeout(() => containerRef.current?.focus(), 0);
+    focusContainer(containerRef);
   }, []);
 
   // Toggle array configuration
@@ -435,7 +436,7 @@ export const BusInterfacesEditor: React.FC<BusInterfacesEditorProps> = ({
 
       setEditingBusField(null);
       setDraftBusValue('');
-      setTimeout(() => containerRef.current?.focus(), 0);
+      focusContainer(containerRef);
     },
     [editingBusField, draftBusValue, onUpdate]
   );
@@ -443,7 +444,7 @@ export const BusInterfacesEditor: React.FC<BusInterfacesEditorProps> = ({
   const cancelEditBusField = useCallback(() => {
     setEditingBusField(null);
     setDraftBusValue('');
-    setTimeout(() => containerRef.current?.focus(), 0);
+    focusContainer(containerRef);
   }, []);
 
   useEffect(() => {

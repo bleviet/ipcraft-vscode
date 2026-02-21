@@ -107,7 +107,7 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
                 </head>
                 <body>
                     <div class="error-container">
-                        <div class="error-icon">⚠️</div>
+                        <div class="error-icon">Warning</div>
                         <div class="error-title">Not an IP Core File</div>
                         <div class="error-message">
                             This file does not appear to be an IP core YAML file.<br>

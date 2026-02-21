@@ -2,33 +2,8 @@
  * Address block repacking algorithms for maintaining proper block layouts
  */
 
-import type { AddressBlockRecord, RegisterRecord } from '../types/editor';
-
-/**
- * Calculate block size based on registers and register arrays
- * For regular registers: 4 bytes per register
- * For register arrays: count * stride bytes
- */
-function calculateBlockSize(block: AddressBlockRecord): number {
-  const registers: RegisterRecord[] = block?.registers ?? [];
-  if (registers.length === 0) {
-    return typeof block?.size === 'number' ? block.size : 4;
-  }
-
-  let totalSize = 0;
-  for (const reg of registers) {
-    if (reg.__kind === 'array') {
-      // Register array: size = count * stride
-      const count = reg.count ?? 1;
-      const stride = reg.stride ?? 4;
-      totalSize += count * stride;
-    } else {
-      // Regular register: 4 bytes
-      totalSize += 4;
-    }
-  }
-  return totalSize;
-}
+import type { AddressBlockRecord } from '../types/editor';
+import { calculateBlockSize } from '../utils/blockSize';
 
 /**
  * Repack address blocks forward (toward higher addresses) starting from the given index.

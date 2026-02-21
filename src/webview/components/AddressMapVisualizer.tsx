@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { FIELD_COLORS, FIELD_COLOR_KEYS } from '../shared/colors';
 import { toHex } from '../utils/formatUtils';
+import { calculateBlockSize } from '../utils/blockSize';
 
 export interface VisualizerAddressBlock {
   name?: string;
@@ -25,33 +26,6 @@ interface AddressMapVisualizerProps {
 
 function getBlockColor(idx: number) {
   return FIELD_COLOR_KEYS[idx % FIELD_COLOR_KEYS.length];
-}
-
-/**
- * Calculate block size based on registers and register arrays
- * For regular registers: 4 bytes per register
- * For register arrays: count * stride bytes
- * Falls back to explicit size if no registers
- */
-function calculateBlockSize(block: VisualizerAddressBlock): number {
-  const registers = block?.registers ?? [];
-  if (registers.length === 0) {
-    return Number(block?.size ?? block?.range ?? 4);
-  }
-
-  let totalSize = 0;
-  for (const reg of registers) {
-    if (reg.__kind === 'array') {
-      // Register array: size = count * stride
-      const count = Number(reg.count ?? 1);
-      const stride = Number(reg.stride ?? 4);
-      totalSize += count * stride;
-    } else {
-      // Regular register: 4 bytes
-      totalSize += 4;
-    }
-  }
-  return totalSize;
 }
 
 const AddressMapVisualizerInner: React.FC<AddressMapVisualizerProps> = ({
@@ -108,9 +82,6 @@ const AddressMapVisualizerInner: React.FC<AddressMapVisualizerProps> = ({
                   }}
                 >
                   <div className="flex flex-col items-center gap-0.5">
-                    <span className="text-lg select-none">
-                      {group.usage === 'memory' ? '📦' : '📋'}
-                    </span>
                     <span className="ipcraft-pattern-label text-[10px] font-mono font-semibold select-none text-center leading-tight">
                       {group.usage === 'memory' ? 'MEM' : 'REG'}
                     </span>

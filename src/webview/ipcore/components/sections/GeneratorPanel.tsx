@@ -238,7 +238,7 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({ ipCore }) => {
                   }}
                 >
                   <span style={{ fontWeight: 500 }}>
-                    {detectedBus.busType === 'axil' ? '🔵 AXI-Lite' : '🟢 Avalon-MM'}
+                    {detectedBus.busType === 'axil' ? 'AXI-Lite' : 'Avalon-MM'}
                   </span>
                   <span style={{ opacity: 0.7 }}>
                     (detected from {detectedBus.busInterface.name})
@@ -257,7 +257,7 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({ ipCore }) => {
                   fontSize: '12px',
                 }}
               >
-                ⚠️ No bus interface with memory map detected. Using default: AXI-Lite
+                Warning: No bus interface with memory map detected. Using default: AXI-Lite
               </div>
             )}
           </div>
@@ -334,7 +334,7 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({ ipCore }) => {
               fontSize: '11px',
             }}
           >
-            <label style={labelStyle}>📁 Preview: Output Structure</label>
+            <label style={labelStyle}>Preview: Output Structure</label>
             <div style={{ marginTop: '8px', lineHeight: '1.6' }}>
               <div style={{ color: 'var(--vscode-textPreformat-foreground)' }}>{ipName}/</div>
               {options.includeVhdl && (
@@ -410,7 +410,7 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({ ipCore }) => {
               opacity: status.status === 'generating' ? 0.7 : 1,
             }}
           >
-            {status.status === 'generating' ? '⏳ Generating...' : '🔧 Generate Files'}
+            {status.status === 'generating' ? 'Generating...' : 'Generate Files'}
           </button>
 
           {/* Status Display */}
@@ -424,7 +424,7 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({ ipCore }) => {
                 fontSize: '12px',
               }}
             >
-              <p style={{ fontWeight: 500, marginBottom: '8px' }}>✅ {status.message}</p>
+              <p style={{ fontWeight: 500, marginBottom: '8px' }}>Success: {status.message}</p>
               {status.files && (
                 <ul style={{ margin: 0, paddingLeft: '16px' }}>
                   {status.files.map((file, idx) => (
@@ -447,7 +447,7 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({ ipCore }) => {
                 color: 'var(--vscode-errorForeground)',
               }}
             >
-              ❌ {status.message}
+              Error: {status.message}
             </div>
           )}
         </div>

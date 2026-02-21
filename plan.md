@@ -26,7 +26,7 @@
 **Current health (verified 2026-02-21):**
 - `npm run lint` passes with `--max-warnings 0`
 - `npm run compile` passes
-- `npm test` passes (26 suites, 227 tests)
+- `npm test` passes (26 suites, 206 tests)
 - `npm run test:unit:coverage` passes
 - Coverage: Statements **21.32%**, Branches **12.31%**, Functions **15.78%**, Lines **21.46%**
 
@@ -36,6 +36,9 @@
 - P1 implementation completed (all 7 items)
 - P2 implementation completed (items P2-1 through P2-5)
 - Verification complete: `npm run lint`, `npm run compile`, and `npm test` pass after P1/P2 changes
+- P3 implementation completed for: P3-1, P3-2, P3-3, P3-4, P3-6, P3-8, P3-10
+- P5 implementation completed for: P5-1, P5-6, P5-7
+- Verification complete: `npm run lint`, `npm run compile`, and `npm test` pass after the current batch
 
 ---
 
@@ -486,6 +489,22 @@ Current pass resolved (2026-02-21):
 	- switched save flow to `DocumentManager.saveDocument()` in `MessageHandler`
 	- removed dead `ErrorHandler` exports and corresponding tests
 - Verification completed for current pass:
+	- `npm run lint` passed
+	- `npm run compile` passed
+	- `npm test` passed
+
+Current pass resolved (2026-02-21, current batch):
+- P3-1 completed: unified `HtmlGenerator` methods using shared private `generateHtmlForEditor(...)`
+- P3-2 completed: extracted shared `displayDirection(...)` formatter and reused in clocks/resets/ports tables
+- P3-3 completed: extracted shared `calculateBlockSize(...)` utility and reused in repacker/editor/visualizer
+- P3-4 completed: consolidated shared access options in `src/webview/shared/constants.ts`
+- P3-6 completed: extracted `focusContainer(...)` and replaced repeated focus-timeout call sites
+- P3-8 completed: extracted `ImportResolver.readYamlFile(...)` to remove duplicated YAML file-read/parse chains
+- P3-10 completed: extracted `applyYamlUpdate(...)` shared update path in `useMemoryMapState`
+- P5-1 completed: removed emoji usage in source paths flagged by review
+- P5-6 completed: fixed duplicate color value (`tangerine` now distinct from `orange`)
+- P5-7 completed: memoized update/command callbacks in `useMemoryMapState`, `useYamlSync`, and `useIpCoreSync`
+- Verification completed for this batch:
 	- `npm run lint` passed
 	- `npm run compile` passed
 	- `npm test` passed
