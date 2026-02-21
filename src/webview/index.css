@@ -395,6 +395,34 @@ body {
     min-height: 0;
 }
 
+/* ========================================
+   REGISTER SIDE-BY-SIDE LAYOUT
+   ======================================== */
+
+.register-visualizer-pane {
+    flex: 0 0 auto;
+    width: 260px;
+    min-width: 200px;
+    max-width: 360px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: var(--vscode-editor-background);
+}
+
+@media (min-width: 641px) and (max-width: 900px) {
+    .register-visualizer-pane {
+        width: 200px;
+        min-width: 160px;
+    }
+}
+
+@media (max-width: 640px) {
+    .register-visualizer-pane {
+        display: none;
+    }
+}
+
 .panel-header {
     padding: 12px;
     border-bottom: 1px solid var(--vscode-panel-border);

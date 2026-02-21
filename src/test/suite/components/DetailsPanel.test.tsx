@@ -12,10 +12,13 @@ import { render, screen } from '@testing-library/react';
 // Mock heavy sub-components so this test stays fast and dependency-free
 // ---------------------------------------------------------------------------
 
+let lastRegisterEditorProps: unknown = null;
+
 jest.mock('../../../webview/components/register/RegisterEditor', () => ({
-  RegisterEditor: React.forwardRef((_props: unknown, _ref: unknown) => (
-    <div data-testid="mock-register-editor">RegisterEditor</div>
-  )),
+  RegisterEditor: React.forwardRef((props: unknown, _ref: unknown) => {
+    lastRegisterEditorProps = props;
+    return <div data-testid="mock-register-editor">RegisterEditor</div>;
+  }),
 }));
 
 jest.mock('../../../webview/components/memorymap/MemoryMapEditor', () => ({
@@ -25,9 +28,7 @@ jest.mock('../../../webview/components/memorymap/MemoryMapEditor', () => ({
 }));
 
 jest.mock('../../../webview/components/memorymap/BlockEditor', () => ({
-  BlockEditor: (_props: unknown) => (
-    <div data-testid="mock-block-editor">BlockEditor</div>
-  ),
+  BlockEditor: (_props: unknown) => <div data-testid="mock-block-editor">BlockEditor</div>,
 }));
 
 jest.mock('../../../webview/components/memorymap/RegisterArrayEditor', () => ({
@@ -48,18 +49,23 @@ import DetailsPanel from '../../../webview/components/DetailsPanel';
 
 const noop = jest.fn();
 
+const baseProps = {
+  registerLayout: 'side-by-side' as const,
+  toggleRegisterLayout: noop,
+};
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
 describe('DetailsPanel — routing', () => {
+  beforeEach(() => {
+    lastRegisterEditorProps = null;
+  });
+
   it('renders the empty-state when selectedObject is null', () => {
     render(
-      <DetailsPanel
-        selectedType={null}
-        selectedObject={null}
-        onUpdate={noop}
-      />,
+      <DetailsPanel selectedType={null} selectedObject={null} onUpdate={noop} {...baseProps} />
     );
     expect(screen.getByText(/select an item/i)).toBeInTheDocument();
   });
@@ -71,9 +77,15 @@ describe('DetailsPanel — routing', () => {
         selectedType="register"
         selectedObject={mockRegister}
         onUpdate={noop}
-      />,
+        {...baseProps}
+      />
     );
     expect(screen.getByTestId('mock-register-editor')).toBeInTheDocument();
+    const firstCall = lastRegisterEditorProps as
+      | { registerLayout?: string; toggleRegisterLayout?: unknown }
+      | undefined;
+    expect(firstCall?.registerLayout).toBe('side-by-side');
+    expect(firstCall?.toggleRegisterLayout).toBe(noop);
   });
 
   it('renders MemoryMapEditor for selectedType="memoryMap"', () => {
@@ -83,7 +95,8 @@ describe('DetailsPanel — routing', () => {
         selectedType="memoryMap"
         selectedObject={mockMap}
         onUpdate={noop}
-      />,
+        {...baseProps}
+      />
     );
     expect(screen.getByTestId('mock-memorymap-editor')).toBeInTheDocument();
   });
@@ -95,7 +108,8 @@ describe('DetailsPanel — routing', () => {
         selectedType="block"
         selectedObject={mockBlock}
         onUpdate={noop}
-      />,
+        {...baseProps}
+      />
     );
     expect(screen.getByTestId('mock-block-editor')).toBeInTheDocument();
   });
@@ -107,7 +121,8 @@ describe('DetailsPanel — routing', () => {
         selectedType="array"
         selectedObject={mockArray}
         onUpdate={noop}
-      />,
+        {...baseProps}
+      />
     );
     expect(screen.getByTestId('mock-registerarray-editor')).toBeInTheDocument();
   });
@@ -123,7 +138,8 @@ describe('DetailsPanel — routing', () => {
         selectedType="array"
         selectedObject={mockArray}
         onUpdate={noop}
-      />,
+        {...baseProps}
+      />
     );
     expect(screen.getByTestId('mock-register-editor')).toBeInTheDocument();
   });
@@ -142,7 +158,8 @@ describe('DetailsPanel — routing', () => {
         selectedType="array"
         selectedObject={mockArray}
         onUpdate={noop}
-      />,
+        {...baseProps}
+      />
     );
     expect(screen.getByTestId('mock-block-editor')).toBeInTheDocument();
   });

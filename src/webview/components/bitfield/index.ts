@@ -1,6 +1,7 @@
 export { default as DefaultLayoutView } from './DefaultLayoutView';
 export { default as FieldCell } from './FieldCell';
 export { default as ProLayoutView } from './ProLayoutView';
+export { default as VerticalLayoutView } from './VerticalLayoutView';
 export { default as ValueBar } from './ValueBar';
 export * from './types';
 export * from './useCtrlDrag';

@@ -6,6 +6,7 @@ import { useValueEditing } from './bitfield/useValueEditing';
 import ValueBar from './bitfield/ValueBar';
 import DefaultLayoutView from './bitfield/DefaultLayoutView';
 import ProLayoutView from './bitfield/ProLayoutView';
+import VerticalLayoutView from './bitfield/VerticalLayoutView';
 import { getKeyboardReorderUpdates, getKeyboardResizeRange } from './bitfield/keyboardOperations';
 import { computeCtrlDragPreview } from './bitfield/reorderAlgorithm';
 import {
@@ -41,7 +42,7 @@ interface BitFieldVisualizerProps {
   hoveredFieldIndex?: number | null;
   setHoveredFieldIndex?: (idx: number | null) => void;
   registerSize?: number;
-  layout?: 'default' | 'pro';
+  layout?: 'default' | 'pro' | 'vertical';
   onUpdateFieldReset?: (fieldIndex: number, resetValue: number | null) => void;
   onUpdateFieldRange?: (fieldIndex: number, newRange: [number, number]) => void;
   onBatchUpdateFields?: (updates: { idx: number; range: [number, number] }[]) => void;
@@ -302,41 +303,49 @@ const BitFieldVisualizerInner: React.FC<BitFieldVisualizerProps> = ({
     />
   );
 
-  if (layout === 'pro') {
+  if (layout === 'pro' || layout === 'vertical') {
     const segments =
       ctrlDrag.active && ctrlDrag.previewSegments
         ? ctrlDrag.previewSegments
         : buildProLayoutSegments(fields, registerSize);
+    const sharedProps = {
+      fields,
+      segments,
+      hoverState: { keyboardHelpId, hoveredFieldIndex, setHoveredFieldIndex },
+      dragState: {
+        shiftDrag,
+        shiftHeld,
+        ctrlDragActive: ctrlDrag.active,
+        ctrlHeld,
+        isCtrlDragActive: () => ctrlDragRef.current.active,
+        dragActive,
+        dragSetTo,
+        dragLast,
+        setDragActive,
+        setDragSetTo,
+        setDragLast,
+      },
+      interactions: {
+        onUpdateFieldReset,
+        handleShiftPointerDown,
+        handleCtrlPointerDown,
+        handleShiftPointerMove,
+        handleCtrlPointerMove,
+        applyKeyboardReorder,
+        applyKeyboardResize,
+        applyBit,
+        bitAt,
+      },
+    };
+
+    if (layout === 'vertical') {
+      return <VerticalLayoutView {...sharedProps} layoutConfig={{ valueView, valueBar }} />;
+    }
+
     return (
       <ProLayoutView
-        fields={fields}
-        segments={segments}
-        hoverState={{ keyboardHelpId, hoveredFieldIndex, setHoveredFieldIndex }}
-        dragState={{
-          shiftDrag,
-          shiftHeld,
-          ctrlDragActive: ctrlDrag.active,
-          ctrlHeld,
-          isCtrlDragActive: () => ctrlDragRef.current.active,
-          dragActive,
-          dragSetTo,
-          dragLast,
-          setDragActive,
-          setDragSetTo,
-          setDragLast,
-        }}
-        interactions={{
-          onUpdateFieldReset,
-          handleShiftPointerDown,
-          handleCtrlPointerDown,
-          handleShiftPointerMove,
-          handleCtrlPointerMove,
-          applyKeyboardReorder,
-          applyKeyboardResize,
-          applyBit,
-          bitAt,
-          getResizableEdges,
-        }}
+        {...sharedProps}
+        interactions={{ ...sharedProps.interactions, getResizableEdges }}
         layoutConfig={{ bitOwners, registerSize, valueView, valueBar }}
       />
     );

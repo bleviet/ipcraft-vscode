@@ -151,7 +151,7 @@ Array-element masquerade: when an array element is selected (`__element_index` p
 
 ### Sub-editor Layout Pattern
 
-Each sub-editor (RegisterEditor, BlockEditor, MemoryMapEditor) uses the same two-section vertical layout:
+`BlockEditor` and `MemoryMapEditor` use the same two-section vertical layout:
 
 ```
 div.flex.flex-col.w-full.h-full.min-h-0
@@ -166,6 +166,17 @@ div.flex.flex-col.w-full.h-full.min-h-0
 ```
 
 The top section (visualizer + header) is `shrink-0` so it never collapses. The bottom section (table) takes remaining space via `flex-1` and scrolls independently.
+
+### RegisterEditor Layout Modes
+
+`RegisterEditor` now supports a persisted layout toggle with two modes:
+
+| Mode | Structure | BitFieldVisualizer layout |
+|---|---|---|
+| `side-by-side` (default) | Header bar on top, then split pane (`.register-visualizer-pane` on left + `FieldsTable` on right) | `layout="vertical"` |
+| `stacked` (legacy) | Header bar on top, visualizer section under header, fields table below | `layout="pro"` |
+
+Preference key: `registerLayout` in webview state (`vscode.getState()` / `vscode.setState()`).
 
 ---
 
@@ -199,7 +210,7 @@ Sticky header: `thead th` gets `position: sticky; top: 0; z-index: 1; background
 
 ### BitFieldVisualizer
 
-Source: `src/webview/components/BitFieldVisualizer.tsx`. Two layout modes via `layout` prop.
+Source: `src/webview/components/BitFieldVisualizer.tsx`. Three layout modes via `layout` prop.
 
 **Default layout** (`DefaultLayoutView`):
 ```
@@ -224,6 +235,20 @@ div.w-full
 ```
 
 Segment widths computed as `calc(N * 2rem)`. Container has `overflow-x-auto` + inner `min-w-max` for horizontal scrolling when segments overflow.
+
+**Vertical layout** (`VerticalLayoutView`):
+```
+div.h-full.flex.flex-col
++-- sr-only keyboard help text
++-- div.flex-1.overflow-y-auto
+|   +-- per-segment rows with height: calc({bitCount} * 2rem)
+|       +-- left bit labels (MSB top, LSB bottom)
+|       +-- center vertical strip (fixed width, per-bit stacked cells)
+|       +-- right floating field label/value chip
++-- value bar (bottom)
+```
+
+Segment height is proportional to bit count (`calc(N * 2rem)`), mirroring `pro` layout width semantics.
 
 ### AddressMapVisualizer
 
@@ -254,8 +279,13 @@ Same structure as AddressMapVisualizer but per-register. Each register is `flex-
 | Range | Label | Key behaviors |
 |---|---|---|
 | <= 640px | Mobile | Sidebar becomes fixed overlay. Toggle button shown (44x44px). Tables switch to card view. Form grids go single-column. Inputs get 44px min-height and 16px font. Header wraps, toolbar buttons become icon-only. |
-| 641--900px | Tablet | Sidebar narrows to 240px, always visible. Toggle button hidden. Access column hidden in field tables. Details split stays horizontal. Bit cells reduce to 1.5rem. |
+| 641--900px | Tablet | Sidebar narrows to 240px, always visible. Toggle button hidden. Access column hidden in field tables. Details split stays horizontal. Register side-by-side pane narrows to 200px min 160px. |
 | >= 901px | Desktop | Sidebar at full 300px. All columns visible. Full bit cell size. |
+
+Register side-by-side specifics:
+- `.register-visualizer-pane` width is 260px (`min-width: 200px`, `max-width: 360px`) on desktop.
+- At `<= 640px`, `.register-visualizer-pane` is hidden by CSS; the table remains full width.
+- The layout toggle still switches persisted state on mobile; hidden-pane behavior is purely CSS-driven.
 
 ### Mobile Sidebar Overlay
 

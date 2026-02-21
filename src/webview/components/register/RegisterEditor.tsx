@@ -15,6 +15,8 @@ export interface RegisterEditorProps {
   register: Register;
   /** Normalised bit fields (with bit_range / bit_offset / bit_width). */
   fields: BitFieldRecord[];
+  registerLayout: 'stacked' | 'side-by-side';
+  toggleRegisterLayout: () => void;
   selectionMeta?: {
     absoluteAddress?: number;
     relativeOffset?: number;
@@ -40,7 +42,7 @@ export type RegisterEditorHandle = {
  * Exposes a `focus()` method via ref.
  */
 export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEditorProps>(
-  ({ register, fields, selectionMeta, onUpdate }, ref) => {
+  ({ register, fields, registerLayout, toggleRegisterLayout, selectionMeta, onUpdate }, ref) => {
     const registerSize = register?.size ?? 32;
 
     const fieldEditor = useFieldEditor(fields, registerSize, onUpdate, true);
@@ -99,108 +101,146 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
       });
     }, [register?.fields]);
 
+    const visualizerProps = {
+      fields: normalisedFields,
+      hoveredFieldIndex,
+      setHoveredFieldIndex,
+      registerSize,
+      onUpdateFieldReset: (fieldIndex: number, resetValue: number | null) => {
+        onUpdate(['fields', fieldIndex, 'reset_value'], resetValue);
+      },
+      onUpdateFieldRange: (fieldIndex: number, newRange: [number, number]) => {
+        const [hi, lo] = newRange;
+        const field = fields[fieldIndex];
+        const updatedField = {
+          ...field,
+          bit_range: newRange,
+          bit_offset: lo,
+          bit_width: hi - lo + 1,
+        };
+        const newFields = [...fields];
+        newFields[fieldIndex] = updatedField;
+        onUpdate(['fields'], newFields);
+      },
+      onBatchUpdateFields: (updates: { idx: number; range: [number, number] }[]) => {
+        const newFields = [...fields];
+        updates.forEach(({ idx, range }) => {
+          const [hi, lo] = range;
+          const field = newFields[idx];
+          if (field) {
+            newFields[idx] = {
+              ...field,
+              bit_range: range,
+              bit_offset: lo,
+              bit_width: hi - lo + 1,
+            };
+          }
+        });
+        newFields.sort((a, b) => {
+          const aLo = a.bit_range ? a.bit_range[1] : (a.bit_offset ?? 0);
+          const bLo = b.bit_range ? b.bit_range[1] : (b.bit_offset ?? 0);
+          return aLo - bLo;
+        });
+        onUpdate(['fields'], newFields);
+      },
+      onCreateField: (newField: { bit_range: [number, number]; name: string }) => {
+        let maxN = 0;
+        for (const f of fields) {
+          const m = String(f.name ?? '').match(/^field(\d+)$/);
+          if (m) {
+            maxN = Math.max(maxN, parseInt(m[1], 10));
+          }
+        }
+        const name = `field${maxN + 1}`;
+        const [hi, lo] = newField.bit_range;
+        const field = {
+          name,
+          bit_range: newField.bit_range,
+          bit_offset: lo,
+          bit_width: hi - lo + 1,
+          access: 'read-write',
+          reset_value: 0,
+          description: '',
+        };
+        const newFields = [...fields, field].sort((a, b) => {
+          const aLo = a.bit_range ? a.bit_range[1] : (a.bit_offset ?? 0);
+          const bLo = b.bit_range ? b.bit_range[1] : (b.bit_offset ?? 0);
+          return aLo - bLo;
+        });
+        onUpdate(['fields'], newFields);
+      },
+      onDragPreview: (preview: { idx: number; range: [number, number] }[] | null) => {
+        if (preview === null) {
+          setDragPreviewRanges({});
+        } else {
+          const newRanges: Record<number, [number, number]> = {};
+          preview.forEach(({ idx, range }) => {
+            newRanges[idx] = range;
+          });
+          setDragPreviewRanges(newRanges);
+        }
+      },
+    };
+
     return (
       <div className="flex flex-col w-full h-full min-h-0">
-        {/* Register Header + BitFieldVisualizer */}
-        <div className="vscode-surface border-b vscode-border p-8 flex flex-col gap-6 shrink-0 relative overflow-hidden">
-          <div className="flex justify-between items-start relative z-10">
+        <div className="vscode-surface border-b vscode-border px-8 py-4 shrink-0">
+          <div className="flex justify-between items-start gap-4">
             <div>
               <h2 className="text-2xl font-bold font-mono tracking-tight">{register.name}</h2>
               <p className="vscode-muted text-sm mt-1 max-w-2xl">{register.description}</p>
             </div>
-          </div>
-          <div className="w-full relative z-10 mt-2 select-none">
-            <BitFieldVisualizer
-              fields={normalisedFields}
-              hoveredFieldIndex={hoveredFieldIndex}
-              setHoveredFieldIndex={setHoveredFieldIndex}
-              registerSize={registerSize}
-              layout="pro"
-              onUpdateFieldReset={(fieldIndex, resetValue) => {
-                onUpdate(['fields', fieldIndex, 'reset_value'], resetValue);
-              }}
-              onUpdateFieldRange={(fieldIndex, newRange) => {
-                const [hi, lo] = newRange;
-                const field = fields[fieldIndex];
-                const updatedField = {
-                  ...field,
-                  bit_range: newRange,
-                  bit_offset: lo,
-                  bit_width: hi - lo + 1,
-                };
-                const newFields = [...fields];
-                newFields[fieldIndex] = updatedField;
-                onUpdate(['fields'], newFields);
-              }}
-              onBatchUpdateFields={(updates) => {
-                const newFields = [...fields];
-                updates.forEach(({ idx, range }) => {
-                  const [hi, lo] = range;
-                  const field = newFields[idx];
-                  if (field) {
-                    newFields[idx] = {
-                      ...field,
-                      bit_range: range,
-                      bit_offset: lo,
-                      bit_width: hi - lo + 1,
-                    };
-                  }
-                });
-                newFields.sort((a, b) => {
-                  const aLo = a.bit_range ? a.bit_range[1] : (a.bit_offset ?? 0);
-                  const bLo = b.bit_range ? b.bit_range[1] : (b.bit_offset ?? 0);
-                  return aLo - bLo;
-                });
-                onUpdate(['fields'], newFields);
-              }}
-              onCreateField={(newField) => {
-                let maxN = 0;
-                for (const f of fields) {
-                  const m = String(f.name ?? '').match(/^field(\d+)$/);
-                  if (m) {
-                    maxN = Math.max(maxN, parseInt(m[1], 10));
-                  }
-                }
-                const name = `field${maxN + 1}`;
-                const [hi, lo] = newField.bit_range;
-                const field = {
-                  name,
-                  bit_range: newField.bit_range,
-                  bit_offset: lo,
-                  bit_width: hi - lo + 1,
-                  access: 'read-write',
-                  reset_value: 0,
-                  description: '',
-                };
-                const newFields = [...fields, field].sort((a, b) => {
-                  const aLo = a.bit_range ? a.bit_range[1] : (a.bit_offset ?? 0);
-                  const bLo = b.bit_range ? b.bit_range[1] : (b.bit_offset ?? 0);
-                  return aLo - bLo;
-                });
-                onUpdate(['fields'], newFields);
-              }}
-              onDragPreview={(preview) => {
-                if (preview === null) {
-                  setDragPreviewRanges({});
-                } else {
-                  const newRanges: Record<number, [number, number]> = {};
-                  preview.forEach(({ idx, range }) => {
-                    newRanges[idx] = range;
-                  });
-                  setDragPreviewRanges(newRanges);
-                }
-              }}
-            />
+            <button
+              className="p-2 rounded-md transition-colors vscode-icon-button"
+              onClick={toggleRegisterLayout}
+              title={
+                registerLayout === 'stacked'
+                  ? 'Switch to side-by-side layout'
+                  : 'Switch to stacked layout'
+              }
+              aria-label="Toggle register layout"
+              type="button"
+            >
+              <span
+                className={`codicon ${
+                  registerLayout === 'stacked'
+                    ? 'codicon-split-horizontal'
+                    : 'codicon-split-vertical'
+                }`}
+              />
+            </button>
           </div>
         </div>
 
-        {/* Editable fields table */}
-        <FieldsTable
-          fields={fields}
-          registerSize={registerSize}
-          onUpdate={onUpdate}
-          fieldEditor={fieldEditor}
-        />
+        {registerLayout === 'side-by-side' ? (
+          <div className="flex-1 flex overflow-hidden min-h-0">
+            <div className="register-visualizer-pane shrink-0 overflow-y-auto border-r vscode-border">
+              <BitFieldVisualizer {...visualizerProps} layout="vertical" />
+            </div>
+
+            <FieldsTable
+              fields={fields}
+              registerSize={registerSize}
+              onUpdate={onUpdate}
+              fieldEditor={fieldEditor}
+            />
+          </div>
+        ) : (
+          <>
+            <div className="vscode-surface border-b vscode-border p-8 flex flex-col gap-6 shrink-0 relative overflow-hidden">
+              <div className="w-full relative z-10 mt-2 select-none">
+                <BitFieldVisualizer {...visualizerProps} layout="pro" />
+              </div>
+            </div>
+
+            <FieldsTable
+              fields={fields}
+              registerSize={registerSize}
+              onUpdate={onUpdate}
+              fieldEditor={fieldEditor}
+            />
+          </>
+        )}
 
         <KeyboardShortcutsButton context="register" />
       </div>

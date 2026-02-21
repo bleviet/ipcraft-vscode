@@ -19,6 +19,12 @@ import './index.css';
  */
 const App = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  type RegisterLayout = 'stacked' | 'side-by-side';
+  const [registerLayout, setRegisterLayout] = useState<RegisterLayout>(() => {
+    const savedState =
+      (vscode?.getState() as { registerLayout?: RegisterLayout } | undefined) ?? undefined;
+    return savedState?.registerLayout ?? 'side-by-side';
+  });
 
   const { memoryMap, rawTextRef, parseError, fileName, updateFromYaml, updateRawText } =
     useMemoryMapState();
@@ -37,6 +43,13 @@ const App = () => {
   useEffect(() => {
     vscode?.postMessage({ type: 'ready' });
   }, []);
+
+  const toggleRegisterLayout = () => {
+    const nextLayout: RegisterLayout = registerLayout === 'stacked' ? 'side-by-side' : 'stacked';
+    setRegisterLayout(nextLayout);
+    const currentState = (vscode?.getState() as Record<string, unknown> | undefined) ?? {};
+    vscode?.setState({ ...currentState, registerLayout: nextLayout });
+  };
 
   const outlineRef = useRef<OutlineHandle | null>(null);
   const detailsRef = useRef<DetailsPanelHandle | null>(null);
@@ -210,6 +223,8 @@ const App = () => {
             onUpdate={handleUpdate}
             onNavigateToRegister={navigateToRegister}
             onNavigateToBlock={navigateToBlock}
+            registerLayout={registerLayout}
+            toggleRegisterLayout={toggleRegisterLayout}
           />
         </section>
       </main>

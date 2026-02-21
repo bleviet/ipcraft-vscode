@@ -21,6 +21,8 @@ import { RegisterArrayEditor } from './memorymap/RegisterArrayEditor';
 export interface DetailsPanelProps {
   selectedType: 'memoryMap' | 'block' | 'register' | 'array' | null;
   selectedObject: unknown;
+  registerLayout: 'stacked' | 'side-by-side';
+  toggleRegisterLayout: () => void;
   selectionMeta?: {
     absoluteAddress?: number;
     relativeOffset?: number;
@@ -44,6 +46,8 @@ const DetailsPanel = React.forwardRef<DetailsPanelHandle, DetailsPanelProps>((pr
     selectedType: rawSelectedType,
     selectedObject: rawSelectedObject,
     selectionMeta: rawSelectionMeta,
+    registerLayout,
+    toggleRegisterLayout,
     onUpdate: rawOnUpdate,
     onNavigateToRegister,
     onNavigateToBlock,
@@ -160,6 +164,8 @@ const DetailsPanel = React.forwardRef<DetailsPanelHandle, DetailsPanelProps>((pr
         register={reg}
         fields={fields}
         selectionMeta={selectionMeta}
+        registerLayout={registerLayout}
+        toggleRegisterLayout={toggleRegisterLayout}
         onUpdate={onUpdate}
       />
     );
