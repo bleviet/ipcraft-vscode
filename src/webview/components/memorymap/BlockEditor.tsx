@@ -8,12 +8,13 @@ import {
 } from '@vscode/webview-ui-toolkit/react';
 import { KeyboardShortcutsButton } from '../../shared/components';
 import { ACCESS_OPTIONS } from '../../shared/constants';
-import { focusContainer } from '../../shared/utils/focus';
 import RegisterMapVisualizer from '../RegisterMapVisualizer';
 import { FIELD_COLORS, FIELD_COLOR_KEYS } from '../../shared/colors';
 import { SpatialInsertionService } from '../../services/SpatialInsertionService';
 import type { RegisterModel } from '../../types/registerModel';
 import { toHex } from '../../utils/formatUtils';
+import { useAutoFocus } from '../../hooks/useAutoFocus';
+import { useEscapeFocus } from '../../hooks/useEscapeFocus';
 import { useTableNavigation } from '../../hooks/useTableNavigation';
 
 // ---------------------------------------------------------------------------
@@ -78,14 +79,7 @@ export function BlockEditor({
 
   const getRegColor = (idx: number) => FIELD_COLOR_KEYS[idx % FIELD_COLOR_KEYS.length];
 
-  // Auto-focus on explicit request.
-  useEffect(() => {
-    if (!selectionMeta?.focusDetails) {
-      return;
-    }
-    const id = focusContainer(focusRef);
-    return () => window.clearTimeout(id);
-  }, [selectionMeta?.focusDetails, block?.name]);
+  useAutoFocus(focusRef, !!selectionMeta?.focusDetails, [block?.name]);
 
   // Clamp selection when block changes.
   useEffect(() => {
@@ -111,48 +105,18 @@ export function BlockEditor({
     });
   }, [block?.name, (block?.registers ?? []).length]);
 
-  // Escape: return focus back to the table.
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') {
-        return;
-      }
-      const activeEl = document.activeElement as HTMLElement | null;
-      if (!activeEl) {
-        return;
-      }
-      const inRegs =
-        !!focusRef.current && focusRef.current.contains(activeEl) && activeEl !== focusRef.current;
-      if (!inRegs) {
-        return;
-      }
-      e.preventDefault();
-      e.stopPropagation();
-      try {
-        activeEl.blur?.();
-      } catch {
-        /* ignore */
-      }
-      focusContainer(focusRef);
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, []);
+  useEscapeFocus(focusRef);
 
   const liveRegisters = block?.registers ?? [];
 
   const tryInsertReg = (after: boolean) => {
     setInsertError(null);
-    type TargetArray = Parameters<typeof SpatialInsertionService.insertRegisterAfter>[0];
-    const result = after
-      ? SpatialInsertionService.insertRegisterAfter(
-          liveRegisters as unknown as TargetArray,
-          selectedRegIndex
-        )
-      : SpatialInsertionService.insertRegisterBefore(
-          liveRegisters as unknown as TargetArray,
-          selectedRegIndex
-        );
+    type TargetArray = Parameters<typeof SpatialInsertionService.insertRegister>[1];
+    const result = SpatialInsertionService.insertRegister(
+      after ? 'after' : 'before',
+      liveRegisters as unknown as TargetArray,
+      selectedRegIndex
+    );
 
     if (result.error) {
       setInsertError(result.error);

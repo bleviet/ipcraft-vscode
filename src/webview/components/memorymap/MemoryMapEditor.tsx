@@ -4,13 +4,14 @@ import { VSCodeTextField, VSCodeTextArea } from '@vscode/webview-ui-toolkit/reac
 import { KeyboardShortcutsButton } from '../../shared/components';
 import AddressMapVisualizer from '../AddressMapVisualizer';
 import { FIELD_COLORS, FIELD_COLOR_KEYS } from '../../shared/colors';
-import { focusContainer } from '../../shared/utils/focus';
 import {
   SpatialInsertionService,
   AddressBlockRuntimeDef,
 } from '../../services/SpatialInsertionService';
 import { calculateBlockSize } from '../../utils/blockSize';
 import { toHex } from '../../utils/formatUtils';
+import { useAutoFocus } from '../../hooks/useAutoFocus';
+import { useEscapeFocus } from '../../hooks/useEscapeFocus';
 import { useTableNavigation } from '../../hooks/useTableNavigation';
 
 // ---------------------------------------------------------------------------
@@ -74,14 +75,7 @@ export function MemoryMapEditor({
 
   const focusRef = useRef<HTMLDivElement | null>(null);
 
-  // Auto-focus on explicit request.
-  useEffect(() => {
-    if (!selectionMeta?.focusDetails) {
-      return;
-    }
-    const id = focusContainer(focusRef);
-    return () => window.clearTimeout(id);
-  }, [selectionMeta?.focusDetails, memoryMap?.name]);
+  useAutoFocus(focusRef, !!selectionMeta?.focusDetails, [memoryMap?.name]);
 
   // Clamp selection when map changes.
   useEffect(() => {
@@ -107,41 +101,17 @@ export function MemoryMapEditor({
     });
   }, [memoryMap?.name, (memoryMap?.address_blocks ?? memoryMap?.addressBlocks ?? []).length]);
 
-  // Escape: return focus from inline editor back to the table.
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') {
-        return;
-      }
-      const activeEl = document.activeElement as HTMLElement | null;
-      if (!activeEl) {
-        return;
-      }
-      const inBlocks =
-        !!focusRef.current && focusRef.current.contains(activeEl) && activeEl !== focusRef.current;
-      if (!inBlocks) {
-        return;
-      }
-      e.preventDefault();
-      e.stopPropagation();
-      try {
-        activeEl.blur?.();
-      } catch {
-        // ignore
-      }
-      focusContainer(focusRef);
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, []);
+  useEscapeFocus(focusRef);
 
   const liveBlocks = memoryMap?.address_blocks ?? memoryMap?.addressBlocks ?? [];
 
   const tryInsertBlock = (after: boolean) => {
     setInsertError(null);
-    const result = after
-      ? SpatialInsertionService.insertBlockAfter(liveBlocks, selectedBlockIndex)
-      : SpatialInsertionService.insertBlockBefore(liveBlocks, selectedBlockIndex);
+    const result = SpatialInsertionService.insertBlock(
+      after ? 'after' : 'before',
+      liveBlocks,
+      selectedBlockIndex
+    );
 
     if (result.error) {
       setInsertError(result.error);

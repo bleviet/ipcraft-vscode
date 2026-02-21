@@ -169,9 +169,12 @@ export function useFieldEditor(
     (after: boolean) => {
       setInsertError(null);
       const typedFields = fields as unknown as BitFieldRuntimeDef[];
-      const result = after
-        ? SpatialInsertionService.insertFieldAfter(typedFields, selectedFieldIndex, registerSize)
-        : SpatialInsertionService.insertFieldBefore(typedFields, selectedFieldIndex, registerSize);
+      const result = SpatialInsertionService.insertField(
+        after ? 'after' : 'before',
+        typedFields,
+        selectedFieldIndex,
+        registerSize
+      );
 
       if (result.error) {
         setInsertError(result.error);

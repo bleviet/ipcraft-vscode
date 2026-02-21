@@ -38,6 +38,8 @@ export interface InsertionResult<T> {
   error?: string;
 }
 
+export type InsertionDirection = 'before' | 'after';
+
 // ---------------------------------------------------------------------------
 // Convenience runtime shapes (looser than the generated schema types so that
 // the service can operate on the live objects the webview actually builds).
@@ -135,9 +137,49 @@ function sortBlocksByBase(blocks: AddressBlockRuntimeDef[]): AddressBlockRuntime
  * All methods are static and free of side effects.
  */
 export class SpatialInsertionService {
+  private static defaultReg(regName: string, offset: number): RegisterRuntimeDef {
+    return {
+      name: regName,
+      address_offset: offset,
+      offset,
+      access: 'read-write',
+      description: '',
+    };
+  }
+
+  private static defaultBlock(blockName: string, base: number): AddressBlockRuntimeDef {
+    return {
+      name: blockName,
+      base_address: base,
+      size: 4,
+      usage: 'register',
+      description: '',
+      registers: [
+        {
+          name: 'reg0',
+          address_offset: 0,
+          offset: 0,
+          access: 'read-write',
+          description: '',
+        },
+      ],
+    };
+  }
+
   // =========================================================================
   // BIT FIELD INSERTION
   // =========================================================================
+
+  static insertField(
+    direction: InsertionDirection,
+    fields: BitFieldRuntimeDef[],
+    selectedIndex: number,
+    registerSize: number
+  ): InsertionResult<BitFieldRuntimeDef> {
+    return direction === 'after'
+      ? this.insertFieldAfter(fields, selectedIndex, registerSize)
+      : this.insertFieldBefore(fields, selectedIndex, registerSize);
+  }
 
   /**
    * Insert a new 1-bit field immediately after the field at `selectedIndex`.
@@ -369,6 +411,16 @@ export class SpatialInsertionService {
   // REGISTER INSERTION
   // =========================================================================
 
+  static insertRegister(
+    direction: InsertionDirection,
+    registers: RegisterRuntimeDef[],
+    selectedIndex: number
+  ): InsertionResult<RegisterRuntimeDef> {
+    return direction === 'after'
+      ? this.insertRegisterAfter(registers, selectedIndex)
+      : this.insertRegisterBefore(registers, selectedIndex);
+  }
+
   /**
    * Insert a new register immediately after the register at `selectedIndex`.
    *
@@ -386,16 +438,8 @@ export class SpatialInsertionService {
   ): InsertionResult<RegisterRuntimeDef> {
     const name = nextSequentialName(registers, 'reg');
 
-    const defaultReg = (regName: string, offset: number): RegisterRuntimeDef => ({
-      name: regName,
-      address_offset: offset,
-      offset,
-      access: 'read-write',
-      description: '',
-    });
-
     if (registers.length === 0) {
-      return { items: [defaultReg(name, 0)], newIndex: 0 };
+      return { items: [this.defaultReg(name, 0)], newIndex: 0 };
     }
 
     const selIdx = selectedIndex >= 0 ? selectedIndex : registers.length - 1;
@@ -411,7 +455,7 @@ export class SpatialInsertionService {
 
     let newRegisters: RegisterRuntimeDef[] = [
       ...registers.slice(0, selIdx + 1),
-      defaultReg(name, newOffset),
+      this.defaultReg(name, newOffset),
       ...registers.slice(selIdx + 1),
     ];
     newRegisters = repackRegistersForward(
@@ -438,16 +482,8 @@ export class SpatialInsertionService {
   ): InsertionResult<RegisterRuntimeDef> {
     const name = nextSequentialName(registers, 'reg');
 
-    const defaultReg = (regName: string, offset: number): RegisterRuntimeDef => ({
-      name: regName,
-      address_offset: offset,
-      offset,
-      access: 'read-write',
-      description: '',
-    });
-
     if (registers.length === 0) {
-      return { items: [defaultReg(name, 0)], newIndex: 0 };
+      return { items: [this.defaultReg(name, 0)], newIndex: 0 };
     }
 
     const selIdx = selectedIndex >= 0 ? selectedIndex : registers.length - 1;
@@ -465,7 +501,7 @@ export class SpatialInsertionService {
 
     let newRegisters: RegisterRuntimeDef[] = [
       ...registers.slice(0, selIdx),
-      defaultReg(name, newOffset),
+      this.defaultReg(name, newOffset),
       ...registers.slice(selIdx),
     ];
     newRegisters = repackRegistersBackward(
@@ -493,6 +529,16 @@ export class SpatialInsertionService {
   // BLOCK INSERTION
   // =========================================================================
 
+  static insertBlock(
+    direction: InsertionDirection,
+    blocks: AddressBlockRuntimeDef[],
+    selectedIndex: number
+  ): InsertionResult<AddressBlockRuntimeDef> {
+    return direction === 'after'
+      ? this.insertBlockAfter(blocks, selectedIndex)
+      : this.insertBlockBefore(blocks, selectedIndex);
+  }
+
   /**
    * Insert a new address block immediately after the block at `selectedIndex`.
    *
@@ -508,25 +554,8 @@ export class SpatialInsertionService {
   ): InsertionResult<AddressBlockRuntimeDef> {
     const name = nextSequentialName(blocks, 'block');
 
-    const defaultBlock = (blockName: string, base: number): AddressBlockRuntimeDef => ({
-      name: blockName,
-      base_address: base,
-      size: 4,
-      usage: 'register',
-      description: '',
-      registers: [
-        {
-          name: 'reg0',
-          address_offset: 0,
-          offset: 0,
-          access: 'read-write',
-          description: '',
-        },
-      ],
-    });
-
     if (blocks.length === 0) {
-      return { items: [defaultBlock(name, 0)], newIndex: 0 };
+      return { items: [this.defaultBlock(name, 0)], newIndex: 0 };
     }
 
     const selIdx = selectedIndex >= 0 ? selectedIndex : blocks.length - 1;
@@ -542,7 +571,7 @@ export class SpatialInsertionService {
 
     let newBlocks: AddressBlockRuntimeDef[] = [
       ...blocks.slice(0, selIdx + 1),
-      defaultBlock(name, newBase),
+      this.defaultBlock(name, newBase),
       ...blocks.slice(selIdx + 1),
     ];
     newBlocks = repackBlocksForward(newBlocks, selIdx + 2) as unknown as AddressBlockRuntimeDef[];
@@ -566,25 +595,8 @@ export class SpatialInsertionService {
   ): InsertionResult<AddressBlockRuntimeDef> {
     const name = nextSequentialName(blocks, 'block');
 
-    const defaultBlock = (blockName: string, base: number): AddressBlockRuntimeDef => ({
-      name: blockName,
-      base_address: base,
-      size: 4,
-      usage: 'register',
-      description: '',
-      registers: [
-        {
-          name: 'reg0',
-          address_offset: 0,
-          offset: 0,
-          access: 'read-write',
-          description: '',
-        },
-      ],
-    });
-
     if (blocks.length === 0) {
-      return { items: [defaultBlock(name, 0)], newIndex: 0 };
+      return { items: [this.defaultBlock(name, 0)], newIndex: 0 };
     }
 
     const selIdx = selectedIndex >= 0 ? selectedIndex : blocks.length - 1;
@@ -604,7 +616,7 @@ export class SpatialInsertionService {
 
     let newBlocks: AddressBlockRuntimeDef[] = [
       ...blocks.slice(0, selIdx),
-      defaultBlock(name, newBase),
+      this.defaultBlock(name, newBase),
       ...blocks.slice(selIdx),
     ];
 

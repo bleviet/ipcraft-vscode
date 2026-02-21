@@ -6,6 +6,7 @@ import { BASIC_ACCESS_OPTIONS } from '../../shared/constants';
 import RegisterMapVisualizer from '../RegisterMapVisualizer';
 import type { RegisterModel } from '../../types/registerModel';
 import { toHex } from '../../utils/formatUtils';
+import { useEscapeFocus } from '../../hooks/useEscapeFocus';
 import { useTableNavigation } from '../../hooks/useTableNavigation';
 
 // ---------------------------------------------------------------------------
@@ -44,6 +45,8 @@ export function RegisterArrayEditor({ registerArray, onUpdate }: RegisterArrayEd
     key: 'name',
   });
   const tableRef = useRef<HTMLDivElement | null>(null);
+
+  useEscapeFocus(tableRef);
 
   const scrollToCell = (rowIndex: number, key: string) => {
     window.setTimeout(() => {
