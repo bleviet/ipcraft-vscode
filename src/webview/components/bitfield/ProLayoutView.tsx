@@ -3,26 +3,27 @@ import type { FieldModel } from '../BitFieldVisualizer';
 import type { ProSegment, ShiftDragState } from './types';
 import FieldCell from './FieldCell';
 
-interface ProLayoutViewProps {
-  fields: FieldModel[];
-  segments: ProSegment[];
+interface HoverState {
   keyboardHelpId: string;
   hoveredFieldIndex: number | null;
   setHoveredFieldIndex: (idx: number | null) => void;
+}
+
+interface DragState {
   shiftDrag: ShiftDragState;
   shiftHeld: boolean;
   ctrlDragActive: boolean;
   ctrlHeld: boolean;
   isCtrlDragActive: () => boolean;
-  bitOwners: (number | null)[];
-  registerSize: number;
-  valueView: 'hex' | 'dec';
   dragActive: boolean;
   dragSetTo: 0 | 1;
   dragLast: string | null;
   setDragActive: (active: boolean) => void;
   setDragSetTo: (value: 0 | 1) => void;
   setDragLast: (value: string | null) => void;
+}
+
+interface InteractionHandlers {
   onUpdateFieldReset?: (fieldIndex: number, resetValue: number | null) => void;
   handleShiftPointerDown: (bit: number, e: React.PointerEvent) => void;
   handleCtrlPointerDown: (bit: number, e: React.PointerEvent) => void;
@@ -41,41 +42,60 @@ interface ProLayoutViewProps {
     left: { canShrink: boolean; canExpand: boolean };
     right: { canShrink: boolean; canExpand: boolean };
   };
+}
+
+interface LayoutConfig {
+  bitOwners: (number | null)[];
+  registerSize: number;
+  valueView: 'hex' | 'dec';
   valueBar: React.ReactNode;
+}
+
+interface ProLayoutViewProps {
+  fields: FieldModel[];
+  segments: ProSegment[];
+  hoverState: HoverState;
+  dragState: DragState;
+  interactions: InteractionHandlers;
+  layoutConfig: LayoutConfig;
 }
 
 const ProLayoutView = ({
   fields,
   segments,
-  keyboardHelpId,
-  hoveredFieldIndex,
-  setHoveredFieldIndex,
-  shiftDrag,
-  shiftHeld,
-  ctrlDragActive,
-  ctrlHeld,
-  isCtrlDragActive,
-  bitOwners,
-  registerSize,
-  valueView,
-  dragActive,
-  dragSetTo,
-  dragLast,
-  setDragActive,
-  setDragSetTo,
-  setDragLast,
-  onUpdateFieldReset,
-  handleShiftPointerDown,
-  handleCtrlPointerDown,
-  handleShiftPointerMove,
-  handleCtrlPointerMove,
-  applyKeyboardReorder,
-  applyKeyboardResize,
-  applyBit,
-  bitAt,
-  getResizableEdges,
-  valueBar,
+  hoverState,
+  dragState,
+  interactions,
+  layoutConfig,
 }: ProLayoutViewProps) => {
+  const { keyboardHelpId, hoveredFieldIndex, setHoveredFieldIndex } = hoverState;
+  const {
+    shiftDrag,
+    shiftHeld,
+    ctrlDragActive,
+    ctrlHeld,
+    isCtrlDragActive,
+    dragActive,
+    dragSetTo,
+    dragLast,
+    setDragActive,
+    setDragSetTo,
+    setDragLast,
+  } = dragState;
+  const {
+    onUpdateFieldReset,
+    handleShiftPointerDown,
+    handleCtrlPointerDown,
+    handleShiftPointerMove,
+    handleCtrlPointerMove,
+    applyKeyboardReorder,
+    applyKeyboardResize,
+    applyBit,
+    bitAt,
+    getResizableEdges,
+  } = interactions;
+  const { bitOwners, registerSize, valueView, valueBar } = layoutConfig;
+
   return (
     <div className="w-full">
       <div id={keyboardHelpId} className="sr-only">

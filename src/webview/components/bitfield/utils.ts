@@ -241,3 +241,53 @@ export function findResizeBoundary(
   }
   return limit;
 }
+
+export function buildBitIndexArray(fields: FieldModel[], registerSize: number): (number | null)[] {
+  const bits: (number | null)[] = Array.from({ length: registerSize }, () => null);
+  fields.forEach((field, idx) => {
+    if (field.bit_range) {
+      const [hi, lo] = field.bit_range;
+      for (let bit = lo; bit <= hi; bit++) {
+        bits[bit] = idx;
+      }
+      return;
+    }
+    if (field.bit !== undefined) {
+      bits[field.bit] = idx;
+    }
+  });
+  return bits;
+}
+
+export function buildBitValues(fields: FieldModel[], registerSize: number): (0 | 1)[] {
+  const values: (0 | 1)[] = Array.from({ length: registerSize }, () => 0);
+  fields.forEach((field) => {
+    const range = getFieldRange(field);
+    if (!range) {
+      return;
+    }
+    const raw = field?.reset_value;
+    const fieldValue = raw === null || raw === undefined ? 0 : Number(raw);
+    for (let bit = range.lo; bit <= range.hi; bit++) {
+      const localBit = bit - range.lo;
+      values[bit] = bitAt(fieldValue, localBit);
+    }
+  });
+  return values;
+}
+
+export function applyRegisterValueToFields(
+  fields: FieldModel[],
+  registerValue: number,
+  onFieldReset: (fieldIndex: number, value: number) => void
+): void {
+  fields.forEach((field, fieldIndex) => {
+    const range = getFieldRange(field);
+    if (!range) {
+      return;
+    }
+    const width = range.hi - range.lo + 1;
+    const subValue = extractBits(registerValue, range.lo, width);
+    onFieldReset(fieldIndex, subValue);
+  });
+}

@@ -38,7 +38,7 @@
 - Verification complete: `npm run lint`, `npm run compile`, and `npm test` pass after P1/P2 changes
 - P3 implementation completed for: P3-1, P3-2, P3-3, P3-4, P3-5, P3-6, P3-7, P3-8, P3-9, P3-10
 - P4 implementation in progress: P4-1 decomposition slices completed for `InlineEditField`, `BusInterfaceCard`, `PortMappingTable`, and `useBusInterfaceEditing` extraction/integration
-- P4 implementation in progress: P4-2 slice 1 completed by extracting BitFieldVisualizer utility functions into `src/webview/components/bitfield/utils.ts`
+- P4 implementation completed for P4-2: `BitFieldVisualizer` decomposition finished with extracted reorder/keyboard/utility modules and orchestrator reduced to 380 lines
 - P5 implementation completed for: P5-1, P5-6, P5-7
 - Verification complete: `npm run lint`, `npm run compile`, and `npm test` pass after the current batch
 
@@ -299,6 +299,8 @@ Each task reduces a file to a focused orchestrator by extracting cohesive sub-un
 
 **Target:** Orchestrator < 400 lines
 
+**Status:** Completed (2026-02-21) -- `BitFieldVisualizer.tsx` reduced to 380 lines
+
 **Effort:** ~1 day
 
 ### P4-3: Decompose index.tsx / App component (677 lines) (review C3)
@@ -551,6 +553,18 @@ Current pass resolved (2026-02-21, decomposition slice 5):
 - P4-2 started: extracted 14 module-level utility functions from `BitFieldVisualizer.tsx` into `src/webview/components/bitfield/utils.ts`
 - P4-2 started: rewired `BitFieldVisualizer.tsx` to import shared bitfield utility helpers
 - P4-2 started: reduced `BitFieldVisualizer.tsx` from 862 lines to 603 lines
+- Verification completed for this slice:
+	- `npm run lint -- --max-warnings 0` passed
+	- `npm run compile` passed
+	- `npm test` passed
+
+Current pass resolved (2026-02-21, decomposition slice 6):
+- P4-2 completed: extracted ctrl-drag reorder algorithm into `src/webview/components/bitfield/reorderAlgorithm.ts`
+- P4-2 completed: extracted keyboard reorder/resize helpers into `src/webview/components/bitfield/keyboardOperations.ts`
+- P4-2 completed: grouped `ProLayoutView` props into `hoverState`, `dragState`, `interactions`, and `layoutConfig`
+- P4-2 completed: extracted shared register value helpers into `src/webview/components/bitfield/utils.ts`
+- P4-2 completed: deduplicated `ValueBar` JSX in `BitFieldVisualizer.tsx`
+- P4-2 completed: reduced `BitFieldVisualizer.tsx` from 603 lines to 380 lines (target < 400 achieved)
 - Verification completed for this slice:
 	- `npm run lint -- --max-warnings 0` passed
 	- `npm run compile` passed

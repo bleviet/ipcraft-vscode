@@ -6,20 +6,22 @@ import { useValueEditing } from './bitfield/useValueEditing';
 import ValueBar from './bitfield/ValueBar';
 import DefaultLayoutView from './bitfield/DefaultLayoutView';
 import ProLayoutView from './bitfield/ProLayoutView';
+import { getKeyboardReorderUpdates, getKeyboardResizeRange } from './bitfield/keyboardOperations';
+import { computeCtrlDragPreview } from './bitfield/reorderAlgorithm';
 import {
+  applyRegisterValueToFields,
   bitAt,
+  buildBitIndexArray,
+  buildBitValues,
   buildBitOwnerArray,
   buildProLayoutSegments,
-  extractBits,
   findGapBoundaries,
   findResizeBoundary,
   getFieldRange,
   getResizableEdges,
   maxForBits,
   parseRegisterValue,
-  repackSegments,
   setBit,
-  toFieldRangeUpdates,
 } from './bitfield/utils';
 
 export interface FieldModel {
@@ -116,9 +118,6 @@ const BitFieldVisualizerInner: React.FC<BitFieldVisualizerProps> = ({
     };
   }, [dragActive]);
 
-  /**
-   * Handle Ctrl+PointerDown to start reorder mode.
-   */
   const handleCtrlPointerDown = (bit: number, e: React.PointerEvent) => {
     if (!e.ctrlKey && !e.metaKey) {
       return;
@@ -132,7 +131,6 @@ const BitFieldVisualizerInner: React.FC<BitFieldVisualizerProps> = ({
 
     const fieldAtBit = bits[bit];
     if (fieldAtBit !== null) {
-      // Start reorder drag
       setCtrlDrag({
         active: true,
         draggedFieldIndex: fieldAtBit,
@@ -141,9 +139,6 @@ const BitFieldVisualizerInner: React.FC<BitFieldVisualizerProps> = ({
     }
   };
 
-  /**
-   * Handle Shift+PointerDown to start resize or create mode.
-   */
   const handleShiftPointerDown = (bit: number, e: React.PointerEvent) => {
     if (!e.shiftKey) {
       return;
@@ -158,22 +153,15 @@ const BitFieldVisualizerInner: React.FC<BitFieldVisualizerProps> = ({
     const fieldAtBit = bits[bit];
 
     if (fieldAtBit !== null) {
-      // RESIZE mode - redefine field range via drag selection
       const fieldRange = getFieldRange(fields[fieldAtBit]);
       if (!fieldRange) {
         return;
       }
 
-      // Allow dragging anywhere from collision boundary on LSB side to collision boundary on MSB side
       const minBit = findResizeBoundary(fieldAtBit, 'lsb', fields, registerSize);
       const maxBit = findResizeBoundary(fieldAtBit, 'msb', fields, registerSize);
-
-      // Determine which edge the user is grabbing (closer to MSB or LSB)
       const fieldMid = (fieldRange.lo + fieldRange.hi) / 2;
       const grabbingMsbEdge = bit >= fieldMid;
-
-      // Anchor is the OPPOSITE edge (the one that stays fixed)
-      // If grabbing MSB edge, anchor is LSB; if grabbing LSB edge, anchor is MSB
       const anchorBit = grabbingMsbEdge ? fieldRange.lo : fieldRange.hi;
 
       setShiftDrag({
@@ -187,7 +175,6 @@ const BitFieldVisualizerInner: React.FC<BitFieldVisualizerProps> = ({
         maxBit,
       });
     } else {
-      // CREATE mode
       const gap = findGapBoundaries(bit, bits, registerSize);
 
       setShiftDrag({
@@ -203,9 +190,6 @@ const BitFieldVisualizerInner: React.FC<BitFieldVisualizerProps> = ({
     }
   };
 
-  /**
-   * Handle pointer move during shift-drag.
-   */
   const handleShiftPointerMove = (bit: number) => {
     if (!shiftDrag.active) {
       return;
@@ -216,197 +200,37 @@ const BitFieldVisualizerInner: React.FC<BitFieldVisualizerProps> = ({
     }
   };
 
-  /**
-   * Handle pointer move during ctrl-drag (reordering).
-   * Uses a repacking algorithm that allows field swapping.
-   */
   const handleCtrlPointerMove = (bit: number) => {
     if (!ctrlDrag.active || ctrlDrag.draggedFieldIndex === null) {
       return;
     }
 
-    // 1. Get original segments (MSB -> LSB)
-    const originalSegments = buildProLayoutSegments(fields, registerSize);
-
-    // 2. Find and remove dragged segment
-    const draggedSegIndex = originalSegments.findIndex(
-      (s) => s.type === 'field' && s.idx === ctrlDrag.draggedFieldIndex
-    );
-    if (draggedSegIndex === -1) {
+    const preview = computeCtrlDragPreview(bit, ctrlDrag.draggedFieldIndex, fields, registerSize);
+    if (!preview) {
       return;
     }
 
-    const draggedSeg = originalSegments[draggedSegIndex];
-    if (draggedSeg.type !== 'field') {
-      return;
-    } // Should not happen
-
-    // Remove it from the list for calculations
-    const cleanSegments = [...originalSegments];
-    cleanSegments.splice(draggedSegIndex, 1);
-
-    // 3. Repack clean list to build coordinate space
-    let currentBit = 0;
-    const repackedClean = cleanSegments
-      .slice()
-      .reverse()
-      .map((seg) => {
-        const width = seg.end - seg.start + 1;
-        const newLo = currentBit;
-        const newHi = currentBit + width - 1;
-        currentBit += width;
-        return { ...seg, start: newLo, end: newHi, width };
-      })
-      .reverse(); // Restore MSB->LSB order
-
-    // 4. Find insertion target in repacked list
-    const effectiveCursor = Math.min(bit, currentBit);
-
-    // Find target segment covering effectiveCursor
-    const targetIdx = repackedClean.findIndex(
-      (s) => effectiveCursor >= s.start && effectiveCursor <= s.end
-    );
-
-    const newSegments: ProSegment[] = [];
-
-    // Helper to insert dragged segment
-    const insertDragged = () => {
-      newSegments.push(draggedSeg);
-    };
-
-    if (targetIdx === -1) {
-      // Cursor is above all content (implicit top gap)
-      // Just append at MSB side (start of list since MSB->LSB)
-      insertDragged(); // Insert as MSB
-      newSegments.push(...cleanSegments);
-    } else {
-      // We hit a segment.
-      const target = repackedClean[targetIdx];
-      const originalTarget = cleanSegments[targetIdx]; // Corresponding logic segment
-
-      const offsetInTarget = effectiveCursor - target.start;
-
-      if (target.type === 'field') {
-        // Insert Before or After based on center?
-        // Since list is MSB->LSB:
-        // "Before" in array = Higher Bits (MSB side).
-        // "After" in array = Lower Bits (LSB side).
-        const targetWidth = target.end - target.start + 1;
-        const msbSide = offsetInTarget > targetWidth / 2;
-
-        // Split list at target
-        const before = cleanSegments.slice(0, targetIdx);
-        const after = cleanSegments.slice(targetIdx + 1);
-
-        newSegments.push(...before);
-        if (msbSide) {
-          insertDragged();
-          newSegments.push(originalTarget);
-        } else {
-          newSegments.push(originalTarget);
-          insertDragged();
-        }
-        newSegments.push(...after);
-      } else {
-        // Target is GAP. Split it.
-        const botWidth = offsetInTarget;
-        const targetWidth = target.end - target.start + 1;
-        const topWidth = targetWidth - offsetInTarget;
-
-        const before = cleanSegments.slice(0, targetIdx);
-        const after = cleanSegments.slice(targetIdx + 1);
-
-        newSegments.push(...before);
-
-        if (topWidth > 0) {
-          newSegments.push({
-            type: 'gap',
-            start: 0,
-            end: topWidth - 1, // Set end so width calculation works: end - start + 1 = topWidth
-          } as ProSegment);
-        }
-
-        insertDragged();
-
-        if (botWidth > 0) {
-          newSegments.push({
-            type: 'gap',
-            start: 0,
-            end: botWidth - 1, // Set end so width calculation works: end - start + 1 = botWidth
-          } as ProSegment);
-        }
-
-        newSegments.push(...after);
-      }
-    }
-
-    // 5. Final Repack for Preview
-    const finalSegments = repackSegments(newSegments);
-
-    setCtrlDrag((prev) => ({ ...prev, previewSegments: finalSegments }));
-
-    // Report preview to parent for live table updates
-    if (onDragPreview) {
-      const previewUpdates = finalSegments
-        .filter((seg): seg is typeof seg & { type: 'field' } => seg.type === 'field')
-        .map((seg) => ({
-          idx: seg.idx,
-          range: [seg.end, seg.start] as [number, number],
-        }));
-      onDragPreview(previewUpdates);
-    }
+    setCtrlDrag((prev) => ({ ...prev, previewSegments: preview.segments }));
+    onDragPreview?.(preview.updates);
   };
 
   const applyKeyboardReorder = (fieldIndex: number, direction: 'msb' | 'lsb') => {
-    const segments = buildProLayoutSegments(fields, registerSize);
-    const sourceIndex = segments.findIndex((seg) => seg.type === 'field' && seg.idx === fieldIndex);
-    if (sourceIndex === -1) {
+    const updates = getKeyboardReorderUpdates(fields, registerSize, fieldIndex, direction);
+    if (!updates) {
       return;
     }
-
-    const targetIndex = direction === 'msb' ? sourceIndex - 1 : sourceIndex + 1;
-    if (targetIndex < 0 || targetIndex >= segments.length) {
-      return;
-    }
-
-    const reordered = [...segments];
-    const [moved] = reordered.splice(sourceIndex, 1);
-    reordered.splice(targetIndex, 0, moved);
-
-    const repacked = repackSegments(reordered);
-    commitRangeUpdates(toFieldRangeUpdates(repacked));
+    commitRangeUpdates(updates);
   };
 
   const applyKeyboardResize = (fieldIndex: number, edge: 'msb' | 'lsb') => {
-    const range = getFieldRange(fields[fieldIndex]);
-    if (!range || !onUpdateFieldRange) {
+    if (!onUpdateFieldRange) {
       return;
     }
-
-    let newLo = range.lo;
-    let newHi = range.hi;
-
-    if (edge === 'msb') {
-      const maxMsb = findResizeBoundary(fieldIndex, 'msb', fields, registerSize);
-      if (range.hi < maxMsb) {
-        newHi = range.hi + 1;
-      } else if (range.hi > range.lo) {
-        newHi = range.hi - 1;
-      }
-    } else {
-      const minLsb = findResizeBoundary(fieldIndex, 'lsb', fields, registerSize);
-      if (range.lo > minLsb) {
-        newLo = range.lo - 1;
-      } else if (range.hi > range.lo) {
-        newLo = range.lo + 1;
-      }
-    }
-
-    if (newHi === range.hi && newLo === range.lo) {
+    const nextRange = getKeyboardResizeRange(fields, registerSize, fieldIndex, edge);
+    if (!nextRange) {
       return;
     }
-
-    onUpdateFieldRange(fieldIndex, [newHi, newLo]);
+    onUpdateFieldRange(fieldIndex, nextRange);
   };
 
   const applyBit = (fieldIndex: number, localBit: number, desired: 0 | 1) => {
@@ -419,37 +243,9 @@ const BitFieldVisualizerInner: React.FC<BitFieldVisualizerProps> = ({
     onUpdateFieldReset(fieldIndex, next);
   };
 
-  // Build a per-bit array with field index or null
-  const bits: (number | null)[] = Array.from({ length: registerSize }, () => null);
-  fields.forEach((field, idx) => {
-    if (field.bit_range) {
-      const [hi, lo] = field.bit_range;
-      for (let i = lo; i <= hi; ++i) {
-        bits[i] = idx;
-      }
-    } else if (field.bit !== undefined) {
-      bits[field.bit] = idx;
-    }
-  });
+  const bits = useMemo(() => buildBitIndexArray(fields, registerSize), [fields, registerSize]);
+  const bitValues = useMemo(() => buildBitValues(fields, registerSize), [fields, registerSize]);
 
-  const bitValues = useMemo(() => {
-    const values: (0 | 1)[] = Array.from({ length: registerSize }, () => 0);
-    fields.forEach((field) => {
-      const r = getFieldRange(field);
-      if (!r) {
-        return;
-      }
-      const raw = field?.reset_value;
-      const fieldValue = raw === null || raw === undefined ? 0 : Number(raw);
-      for (let bit = r.lo; bit <= r.hi; bit++) {
-        const localBit = bit - r.lo;
-        values[bit] = bitAt(fieldValue, localBit);
-      }
-    });
-    return values;
-  }, [fields, registerSize]);
-
-  // Memoize bit-to-field owner mapping for resize handle edge detection
   const bitOwners = useMemo(() => buildBitOwnerArray(fields, registerSize), [fields, registerSize]);
 
   const registerValue = useMemo(() => {
@@ -466,15 +262,9 @@ const BitFieldVisualizerInner: React.FC<BitFieldVisualizerProps> = ({
     if (!onUpdateFieldReset) {
       return;
     }
-    fields.forEach((field, fieldIndex) => {
-      const r = getFieldRange(field);
-      if (!r) {
-        return;
-      }
-      const width = r.hi - r.lo + 1;
-      const sub = extractBits(v, r.lo, width);
-      onUpdateFieldReset(fieldIndex, sub);
-    });
+    applyRegisterValueToFields(fields, v, (fieldIndex, value) =>
+      onUpdateFieldReset(fieldIndex, value)
+    );
   };
 
   const {
@@ -495,6 +285,21 @@ const BitFieldVisualizerInner: React.FC<BitFieldVisualizerProps> = ({
     applyRegisterValue,
   });
 
+  const valueBar = (
+    <ValueBar
+      valueDraft={valueDraft}
+      valueError={valueError}
+      valueView={valueView}
+      setValueDraft={setValueDraft}
+      setValueEditing={setValueEditing}
+      setValueError={setValueError}
+      setValueView={setValueView}
+      parseRegisterValue={parseRegisterValue}
+      validateRegisterValue={validateRegisterValue}
+      commitRegisterValueDraft={commitRegisterValueDraft}
+    />
+  );
+
   if (layout === 'pro') {
     const segments =
       ctrlDrag.active && ctrlDrag.previewSegments
@@ -504,47 +309,33 @@ const BitFieldVisualizerInner: React.FC<BitFieldVisualizerProps> = ({
       <ProLayoutView
         fields={fields}
         segments={segments}
-        keyboardHelpId={keyboardHelpId}
-        hoveredFieldIndex={hoveredFieldIndex}
-        setHoveredFieldIndex={setHoveredFieldIndex}
-        shiftDrag={shiftDrag}
-        shiftHeld={shiftHeld}
-        ctrlDragActive={ctrlDrag.active}
-        ctrlHeld={ctrlHeld}
-        isCtrlDragActive={() => ctrlDragRef.current.active}
-        bitOwners={bitOwners}
-        registerSize={registerSize}
-        valueView={valueView}
-        dragActive={dragActive}
-        dragSetTo={dragSetTo}
-        dragLast={dragLast}
-        setDragActive={setDragActive}
-        setDragSetTo={setDragSetTo}
-        setDragLast={setDragLast}
-        onUpdateFieldReset={onUpdateFieldReset}
-        handleShiftPointerDown={handleShiftPointerDown}
-        handleCtrlPointerDown={handleCtrlPointerDown}
-        handleShiftPointerMove={handleShiftPointerMove}
-        handleCtrlPointerMove={handleCtrlPointerMove}
-        applyKeyboardReorder={applyKeyboardReorder}
-        applyKeyboardResize={applyKeyboardResize}
-        applyBit={applyBit}
-        bitAt={bitAt}
-        getResizableEdges={getResizableEdges}
-        valueBar={
-          <ValueBar
-            valueDraft={valueDraft}
-            valueError={valueError}
-            valueView={valueView}
-            setValueDraft={setValueDraft}
-            setValueEditing={setValueEditing}
-            setValueError={setValueError}
-            setValueView={setValueView}
-            parseRegisterValue={parseRegisterValue}
-            validateRegisterValue={validateRegisterValue}
-            commitRegisterValueDraft={commitRegisterValueDraft}
-          />
-        }
+        hoverState={{ keyboardHelpId, hoveredFieldIndex, setHoveredFieldIndex }}
+        dragState={{
+          shiftDrag,
+          shiftHeld,
+          ctrlDragActive: ctrlDrag.active,
+          ctrlHeld,
+          isCtrlDragActive: () => ctrlDragRef.current.active,
+          dragActive,
+          dragSetTo,
+          dragLast,
+          setDragActive,
+          setDragSetTo,
+          setDragLast,
+        }}
+        interactions={{
+          onUpdateFieldReset,
+          handleShiftPointerDown,
+          handleCtrlPointerDown,
+          handleShiftPointerMove,
+          handleCtrlPointerMove,
+          applyKeyboardReorder,
+          applyKeyboardResize,
+          applyBit,
+          bitAt,
+          getResizableEdges,
+        }}
+        layoutConfig={{ bitOwners, registerSize, valueView, valueBar }}
       />
     );
   }
@@ -567,20 +358,7 @@ const BitFieldVisualizerInner: React.FC<BitFieldVisualizerProps> = ({
       setDragSetTo={setDragSetTo}
       setDragLast={setDragLast}
       applyBit={applyBit}
-      valueBar={
-        <ValueBar
-          valueDraft={valueDraft}
-          valueError={valueError}
-          valueView={valueView}
-          setValueDraft={setValueDraft}
-          setValueEditing={setValueEditing}
-          setValueError={setValueError}
-          setValueView={setValueView}
-          parseRegisterValue={parseRegisterValue}
-          validateRegisterValue={validateRegisterValue}
-          commitRegisterValueDraft={commitRegisterValueDraft}
-        />
-      }
+      valueBar={valueBar}
     />
   );
 };

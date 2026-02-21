@@ -26,6 +26,25 @@ All notable changes to this project are documented in this file.
 - `npm run compile` passed.
 - `npm test` passed (26 suites, 206 tests).
 
+## 2026-02-21 (decomposition slice 6)
+
+### Added
+- Added `src/webview/components/bitfield/reorderAlgorithm.ts` for Ctrl-drag reorder preview computation.
+- Added `src/webview/components/bitfield/keyboardOperations.ts` for keyboard reorder/resize helpers.
+
+### Changed
+- Rewired `src/webview/components/BitFieldVisualizer.tsx` to consume extracted reorder and keyboard modules.
+- Grouped `src/webview/components/bitfield/ProLayoutView.tsx` inputs into `hoverState`, `dragState`, `interactions`, and `layoutConfig` objects.
+- Extended `src/webview/components/bitfield/utils.ts` with bit-array and register-value helper functions used by the visualizer.
+- Deduplicated `ValueBar` JSX in `BitFieldVisualizer`.
+- Reduced `BitFieldVisualizer.tsx` from 603 lines to 380 lines, completing P4-2 target (<400).
+- Updated `plan.md` to record P4-2 completion and verification.
+
+### Verification
+- `npm run lint -- --max-warnings 0` passed.
+- `npm run compile` passed.
+- `npm test` passed (26 suites, 206 tests).
+
 ## 2026-02-21 (decomposition slice 5)
 
 ### Added
