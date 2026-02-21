@@ -1,9 +1,8 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useRef } from 'react';
 import type { YamlUpdateHandler } from '../../../types/editor';
 import { FormField, SelectField, NumberField, CheckboxField } from '../../../shared/components';
-import { focusContainer } from '../../../shared/utils/focus';
 import { validateVhdlIdentifier, validateUniqueName } from '../../../shared/utils/validation';
-import { useTableNavigation } from '../../../hooks/useTableNavigation';
+import { useTableEditing } from '../../../hooks/useTableEditing';
 
 interface Parameter {
   name: string;
@@ -35,166 +34,26 @@ export const ParametersTable: React.FC<ParametersTableProps> = ({
   onUpdate,
 }) => {
   const parameters = rawParameters as Parameter[];
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const [activeColumn, setActiveColumn] = useState(COLUMN_KEYS[0] || '');
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [isAdding, setIsAdding] = useState(false);
-  const [draft, setDraft] = useState<Parameter>(createEmptyParameter());
   const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (editingIndex === null && !isAdding) {
-      return;
-    }
-
-    const timerId = setTimeout(() => {
-      const container = containerRef.current;
-      if (!container) {
-        return;
-      }
-      const targetRowIdx = isAdding ? parameters.length : editingIndex;
-      const row = container.querySelector(`tr[data-row-idx="${String(targetRowIdx)}"]`);
-      if (!row) {
-        return;
-      }
-      const targetColumn = isAdding ? COLUMN_KEYS[0] : activeColumn;
-      const cell = row.querySelector<HTMLElement>(`[data-edit-key="${targetColumn}"]`);
-      cell?.focus();
-    }, 0);
-
-    return () => clearTimeout(timerId);
-  }, [editingIndex, isAdding, activeColumn, parameters.length]);
-
-  const handleAdd = useCallback(() => {
-    setIsAdding(true);
-    setDraft(createEmptyParameter());
-  }, []);
-
-  const handleEdit = useCallback(
-    (index: number) => {
-      setEditingIndex(index);
-      setDraft({ ...parameters[index] });
-    },
-    [parameters]
-  );
-
-  const handleSave = useCallback(() => {
-    if (isAdding) {
-      onUpdate(['parameters'], [...parameters, draft]);
-      setSelectedIndex(parameters.length);
-    } else if (editingIndex !== null) {
-      const updated = [...parameters];
-      updated[editingIndex] = draft;
-      onUpdate(['parameters'], updated);
-    }
-
-    setIsAdding(false);
-    setEditingIndex(null);
-    setDraft(createEmptyParameter());
-    focusContainer(containerRef);
-  }, [isAdding, editingIndex, draft, onUpdate, parameters]);
-
-  const handleCancel = useCallback(() => {
-    setIsAdding(false);
-    setEditingIndex(null);
-    setDraft(createEmptyParameter());
-    focusContainer(containerRef);
-  }, []);
-
-  const handleDelete = useCallback(
-    (index: number) => {
-      const updated = parameters.filter((_, i) => i !== index);
-      onUpdate(['parameters'], updated);
-      if (selectedIndex >= updated.length) {
-        setSelectedIndex(Math.max(0, updated.length - 1));
-      }
-    },
-    [parameters, onUpdate, selectedIndex]
-  );
-
-  useTableNavigation<string>({
-    activeCell: { rowIndex: selectedIndex, key: activeColumn || COLUMN_KEYS[0] || '' },
-    setActiveCell: (cell) => {
-      setSelectedIndex(cell.rowIndex);
-      setActiveColumn(cell.key);
-    },
-    rowCount: parameters.length,
-    columnOrder: COLUMN_KEYS,
+  const {
+    editingIndex,
+    isAdding,
+    draft,
+    setDraft,
+    handleAdd,
+    handleEdit,
+    handleSave,
+    handleCancel,
+    handleDelete,
+    getRowProps,
+    getCellProps,
+  } = useTableEditing<Parameter, (typeof COLUMN_KEYS)[number]>({
+    rows: parameters,
+    columnKeys: COLUMN_KEYS,
     containerRef,
-    onEdit: (rowIndex) => {
-      if (parameters.length > 0 && rowIndex >= 0 && rowIndex < parameters.length) {
-        handleEdit(rowIndex);
-      }
-    },
-    onDelete: (rowIndex) => {
-      if (parameters.length > 0 && rowIndex >= 0 && rowIndex < parameters.length) {
-        handleDelete(rowIndex);
-      }
-    },
-    onInsertAfter: handleAdd,
-    isActive: editingIndex === null && !isAdding,
+    createEmptyDraft: createEmptyParameter,
+    onCommit: (updated) => onUpdate(['parameters'], updated),
   });
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) {
-      return;
-    }
-
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && (editingIndex !== null || isAdding)) {
-        e.preventDefault();
-        handleCancel();
-      }
-    };
-
-    container.addEventListener('keydown', handleEscape);
-    return () => container.removeEventListener('keydown', handleEscape);
-  }, [editingIndex, isAdding, handleCancel]);
-
-  const getRowProps = useCallback(
-    (index: number) => ({
-      tabIndex: 0,
-      onKeyDown: (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter' && editingIndex === null && !isAdding) {
-          e.preventDefault();
-          handleEdit(index);
-        }
-      },
-      onClick: () => {
-        setSelectedIndex(index);
-      },
-      style: {
-        background:
-          selectedIndex === index
-            ? 'var(--vscode-list-activeSelectionBackground)'
-            : 'var(--vscode-editor-background)',
-        borderBottom: '1px solid var(--vscode-panel-border)',
-        cursor: 'pointer',
-      } as React.CSSProperties,
-      'data-row-idx': index,
-    }),
-    [selectedIndex, editingIndex, isAdding, handleEdit]
-  );
-
-  const getCellProps = useCallback(
-    (rowIndex: number, columnKey: string) => ({
-      'data-col-key': columnKey,
-      onClick: (e: React.MouseEvent) => {
-        e.stopPropagation();
-        setSelectedIndex(rowIndex);
-        setActiveColumn(columnKey);
-      },
-      style: {
-        outline:
-          selectedIndex === rowIndex && activeColumn === columnKey
-            ? '2px solid var(--vscode-focusBorder)'
-            : 'none',
-        outlineOffset: '-2px',
-      } as React.CSSProperties,
-    }),
-    [selectedIndex, activeColumn]
-  );
 
   const handleDataTypeChange = (newType: string) => {
     let newDefault: unknown = '';

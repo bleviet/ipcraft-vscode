@@ -1,10 +1,9 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useRef } from 'react';
 import type { YamlUpdateHandler } from '../../../types/editor';
 import { EditableTable, FormField, SelectField } from '../../../shared/components';
-import { focusContainer } from '../../../shared/utils/focus';
 import { displayDirection } from '../../../shared/utils/formatters';
 import { validateVhdlIdentifier, validateUniqueName } from '../../../shared/utils/validation';
-import { useTableNavigation } from '../../../hooks/useTableNavigation';
+import { useTableEditing } from '../../../hooks/useTableEditing';
 
 interface Clock {
   name: string; // Physical port name
@@ -69,166 +68,27 @@ export const ClocksTable: React.FC<ClocksTableProps> = ({
 }) => {
   const clocks = rawClocks as Clock[];
   const busInterfaces = rawBusInterfaces as BusInterface[];
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const [activeColumn, setActiveColumn] = useState(COLUMN_KEYS[0] || '');
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [isAdding, setIsAdding] = useState(false);
-  const [draft, setDraft] = useState<Clock>(createEmptyClock());
   const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (editingIndex === null && !isAdding) {
-      return;
-    }
-
-    const timerId = setTimeout(() => {
-      const container = containerRef.current;
-      if (!container) {
-        return;
-      }
-      const targetRowIdx = isAdding ? clocks.length : editingIndex;
-      const row = container.querySelector(`tr[data-row-idx="${String(targetRowIdx)}"]`);
-      if (!row) {
-        return;
-      }
-      const targetColumn = isAdding ? COLUMN_KEYS[0] : activeColumn;
-      const cell = row.querySelector<HTMLElement>(`[data-edit-key="${targetColumn}"]`);
-      cell?.focus();
-    }, 0);
-
-    return () => clearTimeout(timerId);
-  }, [editingIndex, isAdding, activeColumn, clocks.length]);
-
-  const handleAdd = useCallback(() => {
-    setIsAdding(true);
-    setDraft(createEmptyClock());
-  }, []);
-
-  const handleEdit = useCallback(
-    (index: number) => {
-      setEditingIndex(index);
-      setDraft(normalizeClock(clocks[index]));
-    },
-    [clocks]
-  );
-
-  const handleSave = useCallback(() => {
-    if (isAdding) {
-      onUpdate(['clocks'], [...clocks, draft]);
-      setSelectedIndex(clocks.length);
-    } else if (editingIndex !== null) {
-      const updated = [...clocks];
-      updated[editingIndex] = draft;
-      onUpdate(['clocks'], updated);
-    }
-
-    setIsAdding(false);
-    setEditingIndex(null);
-    setDraft(createEmptyClock());
-    focusContainer(containerRef);
-  }, [isAdding, editingIndex, draft, onUpdate, clocks]);
-
-  const handleCancel = useCallback(() => {
-    setIsAdding(false);
-    setEditingIndex(null);
-    setDraft(createEmptyClock());
-    focusContainer(containerRef);
-  }, []);
-
-  const handleDelete = useCallback(
-    (index: number) => {
-      const updated = clocks.filter((_, i) => i !== index);
-      onUpdate(['clocks'], updated);
-      if (selectedIndex >= updated.length) {
-        setSelectedIndex(Math.max(0, updated.length - 1));
-      }
-    },
-    [clocks, onUpdate, selectedIndex]
-  );
-
-  useTableNavigation<string>({
-    activeCell: { rowIndex: selectedIndex, key: activeColumn || COLUMN_KEYS[0] || '' },
-    setActiveCell: (cell) => {
-      setSelectedIndex(cell.rowIndex);
-      setActiveColumn(cell.key);
-    },
-    rowCount: clocks.length,
-    columnOrder: COLUMN_KEYS,
+  const {
+    editingIndex,
+    isAdding,
+    draft,
+    setDraft,
+    handleAdd,
+    handleEdit,
+    handleSave,
+    handleCancel,
+    handleDelete,
+    getRowProps,
+    getCellProps,
+  } = useTableEditing<Clock, (typeof COLUMN_KEYS)[number]>({
+    rows: clocks,
+    columnKeys: COLUMN_KEYS,
     containerRef,
-    onEdit: (rowIndex) => {
-      if (clocks.length > 0 && rowIndex >= 0 && rowIndex < clocks.length) {
-        handleEdit(rowIndex);
-      }
-    },
-    onDelete: (rowIndex) => {
-      if (clocks.length > 0 && rowIndex >= 0 && rowIndex < clocks.length) {
-        handleDelete(rowIndex);
-      }
-    },
-    onInsertAfter: handleAdd,
-    isActive: editingIndex === null && !isAdding,
+    createEmptyDraft: createEmptyClock,
+    normalizeDraftForEdit: normalizeClock,
+    onCommit: (updated) => onUpdate(['clocks'], updated),
   });
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) {
-      return;
-    }
-
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && (editingIndex !== null || isAdding)) {
-        e.preventDefault();
-        handleCancel();
-      }
-    };
-
-    container.addEventListener('keydown', handleEscape);
-    return () => container.removeEventListener('keydown', handleEscape);
-  }, [editingIndex, isAdding, handleCancel]);
-
-  const getRowProps = useCallback(
-    (index: number) => ({
-      tabIndex: 0,
-      onKeyDown: (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter' && editingIndex === null && !isAdding) {
-          e.preventDefault();
-          handleEdit(index);
-        }
-      },
-      onClick: () => {
-        setSelectedIndex(index);
-      },
-      style: {
-        background:
-          selectedIndex === index
-            ? 'var(--vscode-list-activeSelectionBackground)'
-            : 'var(--vscode-editor-background)',
-        borderBottom: '1px solid var(--vscode-panel-border)',
-        cursor: 'pointer',
-      } as React.CSSProperties,
-      'data-row-idx': index,
-    }),
-    [selectedIndex, editingIndex, isAdding, handleEdit]
-  );
-
-  const getCellProps = useCallback(
-    (rowIndex: number, columnKey: string) => ({
-      'data-col-key': columnKey,
-      onClick: (e: React.MouseEvent) => {
-        e.stopPropagation();
-        setSelectedIndex(rowIndex);
-        setActiveColumn(columnKey);
-      },
-      style: {
-        outline:
-          selectedIndex === rowIndex && activeColumn === columnKey
-            ? '2px solid var(--vscode-focusBorder)'
-            : 'none',
-        outlineOffset: '-2px',
-      } as React.CSSProperties,
-    }),
-    [selectedIndex, activeColumn]
-  );
 
   const existingNames = clocks.map((c) => c.name).filter((_, i) => i !== editingIndex);
   const nameError =

@@ -36,8 +36,7 @@
 - P1 implementation completed (all 7 items)
 - P2 implementation completed (items P2-1 through P2-5)
 - Verification complete: `npm run lint`, `npm run compile`, and `npm test` pass after P1/P2 changes
-- P3 implementation completed for: P3-1, P3-2, P3-3, P3-4, P3-6, P3-8, P3-10
-- P3 implementation completed for: P3-1, P3-2, P3-3, P3-4, P3-5, P3-6, P3-7, P3-8, P3-10
+- P3 implementation completed for: P3-1, P3-2, P3-3, P3-4, P3-5, P3-6, P3-7, P3-8, P3-9, P3-10
 - P5 implementation completed for: P5-1, P5-6, P5-7
 - Verification complete: `npm run lint`, `npm run compile`, and `npm test` pass after the current batch
 
@@ -504,6 +503,7 @@ Current pass resolved (2026-02-21, current batch):
 - P3-10 completed: extracted `applyYamlUpdate(...)` shared update path in `useMemoryMapState`
 - P3-5 completed: extracted shared `useAutoFocus` and `useEscapeFocus` hooks and applied to memory map editors
 - P3-7 completed: consolidated insertion API usage to direction-based methods (`insertField`, `insertRegister`, `insertBlock`) and extracted shared default register/block factories
+- P3-9 completed: extracted shared `useTableEditing<T>` hook and migrated `ClocksTable`, `ResetsTable`, `PortsTable`, and `ParametersTable` to the shared pattern
 - P5-1 completed: removed emoji usage in source paths flagged by review
 - P5-6 completed: fixed duplicate color value (`tangerine` now distinct from `orange`)
 - P5-7 completed: memoized update/command callbacks in `useMemoryMapState`, `useYamlSync`, and `useIpCoreSync`
@@ -525,7 +525,7 @@ After each priority level, verify:
 
 - [x] **P1:** `npm run compile && npm run lint && npm test` all pass
 - [x] **P2:** `npm run compile && npm run lint && npm test` all pass; grep for removed exports confirms zero hits
-- [ ] **P3:** `npm run compile && npm run lint && npm test` all pass; duplicated functions have single source
+- [x] **P3:** `npm run compile && npm run lint && npm test` all pass; duplicated functions have single source
 - [ ] **P4:** Each decomposed file under target line count; `npm run compile && npm run lint && npm test` all pass
 - [ ] **P5:** No emojis in source; no static-only classes; `npm run lint` clean
 - [ ] **P6:** Coverage > 30% statements, > 20% branches
