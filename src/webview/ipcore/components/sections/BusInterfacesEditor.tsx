@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import type { YamlUpdateHandler } from '../../../types/editor';
 import { focusContainer } from '../../../shared/utils/focus';
+import { InlineEditField } from './InlineEditField';
 interface BusPort {
   name: string;
   width?: number;
@@ -698,57 +699,14 @@ export const BusInterfacesEditor: React.FC<BusInterfacesEditorProps> = ({
                     <div className="flex items-center gap-2 flex-wrap">
                       {/* Name Editing */}
                       {editingBusField?.busIndex === index && editingBusField?.field === 'name' ? (
-                        <div className="flex items-center gap-1">
-                          <input
-                            type="text"
-                            value={draftBusValue}
-                            onChange={(e) => setDraftBusValue(e.target.value)}
-                            className="px-1 py-0.5 rounded text-sm font-semibold"
-                            style={{
-                              background: 'var(--vscode-input-background)',
-                              border: '1px solid var(--vscode-input-border)',
-                              color: 'var(--vscode-input-foreground)',
-                              outline: 'none',
-                              width: '200px',
-                            }}
-                            autoFocus
-                            onClick={(e) => e.stopPropagation()}
-                            onKeyDown={(e) => {
-                              e.stopPropagation();
-                              if (e.key === 'Enter') {
-                                saveBusField(index);
-                              } else if (e.key === 'Escape') {
-                                cancelEditBusField();
-                              }
-                            }}
-                          />
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              saveBusField(index);
-                            }}
-                            className="px-1 py-0.5 rounded text-xs"
-                            style={{
-                              background: 'var(--vscode-button-background)',
-                              color: 'var(--vscode-button-foreground)',
-                            }}
-                          >
-                            ✓
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              cancelEditBusField();
-                            }}
-                            className="px-1 py-0.5 rounded text-xs"
-                            style={{
-                              background: 'var(--vscode-button-secondaryBackground)',
-                              color: 'var(--vscode-button-secondaryForeground)',
-                            }}
-                          >
-                            ✗
-                          </button>
-                        </div>
+                        <InlineEditField
+                          value={draftBusValue}
+                          onChange={setDraftBusValue}
+                          onSave={() => saveBusField(index)}
+                          onCancel={cancelEditBusField}
+                          width="200px"
+                          inputClassName="px-1 py-0.5 rounded text-sm font-semibold"
+                        />
                       ) : (
                         <span
                           className="text-sm font-semibold cursor-pointer hover:underline decoration-dotted"
@@ -917,52 +875,17 @@ export const BusInterfacesEditor: React.FC<BusInterfacesEditorProps> = ({
                     >
                       <span style={{ ...TEXT_STYLES.label, minWidth: '50px' }}>Prefix:</span>
                       {editingPrefix === index ? (
-                        <div className="flex items-center gap-2 flex-1">
-                          <input
-                            type="text"
-                            value={draftPrefix}
-                            onChange={(e) => setDraftPrefix(e.target.value)}
-                            className="px-2 py-1 rounded flex-1"
-                            style={{
-                              ...TEXT_STYLES.value,
-                              background: 'var(--vscode-input-background)',
-                              border: '1px solid var(--vscode-input-border)',
-                              color: 'var(--vscode-input-foreground)',
-                              outline: 'none',
-                            }}
-                            placeholder="e.g., s_axi_"
-                            autoFocus
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault();
-                                savePrefix(index);
-                              } else if (e.key === 'Escape') {
-                                e.preventDefault();
-                                cancelEditPrefix();
-                              }
-                            }}
-                          />
-                          <button
-                            onClick={() => savePrefix(index)}
-                            className="px-2 py-1 rounded text-sm"
-                            style={{
-                              background: 'var(--vscode-button-background)',
-                              color: 'var(--vscode-button-foreground)',
-                            }}
-                          >
-                            Save
-                          </button>
-                          <button
-                            onClick={cancelEditPrefix}
-                            className="px-2 py-1 rounded text-sm"
-                            style={{
-                              background: 'var(--vscode-button-secondaryBackground)',
-                              color: 'var(--vscode-button-secondaryForeground)',
-                            }}
-                          >
-                            Cancel
-                          </button>
-                        </div>
+                        <InlineEditField
+                          value={draftPrefix}
+                          onChange={setDraftPrefix}
+                          onSave={() => savePrefix(index)}
+                          onCancel={cancelEditPrefix}
+                          placeholder="e.g., s_axi_"
+                          fullWidth
+                          inputClassName="px-2 py-1 rounded flex-1"
+                          inputStyle={TEXT_STYLES.value}
+                          containerClassName="flex items-center gap-2 flex-1"
+                        />
                       ) : (
                         <div className="flex items-center gap-2 flex-1">
                           <span style={TEXT_STYLES.value}>
@@ -1230,61 +1153,16 @@ export const BusInterfacesEditor: React.FC<BusInterfacesEditorProps> = ({
                             <span style={TEXT_STYLES.label}>Count:</span>
                             {editingArrayField?.busIndex === index &&
                             editingArrayField?.field === 'count' ? (
-                              <div className="flex items-center gap-1">
-                                <input
-                                  type="number"
-                                  value={draftArrayValue}
-                                  onChange={(e) => setDraftArrayValue(e.target.value)}
-                                  className="px-1 py-0.5 rounded"
-                                  style={{
-                                    ...TEXT_STYLES.value,
-                                    background: 'var(--vscode-input-background)',
-                                    border: '1px solid var(--vscode-input-border)',
-                                    color: 'var(--vscode-input-foreground)',
-                                    outline: 'none',
-                                    fontSize: 'inherit',
-                                    width: '50px',
-                                  }}
-                                  autoFocus
-                                  min="1"
-                                  onKeyDown={(e) => {
-                                    e.stopPropagation();
-                                    if (e.key === 'Enter') {
-                                      e.preventDefault();
-                                      saveArrayField(index);
-                                    } else if (e.key === 'Escape') {
-                                      e.preventDefault();
-                                      cancelEditArrayField();
-                                    }
-                                  }}
-                                />
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    saveArrayField(index);
-                                  }}
-                                  className="px-1 py-0.5 rounded text-xs"
-                                  style={{
-                                    background: 'var(--vscode-button-background)',
-                                    color: 'var(--vscode-button-foreground)',
-                                  }}
-                                >
-                                  ✓
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    cancelEditArrayField();
-                                  }}
-                                  className="px-1 py-0.5 rounded text-xs"
-                                  style={{
-                                    background: 'var(--vscode-button-secondaryBackground)',
-                                    color: 'var(--vscode-button-secondaryForeground)',
-                                  }}
-                                >
-                                  ✗
-                                </button>
-                              </div>
+                              <InlineEditField
+                                type="number"
+                                value={draftArrayValue}
+                                onChange={setDraftArrayValue}
+                                onSave={() => saveArrayField(index)}
+                                onCancel={cancelEditArrayField}
+                                min="1"
+                                width="50px"
+                                inputStyle={TEXT_STYLES.value}
+                              />
                             ) : (
                               <span
                                 onClick={() =>
@@ -1307,61 +1185,16 @@ export const BusInterfacesEditor: React.FC<BusInterfacesEditorProps> = ({
                             <span style={TEXT_STYLES.label}>Index Start:</span>
                             {editingArrayField?.busIndex === index &&
                             editingArrayField?.field === 'indexStart' ? (
-                              <div className="flex items-center gap-1">
-                                <input
-                                  type="number"
-                                  value={draftArrayValue}
-                                  onChange={(e) => setDraftArrayValue(e.target.value)}
-                                  className="px-1 py-0.5 rounded"
-                                  style={{
-                                    ...TEXT_STYLES.value,
-                                    background: 'var(--vscode-input-background)',
-                                    border: '1px solid var(--vscode-input-border)',
-                                    color: 'var(--vscode-input-foreground)',
-                                    outline: 'none',
-                                    fontSize: 'inherit',
-                                    width: '50px',
-                                  }}
-                                  autoFocus
-                                  min="0"
-                                  onKeyDown={(e) => {
-                                    e.stopPropagation();
-                                    if (e.key === 'Enter') {
-                                      e.preventDefault();
-                                      saveArrayField(index);
-                                    } else if (e.key === 'Escape') {
-                                      e.preventDefault();
-                                      cancelEditArrayField();
-                                    }
-                                  }}
-                                />
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    saveArrayField(index);
-                                  }}
-                                  className="px-1 py-0.5 rounded text-xs"
-                                  style={{
-                                    background: 'var(--vscode-button-background)',
-                                    color: 'var(--vscode-button-foreground)',
-                                  }}
-                                >
-                                  ✓
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    cancelEditArrayField();
-                                  }}
-                                  className="px-1 py-0.5 rounded text-xs"
-                                  style={{
-                                    background: 'var(--vscode-button-secondaryBackground)',
-                                    color: 'var(--vscode-button-foreground)',
-                                  }}
-                                >
-                                  ✗
-                                </button>
-                              </div>
+                              <InlineEditField
+                                type="number"
+                                value={draftArrayValue}
+                                onChange={setDraftArrayValue}
+                                onSave={() => saveArrayField(index)}
+                                onCancel={cancelEditArrayField}
+                                min="0"
+                                width="50px"
+                                inputStyle={TEXT_STYLES.value}
+                              />
                             ) : (
                               <span
                                 onClick={() =>
@@ -1388,60 +1221,17 @@ export const BusInterfacesEditor: React.FC<BusInterfacesEditorProps> = ({
                             <span style={TEXT_STYLES.label}>Naming Pattern:</span>
                             {editingArrayField?.busIndex === index &&
                             editingArrayField?.field === 'namingPattern' ? (
-                              <div className="flex items-center gap-1 flex-1">
-                                <input
-                                  type="text"
-                                  value={draftArrayValue}
-                                  onChange={(e) => setDraftArrayValue(e.target.value)}
-                                  className="px-1 py-0.5 rounded flex-1"
-                                  style={{
-                                    ...TEXT_STYLES.value,
-                                    background: 'var(--vscode-input-background)',
-                                    border: '1px solid var(--vscode-input-border)',
-                                    color: 'var(--vscode-input-foreground)',
-                                    outline: 'none',
-                                    fontSize: 'inherit',
-                                  }}
-                                  autoFocus
-                                  placeholder="e.g., NAME_{index}"
-                                  onKeyDown={(e) => {
-                                    e.stopPropagation();
-                                    if (e.key === 'Enter') {
-                                      e.preventDefault();
-                                      saveArrayField(index);
-                                    } else if (e.key === 'Escape') {
-                                      e.preventDefault();
-                                      cancelEditArrayField();
-                                    }
-                                  }}
-                                />
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    saveArrayField(index);
-                                  }}
-                                  className="px-1 py-0.5 rounded text-xs"
-                                  style={{
-                                    background: 'var(--vscode-button-background)',
-                                    color: 'var(--vscode-button-foreground)',
-                                  }}
-                                >
-                                  ✓
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    cancelEditArrayField();
-                                  }}
-                                  className="px-1 py-0.5 rounded text-xs"
-                                  style={{
-                                    background: 'var(--vscode-button-secondaryBackground)',
-                                    color: 'var(--vscode-button-foreground)',
-                                  }}
-                                >
-                                  ✗
-                                </button>
-                              </div>
+                              <InlineEditField
+                                value={draftArrayValue}
+                                onChange={setDraftArrayValue}
+                                onSave={() => saveArrayField(index)}
+                                onCancel={cancelEditArrayField}
+                                placeholder="e.g., NAME_{index}"
+                                fullWidth
+                                inputClassName="px-1 py-0.5 rounded flex-1"
+                                inputStyle={TEXT_STYLES.value}
+                                containerClassName="flex items-center gap-1 flex-1"
+                              />
                             ) : (
                               <span
                                 onClick={() =>
@@ -1471,60 +1261,17 @@ export const BusInterfacesEditor: React.FC<BusInterfacesEditorProps> = ({
                             <span style={TEXT_STYLES.label}>Prefix Pattern:</span>
                             {editingArrayField?.busIndex === index &&
                             editingArrayField?.field === 'physicalPrefixPattern' ? (
-                              <div className="flex items-center gap-1 flex-1">
-                                <input
-                                  type="text"
-                                  value={draftArrayValue}
-                                  onChange={(e) => setDraftArrayValue(e.target.value)}
-                                  className="px-1 py-0.5 rounded flex-1"
-                                  style={{
-                                    ...TEXT_STYLES.value,
-                                    background: 'var(--vscode-input-background)',
-                                    border: '1px solid var(--vscode-input-border)',
-                                    color: 'var(--vscode-input-foreground)',
-                                    outline: 'none',
-                                    fontSize: 'inherit',
-                                  }}
-                                  autoFocus
-                                  placeholder="e.g., prefix_{index}_"
-                                  onKeyDown={(e) => {
-                                    e.stopPropagation();
-                                    if (e.key === 'Enter') {
-                                      e.preventDefault();
-                                      saveArrayField(index);
-                                    } else if (e.key === 'Escape') {
-                                      e.preventDefault();
-                                      cancelEditArrayField();
-                                    }
-                                  }}
-                                />
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    saveArrayField(index);
-                                  }}
-                                  className="px-1 py-0.5 rounded text-xs"
-                                  style={{
-                                    background: 'var(--vscode-button-background)',
-                                    color: 'var(--vscode-button-foreground)',
-                                  }}
-                                >
-                                  ✓
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    cancelEditArrayField();
-                                  }}
-                                  className="px-1 py-0.5 rounded text-xs"
-                                  style={{
-                                    background: 'var(--vscode-button-secondaryBackground)',
-                                    color: 'var(--vscode-button-foreground)',
-                                  }}
-                                >
-                                  ✗
-                                </button>
-                              </div>
+                              <InlineEditField
+                                value={draftArrayValue}
+                                onChange={setDraftArrayValue}
+                                onSave={() => saveArrayField(index)}
+                                onCancel={cancelEditArrayField}
+                                placeholder="e.g., prefix_{index}_"
+                                fullWidth
+                                inputClassName="px-1 py-0.5 rounded flex-1"
+                                inputStyle={TEXT_STYLES.value}
+                                containerClassName="flex items-center gap-1 flex-1"
+                              />
                             ) : (
                               <span
                                 onClick={() =>
@@ -1651,68 +1398,24 @@ export const BusInterfacesEditor: React.FC<BusInterfacesEditorProps> = ({
                                   }}
                                 >
                                   {isEditingThisPortName ? (
-                                    <div className="flex items-center gap-1">
-                                      <span
-                                        style={{
-                                          ...TEXT_STYLES.value,
-                                          ...TEXT_STYLES.muted,
-                                        }}
-                                      >
-                                        {bus.physicalPrefix ?? ''}
-                                      </span>
-                                      <input
-                                        type="text"
-                                        value={draftPortName}
-                                        onChange={(e) => setDraftPortName(e.target.value)}
-                                        className="px-1 py-0.5 rounded"
-                                        style={{
-                                          ...TEXT_STYLES.value,
-                                          background: 'var(--vscode-input-background)',
-                                          border: '1px solid var(--vscode-input-border)',
-                                          color: 'var(--vscode-input-foreground)',
-                                          outline: 'none',
-                                          fontSize: 'inherit',
-                                          minWidth: '80px',
-                                        }}
-                                        autoFocus
-                                        onKeyDown={(e) => {
-                                          e.stopPropagation();
-                                          if (e.key === 'Enter') {
-                                            e.preventDefault();
-                                            savePortName(index, port.name);
-                                          } else if (e.key === 'Escape') {
-                                            e.preventDefault();
-                                            cancelEditPortName();
-                                          }
-                                        }}
-                                      />
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          savePortName(index, port.name);
-                                        }}
-                                        className="px-1.5 py-0.5 rounded text-xs"
-                                        style={{
-                                          background: 'var(--vscode-button-background)',
-                                          color: 'var(--vscode-button-foreground)',
-                                        }}
-                                      >
-                                        ✓
-                                      </button>
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          cancelEditPortName();
-                                        }}
-                                        className="px-1.5 py-0.5 rounded text-xs"
-                                        style={{
-                                          background: 'var(--vscode-button-secondaryBackground)',
-                                          color: 'var(--vscode-button-foreground)',
-                                        }}
-                                      >
-                                        ✗
-                                      </button>
-                                    </div>
+                                    <InlineEditField
+                                      value={draftPortName}
+                                      onChange={setDraftPortName}
+                                      onSave={() => savePortName(index, port.name)}
+                                      onCancel={cancelEditPortName}
+                                      width="80px"
+                                      inputStyle={TEXT_STYLES.value}
+                                      leadingContent={
+                                        <span
+                                          style={{
+                                            ...TEXT_STYLES.value,
+                                            ...TEXT_STYLES.muted,
+                                          }}
+                                        >
+                                          {bus.physicalPrefix ?? ''}
+                                        </span>
+                                      }
+                                    />
                                   ) : (
                                     <span
                                       onClick={() =>
@@ -1752,60 +1455,15 @@ export const BusInterfacesEditor: React.FC<BusInterfacesEditorProps> = ({
                                   }}
                                 >
                                   {isEditingThisPortWidth ? (
-                                    <div className="flex items-center gap-1">
-                                      <input
-                                        type="number"
-                                        value={draftPortWidth}
-                                        onChange={(e) => setDraftPortWidth(e.target.value)}
-                                        className="px-1 py-0.5 rounded"
-                                        style={{
-                                          ...TEXT_STYLES.value,
-                                          background: 'var(--vscode-input-background)',
-                                          border: '1px solid var(--vscode-input-border)',
-                                          color: 'var(--vscode-input-foreground)',
-                                          outline: 'none',
-                                          fontSize: 'inherit',
-                                          width: '60px',
-                                        }}
-                                        autoFocus
-                                        onKeyDown={(e) => {
-                                          e.stopPropagation();
-                                          if (e.key === 'Enter') {
-                                            e.preventDefault();
-                                            savePortWidth(index, port.name, defaultWidth);
-                                          } else if (e.key === 'Escape') {
-                                            e.preventDefault();
-                                            cancelEditPortWidth();
-                                          }
-                                        }}
-                                      />
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          savePortWidth(index, port.name, defaultWidth);
-                                        }}
-                                        className="px-1.5 py-0.5 rounded text-xs"
-                                        style={{
-                                          background: 'var(--vscode-button-background)',
-                                          color: 'var(--vscode-button-foreground)',
-                                        }}
-                                      >
-                                        ✓
-                                      </button>
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          cancelEditPortWidth();
-                                        }}
-                                        className="px-1.5 py-0.5 rounded text-xs"
-                                        style={{
-                                          background: 'var(--vscode-button-secondaryBackground)',
-                                          color: 'var(--vscode-button-foreground)',
-                                        }}
-                                      >
-                                        ✗
-                                      </button>
-                                    </div>
+                                    <InlineEditField
+                                      type="number"
+                                      value={draftPortWidth}
+                                      onChange={setDraftPortWidth}
+                                      onSave={() => savePortWidth(index, port.name, defaultWidth)}
+                                      onCancel={cancelEditPortWidth}
+                                      width="60px"
+                                      inputStyle={TEXT_STYLES.value}
+                                    />
                                   ) : (
                                     <span
                                       onClick={() =>

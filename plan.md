@@ -37,6 +37,7 @@
 - P2 implementation completed (items P2-1 through P2-5)
 - Verification complete: `npm run lint`, `npm run compile`, and `npm test` pass after P1/P2 changes
 - P3 implementation completed for: P3-1, P3-2, P3-3, P3-4, P3-5, P3-6, P3-7, P3-8, P3-9, P3-10
+- P4 implementation started: P4-1 first decomposition slice completed (shared `InlineEditField` extraction and integration in `BusInterfacesEditor`)
 - P5 implementation completed for: P5-1, P5-6, P5-7
 - Verification complete: `npm run lint`, `npm run compile`, and `npm test` pass after the current batch
 
@@ -508,6 +509,14 @@ Current pass resolved (2026-02-21, current batch):
 - P5-6 completed: fixed duplicate color value (`tangerine` now distinct from `orange`)
 - P5-7 completed: memoized update/command callbacks in `useMemoryMapState`, `useYamlSync`, and `useIpCoreSync`
 - Verification completed for this batch:
+	- `npm run lint` passed
+	- `npm run compile` passed
+	- `npm test` passed
+
+Current pass resolved (2026-02-21, decomposition slice):
+- P4-1 started: extracted reusable `InlineEditField` in `src/webview/ipcore/components/sections/InlineEditField.tsx`
+- P4-1 started: replaced repeated inline edit/save/cancel blocks in `BusInterfacesEditor.tsx` (bus name, prefix, array fields, port name/width)
+- Verification completed for this slice:
 	- `npm run lint` passed
 	- `npm run compile` passed
 	- `npm test` passed
