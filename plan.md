@@ -37,7 +37,7 @@
 - P2 implementation completed (items P2-1 through P2-5)
 - Verification complete: `npm run lint`, `npm run compile`, and `npm test` pass after P1/P2 changes
 - P3 implementation completed for: P3-1, P3-2, P3-3, P3-4, P3-5, P3-6, P3-7, P3-8, P3-9, P3-10
-- P4 implementation in progress: P4-1 decomposition slices completed for `InlineEditField`, `BusInterfaceCard`, and `PortMappingTable` extraction/integration
+- P4 implementation in progress: P4-1 decomposition slices completed for `InlineEditField`, `BusInterfaceCard`, `PortMappingTable`, and `useBusInterfaceEditing` extraction/integration
 - P5 implementation completed for: P5-1, P5-6, P5-7
 - Verification complete: `npm run lint`, `npm run compile`, and `npm test` pass after the current batch
 
@@ -532,6 +532,15 @@ Current pass resolved (2026-02-21, decomposition slice 2):
 Current pass resolved (2026-02-21, decomposition slice 3):
 - P4-1 continued: extracted `PortMappingTable` into `src/webview/ipcore/components/sections/PortMappingTable.tsx`
 - P4-1 continued: replaced inline ports table rendering in `BusInterfaceCard.tsx` with `PortMappingTable` composition
+- Verification completed for this slice:
+	- `npm run lint` passed
+	- `npm run compile` passed
+	- `npm test` passed
+
+Current pass resolved (2026-02-21, decomposition slice 4):
+- P4-1 continued: extracted `useBusInterfaceEditing` into `src/webview/ipcore/hooks/useBusInterfaceEditing.ts`
+- P4-1 continued: rewired `BusInterfacesEditor.tsx` to delegate state/actions/keyboard handling to the extracted hook
+- P4-1 continued: reduced `BusInterfacesEditor.tsx` to 277 lines (target < 300 achieved)
 - Verification completed for this slice:
 	- `npm run lint` passed
 	- `npm run compile` passed
