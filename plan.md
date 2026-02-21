@@ -32,6 +32,11 @@
 
 **Previous items all resolved:** N1, S2, N2, N3, N5, N4, N6, M4 (partial), M8 (partial)
 
+**New progress (2026-02-21):**
+- P1 implementation completed (all 7 items)
+- P2 implementation completed (items P2-1 through P2-5)
+- Verification complete: `npm run lint`, `npm run compile`, and `npm test` pass after P1/P2 changes
+
 ---
 
 ## P1 -- Correctness Fixes
@@ -467,6 +472,24 @@ Current: Statements **21.32%**, Branches **12.31%**
 
 ## Completed History
 
+Current pass resolved (2026-02-21):
+- P1-1 to P1-7 completed:
+	- parse radix fixes in memory map editors
+	- ImportResolver cache fixes (`clearCache` + default cache dedupe)
+	- escaped regex prefix in `nextSequentialName`
+	- IpCoreScaffolder redundancy/no-op branch cleanup
+	- VhdlParser prefix stripping fixed + regression test for `IO_I_DATA`
+- P2-1 to P2-5 completed:
+	- removed dead utility exports in bitfield utils/repacker, validation helpers, and yaml mapper
+	- removed dead `ReferenceField`, trimmed `NumberField` dead props, removed `resizeEdge` dead state
+	- removed dead live-code branches/returns/buttons/effects (`colors`, `useIpCoreState`, `useNavigation`, `index.tsx`, `BusInterfacesEditor`)
+	- switched save flow to `DocumentManager.saveDocument()` in `MessageHandler`
+	- removed dead `ErrorHandler` exports and corresponding tests
+- Verification completed for current pass:
+	- `npm run lint` passed
+	- `npm run compile` passed
+	- `npm test` passed
+
 Previous review items resolved (2026-02-20):
 - N1 (coverage thresholds), S2 (invalid woff2), N2 (lint enforcement), N3 (parseInt radix), N5 (repacker bounds), N4 (dead EditorPanel sections), N6 (all sub-items)
 - M4 (BitFieldVisualizer partial decomposition -- hooks, sub-components extracted)
@@ -478,8 +501,8 @@ Previous review items resolved (2026-02-20):
 
 After each priority level, verify:
 
-- [ ] **P1:** `npm run compile && npm run lint && npm test` all pass
-- [ ] **P2:** `npm run compile && npm run lint && npm test` all pass; grep for removed exports confirms zero hits
+- [x] **P1:** `npm run compile && npm run lint && npm test` all pass
+- [x] **P2:** `npm run compile && npm run lint && npm test` all pass; grep for removed exports confirms zero hits
 - [ ] **P3:** `npm run compile && npm run lint && npm test` all pass; duplicated functions have single source
 - [ ] **P4:** Each decomposed file under target line count; `npm run compile && npm run lint && npm test` all pass
 - [ ] **P5:** No emojis in source; no static-only classes; `npm run lint` clean

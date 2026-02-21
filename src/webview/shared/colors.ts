@@ -47,11 +47,6 @@ export const FIELD_COLORS: Record<string, string> = {
 
 export const FIELD_COLOR_KEYS = Object.keys(FIELD_COLORS);
 
-export function getFieldPatternOverlay(index: number): string {
-  void index;
-  return 'none';
-}
-
 /**
  * Get a stable color for a field based on its name only.
  * This ensures fields maintain their color when reordered.

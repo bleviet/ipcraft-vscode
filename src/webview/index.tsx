@@ -461,21 +461,6 @@ const App = () => {
           >
             <span className="codicon codicon-check"></span>
           </button>
-          <div className="h-6 w-px mx-1" style={{ background: 'var(--vscode-panel-border)' }}></div>
-          <button
-            className="p-2 rounded-md transition-colors vscode-icon-button"
-            title="Export Header"
-            aria-label="Export Header"
-          >
-            <span className="codicon codicon-code"></span>
-          </button>
-          <button
-            className="p-2 rounded-md transition-colors vscode-icon-button"
-            title="Documentation"
-            aria-label="Documentation"
-          >
-            <span className="codicon codicon-book"></span>
-          </button>
         </div>
       </header>
       <main className="flex-1 flex overflow-hidden">

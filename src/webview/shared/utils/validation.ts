@@ -38,22 +38,6 @@ export function validateUniqueName(
 }
 
 /**
- * Frequency validation
- * Format: number + optional space + optional unit (Hz, KHz, MHz, GHz)
- */
-export function validateFrequency(value: string): string | null {
-  if (!value) {
-    return null;
-  } // Optional field
-
-  if (!/^\d+(\.\d+)?\s*(Hz|KHz|MHz|GHz)?$/i.test(value)) {
-    return 'Format: number + unit (e.g., "100 MHz")';
-  }
-
-  return null;
-}
-
-/**
  * Version format validation
  * Format: X.Y.Z where X, Y, Z are numbers
  */
@@ -75,16 +59,6 @@ export function validateVersion(value: string): string | null {
 export function validateRequired(value: string): string | null {
   if (!value || value.trim() === '') {
     return 'Required';
-  }
-  return null;
-}
-
-/**
- * Positive number validation
- */
-export function validatePositiveNumber(value: number): string | null {
-  if (value < 0) {
-    return 'Must be positive';
   }
   return null;
 }

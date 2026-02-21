@@ -26,7 +26,7 @@ export interface UpdateMessage {
 
 export interface ValidationError {
   message: string;
-  section: 'busInterfaces' | 'clocks' | 'resets' | 'ports' | 'parameters';
+  section: 'busInterfaces';
   entityName: string;
   field: string;
 }
@@ -62,12 +62,7 @@ export function useIpCoreState() {
           throw new Error('Invalid YAML: must be an object');
         }
 
-        // Basic validation: check for IP core structure
         const data = parsed as Record<string, unknown>;
-        if (!data.apiVersion || !data.vlnv) {
-          // Try to allow it temporarily if it's being edited or empty
-          // but for now stick to strict check or log warning
-        }
 
         setState({
           ipCore: data,

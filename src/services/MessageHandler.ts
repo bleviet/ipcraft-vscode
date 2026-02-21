@@ -110,7 +110,7 @@ export class MessageHandler {
    * Handle save command
    */
   private async handleSaveCommand(document: vscode.TextDocument): Promise<void> {
-    await document.save();
+    await this.documentManager.saveDocument(document);
     this.logger.info('Document saved');
   }
 

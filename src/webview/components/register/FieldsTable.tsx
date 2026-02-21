@@ -8,8 +8,7 @@ import {
 } from '@vscode/webview-ui-toolkit/react';
 import { EditableTable } from '../../shared/components';
 import { FIELD_COLORS, getFieldColor } from '../../shared/colors';
-import { formatBits } from '../../algorithms/BitFieldRepacker';
-import { fieldToBitsString } from '../../utils/BitFieldUtils';
+import { formatBitsRange as formatBits, fieldToBitsString } from '../../utils/BitFieldUtils';
 import { validateVhdlIdentifier } from '../../shared/utils/validation';
 import type { FieldEditorState } from '../../hooks/useFieldEditor';
 

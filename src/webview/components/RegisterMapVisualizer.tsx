@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { FIELD_COLORS, FIELD_COLOR_KEYS, getFieldPatternOverlay } from '../shared/colors';
+import { FIELD_COLORS, FIELD_COLOR_KEYS } from '../shared/colors';
 import { toHex } from '../utils/formatUtils';
 
 export interface VisualizerRegister {
@@ -215,7 +215,6 @@ const RegisterMapVisualizerInner: React.FC<RegisterMapVisualizerProps> = ({
                   className={`h-20 w-full overflow-hidden flex items-center justify-center px-2 rounded-md ${group.isArray ? 'border-2 border-dashed' : ''}`}
                   style={{
                     backgroundColor: FIELD_COLORS[group.color],
-                    backgroundImage: getFieldPatternOverlay(group.idx),
                     opacity: 1,
                     borderColor: group.isArray ? 'var(--ipcraft-pattern-border)' : undefined,
                     transform: isHovered ? 'translateY(-2px)' : undefined,

@@ -3,62 +3,9 @@
  */
 
 import type { BitFieldRecord } from '../types/editor';
-import {
-  parseBitsRange,
-  formatBitsRange as formatBits,
-  fieldToBitsString,
-} from '../utils/BitFieldUtils';
+import { parseBitsRange, formatBitsRange, fieldToBitsString } from '../utils/BitFieldUtils';
 
-// Re-export canonical implementations from BitFieldUtils so that
-// BitFieldRepacker consumers and test suites continue to work unchanged.
-export { parseBitsRange, formatBitsRange as formatBits } from '../utils/BitFieldUtils';
-
-/**
- * Repack only the updated field and subsequent fields, preserving order
- * @param fields Array of bit fields
- * @param regWidth Register width in bits
- * @param startIdx Starting index for repacking
- * @returns New array with repacked fields
- */
-export function repackFieldsFrom(
-  fields: BitFieldRecord[],
-  regWidth: number,
-  startIdx: number
-): BitFieldRecord[] {
-  // Calculate starting MSB for the updated field
-  let nextMsb = regWidth - 1;
-  if (startIdx > 0) {
-    // Previous field's LSB
-    const prev = fields[startIdx - 1];
-    const prevRange = parseBitsRange(fieldToBitsString(prev));
-    if (prevRange) {
-      nextMsb = prevRange[1] - 1;
-    }
-  }
-  const newFields = [...fields];
-  for (let i = startIdx; i < fields.length; ++i) {
-    let width = 1;
-    const parsed = parseBitsRange(fieldToBitsString(newFields[i]));
-    if (parsed) {
-      width = Math.abs(parsed[0] - parsed[1]) + 1;
-    }
-    const msb = nextMsb;
-    let lsb = msb - width + 1;
-    // Clamp LSB to zero
-    if (lsb < 0) {
-      lsb = 0;
-    }
-    nextMsb = lsb - 1;
-    newFields[i] = {
-      ...newFields[i],
-      bits: formatBits(msb, lsb),
-      bit_offset: lsb,
-      bit_width: width,
-      bit_range: [msb, lsb] as [number, number],
-    };
-  }
-  return newFields;
-}
+const formatBits = formatBitsRange;
 
 /**
  * Repack bit fields forward (toward MSB/Higher Bits) starting from the given index.
@@ -153,9 +100,3 @@ export function repackFieldsBackward(
 
   return newFields;
 }
-
-/**
- * Backward-compatible alias for callers that still reference the old API name.
- * Prefer `repackFieldsBackward` in new code.
- */
-export const repackFieldsDownward = repackFieldsBackward;

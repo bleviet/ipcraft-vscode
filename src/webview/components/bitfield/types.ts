@@ -13,7 +13,6 @@ export interface ShiftDragState {
   active: boolean;
   mode: 'resize' | 'create';
   targetFieldIndex: number | null;
-  resizeEdge: 'msb' | 'lsb' | null;
   originalRange: { lo: number; hi: number } | null;
   anchorBit: number;
   currentBit: number;
@@ -25,7 +24,6 @@ export const SHIFT_DRAG_INITIAL: ShiftDragState = {
   active: false,
   mode: 'resize',
   targetFieldIndex: null,
-  resizeEdge: null,
   originalRange: null,
   anchorBit: 0,
   currentBit: 0,

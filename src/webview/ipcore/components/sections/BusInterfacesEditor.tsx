@@ -562,14 +562,6 @@ export const BusInterfacesEditor: React.FC<BusInterfacesEditorProps> = ({
       if (index !== -1) {
         setSelectedIndex(index);
         setExpandedIndexes((prev) => new Set(prev).add(index));
-
-        // If it's the top level bus, ensure it's in view
-        const container = containerRef.current;
-        if (container) {
-          // Simple scroll attempt - in a real list we might need ref to specific item
-          // but since we don't have refs for each item easily, we'll let user find it via selection
-          // The selection logic helps.
-        }
       }
     }
   }, [highlight, busInterfaces]);

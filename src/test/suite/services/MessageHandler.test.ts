@@ -8,7 +8,10 @@ type MockTextDocument = Pick<vscode.TextDocument, 'getText' | 'save' | 'uri'>;
 
 describe('MessageHandler', () => {
   let yamlValidator: Pick<YamlValidator, 'validate'>;
-  let documentManager: Pick<DocumentManager, 'updateDocument' | 'getText' | 'getRelativePath'>;
+  let documentManager: Pick<
+    DocumentManager,
+    'updateDocument' | 'saveDocument' | 'getText' | 'getRelativePath'
+  >;
   let document: MockTextDocument;
 
   beforeEach(() => {
@@ -28,6 +31,7 @@ describe('MessageHandler', () => {
 
     documentManager = {
       updateDocument: jest.fn().mockResolvedValue(true),
+      saveDocument: jest.fn().mockResolvedValue(true),
       getText: jest.fn().mockReturnValue('name: core'),
       getRelativePath: jest.fn().mockReturnValue('ip/core.yml'),
     };
@@ -53,7 +57,7 @@ describe('MessageHandler', () => {
     expect(documentManager.updateDocument).toHaveBeenCalledWith(document, 'name: updated');
   });
 
-  it('handles save command by saving the document', async () => {
+  it('handles save command through DocumentManager', async () => {
     const handler = new MessageHandler(
       yamlValidator as YamlValidator,
       documentManager as DocumentManager
@@ -64,7 +68,7 @@ describe('MessageHandler', () => {
       document as vscode.TextDocument
     );
 
-    expect(document.save).toHaveBeenCalledTimes(1);
+    expect(documentManager.saveDocument).toHaveBeenCalledWith(document);
   });
 
   it('handles validate command success and failure branches', async () => {

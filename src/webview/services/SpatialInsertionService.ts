@@ -11,13 +11,12 @@
  * Callers are responsible for dispatching the result and updating UI state.
  */
 
+import { repackFieldsForward, repackFieldsBackward } from '../algorithms/BitFieldRepacker';
 import {
   parseBitsRange,
-  formatBits,
-  repackFieldsForward,
-  repackFieldsBackward,
-} from '../algorithms/BitFieldRepacker';
-import { fieldToBitsString } from '../utils/BitFieldUtils';
+  formatBitsRange as formatBits,
+  fieldToBitsString,
+} from '../utils/BitFieldUtils';
 import { repackRegistersForward, repackRegistersBackward } from '../algorithms/RegisterRepacker';
 import { repackBlocksForward, repackBlocksBackward } from '../algorithms/AddressBlockRepacker';
 

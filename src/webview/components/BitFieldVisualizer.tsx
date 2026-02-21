@@ -439,7 +439,6 @@ const BitFieldVisualizerInner: React.FC<BitFieldVisualizerProps> = ({
         active: true,
         mode: 'resize',
         targetFieldIndex: fieldAtBit,
-        resizeEdge: null, // Not used in new model
         originalRange: fieldRange,
         anchorBit,
         currentBit: bit,
@@ -454,7 +453,6 @@ const BitFieldVisualizerInner: React.FC<BitFieldVisualizerProps> = ({
         active: true,
         mode: 'create',
         targetFieldIndex: null,
-        resizeEdge: null,
         originalRange: null,
         anchorBit: bit,
         currentBit: bit,

@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { FIELD_COLORS, FIELD_COLOR_KEYS, getFieldPatternOverlay } from '../shared/colors';
+import { FIELD_COLORS, FIELD_COLOR_KEYS } from '../shared/colors';
 import { toHex } from '../utils/formatUtils';
 
 export interface VisualizerAddressBlock {
@@ -99,7 +99,6 @@ const AddressMapVisualizerInner: React.FC<AddressMapVisualizerProps> = ({
                   className="h-20 w-full overflow-hidden flex items-center justify-center px-2 rounded-md"
                   style={{
                     backgroundColor: FIELD_COLORS[group.color],
-                    backgroundImage: getFieldPatternOverlay(group.idx),
                     opacity: 1,
                     transform: isHovered ? 'translateY(-2px)' : undefined,
                     filter: isHovered ? 'saturate(1.15) brightness(1.05)' : undefined,

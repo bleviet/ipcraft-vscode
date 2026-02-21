@@ -1,5 +1,5 @@
 import React from 'react';
-import { FIELD_COLORS, getFieldPatternOverlay } from '../../shared/colors';
+import { FIELD_COLORS } from '../../shared/colors';
 
 interface FieldCellProps {
   bitValue: 0 | 1;
@@ -25,7 +25,7 @@ const FieldCell = ({
   isOutOfNewRange,
   isInNewRange,
   color,
-  fieldIndex,
+  fieldIndex: _fieldIndex,
   ctrlDragActive,
   ctrlHeld,
   onPointerDown,
@@ -45,7 +45,6 @@ const FieldCell = ({
       }`}
       style={{
         backgroundColor: isOutOfNewRange ? 'var(--vscode-editor-background)' : FIELD_COLORS[color],
-        backgroundImage: isOutOfNewRange ? undefined : getFieldPatternOverlay(fieldIndex),
         opacity: isOutOfNewRange ? 0.3 : 1,
         boxShadow:
           bitValue === 1 && !isOutOfNewRange

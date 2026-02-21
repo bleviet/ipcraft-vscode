@@ -1,11 +1,9 @@
 import {
-  findFreeBit,
   formatBitsLike,
   parseBitsRange,
   parseBitsLike,
   formatBitsRange,
   fieldToBitsString,
-  isBitUsed,
 } from '../../../webview/utils/BitFieldUtils';
 
 describe('BitFieldUtils — standalone exports', () => {
@@ -112,36 +110,6 @@ describe('BitFieldUtils standalone helpers', () => {
       expect(formatBitsLike(4, 4)).toBe('[7:4]');
       expect(formatBitsLike(0, 32)).toBe('[31:0]');
       expect(formatBitsLike(0, 1)).toBe('[0:0]');
-    });
-  });
-
-  describe('isBitUsed', () => {
-    it('returns true when a bit falls inside a field', () => {
-      const fields = [{ bit_offset: 4, bit_width: 4 }];
-      expect(isBitUsed(fields, 4)).toBe(true);
-      expect(isBitUsed(fields, 7)).toBe(true);
-    });
-
-    it('returns false when a bit is outside all fields', () => {
-      const fields = [{ bit_offset: 4, bit_width: 4 }];
-      expect(isBitUsed(fields, 0)).toBe(false);
-      expect(isBitUsed(fields, 8)).toBe(false);
-    });
-  });
-
-  describe('findFreeBit', () => {
-    it('finds the first unused bit position', () => {
-      const fields = [{ bit_offset: 0, bit_width: 4 }];
-      expect(findFreeBit(fields, 32)).toBe(4);
-    });
-
-    it('returns 0 when no fields are defined', () => {
-      expect(findFreeBit([], 32)).toBe(0);
-    });
-
-    it('returns maxBits when all bits are used', () => {
-      const fields = [{ bit_offset: 0, bit_width: 4 }];
-      expect(findFreeBit(fields, 4)).toBe(4);
     });
   });
 });
