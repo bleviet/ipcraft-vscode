@@ -98,6 +98,15 @@ body {
     background: var(--vscode-list-activeSelectionBackground);
 }
 
+.vscode-row-solid:not(.vscode-row-hover):not(.vscode-row-selected) {
+    background: var(--vscode-editor-background);
+    background-image: none;
+}
+
+.vscode-row-solid>td {
+    background-image: none;
+}
+
 .vscode-focus-border {
     border-color: var(--vscode-focusBorder);
 }

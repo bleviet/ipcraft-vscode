@@ -302,7 +302,7 @@ export function FieldsTable({ fields, registerSize, onUpdate, fieldEditor }: Fie
                         key={`${String(field.name ?? `field-${index}`)}-${String(field.bit_offset ?? bits ?? index)}`}
                         data-row-idx={index}
                         data-field-index={index}
-                        className={`group transition-colors border-l-4 border-transparent h-12 ${
+                        className={`group vscode-row-solid transition-colors border-l-4 border-transparent h-12 ${
                           index === selectedFieldIndex
                             ? 'vscode-focus-border vscode-row-selected'
                             : index === hoveredFieldIndex

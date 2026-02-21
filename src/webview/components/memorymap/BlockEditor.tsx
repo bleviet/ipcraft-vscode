@@ -408,7 +408,7 @@ export function BlockEditor({
                       key={`${String(reg.name ?? `reg-${idx}`)}-${String(reg.address_offset ?? reg.offset ?? idx * 4)}`}
                       data-row-idx={idx}
                       data-reg-idx={idx}
-                      className={`group transition-colors border-l-4 border-transparent h-12 ${
+                      className={`group vscode-row-solid transition-colors border-l-4 border-transparent h-12 ${
                         idx === selectedRegIndex
                           ? 'vscode-focus-border vscode-row-selected'
                           : idx === hoveredRegIndex
