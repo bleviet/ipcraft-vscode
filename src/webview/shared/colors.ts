@@ -47,15 +47,9 @@ export const FIELD_COLORS: Record<string, string> = {
 
 export const FIELD_COLOR_KEYS = Object.keys(FIELD_COLORS);
 
-const FIELD_PATTERN_OVERLAYS = [
-  'repeating-linear-gradient(45deg, var(--ipcraft-pattern-line) 0 6px, transparent 6px 12px)',
-  'repeating-linear-gradient(-45deg, var(--ipcraft-pattern-line) 0 6px, transparent 6px 12px)',
-  'repeating-linear-gradient(0deg, var(--ipcraft-pattern-line) 0 4px, transparent 4px 8px)',
-  'repeating-linear-gradient(90deg, var(--ipcraft-pattern-line) 0 4px, transparent 4px 8px)',
-];
-
 export function getFieldPatternOverlay(index: number): string {
-  return FIELD_PATTERN_OVERLAYS[Math.abs(index) % FIELD_PATTERN_OVERLAYS.length];
+  void index;
+  return 'none';
 }
 
 /**
