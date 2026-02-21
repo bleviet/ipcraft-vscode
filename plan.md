@@ -38,6 +38,7 @@
 - Verification complete: `npm run lint`, `npm run compile`, and `npm test` pass after P1/P2 changes
 - P3 implementation completed for: P3-1, P3-2, P3-3, P3-4, P3-5, P3-6, P3-7, P3-8, P3-9, P3-10
 - P4 implementation in progress: P4-1 decomposition slices completed for `InlineEditField`, `BusInterfaceCard`, `PortMappingTable`, and `useBusInterfaceEditing` extraction/integration
+- P4 implementation in progress: P4-2 slice 1 completed by extracting BitFieldVisualizer utility functions into `src/webview/components/bitfield/utils.ts`
 - P5 implementation completed for: P5-1, P5-6, P5-7
 - Verification complete: `npm run lint`, `npm run compile`, and `npm test` pass after the current batch
 
@@ -543,6 +544,15 @@ Current pass resolved (2026-02-21, decomposition slice 4):
 - P4-1 continued: reduced `BusInterfacesEditor.tsx` to 277 lines (target < 300 achieved)
 - Verification completed for this slice:
 	- `npm run lint` passed
+	- `npm run compile` passed
+	- `npm test` passed
+
+Current pass resolved (2026-02-21, decomposition slice 5):
+- P4-2 started: extracted 14 module-level utility functions from `BitFieldVisualizer.tsx` into `src/webview/components/bitfield/utils.ts`
+- P4-2 started: rewired `BitFieldVisualizer.tsx` to import shared bitfield utility helpers
+- P4-2 started: reduced `BitFieldVisualizer.tsx` from 862 lines to 603 lines
+- Verification completed for this slice:
+	- `npm run lint -- --max-warnings 0` passed
 	- `npm run compile` passed
 	- `npm test` passed
 

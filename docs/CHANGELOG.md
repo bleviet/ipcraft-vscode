@@ -26,7 +26,18 @@ All notable changes to this project are documented in this file.
 - `npm run compile` passed.
 - `npm test` passed (26 suites, 206 tests).
 
+## 2026-02-21 (decomposition slice 5)
+
+### Added
+- Added shared bitfield utility module at `src/webview/components/bitfield/utils.ts`.
+
+### Changed
+- Extracted 14 module-level utility helpers from `src/webview/components/BitFieldVisualizer.tsx` into the shared bitfield utility module.
+- Rewired `BitFieldVisualizer` to consume utility functions from `bitfield/utils.ts`.
+- Reduced `BitFieldVisualizer.tsx` from 862 lines to 603 lines.
+- Updated `plan.md` with P4-2 slice 1 progress and verification results.
+
 ### Verification
-- `npm run lint` passed.
+- `npm run lint -- --max-warnings 0` passed.
 - `npm run compile` passed.
 - `npm test` passed (26 suites, 206 tests).
