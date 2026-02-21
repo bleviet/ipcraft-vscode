@@ -28,7 +28,7 @@
 - `npm run compile` passes
 - `npm test` passes
 - `npm run test:unit:coverage` passes
-- Coverage now: Statements **16.16%**, Branches **9.43%**, Functions **12.74%**, Lines **16.08%**
+- Coverage now: Statements **21.32%**, Branches **12.31%**, Functions **15.78%**, Lines **21.46%**
 
 **Remaining focus:** long-range coverage goal (30%).
 
@@ -133,7 +133,7 @@ If Material Symbols icons are needed later, download the correct WOFF2 from Goog
 
 ### T+: Increase test coverage toward 30%
 
-Current: **16.16% statements**, **9.43% branches**, **12.74% functions**, **16.08% lines**.
+Current: **21.32% statements**, **12.31% branches**, **15.78% functions**, **21.46% lines**.
 
 Target: 30% statements, 20% branches.
 
@@ -150,6 +150,16 @@ Target: 30% statements, 20% branches.
 **Now covered in this pass:**
 - `src/services/FileSetUpdater.ts`
 - `src/webview/hooks/useSelection.ts`
+- `src/webview/hooks/useTableNavigation.ts`
+- `src/webview/utils/formatUtils.ts`
+- `src/services/BusLibraryService.ts`
+- `src/services/ImportResolver.ts`
+- `src/services/YamlValidator.ts`
+- `src/services/MessageHandler.ts`
+- `src/services/DocumentManager.ts`
+- `src/services/HtmlGenerator.ts`
+- `src/webview/services/DataNormalizer.ts`
+- `src/webview/services/YamlPathResolver.ts`
 
 **Extension host services (require VS Code mocking):**
 

@@ -19,6 +19,16 @@ describe('YamlPathResolver', () => {
     );
   });
 
+  it('returns undefined for missing path segments and throws on invalid set paths', () => {
+    const root = { a: { b: 1 } };
+
+    expect(YamlPathResolver.getAtPath(root, ['a', 'x'])).toBeUndefined();
+    expect(() => YamlPathResolver.setAtPath(root, [], 1)).toThrow('Cannot set empty path');
+    expect(() => YamlPathResolver.setAtPath(root, ['a', 'x', 'y'], 1)).toThrow(
+      'Path not found at y'
+    );
+  });
+
   it('deletes array/object items by path', () => {
     const root = {
       items: [{ id: 1 }, { id: 2 }],
@@ -31,5 +41,37 @@ describe('YamlPathResolver', () => {
 
     YamlPathResolver.deleteAtPath(root, ['meta', 'description']);
     expect((root.meta as Record<string, unknown>).description).toBeUndefined();
+  });
+
+  it('does nothing when deleting empty or non-existent paths', () => {
+    const root = { items: [{ id: 1 }], meta: { keep: true } };
+
+    YamlPathResolver.deleteAtPath(root, []);
+    YamlPathResolver.deleteAtPath(root, ['missing', 'path']);
+
+    expect(root.items).toEqual([{ id: 1 }]);
+    expect(root.meta).toEqual({ keep: true });
+  });
+
+  it('resolves map root info for array, memory_maps wrapper, and direct map', () => {
+    const arrRoot = [{ name: 'map0' }];
+    const wrappedRoot = { memory_maps: [{ name: 'map1' }] };
+    const directRoot = { name: 'map2' };
+
+    expect(YamlPathResolver.getMapRootInfo(arrRoot)).toEqual({
+      root: arrRoot,
+      selectionRootPath: [0],
+      map: arrRoot[0],
+    });
+    expect(YamlPathResolver.getMapRootInfo(wrappedRoot)).toEqual({
+      root: wrappedRoot,
+      selectionRootPath: ['memory_maps', 0],
+      map: wrappedRoot.memory_maps[0],
+    });
+    expect(YamlPathResolver.getMapRootInfo(directRoot)).toEqual({
+      root: directRoot,
+      selectionRootPath: [],
+      map: directRoot,
+    });
   });
 });
