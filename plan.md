@@ -1,187 +1,476 @@
-# IPCraft VS Code Extension -- Action Plan (Updated)
+# IPCraft VS Code Extension -- Action Plan
 
-**Date:** 2026-02-20 (Updated)
+**Date:** 2026-02-21
 **Based on:** [review.md](review.md)
 
-> Previous plan items that have been completed are removed. This document contains only the remaining actionable work.
+> Items completed in previous passes are summarized in the history section. This document contains only remaining actionable work.
 
 ---
 
 ## Table of Contents
 
 - [Status Summary](#status-summary)
-- [Completed In This Pass](#completed-in-this-pass)
-- [Priority 2 -- Next Sprint](#priority-2--next-sprint)
-  - [M4: Break up BitFieldVisualizer into sub-components](#m4-break-up-bitfieldvisualizer-into-sub-components)
-- [Priority 3 -- Backlog](#priority-3--backlog)
-  - [T+: Increase test coverage toward 30%](#t-increase-test-coverage-toward-30)
-  - [Optional hardening](#optional-hardening)
+- [P1 -- Correctness Fixes](#p1----correctness-fixes)
+- [P2 -- Dead Code Removal](#p2----dead-code-removal)
+- [P3 -- Code Duplication](#p3----code-duplication)
+- [P4 -- Large File Decomposition](#p4----large-file-decomposition)
+- [P5 -- Code Quality and Conventions](#p5----code-quality-and-conventions)
+- [P6 -- Test Coverage](#p6----test-coverage)
+- [Completed History](#completed-history)
+- [Verification Checklist](#verification-checklist)
+
+---
+
 ## Status Summary
 
-**Completed from this implementation pass:**
-- P1 items completed: N1, S2
-- P2 items completed: N2, N3, N5
-- P3 items completed: N4, N6
-
-**Verified current health:**
+**Current health (verified 2026-02-21):**
 - `npm run lint` passes with `--max-warnings 0`
 - `npm run compile` passes
-- `npm test` passes
+- `npm test` passes (26 suites, 227 tests)
 - `npm run test:unit:coverage` passes
-- Coverage now: Statements **21.32%**, Branches **12.31%**, Functions **15.78%**, Lines **21.46%**
+- Coverage: Statements **21.32%**, Branches **12.31%**, Functions **15.78%**, Lines **21.46%**
 
-**Remaining focus:** long-range coverage goal (30%).
-
----
-
-## Completed In This Pass
-
-### Priority 1 -- Immediate Fixes
-
-- **N1 completed:** lowered coverage thresholds in `jest.config.js` to:
-  - branches: 8
-  - functions: 11
-  - lines: 14
-  - statements: 14
-- **S2 completed:** deleted invalid `src/webview/resources/material-symbols-outlined.woff2`
-
-### Priority 2 -- Next Sprint items completed early
-
-- **N2 completed:**
-  - fixed lint warnings
-  - enforced zero-warning lint policy in `package.json`:
-    - `"lint": "eslint src --max-warnings 0"`
-- **N3 completed:** replaced remaining `Number.parseInt(value, 0)` usages with explicit numeric parsing
-- **N5 completed:** added `fromIndex` bounds guards to all repackers and added tests for out-of-range behavior
-- **M8 completed:** decomposed `Outline` into focused sub-components:
-  - `src/webview/components/outline/BlockNode.tsx`
-  - `src/webview/components/outline/RegisterNode.tsx`
-  - `src/webview/components/outline/RegisterArrayNode.tsx`
-  - `src/webview/components/outline/FieldNode.tsx`
-  - `src/webview/components/outline/OutlineHeader.tsx`
-  - `src/webview/components/outline/types.ts`
-  - `src/webview/components/outline/index.ts`
-  - `src/webview/components/Outline.tsx` reduced to container/orchestrator
-  - verification: `npm run compile`, `npm run lint`, `npm test` all pass
-- **M4 completed:** completed BitFieldVisualizer decomposition with remaining pro-layout extraction:
-  - `src/webview/components/bitfield/FieldCell.tsx`
-  - `src/webview/components/bitfield/ProLayoutView.tsx`
-  - `src/webview/components/bitfield/index.ts`
-  - `src/webview/components/BitFieldVisualizer.tsx` reduced further to orchestrator wiring for pro/default layout views
-  - verification: `npm run compile`, `npm run lint`, `npm test` all pass
-
-### Priority 3 -- Backlog items completed early
-
-- **N4 completed:** removed dead placeholder section components from `src/webview/ipcore/components/layout/EditorPanel.tsx`
-- **N6 completed:**
-  - Q3: `TemplateLoader.resolveTemplatesPath()` fallback cleaned up
-  - #2: removed deprecated `_bitOffset` parameter from `getFieldColor`
-  - #3: removed legacy `BitFieldUtils` class API; callers switched to standalone exports
-  - #5: removed legacy `generateVHDLWithBus` command registration/contribution
-  - #10: preserved explicit `size` in `repackBlocksForward` via `size: block.size ?? blockSize`
-
----
-```
-
-If Material Symbols icons are needed later, download the correct WOFF2 from Google Fonts and add a `@font-face` in `src/webview/index.css`.
+**Previous items all resolved:** N1, S2, N2, N3, N5, N4, N6, M4 (partial), M8 (partial)
 
 ---
 
-## Priority 2 -- Next Sprint
+## P1 -- Correctness Fixes
 
-### M4: Break up BitFieldVisualizer into sub-components
+Small, targeted fixes. Each is independent and can be done in isolation.
 
-**File:** `src/webview/components/BitFieldVisualizer.tsx` (1,595 lines)
+### P1-1: Fix remaining `parseInt` radix 0 (review C5)
 
-**Problem:** Single component manages 13+ state variables, two layout modes, drag interactions, keyboard navigation, and value editing. Untestable in isolation.
+**Files:**
+- `src/webview/components/memorymap/BlockEditor.tsx` L479
+- `src/webview/components/memorymap/MemoryMapEditor.tsx` L360
 
-**Approach:**
+**Action:** Replace `Number.parseInt(value, 0)` with explicit radix (10 or 16) or use `Number()` for auto-detection.
 
-1. Create `src/webview/components/bitfield/` directory
-2. Extract hooks first (lowest risk):
-   - `useShiftDrag.ts` -- shift-drag resize state and listeners
-   - `useCtrlDrag.ts` -- ctrl-drag reorder state and listeners
-   - `useValueEditing.ts` -- inline hex/dec value editing
-3. Extract render sub-components:
-   - `ProLayoutView.tsx` -- the "pro" layout bit grid
-   - `DefaultLayoutView.tsx` -- the default layout
-   - `ValueBar.tsx` -- the value display bar below the grid
-   - `FieldCell.tsx` -- individual bit field cell rendering
-4. Reduce `BitFieldVisualizer.tsx` to orchestrator (~200-300 lines)
-5. Add `index.ts` re-export
+**Verification:** `npm run lint && npm test`
 
-**Progress (this pass):**
-- [x] `src/webview/components/bitfield/types.ts`
-- [x] `src/webview/components/bitfield/useShiftDrag.ts`
-- [x] `src/webview/components/bitfield/useCtrlDrag.ts`
-- [x] `src/webview/components/bitfield/useValueEditing.ts`
-- [x] `src/webview/components/bitfield/ValueBar.tsx`
-- [x] `src/webview/components/bitfield/DefaultLayoutView.tsx`
-- [x] Extract remaining render sub-components (`ProLayoutView`, `FieldCell`)
-- [x] Reduce `BitFieldVisualizer.tsx` to orchestrator and add `index.ts`
+### P1-2: Fix ImportResolver.clearCache() omission (review C6)
 
-**Verification (current milestone):**
-- `npm run compile` passes
-- `npm run lint` passes with `--max-warnings 0`
-- `npm test` passes
+**File:** `src/services/ImportResolver.ts` L221-224
 
-**Verification:** Run `npm run compile` and manual test of drag resize, drag reorder, value editing, and both layout modes.
+**Action:** Add `this.defaultBusLibraryCache = undefined;` to `clearCache()`.
+
+**Verification:** `npm test`
+
+### P1-3: Remove ImportResolver double-caching (review C7)
+
+**File:** `src/services/ImportResolver.ts` L32
+
+**Action:** Remove `defaultBusLibraryCache` field. Use `BusLibraryService.cachedDefaultLibrary` directly (it already caches).
+
+**Verification:** `npm test`
+
+### P1-4: Escape regex in nextSequentialName (review C8)
+
+**File:** `src/webview/services/SpatialInsertionService.ts` L100
+
+**Action:** Escape `prefix` before constructing the RegExp. Use a simple `escapeRegex(str)` utility or `prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')`.
+
+**Verification:** `npm test`
+
+### P1-5: Fix duplicate bitWidth access (review C9)
+
+**File:** `src/generator/IpCoreScaffolder.ts` L537
+
+**Action:** `field.bit_width ?? field.bitWidth ?? field.bitWidth` -- remove the redundant third operand.
+
+**Verification:** `npm run compile`
+
+### P1-6: Remove no-op normalization branches (review C10)
+
+**File:** `src/generator/IpCoreScaffolder.ts` L479
+
+**Action:** Remove `else if (key === 'AXIS') { key = 'AXIS'; }` and `else if (key === 'AVALON_ST') { key = 'AVALON_ST'; }`.
+
+**Verification:** `npm run compile && npm test`
+
+### P1-7: Fix VhdlParser prefix stripping (review C11)
+
+**File:** `src/parser/VhdlParser.ts` L238-241
+
+**Action:** Break after first matched prefix in the `forEach` loop, or use a `for...of` with early return. Prevents double-stripping `IO_I_DATA`.
+
+**Verification:** Add a test case for `IO_I_DATA` prefix behavior. `npm test`
 
 ---
 
-## Priority 3 -- Backlog
+## P2 -- Dead Code Removal
 
-### T+: Increase test coverage toward 30%
+Remove unused exports and dead functionality. Improves maintainability and reduces cognitive load.
 
-Current: **21.32% statements**, **12.31% branches**, **15.78% functions**, **21.46% lines**.
+### P2-1: Remove unused utility exports (review D1)
+
+**Action for each file -- delete the unused export and its tests if the test only exists to cover dead code:**
+
+| Export | File | Action |
+|--------|------|--------|
+| `isBitUsed()` | `BitFieldUtils.ts` | Delete function |
+| `findFreeBit()` | `BitFieldUtils.ts` | Delete function |
+| `repackFieldsSequentially()` | `BitFieldUtils.ts` | Delete function (also mutates input -- review C12) |
+| `repackFieldsFrom()` | `BitFieldRepacker.ts` | Delete function |
+| `repackFieldsDownward` alias | `BitFieldRepacker.ts` | Delete alias |
+| Re-exports of `parseBitsRange`/`formatBits` | `BitFieldRepacker.ts` | Delete re-exports |
+| `validateFrequency()` | `validation.ts` | Delete function |
+| `validatePositiveNumber()` | `validation.ts` | Delete function |
+| `KNOWN_MAPPINGS` | `yamlKeyMapper.ts` | Delete constant |
+| `mapKeysToCamelCase()` | `yamlKeyMapper.ts` | Delete function |
+| `mapKeysToSnakeCase()` | `yamlKeyMapper.ts` | Delete function |
+
+**Verification:** `npm run lint && npm run compile && npm test`
+
+### P2-2: Remove unused component and props (review D1, D2)
+
+| Item | File | Action |
+|------|------|--------|
+| `ReferenceField` | `shared/components/ReferenceField.tsx` | Delete file, remove from `index.ts` |
+| `NumberField` min/max/step | `NumberField.tsx` | Remove unused props from interface and destructuring |
+| `resizeEdge` in `ShiftDragState` | `bitfield/types.ts` | Remove field from type, remove all `resizeEdge: null` assignments |
+
+**Verification:** `npm run compile && npm test`
+
+### P2-3: Remove dead functionality in live code (review D2)
+
+| Item | File | Action |
+|------|------|--------|
+| `getFieldPatternOverlay()` | `colors.ts` | Remove function. Replace call sites (FieldCell.tsx, RegisterMapVisualizer.tsx, AddressMapVisualizer.tsx) with `backgroundImage: undefined` or remove the property |
+| Dead validation branches | `useIpCoreState.ts` L74-77 | Remove empty `if (!data.apiVersion \|\| !data.vlnv)` block |
+| Unused `ValidationError` section types | `useIpCoreState.ts` | Remove unused union members; keep only `'busInterfaces'` |
+| "Export Header" / "Documentation" buttons | `index.tsx` L469-482 | Remove buttons or add TODO comments if planned for future |
+| Unused `sectionMeta` returns | `useNavigation.ts` | Stop returning `sectionMeta`, `updateSectionMeta`, `getSectionMeta` |
+| Empty scroll effect | `BusInterfacesEditor.tsx` L569-576 | Remove the `useEffect` |
+
+**Verification:** `npm run compile && npm run lint && npm test`
+
+### P2-4: Fix DocumentManager.saveDocument bypass (review D1)
+
+**Files:** `MessageHandler.ts`, `DocumentManager.ts`
+
+**Action:** Either:
+- (a) Make `MessageHandler.handleSaveCommand` use `this.documentManager.saveDocument(document)` instead of `document.save()` directly, OR
+- (b) Remove `DocumentManager.saveDocument()` as dead code
+
+Option (a) is preferred as it centralizes error handling.
+
+**Verification:** `npm test`
+
+### P2-5: Remove ErrorHandler dead exports (review D1)
+
+**File:** `src/utils/ErrorHandler.ts`
+
+**Action:** Remove `createError()`, `isExtensionError()`, `wrapAsync()`, `wrapAsyncWithNotification()` if no production code uses them. Remove corresponding tests.
+
+**Verification:** `npm run compile && npm test`
+
+---
+
+## P3 -- Code Duplication
+
+Each item reduces maintenance burden by consolidating repeated patterns.
+
+### P3-1: Unify HtmlGenerator methods (review H4)
+
+**File:** `src/services/HtmlGenerator.ts`
+
+**Action:** Replace `generateHtml` and `generateIpCoreHtml` with a single private `generateHtmlForEditor(options: { scriptName, styleName, rootId, title })` method. Keep the two public methods as thin wrappers passing their specific config.
+
+**Effort:** ~30 min
+
+### P3-2: Extract shared displayDirection utility (review H7)
+
+**Files:** `ClocksTable.tsx`, `ResetsTable.tsx`, `PortsTable.tsx`
+
+**Action:** Move `displayDirection` to `src/webview/shared/utils/formatters.ts` (or similar). Import in all three.
+
+**Effort:** ~15 min
+
+### P3-3: Extract shared calculateBlockSize utility (review H6)
+
+**Files:** `AddressBlockRepacker.ts`, `MemoryMapEditor.tsx`, `AddressMapVisualizer.tsx`
+
+**Action:** Create `src/webview/utils/blockSize.ts` with a single `calculateBlockSize` function. Align the type signatures or use a minimal common interface.
+
+**Effort:** ~30 min
+
+### P3-4: Consolidate ACCESS_OPTIONS constant (review L17)
+
+**Files:** `BlockEditor.tsx`, `RegisterArrayEditor.tsx`, `FieldsTable.tsx`
+
+**Action:** Define `ACCESS_OPTIONS` once in `src/webview/shared/constants.ts` and import everywhere.
+
+**Effort:** ~15 min
+
+### P3-5: Extract useEscapeFocus and useAutoFocus hooks (review H2)
+
+**Files:** `BlockEditor.tsx`, `MemoryMapEditor.tsx`, `RegisterArrayEditor.tsx`
+
+**Action:** Create `src/webview/hooks/useEscapeFocus.ts` and `src/webview/hooks/useAutoFocus.ts` to encapsulate the duplicated `useEffect` patterns. Replace inline effects in all three editors.
+
+**Effort:** ~1 hour
+
+### P3-6: Extract shared focusContainer utility (review L16)
+
+**Action:** Create a `focusContainer(ref: React.RefObject<HTMLElement>)` utility that wraps the `setTimeout(() => ref.current?.focus(), 0)` pattern. Replace 15+ call sites.
+
+**Effort:** ~30 min
+
+### P3-7: Consolidate SpatialInsertionService after/before pairs (review H3)
+
+**File:** `src/webview/services/SpatialInsertionService.ts`
+
+**Action:** Merge each after/before pair into a single method with a `direction: 'before' | 'after'` parameter:
+- `insertField(direction, ...)` replacing `insertFieldAfter`/`insertFieldBefore`
+- `insertRegister(direction, ...)` replacing `insertRegisterAfter`/`insertRegisterBefore`
+- `insertBlock(direction, ...)` replacing `insertBlockAfter`/`insertBlockBefore`
+
+Also extract shared `defaultReg()` and `defaultBlock()` factory functions.
+
+**Effort:** ~2 hours
+
+### P3-8: Extract YAML file reading helper (review L6)
+
+**File:** `src/services/ImportResolver.ts`
+
+**Action:** Create `private async readYamlFile(absolutePath: string): Promise<unknown>` to replace the 3 duplicated `Uri.file -> readFile -> Buffer -> yaml.load` chains.
+
+**Effort:** ~30 min
+
+### P3-9: Consolidate ipcore table editor pattern (review H1)
+
+**Files:** `ClocksTable.tsx`, `ResetsTable.tsx`, `PortsTable.tsx`, `ParametersTable.tsx`
+
+**Action:** Create a generic `useTableEditing<T>` hook or configuration-driven table component that encapsulates: state (selectedIndex, activeColumn, editingIndex, isAdding, draft), CRUD callbacks, `useTableNavigation` setup, escape handler, getRowProps/getCellProps. Each table then provides a column definition and validation function.
+
+This is the highest-effort duplication fix but eliminates ~1,200 lines of near-identical code.
+
+**Effort:** ~1-2 days
+
+### P3-10: Extract useMemoryMapState shared update logic (review for useMemoryMapState.ts)
+
+**File:** `src/webview/hooks/useMemoryMapState.ts`
+
+**Action:** `updateFromYaml` and `updateRawText` are nearly identical. Extract a shared `applyYamlUpdate(text, filename?)` internal function.
+
+**Effort:** ~30 min
+
+---
+
+## P4 -- Large File Decomposition
+
+Each task reduces a file to a focused orchestrator by extracting cohesive sub-units.
+
+### P4-1: Decompose BusInterfacesEditor (1,879 lines) (review C1)
+
+**File:** `src/webview/ipcore/components/sections/BusInterfacesEditor.tsx`
+
+**Steps:**
+1. Extract reusable `InlineEditField` component to replace 10 repeated edit/save/cancel patterns
+2. Extract `BusInterfaceCard.tsx` -- renders a single bus interface's detail view
+3. Extract `PortMappingTable.tsx` -- port table and editing
+4. Extract `useBusInterfaceEditing.ts` -- state management and keyboard handler
+5. Reduce orchestrator to layout and iteration
+
+**Target:** Orchestrator < 300 lines
+
+**Effort:** ~2-3 days
+
+### P4-2: Continue BitFieldVisualizer decomposition (864 lines) (review C2)
+
+**File:** `src/webview/components/BitFieldVisualizer.tsx`
+
+**Steps:**
+1. Move 14 module-level utility functions to `src/webview/components/bitfield/utils.ts`
+2. Extract `handleCtrlPointerMove` algorithm to `src/webview/components/bitfield/reorderAlgorithm.ts`
+3. Group related props into interface objects (e.g., `DragState`, `FieldOperations`, `LayoutConfig`) to reduce ProLayoutView's 35 props
+4. Extract duplicated `<ValueBar>` JSX to a shared variable
+
+**Target:** Orchestrator < 400 lines
+
+**Effort:** ~1 day
+
+### P4-3: Decompose index.tsx / App component (677 lines) (review C3)
+
+**File:** `src/webview/index.tsx`
+
+**Steps:**
+1. Extract `resolveFromSelection` to `src/webview/hooks/useSelectionResolver.ts`
+2. Extract `handleFieldOperations` to `src/webview/services/FieldOperationService.ts` (pure function)
+3. Move remaining business logic (outline rename, register/block navigation) to dedicated hooks
+4. Remove or comment "Export Header"/"Documentation" dead buttons
+
+**Target:** App component < 200 lines (layout + wiring only)
+
+**Effort:** ~1 day
+
+### P4-4: Continue Outline.tsx decomposition (668 lines) (review C4)
+
+**File:** `src/webview/components/Outline.tsx`
+
+**Steps:**
+1. Extract `visibleSelections` useMemo to `src/webview/components/outline/buildVisibleSelections.ts` (pure function, ~144 lines)
+2. Extract `onTreeKeyDown` to `src/webview/components/outline/useOutlineKeyboard.ts` hook
+3. Replace string ID parsing (`block-0-arrreg-1`) with structured objects or a typed ID helper
+4. Extract repeated `memoryMap.name || 'Memory Map'` to a const
+
+**Target:** Container < 300 lines
+
+**Effort:** ~1 day
+
+### P4-5: Reduce FieldsTable.tsx (665 lines) (review C5)
+
+**File:** `src/webview/components/register/FieldsTable.tsx`
+
+**Steps:**
+1. Move validation functions (`parseBitsWidth`, `validateBitsString`, `parseBitsInput`, `parseReset`, `getFieldBitWidth`, `validateResetForField`) to `src/webview/shared/utils/fieldValidation.ts`
+2. Extract duplicated cell-click pattern to `handleCellClick(index, key)` helper
+3. Extract duplicated `onFocus` pattern similarly
+
+**Target:** < 400 lines
+
+**Effort:** ~0.5 day
+
+### P4-6: Reduce IpCoreScaffolder.ts (632 lines) (review C5, L13)
+
+**File:** `src/generator/IpCoreScaffolder.ts`
+
+**Steps:**
+1. Move all interface/type definitions (~70 lines) to `src/generator/types.ts`
+2. Extract register preparation and VHDL type mapping to `src/generator/registerProcessor.ts`
+3. Consolidate the two bus type normalization approaches (`BUS_TYPE_MAP` and `normalizeBusTypeKey`)
+4. Centralize dual camelCase/snake_case access -- normalize data once at load time
+
+**Target:** < 300 lines
+
+**Effort:** ~1 day
+
+### P4-7: Refactor IpCoreEditorProvider.resolveCustomTextEditor (330 lines) (review L3)
+
+**File:** `src/providers/IpCoreEditorProvider.ts`
+
+**Steps:**
+1. Extract inline error HTML to a template helper or `errorHtml.ts`
+2. Move `IpcMessage` and `FileSet` type definitions to module scope or shared types
+3. Extract generate workflow (130 lines) to a `GenerateHandler` class or function
+4. Replace if/else message handler chain with a strategy map
+
+**Target:** < 150 lines for `resolveCustomTextEditor`
+
+**Effort:** ~1 day
+
+---
+
+## P5 -- Code Quality and Conventions
+
+Smaller improvements for readability, consistency, and adherence to project rules.
+
+### P5-1: Replace emojis with text/codicons (review L1)
+
+**Files:** `GeneratorPanel.tsx`, `IpCoreApp.tsx`, `RegisterMapVisualizer.tsx`, `AddressMapVisualizer.tsx`, `IpCoreEditorProvider.ts`
+
+**Action:** Replace emoji characters with codicons (`<span class="codicon codicon-warning">`) or plain text equivalents. Project rules: "no emojis ever."
+
+### P5-2: Convert static-only classes to modules (review L2)
+
+**Files:** `ErrorHandler.ts`, `VhdlParser.ts`
+
+**Action:** Convert to modules of standalone exported functions. Remove `class` wrappers. (Note: `Logger` uses hybrid static/instance pattern for VS Code channel management -- address separately if desired.)
+
+### P5-3: Consolidate bit-range parsers/formatters (review L4)
+
+**File:** `src/webview/utils/BitFieldUtils.ts`
+
+**Action:** Consolidate `parseBitsRange`/`parseBitsLike` into a single parser. Consolidate `formatBitsRange`/`formatBitsLike` into a single formatter. The `Like` variants can be thin adapters over the core `Range` functions.
+
+### P5-4: Standardize error handling strategy (review L5)
+
+**Files:** `ImportResolver.ts`, `BusLibraryService.ts`, `YamlPathResolver.ts`
+
+**Action:** Adopt one pattern: throw on errors, let callers catch. Remove silent swallowing in `resolveFileSetImports` and `BusLibraryService`. Document the chosen strategy in each service's JSDoc.
+
+### P5-5: Clean up BusLibraryService (review L8)
+
+**File:** `src/services/BusLibraryService.ts`
+
+**Action:** Remove `for...of` loop over single-element `candidates` array. Use direct `try/catch` on the single path.
+
+### P5-6: Fix duplicate color value (review L9)
+
+**File:** `src/webview/shared/colors.ts`
+
+**Action:** Change `tangerine` to a distinct hex value, or remove it and adjust the color count.
+
+### P5-7: Add useCallback memoization (review L10)
+
+**Files:** `useMemoryMapState.ts`, `useYamlSync.ts`, `useIpCoreSync.ts`
+
+**Action:** Wrap `updateFromYaml`, `updateRawText`, `sendUpdate`, `sendCommand` in `useCallback`.
+
+### P5-8: DRY editor provider construction (review L11, L12)
+
+**Files:** `extension.ts`, `IpCoreEditorProvider.ts`, `MemoryMapEditorProvider.ts`
+
+**Action:** Create a shared factory or base class for service construction (`HtmlGenerator`, `DocumentManager`, `YamlValidator`, `MessageHandler`). DRY the registration blocks in `activate()`.
+
+### P5-9: Reduce ProLayoutView inline SVG (review L18)
+
+**File:** `src/webview/components/bitfield/ProLayoutView.tsx`
+
+**Action:** Extract the 110-line resize handle SVG to a `ResizeHandleIndicator` sub-component.
+
+### P5-10: Type safety improvements (review T1, T2, T3)
+
+**Action (incremental):**
+- Align repacker types with `BitFieldRuntimeDef[]` to reduce double casts in SpatialInsertionService
+- Remove `[key: string]: unknown` index signatures from `FieldModel` and `FieldDef`; add explicit optional properties
+- Extend `RegisterRecord` to include optional `count` and `stride` fields
+
+---
+
+## P6 -- Test Coverage
 
 Target: 30% statements, 20% branches.
 
-**High-value, easy-to-test targets:**
+Current: Statements **21.32%**, Branches **12.31%**
 
-| File | Lines | Why |
-|------|-------|-----|
-| `src/services/FileSetUpdater.ts` | 107 | Pure function, no VS Code deps |
-| `src/webview/hooks/useSelection.ts` | ~100 | State logic, testable with renderHook |
-| `src/webview/hooks/useTableNavigation.ts` | ~150 | Keyboard logic, testable with renderHook |
-| `src/webview/utils/formatUtils.ts` | ~20 | Pure functions |
-| `src/webview/services/SpatialInsertionService.ts` | 645 | Partially tested, expand existing suite |
+### High-value untested targets
 
-**Now covered in this pass:**
-- `src/services/FileSetUpdater.ts`
-- `src/webview/hooks/useSelection.ts`
-- `src/webview/hooks/useTableNavigation.ts`
-- `src/webview/utils/formatUtils.ts`
-- `src/services/BusLibraryService.ts`
-- `src/services/ImportResolver.ts`
-- `src/services/YamlValidator.ts`
-- `src/services/MessageHandler.ts`
-- `src/services/DocumentManager.ts`
-- `src/services/HtmlGenerator.ts`
-- `src/webview/services/DataNormalizer.ts`
-- `src/webview/services/YamlPathResolver.ts`
-
-**Extension host services (require VS Code mocking):**
-
-| File | Lines | What to test |
-|------|-------|-------------|
-| `src/services/BusLibraryService.ts` | ~200 | Cache behavior, YAML loading, bus merging |
-| `src/services/ImportResolver.ts` | ~150 | Import path resolution, circular dependency detection |
-| `src/services/YamlValidator.ts` | ~100 | Schema validation logic |
+| File | Lines | Coverage | What to test |
+|------|-------|----------|-------------|
+| `src/webview/index.tsx` | 677 | 0% | Selection resolution, field operations, keyboard shortcuts |
+| `src/webview/components/BitFieldVisualizer.tsx` | 864 | 0% | Utility functions (once extracted to utils.ts) |
+| `src/webview/components/Outline.tsx` | 668 | 0% | Tree building logic (once extracted) |
+| `src/providers/IpCoreEditorProvider.ts` | 405 | 0% | Message handling, generate workflow |
+| `src/commands/GenerateCommands.ts` | 253 | 0% | VHDL parse command, file set update |
+| `src/commands/FileCreationCommands.ts` | 151 | 0% | Template generation, file creation |
 
 ### Optional hardening
 
-- Investigate and clean up Jest worker teardown warning (`--detectOpenHandles`) to prevent hidden resource leaks.
+- Investigate Jest worker teardown warning (`--detectOpenHandles`)
 
 ---
 
-## Timeline Estimate
+## Effort Estimates
 
-| Priority | Effort | Target |
-|----------|--------|--------|
-| P1 -- Immediate | 1-2 hours | Now |
-| P2 -- Next Sprint | 5-7 days | Next sprint |
-| P3 -- Backlog | 6-10 days | As capacity allows |
+| Priority | Items | Effort | Timeline |
+|----------|-------|--------|----------|
+| P1 -- Correctness | 7 items | 2-3 hours | Immediate |
+| P2 -- Dead code | 5 items | 2-3 hours | Immediate |
+| P3 -- Duplication | 10 items | 3-5 days | Next sprint |
+| P4 -- Decomposition | 7 items | 5-8 days | Next sprint |
+| P5 -- Quality | 10 items | 2-3 days | Backlog |
+| P6 -- Coverage | Ongoing | 3-5 days | Backlog |
+
+---
+
+## Completed History
+
+Previous review items resolved (2026-02-20):
+- N1 (coverage thresholds), S2 (invalid woff2), N2 (lint enforcement), N3 (parseInt radix), N5 (repacker bounds), N4 (dead EditorPanel sections), N6 (all sub-items)
+- M4 (BitFieldVisualizer partial decomposition -- hooks, sub-components extracted)
+- M8 (Outline partial decomposition -- node components, header extracted)
 
 ---
 
@@ -189,8 +478,9 @@ Target: 30% statements, 20% branches.
 
 After each priority level, verify:
 
-- [x] **P1:** `npm test` passes (coverage thresholds met); invalid font file removed
-- [x] **P2:** `npm run compile` succeeds; `npm run lint` passes with `--max-warnings 0`; no `parseInt(s, 0)` occurrences; repackers validate `fromIndex`
-- [x] **P3 (completed subset):** dead placeholder exports removed; deprecated color param removed; legacy BitFieldUtils class removed; legacy generate-with-bus command removed; explicit block size preserved
-- [x] **Remaining major refactors:** BitFieldVisualizer decomposition
-- [ ] **Long-range target:** coverage > 30% statements
+- [ ] **P1:** `npm run compile && npm run lint && npm test` all pass
+- [ ] **P2:** `npm run compile && npm run lint && npm test` all pass; grep for removed exports confirms zero hits
+- [ ] **P3:** `npm run compile && npm run lint && npm test` all pass; duplicated functions have single source
+- [ ] **P4:** Each decomposed file under target line count; `npm run compile && npm run lint && npm test` all pass
+- [ ] **P5:** No emojis in source; no static-only classes; `npm run lint` clean
+- [ ] **P6:** Coverage > 30% statements, > 20% branches
