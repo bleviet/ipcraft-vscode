@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { Logger } from '../utils/Logger';
-import { ErrorHandler } from '../utils/ErrorHandler';
+import { handleError } from '../utils/ErrorHandler';
 
 /**
  * Service responsible for managing document read/write operations
@@ -42,7 +42,7 @@ export class DocumentManager {
 
       return success;
     } catch (error) {
-      ErrorHandler.handle(error, 'DocumentManager.updateDocument');
+      handleError(error, 'DocumentManager.updateDocument');
       return false;
     }
   }
@@ -57,7 +57,7 @@ export class DocumentManager {
       this.logger.debug(`Document ${success ? 'saved' : 'save failed'}`);
       return success;
     } catch (error) {
-      ErrorHandler.handle(error, 'DocumentManager.saveDocument');
+      handleError(error, 'DocumentManager.saveDocument');
       return false;
     }
   }

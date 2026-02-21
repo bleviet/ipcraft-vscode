@@ -26,12 +26,14 @@ import {
 
 export interface FieldModel {
   name?: string;
+  bits?: string;
   bit?: number;
   bit_range?: [number, number];
   bit_offset?: number | string;
   bit_width?: number | string;
+  access?: string;
+  reset_value?: number | null;
   description?: string;
-  [key: string]: unknown;
 }
 
 interface BitFieldVisualizerProps {

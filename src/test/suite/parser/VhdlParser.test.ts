@@ -2,7 +2,7 @@ import * as fs from 'fs/promises';
 import * as os from 'os';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
-import { VhdlParser } from '../../../parser/VhdlParser';
+import { parseVhdlFile } from '../../../parser/VhdlParser';
 
 describe('VhdlParser', () => {
   it('parses an entity with ports', async () => {
@@ -22,8 +22,7 @@ describe('VhdlParser', () => {
     `;
 
     await fs.writeFile(filePath, vhdl, 'utf8');
-    const parser = new VhdlParser();
-    const result = await parser.parseFile(filePath);
+    const result = await parseVhdlFile(filePath);
     const parsed = yaml.load(result.yamlText) as Record<string, unknown>;
 
     expect(result.entityName).toBe('my_module');
@@ -47,8 +46,7 @@ describe('VhdlParser', () => {
     `;
 
     await fs.writeFile(filePath, vhdl, 'utf8');
-    const parser = new VhdlParser();
-    const result = await parser.parseFile(filePath, { detectBus: true });
+    const result = await parseVhdlFile(filePath, { detectBus: true });
     const parsed = yaml.load(result.yamlText) as Record<string, unknown>;
 
     expect((parsed.busInterfaces as unknown[] | undefined)?.length ?? 0).toBeGreaterThan(0);
@@ -66,8 +64,7 @@ describe('VhdlParser', () => {
     `;
 
     await fs.writeFile(filePath, vhdl, 'utf8');
-    const parser = new VhdlParser();
-    const result = await parser.parseFile(filePath);
+    const result = await parseVhdlFile(filePath);
     const parsed = yaml.load(result.yamlText) as Record<string, unknown>;
     const ports = (parsed.ports as Array<Record<string, unknown>>) ?? [];
 

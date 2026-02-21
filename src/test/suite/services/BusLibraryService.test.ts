@@ -45,25 +45,25 @@ describe('BusLibraryService', () => {
     );
   });
 
-  it('returns empty object and logs when library file cannot be read', async () => {
+  it('throws and logs when library file cannot be read', async () => {
     readFileMock.mockRejectedValue(new Error('not found'));
     const service = new BusLibraryService(logger as Logger, context);
 
-    const result = await service.loadDefaultLibrary();
-
-    expect(result).toEqual({});
+    await expect(service.loadDefaultLibrary()).rejects.toThrow(
+      'Default bus library not found at /ext/dist/resources/bus_definitions.yml: not found'
+    );
     expect(logger.error).toHaveBeenCalledWith(
       'Default bus library not found in extension resources'
     );
   });
 
-  it('returns empty object and logs when YAML parse fails', async () => {
+  it('throws and logs when YAML parse fails', async () => {
     readFileMock.mockResolvedValue(Buffer.from('{ invalid: [', 'utf8'));
     const service = new BusLibraryService(logger as Logger, context);
 
-    const result = await service.loadDefaultLibrary();
-
-    expect(result).toEqual({});
+    await expect(service.loadDefaultLibrary()).rejects.toThrow(
+      'Failed to parse default bus library from /ext/dist/resources/bus_definitions.yml'
+    );
     expect(logger.error).toHaveBeenCalledWith(
       'Failed to parse default bus library from /ext/dist/resources/bus_definitions.yml',
       expect.any(Error)

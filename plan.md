@@ -39,7 +39,12 @@
 - P3 implementation completed for: P3-1, P3-2, P3-3, P3-4, P3-5, P3-6, P3-7, P3-8, P3-9, P3-10
 - P4 implementation in progress: P4-1 decomposition slices completed for `InlineEditField`, `BusInterfaceCard`, `PortMappingTable`, and `useBusInterfaceEditing` extraction/integration
 - P4 implementation completed for P4-2: `BitFieldVisualizer` decomposition finished with extracted reorder/keyboard/utility modules and orchestrator reduced to 380 lines
-- P5 implementation completed for: P5-1, P5-6, P5-7
+- P4 implementation completed for P4-3: `index.tsx` decomposed with extracted selection resolver, field operation service, and navigation/rename/update hooks; `App` reduced to 194 lines
+- P4 implementation completed for P4-4: `Outline.tsx` decomposed with extracted visible selection builder, keyboard hook, typed ID helpers, and tree-node renderer; container reduced to 287 lines
+- P4 implementation completed for P4-5: `FieldsTable.tsx` decomposed with extracted row component and shared field validation utils; container reduced to 200 lines
+- P4 implementation completed for P4-6: `IpCoreScaffolder.ts` decomposed with extracted register processor and normalized input model; scaffolder reduced to 294 lines
+- P4 implementation completed for P4-7: `IpCoreEditorProvider.resolveCustomTextEditor` decomposed with extracted error HTML helper, generate handler, and message wiring helpers; method reduced to 43 lines
+- P5 implementation completed for: P5-1 through P5-10
 - Verification complete: `npm run lint`, `npm run compile`, and `npm test` pass after the current batch
 
 ---
@@ -315,6 +320,8 @@ Each task reduces a file to a focused orchestrator by extracting cohesive sub-un
 
 **Target:** App component < 200 lines (layout + wiring only)
 
+**Status:** Completed (2026-02-21) -- `App` reduced to 194 lines
+
 **Effort:** ~1 day
 
 ### P4-4: Continue Outline.tsx decomposition (668 lines) (review C4)
@@ -329,6 +336,8 @@ Each task reduces a file to a focused orchestrator by extracting cohesive sub-un
 
 **Target:** Container < 300 lines
 
+**Status:** Completed (2026-02-21) -- `Outline.tsx` reduced to 287 lines
+
 **Effort:** ~1 day
 
 ### P4-5: Reduce FieldsTable.tsx (665 lines) (review C5)
@@ -341,6 +350,8 @@ Each task reduces a file to a focused orchestrator by extracting cohesive sub-un
 3. Extract duplicated `onFocus` pattern similarly
 
 **Target:** < 400 lines
+
+**Status:** Completed (2026-02-21) -- `FieldsTable.tsx` reduced to 200 lines
 
 **Effort:** ~0.5 day
 
@@ -356,6 +367,8 @@ Each task reduces a file to a focused orchestrator by extracting cohesive sub-un
 
 **Target:** < 300 lines
 
+**Status:** Completed (2026-02-21) -- `IpCoreScaffolder.ts` reduced to 294 lines
+
 **Effort:** ~1 day
 
 ### P4-7: Refactor IpCoreEditorProvider.resolveCustomTextEditor (330 lines) (review L3)
@@ -369,6 +382,8 @@ Each task reduces a file to a focused orchestrator by extracting cohesive sub-un
 4. Replace if/else message handler chain with a strategy map
 
 **Target:** < 150 lines for `resolveCustomTextEditor`
+
+**Status:** Completed (2026-02-21) -- `resolveCustomTextEditor` reduced to 43 lines
 
 **Effort:** ~1 day
 
@@ -390,11 +405,15 @@ Smaller improvements for readability, consistency, and adherence to project rule
 
 **Action:** Convert to modules of standalone exported functions. Remove `class` wrappers. (Note: `Logger` uses hybrid static/instance pattern for VS Code channel management -- address separately if desired.)
 
+**Status:** Completed (2026-02-21)
+
 ### P5-3: Consolidate bit-range parsers/formatters (review L4)
 
 **File:** `src/webview/utils/BitFieldUtils.ts`
 
 **Action:** Consolidate `parseBitsRange`/`parseBitsLike` into a single parser. Consolidate `formatBitsRange`/`formatBitsLike` into a single formatter. The `Like` variants can be thin adapters over the core `Range` functions.
+
+**Status:** Completed (2026-02-21)
 
 ### P5-4: Standardize error handling strategy (review L5)
 
@@ -402,11 +421,15 @@ Smaller improvements for readability, consistency, and adherence to project rule
 
 **Action:** Adopt one pattern: throw on errors, let callers catch. Remove silent swallowing in `resolveFileSetImports` and `BusLibraryService`. Document the chosen strategy in each service's JSDoc.
 
+**Status:** Completed (2026-02-21)
+
 ### P5-5: Clean up BusLibraryService (review L8)
 
 **File:** `src/services/BusLibraryService.ts`
 
 **Action:** Remove `for...of` loop over single-element `candidates` array. Use direct `try/catch` on the single path.
+
+**Status:** Completed (2026-02-21)
 
 ### P5-6: Fix duplicate color value (review L9)
 
@@ -426,11 +449,15 @@ Smaller improvements for readability, consistency, and adherence to project rule
 
 **Action:** Create a shared factory or base class for service construction (`HtmlGenerator`, `DocumentManager`, `YamlValidator`, `MessageHandler`). DRY the registration blocks in `activate()`.
 
+**Status:** Completed (2026-02-21)
+
 ### P5-9: Reduce ProLayoutView inline SVG (review L18)
 
 **File:** `src/webview/components/bitfield/ProLayoutView.tsx`
 
 **Action:** Extract the 110-line resize handle SVG to a `ResizeHandleIndicator` sub-component.
+
+**Status:** Completed (2026-02-21)
 
 ### P5-10: Type safety improvements (review T1, T2, T3)
 
@@ -438,6 +465,8 @@ Smaller improvements for readability, consistency, and adherence to project rule
 - Align repacker types with `BitFieldRuntimeDef[]` to reduce double casts in SpatialInsertionService
 - Remove `[key: string]: unknown` index signatures from `FieldModel` and `FieldDef`; add explicit optional properties
 - Extend `RegisterRecord` to include optional `count` and `stride` fields
+
+**Status:** Completed (2026-02-21)
 
 ---
 
@@ -503,6 +532,20 @@ Current pass resolved (2026-02-21, current batch):
 - P3-3 completed: extracted shared `calculateBlockSize(...)` utility and reused in repacker/editor/visualizer
 - P3-4 completed: consolidated shared access options in `src/webview/shared/constants.ts`
 - P3-6 completed: extracted `focusContainer(...)` and replaced repeated focus-timeout call sites
+
+Current pass resolved (2026-02-21, P5 completion batch):
+- P5-2 completed: converted `ErrorHandler` and `VhdlParser` from static-class wrappers to module-level APIs and migrated command/test call sites
+- P5-3 completed: unified bit-range parsing/formatting internals in `BitFieldUtils` with thin adapter exports
+- P5-4 completed: standardized service error strategy to throw-and-catch by making file-set/default bus-library load failures explicit
+- P5-5 completed: removed single-candidate loop in `BusLibraryService` and simplified direct load flow
+- P5-8 completed: extracted shared provider service factory and de-duplicated custom-editor registration flow in `activate()`
+- P5-9 completed: extracted duplicated resize-handle inline SVG markup into a reusable sub-component in `ProLayoutView`
+- P5-10 completed: tightened runtime typing paths (field/register normalization and reduced unsafe double-casts in insertion flows)
+- Verification completed for P5 batch:
+	- `npm run compile-tests` passed
+	- `npm run lint` passed
+	- `npm run test:unit` passed (26 suites, 206 tests)
+	- `npm run compile` passed (existing webpack warnings unchanged)
 - P3-8 completed: extracted `ImportResolver.readYamlFile(...)` to remove duplicated YAML file-read/parse chains
 - P3-10 completed: extracted `applyYamlUpdate(...)` shared update path in `useMemoryMapState`
 - P3-5 completed: extracted shared `useAutoFocus` and `useEscapeFocus` hooks and applied to memory map editors
@@ -570,6 +613,62 @@ Current pass resolved (2026-02-21, decomposition slice 6):
 	- `npm run compile` passed
 	- `npm test` passed
 
+Current pass resolved (2026-02-21, decomposition slice 7):
+- P4-3 completed: extracted `resolveFromSelection` into `src/webview/hooks/useSelectionResolver.ts`
+- P4-3 completed: extracted field operation handling into pure `src/webview/services/FieldOperationService.ts`
+- P4-3 completed: extracted App business logic hooks:
+	- `src/webview/hooks/useSelectionLifecycle.ts`
+	- `src/webview/hooks/useOutlineRename.ts`
+	- `src/webview/hooks/useDetailsNavigation.ts`
+	- `src/webview/hooks/useYamlUpdateHandler.ts`
+- P4-3 completed: rewired `src/webview/index.tsx` to orchestrator-focused composition; `App` reduced to 194 lines (target < 200 achieved)
+- Verification completed for this slice:
+	- `npm run lint -- --max-warnings 0` passed
+	- `npm run compile` passed
+	- `npm test` passed
+
+Current pass resolved (2026-02-21, decomposition slice 8):
+- P4-4 completed: extracted `visibleSelections` builder into `src/webview/components/outline/buildVisibleSelections.ts`
+- P4-4 completed: extracted tree keyboard behavior into `src/webview/components/outline/useOutlineKeyboard.ts`
+- P4-4 completed: replaced ad-hoc ID parsing with typed helpers in `src/webview/components/outline/outlineIds.ts`
+- P4-4 completed: extracted block/register/array tree rendering into `src/webview/components/outline/OutlineTreeNodes.tsx`
+- P4-4 completed: reduced `src/webview/components/Outline.tsx` to 287 lines (target < 300 achieved)
+- Verification completed for this slice:
+	- `npm run lint -- --max-warnings 0` passed
+	- `npm run compile` passed
+	- `npm test` passed
+
+Current pass resolved (2026-02-21, decomposition slice 9):
+- P4-5 completed: moved field validation/parsing helpers to `src/webview/shared/utils/fieldValidation.ts`
+- P4-5 completed: extracted row rendering and per-cell edit handlers into `src/webview/components/register/FieldTableRow.tsx`
+- P4-5 completed: reduced duplicated cell click/focus patterns in `src/webview/components/register/FieldsTable.tsx` via shared handler helpers
+- P4-5 completed: reduced `src/webview/components/register/FieldsTable.tsx` to 200 lines (target < 400 achieved)
+- Verification completed for this slice:
+	- `npm run lint -- --max-warnings 0` passed
+	- `npm run compile` passed
+	- `npm test` passed
+
+Current pass resolved (2026-02-21, decomposition slice 10):
+- P4-6 completed: moved generator data interfaces/types out of `src/generator/IpCoreScaffolder.ts` into `src/generator/types.ts`
+- P4-6 completed: extracted register preparation, memory map resolution, VHDL port typing, bus normalization, and IP data normalization into `src/generator/registerProcessor.ts`
+- P4-6 completed: consolidated bus type normalization via shared `normalizeBusType(...)` flow (removing split `BUS_TYPE_MAP`/`normalizeBusTypeKey` approaches)
+- P4-6 completed: centralized camelCase/snake_case handling at YAML load time via `normalizeIpCoreData(...)`
+- P4-6 completed: reduced `src/generator/IpCoreScaffolder.ts` to 294 lines (target < 300 achieved)
+- Verification completed for this slice:
+	- `npm run lint -- --max-warnings 0` passed
+	- `npm run compile` passed
+	- `npm test` passed
+
+Current pass resolved (2026-02-21, decomposition slice 11):
+- P4-7 completed: extracted non-IP-core error HTML into `src/providers/ipCoreErrorHtml.ts`
+- P4-7 completed: extracted generate workflow into `src/providers/IpCoreGenerateHandler.ts`
+- P4-7 completed: replaced inline message if/else chain with strategy-map dispatch and extracted message registration wiring helpers
+- P4-7 completed: reduced `resolveCustomTextEditor` in `src/providers/IpCoreEditorProvider.ts` to 43 lines (target < 150 achieved)
+- Verification completed for this slice:
+	- `npm run lint -- --max-warnings 0` passed
+	- `npm run compile` passed
+	- `npm test` passed
+
 Previous review items resolved (2026-02-20):
 - N1 (coverage thresholds), S2 (invalid woff2), N2 (lint enforcement), N3 (parseInt radix), N5 (repacker bounds), N4 (dead EditorPanel sections), N6 (all sub-items)
 - M4 (BitFieldVisualizer partial decomposition -- hooks, sub-components extracted)
@@ -584,6 +683,6 @@ After each priority level, verify:
 - [x] **P1:** `npm run compile && npm run lint && npm test` all pass
 - [x] **P2:** `npm run compile && npm run lint && npm test` all pass; grep for removed exports confirms zero hits
 - [x] **P3:** `npm run compile && npm run lint && npm test` all pass; duplicated functions have single source
-- [ ] **P4:** Each decomposed file under target line count; `npm run compile && npm run lint && npm test` all pass
+- [x] **P4:** Each decomposed file under target line count; `npm run compile && npm run lint && npm test` all pass
 - [ ] **P5:** No emojis in source; no static-only classes; `npm run lint` clean
 - [ ] **P6:** Coverage > 30% statements, > 20% branches

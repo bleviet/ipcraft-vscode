@@ -77,7 +77,7 @@ describe('ImportResolver', () => {
     expect(fromObject).toEqual([{ name: 'map1', baseAddress: 4096 }]);
   });
 
-  it('resolves file set imports and keeps non-import entries while continuing on failures', async () => {
+  it('throws when any file set import fails', async () => {
     const resolver = new ImportResolver(logger as Logger, context);
 
     readFileMock.mockImplementation(async (uri: { fsPath: string }) => {
@@ -97,13 +97,9 @@ describe('ImportResolver', () => {
       { name: 'Local', files: [{ path: 'local/top.vhd' }] },
     ];
 
-    const result = await resolver.resolveFileSetImports(fileSets, '/project');
-
-    expect(result).toEqual([
-      { name: 'RTL', files: [{ path: 'rtl/a.vhd' }] },
-      { name: 'SIM', files: [{ path: 'sim/tb.vhd' }] },
-      { name: 'Local', files: [{ path: 'local/top.vhd' }] },
-    ]);
+    await expect(resolver.resolveFileSetImports(fileSets, '/project')).rejects.toThrow(
+      'Failed to load file set import missing.fileset.yml: missing fileset'
+    );
     expect(logger.error).toHaveBeenCalledWith(
       'Failed to resolve file set import: missing.fileset.yml',
       expect.any(Error)

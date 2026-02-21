@@ -126,6 +126,62 @@ function sortBlocksByBase(blocks: AddressBlockRuntimeDef[]): AddressBlockRuntime
   );
 }
 
+function toBitFieldRuntime(field: Record<string, unknown>, index: number): BitFieldRuntimeDef {
+  const bits = typeof field.bits === 'string' ? field.bits : '[0:0]';
+  const parsed = parseBitsRange(bits) ?? [0, 0];
+  const msb = parsed[0];
+  const lsb = parsed[1];
+  return {
+    ...field,
+    name: String(field.name ?? `field${index}`),
+    bits,
+    bit_offset: typeof field.bit_offset === 'number' ? field.bit_offset : lsb,
+    bit_width: typeof field.bit_width === 'number' ? field.bit_width : msb - lsb + 1,
+    bit_range: [msb, lsb],
+    access: String(field.access ?? 'read-write'),
+    reset_value: typeof field.reset_value === 'number' ? field.reset_value : 0,
+    description: String(field.description ?? ''),
+  };
+}
+
+function toRegisterRuntime(reg: Record<string, unknown>, index: number): RegisterRuntimeDef {
+  const offset =
+    typeof reg.address_offset === 'number'
+      ? reg.address_offset
+      : typeof reg.offset === 'number'
+        ? reg.offset
+        : index * 4;
+  return {
+    ...reg,
+    name: String(reg.name ?? `reg${index}`),
+    address_offset: offset,
+    offset,
+    access: String(reg.access ?? 'read-write'),
+    description: String(reg.description ?? ''),
+  };
+}
+
+function toBlockRuntime(block: Record<string, unknown>, index: number): AddressBlockRuntimeDef {
+  const base =
+    typeof block.base_address === 'number'
+      ? block.base_address
+      : typeof block.offset === 'number'
+        ? block.offset
+        : index * 4;
+  return {
+    ...block,
+    name: String(block.name ?? `block${index}`),
+    base_address: base,
+    offset: base,
+    size: typeof block.size === 'number' ? block.size : 4,
+    registers: Array.isArray(block.registers)
+      ? block.registers.map((reg, regIdx) =>
+          toRegisterRuntime(reg as Record<string, unknown>, regIdx)
+        )
+      : [],
+  };
+}
+
 // ---------------------------------------------------------------------------
 // SpatialInsertionService
 // ---------------------------------------------------------------------------
@@ -268,12 +324,10 @@ export class SpatialInsertionService {
     };
 
     let newFields = [...fields.slice(0, selIdx + 1), newField, ...fields.slice(selIdx + 1)];
-    newFields = repackFieldsForward(
-      newFields,
-      selIdx + 2,
-      regSize
-    ) as unknown as BitFieldRuntimeDef[];
-    newFields = sortFieldsByLsb(newFields as unknown as BitFieldRuntimeDef[]);
+    newFields = repackFieldsForward(newFields, selIdx + 2, regSize).map((field, index) =>
+      toBitFieldRuntime(field as Record<string, unknown>, index)
+    );
+    newFields = sortFieldsByLsb(newFields);
 
     // Validate: no field may have a negative LSB.
     let minLsb = Infinity;
@@ -380,12 +434,10 @@ export class SpatialInsertionService {
     };
 
     let newFields = [...fields.slice(0, selIdx), newField, ...fields.slice(selIdx)];
-    newFields = repackFieldsBackward(
-      newFields,
-      selIdx - 1 >= 0 ? selIdx - 1 : 0,
-      regSize
-    ) as unknown as BitFieldRuntimeDef[];
-    newFields = sortFieldsByLsb(newFields as unknown as BitFieldRuntimeDef[]);
+    newFields = repackFieldsBackward(newFields, selIdx - 1 >= 0 ? selIdx - 1 : 0, regSize).map(
+      (field, index) => toBitFieldRuntime(field as Record<string, unknown>, index)
+    );
+    newFields = sortFieldsByLsb(newFields);
 
     // Validate: no field may exceed register size.
     let maxMsb = -Infinity;
@@ -458,11 +510,10 @@ export class SpatialInsertionService {
       this.defaultReg(name, newOffset),
       ...registers.slice(selIdx + 1),
     ];
-    newRegisters = repackRegistersForward(
-      newRegisters,
-      selIdx + 2
-    ) as unknown as RegisterRuntimeDef[];
-    newRegisters = sortRegistersByOffset(newRegisters as unknown as RegisterRuntimeDef[]);
+    newRegisters = repackRegistersForward(newRegisters, selIdx + 2).map((reg, index) =>
+      toRegisterRuntime(reg as Record<string, unknown>, index)
+    );
+    newRegisters = sortRegistersByOffset(newRegisters);
 
     const newIndex = newRegisters.findIndex((r) => r.name === name);
     return { items: newRegisters, newIndex };
@@ -504,11 +555,10 @@ export class SpatialInsertionService {
       this.defaultReg(name, newOffset),
       ...registers.slice(selIdx),
     ];
-    newRegisters = repackRegistersBackward(
-      newRegisters,
-      selIdx - 1 >= 0 ? selIdx - 1 : 0
-    ) as unknown as RegisterRuntimeDef[];
-    newRegisters = sortRegistersByOffset(newRegisters as unknown as RegisterRuntimeDef[]);
+    newRegisters = repackRegistersBackward(newRegisters, selIdx - 1 >= 0 ? selIdx - 1 : 0).map(
+      (reg, index) => toRegisterRuntime(reg as Record<string, unknown>, index)
+    );
+    newRegisters = sortRegistersByOffset(newRegisters);
 
     // Validate: no register should end up with a negative offset.
     for (const reg of newRegisters) {
@@ -574,8 +624,10 @@ export class SpatialInsertionService {
       this.defaultBlock(name, newBase),
       ...blocks.slice(selIdx + 1),
     ];
-    newBlocks = repackBlocksForward(newBlocks, selIdx + 2) as unknown as AddressBlockRuntimeDef[];
-    newBlocks = sortBlocksByBase(newBlocks as unknown as AddressBlockRuntimeDef[]);
+    newBlocks = repackBlocksForward(newBlocks, selIdx + 2).map((block, index) =>
+      toBlockRuntime(block as Record<string, unknown>, index)
+    );
+    newBlocks = sortBlocksByBase(newBlocks);
 
     const newIndex = newBlocks.findIndex((b) => b.name === name);
     return { items: newBlocks, newIndex };
@@ -645,11 +697,10 @@ export class SpatialInsertionService {
       }
     }
 
-    newBlocks = repackBlocksBackward(
-      newBlocks,
-      selIdx - 1 >= 0 ? selIdx - 1 : 0
-    ) as unknown as AddressBlockRuntimeDef[];
-    newBlocks = sortBlocksByBase(newBlocks as unknown as AddressBlockRuntimeDef[]);
+    newBlocks = repackBlocksBackward(newBlocks, selIdx - 1 >= 0 ? selIdx - 1 : 0).map(
+      (block, index) => toBlockRuntime(block as Record<string, unknown>, index)
+    );
+    newBlocks = sortBlocksByBase(newBlocks);
 
     const newIndex = newBlocks.findIndex((b) => b.name === name);
     return { items: newBlocks, newIndex };

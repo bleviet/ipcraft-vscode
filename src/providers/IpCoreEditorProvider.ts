@@ -1,16 +1,27 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as jsyaml from 'js-yaml';
-import * as YAML from 'yaml';
 import { Logger } from '../utils/Logger';
 import { HtmlGenerator } from '../services/HtmlGenerator';
 import { MessageHandler } from '../services/MessageHandler';
-import { YamlValidator } from '../services/YamlValidator';
 import { DocumentManager } from '../services/DocumentManager';
 import { ImportResolver } from '../services/ImportResolver';
-import { updateFileSets } from '../services/FileSetUpdater';
-import { TemplateLoader } from '../generator/TemplateLoader';
-import { IpCoreScaffolder } from '../generator/IpCoreScaffolder';
+import { createNotIpCoreHtml } from './ipCoreErrorHtml';
+import { createSharedProviderServices } from './providerServices';
+import {
+  handleGenerateRequest,
+  type GenerateRequestMessage,
+  type GenerateOptionsMessage,
+} from './IpCoreGenerateHandler';
+
+interface IpcMessage {
+  type: string;
+  multi?: boolean;
+  filters?: Record<string, string[]>;
+  paths?: string[];
+  options?: GenerateOptionsMessage;
+  [key: string]: unknown;
+}
 
 /**
  * Custom editor provider for FPGA IP core YAML files.
@@ -25,10 +36,10 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
   private readonly importResolver: ImportResolver;
 
   constructor(private readonly context: vscode.ExtensionContext) {
-    this.htmlGenerator = new HtmlGenerator(context);
-    this.documentManager = new DocumentManager();
-    const yamlValidator = new YamlValidator();
-    this.messageHandler = new MessageHandler(yamlValidator, this.documentManager);
+    const services = createSharedProviderServices(context);
+    this.htmlGenerator = services.htmlGenerator;
+    this.messageHandler = services.messageHandler;
+    this.documentManager = services.documentManager;
     this.importResolver = new ImportResolver(this.logger, context);
 
     this.logger.info('IpCoreEditorProvider initialized');
@@ -78,45 +89,8 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
     const isIpCore = this.isIpCoreDocument(document);
     if (!isIpCore) {
       this.logger.info('Document is not an IP core file, showing error in webview');
-      // Show error in webview instead of disposing - disposing causes VS Code state issues
       webviewPanel.webview.options = { enableScripts: false };
-      webviewPanel.webview.html = `
-                <!DOCTYPE html>
-                <html lang="en">
-                <head>
-                    <meta charset="UTF-8">
-                    <style>
-                        body {
-                            font-family: var(--vscode-font-family);
-                            padding: 20px;
-                            color: var(--vscode-foreground);
-                            background: var(--vscode-editor-background);
-                        }
-                        .error-container {
-                            display: flex;
-                            flex-direction: column;
-                            align-items: center;
-                            justify-content: center;
-                            height: 80vh;
-                            text-align: center;
-                        }
-                        .error-icon { font-size: 48px; margin-bottom: 16px; }
-                        .error-title { font-size: 18px; font-weight: bold; margin-bottom: 8px; }
-                        .error-message { opacity: 0.7; }
-                    </style>
-                </head>
-                <body>
-                    <div class="error-container">
-                        <div class="error-icon">Warning</div>
-                        <div class="error-title">Not an IP Core File</div>
-                        <div class="error-message">
-                            This file does not appear to be an IP core YAML file.<br>
-                            Expected: <code>apiVersion</code> and <code>vlnv</code> fields.
-                        </div>
-                    </div>
-                </body>
-                </html>
-            `;
+      webviewPanel.webview.html = createNotIpCoreHtml();
       return;
     }
 
@@ -130,276 +104,169 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
     // Set HTML content - use ipcore-specific HTML
     webviewPanel.webview.html = this.htmlGenerator.generateIpCoreHtml(webviewPanel.webview);
 
-    // Track if webview is disposed
     let isDisposed = false;
 
-    // Send initial update to webview with resolved imports
     const updateWebview = async () => {
-      if (isDisposed) {
-        this.logger.debug('Webview already disposed, skipping update');
-        return;
-      }
-      try {
-        this.logger.debug('updateWebview called');
-        const text = document.getText();
-        this.logger.debug(`Document text length: ${text.length}`);
-        const parsed = jsyaml.load(text);
-        this.logger.debug('YAML parsed successfully');
-
-        // Resolve imports
-        const baseDir = path.dirname(document.uri.fsPath);
-        const imports = await this.importResolver.resolveImports(
-          parsed as Record<string, unknown>,
-          baseDir
-        );
-        this.logger.debug(`Imports resolved: ${Object.keys(imports).length} items`);
-
-        // Check again after async operation
-        if (isDisposed) {
-          this.logger.debug('Webview disposed during import resolution, skipping update');
-          return;
-        }
-
-        // Send to webview
-        const message = {
-          type: 'update',
-          text: text,
-          fileName: path.basename(document.uri.fsPath),
-          imports: imports,
-        };
-        this.logger.info('Posting message to webview:', {
-          type: message.type,
-          fileName: message.fileName,
-          textLength: text.length,
-          importsCount: Object.keys(imports).length,
-        });
-        void webviewPanel.webview.postMessage(message);
-        this.logger.debug('Message posted successfully');
-      } catch (error) {
-        this.logger.error('Failed to update webview', error as Error);
-      }
+      await this.updateWebview(document, webviewPanel, () => isDisposed);
     };
 
-    // Listen for document changes
-    const changeDocumentSubscription = vscode.workspace.onDidChangeTextDocument((e) => {
+    const changeDocumentSubscription = this.subscribeToDocumentChanges(document, updateWebview);
+    this.registerDisposal(webviewPanel, () => {
+      isDisposed = true;
+      changeDocumentSubscription.dispose();
+    });
+    this.registerWebviewMessageHandlers(document, webviewPanel, updateWebview);
+
+    setTimeout(() => {
+      void updateWebview();
+    }, 100);
+  }
+
+  private subscribeToDocumentChanges(
+    document: vscode.TextDocument,
+    updateWebview: () => Promise<void>
+  ): vscode.Disposable {
+    return vscode.workspace.onDidChangeTextDocument((e) => {
       if (e.document.uri.toString() === document.uri.toString()) {
         void updateWebview();
       }
     });
+  }
 
-    // Clean up subscriptions when webview is disposed
+  private registerDisposal(webviewPanel: vscode.WebviewPanel, onDispose: () => void): void {
     webviewPanel.onDidDispose(() => {
-      isDisposed = true;
-      changeDocumentSubscription.dispose();
+      onDispose();
       this.logger.debug('Webview panel disposed');
     });
+  }
 
-    // Handle messages from the webview
-    interface IpcMessage {
-      type: string;
-      multi?: boolean;
-      filters?: Record<string, string[]>;
-      paths?: string[];
-      options?: {
-        vendorFiles?: string;
-        includeTestbench?: boolean;
-        includeRegfile?: boolean;
-        includeVhdl?: boolean;
-      };
-      [key: string]: unknown;
-    }
-    webviewPanel.webview.onDidReceiveMessage(async (message: IpcMessage) => {
-      if (message.type === 'ready') {
-        // Webview is ready, send initial update
+  private registerWebviewMessageHandlers(
+    document: vscode.TextDocument,
+    webviewPanel: vscode.WebviewPanel,
+    updateWebview: () => Promise<void>
+  ): void {
+    type MessageHandlerFn = (message: IpcMessage) => Promise<void>;
+
+    const messageHandlers: Record<string, MessageHandlerFn> = {
+      ready: async () => {
         this.logger.info('Webview ready, sending initial update');
-        void updateWebview();
-      } else if (message.type === 'selectFiles') {
-        // Handle file selection dialog
-        this.logger.info('Opening file picker dialog');
-        const options: vscode.OpenDialogOptions = {
-          canSelectMany: message.multi ?? true,
-          openLabel: 'Select Files',
-          canSelectFiles: true,
-          canSelectFolders: false,
-          filters: message.filters, // Support file filters
-        };
-
-        const fileUris = await vscode.window.showOpenDialog(options);
-        if (fileUris && fileUris.length > 0) {
-          // Get relative paths from the document directory
-          const baseDir = path.dirname(document.uri.fsPath);
-          const relativePaths = fileUris.map((uri) => {
-            const filePath = uri.fsPath;
-            return path.relative(baseDir, filePath);
-          });
-
-          // Send back to webview
-          void webviewPanel.webview.postMessage({
-            type: 'filesSelected',
-            files: relativePaths,
-          });
-          this.logger.info(`Selected ${relativePaths.length} file(s)`);
-        }
-      } else if (message.type === 'checkFilesExist') {
-        // Check which files exist on disk
-        const baseDir = path.dirname(document.uri.fsPath);
-        const filePaths: string[] = message.paths ?? [];
-        const results: { [key: string]: boolean } = {};
-
-        for (const filePath of filePaths) {
-          try {
-            const fullPath = path.isAbsolute(filePath) ? filePath : path.join(baseDir, filePath);
-            const uri = vscode.Uri.file(fullPath);
-            await vscode.workspace.fs.stat(uri);
-            results[filePath] = true;
-          } catch {
-            results[filePath] = false;
-          }
-        }
-
-        void webviewPanel.webview.postMessage({
-          type: 'filesExistResult',
-          results: results,
+        await updateWebview();
+      },
+      selectFiles: async (message) => {
+        await this.handleSelectFilesMessage(message, document, webviewPanel);
+      },
+      checkFilesExist: async (message) => {
+        await this.handleCheckFilesExistMessage(message, document, webviewPanel);
+      },
+      generate: async (message) => {
+        await handleGenerateRequest({
+          logger: this.logger,
+          context: this.context,
+          documentManager: this.documentManager,
+          document,
+          webview: webviewPanel.webview,
+          message: message as GenerateRequestMessage,
+          refreshWebview: updateWebview,
         });
-        this.logger.debug(`Checked ${filePaths.length} file(s) for existence`);
-      } else if (message.type === 'generate') {
-        // Handle VHDL generation request using TypeScript backend
-        this.logger.info('Generate request received', message.options);
+      },
+    };
 
-        try {
-          const baseDir = path.dirname(document.uri.fsPath);
-          const text = document.getText();
-          const rawData = jsyaml.load(text) as { vlnv?: { name?: string } };
-          const ipName = rawData.vlnv?.name?.toLowerCase() ?? 'ip_core';
-
-          // Ask user for output directory using folder picker
-          const folderUris = await vscode.window.showOpenDialog({
-            canSelectFiles: false,
-            canSelectFolders: true,
-            canSelectMany: false,
-            openLabel: 'Select Output Folder',
-            title: 'Select Output Directory for Generated Files',
-            defaultUri: vscode.Uri.file(path.dirname(document.uri.fsPath)),
-          });
-
-          if (!folderUris || folderUris.length === 0) {
-            void webviewPanel.webview.postMessage({
-              type: 'generateResult',
-              success: false,
-              error: 'No output directory selected',
-            });
-            return;
-          }
-
-          // Create output directory: <selected>/<ip_name>/
-          const outputBaseDir = path.join(folderUris[0].fsPath, ipName);
-
-          const generator = new IpCoreScaffolder(
-            this.logger,
-            new TemplateLoader(this.logger),
-            this.context
-          );
-          const result = await generator.generateAll(document.uri.fsPath, outputBaseDir, {
-            vendor:
-              (message.options?.vendorFiles as 'none' | 'intel' | 'xilinx' | 'both') ?? 'both',
-            includeTestbench: message.options?.includeTestbench !== false,
-            includeRegs: message.options?.includeRegfile !== false,
-            includeVhdl: message.options?.includeVhdl !== false,
-            updateYaml: false,
-          });
-
-          if (!result.success) {
-            void webviewPanel.webview.postMessage({
-              type: 'generateResult',
-              success: false,
-              error: result.error ?? 'Generation failed',
-            });
-            return;
-          }
-
-          // Get list of generated files (relative to outputBaseDir)
-          const writtenFiles = result.files ? Object.keys(result.files) : [];
-
-          this.logger.info(`Generated ${writtenFiles.length} files to ${outputBaseDir}`);
-
-          void webviewPanel.webview.postMessage({
-            type: 'generateResult',
-            success: true,
-            files: writtenFiles,
-          });
-
-          // Show success message with option to open folder
-          const action = await vscode.window.showInformationMessage(
-            `Generated ${writtenFiles.length} files to ${outputBaseDir}`,
-            'Open Folder'
-          );
-
-          if (action === 'Open Folder') {
-            await vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(outputBaseDir));
-          }
-
-          // Update file sets in the YAML document
-          try {
-            const doc = YAML.parseDocument(document.getText());
-
-            // Convert file paths to be relative to YAML document location
-            const yamlRelativeFiles = writtenFiles.map((f) => {
-              const absolutePath = path.join(outputBaseDir, f);
-              return path.relative(baseDir, absolutePath);
-            });
-
-            // Get current fileSets
-            const currentData = doc.toJSON() as Record<string, unknown>;
-            type FileSet = {
-              name?: string;
-              description?: string;
-              files?: { path: string; type: string }[];
-            };
-
-            const fileSets: FileSet[] = Array.isArray(currentData.fileSets)
-              ? (currentData.fileSets as FileSet[])
-              : Array.isArray(currentData.file_sets)
-                ? (currentData.file_sets as FileSet[])
-                : [];
-
-            const key = currentData.fileSets
-              ? 'fileSets'
-              : currentData.file_sets
-                ? 'file_sets'
-                : 'fileSets';
-
-            const updatedFileSets = updateFileSets(fileSets, yamlRelativeFiles) as FileSet[];
-            doc.setIn([key], updatedFileSets);
-
-            const newText = doc.toString();
-            const updateSuccess = await this.documentManager.updateDocument(document, newText);
-            if (updateSuccess) {
-              this.logger.info('Updated file sets with generated files');
-              await updateWebview();
-            } else {
-              this.logger.error('Failed to apply document edit for file sets');
-            }
-          } catch (e) {
-            this.logger.error('Error updating file sets', e as Error);
-          }
-        } catch (error) {
-          const err = error as Error;
-          this.logger.error('Generation failed', err);
-          void webviewPanel.webview.postMessage({
-            type: 'generateResult',
-            success: false,
-            error: err.message || 'Unknown error',
-          });
-        }
-      } else {
-        void this.messageHandler.handleMessage(message, document);
+    webviewPanel.webview.onDidReceiveMessage(async (message: IpcMessage) => {
+      const handler = messageHandlers[message.type];
+      if (handler) {
+        await handler(message);
+        return;
       }
+      await this.messageHandler.handleMessage(message, document);
     });
+  }
 
-    // Send initial content after a small delay to ensure webview is loaded
-    // The webview will also send a 'ready' message when it's initialized
-    setTimeout(() => {
-      void updateWebview();
-    }, 100);
+  private async updateWebview(
+    document: vscode.TextDocument,
+    webviewPanel: vscode.WebviewPanel,
+    isDisposed: () => boolean
+  ): Promise<void> {
+    if (isDisposed()) {
+      this.logger.debug('Webview already disposed, skipping update');
+      return;
+    }
+
+    try {
+      const text = document.getText();
+      const parsed = jsyaml.load(text);
+      const baseDir = path.dirname(document.uri.fsPath);
+      const imports = await this.importResolver.resolveImports(
+        parsed as Record<string, unknown>,
+        baseDir
+      );
+
+      if (isDisposed()) {
+        this.logger.debug('Webview disposed during import resolution, skipping update');
+        return;
+      }
+
+      void webviewPanel.webview.postMessage({
+        type: 'update',
+        text,
+        fileName: path.basename(document.uri.fsPath),
+        imports,
+      });
+    } catch (error) {
+      this.logger.error('Failed to update webview', error as Error);
+    }
+  }
+
+  private async handleSelectFilesMessage(
+    message: IpcMessage,
+    document: vscode.TextDocument,
+    webviewPanel: vscode.WebviewPanel
+  ): Promise<void> {
+    this.logger.info('Opening file picker dialog');
+    const options: vscode.OpenDialogOptions = {
+      canSelectMany: message.multi ?? true,
+      openLabel: 'Select Files',
+      canSelectFiles: true,
+      canSelectFolders: false,
+      filters: message.filters,
+    };
+
+    const fileUris = await vscode.window.showOpenDialog(options);
+    if (!fileUris || fileUris.length === 0) {
+      return;
+    }
+
+    const baseDir = path.dirname(document.uri.fsPath);
+    const relativePaths = fileUris.map((uri) => path.relative(baseDir, uri.fsPath));
+    void webviewPanel.webview.postMessage({
+      type: 'filesSelected',
+      files: relativePaths,
+    });
+    this.logger.info(`Selected ${relativePaths.length} file(s)`);
+  }
+
+  private async handleCheckFilesExistMessage(
+    message: IpcMessage,
+    document: vscode.TextDocument,
+    webviewPanel: vscode.WebviewPanel
+  ): Promise<void> {
+    const baseDir = path.dirname(document.uri.fsPath);
+    const filePaths: string[] = message.paths ?? [];
+    const results: Record<string, boolean> = {};
+
+    for (const filePath of filePaths) {
+      try {
+        const fullPath = path.isAbsolute(filePath) ? filePath : path.join(baseDir, filePath);
+        await vscode.workspace.fs.stat(vscode.Uri.file(fullPath));
+        results[filePath] = true;
+      } catch {
+        results[filePath] = false;
+      }
+    }
+
+    void webviewPanel.webview.postMessage({
+      type: 'filesExistResult',
+      results,
+    });
+    this.logger.debug(`Checked ${filePaths.length} file(s) for existence`);
   }
 }

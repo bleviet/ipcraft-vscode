@@ -60,6 +60,58 @@ interface ProLayoutViewProps {
   layoutConfig: LayoutConfig;
 }
 
+interface ResizeHandleIconProps {
+  bidirectional: boolean;
+  singleDirection: 'left' | 'right';
+}
+
+const ResizeHandleIcon = ({ bidirectional, singleDirection }: ResizeHandleIconProps) => {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="drop-shadow-lg">
+      {bidirectional ? (
+        <>
+          <path
+            d="M2 8H14"
+            stroke="var(--ipcraft-pattern-label-fg)"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+          <path
+            d="M5 5L2 8L5 11"
+            stroke="var(--ipcraft-pattern-label-fg)"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M11 5L14 8L11 11"
+            stroke="var(--ipcraft-pattern-label-fg)"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </>
+      ) : singleDirection === 'left' ? (
+        <path
+          d="M10 4L6 8L10 12"
+          stroke="var(--ipcraft-pattern-label-fg)"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      ) : (
+        <path
+          d="M6 4L10 8L6 12"
+          stroke="var(--ipcraft-pattern-label-fg)"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      )}
+    </svg>
+  );
+};
+
 const ProLayoutView = ({
   fields,
   segments,
@@ -258,54 +310,10 @@ const ProLayoutView = ({
                                   'linear-gradient(90deg, var(--ipcraft-pattern-handle-scrim) 0%, transparent 100%)',
                               }}
                             >
-                              <svg
-                                width="16"
-                                height="16"
-                                viewBox="0 0 16 16"
-                                fill="none"
-                                className="drop-shadow-lg"
-                              >
-                                {visualLeftBidirectional ? (
-                                  <>
-                                    <path
-                                      d="M2 8H14"
-                                      stroke="var(--ipcraft-pattern-label-fg)"
-                                      strokeWidth="2"
-                                      strokeLinecap="round"
-                                    />
-                                    <path
-                                      d="M5 5L2 8L5 11"
-                                      stroke="var(--ipcraft-pattern-label-fg)"
-                                      strokeWidth="2"
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                    />
-                                    <path
-                                      d="M11 5L14 8L11 11"
-                                      stroke="var(--ipcraft-pattern-label-fg)"
-                                      strokeWidth="2"
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                    />
-                                  </>
-                                ) : edges.right.canExpand ? (
-                                  <path
-                                    d="M10 4L6 8L10 12"
-                                    stroke="var(--ipcraft-pattern-label-fg)"
-                                    strokeWidth="2.5"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  />
-                                ) : (
-                                  <path
-                                    d="M6 4L10 8L6 12"
-                                    stroke="var(--ipcraft-pattern-label-fg)"
-                                    strokeWidth="2.5"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  />
-                                )}
-                              </svg>
+                              <ResizeHandleIcon
+                                bidirectional={visualLeftBidirectional}
+                                singleDirection={edges.right.canExpand ? 'left' : 'right'}
+                              />
                             </div>
                           )}
                           {showVisualRight && (
@@ -316,54 +324,10 @@ const ProLayoutView = ({
                                   'linear-gradient(270deg, var(--ipcraft-pattern-handle-scrim) 0%, transparent 100%)',
                               }}
                             >
-                              <svg
-                                width="16"
-                                height="16"
-                                viewBox="0 0 16 16"
-                                fill="none"
-                                className="drop-shadow-lg"
-                              >
-                                {visualRightBidirectional ? (
-                                  <>
-                                    <path
-                                      d="M2 8H14"
-                                      stroke="var(--ipcraft-pattern-label-fg)"
-                                      strokeWidth="2"
-                                      strokeLinecap="round"
-                                    />
-                                    <path
-                                      d="M5 5L2 8L5 11"
-                                      stroke="var(--ipcraft-pattern-label-fg)"
-                                      strokeWidth="2"
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                    />
-                                    <path
-                                      d="M11 5L14 8L11 11"
-                                      stroke="var(--ipcraft-pattern-label-fg)"
-                                      strokeWidth="2"
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                    />
-                                  </>
-                                ) : edges.left.canExpand ? (
-                                  <path
-                                    d="M6 4L10 8L6 12"
-                                    stroke="var(--ipcraft-pattern-label-fg)"
-                                    strokeWidth="2.5"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  />
-                                ) : (
-                                  <path
-                                    d="M10 4L6 8L10 12"
-                                    stroke="var(--ipcraft-pattern-label-fg)"
-                                    strokeWidth="2.5"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  />
-                                )}
-                              </svg>
+                              <ResizeHandleIcon
+                                bidirectional={visualRightBidirectional}
+                                singleDirection={edges.left.canExpand ? 'right' : 'left'}
+                              />
                             </div>
                           )}
                         </>

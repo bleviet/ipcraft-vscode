@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
 import { Logger } from './Logger';
 
+const logger = new Logger('ErrorHandler');
+
 /**
  * Severity levels for extension errors
  */
@@ -26,72 +28,56 @@ export class ExtensionError extends Error {
 }
 
 /**
- * Error handler service for managing errors throughout the extension
+ * Handle an error without showing it to the user.
  */
-export class ErrorHandler {
-  private static logger: Logger = new Logger('ErrorHandler');
+export function handleError(error: Error | unknown, context: string): void {
+  if (error instanceof ExtensionError) {
+    logger.error(`[${error.code}] ${error.message} (context: ${context})`, error);
+  } else if (error instanceof Error) {
+    logger.error(`Error in ${context}: ${error.message}`, error);
+  } else {
+    logger.error(`Unknown error in ${context}`, new Error(String(error)));
+  }
+}
 
-  /**
-   * Handle an error without showing it to the user
-   * @param error The error to handle
-   * @param context Context where the error occurred
-   */
-  static handle(error: Error | unknown, context: string): void {
-    if (error instanceof ExtensionError) {
-      this.logger.error(`[${error.code}] ${error.message} (context: ${context})`, error);
-    } else if (error instanceof Error) {
-      this.logger.error(`Error in ${context}: ${error.message}`, error);
-    } else {
-      this.logger.error(`Unknown error in ${context}`, new Error(String(error)));
-    }
+/**
+ * Handle an error and show a notification to the user.
+ */
+export async function handleErrorWithUserNotification(
+  error: Error | unknown,
+  context: string,
+  userMessage?: string
+): Promise<void> {
+  handleError(error, context);
+
+  let message: string;
+  let severity: ErrorSeverity = 'error';
+
+  if (error instanceof ExtensionError) {
+    message = userMessage ?? error.message;
+    severity = error.severity;
+  } else if (error instanceof Error) {
+    message = userMessage ?? `An error occurred: ${error.message}`;
+  } else {
+    message = userMessage ?? 'An unknown error occurred';
   }
 
-  /**
-   * Handle an error and show a notification to the user
-   * @param error The error to handle
-   * @param context Context where the error occurred
-   * @param userMessage Optional custom message to show the user
-   */
-  static async handleWithUserNotification(
-    error: Error | unknown,
-    context: string,
-    userMessage?: string
-  ): Promise<void> {
-    // Log the error
-    this.handle(error, context);
+  const action = 'Show Logs';
+  let result: string | undefined;
 
-    // Determine the message to show
-    let message: string;
-    let severity: ErrorSeverity = 'error';
+  switch (severity) {
+    case 'error':
+      result = await vscode.window.showErrorMessage(message, action);
+      break;
+    case 'warning':
+      result = await vscode.window.showWarningMessage(message, action);
+      break;
+    case 'info':
+      result = await vscode.window.showInformationMessage(message, action);
+      break;
+  }
 
-    if (error instanceof ExtensionError) {
-      message = userMessage ?? error.message;
-      severity = error.severity;
-    } else if (error instanceof Error) {
-      message = userMessage ?? `An error occurred: ${error.message}`;
-    } else {
-      message = userMessage ?? 'An unknown error occurred';
-    }
-
-    // Show the notification
-    const action = 'Show Logs';
-    let result: string | undefined;
-
-    switch (severity) {
-      case 'error':
-        result = await vscode.window.showErrorMessage(message, action);
-        break;
-      case 'warning':
-        result = await vscode.window.showWarningMessage(message, action);
-        break;
-      case 'info':
-        result = await vscode.window.showInformationMessage(message, action);
-        break;
-    }
-
-    // If user clicked "Show Logs", show the output channel
-    if (result === action) {
-      Logger.show();
-    }
+  if (result === action) {
+    Logger.show();
   }
 }

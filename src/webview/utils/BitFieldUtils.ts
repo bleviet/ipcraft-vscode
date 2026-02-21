@@ -16,23 +16,49 @@ export interface BitFieldDef {
   bits?: string | null;
 }
 
+function parseBitBounds(bits: string, requireBrackets: boolean): [number, number] | null {
+  const source = String(bits ?? '').trim();
+  if (!source) {
+    return null;
+  }
+
+  const normalized = source.replace(/\s+/g, '');
+  const bracketedMatch = normalized.match(/^\[(\d+)(?::(\d+))?\]$/);
+  if (bracketedMatch) {
+    const hi = Number(bracketedMatch[1]);
+    const lo = Number(bracketedMatch[2] ?? bracketedMatch[1]);
+    return [hi, lo];
+  }
+
+  if (requireBrackets) {
+    return null;
+  }
+
+  const bareMatch = normalized.match(/^(\d+)(?::(\d+))?$/);
+  if (!bareMatch) {
+    return null;
+  }
+
+  const hi = Number(bareMatch[1]);
+  const lo = Number(bareMatch[2] ?? bareMatch[1]);
+  return [hi, lo];
+}
+
+function bitsLikeFromBounds(hi: number, lo: number): BitsRange | null {
+  if (!Number.isFinite(hi) || !Number.isFinite(lo)) {
+    return null;
+  }
+  const msb = Math.max(hi, lo);
+  const lsb = Math.min(hi, lo);
+  return { bit_offset: lsb, bit_width: msb - lsb + 1 };
+}
+
 /**
  * Parses a bits string '[hi:lo]' or '[n]' into [hi, lo].
  * Returns null if the format is unrecognised.
  */
 export function parseBitsRange(bits: string): [number, number] | null {
-  if (!bits) {
-    return null;
-  }
-  const rangeMatch = bits.match(/^\[(\d+):(\d+)\]$/);
-  if (rangeMatch) {
-    return [parseInt(rangeMatch[1], 10), parseInt(rangeMatch[2], 10)];
-  }
-  const singleMatch = bits.match(/^\[(\d+)\]$/);
-  if (singleMatch) {
-    return [parseInt(singleMatch[1], 10), parseInt(singleMatch[1], 10)];
-  }
-  return null;
+  return parseBitBounds(bits, true);
 }
 
 /**
@@ -63,39 +89,16 @@ export function fieldToBitsString(field: BitFieldDef): string {
 }
 
 export function parseBitsLike(text: string): BitsRange | null {
-  const trimmed = String(text ?? '')
-    .trim()
-    .replace(/\[|\]/g, '');
-  if (!trimmed) {
+  const bounds = parseBitBounds(text, false);
+  if (!bounds) {
     return null;
   }
-  const parts = trimmed.split(':').map((part) => Number(String(part).trim()));
-  if (parts.some((part) => Number.isNaN(part))) {
-    return null;
-  }
-
-  let msb: number;
-  let lsb: number;
-  if (parts.length === 1) {
-    msb = parts[0];
-    lsb = parts[0];
-  } else {
-    msb = parts[0];
-    lsb = parts[1];
-  }
-  if (!Number.isFinite(msb) || !Number.isFinite(lsb)) {
-    return null;
-  }
-  if (msb < lsb) {
-    [msb, lsb] = [lsb, msb];
-  }
-
-  return { bit_offset: lsb, bit_width: msb - lsb + 1 };
+  return bitsLikeFromBounds(bounds[0], bounds[1]);
 }
 
 export function formatBitsLike(bit_offset: number, bit_width: number): string {
   const lsb = Number(bit_offset);
   const width = Math.max(1, Number(bit_width));
   const msb = lsb + width - 1;
-  return `[${msb}:${lsb}]`;
+  return formatBitsRange(msb, lsb);
 }

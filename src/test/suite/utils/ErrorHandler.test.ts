@@ -1,7 +1,11 @@
 // Must mock vscode module before importing any modules that use it
 jest.mock('vscode');
 
-import { ErrorHandler, ExtensionError } from '../../../utils/ErrorHandler';
+import {
+  ExtensionError,
+  handleError,
+  handleErrorWithUserNotification,
+} from '../../../utils/ErrorHandler';
 import { Logger, LogLevel } from '../../../utils/Logger';
 import * as vscode from 'vscode';
 
@@ -49,18 +53,18 @@ describe('ErrorHandler', () => {
   describe('handle', () => {
     it('should handle ExtensionError', () => {
       const error = new ExtensionError('Test error', 'TEST_003', 'warning');
-      expect(() => ErrorHandler.handle(error, 'TestContext')).not.toThrow();
+      expect(() => handleError(error, 'TestContext')).not.toThrow();
     });
 
     it('should handle standard Error', () => {
       const error = new Error('Standard error');
-      expect(() => ErrorHandler.handle(error, 'TestContext')).not.toThrow();
+      expect(() => handleError(error, 'TestContext')).not.toThrow();
     });
 
     it('should handle unknown errors', () => {
-      expect(() => ErrorHandler.handle('string error', 'TestContext')).not.toThrow();
-      expect(() => ErrorHandler.handle({ foo: 'bar' }, 'TestContext')).not.toThrow();
-      expect(() => ErrorHandler.handle(null, 'TestContext')).not.toThrow();
+      expect(() => handleError('string error', 'TestContext')).not.toThrow();
+      expect(() => handleError({ foo: 'bar' }, 'TestContext')).not.toThrow();
+      expect(() => handleError(null, 'TestContext')).not.toThrow();
     });
   });
 
@@ -69,7 +73,7 @@ describe('ErrorHandler', () => {
       const error = new ExtensionError('Test error', 'TEST_004', 'error');
       mockShowErrorMessage.mockResolvedValue(undefined);
 
-      await ErrorHandler.handleWithUserNotification(error, 'TestContext');
+      await handleErrorWithUserNotification(error, 'TestContext');
 
       expect(mockShowErrorMessage).toHaveBeenCalledWith('Test error', 'Show Logs');
       expect(mockShowWarningMessage).not.toHaveBeenCalled();
@@ -80,7 +84,7 @@ describe('ErrorHandler', () => {
       const error = new ExtensionError('Test warning', 'TEST_005', 'warning');
       mockShowWarningMessage.mockResolvedValue(undefined);
 
-      await ErrorHandler.handleWithUserNotification(error, 'TestContext');
+      await handleErrorWithUserNotification(error, 'TestContext');
 
       expect(mockShowWarningMessage).toHaveBeenCalledWith('Test warning', 'Show Logs');
       expect(mockShowErrorMessage).not.toHaveBeenCalled();
@@ -90,7 +94,7 @@ describe('ErrorHandler', () => {
       const error = new ExtensionError('Test info', 'TEST_006', 'info');
       mockShowInformationMessage.mockResolvedValue(undefined);
 
-      await ErrorHandler.handleWithUserNotification(error, 'TestContext');
+      await handleErrorWithUserNotification(error, 'TestContext');
 
       expect(mockShowInformationMessage).toHaveBeenCalledWith('Test info', 'Show Logs');
     });
@@ -99,11 +103,7 @@ describe('ErrorHandler', () => {
       const error = new Error('Technical error');
       mockShowErrorMessage.mockResolvedValue(undefined);
 
-      await ErrorHandler.handleWithUserNotification(
-        error,
-        'TestContext',
-        'User-friendly error message'
-      );
+      await handleErrorWithUserNotification(error, 'TestContext', 'User-friendly error message');
 
       expect(mockShowErrorMessage).toHaveBeenCalledWith('User-friendly error message', 'Show Logs');
     });

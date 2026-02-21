@@ -2,8 +2,8 @@ import * as vscode from 'vscode';
 import { Logger } from '../utils/Logger';
 import { HtmlGenerator } from '../services/HtmlGenerator';
 import { MessageHandler } from '../services/MessageHandler';
-import { YamlValidator } from '../services/YamlValidator';
 import { DocumentManager } from '../services/DocumentManager';
+import { createSharedProviderServices } from './providerServices';
 
 /**
  * Custom editor provider for FPGA memory map YAML files
@@ -15,10 +15,10 @@ export class MemoryMapEditorProvider implements vscode.CustomTextEditorProvider 
   private readonly documentManager: DocumentManager;
 
   constructor(private readonly context: vscode.ExtensionContext) {
-    this.htmlGenerator = new HtmlGenerator(context);
-    this.documentManager = new DocumentManager();
-    const yamlValidator = new YamlValidator();
-    this.messageHandler = new MessageHandler(yamlValidator, this.documentManager);
+    const services = createSharedProviderServices(context);
+    this.htmlGenerator = services.htmlGenerator;
+    this.messageHandler = services.messageHandler;
+    this.documentManager = services.documentManager;
 
     this.logger.info('MemoryMapEditorProvider initialized');
   }

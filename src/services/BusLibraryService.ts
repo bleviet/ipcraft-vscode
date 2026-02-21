@@ -13,6 +13,12 @@ export class BusLibraryService {
     this.context = context;
   }
 
+  /**
+   * Load and cache the bundled bus library.
+   *
+   * Error strategy: throws on file read or parse failures; callers decide
+   * whether to surface, recover, or fallback.
+   */
   async loadDefaultLibrary(): Promise<Record<string, unknown>> {
     if (this.cachedDefaultLibrary) {
       return this.cachedDefaultLibrary;
@@ -25,36 +31,26 @@ export class BusLibraryService {
       'bus_definitions.yml'
     );
 
-    // Provide only one path since webpack handles resources
-    const candidates = [builtInPath];
-    let loadedContent: string | null = null;
-    let loadedPath: string | null = null;
-
-    for (const candidate of candidates) {
-      try {
-        const uri = vscode.Uri.file(candidate);
-        const fileData = await vscode.workspace.fs.readFile(uri);
-        loadedContent = Buffer.from(fileData).toString('utf8');
-        loadedPath = candidate;
-        break;
-      } catch (e) {
-        // Check next candidate
-      }
-    }
-
-    if (!loadedContent || !loadedPath) {
+    let loadedContent: string;
+    try {
+      const uri = vscode.Uri.file(builtInPath);
+      const fileData = await vscode.workspace.fs.readFile(uri);
+      loadedContent = Buffer.from(fileData).toString('utf8');
+    } catch (error) {
       this.logger.error('Default bus library not found in extension resources');
-      return {} as Record<string, unknown>;
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Default bus library not found at ${builtInPath}: ${message}`);
     }
 
     try {
       const parsed = yaml.load(loadedContent);
       this.cachedDefaultLibrary = (parsed as Record<string, unknown>) ?? {};
-      this.logger.info(`Loaded default bus library from ${loadedPath}`);
+      this.logger.info(`Loaded default bus library from ${builtInPath}`);
       return this.cachedDefaultLibrary;
     } catch (error) {
-      this.logger.error(`Failed to parse default bus library from ${loadedPath}`, error as Error);
-      return {} as Record<string, unknown>;
+      this.logger.error(`Failed to parse default bus library from ${builtInPath}`, error as Error);
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to parse default bus library from ${builtInPath}: ${message}`);
     }
   }
 

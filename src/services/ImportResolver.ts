@@ -46,42 +46,37 @@ export class ImportResolver {
   async resolveImports(ipCoreData: IpCoreDataNode, baseDir: string): Promise<ResolvedImports> {
     const resolved: ResolvedImports = {};
 
-    try {
-      // Resolve bus library - first try explicit path, then fall back to default
-      if (ipCoreData.useBusLibrary) {
-        try {
-          resolved.busLibrary = await this.resolveBusLibrary(ipCoreData.useBusLibrary, baseDir);
-        } catch (busError) {
-          this.logger.warn(
-            `Could not load bus library from '${String(ipCoreData.useBusLibrary)}' ` +
-              `(resolved to: ${path.resolve(baseDir, String(ipCoreData.useBusLibrary))}). ` +
-              `Falling back to default bus library. Reason: ${(busError as Error).message}`
-          );
-          resolved.busLibrary = await this.loadDefaultBusLibrary();
-        }
-      } else {
-        // Load default bus library from Python backend
+    // Resolve bus library - first try explicit path, then fall back to default
+    if (ipCoreData.useBusLibrary) {
+      try {
+        resolved.busLibrary = await this.resolveBusLibrary(ipCoreData.useBusLibrary, baseDir);
+      } catch (busError) {
+        this.logger.warn(
+          `Could not load bus library from '${String(ipCoreData.useBusLibrary)}' ` +
+            `(resolved to: ${path.resolve(baseDir, String(ipCoreData.useBusLibrary))}). ` +
+            `Falling back to default bus library. Reason: ${(busError as Error).message}`
+        );
         resolved.busLibrary = await this.loadDefaultBusLibrary();
       }
-
-      // Resolve memory map imports
-      if (ipCoreData.memoryMaps?.import) {
-        resolved.memoryMaps = await this.resolveMemoryMapImport(
-          ipCoreData.memoryMaps.import,
-          baseDir
-        );
-      }
-
-      // Resolve file set imports
-      if (Array.isArray(ipCoreData.fileSets)) {
-        resolved.fileSets = await this.resolveFileSetImports(ipCoreData.fileSets, baseDir);
-      }
-
-      return resolved;
-    } catch (error) {
-      this.logger.error('Import resolution failed', error as Error);
-      throw error;
+    } else {
+      // Load default bus library from Python backend
+      resolved.busLibrary = await this.loadDefaultBusLibrary();
     }
+
+    // Resolve memory map imports
+    if (ipCoreData.memoryMaps?.import) {
+      resolved.memoryMaps = await this.resolveMemoryMapImport(
+        ipCoreData.memoryMaps.import,
+        baseDir
+      );
+    }
+
+    // Resolve file set imports
+    if (Array.isArray(ipCoreData.fileSets)) {
+      resolved.fileSets = await this.resolveFileSetImports(ipCoreData.fileSets, baseDir);
+    }
+
+    return resolved;
   }
 
   /**
@@ -138,6 +133,9 @@ export class ImportResolver {
    * @param fileSets List of file set entries (may contain imports)
    * @param baseDir Base directory for resolution
    * @returns Resolved file sets
+   *
+   * Error strategy: throw on the first import failure so callers can decide
+   * whether to fail fast or apply a fallback policy.
    */
   async resolveFileSetImports(
     fileSets: Array<{ import?: string; [key: string]: unknown }>,
@@ -166,7 +164,9 @@ export class ImportResolver {
             `Failed to resolve file set import: ${String(importPath)}`,
             error as Error
           );
-          // Continue with other imports
+          throw new Error(
+            `Failed to load file set import ${String(importPath)}: ${(error as Error).message}`
+          );
         }
       } else {
         // Not an import, add as-is

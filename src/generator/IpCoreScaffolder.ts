@@ -5,92 +5,22 @@ import * as vscode from 'vscode';
 import { Logger } from '../utils/Logger';
 import { BusLibraryService } from '../services/BusLibraryService';
 import { TemplateLoader } from './TemplateLoader';
-import { GenerateOptions, GenerateResult } from './types';
-
-type BusDefinition = {
-  ports?: Array<{
-    name: string;
-    width?: number;
-    direction?: string;
-    presence?: string;
-  }>;
-};
-
-type BusDefinitions = Record<string, BusDefinition>;
-
-export interface VlnvDef {
-  vendor?: string;
-  library?: string;
-  name?: string;
-  version?: string;
-}
-
-export interface BusInterfaceDef {
-  name?: string;
-  type?: string;
-  mode?: string;
-  physicalPrefix?: string;
-  physical_prefix?: string;
-  useOptionalPorts?: string[];
-  use_optional_ports?: string[];
-  portWidthOverrides?: Record<string, number>;
-  port_width_overrides?: Record<string, number>;
-  associatedClock?: string;
-  associated_clock?: string;
-  associatedReset?: string;
-  associated_reset?: string;
-  array?: {
-    count?: number;
-    indexStart?: number;
-    index_start?: number;
-    namingPattern?: string;
-    naming_pattern?: string;
-    physicalPrefixPattern?: string;
-    physical_prefix_pattern?: string;
-  };
-  ports?: Array<Record<string, unknown>>;
-  [key: string]: unknown;
-}
-
-export interface IpCoreData {
-  vlnv?: VlnvDef;
-  description?: string;
-  parameters?: Array<{
-    name?: string;
-    value?: number | string;
-    data_type?: string;
-    dataType?: string;
-  }>;
-  ports?: Array<{
-    name?: string;
-    direction?: string;
-    width?: number | string;
-    presence?: string;
-  }>;
-  busInterfaces?: BusInterfaceDef[];
-  bus_interfaces?: BusInterfaceDef[];
-  clocks?: Array<{ name?: string }>;
-  resets?: Array<{ name?: string; polarity?: string }>;
-  memoryMaps?: Record<string, unknown> | Record<string, unknown>[];
-  memory_maps?: Record<string, unknown> | Record<string, unknown>[];
-  [key: string]: unknown;
-}
+import {
+  expandBusInterfaces,
+  getActiveBusPortsFromDefinition,
+  getBusTypeForTemplate,
+  normalizeBusType,
+  normalizeIpCoreData,
+  prepareRegisters,
+  resolveMemoryMaps,
+} from './registerProcessor';
+import type { BusDefinitions, GenerateOptions, GenerateResult, IpCoreData } from './types';
 
 export class IpCoreScaffolder {
   private readonly logger: Logger;
   private readonly templates: TemplateLoader;
   private readonly busLibraryService: BusLibraryService;
   private busDefinitions: BusDefinitions | null = null;
-
-  private static readonly BUS_TYPE_MAP: Record<string, string> = {
-    AXI4L: 'axil',
-    AXI4LITE: 'axil',
-    AXILITE: 'axil',
-    AVALONMM: 'avmm',
-    AVMM: 'avmm',
-    AVALON_MM: 'avmm',
-    'AVALON-MM': 'avmm',
-  };
 
   constructor(logger: Logger, templates: TemplateLoader, context: vscode.ExtensionContext) {
     this.logger = logger;
@@ -106,7 +36,7 @@ export class IpCoreScaffolder {
     try {
       await this.ensureBusDefinitions();
       const ipCoreData = await this.loadIpCore(inputPath);
-      const busType = this.getBusType(ipCoreData);
+      const busType = getBusTypeForTemplate(ipCoreData);
       const context = await this.buildTemplateContext(ipCoreData, busType, inputPath);
       const includeRegs = options.includeRegs !== false;
       const includeTestbench = options.includeTestbench === true;
@@ -193,21 +123,7 @@ export class IpCoreScaffolder {
     if (!parsed || typeof parsed !== 'object') {
       throw new Error('Invalid IP core YAML');
     }
-    return parsed as IpCoreData;
-  }
-
-  private getBusType(ipCore: IpCoreData): string {
-    const busInterfaces = ipCore?.busInterfaces ?? ipCore?.bus_interfaces ?? [];
-
-    for (const bus of busInterfaces) {
-      const mode = this.getString(bus?.mode);
-      if (mode === 'slave') {
-        const rawType = this.getString(bus?.type).toUpperCase();
-        return IpCoreScaffolder.BUS_TYPE_MAP[rawType] || 'axil';
-      }
-    }
-
-    return 'axil';
+    return normalizeIpCoreData(parsed as Record<string, unknown>);
   }
 
   private async buildTemplateContext(
@@ -216,7 +132,7 @@ export class IpCoreScaffolder {
     inputPath: string
   ): Promise<Record<string, unknown>> {
     const name = String(ipCore?.vlnv?.name ?? 'ip_core').toLowerCase();
-    const registers = await this.prepareRegisters(ipCore, inputPath);
+    const registers = await prepareRegisters(ipCore, inputPath);
     const swAccess = new Set(['read-write', 'write-only', 'rw', 'wo']);
     const hwAccess = new Set(['read-only', 'ro']);
 
@@ -230,19 +146,20 @@ export class IpCoreScaffolder {
     const resetPolarity = this.getString(resets[0]?.polarity ?? 'activeHigh');
     const resetActiveHigh = resetPolarity.toLowerCase().includes('high');
 
-    const expandedBusInterfaces = this.expandBusInterfaces(ipCore);
+    const expandedBusInterfaces = expandBusInterfaces(ipCore);
     const busPorts: Array<Record<string, unknown>> = [];
     const secondaryBusPorts: Array<Record<string, unknown>> = [];
     let busPrefix = 's_axi';
 
     if (expandedBusInterfaces.length > 0) {
       const primary = expandedBusInterfaces[0];
-      busPrefix = this.normalizePrefix(primary.physical_prefix ?? primary.physicalPrefix ?? '');
+      busPrefix = this.normalizePrefix(primary.physical_prefix ?? '');
 
       expandedBusInterfaces.forEach((iface, index) => {
-        const busTypeKey = this.normalizeBusTypeKey(iface.type ?? '');
-        const activePorts = this.getActiveBusPorts(
-          busTypeKey,
+        const busTypeInfo = normalizeBusType(this.getString(iface.type));
+        const busPortsForType = this.busDefinitions?.[busTypeInfo.libraryKey]?.ports ?? [];
+        const activePorts = getActiveBusPortsFromDefinition(
+          busPortsForType,
           iface.use_optional_ports ?? [],
           iface.physical_prefix ?? '',
           iface.mode ?? '',
@@ -259,7 +176,7 @@ export class IpCoreScaffolder {
 
     return {
       entity_name: name,
-      registers: registers,
+      registers,
       sw_registers: swRegisters,
       hw_registers: hwRegisters,
       generics: this.prepareGenerics(ipCore),
@@ -272,7 +189,7 @@ export class IpCoreScaffolder {
       data_width: 32,
       addr_width: 8,
       reg_width: 4,
-      memory_maps: (await this.resolveMemoryMaps(ipCore, inputPath)) ?? [],
+      memory_maps: (await resolveMemoryMaps(ipCore, inputPath)) ?? [],
       clock_port: clockPort,
       reset_port: resetPort,
       reset_active_high: resetActiveHigh,
@@ -292,7 +209,7 @@ export class IpCoreScaffolder {
     const params = ipCore?.parameters ?? [];
     return params.map((param) => ({
       name: param.name,
-      type: this.getString(param.data_type ?? param.dataType),
+      type: this.getString(param.data_type),
       default_value: param.value,
     }));
   }
@@ -311,6 +228,7 @@ export class IpCoreScaffolder {
       const direction = this.getString(port.direction).toLowerCase();
       const widthValue = port.width ?? 1;
       const isParameterized = typeof widthValue === 'string';
+
       if (isParameterized) {
         const defaultWidth = (paramDefaults.get(widthValue) ?? 32) - 1;
         return {
@@ -349,268 +267,11 @@ export class IpCoreScaffolder {
     });
   }
 
-  private expandBusInterfaces(ipCore: IpCoreData): BusInterfaceDef[] {
-    const busInterfaces = ipCore?.busInterfaces ?? ipCore?.bus_interfaces ?? [];
-    if (!Array.isArray(busInterfaces)) {
-      return [];
-    }
-
-    const expanded: BusInterfaceDef[] = [];
-    for (const iface of busInterfaces) {
-      const arrayDef = iface?.array;
-      if (arrayDef) {
-        const count = Number(arrayDef.count ?? 1);
-        const start = Number(arrayDef.indexStart ?? arrayDef.index_start ?? 0);
-        for (let i = 0; i < count; i += 1) {
-          const idx = start + i;
-          const namePattern =
-            arrayDef.namingPattern ?? arrayDef.naming_pattern ?? `${String(iface.name)}_{index}`;
-          const prefixPattern =
-            arrayDef.physicalPrefixPattern ??
-            arrayDef.physical_prefix_pattern ??
-            `${String(iface.physicalPrefix ?? iface.physical_prefix ?? 's_axi_')}{index}_`;
-
-          expanded.push({
-            name: String(namePattern).replace('{index}', String(idx)),
-            type: this.getString(iface.type),
-            mode: this.getString(iface.mode).toLowerCase(),
-            physical_prefix: String(prefixPattern).replace('{index}', String(idx)),
-            use_optional_ports: iface.useOptionalPorts ?? iface.use_optional_ports ?? [],
-            port_width_overrides: iface.portWidthOverrides ?? iface.port_width_overrides ?? {},
-            associated_clock: iface.associatedClock ?? iface.associated_clock,
-            associated_reset: iface.associatedReset ?? iface.associated_reset,
-          });
-        }
-      } else {
-        expanded.push({
-          name: iface.name,
-          type: this.getString(iface.type),
-          mode: this.getString(iface.mode).toLowerCase(),
-          physical_prefix: iface.physicalPrefix ?? iface.physical_prefix ?? 's_axi_',
-          use_optional_ports: iface.useOptionalPorts ?? iface.use_optional_ports ?? [],
-          port_width_overrides: iface.portWidthOverrides ?? iface.port_width_overrides ?? {},
-          associated_clock: iface.associatedClock ?? iface.associated_clock,
-          associated_reset: iface.associatedReset ?? iface.associated_reset,
-        });
-      }
-    }
-
-    return expanded;
-  }
-
-  private getActiveBusPorts(
-    busTypeName: string,
-    useOptionalPorts: string[],
-    physicalPrefix: string,
-    mode: string,
-    portWidthOverrides: Record<string, number>
-  ): Array<Record<string, unknown>> {
-    const busDef = this.busDefinitions?.[busTypeName.toUpperCase()] ?? {};
-    const ports = busDef.ports ?? [];
-    const optionalSet = new Set(useOptionalPorts || []);
-    const activePorts: Array<Record<string, unknown>> = [];
-
-    ports.forEach((port) => {
-      const logicalName = port.name;
-      if (['ACLK', 'ARESETn', 'clk', 'reset'].includes(logicalName)) {
-        return;
-      }
-
-      const presence = port.presence ?? 'required';
-      const isRequired = presence === 'required';
-      const isSelected = optionalSet.has(logicalName);
-      if (!isRequired && !isSelected) {
-        return;
-      }
-
-      let direction = port.direction ?? 'in';
-      if (mode === 'slave') {
-        direction = direction === 'out' ? 'in' : direction === 'in' ? 'out' : direction;
-      }
-
-      let width = port.width ?? 1;
-      if (portWidthOverrides?.[logicalName] !== undefined) {
-        width = portWidthOverrides[logicalName];
-      }
-
-      activePorts.push({
-        logical_name: logicalName,
-        name: `${physicalPrefix}${logicalName.toLowerCase()}`,
-        direction,
-        width,
-        type: this.getVhdlPortType(Number(width), logicalName),
-      });
-    });
-
-    return activePorts;
-  }
-
-  private getVhdlPortType(width: number, logicalName: string): string {
-    if (['AWADDR', 'ARADDR', 'address'].includes(logicalName)) {
-      return 'std_logic_vector(C_ADDR_WIDTH-1 downto 0)';
-    }
-    if (['WDATA', 'RDATA', 'writedata', 'readdata'].includes(logicalName)) {
-      return 'std_logic_vector(C_DATA_WIDTH-1 downto 0)';
-    }
-    if (logicalName === 'WSTRB') {
-      return 'std_logic_vector((C_DATA_WIDTH/8)-1 downto 0)';
-    }
-    if (width === 1) {
-      return 'std_logic';
-    }
-    return `std_logic_vector(${width - 1} downto 0)`;
-  }
-
-  private normalizeBusTypeKey(typeName: string): string {
-    let key = typeName.toUpperCase();
-    if (['AXIL', 'AXI4-LITE', 'AXI4LITE'].includes(key)) {
-      key = 'AXI4L';
-    } else if (['AVMM', 'AVALON-MM'].includes(key)) {
-      key = 'AVALON_MM';
-    }
-    return key;
-  }
-
   private normalizePrefix(prefix: string): string {
     if (!prefix) {
       return 's_axi';
     }
     return prefix.endsWith('_') ? prefix.slice(0, -1) : prefix;
-  }
-
-  private async resolveMemoryMaps(
-    ipCore: IpCoreData,
-    inputPath: string
-  ): Promise<Array<Record<string, unknown>>> {
-    const memoryMaps = ipCore?.memoryMaps ?? ipCore?.memory_maps;
-    if (!memoryMaps) {
-      return [];
-    }
-
-    if (!Array.isArray(memoryMaps) && 'import' in memoryMaps) {
-      const baseDir = path.dirname(inputPath);
-      const importPath = path.resolve(baseDir, memoryMaps.import as string);
-      const content = await fs.readFile(importPath, 'utf8');
-      const parsed = yaml.load(content);
-      if (Array.isArray(parsed)) {
-        return parsed as Array<Record<string, unknown>>;
-      }
-      return parsed ? [parsed as Record<string, unknown>] : [];
-    }
-
-    return Array.isArray(memoryMaps) ? memoryMaps : [memoryMaps];
-  }
-
-  private async prepareRegisters(
-    ipCore: IpCoreData,
-    inputPath: string
-  ): Promise<Array<Record<string, unknown>>> {
-    const memoryMaps = await this.resolveMemoryMaps(ipCore, inputPath);
-    const registers: Array<Record<string, unknown>> = [];
-
-    const processRegister = (reg: Record<string, unknown>, baseOffset: number, prefix: string) => {
-      const currentOffset =
-        baseOffset + this.parseNumber(reg.address_offset ?? reg.addressOffset ?? reg.offset ?? 0);
-      const regName = reg.name ?? 'REG';
-
-      const nestedRegs = reg.registers ?? [];
-      if (Array.isArray(nestedRegs) && nestedRegs.length > 0) {
-        const countValue = Number(reg.count ?? 1);
-        const count = Number.isFinite(countValue) && countValue > 0 ? countValue : 1;
-        const strideValue = Number(reg.stride ?? 0);
-        const stride = Number.isFinite(strideValue) ? strideValue : 0;
-        for (let i = 0; i < count; i += 1) {
-          const instanceOffset = currentOffset + i * stride;
-          const instancePrefix =
-            count > 1 ? `${prefix}${String(regName)}_${i}_` : `${prefix}${String(regName)}_`;
-          (nestedRegs as Array<Record<string, unknown>>).forEach((child) => {
-            processRegister(child, instanceOffset, instancePrefix);
-          });
-        }
-        return;
-      }
-
-      const fields = ((reg.fields as Array<Record<string, unknown>>) ?? []).map((field) => {
-        let bitOffset = field.bit_offset ?? field.bitOffset ?? field.bit_range;
-        let bitWidth = field.bit_width ?? field.bitWidth;
-
-        if (bitOffset === undefined || bitWidth === undefined) {
-          const parsedBits = this.parseBits(this.getString(field.bits));
-          if (bitOffset === undefined) {
-            bitOffset = parsedBits.offset;
-          }
-          if (bitWidth === undefined) {
-            bitWidth = parsedBits.width;
-          }
-        }
-
-        const access = this.getString(field.access ?? reg.access ?? 'read-write');
-        const resetValue = field.reset_value ?? field.resetValue ?? field.reset ?? 0;
-
-        return {
-          name: field.name,
-          offset: Number(bitOffset ?? 0),
-          width: Number(bitWidth ?? 1),
-          access: access.toLowerCase(),
-          reset_value: resetValue,
-          description: field.description ?? '',
-        };
-      });
-
-      const regAccess = this.getString(reg.access ?? 'read-write');
-      registers.push({
-        name: `${prefix}${String(regName)}`,
-        offset: currentOffset,
-        access: regAccess.toLowerCase(),
-        description: reg.description ?? '',
-        fields,
-      });
-    };
-
-    memoryMaps.forEach((map) => {
-      const blocks =
-        (map.addressBlocks as Array<Record<string, unknown>>) ??
-        (map.address_blocks as Array<Record<string, unknown>>) ??
-        [];
-      blocks.forEach((block) => {
-        const baseOffset = this.parseNumber(
-          block.base_address ?? block.baseAddress ?? block.offset ?? 0
-        );
-        const regs = (block.registers as Array<Record<string, unknown>>) || [];
-        regs.forEach((reg) => processRegister(reg, baseOffset, ''));
-      });
-    });
-
-    return registers.sort((a, b) => (a.offset as number) - (b.offset as number));
-  }
-
-  private parseBits(bits: string): { offset: number; width: number } {
-    if (!bits || typeof bits !== 'string') {
-      return { offset: 0, width: 1 };
-    }
-    const range = bits.match(/\[(\d+):(\d+)\]/);
-    if (range) {
-      const high = Number(range[1]);
-      const low = Number(range[2]);
-      return { offset: Math.min(low, high), width: Math.abs(high - low) + 1 };
-    }
-    const single = bits.match(/\[(\d+)\]/);
-    if (single) {
-      const bit = Number(single[1]);
-      return { offset: bit, width: 1 };
-    }
-    return { offset: 0, width: 1 };
-  }
-
-  private parseNumber(value: unknown): number {
-    if (typeof value === 'number' && Number.isFinite(value)) {
-      return value;
-    }
-    if (typeof value === 'string') {
-      const parsed = Number(value.trim());
-      return Number.isFinite(parsed) ? parsed : 0;
-    }
-    return 0;
   }
 
   private getString(value: unknown): string {

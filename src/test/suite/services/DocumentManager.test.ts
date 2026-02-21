@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { DocumentManager } from '../../../services/DocumentManager';
-import { ErrorHandler } from '../../../utils/ErrorHandler';
+import * as ErrorHandler from '../../../utils/ErrorHandler';
 
 describe('DocumentManager', () => {
   let manager: DocumentManager;
@@ -61,7 +61,9 @@ describe('DocumentManager', () => {
   });
 
   it('handles update exceptions and returns false', async () => {
-    const errorSpy = jest.spyOn(ErrorHandler, 'handle').mockImplementation(() => undefined);
+    const errorSpy = jest.spyOn(ErrorHandler, 'handleError').mockImplementation(() => {
+      return undefined;
+    });
     const document = {
       uri: { fsPath: '/project/ip/core.yml' } as vscode.Uri,
       lineCount: 1,
@@ -88,7 +90,9 @@ describe('DocumentManager', () => {
   });
 
   it('returns false when save returns false or throws', async () => {
-    const errorSpy = jest.spyOn(ErrorHandler, 'handle').mockImplementation(() => undefined);
+    const errorSpy = jest.spyOn(ErrorHandler, 'handleError').mockImplementation(() => {
+      return undefined;
+    });
     const falseSaveDoc = {
       save: jest.fn().mockResolvedValue(false),
     } as unknown as vscode.TextDocument;

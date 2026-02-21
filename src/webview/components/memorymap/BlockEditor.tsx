@@ -11,6 +11,7 @@ import { ACCESS_OPTIONS } from '../../shared/constants';
 import RegisterMapVisualizer from '../RegisterMapVisualizer';
 import { FIELD_COLORS, FIELD_COLOR_KEYS } from '../../shared/colors';
 import { SpatialInsertionService } from '../../services/SpatialInsertionService';
+import type { RegisterRuntimeDef } from '../../services/SpatialInsertionService';
 import type { RegisterModel } from '../../types/registerModel';
 import { toHex } from '../../utils/formatUtils';
 import { useAutoFocus } from '../../hooks/useAutoFocus';
@@ -24,6 +25,25 @@ import { useTableNavigation } from '../../hooks/useTableNavigation';
 type RegEditKey = 'name' | 'offset' | 'access' | 'description';
 type RegActiveCell = { rowIndex: number; key: RegEditKey };
 const REG_COLUMN_ORDER: RegEditKey[] = ['name', 'offset', 'access', 'description'];
+
+function toRuntimeRegisters(registers: RegisterModel[]): RegisterRuntimeDef[] {
+  return registers.map((register, index) => {
+    const numericOffset =
+      typeof register.address_offset === 'number'
+        ? register.address_offset
+        : typeof register.offset === 'number'
+          ? register.offset
+          : index * 4;
+    return {
+      ...register,
+      name: String(register.name ?? `reg${index}`),
+      address_offset: numericOffset,
+      offset: numericOffset,
+      access: String(register.access ?? 'read-write'),
+      description: String(register.description ?? ''),
+    };
+  });
+}
 
 export interface AddressBlockModel {
   name?: string;
@@ -111,10 +131,10 @@ export function BlockEditor({
 
   const tryInsertReg = (after: boolean) => {
     setInsertError(null);
-    type TargetArray = Parameters<typeof SpatialInsertionService.insertRegister>[1];
+    const runtimeRegisters = toRuntimeRegisters(liveRegisters);
     const result = SpatialInsertionService.insertRegister(
       after ? 'after' : 'before',
-      liveRegisters as unknown as TargetArray,
+      runtimeRegisters,
       selectedRegIndex
     );
 
@@ -124,7 +144,7 @@ export function BlockEditor({
     }
 
     const newIdx = result.newIndex;
-    onUpdate(['registers'], result.items as unknown[]);
+    onUpdate(['registers'], result.items);
     setSelectedRegIndex(newIdx);
     setHoveredRegIndex(newIdx);
     setRegActiveCell({ rowIndex: newIdx, key: 'name' });

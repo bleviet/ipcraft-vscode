@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { SpatialInsertionService } from '../services/SpatialInsertionService';
 import type { BitFieldRuntimeDef } from '../services/SpatialInsertionService';
-import { fieldToBitsString } from '../utils/BitFieldUtils';
+import { fieldToBitsString, parseBitsRange } from '../utils/BitFieldUtils';
 import type { BitFieldRecord, YamlUpdateHandler } from '../types/editor';
 import { useTableNavigation } from './useTableNavigation';
 
@@ -13,6 +13,28 @@ export type EditKey = 'name' | 'bits' | 'access' | 'reset' | 'description';
 export type ActiveCell = { rowIndex: number; key: EditKey };
 
 export const COLUMN_ORDER: EditKey[] = ['name', 'bits', 'access', 'reset', 'description'];
+
+function toRuntimeFields(fields: BitFieldRecord[]): BitFieldRuntimeDef[] {
+  return fields.map((field, index) => {
+    const bitsString = fieldToBitsString(field);
+    const parsed = parseBitsRange(bitsString);
+    const msb = parsed?.[0] ?? 0;
+    const lsb = parsed?.[1] ?? 0;
+    const width = msb - lsb + 1;
+
+    return {
+      ...field,
+      name: String(field.name ?? `field${index}`),
+      bits: bitsString,
+      bit_offset: typeof field.bit_offset === 'number' ? field.bit_offset : lsb,
+      bit_width: typeof field.bit_width === 'number' ? field.bit_width : width,
+      bit_range: [msb, lsb],
+      access: String(field.access ?? 'read-write'),
+      reset_value: typeof field.reset_value === 'number' ? field.reset_value : 0,
+      description: String(field.description ?? ''),
+    };
+  });
+}
 
 // ---------------------------------------------------------------------------
 // Hook
@@ -168,7 +190,7 @@ export function useFieldEditor(
   const tryInsertField = useCallback(
     (after: boolean) => {
       setInsertError(null);
-      const typedFields = fields as unknown as BitFieldRuntimeDef[];
+      const typedFields = toRuntimeFields(fields);
       const result = SpatialInsertionService.insertField(
         after ? 'after' : 'before',
         typedFields,

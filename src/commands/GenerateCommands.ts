@@ -10,7 +10,7 @@ import * as YAML from 'yaml';
 import { Logger } from '../utils/Logger';
 import { TemplateLoader } from '../generator/TemplateLoader';
 import { IpCoreScaffolder } from '../generator/IpCoreScaffolder';
-import { VhdlParser } from '../parser/VhdlParser';
+import { parseVhdlFile } from '../parser/VhdlParser';
 import { safeRegisterCommand } from '../utils/vscodeHelpers';
 import { updateFileSets } from '../services/FileSetUpdater';
 
@@ -179,8 +179,7 @@ async function parseVHDL(resourceUri?: vscode.Uri): Promise<void> {
     },
     async () => {
       try {
-        const parser = new VhdlParser();
-        const result = await parser.parseFile(vhdlPath, { detectBus: true });
+        const result = await parseVhdlFile(vhdlPath, { detectBus: true });
 
         const encoder = new TextEncoder();
         await vscode.workspace.fs.writeFile(
