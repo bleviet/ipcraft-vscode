@@ -244,11 +244,15 @@ div.h-full.flex.flex-col
 |   +-- per-segment rows with height: calc({bitCount} * 2rem)
 |       +-- left bit labels (MSB top, LSB bottom)
 |       +-- center vertical strip (fixed width, per-bit stacked cells)
-|       +-- right floating field label/value chip
+|       +-- right inline field meta (name/range/value, truncated)
 +-- value bar (bottom)
 ```
 
-Segment height is proportional to bit count (`calc(N * 2rem)`), mirroring `pro` layout width semantics.
+Segment height is proportional to bit count (`calc(N * 2rem)`), mirroring `pro` layout width semantics. Vertical cells reuse the same shared field color palette (`FIELD_COLORS`/`getFieldColor`) as table rows and pro-layout cells.
+
+Vertical interaction cues:
+- Shift-hover shows top/bottom resize handle indicators using the same constraint model as `ProLayoutView`.
+- Ctrl-hover/drag adds a focus border and drag indicator badge.
 
 ### AddressMapVisualizer
 
@@ -279,11 +283,12 @@ Same structure as AddressMapVisualizer but per-register. Each register is `flex-
 | Range | Label | Key behaviors |
 |---|---|---|
 | <= 640px | Mobile | Sidebar becomes fixed overlay. Toggle button shown (44x44px). Tables switch to card view. Form grids go single-column. Inputs get 44px min-height and 16px font. Header wraps, toolbar buttons become icon-only. |
-| 641--900px | Tablet | Sidebar narrows to 240px, always visible. Toggle button hidden. Access column hidden in field tables. Details split stays horizontal. Register side-by-side pane narrows to 200px min 160px. |
+| 641--900px | Tablet | Sidebar narrows to 240px, always visible. Toggle button hidden. Access column hidden in field tables. Details split stays horizontal. Register side-by-side pane narrows to 260px min 220px. |
 | >= 901px | Desktop | Sidebar at full 300px. All columns visible. Full bit cell size. |
 
 Register side-by-side specifics:
-- `.register-visualizer-pane` width is 260px (`min-width: 200px`, `max-width: 360px`) on desktop.
+- `.register-visualizer-pane` width is 340px (`min-width: 280px`, `max-width: 460px`) on desktop.
+- `.register-visualizer-pane` uses `overflow-x: hidden` to avoid dual-axis scrolling in the visualizer pane.
 - At `<= 640px`, `.register-visualizer-pane` is hidden by CSS; the table remains full width.
 - The layout toggle still switches persisted state on mobile; hidden-pane behavior is purely CSS-driven.
 
