@@ -20,26 +20,10 @@ import './index.css';
 const App = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   type RegisterLayout = 'stacked' | 'side-by-side';
-  const [registerLayout, setRegisterLayout] = useState<RegisterLayout>(() => {
-    const savedState =
-      (vscode?.getState() as { registerLayout?: RegisterLayout } | undefined) ?? undefined;
-    return savedState?.registerLayout ?? 'side-by-side';
-  });
-  const [blockLayout, setBlockLayout] = useState<RegisterLayout>(() => {
-    const savedState =
-      (vscode?.getState() as { blockLayout?: RegisterLayout } | undefined) ?? undefined;
-    return savedState?.blockLayout ?? 'stacked';
-  });
-  const [memoryMapLayout, setMemoryMapLayout] = useState<RegisterLayout>(() => {
-    const savedState =
-      (vscode?.getState() as { memoryMapLayout?: RegisterLayout } | undefined) ?? undefined;
-    return savedState?.memoryMapLayout ?? 'stacked';
-  });
-  const [arrayLayout, setArrayLayout] = useState<RegisterLayout>(() => {
-    const savedState =
-      (vscode?.getState() as { arrayLayout?: RegisterLayout } | undefined) ?? undefined;
-    return savedState?.arrayLayout ?? 'stacked';
-  });
+  const [registerLayout, setRegisterLayout] = useState<RegisterLayout>('side-by-side');
+  const [blockLayout, setBlockLayout] = useState<RegisterLayout>('side-by-side');
+  const [memoryMapLayout, setMemoryMapLayout] = useState<RegisterLayout>('side-by-side');
+  const [arrayLayout, setArrayLayout] = useState<RegisterLayout>('side-by-side');
 
   const { memoryMap, rawTextRef, parseError, updateFromYaml, updateRawText } = useMemoryMapState();
   const {
@@ -60,29 +44,21 @@ const App = () => {
   const toggleRegisterLayout = () => {
     const nextLayout: RegisterLayout = registerLayout === 'stacked' ? 'side-by-side' : 'stacked';
     setRegisterLayout(nextLayout);
-    const currentState = (vscode?.getState() as Record<string, unknown> | undefined) ?? {};
-    vscode?.setState({ ...currentState, registerLayout: nextLayout });
   };
 
   const toggleBlockLayout = () => {
     const nextLayout: RegisterLayout = blockLayout === 'stacked' ? 'side-by-side' : 'stacked';
     setBlockLayout(nextLayout);
-    const currentState = (vscode?.getState() as Record<string, unknown> | undefined) ?? {};
-    vscode?.setState({ ...currentState, blockLayout: nextLayout });
   };
 
   const toggleMemoryMapLayout = () => {
     const nextLayout: RegisterLayout = memoryMapLayout === 'stacked' ? 'side-by-side' : 'stacked';
     setMemoryMapLayout(nextLayout);
-    const currentState = (vscode?.getState() as Record<string, unknown> | undefined) ?? {};
-    vscode?.setState({ ...currentState, memoryMapLayout: nextLayout });
   };
 
   const toggleArrayLayout = () => {
     const nextLayout: RegisterLayout = arrayLayout === 'stacked' ? 'side-by-side' : 'stacked';
     setArrayLayout(nextLayout);
-    const currentState = (vscode?.getState() as Record<string, unknown> | undefined) ?? {};
-    vscode?.setState({ ...currentState, arrayLayout: nextLayout });
   };
 
   const outlineRef = useRef<OutlineHandle | null>(null);

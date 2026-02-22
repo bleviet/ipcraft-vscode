@@ -364,10 +364,10 @@ export function RegisterArrayEditor({
       <div className="vscode-surface border-b vscode-border px-6 py-2 shrink-0">
         <div className="flex justify-between items-start gap-4">
           <div>
-            <h2 className="text-2xl font-bold font-mono tracking-tight">
+            <h2 className="text-xl font-bold font-mono tracking-tight">
               {arr?.name ?? 'Register Array'}
             </h2>
-            <p className="vscode-muted text-sm mt-1 max-w-2xl">
+            <p className="vscode-muted text-xs mt-0.5 max-w-2xl">
               {arr?.description ?? 'Register array'} • {arr?.count ?? 1} instances ×{' '}
               {arr?.stride ?? 4} bytes
             </p>
