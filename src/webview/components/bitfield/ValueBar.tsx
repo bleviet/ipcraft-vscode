@@ -32,7 +32,7 @@ const ValueBar = ({
       style={{ background: 'var(--vscode-editor-background)' }}
     >
       <div className="text-sm vscode-muted font-mono font-semibold">Value:</div>
-      <div className="min-w-[320px] text-base">
+      <div className="min-w-[120px] text-base">
         <VSCodeTextField
           className="w-full"
           value={valueDraft}
