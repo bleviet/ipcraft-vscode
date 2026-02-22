@@ -35,6 +35,11 @@ const App = () => {
       (vscode?.getState() as { memoryMapLayout?: RegisterLayout } | undefined) ?? undefined;
     return savedState?.memoryMapLayout ?? 'stacked';
   });
+  const [arrayLayout, setArrayLayout] = useState<RegisterLayout>(() => {
+    const savedState =
+      (vscode?.getState() as { arrayLayout?: RegisterLayout } | undefined) ?? undefined;
+    return savedState?.arrayLayout ?? 'stacked';
+  });
 
   const { memoryMap, rawTextRef, parseError, updateFromYaml, updateRawText } = useMemoryMapState();
   const {
@@ -71,6 +76,13 @@ const App = () => {
     setMemoryMapLayout(nextLayout);
     const currentState = (vscode?.getState() as Record<string, unknown> | undefined) ?? {};
     vscode?.setState({ ...currentState, memoryMapLayout: nextLayout });
+  };
+
+  const toggleArrayLayout = () => {
+    const nextLayout: RegisterLayout = arrayLayout === 'stacked' ? 'side-by-side' : 'stacked';
+    setArrayLayout(nextLayout);
+    const currentState = (vscode?.getState() as Record<string, unknown> | undefined) ?? {};
+    vscode?.setState({ ...currentState, arrayLayout: nextLayout });
   };
 
   const outlineRef = useRef<OutlineHandle | null>(null);
@@ -209,6 +221,8 @@ const App = () => {
           toggleBlockLayout={toggleBlockLayout}
           memoryMapLayout={memoryMapLayout}
           toggleMemoryMapLayout={toggleMemoryMapLayout}
+          arrayLayout={arrayLayout}
+          toggleArrayLayout={toggleArrayLayout}
         />
       </section>
     </main>

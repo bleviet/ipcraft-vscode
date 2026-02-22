@@ -56,6 +56,8 @@ const baseProps = {
   toggleBlockLayout: noop,
   memoryMapLayout: 'stacked' as const,
   toggleMemoryMapLayout: noop,
+  arrayLayout: 'stacked' as const,
+  toggleArrayLayout: noop,
 };
 
 // ---------------------------------------------------------------------------
