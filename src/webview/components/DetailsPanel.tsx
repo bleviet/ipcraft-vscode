@@ -23,6 +23,8 @@ export interface DetailsPanelProps {
   selectedObject: unknown;
   registerLayout: 'stacked' | 'side-by-side';
   toggleRegisterLayout: () => void;
+  blockLayout: 'stacked' | 'side-by-side';
+  toggleBlockLayout: () => void;
   selectionMeta?: {
     absoluteAddress?: number;
     relativeOffset?: number;
@@ -48,6 +50,8 @@ const DetailsPanel = React.forwardRef<DetailsPanelHandle, DetailsPanelProps>((pr
     selectionMeta: rawSelectionMeta,
     registerLayout,
     toggleRegisterLayout,
+    blockLayout,
+    toggleBlockLayout,
     onUpdate: rawOnUpdate,
     onNavigateToRegister,
     onNavigateToBlock,
@@ -186,6 +190,8 @@ const DetailsPanel = React.forwardRef<DetailsPanelHandle, DetailsPanelProps>((pr
     return (
       <BlockEditor
         block={selectedObject as Parameters<typeof BlockEditor>[0]['block']}
+        blockLayout={blockLayout}
+        toggleBlockLayout={toggleBlockLayout}
         selectionMeta={selectionMeta}
         onUpdate={onUpdate}
         onNavigateToRegister={onNavigateToRegister}

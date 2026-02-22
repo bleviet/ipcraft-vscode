@@ -58,6 +58,8 @@ export interface AddressBlockModel {
 export interface BlockEditorProps {
   /** The address block object (has name, base_address, registers, etc.). */
   block: AddressBlockModel;
+  blockLayout: 'stacked' | 'side-by-side';
+  toggleBlockLayout: () => void;
   selectionMeta?: {
     absoluteAddress?: number;
     relativeOffset?: number;
@@ -79,6 +81,8 @@ export interface BlockEditorProps {
  */
 export function BlockEditor({
   block,
+  blockLayout,
+  toggleBlockLayout,
   selectionMeta,
   onUpdate,
   onNavigateToRegister,
@@ -321,11 +325,196 @@ export function BlockEditor({
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [liveRegisters, onUpdate, selectedRegIndex]);
 
+  const visualizer = (
+    <RegisterMapVisualizer
+      registers={registers}
+      hoveredRegIndex={hoveredRegIndex}
+      setHoveredRegIndex={setHoveredRegIndex}
+      baseAddress={baseAddress}
+      onReorderRegisters={(newRegs) => onUpdate(['registers'], newRegs as unknown[])}
+      onRegisterClick={onNavigateToRegister}
+    />
+  );
+
+  const registersTable = (
+    <div
+      ref={focusRef}
+      tabIndex={0}
+      data-regs-table="true"
+      className="flex-1 overflow-auto min-h-0 outline-none focus:outline-none"
+    >
+      {insertError ? (
+        <div ref={errorRef} className="vscode-error px-4 py-2 text-xs">
+          {insertError}
+        </div>
+      ) : null}
+      <table className="w-full text-left border-collapse table-fixed">
+        <colgroup>
+          <col className="w-[30%] min-w-[200px]" />
+          <col className="w-[20%] min-w-[120px]" />
+          <col className="w-[15%] min-w-[100px]" />
+          <col className="w-[35%]" />
+        </colgroup>
+        <thead className="vscode-surface-alt text-xs font-semibold vscode-muted uppercase tracking-wider sticky top-0 z-10 shadow-sm">
+          <tr className="h-12">
+            <th className="px-6 py-3 border-b vscode-border align-middle">Name</th>
+            <th className="px-4 py-3 border-b vscode-border align-middle">Offset</th>
+            <th className="px-4 py-3 border-b vscode-border align-middle">Access</th>
+            <th className="px-6 py-3 border-b vscode-border align-middle">Description</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y vscode-border text-sm">
+          {registers.map((reg: RegisterModel, idx: number) => {
+            const color = getRegColor(idx);
+            const offset = reg.address_offset ?? reg.offset ?? idx * 4;
+
+            return (
+              <tr
+                key={`${String(reg.name ?? `reg-${idx}`)}-${String(reg.address_offset ?? reg.offset ?? idx * 4)}`}
+                data-row-idx={idx}
+                data-reg-idx={idx}
+                className={`group vscode-row-solid transition-colors border-l-4 border-transparent h-12 ${
+                  idx === selectedRegIndex
+                    ? 'vscode-focus-border vscode-row-selected'
+                    : idx === hoveredRegIndex
+                      ? 'vscode-focus-border vscode-row-hover'
+                      : ''
+                }`}
+                onMouseEnter={() => setHoveredRegIndex(idx)}
+                onMouseLeave={() => setHoveredRegIndex(null)}
+                onClick={() => {
+                  setSelectedRegIndex(idx);
+                  setHoveredRegIndex(idx);
+                  setRegActiveCell((prev) => ({ rowIndex: idx, key: prev.key }));
+                }}
+              >
+                {/* NAME */}
+                <td
+                  data-col-key="name"
+                  className={`px-6 py-2 font-medium align-middle ${
+                    regActiveCell.rowIndex === idx && regActiveCell.key === 'name'
+                      ? 'vscode-cell-active'
+                      : ''
+                  }`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedRegIndex(idx);
+                    setHoveredRegIndex(idx);
+                    setRegActiveCell({ rowIndex: idx, key: 'name' });
+                  }}
+                >
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-2.5 h-2.5 rounded-sm"
+                      style={{ backgroundColor: FIELD_COLORS[color] || color }}
+                    />
+                    <VSCodeTextField
+                      data-edit-key="name"
+                      className="flex-1"
+                      value={reg.name ?? ''}
+                      onBlur={(e: Event | React.FormEvent<HTMLElement>) =>
+                        onUpdate(['registers', idx, 'name'], (e.target as HTMLInputElement).value)
+                      }
+                    />
+                  </div>
+                </td>
+                {/* OFFSET */}
+                <td
+                  data-col-key="offset"
+                  className={`px-4 py-2 font-mono vscode-muted align-middle ${
+                    regActiveCell.rowIndex === idx && regActiveCell.key === 'offset'
+                      ? 'vscode-cell-active'
+                      : ''
+                  }`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedRegIndex(idx);
+                    setHoveredRegIndex(idx);
+                    setRegActiveCell({ rowIndex: idx, key: 'offset' });
+                  }}
+                >
+                  <VSCodeTextField
+                    data-edit-key="offset"
+                    className="w-full font-mono"
+                    value={toHex(offset as number)}
+                    onInput={(e: Event | React.FormEvent<HTMLElement>) => {
+                      const val = Number((e.target as HTMLInputElement).value);
+                      if (!Number.isNaN(val)) {
+                        onUpdate(['registers', idx, 'offset'], val);
+                      }
+                    }}
+                  />
+                </td>
+                {/* ACCESS */}
+                <td
+                  data-col-key="access"
+                  className={`px-4 py-2 align-middle ${
+                    regActiveCell.rowIndex === idx && regActiveCell.key === 'access'
+                      ? 'vscode-cell-active'
+                      : ''
+                  }`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedRegIndex(idx);
+                    setHoveredRegIndex(idx);
+                    setRegActiveCell({ rowIndex: idx, key: 'access' });
+                  }}
+                >
+                  <VSCodeDropdown
+                    data-edit-key="access"
+                    className="w-full"
+                    value={reg.access ?? 'read-write'}
+                    onInput={(e: Event | React.FormEvent<HTMLElement>) =>
+                      onUpdate(['registers', idx, 'access'], (e.target as HTMLInputElement).value)
+                    }
+                  >
+                    {ACCESS_OPTIONS.map((opt) => (
+                      <VSCodeOption key={opt} value={opt}>
+                        {opt}
+                      </VSCodeOption>
+                    ))}
+                  </VSCodeDropdown>
+                </td>
+                {/* DESCRIPTION */}
+                <td
+                  data-col-key="description"
+                  className={`px-6 py-2 vscode-muted align-middle ${
+                    regActiveCell.rowIndex === idx && regActiveCell.key === 'description'
+                      ? 'vscode-cell-active'
+                      : ''
+                  }`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedRegIndex(idx);
+                    setHoveredRegIndex(idx);
+                    setRegActiveCell({ rowIndex: idx, key: 'description' });
+                  }}
+                >
+                  <VSCodeTextArea
+                    data-edit-key="description"
+                    className="w-full"
+                    rows={1}
+                    value={reg.description ?? ''}
+                    onInput={(e: Event | React.FormEvent<HTMLElement>) =>
+                      onUpdate(
+                        ['registers', idx, 'description'],
+                        (e.target as HTMLTextAreaElement).value
+                      )
+                    }
+                  />
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+
   return (
     <div className="flex flex-col w-full h-full min-h-0">
-      {/* Header + RegisterMapVisualizer */}
-      <div className="vscode-surface border-b vscode-border p-8 flex flex-col gap-6 shrink-0 relative overflow-hidden">
-        <div className="flex justify-between items-start relative z-10">
+      <div className="vscode-surface border-b vscode-border px-6 py-2 shrink-0">
+        <div className="flex justify-between items-start gap-4">
           <div>
             <h2 className="text-2xl font-bold font-mono tracking-tight">
               {block?.name ?? 'Address Block'}
@@ -334,202 +523,45 @@ export function BlockEditor({
               {block?.description ?? `Base: ${toHex(baseAddress)}`} • {block?.usage ?? 'register'}
             </p>
           </div>
-        </div>
-        <div className="w-full relative z-10 mt-2 select-none">
-          <RegisterMapVisualizer
-            registers={registers}
-            hoveredRegIndex={hoveredRegIndex}
-            setHoveredRegIndex={setHoveredRegIndex}
-            baseAddress={baseAddress}
-            onReorderRegisters={(newRegs) => onUpdate(['registers'], newRegs as unknown[])}
-            onRegisterClick={onNavigateToRegister}
-          />
+          <button
+            className="p-2 rounded-md transition-colors vscode-icon-button"
+            onClick={toggleBlockLayout}
+            title={
+              blockLayout === 'stacked'
+                ? 'Switch to side-by-side layout'
+                : 'Switch to stacked layout'
+            }
+            aria-label="Toggle block layout"
+            type="button"
+          >
+            <span
+              className={`codicon ${
+                blockLayout === 'stacked' ? 'codicon-split-horizontal' : 'codicon-split-vertical'
+              }`}
+            />
+          </button>
         </div>
       </div>
 
-      {/* Registers table */}
-      <div className="flex-1 flex overflow-hidden min-h-0">
-        <div className="flex-1 vscode-surface min-h-0 flex flex-col">
-          <div
-            ref={focusRef}
-            tabIndex={0}
-            data-regs-table="true"
-            className="flex-1 overflow-auto min-h-0 outline-none focus:outline-none"
-          >
-            {insertError ? (
-              <div ref={errorRef} className="vscode-error px-4 py-2 text-xs">
-                {insertError}
-              </div>
-            ) : null}
-            <table className="w-full text-left border-collapse table-fixed">
-              <colgroup>
-                <col className="w-[30%] min-w-[200px]" />
-                <col className="w-[20%] min-w-[120px]" />
-                <col className="w-[15%] min-w-[100px]" />
-                <col className="w-[35%]" />
-              </colgroup>
-              <thead className="vscode-surface-alt text-xs font-semibold vscode-muted uppercase tracking-wider sticky top-0 z-10 shadow-sm">
-                <tr className="h-12">
-                  <th className="px-6 py-3 border-b vscode-border align-middle">Name</th>
-                  <th className="px-4 py-3 border-b vscode-border align-middle">Offset</th>
-                  <th className="px-4 py-3 border-b vscode-border align-middle">Access</th>
-                  <th className="px-6 py-3 border-b vscode-border align-middle">Description</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y vscode-border text-sm">
-                {registers.map((reg: RegisterModel, idx: number) => {
-                  const color = getRegColor(idx);
-                  const offset = reg.address_offset ?? reg.offset ?? idx * 4;
-
-                  return (
-                    <tr
-                      key={`${String(reg.name ?? `reg-${idx}`)}-${String(reg.address_offset ?? reg.offset ?? idx * 4)}`}
-                      data-row-idx={idx}
-                      data-reg-idx={idx}
-                      className={`group vscode-row-solid transition-colors border-l-4 border-transparent h-12 ${
-                        idx === selectedRegIndex
-                          ? 'vscode-focus-border vscode-row-selected'
-                          : idx === hoveredRegIndex
-                            ? 'vscode-focus-border vscode-row-hover'
-                            : ''
-                      }`}
-                      onMouseEnter={() => setHoveredRegIndex(idx)}
-                      onMouseLeave={() => setHoveredRegIndex(null)}
-                      onClick={() => {
-                        setSelectedRegIndex(idx);
-                        setHoveredRegIndex(idx);
-                        setRegActiveCell((prev) => ({ rowIndex: idx, key: prev.key }));
-                      }}
-                    >
-                      {/* NAME */}
-                      <td
-                        data-col-key="name"
-                        className={`px-6 py-2 font-medium align-middle ${
-                          regActiveCell.rowIndex === idx && regActiveCell.key === 'name'
-                            ? 'vscode-cell-active'
-                            : ''
-                        }`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedRegIndex(idx);
-                          setHoveredRegIndex(idx);
-                          setRegActiveCell({ rowIndex: idx, key: 'name' });
-                        }}
-                      >
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="w-2.5 h-2.5 rounded-sm"
-                            style={{ backgroundColor: FIELD_COLORS[color] || color }}
-                          />
-                          <VSCodeTextField
-                            data-edit-key="name"
-                            className="flex-1"
-                            value={reg.name ?? ''}
-                            onBlur={(e: Event | React.FormEvent<HTMLElement>) =>
-                              onUpdate(
-                                ['registers', idx, 'name'],
-                                (e.target as HTMLInputElement).value
-                              )
-                            }
-                          />
-                        </div>
-                      </td>
-                      {/* OFFSET */}
-                      <td
-                        data-col-key="offset"
-                        className={`px-4 py-2 font-mono vscode-muted align-middle ${
-                          regActiveCell.rowIndex === idx && regActiveCell.key === 'offset'
-                            ? 'vscode-cell-active'
-                            : ''
-                        }`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedRegIndex(idx);
-                          setHoveredRegIndex(idx);
-                          setRegActiveCell({ rowIndex: idx, key: 'offset' });
-                        }}
-                      >
-                        <VSCodeTextField
-                          data-edit-key="offset"
-                          className="w-full font-mono"
-                          value={toHex(offset as number)}
-                          onInput={(e: Event | React.FormEvent<HTMLElement>) => {
-                            const val = Number((e.target as HTMLInputElement).value);
-                            if (!Number.isNaN(val)) {
-                              onUpdate(['registers', idx, 'offset'], val);
-                            }
-                          }}
-                        />
-                      </td>
-                      {/* ACCESS */}
-                      <td
-                        data-col-key="access"
-                        className={`px-4 py-2 align-middle ${
-                          regActiveCell.rowIndex === idx && regActiveCell.key === 'access'
-                            ? 'vscode-cell-active'
-                            : ''
-                        }`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedRegIndex(idx);
-                          setHoveredRegIndex(idx);
-                          setRegActiveCell({ rowIndex: idx, key: 'access' });
-                        }}
-                      >
-                        <VSCodeDropdown
-                          data-edit-key="access"
-                          className="w-full"
-                          value={reg.access ?? 'read-write'}
-                          onInput={(e: Event | React.FormEvent<HTMLElement>) =>
-                            onUpdate(
-                              ['registers', idx, 'access'],
-                              (e.target as HTMLInputElement).value
-                            )
-                          }
-                        >
-                          {ACCESS_OPTIONS.map((opt) => (
-                            <VSCodeOption key={opt} value={opt}>
-                              {opt}
-                            </VSCodeOption>
-                          ))}
-                        </VSCodeDropdown>
-                      </td>
-                      {/* DESCRIPTION */}
-                      <td
-                        data-col-key="description"
-                        className={`px-6 py-2 vscode-muted align-middle ${
-                          regActiveCell.rowIndex === idx && regActiveCell.key === 'description'
-                            ? 'vscode-cell-active'
-                            : ''
-                        }`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedRegIndex(idx);
-                          setHoveredRegIndex(idx);
-                          setRegActiveCell({ rowIndex: idx, key: 'description' });
-                        }}
-                      >
-                        <VSCodeTextArea
-                          data-edit-key="description"
-                          className="w-full"
-                          rows={1}
-                          value={reg.description ?? ''}
-                          onInput={(e: Event | React.FormEvent<HTMLElement>) =>
-                            onUpdate(
-                              ['registers', idx, 'description'],
-                              (e.target as HTMLTextAreaElement).value
-                            )
-                          }
-                        />
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+      {blockLayout === 'side-by-side' ? (
+        <div className="flex-1 flex overflow-hidden min-h-0">
+          <div className="register-visualizer-pane shrink-0 overflow-y-auto border-r vscode-border">
+            {visualizer}
+          </div>
+          <div className="flex-1 vscode-surface min-h-0 flex flex-col overflow-hidden">
+            {registersTable}
           </div>
         </div>
-      </div>
+      ) : (
+        <>
+          <div className="vscode-surface border-b vscode-border p-8 flex flex-col gap-6 shrink-0 relative overflow-hidden">
+            <div className="w-full relative z-10 mt-2 select-none">{visualizer}</div>
+          </div>
+          <div className="flex-1 flex overflow-hidden min-h-0">
+            <div className="flex-1 vscode-surface min-h-0 flex flex-col">{registersTable}</div>
+          </div>
+        </>
+      )}
       <KeyboardShortcutsButton context="block" />
     </div>
   );

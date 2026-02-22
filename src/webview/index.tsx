@@ -25,6 +25,11 @@ const App = () => {
       (vscode?.getState() as { registerLayout?: RegisterLayout } | undefined) ?? undefined;
     return savedState?.registerLayout ?? 'side-by-side';
   });
+  const [blockLayout, setBlockLayout] = useState<RegisterLayout>(() => {
+    const savedState =
+      (vscode?.getState() as { blockLayout?: RegisterLayout } | undefined) ?? undefined;
+    return savedState?.blockLayout ?? 'stacked';
+  });
 
   const { memoryMap, rawTextRef, parseError, updateFromYaml, updateRawText } = useMemoryMapState();
   const {
@@ -47,6 +52,13 @@ const App = () => {
     setRegisterLayout(nextLayout);
     const currentState = (vscode?.getState() as Record<string, unknown> | undefined) ?? {};
     vscode?.setState({ ...currentState, registerLayout: nextLayout });
+  };
+
+  const toggleBlockLayout = () => {
+    const nextLayout: RegisterLayout = blockLayout === 'stacked' ? 'side-by-side' : 'stacked';
+    setBlockLayout(nextLayout);
+    const currentState = (vscode?.getState() as Record<string, unknown> | undefined) ?? {};
+    vscode?.setState({ ...currentState, blockLayout: nextLayout });
   };
 
   const outlineRef = useRef<OutlineHandle | null>(null);
@@ -181,6 +193,8 @@ const App = () => {
           onNavigateToBlock={navigateToBlock}
           registerLayout={registerLayout}
           toggleRegisterLayout={toggleRegisterLayout}
+          blockLayout={blockLayout}
+          toggleBlockLayout={toggleBlockLayout}
         />
       </section>
     </main>

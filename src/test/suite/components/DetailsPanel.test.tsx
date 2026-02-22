@@ -52,6 +52,8 @@ const noop = jest.fn();
 const baseProps = {
   registerLayout: 'side-by-side' as const,
   toggleRegisterLayout: noop,
+  blockLayout: 'stacked' as const,
+  toggleBlockLayout: noop,
 };
 
 // ---------------------------------------------------------------------------
