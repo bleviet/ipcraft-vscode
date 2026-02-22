@@ -333,6 +333,7 @@ export function BlockEditor({
       baseAddress={baseAddress}
       onReorderRegisters={(newRegs) => onUpdate(['registers'], newRegs as unknown[])}
       onRegisterClick={onNavigateToRegister}
+      layout={blockLayout === 'side-by-side' ? 'vertical' : 'horizontal'}
     />
   );
 

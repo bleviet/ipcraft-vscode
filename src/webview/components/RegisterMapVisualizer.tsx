@@ -20,6 +20,7 @@ interface RegisterMapVisualizerProps {
   baseAddress?: number;
   onReorderRegisters?: (newRegisters: VisualizerRegister[]) => void;
   onRegisterClick?: (regIndex: number) => void;
+  layout?: 'horizontal' | 'vertical';
 }
 
 function getRegColor(idx: number) {
@@ -46,6 +47,7 @@ const RegisterMapVisualizerInner: React.FC<RegisterMapVisualizerProps> = ({
   baseAddress = 0,
   onReorderRegisters,
   onRegisterClick,
+  layout = 'horizontal',
 }) => {
   const [ctrlDrag, setCtrlDrag] = useState<CtrlDragState>(CTRL_DRAG_INITIAL);
 
@@ -170,6 +172,82 @@ const RegisterMapVisualizerInner: React.FC<RegisterMapVisualizerProps> = ({
     return newGroups;
   }, [groups, ctrlDrag]);
 
+  if (layout === 'vertical') {
+    return (
+      <div className="flex flex-col w-full">
+        {displayGroups.map((group, displayIdx) => {
+          const isHovered = hoveredRegIndex === group.idx;
+          const isDragging = ctrlDrag.active && ctrlDrag.draggedRegIndex === group.idx;
+          const isDropTarget =
+            ctrlDrag.active &&
+            ctrlDrag.targetIndex === displayIdx &&
+            ctrlDrag.draggedRegIndex !== displayIdx;
+
+          return (
+            <div
+              key={group.idx}
+              className={`flex items-center gap-3 px-3 py-2 border-b vscode-border select-none transition-colors ${
+                isHovered ? 'vscode-row-hover' : ''
+              } ${isDragging ? 'opacity-50' : ''}`}
+              style={{
+                cursor: ctrlDrag.active
+                  ? 'grabbing'
+                  : onRegisterClick || onReorderRegisters
+                    ? 'pointer'
+                    : 'default',
+                boxShadow: isDropTarget ? '0 0 0 2px var(--vscode-focusBorder) inset' : undefined,
+              }}
+              onMouseEnter={() => setHoveredRegIndex(group.idx)}
+              onMouseLeave={() => setHoveredRegIndex(null)}
+              onClick={(e) => {
+                if (!ctrlDrag.active && onRegisterClick) {
+                  e.stopPropagation();
+                  onRegisterClick(group.idx);
+                }
+              }}
+              onPointerDown={(e) => handleCtrlPointerDown(group.idx, e)}
+              onPointerMove={() => handlePointerMove(displayIdx)}
+              onPointerEnter={() => {
+                if (ctrlDrag.active) {
+                  handlePointerMove(displayIdx);
+                }
+              }}
+            >
+              {/* Color swatch */}
+              <div
+                className={`w-3 shrink-0 self-stretch rounded-sm ${group.isArray ? 'border-2 border-dashed' : ''}`}
+                style={{
+                  backgroundColor: FIELD_COLORS[group.color],
+                  borderColor: group.isArray ? 'var(--ipcraft-pattern-border)' : undefined,
+                  filter: isHovered ? 'saturate(1.15) brightness(1.05)' : undefined,
+                }}
+              />
+              {/* Info */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="font-mono font-semibold text-sm truncate">{group.name}</span>
+                  <span className="ipcraft-pattern-label text-[10px] font-mono shrink-0">
+                    {group.isArray ? `[${String(group.count)}]` : 'REG'}
+                  </span>
+                </div>
+                <div className="text-[11px] vscode-muted font-mono">
+                  {toHex(group.absoluteAddress)}
+                  <span className="mx-1 opacity-50">→</span>
+                  {toHex(Number(group.absoluteAddress) + Number(group.size) - 1)}
+                  <span className="ml-2 opacity-60">[{group.size}B]</span>
+                </div>
+              </div>
+              {/* Offset */}
+              <div className="text-[11px] vscode-muted font-mono shrink-0">
+                +{toHex(group.offset)}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
   return (
     <div className="w-full">
       <div className="relative w-full flex items-start overflow-x-auto pb-2">
@@ -273,7 +351,8 @@ const RegisterMapVisualizer = React.memo(
     prev.setHoveredRegIndex === next.setHoveredRegIndex &&
     prev.baseAddress === next.baseAddress &&
     prev.onReorderRegisters === next.onReorderRegisters &&
-    prev.onRegisterClick === next.onRegisterClick
+    prev.onRegisterClick === next.onRegisterClick &&
+    prev.layout === next.layout
 );
 
 export default RegisterMapVisualizer;
