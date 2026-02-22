@@ -22,6 +22,7 @@ interface AddressMapVisualizerProps {
   hoveredBlockIndex?: number | null;
   setHoveredBlockIndex?: (idx: number | null) => void;
   onBlockClick?: (blockIndex: number) => void;
+  layout?: 'horizontal' | 'vertical';
 }
 
 function getBlockColor(idx: number) {
@@ -33,6 +34,7 @@ const AddressMapVisualizerInner: React.FC<AddressMapVisualizerProps> = ({
   hoveredBlockIndex = null,
   setHoveredBlockIndex = (_idx: number | null) => undefined,
   onBlockClick,
+  layout = 'horizontal',
 }) => {
   // Group blocks by address ranges
   const groups = useMemo(() => {
@@ -50,6 +52,56 @@ const AddressMapVisualizerInner: React.FC<AddressMapVisualizerProps> = ({
       };
     });
   }, [blocks]);
+
+  if (layout === 'vertical') {
+    return (
+      <div className="flex flex-col w-full">
+        {groups.map((group) => {
+          const isHovered = hoveredBlockIndex === group.idx;
+          return (
+            <div
+              key={group.idx}
+              className={`flex items-center gap-3 px-3 py-2 border-b vscode-border select-none transition-colors ${
+                isHovered ? 'vscode-row-hover' : ''
+              }`}
+              style={{ cursor: onBlockClick ? 'pointer' : 'default' }}
+              onMouseEnter={() => setHoveredBlockIndex(group.idx)}
+              onMouseLeave={() => setHoveredBlockIndex(null)}
+              onClick={() => onBlockClick?.(group.idx)}
+            >
+              <div
+                className="w-3 shrink-0 self-stretch rounded-sm"
+                style={{
+                  backgroundColor: FIELD_COLORS[group.color],
+                  filter: isHovered ? 'saturate(1.15) brightness(1.05)' : undefined,
+                }}
+              />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="font-mono font-semibold text-sm truncate">{group.name}</span>
+                  <span className="ipcraft-pattern-label text-[10px] font-mono shrink-0">
+                    {group.usage === 'memory' ? 'MEM' : 'REG'}
+                  </span>
+                </div>
+                <div className="text-[11px] vscode-muted font-mono">
+                  {toHex(group.start)}
+                  <span className="mx-1 opacity-50">→</span>
+                  {toHex(group.end)}
+                  <span className="ml-2 opacity-60">
+                    {group.size < 1024
+                      ? `${group.size}B`
+                      : group.size < 1048576
+                        ? `${(group.size / 1024).toFixed(1)}KB`
+                        : `${(group.size / 1048576).toFixed(1)}MB`}
+                  </span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
 
   return (
     <div className="w-full">
@@ -131,7 +183,8 @@ const AddressMapVisualizer = React.memo(
     prev.blocks === next.blocks &&
     prev.hoveredBlockIndex === next.hoveredBlockIndex &&
     prev.setHoveredBlockIndex === next.setHoveredBlockIndex &&
-    prev.onBlockClick === next.onBlockClick
+    prev.onBlockClick === next.onBlockClick &&
+    prev.layout === next.layout
 );
 
 export default AddressMapVisualizer;

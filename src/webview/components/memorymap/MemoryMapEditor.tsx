@@ -36,6 +36,8 @@ export interface MemoryMapEditorProps {
     addressBlocks?: MemoryMapBlockDef[];
     [k: string]: unknown;
   };
+  memoryMapLayout: 'stacked' | 'side-by-side';
+  toggleMemoryMapLayout: () => void;
   selectionMeta?: {
     absoluteAddress?: number;
     relativeOffset?: number;
@@ -59,6 +61,8 @@ export interface MemoryMapEditorProps {
  */
 export function MemoryMapEditor({
   memoryMap,
+  memoryMapLayout,
+  toggleMemoryMapLayout,
   selectionMeta,
   onUpdate,
   onNavigateToBlock,
@@ -175,11 +179,198 @@ export function MemoryMapEditor({
 
   const getBlockColor = (idx: number) => FIELD_COLOR_KEYS[idx % FIELD_COLOR_KEYS.length];
 
+  const visualizer = (
+    <AddressMapVisualizer
+      blocks={blocks}
+      hoveredBlockIndex={hoveredBlockIndex}
+      setHoveredBlockIndex={setHoveredBlockIndex}
+      onBlockClick={onNavigateToBlock}
+      layout={memoryMapLayout === 'side-by-side' ? 'vertical' : 'horizontal'}
+    />
+  );
+
+  const blocksTable = (
+    <div
+      ref={focusRef}
+      tabIndex={0}
+      data-blocks-table="true"
+      className="flex-1 overflow-auto min-h-0 outline-none focus:outline-none"
+    >
+      {insertError ? <div className="vscode-error px-4 py-2 text-xs">{insertError}</div> : null}
+      <table className="w-full text-left border-collapse table-fixed">
+        <colgroup>
+          <col className="w-[25%] min-w-[200px]" />
+          <col className="w-[20%] min-w-[120px]" />
+          <col className="w-[15%] min-w-[100px]" />
+          <col className="w-[15%] min-w-[100px]" />
+          <col className="w-[25%]" />
+        </colgroup>
+        <thead className="vscode-surface-alt text-xs font-semibold vscode-muted uppercase tracking-wider sticky top-0 z-10 shadow-sm">
+          <tr className="h-12">
+            <th className="px-6 py-3 border-b vscode-border align-middle">Name</th>
+            <th className="px-4 py-3 border-b vscode-border align-middle">Base Address</th>
+            <th className="px-4 py-3 border-b vscode-border align-middle">Size</th>
+            <th className="px-4 py-3 border-b vscode-border align-middle">Usage</th>
+            <th className="px-6 py-3 border-b vscode-border align-middle">Description</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y vscode-border text-sm">
+          {blocks.map((block: MemoryMapBlockDef, idx: number) => {
+            const color = getBlockColor(idx);
+            const base = block.base_address ?? block.offset ?? 0;
+            const size = calculateBlockSize(block);
+
+            return (
+              <tr
+                key={idx}
+                data-row-idx={idx}
+                data-block-idx={idx}
+                className={`group transition-colors border-l-4 border-transparent h-12 ${
+                  idx === selectedBlockIndex
+                    ? 'vscode-focus-border vscode-row-selected'
+                    : idx === hoveredBlockIndex
+                      ? 'vscode-focus-border vscode-row-hover'
+                      : ''
+                }`}
+                onMouseEnter={() => setHoveredBlockIndex(idx)}
+                onMouseLeave={() => setHoveredBlockIndex(null)}
+                onClick={() => {
+                  setSelectedBlockIndex(idx);
+                  setHoveredBlockIndex(idx);
+                  setBlockActiveCell((prev) => ({ rowIndex: idx, key: prev.key }));
+                }}
+              >
+                <td
+                  data-col-key="name"
+                  className={`px-6 py-2 font-medium align-middle ${
+                    blockActiveCell.rowIndex === idx && blockActiveCell.key === 'name'
+                      ? 'vscode-cell-active'
+                      : ''
+                  }`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedBlockIndex(idx);
+                    setHoveredBlockIndex(idx);
+                    setBlockActiveCell({ rowIndex: idx, key: 'name' });
+                  }}
+                >
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-2.5 h-2.5 rounded-sm"
+                      style={{ backgroundColor: FIELD_COLORS[color] || color }}
+                    />
+                    <VSCodeTextField
+                      data-edit-key="name"
+                      className="flex-1"
+                      value={block.name || ''}
+                      onBlur={(e: Event | React.FocusEvent<HTMLElement>) =>
+                        onUpdate(
+                          ['addressBlocks', idx, 'name'],
+                          (e.target as HTMLInputElement).value
+                        )
+                      }
+                    />
+                  </div>
+                </td>
+                <td
+                  data-col-key="base"
+                  className={`px-4 py-2 font-mono vscode-muted align-middle ${
+                    blockActiveCell.rowIndex === idx && blockActiveCell.key === 'base'
+                      ? 'vscode-cell-active'
+                      : ''
+                  }`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedBlockIndex(idx);
+                    setHoveredBlockIndex(idx);
+                    setBlockActiveCell({ rowIndex: idx, key: 'base' });
+                  }}
+                >
+                  <VSCodeTextField
+                    data-edit-key="base"
+                    className="w-full font-mono"
+                    value={toHex(base)}
+                    onInput={(e: Event | React.FormEvent<HTMLElement>) => {
+                      const val = Number((e.target as HTMLInputElement).value);
+                      if (!Number.isNaN(val)) {
+                        onUpdate(['addressBlocks', idx, 'offset'], val);
+                      }
+                    }}
+                  />
+                </td>
+                <td
+                  data-col-key="size"
+                  className={`px-4 py-2 font-mono vscode-muted align-middle ${
+                    blockActiveCell.rowIndex === idx && blockActiveCell.key === 'size'
+                      ? 'vscode-cell-active'
+                      : ''
+                  }`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedBlockIndex(idx);
+                    setHoveredBlockIndex(idx);
+                    setBlockActiveCell({ rowIndex: idx, key: 'size' });
+                  }}
+                >
+                  {size < 1024 ? `${size}B` : `${(size / 1024).toFixed(1)}KB`}
+                </td>
+                <td
+                  data-col-key="usage"
+                  className={`px-4 py-2 align-middle ${
+                    blockActiveCell.rowIndex === idx && blockActiveCell.key === 'usage'
+                      ? 'vscode-cell-active'
+                      : ''
+                  }`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedBlockIndex(idx);
+                    setHoveredBlockIndex(idx);
+                    setBlockActiveCell({ rowIndex: idx, key: 'usage' });
+                  }}
+                >
+                  <span className="px-2 py-0.5 rounded text-xs font-medium vscode-badge whitespace-nowrap">
+                    {block.usage ?? 'register'}
+                  </span>
+                </td>
+                <td
+                  data-col-key="description"
+                  className={`px-6 py-2 vscode-muted align-middle ${
+                    blockActiveCell.rowIndex === idx && blockActiveCell.key === 'description'
+                      ? 'vscode-cell-active'
+                      : ''
+                  }`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedBlockIndex(idx);
+                    setHoveredBlockIndex(idx);
+                    setBlockActiveCell({ rowIndex: idx, key: 'description' });
+                  }}
+                >
+                  <VSCodeTextArea
+                    data-edit-key="description"
+                    className="w-full"
+                    rows={1}
+                    value={block.description ?? ''}
+                    onInput={(e: Event | React.FormEvent<HTMLElement>) =>
+                      onUpdate(
+                        ['addressBlocks', idx, 'description'],
+                        (e.target as HTMLInputElement).value
+                      )
+                    }
+                  />
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+
   return (
     <div className="flex flex-col w-full h-full min-h-0">
-      {/* Header + AddressMapVisualizer */}
-      <div className="vscode-surface border-b vscode-border p-8 flex flex-col gap-6 shrink-0 relative overflow-hidden">
-        <div className="flex justify-between items-start relative z-10">
+      <div className="vscode-surface border-b vscode-border px-6 py-2 shrink-0">
+        <div className="flex justify-between items-start gap-4">
           <div>
             <h2 className="text-2xl font-bold font-mono tracking-tight">
               {memoryMap?.name ?? 'Memory Map'}
@@ -188,199 +379,47 @@ export function MemoryMapEditor({
               {memoryMap?.description ?? 'Address space layout'}
             </p>
           </div>
-        </div>
-        <div className="w-full relative z-10 mt-2 select-none">
-          <AddressMapVisualizer
-            blocks={blocks}
-            hoveredBlockIndex={hoveredBlockIndex}
-            setHoveredBlockIndex={setHoveredBlockIndex}
-            onBlockClick={onNavigateToBlock}
-          />
+          <button
+            className="p-2 rounded-md transition-colors vscode-icon-button"
+            onClick={toggleMemoryMapLayout}
+            title={
+              memoryMapLayout === 'stacked'
+                ? 'Switch to side-by-side layout'
+                : 'Switch to stacked layout'
+            }
+            aria-label="Toggle memory map layout"
+            type="button"
+          >
+            <span
+              className={`codicon ${
+                memoryMapLayout === 'stacked'
+                  ? 'codicon-split-horizontal'
+                  : 'codicon-split-vertical'
+              }`}
+            />
+          </button>
         </div>
       </div>
 
-      {/* Blocks table */}
-      <div className="flex-1 flex overflow-hidden min-h-0">
-        <div className="flex-1 vscode-surface min-h-0 flex flex-col">
-          <div
-            ref={focusRef}
-            tabIndex={0}
-            data-blocks-table="true"
-            className="flex-1 overflow-auto min-h-0 outline-none focus:outline-none"
-          >
-            {insertError ? (
-              <div className="vscode-error px-4 py-2 text-xs">{insertError}</div>
-            ) : null}
-            <table className="w-full text-left border-collapse table-fixed">
-              <colgroup>
-                <col className="w-[25%] min-w-[200px]" />
-                <col className="w-[20%] min-w-[120px]" />
-                <col className="w-[15%] min-w-[100px]" />
-                <col className="w-[15%] min-w-[100px]" />
-                <col className="w-[25%]" />
-              </colgroup>
-              <thead className="vscode-surface-alt text-xs font-semibold vscode-muted uppercase tracking-wider sticky top-0 z-10 shadow-sm">
-                <tr className="h-12">
-                  <th className="px-6 py-3 border-b vscode-border align-middle">Name</th>
-                  <th className="px-4 py-3 border-b vscode-border align-middle">Base Address</th>
-                  <th className="px-4 py-3 border-b vscode-border align-middle">Size</th>
-                  <th className="px-4 py-3 border-b vscode-border align-middle">Usage</th>
-                  <th className="px-6 py-3 border-b vscode-border align-middle">Description</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y vscode-border text-sm">
-                {blocks.map((block: MemoryMapBlockDef, idx: number) => {
-                  const color = getBlockColor(idx);
-                  const base = block.base_address ?? block.offset ?? 0;
-                  const size = calculateBlockSize(block);
-
-                  return (
-                    <tr
-                      key={idx}
-                      data-row-idx={idx}
-                      data-block-idx={idx}
-                      className={`group transition-colors border-l-4 border-transparent h-12 ${
-                        idx === selectedBlockIndex
-                          ? 'vscode-focus-border vscode-row-selected'
-                          : idx === hoveredBlockIndex
-                            ? 'vscode-focus-border vscode-row-hover'
-                            : ''
-                      }`}
-                      onMouseEnter={() => setHoveredBlockIndex(idx)}
-                      onMouseLeave={() => setHoveredBlockIndex(null)}
-                      onClick={() => {
-                        setSelectedBlockIndex(idx);
-                        setHoveredBlockIndex(idx);
-                        setBlockActiveCell((prev) => ({ rowIndex: idx, key: prev.key }));
-                      }}
-                    >
-                      <td
-                        data-col-key="name"
-                        className={`px-6 py-2 font-medium align-middle ${
-                          blockActiveCell.rowIndex === idx && blockActiveCell.key === 'name'
-                            ? 'vscode-cell-active'
-                            : ''
-                        }`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedBlockIndex(idx);
-                          setHoveredBlockIndex(idx);
-                          setBlockActiveCell({ rowIndex: idx, key: 'name' });
-                        }}
-                      >
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="w-2.5 h-2.5 rounded-sm"
-                            style={{ backgroundColor: FIELD_COLORS[color] || color }}
-                          />
-                          <VSCodeTextField
-                            data-edit-key="name"
-                            className="flex-1"
-                            value={block.name || ''}
-                            onBlur={(e: Event | React.FocusEvent<HTMLElement>) =>
-                              onUpdate(
-                                ['addressBlocks', idx, 'name'],
-                                (e.target as HTMLInputElement).value
-                              )
-                            }
-                          />
-                        </div>
-                      </td>
-                      <td
-                        data-col-key="base"
-                        className={`px-4 py-2 font-mono vscode-muted align-middle ${
-                          blockActiveCell.rowIndex === idx && blockActiveCell.key === 'base'
-                            ? 'vscode-cell-active'
-                            : ''
-                        }`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedBlockIndex(idx);
-                          setHoveredBlockIndex(idx);
-                          setBlockActiveCell({ rowIndex: idx, key: 'base' });
-                        }}
-                      >
-                        <VSCodeTextField
-                          data-edit-key="base"
-                          className="w-full font-mono"
-                          value={toHex(base)}
-                          onInput={(e: Event | React.FormEvent<HTMLElement>) => {
-                            const val = Number((e.target as HTMLInputElement).value);
-                            if (!Number.isNaN(val)) {
-                              onUpdate(['addressBlocks', idx, 'offset'], val);
-                            }
-                          }}
-                        />
-                      </td>
-                      <td
-                        data-col-key="size"
-                        className={`px-4 py-2 font-mono vscode-muted align-middle ${
-                          blockActiveCell.rowIndex === idx && blockActiveCell.key === 'size'
-                            ? 'vscode-cell-active'
-                            : ''
-                        }`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedBlockIndex(idx);
-                          setHoveredBlockIndex(idx);
-                          setBlockActiveCell({ rowIndex: idx, key: 'size' });
-                        }}
-                      >
-                        {size < 1024 ? `${size}B` : `${(size / 1024).toFixed(1)}KB`}
-                      </td>
-                      <td
-                        data-col-key="usage"
-                        className={`px-4 py-2 align-middle ${
-                          blockActiveCell.rowIndex === idx && blockActiveCell.key === 'usage'
-                            ? 'vscode-cell-active'
-                            : ''
-                        }`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedBlockIndex(idx);
-                          setHoveredBlockIndex(idx);
-                          setBlockActiveCell({ rowIndex: idx, key: 'usage' });
-                        }}
-                      >
-                        <span className="px-2 py-0.5 rounded text-xs font-medium vscode-badge whitespace-nowrap">
-                          {block.usage ?? 'register'}
-                        </span>
-                      </td>
-                      <td
-                        data-col-key="description"
-                        className={`px-6 py-2 vscode-muted align-middle ${
-                          blockActiveCell.rowIndex === idx && blockActiveCell.key === 'description'
-                            ? 'vscode-cell-active'
-                            : ''
-                        }`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedBlockIndex(idx);
-                          setHoveredBlockIndex(idx);
-                          setBlockActiveCell({ rowIndex: idx, key: 'description' });
-                        }}
-                      >
-                        <VSCodeTextArea
-                          data-edit-key="description"
-                          className="w-full"
-                          rows={1}
-                          value={block.description ?? ''}
-                          onInput={(e: Event | React.FormEvent<HTMLElement>) =>
-                            onUpdate(
-                              ['addressBlocks', idx, 'description'],
-                              (e.target as HTMLInputElement).value
-                            )
-                          }
-                        />
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+      {memoryMapLayout === 'side-by-side' ? (
+        <div className="flex-1 flex overflow-hidden min-h-0">
+          <div className="register-visualizer-pane shrink-0 overflow-y-auto border-r vscode-border">
+            {visualizer}
+          </div>
+          <div className="flex-1 vscode-surface min-h-0 flex flex-col overflow-hidden">
+            {blocksTable}
           </div>
         </div>
-      </div>
+      ) : (
+        <>
+          <div className="vscode-surface border-b vscode-border p-8 flex flex-col gap-6 shrink-0 relative overflow-hidden">
+            <div className="w-full relative z-10 mt-2 select-none">{visualizer}</div>
+          </div>
+          <div className="flex-1 flex overflow-hidden min-h-0">
+            <div className="flex-1 vscode-surface min-h-0 flex flex-col">{blocksTable}</div>
+          </div>
+        </>
+      )}
       <KeyboardShortcutsButton context="memoryMap" />
     </div>
   );

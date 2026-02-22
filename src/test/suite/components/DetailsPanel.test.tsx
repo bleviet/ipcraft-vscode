@@ -54,6 +54,8 @@ const baseProps = {
   toggleRegisterLayout: noop,
   blockLayout: 'stacked' as const,
   toggleBlockLayout: noop,
+  memoryMapLayout: 'stacked' as const,
+  toggleMemoryMapLayout: noop,
 };
 
 // ---------------------------------------------------------------------------

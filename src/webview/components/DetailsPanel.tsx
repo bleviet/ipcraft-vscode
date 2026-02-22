@@ -25,6 +25,8 @@ export interface DetailsPanelProps {
   toggleRegisterLayout: () => void;
   blockLayout: 'stacked' | 'side-by-side';
   toggleBlockLayout: () => void;
+  memoryMapLayout: 'stacked' | 'side-by-side';
+  toggleMemoryMapLayout: () => void;
   selectionMeta?: {
     absoluteAddress?: number;
     relativeOffset?: number;
@@ -52,6 +54,8 @@ const DetailsPanel = React.forwardRef<DetailsPanelHandle, DetailsPanelProps>((pr
     toggleRegisterLayout,
     blockLayout,
     toggleBlockLayout,
+    memoryMapLayout,
+    toggleMemoryMapLayout,
     onUpdate: rawOnUpdate,
     onNavigateToRegister,
     onNavigateToBlock,
@@ -179,6 +183,8 @@ const DetailsPanel = React.forwardRef<DetailsPanelHandle, DetailsPanelProps>((pr
     return (
       <MemoryMapEditor
         memoryMap={selectedObject as Parameters<typeof MemoryMapEditor>[0]['memoryMap']}
+        memoryMapLayout={memoryMapLayout}
+        toggleMemoryMapLayout={toggleMemoryMapLayout}
         selectionMeta={selectionMeta}
         onUpdate={onUpdate}
         onNavigateToBlock={onNavigateToBlock}
