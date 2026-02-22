@@ -16,7 +16,6 @@ Defined in `:root` of `src/webview/index.css`:
 | `--sidebar-width` | `300px` | Desktop sidebar width |
 | `--sidebar-width-tablet` | `240px` | Tablet sidebar width |
 | `--sidebar-width-mobile` | `280px` | Mobile overlay sidebar width |
-| `--header-height` | `40px` | App header height |
 | `--touch-target-min` | `44px` | Minimum touch target size |
 | `--breakpoint-mobile` | `640px` | Mobile breakpoint reference |
 | `--breakpoint-tablet` | `900px` | Tablet breakpoint reference |
@@ -55,11 +54,8 @@ Root mount: `#root`. Source: `src/webview/index.tsx`.
 ```
 #root  (flex flex-col, 100% height, min-height: 0)
 |
-+-- <header>  (shrink-0, px-6 py-3, border-bottom)
-|   +-- left:  .sidebar-toggle-btn + <h1> + breadcrumbs (file name + selection path)
-|   +-- right: Save + Validate icon buttons
-|
-+-- <main>  (flex-1 flex overflow-hidden)
++-- <main>  (flex-1 flex overflow-hidden relative)
+  +-- .sidebar-toggle-btn (mobile-only floating button, absolute top-left)
     +-- .sidebar-backdrop  (mobile only, fixed overlay, z-index: 99)
     +-- <aside class="sidebar">  (flex flex-col shrink-0 overflow-y-auto)
     |   +-- <Outline />
@@ -300,8 +296,8 @@ Register side-by-side specifics:
     position: fixed;
     left: -300px;
     width: var(--sidebar-width-mobile);  /* 280px */
-    height: calc(100vh - var(--header-height));
-    top: var(--header-height);
+    height: 100vh;
+    top: 0;
     z-index: 100;
     transition: left 0.3s ease-in-out;
     box-shadow: 2px 0 8px rgba(0, 0, 0, 0.3);
@@ -318,6 +314,9 @@ Register side-by-side specifics:
 React state `sidebarOpen` toggles the `sidebar-open` class and renders the backdrop. Clicking the backdrop calls `setSidebarOpen(false)`.
 
 ### Responsive Header
+
+Memory map editor no longer renders a top-level header in `src/webview/index.tsx`.
+The responsive header rules in `index.css` are currently retained for shared/legacy layout compatibility and for IP core header styling.
 
 At <= 640px: header wraps, title shrinks to `0.875rem`, toolbar buttons become icon-only (`span:not(.codicon)` hidden), all buttons get `var(--touch-target-min)` sizing.
 

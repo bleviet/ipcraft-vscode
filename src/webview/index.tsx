@@ -26,19 +26,17 @@ const App = () => {
     return savedState?.registerLayout ?? 'side-by-side';
   });
 
-  const { memoryMap, rawTextRef, parseError, fileName, updateFromYaml, updateRawText } =
-    useMemoryMapState();
+  const { memoryMap, rawTextRef, parseError, updateFromYaml, updateRawText } = useMemoryMapState();
   const {
     selectedId,
     selectedType,
     selectedObject,
-    breadcrumbs,
     selectionMeta,
     selectionRef,
     handleSelect,
     goBack,
   } = useSelection();
-  const { sendUpdate, sendCommand } = useYamlSync(vscode, updateFromYaml);
+  const { sendUpdate } = useYamlSync(vscode, updateFromYaml);
 
   useEffect(() => {
     vscode?.postMessage({ type: 'ready' });
@@ -147,88 +145,45 @@ const App = () => {
    * Main UI
    */
   return (
-    <>
-      <header
-        className="flex items-center justify-between px-6 py-3 shrink-0"
-        style={{ borderBottom: '1px solid var(--vscode-panel-border)' }}
+    <main className="flex-1 flex overflow-hidden relative">
+      <button
+        className="sidebar-toggle-btn p-2 rounded-md transition-colors vscode-icon-button absolute top-2 left-2 z-[110]"
+        onClick={() => setSidebarOpen(!sidebarOpen)}
+        title="Toggle sidebar"
+        aria-label="Toggle sidebar"
       >
-        <div className="flex items-center gap-4 flex-1 overflow-hidden">
-          {/* Mobile sidebar toggle */}
-          <button
-            className="sidebar-toggle-btn p-2 rounded-md transition-colors vscode-icon-button"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            title="Toggle sidebar"
-            aria-label="Toggle sidebar"
-          >
-            <span className="codicon codicon-menu"></span>
-          </button>
-          <h1 className="text-lg font-semibold shrink-0">FPGA Memory Map Editor</h1>
-          <div className="flex items-center gap-1 text-sm opacity-75 overflow-hidden">
-            <span className="codicon codicon-file text-[16px]"></span>
-            <span className="truncate">{fileName || 'Untitled'}</span>
-            {breadcrumbs.length > 1 && (
-              <>
-                <span className="codicon codicon-chevron-right text-[16px]"></span>
-                <span
-                  className="font-medium px-2 py-0.5 rounded vscode-surface-alt"
-                  style={{ border: '1px solid var(--vscode-panel-border)' }}
-                >
-                  {breadcrumbs[breadcrumbs.length - 1]}
-                </span>
-              </>
-            )}
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            className="p-2 rounded-md transition-colors vscode-icon-button"
-            onClick={() => sendCommand('save')}
-            title="Save"
-            aria-label="Save"
-          >
-            <span className="codicon codicon-save"></span>
-          </button>
-          <button
-            className="p-2 rounded-md transition-colors vscode-icon-button"
-            onClick={() => sendCommand('validate')}
-            title="Validate"
-            aria-label="Validate"
-          >
-            <span className="codicon codicon-check"></span>
-          </button>
-        </div>
-      </header>
-      <main className="flex-1 flex overflow-hidden">
-        {/* Sidebar backdrop for mobile */}
-        {sidebarOpen && (
-          <div className="sidebar-backdrop active" onClick={() => setSidebarOpen(false)} />
-        )}
-        <aside
-          className={`sidebar flex flex-col shrink-0 overflow-y-auto ${sidebarOpen ? 'sidebar-open' : ''}`}
-        >
-          <Outline
-            ref={outlineRef}
-            memoryMap={memoryMap}
-            selectedId={selectedId}
-            onSelect={handleSelect}
-            onRename={handleOutlineRename}
-          />
-        </aside>
-        <section className="flex-1 overflow-hidden min-w-0">
-          <DetailsPanel
-            ref={detailsRef}
-            selectedType={selectedType}
-            selectedObject={selectedObject}
-            selectionMeta={selectionMeta}
-            onUpdate={handleUpdate}
-            onNavigateToRegister={navigateToRegister}
-            onNavigateToBlock={navigateToBlock}
-            registerLayout={registerLayout}
-            toggleRegisterLayout={toggleRegisterLayout}
-          />
-        </section>
-      </main>
-    </>
+        <span className="codicon codicon-menu"></span>
+      </button>
+
+      {/* Sidebar backdrop for mobile */}
+      {sidebarOpen && (
+        <div className="sidebar-backdrop active" onClick={() => setSidebarOpen(false)} />
+      )}
+      <aside
+        className={`sidebar flex flex-col shrink-0 overflow-y-auto ${sidebarOpen ? 'sidebar-open' : ''}`}
+      >
+        <Outline
+          ref={outlineRef}
+          memoryMap={memoryMap}
+          selectedId={selectedId}
+          onSelect={handleSelect}
+          onRename={handleOutlineRename}
+        />
+      </aside>
+      <section className="flex-1 overflow-hidden min-w-0">
+        <DetailsPanel
+          ref={detailsRef}
+          selectedType={selectedType}
+          selectedObject={selectedObject}
+          selectionMeta={selectionMeta}
+          onUpdate={handleUpdate}
+          onNavigateToRegister={navigateToRegister}
+          onNavigateToBlock={navigateToBlock}
+          registerLayout={registerLayout}
+          toggleRegisterLayout={toggleRegisterLayout}
+        />
+      </section>
+    </main>
   );
 };
 

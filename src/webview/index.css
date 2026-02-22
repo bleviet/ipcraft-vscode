@@ -851,8 +851,8 @@ body {
         position: fixed;
         left: -300px;
         width: var(--sidebar-width-mobile);
-        height: calc(100vh - var(--header-height));
-        top: var(--header-height);
+        height: 100vh;
+        top: 0;
         z-index: 100;
         transition: left 0.3s ease-in-out;
         box-shadow: 2px 0 8px rgba(0, 0, 0, 0.3);
@@ -867,7 +867,6 @@ body {
         inset: 0;
         background: rgba(0, 0, 0, 0.5);
         z-index: 99;
-        top: var(--header-height);
         opacity: 0;
         pointer-events: none;
         transition: opacity 0.3s ease-in-out;

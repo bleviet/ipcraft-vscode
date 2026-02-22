@@ -8,6 +8,7 @@ interface RenderBitCellStyleArgs {
   colorToken: string;
   ctrlDragActive: boolean;
   ctrlHeld: boolean;
+  labelSizeClass?: string;
   defaultCursor?: CSSProperties['cursor'];
   outOfRangeOpacity?: number;
   normalOpacity?: number;
@@ -27,6 +28,7 @@ export function renderBitCellStyle({
   colorToken,
   ctrlDragActive,
   ctrlHeld,
+  labelSizeClass = 'text-sm',
   defaultCursor = 'pointer',
   outOfRangeOpacity = 0.3,
   normalOpacity = 1,
@@ -37,7 +39,7 @@ export function renderBitCellStyle({
 
   return {
     cellClassName: bitValue === 1 && !isOutOfNewRange ? 'ring-1 ring-white/70 ring-inset' : '',
-    labelClassName: `ipcraft-pattern-label text-sm font-mono select-none ${bitValue === 1 ? 'font-bold' : 'font-normal'}`,
+    labelClassName: `ipcraft-pattern-label ${labelSizeClass} font-mono select-none ${bitValue === 1 ? 'font-bold' : 'font-normal'}`,
     style: {
       backgroundColor: isOutOfNewRange ? 'var(--vscode-editor-background)' : resolvedColor,
       opacity: isOutOfNewRange

@@ -112,6 +112,9 @@ interface VerticalLayoutViewProps {
   layoutConfig: LayoutConfig;
 }
 
+const VERTICAL_BIT_CELL_REM = 1.5;
+const VERTICAL_BIT_VALUE_TEXT_CLASS = 'text-xs';
+
 const VerticalLayoutView = ({
   fields,
   segments,
@@ -164,15 +167,15 @@ const VerticalLayoutView = ({
               return (
                 <div
                   key={`gap-${segIdx}`}
-                  style={{ height: `calc(${bitCount} * 2rem)` }}
+                  style={{ height: `calc(${bitCount} * ${VERTICAL_BIT_CELL_REM}rem)` }}
                   className="relative flex"
                 >
-                  <div className="w-8 flex flex-col justify-between text-[11px] vscode-muted font-mono py-1">
+                  <div className="w-8 flex flex-col justify-between text-[10px] vscode-muted font-mono py-1">
                     <span>{segment.end}</span>
                     {bitCount > 1 ? <span>{segment.start}</span> : null}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="w-24 h-full rounded-r-md overflow-hidden">
+                    <div className="w-20 h-full rounded-r-md overflow-hidden">
                       {Array.from({ length: bitCount }).map((_, i) => {
                         const bit = segment.end - i;
                         const isInDragRange =
@@ -184,8 +187,9 @@ const VerticalLayoutView = ({
                         return (
                           <div
                             key={bit}
-                            className="h-8 flex items-center justify-center touch-none"
+                            className="flex items-center justify-center touch-none"
                             style={{
+                              height: `${VERTICAL_BIT_CELL_REM}rem`,
                               background: isInDragRange
                                 ? 'var(--vscode-editor-selectionBackground, #264f78)'
                                 : 'var(--vscode-editor-background)',
@@ -216,7 +220,7 @@ const VerticalLayoutView = ({
                               }
                             }}
                           >
-                            <span className="text-sm font-mono vscode-muted select-none">
+                            <span className="text-xs font-mono vscode-muted select-none">
                               {isInDragRange ? '+' : '-'}
                             </span>
                           </div>
@@ -240,7 +244,7 @@ const VerticalLayoutView = ({
               <div
                 key={group.idx}
                 className={`relative flex ${isHovered ? 'z-10' : ''}`}
-                style={{ height: `calc(${bitCount} * 2rem)` }}
+                style={{ height: `calc(${bitCount} * ${VERTICAL_BIT_CELL_REM}rem)` }}
                 role="button"
                 tabIndex={0}
                 aria-describedby={keyboardHelpId}
@@ -264,12 +268,12 @@ const VerticalLayoutView = ({
                   }
                 }}
               >
-                <div className="w-8 flex flex-col justify-between text-[11px] vscode-muted font-mono py-1">
+                <div className="w-8 flex flex-col justify-between text-[10px] vscode-muted font-mono py-1">
                   <span>{group.end}</span>
                   {bitCount > 1 ? <span>{group.start}</span> : null}
                 </div>
                 <div
-                  className="relative w-24 h-full rounded-r-md overflow-hidden"
+                  className="relative w-20 h-full rounded-r-md overflow-hidden"
                   style={{
                     transform: isHovered ? 'translateX(2px)' : undefined,
                     filter: isHovered ? 'saturate(1.1) brightness(1.05)' : undefined,
@@ -295,7 +299,7 @@ const VerticalLayoutView = ({
                         <>
                           {showTop && (
                             <div
-                              className="absolute left-0 right-0 top-0 h-6 flex items-center justify-center z-20 pointer-events-none"
+                              className="absolute left-0 right-0 top-0 h-5 flex items-center justify-center z-20 pointer-events-none"
                               style={{
                                 background:
                                   'linear-gradient(180deg, var(--ipcraft-pattern-handle-scrim) 0%, transparent 100%)',
@@ -309,7 +313,7 @@ const VerticalLayoutView = ({
                           )}
                           {showBottom && (
                             <div
-                              className="absolute left-0 right-0 bottom-0 h-6 flex items-center justify-center z-20 pointer-events-none"
+                              className="absolute left-0 right-0 bottom-0 h-5 flex items-center justify-center z-20 pointer-events-none"
                               style={{
                                 background:
                                   'linear-gradient(0deg, var(--ipcraft-pattern-handle-scrim) 0%, transparent 100%)',
@@ -371,14 +375,16 @@ const VerticalLayoutView = ({
                       outOfRangeOpacity: 0.35,
                       normalOpacity: 0.95,
                       inRangeOpacity: 1,
+                      labelSizeClass: VERTICAL_BIT_VALUE_TEXT_CLASS,
                     });
 
                     return (
                       <div
                         key={bit}
-                        className={`h-8 flex items-center justify-center text-sm font-mono touch-none ${cellClassName}`}
+                        className={`flex items-center justify-center font-mono touch-none ${cellClassName}`}
                         style={{
                           ...style,
+                          height: `${VERTICAL_BIT_CELL_REM}rem`,
                           borderTop:
                             i === 0 ? undefined : '1px solid var(--ipcraft-pattern-border)',
                         }}

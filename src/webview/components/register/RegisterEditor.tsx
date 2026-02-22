@@ -184,11 +184,11 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
 
     return (
       <div className="flex flex-col w-full h-full min-h-0">
-        <div className="vscode-surface border-b vscode-border px-8 py-4 shrink-0">
+        <div className="vscode-surface border-b vscode-border px-6 py-2 shrink-0">
           <div className="flex justify-between items-start gap-4">
             <div>
-              <h2 className="text-2xl font-bold font-mono tracking-tight">{register.name}</h2>
-              <p className="vscode-muted text-sm mt-1 max-w-2xl">{register.description}</p>
+              <h2 className="text-xl font-bold font-mono tracking-tight">{register.name}</h2>
+              <p className="vscode-muted text-xs mt-0.5 max-w-2xl">{register.description}</p>
             </div>
             <button
               className="p-2 rounded-md transition-colors vscode-icon-button"
