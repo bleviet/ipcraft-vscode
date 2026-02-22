@@ -1,5 +1,5 @@
 import React from 'react';
-import { FIELD_COLORS } from '../../shared/colors';
+import { renderBitCellStyle } from './renderBitCellStyle';
 
 interface FieldCellProps {
   bitValue: 0 | 1;
@@ -32,9 +32,21 @@ const FieldCell = ({
   onPointerMove,
   onPointerEnter,
 }: FieldCellProps) => {
+  const { cellClassName, labelClassName, style } = renderBitCellStyle({
+    bitValue,
+    isOutOfNewRange,
+    isInNewRange,
+    colorToken: color,
+    ctrlDragActive,
+    ctrlHeld,
+    defaultCursor: 'pointer',
+    outOfRangeOpacity: 0.3,
+    normalOpacity: 1,
+  });
+
   return (
     <div
-      className={`w-10 h-20 flex items-center justify-center touch-none ${bitValue === 1 && !isOutOfNewRange ? 'ring-1 ring-white/70 ring-inset' : ''} ${
+      className={`w-10 h-20 flex items-center justify-center touch-none ${cellClassName} ${
         isSingleBit
           ? 'rounded-md'
           : cellIndex === 0
@@ -43,25 +55,12 @@ const FieldCell = ({
               ? 'rounded-r-md'
               : ''
       }`}
-      style={{
-        backgroundColor: isOutOfNewRange ? 'var(--vscode-editor-background)' : FIELD_COLORS[color],
-        opacity: isOutOfNewRange ? 0.3 : 1,
-        boxShadow:
-          bitValue === 1 && !isOutOfNewRange
-            ? 'inset 0 0 0 1px var(--ipcraft-pattern-ring)'
-            : undefined,
-        border: isInNewRange ? '2px solid var(--vscode-focusBorder)' : undefined,
-        cursor: ctrlDragActive ? 'grabbing' : ctrlHeld ? 'grab' : 'pointer',
-      }}
+      style={style}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerEnter={onPointerEnter}
     >
-      <span
-        className={`ipcraft-pattern-label text-sm font-mono select-none ${bitValue === 1 ? 'font-bold' : 'font-normal'}`}
-      >
-        {bitValue}
-      </span>
+      <span className={labelClassName}>{bitValue}</span>
     </div>
   );
 };

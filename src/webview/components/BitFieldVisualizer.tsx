@@ -339,7 +339,13 @@ const BitFieldVisualizerInner: React.FC<BitFieldVisualizerProps> = ({
     };
 
     if (layout === 'vertical') {
-      return <VerticalLayoutView {...sharedProps} layoutConfig={{ valueView, valueBar }} />;
+      return (
+        <VerticalLayoutView
+          {...sharedProps}
+          interactions={{ ...sharedProps.interactions, getResizableEdges }}
+          layoutConfig={{ bitOwners, registerSize, valueView, valueBar }}
+        />
+      );
     }
 
     return (

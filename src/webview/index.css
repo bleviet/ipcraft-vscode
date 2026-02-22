@@ -401,19 +401,20 @@ body {
 
 .register-visualizer-pane {
     flex: 0 0 auto;
-    width: 260px;
-    min-width: 200px;
-    max-width: 360px;
+    width: 340px;
+    min-width: 280px;
+    max-width: 460px;
     display: flex;
     flex-direction: column;
     min-height: 0;
+    overflow-x: hidden;
     background: var(--vscode-editor-background);
 }
 
 @media (min-width: 641px) and (max-width: 900px) {
     .register-visualizer-pane {
-        width: 200px;
-        min-width: 160px;
+        width: 260px;
+        min-width: 220px;
     }
 }
 
