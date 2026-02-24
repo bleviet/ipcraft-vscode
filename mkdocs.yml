@@ -1,0 +1,59 @@
+site_name: IPCraft for VS Code
+site_description: Visual editor for IP Core and Memory Map specifications
+repo_url: https://github.com/bleviet/ipcraft-vscode
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: teal
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: teal
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.sections
+    - navigation.expand
+    - search.highlight
+    - content.code.copy
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - attr_list
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Quick Start: getting-started/quickstart.md
+      - Development Setup: getting-started/development.md
+  - Concepts:
+      - VS Code Extension Model: concepts/extension-model.md
+      - YAML Data Flow: concepts/yaml-data-flow.md
+      - Spatial Editing: concepts/spatial-editing.md
+      - Responsive Design: concepts/responsive-design.md
+  - Architecture:
+      - Overview: architecture/overview.md
+      - Extension Host: architecture/extension-host.md
+      - Webview (React): architecture/webview.md
+  - Reference:
+      - Bit Field Interaction: reference/bitfield-interaction.md
+      - Keyboard Shortcuts: reference/keyboard-shortcuts.md
+      - YAML Libraries: reference/yaml-libraries.md
+  - Contributing:
+      - Guidelines: contributing/guidelines.md
+      - Changelog: contributing/changelog.md

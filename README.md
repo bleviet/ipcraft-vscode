@@ -30,12 +30,16 @@ npm run compile
 - **Editing**: `F2` or `e` to edit cell, `Enter` to save, `Escape` to cancel
 - **Operations**: `Shift+O` (Insert after), `Shift+I` (Insert before), `Shift+D` (Delete), `Alt+UP`/`Alt+DOWN` (Move item)
 
-## Development and Documentation
+## Documentation
 
-- [docs/BEGINNERS_GUIDE.md](docs/BEGINNERS_GUIDE.md): Introduction to the architecture and patterns.
-- [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md): Setup, workflow, and debugging.
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): System design and components.
-- [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md): Contribution guidelines.
+Full documentation is in the `docs/` directory, built with [MkDocs](https://www.mkdocs.org/):
+
+```bash
+pip install mkdocs mkdocs-material
+mkdocs serve
+```
+
+Then open `http://127.0.0.1:8000`. See [docs/index.md](docs/index.md) for an overview.
 
 ### Available Scripts
 

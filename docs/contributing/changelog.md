@@ -2,6 +2,26 @@
 
 All notable changes to this project are documented in this file.
 
+## 2026-02-24
+
+### Changed
+- Restructured `docs/` from flat files into mkdocs-friendly directory layout with sections: Getting Started, Concepts, Architecture, Reference, Contributing.
+- Added `mkdocs.yml` configuration with Material theme, mermaid diagrams, and full navigation.
+- Removed temporary planning files (`plan.md`, `review.md`).
+
+## 2026-02-22
+
+### Added
+- Side-by-side register layout with vertical bitfield view.
+- Vertical layout mode for Register Block, Address Map, Register Array Editor, and RegisterEditor.
+
+### Changed
+- Shared bit-cell styling refactored across pro and vertical layouts.
+- Finalized vertical visualizer density and headerless shell updates.
+- Reduced text value field width to 120px.
+- Set default layout to side-by-side with vertical visualizer for RegisterEditor.
+- Updated responsive design docs for current vertical visualizer behavior.
+
 ## 2026-02-21
 
 ### Added
