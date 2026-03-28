@@ -36,9 +36,35 @@ The webview is an embedded browser that renders the visual editors using React. 
 | `AddressMapVisualizer` | `components/AddressMapVisualizer.tsx` | Address block visualization |
 | `RegisterMapVisualizer` | `components/RegisterMapVisualizer.tsx` | Register layout visualization |
 
-## Hooks
+## IP Core Components
 
-State management and behavior logic is in React hooks:
+### Layout
+
+| Component | File | Role |
+|-----------|------|------|
+| `NavigationSidebar` | `ipcore/components/layout/NavigationSidebar.tsx` | Section navigation with keyboard support |
+| `EditorPanel` | `ipcore/components/layout/EditorPanel.tsx` | Routes to section editors by selected section |
+
+### Section Editors
+
+| Component | File | Handles |
+|-----------|------|---------|
+| `MetadataEditor` | `ipcore/components/sections/MetadataEditor.tsx` | VLNV, description, API version |
+| `ClocksTable` | `ipcore/components/sections/ClocksTable.tsx` | Clock definitions |
+| `ResetsTable` | `ipcore/components/sections/ResetsTable.tsx` | Reset signal definitions |
+| `PortsTable` | `ipcore/components/sections/PortsTable.tsx` | User-defined port definitions |
+| `ParametersTable` | `ipcore/components/sections/ParametersTable.tsx` | Generic parameter definitions |
+| `BusInterfacesEditor` | `ipcore/components/sections/BusInterfacesEditor.tsx` | Bus interface cards with arrays |
+| `BusInterfaceCard` | `ipcore/components/sections/BusInterfaceCard.tsx` | Individual bus interface editing |
+| `PortMappingTable` | `ipcore/components/sections/PortMappingTable.tsx` | Physical-to-logical signal mapping |
+| `MemoryMapsEditor` | `ipcore/components/sections/MemoryMapsEditor.tsx` | Memory map references |
+| `FileSetsEditor` | `ipcore/components/sections/FileSetsEditor.tsx` | File set definitions |
+| `GeneratorPanel` | `ipcore/components/sections/GeneratorPanel.tsx` | VHDL generation UI |
+| `InlineEditField` | `ipcore/components/sections/InlineEditField.tsx` | Reusable inline edit component |
+
+## Memory Map Hooks
+
+State management and behavior logic for the Memory Map editor:
 
 | Hook | File | Purpose |
 |------|------|---------|
@@ -52,8 +78,18 @@ State management and behavior logic is in React hooks:
 | `useOutlineRename` | `hooks/useOutlineRename.ts` | Inline rename in outline tree |
 | `useSelectionResolver` | `hooks/useSelectionResolver.ts` | Resolves selection to data |
 | `useSelectionLifecycle` | `hooks/useSelectionLifecycle.ts` | Selection lifecycle management |
+| `useYamlUpdateHandler` | `hooks/useYamlUpdateHandler.ts` | Handles YAML update coordination |
 | `useAutoFocus` | `hooks/useAutoFocus.ts` | Ref auto-focus |
 | `useEscapeFocus` | `hooks/useEscapeFocus.ts` | Escape key refocus |
+
+## IP Core Hooks
+
+| Hook | File | Purpose |
+|------|------|---------|
+| `useIpCoreState` | `ipcore/hooks/useIpCoreState.ts` | Parsed IP Core state, update methods, validation |
+| `useIpCoreSync` | `ipcore/hooks/useIpCoreSync.ts` | Sends YAML updates to extension host |
+| `useNavigation` | `ipcore/hooks/useNavigation.ts` | Section navigation state |
+| `useBusInterfaceEditing` | `ipcore/hooks/useBusInterfaceEditing.ts` | Bus interface editing state and actions |
 
 ## Webview Services
 
@@ -63,6 +99,7 @@ State management and behavior logic is in React hooks:
 | `YamlPathResolver` | `services/YamlPathResolver.ts` | Path-based YAML updates |
 | `YamlService` | `services/YamlService.ts` | Parse/dump YAML |
 | `SpatialInsertionService` | `services/SpatialInsertionService.ts` | Insert entities with repacking |
+| `FieldOperationService` | `services/FieldOperationService.ts` | Field-level operations (delete, move, update) |
 
 ## Algorithms
 

@@ -10,7 +10,7 @@ graph LR
     B -- "postMessage" --> A
 ```
 
-**Extension Host** -- reads/writes files, registers commands, opens editors. Cannot render complex UI.
+**Extension Host** -- reads/writes files, registers commands, opens editors, generates VHDL. Cannot render complex UI.
 
 **Webview** -- renders React UI for Memory Map and IP Core editors. Cannot access user files directly.
 
@@ -24,6 +24,8 @@ graph LR
 | `src/providers/MemoryMapEditorProvider.ts` | Custom editor for `*.mm.yml` |
 | `src/providers/IpCoreEditorProvider.ts` | Custom editor for `*.ip.yml` |
 | `src/services/MessageHandler.ts` | Routes messages from webview |
+| `src/generator/IpCoreScaffolder.ts` | VHDL + vendor file generation |
+| `src/parser/VhdlParser.ts` | Import VHDL into specs |
 
 ### Memory Map Webview
 
@@ -40,6 +42,9 @@ graph LR
 | File | Purpose |
 |------|---------|
 | `src/webview/ipcore/IpCoreApp.tsx` | IP Core editor app shell |
+| `src/webview/ipcore/components/layout/NavigationSidebar.tsx` | Section navigation sidebar |
+| `src/webview/ipcore/components/layout/EditorPanel.tsx` | Routes to section editors |
+| `src/webview/ipcore/components/sections/GeneratorPanel.tsx` | VHDL generation UI |
 
 ### Shared Behavior
 
@@ -71,4 +76,5 @@ Press **F5** in VS Code to launch an Extension Development Host. Open a `*.mm.ym
 - Add or update unit tests in `src/test/suite/**`
 - Fix UI behavior in a focused component
 - Improve validation or error text in services/hooks
+- Add a new generator template or vendor integration
 - Improve documentation in `docs/`

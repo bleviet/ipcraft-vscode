@@ -26,15 +26,23 @@ src/
   services/              # extension host services
   parser/                # VHDL parser
   generator/             # VHDL scaffolding + Nunjucks templates
+    IpCoreScaffolder.ts  #   generation orchestration
+    registerProcessor.ts #   register + bus processing
+    TemplateLoader.ts    #   template loading
+    types.ts             #   VendorOption, GenerateOptions, IpCoreData
+    templates/           #   Nunjucks templates (VHDL, altera, amd, cocotb)
   utils/                 # logging, error handling, helpers
   webview/
     index.tsx            # Memory Map app shell
     ipcore/              # IP Core app and components
-    components/          # React components
+      IpCoreApp.tsx      #   IP Core app shell
+      components/        #   layout + section editors (12 editors)
+      hooks/             #   useIpCoreState, useIpCoreSync, etc.
+    components/          # React components (Memory Map)
     hooks/               # React hooks
     services/            # webview-side services
     algorithms/          # repacking algorithms
-    shared/              # shared utilities
+    shared/              # shared utilities, colors, constants
     types/               # TypeScript type definitions
   test/suite/            # Jest unit tests
 docs/                    # this documentation
@@ -98,7 +106,17 @@ ipcraft-spec/            # specification schemas + examples (git submodule)
 ### Add generator behavior
 
 1. Update `src/generator/*` and templates in `src/generator/templates/*`
-2. Validate with sample specs in `ipcraft-spec/examples/*`
+2. Vendor templates follow naming convention: `altera_*.j2`, `amd_*.j2`
+3. Register new templates in `TemplateLoader` if needed
+4. Validate with sample specs in `ipcraft-spec/examples/*`
+5. Update the [Generator Reference](../reference/generator.md)
+
+### Add an IP Core section editor
+
+1. Create component in `src/webview/ipcore/components/sections/`
+2. Wire into `EditorPanel` routing
+3. Add navigation entry in `NavigationSidebar`
+4. Update the [IP Core Editor Reference](../reference/ip-core-editor.md)
 
 ## Validation Flow
 
@@ -119,3 +137,4 @@ npm run compile
 | Webview opens but no data | Ensure webview posts `{ type: 'ready' }`. Verify provider sends `type: 'update'`. Check `useMemoryMapState`. |
 | YAML updates not persisted | Verify `sendUpdate` call path. Check `MessageHandler.handleUpdate` and `DocumentManager.updateDocument`. |
 | Editor not updating | Check webview console + extension host logs. |
+| Generator produces empty files | Verify IP Core has a bus interface with `memoryMapRef`. Check template context in `IpCoreScaffolder.buildTemplateContext`. |

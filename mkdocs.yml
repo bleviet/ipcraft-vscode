@@ -53,7 +53,11 @@ nav:
   - Reference:
       - Bit Field Interaction: reference/bitfield-interaction.md
       - Keyboard Shortcuts: reference/keyboard-shortcuts.md
+      - Generator: reference/generator.md
+      - IP Core Editor: reference/ip-core-editor.md
       - YAML Libraries: reference/yaml-libraries.md
   - Contributing:
       - Guidelines: contributing/guidelines.md
       - Changelog: contributing/changelog.md
+  - Blog:
+      - Building IPCraft: blog/building-ipcraft.md

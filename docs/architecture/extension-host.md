@@ -25,6 +25,8 @@ Custom editor providers connect VS Code documents to webview panels.
 
 Both use `retainContextWhenHidden: true` for state persistence and share the same service architecture.
 
+The IP Core provider also handles `type: 'generate'` messages via `IpCoreGenerateHandler`, which invokes the scaffolder and returns results.
+
 ## Services
 
 | Service | File | Role |
@@ -34,8 +36,8 @@ Both use `retainContextWhenHidden: true` for state persistence and share the sam
 | `HtmlGenerator` | `src/services/HtmlGenerator.ts` | Generates webview HTML with CSP headers |
 | `YamlValidator` | `src/services/YamlValidator.ts` | Validates YAML against schemas |
 | `ImportResolver` | `src/services/ImportResolver.ts` | Resolves `$ref` imports in IP Core files |
-| `BusLibraryService` | `src/services/BusLibraryService.ts` | Loads bus interface definitions |
-| `FileSetUpdater` | `src/services/FileSetUpdater.ts` | Updates related file sets |
+| `BusLibraryService` | `src/services/BusLibraryService.ts` | Loads bus interface definitions from YAML library |
+| `FileSetUpdater` | `src/services/FileSetUpdater.ts` | Updates file set entries after generation |
 
 ## Commands
 
@@ -50,10 +52,31 @@ Located in `src/generator/`:
 
 | File | Purpose |
 |------|---------|
-| `IpCoreScaffolder.ts` | Generates VHDL from IP Core specifications |
-| `registerProcessor.ts` | Processes register definitions for code generation |
-| `TemplateLoader.ts` | Loads Nunjucks templates |
-| `templates/` | Nunjucks template files for VHDL output |
+| `IpCoreScaffolder.ts` | Orchestrates generation, builds template context, writes files |
+| `registerProcessor.ts` | Processes registers, expands bus interfaces, resolves memory maps |
+| `TemplateLoader.ts` | Loads and renders Nunjucks templates |
+| `types.ts` | Type definitions (`VendorOption`, `GenerateOptions`, `IpCoreData`, bus types) |
+
+### Templates
+
+Located in `src/generator/templates/`:
+
+| Template | Output |
+|----------|--------|
+| `package.vhdl.j2` | VHDL package (constants, types) |
+| `top.vhdl.j2` | Top-level entity |
+| `core.vhdl.j2` | User logic skeleton |
+| `bus_axil.vhdl.j2` | AXI-Lite bus wrapper |
+| `bus_avmm.vhdl.j2` | Avalon-MM bus wrapper |
+| `register_file.vhdl.j2` | Register file with decode logic |
+| `entity.vhdl.j2` | Entity declaration helper |
+| `architecture.vhdl.j2` | Architecture stub |
+| `altera_hw_tcl.j2` | Altera Platform Designer component (`_hw.tcl`) |
+| `amd_component_xml.j2` | AMD Vivado IP-XACT descriptor (`component.xml`) |
+| `amd_xgui.j2` | AMD Vivado xgui (`.tcl`) |
+| `cocotb_test.py.j2` | cocotb Python test skeleton |
+| `cocotb_makefile.j2` | GHDL simulation Makefile |
+| `memmap.yml.j2` | Memory map YAML template |
 
 ## Parser
 

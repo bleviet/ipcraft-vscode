@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## 2026-03-28
+
+### Changed
+- Renamed vendor options from `intel`/`xilinx` to `altera`/`amd` across the entire codebase.
+- Renamed generator templates: `intel_hw_tcl.j2` to `altera_hw_tcl.j2`, `xilinx_component_xml.j2` to `amd_component_xml.j2`, `xilinx_xgui.j2` to `amd_xgui.j2`.
+- Renamed vendor output directories from `intel/`/`xilinx/` to `altera/`/`amd/`.
+- Updated UI labels in GeneratorPanel to reflect new vendor names.
+- Updated `ipcraft-spec` submodule: renamed example vendor directories and updated bus definitions.
+
 ## 2026-02-24
 
 ### Changed

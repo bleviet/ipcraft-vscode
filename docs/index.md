@@ -5,13 +5,16 @@ Visual editor for IP Core and Memory Map specifications, built as a VS Code exte
 ## What It Does
 
 - **Visual Editing** -- edit memory maps, address blocks, registers, and bit fields through an interactive UI
-- **Real-time Validation** -- YAML syntax validation with error messages
+- **IP Core Editor** -- edit clocks, resets, ports, bus interfaces, parameters, file sets, and metadata through dedicated section editors
+- **Real-time Validation** -- YAML syntax validation with cross-reference error checking
 - **Spatial Operations** -- insert fields/registers/blocks with automatic repacking
 - **Keyboard Navigation** -- full keyboard support with Vim-style shortcuts
-- **Bit Field Visualization** -- visual representation of register bit layouts and address spaces
+- **Bit Field Visualization** -- visual representation of register bit layouts and address spaces with drag interactions
 - **Bi-directional Sync** -- changes reflected in both the visual editor and the YAML source
-- **VHDL Generation** -- generate VHDL code from specifications
-- **VHDL Import** -- parse existing VHDL files into specifications
+- **VHDL Generation** -- scaffold complete RTL projects from IP Core specs (package, top, core, bus wrapper, register bank)
+- **Vendor Integration** -- generate Altera Platform Designer `_hw.tcl` and AMD Vivado `component.xml` files
+- **Testbench Scaffolding** -- generate cocotb Python tests and GHDL Makefiles
+- **VHDL Import** -- parse existing VHDL files into IP Core specifications
 
 ## File Types
 
@@ -25,4 +28,6 @@ Visual editor for IP Core and Memory Map specifications, built as a VS Code exte
 - **New here?** Begin with the [Quick Start](getting-started/quickstart.md)
 - **Setting up dev environment?** See [Development Setup](getting-started/development.md)
 - **Understanding the design?** Read through [Concepts](concepts/extension-model.md) and [Architecture](architecture/overview.md)
+- **Using the generator?** See the [Generator Reference](reference/generator.md)
+- **Exploring the IP Core editor?** See the [IP Core Editor Reference](reference/ip-core-editor.md)
 - **Contributing?** Check the [Guidelines](contributing/guidelines.md)
