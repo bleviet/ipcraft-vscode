@@ -23,6 +23,7 @@ graph LR
 | `src/extension.ts` | Activation + provider registration |
 | `src/providers/MemoryMapEditorProvider.ts` | Custom editor for `*.mm.yml` |
 | `src/providers/IpCoreEditorProvider.ts` | Custom editor for `*.ip.yml` |
+| `src/providers/IpCoreGenerateHandler.ts` | VHDL generation message handler |
 | `src/services/MessageHandler.ts` | Routes messages from webview |
 | `src/generator/IpCoreScaffolder.ts` | VHDL + vendor file generation |
 | `src/parser/VhdlParser.ts` | Import VHDL into specs |

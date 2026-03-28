@@ -132,8 +132,68 @@ Types are auto-generated from JSON schemas in `ipcraft-spec/schemas/` via `npm r
 | `ProLayoutView.tsx` | Pro layout rendering |
 | `DefaultLayoutView.tsx` | Default layout rendering |
 | `VerticalLayoutView.tsx` | Vertical (side-by-side) layout |
+| `FieldCell.tsx` | Individual bit-field cell rendering |
+| `ValueBar.tsx` | Hex value bar component |
 | `useShiftDrag.ts` | Resize/create drag state machine |
 | `useCtrlDrag.ts` | Reorder drag state machine |
+| `useValueEditing.ts` | Reset value editing state machine |
 | `reorderAlgorithm.ts` | Ctrl-drag reorder computation |
 | `keyboardOperations.ts` | Keyboard reorder/resize helpers |
+| `renderBitCellStyle.ts` | Shared bit-cell styling across layouts |
 | `utils.ts` | Shared utility functions |
+| `types.ts` | Bitfield-specific type definitions |
+| `index.ts` | Barrel exports |
+
+## Outline Subdirectory
+
+`src/webview/components/outline/` contains the sidebar tree navigation system:
+
+| Module | Purpose |
+|--------|---------|
+| `OutlineHeader.tsx` | Search bar and expand/collapse controls |
+| `OutlineTreeNodes.tsx` | Recursive tree node rendering |
+| `BlockNode.tsx` | Address block tree node |
+| `RegisterNode.tsx` | Register tree node |
+| `RegisterArrayNode.tsx` | Register array tree node with expand |
+| `FieldNode.tsx` | Bit field tree node |
+| `useOutlineKeyboard.ts` | Keyboard navigation within the tree |
+| `buildVisibleSelections.ts` | Computes visible selection state |
+| `outlineIds.ts` | Stable ID generation for tree nodes |
+| `types.ts` | Outline-specific type definitions |
+| `index.ts` | Barrel exports |
+
+## Shared Components
+
+`src/webview/shared/components/` contains reusable form and table components used across both editors:
+
+| Component | Purpose |
+|-----------|---------|
+| `EditableTable.tsx` | Generic inline-editable table with add/delete |
+| `FormField.tsx` | Labeled form field wrapper |
+| `SelectField.tsx` | Dropdown select field |
+| `NumberField.tsx` | Numeric input field |
+| `TextAreaField.tsx` | Multi-line text input |
+| `CheckboxField.tsx` | Checkbox input |
+| `KeyboardShortcutsButton.tsx` | Keyboard shortcuts help dialog |
+
+## Shared Utilities
+
+`src/webview/shared/utils/` contains utilities shared between Memory Map and IP Core editors:
+
+| Module | Purpose |
+|--------|---------|
+| `validation.ts` | Field and register validation helpers |
+| `fieldValidation.ts` | Bit field-specific validation |
+| `formatters.ts` | Display formatting utilities |
+| `yamlKeyMapper.ts` | Maps between UI keys and YAML keys |
+| `focus.ts` | Focus management utilities |
+
+## Webview Utilities
+
+`src/webview/utils/` contains editor-specific utility modules:
+
+| Module | Purpose |
+|--------|---------|
+| `BitFieldUtils.ts` | Bit range parsing, formatting, ownership |
+| `blockSize.ts` | Address block size calculations |
+| `formatUtils.ts` | Number formatting helpers |

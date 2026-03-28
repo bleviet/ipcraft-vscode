@@ -15,6 +15,7 @@ Visual editor for IP Core and Memory Map specifications, built as a VS Code exte
 - **Vendor Integration** -- generate Altera Platform Designer `_hw.tcl` and AMD Vivado `component.xml` files
 - **Testbench Scaffolding** -- generate cocotb Python tests and GHDL Makefiles
 - **VHDL Import** -- parse existing VHDL files into IP Core specifications
+- **Bus Library Viewer** -- inspect available bus interface definitions from the built-in library
 
 ## File Types
 
@@ -27,7 +28,9 @@ Visual editor for IP Core and Memory Map specifications, built as a VS Code exte
 
 - **New here?** Begin with the [Quick Start](getting-started/quickstart.md)
 - **Setting up dev environment?** See [Development Setup](getting-started/development.md)
+- **Import existing VHDL?** Follow [Importing from VHDL](how-to/vhdl-import.md)
+- **Using the generator?** See [Generating a Project](how-to/generating-a-project.md)
+- **Using AI tools?** See the [AI Design Guide](how-to/ai-design-guide.md)
 - **Understanding the design?** Read through [Concepts](concepts/extension-model.md) and [Architecture](architecture/overview.md)
-- **Using the generator?** See the [Generator Reference](reference/generator.md)
-- **Exploring the IP Core editor?** See the [IP Core Editor Reference](reference/ip-core-editor.md)
+- **Exploring reference docs?** See the [Generator Reference](reference/generator.md), [IP Core Editor](reference/ip-core-editor.md), or [Specification Schemas](reference/specification-schemas.md)
 - **Contributing?** Check the [Guidelines](contributing/guidelines.md)

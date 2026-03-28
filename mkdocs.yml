@@ -1,6 +1,10 @@
 site_name: IPCraft for VS Code
-site_description: Visual editor for IP Core and Memory Map specifications
+site_description: Visual editor for FPGA IP Core and Memory Map specifications
+site_url: https://bleviet.github.io/ipcraft-vscode
+site_author: Le Viet Bach
 repo_url: https://github.com/bleviet/ipcraft-vscode
+edit_uri: edit/main/docs/
+copyright: Copyright &copy; 2026 Le Viet Bach
 
 theme:
   name: material
@@ -20,8 +24,11 @@ theme:
   features:
     - navigation.sections
     - navigation.expand
+    - navigation.tabs
+    - navigation.top
     - search.highlight
     - content.code.copy
+    - content.action.edit
 
 markdown_extensions:
   - admonition
@@ -35,12 +42,18 @@ markdown_extensions:
       alternate_style: true
   - tables
   - attr_list
+  - toc:
+      permalink: true
 
 nav:
   - Home: index.md
   - Getting Started:
       - Quick Start: getting-started/quickstart.md
       - Development Setup: getting-started/development.md
+  - How-to Guides:
+      - Importing from VHDL: how-to/vhdl-import.md
+      - Generating a Project: how-to/generating-a-project.md
+      - AI Design Guide: how-to/ai-design-guide.md
   - Concepts:
       - VS Code Extension Model: concepts/extension-model.md
       - YAML Data Flow: concepts/yaml-data-flow.md
@@ -51,6 +64,7 @@ nav:
       - Extension Host: architecture/extension-host.md
       - Webview (React): architecture/webview.md
   - Reference:
+      - Specification Schemas: reference/specification-schemas.md
       - Bit Field Interaction: reference/bitfield-interaction.md
       - Keyboard Shortcuts: reference/keyboard-shortcuts.md
       - Generator: reference/generator.md
@@ -58,6 +72,5 @@ nav:
       - YAML Libraries: reference/yaml-libraries.md
   - Contributing:
       - Guidelines: contributing/guidelines.md
-      - Changelog: contributing/changelog.md
   - Blog:
       - Building IPCraft: blog/building-ipcraft.md

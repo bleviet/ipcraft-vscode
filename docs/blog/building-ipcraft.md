@@ -1,5 +1,7 @@
 # Building IPCraft: A Visual FPGA Register Editor in VS Code
 
+*By Le Viet Bach -- February 2026*
+
 *A technical walkthrough of IPCraft for VS Code -- how it works, why it exists, and what you can do with it.*
 
 ---

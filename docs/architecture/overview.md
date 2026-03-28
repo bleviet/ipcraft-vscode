@@ -15,7 +15,7 @@ Both share common extension-host services while keeping editor-specific UI and d
 graph TB
     subgraph "Extension Host"
         EXT["extension.ts"]
-        PROV["Providers\nMemoryMapEditorProvider\nIpCoreEditorProvider"]
+        PROV["Providers\nMemoryMapEditorProvider\nIpCoreEditorProvider\nIpCoreGenerateHandler\nproviderServices"]
         SVC["Services\nMessageHandler\nDocumentManager\nYamlValidator\nHtmlGenerator\nImportResolver\nBusLibraryService\nFileSetUpdater"]
         CMD["Commands\nFileCreation\nGenerate"]
         GEN["Generator\nIpCoreScaffolder\nregisterProcessor\nTemplateLoader"]
@@ -30,6 +30,7 @@ graph TB
         IPHOOK["IP Core Hooks\nuseIpCoreState\nuseIpCoreSync\nuseBusInterfaceEditing"]
         WSVC["Services\nDataNormalizer\nYamlPathResolver\nSpatialInsertionService\nFieldOperationService"]
         ALG["Algorithms\nBitFieldRepacker\nRegisterRepacker\nAddressBlockRepacker"]
+        SHARED["Shared\nEditableTable, FormField\nvalidation, formatters\ncolors, constants"]
     end
     EXT --> PROV
     EXT --> CMD
@@ -40,6 +41,8 @@ graph TB
     CMD --> PAR
     MM --> MMCOMP --> HOOK --> WSVC --> ALG
     IP --> IPCOMP --> IPHOOK
+    MMCOMP --> SHARED
+    IPCOMP --> SHARED
 ```
 
 ## Data Flow

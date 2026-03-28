@@ -25,7 +25,13 @@ Custom editor providers connect VS Code documents to webview panels.
 
 Both use `retainContextWhenHidden: true` for state persistence and share the same service architecture.
 
-The IP Core provider also handles `type: 'generate'` messages via `IpCoreGenerateHandler`, which invokes the scaffolder and returns results.
+### Supporting Modules
+
+| File | Purpose |
+|------|---------|
+| `IpCoreGenerateHandler.ts` | Handles `type: 'generate'` messages, invokes scaffolder, returns results |
+| `providerServices.ts` | Shared service factory for providers |
+| `ipCoreErrorHtml.ts` | Error page HTML for IP Core parse failures |
 
 ## Services
 

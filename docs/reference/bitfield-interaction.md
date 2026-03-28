@@ -112,10 +112,21 @@ Uses `Math.pow(2, n)` arithmetic (safe up to 53 bits, avoiding 32-bit bitwise li
 | File | Purpose |
 |------|---------|
 | `BitFieldVisualizer.tsx` | Visual diagram + pointer interaction |
+| `bitfield/ProLayoutView.tsx` | Pro layout rendering with value cells |
+| `bitfield/DefaultLayoutView.tsx` | Default layout rendering |
+| `bitfield/VerticalLayoutView.tsx` | Vertical (side-by-side) layout |
+| `bitfield/FieldCell.tsx` | Individual bit-field cell rendering |
+| `bitfield/ValueBar.tsx` | Hex value bar component |
 | `bitfield/useShiftDrag.ts` | Resize/create drag state machine |
 | `bitfield/useCtrlDrag.ts` | Reorder drag state machine |
+| `bitfield/useValueEditing.ts` | Reset value editing state machine |
+| `bitfield/reorderAlgorithm.ts` | Ctrl-drag reorder computation |
+| `bitfield/keyboardOperations.ts` | Keyboard reorder/resize helpers |
+| `bitfield/renderBitCellStyle.ts` | Shared bit-cell styling |
+| `bitfield/utils.ts` | Shared utility functions |
 | `register/RegisterEditor.tsx` | Wires callbacks to data model |
 | `register/FieldsTable.tsx` | Inline-editable table with drafts |
+| `register/FieldTableRow.tsx` | Individual field row rendering |
 | `hooks/useFieldEditor.ts` | Selection, drafts, keyboard, insertion |
 
 ## Testing
