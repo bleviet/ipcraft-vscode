@@ -1,3 +1,4 @@
+/* eslint-disable */
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
 import '@testing-library/jest-dom';
 
@@ -25,4 +26,44 @@ beforeAll(() => {
 
 afterAll(() => {
   console.error = originalError;
+});
+
+// Mock @vscode/webview-ui-toolkit/react
+jest.mock('@vscode/webview-ui-toolkit/react', () => {
+  const React = require('react');
+  return {
+    VSCodeTextField: ({ onInput, ...props }: any) =>
+      React.createElement('input', {
+        ...props,
+        onInput: (e: any) => onInput?.(e),
+        onChange: (e: any) => onInput?.(e),
+      }),
+    VSCodeTextArea: ({ onInput, ...props }: any) =>
+      React.createElement('textarea', {
+        ...props,
+        onInput: (e: any) => onInput?.(e),
+        onChange: (e: any) => onInput?.(e),
+      }),
+    VSCodeCheckbox: ({ onChange, checked, children, ...props }: any) =>
+      React.createElement('label', { key: props.id || props.name }, [
+        React.createElement('input', {
+          key: 'input',
+          type: 'checkbox',
+          checked,
+          onChange: (e: any) => onChange?.(e),
+          ...props,
+        }),
+        children,
+      ]),
+    VSCodeDropdown: ({ onChange, children, ...props }: any) =>
+      React.createElement(
+        'select',
+        {
+          onChange: (e: any) => onChange?.(e),
+          ...props,
+        },
+        children
+      ),
+    VSCodeOption: ({ children, ...props }: any) => React.createElement('option', props, children),
+  };
 });

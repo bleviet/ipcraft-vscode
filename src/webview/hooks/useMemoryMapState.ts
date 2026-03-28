@@ -44,6 +44,7 @@ export function useMemoryMapState() {
         setMemoryMap(normalized);
         setParseError(null);
       } catch (err) {
+        console.error('parseAndNormalize FAILED:', err);
         const message = err instanceof Error ? err.message : String(err);
         setParseError(message);
         if (options?.clearMemoryMapOnError) {

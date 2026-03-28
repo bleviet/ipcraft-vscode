@@ -39,7 +39,7 @@ function renderLeafRegister(
   const isSelected = selectedId === id;
   const block = memoryMap.address_blocks?.[blockIndex];
   const absolute = (block?.base_address ?? 0) + (reg.address_offset ?? 0);
-  const path: YamlPath = ['addressBlocks', blockIndex, 'registers', regIndex];
+  const path: YamlPath = ['address_blocks', blockIndex, 'registers', regIndex];
 
   return (
     <RegisterNode
@@ -106,7 +106,7 @@ function renderArray(
               memoryMap.address_blocks?.[blockIndex]?.name ?? '',
               arr.name,
             ],
-            path: ['addressBlocks', blockIndex, 'register_arrays', arrayIndex],
+            path: ['address_blocks', blockIndex, 'register_arrays', arrayIndex],
           });
         }}
         style={{ paddingLeft: '40px' }}
@@ -118,7 +118,7 @@ function renderArray(
         ></span>
         <span className="codicon codicon-symbol-array" style={{ marginRight: '6px' }}></span>
         {renderNameOrEdit(id, arr.name, [
-          'addressBlocks',
+          'address_blocks',
           blockIndex,
           'register_arrays',
           arrayIndex,
@@ -179,11 +179,11 @@ const OutlineTreeNodes = ({
                 type: 'block',
                 object: block,
                 breadcrumbs: [memoryMapName, block.name],
-                path: ['addressBlocks', blockIndex],
+                path: ['address_blocks', blockIndex],
               });
             }}
             onToggleExpand={(e) => onToggleExpand(id, e)}
-            name={renderNameOrEdit(id, block.name, ['addressBlocks', blockIndex])}
+            name={renderNameOrEdit(id, block.name, ['address_blocks', blockIndex])}
           >
             {regsAny.map((node, idx) => {
               if (isArrayNode(node)) {

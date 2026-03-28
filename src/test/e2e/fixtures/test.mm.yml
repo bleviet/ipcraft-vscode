@@ -1,0 +1,10 @@
+- name: TEST_MAP
+  description: Smoke test map
+  addressBlocks:
+  - name: REGS
+    baseAddress: 0
+    registers:
+    - name: CTRL
+      fields:
+      - name: ENABLE
+        bits: '[0:0]'

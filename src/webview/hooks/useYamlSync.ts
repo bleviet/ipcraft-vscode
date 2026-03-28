@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 /**
  * VSCode API wrapper type
@@ -24,13 +24,20 @@ export function useYamlSync(
   vscode: VsCodeApi | undefined,
   onUpdate: (text: string, fileName?: string) => void
 ) {
+  const onUpdateRef = useRef(onUpdate);
+  onUpdateRef.current = onUpdate;
+
   useEffect(() => {
     const handleMessage = (event: MessageEvent<ExtensionMessage>) => {
       const message = event.data;
+      if (!message || typeof message !== 'object') {
+        return;
+      }
+
       switch (message.type) {
         case 'update':
           if (message.text !== undefined) {
-            onUpdate(message.text, message.fileName);
+            onUpdateRef.current(message.text, message.fileName);
           }
           break;
         default:
@@ -39,11 +46,10 @@ export function useYamlSync(
     };
 
     window.addEventListener('message', handleMessage);
-
     return () => {
       window.removeEventListener('message', handleMessage);
     };
-  }, [onUpdate]);
+  }, []); // Run only once
 
   /**
    * Send updated YAML text to the extension

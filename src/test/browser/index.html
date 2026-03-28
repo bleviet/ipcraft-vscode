@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPCraft Browser Test Harness</title>
+    <!-- We'll link to the real compiled CSS -->
+    <link rel="stylesheet" href="../../../dist/webview.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--vscode-editor-background, #1e1e1e);
+            color: var(--vscode-editor-foreground, #cccccc);
+            font-family: var(--vscode-font-family, sans-serif);
+        }
+        #root {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script>
+        // Mock acquireVsCodeApi
+        window.acquireVsCodeApi = function() {
+            return {
+                postMessage: function(message) {
+                    console.log('VSCODE_MESSAGE:', JSON.stringify(message));
+                    window.__last_message = message;
+                    window.dispatchEvent(new CustomEvent('vscode-post-message', { detail: message }));
+                },
+                setState: function(state) {
+                    window.__vscode_state__ = state;
+                },
+                getState: function() {
+                    return window.__vscode_state__;
+                }
+            };
+        };
+
+        // Helper to send update message
+        window.renderYaml = function(text) {
+            console.log('Harness dispatching UPDATE event');
+            window.dispatchEvent(new MessageEvent('message', {
+                data: {
+                    type: 'update',
+                    text: text
+                }
+            }));
+        };
+
+        window.addEventListener('error', (event) => {
+            console.error('Harness GLOBAL ERROR:', event.message, event.filename, event.lineno);
+        });
+        window.addEventListener('unhandledrejection', (event) => {
+            console.error('Harness UNHANDLED REJECTION:', event.reason);
+        });
+
+        window.addEventListener('message', (event) => {
+            console.log('Harness received message:', JSON.stringify(event.data));
+        });
+
+        // This is where we'll wait for the bundle to load and init
+        console.log('Harness initialized');
+    </script>
+
+    <!-- Load the compiled React bundle -->
+    <script src="../../../dist/webview.js"></script>
+</body>
+</html>

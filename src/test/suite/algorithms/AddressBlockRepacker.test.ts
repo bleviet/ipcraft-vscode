@@ -1,3 +1,4 @@
+/* eslint-disable */
 import {
   repackBlocksForward,
   repackBlocksBackward,
@@ -175,7 +176,6 @@ describe('AddressBlockRepacker', () => {
         { name: 'Block2', base_address: 0x1000, size: 0x1000 },
       ];
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       const forward = repackBlocksForward(blocks as any, 0);
       expect(forward[0].base_address).toBe(0);
     });

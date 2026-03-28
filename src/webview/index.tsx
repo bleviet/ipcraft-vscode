@@ -38,8 +38,13 @@ const App = () => {
   const { sendUpdate } = useYamlSync(vscode, updateFromYaml);
 
   useEffect(() => {
+    // Expose for testing
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    (window as any).__RENDER__ = (text: string) => {
+      updateFromYaml(text);
+    };
     vscode?.postMessage({ type: 'ready' });
-  }, []);
+  }, [updateFromYaml]);
 
   const toggleRegisterLayout = () => {
     const nextLayout: RegisterLayout = registerLayout === 'stacked' ? 'side-by-side' : 'stacked';

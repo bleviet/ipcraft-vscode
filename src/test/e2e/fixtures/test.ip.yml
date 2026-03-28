@@ -1,0 +1,9 @@
+apiVersion: '1.0'
+vlnv:
+  vendor: test.com
+  library: smoke
+  name: test_core
+  version: 1.0.0
+description: Smoke test IP core
+memoryMaps:
+  import: test.mm.yml

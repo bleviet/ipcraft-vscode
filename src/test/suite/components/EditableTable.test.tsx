@@ -75,7 +75,7 @@ describe('EditableTable', () => {
       <EditableTableHarness
         initialRows={[{ name: 'row-a' }, { name: 'row-b' }]}
         onAddRow={onAddRow}
-      />,
+      />
     );
 
     expect(screen.getByText('row-a')).toBeInTheDocument();
