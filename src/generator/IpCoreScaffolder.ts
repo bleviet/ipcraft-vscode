@@ -65,15 +65,15 @@ export class IpCoreScaffolder {
         files['tb/Makefile'] = this.templates.render('cocotb_makefile.j2', context);
       }
 
-      if (vendor === 'intel' || vendor === 'both') {
-        files[`intel/${name}_hw.tcl`] = this.templates.render('intel_hw_tcl.j2', context);
+      if (vendor === 'altera' || vendor === 'both') {
+        files[`altera/${name}_hw.tcl`] = this.templates.render('altera_hw_tcl.j2', context);
       }
 
-      if (vendor === 'xilinx' || vendor === 'both') {
-        files['xilinx/component.xml'] = this.templates.render('xilinx_component_xml.j2', context);
+      if (vendor === 'amd' || vendor === 'both') {
+        files['amd/component.xml'] = this.templates.render('amd_component_xml.j2', context);
         const versionStr = String(ipCoreData?.vlnv?.version ?? '1.0').replace(/\./g, '_');
-        files[`xilinx/xgui/${name}_v${versionStr}.tcl`] = this.templates.render(
-          'xilinx_xgui.j2',
+        files[`amd/xgui/${name}_v${versionStr}.tcl`] = this.templates.render(
+          'amd_xgui.j2',
           context
         );
       }

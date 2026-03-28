@@ -1,4 +1,4 @@
-export type VendorOption = 'none' | 'intel' | 'xilinx' | 'both';
+export type VendorOption = 'none' | 'altera' | 'amd' | 'both';
 
 export interface GenerateOptions {
   vendor?: VendorOption;

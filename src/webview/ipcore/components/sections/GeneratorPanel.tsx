@@ -14,7 +14,7 @@ interface GeneratorPanelProps {
 }
 
 type BusType = 'axil' | 'avmm';
-type VendorType = 'none' | 'intel' | 'xilinx' | 'both';
+type VendorType = 'none' | 'altera' | 'amd' | 'both';
 
 interface GenerationOptions {
   busType: BusType;
@@ -303,9 +303,9 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({ ipCore }) => {
               }}
             >
               <option value="none">None</option>
-              <option value="intel">Intel Platform Designer (_hw.tcl)</option>
-              <option value="xilinx">Xilinx Vivado (component.xml)</option>
-              <option value="both">Both Intel and Xilinx</option>
+              <option value="altera">Altera Platform Designer (_hw.tcl)</option>
+              <option value="amd">AMD Vivado (component.xml)</option>
+              <option value="both">Both Altera and AMD</option>
             </select>
           </div>
 
@@ -356,15 +356,15 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({ ipCore }) => {
                   <div style={{ paddingLeft: '24px', opacity: 0.8 }}>└── Makefile</div>
                 </div>
               )}
-              {(options.vendorFiles === 'intel' || options.vendorFiles === 'both') && (
+              {(options.vendorFiles === 'altera' || options.vendorFiles === 'both') && (
                 <div style={{ paddingLeft: '16px' }}>
-                  <div>├── intel/</div>
+                  <div>├── altera/</div>
                   <div style={{ paddingLeft: '24px', opacity: 0.8 }}>└── {ipName}_hw.tcl</div>
                 </div>
               )}
-              {(options.vendorFiles === 'xilinx' || options.vendorFiles === 'both') && (
+              {(options.vendorFiles === 'amd' || options.vendorFiles === 'both') && (
                 <div style={{ paddingLeft: '16px' }}>
-                  <div>└── xilinx/</div>
+                  <div>└── amd/</div>
                   <div style={{ paddingLeft: '24px', opacity: 0.8 }}>├── component.xml</div>
                   <div style={{ paddingLeft: '24px', opacity: 0.8 }}>└── xgui/{ipName}_v*.tcl</div>
                 </div>
@@ -376,15 +376,15 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({ ipCore }) => {
                 if (options.includeVhdl) {
                   count += 5;
                 } // pkg, top, core, bus, regs
-                if (options.vendorFiles === 'intel') {
+                if (options.vendorFiles === 'altera') {
                   count += 1;
                 }
-                if (options.vendorFiles === 'xilinx') {
+                if (options.vendorFiles === 'amd') {
                   count += 2;
                 } // component.xml + xgui
                 if (options.vendorFiles === 'both') {
                   count += 3;
-                } // intel hw.tcl + xilinx 2 files
+                } // altera hw.tcl + amd 2 files
                 if (options.includeTestbench) {
                   count += 2;
                 }

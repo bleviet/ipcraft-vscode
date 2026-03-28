@@ -9,7 +9,7 @@ import { Logger } from '../utils/Logger';
 import { DocumentManager } from '../services/DocumentManager';
 
 export interface GenerateOptionsMessage {
-  vendorFiles?: 'none' | 'intel' | 'xilinx' | 'both';
+  vendorFiles?: 'none' | 'altera' | 'amd' | 'both';
   includeTestbench?: boolean;
   includeRegfile?: boolean;
   includeVhdl?: boolean;
