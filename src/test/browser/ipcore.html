@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPCraft IP Core Browser Test Harness</title>
+    <!-- Link to the real compiled CSS for the ip core app -->
+    <link rel="stylesheet" href="../../../dist/ipcore.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--vscode-editor-background, #1e1e1e);
+            color: var(--vscode-editor-foreground, #cccccc);
+            font-family: var(--vscode-font-family, sans-serif);
+        }
+        #ipcore-root {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+    <div id="ipcore-root"></div>
+
+    <script>
+        // Mock acquireVsCodeApi — must be defined before the bundle loads
+        window.acquireVsCodeApi = function() {
+            return {
+                postMessage: function(message) {
+                    console.log('VSCODE_MESSAGE:', JSON.stringify(message));
+                    window.__last_message = message;
+                    window.dispatchEvent(new CustomEvent('vscode-post-message', { detail: message }));
+                },
+                setState: function(state) {
+                    window.__vscode_state__ = state;
+                },
+                getState: function() {
+                    return window.__vscode_state__;
+                }
+            };
+        };
+
+        window.addEventListener('error', (event) => {
+            console.error('Harness GLOBAL ERROR:', event.message, event.filename, event.lineno);
+        });
+        window.addEventListener('unhandledrejection', (event) => {
+            console.error('Harness UNHANDLED REJECTION:', event.reason);
+        });
+
+        window.addEventListener('message', (event) => {
+            console.log('Harness received message:', JSON.stringify(event.data));
+        });
+
+        console.log('IPCore Harness initialized');
+    </script>
+
+    <!-- Load the compiled IP Core React bundle -->
+    <script src="../../../dist/ipcore.js"></script>
+</body>
+</html>

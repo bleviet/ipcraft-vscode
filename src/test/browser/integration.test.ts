@@ -130,3 +130,76 @@ address_blocks:
     expect(lastMsg.text).toContain("'[1:0]'");
   });
 });
+
+test.describe('IPCraft IP Core Webview Integration', () => {
+  const harnessPath = `file://${path.resolve(__dirname, 'ipcore.html')}`;
+
+  const sampleIpCoreYaml = `
+apiVersion: '1.0'
+vlnv:
+  vendor: test.com
+  library: smoke
+  name: test_core
+  version: 1.0.0
+description: Smoke test IP core
+bus_interfaces:
+  - name: S_AXI
+    type: AXI4L
+    mode: slave
+`;
+
+  test.afterEach(async ({ page }, testInfo) => {
+    if (testInfo.status !== testInfo.expectedStatus) {
+      const html = await page.content();
+      console.log(`IPCore page HTML on failure (${testInfo.title}):`, html.substring(0, 2000));
+    }
+  });
+
+  test('should render IP Core navigation sidebar from injected YAML', async ({ page }) => {
+    // Wait for ready message from the webview
+    const readyPromise = page.waitForEvent('console', {
+      predicate: (msg) => msg.text().includes('VSCODE_MESSAGE:') && msg.text().includes('"ready"'),
+      timeout: 10000,
+    });
+
+    await page.goto(harnessPath);
+
+    // Wait for the React app to mount
+    await page.waitForSelector('#ipcore-root');
+
+    await readyPromise;
+
+    // Inject IP Core YAML via postMessage (same shape the extension host sends)
+    await page.evaluate((yaml) => {
+      window.postMessage({ type: 'update', text: yaml, fileName: 'test_core.ip.yml' }, '*');
+    }, sampleIpCoreYaml);
+
+    // The navigation sidebar should render known section labels
+    await expect(page.locator('nav').getByText('Metadata')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('nav').getByText('Bus Interfaces')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('nav').getByText('Ports')).toBeVisible({ timeout: 5000 });
+  });
+
+  test('should navigate to Metadata section and display VLNV fields', async ({ page }) => {
+    const readyPromise = page.waitForEvent('console', {
+      predicate: (msg) => msg.text().includes('VSCODE_MESSAGE:') && msg.text().includes('"ready"'),
+      timeout: 10000,
+    });
+
+    await page.goto(harnessPath);
+    await page.waitForSelector('#ipcore-root');
+    await readyPromise;
+
+    await page.evaluate((yaml) => {
+      window.postMessage({ type: 'update', text: yaml, fileName: 'test_core.ip.yml' }, '*');
+    }, sampleIpCoreYaml);
+
+    // Click Metadata in sidebar
+    await page.locator('nav').getByText('Metadata').click();
+
+    // The editor panel should show the Metadata heading and VLNV row labels
+    await expect(page.locator('h2', { hasText: 'Metadata' })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('Vendor')).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText('Name')).toBeVisible({ timeout: 5000 });
+  });
+});

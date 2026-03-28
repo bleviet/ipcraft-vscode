@@ -108,7 +108,7 @@
     "test:unit:watch": "jest --watch",
     "test:unit:coverage": "jest --coverage",
     "test:e2e": "node ./out/test/e2e/runTests.js",
-    "test:browser": "playwright test src/test/browser/integration.test.ts",
+    "test:browser": "playwright test",
     "test:all": "npm run test:unit && npm run test:e2e && npm run test:browser",
     "generate-types": "json2ts -i node_modules/ipcraft-spec/schemas/memory_map.schema.json -o src/webview/types/memoryMap.d.ts && json2ts -i node_modules/ipcraft-spec/schemas/ip_core.schema.json -o src/webview/types/ipCore.d.ts",
     "prepare": "husky install"
