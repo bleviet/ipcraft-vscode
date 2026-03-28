@@ -4,6 +4,7 @@ import * as fs from 'fs/promises';
 import { IpCoreScaffolder } from '../../../generator/IpCoreScaffolder';
 import { TemplateLoader } from '../../../generator/TemplateLoader';
 import { Logger } from '../../../utils/Logger';
+import { BusLibraryService } from '../../../services/BusLibraryService';
 
 // Mock Logger
 jest.mock('../../../utils/Logger', () => {
@@ -48,6 +49,14 @@ describe('IpCoreScaffolder', () => {
   const context = { extensionPath: '/ext' } as any;
 
   beforeEach(() => {
+    // resetMocks: true in jest.config resets all mock implementations before each test.
+    // Re-apply the BusLibraryService mock implementation before constructing the scaffolder.
+    (BusLibraryService as jest.Mock).mockImplementation(() => ({
+      loadDefaultLibrary: jest.fn().mockResolvedValue({
+        AXI4L: { ports: [{ name: 'AWADDR', presence: 'required' }] },
+      }),
+      clearCache: jest.fn(),
+    }));
     scaffolder = new IpCoreScaffolder(logger, loader, context);
     jest.clearAllMocks();
   });
