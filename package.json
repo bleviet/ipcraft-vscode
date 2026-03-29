@@ -1,10 +1,27 @@
 {
   "name": "ipcraft-vscode",
   "publisher": "bleviet",
+  "license": "MIT",
+  "icon": "icon.svg",
   "repository": {
     "type": "git",
     "url": "https://github.com/bleviet/ipcraft-vscode"
   },
+  "homepage": "https://github.com/bleviet/ipcraft-vscode#readme",
+  "bugs": {
+    "url": "https://github.com/bleviet/ipcraft-vscode/issues"
+  },
+  "keywords": [
+    "fpga",
+    "ip core",
+    "memory map",
+    "vhdl",
+    "rtl",
+    "visual editor",
+    "yaml",
+    "register",
+    "bitfield"
+  ],
   "displayName": "IPCraft for VS Code",
   "description": "Visual editor for IP Core (IPCraft) and Memory Map specifications",
   "version": "0.1.0",
@@ -12,6 +29,8 @@
     "vscode": "^1.80.0"
   },
   "categories": [
+    "Programming Languages",
+    "Visualization",
     "Other"
   ],
   "activationEvents": [],

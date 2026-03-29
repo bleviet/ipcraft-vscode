@@ -1,0 +1,40 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="brand-grad" x1="0" y1="0" x2="128" y2="128" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF512F"/>
+      <stop offset="1" stop-color="#DD2476"/>
+    </linearGradient>
+    <mask id="chip-mask">
+      <rect x="16" y="16" width="96" height="96" rx="8" fill="white" />
+    </mask>
+  </defs>
+
+  <!-- Clean geometric outer frame -->
+  <rect x="16" y="16" width="96" height="96" rx="8" stroke="url(#brand-grad)" stroke-width="8" />
+  
+  <!-- Internal Systematic Grid (Registers/Fields) -->
+  <g mask="url(#chip-mask)">
+    <!-- Register 1 (Top) -->
+    <rect x="24" y="28" width="80" height="16" rx="2" fill="url(#brand-grad)" fill-opacity="0.2" />
+    <line x1="44" y1="28" x2="44" y2="44" stroke="url(#brand-grad)" stroke-opacity="0.3" stroke-width="2" />
+    <line x1="74" y1="28" x2="74" y2="44" stroke="url(#brand-grad)" stroke-opacity="0.3" stroke-width="2" />
+
+    <!-- Register 2 (Middle - Focused/Schema-driven) -->
+    <rect x="24" y="52" width="80" height="24" rx="2" fill="url(#brand-grad)" fill-opacity="0.1" stroke="url(#brand-grad)" stroke-width="2" />
+    
+    <!-- Bitfields in middle register -->
+    <rect x="24" y="52" width="20" height="24" fill="url(#brand-grad)" /> <!-- Active/Selected Field -->
+    <line x1="44" y1="52" x2="44" y2="76" stroke="url(#brand-grad)" stroke-width="2" />
+    <line x1="64" y1="52" x2="64" y2="76" stroke="url(#brand-grad)" stroke-width="2" />
+    <line x1="84" y1="52" x2="84" y2="76" stroke="url(#brand-grad)" stroke-width="2" />
+
+    <!-- Register 3 (Bottom) -->
+    <rect x="24" y="84" width="80" height="16" rx="2" fill="url(#brand-grad)" fill-opacity="0.2" />
+    <line x1="34" y1="84" x2="34" y2="100" stroke="url(#brand-grad)" stroke-opacity="0.3" stroke-width="2" />
+    <line x1="54" y1="84" x2="54" y2="100" stroke="url(#brand-grad)" stroke-opacity="0.3" stroke-width="2" />
+    <line x1="84" y1="84" x2="84" y2="100" stroke="url(#brand-grad)" stroke-opacity="0.3" stroke-width="2" />
+  </g>
+
+  <!-- Technical "Cursor" or "Select" indicator -->
+  <path d="M20 52V48H28M20 76V80H28M108 52V48H100M108 76V80H100" stroke="url(#brand-grad)" stroke-width="2" stroke-linecap="round" />
+</svg>

@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.1.0] - 2026-03-29
+
+### Added
+- Extension icon based on bahonavi brand guidelines.
+- Publishing metadata and optimized `.vscodeignore` for smaller package size.
+- Support for visual editing of IP Core and Memory Map specifications.
+- VHDL generation and import capabilities.
+- Integrated Bus Library viewer.
+
 ## 2026-03-28
 
 ### Changed

@@ -61,8 +61,7 @@ export function EditableTable<T>({
 }: EditableTableProps<T>) {
   const resolvedPlural = rowLabelPlural ?? `${rowLabelSingular}s`;
   const effectiveOnAdd = onAdd ?? (() => undefined);
-  const effectiveRenderDisplayRow =
-    renderDisplayRow ?? (() => null);
+  const effectiveRenderDisplayRow = renderDisplayRow ?? (() => null);
   const effectiveRenderEditRow = renderEditRow ?? (() => null);
 
   return (
@@ -127,7 +126,9 @@ export function EditableTable<T>({
               <tbody>
                 {rows.map((row, index) => {
                   if (editingIndex === index) {
-                    return <React.Fragment key={index}>{effectiveRenderEditRow(false)}</React.Fragment>;
+                    return (
+                      <React.Fragment key={index}>{effectiveRenderEditRow(false)}</React.Fragment>
+                    );
                   }
 
                   return effectiveRenderDisplayRow(row, index);

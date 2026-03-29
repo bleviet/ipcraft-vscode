@@ -29,7 +29,7 @@ import type { AddressBlock, RegisterDef, RegisterArray, MemoryMap } from './memo
  */
 export type EditorSelection =
   | { type: 'register'; path: YamlPath; data: RegisterDef }
-  | { type: 'block';    path: YamlPath; data: AddressBlock }
-  | { type: 'array';    path: YamlPath; data: RegisterArray }
+  | { type: 'block'; path: YamlPath; data: AddressBlock }
+  | { type: 'array'; path: YamlPath; data: RegisterArray }
   | { type: 'memoryMap'; path: YamlPath; data: MemoryMap }
   | { type: 'none' };

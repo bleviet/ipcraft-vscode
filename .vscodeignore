@@ -1,3 +1,4 @@
+ipcraft-spec/**
 .vscode/**
 .vscode-test/**
 src/**
@@ -13,3 +14,19 @@ jest.config.js
 package-lock.json
 *.log
 *.map
+.github/**
+.husky/**
+coverage/**
+test-results/**
+docs/**
+scripts/**
+__mocks__/**
+site/**
+playwright.config.ts
+eslint.config.js
+postcss.config.js
+tailwind.config.js
+mkdocs.yml
+skills-lock.json
+.agents/**
+.claude/**
