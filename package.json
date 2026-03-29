@@ -2,7 +2,7 @@
   "name": "ipcraft-vscode",
   "publisher": "bleviet",
   "license": "MIT",
-  "icon": "icon.svg",
+  "icon": "icon.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/bleviet/ipcraft-vscode"
