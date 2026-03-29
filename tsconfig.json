@@ -33,6 +33,6 @@
         "node_modules",
         ".vscode-test",
         "__mocks__",
-        "playwright.config.ts"
+        "config"
     ]
 }

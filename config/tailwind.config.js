@@ -1,6 +1,8 @@
+const path = require('path');
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-    content: ['./src/webview/**/*.{ts,tsx}'],
+    content: [path.resolve(__dirname, '../src/webview/**/*.{ts,tsx}')],
     theme: {
         extend: {
             fontFamily: {

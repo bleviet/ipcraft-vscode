@@ -23,46 +23,14 @@ src/
   extension.ts              # entry point
   commands/                 # VS Code command implementations
   providers/                # custom editor providers
-    MemoryMapEditorProvider.ts
-    IpCoreEditorProvider.ts
-    IpCoreGenerateHandler.ts
-    providerServices.ts
-    ipCoreErrorHtml.ts
   services/                 # extension host services
   parser/                   # VHDL parser
   generator/                # VHDL scaffolding + Nunjucks templates
-    IpCoreScaffolder.ts     #   generation orchestration
-    registerProcessor.ts    #   register + bus processing
-    TemplateLoader.ts       #   template loading
-    types.ts                #   VendorOption, GenerateOptions, IpCoreData
-    templates/              #   Nunjucks templates (VHDL, altera, amd, cocotb)
   utils/                    # logging, error handling, helpers
-  webview/
-    index.tsx               # Memory Map app shell
-    index.css               # Global styles and CSS tokens
-    vscode.ts               # VS Code API type shim
-    ipcore/                 # IP Core app and components
-      IpCoreApp.tsx         #   IP Core app shell
-      components/layout/    #   NavigationSidebar, EditorPanel
-      components/sections/  #   section editors (12 editors)
-      hooks/                #   useIpCoreState, useIpCoreSync, etc.
-    components/             # React components (Memory Map)
-      bitfield/             #   BitFieldVisualizer submodules (14 files)
-      memorymap/            #   Block, MemoryMap, RegisterArray editors
-      outline/              #   Sidebar tree navigation (11 files)
-      register/             #   Register editor + fields table
-      map/                  #   (reserved for map visualizers)
-    hooks/                  # React hooks (13 hooks)
-    services/               # webview-side services
-    algorithms/             # repacking algorithms
-    shared/                 # shared across editors
-      components/           #   reusable form/table components
-      utils/                #   validation, formatters, yamlKeyMapper
-      colors.ts             #   color palette definitions
-      constants.ts          #   shared constants
-    utils/                  # BitFieldUtils, blockSize, formatUtils
-    types/                  # TypeScript type definitions
+  webview/                  # React apps (Memory Map & IP Core)
   test/suite/               # Jest unit tests (27 suites, 209 tests)
+config/                     # Tool configurations (Jest, Webpack, etc.)
+resources/                  # Icons and static assets
 docs/                       # this documentation
 ipcraft-spec/               # specification schemas + examples (git submodule)
 ```

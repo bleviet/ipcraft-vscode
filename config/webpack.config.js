@@ -2,6 +2,9 @@ const path = require("path");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 
+const root = __dirname;
+const projectRoot = path.resolve(root, "..");
+
 const commonResolve = {
   extensions: [".ts", ".tsx", ".js", ".jsx", ".json"],
 };
@@ -29,7 +32,18 @@ const webviewModuleRules = {
     },
     {
       test: /\.css$/,
-      use: [MiniCssExtractPlugin.loader, "css-loader", "postcss-loader"],
+      use: [
+        MiniCssExtractPlugin.loader,
+        "css-loader",
+        {
+          loader: "postcss-loader",
+          options: {
+            postcssOptions: {
+              config: path.resolve(root, "postcss.config.js"),
+            },
+          },
+        },
+      ],
     },
     {
       test: /\.(woff2?|ttf|eot|otf)$/,
@@ -45,10 +59,10 @@ const extensionConfig = {
   devtool: "inline-source-map",
   target: "node",
   entry: {
-    extension: "./src/extension.ts",
+    extension: path.resolve(projectRoot, "src/extension.ts"),
   },
   output: {
-    path: path.resolve(__dirname, "dist"),
+    path: path.resolve(projectRoot, "dist"),
     filename: "[name].js",
     libraryTarget: "commonjs2",
   },
@@ -61,11 +75,11 @@ const extensionConfig = {
     new CopyWebpackPlugin({
       patterns: [
         {
-          from: path.resolve(__dirname, "src", "generator", "templates"),
+          from: path.resolve(projectRoot, "src", "generator", "templates"),
           to: "templates",
         },
         {
-          from: path.resolve(__dirname, "ipcraft-spec", "common", "bus_definitions.yml"),
+          from: path.resolve(projectRoot, "ipcraft-spec", "common", "bus_definitions.yml"),
           to: "resources",
         },
       ],
@@ -80,11 +94,11 @@ const webviewConfig = {
   devtool: "inline-source-map",
   target: "web",
   entry: {
-    webview: "./src/webview/index.tsx",
-    ipcore: "./src/webview/ipcore/IpCoreApp.tsx",
+    webview: path.resolve(projectRoot, "src/webview/index.tsx"),
+    ipcore: path.resolve(projectRoot, "src/webview/ipcore/IpCoreApp.tsx"),
   },
   output: {
-    path: path.resolve(__dirname, "dist"),
+    path: path.resolve(projectRoot, "dist"),
     filename: "[name].js",
     // NOTE: do NOT set libraryTarget to commonjs* for the webview.
   },

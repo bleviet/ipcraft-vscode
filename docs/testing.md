@@ -336,7 +336,7 @@ Run `npm run type-check` first. Jest uses `ts-jest` which can show slightly diff
 
 ### `resetMocks: true` clears mock implementations between tests
 
-`jest.config.js` sets both `clearMocks: true` and `resetMocks: true`. This means Jest resets mock implementations (not just call history) between every test. If you configure a mock inside a `beforeAll()` or at the top level of a `describe()`, and then reset it in a `beforeEach()` — or if Jest resets it automatically between describe-level setup and test execution — the mock will have no implementation when the test runs.
+`config/jest.config.js` sets both `clearMocks: true` and `resetMocks: true`. This means Jest resets mock implementations (not just call history) between every test. If you configure a mock inside a `beforeAll()` or at the top level of a `describe()`, and then reset it in a `beforeEach()` — or if Jest resets it automatically between describe-level setup and test execution — the mock will have no implementation when the test runs.
 
 **Rule:** Set up mock implementations (`.mockReturnValue`, `.mockResolvedValue`, etc.) in `beforeEach()`, not `beforeAll()` or at describe scope.
 
@@ -384,7 +384,7 @@ The Memory Map app mounts at `#root`. The IP Core app mounts at `#ipcore-root`. 
 
 ### CSS modules are proxied in Jest
 
-`jest.config.js` maps `*.css` imports to `identity-obj-proxy`. This means `styles.myClass` returns `"myClass"` as a string rather than failing. You cannot assert on CSS class names in Jest component tests — this is intentional.
+`config/jest.config.js` maps `*.css` imports to `identity-obj-proxy`. This means `styles.myClass` returns `"myClass"` as a string rather than failing. You cannot assert on CSS class names in Jest component tests — this is intentional.
 
 ---
 

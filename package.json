@@ -2,7 +2,7 @@
   "name": "ipcraft-vscode",
   "publisher": "bleviet",
   "license": "MIT",
-  "icon": "icon.png",
+  "icon": "resources/icon.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/bleviet/ipcraft-vscode"
@@ -111,9 +111,9 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run package",
-    "compile": "webpack",
-    "watch": "webpack --watch",
-    "package": "webpack --mode production --devtool hidden-source-map",
+    "compile": "webpack --config config/webpack.config.js",
+    "watch": "webpack --watch --config config/webpack.config.js",
+    "package": "webpack --mode production --devtool hidden-source-map --config config/webpack.config.js",
     "compile-tests": "tsc -p . --outDir out",
     "watch-tests": "tsc -p . -w --outDir out",
     "pretest": "npm run compile-tests && npm run compile && npm run lint",
@@ -123,11 +123,11 @@
     "format:check": "prettier --check \"src/**/*.{ts,tsx}\"",
     "type-check": "tsc --noEmit",
     "test": "npm run test:unit",
-    "test:unit": "jest",
-    "test:unit:watch": "jest --watch",
-    "test:unit:coverage": "jest --coverage",
+    "test:unit": "jest --config config/jest.config.js",
+    "test:unit:watch": "jest --watch --config config/jest.config.js",
+    "test:unit:coverage": "jest --coverage --config config/jest.config.js",
     "test:e2e": "node ./out/test/e2e/runTests.js",
-    "test:browser": "playwright test",
+    "test:browser": "playwright test --config config/playwright.config.ts",
     "test:all": "npm run test:unit && npm run test:e2e && npm run test:browser",
     "generate-types": "json2ts -i node_modules/ipcraft-spec/schemas/memory_map.schema.json -o src/webview/types/memoryMap.d.ts && json2ts -i node_modules/ipcraft-spec/schemas/ip_core.schema.json -o src/webview/types/ipCore.d.ts",
     "prepare": "husky install"
