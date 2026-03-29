@@ -24,6 +24,17 @@ npm run compile
 2. The visual editor opens automatically.
 3. Use the split view to see YAML source alongside the editor.
 
+### Available Commands (`Ctrl+Shift+P`)
+
+| Command | Description |
+|---------|-------------|
+| `IPCraft: New IP Core` | Create a new IP Core specification file |
+| `IPCraft: New Memory Map` | Create a new Memory Map specification file |
+| `IPCraft: New IP Core + Memory Map` | Create a new IP Core linked to a new Memory Map |
+| `IPCraft: Generate VHDL` | Scaffold an RTL project from the current IP Core |
+| `IPCraft: Import from VHDL` | Parse a VHDL file to generate an IP Core spec |
+| `IPCraft: View Bus Definitions` | Browse the built-in library of bus interfaces |
+
 ### Keyboard Shortcuts
 
 - **Navigation**: Arrow keys or `h`/`j`/`k`/`l` (Vim), `Tab` / `Shift+Tab`, `Escape` to unfocus
