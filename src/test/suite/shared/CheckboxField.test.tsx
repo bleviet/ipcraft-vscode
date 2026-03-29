@@ -8,13 +8,13 @@ describe('CheckboxField', () => {
     expect(screen.getByText('Test Checkbox')).toBeInTheDocument();
 
     const checkbox = screen.getByRole('checkbox');
-    expect(checkbox.checked).toBe(true);
+    expect(checkbox).toHaveProperty('checked', true);
   });
 
   it('reflects checked state (unchecked)', () => {
     render(<CheckboxField label="Test Checkbox" checked={false} onChange={() => {}} />);
     const checkbox = screen.getByRole('checkbox');
-    expect(checkbox.checked).toBe(false);
+    expect(checkbox).toHaveProperty('checked', false);
   });
 
   it('calls onChange when clicked', () => {
@@ -32,6 +32,6 @@ describe('CheckboxField', () => {
       <CheckboxField label="Test Checkbox" checked={false} onChange={() => {}} disabled={true} />
     );
     const checkbox = screen.getByRole('checkbox');
-    expect(checkbox.disabled).toBe(true);
+    expect(checkbox).toHaveProperty('disabled', true);
   });
 });
