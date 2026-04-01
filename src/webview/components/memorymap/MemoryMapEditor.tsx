@@ -123,7 +123,7 @@ export function MemoryMapEditor({
     }
 
     const newIdx = result.newIndex;
-    onUpdate(['addressBlocks'], result.items);
+    onUpdate(['address_blocks'], result.items);
     setSelectedBlockIndex(newIdx);
     setHoveredBlockIndex(newIdx);
     setBlockActiveCell({ rowIndex: newIdx, key: 'name' });
@@ -165,7 +165,7 @@ export function MemoryMapEditor({
         ? blockActiveCell.key
         : 'name';
       const newBlocks = liveBlocks.filter((_: unknown, i: number) => i !== rowIndex);
-      onUpdate(['addressBlocks'], newBlocks);
+      onUpdate(['address_blocks'], newBlocks);
       const nextRow = rowIndex > 0 ? rowIndex - 1 : newBlocks.length > 0 ? 0 : -1;
       setSelectedBlockIndex(nextRow);
       setHoveredBlockIndex(nextRow);
@@ -265,7 +265,7 @@ export function MemoryMapEditor({
                       value={block.name || ''}
                       onBlur={(e: Event | React.FocusEvent<HTMLElement>) =>
                         onUpdate(
-                          ['addressBlocks', idx, 'name'],
+                          ['address_blocks', idx, 'name'],
                           (e.target as HTMLInputElement).value
                         )
                       }
@@ -293,7 +293,7 @@ export function MemoryMapEditor({
                     onInput={(e: Event | React.FormEvent<HTMLElement>) => {
                       const val = Number((e.target as HTMLInputElement).value);
                       if (!Number.isNaN(val)) {
-                        onUpdate(['addressBlocks', idx, 'offset'], val);
+                        onUpdate(['address_blocks', idx, 'offset'], val);
                       }
                     }}
                   />
@@ -353,7 +353,7 @@ export function MemoryMapEditor({
                     value={block.description ?? ''}
                     onInput={(e: Event | React.FormEvent<HTMLElement>) =>
                       onUpdate(
-                        ['addressBlocks', idx, 'description'],
+                        ['address_blocks', idx, 'description'],
                         (e.target as HTMLInputElement).value
                       )
                     }

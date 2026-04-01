@@ -44,7 +44,7 @@ export function buildVisibleSelections({
       type: 'block',
       object: block,
       breadcrumbs: [memoryMapName, block.name],
-      path: ['addressBlocks', blockIndex],
+      path: ['address_blocks', blockIndex],
     });
 
     if (!expanded.has(blockNodeId)) {
@@ -61,7 +61,7 @@ export function buildVisibleSelections({
           type: 'array',
           object: arr,
           breadcrumbs: [memoryMapName, block.name, arr.name],
-          path: ['addressBlocks', blockIndex, 'registers', regIndex],
+          path: ['address_blocks', blockIndex, 'registers', regIndex],
         });
 
         if (!expanded.has(arrNodeId)) {
@@ -81,7 +81,7 @@ export function buildVisibleSelections({
               __element_base: elementBase,
             },
             breadcrumbs: [memoryMapName, block.name, `${arr.name}[${elementIndex}]`],
-            path: ['addressBlocks', blockIndex, 'registers', regIndex],
+            path: ['address_blocks', blockIndex, 'registers', regIndex],
           });
 
           (arr.registers ?? []).forEach((reg: Register, childIndex: number) => {
@@ -97,7 +97,7 @@ export function buildVisibleSelections({
               type: 'register',
               object: reg,
               breadcrumbs: [memoryMapName, block.name, `${arr.name}[${elementIndex}]`, reg.name],
-              path: ['addressBlocks', blockIndex, 'registers', regIndex, 'registers', childIndex],
+              path: ['address_blocks', blockIndex, 'registers', regIndex, 'registers', childIndex],
               meta: {
                 absoluteAddress: absolute,
                 relativeOffset: reg.address_offset ?? 0,
@@ -116,7 +116,7 @@ export function buildVisibleSelections({
         type: 'register',
         object: reg,
         breadcrumbs: [memoryMapName, memoryMap.address_blocks?.[blockIndex]?.name ?? '', reg.name],
-        path: ['addressBlocks', blockIndex, 'registers', regIndex],
+        path: ['address_blocks', blockIndex, 'registers', regIndex],
         meta: {
           absoluteAddress: absolute,
           relativeOffset: reg.address_offset ?? 0,
@@ -131,7 +131,7 @@ export function buildVisibleSelections({
         type: 'array',
         object: arr,
         breadcrumbs: [memoryMapName, memoryMap.address_blocks?.[blockIndex]?.name ?? '', arr.name],
-        path: ['addressBlocks', blockIndex, 'register_arrays', arrayIndex],
+        path: ['address_blocks', blockIndex, 'register_arrays', arrayIndex],
       });
 
       if (!expanded.has(arrNodeId) || !Array.isArray(arr.registers)) {
@@ -150,7 +150,7 @@ export function buildVisibleSelections({
             memoryMap.address_blocks?.[blockIndex]?.name ?? '',
             reg.name,
           ],
-          path: ['addressBlocks', blockIndex, 'registers', regIndex],
+          path: ['address_blocks', blockIndex, 'registers', regIndex],
           meta: {
             absoluteAddress: absolute,
             relativeOffset: reg.address_offset ?? 0,

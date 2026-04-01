@@ -58,7 +58,7 @@ const RegisterArrayNode = ({
             type: 'array',
             object: arrayNode,
             breadcrumbs: [memoryMapName || 'Memory Map', block.name, arrayNode.name],
-            path: ['addressBlocks', blockIndex, 'registers', regIndex],
+            path: ['address_blocks', blockIndex, 'registers', regIndex],
           });
         }}
         style={{ paddingLeft: '40px' }}
@@ -70,7 +70,7 @@ const RegisterArrayNode = ({
         ></span>
         <span className="codicon codicon-symbol-array" style={{ marginRight: '6px' }}></span>
         {renderNameOrEdit(id, arrayNode.name, [
-          'addressBlocks',
+          'address_blocks',
           blockIndex,
           'registers',
           regIndex,
@@ -108,7 +108,7 @@ const RegisterArrayNode = ({
                         block.name,
                         `${arrayNode.name}[${elementIndex}]`,
                       ],
-                      path: ['addressBlocks', blockIndex, 'registers', regIndex],
+                      path: ['address_blocks', blockIndex, 'registers', regIndex],
                     });
                   }}
                   paddingLeft="60px"
@@ -119,7 +119,7 @@ const RegisterArrayNode = ({
                   const isChildSelected = selectedId === childId;
                   const absolute = elementBase + (reg.address_offset ?? 0);
                   const path: YamlPath = [
-                    'addressBlocks',
+                    'address_blocks',
                     blockIndex,
                     'registers',
                     regIndex,

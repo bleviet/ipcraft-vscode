@@ -4,6 +4,29 @@
 export type YamlPath = Array<string | number>;
 
 /**
+ * Aliases for YAML keys that may appear in either camelCase or snake_case.
+ * Allows path navigation to work regardless of the YAML format used.
+ */
+const KEY_ALIASES: Record<string, string> = {
+  address_blocks: 'addressBlocks',
+  addressBlocks: 'address_blocks',
+};
+
+/**
+ * Resolve a path key against an object, falling back to its alias if needed.
+ * Returns the key that actually exists in the object.
+ */
+function resolveKey(obj: Record<string | number, unknown>, key: string | number): string | number {
+  if (key in obj) {
+    return key;
+  }
+  if (typeof key === 'string' && KEY_ALIASES[key] !== undefined && KEY_ALIASES[key] in obj) {
+    return KEY_ALIASES[key];
+  }
+  return key;
+}
+
+/**
  * Information about the memory map root in the YAML structure
  */
 export interface MapRootInfo {
@@ -29,13 +52,17 @@ export class YamlPathResolver {
       if (cursor === null || cursor === undefined) {
         throw new Error(`Path not found at ${String(key)}`);
       }
-      cursor = (cursor as Record<string | number, unknown>)[key];
+      const obj = cursor as Record<string | number, unknown>;
+      const resolvedKey = resolveKey(obj, key);
+      cursor = obj[resolvedKey];
     }
-    const last = path[path.length - 1];
+    const lastRaw = path[path.length - 1];
     if (cursor === null || cursor === undefined) {
-      throw new Error(`Path not found at ${String(last)}`);
+      throw new Error(`Path not found at ${String(lastRaw)}`);
     }
-    (cursor as Record<string | number, unknown>)[last] = value;
+    const obj = cursor as Record<string | number, unknown>;
+    const last = resolveKey(obj, lastRaw);
+    obj[last] = value;
   }
 
   /**
@@ -47,7 +74,9 @@ export class YamlPathResolver {
       if (cursor === null || cursor === undefined) {
         return undefined;
       }
-      cursor = (cursor as Record<string | number, unknown>)[key];
+      const obj = cursor as Record<string | number, unknown>;
+      const resolvedKey = resolveKey(obj, key);
+      cursor = obj[resolvedKey];
     }
     return cursor;
   }
@@ -65,17 +94,21 @@ export class YamlPathResolver {
       if (cursor === null || cursor === undefined) {
         return;
       }
-      cursor = (cursor as Record<string | number, unknown>)[key];
+      const obj = cursor as Record<string | number, unknown>;
+      const resolvedKey = resolveKey(obj, key);
+      cursor = obj[resolvedKey];
     }
-    const last = path[path.length - 1];
+    const lastRaw = path[path.length - 1];
     if (cursor === null || cursor === undefined) {
       return;
     }
+    const obj = cursor as Record<string | number, unknown>;
+    const last = resolveKey(obj, lastRaw);
     if (Array.isArray(cursor) && typeof last === 'number') {
       cursor.splice(last, 1);
       return;
     }
-    delete (cursor as Record<string | number, unknown>)[last];
+    delete obj[last];
   }
 
   /**

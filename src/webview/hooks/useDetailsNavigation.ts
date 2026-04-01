@@ -96,7 +96,7 @@ export function useDetailsNavigation({
         type: 'block',
         object: block,
         breadcrumbs: [memoryMap.name || 'Memory Map', block.name || `Block ${blockIndex}`],
-        path: ['addressBlocks', blockIndex],
+        path: ['address_blocks', blockIndex],
       });
     },
     [handleSelect, memoryMap]
