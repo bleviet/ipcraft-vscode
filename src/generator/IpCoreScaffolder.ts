@@ -133,7 +133,14 @@ export class IpCoreScaffolder {
   ): Promise<Record<string, unknown>> {
     const name = String(ipCore?.vlnv?.name ?? 'ip_core').toLowerCase();
     const registers = await prepareRegisters(ipCore, inputPath);
-    const swAccess = new Set(['read-write', 'write-only', 'rw', 'wo']);
+    const swAccess = new Set([
+      'read-write',
+      'write-only',
+      'rw',
+      'wo',
+      'read-write-1-to-clear',
+      'write-1-to-clear',
+    ]);
     const hwAccess = new Set(['read-only', 'ro']);
 
     const swRegisters = registers.filter((reg) => swAccess.has(this.getString(reg.access)));
