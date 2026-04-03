@@ -150,24 +150,7 @@ export type MemoryMapSchema = MemoryMap[];
 export interface MemoryMap {
   name: Name;
   description?: Description;
-  address_blocks?: Addressblocks;
-}
-
-/**
- * Alias for RegisterDef for backward compatibility.
- */
-export type Register = RegisterDef;
-/**
- * Array of registers with automatic address calculation.
- */
-export interface RegisterArray {
-  __kind?: 'array';
-  name: string;
-  address_offset: number;
-  count: number;
-  stride: number;
-  description?: string;
-  registers: Register[];
+  addressBlocks?: Addressblocks;
 }
 /**
  * Contiguous address block within a memory map (Pydantic model).
@@ -176,7 +159,6 @@ export interface RegisterArray {
  */
 export interface AddressBlock {
   name: Name1;
-  base_address: number;
   baseAddress?: Baseaddress;
   range?: Range;
   usage?: BlockUsage;
@@ -184,7 +166,6 @@ export interface AddressBlock {
   description?: Description1;
   defaultRegWidth?: Defaultregwidth;
   registers?: Registers;
-  register_arrays?: RegisterArray[];
   [k: string]: unknown;
 }
 /**
@@ -194,11 +175,9 @@ export interface AddressBlock {
  */
 export interface RegisterDef {
   name: Name2;
-  address_offset: number;
   offset?: Offset;
   size?: Size;
   access?: AccessType1;
-  reset_value?: number;
   resetValue?: Resetvalue;
   description?: Description2;
   fields?: Fields;

@@ -30,7 +30,7 @@ export function createNotIpCoreHtml(): string {
         <div class="error-title">Not an IP Core File</div>
         <div class="error-message">
           This file does not appear to be an IP core YAML file.<br>
-          Expected: <code>apiVersion</code> and <code>vlnv</code> fields.
+          Expected: <code>vlnv</code> field.
         </div>
       </div>
     </body>

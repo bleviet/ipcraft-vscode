@@ -60,15 +60,9 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
         return false;
       }
 
-      // Check for IP core signature: apiVersion + vlnv
+      // Check for IP core signature: vlnv is strictly required
       const data = parsed as Record<string, unknown>;
-      // apiVersion can be string or number (YAML parses "1.0" as number)
-      const hasApiVersion =
-        'apiVersion' in data &&
-        (typeof data.apiVersion === 'string' || typeof data.apiVersion === 'number');
-      const hasVlnv = 'vlnv' in data && typeof data.vlnv === 'object';
-
-      return hasApiVersion && hasVlnv;
+      return 'vlnv' in data && typeof data.vlnv === 'object';
     } catch (error) {
       // YAML parse error - not a valid IP core file
       return false;

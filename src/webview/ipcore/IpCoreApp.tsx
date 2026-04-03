@@ -134,7 +134,7 @@ const IpCoreApp: React.FC = () => {
               <span className="codicon codicon-menu"></span>
             </button>
             <h1 className="text-sm font-semibold">{fileName || 'IP Core Editor'}</h1>
-            {typedIpCore?.vlnv && (
+            {typedIpCore?.vlnv && typeof typedIpCore.vlnv === 'object' && (
               <span className="text-xs" style={{ opacity: 0.7 }}>
                 {typedIpCore.vlnv.vendor} / {typedIpCore.vlnv.library} / {typedIpCore.vlnv.name}
               </span>

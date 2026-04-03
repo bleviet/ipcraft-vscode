@@ -5,7 +5,7 @@
  */
 
 /**
- * Schema version (e.g., 'my-ip-schema/v2.3')
+ * Schema version (e.g., 'ipcraft/v1.0')
  */
 export type Apiversion = string;
 /**
@@ -125,7 +125,7 @@ export type Ports = Port[];
  */
 export type Name4 = string;
 /**
- * Bus type from library (e.g., 'AXI4L', 'AXIS')
+ * Bus type identifier in vendor.library.name.version format (e.g., 'ipcraft.busif.axi4_lite.1.0')
  */
 export type Type3 = string;
 /**
@@ -310,10 +310,6 @@ export type Registers = RegisterDef[];
  */
 export type Addressblocks = AddressBlock[];
 /**
- * Memory maps
- */
-export type Memorymaps = MemoryMap[];
-/**
  * File set name
  */
 export type Name9 = string;
@@ -385,10 +381,6 @@ export type Description11 = string;
  * Generics/parameters
  */
 export type Parameters = Parameter[];
-/**
- * Path to bus definitions library
- */
-export type Usebuslibrary = string | null;
 
 /**
  * Complete IP core definition - the single source of truth.
@@ -402,17 +394,26 @@ export type Usebuslibrary = string | null;
  * - Parameters/generics
  */
 export interface IpCore {
-  apiVersion: Apiversion;
+  apiVersion?: Apiversion;
   vlnv: VLNV;
   description?: Description;
   clocks?: Clocks;
   resets?: Resets;
   ports?: Ports;
   busInterfaces?: Businterfaces;
-  memoryMaps?: Memorymaps;
+  /**
+   * Memory map definitions (inline array or external import)
+   */
+  memoryMaps?:
+    | MemoryMap[]
+    | {
+        /**
+         * Path to external memory map YAML file
+         */
+        import: string;
+      };
   fileSets?: Filesets;
   parameters?: Parameters;
-  useBusLibrary?: Usebuslibrary;
 }
 /**
  * Unique identifier
@@ -482,7 +483,6 @@ export interface BusInterface {
   associatedClock?: Associatedclock;
   associatedReset?: Associatedreset;
   memoryMapRef?: Memorymapref;
-  memory_map_ref?: Memorymapref;
   useOptionalPorts?: Useoptionalports;
   portWidthOverrides?: Portwidthoverrides;
   /**
@@ -516,7 +516,6 @@ export interface ArrayConfig {
 export interface MemoryMap {
   name: Name5;
   description?: Description5;
-  address_blocks?: Addressblocks;
   addressBlocks?: Addressblocks;
 }
 /**
@@ -526,7 +525,6 @@ export interface MemoryMap {
  */
 export interface AddressBlock {
   name: Name6;
-  base_address?: number;
   baseAddress?: Baseaddress;
   range?: Range;
   usage?: BlockUsage;
