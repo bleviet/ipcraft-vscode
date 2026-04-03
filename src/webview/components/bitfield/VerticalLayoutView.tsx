@@ -160,7 +160,7 @@ const VerticalLayoutView = ({
 
       <div className="relative flex-1 overflow-y-auto overflow-x-hidden px-3 py-2 min-h-0">
         <div className="relative flex flex-col gap-1 min-h-max">
-          {segments.map((segment, segIdx) => {
+          {[...segments].reverse().map((segment, segIdx) => {
             const bitCount = segment.end - segment.start + 1;
 
             if (segment.type === 'gap') {
@@ -171,13 +171,13 @@ const VerticalLayoutView = ({
                   className="relative flex"
                 >
                   <div className="w-8 flex flex-col justify-between text-[10px] vscode-muted font-mono py-1">
-                    <span>{segment.end}</span>
-                    {bitCount > 1 ? <span>{segment.start}</span> : null}
+                    <span>{segment.start}</span>
+                    {bitCount > 1 ? <span>{segment.end}</span> : null}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="w-20 h-full rounded-r-md overflow-hidden">
                       {Array.from({ length: bitCount }).map((_, i) => {
-                        const bit = segment.end - i;
+                        const bit = segment.start + i;
                         const isInDragRange =
                           shiftDrag.active &&
                           (shiftDrag.mode === 'create' || shiftDrag.mode === 'resize') &&
@@ -248,7 +248,7 @@ const VerticalLayoutView = ({
                 role="button"
                 tabIndex={0}
                 aria-describedby={keyboardHelpId}
-                aria-label={`${group.name || 'Field'} bits ${Math.max(group.start, group.end)} to ${Math.min(group.start, group.end)}. Alt plus arrow keys reorder. Shift plus arrow keys resize.`}
+                aria-label={`${group.name || 'Field'} bits ${Math.min(group.start, group.end)} to ${Math.max(group.start, group.end)}. Alt plus arrow keys reorder. Shift plus arrow keys resize.`}
                 aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown Shift+ArrowUp Shift+ArrowDown"
                 onMouseEnter={() => setHoveredFieldIndex(group.idx)}
                 onMouseLeave={() => setHoveredFieldIndex(null)}
@@ -258,19 +258,19 @@ const VerticalLayoutView = ({
                   if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
                     e.preventDefault();
                     e.stopPropagation();
-                    applyKeyboardReorder(group.idx, e.key === 'ArrowUp' ? 'msb' : 'lsb');
+                    applyKeyboardReorder(group.idx, e.key === 'ArrowUp' ? 'lsb' : 'msb');
                     return;
                   }
                   if (e.shiftKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
                     e.preventDefault();
                     e.stopPropagation();
-                    applyKeyboardResize(group.idx, e.key === 'ArrowUp' ? 'msb' : 'lsb');
+                    applyKeyboardResize(group.idx, e.key === 'ArrowUp' ? 'lsb' : 'msb');
                   }
                 }}
               >
                 <div className="w-8 flex flex-col justify-between text-[10px] vscode-muted font-mono py-1">
-                  <span>{group.end}</span>
-                  {bitCount > 1 ? <span>{group.start}</span> : null}
+                  <span>{group.start}</span>
+                  {bitCount > 1 ? <span>{group.end}</span> : null}
                 </div>
                 <div
                   className="relative w-20 h-full rounded-r-md overflow-hidden"
@@ -290,10 +290,10 @@ const VerticalLayoutView = ({
                         bitOwners,
                         registerSize
                       );
-                      const showTop = edges.right.canShrink || edges.right.canExpand;
-                      const showBottom = edges.left.canShrink || edges.left.canExpand;
-                      const topBidirectional = edges.right.canShrink && edges.right.canExpand;
-                      const bottomBidirectional = edges.left.canShrink && edges.left.canExpand;
+                      const showTop = edges.left.canShrink || edges.left.canExpand;
+                      const showBottom = edges.right.canShrink || edges.right.canExpand;
+                      const topBidirectional = edges.left.canShrink && edges.left.canExpand;
+                      const bottomBidirectional = edges.right.canShrink && edges.right.canExpand;
 
                       return (
                         <>
@@ -307,7 +307,7 @@ const VerticalLayoutView = ({
                             >
                               <ResizeHandleIcon
                                 bidirectional={topBidirectional}
-                                singleDirection={edges.right.canExpand ? 'up' : 'down'}
+                                singleDirection={edges.left.canExpand ? 'up' : 'down'}
                               />
                             </div>
                           )}
@@ -321,7 +321,7 @@ const VerticalLayoutView = ({
                             >
                               <ResizeHandleIcon
                                 bidirectional={bottomBidirectional}
-                                singleDirection={edges.left.canExpand ? 'down' : 'up'}
+                                singleDirection={edges.right.canExpand ? 'down' : 'up'}
                               />
                             </div>
                           )}
@@ -346,7 +346,7 @@ const VerticalLayoutView = ({
                     </div>
                   )}
                   {Array.from({ length: bitCount }).map((_, i) => {
-                    const bit = group.end - i;
+                    const bit = group.start + i;
                     const localBit = bit - group.start;
                     const value = bitAt(fieldReset, localBit);
                     const dragKey = `${group.idx}:${localBit}`;
