@@ -194,11 +194,11 @@ export class DataNormalizer {
    */
   static normalizeMemoryMap(data: unknown): MemoryMap {
     const d = data as Record<string, unknown>;
-    const blocks = (d.address_blocks ?? d.addressBlocks ?? []) as Record<string, unknown>[];
+    const blocks = (d.addressBlocks ?? d.addressBlocks ?? []) as Record<string, unknown>[];
     return {
       name: String(d.name ?? ''),
       description: d.description as string | undefined,
-      address_blocks: (blocks ?? []).map((block) => {
+      addressBlocks: (blocks ?? []).map((block) => {
         const defaultRegBytes = DataNormalizer.getDefaultRegBytes(block);
         const baseAddress = DataNormalizer.parseNumber(
           block.offset ?? block.base_address ?? block.baseAddress ?? 0,

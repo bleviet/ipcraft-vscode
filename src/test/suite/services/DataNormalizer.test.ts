@@ -101,13 +101,13 @@ describe('DataNormalizer', () => {
     it('normalizes snake_case memory map keys', () => {
       const input = {
         name: 'test_map',
-        address_blocks: [{ name: 'block0', base_address: 0, registers: [] }],
+        addressBlocks: [{ name: 'block0', base_address: 0, registers: [] }],
       };
 
       const result = DataNormalizer.normalizeMemoryMap(input);
       expect(result.name).toBe('test_map');
-      expect(result.address_blocks).toHaveLength(1);
-      expect(result.address_blocks?.[0]?.base_address).toBe(0);
+      expect(result.addressBlocks).toHaveLength(1);
+      expect(result.addressBlocks?.[0]?.base_address).toBe(0);
     });
 
     it('normalizes camelCase memory map keys', () => {
@@ -117,8 +117,8 @@ describe('DataNormalizer', () => {
       };
 
       const result = DataNormalizer.normalizeMemoryMap(input);
-      expect(result.address_blocks).toHaveLength(1);
-      expect(result.address_blocks?.[0]?.base_address).toBe(16);
+      expect(result.addressBlocks).toHaveLength(1);
+      expect(result.addressBlocks?.[0]?.base_address).toBe(16);
     });
 
     it('throws for null/undefined root values', () => {
@@ -129,7 +129,7 @@ describe('DataNormalizer', () => {
     it('normalizes register arrays and block defaults', () => {
       const input = {
         name: 'map',
-        address_blocks: [
+        addressBlocks: [
           {
             name: 'blk',
             offset: '0x20',
@@ -149,12 +149,12 @@ describe('DataNormalizer', () => {
       };
 
       const result = DataNormalizer.normalizeMemoryMap(input);
-      const block = result.address_blocks?.[0];
+      const block = result.addressBlocks?.[0];
 
       expect(block?.base_address).toBe(32);
       expect(block?.registers?.[0]?.address_offset).toBe(0);
       expect(block?.registers?.[1]?.address_offset).toBe(2);
-      expect(block?.register_arrays?.[0]).toEqual(
+      expect((block as any)?.register_arrays?.[0]).toEqual(
         expect.objectContaining({
           name: 'RA',
           base_address: 64,
@@ -162,7 +162,7 @@ describe('DataNormalizer', () => {
           stride: 4,
         })
       );
-      const firstArray = block?.register_arrays?.[0] as unknown as {
+      const firstArray = (block as any)?.register_arrays?.[0] as unknown as {
         template?: { name?: string };
       };
       expect(firstArray.template?.name).toBe('TMPL');

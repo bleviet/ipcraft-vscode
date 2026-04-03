@@ -1,5 +1,5 @@
 import React, { useImperativeHandle, useMemo, useRef, useState } from 'react';
-import { MemoryMap, Register, RegisterArray } from '../types/memoryMap';
+import { MemoryMap, RegisterDef } from '../types/memoryMap';
 import { toHex } from '../utils/formatUtils';
 import { OutlineHeader } from './outline';
 import {
@@ -30,20 +30,18 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
 
     const allIds = useMemo(() => {
       const ids = new Set<string>([ROOT_ID]);
-      (memoryMap.address_blocks ?? []).forEach((block, blockIdx) => {
+      (memoryMap.addressBlocks ?? []).forEach((block, blockIdx) => {
         const blockNodeId = blockId(blockIdx);
         ids.add(blockNodeId);
         const regs = (block as BlockModel).registers ?? [];
-        regs.forEach((reg: Register | { __kind?: string }, regIdx: number) => {
+        regs.forEach((reg: RegisterDef | { __kind?: string }, regIdx: number) => {
           if (reg?.__kind === 'array') {
             ids.add(arrayRegisterId(blockIdx, regIdx));
           }
         });
-        ((block as BlockModel).register_arrays ?? []).forEach(
-          (_: RegisterArray, arrIdx: number) => {
-            ids.add(registerArrayId(blockIdx, arrIdx));
-          }
-        );
+        ((block as BlockModel).register_arrays ?? []).forEach((_: RegisterDef, arrIdx: number) => {
+          ids.add(registerArrayId(blockIdx, arrIdx));
+        });
       });
       return ids;
     }, [memoryMap]);
@@ -145,7 +143,7 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
 
     const filteredBlocks = useMemo<Array<{ block: BlockModel; index: number }>>(() => {
       const q = query.trim().toLowerCase();
-      const blocks = (memoryMap.address_blocks ?? []).map((block, index) => ({
+      const blocks = (memoryMap.addressBlocks ?? []).map((block, index) => ({
         block: block as BlockModel,
         index,
       }));
@@ -159,7 +157,7 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
         }
         const regs = block.registers ?? [];
         if (
-          regs.some((r: Register | { name?: string }) => {
+          regs.some((r: RegisterDef | { name?: string }) => {
             if (!r) {
               return false;
             }
@@ -183,7 +181,7 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
           return true;
         }
         const arrays = block.register_arrays ?? [];
-        return arrays.some((a: RegisterArray) => (a.name ?? '').toLowerCase().includes(q));
+        return arrays.some((a: RegisterDef) => (a.name ?? '').toLowerCase().includes(q));
       });
     }, [memoryMap, query]);
 
@@ -282,7 +280,7 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
         </div>
         <div className="outline-footer p-3 text-xs vscode-muted flex justify-between">
           <span>{filteredBlocks.length} Items</span>
-          <span>Base: {toHex(memoryMap.address_blocks?.[0]?.base_address ?? 0)}</span>
+          <span>Base: {toHex(memoryMap.addressBlocks?.[0]?.baseAddress ?? 0)}</span>
         </div>
       </>
     );

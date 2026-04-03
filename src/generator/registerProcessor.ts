@@ -337,7 +337,7 @@ export async function prepareRegisters(
   memoryMaps.forEach((map) => {
     const blocks =
       (map.addressBlocks as Array<Record<string, unknown>>) ??
-      (map.address_blocks as Array<Record<string, unknown>>) ??
+      (map.addressBlocks as Array<Record<string, unknown>>) ??
       [];
     blocks.forEach((block) => {
       const baseOffset = parseNumber(block.base_address ?? block.baseAddress ?? block.offset ?? 0);

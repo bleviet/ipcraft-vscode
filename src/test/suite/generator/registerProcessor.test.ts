@@ -145,7 +145,7 @@ describe('registerProcessor', () => {
         },
       ];
 
-      const mockMemMap = [{ address_blocks: [{ registers: rawRegisters }] }] as any;
+      const mockMemMap = [{ addressBlocks: [{ registers: rawRegisters }] }] as any;
 
       // Injecting a manual memmap to avoid file read for this specific test
       const result = await prepareRegisters({ ...ipCore, memory_maps: mockMemMap }, 'dummy.yml');

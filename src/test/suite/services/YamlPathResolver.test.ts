@@ -5,16 +5,16 @@ describe('YamlPathResolver', () => {
     const root = {
       memory_maps: [
         {
-          address_blocks: [{ name: 'b0', registers: [{ name: 'r0' }] }],
+          addressBlocks: [{ name: 'b0', registers: [{ name: 'r0' }] }],
         },
       ],
     };
 
-    expect(YamlPathResolver.getAtPath(root, ['memory_maps', 0, 'address_blocks', 0, 'name'])).toBe(
+    expect(YamlPathResolver.getAtPath(root, ['memory_maps', 0, 'addressBlocks', 0, 'name'])).toBe(
       'b0'
     );
-    YamlPathResolver.setAtPath(root, ['memory_maps', 0, 'address_blocks', 0, 'name'], 'renamed');
-    expect(YamlPathResolver.getAtPath(root, ['memory_maps', 0, 'address_blocks', 0, 'name'])).toBe(
+    YamlPathResolver.setAtPath(root, ['memory_maps', 0, 'addressBlocks', 0, 'name'], 'renamed');
+    expect(YamlPathResolver.getAtPath(root, ['memory_maps', 0, 'addressBlocks', 0, 'name'])).toBe(
       'renamed'
     );
   });

@@ -8,8 +8,7 @@ export type YamlPath = Array<string | number>;
  * Allows path navigation to work regardless of the YAML format used.
  */
 const KEY_ALIASES: Record<string, string> = {
-  address_blocks: 'addressBlocks',
-  addressBlocks: 'address_blocks',
+  addressBlocks: 'addressBlocks',
 };
 
 /**

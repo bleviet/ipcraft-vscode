@@ -28,7 +28,7 @@ function hasExpandableChildren(currentId: string, memoryMap: MemoryMap): boolean
   }
 
   if (parsed.kind === 'block') {
-    const block = memoryMap.address_blocks?.[parsed.blockIndex];
+    const block = memoryMap.addressBlocks?.[parsed.blockIndex];
     const hasRegisters = Array.isArray(block?.registers) && block.registers.length > 0;
     const hasArrays = Array.isArray(block?.register_arrays) && block.register_arrays.length > 0;
     return Boolean(hasRegisters || hasArrays);

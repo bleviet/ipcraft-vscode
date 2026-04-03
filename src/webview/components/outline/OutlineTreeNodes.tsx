@@ -1,5 +1,5 @@
 import React from 'react';
-import { MemoryMap, Register, RegisterArray } from '../../types/memoryMap';
+import { MemoryMap, RegisterDef } from '../../types/memoryMap';
 import { toHex } from '../../utils/formatUtils';
 import { BlockNode as OutlineBlockNode, RegisterArrayNode, RegisterNode } from '.';
 import {
@@ -30,16 +30,16 @@ function renderLeafRegister(
   onFocusTree: () => void,
   onSelect: (selection: OutlineSelection) => void,
   renderNameOrEdit: RenderNameOrEdit,
-  reg: Register,
+  reg: RegisterDef,
   blockIndex: number,
   regIndex: number,
   paddingLeft = '40px'
 ) {
   const id = registerId(blockIndex, regIndex);
   const isSelected = selectedId === id;
-  const block = memoryMap.address_blocks?.[blockIndex];
-  const absolute = (block?.base_address ?? 0) + (reg.address_offset ?? 0);
-  const path: YamlPath = ['address_blocks', blockIndex, 'registers', regIndex];
+  const block = memoryMap.addressBlocks?.[blockIndex];
+  const absolute = Number(block?.baseAddress ?? 0) + Number(reg.offset ?? 0);
+  const path: YamlPath = ['addressBlocks', blockIndex, 'registers', regIndex];
 
   return (
     <RegisterNode
@@ -52,21 +52,17 @@ function renderLeafRegister(
           id,
           type: 'register',
           object: reg,
-          breadcrumbs: [
-            memoryMapName,
-            memoryMap.address_blocks?.[blockIndex]?.name ?? '',
-            reg.name,
-          ],
+          breadcrumbs: [memoryMapName, memoryMap.addressBlocks?.[blockIndex]?.name ?? '', reg.name],
           path,
           meta: {
             absoluteAddress: absolute,
-            relativeOffset: reg.address_offset ?? 0,
+            relativeOffset: reg.offset ?? 0,
           },
         });
       }}
       paddingLeft={paddingLeft}
       name={renderNameOrEdit(id, reg.name, path, 'flex-1')}
-      offsetLabel={toHex(reg.address_offset)}
+      offsetLabel={toHex(Number(reg.offset ?? 0))}
     />
   );
 }
@@ -80,7 +76,7 @@ function renderArray(
   onFocusTree: () => void,
   onSelect: (selection: OutlineSelection) => void,
   renderNameOrEdit: RenderNameOrEdit,
-  arr: RegisterArray,
+  arr: RegisterDef,
   blockIndex: number,
   arrayIndex: number
 ) {
@@ -103,10 +99,10 @@ function renderArray(
             object: arr,
             breadcrumbs: [
               memoryMapName,
-              memoryMap.address_blocks?.[blockIndex]?.name ?? '',
+              memoryMap.addressBlocks?.[blockIndex]?.name ?? '',
               arr.name,
             ],
-            path: ['address_blocks', blockIndex, 'register_arrays', arrayIndex],
+            path: ['addressBlocks', blockIndex, 'register_arrays', arrayIndex],
           });
         }}
         style={{ paddingLeft: '40px' }}
@@ -118,7 +114,7 @@ function renderArray(
         ></span>
         <span className="codicon codicon-symbol-array" style={{ marginRight: '6px' }}></span>
         {renderNameOrEdit(id, arr.name, [
-          'address_blocks',
+          'addressBlocks',
           blockIndex,
           'register_arrays',
           arrayIndex,
@@ -127,7 +123,7 @@ function renderArray(
       </div>
       {isExpanded && Array.isArray(arr.registers) && (
         <div>
-          {arr.registers.map((reg: Register, idx: number) =>
+          {arr.registers.map((reg: RegisterDef, idx: number) =>
             renderLeafRegister(
               memoryMap,
               memoryMapName,
@@ -179,11 +175,11 @@ const OutlineTreeNodes = ({
                 type: 'block',
                 object: block,
                 breadcrumbs: [memoryMapName, block.name],
-                path: ['address_blocks', blockIndex],
+                path: ['addressBlocks', blockIndex],
               });
             }}
             onToggleExpand={(e) => onToggleExpand(id, e)}
-            name={renderNameOrEdit(id, block.name, ['address_blocks', blockIndex])}
+            name={renderNameOrEdit(id, block.name, ['addressBlocks', blockIndex])}
           >
             {regsAny.map((node, idx) => {
               if (isArrayNode(node)) {
@@ -216,7 +212,7 @@ const OutlineTreeNodes = ({
                 idx
               );
             })}
-            {block.register_arrays?.map((arr: RegisterArray, idx: number) =>
+            {block.register_arrays?.map((arr: RegisterDef, idx: number) =>
               renderArray(
                 memoryMap,
                 memoryMapName,

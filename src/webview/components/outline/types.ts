@@ -1,16 +1,16 @@
 import { ReactNode } from 'react';
-import { AddressBlock, Register, RegisterArray } from '../../types/memoryMap';
+import { AddressBlock, RegisterDef } from '../../types/memoryMap';
 
 export type YamlPath = Array<string | number>;
 
 export type RegisterArrayNode = {
   __kind: 'array';
   name: string;
-  address_offset: number;
+  offset: number;
   count: number;
   stride: number;
   description?: string;
-  registers: Register[];
+  registers: RegisterDef[];
 };
 
 export const isArrayNode = (node: unknown): node is RegisterArrayNode => {
@@ -22,8 +22,8 @@ export const isArrayNode = (node: unknown): node is RegisterArrayNode => {
 };
 
 export interface BlockNode extends AddressBlock {
-  registers?: (Register | RegisterArrayNode)[];
-  register_arrays?: RegisterArray[];
+  registers?: (RegisterDef | RegisterArrayNode)[];
+  register_arrays?: RegisterDef[];
 }
 
 export interface OutlineSelection {

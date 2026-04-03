@@ -29,7 +29,7 @@ export function useSelectionResolver(memoryMap: MemoryMap | null) {
         return null;
       }
 
-      const block = memoryMap.address_blocks?.[blockIndex];
+      const block = memoryMap.addressBlocks?.[blockIndex];
       if (!block) {
         return null;
       }

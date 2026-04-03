@@ -6,7 +6,7 @@
  * All rendering / editing logic lives in the sub-components.
  */
 import React, { useImperativeHandle, useMemo, useRef } from 'react';
-import { Register } from '../types/memoryMap';
+import { RegisterDef } from '../types/memoryMap';
 import type { YamlUpdateHandler, YamlPath } from '../types/editor';
 
 import { RegisterEditor, RegisterEditorHandle } from './register/RegisterEditor';
@@ -137,13 +137,13 @@ const DetailsPanel = React.forwardRef<DetailsPanelHandle, DetailsPanelProps>((pr
   // Derived: normalised fields for the register view
   // -----------------------------------------------------------------------
   const isRegister = selectedType === 'register' && !!selectedObject;
-  const reg = isRegister ? (selectedObject as Register) : null;
+  const reg = isRegister ? (selectedObject as RegisterDef) : null;
 
   const fields = useMemo(() => {
     if (!reg?.fields) {
       return [];
     }
-    return reg.fields.map((f) => {
+    return reg.fields.map((f: any) => {
       if (f.bit_range) {
         return f;
       }

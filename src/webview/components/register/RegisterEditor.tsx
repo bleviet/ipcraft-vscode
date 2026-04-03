@@ -4,7 +4,7 @@ import BitFieldVisualizer from '../BitFieldVisualizer';
 import { KeyboardShortcutsButton } from '../../shared/components';
 import { FieldsTable } from './FieldsTable';
 import { useFieldEditor } from '../../hooks/useFieldEditor';
-import type { Register } from '../../types/memoryMap';
+import type { RegisterDef } from '../../types/memoryMap';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -12,7 +12,7 @@ import type { Register } from '../../types/memoryMap';
 
 export interface RegisterEditorProps {
   /** The register to display and edit. */
-  register: Register;
+  register: RegisterDef;
   /** Normalised bit fields (with bit_range / bit_offset / bit_width). */
   fields: BitFieldRecord[];
   registerLayout: 'stacked' | 'side-by-side';

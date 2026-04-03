@@ -82,11 +82,11 @@ export function useDetailsNavigation({
 
   const navigateToBlock = useCallback(
     (blockIndex: number) => {
-      if (!memoryMap?.address_blocks) {
+      if (!memoryMap?.addressBlocks) {
         return;
       }
 
-      const block = memoryMap.address_blocks[blockIndex];
+      const block = memoryMap.addressBlocks[blockIndex];
       if (!block) {
         return;
       }
@@ -96,7 +96,7 @@ export function useDetailsNavigation({
         type: 'block',
         object: block,
         breadcrumbs: [memoryMap.name || 'Memory Map', block.name || `Block ${blockIndex}`],
-        path: ['address_blocks', blockIndex],
+        path: ['addressBlocks', blockIndex],
       });
     },
     [handleSelect, memoryMap]

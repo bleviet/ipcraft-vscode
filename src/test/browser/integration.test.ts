@@ -40,7 +40,7 @@ test.describe('IPCraft Webview UI Integration', () => {
     // Render initial data with retries until loading disappears
     await page.evaluate(() => {
       const yaml = `
-address_blocks:
+addressBlocks:
   - name: REGS
     description: Test registers
     base_address: 0

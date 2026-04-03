@@ -6,7 +6,7 @@ import { applyFieldOperation } from '../../../webview/services/FieldOperationSer
 
 function makeRoot(fields: Record<string, unknown>[]) {
   return {
-    address_blocks: [
+    addressBlocks: [
       {
         name: 'BLOCK',
         registers: [{ name: 'REG', fields }],
@@ -15,7 +15,7 @@ function makeRoot(fields: Record<string, unknown>[]) {
   };
 }
 
-const selection = { path: ['address_blocks', 0, 'registers', 0] };
+const selection = { path: ['addressBlocks', 0, 'registers', 0] };
 const selectionRootPath: (string | number)[] = [];
 
 function apply(root: Record<string, unknown>, op: string, payload: Record<string, unknown> = {}) {
@@ -29,7 +29,7 @@ function apply(root: Record<string, unknown>, op: string, payload: Record<string
 }
 
 function getFields(root: Record<string, unknown>): Record<string, unknown>[] {
-  const blocks = root.address_blocks as Record<string, unknown>[];
+  const blocks = root.addressBlocks as Record<string, unknown>[];
   const regs = blocks[0].registers as Record<string, unknown>[];
   return regs[0].fields as Record<string, unknown>[];
 }
@@ -85,7 +85,7 @@ describe('FieldOperationService -- field-add', () => {
 
   it('creates fields array when it does not exist', () => {
     const root = {
-      address_blocks: [{ name: 'BLOCK', registers: [{ name: 'REG' }] }],
+      addressBlocks: [{ name: 'BLOCK', registers: [{ name: 'REG' }] }],
     };
 
     apply(root as Record<string, unknown>, 'field-add', {});

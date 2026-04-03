@@ -1,5 +1,5 @@
 import React from 'react';
-import { AddressBlock, Register } from '../../types/memoryMap';
+import { AddressBlock, RegisterDef } from '../../types/memoryMap';
 import { toHex } from '../../utils/formatUtils';
 import FieldNode from './FieldNode';
 import RegisterNode from './RegisterNode';
@@ -41,7 +41,7 @@ const RegisterArrayNode = ({
   const isSelected = selectedId === id;
   const isExpanded = expanded.has(id);
 
-  const start = (block.base_address ?? 0) + (arrayNode.address_offset ?? 0);
+  const start = (block.baseAddress ?? 0) + (arrayNode.offset ?? 0);
   const end = start + Math.max(1, arrayNode.count) * Math.max(1, arrayNode.stride) - 1;
 
   return (
@@ -114,10 +114,10 @@ const RegisterArrayNode = ({
                   paddingLeft="60px"
                 />
 
-                {arrayNode.registers?.map((reg: Register, childIndex) => {
+                {arrayNode.registers?.map((reg: RegisterDef, childIndex: number) => {
                   const childId = `${elementId}-reg-${childIndex}`;
                   const isChildSelected = selectedId === childId;
-                  const absolute = elementBase + (reg.address_offset ?? 0);
+                  const absolute = elementBase + (reg.offset ?? 0);
                   const path: YamlPath = [
                     'address_blocks',
                     blockIndex,
@@ -146,7 +146,7 @@ const RegisterArrayNode = ({
                           path,
                           meta: {
                             absoluteAddress: absolute,
-                            relativeOffset: reg.address_offset ?? 0,
+                            relativeOffset: reg.offset ?? 0,
                           },
                         });
                       }}

@@ -66,7 +66,7 @@ function detectBusWithMemoryMap(ipCore: IpCore): DetectedBusInfo | null {
 
   for (const bus of busInterfaces) {
     // Check both camelCase (runtime) and snake_case (type def)
-    const memMapRef = bus.memoryMapRef ?? bus.memory_map_ref;
+    const memMapRef = bus.memoryMapRef;
     if (memMapRef) {
       const busType = mapBusType(bus.type);
       if (busType) {
