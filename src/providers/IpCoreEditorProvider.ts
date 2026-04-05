@@ -26,7 +26,7 @@ interface IpcMessage {
 /**
  * Custom editor provider for FPGA IP core YAML files.
  *
- * Detects IP core files by checking for required keys: apiVersion + vlnv
+ * Detects IP core files by checking for required keys: vlnv
  */
 export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
   private readonly logger = new Logger('IpCoreEditorProvider');
@@ -48,7 +48,7 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
   /**
    * Check if a document is an IP core YAML file.
    *
-   * Detection strategy: Check for required keys (apiVersion + vlnv)
+   * Detection strategy: Check for required keys (vlnv)
    * This allows *.yml files to work while avoiding false positives.
    */
   private isIpCoreDocument(document: vscode.TextDocument): boolean {

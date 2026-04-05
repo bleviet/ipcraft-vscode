@@ -5,10 +5,6 @@
  */
 
 /**
- * Schema version (e.g., 'ipcraft/v1.0')
- */
-export type Apiversion = string;
-/**
  * Vendor identifier (e.g., 'my-company.com')
  */
 export type Vendor = string;
@@ -394,7 +390,6 @@ export type Parameters = Parameter[];
  * - Parameters/generics
  */
 export interface IpCore {
-  apiVersion?: Apiversion;
   vlnv: VLNV;
   description?: Description;
   clocks?: Clocks;
@@ -583,7 +578,12 @@ export interface FileSet {
  *
  * Represents a file that is part of the IP core (source, constraint, doc, etc.).
  */
+/**
+ * Whether the file should be overwritten on generation
+ */
+export type Managed = boolean;
 export interface File {
+  managed?: Managed;
   path: Path;
   type: FileType;
   description?: Description10;

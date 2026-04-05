@@ -58,7 +58,6 @@ export async function parseVhdlFile(
   const userPorts = ports.filter((port) => !excludedNames.has(port.name));
 
   const yamlData: Record<string, unknown> = {
-    apiVersion: 'ipcore/v1.0',
     vlnv: {
       vendor: options.vendor ?? 'user',
       library: options.library ?? 'ip',

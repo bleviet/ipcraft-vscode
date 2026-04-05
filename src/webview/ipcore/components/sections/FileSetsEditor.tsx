@@ -7,6 +7,7 @@ import { vscode } from '../../../vscode';
 interface FileEntry {
   path: string;
   type: string;
+  managed?: boolean;
 }
 
 interface FileSet {
@@ -529,6 +530,18 @@ export const FileSetsEditor: React.FC<FileSetsEditorProps> = ({
                               >
                                 {file.type}
                               </span>
+                              {file.managed === false && (
+                                <span
+                                  className="text-xs px-1.5 py-0.5 rounded"
+                                  title="managed: false — this file will not be overwritten on generation"
+                                  style={{
+                                    background: 'var(--vscode-statusBarItem-warningBackground)',
+                                    color: 'var(--vscode-statusBarItem-warningForeground)',
+                                  }}
+                                >
+                                  user file
+                                </span>
+                              )}
                             </div>
                             <div className="flex items-center gap-2">
                               <button

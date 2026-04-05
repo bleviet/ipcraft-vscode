@@ -1,6 +1,7 @@
 type FileEntry = {
   path?: string;
   type?: string;
+  managed?: boolean;
 };
 
 export type FileSetEntry = {

@@ -1,8 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 
-const IP_CORE_TEMPLATE = `apiVersion: 1.0
-vlnv:
+const IP_CORE_TEMPLATE = `vlnv:
   vendor: my_vendor
   library: my_library
   name: New_IP_Core
@@ -35,8 +34,7 @@ const MEMORY_MAP_TEMPLATE = `- name: NEW_MEMORY_MAP
  * Generate IP Core template with memory map reference
  */
 function generateIpCoreWithMemoryMapTemplate(memoryMapFileName: string): string {
-  return `apiVersion: 1.0
-vlnv:
+  return `vlnv:
   vendor: my_vendor
   library: my_library
   name: New_IP_Core

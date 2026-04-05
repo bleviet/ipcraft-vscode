@@ -24,25 +24,6 @@ interface MetadataRow {
 
 const METADATA_ROWS: MetadataRow[] = [
   {
-    key: 'apiVersion',
-    label: 'API Version',
-    path: ['apiVersion'],
-    getValue: (ip) => {
-      const val = ip?.apiVersion;
-      if (val === undefined || val === null) {
-        return '1.0';
-      }
-      // Convert number to string, ensuring 1 becomes "1.0"
-      if (typeof val === 'number') {
-        return Number.isInteger(val as number) ? `${String(val)}.0` : String(val);
-      }
-      return String(val);
-    },
-    type: 'select',
-    options: [{ value: '1.0', label: '1.0' }],
-    required: true,
-  },
-  {
     key: 'vendor',
     label: 'Vendor',
     path: ['vlnv', 'vendor'],

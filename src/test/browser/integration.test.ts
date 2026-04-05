@@ -135,7 +135,6 @@ test.describe('IPCraft IP Core Webview Integration', () => {
   const harnessPath = `file://${path.resolve(__dirname, 'ipcore.html')}`;
 
   const sampleIpCoreYaml = `
-apiVersion: '1.0'
 vlnv:
   vendor: test.com
   library: smoke
