@@ -221,6 +221,7 @@ export const useBusInterfaceEditing = ({
       }
       const { field } = editingArrayField;
 
+      const requiredPatternFields: ArrayField[] = ['namingPattern', 'physicalPrefixPattern'];
       if (field === 'count' || field === 'indexStart') {
         const numValue = parseInt(draftArrayValue, 10);
         if (!isNaN(numValue) && (field === 'indexStart' || numValue > 0)) {
@@ -228,9 +229,10 @@ export const useBusInterfaceEditing = ({
         }
       } else if (draftArrayValue.trim()) {
         onUpdate(['busInterfaces', busIndex, 'array', field], draftArrayValue.trim());
-      } else {
+      } else if (!requiredPatternFields.includes(field)) {
         onUpdate(['busInterfaces', busIndex, 'array', field], undefined);
       }
+      // Required pattern fields (namingPattern, physicalPrefixPattern) are not cleared when empty
 
       setEditingArrayField(null);
       setDraftArrayValue('');
@@ -250,13 +252,20 @@ export const useBusInterfaceEditing = ({
       if (hasArray) {
         onUpdate(['busInterfaces', busIndex, 'array'], undefined);
       } else {
+        const bus = busInterfaces[busIndex];
+        const baseName = bus.name ? bus.name.toUpperCase() : 'INTERFACE';
+        const basePrefix = bus.physicalPrefix
+          ? bus.physicalPrefix.replace(/_$/, '')
+          : bus.name.toLowerCase();
         onUpdate(['busInterfaces', busIndex, 'array'], {
           count: 2,
           indexStart: 0,
+          namingPattern: `${baseName}_{index}`,
+          physicalPrefixPattern: `${basePrefix}_{index}_`,
         });
       }
     },
-    [onUpdate]
+    [busInterfaces, onUpdate]
   );
 
   const toggleOptionalPort = useCallback(

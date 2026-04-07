@@ -372,7 +372,12 @@ export const BusInterfaceCard: React.FC<BusInterfaceCardProps> = ({
             className="px-4 py-2 flex items-center gap-3 text-sm"
             style={{ background: 'var(--vscode-editor-background)' }}
           >
-            <span style={{ ...TEXT_STYLES.label, minWidth: '50px' }}>Prefix:</span>
+            <span
+              style={{ ...TEXT_STYLES.label, minWidth: '50px' }}
+              title="Physical prefix prepended to every port name of this interface. E.g. 's_axi_' generates s_axi_awaddr, s_axi_wdata, etc."
+            >
+              Prefix:
+            </span>
             {editingPrefix === index ? (
               <InlineEditField
                 value={draftPrefix}
@@ -685,80 +690,123 @@ export const BusInterfaceCard: React.FC<BusInterfaceCardProps> = ({
                   )}
                 </div>
 
-                <div className="col-span-2 flex items-center gap-2">
-                  <span style={TEXT_STYLES.label}>Naming Pattern:</span>
-                  {editingArrayField?.busIndex === index &&
-                  editingArrayField?.field === 'namingPattern' ? (
-                    <InlineEditField
-                      value={draftArrayValue}
-                      onChange={setDraftArrayValue}
-                      onSave={() => saveArrayField(index)}
-                      onCancel={cancelEditArrayField}
-                      placeholder="e.g., NAME_{index}"
-                      fullWidth
-                      inputClassName="px-1 py-0.5 rounded flex-1"
-                      inputStyle={TEXT_STYLES.value}
-                      containerClassName="flex items-center gap-1 flex-1"
-                    />
-                  ) : (
-                    <span
-                      onClick={() =>
-                        startEditArrayField(index, 'namingPattern', bus.array?.namingPattern ?? '')
-                      }
-                      className="cursor-pointer"
-                      style={{
-                        ...TEXT_STYLES.value,
-                        textDecoration: 'underline',
-                        textDecorationStyle: 'dotted',
-                        color: bus.array.namingPattern
-                          ? undefined
-                          : 'var(--vscode-input-placeholderForeground)',
-                      }}
-                      title="Click to edit"
-                    >
-                      {bus.array.namingPattern ?? 'not set'}
-                    </span>
-                  )}
+                <div className="col-span-2 flex items-start gap-2">
+                  <span
+                    style={TEXT_STYLES.label}
+                    title="Required. Name pattern for each interface instance. Use {index} as a placeholder — e.g., 'M_AXIS_CH{index}_EVENTS' generates M_AXIS_CH0_EVENTS, M_AXIS_CH1_EVENTS, etc."
+                  >
+                    Naming Pattern:{' '}
+                    <span style={{ color: 'var(--vscode-inputValidation-errorBorder)' }}>*</span>
+                  </span>
+                  <div className="flex flex-col flex-1 gap-1">
+                    {editingArrayField?.busIndex === index &&
+                    editingArrayField?.field === 'namingPattern' ? (
+                      <InlineEditField
+                        value={draftArrayValue}
+                        onChange={setDraftArrayValue}
+                        onSave={() => saveArrayField(index)}
+                        onCancel={cancelEditArrayField}
+                        placeholder="e.g., NAME_{index}"
+                        fullWidth
+                        inputClassName="px-1 py-0.5 rounded flex-1"
+                        inputStyle={TEXT_STYLES.value}
+                        containerClassName="flex items-center gap-1 flex-1"
+                      />
+                    ) : (
+                      <span
+                        onClick={() =>
+                          startEditArrayField(
+                            index,
+                            'namingPattern',
+                            bus.array?.namingPattern ?? ''
+                          )
+                        }
+                        className="cursor-pointer"
+                        style={{
+                          ...TEXT_STYLES.value,
+                          textDecoration: 'underline',
+                          textDecorationStyle: 'dotted',
+                          color: bus.array.namingPattern
+                            ? undefined
+                            : 'var(--vscode-input-placeholderForeground)',
+                        }}
+                        title="Click to edit — use {index} as placeholder"
+                      >
+                        {bus.array.namingPattern ?? 'not set'}
+                      </span>
+                    )}
+                    {bus.array.namingPattern && !bus.array.namingPattern.includes('{index}') && (
+                      <span
+                        style={{
+                          fontSize: '11px',
+                          color: 'var(--vscode-inputValidation-warningBorder)',
+                        }}
+                        title="Without {index}, all instances will have the same name"
+                      >
+                        ⚠ Pattern should contain {'{index}'} to differentiate instances
+                      </span>
+                    )}
+                  </div>
                 </div>
 
-                <div className="col-span-2 flex items-center gap-2">
-                  <span style={TEXT_STYLES.label}>Prefix Pattern:</span>
-                  {editingArrayField?.busIndex === index &&
-                  editingArrayField?.field === 'physicalPrefixPattern' ? (
-                    <InlineEditField
-                      value={draftArrayValue}
-                      onChange={setDraftArrayValue}
-                      onSave={() => saveArrayField(index)}
-                      onCancel={cancelEditArrayField}
-                      placeholder="e.g., prefix_{index}_"
-                      fullWidth
-                      inputClassName="px-1 py-0.5 rounded flex-1"
-                      inputStyle={TEXT_STYLES.value}
-                      containerClassName="flex items-center gap-1 flex-1"
-                    />
-                  ) : (
-                    <span
-                      onClick={() =>
-                        startEditArrayField(
-                          index,
-                          'physicalPrefixPattern',
-                          bus.array?.physicalPrefixPattern ?? ''
-                        )
-                      }
-                      className="cursor-pointer"
-                      style={{
-                        ...TEXT_STYLES.value,
-                        textDecoration: 'underline',
-                        textDecorationStyle: 'dotted',
-                        color: bus.array.physicalPrefixPattern
-                          ? undefined
-                          : 'var(--vscode-input-placeholderForeground)',
-                      }}
-                      title="Click to edit"
-                    >
-                      {bus.array.physicalPrefixPattern ?? 'not set'}
-                    </span>
-                  )}
+                <div className="col-span-2 flex items-start gap-2">
+                  <span
+                    style={TEXT_STYLES.label}
+                    title="Required. Physical port prefix pattern for each instance. Use {index} as a placeholder — e.g., 'm_axis_ch{index}_' generates m_axis_ch0_tdata, m_axis_ch1_tdata, etc."
+                  >
+                    Prefix Pattern:{' '}
+                    <span style={{ color: 'var(--vscode-inputValidation-errorBorder)' }}>*</span>
+                  </span>
+                  <div className="flex flex-col flex-1 gap-1">
+                    {editingArrayField?.busIndex === index &&
+                    editingArrayField?.field === 'physicalPrefixPattern' ? (
+                      <InlineEditField
+                        value={draftArrayValue}
+                        onChange={setDraftArrayValue}
+                        onSave={() => saveArrayField(index)}
+                        onCancel={cancelEditArrayField}
+                        placeholder="e.g., prefix_{index}_"
+                        fullWidth
+                        inputClassName="px-1 py-0.5 rounded flex-1"
+                        inputStyle={TEXT_STYLES.value}
+                        containerClassName="flex items-center gap-1 flex-1"
+                      />
+                    ) : (
+                      <span
+                        onClick={() =>
+                          startEditArrayField(
+                            index,
+                            'physicalPrefixPattern',
+                            bus.array?.physicalPrefixPattern ?? ''
+                          )
+                        }
+                        className="cursor-pointer"
+                        style={{
+                          ...TEXT_STYLES.value,
+                          textDecoration: 'underline',
+                          textDecorationStyle: 'dotted',
+                          color: bus.array.physicalPrefixPattern
+                            ? undefined
+                            : 'var(--vscode-input-placeholderForeground)',
+                        }}
+                        title="Click to edit — use {index} as placeholder"
+                      >
+                        {bus.array.physicalPrefixPattern ?? 'not set'}
+                      </span>
+                    )}
+                    {bus.array.physicalPrefixPattern &&
+                      !bus.array.physicalPrefixPattern.includes('{index}') && (
+                        <span
+                          style={{
+                            fontSize: '11px',
+                            color: 'var(--vscode-inputValidation-warningBorder)',
+                          }}
+                          title="Without {index}, all instances will have the same port prefix"
+                        >
+                          ⚠ Pattern should contain {'{index}'} to differentiate instances
+                        </span>
+                      )}
+                  </div>
                 </div>
               </div>
             )}
