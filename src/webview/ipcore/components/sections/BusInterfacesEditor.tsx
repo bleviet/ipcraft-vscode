@@ -5,7 +5,7 @@ import { BusInterfaceCard } from './BusInterfaceCard';
 
 interface BusPort {
   name: string;
-  width?: number;
+  width?: number | string;
   direction?: string;
   presence?: string;
 }
@@ -19,7 +19,7 @@ interface BusInterface {
   associatedReset?: string;
   memoryMapRef?: string;
   useOptionalPorts?: string[];
-  portWidthOverrides?: Record<string, number>;
+  portWidthOverrides?: Record<string, number | string>;
   portNameOverrides?: Record<string, string>;
   array?: {
     count: number;
@@ -48,6 +48,7 @@ interface BusInterfacesEditorProps {
   busLibrary?: unknown;
   clocks?: unknown[];
   resets?: unknown[];
+  parameters?: unknown[];
   onUpdate: YamlUpdateHandler;
   highlight?: { entityName: string; field: string };
   imports?: { memoryMaps?: unknown[] };
@@ -100,6 +101,7 @@ export const BusInterfacesEditor: React.FC<BusInterfacesEditorProps> = ({
   imports,
   clocks: rawClocks = [],
   resets: rawResets = [],
+  parameters: rawParameters = [],
   onUpdate,
   highlight,
 }) => {
@@ -107,6 +109,7 @@ export const BusInterfacesEditor: React.FC<BusInterfacesEditorProps> = ({
   const busLibrary = rawBusLibrary as Record<string, { ports?: BusPort[] }> | undefined;
   const clocks = rawClocks as Clock[];
   const resets = rawResets as Reset[];
+  const parameters = rawParameters as Array<{ name: string; dataType?: string }>;
   const containerRef = useRef<HTMLDivElement>(null);
 
   const editing = useBusInterfaceEditing({
@@ -267,6 +270,7 @@ export const BusInterfacesEditor: React.FC<BusInterfacesEditorProps> = ({
                 startEditPortWidth={editing.startEditPortWidth}
                 savePortWidth={editing.savePortWidth}
                 cancelEditPortWidth={editing.cancelEditPortWidth}
+                parameters={parameters}
               />
             );
           })}

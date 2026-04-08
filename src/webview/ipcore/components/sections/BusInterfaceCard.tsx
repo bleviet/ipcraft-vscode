@@ -1,10 +1,11 @@
 import React from 'react';
 import { InlineEditField } from './InlineEditField';
 import { PortMappingTable } from './PortMappingTable';
+import type { WidthParameter } from '../../../shared/components/WidthField';
 
 interface BusPort {
   name: string;
-  width?: number;
+  width?: number | string;
   direction?: string;
   presence?: string;
 }
@@ -18,7 +19,7 @@ interface BusInterface {
   associatedReset?: string;
   memoryMapRef?: string;
   useOptionalPorts?: string[];
-  portWidthOverrides?: Record<string, number>;
+  portWidthOverrides?: Record<string, number | string>;
   portNameOverrides?: Record<string, string>;
   array?: {
     count: number;
@@ -98,9 +99,16 @@ interface BusInterfaceCardProps {
   startEditPortName: (busIndex: number, portName: string, currentSuffix: string) => void;
   savePortName: (busIndex: number, portName: string) => void;
   cancelEditPortName: () => void;
-  startEditPortWidth: (busIndex: number, portName: string, currentWidth: number) => void;
-  savePortWidth: (busIndex: number, portName: string, defaultWidth: number) => void;
+  startEditPortWidth: (busIndex: number, portName: string, currentWidth: number | string) => void;
+  savePortWidth: (
+    busIndex: number,
+    portName: string,
+    defaultWidth: number,
+    paramNames: string[],
+    directValue?: string
+  ) => void;
   cancelEditPortWidth: () => void;
+  parameters?: WidthParameter[];
 }
 
 const TEXT_STYLES = {
@@ -163,6 +171,7 @@ export const BusInterfaceCard: React.FC<BusInterfaceCardProps> = ({
   startEditPortWidth,
   savePortWidth,
   cancelEditPortWidth,
+  parameters = [],
 }) => {
   const getClockInfo = (clockName: string) => clocks.find((c) => c.name === clockName);
   const getResetInfo = (resetName: string) => resets.find((r) => r.name === resetName);
@@ -836,6 +845,7 @@ export const BusInterfaceCard: React.FC<BusInterfaceCardProps> = ({
             startEditPortWidth={startEditPortWidth}
             savePortWidth={savePortWidth}
             cancelEditPortWidth={cancelEditPortWidth}
+            parameters={parameters}
           />
         </div>
       )}

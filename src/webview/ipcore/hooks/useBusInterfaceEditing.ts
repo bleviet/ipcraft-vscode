@@ -3,7 +3,7 @@ import { focusContainer } from '../../shared/utils/focus';
 
 interface BusPort {
   name: string;
-  width?: number;
+  width?: number | string;
   direction?: string;
   presence?: string;
 }
@@ -16,7 +16,7 @@ interface BusInterface {
   associatedClock?: string;
   associatedReset?: string;
   useOptionalPorts?: string[];
-  portWidthOverrides?: Record<string, number>;
+  portWidthOverrides?: Record<string, number | string>;
   portNameOverrides?: Record<string, string>;
   array?: {
     count: number;
@@ -170,7 +170,7 @@ export const useBusInterfaceEditing = ({
   }, [containerRef]);
 
   const startEditPortWidth = useCallback(
-    (busIndex: number, portName: string, currentWidth: number) => {
+    (busIndex: number, portName: string, currentWidth: number | string) => {
       setEditingPortWidth({ busIndex, portName });
       setDraftPortWidth(String(currentWidth));
     },
@@ -178,15 +178,35 @@ export const useBusInterfaceEditing = ({
   );
 
   const savePortWidth = useCallback(
-    (busIndex: number, portName: string, defaultWidth: number) => {
+    (
+      busIndex: number,
+      portName: string,
+      defaultWidth: number,
+      paramNames: string[],
+      directValue?: string
+    ) => {
       const bus = busInterfaces[busIndex];
       const newOverrides = { ...(bus.portWidthOverrides ?? {}) };
-      const newWidth = parseInt(draftPortWidth, 10);
+      // Prefer directValue (avoids stale-closure issues on immediate save) then draftPortWidth
+      const trimmed = (directValue ?? draftPortWidth).trim();
 
-      if (isNaN(newWidth) || newWidth === defaultWidth) {
+      if (trimmed === '' || trimmed === String(defaultWidth)) {
+        // Cleared or reset to default — remove override
         delete newOverrides[portName];
+      } else if (paramNames.includes(trimmed)) {
+        // It's a parameter name — store as string reference
+        newOverrides[portName] = trimmed;
       } else {
-        newOverrides[portName] = newWidth;
+        // Try as a number
+        const newWidth = parseInt(trimmed, 10);
+        if (!isNaN(newWidth) && newWidth > 0) {
+          if (newWidth === defaultWidth) {
+            delete newOverrides[portName];
+          } else {
+            newOverrides[portName] = newWidth;
+          }
+        }
+        // If unparseable and not a param name, discard the edit
       }
 
       onUpdate(

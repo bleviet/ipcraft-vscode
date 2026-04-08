@@ -63,8 +63,8 @@ function normalizeBusInterface(raw: Record<string, unknown>): BusInterfaceDef {
     (raw.useOptionalPorts as string[] | undefined) ??
     [];
   const portWidthOverrides =
-    (raw.port_width_overrides as Record<string, number> | undefined) ??
-    (raw.portWidthOverrides as Record<string, number> | undefined) ??
+    (raw.port_width_overrides as Record<string, number | string> | undefined) ??
+    (raw.portWidthOverrides as Record<string, number | string> | undefined) ??
     {};
   return {
     name: getString(raw.name),
@@ -205,10 +205,21 @@ export function getActiveBusPortsFromDefinition(
   useOptionalPorts: string[],
   physicalPrefix: string,
   mode: string,
-  portWidthOverrides: Record<string, number>
+  portWidthOverrides: Record<string, number | string>,
+  parameters?: Array<{ name: string; value?: number | string; data_type?: string }>
 ): Array<Record<string, unknown>> {
   const optionalSet = new Set(useOptionalPorts || []);
   const activePorts: Array<Record<string, unknown>> = [];
+
+  // Build a lookup for resolving parameter references to their default values
+  const paramDefaults: Record<string, number> = {};
+  if (parameters) {
+    for (const p of parameters) {
+      if (p.name && typeof p.value === 'number') {
+        paramDefaults[p.name] = p.value;
+      }
+    }
+  }
 
   ports.forEach((port) => {
     const logicalName = port.name;
@@ -228,9 +239,16 @@ export function getActiveBusPortsFromDefinition(
       direction = direction === 'out' ? 'in' : direction === 'in' ? 'out' : direction;
     }
 
-    let width = port.width ?? 1;
+    let width: number | string = port.width ?? 1;
     if (portWidthOverrides?.[logicalName] !== undefined) {
-      width = portWidthOverrides[logicalName];
+      const override = portWidthOverrides[logicalName];
+      if (typeof override === 'string') {
+        // Resolve parameter reference: use its default value for type generation,
+        // but preserve the parameter name for the template (generic reference)
+        width = paramDefaults[override] ?? override;
+      } else {
+        width = override;
+      }
     }
 
     activePorts.push({

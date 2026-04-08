@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import type { YamlUpdateHandler } from '../../../types/editor';
-import { FormField, SelectField, NumberField } from '../../../shared/components';
+import { FormField, SelectField, WidthField } from '../../../shared/components';
+import type { WidthParameter } from '../../../shared/components';
 import { displayDirection } from '../../../shared/utils/formatters';
 import { validateVhdlIdentifier, validateUniqueName } from '../../../shared/utils/validation';
 import { useTableEditing } from '../../../hooks/useTableEditing';
@@ -8,12 +9,13 @@ import { useTableEditing } from '../../../hooks/useTableEditing';
 interface Port {
   name: string;
   direction: string;
-  width?: number;
+  width?: number | string;
 }
 
 interface PortsTableProps {
   ports: unknown[];
   onUpdate: YamlUpdateHandler;
+  parameters?: WidthParameter[];
 }
 
 const createEmptyPort = (): Port => ({
@@ -41,7 +43,11 @@ const COLUMN_KEYS = ['name', 'direction', 'width'];
  * Editable table for IP Core ports
  * Vim-style: h/j/k/l navigate cells, e edit, d delete, o add
  */
-export const PortsTable: React.FC<PortsTableProps> = ({ ports: rawPorts, onUpdate }) => {
+export const PortsTable: React.FC<PortsTableProps> = ({
+  ports: rawPorts,
+  onUpdate,
+  parameters = [],
+}) => {
   const ports = rawPorts as Port[];
   const containerRef = useRef<HTMLDivElement>(null);
   const {
@@ -107,12 +113,11 @@ export const PortsTable: React.FC<PortsTableProps> = ({ ports: rawPorts, onUpdat
         />
       </td>
       <td className="px-4 py-3">
-        <NumberField
-          label=""
+        <WidthField
           value={draft.width ?? 1}
-          onChange={(v: number) => setDraft({ ...draft, width: v })}
-          min={1}
-          data-edit-key="width"
+          onChange={(v: number | string) => setDraft({ ...draft, width: v })}
+          parameters={parameters}
+          defaultWidth={1}
           onSave={canSave ? handleSave : undefined}
           onCancel={handleCancel}
         />
@@ -216,7 +221,23 @@ export const PortsTable: React.FC<PortsTableProps> = ({ ports: rawPorts, onUpdat
                     {displayDirection(port.direction)}
                   </td>
                   <td className="px-4 py-3 text-sm" {...getCellProps(index, 'width')}>
-                    {port.width ?? 1}
+                    {typeof port.width === 'string' ? (
+                      <span>
+                        <span
+                          style={{
+                            fontFamily: 'var(--vscode-editor-font-family, monospace)',
+                            color: 'var(--vscode-textLink-foreground)',
+                          }}
+                        >
+                          {port.width}
+                        </span>
+                        <span style={{ opacity: 0.6, fontSize: '0.7em', marginLeft: '3px' }}>
+                          ⟨P⟩
+                        </span>
+                      </span>
+                    ) : (
+                      (port.width ?? 1)
+                    )}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <button

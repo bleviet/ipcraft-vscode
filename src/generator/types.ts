@@ -49,7 +49,7 @@ export interface BusInterfaceDef {
   mode?: string;
   physical_prefix?: string;
   use_optional_ports?: string[];
-  port_width_overrides?: Record<string, number>;
+  port_width_overrides?: Record<string, number | string>;
   associated_clock?: string;
   associated_reset?: string;
   array?: BusInterfaceArrayDef;

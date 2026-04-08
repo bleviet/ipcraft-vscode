@@ -1,9 +1,13 @@
 import React from 'react';
 import { InlineEditField } from './InlineEditField';
+import { WidthField } from '../../../shared/components/WidthField';
+import type { WidthParameter } from '../../../shared/components/WidthField';
+
+const NUMERIC_PARAM_TYPES = new Set(['integer', 'natural', 'positive']);
 
 interface BusPort {
   name: string;
-  width?: number;
+  width?: number | string;
   direction?: string;
   presence?: string;
 }
@@ -13,7 +17,7 @@ interface BusInterface {
   type: string;
   mode: string;
   physicalPrefix?: string;
-  portWidthOverrides?: Record<string, number>;
+  portWidthOverrides?: Record<string, number | string>;
   portNameOverrides?: Record<string, string>;
 }
 
@@ -38,9 +42,16 @@ interface PortMappingTableProps {
   startEditPortName: (busIndex: number, portName: string, currentSuffix: string) => void;
   savePortName: (busIndex: number, portName: string) => void;
   cancelEditPortName: () => void;
-  startEditPortWidth: (busIndex: number, portName: string, currentWidth: number) => void;
-  savePortWidth: (busIndex: number, portName: string, defaultWidth: number) => void;
+  startEditPortWidth: (busIndex: number, portName: string, currentWidth: number | string) => void;
+  savePortWidth: (
+    busIndex: number,
+    portName: string,
+    defaultWidth: number,
+    paramNames: string[],
+    directValue?: string
+  ) => void;
   cancelEditPortWidth: () => void;
+  parameters?: WidthParameter[];
 }
 
 const TEXT_STYLES = {
@@ -73,7 +84,12 @@ export const PortMappingTable: React.FC<PortMappingTableProps> = ({
   startEditPortWidth,
   savePortWidth,
   cancelEditPortWidth,
+  parameters = [],
 }) => {
+  const numericParams = parameters.filter(
+    (p) => !p.dataType || NUMERIC_PARAM_TYPES.has(p.dataType.toLowerCase())
+  );
+  const numericParamNames = numericParams.map((p) => p.name);
   if (ports.length === 0) {
     return (
       <div
@@ -117,10 +133,22 @@ export const PortMappingTable: React.FC<PortMappingTableProps> = ({
           const isEditingThisPortWidth =
             editingPortWidth?.busIndex === index && editingPortWidth?.portName === port.name;
           const hasNameOverride = bus.portNameOverrides?.[port.name];
-          const hasWidthOverride = bus.portWidthOverrides?.[port.name];
+          const hasWidthOverride = bus.portWidthOverrides?.[port.name] !== undefined;
           const isSelectedRow = isSelected && selectedPortIndex === pIdx;
           const defaultWidth =
-            busLibrary?.[bus.type]?.ports?.find((p) => p.name === port.name)?.width ?? 1;
+            (busLibrary?.[bus.type]?.ports?.find((p) => p.name === port.name)?.width as
+              | number
+              | undefined) ?? 1;
+          // Override value (may be a string param name or a number)
+          const widthOverrideValue = bus.portWidthOverrides?.[port.name];
+          // Current display width: override if set, else library default
+          const currentPortWidth: number | string =
+            widthOverrideValue ?? port.width ?? defaultWidth;
+          // For WidthField initialization, convert draftPortWidth back to number | string
+          const draftWidthValue: number | string = (() => {
+            const n = parseInt(draftPortWidth, 10);
+            return isNaN(n) ? draftPortWidth : n;
+          })();
 
           return (
             <tr
@@ -204,27 +232,50 @@ export const PortMappingTable: React.FC<PortMappingTableProps> = ({
                 }}
               >
                 {isEditingThisPortWidth ? (
-                  <InlineEditField
-                    type="number"
-                    value={draftPortWidth}
-                    onChange={setDraftPortWidth}
-                    onSave={() => savePortWidth(index, port.name, defaultWidth)}
+                  <WidthField
+                    value={draftWidthValue}
+                    onChange={(v) => setDraftPortWidth(String(v))}
+                    onSave={() => savePortWidth(index, port.name, defaultWidth, numericParamNames)}
+                    onSaveWithValue={(v) =>
+                      savePortWidth(index, port.name, defaultWidth, numericParamNames, String(v))
+                    }
                     onCancel={cancelEditPortWidth}
-                    width="60px"
-                    inputStyle={TEXT_STYLES.value}
+                    parameters={numericParams}
+                    defaultWidth={defaultWidth}
                   />
                 ) : (
                   <span
-                    onClick={() => startEditPortWidth(index, port.name, port.width ?? 1)}
+                    onClick={() => startEditPortWidth(index, port.name, currentPortWidth)}
                     className="cursor-pointer"
-                    style={{
-                      color: hasWidthOverride ? 'var(--vscode-textLink-foreground)' : undefined,
-                      textDecoration: 'underline',
-                      textDecorationStyle: 'dotted',
-                    }}
                     title="Click to edit width (or press e)"
                   >
-                    {port.width ?? 1}
+                    {typeof currentPortWidth === 'string' ? (
+                      <>
+                        <span
+                          style={{
+                            fontFamily: 'var(--vscode-editor-font-family, monospace)',
+                            color: 'var(--vscode-textLink-foreground)',
+                            textDecoration: 'underline',
+                            textDecorationStyle: 'dotted',
+                          }}
+                        >
+                          {currentPortWidth}
+                        </span>
+                        <span style={{ opacity: 0.6, fontSize: '0.7em', marginLeft: '3px' }}>
+                          ⟨P⟩
+                        </span>
+                      </>
+                    ) : (
+                      <span
+                        style={{
+                          color: hasWidthOverride ? 'var(--vscode-textLink-foreground)' : undefined,
+                          textDecoration: 'underline',
+                          textDecorationStyle: 'dotted',
+                        }}
+                      >
+                        {currentPortWidth}
+                      </span>
+                    )}
                   </span>
                 )}
               </td>

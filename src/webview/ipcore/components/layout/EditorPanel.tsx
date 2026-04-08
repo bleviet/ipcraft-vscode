@@ -79,7 +79,13 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
           />
         );
       case 'ports':
-        return <PortsTable ports={ip.ports ?? []} onUpdate={onUpdate} />;
+        return (
+          <PortsTable
+            ports={ip.ports ?? []}
+            onUpdate={onUpdate}
+            parameters={(ip.parameters ?? []) as Array<{ name: string; dataType?: string }>}
+          />
+        );
       case 'busInterfaces':
         return (
           <BusInterfacesEditor
@@ -88,6 +94,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
             imports={imports}
             clocks={ip.clocks ?? []}
             resets={ip.resets ?? []}
+            parameters={ip.parameters ?? []}
             onUpdate={onUpdate}
             highlight={highlight}
           />

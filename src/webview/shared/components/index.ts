@@ -6,6 +6,7 @@ export { CheckboxField } from './CheckboxField';
 export { TextAreaField } from './TextAreaField';
 export { KeyboardShortcutsButton } from './KeyboardShortcutsButton';
 export { EditableTable } from './EditableTable';
+export { WidthField } from './WidthField';
 
 export type { FormFieldProps } from './FormField';
 export type { SelectFieldProps } from './SelectField';
@@ -13,3 +14,4 @@ export type { NumberFieldProps } from './NumberField';
 export type { CheckboxFieldProps } from './CheckboxField';
 export type { TextAreaFieldProps } from './TextAreaField';
 export type { EditableTableProps, EditableTableColumn } from './EditableTable';
+export type { WidthFieldProps, WidthParameter } from './WidthField';
