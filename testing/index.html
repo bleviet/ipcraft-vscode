@@ -1,0 +1,2622 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Visual editor for FPGA IP Core and Memory Map specifications">
+      
+      
+        <meta name="author" content="Le Viet Bach">
+      
+      
+        <link rel="canonical" href="https://bleviet.github.io/ipcraft-vscode/testing/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Testing Guide - IPCraft for VS Code</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#testing-guide" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="IPCraft for VS Code" class="md-header__button md-logo" aria-label="IPCraft for VS Code" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            IPCraft for VS Code
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Testing Guide
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/bleviet/ipcraft-vscode" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../getting-started/quickstart/" class="md-tabs__link">
+          
+  
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../how-to/vhdl-import/" class="md-tabs__link">
+          
+  
+  
+  How-to Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../concepts/extension-model/" class="md-tabs__link">
+          
+  
+  
+  Concepts
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../architecture/overview/" class="md-tabs__link">
+          
+  
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../reference/specification-schemas/" class="md-tabs__link">
+          
+  
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../contributing/guidelines/" class="md-tabs__link">
+          
+  
+  
+  Contributing
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../blog/building-ipcraft/" class="md-tabs__link">
+          
+  
+  
+  Blog
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="IPCraft for VS Code" class="md-nav__button md-logo" aria-label="IPCraft for VS Code" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    IPCraft for VS Code
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/bleviet/ipcraft-vscode" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How-to Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    How-to Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how-to/vhdl-import/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Importing from VHDL
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how-to/generating-a-project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generating a Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how-to/build-vsix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building a VSIX Package
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how-to/ai-design-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI Design Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Concepts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/extension-model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VS Code Extension Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/yaml-data-flow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YAML Data Flow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/spatial-editing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spatial Editing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/responsive-design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Responsive Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/extension-host/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Extension Host
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/webview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Webview (React)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/specification-schemas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Specification Schemas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/bitfield-interaction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bit Field Interaction
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/keyboard-shortcuts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Keyboard Shortcuts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/generator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ip-core-editor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IP Core Editor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/yaml-libraries/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YAML Libraries
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contributing
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../contributing/guidelines/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guidelines
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Blog
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Blog
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../blog/building-ipcraft/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building IPCraft
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#purpose" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Purpose
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#test-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test architecture
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#repository-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Repository layout
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Commands
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Commands">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#jest-tiers-13" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Jest (tiers 1–3)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#vs-code-smoke-tests-tier-4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        VS Code smoke tests (tier 4)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#playwright-browser-tests-tier-5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Playwright browser tests (tier 5)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#run-everything" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Run everything
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#other-useful-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Other useful commands
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#typical-workflows" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Typical workflows
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Typical workflows">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#i-changed-a-pure-function-algorithm-service-utility" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        "I changed a pure function (algorithm, service, utility)"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#i-changed-a-react-component" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        "I changed a React component"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#i-changed-the-extension-host-providers-generator-services" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        "I changed the extension host (providers, generator, services)"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#i-changed-the-react-webview-memory-map-or-ip-core-ui" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        "I changed the React webview (Memory Map or IP Core UI)"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#i-changed-generator-templates-or-the-scaffolding-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        "I changed generator templates or the scaffolding pipeline"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#before-opening-a-pr" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        "Before opening a PR"
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#writing-new-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Writing new tests
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Writing new tests">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#which-tier-should-i-use" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Which tier should I use?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#adding-a-jest-test-tiers-13" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding a Jest test (tiers 1–3)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#adding-a-vs-code-smoke-test-tier-4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding a VS Code smoke test (tier 4)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#adding-a-playwright-browser-test-tier-5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding a Playwright browser test (tier 5)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fixtures-and-test-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fixtures and test data
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Fixtures and test data">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#jest-fixtures-srctestfixtures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Jest fixtures (src/test/fixtures/)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#smoke-test-fixtures-srcteste2efixtures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Smoke test fixtures (src/test/e2e/fixtures/)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#browser-test-harnesses-srctestbrowser" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Browser test harnesses (src/test/browser/)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#debugging-failures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Debugging failures
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Debugging failures">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#jest-test-failure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Jest test failure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#playwright-test-failure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Playwright test failure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#vs-code-smoke-test-failure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        VS Code smoke test failure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#typescript-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TypeScript errors
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-pitfalls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common pitfalls
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Common pitfalls">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#resetmocks-true-clears-mock-implementations-between-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        resetMocks: true clears mock implementations between tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-vscode-mock-does-not-cover-all-vs-code-apis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The vscode mock does not cover all VS Code APIs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#browser-tests-require-compiled-bundles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Browser tests require compiled bundles
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#smoke-tests-require-compiled-typescript-in-out" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Smoke tests require compiled TypeScript in out/
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#smoke-tests-use-mocha-syntax-not-jest-syntax" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Smoke tests use Mocha syntax, not Jest syntax
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#playwright-browser-tests-are-also-excluded-from-jest" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Playwright browser tests are also excluded from Jest
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-ip-core-harness-uses-ipcore-root-not-root" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The IP Core harness uses #ipcore-root, not #root
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#css-modules-are-proxied-in-jest" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CSS modules are proxied in Jest
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ci-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CI overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#contributor-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Contributor checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/bleviet/ipcraft-vscode/edit/main/docs/testing.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="testing-guide">Testing Guide<a class="headerlink" href="#testing-guide" title="Permanent link">&para;</a></h1>
+<h2 id="purpose">Purpose<a class="headerlink" href="#purpose" title="Permanent link">&para;</a></h2>
+<p>IPCraft VS Code is a complex extension: it runs code on two separate processes simultaneously — the <strong>extension host</strong> (Node.js) and the <strong>webview</strong> (a browser-like environment running React). Ordinary Jest unit tests cannot reach both worlds at once, and no single test runner covers the full stack. This guide explains why the repo uses multiple test layers, what each one does, and how to work with them day-to-day.</p>
+<hr />
+<h2 id="test-architecture">Test architecture<a class="headerlink" href="#test-architecture" title="Permanent link">&para;</a></h2>
+<p>The repo has <strong>five testing tiers</strong>. Each tier covers a different process boundary or concern. Using the right tier for the right problem keeps tests fast, reliable, and easy to maintain.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Tier</th>
+<th>Runner</th>
+<th>What it tests</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Pure logic</td>
+<td>Jest</td>
+<td>Pure TypeScript functions: no DOM, no VS Code, no React</td>
+</tr>
+<tr>
+<td>2</td>
+<td>React unit</td>
+<td>Jest + jsdom + React Testing Library</td>
+<td>React components and hooks rendered in a simulated browser</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Node-side logic</td>
+<td>Jest + vscode mock</td>
+<td>Extension-host services that call VS Code APIs</td>
+</tr>
+<tr>
+<td>4</td>
+<td>VS Code smoke tests</td>
+<td><code>@vscode/test-electron</code> (Mocha)</td>
+<td>Real VS Code: extension activation, file opening, provider resolution</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Browser / webview</td>
+<td>Playwright</td>
+<td>Real compiled React bundles loaded in a browser, end-to-end UI interactions</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Why so many tiers?</strong></p>
+<ul>
+<li>Jest tiers (1–3) are cheap and fast — they run in seconds. They validate logic that does not depend on a real browser or a real VS Code binary.</li>
+<li>The VS Code smoke tests (tier 4) spin up a real VS Code binary to answer questions that cannot be faked: does the custom editor provider actually respond when a <code>.mm.yml</code> file is opened?</li>
+<li>The Playwright tests (tier 5) load the real compiled webpack bundles in a real browser to validate that the React UI behaves correctly when the extension host sends YAML data. These tests verify integration across the <code>postMessage</code> boundary.</li>
+</ul>
+<hr />
+<h2 id="repository-layout">Repository layout<a class="headerlink" href="#repository-layout" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>src/
+  test/
+    setup.ts                  # Jest global setup: jest-dom matchers, acquireVsCodeApi mock, VS Code UI toolkit mock
+    fixtures/                 # Shared YAML fixtures for Jest tests
+      sample-memmap.yml       #   Memory map test data
+      sample-ipcore.yml       #   IP Core test data
+      invalid-syntax.yml      #   Invalid YAML for error-path tests
+    suite/                    # All Jest test files (tiers 1–3)
+      algorithms/             #   Repacking algorithm tests
+      components/             #   React component tests (Memory Map)
+      generator/              #   Generator pipeline tests (IpCoreScaffolder, TemplateLoader, registerProcessor)
+      hooks/                  #   React hook tests
+      parser/                 #   VHDL parser tests
+      services/               #   Extension-host and webview service tests
+      shared/                 #   Shared form component tests (FormField, SelectField, etc.)
+      utils/                  #   Utility function tests
+    e2e/                      # VS Code smoke tests (tier 4) — NOT run by Jest
+      runTests.ts             #   Launches @vscode/test-electron; compiled to out/test/e2e/runTests.js
+      fixtures/               #   Fixture files opened inside real VS Code
+        test.mm.yml           #     Memory map fixture for provider resolution test
+        test.ip.yml           #     IP Core fixture for provider resolution test
+      suite/
+        index.ts              #   Mocha runner entry point (not Jest)
+        activation.test.ts    #   5 smoke tests: extension present, activates, registers editors, opens .mm.yml, opens .ip.yml
+    browser/                  # Playwright browser tests (tier 5) — NOT run by Jest
+      index.html              #   Memory Map webview harness (loads dist/webview.js)
+      ipcore.html             #   IP Core webview harness (loads dist/ipcore.js)
+      integration.test.ts    #   3 Playwright tests: 1 memory-map + 2 IP Core
+
+__mocks__/
+  vscode.ts                   # Sparse VS Code API mock used by Jest (tiers 1–3)
+</code></pre></div>
+<hr />
+<h2 id="commands">Commands<a class="headerlink" href="#commands" title="Permanent link">&para;</a></h2>
+<h3 id="jest-tiers-13">Jest (tiers 1–3)<a class="headerlink" href="#jest-tiers-13" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>npm run test:unit</code></td>
+<td>Run all Jest tests once</td>
+</tr>
+<tr>
+<td><code>npm run test:unit:watch</code></td>
+<td>Re-run affected tests on file save (development loop)</td>
+</tr>
+<tr>
+<td><code>npm run test:unit:coverage</code></td>
+<td>Run tests and produce a coverage report in <code>coverage/</code></td>
+</tr>
+<tr>
+<td><code>npm run test:unit -- src/test/suite/services/YamlService.test.ts</code></td>
+<td>Run a single test file</td>
+</tr>
+<tr>
+<td><code>npm run test:unit -- --testNamePattern="adds a field"</code></td>
+<td>Run tests whose name matches a pattern</td>
+</tr>
+</tbody>
+</table>
+<h3 id="vs-code-smoke-tests-tier-4">VS Code smoke tests (tier 4)<a class="headerlink" href="#vs-code-smoke-tests-tier-4" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>npm<span class="w"> </span>run<span class="w"> </span>compile<span class="w">          </span><span class="c1"># Required first: compiles the extension bundle (dist/)</span>
+npm<span class="w"> </span>run<span class="w"> </span>compile-tests<span class="w">    </span><span class="c1"># Required first: compiles TypeScript to out/ (the Mocha runner reads out/)</span>
+npm<span class="w"> </span>run<span class="w"> </span>test:e2e<span class="w">         </span><span class="c1"># Downloads VS Code 1.85.0 (first run only) and runs the smoke tests</span>
+</code></pre></div>
+<blockquote>
+<p><strong>Note:</strong> <code>test:e2e</code> requires a display server on Linux. CI wraps it with <code>xvfb-run -a</code>. If running locally on a headless machine, prefix with <code>xvfb-run -a</code>.</p>
+</blockquote>
+<h3 id="playwright-browser-tests-tier-5">Playwright browser tests (tier 5)<a class="headerlink" href="#playwright-browser-tests-tier-5" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>npm<span class="w"> </span>run<span class="w"> </span>compile<span class="w">          </span><span class="c1"># Required first: the harnesses load dist/webview.js and dist/ipcore.js</span>
+npx<span class="w"> </span>playwright<span class="w"> </span>install<span class="w"> </span>--with-deps<span class="w"> </span>chromium<span class="w">   </span><span class="c1"># Required first: installs the Chromium browser (once)</span>
+npm<span class="w"> </span>run<span class="w"> </span>test:browser<span class="w">     </span><span class="c1"># Run all Playwright tests</span>
+npm<span class="w"> </span>run<span class="w"> </span>test:browser<span class="w"> </span>--<span class="w"> </span>--headed<span class="w">             </span><span class="c1"># Run with a visible browser window</span>
+npm<span class="w"> </span>run<span class="w"> </span>test:browser<span class="w"> </span>--<span class="w"> </span>integration.test.ts<span class="w">  </span><span class="c1"># Run a single test file</span>
+npm<span class="w"> </span>run<span class="w"> </span>test:browser<span class="w"> </span>--<span class="w"> </span>--debug<span class="w">              </span><span class="c1"># Open Playwright Inspector</span>
+</code></pre></div>
+<h3 id="run-everything">Run everything<a class="headerlink" href="#run-everything" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>npm<span class="w"> </span>run<span class="w"> </span>test:all<span class="w">         </span><span class="c1"># Runs test:unit, then test:e2e, then test:browser</span>
+</code></pre></div>
+<h3 id="other-useful-commands">Other useful commands<a class="headerlink" href="#other-useful-commands" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>npm run lint</code></td>
+<td>ESLint (zero warnings allowed)</td>
+</tr>
+<tr>
+<td><code>npm run type-check</code></td>
+<td>TypeScript type check without building</td>
+</tr>
+<tr>
+<td><code>npm run compile</code></td>
+<td>Dev build (webpack: extension + webview bundles)</td>
+</tr>
+<tr>
+<td><code>npm run compile-tests</code></td>
+<td>Compile TypeScript test files to <code>out/</code> for test:e2e</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="typical-workflows">Typical workflows<a class="headerlink" href="#typical-workflows" title="Permanent link">&para;</a></h2>
+<h3 id="i-changed-a-pure-function-algorithm-service-utility">"I changed a pure function (algorithm, service, utility)"<a class="headerlink" href="#i-changed-a-pure-function-algorithm-service-utility" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>npm<span class="w"> </span>run<span class="w"> </span>test:unit<span class="w"> </span>--<span class="w"> </span>--testPathPattern<span class="o">=</span>&lt;path-to-test&gt;
+</code></pre></div>
+<p>Pure functions are tested in tiers 1–3. No build step needed for Jest. Run the relevant test file directly and iterate.</p>
+<h3 id="i-changed-a-react-component">"I changed a React component"<a class="headerlink" href="#i-changed-a-react-component" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>npm<span class="w"> </span>run<span class="w"> </span>test:unit<span class="w"> </span>--<span class="w"> </span>--testPathPattern<span class="o">=</span>src/test/suite/components
+</code></pre></div>
+<p>Component tests live in <code>src/test/suite/components/</code> and <code>src/test/suite/shared/</code>. They use React Testing Library (jsdom). No browser build needed.</p>
+<h3 id="i-changed-the-extension-host-providers-generator-services">"I changed the extension host (providers, generator, services)"<a class="headerlink" href="#i-changed-the-extension-host-providers-generator-services" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>npm<span class="w"> </span>run<span class="w"> </span>type-check<span class="w">       </span><span class="c1"># Catch type errors first</span>
+npm<span class="w"> </span>run<span class="w"> </span>test:unit<span class="w">        </span><span class="c1"># Run Jest tier 3 tests (node-side logic)</span>
+npm<span class="w"> </span>run<span class="w"> </span>compile-tests<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>npm<span class="w"> </span>run<span class="w"> </span>test:e2e<span class="w">  </span><span class="c1"># Confirm provider wiring is still correct</span>
+</code></pre></div>
+<h3 id="i-changed-the-react-webview-memory-map-or-ip-core-ui">"I changed the React webview (Memory Map or IP Core UI)"<a class="headerlink" href="#i-changed-the-react-webview-memory-map-or-ip-core-ui" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>npm<span class="w"> </span>run<span class="w"> </span>compile<span class="w">          </span><span class="c1"># Rebuild the webpack bundles</span>
+npm<span class="w"> </span>run<span class="w"> </span>test:browser<span class="w">     </span><span class="c1"># Run Playwright tests against the fresh bundles</span>
+</code></pre></div>
+<h3 id="i-changed-generator-templates-or-the-scaffolding-pipeline">"I changed generator templates or the scaffolding pipeline"<a class="headerlink" href="#i-changed-generator-templates-or-the-scaffolding-pipeline" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>npm<span class="w"> </span>run<span class="w"> </span>test:unit<span class="w"> </span>--<span class="w"> </span>--testPathPattern<span class="o">=</span>src/test/suite/generator
+</code></pre></div>
+<p>Template loading and register processing tests live in <code>src/test/suite/generator/</code>.</p>
+<h3 id="before-opening-a-pr">"Before opening a PR"<a class="headerlink" href="#before-opening-a-pr" title="Permanent link">&para;</a></h3>
+<p>Run the full pre-PR checklist — see the <a href="#contributor-checklist">Contributor checklist</a> at the end of this document.</p>
+<hr />
+<h2 id="writing-new-tests">Writing new tests<a class="headerlink" href="#writing-new-tests" title="Permanent link">&para;</a></h2>
+<h3 id="which-tier-should-i-use">Which tier should I use?<a class="headerlink" href="#which-tier-should-i-use" title="Permanent link">&para;</a></h3>
+<p>Use the tier that corresponds to the boundary you need to test:</p>
+<table>
+<thead>
+<tr>
+<th>I want to test...</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A pure function (input → output, no I/O)</td>
+<td>Jest, tier 1</td>
+</tr>
+<tr>
+<td>A React component or hook</td>
+<td>Jest + RTL, tier 2</td>
+</tr>
+<tr>
+<td>A service that calls VS Code APIs</td>
+<td>Jest + vscode mock, tier 3</td>
+</tr>
+<tr>
+<td>Whether the extension activates or a file opens the right editor</td>
+<td>@vscode/test-electron, tier 4</td>
+</tr>
+<tr>
+<td>Whether the React webview UI responds correctly to YAML data</td>
+<td>Playwright, tier 5</td>
+</tr>
+</tbody>
+</table>
+<h3 id="adding-a-jest-test-tiers-13">Adding a Jest test (tiers 1–3)<a class="headerlink" href="#adding-a-jest-test-tiers-13" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Create a file in the appropriate sub-directory under <code>src/test/suite/</code>.</li>
+<li>Use <code>describe()</code> / <code>it()</code> or <code>describe()</code> / <code>test()</code>.</li>
+<li>For React components, use <code>@testing-library/react</code>. The <code>render</code>, <code>screen</code>, <code>fireEvent</code>, and <code>userEvent</code> utilities are available without any setup.</li>
+<li>For tests that call VS Code APIs (e.g., <code>vscode.workspace.applyEdit</code>), import from <code>'vscode'</code> — Jest will automatically use <code>__mocks__/vscode.ts</code> as the mock.</li>
+<li>If you use a VS Code API that is not yet in <code>__mocks__/vscode.ts</code>, add it to that file first.</li>
+</ol>
+<div class="highlight"><pre><span></span><code><span class="c1">// src/test/suite/services/MyService.test.ts</span>
+<span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">doSomething</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;../../../webview/services/MyService&#39;</span><span class="p">;</span>
+
+<span class="nx">describe</span><span class="p">(</span><span class="s1">&#39;MyService&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">it</span><span class="p">(</span><span class="s1">&#39;returns expected result&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">expect</span><span class="p">(</span><span class="nx">doSomething</span><span class="p">(</span><span class="s1">&#39;input&#39;</span><span class="p">)).</span><span class="nx">toBe</span><span class="p">(</span><span class="s1">&#39;expected output&#39;</span><span class="p">);</span>
+<span class="w">  </span><span class="p">});</span>
+<span class="p">});</span>
+</code></pre></div>
+<h3 id="adding-a-vs-code-smoke-test-tier-4">Adding a VS Code smoke test (tier 4)<a class="headerlink" href="#adding-a-vs-code-smoke-test-tier-4" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Add a <code>test()</code> block to <code>src/test/e2e/suite/activation.test.ts</code> (or a new file in that folder).</li>
+<li>Use Mocha syntax: <code>suite()</code> / <code>test()</code> — <strong>not</strong> <code>describe()</code> / <code>it()</code>.</li>
+<li>Import from <code>'vscode'</code> to access the real VS Code API.</li>
+<li>For file-opening tests, place fixture files in <code>src/test/e2e/fixtures/</code>.</li>
+<li>Always call <code>workbench.action.closeAllEditors</code> before and after file-opening tests to avoid state leaking between tests.</li>
+<li>Compile before running: <code>npm run compile-tests &amp;&amp; npm run test:e2e</code>.</li>
+</ol>
+<div class="highlight"><pre><span></span><code><span class="c1">// Mocha syntax — NOT Jest</span>
+<span class="nx">test</span><span class="p">(</span><span class="s1">&#39;My smoke test&#39;</span><span class="p">,</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">ext</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">vscode</span><span class="p">.</span><span class="nx">extensions</span><span class="p">.</span><span class="nx">getExtension</span><span class="p">(</span><span class="s1">&#39;bleviet.ipcraft-vscode&#39;</span><span class="p">);</span>
+<span class="w">  </span><span class="k">await</span><span class="w"> </span><span class="nx">ext</span><span class="o">?</span><span class="p">.</span><span class="nx">activate</span><span class="p">();</span>
+<span class="w">  </span><span class="nx">assert</span><span class="p">.</span><span class="nx">strictEqual</span><span class="p">(</span><span class="nx">ext</span><span class="o">?</span><span class="p">.</span><span class="nx">isActive</span><span class="p">,</span><span class="w"> </span><span class="kc">true</span><span class="p">);</span>
+<span class="p">});</span>
+</code></pre></div>
+<h3 id="adding-a-playwright-browser-test-tier-5">Adding a Playwright browser test (tier 5)<a class="headerlink" href="#adding-a-playwright-browser-test-tier-5" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Add a <code>test()</code> block to <code>src/test/browser/integration.test.ts</code>.</li>
+<li>Use the appropriate harness: <code>index.html</code> for the Memory Map app, <code>ipcore.html</code> for the IP Core app.</li>
+<li>Inject data by sending a <code>postMessage</code> with <code>{ type: 'update', text: yaml }</code>.</li>
+<li>Wait for the ready signal (a console log containing <code>VSCODE_MESSAGE:</code> and <code>"ready"</code>) before injecting data.</li>
+<li>Compile bundles first: <code>npm run compile</code>.</li>
+</ol>
+<div class="highlight"><pre><span></span><code><span class="nx">test</span><span class="p">(</span><span class="s1">&#39;My webview test&#39;</span><span class="p">,</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="p">({</span><span class="w"> </span><span class="nx">page</span><span class="w"> </span><span class="p">})</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">readyPromise</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">page</span><span class="p">.</span><span class="nx">waitForEvent</span><span class="p">(</span><span class="s1">&#39;console&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">predicate</span><span class="o">:</span><span class="w"> </span><span class="p">(</span><span class="nx">msg</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nx">msg</span><span class="p">.</span><span class="nx">text</span><span class="p">().</span><span class="nx">includes</span><span class="p">(</span><span class="s1">&#39;VSCODE_MESSAGE:&#39;</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nx">msg</span><span class="p">.</span><span class="nx">text</span><span class="p">().</span><span class="nx">includes</span><span class="p">(</span><span class="s1">&#39;&quot;ready&quot;&#39;</span><span class="p">),</span>
+<span class="w">    </span><span class="nx">timeout</span><span class="o">:</span><span class="w"> </span><span class="kt">10000</span><span class="p">,</span>
+<span class="w">  </span><span class="p">});</span>
+<span class="w">  </span><span class="k">await</span><span class="w"> </span><span class="nx">page</span><span class="p">.</span><span class="kr">goto</span><span class="p">(</span><span class="sb">`file://</span><span class="si">${</span><span class="nx">path</span><span class="p">.</span><span class="nx">resolve</span><span class="p">(</span><span class="nx">__dirname</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;index.html&#39;</span><span class="p">)</span><span class="si">}</span><span class="sb">`</span><span class="p">);</span>
+<span class="w">  </span><span class="k">await</span><span class="w"> </span><span class="nx">readyPromise</span><span class="p">;</span>
+
+<span class="w">  </span><span class="k">await</span><span class="w"> </span><span class="nx">page</span><span class="p">.</span><span class="nx">evaluate</span><span class="p">((</span><span class="nx">yaml</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nb">window</span><span class="p">.</span><span class="nx">postMessage</span><span class="p">({</span><span class="w"> </span><span class="kr">type</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;update&#39;</span><span class="p">,</span><span class="w"> </span><span class="nx">text</span><span class="o">:</span><span class="w"> </span><span class="kt">yaml</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="s1">&#39;*&#39;</span><span class="p">);</span>
+<span class="w">  </span><span class="p">},</span><span class="w"> </span><span class="nx">myYaml</span><span class="p">);</span>
+
+<span class="w">  </span><span class="k">await</span><span class="w"> </span><span class="nx">expect</span><span class="p">(</span><span class="nx">page</span><span class="p">.</span><span class="nx">locator</span><span class="p">(</span><span class="s1">&#39;h2&#39;</span><span class="p">)).</span><span class="nx">toBeVisible</span><span class="p">();</span>
+<span class="p">});</span>
+</code></pre></div>
+<hr />
+<h2 id="fixtures-and-test-data">Fixtures and test data<a class="headerlink" href="#fixtures-and-test-data" title="Permanent link">&para;</a></h2>
+<h3 id="jest-fixtures-srctestfixtures">Jest fixtures (<code>src/test/fixtures/</code>)<a class="headerlink" href="#jest-fixtures-srctestfixtures" title="Permanent link">&para;</a></h3>
+<p>Three YAML files used directly in Jest tests:</p>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sample-memmap.yml</code></td>
+<td>A valid memory map with registers, fields, and address blocks</td>
+</tr>
+<tr>
+<td><code>sample-ipcore.yml</code></td>
+<td>A valid IP Core with bus interfaces and memory map reference</td>
+</tr>
+<tr>
+<td><code>invalid-syntax.yml</code></td>
+<td>Deliberately malformed YAML for testing error paths</td>
+</tr>
+</tbody>
+</table>
+<p>Load them in tests with <code>fs.readFileSync</code> or <code>path.resolve(__dirname, ...)</code>.</p>
+<h3 id="smoke-test-fixtures-srcteste2efixtures">Smoke test fixtures (<code>src/test/e2e/fixtures/</code>)<a class="headerlink" href="#smoke-test-fixtures-srcteste2efixtures" title="Permanent link">&para;</a></h3>
+<p>Two YAML files that VS Code opens during tier 4 smoke tests:</p>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>test.mm.yml</code></td>
+<td>A minimal memory map file; opened to verify the Memory Map custom editor resolves</td>
+</tr>
+<tr>
+<td><code>test.ip.yml</code></td>
+<td>A minimal IP Core file; opened to verify the IP Core custom editor resolves</td>
+</tr>
+</tbody>
+</table>
+<p>These must be valid enough for the extension to accept them without crashing. Do not delete them; the smoke tests depend on their paths.</p>
+<h3 id="browser-test-harnesses-srctestbrowser">Browser test harnesses (<code>src/test/browser/</code>)<a class="headerlink" href="#browser-test-harnesses-srctestbrowser" title="Permanent link">&para;</a></h3>
+<p>Two HTML files that serve as standalone browser hosts for the compiled React bundles:</p>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Bundle loaded</th>
+<th>Root element</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>index.html</code></td>
+<td><code>dist/webview.js</code> + <code>dist/webview.css</code></td>
+<td><code>#root</code></td>
+</tr>
+<tr>
+<td><code>ipcore.html</code></td>
+<td><code>dist/ipcore.js</code> + <code>dist/ipcore.css</code></td>
+<td><code>#ipcore-root</code></td>
+</tr>
+</tbody>
+</table>
+<p>Each harness:
+- Defines <code>window.acquireVsCodeApi()</code> before loading the bundle (the React app calls this during startup).
+- Logs all outbound messages from the webview as <code>VSCODE_MESSAGE: ...</code> in the browser console so Playwright can intercept them.
+- Stores the last outbound message in <code>window.__last_message</code> for assertion.</p>
+<p>The harnesses load files from <code>dist/</code> using relative paths. <strong>If you move or rename these files, update the relative paths in both harnesses.</strong></p>
+<hr />
+<h2 id="debugging-failures">Debugging failures<a class="headerlink" href="#debugging-failures" title="Permanent link">&para;</a></h2>
+<h3 id="jest-test-failure">Jest test failure<a class="headerlink" href="#jest-test-failure" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Run the failing file in isolation:
+   <div class="highlight"><pre><span></span><code>npm<span class="w"> </span>run<span class="w"> </span>test:unit<span class="w"> </span>--<span class="w"> </span>src/test/suite/services/MyService.test.ts
+</code></pre></div></li>
+<li>Add <code>--verbose</code> for per-test output.</li>
+<li>To debug interactively, add <code>debugger</code> to your test and run:
+   <div class="highlight"><pre><span></span><code>node<span class="w"> </span>--inspect-brk<span class="w"> </span>node_modules/.bin/jest<span class="w"> </span>--runInBand<span class="w"> </span>src/test/suite/services/MyService.test.ts
+</code></pre></div>
+   Then attach your debugger (VS Code: use the "Attach to Node" debug config).</li>
+<li>If a mock is not working, check <code>__mocks__/vscode.ts</code>. Only the methods listed there are mocked. If your test calls a VS Code API not in that file, you will get <code>undefined</code> or a crash.</li>
+</ol>
+<h3 id="playwright-test-failure">Playwright test failure<a class="headerlink" href="#playwright-test-failure" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Run with a visible browser to watch what happens:
+   <div class="highlight"><pre><span></span><code>npm<span class="w"> </span>run<span class="w"> </span>test:browser<span class="w"> </span>--<span class="w"> </span>--headed
+</code></pre></div></li>
+<li>Open Playwright Inspector for step-by-step debugging:
+   <div class="highlight"><pre><span></span><code>npm<span class="w"> </span>run<span class="w"> </span>test:browser<span class="w"> </span>--<span class="w"> </span>--debug
+</code></pre></div></li>
+<li>On failure in CI, the HTML report and screenshots are uploaded as the <code>browser-test-results</code> artifact. Download it and open <code>playwright-report/index.html</code> locally.</li>
+<li>If the page appears empty or "Loading..." never disappears, check that you ran <code>npm run compile</code> first. The harness loads <code>dist/webview.js</code> — if that file is missing or stale, the app will not mount.</li>
+<li>Check the browser console output in your terminal. The test setup logs every console message from the page. Error messages from the React bundle appear there.</li>
+</ol>
+<h3 id="vs-code-smoke-test-failure">VS Code smoke test failure<a class="headerlink" href="#vs-code-smoke-test-failure" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Smoke tests print output to the terminal. Look for lines starting with <code>FAIL</code> or <code>Error:</code>.</li>
+<li>If <code>test:e2e</code> fails with "Failed to run tests" immediately, check that you compiled:
+   <div class="highlight"><pre><span></span><code>npm<span class="w"> </span>run<span class="w"> </span>compile<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>npm<span class="w"> </span>run<span class="w"> </span>compile-tests
+npm<span class="w"> </span>run<span class="w"> </span>test:e2e
+</code></pre></div></li>
+<li>If a file-opening test fails: ensure the fixture files in <code>src/test/e2e/fixtures/</code> exist and are valid YAML. The tests wait 3 seconds for the custom editor to resolve — if VS Code is slow, the timing may need adjustment.</li>
+<li>On Linux without a display server, prefix with <code>xvfb-run -a</code>:
+   <div class="highlight"><pre><span></span><code>xvfb-run<span class="w"> </span>-a<span class="w"> </span>npm<span class="w"> </span>run<span class="w"> </span>test:e2e
+</code></pre></div></li>
+</ol>
+<h3 id="typescript-errors">TypeScript errors<a class="headerlink" href="#typescript-errors" title="Permanent link">&para;</a></h3>
+<p>Run <code>npm run type-check</code> first. Jest uses <code>ts-jest</code> which can show slightly different error messages than <code>tsc</code>. If only <code>ts-jest</code> reports an error, check whether the issue is in a test file only.</p>
+<hr />
+<h2 id="common-pitfalls">Common pitfalls<a class="headerlink" href="#common-pitfalls" title="Permanent link">&para;</a></h2>
+<h3 id="resetmocks-true-clears-mock-implementations-between-tests"><code>resetMocks: true</code> clears mock implementations between tests<a class="headerlink" href="#resetmocks-true-clears-mock-implementations-between-tests" title="Permanent link">&para;</a></h3>
+<p><code>config/jest.config.js</code> sets both <code>clearMocks: true</code> and <code>resetMocks: true</code>. This means Jest resets mock implementations (not just call history) between every test. If you configure a mock inside a <code>beforeAll()</code> or at the top level of a <code>describe()</code>, and then reset it in a <code>beforeEach()</code> — or if Jest resets it automatically between describe-level setup and test execution — the mock will have no implementation when the test runs.</p>
+<p><strong>Rule:</strong> Set up mock implementations (<code>.mockReturnValue</code>, <code>.mockResolvedValue</code>, etc.) in <code>beforeEach()</code>, not <code>beforeAll()</code> or at describe scope.</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// BAD — implementation is reset before the test runs</span>
+<span class="nx">beforeAll</span><span class="p">(()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">mockService</span><span class="p">.</span><span class="nx">loadData</span><span class="p">.</span><span class="nx">mockResolvedValue</span><span class="p">(</span><span class="nx">data</span><span class="p">);</span>
+<span class="p">});</span>
+
+<span class="c1">// GOOD — re-applied before each test</span>
+<span class="nx">beforeEach</span><span class="p">(()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">mockService</span><span class="p">.</span><span class="nx">loadData</span><span class="p">.</span><span class="nx">mockResolvedValue</span><span class="p">(</span><span class="nx">data</span><span class="p">);</span>
+<span class="p">});</span>
+</code></pre></div>
+<h3 id="the-vscode-mock-does-not-cover-all-vs-code-apis">The <code>vscode</code> mock does not cover all VS Code APIs<a class="headerlink" href="#the-vscode-mock-does-not-cover-all-vs-code-apis" title="Permanent link">&para;</a></h3>
+<p><code>__mocks__/vscode.ts</code> is intentionally sparse. It only mocks what the current code uses. If you add a test for code that calls a VS Code API not in that file (e.g., <code>vscode.env.openExternal</code>), Jest will not find it and your test will throw.</p>
+<p><strong>Fix:</strong> Add the missing API to <code>__mocks__/vscode.ts</code> before writing the test.</p>
+<h3 id="browser-tests-require-compiled-bundles">Browser tests require compiled bundles<a class="headerlink" href="#browser-tests-require-compiled-bundles" title="Permanent link">&para;</a></h3>
+<p>The Playwright harnesses load <code>dist/webview.js</code> and <code>dist/ipcore.js</code> from the local filesystem. If you have not compiled the extension, or if your changes are newer than the last build, the tests will run against stale code.</p>
+<p><strong>Always run <code>npm run compile</code> before <code>npm run test:browser</code>.</strong></p>
+<h3 id="smoke-tests-require-compiled-typescript-in-out">Smoke tests require compiled TypeScript in <code>out/</code><a class="headerlink" href="#smoke-tests-require-compiled-typescript-in-out" title="Permanent link">&para;</a></h3>
+<p><code>npm run test:e2e</code> runs <code>out/test/e2e/runTests.js</code> — the compiled version of <code>src/test/e2e/runTests.ts</code>. If you change test files and run <code>test:e2e</code> without recompiling, it will run the old compiled version.</p>
+<p><strong>Always run <code>npm run compile-tests</code> before <code>npm run test:e2e</code>.</strong></p>
+<h3 id="smoke-tests-use-mocha-syntax-not-jest-syntax">Smoke tests use Mocha syntax, not Jest syntax<a class="headerlink" href="#smoke-tests-use-mocha-syntax-not-jest-syntax" title="Permanent link">&para;</a></h3>
+<p>All files under <code>src/test/e2e/</code> use Mocha's <code>suite()</code> and <code>test()</code> functions — <strong>not</strong> Jest's <code>describe()</code> and <code>it()</code>. Do not mix them. Jest does not run these files (they are excluded in <code>testPathIgnorePatterns</code>), but Mocha inside the VS Code test host does.</p>
+<h3 id="playwright-browser-tests-are-also-excluded-from-jest">Playwright browser tests are also excluded from Jest<a class="headerlink" href="#playwright-browser-tests-are-also-excluded-from-jest" title="Permanent link">&para;</a></h3>
+<p><code>src/test/browser/</code> is also excluded from Jest's <code>testPathIgnorePatterns</code>. These files use Playwright's <code>test</code> and <code>expect</code> imports, which are incompatible with Jest. Do not attempt to run them with <code>npm run test:unit</code>.</p>
+<h3 id="the-ip-core-harness-uses-ipcore-root-not-root">The IP Core harness uses <code>#ipcore-root</code>, not <code>#root</code><a class="headerlink" href="#the-ip-core-harness-uses-ipcore-root-not-root" title="Permanent link">&para;</a></h3>
+<p>The Memory Map app mounts at <code>#root</code>. The IP Core app mounts at <code>#ipcore-root</code>. When writing Playwright tests for the IP Core webview, wait for <code>#ipcore-root</code> to appear, not <code>#root</code>.</p>
+<h3 id="css-modules-are-proxied-in-jest">CSS modules are proxied in Jest<a class="headerlink" href="#css-modules-are-proxied-in-jest" title="Permanent link">&para;</a></h3>
+<p><code>config/jest.config.js</code> maps <code>*.css</code> imports to <code>identity-obj-proxy</code>. This means <code>styles.myClass</code> returns <code>"myClass"</code> as a string rather than failing. You cannot assert on CSS class names in Jest component tests — this is intentional.</p>
+<hr />
+<h2 id="ci-overview">CI overview<a class="headerlink" href="#ci-overview" title="Permanent link">&para;</a></h2>
+<p>CI runs on every push to <code>main</code> and every pull request targeting <code>main</code>. The workflow is in <code>.github/workflows/ci.yml</code>.</p>
+<p>Steps in order:</p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Command</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Install</td>
+<td><code>npm ci</code></td>
+<td>Install exact versions from <code>package-lock.json</code></td>
+</tr>
+<tr>
+<td>Lint</td>
+<td><code>npm run lint</code></td>
+<td>ESLint (zero warnings)</td>
+</tr>
+<tr>
+<td>Type check</td>
+<td><code>npm run type-check</code></td>
+<td>TypeScript check</td>
+</tr>
+<tr>
+<td>Build</td>
+<td><code>npm run compile &amp;&amp; npm run compile-tests</code></td>
+<td>Webpack bundles + compiled test runner</td>
+</tr>
+<tr>
+<td>Unit tests</td>
+<td><code>npm run test:unit -- --coverage</code></td>
+<td>Jest tests + coverage report</td>
+</tr>
+<tr>
+<td>Smoke tests</td>
+<td><code>xvfb-run -a npm run test:e2e</code></td>
+<td>VS Code smoke tests on virtual display</td>
+</tr>
+<tr>
+<td>Install browsers</td>
+<td><code>npx playwright install --with-deps chromium</code></td>
+<td>Download Chromium for Playwright</td>
+</tr>
+<tr>
+<td>Browser tests</td>
+<td><code>npm run test:browser</code></td>
+<td>Playwright tests</td>
+</tr>
+<tr>
+<td>Upload coverage</td>
+<td><code>actions/upload-artifact</code> (always)</td>
+<td><code>coverage/</code> retained 14 days</td>
+</tr>
+<tr>
+<td>Upload browser failures</td>
+<td><code>actions/upload-artifact</code> (on failure only)</td>
+<td><code>test-results/</code> + <code>playwright-report/</code> retained 7 days</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Coverage thresholds</strong> are enforced by Jest. The CI unit-test step will fail if any threshold is breached:</p>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Threshold</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Statements</td>
+<td>25%</td>
+</tr>
+<tr>
+<td>Branches</td>
+<td>18%</td>
+</tr>
+<tr>
+<td>Functions</td>
+<td>19%</td>
+</tr>
+<tr>
+<td>Lines</td>
+<td>25%</td>
+</tr>
+</tbody>
+</table>
+<p>These are intentionally modest — most of the React webview code is not reachable by Jest tests (it runs in a browser, not Node.js). The Playwright tests cover that code instead.</p>
+<p><strong>Browser failure artifacts:</strong> If the Playwright step fails in CI, screenshots and traces are automatically uploaded as the <code>browser-test-results</code> artifact. Download it and open <code>playwright-report/index.html</code> to see which test failed and why.</p>
+<hr />
+<h2 id="contributor-checklist">Contributor checklist<a class="headerlink" href="#contributor-checklist" title="Permanent link">&para;</a></h2>
+<p>Run these before opening a pull request:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Static checks</span>
+npm<span class="w"> </span>run<span class="w"> </span>lint
+npm<span class="w"> </span>run<span class="w"> </span>type-check
+
+<span class="c1"># Unit + node-side tests (fast, run first)</span>
+npm<span class="w"> </span>run<span class="w"> </span>test:unit
+
+<span class="c1"># Build everything</span>
+npm<span class="w"> </span>run<span class="w"> </span>compile
+npm<span class="w"> </span>run<span class="w"> </span>compile-tests
+
+<span class="c1"># VS Code smoke tests (slower, needs virtual display on Linux)</span>
+xvfb-run<span class="w"> </span>-a<span class="w"> </span>npm<span class="w"> </span>run<span class="w"> </span>test:e2e<span class="w">   </span><span class="c1"># Linux</span>
+npm<span class="w"> </span>run<span class="w"> </span>test:e2e<span class="w">               </span><span class="c1"># macOS/Windows</span>
+
+<span class="c1"># Browser tests</span>
+npm<span class="w"> </span>run<span class="w"> </span>test:browser
+</code></pre></div>
+<p>If your change only touches pure TypeScript logic or React components, <code>npm run lint &amp;&amp; npm run type-check &amp;&amp; npm run test:unit</code> is the minimum viable check. If you touched extension-host code (providers, generators, services), also run the smoke tests. If you touched the webview React code, also run the browser tests.</p>
+<p>Also check:</p>
+<ul>
+<li>[ ] New logic has a test in the appropriate <code>src/test/suite/</code> sub-directory</li>
+<li>[ ] No new <code>any</code> types introduced without a justifying comment</li>
+<li>[ ] Fixtures in <code>src/test/fixtures/</code> or <code>src/test/e2e/fixtures/</code> are updated if the YAML schema changed</li>
+<li>[ ] <code>__mocks__/vscode.ts</code> is updated if new VS Code APIs are called from tested code</li>
+<li>[ ] <code>docs/</code> is updated if you changed a user-visible behavior or workflow</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2026 Le Viet Bach
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.expand", "navigation.tabs", "navigation.top", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
