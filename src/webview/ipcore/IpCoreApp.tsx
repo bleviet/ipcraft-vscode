@@ -1,11 +1,17 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { NavigationSidebar } from './components/layout/NavigationSidebar';
-import { EditorPanel } from './components/layout/EditorPanel';
+import { EditorPanel, type ViewMode } from './components/layout/EditorPanel';
+import { CanvasInspector } from './components/canvas/CanvasInspector';
 import { useIpCoreState } from './hooks/useIpCoreState';
 import { useNavigation } from './hooks/useNavigation';
 import { useIpCoreSync } from './hooks/useIpCoreSync';
+import { useCanvasSelection } from './hooks/useCanvasSelection';
+import { useCanvasDrop } from './hooks/useCanvasDrop';
+import { useCanvasUndo } from './hooks/useCanvasUndo';
+import { LibraryPalette } from './components/canvas/LibraryPalette';
 import { vscode } from '../vscode';
+import type { IpCore } from '../types/ipCore';
 import '../index.css';
 
 export type FocusedPanel = 'left' | 'right';
@@ -21,14 +27,98 @@ const IpCoreApp: React.FC = () => {
     fileName,
     imports,
     updateFromYaml,
-    updateIpCore,
+    updateIpCore: baseUpdateIpCore,
     getValidationErrors,
   } = useIpCoreState();
   const { selectedSection, navigate } = useNavigation();
   useIpCoreSync(rawYaml);
 
+  // Undo/Redo stack for canvas actions
+  const {
+    push: pushUndo,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+  } = useCanvasUndo({
+    rawYaml,
+    updateFromYaml,
+    fileName: fileName ?? 'ipcore',
+  });
+
+  // Intercept updates to push to undo stack
+  const updateIpCore = React.useCallback(
+    (path: Array<string | number>, value: unknown) => {
+      pushUndo();
+      baseUpdateIpCore(path, value);
+    },
+    [baseUpdateIpCore, pushUndo]
+  );
+
   // Sidebar toggle state for mobile
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Canvas vs table view mode
+  const [viewMode, setViewMode] = useState<ViewMode>('canvas');
+
+  // Canvas element selection (Phase 2)
+  const {
+    selected: canvasSelected,
+    selectedId: canvasSelectedId,
+    select: canvasSelect,
+    deselect: canvasDeselect,
+  } = useCanvasSelection();
+
+  // Canvas drop handling (Phase 3)
+  const { handleDragOver: onCanvasDragOver, handleDrop: onCanvasDrop } = useCanvasDrop({
+    ipCore: ipCore as unknown as IpCore,
+    onUpdate: updateIpCore,
+    onSelect: canvasSelect,
+  });
+
+  // Canvas drag-to-remove handling (Phase 4)
+  const handleCanvasRemove = React.useCallback(
+    (kind: string, id: string) => {
+      let path: Array<string | number> | null = null;
+
+      const findIndex = (arr: unknown[]) => {
+        if (!Array.isArray(arr)) {
+          return -1;
+        }
+        return arr.findIndex((item) => (item as { name?: string })?.name === id);
+      };
+
+      if (kind === 'clock') {
+        const idx = findIndex((ipCore as unknown as IpCore)?.clocks ?? []);
+        if (idx !== -1) {
+          path = ['clocks', idx];
+        }
+      } else if (kind === 'reset') {
+        const idx = findIndex((ipCore as unknown as IpCore)?.resets ?? []);
+        if (idx !== -1) {
+          path = ['resets', idx];
+        }
+      } else if (kind === 'bus') {
+        const idx = findIndex((ipCore as unknown as IpCore)?.busInterfaces ?? []);
+        if (idx !== -1) {
+          path = ['busInterfaces', idx];
+        }
+      } else if (kind === 'port') {
+        const idx = findIndex((ipCore as unknown as IpCore)?.ports ?? []);
+        if (idx !== -1) {
+          path = ['ports', idx];
+        }
+      }
+
+      if (path) {
+        updateIpCore(path, undefined);
+        if (canvasSelectedId === id) {
+          canvasDeselect();
+        }
+      }
+    },
+    [ipCore, updateIpCore, canvasSelectedId, canvasDeselect]
+  );
 
   // Panel focus state for Ctrl+H/L navigation
   const [focusedPanel, setFocusedPanel] = useState<FocusedPanel>('left');
@@ -123,16 +213,18 @@ const IpCoreApp: React.FC = () => {
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            {/* Mobile sidebar toggle */}
-            <button
-              className="sidebar-toggle-btn p-2 rounded-md transition-colors vscode-icon-button"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              title="Toggle navigation"
-              aria-label="Toggle navigation"
-              type="button"
-            >
-              <span className="codicon codicon-menu"></span>
-            </button>
+            {/* Mobile sidebar toggle (table mode only) */}
+            {viewMode === 'table' && (
+              <button
+                className="sidebar-toggle-btn p-2 rounded-md transition-colors vscode-icon-button"
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                title="Toggle navigation"
+                aria-label="Toggle navigation"
+                type="button"
+              >
+                <span className="codicon codicon-menu"></span>
+              </button>
+            )}
             <h1 className="text-sm font-semibold">{fileName || 'IP Core Editor'}</h1>
             {typedIpCore?.vlnv && typeof typedIpCore.vlnv === 'object' && (
               <span className="text-xs" style={{ opacity: 0.7 }}>
@@ -140,11 +232,63 @@ const IpCoreApp: React.FC = () => {
               </span>
             )}
           </div>
-          {validationErrors.length > 0 && (
-            <div className="text-sm" style={{ color: 'var(--vscode-errorForeground)' }}>
-              {validationErrors.length} validation error(s)
+          <div className="flex items-center gap-3">
+            {/* View mode toggle */}
+            <div className="flex items-center gap-1">
+              <button
+                className={`canvas-view-toggle`}
+                onClick={undo}
+                disabled={!canUndo || viewMode === 'table'}
+                title="Undo (Ctrl+Z)"
+                aria-label="Undo"
+                type="button"
+                style={{
+                  opacity: !canUndo || viewMode === 'table' ? 0.4 : 1,
+                  cursor: !canUndo || viewMode === 'table' ? 'not-allowed' : 'pointer',
+                }}
+              >
+                <span className="codicon codicon-discard"></span>
+              </button>
+              <button
+                className={`canvas-view-toggle`}
+                onClick={redo}
+                disabled={!canRedo || viewMode === 'table'}
+                title="Redo (Ctrl+Y)"
+                aria-label="Redo"
+                type="button"
+                style={{
+                  opacity: !canRedo || viewMode === 'table' ? 0.4 : 1,
+                  cursor: !canRedo || viewMode === 'table' ? 'not-allowed' : 'pointer',
+                }}
+              >
+                <span className="codicon codicon-redo"></span>
+              </button>
+              <div style={{ width: '8px' }}></div>
+              <button
+                className={`canvas-view-toggle ${viewMode === 'canvas' ? 'canvas-view-toggle--active' : ''}`}
+                onClick={() => setViewMode('canvas')}
+                title="Canvas view"
+                aria-label="Canvas view"
+                type="button"
+              >
+                <span className="codicon codicon-symbol-misc"></span>
+              </button>
+              <button
+                className={`canvas-view-toggle ${viewMode === 'table' ? 'canvas-view-toggle--active' : ''}`}
+                onClick={() => setViewMode('table')}
+                title="Table view"
+                aria-label="Table view"
+                type="button"
+              >
+                <span className="codicon codicon-list-flat"></span>
+              </button>
             </div>
-          )}
+            {validationErrors.length > 0 && (
+              <div className="text-sm" style={{ color: 'var(--vscode-errorForeground)' }}>
+                {validationErrors.length} validation error(s)
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -181,29 +325,53 @@ const IpCoreApp: React.FC = () => {
           </div>
         ) : (
           <>
-            {/* Sidebar backdrop for mobile */}
-            {sidebarOpen && (
-              <div className="sidebar-backdrop active" onClick={() => setSidebarOpen(false)} />
+            {/* Sidebar (table mode only) */}
+            {viewMode === 'table' && (
+              <>
+                {sidebarOpen && (
+                  <div className="sidebar-backdrop active" onClick={() => setSidebarOpen(false)} />
+                )}
+                <NavigationSidebar
+                  selectedSection={selectedSection}
+                  onNavigate={navigate}
+                  ipCore={{ ...typedIpCore, imports }}
+                  isFocused={focusedPanel === 'left'}
+                  onFocus={() => setFocusedPanel('left')}
+                  panelRef={leftPanelRef}
+                  className={sidebarOpen ? 'sidebar-open' : ''}
+                />
+              </>
             )}
-            <NavigationSidebar
-              selectedSection={selectedSection}
-              onNavigate={navigate}
-              ipCore={{ ...typedIpCore, imports }}
-              isFocused={focusedPanel === 'left'}
-              onFocus={() => setFocusedPanel('left')}
-              panelRef={leftPanelRef}
-              className={sidebarOpen ? 'sidebar-open' : ''}
-            />
+
+            {/* Library Palette (canvas mode only) */}
+            {viewMode === 'canvas' && <LibraryPalette />}
+
             <EditorPanel
               selectedSection={selectedSection}
+              viewMode={viewMode}
               ipCore={typedIpCore}
               imports={imports}
               onUpdate={updateIpCore}
-              isFocused={focusedPanel === 'right'}
+              isFocused={viewMode === 'canvas' || focusedPanel === 'right'}
               onFocus={() => setFocusedPanel('right')}
               panelRef={rightPanelRef}
               highlight={highlight}
+              canvasSelectedId={canvasSelectedId}
+              onCanvasSelect={canvasSelect}
+              onCanvasDragOver={onCanvasDragOver}
+              onCanvasDrop={onCanvasDrop}
+              onCanvasRemove={handleCanvasRemove}
             />
+            {/* Context-aware inspector (canvas mode only) */}
+            {viewMode === 'canvas' && canvasSelected && typedIpCore && (
+              <CanvasInspector
+                selected={canvasSelected}
+                ipCore={typedIpCore}
+                imports={imports}
+                onUpdate={updateIpCore}
+                onClose={canvasDeselect}
+              />
+            )}
           </>
         )}
       </div>

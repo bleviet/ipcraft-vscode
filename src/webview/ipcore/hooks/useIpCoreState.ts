@@ -99,8 +99,12 @@ export function useIpCoreState() {
         // Parse the existing YAML into a Document to preserve comments/structure
         const doc = yaml.parseDocument(prev.rawYaml);
 
-        // Update the value at the specified path
-        doc.setIn(path, value);
+        // Update or delete the value at the specified path
+        if (value === undefined) {
+          doc.deleteIn(path);
+        } else {
+          doc.setIn(path, value);
+        }
 
         // Convert back to string (preserves format and comments)
         const newYaml = doc.toString({ indent: 2 });

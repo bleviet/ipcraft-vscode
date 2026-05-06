@@ -33,6 +33,7 @@
         "node_modules",
         ".vscode-test",
         "__mocks__",
-        "config"
+        "config",
+        "build"
     ]
 }

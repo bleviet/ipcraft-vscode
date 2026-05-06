@@ -1,0 +1,207 @@
+import React from 'react';
+import type { LayoutPort } from './canvasLayout';
+import { STUB_LENGTH } from './canvasLayout';
+
+import { ValidationAnnotation } from '../../hooks/useCanvasValidation';
+
+interface CanvasBusBundleProps {
+  port: LayoutPort;
+  selected: boolean;
+  annotations?: ValidationAnnotation[];
+  onSelect: (id: string) => void;
+}
+
+/**
+ * Renders a bus interface as a wide "bundle" connector on the block edge.
+ *
+ * Visually distinct from regular ports: thicker stub, protocol badge, mode indicator.
+ */
+export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
+  port,
+  selected,
+  annotations,
+  onSelect,
+}) => {
+  const isLeft = port.side === 'left';
+  const bus = port.data as {
+    associatedClock?: string | null;
+    associatedReset?: string | null;
+    memoryMapRef?: string | null;
+  };
+
+  const hasError = annotations?.some((a) => a.severity === 'error');
+  const tooltipText = annotations
+    ?.map((a) => `[${a.severity.toUpperCase()}] ${a.message}`)
+    .join('\n');
+
+  // Bundle stub geometry (thicker "bus" line)
+  const stubDir = isLeft ? -1 : 1;
+  const stubEndX = port.x + stubDir * STUB_LENGTH;
+
+  // Protocol badge position
+  const badgeX = port.x + stubDir * (STUB_LENGTH + 8);
+  const badgeY = port.y;
+
+  // Indicators for clock/reset/memmap associations
+  const hasClockAssoc = !!bus.associatedClock;
+  const hasResetAssoc = !!bus.associatedReset;
+  const hasMemMap = !!bus.memoryMapRef;
+
+  return (
+    <g
+      className={`canvas-bus-bundle ${selected ? 'canvas-bus-bundle--selected' : ''}`}
+      onClick={(e) => {
+        e.stopPropagation();
+        onSelect(port.id);
+      }}
+      data-port-id={port.id}
+      style={{ cursor: 'grab' }}
+      onDragStart={(e) => {
+        e.stopPropagation();
+        const payload = { action: 'remove', kind: port.kind, id: port.id };
+        e.dataTransfer.setData('application/x-ipcraft-remove', JSON.stringify(payload));
+        e.dataTransfer.effectAllowed = 'move';
+
+        const target = e.currentTarget as SVGGElement;
+        setTimeout(() => {
+          target.style.opacity = '0.4';
+        }, 0);
+      }}
+      onDragEnd={(e) => {
+        const target = e.currentTarget as SVGGElement;
+        target.style.opacity = '1';
+      }}
+    >
+      {/* Hit area */}
+      <rect
+        x={isLeft ? stubEndX : port.x}
+        y={port.y - 12}
+        width={STUB_LENGTH}
+        height={24}
+        fill="transparent"
+        style={{ cursor: 'pointer' }}
+      />
+
+      {/* Bus stub (thick line) */}
+      <line
+        x1={port.x}
+        y1={port.y}
+        x2={stubEndX}
+        y2={port.y}
+        className="canvas-bus-bundle__stub"
+        strokeWidth={4}
+      />
+
+      {/* Connector block at block edge */}
+      <rect
+        x={port.x - 4}
+        y={port.y - 6}
+        width={8}
+        height={12}
+        className="canvas-bus-bundle__connector"
+        rx={2}
+      />
+
+      {/* Protocol badge */}
+      <g transform={`translate(${badgeX}, ${badgeY})`}>
+        <rect
+          x={isLeft ? -80 : 0}
+          y={-10}
+          width={80}
+          height={20}
+          rx={4}
+          className="canvas-bus-bundle__badge"
+        />
+        <text
+          x={isLeft ? -40 : 40}
+          y={0}
+          textAnchor="middle"
+          dominantBaseline="central"
+          className="canvas-bus-bundle__protocol"
+        >
+          {port.protocol ?? 'Bus'}
+        </text>
+      </g>
+
+      {/* Mode indicator (S/M) */}
+      {port.mode && (
+        <g transform={`translate(${port.x + stubDir * (STUB_LENGTH / 2)}, ${port.y - 14})`}>
+          <rect x={-10} y={-8} width={20} height={16} rx={3} className="canvas-bus-bundle__mode" />
+          <text
+            x={0}
+            y={0}
+            textAnchor="middle"
+            dominantBaseline="central"
+            className="canvas-bus-bundle__mode-text"
+            fontSize={9}
+            fontWeight={700}
+          >
+            {port.mode}
+          </text>
+        </g>
+      )}
+
+      {/* Name label (below the stub) */}
+      <text
+        x={port.x + stubDir * (STUB_LENGTH / 2)}
+        y={port.y + 18}
+        textAnchor="middle"
+        className="canvas-bus-bundle__name"
+      >
+        {port.label}
+      </text>
+
+      {/* Association indicators (small dots below name) */}
+      <g transform={`translate(${port.x + stubDir * (STUB_LENGTH / 2)}, ${port.y + 30})`}>
+        {hasClockAssoc && (
+          <circle
+            cx={-8}
+            cy={0}
+            r={3}
+            className="canvas-bus-bundle__assoc canvas-bus-bundle__assoc--clock"
+          />
+        )}
+        {hasResetAssoc && (
+          <circle
+            cx={0}
+            cy={0}
+            r={3}
+            className="canvas-bus-bundle__assoc canvas-bus-bundle__assoc--reset"
+          />
+        )}
+        {hasMemMap && (
+          <circle
+            cx={8}
+            cy={0}
+            r={3}
+            className="canvas-bus-bundle__assoc canvas-bus-bundle__assoc--memmap"
+          />
+        )}
+      </g>
+
+      {/* Selection ring */}
+      {selected && (
+        <rect
+          x={Math.min(port.x, stubEndX) - 4}
+          y={port.y - 16}
+          width={STUB_LENGTH + 8}
+          height={32}
+          rx={6}
+          className="canvas-bus-bundle__selection-ring"
+        />
+      )}
+
+      {/* Validation Indicator */}
+      {annotations && annotations.length > 0 && (
+        <circle
+          cx={port.x + stubDir * (STUB_LENGTH / 2)}
+          y={port.y - 20}
+          r={5}
+          className={`ip-canvas-annotation-dot ${hasError ? 'ip-canvas-annotation-dot--error' : 'ip-canvas-annotation-dot--warning'}`}
+        >
+          <title>{tooltipText}</title>
+        </circle>
+      )}
+    </g>
+  );
+};

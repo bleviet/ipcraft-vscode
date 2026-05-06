@@ -10,10 +10,14 @@ import { FileSetsEditor } from '../sections/FileSetsEditor';
 import { BusInterfacesEditor } from '../sections/BusInterfacesEditor';
 import { MemoryMapsEditor } from '../sections/MemoryMapsEditor';
 import { GeneratorPanel } from '../sections/GeneratorPanel';
+import { IpBlockCanvas } from '../canvas/IpBlockCanvas';
 import { Section } from '../../hooks/useNavigation';
+
+export type ViewMode = 'table' | 'canvas';
 
 interface EditorPanelProps {
   selectedSection: Section;
+  viewMode: ViewMode;
   ipCore: IpCore | null;
   imports?: { busLibrary?: unknown; memoryMaps?: unknown[] };
   onUpdate: YamlUpdateHandler;
@@ -21,6 +25,11 @@ interface EditorPanelProps {
   onFocus?: () => void;
   panelRef?: RefObject<HTMLDivElement>;
   highlight?: { entityName: string; field: string };
+  canvasSelectedId?: string | null;
+  onCanvasSelect?: (id: string | null) => void;
+  onCanvasDragOver?: (e: React.DragEvent) => void;
+  onCanvasDrop?: (e: React.DragEvent) => void;
+  onCanvasRemove?: (kind: string, id: string) => void;
 }
 
 /**
@@ -28,6 +37,7 @@ interface EditorPanelProps {
  */
 export const EditorPanel: React.FC<EditorPanelProps> = ({
   selectedSection,
+  viewMode,
   ipCore,
   imports = {},
   onUpdate,
@@ -35,6 +45,11 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
   onFocus,
   panelRef,
   highlight,
+  canvasSelectedId = null,
+  onCanvasSelect,
+  onCanvasDragOver,
+  onCanvasDrop,
+  onCanvasRemove,
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
   const ip = ipCore as IpCore;
@@ -113,6 +128,32 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
         return <div>Unknown section</div>;
     }
   };
+
+  if (viewMode === 'canvas' && ip) {
+    return (
+      <div
+        ref={panelRef}
+        tabIndex={-1}
+        onClick={onFocus}
+        className="flex-1 min-w-0 outline-none"
+        style={{
+          outline: isFocused ? '1px solid var(--vscode-focusBorder)' : 'none',
+          outlineOffset: '-1px',
+          opacity: isFocused ? 1 : 0.7,
+          transition: 'opacity 0.2s',
+        }}
+      >
+        <IpBlockCanvas
+          ipCore={ip}
+          selectedId={canvasSelectedId}
+          onSelect={onCanvasSelect ?? (() => {})}
+          onDragOver={onCanvasDragOver}
+          onDrop={onCanvasDrop}
+          onRemove={onCanvasRemove}
+        />
+      </div>
+    );
+  }
 
   return (
     <div
