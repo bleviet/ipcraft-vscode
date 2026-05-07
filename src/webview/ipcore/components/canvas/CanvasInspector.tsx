@@ -572,6 +572,21 @@ const PortWidthOverridesSection: React.FC<PortWidthOverridesSectionProps> = ({
     );
   }
 
+  const useOptionalPorts = (bus.useOptionalPorts ?? []) as string[];
+  const enabledDefs = portDefs.filter(
+    (p) => p.presence === 'required' || useOptionalPorts.includes(p.name)
+  );
+
+  if (enabledDefs.length === 0) {
+    return (
+      <Section title="Port Widths">
+        <div className="ci-override-empty">
+          No enabled ports — expand the bus to activate signals
+        </div>
+      </Section>
+    );
+  }
+
   const saveWidth = (portName: string, raw: string, defaultWidth: number) => {
     const trimmed = raw.trim();
     const basePath = ['busInterfaces', busIndex, 'portWidthOverrides'];
@@ -610,7 +625,7 @@ const PortWidthOverridesSection: React.FC<PortWidthOverridesSectionProps> = ({
 
   return (
     <Section title="Port Widths">
-      {portDefs.map((portDef) => {
+      {enabledDefs.map((portDef) => {
         const defaultWidth = portDef.width ?? 1;
         const override = overrides[portDef.name];
         const hasOverride = override !== undefined;
