@@ -25,7 +25,7 @@ export const CANVAS_MARGIN_Y = 40;
 
 // --- Types ---
 
-export type PortKind = 'clock' | 'reset' | 'port' | 'bus' | 'parameter';
+export type PortKind = 'clock' | 'reset' | 'port' | 'bus';
 export type PortSide = 'left' | 'right' | 'bottom';
 
 export interface LayoutPort {
@@ -44,6 +44,14 @@ export interface LayoutPort {
   data: unknown;
 }
 
+/** A generic/parameter rendered inside the block body */
+export interface LayoutParameter {
+  index: number;
+  name: string;
+  /** Formatted default value, e.g. "32" or empty string */
+  value: string;
+}
+
 export interface CanvasLayout {
   /** The central block rectangle (in canvas coordinates) */
   blockRect: { x: number; y: number; width: number; height: number };
@@ -55,6 +63,12 @@ export interface CanvasLayout {
   coreName: string;
   /** VLNV subtitle */
   vlnvLabel: string;
+  /** Generics rendered inside the block, below the separator */
+  parameters: LayoutParameter[];
+  /** Y of separator line above the generics section (only rendered when parameters.length > 0) */
+  paramSeparatorY: number;
+  /** Y of separator line below the generics section, above where ports start (only rendered when parameters.length > 0) */
+  portSeparatorY: number;
 }
 
 // --- Helpers ---
@@ -130,15 +144,37 @@ export function computeLayout(ipCore: IpCore): CanvasLayout {
   const resets = ipCore.resets ?? [];
   const ports = ipCore.ports ?? [];
   const buses = ipCore.busInterfaces ?? [];
-  const parameters = (ipCore.parameters ?? []) as unknown as Array<Record<string, unknown>>;
+  const rawParameters = (ipCore.parameters ?? []) as unknown as Array<Record<string, unknown>>;
+
+  // Build the inline parameter list (shown inside the block, not as stubs)
+  const layoutParameters: LayoutParameter[] = rawParameters.map((p, i) => {
+    const defVal = p.defaultValue !== undefined ? p.defaultValue : p.value;
+    const value =
+      defVal !== undefined && defVal !== null && defVal !== '' ? String(defVal).slice(0, 10) : '';
+    return { index: i, name: String(p.name ?? ''), value };
+  });
+
+  // Vertical layout constants for the generics section inside the block
+  const PARAM_SEPARATOR_Y_OFFSET = 60; // first separator from blockY (below VLNV)
+  const PARAM_FIRST_ROW_OFFSET = 86; // first param row center from blockY (separator + 26)
+  const PARAM_ROW_HEIGHT = 18;
+  const AFTER_PARAMS_GAP = 12; // gap from last param row to port separator
+
+  const N = layoutParameters.length;
+
+  // When params exist, ports are pushed below the param section.
+  // portSeparatorOffset: distance from blockY to the second separator line.
+  const portSeparatorOffset =
+    N > 0 ? PARAM_FIRST_ROW_OFFSET + N * PARAM_ROW_HEIGHT + AFTER_PARAMS_GAP : null;
+
+  // portsAreaTopRelative: distance from blockY to where port stubs begin.
+  const portsAreaTopRelative =
+    portSeparatorOffset !== null ? portSeparatorOffset + EDGE_PADDING : null;
 
   // Classify ports by side
   const leftItems: Array<{ kind: PortKind; index: number; data: unknown }> = [];
   const rightItems: Array<{ kind: PortKind; index: number; data: unknown }> = [];
   const bottomItems: Array<{ kind: PortKind; index: number; data: unknown }> = [];
-
-  // Parameters/generics -> right (top, before bus interfaces and output ports)
-  parameters.forEach((p, i) => rightItems.push({ kind: 'parameter', index: i, data: p }));
 
   // Clocks -> left
   clocks.forEach((c, i) => leftItems.push({ kind: 'clock', index: i, data: c }));
@@ -166,9 +202,15 @@ export function computeLayout(ipCore: IpCore): CanvasLayout {
     }
   });
 
-  // Compute block height from the tallest side
   const maxSideCount = Math.max(leftItems.length, rightItems.length, 1);
-  const blockHeight = Math.max(MIN_BLOCK_HEIGHT, maxSideCount * PORT_PITCH + EDGE_PADDING * 2);
+
+  // Block height must fit the params section AND the ports that follow it.
+  const blockHeight = Math.max(
+    MIN_BLOCK_HEIGHT,
+    portsAreaTopRelative !== null
+      ? portsAreaTopRelative + maxSideCount * PORT_PITCH + EDGE_PADDING
+      : maxSideCount * PORT_PITCH + EDGE_PADDING * 2
+  );
 
   // Block width may expand for bottom ports
   const bottomWidth = bottomItems.length * PORT_PITCH + EDGE_PADDING * 2;
@@ -182,8 +224,15 @@ export function computeLayout(ipCore: IpCore): CanvasLayout {
   const layoutPorts: LayoutPort[] = [];
 
   const positionSide = (items: typeof leftItems, side: PortSide, baseX: number) => {
-    const totalHeight = items.length * PORT_PITCH;
-    const startY = blockY + (blockHeight - totalHeight) / 2 + PORT_PITCH / 2;
+    let startY: number;
+    if (portsAreaTopRelative !== null) {
+      // Force ports to start below the generics section
+      startY = blockY + portsAreaTopRelative + PORT_PITCH / 2;
+    } else {
+      // No params — center ports vertically (original behaviour)
+      const totalHeight = items.length * PORT_PITCH;
+      startY = blockY + (blockHeight - totalHeight) / 2 + PORT_PITCH / 2;
+    }
 
     items.forEach((item, idx) => {
       const y = startY + idx * PORT_PITCH;
@@ -214,15 +263,6 @@ export function computeLayout(ipCore: IpCore): CanvasLayout {
           mode = modeLabel(String(d.mode ?? ''));
           widthLabel = '';
           break;
-        case 'parameter': {
-          label = String(d.name ?? '');
-          const defVal = d.defaultValue !== undefined ? d.defaultValue : d.value;
-          widthLabel =
-            defVal !== undefined && defVal !== null && defVal !== ''
-              ? `=${String(defVal).slice(0, 8)}`
-              : '';
-          break;
-        }
       }
 
       layoutPorts.push({
@@ -283,5 +323,11 @@ export function computeLayout(ipCore: IpCore): CanvasLayout {
     viewBox: { width: viewWidth, height: viewHeight },
     coreName,
     vlnvLabel,
+    parameters: layoutParameters,
+    paramSeparatorY: blockY + PARAM_SEPARATOR_Y_OFFSET,
+    portSeparatorY:
+      portSeparatorOffset !== null
+        ? blockY + portSeparatorOffset
+        : blockY + PARAM_SEPARATOR_Y_OFFSET,
   };
 }

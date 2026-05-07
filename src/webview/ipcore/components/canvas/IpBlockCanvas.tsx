@@ -119,7 +119,16 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
     [onDrop, onRemove]
   );
 
-  const { blockRect, ports, viewBox, coreName, vlnvLabel } = layout;
+  const {
+    blockRect,
+    ports,
+    viewBox,
+    coreName,
+    vlnvLabel,
+    parameters,
+    paramSeparatorY,
+    portSeparatorY,
+  } = layout;
 
   return (
     <div
@@ -222,6 +231,100 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
           </text>
         )}
 
+        {/* ── Generic / parameter section inside block ── */}
+        {parameters.length > 0 && (
+          <g style={{ pointerEvents: 'none' }}>
+            {/* Separator */}
+            <line
+              x1={blockRect.x + 8}
+              y1={paramSeparatorY}
+              x2={blockRect.x + blockRect.width - 8}
+              y2={paramSeparatorY}
+              className="ip-block-param-separator"
+            />
+            {/* Section header */}
+            <text
+              x={blockRect.x + blockRect.width / 2}
+              y={paramSeparatorY + 11}
+              textAnchor="middle"
+              dominantBaseline="central"
+              className="ip-block-param-header"
+            >
+              Generics
+            </text>
+          </g>
+        )}
+        {parameters.map((param) => {
+          const rowY = paramSeparatorY + 26 + param.index * 18;
+          const isParamSelected = selectedId === `parameter:${param.index}`;
+          return (
+            <g
+              key={param.index}
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelect(`parameter:${param.index}`);
+              }}
+              style={{ cursor: 'pointer' }}
+            >
+              {/* Hit + selection highlight */}
+              <rect
+                x={blockRect.x + 4}
+                y={rowY - 8}
+                width={blockRect.width - 8}
+                height={16}
+                rx={3}
+                className={`ip-block-param-row-bg${isParamSelected ? ' ip-block-param-row-bg--selected' : ''}`}
+              />
+              {/* Generic icon */}
+              <text
+                x={blockRect.x + 14}
+                y={rowY}
+                textAnchor="middle"
+                dominantBaseline="central"
+                className="ip-block-param-icon"
+                style={{ pointerEvents: 'none' }}
+              >
+                ⊳
+              </text>
+              {/* Name */}
+              <text
+                x={blockRect.x + 24}
+                y={rowY}
+                dominantBaseline="central"
+                className="ip-block-param-name"
+                style={{ pointerEvents: 'none' }}
+              >
+                {param.name}
+              </text>
+              {/* Default value */}
+              {param.value !== '' && (
+                <text
+                  x={blockRect.x + blockRect.width - 8}
+                  y={rowY}
+                  textAnchor="end"
+                  dominantBaseline="central"
+                  className="ip-block-param-value"
+                  style={{ pointerEvents: 'none' }}
+                >
+                  = {param.value}
+                </text>
+              )}
+            </g>
+          );
+        })}
+
+        {/* Second separator — below generics, above where port stubs connect */}
+        {parameters.length > 0 && (
+          <line
+            x1={blockRect.x + 8}
+            y1={portSeparatorY}
+            x2={blockRect.x + blockRect.width - 8}
+            y2={portSeparatorY}
+            className="ip-block-param-separator"
+            style={{ pointerEvents: 'none' }}
+          />
+        )}
+
         {/* Description (if present) */}
         {ipCore.description && (
           <text
@@ -309,7 +412,7 @@ function renderEdgeBadge(
   side: 'left' | 'right',
   blockRect: { x: number; y: number; width: number; height: number }
 ) {
-  const count = ports.filter((p) => p.side === side && p.kind !== 'parameter').length;
+  const count = ports.filter((p) => p.side === side).length;
   if (count === 0) {
     return null;
   }
@@ -362,16 +465,6 @@ const PortTooltip: React.FC<PortTooltipProps> = ({ portId, ports }) => {
     const rst = port.data as { polarity?: string };
     if (rst.polarity) {
       details.push(`Polarity: ${rst.polarity}`);
-    }
-  }
-  if (port.kind === 'parameter') {
-    const p = port.data as { dataType?: string; defaultValue?: unknown; value?: unknown };
-    if (p.dataType) {
-      details.push(`Type: ${p.dataType}`);
-    }
-    const defVal = p.defaultValue ?? p.value;
-    if (defVal !== undefined && defVal !== null) {
-      details.push(`Default: ${String(defVal)}`);
     }
   }
 

@@ -82,6 +82,54 @@
   opacity: 0.7;
 }
 
+/* --- Inline parameter / generic section --- */
+
+.ip-block-param-separator {
+  stroke: var(--vscode-panel-border);
+  stroke-width: 1;
+  opacity: 0.6;
+}
+
+.ip-block-param-header {
+  fill: var(--vscode-descriptionForeground);
+  font-family: var(--vscode-font-family);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.55;
+}
+
+.ip-block-param-row-bg {
+  fill: transparent;
+  transition: fill 0.1s;
+}
+.ip-block-param-row-bg:hover {
+  fill: color-mix(in srgb, var(--vscode-charts-yellow, #dcdcaa) 8%, transparent);
+}
+.ip-block-param-row-bg--selected {
+  fill: color-mix(in srgb, var(--vscode-charts-yellow, #dcdcaa) 18%, transparent);
+}
+
+.ip-block-param-icon {
+  fill: var(--vscode-charts-yellow, #dcdcaa);
+  font-size: 10px;
+  opacity: 0.8;
+}
+
+.ip-block-param-name {
+  fill: var(--vscode-charts-yellow, #dcdcaa);
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 11px;
+}
+
+.ip-block-param-value {
+  fill: var(--vscode-descriptionForeground);
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 10px;
+  opacity: 0.7;
+}
+
 /* --- Port stubs --- */
 
 .canvas-port__stub {
@@ -139,29 +187,6 @@
   fill: var(--vscode-charts-orange, #ce9178);
 }
 
-/* Parameter/generic ports */
-.canvas-port--parameter .canvas-port__stub {
-  stroke: var(--vscode-charts-yellow, #dcdcaa);
-  opacity: 0.7;
-}
-
-.canvas-port--parameter .canvas-port__dot {
-  fill: var(--vscode-charts-yellow, #dcdcaa);
-  opacity: 0.8;
-}
-
-.canvas-port--parameter .canvas-port__icon {
-  fill: var(--vscode-charts-yellow, #dcdcaa);
-  opacity: 0.9;
-}
-
-.canvas-port--parameter.canvas-port--selected .canvas-port__stub {
-  stroke: var(--vscode-focusBorder);
-}
-
-.canvas-port--parameter.canvas-port--selected .canvas-port__dot {
-  fill: var(--vscode-focusBorder);
-}
 
 /* Hover state */
 .canvas-element--hovered .canvas-port__stub {

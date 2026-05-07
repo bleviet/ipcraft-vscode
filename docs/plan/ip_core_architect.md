@@ -98,7 +98,8 @@ canvas/table view toggle.
   - Connector dot at block edge (larger for buses)
   - Port name label (monospace, positioned outside the block)
   - Width annotation (e.g., `[31:0]`, `[DATA_WIDTH]`)
-  - Kind icons: sine wave for clock, counterclockwise arrow for reset
+  - Kind icons rendered **inside** the block body (not on the stub) to avoid
+    overlap: 🕐 for clock, ↺ for reset
   - Selection ring when active
   - Hit area (invisible wider stroke) for easy clicking
   - CSS classes: `.canvas-port`, `.canvas-port--clock`, `.canvas-port--reset`,
@@ -109,7 +110,7 @@ canvas/table view toggle.
   - Connector block at block edge
   - Protocol badge (e.g., "AXI4-Lite") -- 80px rounded rect with label
   - Mode indicator (S/M/Sink/Src) -- small badge above the stub
-  - Name label below the stub
+  - Name label **inside** the block body (avoids overlap with protocol badge)
   - Association indicator dots (green = clock, orange = reset, yellow = memmap)
   - Selection ring (dashed rect) when active
   - CSS classes: `.canvas-bus-bundle`, `.canvas-bus-bundle--selected`
@@ -117,7 +118,7 @@ canvas/table view toggle.
 - [x] **`IpBlockCanvas.tsx`** -- Main canvas SVG component:
   - Calls `computeLayout(ipCore)` via `useMemo`
   - Renders SVG with dot-grid background pattern
-  - Block body: rounded rect with drop shadow
+  - Block body: rounded rect with drop shadow, **clickable** to open VLNV inspector
   - Block header stripe with core name (bold, monospace)
   - VLNV subtitle (smaller, muted)
   - Description text (truncated at 40 chars)
@@ -167,28 +168,36 @@ canvas/table view toggle.
 
 ### Phase 2 -- Context-Aware Inspector [DONE]
 
-Clicking a port/bus on the canvas opens a slide-in inspector panel that reuses
-the existing section editors.
+Clicking a port/bus/block on the canvas opens a slide-in inspector panel with
+direct inline editing fields — no table embeds.
 
 - [x] **`useCanvasSelection.ts`** -- Hook managing selection state:
-  - `CanvasElement` type: `{ kind, index, id }` where kind is
-    `clock | reset | port | busInterface | body`
-  - `parseCanvasId(id: string)` converts layout IDs (e.g., `bus:0`) to
+  - `CanvasElementKind`: `'clock' | 'reset' | 'port' | 'busInterface' | 'body' | 'parameter'`
+  - `CanvasElement` type: `{ kind, index, id }`
+  - `parseCanvasId(id: string)` converts layout IDs (e.g., `bus:0`, `body`) to
     structured elements
   - Returns `{ selected, selectedId, select, deselect }`
 
-- [x] **`CanvasInspector.tsx`** -- Slide-in panel (360px, right side):
-  - Header with element kind label (uppercase), element name, close button
-  - Content area renders the matching existing editor:
-    - `body` -> `MetadataEditor`
-    - `clock` -> `ClocksTable`
-    - `reset` -> `ResetsTable`
-    - `port` -> `PortsTable`
-    - `busInterface` -> `BusInterfacesEditor`
-  - Hidden when nothing is selected
+- [x] **`CanvasInspector.tsx`** -- Slide-in panel (288px, right side):
+  - Header: element kind badge, element name, close button
+  - Footer: Delete button (hidden for `body` kind)
+  - Inline form primitives (save-on-blur / immediate):
+    - `PropField` -- text input, validate-on-blur, reverts on error or Escape
+    - `PropSelect` -- dropdown, saves immediately on change
+    - `PropTextArea` -- multiline, save-on-blur
+  - Per-kind panels:
+    - `body` → VLNV fields (Vendor, Library, Name, Version) + Description textarea
+    - `clock` → Physical name, logical name, direction, frequency + "Used By" chips
+    - `reset` → Physical name, logical name, direction, polarity + "Used By" chips
+    - `port` → Name, direction, width
+    - `busInterface` → Name, bus type, mode, physical prefix, clock/reset/memmap associations
+    - `parameter` → Name (validated identifier), data type select, default value
+  - Block body click opens `body` panel to edit VLNV and description
+  - Edit hint icon (✎) shown on block hover/selection
 
 - [x] **`IpCoreApp.tsx`** (modified):
   - Replaced simple `canvasSelectedId` state with `useCanvasSelection` hook
+  - `handleInspectorDelete` uses array-filter pattern (safe removal by index)
   - Renders `CanvasInspector` next to `EditorPanel` in canvas mode
   - Inspector closes on `canvasDeselect` (click empty canvas or close button)
 
@@ -196,24 +205,28 @@ the existing section editors.
 
 ### Phase 3 -- Drag-and-Drop Interface Library [DONE]
 
-Users drag protocol primitives from a palette onto the canvas to add them.
+Users drag protocol primitives and generics from a palette onto the canvas to add them.
 
 - [x] **`LibraryPalette.tsx`** -- Collapsible left sidebar with draggable items:
-  - **Protocols**: AXI4-Lite (S/M), AXI4-Full, AXI-Stream (Source/Sink),
+  - **Bus Protocols**: AXI4-Lite (S/M), AXI4-Full, AXI-Stream (Sink/Source),
     Avalon-MM (S/M), Avalon-ST
   - **Infrastructure**: Clock, Reset, Interrupt, GPIO (in/out)
+  - **Generics**: Integer, Natural, Boolean, String generic parameters
   - Each item uses HTML drag-and-drop API with JSON payload:
     ```json
     { "kind": "bus", "type": "ipcraft.busif.axi4_lite.1.0", "mode": "slave" }
+    { "kind": "clock", "nameHint": "clk" }
+    { "kind": "parameter", "dataType": "integer", "nameHint": "DATA_WIDTH" }
     ```
-    or `{ "kind": "clock" }`, `{ "kind": "reset" }`, etc.
 
 - [x] **`useCanvasDrop.ts`** -- Drop handler hook:
   - Parses drag payload from `dataTransfer`
   - Determines placement side from drop position (left half -> slave, right -> master)
-  - Generates default name (e.g., `s_axi_0`, `clk_0`)
+  - Generates unique default name (e.g., `s_axi_0`, `clk_0`, `DATA_WIDTH`)
   - Calls `onUpdate` with YAML path and new element
   - Auto-selects the new element to open inspector
+  - Handles `'parameter'` kind: appends to `parameters[]` with sensible defaults
+    per data type (integer → 0, boolean → false, string → "")
 
 - [x] **`IpBlockCanvas.tsx`** (modify):
   - Add `onDragOver` and `onDrop` handlers
@@ -278,21 +291,70 @@ Overlay validation feedback directly on canvas elements and polish interactions.
   - Smooth CSS transitions on port add/remove/reorder
   - Keyboard shortcuts: `Delete` removes selected element, `Escape` deselects
   - Responsive: canvas fills available space, text scales for readability
-  - Better layout for bus bundle names (rendered inside the block body to avoid overlapping with badges/stubs)
+  - Clock/reset icons rendered inside the block body to avoid stub overlap
+  - Bus bundle name label rendered inside the block body
 
 ---
 
-## Port Placement Rules
+### Phase 6 -- Inline Generics Section [DONE]
 
-Reference for the layout algorithm in `canvasLayout.ts`:
+Generic parameters are displayed inside the block body (not as port stubs) and
+added via drag-and-drop from the library palette.
+
+- [x] **`canvasLayout.ts`** -- Extended layout for inline generics:
+  - `LayoutParameter` type: `{ index, name, value }` (value = formatted default)
+  - `CanvasLayout` extended with `parameters[]`, `paramSeparatorY`, `portSeparatorY`
+  - When parameters exist, the block body is divided into three zones:
+    1. **Header zone** (top): IP name + VLNV + first separator
+    2. **Generics zone** (middle): "Generics" label + clickable parameter rows + second separator
+    3. **Port zone** (bottom): port stubs connect to the block edge here
+  - Port `startY` is pushed below the generics zone — ports never overlap generics
+  - Block height grows to fit both zones: `max(MIN_BLOCK_HEIGHT, portsAreaTop + maxPorts * PORT_PITCH + EDGE_PADDING)`
+  - When no parameters exist, port layout is unchanged (vertical centering)
+
+- [x] **`IpBlockCanvas.tsx`** -- Inline generics rendering:
+  - First separator line at `paramSeparatorY` (below VLNV)
+  - "Generics" section header label
+  - Each parameter rendered as a clickable row: `⊳ NAME = value`
+  - Row background highlight on hover and selection (yellow tint, VS Code theme)
+  - Second separator line at `portSeparatorY` (below last generic, above ports)
+  - Clicking a parameter row selects it and opens the `ParameterPanel` inspector
+
+- [x] **`LibraryPalette.tsx`** -- New "Generics" category:
+  - Integer Generic, Natural Generic, Boolean Generic, String Generic
+  - Icon: `codicon-symbol-constant`
+  - Drag payload includes `dataType` field
+
+- [x] **`useCanvasDrop.ts`** -- Parameter drop handler:
+  - Generates unique name from `nameHint`
+  - Sensible `defaultValue` per `dataType` (integer→0, natural→0, positive→1,
+    real→0.0, boolean→false, string→"")
+  - Auto-selects new parameter after insertion
+
+- [x] **`canvas.css`** -- Inline parameter styles:
+  - `.ip-block-param-separator` -- muted horizontal rule
+  - `.ip-block-param-header` -- small uppercase section label
+  - `.ip-block-param-row-bg` -- transparent hit area, yellow tint on hover/select
+  - `.ip-block-param-icon` -- yellow ⊳ glyph
+  - `.ip-block-param-name` -- monospace yellow name
+  - `.ip-block-param-value` -- muted default value annotation
+
+---
+
+## Block Layout (with Generics)
 
 ```
 +--------------------------------------------------+
 |                   [Core Name]                     |
 |                vendor:lib:name:ver                |
++ - - - - - - - - - - - - - - - - - - - - - - - - +
+|                    GENERICS                       |
+|  ⊳ DATA_WIDTH                            = 32    |
+|  ⊳ DEPTH                                = 256    |
++ - - - - - - - - - - - - - - - - - - - - - - - - +
 |                                                   |
-|  CLK  ~~~|                            |~~~ M_AXI  |
-|  RST  <--|                            |           |
+|  CLK  🕐|                            |~~~ M_AXI  |
+|  RST  ↺ |                            |           |
 |          |                            |           |
 |  S_AXI ==|                            |=== M_AXIS |
 |          |                            |           |
@@ -307,12 +369,11 @@ Reference for the layout algorithm in `canvasLayout.ts`:
 
 | Position | Element Types |
 |---|---|
-| Left edge, top | Clocks (icon: sine wave) |
-| Left edge, below clocks | Resets (icon: loop arrow) |
-| Left edge, below resets | Slave / sink bus interfaces (thick stub + protocol badge) |
-| Left edge, bottom | Input ports (thin stub + width annotation) |
-| Right edge, top | Master / source bus interfaces |
-| Right edge, below buses | Output ports |
+| Inside block, top | IP name, VLNV, separator |
+| Inside block, middle | Generics section (clickable rows, drag-to-add from palette) |
+| Inside block, separator | Visual divider before port area |
+| Left edge | Clocks (icon: 🕐 inside block), Resets (icon: ↺ inside block), Slave/sink buses, Input ports |
+| Right edge | Master/source buses, Output ports |
 | Bottom edge | Bidirectional (inout) ports |
 
 ---
@@ -341,9 +402,12 @@ npx eslint src/webview/ipcore/components/canvas/ \
 1. Open a `.ip.yml` file and verify the canvas renders the IP block correctly
 2. Toggle between canvas and table views via header buttons
 3. Verify port names, directions, bus protocols, and widths match the YAML
-4. Click a port on the canvas and verify the inspector opens with the correct editor
-5. Edit a property in the inspector and verify the canvas updates
-6. (Phase 3) Drag a bus interface from the palette and verify it appears in YAML
-7. (Phase 4) Drag a port off the block edge and verify removal + undo
-8. (Phase 5) Remove a clock referenced by a bus interface and verify warning indicator
-9. Edit the `.ip.yml` in the text editor side-by-side and verify real-time sync
+4. Click the block body and verify the VLNV/description inspector opens
+5. Click a port on the canvas and verify the inspector opens with inline edit fields
+6. Edit a property in the inspector and verify the canvas updates live
+7. Drag a bus interface from the palette and verify it appears in YAML
+8. Drag a generic from the palette and verify it appears inside the block body,
+   does not overlap port stubs, and opens the parameter inspector on click
+9. Drag a port off the block edge and verify removal + undo
+10. Remove a clock referenced by a bus interface and verify warning indicator
+11. Edit the `.ip.yml` in the text editor side-by-side and verify real-time sync

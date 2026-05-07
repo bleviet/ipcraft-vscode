@@ -83,6 +83,9 @@ export function useCanvasDrop({ ipCore, onUpdate, onSelect }: UseCanvasDropOptio
         case 'port':
           addPort(payload, isLeftHalf, ipCore, onUpdate, onSelect);
           break;
+        case 'parameter':
+          addParameter(payload, ipCore, onUpdate, onSelect);
+          break;
       }
     },
     [ipCore, onUpdate, onSelect]
@@ -163,6 +166,32 @@ function addBusInterface(
   buses.push(newBus);
   onUpdate(['busInterfaces'], buses);
   onSelect(`bus:${buses.length - 1}`);
+}
+
+function addParameter(
+  payload: LibraryDragPayload,
+  ipCore: IpCore,
+  onUpdate: YamlUpdateHandler,
+  onSelect: (id: string) => void
+) {
+  const params = [...((ipCore.parameters ?? []) as unknown as Array<Record<string, unknown>>)];
+  const existingNames = params.map((p) => String(p.name ?? ''));
+  const name = uniqueName(payload.nameHint, existingNames);
+
+  const defaultValues: Record<string, unknown> = {
+    integer: 0,
+    natural: 0,
+    positive: 1,
+    real: 0.0,
+    boolean: false,
+    string: '',
+  };
+  const dataType = payload.dataType ?? 'integer';
+  const newParam = { name, dataType, defaultValue: defaultValues[dataType] ?? 0 };
+
+  params.push(newParam);
+  onUpdate(['parameters'], params);
+  onSelect(`parameter:${params.length - 1}`);
 }
 
 function addPort(

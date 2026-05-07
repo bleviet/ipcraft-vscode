@@ -2,13 +2,15 @@ import React, { useState, useCallback, type DragEvent } from 'react';
 
 /** Payload attached to drag events from the library palette */
 export interface LibraryDragPayload {
-  kind: 'bus' | 'clock' | 'reset' | 'port';
+  kind: 'bus' | 'clock' | 'reset' | 'port' | 'parameter';
   /** Bus type VLNV (only for kind=bus) */
   type?: string;
   /** Bus mode: slave/master/sink/source (only for kind=bus) */
   mode?: string;
   /** Port direction (only for kind=port) */
   direction?: 'in' | 'out';
+  /** Generic data type (only for kind=parameter) */
+  dataType?: string;
   /** Default name hint */
   nameHint: string;
   /** Display label in the palette */
@@ -108,6 +110,15 @@ const PALETTE: PaletteCategory[] = [
       { kind: 'port', direction: 'out', nameHint: 'gpio_out', label: 'GPIO Output' },
     ],
   },
+  {
+    title: 'Generics',
+    items: [
+      { kind: 'parameter', dataType: 'integer', nameHint: 'DATA_WIDTH', label: 'Integer Generic' },
+      { kind: 'parameter', dataType: 'natural', nameHint: 'DEPTH', label: 'Natural Generic' },
+      { kind: 'parameter', dataType: 'boolean', nameHint: 'ENABLE', label: 'Boolean Generic' },
+      { kind: 'parameter', dataType: 'string', nameHint: 'INIT_FILE', label: 'String Generic' },
+    ],
+  },
 ];
 
 interface LibraryPaletteProps {
@@ -197,6 +208,8 @@ function paletteItemIcon(item: LibraryDragPayload): string {
       return 'codicon-watch';
     case 'reset':
       return 'codicon-debug-restart';
+    case 'parameter':
+      return 'codicon-symbol-constant';
     case 'port':
       if (item.direction === 'in') {
         return 'codicon-arrow-right';
@@ -222,6 +235,9 @@ function kindBadge(item: LibraryDragPayload): string {
   }
   if (item.kind === 'port' && item.direction) {
     return item.direction === 'in' ? 'in' : 'out';
+  }
+  if (item.kind === 'parameter' && item.dataType) {
+    return item.dataType;
   }
   return '';
 }
