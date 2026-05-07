@@ -840,7 +840,7 @@
   color: var(--vscode-badge-foreground);
 }
 
-/* ── Port width overrides ── */
+/* ── Port widths (signal list with inline override inputs) ── */
 
 .ci-override-empty {
   font-size: 10px;
@@ -849,121 +849,93 @@
   padding: 2px 0 6px;
 }
 
-.ci-override-row {
+/* One row per bus signal: dir-icon | name | width-input | reset-btn */
+.ci-pw-row {
   display: grid;
-  grid-template-columns: 1fr auto minmax(52px, 72px) auto;
+  grid-template-columns: 14px 1fr 52px 18px;
   align-items: center;
-  gap: 4px;
-  margin-bottom: 4px;
+  gap: 3px;
+  padding: 1px 0;
+  border-radius: 3px;
+  transition: background 0.1s;
 }
 
-.ci-override-signal {
-  font-family: var(--vscode-editor-font-family, monospace);
+.ci-pw-row:hover {
+  background: color-mix(in srgb, var(--vscode-foreground) 4%, transparent);
+}
+
+.ci-pw-row--overridden {
+  background: color-mix(in srgb, var(--vscode-charts-blue, #4facfe) 6%, transparent);
+}
+.ci-pw-row--overridden:hover {
+  background: color-mix(in srgb, var(--vscode-charts-blue, #4facfe) 10%, transparent);
+}
+
+.ci-pw-dir {
   font-size: 11px;
+  color: var(--vscode-charts-blue, #4facfe);
+  opacity: 0.7;
+  text-align: center;
+  font-family: var(--vscode-editor-font-family, monospace);
+  user-select: none;
+}
+
+.ci-pw-name {
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 10px;
   color: var(--vscode-foreground);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.ci-override-eq {
-  font-size: 11px;
-  color: var(--vscode-descriptionForeground);
-  opacity: 0.6;
-  padding: 0 2px;
-  flex-shrink: 0;
+.ci-pw-row--overridden .ci-pw-name {
+  font-weight: 600;
 }
 
-.ci-override-width-input,
-.ci-override-add-width {
+.ci-pw-input {
   font-family: var(--vscode-editor-font-family, monospace);
-  font-size: 11px;
-  padding: 2px 5px;
+  font-size: 10px;
+  padding: 1px 4px;
   background: var(--vscode-input-background);
   color: var(--vscode-input-foreground);
   border: 1px solid var(--vscode-input-border, transparent);
-  border-radius: 3px;
+  border-radius: 2px;
   width: 100%;
   min-width: 0;
+  text-align: right;
 }
-.ci-override-width-input:focus,
-.ci-override-add-width:focus {
+.ci-pw-input:focus {
   outline: none;
   border-color: var(--vscode-focusBorder);
 }
+.ci-pw-row--overridden .ci-pw-input {
+  border-color: color-mix(in srgb, var(--vscode-charts-blue, #4facfe) 40%, transparent);
+  color: var(--vscode-charts-blue, #4facfe);
+}
 
-.ci-override-del,
-.ci-override-confirm,
-.ci-override-cancel {
+.ci-pw-reset {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 2px 4px;
+  padding: 1px;
   background: transparent;
   border: none;
-  border-radius: 3px;
+  border-radius: 2px;
   cursor: pointer;
   color: var(--vscode-foreground);
-  opacity: 0.45;
-  transition: opacity 0.12s, background 0.12s;
+  opacity: 0.4;
+  transition: opacity 0.12s, color 0.12s;
   flex-shrink: 0;
 }
-.ci-override-del:hover {
+.ci-pw-reset:hover {
   opacity: 1;
-  color: var(--vscode-errorForeground, #f14c4c);
-  background: color-mix(in srgb, var(--vscode-errorForeground, #f14c4c) 10%, transparent);
-}
-.ci-override-confirm:hover {
-  opacity: 1;
-  color: var(--vscode-charts-green, #4ec9b0);
-}
-.ci-override-cancel:hover {
-  opacity: 1;
+  color: var(--vscode-charts-orange, #ce9178);
 }
 
-.ci-override-add-row {
-  display: grid;
-  grid-template-columns: 1fr auto minmax(52px, 72px) auto auto;
-  align-items: center;
-  gap: 4px;
-  margin-bottom: 4px;
-}
-
-.ci-override-add-signal {
-  font-family: var(--vscode-editor-font-family, monospace);
-  font-size: 11px;
-  padding: 2px 5px;
-  background: var(--vscode-input-background);
-  color: var(--vscode-input-foreground);
-  border: 1px solid var(--vscode-focusBorder);
-  border-radius: 3px;
-  width: 100%;
-  min-width: 0;
-}
-.ci-override-add-signal:focus {
-  outline: none;
-}
-
-.ci-override-add-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 8px;
-  margin-top: 2px;
-  font-size: 10px;
-  font-family: var(--vscode-font-family);
-  background: transparent;
-  border: 1px dashed color-mix(in srgb, var(--vscode-foreground) 30%, transparent);
-  border-radius: 3px;
-  color: var(--vscode-foreground);
-  opacity: 0.6;
-  cursor: pointer;
-  transition: opacity 0.12s, border-color 0.12s;
-}
-.ci-override-add-btn:hover {
-  opacity: 1;
-  border-color: var(--vscode-focusBorder);
-  color: var(--vscode-focusBorder);
+.ci-pw-reset-placeholder {
+  width: 18px;
+  flex-shrink: 0;
 }
 
 /* Empty state */
