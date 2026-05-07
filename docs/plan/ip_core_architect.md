@@ -252,11 +252,11 @@ Dragging a port off the block edge deletes it. An undo stack provides safety.
 
 ---
 
-### Phase 5 -- Visual Validation and Polish [TODO]
+### Phase 5 -- Visual Validation and Polish [DONE]
 
 Overlay validation feedback directly on canvas elements and polish interactions.
 
-- [ ] **`useCanvasValidation.ts`** -- Validation hook:
+- [x] **`useCanvasValidation.ts`** -- Validation hook:
   - Returns `ValidationAnnotation[]` per element
   - Rules:
     - Bus interface missing `associatedClock` -> warning
@@ -265,19 +265,20 @@ Overlay validation feedback directly on canvas elements and polish interactions.
     - Bus interface with invalid type -> error
     - Referenced clock not in `clocks[]` -> error on bus bundle
 
-- [ ] **`CanvasPort.tsx` / `CanvasBusBundle.tsx`** (modify):
+- [x] **`CanvasPort.tsx` / `CanvasBusBundle.tsx`** (modify):
   - Accept `annotations: ValidationAnnotation[]` prop
   - Render colored indicator dot (orange = warning, red = error)
   - Show annotation messages in hover tooltip
 
-- [ ] **`IpBlockCanvas.tsx`** (modify):
+- [x] **`IpBlockCanvas.tsx`** (modify):
   - Compute annotations from `useCanvasValidation`
   - Pass annotations down to each port/bundle component
 
-- [ ] **Polish items** (across existing canvas files):
+- [x] **Polish items** (across existing canvas files):
   - Smooth CSS transitions on port add/remove/reorder
   - Keyboard shortcuts: `Delete` removes selected element, `Escape` deselects
   - Responsive: canvas fills available space, text scales for readability
+  - Better layout for bus bundle names (rendered inside the block body to avoid overlapping with badges/stubs)
 
 ---
 

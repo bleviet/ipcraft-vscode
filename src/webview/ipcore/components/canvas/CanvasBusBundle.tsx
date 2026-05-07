@@ -125,7 +125,7 @@ export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
 
       {/* Mode indicator (S/M) */}
       {port.mode && (
-        <g transform={`translate(${port.x + stubDir * (STUB_LENGTH / 2)}, ${port.y - 14})`}>
+        <g transform={`translate(${port.x + stubDir * (STUB_LENGTH / 2)}, ${port.y - 12})`}>
           <rect x={-10} y={-8} width={20} height={16} rx={3} className="canvas-bus-bundle__mode" />
           <text
             x={0}
@@ -141,18 +141,19 @@ export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
         </g>
       )}
 
-      {/* Name label (below the stub) */}
+      {/* Name label (INSIDE the block) */}
       <text
-        x={port.x + stubDir * (STUB_LENGTH / 2)}
-        y={port.y + 18}
-        textAnchor="middle"
+        x={port.x + (isLeft ? 12 : -12)}
+        y={port.y}
+        textAnchor={isLeft ? 'start' : 'end'}
+        dominantBaseline="central"
         className="canvas-bus-bundle__name"
       >
         {port.label}
       </text>
 
-      {/* Association indicators (small dots below name) */}
-      <g transform={`translate(${port.x + stubDir * (STUB_LENGTH / 2)}, ${port.y + 30})`}>
+      {/* Association indicators (small dots below the stub) */}
+      <g transform={`translate(${port.x + stubDir * (STUB_LENGTH / 2)}, ${port.y + 12})`}>
         {hasClockAssoc && (
           <circle
             cx={-8}
