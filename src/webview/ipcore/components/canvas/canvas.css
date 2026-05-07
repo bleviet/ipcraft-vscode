@@ -840,6 +840,132 @@
   color: var(--vscode-badge-foreground);
 }
 
+/* ── Port width overrides ── */
+
+.ci-override-empty {
+  font-size: 10px;
+  color: var(--vscode-descriptionForeground);
+  opacity: 0.55;
+  padding: 2px 0 6px;
+}
+
+.ci-override-row {
+  display: grid;
+  grid-template-columns: 1fr auto minmax(52px, 72px) auto;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.ci-override-signal {
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 11px;
+  color: var(--vscode-foreground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ci-override-eq {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  opacity: 0.6;
+  padding: 0 2px;
+  flex-shrink: 0;
+}
+
+.ci-override-width-input,
+.ci-override-add-width {
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 11px;
+  padding: 2px 5px;
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-input-border, transparent);
+  border-radius: 3px;
+  width: 100%;
+  min-width: 0;
+}
+.ci-override-width-input:focus,
+.ci-override-add-width:focus {
+  outline: none;
+  border-color: var(--vscode-focusBorder);
+}
+
+.ci-override-del,
+.ci-override-confirm,
+.ci-override-cancel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 4px;
+  background: transparent;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  color: var(--vscode-foreground);
+  opacity: 0.45;
+  transition: opacity 0.12s, background 0.12s;
+  flex-shrink: 0;
+}
+.ci-override-del:hover {
+  opacity: 1;
+  color: var(--vscode-errorForeground, #f14c4c);
+  background: color-mix(in srgb, var(--vscode-errorForeground, #f14c4c) 10%, transparent);
+}
+.ci-override-confirm:hover {
+  opacity: 1;
+  color: var(--vscode-charts-green, #4ec9b0);
+}
+.ci-override-cancel:hover {
+  opacity: 1;
+}
+
+.ci-override-add-row {
+  display: grid;
+  grid-template-columns: 1fr auto minmax(52px, 72px) auto auto;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.ci-override-add-signal {
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 11px;
+  padding: 2px 5px;
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-focusBorder);
+  border-radius: 3px;
+  width: 100%;
+  min-width: 0;
+}
+.ci-override-add-signal:focus {
+  outline: none;
+}
+
+.ci-override-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  margin-top: 2px;
+  font-size: 10px;
+  font-family: var(--vscode-font-family);
+  background: transparent;
+  border: 1px dashed color-mix(in srgb, var(--vscode-foreground) 30%, transparent);
+  border-radius: 3px;
+  color: var(--vscode-foreground);
+  opacity: 0.6;
+  cursor: pointer;
+  transition: opacity 0.12s, border-color 0.12s;
+}
+.ci-override-add-btn:hover {
+  opacity: 1;
+  border-color: var(--vscode-focusBorder);
+  color: var(--vscode-focusBorder);
+}
+
 /* Empty state */
 .ci-empty-state {
   padding: 24px 16px;
@@ -875,5 +1001,114 @@
 }
 .ci-delete-btn:hover {
   background: color-mix(in srgb, var(--vscode-errorForeground, #f14c4c) 18%, transparent);
+}
+
+/* --- Bus bundle expand toggle --- */
+
+.canvas-bus-bundle__expand-bg {
+  fill: color-mix(in srgb, var(--vscode-charts-blue, #4facfe) 15%, var(--vscode-editor-background));
+  stroke: var(--vscode-charts-blue, #4facfe);
+  stroke-width: 1;
+  opacity: 0.8;
+  transition: opacity 0.12s;
+}
+
+.canvas-bus-bundle__expand-toggle:hover .canvas-bus-bundle__expand-bg {
+  opacity: 1;
+  fill: color-mix(in srgb, var(--vscode-charts-blue, #4facfe) 30%, var(--vscode-editor-background));
+}
+
+.canvas-bus-bundle__expand-icon {
+  fill: var(--vscode-charts-blue, #4facfe);
+  font-family: var(--vscode-font-family);
+  pointer-events: none;
+}
+
+.canvas-bus-bundle--expanded .canvas-bus-bundle__connector {
+  fill: var(--vscode-focusBorder);
+}
+
+/* --- Bus sub-ports (expanded bus signals) --- */
+
+.canvas-bus-subport__line {
+  stroke: var(--vscode-charts-blue, #4facfe);
+  stroke-width: 1.5;
+  transition: stroke 0.12s;
+}
+
+.canvas-bus-subport--inactive .canvas-bus-subport__line {
+  stroke: color-mix(in srgb, var(--vscode-charts-blue, #4facfe) 40%, transparent);
+}
+
+.canvas-bus-subport__dot {
+  fill: var(--vscode-charts-blue, #4facfe);
+  opacity: 0.7;
+}
+
+.canvas-bus-subport--inactive .canvas-bus-subport__dot {
+  opacity: 0.3;
+}
+
+.canvas-bus-subport__label {
+  fill: var(--vscode-foreground);
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 9px;
+  opacity: 0.9;
+}
+
+.canvas-bus-subport--inactive .canvas-bus-subport__label {
+  opacity: 0.4;
+  font-style: italic;
+}
+
+.canvas-bus-subport__dir {
+  fill: var(--vscode-charts-blue, #4facfe);
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+.canvas-bus-subport--inactive .canvas-bus-subport__dir {
+  opacity: 0.25;
+}
+
+/* Activate / deactivate hint badges */
+.canvas-bus-subport__activate-hint {
+  fill: var(--vscode-charts-green, #4ec9b0);
+  font-family: var(--vscode-font-family);
+  font-size: 9px;
+  font-weight: 700;
+  opacity: 0;
+  transition: opacity 0.12s;
+  pointer-events: none;
+}
+
+.canvas-bus-subport--inactive:hover .canvas-bus-subport__activate-hint {
+  opacity: 1;
+}
+
+.canvas-bus-subport__deactivate-hint {
+  fill: var(--vscode-errorForeground, #f14c4c);
+  font-family: var(--vscode-font-family);
+  font-size: 9px;
+  font-weight: 700;
+  opacity: 0;
+  transition: opacity 0.12s;
+  pointer-events: none;
+}
+
+.canvas-bus-subport--optional.canvas-bus-subport--active:hover .canvas-bus-subport__deactivate-hint {
+  opacity: 0.7;
+}
+
+/* Hover effect on inactive optional ports */
+.canvas-bus-subport--inactive:hover .canvas-bus-subport__line {
+  stroke: color-mix(in srgb, var(--vscode-charts-green, #4ec9b0) 60%, transparent);
+  stroke-dasharray: 4 3;
+}
+
+.canvas-bus-subport--inactive:hover .canvas-bus-subport__label {
+  opacity: 0.8;
+  fill: var(--vscode-charts-green, #4ec9b0);
 }
 

@@ -1,4 +1,5 @@
 import type { IpCore, BusInterface } from '../../../types/ipCore';
+import type { BusPortDef } from '../../data/busDefinitions';
 
 // --- Constants ---
 
@@ -44,6 +45,24 @@ export interface LayoutPort {
   data: unknown;
 }
 
+/** An individual signal port of an expanded bus interface */
+export interface LayoutSubPort {
+  /** Stable ID: `bus:0:AWADDR` */
+  id: string;
+  /** ID of the parent bus bundle: `bus:0` */
+  parentBusId: string;
+  x: number;
+  y: number;
+  side: PortSide;
+  name: string;
+  /** Width label e.g. `[31:0]` or empty string */
+  widthLabel: string;
+  direction?: 'in' | 'out';
+  presence: 'required' | 'optional';
+  /** true = required port OR optional port in useOptionalPorts */
+  active: boolean;
+}
+
 /** A generic/parameter rendered inside the block body */
 export interface LayoutParameter {
   index: number;
@@ -57,6 +76,8 @@ export interface CanvasLayout {
   blockRect: { x: number; y: number; width: number; height: number };
   /** All ports positioned around the block */
   ports: LayoutPort[];
+  /** Individual signals for expanded bus interfaces */
+  subPorts: LayoutSubPort[];
   /** Total canvas size needed (for the SVG viewBox) */
   viewBox: { width: number; height: number };
   /** Core display name */
@@ -129,6 +150,24 @@ function isInputDirection(dir: string | undefined): boolean {
   return dir === 'in' || dir === undefined;
 }
 
+/** How many layout slots an item occupies (1 normally, 1 + N ports if expanded bus) */
+function itemSlots(
+  item: { kind: PortKind; index: number; data: unknown },
+  expandedBusIds: Set<string>,
+  busPortLookup: (busType: string) => BusPortDef[] | null
+): number {
+  if (item.kind !== 'bus') {
+    return 1;
+  }
+  const busId = `bus:${item.index}`;
+  if (!expandedBusIds.has(busId)) {
+    return 1;
+  }
+  const busData = item.data as { type?: string };
+  const ports = busPortLookup(busData.type ?? '');
+  return 1 + (ports?.length ?? 0);
+}
+
 // --- Main layout function ---
 
 /**
@@ -139,7 +178,11 @@ function isInputDirection(dir: string | undefined): boolean {
  *  Right edge (top to bottom): master/source buses, output ports
  *  Bottom edge: bidirectional ports
  */
-export function computeLayout(ipCore: IpCore): CanvasLayout {
+export function computeLayout(
+  ipCore: IpCore,
+  expandedBusIds: Set<string> = new Set(),
+  busPortLookup: (busType: string) => BusPortDef[] | null = () => null
+): CanvasLayout {
   const clocks = ipCore.clocks ?? [];
   const resets = ipCore.resets ?? [];
   const ports = ipCore.ports ?? [];
@@ -202,14 +245,23 @@ export function computeLayout(ipCore: IpCore): CanvasLayout {
     }
   });
 
-  const maxSideCount = Math.max(leftItems.length, rightItems.length, 1);
+  // Total slots per side (accounts for expanded buses)
+  const leftSlots = leftItems.reduce(
+    (acc, item) => acc + itemSlots(item, expandedBusIds, busPortLookup),
+    0
+  );
+  const rightSlots = rightItems.reduce(
+    (acc, item) => acc + itemSlots(item, expandedBusIds, busPortLookup),
+    0
+  );
+  const maxSideSlots = Math.max(leftSlots, rightSlots, 1);
 
   // Block height must fit the params section AND the ports that follow it.
   const blockHeight = Math.max(
     MIN_BLOCK_HEIGHT,
     portsAreaTopRelative !== null
-      ? portsAreaTopRelative + maxSideCount * PORT_PITCH + EDGE_PADDING
-      : maxSideCount * PORT_PITCH + EDGE_PADDING * 2
+      ? portsAreaTopRelative + maxSideSlots * PORT_PITCH + EDGE_PADDING
+      : maxSideSlots * PORT_PITCH + EDGE_PADDING * 2
   );
 
   // Block width may expand for bottom ports
@@ -222,20 +274,21 @@ export function computeLayout(ipCore: IpCore): CanvasLayout {
 
   // Position side ports
   const layoutPorts: LayoutPort[] = [];
+  const layoutSubPorts: LayoutSubPort[] = [];
 
   const positionSide = (items: typeof leftItems, side: PortSide, baseX: number) => {
-    let startY: number;
+    let currentY: number;
     if (portsAreaTopRelative !== null) {
       // Force ports to start below the generics section
-      startY = blockY + portsAreaTopRelative + PORT_PITCH / 2;
+      currentY = blockY + portsAreaTopRelative + PORT_PITCH / 2;
     } else {
       // No params — center ports vertically (original behaviour)
-      const totalHeight = items.length * PORT_PITCH;
-      startY = blockY + (blockHeight - totalHeight) / 2 + PORT_PITCH / 2;
+      const totalHeight = maxSideSlots * PORT_PITCH;
+      currentY = blockY + (blockHeight - totalHeight) / 2 + PORT_PITCH / 2;
     }
 
-    items.forEach((item, idx) => {
-      const y = startY + idx * PORT_PITCH;
+    items.forEach((item) => {
+      const y = currentY;
       const id = `${item.kind}:${item.index}`;
 
       let label = '';
@@ -277,6 +330,48 @@ export function computeLayout(ipCore: IpCore): CanvasLayout {
         mode,
         data: item.data,
       });
+
+      // If this bus is expanded, emit sub-ports below it
+      if (item.kind === 'bus' && expandedBusIds.has(id)) {
+        const busData = item.data as {
+          type?: string;
+          useOptionalPorts?: string[];
+          portWidthOverrides?: Record<string, number | string>;
+        };
+        const portDefs = busPortLookup(busData.type ?? '') ?? [];
+        const useOptional = busData.useOptionalPorts ?? [];
+        const overrides = busData.portWidthOverrides ?? {};
+
+        portDefs.forEach((portDef, pi) => {
+          const subY = y + PORT_PITCH * (pi + 1);
+          const rawWidth = overrides[portDef.name] ?? portDef.width;
+          const numWidth =
+            typeof rawWidth === 'number'
+              ? rawWidth
+              : typeof rawWidth === 'string'
+                ? undefined
+                : undefined;
+          const widthLbl = numWidth !== undefined && numWidth > 1 ? `[${numWidth - 1}:0]` : '';
+          const active = portDef.presence === 'required' || useOptional.includes(portDef.name);
+
+          layoutSubPorts.push({
+            id: `bus:${item.index}:${portDef.name}`,
+            parentBusId: id,
+            x: baseX,
+            y: subY,
+            side,
+            name: portDef.name,
+            widthLabel: widthLbl,
+            direction: portDef.direction,
+            presence: portDef.presence,
+            active,
+          });
+        });
+
+        currentY += PORT_PITCH * (1 + portDefs.length);
+      } else {
+        currentY += PORT_PITCH;
+      }
     });
   };
 
@@ -320,6 +415,7 @@ export function computeLayout(ipCore: IpCore): CanvasLayout {
   return {
     blockRect: { x: blockX, y: blockY, width: blockWidth, height: blockHeight },
     ports: layoutPorts,
+    subPorts: layoutSubPorts,
     viewBox: { width: viewWidth, height: viewHeight },
     coreName,
     vlnvLabel,

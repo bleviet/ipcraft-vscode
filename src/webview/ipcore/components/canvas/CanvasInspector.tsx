@@ -531,7 +531,216 @@ const BusPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, onUpdate }) => 
           />
         )}
       </Section>
+      <PortWidthOverridesSection
+        busIndex={index}
+        overrides={(bus.portWidthOverrides ?? {}) as Record<string, number | string>}
+        paramNames={((ipCore.parameters ?? []) as unknown as Array<{ name: string }>).map(
+          (p) => p.name
+        )}
+        onUpdate={onUpdate}
+      />
     </>
+  );
+};
+
+// ─────────────────────────────────────────────────────
+//  Port width overrides section
+// ─────────────────────────────────────────────────────
+
+interface PortWidthOverridesSectionProps {
+  busIndex: number;
+  overrides: Record<string, number | string>;
+  paramNames: string[];
+  onUpdate: YamlUpdateHandler;
+}
+
+const PortWidthOverridesSection: React.FC<PortWidthOverridesSectionProps> = ({
+  busIndex,
+  overrides,
+  paramNames,
+  onUpdate,
+}) => {
+  const [adding, setAdding] = useState(false);
+  const [newSignal, setNewSignal] = useState('');
+  const [newWidth, setNewWidth] = useState('');
+  const signalInputRef = React.useRef<HTMLInputElement>(null);
+
+  const entries = Object.entries(overrides);
+
+  const parseWidth = (raw: string): number | string | null => {
+    const trimmed = raw.trim();
+    if (!trimmed) {
+      return null;
+    }
+    if (paramNames.includes(trimmed)) {
+      return trimmed;
+    }
+    const n = parseInt(trimmed, 10);
+    return !isNaN(n) && n > 0 ? n : null;
+  };
+
+  const saveExistingWidth = (signal: string, raw: string) => {
+    const parsed = parseWidth(raw);
+    const basePath = ['busInterfaces', busIndex, 'portWidthOverrides'];
+    if (parsed === null) {
+      // Remove this override; if it was the last one, drop the whole map
+      const remaining = Object.keys(overrides).filter((k) => k !== signal);
+      if (remaining.length === 0) {
+        onUpdate(basePath, undefined);
+      } else {
+        onUpdate([...basePath, signal], undefined);
+      }
+    } else {
+      onUpdate([...basePath, signal], parsed);
+    }
+  };
+
+  const deleteOverride = (signal: string) => {
+    const basePath = ['busInterfaces', busIndex, 'portWidthOverrides'];
+    const remaining = Object.keys(overrides).filter((k) => k !== signal);
+    if (remaining.length === 0) {
+      onUpdate(basePath, undefined);
+    } else {
+      onUpdate([...basePath, signal], undefined);
+    }
+  };
+
+  const commitAdd = () => {
+    const sig = newSignal.trim().toUpperCase();
+    if (!sig) {
+      setAdding(false);
+      setNewSignal('');
+      setNewWidth('');
+      return;
+    }
+    const parsed = parseWidth(newWidth);
+    if (parsed !== null) {
+      onUpdate(['busInterfaces', busIndex, 'portWidthOverrides', sig], parsed);
+    }
+    setAdding(false);
+    setNewSignal('');
+    setNewWidth('');
+  };
+
+  const cancelAdd = () => {
+    setAdding(false);
+    setNewSignal('');
+    setNewWidth('');
+  };
+
+  return (
+    <Section title="Port Width Overrides">
+      {entries.length === 0 && !adding && (
+        <div className="ci-override-empty">No width overrides — defaults used</div>
+      )}
+
+      {entries.map(([signal, width]) => (
+        <PortOverrideRow
+          key={signal}
+          signal={signal}
+          width={String(width)}
+          onSave={(raw) => saveExistingWidth(signal, raw)}
+          onDelete={() => deleteOverride(signal)}
+        />
+      ))}
+
+      {adding ? (
+        <div className="ci-override-add-row">
+          <input
+            ref={signalInputRef}
+            className="ci-override-add-signal"
+            value={newSignal}
+            onChange={(e) => setNewSignal(e.target.value.toUpperCase())}
+            placeholder="SIGNAL"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                (e.currentTarget.nextElementSibling as HTMLInputElement | null)?.focus();
+              } else if (e.key === 'Escape') {
+                cancelAdd();
+              }
+            }}
+            autoFocus
+          />
+          <span className="ci-override-eq">=</span>
+          <input
+            className="ci-override-add-width"
+            value={newWidth}
+            onChange={(e) => setNewWidth(e.target.value)}
+            placeholder="32"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                commitAdd();
+              } else if (e.key === 'Escape') {
+                cancelAdd();
+              }
+            }}
+          />
+          <button className="ci-override-confirm" onClick={commitAdd} title="Add">
+            <span className="codicon codicon-check" />
+          </button>
+          <button className="ci-override-cancel" onClick={cancelAdd} title="Cancel">
+            <span className="codicon codicon-close" />
+          </button>
+        </div>
+      ) : (
+        <button
+          className="ci-override-add-btn"
+          onClick={() => {
+            setAdding(true);
+          }}
+        >
+          <span className="codicon codicon-add" />
+          Add override
+        </button>
+      )}
+    </Section>
+  );
+};
+
+interface PortOverrideRowProps {
+  signal: string;
+  width: string;
+  onSave: (raw: string) => void;
+  onDelete: () => void;
+}
+
+const PortOverrideRow: React.FC<PortOverrideRowProps> = ({ signal, width, onSave, onDelete }) => {
+  const [draft, setDraft] = useState(width);
+  const [focused, setFocused] = useState(false);
+
+  useEffect(() => {
+    if (!focused) {
+      setDraft(width);
+    }
+  }, [width, focused]);
+
+  return (
+    <div className="ci-override-row">
+      <span className="ci-override-signal">{signal}</span>
+      <span className="ci-override-eq">=</span>
+      <input
+        className="ci-override-width-input"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onFocus={() => setFocused(true)}
+        onBlur={() => {
+          setFocused(false);
+          onSave(draft);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.currentTarget.blur();
+          } else if (e.key === 'Escape') {
+            setDraft(width);
+            setFocused(false);
+            e.currentTarget.blur();
+          }
+        }}
+      />
+      <button className="ci-override-del" onClick={onDelete} title="Remove override">
+        <span className="codicon codicon-trash" />
+      </button>
+    </div>
   );
 };
 

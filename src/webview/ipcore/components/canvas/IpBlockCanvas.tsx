@@ -3,14 +3,18 @@ import type { IpCore } from '../../../types/ipCore';
 import { computeLayout } from './canvasLayout';
 import { CanvasPort } from './CanvasPort';
 import { CanvasBusBundle } from './CanvasBusBundle';
+import { CanvasBusSubPort } from './CanvasBusSubPort';
 import { RemoveZone } from './RemoveZone';
 import { useCanvasValidation } from '../../hooks/useCanvasValidation';
+import { lookupBusDef } from '../../data/busDefinitions';
+import type { YamlUpdateHandler } from '../../../types/editor';
 import './canvas.css';
 
 interface IpBlockCanvasProps {
   ipCore: IpCore;
   selectedId: string | null;
   onSelect: (id: string | null) => void;
+  onUpdate?: YamlUpdateHandler;
   /** Drag-over handler from useCanvasDrop (Phase 3) */
   onDragOver?: (e: React.DragEvent) => void;
   /** Drop handler from useCanvasDrop (Phase 3) */
@@ -24,16 +28,22 @@ interface IpBlockCanvasProps {
  *
  * The block body sits at center with ports arranged along left, right, and bottom edges.
  * Bus interfaces render as wide "bundle" connectors; clocks/resets/ports as thin stubs.
+ * Bus bundles can be expanded to show individual port signals.
  */
 export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
   ipCore,
   selectedId,
   onSelect,
+  onUpdate,
   onDragOver,
   onDrop,
   onRemove,
 }) => {
-  const layout = useMemo(() => computeLayout(ipCore), [ipCore]);
+  const [expandedBusIds, setExpandedBusIds] = useState<Set<string>>(new Set());
+  const layout = useMemo(
+    () => computeLayout(ipCore, expandedBusIds, lookupBusDef),
+    [ipCore, expandedBusIds]
+  );
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [blockHovered, setBlockHovered] = useState(false);
   const [dragActive, setDragActive] = useState(false);
@@ -44,6 +54,59 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
   const handleBackgroundClick = useCallback(() => {
     onSelect(null);
   }, [onSelect]);
+
+  const toggleBusExpand = useCallback((busId: string) => {
+    setExpandedBusIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(busId)) {
+        next.delete(busId);
+      } else {
+        next.add(busId);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleSubPortActivate = useCallback(
+    (subPortId: string) => {
+      // subPortId format: "bus:0:AWADDR"
+      const parts = subPortId.split(':');
+      if (parts.length < 3) {
+        return;
+      }
+      const busIndex = parseInt(parts[1], 10);
+      const portName = parts.slice(2).join(':');
+      const bus = (ipCore.busInterfaces ?? [])[busIndex] as
+        | { useOptionalPorts?: string[] }
+        | undefined;
+      const current = bus?.useOptionalPorts ?? [];
+      if (!current.includes(portName)) {
+        onUpdate?.(['busInterfaces', busIndex, 'useOptionalPorts'], [...current, portName]);
+      }
+    },
+    [ipCore, onUpdate]
+  );
+
+  const handleSubPortDeactivate = useCallback(
+    (subPortId: string) => {
+      const parts = subPortId.split(':');
+      if (parts.length < 3) {
+        return;
+      }
+      const busIndex = parseInt(parts[1], 10);
+      const portName = parts.slice(2).join(':');
+      const bus = (ipCore.busInterfaces ?? [])[busIndex] as
+        | { useOptionalPorts?: string[] }
+        | undefined;
+      const current = bus?.useOptionalPorts ?? [];
+      const updated = current.filter((p) => p !== portName);
+      onUpdate?.(
+        ['busInterfaces', busIndex, 'useOptionalPorts'],
+        updated.length > 0 ? updated : undefined
+      );
+    },
+    [ipCore, onUpdate]
+  );
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -122,6 +185,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
   const {
     blockRect,
     ports,
+    subPorts,
     viewBox,
     coreName,
     vlnvLabel,
@@ -345,6 +409,9 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
         {ports.map((p) => {
           const isSelected = selectedId === p.id;
           const isHovered = hoveredId === p.id;
+          const busExpanded = p.kind === 'bus' && expandedBusIds.has(p.id);
+          const hasBusDef =
+            p.kind === 'bus' && lookupBusDef((p.data as { type?: string }).type ?? '') !== null;
 
           if (p.kind === 'bus') {
             return (
@@ -359,6 +426,8 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
                   selected={isSelected}
                   annotations={annotations[p.id]}
                   onSelect={onSelect}
+                  isExpanded={busExpanded}
+                  onToggleExpand={hasBusDef ? () => toggleBusExpand(p.id) : undefined}
                 />
               </g>
             );
@@ -380,6 +449,16 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
             </g>
           );
         })}
+
+        {/* Sub-ports for expanded bus interfaces */}
+        {subPorts.map((sp) => (
+          <CanvasBusSubPort
+            key={sp.id}
+            subPort={sp}
+            onActivate={handleSubPortActivate}
+            onDeactivate={handleSubPortDeactivate}
+          />
+        ))}
 
         {/* Port count badges on block edges */}
         {renderEdgeBadge(ports, 'left', blockRect)}

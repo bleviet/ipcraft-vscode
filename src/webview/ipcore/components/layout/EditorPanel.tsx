@@ -147,6 +147,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
           ipCore={ip}
           selectedId={canvasSelectedId}
           onSelect={onCanvasSelect ?? (() => {})}
+          onUpdate={onUpdate}
           onDragOver={onCanvasDragOver}
           onDrop={onCanvasDrop}
           onRemove={onCanvasRemove}

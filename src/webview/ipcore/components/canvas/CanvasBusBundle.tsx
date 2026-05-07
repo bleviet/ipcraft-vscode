@@ -9,18 +9,23 @@ interface CanvasBusBundleProps {
   selected: boolean;
   annotations?: ValidationAnnotation[];
   onSelect: (id: string) => void;
+  isExpanded?: boolean;
+  onToggleExpand?: () => void;
 }
 
 /**
  * Renders a bus interface as a wide "bundle" connector on the block edge.
  *
  * Visually distinct from regular ports: thicker stub, protocol badge, mode indicator.
+ * Supports expand/collapse to show individual bus port signals.
  */
 export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
   port,
   selected,
   annotations,
   onSelect,
+  isExpanded = false,
+  onToggleExpand,
 }) => {
   const isLeft = port.side === 'left';
   const bus = port.data as {
@@ -47,9 +52,13 @@ export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
   const hasResetAssoc = !!bus.associatedReset;
   const hasMemMap = !!bus.memoryMapRef;
 
+  // Expand toggle button position (at the stub tip)
+  const toggleX = stubEndX + stubDir * 6;
+  const toggleY = port.y;
+
   return (
     <g
-      className={`canvas-bus-bundle ${selected ? 'canvas-bus-bundle--selected' : ''}`}
+      className={`canvas-bus-bundle ${selected ? 'canvas-bus-bundle--selected' : ''} ${isExpanded ? 'canvas-bus-bundle--expanded' : ''}`}
       onClick={(e) => {
         e.stopPropagation();
         onSelect(port.id);
@@ -180,6 +189,38 @@ export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
         )}
       </g>
 
+      {/* Expand/collapse toggle — at the stub tip */}
+      {onToggleExpand && (
+        <g
+          transform={`translate(${toggleX}, ${toggleY})`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleExpand();
+          }}
+          style={{ cursor: 'pointer' }}
+          className="canvas-bus-bundle__expand-toggle"
+        >
+          <rect
+            x={isLeft ? -16 : 0}
+            y={-8}
+            width={16}
+            height={16}
+            rx={3}
+            className="canvas-bus-bundle__expand-bg"
+          />
+          <text
+            x={isLeft ? -8 : 8}
+            y={0}
+            textAnchor="middle"
+            dominantBaseline="central"
+            className="canvas-bus-bundle__expand-icon"
+            fontSize={9}
+          >
+            {isExpanded ? '▲' : '▼'}
+          </text>
+        </g>
+      )}
+
       {/* Selection ring */}
       {selected && (
         <rect
@@ -196,7 +237,7 @@ export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
       {annotations && annotations.length > 0 && (
         <circle
           cx={port.x + stubDir * (STUB_LENGTH / 2)}
-          y={port.y - 20}
+          cy={port.y - 20}
           r={5}
           className={`ip-canvas-annotation-dot ${hasError ? 'ip-canvas-annotation-dot--error' : 'ip-canvas-annotation-dot--warning'}`}
         >
