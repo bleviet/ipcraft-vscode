@@ -10,6 +10,16 @@ import { lookupBusDef } from '../../data/busDefinitions';
 import type { YamlUpdateHandler } from '../../../types/editor';
 import './canvas.css';
 
+/** Distinct colours for clock domains when multiple clocks are defined */
+const CLOCK_DOMAIN_COLORS = [
+  '#4ec9b0', // teal
+  '#e5a96a', // amber-orange
+  '#dcdcaa', // yellow
+  '#c586c0', // purple
+  '#9cdcfe', // sky blue
+  '#f28b82', // coral
+];
+
 interface IpBlockCanvasProps {
   ipCore: IpCore;
   selectedId: string | null;
@@ -44,6 +54,19 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
     () => computeLayout(ipCore, expandedBusIds, lookupBusDef),
     [ipCore, expandedBusIds]
   );
+
+  // Assign distinct colours per clock domain when multiple clocks are defined
+  const multiDomain = (ipCore.clocks?.length ?? 0) > 1;
+  const getDomainColor = useCallback(
+    (idx: number): string | undefined => {
+      if (!multiDomain || idx < 0) {
+        return undefined;
+      }
+      return CLOCK_DOMAIN_COLORS[idx % CLOCK_DOMAIN_COLORS.length];
+    },
+    [multiDomain]
+  );
+
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [blockHovered, setBlockHovered] = useState(false);
   const [dragActive, setDragActive] = useState(false);
@@ -428,6 +451,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
                   onSelect={onSelect}
                   isExpanded={busExpanded}
                   onToggleExpand={hasBusDef ? () => toggleBusExpand(p.id) : undefined}
+                  domainColor={getDomainColor(p.clockDomainIdx)}
                 />
               </g>
             );
@@ -445,6 +469,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
                 selected={isSelected}
                 annotations={annotations[p.id]}
                 onSelect={onSelect}
+                domainColor={getDomainColor(p.clockDomainIdx)}
               />
             </g>
           );
@@ -457,6 +482,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
             subPort={sp}
             onActivate={handleSubPortActivate}
             onDeactivate={handleSubPortDeactivate}
+            domainColor={getDomainColor(sp.clockDomainIdx)}
           />
         ))}
 

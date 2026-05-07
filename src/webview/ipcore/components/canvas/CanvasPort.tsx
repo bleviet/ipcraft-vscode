@@ -9,6 +9,7 @@ interface CanvasPortProps {
   selected: boolean;
   annotations?: ValidationAnnotation[];
   onSelect: (id: string) => void;
+  domainColor?: string;
 }
 
 /**
@@ -23,6 +24,7 @@ export const CanvasPort: React.FC<CanvasPortProps> = ({
   selected,
   annotations,
   onSelect,
+  domainColor,
 }) => {
   const isLeft = port.side === 'left';
   const isRight = port.side === 'right';
@@ -135,10 +137,17 @@ export const CanvasPort: React.FC<CanvasPortProps> = ({
         y2={y2}
         className="canvas-port__stub"
         strokeWidth={port.kind === 'bus' ? 3 : 1.5}
+        style={domainColor ? { stroke: domainColor } : undefined}
       />
 
       {/* Connector dot at block edge */}
-      <circle cx={port.x} cy={port.y} r={dotR} className="canvas-port__dot" />
+      <circle
+        cx={port.x}
+        cy={port.y}
+        r={dotR}
+        className="canvas-port__dot"
+        style={domainColor ? { fill: domainColor } : undefined}
+      />
 
       {/* Port kind icon (clock/reset) — placed inside the block body */}
       {icon && (
@@ -149,6 +158,7 @@ export const CanvasPort: React.FC<CanvasPortProps> = ({
           textAnchor="middle"
           dominantBaseline="central"
           fontSize={11}
+          style={domainColor ? { fill: domainColor } : undefined}
         >
           {icon}
         </text>

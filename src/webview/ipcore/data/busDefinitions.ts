@@ -3,11 +3,13 @@ export interface BusPortDef {
   width?: number;
   direction?: 'in' | 'out';
   presence: 'required' | 'optional';
+  /** Marks signals that map to a shared clock or reset — hidden when the bus has an association */
+  role?: 'clock' | 'reset';
 }
 
 const AXI4_LITE: BusPortDef[] = [
-  { name: 'ACLK', presence: 'required' },
-  { name: 'ARESETn', presence: 'required' },
+  { name: 'ACLK', presence: 'required', role: 'clock' },
+  { name: 'ARESETn', presence: 'required', role: 'reset' },
   { name: 'AWADDR', width: 32, direction: 'out', presence: 'required' },
   { name: 'AWVALID', direction: 'out', presence: 'required' },
   { name: 'AWREADY', direction: 'in', presence: 'required' },
@@ -30,8 +32,8 @@ const AXI4_LITE: BusPortDef[] = [
 ];
 
 const AXI4_FULL: BusPortDef[] = [
-  { name: 'ACLK', presence: 'required' },
-  { name: 'ARESETn', presence: 'required' },
+  { name: 'ACLK', presence: 'required', role: 'clock' },
+  { name: 'ARESETn', presence: 'required', role: 'reset' },
   { name: 'AWADDR', width: 32, direction: 'out', presence: 'required' },
   { name: 'AWVALID', direction: 'out', presence: 'required' },
   { name: 'AWREADY', direction: 'in', presence: 'required' },
@@ -64,8 +66,8 @@ const AXI4_FULL: BusPortDef[] = [
 ];
 
 const AXI_STREAM: BusPortDef[] = [
-  { name: 'ACLK', presence: 'required' },
-  { name: 'ARESETn', presence: 'required' },
+  { name: 'ACLK', presence: 'required', role: 'clock' },
+  { name: 'ARESETn', presence: 'required', role: 'reset' },
   { name: 'TDATA', width: 32, direction: 'out', presence: 'required' },
   { name: 'TVALID', direction: 'out', presence: 'required' },
   { name: 'TREADY', direction: 'in', presence: 'required' },
@@ -78,8 +80,8 @@ const AXI_STREAM: BusPortDef[] = [
 ];
 
 const AVALON_MM: BusPortDef[] = [
-  { name: 'clk', presence: 'required' },
-  { name: 'reset', presence: 'required' },
+  { name: 'clk', presence: 'required', role: 'clock' },
+  { name: 'reset', presence: 'required', role: 'reset' },
   { name: 'address', width: 32, direction: 'out', presence: 'required' },
   { name: 'read', direction: 'out', presence: 'required' },
   { name: 'write', direction: 'out', presence: 'required' },
@@ -95,8 +97,8 @@ const AVALON_MM: BusPortDef[] = [
 ];
 
 const AVALON_ST: BusPortDef[] = [
-  { name: 'clk', presence: 'required' },
-  { name: 'reset', presence: 'required' },
+  { name: 'clk', presence: 'required', role: 'clock' },
+  { name: 'reset', presence: 'required', role: 'reset' },
   { name: 'data', width: 32, direction: 'out', presence: 'required' },
   { name: 'valid', direction: 'out', presence: 'required' },
   { name: 'ready', direction: 'in', presence: 'optional' },

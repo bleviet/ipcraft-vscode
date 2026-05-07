@@ -43,6 +43,8 @@ export interface LayoutPort {
   mode?: string;
   /** Original data reference */
   data: unknown;
+  /** Index into ipCore.clocks for this port's clock domain, or -1 */
+  clockDomainIdx: number;
 }
 
 /** An individual signal port of an expanded bus interface */
@@ -64,6 +66,8 @@ export interface LayoutSubPort {
   active: boolean;
   /** Physical port prefix from the bus interface (e.g. `s_axi_`) */
   physicalPrefix: string;
+  /** Index into ipCore.clocks for this signal's clock domain, or -1 */
+  clockDomainIdx: number;
 }
 
 /** A generic/parameter rendered inside the block body */
@@ -153,7 +157,7 @@ function isInputDirection(dir: string | undefined): boolean {
   return dir === 'in' || dir === undefined;
 }
 
-/** How many layout slots an item occupies (1 normally, 1 + N ports if expanded bus) */
+/** How many layout slots an item occupies (1 normally, 1 + visible ports if expanded bus) */
 function itemSlots(
   item: { kind: PortKind; index: number; data: unknown },
   expandedBusIds: Set<string>,
@@ -166,9 +170,27 @@ function itemSlots(
   if (!expandedBusIds.has(busId)) {
     return 1;
   }
-  const busData = item.data as { type?: string };
-  const ports = busPortLookup(busData.type ?? '');
-  return 1 + (ports?.length ?? 0);
+  const busData = item.data as {
+    type?: string;
+    associatedClock?: string | null;
+    associatedReset?: string | null;
+  };
+  const allPorts = busPortLookup(busData.type ?? '');
+  if (!allPorts) {
+    return 1;
+  }
+  const hasClock = !!busData.associatedClock;
+  const hasReset = !!busData.associatedReset;
+  const visibleCount = allPorts.filter((p) => {
+    if (p.role === 'clock' && hasClock) {
+      return false;
+    }
+    if (p.role === 'reset' && hasReset) {
+      return false;
+    }
+    return true;
+  }).length;
+  return 1 + visibleCount;
 }
 
 // --- Main layout function ---
@@ -216,6 +238,27 @@ export function computeLayout(
   // portsAreaTopRelative: distance from blockY to where port stubs begin.
   const portsAreaTopRelative =
     portSeparatorOffset !== null ? portSeparatorOffset + EDGE_PADDING : null;
+
+  // Build a clock-name → index map for domain colour resolution
+  const clockNameToIdx = new Map<string, number>();
+  clocks.forEach((c, i) => clockNameToIdx.set(c.name, i));
+
+  /** Clock domain index for a bus interface (via its associatedClock), or -1 */
+  const busDomainIdx = (busData: { associatedClock?: string | null }): number =>
+    clockNameToIdx.get(busData.associatedClock ?? '') ?? -1;
+
+  /** Clock domain index for a reset — derived from any bus interface that references it */
+  const resetDomainIdx = (resetName: string): number => {
+    for (const b of buses) {
+      if (b.associatedReset === resetName && b.associatedClock) {
+        const idx = clockNameToIdx.get(b.associatedClock);
+        if (idx !== undefined) {
+          return idx;
+        }
+      }
+    }
+    return -1;
+  };
 
   // Classify ports by side
   const leftItems: Array<{ kind: PortKind; index: number; data: unknown }> = [];
@@ -298,16 +341,19 @@ export function computeLayout(
       let widthLabel = '';
       let protocol: string | undefined;
       let mode: string | undefined;
+      let domainIdx = -1;
 
       const d = item.data as Record<string, unknown>;
       switch (item.kind) {
         case 'clock':
           label = String(d.name ?? '');
           widthLabel = '';
+          domainIdx = item.index;
           break;
         case 'reset':
           label = String(d.name ?? '');
           widthLabel = '';
+          domainIdx = resetDomainIdx(String(d.name ?? ''));
           break;
         case 'port':
           label = String(d.name ?? '');
@@ -318,6 +364,7 @@ export function computeLayout(
           protocol = busProtocolShortName(String(d.type ?? ''));
           mode = modeLabel(String(d.mode ?? ''));
           widthLabel = '';
+          domainIdx = busDomainIdx(d as { associatedClock?: string | null });
           break;
       }
 
@@ -332,6 +379,7 @@ export function computeLayout(
         protocol,
         mode,
         data: item.data,
+        clockDomainIdx: domainIdx,
       });
 
       // If this bus is expanded, emit sub-ports below it
@@ -341,20 +389,30 @@ export function computeLayout(
           useOptionalPorts?: string[];
           portWidthOverrides?: Record<string, number | string>;
           physicalPrefix?: string;
+          associatedClock?: string | null;
+          associatedReset?: string | null;
         };
-        const portDefs = busPortLookup(busData.type ?? '') ?? [];
+        const allPortDefs = busPortLookup(busData.type ?? '') ?? [];
         const useOptional = busData.useOptionalPorts ?? [];
         const overrides = busData.portWidthOverrides ?? {};
+        const hasClock = !!busData.associatedClock;
+        const hasReset = !!busData.associatedReset;
 
-        portDefs.forEach((portDef, pi) => {
+        // Filter out clock/reset signals that are covered by explicit associations
+        const visibleDefs = allPortDefs.filter((portDef) => {
+          if (portDef.role === 'clock' && hasClock) {
+            return false;
+          }
+          if (portDef.role === 'reset' && hasReset) {
+            return false;
+          }
+          return true;
+        });
+
+        visibleDefs.forEach((portDef, pi) => {
           const subY = y + PORT_PITCH * (pi + 1);
           const rawWidth = overrides[portDef.name] ?? portDef.width;
-          const numWidth =
-            typeof rawWidth === 'number'
-              ? rawWidth
-              : typeof rawWidth === 'string'
-                ? undefined
-                : undefined;
+          const numWidth = typeof rawWidth === 'number' ? rawWidth : undefined;
           const widthLbl = numWidth !== undefined && numWidth > 1 ? `[${numWidth - 1}:0]` : '';
           const active = portDef.presence === 'required' || useOptional.includes(portDef.name);
 
@@ -370,10 +428,11 @@ export function computeLayout(
             presence: portDef.presence,
             active,
             physicalPrefix: busData.physicalPrefix ?? '',
+            clockDomainIdx: domainIdx,
           });
         });
 
-        currentY += PORT_PITCH * (1 + portDefs.length);
+        currentY += PORT_PITCH * (1 + visibleDefs.length);
       } else {
         currentY += PORT_PITCH;
       }
@@ -403,6 +462,7 @@ export function computeLayout(
         label: String(p.name ?? ''),
         widthLabel: formatWidth(p.width as number | string | undefined),
         data: item.data,
+        clockDomainIdx: -1,
       });
     });
   }

@@ -6,6 +6,7 @@ interface CanvasBusSubPortProps {
   subPort: LayoutSubPort;
   onActivate: (subPortId: string) => void;
   onDeactivate: (subPortId: string) => void;
+  domainColor?: string;
 }
 
 /**
@@ -21,6 +22,7 @@ export const CanvasBusSubPort: React.FC<CanvasBusSubPortProps> = ({
   subPort,
   onActivate,
   onDeactivate,
+  domainColor,
 }) => {
   const isLeft = subPort.side === 'left';
   const stubDir = isLeft ? -1 : 1;
@@ -60,10 +62,17 @@ export const CanvasBusSubPort: React.FC<CanvasBusSubPortProps> = ({
         y2={subPort.y}
         className="canvas-bus-subport__line"
         strokeDasharray={isInactive ? '4 3' : undefined}
+        style={domainColor ? { stroke: domainColor } : undefined}
       />
 
       {/* Tiny dot at block edge */}
-      <circle cx={subPort.x} cy={subPort.y} r={2} className="canvas-bus-subport__dot" />
+      <circle
+        cx={subPort.x}
+        cy={subPort.y}
+        r={2}
+        className="canvas-bus-subport__dot"
+        style={domainColor ? { fill: domainColor } : undefined}
+      />
 
       {/* Logical name — inside the block */}
       <text
@@ -72,6 +81,7 @@ export const CanvasBusSubPort: React.FC<CanvasBusSubPortProps> = ({
         textAnchor={isLeft ? 'start' : 'end'}
         dominantBaseline="central"
         className="canvas-bus-subport__logical"
+        style={domainColor ? { fill: domainColor } : undefined}
       >
         {logicalLabel}
       </text>

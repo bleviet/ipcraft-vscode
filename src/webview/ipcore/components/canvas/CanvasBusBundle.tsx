@@ -11,6 +11,7 @@ interface CanvasBusBundleProps {
   onSelect: (id: string) => void;
   isExpanded?: boolean;
   onToggleExpand?: () => void;
+  domainColor?: string;
 }
 
 /**
@@ -26,6 +27,7 @@ export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
   onSelect,
   isExpanded = false,
   onToggleExpand,
+  domainColor,
 }) => {
   const isLeft = port.side === 'left';
   const bus = port.data as {
@@ -99,6 +101,7 @@ export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
         y2={port.y}
         className="canvas-bus-bundle__stub"
         strokeWidth={4}
+        style={domainColor ? { stroke: domainColor } : undefined}
       />
 
       {/* Connector block at block edge */}
@@ -109,6 +112,7 @@ export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
         height={12}
         className="canvas-bus-bundle__connector"
         rx={2}
+        style={domainColor ? { fill: domainColor } : undefined}
       />
 
       {/* Protocol badge */}
@@ -120,6 +124,7 @@ export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
           height={20}
           rx={4}
           className="canvas-bus-bundle__badge"
+          style={domainColor ? { stroke: domainColor } : undefined}
         />
         <text
           x={isLeft ? -40 : 40}
