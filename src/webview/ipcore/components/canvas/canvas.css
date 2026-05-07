@@ -1021,27 +1021,30 @@
   opacity: 0.3;
 }
 
+/* Physical port name — outside on the stub */
 .canvas-bus-subport__label {
   fill: var(--vscode-foreground);
   font-family: var(--vscode-editor-font-family, monospace);
   font-size: 9px;
-  opacity: 0.9;
+  opacity: 0.75;
 }
 
 .canvas-bus-subport--inactive .canvas-bus-subport__label {
-  opacity: 0.4;
+  opacity: 0.3;
   font-style: italic;
 }
 
-.canvas-bus-subport__dir {
+/* Logical signal name — inside the block */
+.canvas-bus-subport__logical {
   fill: var(--vscode-charts-blue, #4facfe);
   font-family: var(--vscode-editor-font-family, monospace);
-  font-size: 10px;
-  opacity: 0.7;
+  font-size: 9px;
+  opacity: 0.85;
 }
 
-.canvas-bus-subport--inactive .canvas-bus-subport__dir {
-  opacity: 0.25;
+.canvas-bus-subport--inactive .canvas-bus-subport__logical {
+  opacity: 0.3;
+  font-style: italic;
 }
 
 /* Activate / deactivate hint badges */

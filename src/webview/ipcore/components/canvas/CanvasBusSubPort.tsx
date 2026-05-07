@@ -11,6 +11,9 @@ interface CanvasBusSubPortProps {
 /**
  * Renders a single signal stub for an expanded bus interface.
  *
+ * Logical signal name (e.g. AWADDR[31:0]) is shown inside the block.
+ * Physical port name (e.g. s_axi_awaddr[31:0]) is shown on the external stub.
+ *
  * Required and active-optional ports show a solid stub.
  * Inactive optional ports show a dashed stub and are clickable to activate.
  */
@@ -26,7 +29,12 @@ export const CanvasBusSubPort: React.FC<CanvasBusSubPortProps> = ({
   const isOptional = subPort.presence === 'optional';
   const isInactive = isOptional && !subPort.active;
 
-  const label = subPort.widthLabel ? `${subPort.name}${subPort.widthLabel}` : subPort.name;
+  // Logical label shown inside the block (signal role within the bus protocol)
+  const logicalLabel = subPort.widthLabel ? `${subPort.name}${subPort.widthLabel}` : subPort.name;
+
+  // Physical label shown outside on the stub (actual HDL port name)
+  const physicalName = `${subPort.physicalPrefix}${subPort.name.toLowerCase()}`;
+  const physicalLabel = subPort.widthLabel ? `${physicalName}${subPort.widthLabel}` : physicalName;
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -36,8 +44,6 @@ export const CanvasBusSubPort: React.FC<CanvasBusSubPortProps> = ({
       onDeactivate(subPort.id);
     }
   };
-
-  const dirSymbol = subPort.direction === 'out' ? '›' : subPort.direction === 'in' ? '‹' : '';
 
   return (
     <g
@@ -59,30 +65,27 @@ export const CanvasBusSubPort: React.FC<CanvasBusSubPortProps> = ({
       {/* Tiny dot at block edge */}
       <circle cx={subPort.x} cy={subPort.y} r={2} className="canvas-bus-subport__dot" />
 
-      {/* Port name label */}
+      {/* Logical name — inside the block */}
       <text
-        x={stubEndX + stubDir * 6}
+        x={subPort.x + (isLeft ? 8 : -8)}
+        y={subPort.y}
+        textAnchor={isLeft ? 'start' : 'end'}
+        dominantBaseline="central"
+        className="canvas-bus-subport__logical"
+      >
+        {logicalLabel}
+      </text>
+
+      {/* Physical port name — outside on the stub */}
+      <text
+        x={stubEndX + stubDir * 5}
         y={subPort.y}
         textAnchor={isLeft ? 'end' : 'start'}
         dominantBaseline="central"
         className="canvas-bus-subport__label"
       >
-        {label}
+        {physicalLabel}
       </text>
-
-      {/* Direction indicator (small arrow inside stub, near block edge) */}
-      {dirSymbol && (
-        <text
-          x={subPort.x + stubDir * 8}
-          y={subPort.y}
-          textAnchor="middle"
-          dominantBaseline="central"
-          className="canvas-bus-subport__dir"
-          style={{ transform: isLeft && subPort.direction === 'in' ? 'none' : undefined }}
-        >
-          {dirSymbol}
-        </text>
-      )}
 
       {/* "+" badge for inactive optional ports — hint to activate */}
       {isInactive && (

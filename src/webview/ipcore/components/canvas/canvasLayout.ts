@@ -54,6 +54,7 @@ export interface LayoutSubPort {
   x: number;
   y: number;
   side: PortSide;
+  /** Logical signal name, e.g. `AWADDR` */
   name: string;
   /** Width label e.g. `[31:0]` or empty string */
   widthLabel: string;
@@ -61,6 +62,8 @@ export interface LayoutSubPort {
   presence: 'required' | 'optional';
   /** true = required port OR optional port in useOptionalPorts */
   active: boolean;
+  /** Physical port prefix from the bus interface (e.g. `s_axi_`) */
+  physicalPrefix: string;
 }
 
 /** A generic/parameter rendered inside the block body */
@@ -337,6 +340,7 @@ export function computeLayout(
           type?: string;
           useOptionalPorts?: string[];
           portWidthOverrides?: Record<string, number | string>;
+          physicalPrefix?: string;
         };
         const portDefs = busPortLookup(busData.type ?? '') ?? [];
         const useOptional = busData.useOptionalPorts ?? [];
@@ -365,6 +369,7 @@ export function computeLayout(
             direction: portDef.direction,
             presence: portDef.presence,
             active,
+            physicalPrefix: busData.physicalPrefix ?? '',
           });
         });
 
