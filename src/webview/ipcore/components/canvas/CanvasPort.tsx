@@ -140,11 +140,11 @@ export const CanvasPort: React.FC<CanvasPortProps> = ({
       {/* Connector dot at block edge */}
       <circle cx={port.x} cy={port.y} r={dotR} className="canvas-port__dot" />
 
-      {/* Port kind icon (clock/reset) */}
+      {/* Port kind icon (clock/reset) — placed inside the block body */}
       {icon && (
         <text
-          x={isLeft ? port.x - 14 : isRight ? port.x + 14 : port.x}
-          y={isBottom ? port.y + 14 : port.y}
+          x={isLeft ? port.x + 14 : isRight ? port.x - 14 : port.x}
+          y={isBottom ? port.y - 14 : port.y}
           className="canvas-port__icon"
           textAnchor="middle"
           dominantBaseline="central"
@@ -195,7 +195,7 @@ export const CanvasPort: React.FC<CanvasPortProps> = ({
 function portKindIcon(kind: string): string | null {
   switch (kind) {
     case 'clock':
-      return '\u223F'; // sine wave
+      return '\ud83d\udd50'; // clock symbol
     case 'reset':
       return '\u21BA'; // counterclockwise arrow
     default:
