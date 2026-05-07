@@ -35,6 +35,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
 }) => {
   const layout = useMemo(() => computeLayout(ipCore), [ipCore]);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [blockHovered, setBlockHovered] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [dragOutActive, setDragOutActive] = useState(false);
 
@@ -144,15 +145,22 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
         </defs>
         <rect width="100%" height="100%" fill="url(#canvas-grid)" />
 
-        {/* Block body */}
+        {/* Block body — clickable to open VLNV inspector */}
         <rect
           x={blockRect.x}
           y={blockRect.y}
           width={blockRect.width}
           height={blockRect.height}
-          className="ip-block-body"
+          className={`ip-block-body${selectedId === 'body' ? ' ip-block-body--selected' : ''}${blockHovered ? ' ip-block-body--hovered' : ''}`}
           rx={6}
           ry={6}
+          style={{ cursor: 'pointer' }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onSelect('body');
+          }}
+          onMouseEnter={() => setBlockHovered(true)}
+          onMouseLeave={() => setBlockHovered(false)}
         />
 
         {/* Block header stripe */}
@@ -164,6 +172,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
           className="ip-block-header"
           rx={6}
           ry={6}
+          style={{ pointerEvents: 'none' }}
         />
         {/* Square off bottom corners of header */}
         <rect
@@ -172,6 +181,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
           width={blockRect.width}
           height={14}
           className="ip-block-header"
+          style={{ pointerEvents: 'none' }}
         />
 
         {/* Core name */}
@@ -181,6 +191,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
           textAnchor="middle"
           dominantBaseline="central"
           className="ip-block-name"
+          style={{ pointerEvents: 'none' }}
         >
           {coreName}
         </text>
@@ -192,9 +203,24 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
           textAnchor="middle"
           dominantBaseline="central"
           className="ip-block-vlnv"
+          style={{ pointerEvents: 'none' }}
         >
           {vlnvLabel}
         </text>
+
+        {/* Edit hint — visible when block is hovered or body is selected */}
+        {(blockHovered || selectedId === 'body') && (
+          <text
+            x={blockRect.x + blockRect.width - 8}
+            y={blockRect.y + 15}
+            textAnchor="end"
+            dominantBaseline="central"
+            className="ip-block-edit-hint"
+            style={{ pointerEvents: 'none' }}
+          >
+            ✎
+          </text>
+        )}
 
         {/* Description (if present) */}
         {ipCore.description && (
@@ -204,6 +230,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
             textAnchor="middle"
             dominantBaseline="central"
             className="ip-block-description"
+            style={{ pointerEvents: 'none' }}
           >
             {ipCore.description.length > 40
               ? ipCore.description.slice(0, 37) + '...'
@@ -282,7 +309,7 @@ function renderEdgeBadge(
   side: 'left' | 'right',
   blockRect: { x: number; y: number; width: number; height: number }
 ) {
-  const count = ports.filter((p) => p.side === side).length;
+  const count = ports.filter((p) => p.side === side && p.kind !== 'parameter').length;
   if (count === 0) {
     return null;
   }
@@ -335,6 +362,16 @@ const PortTooltip: React.FC<PortTooltipProps> = ({ portId, ports }) => {
     const rst = port.data as { polarity?: string };
     if (rst.polarity) {
       details.push(`Polarity: ${rst.polarity}`);
+    }
+  }
+  if (port.kind === 'parameter') {
+    const p = port.data as { dataType?: string; defaultValue?: unknown; value?: unknown };
+    if (p.dataType) {
+      details.push(`Type: ${p.dataType}`);
+    }
+    const defVal = p.defaultValue ?? p.value;
+    if (defVal !== undefined && defVal !== null) {
+      details.push(`Default: ${String(defVal)}`);
     }
   }
 

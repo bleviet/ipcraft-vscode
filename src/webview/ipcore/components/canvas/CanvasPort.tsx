@@ -135,6 +135,7 @@ export const CanvasPort: React.FC<CanvasPortProps> = ({
         y2={y2}
         className="canvas-port__stub"
         strokeWidth={port.kind === 'bus' ? 3 : 1.5}
+        strokeDasharray={port.kind === 'parameter' ? '5 3' : undefined}
       />
 
       {/* Connector dot at block edge */}
@@ -198,6 +199,8 @@ function portKindIcon(kind: string): string | null {
       return '\ud83d\udd50'; // clock symbol
     case 'reset':
       return '\u21BA'; // counterclockwise arrow
+    case 'parameter':
+      return '\u22B3'; // right-pointing triangle \u2014 generic/parameter
     default:
       return null;
   }

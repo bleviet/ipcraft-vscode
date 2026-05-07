@@ -66,6 +66,22 @@
   opacity: 0.4;
 }
 
+.ip-block-body--hovered {
+  fill: color-mix(in srgb, var(--vscode-focusBorder) 6%, var(--vscode-editor-background));
+}
+
+.ip-block-body--selected {
+  stroke: var(--vscode-focusBorder);
+  stroke-width: 2.5;
+  fill: color-mix(in srgb, var(--vscode-focusBorder) 4%, var(--vscode-editor-background));
+}
+
+.ip-block-edit-hint {
+  fill: var(--vscode-focusBorder);
+  font-size: 10px;
+  opacity: 0.7;
+}
+
 /* --- Port stubs --- */
 
 .canvas-port__stub {
@@ -121,6 +137,30 @@
 
 .canvas-port--reset .canvas-port__dot {
   fill: var(--vscode-charts-orange, #ce9178);
+}
+
+/* Parameter/generic ports */
+.canvas-port--parameter .canvas-port__stub {
+  stroke: var(--vscode-charts-yellow, #dcdcaa);
+  opacity: 0.7;
+}
+
+.canvas-port--parameter .canvas-port__dot {
+  fill: var(--vscode-charts-yellow, #dcdcaa);
+  opacity: 0.8;
+}
+
+.canvas-port--parameter .canvas-port__icon {
+  fill: var(--vscode-charts-yellow, #dcdcaa);
+  opacity: 0.9;
+}
+
+.canvas-port--parameter.canvas-port--selected .canvas-port__stub {
+  stroke: var(--vscode-focusBorder);
+}
+
+.canvas-port--parameter.canvas-port--selected .canvas-port__dot {
+  fill: var(--vscode-focusBorder);
 }
 
 /* Hover state */
@@ -530,5 +570,285 @@
 @keyframes fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+/* ========================================
+   CANVAS INSPECTOR PANEL
+   ======================================== */
+
+@keyframes inspector-slide-in {
+  from { opacity: 0; transform: translateX(12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.canvas-inspector {
+  width: 288px;
+  min-width: 260px;
+  max-width: 320px;
+  flex-shrink: 0;
+  border-left: 1px solid var(--vscode-panel-border);
+  background: var(--vscode-sideBar-background);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: inspector-slide-in 0.18s ease-out;
+}
+
+/* Header */
+.ci-header {
+  padding: 10px 12px 8px;
+  border-bottom: 1px solid var(--vscode-panel-border);
+  background: var(--vscode-editorWidget-background);
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.ci-header__info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ci-header__name {
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--vscode-foreground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ci-header__close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--vscode-descriptionForeground);
+  padding: 2px 4px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  margin-top: 1px;
+  line-height: 1;
+}
+.ci-header__close:hover {
+  background: var(--vscode-toolbar-hoverBackground);
+  color: var(--vscode-foreground);
+}
+
+/* Kind badges */
+.ci-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  align-self: flex-start;
+}
+
+.ci-badge--clock {
+  background: color-mix(in srgb, var(--vscode-charts-green, #4ec9b0) 18%, transparent);
+  color: var(--vscode-charts-green, #4ec9b0);
+  border: 1px solid color-mix(in srgb, var(--vscode-charts-green, #4ec9b0) 35%, transparent);
+}
+.ci-badge--reset {
+  background: color-mix(in srgb, var(--vscode-charts-orange, #ce9178) 18%, transparent);
+  color: var(--vscode-charts-orange, #ce9178);
+  border: 1px solid color-mix(in srgb, var(--vscode-charts-orange, #ce9178) 35%, transparent);
+}
+.ci-badge--port {
+  background: color-mix(in srgb, var(--vscode-charts-blue, #4facfe) 18%, transparent);
+  color: var(--vscode-charts-blue, #4facfe);
+  border: 1px solid color-mix(in srgb, var(--vscode-charts-blue, #4facfe) 35%, transparent);
+}
+.ci-badge--bus {
+  background: color-mix(in srgb, var(--vscode-charts-purple, #b180d7) 18%, transparent);
+  color: var(--vscode-charts-purple, #b180d7);
+  border: 1px solid color-mix(in srgb, var(--vscode-charts-purple, #b180d7) 35%, transparent);
+}
+.ci-badge--body {
+  background: color-mix(in srgb, var(--vscode-focusBorder) 18%, transparent);
+  color: var(--vscode-focusBorder);
+  border: 1px solid color-mix(in srgb, var(--vscode-focusBorder) 35%, transparent);
+}
+.ci-badge--parameter {
+  background: color-mix(in srgb, var(--vscode-charts-yellow, #dcdcaa) 18%, transparent);
+  color: var(--vscode-charts-yellow, #dcdcaa);
+  border: 1px solid color-mix(in srgb, var(--vscode-charts-yellow, #dcdcaa) 35%, transparent);
+}
+
+/* Body */
+.ci-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Sections */
+.ci-section {
+  padding: 12px 12px 6px;
+  border-bottom: 1px solid color-mix(in srgb, var(--vscode-panel-border) 60%, transparent);
+}
+.ci-section:last-child {
+  border-bottom: none;
+}
+
+.ci-section__title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--vscode-descriptionForeground);
+  margin-bottom: 9px;
+  opacity: 0.75;
+}
+
+/* Fields */
+.ci-field {
+  margin-bottom: 10px;
+}
+.ci-field:last-child {
+  margin-bottom: 2px;
+}
+
+.ci-field__label {
+  display: block;
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  margin-bottom: 3px;
+  user-select: none;
+}
+
+.ci-field__input {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+  border-radius: 2px;
+  padding: 4px 8px;
+  font-size: 12px;
+  outline: none;
+  transition: border-color 0.12s;
+}
+.ci-field__input:focus {
+  border-color: var(--vscode-focusBorder);
+  box-shadow: 0 0 0 1px var(--vscode-focusBorder);
+}
+.ci-field__input--error {
+  border-color: var(--vscode-inputValidation-errorBorder, var(--vscode-errorForeground));
+}
+
+.ci-field__select {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--vscode-dropdown-background);
+  color: var(--vscode-dropdown-foreground);
+  border: 1px solid var(--vscode-dropdown-border, var(--vscode-panel-border));
+  border-radius: 2px;
+  padding: 4px 8px;
+  font-family: var(--vscode-font-family);
+  font-size: 12px;
+  outline: none;
+  cursor: pointer;
+}
+.ci-field__select:focus {
+  border-color: var(--vscode-focusBorder);
+}
+
+.ci-field__error {
+  font-size: 10px;
+  color: var(--vscode-inputValidation-errorForeground, var(--vscode-errorForeground));
+  margin-top: 3px;
+}
+.ci-field__hint {
+  font-size: 10px;
+  color: var(--vscode-descriptionForeground);
+  margin-top: 3px;
+  opacity: 0.65;
+}
+
+.ci-field__textarea {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+  border-radius: 2px;
+  padding: 4px 8px;
+  font-family: var(--vscode-font-family);
+  font-size: 12px;
+  outline: none;
+  resize: vertical;
+  min-height: 60px;
+  transition: border-color 0.12s;
+}
+.ci-field__textarea:focus {
+  border-color: var(--vscode-focusBorder);
+  box-shadow: 0 0 0 1px var(--vscode-focusBorder);
+}
+
+/* Used-by chips */
+.ci-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 2px 0 4px;
+}
+.ci-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 10px;
+  background: var(--vscode-badge-background);
+  color: var(--vscode-badge-foreground);
+}
+
+/* Empty state */
+.ci-empty-state {
+  padding: 24px 16px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  opacity: 0.6;
+}
+
+/* Footer */
+.ci-footer {
+  padding: 8px 12px;
+  border-top: 1px solid var(--vscode-panel-border);
+  background: var(--vscode-editorWidget-background);
+  display: flex;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+.ci-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 3px;
+  border: 1px solid color-mix(in srgb, var(--vscode-errorForeground, #f14c4c) 40%, transparent);
+  background: color-mix(in srgb, var(--vscode-errorForeground, #f14c4c) 8%, transparent);
+  color: var(--vscode-errorForeground, #f14c4c);
+  font-size: 11px;
+  font-family: var(--vscode-font-family);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.ci-delete-btn:hover {
+  background: color-mix(in srgb, var(--vscode-errorForeground, #f14c4c) 18%, transparent);
 }
 

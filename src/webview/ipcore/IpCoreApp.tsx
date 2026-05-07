@@ -120,6 +120,32 @@ const IpCoreApp: React.FC = () => {
     [ipCore, updateIpCore, canvasSelectedId, canvasDeselect]
   );
 
+  // Delete selected element from the inspector panel (safe array-filter approach)
+  const handleInspectorDelete = React.useCallback(() => {
+    if (!canvasSelected) {
+      return;
+    }
+    const pathKey: Record<string, string> = {
+      clock: 'clocks',
+      reset: 'resets',
+      port: 'ports',
+      busInterface: 'busInterfaces',
+      parameter: 'parameters',
+    };
+    const key = pathKey[canvasSelected.kind];
+    if (!key) {
+      return;
+    }
+    const ip = ipCore as unknown as IpCore;
+    const currentArr = ip[key as keyof IpCore] as unknown[] | undefined;
+    if (!Array.isArray(currentArr)) {
+      return;
+    }
+    const updated = currentArr.filter((_, i) => i !== canvasSelected.index);
+    updateIpCore([key], updated);
+    canvasDeselect();
+  }, [canvasSelected, ipCore, updateIpCore, canvasDeselect]);
+
   // Panel focus state for Ctrl+H/L navigation
   const [focusedPanel, setFocusedPanel] = useState<FocusedPanel>('left');
   const leftPanelRef = useRef<HTMLDivElement>(null);
@@ -370,6 +396,7 @@ const IpCoreApp: React.FC = () => {
                 imports={imports}
                 onUpdate={updateIpCore}
                 onClose={canvasDeselect}
+                onDelete={handleInspectorDelete}
               />
             )}
           </>

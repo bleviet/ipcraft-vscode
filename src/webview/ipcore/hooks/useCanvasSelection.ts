@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 
-export type CanvasElementKind = 'clock' | 'reset' | 'port' | 'busInterface' | 'body';
+export type CanvasElementKind = 'clock' | 'reset' | 'port' | 'busInterface' | 'body' | 'parameter';
 
 export interface CanvasElement {
   kind: CanvasElementKind;
@@ -15,6 +15,10 @@ export interface CanvasElement {
  * IDs follow the format `kind:index` (e.g., 'clock:0', 'bus:2', 'port:5').
  */
 export function parseCanvasId(id: string): CanvasElement | null {
+  if (id === 'body') {
+    return { kind: 'body', index: 0, id: 'body' };
+  }
+
   const parts = id.split(':');
   if (parts.length !== 2) {
     return null;
@@ -26,12 +30,12 @@ export function parseCanvasId(id: string): CanvasElement | null {
     return null;
   }
 
-  // Map layout kind to element kind
   const kindMap: Record<string, CanvasElementKind> = {
     clock: 'clock',
     reset: 'reset',
     port: 'port',
     bus: 'busInterface',
+    parameter: 'parameter',
   };
 
   const kind = kindMap[kindRaw];

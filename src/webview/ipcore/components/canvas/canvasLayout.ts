@@ -1,4 +1,4 @@
-import type { IpCore, Clock, Reset, Port, BusInterface } from '../../../types/ipCore';
+import type { IpCore, BusInterface } from '../../../types/ipCore';
 
 // --- Constants ---
 
@@ -25,7 +25,7 @@ export const CANVAS_MARGIN_Y = 40;
 
 // --- Types ---
 
-export type PortKind = 'clock' | 'reset' | 'port' | 'bus';
+export type PortKind = 'clock' | 'reset' | 'port' | 'bus' | 'parameter';
 export type PortSide = 'left' | 'right' | 'bottom';
 
 export interface LayoutPort {
@@ -41,7 +41,7 @@ export interface LayoutPort {
   protocol?: string;
   mode?: string;
   /** Original data reference */
-  data: Clock | Reset | Port | BusInterface;
+  data: unknown;
 }
 
 export interface CanvasLayout {
@@ -130,23 +130,15 @@ export function computeLayout(ipCore: IpCore): CanvasLayout {
   const resets = ipCore.resets ?? [];
   const ports = ipCore.ports ?? [];
   const buses = ipCore.busInterfaces ?? [];
+  const parameters = (ipCore.parameters ?? []) as unknown as Array<Record<string, unknown>>;
 
   // Classify ports by side
-  const leftItems: Array<{
-    kind: PortKind;
-    index: number;
-    data: Clock | Reset | Port | BusInterface;
-  }> = [];
-  const rightItems: Array<{
-    kind: PortKind;
-    index: number;
-    data: Clock | Reset | Port | BusInterface;
-  }> = [];
-  const bottomItems: Array<{
-    kind: PortKind;
-    index: number;
-    data: Clock | Reset | Port | BusInterface;
-  }> = [];
+  const leftItems: Array<{ kind: PortKind; index: number; data: unknown }> = [];
+  const rightItems: Array<{ kind: PortKind; index: number; data: unknown }> = [];
+  const bottomItems: Array<{ kind: PortKind; index: number; data: unknown }> = [];
+
+  // Parameters/generics -> right (top, before bus interfaces and output ports)
+  parameters.forEach((p, i) => rightItems.push({ kind: 'parameter', index: i, data: p }));
 
   // Clocks -> left
   clocks.forEach((c, i) => leftItems.push({ kind: 'clock', index: i, data: c }));
@@ -202,25 +194,35 @@ export function computeLayout(ipCore: IpCore): CanvasLayout {
       let protocol: string | undefined;
       let mode: string | undefined;
 
+      const d = item.data as Record<string, unknown>;
       switch (item.kind) {
         case 'clock':
-          label = (item.data as Clock).name;
+          label = String(d.name ?? '');
           widthLabel = '';
           break;
         case 'reset':
-          label = (item.data as Reset).name;
+          label = String(d.name ?? '');
           widthLabel = '';
           break;
         case 'port':
-          label = (item.data as Port).name;
-          widthLabel = formatWidth((item.data as Port).width);
+          label = String(d.name ?? '');
+          widthLabel = formatWidth(d.width as number | string | undefined);
           break;
         case 'bus':
-          label = (item.data as BusInterface).name;
-          protocol = busProtocolShortName((item.data as BusInterface).type);
-          mode = modeLabel((item.data as BusInterface).mode);
+          label = String(d.name ?? '');
+          protocol = busProtocolShortName(String(d.type ?? ''));
+          mode = modeLabel(String(d.mode ?? ''));
           widthLabel = '';
           break;
+        case 'parameter': {
+          label = String(d.name ?? '');
+          const defVal = d.defaultValue !== undefined ? d.defaultValue : d.value;
+          widthLabel =
+            defVal !== undefined && defVal !== null && defVal !== ''
+              ? `=${String(defVal).slice(0, 8)}`
+              : '';
+          break;
+        }
       }
 
       layoutPorts.push({
@@ -250,7 +252,7 @@ export function computeLayout(ipCore: IpCore): CanvasLayout {
     bottomItems.forEach((item, idx) => {
       const x = startX + idx * PORT_PITCH;
       const id = `${item.kind}:${item.index}`;
-      const p = item.data as Port;
+      const p = item.data as Record<string, unknown>;
 
       layoutPorts.push({
         id,
@@ -258,8 +260,8 @@ export function computeLayout(ipCore: IpCore): CanvasLayout {
         y: baseY,
         side: 'bottom',
         kind: item.kind,
-        label: p.name,
-        widthLabel: formatWidth(p.width),
+        label: String(p.name ?? ''),
+        widthLabel: formatWidth(p.width as number | string | undefined),
         data: item.data,
       });
     });

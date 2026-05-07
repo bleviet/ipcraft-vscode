@@ -1,12 +1,14 @@
-import React from 'react';
-import type { IpCore } from '../../../types/ipCore';
+import React, { useState, useEffect } from 'react';
+import type { IpCore, Clock, Reset, Port, BusInterface } from '../../../types/ipCore';
 import type { YamlUpdateHandler } from '../../../types/editor';
-import type { CanvasElement } from '../../hooks/useCanvasSelection';
-import { MetadataEditor } from '../sections/MetadataEditor';
-import { ClocksTable } from '../sections/ClocksTable';
-import { ResetsTable } from '../sections/ResetsTable';
-import { PortsTable } from '../sections/PortsTable';
-import { BusInterfacesEditor } from '../sections/BusInterfacesEditor';
+import type { CanvasElement, CanvasElementKind } from '../../hooks/useCanvasSelection';
+import {
+  validateVhdlIdentifier,
+  validateUniqueName,
+  validateRequired,
+  validateVersion,
+} from '../../../shared/utils/validation';
+import { displayDirection } from '../../../shared/utils/formatters';
 
 interface CanvasInspectorProps {
   selected: CanvasElement | null;
@@ -14,100 +16,714 @@ interface CanvasInspectorProps {
   imports?: { busLibrary?: unknown; memoryMaps?: unknown[] };
   onUpdate: YamlUpdateHandler;
   onClose: () => void;
+  onDelete?: () => void;
 }
 
-/**
- * Context-aware inspector panel for the canvas view.
- *
- * When a port or bus interface is selected on the canvas, this panel slides in
- * and shows the appropriate editor for that element type. Reuses the existing
- * section editors (ClocksTable, PortsTable, BusInterfacesEditor, etc.).
- */
 export const CanvasInspector: React.FC<CanvasInspectorProps> = ({
   selected,
   ipCore,
-  imports = {},
   onUpdate,
   onClose,
+  onDelete,
 }) => {
   if (!selected) {
     return null;
   }
 
+  const name = getElementName(selected, ipCore);
+  const kindSlug =
+    selected.kind === 'busInterface'
+      ? 'bus'
+      : selected.kind === 'parameter'
+        ? 'parameter'
+        : selected.kind === 'body'
+          ? 'body'
+          : selected.kind;
+
   return (
-    <div
-      className="canvas-inspector"
-      style={{
-        width: 360,
-        minWidth: 300,
-        maxWidth: 480,
-        borderLeft: '1px solid var(--vscode-panel-border)',
-        background: 'var(--vscode-sideBar-background)',
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-      }}
-    >
-      {/* Inspector header */}
-      <div
-        style={{
-          padding: '8px 12px',
-          borderBottom: '1px solid var(--vscode-panel-border)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          background: 'var(--vscode-editorWidget-background)',
-        }}
-      >
-        <div>
-          <div
-            style={{
-              fontSize: 11,
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              color: 'var(--vscode-descriptionForeground)',
-              fontWeight: 700,
-            }}
-          >
-            {inspectorTitle(selected)}
-          </div>
-          <div
-            style={{
-              fontSize: 12,
-              color: 'var(--vscode-foreground)',
-              marginTop: 2,
-            }}
-          >
-            {inspectorSubtitle(selected, ipCore)}
+    <div className="canvas-inspector">
+      {/* ── Header ── */}
+      <div className="ci-header">
+        <div className="ci-header__info">
+          <span className={`ci-badge ci-badge--${kindSlug}`}>{kindLabel(selected.kind)}</span>
+          <div className="ci-header__name" title={name}>
+            {name || '—'}
           </div>
         </div>
-        <button
-          onClick={onClose}
-          title="Close inspector"
-          aria-label="Close inspector"
-          type="button"
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            color: 'var(--vscode-descriptionForeground)',
-            padding: 4,
-          }}
-        >
-          <span className="codicon codicon-close"></span>
+        <button className="ci-header__close" onClick={onClose} title="Close (Esc)">
+          <span className="codicon codicon-close" />
         </button>
       </div>
 
-      {/* Inspector content */}
-      <div style={{ flex: 1, overflowY: 'auto' }}>
-        {renderInspectorContent(selected, ipCore, imports, onUpdate)}
-      </div>
+      {/* ── Body ── */}
+      <div className="ci-body">{renderPanel(selected, ipCore, onUpdate)}</div>
+
+      {/* ── Footer ── */}
+      {onDelete && selected.kind !== 'body' && (
+        <div className="ci-footer">
+          <button
+            className="ci-delete-btn"
+            onClick={onDelete}
+            title={`Delete this ${kindLabel(selected.kind).toLowerCase()}`}
+          >
+            <span className="codicon codicon-trash" />
+            Delete
+          </button>
+        </div>
+      )}
     </div>
   );
 };
 
-function inspectorTitle(element: CanvasElement): string {
+// ─────────────────────────────────────────────────────
+//  Panel router
+// ─────────────────────────────────────────────────────
+
+function renderPanel(
+  element: CanvasElement,
+  ipCore: IpCore,
+  onUpdate: YamlUpdateHandler
+): React.ReactNode {
   switch (element.kind) {
+    case 'body':
+      return <BodyPanel ipCore={ipCore} onUpdate={onUpdate} />;
+
+    case 'clock': {
+      const clock = (ipCore.clocks ?? [])[element.index] as Clock | undefined;
+      if (!clock) {
+        return <EmptyState label="Clock not found" />;
+      }
+      return <ClockPanel clock={clock} index={element.index} ipCore={ipCore} onUpdate={onUpdate} />;
+    }
+    case 'reset': {
+      const reset = (ipCore.resets ?? [])[element.index] as Reset | undefined;
+      if (!reset) {
+        return <EmptyState label="Reset not found" />;
+      }
+      return <ResetPanel reset={reset} index={element.index} ipCore={ipCore} onUpdate={onUpdate} />;
+    }
+    case 'port': {
+      const port = (ipCore.ports ?? [])[element.index] as Port | undefined;
+      if (!port) {
+        return <EmptyState label="Port not found" />;
+      }
+      return <PortPanel port={port} index={element.index} ipCore={ipCore} onUpdate={onUpdate} />;
+    }
+    case 'busInterface': {
+      const bus = (ipCore.busInterfaces ?? [])[element.index] as BusInterface | undefined;
+      if (!bus) {
+        return <EmptyState label="Bus interface not found" />;
+      }
+      return <BusPanel bus={bus} index={element.index} ipCore={ipCore} onUpdate={onUpdate} />;
+    }
+    case 'parameter': {
+      const param = (ipCore.parameters ?? [])[element.index] as unknown as
+        | Record<string, unknown>
+        | undefined;
+      if (!param) {
+        return <EmptyState label="Parameter not found" />;
+      }
+      return (
+        <ParameterPanel param={param} index={element.index} ipCore={ipCore} onUpdate={onUpdate} />
+      );
+    }
+    default:
+      return <EmptyState label="Select a port on the canvas to inspect it" />;
+  }
+}
+
+// ─────────────────────────────────────────────────────
+//  IP Core body panel (VLNV + description)
+// ─────────────────────────────────────────────────────
+
+const BodyPanel: React.FC<{ ipCore: IpCore; onUpdate: YamlUpdateHandler }> = ({
+  ipCore,
+  onUpdate,
+}) => (
+  <>
+    <Section title="VLNV">
+      <PropField
+        label="Vendor"
+        value={ipCore.vlnv.vendor}
+        onSave={(v) => onUpdate(['vlnv', 'vendor'], v)}
+        validate={validateRequired}
+        placeholder="my-company.com"
+      />
+      <PropField
+        label="Library"
+        value={ipCore.vlnv.library}
+        onSave={(v) => onUpdate(['vlnv', 'library'], v)}
+        validate={validateRequired}
+        placeholder="my_lib"
+        mono
+      />
+      <PropField
+        label="Name"
+        value={ipCore.vlnv.name}
+        onSave={(v) => onUpdate(['vlnv', 'name'], v)}
+        validate={(v) => validateVhdlIdentifier(v)}
+        placeholder="my_core"
+        mono
+      />
+      <PropField
+        label="Version"
+        value={ipCore.vlnv.version}
+        onSave={(v) => onUpdate(['vlnv', 'version'], v)}
+        validate={validateVersion}
+        placeholder="1.0.0"
+        mono
+      />
+    </Section>
+    <Section title="Details">
+      <PropTextArea
+        label="Description"
+        value={ipCore.description ?? ''}
+        onSave={(v) => onUpdate(['description'], v || null)}
+        placeholder="Describe this IP core…"
+      />
+    </Section>
+  </>
+);
+
+// ─────────────────────────────────────────────────────
+//  Parameter / generic panel
+// ─────────────────────────────────────────────────────
+
+interface ParameterPanelProps {
+  param: Record<string, unknown>;
+  index: number;
+  ipCore: IpCore;
+  onUpdate: YamlUpdateHandler;
+}
+
+const ParameterPanel: React.FC<ParameterPanelProps> = ({ param, index, ipCore, onUpdate }) => {
+  const params = (ipCore.parameters ?? []) as unknown as Array<Record<string, unknown>>;
+  const existingNames = params.map((p) => String(p.name ?? '')).filter((_, i) => i !== index);
+
+  const defVal =
+    param.defaultValue !== undefined
+      ? String(param.defaultValue)
+      : param.value !== undefined && typeof param.value !== 'object'
+        ? String(param.value)
+        : '';
+  const dataType = String(param.dataType ?? 'integer');
+
+  const saveDefault = (v: string) => {
+    if (dataType === 'integer' || dataType === 'natural' || dataType === 'positive') {
+      const n = Number(v);
+      onUpdate(['parameters', index, 'defaultValue'], Number.isFinite(n) ? n : v);
+    } else if (dataType === 'boolean') {
+      onUpdate(['parameters', index, 'defaultValue'], v === 'true' || v === '1');
+    } else {
+      onUpdate(['parameters', index, 'defaultValue'], v);
+    }
+  };
+
+  return (
+    <>
+      <Section title="Identity">
+        <PropField
+          label="Name"
+          value={String(param.name ?? '')}
+          onSave={(v) => onUpdate(['parameters', index, 'name'], v)}
+          validate={(v) => validateVhdlIdentifier(v) ?? validateUniqueName(v, existingNames)}
+          placeholder="DATA_WIDTH"
+          mono
+        />
+      </Section>
+      <Section title="Value">
+        <PropSelect
+          label="Data Type"
+          value={dataType}
+          options={PARAM_TYPE_OPTS}
+          onSave={(v) => onUpdate(['parameters', index, 'dataType'], v)}
+        />
+        <PropField
+          label="Default Value"
+          value={defVal}
+          onSave={saveDefault}
+          placeholder="32"
+          mono
+        />
+      </Section>
+      {!!param.description && (
+        <Section title="Description">
+          <div
+            style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)', lineHeight: 1.5 }}
+          >
+            {String(param.description)}
+          </div>
+        </Section>
+      )}
+    </>
+  );
+};
+
+const PARAM_TYPE_OPTS = [
+  { value: 'integer', label: 'integer' },
+  { value: 'natural', label: 'natural' },
+  { value: 'positive', label: 'positive' },
+  { value: 'real', label: 'real' },
+  { value: 'boolean', label: 'boolean' },
+  { value: 'string', label: 'string' },
+];
+
+// ─────────────────────────────────────────────────────
+//  Kind-specific panels
+// ─────────────────────────────────────────────────────
+
+interface ClockPanelProps {
+  clock: Clock;
+  index: number;
+  ipCore: IpCore;
+  onUpdate: YamlUpdateHandler;
+}
+
+const ClockPanel: React.FC<ClockPanelProps> = ({ clock, index, ipCore, onUpdate }) => {
+  const clocks = (ipCore.clocks ?? []) as Clock[];
+  const buses = (ipCore.busInterfaces ?? []) as BusInterface[];
+  const existingNames = clocks.map((c) => c.name).filter((_, i) => i !== index);
+  const usedBy = buses.filter((b) => b.associatedClock === clock.name).map((b) => b.name);
+
+  const save = (field: string) => (v: string) =>
+    onUpdate(['clocks', index, field], v === '' ? null : v);
+
+  return (
+    <>
+      <Section title="Identity">
+        <PropField
+          label="Physical Name"
+          value={clock.name}
+          onSave={(v) => onUpdate(['clocks', index, 'name'], v)}
+          validate={(v) => validateVhdlIdentifier(v) ?? validateUniqueName(v, existingNames)}
+          placeholder="i_clk_sys"
+          mono
+        />
+        <PropField
+          label="Logical Name"
+          value={clock.logicalName ?? 'CLK'}
+          onSave={save('logicalName')}
+          placeholder="CLK"
+          mono
+        />
+      </Section>
+      <Section title="Signal">
+        <PropSelect
+          label="Direction"
+          value={displayDirection(clock.direction, 'input')}
+          options={DIR_2WAY}
+          onSave={(v) => onUpdate(['clocks', index, 'direction'], v)}
+        />
+        <PropField
+          label="Frequency"
+          value={clock.frequency ?? ''}
+          onSave={save('frequency')}
+          placeholder="100 MHz"
+          hint="e.g. 100 MHz, 50 MHz"
+        />
+      </Section>
+      {usedBy.length > 0 && (
+        <Section title="Used By">
+          <div className="ci-chips">
+            {usedBy.map((n, i) => (
+              <span key={i} className="ci-chip">
+                {n}
+              </span>
+            ))}
+          </div>
+        </Section>
+      )}
+    </>
+  );
+};
+
+interface ResetPanelProps {
+  reset: Reset;
+  index: number;
+  ipCore: IpCore;
+  onUpdate: YamlUpdateHandler;
+}
+
+const ResetPanel: React.FC<ResetPanelProps> = ({ reset, index, ipCore, onUpdate }) => {
+  const resets = (ipCore.resets ?? []) as Reset[];
+  const buses = (ipCore.busInterfaces ?? []) as BusInterface[];
+  const existingNames = resets.map((r) => r.name).filter((_, i) => i !== index);
+  const usedBy = buses.filter((b) => b.associatedReset === reset.name).map((b) => b.name);
+
+  const polarity = normalizePolarity(reset.polarity);
+
+  return (
+    <>
+      <Section title="Identity">
+        <PropField
+          label="Physical Name"
+          value={reset.name}
+          onSave={(v) => onUpdate(['resets', index, 'name'], v)}
+          validate={(v) => validateVhdlIdentifier(v) ?? validateUniqueName(v, existingNames)}
+          placeholder="i_rst_n_sys"
+          mono
+        />
+        <PropField
+          label="Logical Name"
+          value={reset.logicalName ?? (polarity === 'activeLow' ? 'RESET_N' : 'RESET')}
+          onSave={(v) => onUpdate(['resets', index, 'logicalName'], v || null)}
+          placeholder="RESET_N"
+          mono
+        />
+      </Section>
+      <Section title="Signal">
+        <PropSelect
+          label="Direction"
+          value={displayDirection(reset.direction, 'input')}
+          options={DIR_2WAY}
+          onSave={(v) => onUpdate(['resets', index, 'direction'], v)}
+        />
+        <PropSelect
+          label="Polarity"
+          value={polarity}
+          options={POLARITY_OPTS}
+          onSave={(v) => {
+            onUpdate(['resets', index, 'polarity'], v);
+            onUpdate(['resets', index, 'logicalName'], v === 'activeLow' ? 'RESET_N' : 'RESET');
+          }}
+        />
+      </Section>
+      {usedBy.length > 0 && (
+        <Section title="Used By">
+          <div className="ci-chips">
+            {usedBy.map((n, i) => (
+              <span key={i} className="ci-chip">
+                {n}
+              </span>
+            ))}
+          </div>
+        </Section>
+      )}
+    </>
+  );
+};
+
+interface PortPanelProps {
+  port: Port;
+  index: number;
+  ipCore: IpCore;
+  onUpdate: YamlUpdateHandler;
+}
+
+const PortPanel: React.FC<PortPanelProps> = ({ port, index, ipCore, onUpdate }) => {
+  const ports = (ipCore.ports ?? []) as Port[];
+  const existingNames = ports.map((p) => p.name).filter((_, i) => i !== index);
+
+  const widthStr = port.width === undefined || port.width === null ? '1' : String(port.width);
+
+  const saveWidth = (v: string) => {
+    const num = Number(v);
+    onUpdate(['ports', index, 'width'], Number.isInteger(num) && num > 0 ? num : v || 1);
+  };
+
+  return (
+    <>
+      <Section title="Identity">
+        <PropField
+          label="Name"
+          value={port.name}
+          onSave={(v) => onUpdate(['ports', index, 'name'], v)}
+          validate={(v) => validateVhdlIdentifier(v) ?? validateUniqueName(v, existingNames)}
+          placeholder="data_in"
+          mono
+        />
+      </Section>
+      <Section title="Signal">
+        <PropSelect
+          label="Direction"
+          value={displayDirection(port.direction, 'input')}
+          options={DIR_3WAY}
+          onSave={(v) => onUpdate(['ports', index, 'direction'], v)}
+        />
+        <PropField
+          label="Width (bits)"
+          value={widthStr}
+          onSave={saveWidth}
+          placeholder="1"
+          hint="Number or parameter name"
+          mono
+        />
+      </Section>
+    </>
+  );
+};
+
+interface BusPanelProps {
+  bus: BusInterface;
+  index: number;
+  ipCore: IpCore;
+  onUpdate: YamlUpdateHandler;
+}
+
+const BusPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, onUpdate }) => {
+  const buses = (ipCore.busInterfaces ?? []) as BusInterface[];
+  const clocks = (ipCore.clocks ?? []) as Clock[];
+  const resets = (ipCore.resets ?? []) as Reset[];
+  const memMaps = Array.isArray(ipCore.memoryMaps) ? ipCore.memoryMaps.map((m) => m.name) : [];
+  const existingNames = buses.map((b) => b.name).filter((_, i) => i !== index);
+
+  const clockOpts = clocks.map((c) => ({ value: c.name, label: c.name }));
+  const resetOpts = resets.map((r) => ({ value: r.name, label: r.name }));
+  const mapOpts = memMaps.map((m) => ({ value: m, label: m }));
+
+  return (
+    <>
+      <Section title="Identity">
+        <PropField
+          label="Name"
+          value={bus.name}
+          onSave={(v) => onUpdate(['busInterfaces', index, 'name'], v)}
+          validate={(v) => validateVhdlIdentifier(v) ?? validateUniqueName(v, existingNames)}
+          placeholder="s_axi_lite"
+          mono
+        />
+        <PropField
+          label="Bus Type"
+          value={bus.type}
+          onSave={(v) => onUpdate(['busInterfaces', index, 'type'], v)}
+          placeholder="ipcraft.busif.axi4_lite.1.0"
+          hint="Vendor.library.name.version"
+          mono
+        />
+      </Section>
+      <Section title="Configuration">
+        <PropSelect
+          label="Mode"
+          value={bus.mode}
+          options={BUS_MODE_OPTS}
+          onSave={(v) => onUpdate(['busInterfaces', index, 'mode'], v)}
+        />
+        <PropField
+          label="Physical Prefix"
+          value={bus.physicalPrefix ?? ''}
+          onSave={(v) => onUpdate(['busInterfaces', index, 'physicalPrefix'], v || null)}
+          placeholder="s_axi_"
+          mono
+        />
+      </Section>
+      <Section title="Associations">
+        <PropSelect
+          label="Clock"
+          value={bus.associatedClock ?? ''}
+          options={clockOpts}
+          onSave={(v) => onUpdate(['busInterfaces', index, 'associatedClock'], v || null)}
+          emptyOption="— None —"
+        />
+        <PropSelect
+          label="Reset"
+          value={bus.associatedReset ?? ''}
+          options={resetOpts}
+          onSave={(v) => onUpdate(['busInterfaces', index, 'associatedReset'], v || null)}
+          emptyOption="— None —"
+        />
+        {mapOpts.length > 0 && (
+          <PropSelect
+            label="Memory Map"
+            value={bus.memoryMapRef ?? ''}
+            options={mapOpts}
+            onSave={(v) => onUpdate(['busInterfaces', index, 'memoryMapRef'], v || null)}
+            emptyOption="— None —"
+          />
+        )}
+      </Section>
+    </>
+  );
+};
+
+// ─────────────────────────────────────────────────────
+//  Shared field primitives
+// ─────────────────────────────────────────────────────
+
+interface PropFieldProps {
+  label: string;
+  value: string;
+  onSave: (v: string) => void;
+  validate?: (v: string) => string | null;
+  placeholder?: string;
+  hint?: string;
+  mono?: boolean;
+}
+
+const PropField: React.FC<PropFieldProps> = ({
+  label,
+  value,
+  onSave,
+  validate,
+  placeholder,
+  hint,
+  mono = false,
+}) => {
+  const [draft, setDraft] = useState(value);
+  const [focused, setFocused] = useState(false);
+  const [liveError, setLiveError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!focused) {
+      setDraft(value);
+      setLiveError(null);
+    }
+  }, [value, focused]);
+
+  const handleChange = (v: string) => {
+    setDraft(v);
+    if (liveError) {
+      setLiveError(validate?.(v) ?? null);
+    }
+  };
+
+  const commit = () => {
+    const err = validate?.(draft) ?? null;
+    if (err) {
+      // Revert — invalid value discarded silently
+      setDraft(value);
+      setLiveError(null);
+    } else if (draft !== value) {
+      onSave(draft);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.currentTarget.blur();
+    } else if (e.key === 'Escape') {
+      setDraft(value);
+      setLiveError(null);
+      setFocused(false);
+      e.currentTarget.blur();
+    }
+  };
+
+  return (
+    <div className="ci-field">
+      <label className="ci-field__label">{label}</label>
+      <input
+        className={`ci-field__input${liveError ? ' ci-field__input--error' : ''}`}
+        value={draft}
+        placeholder={placeholder}
+        onChange={(e) => handleChange(e.target.value)}
+        onFocus={() => setFocused(true)}
+        onBlur={() => {
+          setFocused(false);
+          commit();
+        }}
+        onKeyDown={handleKeyDown}
+        style={mono ? { fontFamily: 'var(--vscode-editor-font-family, monospace)' } : undefined}
+      />
+      {liveError ? (
+        <div className="ci-field__error">{liveError}</div>
+      ) : hint ? (
+        <div className="ci-field__hint">{hint}</div>
+      ) : null}
+    </div>
+  );
+};
+
+interface PropSelectProps {
+  label: string;
+  value: string;
+  options: { value: string; label: string }[];
+  onSave: (v: string) => void;
+  emptyOption?: string;
+}
+
+const PropSelect: React.FC<PropSelectProps> = ({ label, value, options, onSave, emptyOption }) => (
+  <div className="ci-field">
+    <label className="ci-field__label">{label}</label>
+    <select className="ci-field__select" value={value} onChange={(e) => onSave(e.target.value)}>
+      {emptyOption !== undefined && <option value="">{emptyOption}</option>}
+      {options.map((o) => (
+        <option key={o.value} value={o.value}>
+          {o.label}
+        </option>
+      ))}
+    </select>
+  </div>
+);
+
+interface PropTextAreaProps {
+  label: string;
+  value: string;
+  onSave: (v: string) => void;
+  placeholder?: string;
+}
+
+const PropTextArea: React.FC<PropTextAreaProps> = ({ label, value, onSave, placeholder }) => {
+  const [draft, setDraft] = useState(value);
+  const [focused, setFocused] = useState(false);
+
+  useEffect(() => {
+    if (!focused) {
+      setDraft(value);
+    }
+  }, [value, focused]);
+
+  return (
+    <div className="ci-field">
+      <label className="ci-field__label">{label}</label>
+      <textarea
+        className="ci-field__textarea"
+        value={draft}
+        placeholder={placeholder}
+        onChange={(e) => setDraft(e.target.value)}
+        onFocus={() => setFocused(true)}
+        onBlur={() => {
+          setFocused(false);
+          if (draft !== value) {
+            onSave(draft);
+          }
+        }}
+      />
+    </div>
+  );
+};
+
+const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
+  <div className="ci-section">
+    <div className="ci-section__title">{title}</div>
+    {children}
+  </div>
+);
+
+const EmptyState: React.FC<{ label: string }> = ({ label }) => (
+  <div className="ci-empty-state">{label}</div>
+);
+
+// ─────────────────────────────────────────────────────
+//  Helpers & constants
+// ─────────────────────────────────────────────────────
+
+function getElementName(element: CanvasElement, ipCore: IpCore): string {
+  switch (element.kind) {
+    case 'body':
+      return ipCore.vlnv.name;
+    case 'clock':
+      return (ipCore.clocks ?? [])[element.index]?.name ?? '';
+    case 'reset':
+      return (ipCore.resets ?? [])[element.index]?.name ?? '';
+    case 'port':
+      return (ipCore.ports ?? [])[element.index]?.name ?? '';
+    case 'busInterface':
+      return (ipCore.busInterfaces ?? [])[element.index]?.name ?? '';
+    case 'parameter': {
+      const p = (ipCore.parameters ?? [])[element.index] as unknown as
+        | Record<string, unknown>
+        | undefined;
+      return String(p?.name ?? '');
+    }
+    default:
+      return '';
+  }
+}
+
+function kindLabel(kind: CanvasElementKind): string {
+  switch (kind) {
+    case 'body':
+      return 'IP Core';
     case 'clock':
       return 'Clock';
     case 'reset':
@@ -116,85 +732,42 @@ function inspectorTitle(element: CanvasElement): string {
       return 'Port';
     case 'busInterface':
       return 'Bus Interface';
-    case 'body':
-      return 'IP Core';
-  }
-}
-
-function inspectorSubtitle(element: CanvasElement, ipCore: IpCore): string {
-  switch (element.kind) {
-    case 'clock': {
-      const clk = ipCore.clocks?.[element.index];
-      return clk?.name ?? '';
-    }
-    case 'reset': {
-      const rst = ipCore.resets?.[element.index];
-      return rst?.name ?? '';
-    }
-    case 'port': {
-      const p = ipCore.ports?.[element.index];
-      return p?.name ?? '';
-    }
-    case 'busInterface': {
-      const bus = ipCore.busInterfaces?.[element.index];
-      return bus?.name ?? '';
-    }
-    case 'body':
-      return ipCore.vlnv.name;
-  }
-}
-
-function renderInspectorContent(
-  element: CanvasElement,
-  ipCore: IpCore,
-  imports: { busLibrary?: unknown; memoryMaps?: unknown[] },
-  onUpdate: YamlUpdateHandler
-): React.ReactNode {
-  switch (element.kind) {
-    case 'body':
-      return <MetadataEditor ipCore={ipCore} onUpdate={onUpdate} />;
-
-    case 'clock':
-      return (
-        <ClocksTable
-          clocks={ipCore.clocks ?? []}
-          busInterfaces={ipCore.busInterfaces ?? []}
-          onUpdate={onUpdate}
-        />
-      );
-
-    case 'reset':
-      return (
-        <ResetsTable
-          resets={ipCore.resets ?? []}
-          busInterfaces={ipCore.busInterfaces ?? []}
-          onUpdate={onUpdate}
-        />
-      );
-
-    case 'port':
-      return (
-        <PortsTable
-          ports={ipCore.ports ?? []}
-          onUpdate={onUpdate}
-          parameters={(ipCore.parameters ?? []) as Array<{ name: string; dataType?: string }>}
-        />
-      );
-
-    case 'busInterface':
-      return (
-        <BusInterfacesEditor
-          busInterfaces={ipCore.busInterfaces ?? []}
-          busLibrary={imports.busLibrary}
-          imports={imports}
-          clocks={ipCore.clocks ?? []}
-          resets={ipCore.resets ?? []}
-          parameters={ipCore.parameters ?? []}
-          onUpdate={onUpdate}
-        />
-      );
-
+    case 'parameter':
+      return 'Parameter';
     default:
-      return <div style={{ padding: 16 }}>No inspector available</div>;
+      return kind;
   }
 }
+
+function normalizePolarity(p?: string): string {
+  if (p === 'active_low' || p === 'activeLow') {
+    return 'activeLow';
+  }
+  if (p === 'active_high' || p === 'activeHigh') {
+    return 'activeHigh';
+  }
+  return p ?? 'activeLow';
+}
+
+const DIR_2WAY = [
+  { value: 'input', label: 'input' },
+  { value: 'output', label: 'output' },
+];
+
+const DIR_3WAY = [
+  { value: 'input', label: 'input' },
+  { value: 'output', label: 'output' },
+  { value: 'inout', label: 'inout' },
+];
+
+const POLARITY_OPTS = [
+  { value: 'activeLow', label: 'activeLow (active-low / RESET_N)' },
+  { value: 'activeHigh', label: 'activeHigh (active-high / RESET)' },
+];
+
+const BUS_MODE_OPTS = [
+  { value: 'slave', label: 'slave' },
+  { value: 'master', label: 'master' },
+  { value: 'sink', label: 'sink' },
+  { value: 'source', label: 'source' },
+];
