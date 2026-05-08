@@ -587,6 +587,14 @@ const PortWidthOverridesSection: React.FC<PortWidthOverridesSectionProps> = ({
     );
   }
 
+  // Signals whose standard width is 1 (or unspecified, implying 1) are fixed by the
+  // bus specification and cannot be meaningfully overridden.
+  const configurableDefs = enabledDefs.filter((p) => (p.width ?? 1) > 1);
+
+  if (configurableDefs.length === 0) {
+    return null;
+  }
+
   const saveWidth = (portName: string, raw: string, defaultWidth: number) => {
     const trimmed = raw.trim();
     const basePath = ['busInterfaces', busIndex, 'portWidthOverrides'];
@@ -625,7 +633,7 @@ const PortWidthOverridesSection: React.FC<PortWidthOverridesSectionProps> = ({
 
   return (
     <Section title="Port Widths">
-      {enabledDefs.map((portDef) => {
+      {configurableDefs.map((portDef) => {
         const defaultWidth = portDef.width ?? 1;
         const override = overrides[portDef.name];
         const hasOverride = override !== undefined;
