@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback, useEffect } from 'react';
+import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import type { IpCore } from '../../../types/ipCore';
 import { computeLayout } from './canvasLayout';
 import { CanvasPort } from './CanvasPort';
@@ -72,9 +72,139 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
   const [dragActive, setDragActive] = useState(false);
   const [dragOutActive, setDragOutActive] = useState(false);
 
+  const [zoom, setZoom] = useState(1.0);
+  const [showZoomIndicator, setShowZoomIndicator] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const zoomTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  /** Always reflects the latest pan values — readable in non-React event listeners */
+  const currentPanRef = useRef({ x: 0, y: 0 });
+  /** Active pointer-drag state; null when no drag is in progress */
+  const dragRef = useRef<{
+    startMouseX: number;
+    startMouseY: number;
+    startPanX: number;
+    startPanY: number;
+    hasMoved: boolean;
+  } | null>(null);
+  /** True when the last mousedown turned into a drag; prevents onClick from deselecting */
+  const hasDraggedRef = useRef(false);
+
+  const triggerZoomIndicator = useCallback(() => {
+    setShowZoomIndicator(true);
+    if (zoomTimerRef.current) {
+      clearTimeout(zoomTimerRef.current);
+    }
+    zoomTimerRef.current = setTimeout(() => setShowZoomIndicator(false), 1500);
+  }, []);
+
+  // Ctrl+Wheel → zoom; plain wheel → pan
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) {
+      return;
+    }
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      if (e.ctrlKey) {
+        const factor = e.deltaY > 0 ? 0.9 : 1.1;
+        setZoom((prev) => {
+          const next = Math.min(4, Math.max(0.1, prev * factor));
+          return Math.round(next * 100) / 100;
+        });
+        triggerZoomIndicator();
+      } else {
+        const newX = currentPanRef.current.x - e.deltaX;
+        const newY = currentPanRef.current.y - e.deltaY;
+        currentPanRef.current = { x: newX, y: newY };
+        setPan({ x: newX, y: newY });
+      }
+    };
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => container.removeEventListener('wheel', handleWheel);
+  }, [triggerZoomIndicator]);
+
+  // Middle-mouse-button drag + left-button drag on canvas background → pan
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) {
+      return;
+    }
+
+    const isBackgroundTarget = (target: EventTarget | null): boolean => {
+      if (!target || !(target instanceof Element)) {
+        return false;
+      }
+      return (
+        target.classList.contains('ip-canvas-background') || target.tagName.toLowerCase() === 'svg'
+      );
+    };
+
+    const onMouseDown = (e: MouseEvent) => {
+      const isMiddle = e.button === 1;
+      const isLeftBackground = e.button === 0 && isBackgroundTarget(e.target);
+      if (!isMiddle && !isLeftBackground) {
+        return;
+      }
+      if (isMiddle) {
+        e.preventDefault(); // suppress browser auto-scroll cursor
+      }
+      hasDraggedRef.current = false;
+      dragRef.current = {
+        startMouseX: e.clientX,
+        startMouseY: e.clientY,
+        startPanX: currentPanRef.current.x,
+        startPanY: currentPanRef.current.y,
+        hasMoved: false,
+      };
+    };
+
+    const onMouseMove = (e: MouseEvent) => {
+      if (!dragRef.current) {
+        return;
+      }
+      const dx = e.clientX - dragRef.current.startMouseX;
+      const dy = e.clientY - dragRef.current.startMouseY;
+      if (!dragRef.current.hasMoved && Math.abs(dx) + Math.abs(dy) > 4) {
+        dragRef.current.hasMoved = true;
+        hasDraggedRef.current = true;
+        setIsPanning(true);
+      }
+      if (dragRef.current.hasMoved) {
+        const newX = dragRef.current.startPanX + dx;
+        const newY = dragRef.current.startPanY + dy;
+        currentPanRef.current = { x: newX, y: newY };
+        setPan({ x: newX, y: newY });
+      }
+    };
+
+    const onMouseUp = () => {
+      if (dragRef.current) {
+        dragRef.current = null;
+        setIsPanning(false);
+      }
+    };
+
+    container.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+    return () => {
+      container.removeEventListener('mousedown', onMouseDown);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+  }, []);
+
   const annotations = useCanvasValidation(ipCore);
 
   const handleBackgroundClick = useCallback(() => {
+    // If the mousedown turned into a pan-drag, suppress the deselect
+    if (hasDraggedRef.current) {
+      hasDraggedRef.current = false;
+      return;
+    }
     onSelect(null);
   }, [onSelect]);
 
@@ -142,6 +272,10 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
 
       if (e.key === 'Escape') {
         onSelect(null);
+      } else if ((e.ctrlKey || e.metaKey) && e.key === '0') {
+        e.preventDefault();
+        setZoom(1.0);
+        triggerZoomIndicator();
       } else if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId && onRemove) {
         // Parse kind and id from selectedId e.g. "port:1"
         const [kind, id] = selectedId.split(':');
@@ -154,7 +288,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedId, onSelect, onRemove]);
+  }, [selectedId, onSelect, onRemove, triggerZoomIndicator]);
 
   const handleDragOver = useCallback(
     (e: React.DragEvent) => {
@@ -219,7 +353,14 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
 
   return (
     <div
-      className={`ip-canvas-container ${dragActive ? 'ip-canvas-container--drag-active' : ''}`}
+      ref={containerRef}
+      className={[
+        'ip-canvas-container',
+        dragActive ? 'ip-canvas-container--drag-active' : '',
+        isPanning ? 'ip-canvas-container--panning' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
       onDragEnd={() => setDragOutActive(false)}
     >
       <RemoveZone visible={dragOutActive} />
@@ -227,6 +368,10 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
         className="ip-canvas-svg"
         viewBox={`0 0 ${viewBox.width} ${viewBox.height}`}
         preserveAspectRatio="xMidYMid meet"
+        style={{
+          transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+          transformOrigin: 'center center',
+        }}
         onClick={handleBackgroundClick}
         onMouseLeave={() => setHoveredId(null)}
         onDragOver={handleDragOver}
@@ -239,7 +384,12 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
             <circle cx="1" cy="1" r="0.5" className="ip-canvas-grid-dot" />
           </pattern>
         </defs>
-        <rect width="100%" height="100%" fill="url(#canvas-grid)" />
+        <rect
+          className="ip-canvas-background"
+          width="100%"
+          height="100%"
+          fill="url(#canvas-grid)"
+        />
 
         {/* Block body — clickable to open VLNV inspector */}
         <rect
@@ -506,6 +656,11 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
 
       {/* Hover tooltip */}
       {hoveredId && <PortTooltip portId={hoveredId} ports={ports} />}
+
+      {/* Zoom level indicator — fades after 1.5 s */}
+      {showZoomIndicator && (
+        <div className="ip-canvas-zoom-indicator">{Math.round(zoom * 100)}%</div>
+      )}
     </div>
   );
 };

@@ -10,12 +10,52 @@
   height: 100%;
   overflow: hidden;
   background: var(--vscode-editor-background);
+  cursor: grab;
+}
+
+.ip-canvas-container--panning {
+  cursor: grabbing;
+}
+
+/* The grab cursor only shows on the background, not over interactive elements */
+.ip-canvas-background {
+  cursor: grab;
+}
+
+.ip-canvas-container--panning .ip-canvas-background {
+  cursor: grabbing;
 }
 
 .ip-canvas-svg {
   width: 100%;
   height: 100%;
   display: block;
+  /* Zoom is applied via inline transform — keep transform-box consistent */
+  transform-box: fill-box;
+}
+
+/* --- Zoom level indicator --- */
+
+.ip-canvas-zoom-indicator {
+  position: absolute;
+  bottom: 12px;
+  right: 14px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: var(--vscode-font-family, sans-serif);
+  color: var(--vscode-foreground);
+  background: color-mix(in srgb, var(--vscode-editor-background) 80%, transparent);
+  border: 1px solid var(--vscode-panel-border);
+  pointer-events: none;
+  opacity: 0.9;
+  animation: ip-zoom-fade 1.5s forwards;
+}
+
+@keyframes ip-zoom-fade {
+  0%   { opacity: 0.9; }
+  60%  { opacity: 0.9; }
+  100% { opacity: 0; }
 }
 
 /* --- Grid dots --- */
