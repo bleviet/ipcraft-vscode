@@ -31,6 +31,22 @@ export interface ValidationError {
   field: string;
 }
 
+function busSupportsMemoryMap(busType: string, mode: string): boolean {
+  if (mode !== 'slave') {
+    return false;
+  }
+  const lower = busType.toLowerCase();
+  if (
+    lower.includes('stream') ||
+    lower.includes('axi4s') ||
+    lower.includes('avalon_st') ||
+    lower.includes('avalon-st')
+  ) {
+    return false;
+  }
+  return lower.includes('axi4') || lower.includes('avalon_mm') || lower.includes('avalon-mm');
+}
+
 /**
  * Hook for managing IP Core state
  *
@@ -173,26 +189,45 @@ export function useIpCoreState() {
 
         // Check memory map reference
         if (bus.memoryMapRef && typeof bus.memoryMapRef === 'string') {
-          const isFilePath =
-            bus.memoryMapRef.toLowerCase().endsWith('.yml') ||
-            bus.memoryMapRef.toLowerCase().endsWith('.yaml');
-          const memMapExists =
-            isFilePath ||
-            (Array.isArray(ipCore.memoryMaps) &&
-              ipCore.memoryMaps.some(
-                (m: Record<string, unknown>) => m.name === bus.memoryMapRef
-              )) ||
-            (Array.isArray(state.imports.memoryMaps) &&
-              state.imports.memoryMaps.some(
-                (m: Record<string, unknown>) => m.name === bus.memoryMapRef
-              ));
-          if (!memMapExists) {
+          const busArray = bus.array as { count?: number } | undefined | null;
+          const isArray = (busArray?.count ?? 0) > 1;
+
+          if (isArray) {
             errors.push({
-              message: `Bus interface '${String(bus.name)}' references unknown memory map '${String(bus.memoryMapRef)}'`,
+              message: `Bus interface '${String(bus.name)}' is an array and cannot have a memory map reference`,
               section: 'busInterfaces',
               entityName: String(bus.name),
               field: 'memoryMapRef',
             });
+          } else if (!busSupportsMemoryMap(String(bus.type ?? ''), String(bus.mode ?? ''))) {
+            errors.push({
+              message: `Bus interface '${String(bus.name)}' of type '${String(bus.type)}' in '${String(bus.mode)}' mode does not support memory map references`,
+              section: 'busInterfaces',
+              entityName: String(bus.name),
+              field: 'memoryMapRef',
+            });
+          } else {
+            const isFilePath =
+              bus.memoryMapRef.toLowerCase().endsWith('.yml') ||
+              bus.memoryMapRef.toLowerCase().endsWith('.yaml');
+            const memMapExists =
+              isFilePath ||
+              (Array.isArray(ipCore.memoryMaps) &&
+                ipCore.memoryMaps.some(
+                  (m: Record<string, unknown>) => m.name === bus.memoryMapRef
+                )) ||
+              (Array.isArray(state.imports.memoryMaps) &&
+                state.imports.memoryMaps.some(
+                  (m: Record<string, unknown>) => m.name === bus.memoryMapRef
+                ));
+            if (!memMapExists) {
+              errors.push({
+                message: `Bus interface '${String(bus.name)}' references unknown memory map '${String(bus.memoryMapRef)}'`,
+                section: 'busInterfaces',
+                entityName: String(bus.name),
+                field: 'memoryMapRef',
+              });
+            }
           }
         }
       }

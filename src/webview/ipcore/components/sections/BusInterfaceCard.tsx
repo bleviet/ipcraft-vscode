@@ -117,6 +117,22 @@ const TEXT_STYLES = {
   muted: { opacity: 0.7 },
 };
 
+function busSupportsMemoryMap(busType: string, mode: string): boolean {
+  if (mode !== 'slave') {
+    return false;
+  }
+  const lower = busType.toLowerCase();
+  if (
+    lower.includes('stream') ||
+    lower.includes('axi4s') ||
+    lower.includes('avalon_st') ||
+    lower.includes('avalon-st')
+  ) {
+    return false;
+  }
+  return lower.includes('axi4') || lower.includes('avalon_mm') || lower.includes('avalon-mm');
+}
+
 export const BusInterfaceCard: React.FC<BusInterfaceCardProps> = ({
   index,
   bus,
@@ -540,76 +556,78 @@ export const BusInterfaceCard: React.FC<BusInterfaceCardProps> = ({
             );
           })()}
 
-          <div
-            className="px-4 py-2 text-sm"
-            style={{
-              background: 'var(--vscode-editor-background)',
-              borderTop: '1px solid var(--vscode-panel-border)',
-            }}
-          >
-            <div className="flex items-center gap-2">
-              <span style={TEXT_STYLES.label}>Memory Map:</span>
-              <div className="flex-1">
-                {(() => {
-                  const availableMaps = imports?.memoryMaps ?? [];
-                  const isFilePath =
-                    bus.memoryMapRef &&
-                    (bus.memoryMapRef.endsWith('.yml') || bus.memoryMapRef.endsWith('.yaml'));
+          {!bus.array && busSupportsMemoryMap(bus.type, bus.mode) && (
+            <div
+              className="px-4 py-2 text-sm"
+              style={{
+                background: 'var(--vscode-editor-background)',
+                borderTop: '1px solid var(--vscode-panel-border)',
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <span style={TEXT_STYLES.label}>Memory Map:</span>
+                <div className="flex-1">
+                  {(() => {
+                    const availableMaps = imports?.memoryMaps ?? [];
+                    const isFilePath =
+                      bus.memoryMapRef &&
+                      (bus.memoryMapRef.endsWith('.yml') || bus.memoryMapRef.endsWith('.yaml'));
 
-                  return (
-                    <div className="flex items-center gap-2">
-                      <select
-                        value={bus.memoryMapRef ?? ''}
-                        onChange={(e) =>
-                          onUpdate(
-                            ['busInterfaces', index, 'memoryMapRef'],
-                            e.target.value || undefined
-                          )
-                        }
-                        className="flex-1 px-1 py-0.5 rounded"
-                        style={{
-                          ...TEXT_STYLES.value,
-                          background: 'var(--vscode-input-background)',
-                          border: '1px solid var(--vscode-input-border)',
-                          color: 'var(--vscode-input-foreground)',
-                          outline: 'none',
-                          fontSize: 'inherit',
-                          boxShadow:
-                            highlight?.entityName === bus.name &&
-                            highlight?.field === 'memoryMapRef'
-                              ? '0 0 0 1px var(--vscode-inputValidation-errorBorder)'
-                              : 'none',
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <option value="">None</option>
+                    return (
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={bus.memoryMapRef ?? ''}
+                          onChange={(e) =>
+                            onUpdate(
+                              ['busInterfaces', index, 'memoryMapRef'],
+                              e.target.value || undefined
+                            )
+                          }
+                          className="flex-1 px-1 py-0.5 rounded"
+                          style={{
+                            ...TEXT_STYLES.value,
+                            background: 'var(--vscode-input-background)',
+                            border: '1px solid var(--vscode-input-border)',
+                            color: 'var(--vscode-input-foreground)',
+                            outline: 'none',
+                            fontSize: 'inherit',
+                            boxShadow:
+                              highlight?.entityName === bus.name &&
+                              highlight?.field === 'memoryMapRef'
+                                ? '0 0 0 1px var(--vscode-inputValidation-errorBorder)'
+                                : 'none',
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <option value="">None</option>
 
-                        {availableMaps.length > 0 && (
-                          <optgroup label="Detected Maps">
-                            {(availableMaps as { name?: string }[]).map((map, i: number) => (
-                              <option key={map.name ?? i} value={map.name}>
-                                {map.name}
-                              </option>
-                            ))}
-                          </optgroup>
-                        )}
-
-                        {bus.memoryMapRef &&
-                          !(availableMaps as { name?: string }[]).find(
-                            (m) => m.name === bus.memoryMapRef
-                          ) && (
-                            <option value={bus.memoryMapRef}>
-                              {bus.memoryMapRef}{' '}
-                              {isFilePath ? '(File Path - Deprecated)' : '(Unknown)'}
-                            </option>
+                          {availableMaps.length > 0 && (
+                            <optgroup label="Detected Maps">
+                              {(availableMaps as { name?: string }[]).map((map, i: number) => (
+                                <option key={map.name ?? i} value={map.name}>
+                                  {map.name}
+                                </option>
+                              ))}
+                            </optgroup>
                           )}
-                      </select>
-                    </div>
-                  );
-                })()}
+
+                          {bus.memoryMapRef &&
+                            !(availableMaps as { name?: string }[]).find(
+                              (m) => m.name === bus.memoryMapRef
+                            ) && (
+                              <option value={bus.memoryMapRef}>
+                                {bus.memoryMapRef}{' '}
+                                {isFilePath ? '(File Path - Deprecated)' : '(Unknown)'}
+                              </option>
+                            )}
+                        </select>
+                      </div>
+                    );
+                  })()}
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           <div
             className="px-4 py-2 text-sm"

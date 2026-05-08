@@ -10,6 +10,7 @@ import {
 } from '../../../shared/utils/validation';
 import { displayDirection } from '../../../shared/utils/formatters';
 import { lookupBusDef } from '../../data/busDefinitions';
+import { supportsMemoryMap } from './canvasLayout';
 
 interface CanvasInspectorProps {
   selected: CanvasElement | null;
@@ -23,6 +24,7 @@ interface CanvasInspectorProps {
 export const CanvasInspector: React.FC<CanvasInspectorProps> = ({
   selected,
   ipCore,
+  imports,
   onUpdate,
   onClose,
   onDelete,
@@ -57,7 +59,7 @@ export const CanvasInspector: React.FC<CanvasInspectorProps> = ({
       </div>
 
       {/* ── Body ── */}
-      <div className="ci-body">{renderPanel(selected, ipCore, onUpdate)}</div>
+      <div className="ci-body">{renderPanel(selected, ipCore, onUpdate, imports)}</div>
 
       {/* ── Footer ── */}
       {onDelete && selected.kind !== 'body' && (
@@ -83,7 +85,8 @@ export const CanvasInspector: React.FC<CanvasInspectorProps> = ({
 function renderPanel(
   element: CanvasElement,
   ipCore: IpCore,
-  onUpdate: YamlUpdateHandler
+  onUpdate: YamlUpdateHandler,
+  imports?: { busLibrary?: unknown; memoryMaps?: unknown[] }
 ): React.ReactNode {
   switch (element.kind) {
     case 'body':
@@ -115,7 +118,15 @@ function renderPanel(
       if (!bus) {
         return <EmptyState label="Bus interface not found" />;
       }
-      return <BusPanel bus={bus} index={element.index} ipCore={ipCore} onUpdate={onUpdate} />;
+      return (
+        <BusPanel
+          bus={bus}
+          index={element.index}
+          ipCore={ipCore}
+          imports={imports}
+          onUpdate={onUpdate}
+        />
+      );
     }
     case 'parameter': {
       const param = (ipCore.parameters ?? [])[element.index] as unknown as
@@ -458,19 +469,32 @@ interface BusPanelProps {
   bus: BusInterface;
   index: number;
   ipCore: IpCore;
+  imports?: { busLibrary?: unknown; memoryMaps?: unknown[] };
   onUpdate: YamlUpdateHandler;
 }
 
-const BusPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, onUpdate }) => {
+const BusPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, onUpdate }) => {
   const buses = (ipCore.busInterfaces ?? []) as BusInterface[];
   const clocks = (ipCore.clocks ?? []) as Clock[];
   const resets = (ipCore.resets ?? []) as Reset[];
-  const memMaps = Array.isArray(ipCore.memoryMaps) ? ipCore.memoryMaps.map((m) => m.name) : [];
   const existingNames = buses.map((b) => b.name).filter((_, i) => i !== index);
 
   const clockOpts = clocks.map((c) => ({ value: c.name, label: c.name }));
   const resetOpts = resets.map((r) => ({ value: r.name, label: r.name }));
-  const mapOpts = memMaps.map((m) => ({ value: m, label: m }));
+
+  // Memory map options: inline maps + imported maps (deduplicated)
+  const inlineMapNames = Array.isArray(ipCore.memoryMaps)
+    ? (ipCore.memoryMaps as unknown as Array<{ name?: unknown }>).map((m) => String(m.name ?? ''))
+    : [];
+  const importedMapNames = Array.isArray(imports?.memoryMaps)
+    ? (imports.memoryMaps as Array<Record<string, unknown>>).map((m) => String(m.name ?? ''))
+    : [];
+  const allMapNames = [...new Set([...inlineMapNames, ...importedMapNames])].filter(Boolean);
+  const mapOpts = allMapNames.map((m) => ({ value: m, label: m }));
+
+  // Only single, slave memory-mapped interfaces (AXI4-Lite/Full, Avalon-MM) may have a memory map
+  const isArray = ((bus.array as { count?: number } | undefined | null)?.count ?? 0) > 1;
+  const canHaveMemoryMap = !isArray && supportsMemoryMap(bus.type, bus.mode);
 
   return (
     <>
@@ -522,7 +546,7 @@ const BusPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, onUpdate }) => 
           onSave={(v) => onUpdate(['busInterfaces', index, 'associatedReset'], v || null)}
           emptyOption="— None —"
         />
-        {mapOpts.length > 0 && (
+        {canHaveMemoryMap && (
           <PropSelect
             label="Memory Map"
             value={bus.memoryMapRef ?? ''}

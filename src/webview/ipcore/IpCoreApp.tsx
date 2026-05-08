@@ -56,6 +56,17 @@ const IpCoreApp: React.FC = () => {
     [baseUpdateIpCore, pushUndo]
   );
 
+  // Transient toast notification
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showToast = React.useCallback((message: string) => {
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+    }
+    setToast(message);
+    toastTimerRef.current = setTimeout(() => setToast(null), 4000);
+  }, []);
+
   // Sidebar toggle state for mobile
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -137,6 +148,12 @@ const IpCoreApp: React.FC = () => {
       if (!bus) {
         return;
       }
+      if (bus.memoryMapRef) {
+        showToast(
+          `Cannot convert "${bus.name}" to an array — arrays cannot have a memory map reference. Remove the memory map reference first.`
+        );
+        return;
+      }
       const arr = bus.array as
         | {
             count?: number;
@@ -189,7 +206,7 @@ const IpCoreApp: React.FC = () => {
       newName = `${baseName}_copy_${n++}`;
     }
     updateIpCore([key], [...arr2, { ...original, name: newName }]);
-  }, [canvasSelected, ipCore, updateIpCore]);
+  }, [canvasSelected, ipCore, updateIpCore, showToast]);
 
   // Delete selected element from the inspector panel (safe array-filter approach)
   const handleInspectorDelete = React.useCallback(() => {
@@ -521,6 +538,33 @@ const IpCoreApp: React.FC = () => {
               </li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {/* Toast notification */}
+      {toast && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 9999,
+            background: 'var(--vscode-inputValidation-warningBackground)',
+            border: '1px solid var(--vscode-inputValidation-warningBorder)',
+            color: 'var(--vscode-foreground)',
+            padding: '8px 14px',
+            borderRadius: '6px',
+            fontSize: '12px',
+            maxWidth: '480px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+          }}
+        >
+          <span className="codicon codicon-warning" style={{ flexShrink: 0 }} />
+          {toast}
         </div>
       )}
     </div>

@@ -43,6 +43,8 @@ export interface LayoutPort {
   mode?: string;
   /** For array buses: replication count (>1 means this interface is an array) */
   arrayCount?: number;
+  /** For single slave memory-mapped buses: the assigned memory map name */
+  memoryMapRef?: string;
   /** Original data reference */
   data: unknown;
   /** Index into ipCore.clocks for this port's clock domain, or -1 */
@@ -133,6 +135,28 @@ function busProtocolShortName(busType: string): string {
   // Fallback: use the last segment of the VLNV
   const parts = busType.split('.');
   return parts[parts.length - 2] ?? busType;
+}
+
+/**
+ * Returns true if this bus type + mode combination supports a memory map reference.
+ * Only single (non-array), slave-mode, memory-mapped protocols qualify:
+ * AXI4-Lite, AXI4-Full, Avalon-MM.
+ */
+export function supportsMemoryMap(busType: string, mode: string): boolean {
+  if (mode !== 'slave') {
+    return false;
+  }
+  const lower = busType.toLowerCase();
+  // Streaming protocols are never memory-mapped
+  if (
+    lower.includes('stream') ||
+    lower.includes('axi4s') ||
+    lower.includes('avalon_st') ||
+    lower.includes('avalon-st')
+  ) {
+    return false;
+  }
+  return lower.includes('axi4') || lower.includes('avalon_mm') || lower.includes('avalon-mm');
 }
 
 function modeLabel(mode: string): string {
@@ -344,6 +368,7 @@ export function computeLayout(
       let protocol: string | undefined;
       let mode: string | undefined;
       let arrayCount: number | undefined;
+      let memoryMapRef: string | undefined;
       let domainIdx = -1;
 
       const d = item.data as Record<string, unknown>;
@@ -374,6 +399,11 @@ export function computeLayout(
             label = arrCfg.namingPattern ?? String(d.name ?? '');
           } else {
             label = String(d.name ?? '');
+            // Only single interfaces can carry a memoryMapRef badge
+            const mmRef = d.memoryMapRef as string | undefined | null;
+            if (mmRef) {
+              memoryMapRef = mmRef;
+            }
           }
           break;
         }
@@ -390,6 +420,7 @@ export function computeLayout(
         protocol,
         mode,
         arrayCount,
+        memoryMapRef,
         data: item.data,
         clockDomainIdx: domainIdx,
       });

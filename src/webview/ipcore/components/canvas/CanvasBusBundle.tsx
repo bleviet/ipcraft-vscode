@@ -174,13 +174,38 @@ export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
       {/* Name label (INSIDE the block) */}
       <text
         x={port.x + (isLeft ? 12 : -12)}
-        y={port.y}
+        y={port.y + (port.memoryMapRef ? -5 : 0)}
         textAnchor={isLeft ? 'start' : 'end'}
         dominantBaseline="central"
         className="canvas-bus-bundle__name"
       >
         {port.label}
       </text>
+
+      {/* Memory map ref badge (INSIDE the block, below the name) */}
+      {port.memoryMapRef && (
+        <g transform={`translate(${port.x + (isLeft ? 14 : -14)}, ${port.y + 7})`}>
+          <rect
+            x={isLeft ? 0 : -60}
+            y={-6}
+            width={60}
+            height={12}
+            rx={3}
+            className="canvas-bus-bundle__mmap-badge"
+          />
+          <text
+            x={isLeft ? 30 : -30}
+            y={0}
+            textAnchor="middle"
+            dominantBaseline="central"
+            className="canvas-bus-bundle__mmap-text"
+          >
+            {port.memoryMapRef.length > 10
+              ? port.memoryMapRef.slice(0, 9) + '…'
+              : port.memoryMapRef}
+          </text>
+        </g>
+      )}
 
       {/* Expand/collapse toggle — at the stub tip */}
       {onToggleExpand && (
