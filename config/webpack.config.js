@@ -86,8 +86,8 @@ const extensionConfig = {
           to: "templates",
         },
         {
-          from: path.resolve(projectRoot, "ipcraft-spec", "bus_definitions.yml"),
-          to: "resources",
+          from: path.resolve(projectRoot, "ipcraft-spec", "bus_definitions"),
+          to: "resources/bus_definitions",
         },
       ],
     }),

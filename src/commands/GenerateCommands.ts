@@ -38,13 +38,42 @@ export function registerGeneratorCommands(context: vscode.ExtensionContext): voi
 }
 
 /**
- * Open the bundled bus_definitions.yml in a read-only editor tab
+ * Let the user pick a bus definition file and open it in a read-only editor tab
  */
 async function viewBusDefinitions(context: vscode.ExtensionContext): Promise<void> {
-  const builtInPath = path.join(context.extensionPath, 'dist', 'resources', 'bus_definitions.yml');
+  const busDirPath = path.join(context.extensionPath, 'dist', 'resources', 'bus_definitions');
+  const dirUri = vscode.Uri.file(busDirPath);
 
-  const uri = vscode.Uri.file(builtInPath);
+  let entries: [string, vscode.FileType][];
+  try {
+    entries = await vscode.workspace.fs.readDirectory(dirUri);
+  } catch (error) {
+    void vscode.window.showErrorMessage(
+      `Failed to open bus definitions: ${error instanceof Error ? error.message : String(error)}`
+    );
+    return;
+  }
 
+  const ymlFiles = entries
+    .filter(([name, type]) => type === vscode.FileType.File && name.endsWith('.yml'))
+    .map(([name]) => name)
+    .sort();
+
+  if (ymlFiles.length === 0) {
+    void vscode.window.showInformationMessage('No bus definitions found.');
+    return;
+  }
+
+  const selected = await vscode.window.showQuickPick(ymlFiles, {
+    placeHolder: 'Select a bus definition to view',
+    title: 'Bus Definitions',
+  });
+
+  if (!selected) {
+    return;
+  }
+
+  const uri = vscode.Uri.file(path.join(busDirPath, selected));
   try {
     const doc = await vscode.workspace.openTextDocument(uri);
     await vscode.window.showTextDocument(doc, {
@@ -53,7 +82,7 @@ async function viewBusDefinitions(context: vscode.ExtensionContext): Promise<voi
     });
   } catch (error) {
     void vscode.window.showErrorMessage(
-      `Failed to open bus definitions: ${error instanceof Error ? error.message : String(error)}`
+      `Failed to open bus definition: ${error instanceof Error ? error.message : String(error)}`
     );
   }
 }

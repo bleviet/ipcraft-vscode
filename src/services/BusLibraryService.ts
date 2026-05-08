@@ -14,44 +14,65 @@ export class BusLibraryService {
   }
 
   /**
-   * Load and cache the bundled bus library.
+   * Load and cache the bundled bus library by merging all .yml files
+   * from dist/resources/bus_definitions/.
    *
-   * Error strategy: throws on file read or parse failures; callers decide
-   * whether to surface, recover, or fallback.
+   * Error strategy: throws on directory read, file read, or parse failures;
+   * callers decide whether to surface, recover, or fallback.
    */
   async loadDefaultLibrary(): Promise<Record<string, unknown>> {
     if (this.cachedDefaultLibrary) {
       return this.cachedDefaultLibrary;
     }
 
-    const builtInPath = path.join(
+    const busDirPath = path.join(
       this.context.extensionPath,
       'dist',
       'resources',
-      'bus_definitions.yml'
+      'bus_definitions'
     );
 
-    let loadedContent: string;
+    const dirUri = vscode.Uri.file(busDirPath);
+    let entries: [string, vscode.FileType][];
     try {
-      const uri = vscode.Uri.file(builtInPath);
-      const fileData = await vscode.workspace.fs.readFile(uri);
-      loadedContent = Buffer.from(fileData).toString('utf8');
+      entries = await vscode.workspace.fs.readDirectory(dirUri);
     } catch (error) {
-      this.logger.error('Default bus library not found in extension resources');
+      this.logger.error('Default bus library directory not found in extension resources');
       const message = error instanceof Error ? error.message : String(error);
-      throw new Error(`Default bus library not found at ${builtInPath}: ${message}`);
+      throw new Error(`Default bus library directory not found at ${busDirPath}: ${message}`);
     }
 
-    try {
-      const parsed = yaml.load(loadedContent);
-      this.cachedDefaultLibrary = (parsed as Record<string, unknown>) ?? {};
-      this.logger.info(`Loaded default bus library from ${builtInPath}`);
-      return this.cachedDefaultLibrary;
-    } catch (error) {
-      this.logger.error(`Failed to parse default bus library from ${builtInPath}`, error as Error);
-      const message = error instanceof Error ? error.message : String(error);
-      throw new Error(`Failed to parse default bus library from ${builtInPath}: ${message}`);
+    const ymlFiles = entries
+      .filter(([name, type]) => type === vscode.FileType.File && name.endsWith('.yml'))
+      .map(([name]) => name)
+      .sort();
+
+    const merged: Record<string, unknown> = {};
+    for (const fileName of ymlFiles) {
+      const filePath = path.join(busDirPath, fileName);
+      const fileUri = vscode.Uri.file(filePath);
+      let content: string;
+      try {
+        const fileData = await vscode.workspace.fs.readFile(fileUri);
+        content = Buffer.from(fileData).toString('utf8');
+      } catch (error) {
+        this.logger.error(`Failed to read bus definition file: ${fileName}`);
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`Failed to read bus definition from ${filePath}: ${message}`);
+      }
+      try {
+        const parsed = yaml.load(content) as Record<string, unknown>;
+        Object.assign(merged, parsed);
+      } catch (error) {
+        this.logger.error(`Failed to parse bus definition file: ${fileName}`);
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`Failed to parse bus definition from ${filePath}: ${message}`);
+      }
     }
+
+    this.cachedDefaultLibrary = merged;
+    this.logger.info(`Loaded default bus library from ${busDirPath} (${ymlFiles.length} files)`);
+    return this.cachedDefaultLibrary;
   }
 
   clearCache(): void {
