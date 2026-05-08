@@ -40,13 +40,17 @@ export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
   const stubDir = isLeft ? -1 : 1;
   const stubEndX = port.x + stubDir * STUB_LENGTH;
 
-  // Protocol badge position
-  const badgeX = port.x + stubDir * (STUB_LENGTH + 8);
-  const badgeY = port.y;
-
-  // Expand toggle button position (at the stub tip)
-  const toggleX = stubEndX + stubDir * 6;
+  // Toggle sits right at the stub tip (small gap from the stub end)
+  const TOGGLE_W = 16;
+  const TOGGLE_GAP = 4; // gap between stub tip and toggle button
+  const toggleX = stubEndX + stubDir * TOGGLE_GAP;
   const toggleY = port.y;
+
+  // Badge sits past the toggle (when toggle exists) so the two never overlap.
+  // Without toggle: small gap from stub end; with toggle: clear the toggle first.
+  const badgeGap = onToggleExpand ? TOGGLE_GAP + TOGGLE_W + 4 : 8;
+  const badgeX = stubEndX + stubDir * badgeGap;
+  const badgeY = port.y;
 
   return (
     <g
@@ -168,15 +172,15 @@ export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
           className="canvas-bus-bundle__expand-toggle"
         >
           <rect
-            x={isLeft ? -16 : 0}
+            x={isLeft ? -TOGGLE_W : 0}
             y={-8}
-            width={16}
+            width={TOGGLE_W}
             height={16}
             rx={3}
             className="canvas-bus-bundle__expand-bg"
           />
           <text
-            x={isLeft ? -8 : 8}
+            x={isLeft ? -(TOGGLE_W / 2) : TOGGLE_W / 2}
             y={0}
             textAnchor="middle"
             dominantBaseline="central"

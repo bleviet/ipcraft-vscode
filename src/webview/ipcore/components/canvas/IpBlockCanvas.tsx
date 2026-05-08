@@ -208,6 +208,13 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
     onSelect(null);
   }, [onSelect]);
 
+  const handleBackgroundDoubleClick = useCallback(() => {
+    setZoom(1.0);
+    setPan({ x: 0, y: 0 });
+    currentPanRef.current = { x: 0, y: 0 };
+    triggerZoomIndicator();
+  }, [triggerZoomIndicator]);
+
   const toggleBusExpand = useCallback((busId: string) => {
     setExpandedBusIds((prev) => {
       const next = new Set(prev);
@@ -373,6 +380,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
           transformOrigin: 'center center',
         }}
         onClick={handleBackgroundClick}
+        onDoubleClick={handleBackgroundDoubleClick}
         onMouseLeave={() => setHoveredId(null)}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
