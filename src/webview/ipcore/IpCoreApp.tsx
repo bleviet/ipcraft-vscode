@@ -170,9 +170,12 @@ const IpCoreApp: React.FC = () => {
     }
   }, [validationErrors, highlight]);
 
-  // Handle global keyboard shortcuts for panel switching
+  // Handle global keyboard shortcuts for panel switching and canvas deletion
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const activeTag = document.activeElement?.tagName.toLowerCase();
+      const isTyping = activeTag === 'input' || activeTag === 'textarea';
+
       // Ctrl+H: Focus left panel
       if (e.ctrlKey && e.key.toLowerCase() === 'h') {
         e.preventDefault();
@@ -185,11 +188,16 @@ const IpCoreApp: React.FC = () => {
         setFocusedPanel('right');
         // The EditorPanel will auto-focus the inner table container via its useEffect
       }
+      // Delete: remove selected canvas element (ports, buses, clocks, resets, generics)
+      else if (e.key === 'Delete' && !isTyping && viewMode === 'canvas' && canvasSelected) {
+        e.preventDefault();
+        handleInspectorDelete();
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [viewMode, canvasSelected, handleInspectorDelete]);
 
   // Notify extension that webview is ready
   useEffect(() => {

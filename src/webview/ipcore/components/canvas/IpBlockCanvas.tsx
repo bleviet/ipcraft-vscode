@@ -283,13 +283,6 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
         e.preventDefault();
         setZoom(1.0);
         triggerZoomIndicator();
-      } else if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId && onRemove) {
-        // Parse kind and id from selectedId e.g. "port:1"
-        const [kind, id] = selectedId.split(':');
-        if (kind && id) {
-          onRemove(kind, id);
-          onSelect(null);
-        }
       }
     };
 
