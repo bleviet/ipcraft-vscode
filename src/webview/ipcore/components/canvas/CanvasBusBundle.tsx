@@ -30,11 +30,6 @@ export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
   domainColor,
 }) => {
   const isLeft = port.side === 'left';
-  const bus = port.data as {
-    associatedClock?: string | null;
-    associatedReset?: string | null;
-    memoryMapRef?: string | null;
-  };
 
   const hasError = annotations?.some((a) => a.severity === 'error');
   const tooltipText = annotations
@@ -48,11 +43,6 @@ export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
   // Protocol badge position
   const badgeX = port.x + stubDir * (STUB_LENGTH + 8);
   const badgeY = port.y;
-
-  // Indicators for clock/reset/memmap associations
-  const hasClockAssoc = !!bus.associatedClock;
-  const hasResetAssoc = !!bus.associatedReset;
-  const hasMemMap = !!bus.memoryMapRef;
 
   // Expand toggle button position (at the stub tip)
   const toggleX = stubEndX + stubDir * 6;
@@ -165,34 +155,6 @@ export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
       >
         {port.label}
       </text>
-
-      {/* Association indicators (small dots below the stub) */}
-      <g transform={`translate(${port.x + stubDir * (STUB_LENGTH / 2)}, ${port.y + 12})`}>
-        {hasClockAssoc && (
-          <circle
-            cx={-8}
-            cy={0}
-            r={3}
-            className="canvas-bus-bundle__assoc canvas-bus-bundle__assoc--clock"
-          />
-        )}
-        {hasResetAssoc && (
-          <circle
-            cx={0}
-            cy={0}
-            r={3}
-            className="canvas-bus-bundle__assoc canvas-bus-bundle__assoc--reset"
-          />
-        )}
-        {hasMemMap && (
-          <circle
-            cx={8}
-            cy={0}
-            r={3}
-            className="canvas-bus-bundle__assoc canvas-bus-bundle__assoc--memmap"
-          />
-        )}
-      </g>
 
       {/* Expand/collapse toggle — at the stub tip */}
       {onToggleExpand && (

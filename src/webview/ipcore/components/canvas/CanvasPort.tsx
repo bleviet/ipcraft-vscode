@@ -85,9 +85,6 @@ export const CanvasPort: React.FC<CanvasPortProps> = ({
     widthY = port.y + STUB_LENGTH / 2;
   }
 
-  // Port kind icon
-  const icon = portKindIcon(port.kind);
-
   // Connector dot radius
   const dotR = port.kind === 'bus' ? 5 : 3;
 
@@ -150,18 +147,13 @@ export const CanvasPort: React.FC<CanvasPortProps> = ({
       />
 
       {/* Port kind icon (clock/reset) — placed inside the block body */}
-      {icon && (
-        <text
+      {(port.kind === 'clock' || port.kind === 'reset') && (
+        <PortKindIcon
+          kind={port.kind}
           x={isLeft ? port.x + 14 : isRight ? port.x - 14 : port.x}
           y={isBottom ? port.y - 14 : port.y}
-          className="canvas-port__icon"
-          textAnchor="middle"
-          dominantBaseline="central"
-          fontSize={11}
-          style={domainColor ? { fill: domainColor } : undefined}
-        >
-          {icon}
-        </text>
+          color={domainColor}
+        />
       )}
 
       {/* Port label */}
@@ -202,13 +194,38 @@ export const CanvasPort: React.FC<CanvasPortProps> = ({
   );
 };
 
-function portKindIcon(kind: string): string | null {
-  switch (kind) {
-    case 'clock':
-      return '\ud83d\udd50'; // clock symbol
-    case 'reset':
-      return '\u21BA'; // counterclockwise arrow
-    default:
-      return null;
+const PortKindIcon: React.FC<{ kind: string; x: number; y: number; color?: string }> = ({
+  kind,
+  x,
+  y,
+  color,
+}) => {
+  const s = color ? { stroke: color } : undefined;
+  const f = color ? { fill: color } : undefined;
+
+  if (kind === 'clock') {
+    return (
+      <g transform={`translate(${x}, ${y})`} className="canvas-port__icon">
+        {/* Watch face */}
+        <circle cx={0} cy={0} r={5} className="canvas-port__icon-face" />
+        {/* Hour hand ~10 o'clock */}
+        <line x1={0} y1={0} x2={-2} y2={-3} className="canvas-port__icon-hand" style={s} />
+        {/* Minute hand pointing 12 */}
+        <line x1={0} y1={0} x2={0} y2={-4} className="canvas-port__icon-hand" style={s} />
+      </g>
+    );
   }
-}
+
+  if (kind === 'reset') {
+    return (
+      <g transform={`translate(${x}, ${y})`} className="canvas-port__icon">
+        {/* ~270\u00b0 clockwise arc */}
+        <path d="M 0 -4.5 A 4.5 4.5 0 1 1 -4.5 0" className="canvas-port__icon-arc" style={s} />
+        {/* Arrowhead at arc end pointing downward */}
+        <polygon points="-4.5,0 -6.5,-2 -2.5,-2" className="canvas-port__icon-arrow" style={f} />
+      </g>
+    );
+  }
+
+  return null;
+};
