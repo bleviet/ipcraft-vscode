@@ -131,10 +131,10 @@ export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
         </text>
       </g>
 
-      {/* Mode indicator (S/M) */}
+      {/* Mode indicator (S/M/Src/Sink) */}
       {port.mode && (
         <g transform={`translate(${port.x + stubDir * (STUB_LENGTH / 2)}, ${port.y - 12})`}>
-          <rect x={-10} y={-8} width={20} height={16} rx={3} className="canvas-bus-bundle__mode" />
+          <rect x={-14} y={-8} width={28} height={16} rx={3} className="canvas-bus-bundle__mode" />
           <text
             x={0}
             y={0}
