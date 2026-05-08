@@ -1,73 +1,64 @@
-import { useCallback, useEffect, useState } from 'react';
-import type { useIpCoreState } from './useIpCoreState';
+import { useRef, useState, useCallback } from 'react';
 
 interface UseCanvasUndoOptions {
   rawYaml: string;
-  updateFromYaml: ReturnType<typeof useIpCoreState>['updateFromYaml'];
+  updateFromYaml: (text: string, fileName: string, imports?: Record<string, unknown>) => void;
   fileName: string;
+  imports?: Record<string, unknown>;
 }
 
 /**
- * Provides a local undo/redo stack for the IP Core Canvas.
- * Captures raw YAML snapshots and restores them.
+ * Undo/redo stack for canvas YAML edits.
+ *
+ * push() snapshots the current rawYaml before a mutation.
+ * undo() / redo() restore snapshots via updateFromYaml.
  */
-export function useCanvasUndo({ rawYaml, updateFromYaml, fileName }: UseCanvasUndoOptions) {
-  const [undoStack, setUndoStack] = useState<string[]>([]);
-  const [redoStack, setRedoStack] = useState<string[]>([]);
+export function useCanvasUndo({
+  rawYaml,
+  updateFromYaml,
+  fileName,
+  imports,
+}: UseCanvasUndoOptions) {
+  const undoStack = useRef<string[]>([]);
+  const redoStack = useRef<string[]>([]);
+
+  const rawYamlRef = useRef(rawYaml);
+  rawYamlRef.current = rawYaml;
+
+  const importsRef = useRef(imports);
+  importsRef.current = imports;
+
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
 
   const push = useCallback(() => {
-    if (rawYaml) {
-      setUndoStack((prev) => [...prev, rawYaml]);
-      setRedoStack([]); // Clear redo stack on new action
-    }
-  }, [rawYaml]);
+    undoStack.current.push(rawYamlRef.current);
+    redoStack.current = [];
+    setCanUndo(true);
+    setCanRedo(false);
+  }, []);
 
   const undo = useCallback(() => {
-    if (undoStack.length === 0) {
+    const prev = undoStack.current.pop();
+    if (prev === undefined) {
       return;
     }
-    const previousYaml = undoStack[undoStack.length - 1];
-    setUndoStack((prev) => prev.slice(0, -1));
-    setRedoStack((prev) => [...prev, rawYaml]);
-    updateFromYaml(previousYaml, fileName);
-  }, [undoStack, rawYaml, updateFromYaml, fileName]);
+    redoStack.current.push(rawYamlRef.current);
+    setCanUndo(undoStack.current.length > 0);
+    setCanRedo(true);
+    updateFromYaml(prev, fileName, importsRef.current);
+  }, [updateFromYaml, fileName]);
 
   const redo = useCallback(() => {
-    if (redoStack.length === 0) {
+    const next = redoStack.current.pop();
+    if (next === undefined) {
       return;
     }
-    const nextYaml = redoStack[redoStack.length - 1];
-    setRedoStack((prev) => prev.slice(0, -1));
-    setUndoStack((prev) => [...prev, rawYaml]);
-    updateFromYaml(nextYaml, fileName);
-  }, [redoStack, rawYaml, updateFromYaml, fileName]);
+    undoStack.current.push(rawYamlRef.current);
+    setCanUndo(true);
+    setCanRedo(redoStack.current.length > 0);
+    updateFromYaml(next, fileName, importsRef.current);
+  }, [updateFromYaml, fileName]);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl+Z (or Cmd+Z on Mac)
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) {
-        e.preventDefault();
-        undo();
-      }
-      // Ctrl+Y or Ctrl+Shift+Z
-      if (
-        ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') ||
-        ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'z')
-      ) {
-        e.preventDefault();
-        redo();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [undo, redo]);
-
-  return {
-    push,
-    undo,
-    redo,
-    canUndo: undoStack.length > 0,
-    canRedo: redoStack.length > 0,
-  };
+  return { push, undo, redo, canUndo, canRedo };
 }

@@ -19,7 +19,7 @@ export const BLOCK_WIDTH = 280;
 export const STUB_LENGTH = 48;
 
 /** Horizontal margin around the block (for stub space + labels) */
-export const CANVAS_MARGIN_X = 180;
+export const CANVAS_MARGIN_X = 280;
 
 /** Vertical margin above/below the block */
 export const CANVAS_MARGIN_Y = 40;

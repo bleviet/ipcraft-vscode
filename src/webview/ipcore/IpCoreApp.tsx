@@ -44,6 +44,7 @@ const IpCoreApp: React.FC = () => {
     rawYaml,
     updateFromYaml,
     fileName: fileName ?? 'ipcore',
+    imports: imports as Record<string, unknown>,
   });
 
   // Intercept updates to push to undo stack

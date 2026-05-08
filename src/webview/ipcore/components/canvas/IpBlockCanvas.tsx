@@ -368,6 +368,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
         className="ip-canvas-svg"
         viewBox={`0 0 ${viewBox.width} ${viewBox.height}`}
         preserveAspectRatio="xMidYMid meet"
+        overflow="visible"
         style={{
           transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
           transformOrigin: 'center center',
