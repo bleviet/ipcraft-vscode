@@ -532,6 +532,7 @@ const BusPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, onUpdate }) => 
           />
         )}
       </Section>
+      <ArraySection bus={bus} busIndex={index} onUpdate={onUpdate} />
       <PortWidthOverridesSection
         bus={bus}
         busIndex={index}
@@ -541,6 +542,97 @@ const BusPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, onUpdate }) => 
         onUpdate={onUpdate}
       />
     </>
+  );
+};
+
+// ─────────────────────────────────────────────────────
+//  Array configuration section
+// ─────────────────────────────────────────────────────
+
+interface ArraySectionProps {
+  bus: BusInterface;
+  busIndex: number;
+  onUpdate: YamlUpdateHandler;
+}
+
+const ArraySection: React.FC<ArraySectionProps> = ({ bus, busIndex, onUpdate }) => {
+  const array = bus.array as
+    | {
+        count?: number;
+        indexStart?: number;
+        namingPattern?: string;
+        physicalPrefixPattern?: string;
+      }
+    | undefined
+    | null;
+
+  if (!array) {
+    return null;
+  }
+
+  const saveCount = (raw: string) => {
+    const n = parseInt(raw, 10);
+    if (!Number.isFinite(n) || n < 1) {
+      return;
+    }
+    if (n <= 1) {
+      onUpdate(['busInterfaces', busIndex, 'array'], undefined);
+    } else {
+      onUpdate(['busInterfaces', busIndex, 'array', 'count'], n);
+    }
+  };
+
+  const saveNamingPattern = (raw: string) => {
+    if (!raw.includes('{index}')) {
+      // Pattern without {index} would produce duplicate names — dissolve the array
+      onUpdate(['busInterfaces', busIndex, 'array'], undefined);
+    } else {
+      onUpdate(['busInterfaces', busIndex, 'array', 'namingPattern'], raw);
+    }
+  };
+
+  const savePrefixPattern = (raw: string) => {
+    onUpdate(['busInterfaces', busIndex, 'array', 'physicalPrefixPattern'], raw || null);
+  };
+
+  const saveIndexStart = (raw: string) => {
+    const n = parseInt(raw, 10);
+    onUpdate(['busInterfaces', busIndex, 'array', 'indexStart'], Number.isFinite(n) ? n : 0);
+  };
+
+  return (
+    <Section title="Array">
+      <PropField
+        label="Count"
+        value={String(array.count ?? 2)}
+        onSave={saveCount}
+        placeholder="2"
+        hint="Set to 1 to remove array"
+        mono
+      />
+      <PropField
+        label="Index Start"
+        value={String(array.indexStart ?? 0)}
+        onSave={saveIndexStart}
+        placeholder="0"
+        mono
+      />
+      <PropField
+        label="Name Pattern"
+        value={array.namingPattern ?? ''}
+        onSave={saveNamingPattern}
+        placeholder="IFACE_{index}"
+        hint="Must include {index}"
+        mono
+      />
+      <PropField
+        label="Prefix Pattern"
+        value={array.physicalPrefixPattern ?? ''}
+        onSave={savePrefixPattern}
+        placeholder="iface_{index}_"
+        mono
+      />
+    </Section>
   );
 };
 

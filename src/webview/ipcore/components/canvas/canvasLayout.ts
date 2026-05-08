@@ -41,6 +41,8 @@ export interface LayoutPort {
   /** For buses: protocol short name and mode badge */
   protocol?: string;
   mode?: string;
+  /** For array buses: replication count (>1 means this interface is an array) */
+  arrayCount?: number;
   /** Original data reference */
   data: unknown;
   /** Index into ipCore.clocks for this port's clock domain, or -1 */
@@ -341,6 +343,7 @@ export function computeLayout(
       let widthLabel = '';
       let protocol: string | undefined;
       let mode: string | undefined;
+      let arrayCount: number | undefined;
       let domainIdx = -1;
 
       const d = item.data as Record<string, unknown>;
@@ -359,13 +362,21 @@ export function computeLayout(
           label = String(d.name ?? '');
           widthLabel = formatWidth(d.width as number | string | undefined);
           break;
-        case 'bus':
-          label = String(d.name ?? '');
+        case 'bus': {
           protocol = busProtocolShortName(String(d.type ?? ''));
           mode = modeLabel(String(d.mode ?? ''));
           widthLabel = '';
           domainIdx = busDomainIdx(d as { associatedClock?: string | null });
+          const arrCfg = d.array as { count?: number; namingPattern?: string } | undefined | null;
+          if (arrCfg?.count && arrCfg.count > 1) {
+            arrayCount = arrCfg.count;
+            // Show the naming pattern so it's clear this is a replicated interface
+            label = arrCfg.namingPattern ?? String(d.name ?? '');
+          } else {
+            label = String(d.name ?? '');
+          }
           break;
+        }
       }
 
       layoutPorts.push({
@@ -378,6 +389,7 @@ export function computeLayout(
         widthLabel,
         protocol,
         mode,
+        arrayCount,
         data: item.data,
         clockDomainIdx: domainIdx,
       });
@@ -391,6 +403,7 @@ export function computeLayout(
           physicalPrefix?: string;
           associatedClock?: string | null;
           associatedReset?: string | null;
+          array?: { count?: number; physicalPrefixPattern?: string } | null;
         };
         const allPortDefs = busPortLookup(busData.type ?? '') ?? [];
         const useOptional = busData.useOptionalPorts ?? [];
@@ -416,6 +429,13 @@ export function computeLayout(
           const widthLbl = numWidth !== undefined && numWidth > 1 ? `[${numWidth - 1}:0]` : '';
           const active = portDef.presence === 'required' || useOptional.includes(portDef.name);
 
+          // For array interfaces, use the physicalPrefixPattern so the sub-port
+          // physical name reflects the replicated naming (e.g. m_axis_ch{index}_tdata)
+          const subPhysicalPrefix =
+            (busData.array?.count ?? 0) > 1 && busData.array?.physicalPrefixPattern
+              ? busData.array.physicalPrefixPattern
+              : (busData.physicalPrefix ?? '');
+
           layoutSubPorts.push({
             id: `bus:${item.index}:${portDef.name}`,
             parentBusId: id,
@@ -427,7 +447,7 @@ export function computeLayout(
             direction: portDef.direction,
             presence: portDef.presence,
             active,
-            physicalPrefix: busData.physicalPrefix ?? '',
+            physicalPrefix: subPhysicalPrefix,
             clockDomainIdx: domainIdx,
           });
         });

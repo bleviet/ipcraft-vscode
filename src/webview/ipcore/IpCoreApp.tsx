@@ -11,7 +11,7 @@ import { useCanvasDrop } from './hooks/useCanvasDrop';
 import { useCanvasUndo } from './hooks/useCanvasUndo';
 import { LibraryPalette } from './components/canvas/LibraryPalette';
 import { vscode } from '../vscode';
-import type { IpCore } from '../types/ipCore';
+import type { IpCore, BusInterface } from '../types/ipCore';
 import '../index.css';
 
 export type FocusedPanel = 'left' | 'right';
@@ -120,6 +120,76 @@ const IpCoreApp: React.FC = () => {
     [ipCore, updateIpCore, canvasSelectedId, canvasDeselect]
   );
 
+  // Duplicate selected canvas element (Ctrl+D)
+  // - Bus interface: first Ctrl+D adds array config (count=2); subsequent ones increment count
+  // - Other elements: appends a copy with a unique name
+  const handleDuplicate = React.useCallback(() => {
+    if (!canvasSelected) {
+      return;
+    }
+    const ip = ipCore as unknown as IpCore;
+
+    if (canvasSelected.kind === 'busInterface') {
+      const bus = ((ip.busInterfaces ?? []) as BusInterface[])[canvasSelected.index] as
+        | (BusInterface & Record<string, unknown>)
+        | undefined;
+      if (!bus) {
+        return;
+      }
+      const arr = bus.array as
+        | {
+            count?: number;
+            indexStart?: number;
+            namingPattern?: string;
+            physicalPrefixPattern?: string;
+          }
+        | undefined
+        | null;
+      if (arr?.count) {
+        updateIpCore(['busInterfaces', canvasSelected.index, 'array', 'count'], arr.count + 1);
+      } else {
+        const baseName = String(bus.name ?? 'INTERFACE').toUpperCase();
+        const physicalPrefix = String(bus.physicalPrefix ?? bus.name ?? '')
+          .replace(/_$/, '')
+          .toLowerCase();
+        updateIpCore(['busInterfaces', canvasSelected.index, 'array'], {
+          count: 2,
+          indexStart: 0,
+          namingPattern: `${baseName}_{index}`,
+          physicalPrefixPattern: `${physicalPrefix}_{index}_`,
+        });
+      }
+      return;
+    }
+
+    const kindToKey: Record<string, string> = {
+      clock: 'clocks',
+      reset: 'resets',
+      port: 'ports',
+      parameter: 'parameters',
+    };
+    const key = kindToKey[canvasSelected.kind];
+    if (!key) {
+      return;
+    }
+    const arr2 = ip[key as keyof IpCore] as unknown[] | undefined;
+    if (!Array.isArray(arr2)) {
+      return;
+    }
+    const original = arr2[canvasSelected.index] as Record<string, unknown>;
+    if (!original) {
+      return;
+    }
+    const existingNames = arr2.map((item) => String((item as Record<string, unknown>).name ?? ''));
+    const baseName = String(original.name ?? 'item');
+    let newName = `${baseName}_copy`;
+    let n = 2;
+    while (existingNames.includes(newName)) {
+      newName = `${baseName}_copy_${n++}`;
+    }
+    updateIpCore([key], [...arr2, { ...original, name: newName }]);
+  }, [canvasSelected, ipCore, updateIpCore]);
+
   // Delete selected element from the inspector panel (safe array-filter approach)
   const handleInspectorDelete = React.useCallback(() => {
     if (!canvasSelected) {
@@ -193,11 +263,22 @@ const IpCoreApp: React.FC = () => {
         e.preventDefault();
         handleInspectorDelete();
       }
+      // Ctrl+D: duplicate selected canvas element (bus interfaces become arrays)
+      else if (
+        (e.ctrlKey || e.metaKey) &&
+        e.key.toLowerCase() === 'd' &&
+        !isTyping &&
+        viewMode === 'canvas' &&
+        canvasSelected
+      ) {
+        e.preventDefault();
+        handleDuplicate();
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [viewMode, canvasSelected, handleInspectorDelete]);
+  }, [viewMode, canvasSelected, handleInspectorDelete, handleDuplicate]);
 
   // Notify extension that webview is ready
   useEffect(() => {

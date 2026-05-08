@@ -129,6 +129,28 @@ export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
         >
           {port.protocol ?? 'Bus'}
         </text>
+        {/* Array count overlay — top-right corner of the badge */}
+        {(port.arrayCount ?? 0) > 1 && (
+          <g>
+            <rect
+              x={isLeft ? -10 : 70}
+              y={-18}
+              width={16}
+              height={12}
+              rx={3}
+              className="canvas-bus-bundle__array-badge"
+            />
+            <text
+              x={isLeft ? -2 : 78}
+              y={-12}
+              textAnchor="middle"
+              dominantBaseline="central"
+              className="canvas-bus-bundle__array-badge-text"
+            >
+              ×{port.arrayCount}
+            </text>
+          </g>
+        )}
       </g>
 
       {/* Mode indicator (S/M/Src/Sink) */}
