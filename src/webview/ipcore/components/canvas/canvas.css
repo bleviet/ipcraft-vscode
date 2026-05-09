@@ -855,6 +855,26 @@
   opacity: 0.65;
 }
 
+/* Width field: input/select + optional parameter-toggle button side by side */
+.ci-field__input-row {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+}
+.ci-field__input-row .ci-field__input,
+.ci-field__input-row .ci-field__select {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* Taller toggle button that matches the ci-field input height */
+.ci-field__mode-toggle {
+  width: 24px;
+  height: auto;
+  align-self: stretch;
+  font-size: 10px;
+}
+
 /* Memory map field — row with select/path + icon buttons */
 .ci-mmap-row {
   display: flex;

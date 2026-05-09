@@ -427,13 +427,12 @@ interface PortPanelProps {
 const PortPanel: React.FC<PortPanelProps> = ({ port, index, ipCore, onUpdate }) => {
   const ports = (ipCore.ports ?? []) as Port[];
   const existingNames = ports.map((p) => p.name).filter((_, i) => i !== index);
+  const paramNames = ((ipCore.parameters ?? []) as unknown as Array<{ name: string }>).map(
+    (p) => p.name
+  );
 
-  const widthStr = port.width === undefined || port.width === null ? '1' : String(port.width);
-
-  const saveWidth = (v: string) => {
-    const num = Number(v);
-    onUpdate(['ports', index, 'width'], Number.isInteger(num) && num > 0 ? num : v || 1);
-  };
+  const currentWidth: number | string =
+    port.width === undefined || port.width === null ? 1 : (port.width as number | string);
 
   return (
     <>
@@ -454,13 +453,11 @@ const PortPanel: React.FC<PortPanelProps> = ({ port, index, ipCore, onUpdate }) 
           options={DIR_3WAY}
           onSave={(v) => onUpdate(['ports', index, 'direction'], v)}
         />
-        <PropField
+        <PropWidthField
           label="Width (bits)"
-          value={widthStr}
-          onSave={saveWidth}
-          placeholder="1"
-          hint="Number or parameter name"
-          mono
+          value={currentWidth}
+          paramNames={paramNames}
+          onSave={(v) => onUpdate(['ports', index, 'width'], v)}
         />
       </Section>
     </>
@@ -990,6 +987,110 @@ const MemoryMapField: React.FC<MemoryMapFieldProps> = ({ importPath, onSave }) =
 // ─────────────────────────────────────────────────────
 //  Shared field primitives
 // ─────────────────────────────────────────────────────
+
+// ─────────────────────────────────────────────────────
+//  PropWidthField — labeled width field with number/parameter toggle
+// ─────────────────────────────────────────────────────
+
+interface PropWidthFieldProps {
+  label: string;
+  value: number | string;
+  paramNames: string[];
+  onSave: (value: number | string) => void;
+}
+
+const PropWidthField: React.FC<PropWidthFieldProps> = ({ label, value, paramNames, onSave }) => {
+  const isCurrentlyParam = typeof value === 'string' && paramNames.includes(value);
+  const [mode, setMode] = useState<'number' | 'param'>(isCurrentlyParam ? 'param' : 'number');
+  const [draft, setDraft] = useState(typeof value === 'number' ? String(value) : '1');
+  const [focused, setFocused] = useState(false);
+
+  useEffect(() => {
+    const nextMode = typeof value === 'string' && paramNames.includes(value) ? 'param' : 'number';
+    setMode(nextMode);
+    if (nextMode === 'number' && !focused) {
+      setDraft(typeof value === 'number' ? String(value) : '1');
+    }
+  }, [value, focused, paramNames]);
+
+  const hasParams = paramNames.length > 0;
+
+  const commitNumber = (raw: string) => {
+    const n = parseInt(raw, 10);
+    onSave(!isNaN(n) && n > 0 ? n : 1);
+  };
+
+  const toggleMode = () => {
+    if (mode === 'param') {
+      setMode('number');
+      const fallback = typeof value === 'number' ? value : 1;
+      setDraft(String(fallback));
+      onSave(fallback);
+    } else {
+      setMode('param');
+      onSave(paramNames[0]);
+    }
+  };
+
+  return (
+    <div className="ci-field">
+      <label className="ci-field__label">{label}</label>
+      <div className="ci-field__input-row">
+        {mode === 'param' ? (
+          <select
+            className="ci-field__select"
+            value={typeof value === 'string' ? value : (paramNames[0] ?? '')}
+            onChange={(e) => onSave(e.target.value)}
+          >
+            {paramNames.map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <input
+            className="ci-field__input"
+            value={focused ? draft : typeof value === 'number' ? String(value) : '1'}
+            placeholder="1"
+            onChange={(e) => setDraft(e.target.value)}
+            onFocus={() => {
+              setFocused(true);
+              setDraft(typeof value === 'number' ? String(value) : '1');
+            }}
+            onBlur={() => {
+              setFocused(false);
+              commitNumber(draft);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.currentTarget.blur();
+              } else if (e.key === 'Escape') {
+                setDraft(typeof value === 'number' ? String(value) : '1');
+                setFocused(false);
+                e.currentTarget.blur();
+              }
+            }}
+            style={{ fontFamily: 'var(--vscode-editor-font-family, monospace)' }}
+          />
+        )}
+        {hasParams && (
+          <button
+            className="ci-pw-mode-toggle ci-field__mode-toggle"
+            onClick={toggleMode}
+            title={mode === 'param' ? 'Use a literal number' : 'Use a generic parameter'}
+          >
+            {mode === 'param' ? (
+              '123'
+            ) : (
+              <span className="codicon codicon-symbol-constant" aria-label="Use generic" />
+            )}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
 
 interface PropFieldProps {
   label: string;
