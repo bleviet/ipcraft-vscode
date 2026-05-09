@@ -8,7 +8,7 @@ export interface LibraryDragPayload {
   /** Bus mode: slave/master/sink/source (only for kind=bus) */
   mode?: string;
   /** Port direction (only for kind=port) */
-  direction?: 'in' | 'out';
+  direction?: 'in' | 'out' | 'inout';
   /** Generic data type (only for kind=parameter) */
   dataType?: string;
   /** Default name hint */
@@ -98,6 +98,13 @@ const PALETTE: PaletteCategory[] = [
         nameHint: 'avl_st_out',
         label: 'Avalon-ST Source',
       },
+      {
+        kind: 'bus',
+        type: 'ipcraft.busif.conduit.1.0',
+        mode: 'conduit',
+        nameHint: 'custom_if',
+        label: 'Custom Interface',
+      },
     ],
   },
   {
@@ -106,8 +113,9 @@ const PALETTE: PaletteCategory[] = [
       { kind: 'clock', nameHint: 'clk', label: 'Clock' },
       { kind: 'reset', nameHint: 'rst_n', label: 'Reset' },
       { kind: 'port', direction: 'out', nameHint: 'irq', label: 'Interrupt (output)' },
-      { kind: 'port', direction: 'in', nameHint: 'gpio_in', label: 'GPIO Input' },
-      { kind: 'port', direction: 'out', nameHint: 'gpio_out', label: 'GPIO Output' },
+      { kind: 'port', direction: 'in', nameHint: 'port_in', label: 'Input Port' },
+      { kind: 'port', direction: 'out', nameHint: 'port_out', label: 'Output Port' },
+      { kind: 'port', direction: 'inout', nameHint: 'port_io', label: 'Inout Port' },
     ],
   },
   {

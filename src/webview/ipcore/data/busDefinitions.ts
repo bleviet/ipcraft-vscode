@@ -147,5 +147,14 @@ export function lookupBusDef(busType: string): BusPortDef[] | null {
   if (lower.includes('axi4') && !lower.includes('lite') && !lower.includes('stream')) {
     return AXI4_FULL;
   }
+  // Conduit / custom interface — signals are defined by conduitPorts on the bus entry
+  if (lower.includes('conduit')) {
+    return [];
+  }
   return null;
+}
+
+/** Returns true if the bus type is a user-defined conduit (custom) interface. */
+export function isConduitType(busType: string): boolean {
+  return busType.toLowerCase().includes('conduit');
 }

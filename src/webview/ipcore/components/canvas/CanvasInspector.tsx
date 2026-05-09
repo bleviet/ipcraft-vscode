@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import type { IpCore, Clock, Reset, Port, BusInterface } from '../../../types/ipCore';
+import type { IpCore, Clock, Reset, Port, BusInterface, ConduitPort } from '../../../types/ipCore';
 import type { YamlUpdateHandler } from '../../../types/editor';
 import type { CanvasElement, CanvasElementKind } from '../../hooks/useCanvasSelection';
 import {
@@ -9,7 +9,7 @@ import {
   validateVersion,
 } from '../../../shared/utils/validation';
 import { displayDirection } from '../../../shared/utils/formatters';
-import { lookupBusDef } from '../../data/busDefinitions';
+import { lookupBusDef, isConduitType } from '../../data/busDefinitions';
 import { supportsMemoryMap } from './canvasLayout';
 import { vscode } from '../../../vscode';
 
@@ -473,6 +473,10 @@ interface BusPanelProps {
 }
 
 const BusPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, onUpdate }) => {
+  if (isConduitType(bus.type)) {
+    return <ConduitPanel bus={bus} index={index} ipCore={ipCore} onUpdate={onUpdate} />;
+  }
+
   const buses = (ipCore.busInterfaces ?? []) as BusInterface[];
   const clocks = (ipCore.clocks ?? []) as Clock[];
   const resets = (ipCore.resets ?? []) as Reset[];
@@ -598,6 +602,298 @@ const BusPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, onUpda
         onUpdate={onUpdate}
       />
     </>
+  );
+};
+
+// ─────────────────────────────────────────────────────
+//  Conduit (Custom Interface) panel
+// ─────────────────────────────────────────────────────
+
+const ConduitPanel: React.FC<Omit<BusPanelProps, 'imports'>> = ({
+  bus,
+  index,
+  ipCore,
+  onUpdate,
+}) => {
+  const buses = (ipCore.busInterfaces ?? []) as BusInterface[];
+  const clocks = (ipCore.clocks ?? []) as Clock[];
+  const resets = (ipCore.resets ?? []) as Reset[];
+  const existingNames = buses.map((b) => b.name).filter((_, i) => i !== index);
+  const paramNames = ((ipCore.parameters ?? []) as unknown as Array<{ name: string }>).map(
+    (p) => p.name
+  );
+
+  const clockOpts = clocks.map((c) => ({ value: c.name, label: c.name }));
+  const resetOpts = resets.map((r) => ({ value: r.name, label: r.name }));
+
+  return (
+    <>
+      <Section title="Identity">
+        <PropField
+          label="Name"
+          value={bus.name}
+          onSave={(v) => onUpdate(['busInterfaces', index, 'name'], v)}
+          validate={(v) => validateVhdlIdentifier(v) ?? validateUniqueName(v, existingNames)}
+          placeholder="custom_if"
+          mono
+        />
+      </Section>
+      <Section title="Configuration">
+        <PropField
+          label="Physical Prefix"
+          value={bus.physicalPrefix ?? ''}
+          onSave={(v) => onUpdate(['busInterfaces', index, 'physicalPrefix'], v || null)}
+          placeholder="custom_if_"
+          mono
+        />
+      </Section>
+      <Section title="Associations">
+        <PropSelect
+          label="Clock"
+          value={bus.associatedClock ?? ''}
+          options={clockOpts}
+          onSave={(v) => onUpdate(['busInterfaces', index, 'associatedClock'], v || null)}
+          emptyOption="— None —"
+        />
+        <PropSelect
+          label="Reset"
+          value={bus.associatedReset ?? ''}
+          options={resetOpts}
+          onSave={(v) => onUpdate(['busInterfaces', index, 'associatedReset'], v || null)}
+          emptyOption="— None —"
+        />
+      </Section>
+      <ConduitSignalsSection
+        bus={bus}
+        busIndex={index}
+        paramNames={paramNames}
+        onUpdate={onUpdate}
+      />
+    </>
+  );
+};
+
+interface ConduitSignalsSectionProps {
+  bus: BusInterface;
+  busIndex: number;
+  paramNames: string[];
+  onUpdate: YamlUpdateHandler;
+}
+
+const ConduitSignalsSection: React.FC<ConduitSignalsSectionProps> = ({
+  bus,
+  busIndex,
+  paramNames,
+  onUpdate,
+}) => {
+  const conduitPorts = bus.conduitPorts ?? [];
+
+  const addSignal = () => {
+    const existing = conduitPorts.map((p) => p.name);
+    let name = 'signal';
+    let i = 0;
+    while (existing.includes(name)) {
+      name = `signal_${i++}`;
+    }
+    onUpdate(
+      ['busInterfaces', busIndex, 'conduitPorts'],
+      [...conduitPorts, { name, direction: 'out', width: 1 }]
+    );
+  };
+
+  const updateSignal = (i: number, updates: Partial<ConduitPort>) => {
+    const next = conduitPorts.map((p, idx) => (idx === i ? { ...p, ...updates } : p));
+    onUpdate(['busInterfaces', busIndex, 'conduitPorts'], next);
+  };
+
+  const removeSignal = (i: number) => {
+    const next = conduitPorts.filter((_, idx) => idx !== i);
+    onUpdate(['busInterfaces', busIndex, 'conduitPorts'], next.length ? next : undefined);
+  };
+
+  return (
+    <Section title="Signals">
+      {conduitPorts.length === 0 && (
+        <div className="ci-override-empty">No signals — click Add to define ports</div>
+      )}
+      {conduitPorts.length > 0 && (
+        <div className="ci-conduit-signals">
+          {conduitPorts.map((cp, i) => (
+            <ConduitSignalRow
+              key={i}
+              port={cp}
+              paramNames={paramNames}
+              onChange={(updates) => updateSignal(i, updates)}
+              onRemove={() => removeSignal(i)}
+            />
+          ))}
+        </div>
+      )}
+      <button className="ci-conduit-add" onClick={addSignal} type="button">
+        <span className="codicon codicon-add" aria-hidden="true" /> Add signal
+      </button>
+    </Section>
+  );
+};
+
+interface ConduitSignalRowProps {
+  port: ConduitPort;
+  paramNames: string[];
+  onChange: (updates: Partial<ConduitPort>) => void;
+  onRemove: () => void;
+}
+
+const ConduitSignalRow: React.FC<ConduitSignalRowProps> = ({
+  port,
+  paramNames,
+  onChange,
+  onRemove,
+}) => {
+  const [nameDraft, setNameDraft] = useState(port.name);
+  const [nameFocused, setNameFocused] = useState(false);
+
+  useEffect(() => {
+    if (!nameFocused) {
+      setNameDraft(port.name);
+    }
+  }, [port.name, nameFocused]);
+
+  const currentWidth: number | string = port.width === undefined ? 1 : port.width;
+  const isCurrentlyParam = typeof currentWidth === 'string' && paramNames.includes(currentWidth);
+  const [widthMode, setWidthMode] = useState<'number' | 'param'>(
+    isCurrentlyParam ? 'param' : 'number'
+  );
+  const [widthDraft, setWidthDraft] = useState(
+    typeof currentWidth === 'number' ? String(currentWidth) : '1'
+  );
+  const [widthFocused, setWidthFocused] = useState(false);
+
+  useEffect(() => {
+    const nextMode =
+      typeof currentWidth === 'string' && paramNames.includes(currentWidth) ? 'param' : 'number';
+    setWidthMode(nextMode);
+    if (nextMode === 'number' && !widthFocused) {
+      setWidthDraft(typeof currentWidth === 'number' ? String(currentWidth) : '1');
+    }
+  }, [currentWidth, widthFocused, paramNames]);
+
+  const commitWidth = (raw: string) => {
+    const n = parseInt(raw, 10);
+    onChange({ width: !isNaN(n) && n > 0 ? n : 1 });
+  };
+
+  const toggleWidthMode = () => {
+    if (widthMode === 'param') {
+      setWidthMode('number');
+      const fallback = typeof currentWidth === 'number' ? currentWidth : 1;
+      setWidthDraft(String(fallback));
+      onChange({ width: fallback });
+    } else {
+      setWidthMode('param');
+      onChange({ width: paramNames[0] });
+    }
+  };
+
+  const hasParams = paramNames.length > 0;
+
+  return (
+    <div className="ci-conduit-row">
+      <input
+        className="ci-conduit-name"
+        value={nameFocused ? nameDraft : port.name}
+        placeholder="signal"
+        onChange={(e) => setNameDraft(e.target.value)}
+        onFocus={() => {
+          setNameFocused(true);
+          setNameDraft(port.name);
+        }}
+        onBlur={() => {
+          setNameFocused(false);
+          if (nameDraft !== port.name) {
+            onChange({ name: nameDraft });
+          }
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.currentTarget.blur();
+          } else if (e.key === 'Escape') {
+            setNameDraft(port.name);
+            setNameFocused(false);
+            e.currentTarget.blur();
+          }
+        }}
+        style={{ fontFamily: 'var(--vscode-editor-font-family, monospace)' }}
+      />
+      <select
+        className="ci-conduit-dir"
+        value={port.direction}
+        onChange={(e) => onChange({ direction: e.target.value as ConduitPort['direction'] })}
+      >
+        <option value="in">in</option>
+        <option value="out">out</option>
+        <option value="inout">inout</option>
+      </select>
+      <div className="ci-pw-field">
+        {widthMode === 'param' ? (
+          <select
+            className="ci-pw-select"
+            value={typeof currentWidth === 'string' ? currentWidth : (paramNames[0] ?? '')}
+            onChange={(e) => onChange({ width: e.target.value })}
+          >
+            {paramNames.map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <input
+            className="ci-pw-input"
+            value={
+              widthFocused
+                ? widthDraft
+                : typeof currentWidth === 'number'
+                  ? String(currentWidth)
+                  : '1'
+            }
+            onChange={(e) => setWidthDraft(e.target.value)}
+            onFocus={() => {
+              setWidthFocused(true);
+              setWidthDraft(typeof currentWidth === 'number' ? String(currentWidth) : '1');
+            }}
+            onBlur={() => {
+              setWidthFocused(false);
+              commitWidth(widthDraft);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.currentTarget.blur();
+              } else if (e.key === 'Escape') {
+                setWidthDraft(typeof currentWidth === 'number' ? String(currentWidth) : '1');
+                setWidthFocused(false);
+                e.currentTarget.blur();
+              }
+            }}
+          />
+        )}
+        {hasParams && (
+          <button
+            className="ci-pw-mode-toggle"
+            onClick={toggleWidthMode}
+            title={widthMode === 'param' ? 'Use a literal number' : 'Use a generic parameter'}
+          >
+            {widthMode === 'param' ? (
+              '123'
+            ) : (
+              <span className="codicon codicon-symbol-constant" aria-label="Use generic" />
+            )}
+          </button>
+        )}
+      </div>
+      <button className="ci-conduit-remove" onClick={onRemove} title="Remove signal" type="button">
+        <span className="codicon codicon-close" aria-hidden="true" />
+      </button>
+    </div>
   );
 };
 

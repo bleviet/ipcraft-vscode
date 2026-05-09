@@ -206,11 +206,14 @@ function addPort(
   const name = uniqueName(payload.nameHint, existingNames);
 
   // Infer direction from drop position if payload doesn't specify
+  // inout stays inout regardless of drop side
   let direction = payload.direction ?? (isLeftHalf ? 'in' : 'out');
-  if (isLeftHalf && direction === 'out') {
-    direction = 'in';
-  } else if (!isLeftHalf && direction === 'in') {
-    direction = 'out';
+  if (direction !== 'inout') {
+    if (isLeftHalf && direction === 'out') {
+      direction = 'in';
+    } else if (!isLeftHalf && direction === 'in') {
+      direction = 'out';
+    }
   }
 
   const newPort: Port = {

@@ -127,7 +127,7 @@ export type Type3 = string;
 /**
  * Interface mode: 'master' or 'slave'
  */
-export type BusInterfaceMode = 'master' | 'slave' | 'source' | 'sink';
+export type BusInterfaceMode = 'master' | 'slave' | 'source' | 'sink' | 'conduit';
 /**
  * Prefix for physical port names (e.g., 's_axi_')
  */
@@ -470,6 +470,12 @@ export interface Port {
  * Represents a standardized bus connection (AXI, Avalon, etc.) with
  * optional width overrides, clock/reset associations, and array support.
  */
+export interface ConduitPort {
+  name: string;
+  direction: 'in' | 'out' | 'inout';
+  width?: number | string;
+}
+
 export interface BusInterface {
   name: Name4;
   type: Type3;
@@ -480,6 +486,8 @@ export interface BusInterface {
   memoryMapRef?: Memorymapref;
   useOptionalPorts?: Useoptionalports;
   portWidthOverrides?: Portwidthoverrides;
+  /** User-defined signals for conduit (custom) interfaces */
+  conduitPorts?: ConduitPort[];
   /**
    * Array configuration for multiple instances
    */

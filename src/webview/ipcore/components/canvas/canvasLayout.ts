@@ -72,7 +72,7 @@ export interface LayoutSubPort {
   name: string;
   /** Width label e.g. `[31:0]` or empty string */
   widthLabel: string;
-  direction?: 'in' | 'out';
+  direction?: 'in' | 'out' | 'inout';
   presence: 'required' | 'optional';
   /** true = required port OR optional port in useOptionalPorts */
   active: boolean;
@@ -164,6 +164,9 @@ function busProtocolShortName(busType: string): string {
   if (lower.includes('avalon_st') || lower.includes('avalon-st')) {
     return 'Avalon-ST';
   }
+  if (lower.includes('conduit')) {
+    return 'Custom';
+  }
   // Fallback: use the last segment of the VLNV
   const parts = busType.split('.');
   return parts[parts.length - 2] ?? busType;
@@ -201,14 +204,16 @@ function modeLabel(mode: string): string {
       return 'Sink';
     case 'source':
       return 'Src';
+    case 'conduit':
+      return '';
     default:
       return mode;
   }
 }
 
-/** Returns true if this interface belongs on the left side (slave/sink/input-like) */
+/** Returns true if this interface belongs on the left side (slave/sink/conduit) */
 function isLeftSide(bus: BusInterface): boolean {
-  return bus.mode === 'slave' || bus.mode === 'sink';
+  return bus.mode === 'slave' || bus.mode === 'sink' || bus.mode === 'conduit';
 }
 
 function isInputDirection(dir: string | undefined): boolean {
@@ -232,7 +237,14 @@ function itemSlots(
     type?: string;
     associatedClock?: string | null;
     associatedReset?: string | null;
+    conduitPorts?: Array<{ name: string }>;
   };
+
+  // Conduit: slot count comes from conduitPorts array
+  if ((busData.type ?? '').toLowerCase().includes('conduit')) {
+    return 1 + (busData.conduitPorts?.length ?? 0);
+  }
+
   const allPorts = busPortLookup(busData.type ?? '');
   if (!allPorts) {
     return 1;
@@ -481,54 +493,85 @@ export function computeLayout(
           associatedClock?: string | null;
           associatedReset?: string | null;
           array?: { count?: number; physicalPrefixPattern?: string } | null;
+          conduitPorts?: Array<{
+            name: string;
+            direction: 'in' | 'out' | 'inout';
+            width?: number | string;
+          }>;
         };
-        const allPortDefs = busPortLookup(busData.type ?? '') ?? [];
-        const useOptional = busData.useOptionalPorts ?? [];
-        const overrides = busData.portWidthOverrides ?? {};
-        const hasClock = !!busData.associatedClock;
-        const hasReset = !!busData.associatedReset;
 
-        // Filter out clock/reset signals that are covered by explicit associations
-        const visibleDefs = allPortDefs.filter((portDef) => {
-          if (portDef.role === 'clock' && hasClock) {
-            return false;
-          }
-          if (portDef.role === 'reset' && hasReset) {
-            return false;
-          }
-          return true;
-        });
+        const isConduit = (busData.type ?? '').toLowerCase().includes('conduit');
 
-        visibleDefs.forEach((portDef, pi) => {
-          const subY = y + PORT_PITCH * (pi + 1);
-          const rawWidth = overrides[portDef.name] ?? portDef.width;
-          const widthLbl = formatWidth(rawWidth as number | string | undefined);
-          const active = portDef.presence === 'required' || useOptional.includes(portDef.name);
-
-          // For array interfaces, use the physicalPrefixPattern so the sub-port
-          // physical name reflects the replicated naming (e.g. m_axis_ch{index}_tdata)
-          const subPhysicalPrefix =
-            (busData.array?.count ?? 0) > 1 && busData.array?.physicalPrefixPattern
-              ? busData.array.physicalPrefixPattern
-              : (busData.physicalPrefix ?? '');
-
-          layoutSubPorts.push({
-            id: `bus:${item.index}:${portDef.name}`,
-            parentBusId: id,
-            x: baseX,
-            y: subY,
-            side,
-            name: portDef.name,
-            widthLabel: widthLbl,
-            direction: portDef.direction,
-            presence: portDef.presence,
-            active,
-            physicalPrefix: subPhysicalPrefix,
-            clockDomainIdx: domainIdx,
+        if (isConduit) {
+          // Conduit: user-defined signals come from conduitPorts
+          const conduitPorts = busData.conduitPorts ?? [];
+          conduitPorts.forEach((cp, pi) => {
+            const subY = y + PORT_PITCH * (pi + 1);
+            layoutSubPorts.push({
+              id: `bus:${item.index}:${cp.name}`,
+              parentBusId: id,
+              x: baseX,
+              y: subY,
+              side,
+              name: cp.name,
+              widthLabel: formatWidth(cp.width),
+              direction: cp.direction,
+              presence: 'required',
+              active: true,
+              physicalPrefix: busData.physicalPrefix ?? '',
+              clockDomainIdx: domainIdx,
+            });
           });
-        });
+          currentY += PORT_PITCH * (1 + conduitPorts.length);
+        } else {
+          const allPortDefs = busPortLookup(busData.type ?? '') ?? [];
+          const useOptional = busData.useOptionalPorts ?? [];
+          const overrides = busData.portWidthOverrides ?? {};
+          const hasClock = !!busData.associatedClock;
+          const hasReset = !!busData.associatedReset;
 
-        currentY += PORT_PITCH * (1 + visibleDefs.length);
+          // Filter out clock/reset signals that are covered by explicit associations
+          const visibleDefs = allPortDefs.filter((portDef) => {
+            if (portDef.role === 'clock' && hasClock) {
+              return false;
+            }
+            if (portDef.role === 'reset' && hasReset) {
+              return false;
+            }
+            return true;
+          });
+
+          visibleDefs.forEach((portDef, pi) => {
+            const subY = y + PORT_PITCH * (pi + 1);
+            const rawWidth = overrides[portDef.name] ?? portDef.width;
+            const widthLbl = formatWidth(rawWidth as number | string | undefined);
+            const active = portDef.presence === 'required' || useOptional.includes(portDef.name);
+
+            // For array interfaces, use the physicalPrefixPattern so the sub-port
+            // physical name reflects the replicated naming (e.g. m_axis_ch{index}_tdata)
+            const subPhysicalPrefix =
+              (busData.array?.count ?? 0) > 1 && busData.array?.physicalPrefixPattern
+                ? busData.array.physicalPrefixPattern
+                : (busData.physicalPrefix ?? '');
+
+            layoutSubPorts.push({
+              id: `bus:${item.index}:${portDef.name}`,
+              parentBusId: id,
+              x: baseX,
+              y: subY,
+              side,
+              name: portDef.name,
+              widthLabel: widthLbl,
+              direction: portDef.direction,
+              presence: portDef.presence,
+              active,
+              physicalPrefix: subPhysicalPrefix,
+              clockDomainIdx: domainIdx,
+            });
+          });
+
+          currentY += PORT_PITCH * (1 + visibleDefs.length);
+        }
       } else {
         currentY += PORT_PITCH;
       }

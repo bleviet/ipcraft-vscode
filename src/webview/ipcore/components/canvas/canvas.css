@@ -1111,6 +1111,90 @@
   flex-shrink: 0;
 }
 
+/* ── Conduit (Custom Interface) signal rows ── */
+
+.ci-conduit-signals {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 6px;
+}
+
+.ci-conduit-row {
+  display: grid;
+  grid-template-columns: 1fr 54px auto 18px;
+  align-items: center;
+  gap: 4px;
+}
+
+.ci-conduit-name {
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid transparent;
+  border-radius: 3px;
+  padding: 3px 5px;
+  font-size: 11px;
+  min-width: 0;
+}
+.ci-conduit-name:focus {
+  outline: none;
+  border-color: var(--vscode-focusBorder);
+}
+
+.ci-conduit-dir {
+  background: var(--vscode-dropdown-background);
+  color: var(--vscode-dropdown-foreground);
+  border: 1px solid var(--vscode-dropdown-border, var(--vscode-panel-border));
+  border-radius: 3px;
+  font-size: 11px;
+  padding: 2px 1px;
+  min-width: 0;
+}
+.ci-conduit-dir:focus {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+
+.ci-conduit-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--vscode-foreground);
+  cursor: pointer;
+  padding: 0;
+  width: 18px;
+  height: 18px;
+  font-size: 12px;
+  opacity: 0.35;
+  transition: opacity 0.12s, color 0.12s;
+}
+.ci-conduit-remove:hover {
+  opacity: 1;
+  color: var(--vscode-errorForeground, #f14c4c);
+}
+
+.ci-conduit-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-family: var(--vscode-font-family);
+  background: transparent;
+  color: var(--vscode-foreground);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 3px;
+  cursor: pointer;
+  opacity: 0.75;
+  transition: opacity 0.12s, background 0.12s;
+}
+.ci-conduit-add:hover {
+  opacity: 1;
+  background: var(--vscode-list-hoverBackground);
+}
+
 /* Empty state */
 .ci-empty-state {
   padding: 24px 16px;
