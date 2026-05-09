@@ -474,6 +474,16 @@ const IpCoreApp: React.FC = () => {
               >
                 <span className="codicon codicon-beaker"></span>
               </button>
+              <button
+                className="canvas-view-toggle"
+                title="Create Memory Map"
+                type="button"
+                onClick={() =>
+                  vscode?.postMessage({ type: 'command', command: 'fpga-ip-core.createMemoryMap' })
+                }
+              >
+                <span className="codicon codicon-map"></span>
+              </button>
             </div>
             {validationErrors.length > 0 && (
               <div className="text-sm" style={{ color: 'var(--vscode-errorForeground)' }}>
