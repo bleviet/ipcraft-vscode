@@ -746,13 +746,11 @@ const PortWidthOverridesSection: React.FC<PortWidthOverridesSectionProps> = ({
     return null;
   }
 
-  const saveWidth = (portName: string, raw: string, defaultWidth: number) => {
-    const trimmed = raw.trim();
+  const saveWidth = (portName: string, value: number | string, defaultWidth: number) => {
     const basePath = ['busInterfaces', busIndex, 'portWidthOverrides'];
     const hasOverride = portName in overrides;
 
-    // Empty or equal to default → remove override
-    if (!trimmed || trimmed === String(defaultWidth)) {
+    if (value === defaultWidth) {
       if (hasOverride) {
         const remaining = Object.keys(overrides).filter((k) => k !== portName);
         onUpdate(remaining.length === 0 ? basePath : [...basePath, portName], undefined);
@@ -760,20 +758,7 @@ const PortWidthOverridesSection: React.FC<PortWidthOverridesSectionProps> = ({
       return;
     }
 
-    // Parameter name reference
-    if (paramNames.includes(trimmed)) {
-      onUpdate([...basePath, portName], trimmed);
-      return;
-    }
-
-    // Positive integer
-    const n = parseInt(trimmed, 10);
-    if (!isNaN(n) && n > 0) {
-      onUpdate([...basePath, portName], n);
-      return;
-    }
-
-    // Invalid — revert (don't save)
+    onUpdate([...basePath, portName], value);
   };
 
   const resetWidth = (portName: string) => {
@@ -788,7 +773,7 @@ const PortWidthOverridesSection: React.FC<PortWidthOverridesSectionProps> = ({
         const defaultWidth = portDef.width ?? 1;
         const override = overrides[portDef.name];
         const hasOverride = override !== undefined;
-        const currentValue = hasOverride ? String(override) : String(defaultWidth);
+        const currentValue: number | string = hasOverride ? override : defaultWidth;
 
         return (
           <PortWidthRow
@@ -796,8 +781,10 @@ const PortWidthOverridesSection: React.FC<PortWidthOverridesSectionProps> = ({
             signal={portDef.name}
             direction={portDef.direction}
             currentValue={currentValue}
+            defaultWidth={defaultWidth}
             hasOverride={hasOverride}
-            onSave={(raw) => saveWidth(portDef.name, raw, defaultWidth)}
+            paramNames={paramNames}
+            onSave={(value) => saveWidth(portDef.name, value, defaultWidth)}
             onReset={() => resetWidth(portDef.name)}
           />
         );
@@ -809,9 +796,11 @@ const PortWidthOverridesSection: React.FC<PortWidthOverridesSectionProps> = ({
 interface PortWidthRowProps {
   signal: string;
   direction?: 'in' | 'out';
-  currentValue: string;
+  currentValue: number | string;
+  defaultWidth: number;
   hasOverride: boolean;
-  onSave: (raw: string) => void;
+  paramNames: string[];
+  onSave: (value: number | string) => void;
   onReset: () => void;
 }
 
@@ -819,20 +808,46 @@ const PortWidthRow: React.FC<PortWidthRowProps> = ({
   signal,
   direction,
   currentValue,
+  defaultWidth,
   hasOverride,
+  paramNames,
   onSave,
   onReset,
 }) => {
-  const [draft, setDraft] = useState(currentValue);
+  const isCurrentlyParam = typeof currentValue === 'string' && paramNames.includes(currentValue);
+  const [mode, setMode] = useState<'number' | 'param'>(isCurrentlyParam ? 'param' : 'number');
+  const [draft, setDraft] = useState(
+    typeof currentValue === 'number' ? String(currentValue) : String(defaultWidth)
+  );
   const [focused, setFocused] = useState(false);
 
   useEffect(() => {
-    if (!focused) {
-      setDraft(currentValue);
+    const nextMode =
+      typeof currentValue === 'string' && paramNames.includes(currentValue) ? 'param' : 'number';
+    setMode(nextMode);
+    if (nextMode === 'number' && !focused) {
+      setDraft(typeof currentValue === 'number' ? String(currentValue) : String(defaultWidth));
     }
-  }, [currentValue, focused]);
+  }, [currentValue, focused, paramNames, defaultWidth]);
 
   const dirSymbol = direction === 'out' ? '›' : direction === 'in' ? '‹' : ' ';
+  const hasParams = paramNames.length > 0;
+
+  const commitNumber = (raw: string) => {
+    const n = parseInt(raw, 10);
+    onSave(!isNaN(n) && n > 0 ? n : defaultWidth);
+  };
+
+  const toggleMode = () => {
+    if (mode === 'param') {
+      setMode('number');
+      setDraft(String(defaultWidth));
+      onSave(defaultWidth);
+    } else {
+      setMode('param');
+      onSave(paramNames[0]);
+    }
+  };
 
   return (
     <div className={`ci-pw-row${hasOverride ? ' ci-pw-row--overridden' : ''}`}>
@@ -842,25 +857,67 @@ const PortWidthRow: React.FC<PortWidthRowProps> = ({
       <span className="ci-pw-name" title={signal}>
         {signal}
       </span>
-      <input
-        className="ci-pw-input"
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onFocus={() => setFocused(true)}
-        onBlur={() => {
-          setFocused(false);
-          onSave(draft);
-        }}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            e.currentTarget.blur();
-          } else if (e.key === 'Escape') {
-            setDraft(currentValue);
-            setFocused(false);
-            e.currentTarget.blur();
-          }
-        }}
-      />
+      <div className="ci-pw-field">
+        {mode === 'param' ? (
+          <select
+            className="ci-pw-select"
+            value={typeof currentValue === 'string' ? currentValue : (paramNames[0] ?? '')}
+            onChange={(e) => onSave(e.target.value)}
+          >
+            {paramNames.map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <input
+            className="ci-pw-input"
+            value={
+              focused
+                ? draft
+                : typeof currentValue === 'number'
+                  ? String(currentValue)
+                  : String(defaultWidth)
+            }
+            onChange={(e) => setDraft(e.target.value)}
+            onFocus={() => {
+              setFocused(true);
+              setDraft(
+                typeof currentValue === 'number' ? String(currentValue) : String(defaultWidth)
+              );
+            }}
+            onBlur={() => {
+              setFocused(false);
+              commitNumber(draft);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.currentTarget.blur();
+              } else if (e.key === 'Escape') {
+                setDraft(
+                  typeof currentValue === 'number' ? String(currentValue) : String(defaultWidth)
+                );
+                setFocused(false);
+                e.currentTarget.blur();
+              }
+            }}
+          />
+        )}
+        {hasParams && (
+          <button
+            className="ci-pw-mode-toggle"
+            onClick={toggleMode}
+            title={mode === 'param' ? 'Use a literal number' : 'Use a generic parameter'}
+          >
+            {mode === 'param' ? (
+              '123'
+            ) : (
+              <span className="codicon codicon-symbol-constant" aria-label="Use generic" />
+            )}
+          </button>
+        )}
+      </div>
       {hasOverride ? (
         <button className="ci-pw-reset" onClick={onReset} title="Reset to default">
           <span className="codicon codicon-discard" />

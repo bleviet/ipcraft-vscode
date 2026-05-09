@@ -502,8 +502,7 @@ export function computeLayout(
         visibleDefs.forEach((portDef, pi) => {
           const subY = y + PORT_PITCH * (pi + 1);
           const rawWidth = overrides[portDef.name] ?? portDef.width;
-          const numWidth = typeof rawWidth === 'number' ? rawWidth : undefined;
-          const widthLbl = numWidth !== undefined && numWidth > 1 ? `[${numWidth - 1}:0]` : '';
+          const widthLbl = formatWidth(rawWidth as number | string | undefined);
           const active = portDef.presence === 'required' || useOptional.includes(portDef.name);
 
           // For array interfaces, use the physicalPrefixPattern so the sub-port

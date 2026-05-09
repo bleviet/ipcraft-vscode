@@ -956,10 +956,10 @@
   padding: 2px 0 6px;
 }
 
-/* One row per bus signal: dir-icon | name | width-input | reset-btn */
+/* One row per bus signal: dir-icon | name | width-field | reset-btn */
 .ci-pw-row {
   display: grid;
-  grid-template-columns: 14px 1fr 52px 18px;
+  grid-template-columns: 14px 1fr auto 18px;
   align-items: center;
   gap: 3px;
   padding: 1px 0;
@@ -1000,6 +1000,13 @@
   font-weight: 600;
 }
 
+/* Wrapper for the input/select + optional mode-toggle button */
+.ci-pw-field {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
 .ci-pw-input {
   font-family: var(--vscode-editor-font-family, monospace);
   font-size: 10px;
@@ -1008,8 +1015,7 @@
   color: var(--vscode-input-foreground);
   border: 1px solid var(--vscode-input-border, transparent);
   border-radius: 2px;
-  width: 100%;
-  min-width: 0;
+  width: 72px;
   text-align: right;
 }
 .ci-pw-input:focus {
@@ -1019,6 +1025,46 @@
 .ci-pw-row--overridden .ci-pw-input {
   border-color: color-mix(in srgb, var(--vscode-charts-blue, #4facfe) 40%, transparent);
   color: var(--vscode-charts-blue, #4facfe);
+}
+
+.ci-pw-select {
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 10px;
+  padding: 1px 2px;
+  background: var(--vscode-input-background);
+  color: var(--vscode-charts-blue, #4facfe);
+  border: 1px solid color-mix(in srgb, var(--vscode-charts-blue, #4facfe) 40%, transparent);
+  border-radius: 2px;
+  min-width: 80px;
+  max-width: 130px;
+  cursor: pointer;
+}
+.ci-pw-select:focus {
+  outline: none;
+  border-color: var(--vscode-focusBorder);
+}
+
+/* Small toggle button: switches between number and param mode */
+.ci-pw-mode-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 8px;
+  background: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+  border: 1px solid var(--vscode-button-border, transparent);
+  border-radius: 2px;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.12s;
+}
+.ci-pw-mode-toggle:hover {
+  opacity: 1;
 }
 
 .ci-pw-reset {
