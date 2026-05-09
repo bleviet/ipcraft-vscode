@@ -7,6 +7,7 @@ interface CanvasBusSubPortProps {
   subPort: LayoutSubPort;
   onActivate: (subPortId: string) => void;
   onDeactivate: (subPortId: string) => void;
+  onSelect: (busId: string) => void;
   domainColor?: string;
 }
 
@@ -18,11 +19,13 @@ interface CanvasBusSubPortProps {
  *
  * Required and active-optional ports show a solid stub.
  * Inactive optional ports show a dashed stub and are clickable to activate.
+ * Clicking any signal selects the parent bus interface in the inspector.
  */
 export const CanvasBusSubPort: React.FC<CanvasBusSubPortProps> = ({
   subPort,
   onActivate,
   onDeactivate,
+  onSelect,
   domainColor,
 }) => {
   const isLeft = subPort.side === 'left';
@@ -41,6 +44,7 @@ export const CanvasBusSubPort: React.FC<CanvasBusSubPortProps> = ({
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    onSelect(subPort.parentBusId);
     if (isInactive) {
       onActivate(subPort.id);
     } else if (isOptional && subPort.active) {
@@ -51,9 +55,9 @@ export const CanvasBusSubPort: React.FC<CanvasBusSubPortProps> = ({
   return (
     <g
       className={`canvas-bus-subport ${isInactive ? 'canvas-bus-subport--inactive' : 'canvas-bus-subport--active'} ${isOptional ? 'canvas-bus-subport--optional' : ''}`}
-      onClick={isOptional ? handleClick : undefined}
-      style={{ cursor: isOptional ? 'pointer' : 'default' }}
-      role={isOptional ? 'button' : undefined}
+      onClick={handleClick}
+      style={{ cursor: 'pointer' }}
+      role="button"
     >
       {/* Stub line */}
       <line

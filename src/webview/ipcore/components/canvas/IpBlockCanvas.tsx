@@ -664,6 +664,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
             subPort={sp}
             onActivate={handleSubPortActivate}
             onDeactivate={handleSubPortDeactivate}
+            onSelect={onSelect}
             domainColor={getDomainColor(sp.clockDomainIdx)}
           />
         ))}
