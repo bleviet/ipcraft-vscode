@@ -1316,15 +1316,15 @@
 }
 
 .canvas-bus-bundle__array-badge {
-  fill: color-mix(in srgb, var(--vscode-charts-orange, #ce9178) 30%, var(--vscode-editor-background));
+  fill: color-mix(in srgb, var(--vscode-charts-orange, #ce9178) 20%, var(--vscode-editor-background));
   stroke: var(--vscode-charts-orange, #ce9178);
-  stroke-width: 1;
+  stroke-width: 1.5;
 }
 
 .canvas-bus-bundle__array-badge-text {
-  fill: var(--vscode-charts-orange, #ce9178);
+  fill: var(--vscode-foreground);
   font-family: var(--vscode-editor-font-family, monospace);
-  font-size: 7px;
+  font-size: 9px;
   font-weight: 700;
   pointer-events: none;
 }

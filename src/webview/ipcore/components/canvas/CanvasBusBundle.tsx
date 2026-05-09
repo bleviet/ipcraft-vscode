@@ -135,16 +135,16 @@ export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
         {(port.arrayCount ?? 0) > 1 && (
           <g>
             <rect
-              x={isLeft ? -10 : 70}
-              y={-18}
-              width={16}
-              height={12}
-              rx={3}
+              x={isLeft ? -13 : 67}
+              y={-20}
+              width={22}
+              height={14}
+              rx={4}
               className="canvas-bus-bundle__array-badge"
             />
             <text
               x={isLeft ? -2 : 78}
-              y={-12}
+              y={-13}
               textAnchor="middle"
               dominantBaseline="central"
               className="canvas-bus-bundle__array-badge-text"

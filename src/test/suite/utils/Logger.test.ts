@@ -1,35 +1,29 @@
 jest.mock(
   'vscode',
-  () => {
-    const mockOutputChannel = {
-      appendLine: jest.fn(),
-      show: jest.fn(),
-      dispose: jest.fn(),
-    };
-    return {
-      window: {
-        createOutputChannel: jest.fn(() => mockOutputChannel),
-      },
-    };
-  },
+  () => ({
+    window: {
+      createOutputChannel: jest.fn(),
+    },
+  }),
   { virtual: true }
 );
 
 import { Logger, LogLevel } from '../../../utils/Logger';
 import * as vscode from 'vscode';
 
-// Get mock functions via the mocked API
-const mockChannel = vscode.window.createOutputChannel('test') as any;
-const mockAppendLine = mockChannel.appendLine;
-const mockShow = mockChannel.show;
-
 describe('Logger', () => {
   let logger: Logger;
+  let mockAppendLine: jest.Mock;
+  let mockShow: jest.Mock;
 
   beforeEach(() => {
-    // Restore the mock implementation because resetMocks: true wipes it
-    (vscode.window.createOutputChannel as jest.Mock).mockReturnValue(mockChannel);
-    jest.clearAllMocks();
+    mockAppendLine = jest.fn();
+    mockShow = jest.fn();
+    (vscode.window.createOutputChannel as jest.Mock).mockReturnValue({
+      appendLine: mockAppendLine,
+      show: mockShow,
+      dispose: jest.fn(),
+    });
     Logger.initialize('Test Channel', LogLevel.DEBUG);
     logger = new Logger('TestContext');
   });
