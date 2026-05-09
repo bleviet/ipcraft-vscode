@@ -100,18 +100,11 @@ export const FileSetsEditor: React.FC<FileSetsEditorProps> = ({
     return () => window.removeEventListener('message', handler);
   }, [fileSets]);
 
-  // Open file in editor
   const handleOpenFile = (filePath: string) => {
-    const exists = fileExistence[filePath];
-    if (exists === false) {
-      // File doesn't exist - don't try to open
+    if (fileExistence[filePath] === false) {
       return;
     }
-    vscode?.postMessage({
-      type: 'command',
-      command: 'openFile',
-      path: filePath,
-    });
+    vscode?.postMessage({ type: 'openFile', path: filePath });
   };
 
   const handleAddSet = () => {

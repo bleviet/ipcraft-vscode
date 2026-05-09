@@ -171,6 +171,9 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
           await vscode.commands.executeCommand(String(message.command));
         }
       },
+      openFile: async (message) => {
+        await this.handleOpenFileMessage(message, document);
+      },
     };
 
     webviewPanel.webview.onDidReceiveMessage(async (message: IpcMessage) => {
@@ -317,6 +320,23 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
 
     // Invalidate bus library cache so the new file is picked up on next reload
     this.importResolver.clearCache();
+  }
+
+  private async handleOpenFileMessage(
+    message: IpcMessage,
+    document: vscode.TextDocument
+  ): Promise<void> {
+    const filePath = String(message.path ?? '');
+    if (!filePath) {
+      return;
+    }
+    const baseDir = path.dirname(document.uri.fsPath);
+    const absolutePath = path.isAbsolute(filePath) ? filePath : path.join(baseDir, filePath);
+    try {
+      await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(absolutePath));
+    } catch (error) {
+      this.logger.error('Failed to open file', error as Error);
+    }
   }
 
   private async handleCheckFilesExistMessage(

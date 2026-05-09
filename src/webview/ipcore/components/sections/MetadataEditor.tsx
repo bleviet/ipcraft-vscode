@@ -4,6 +4,7 @@ import type { IpCore } from '../../../types/ipCore';
 import { FormField, SelectField, TextAreaField } from '../../../shared/components';
 import { focusContainer } from '../../../shared/utils/focus';
 import { validateRequired, validateVersion } from '../../../shared/utils/validation';
+import { FileSetsPanel } from './FileSetsPanel';
 
 interface MetadataEditorProps {
   ipCore: IpCore;
@@ -403,6 +404,18 @@ export const MetadataEditor: React.FC<MetadataEditorProps> = ({ ipCore, onUpdate
           </tbody>
         </table>
       </div>
+
+      {(ipCore.fileSets?.length ?? 0) > 0 && (
+        <div
+          style={{
+            borderTop: '1px solid var(--vscode-panel-border)',
+            paddingTop: '20px',
+            marginTop: '4px',
+          }}
+        >
+          <FileSetsPanel fileSets={(ipCore.fileSets as unknown[]) ?? []} />
+        </div>
+      )}
     </div>
   );
 };
