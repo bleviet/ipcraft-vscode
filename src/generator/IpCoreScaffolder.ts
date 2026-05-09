@@ -14,6 +14,7 @@ import {
   prepareRegisters,
   resolveMemoryMaps,
 } from './registerProcessor';
+import { generateComponentXml } from './VivadoComponentXmlGenerator';
 import type { BusDefinitions, GenerateOptions, GenerateResult, IpCoreData } from './types';
 
 export class IpCoreScaffolder {
@@ -70,12 +71,16 @@ export class IpCoreScaffolder {
       }
 
       if (vendor === 'amd' || vendor === 'both') {
-        files['amd/component.xml'] = this.templates.render('amd_component_xml.j2', context);
         const versionStr = String(ipCoreData?.vlnv?.version ?? '1.0').replace(/\./g, '_');
-        files[`amd/xgui/${name}_v${versionStr}.tcl`] = this.templates.render(
-          'amd_xgui.j2',
-          context
-        );
+        const xguiFile = `xgui/${name}_v${versionStr}.tcl`;
+        const rtlFiles = Object.keys(files)
+          .filter((f) => f.startsWith('rtl/'))
+          .map((f) => `../${f}`);
+        files['amd/component.xml'] = generateComponentXml(ipCoreData, this.busDefinitions ?? {}, {
+          rtlFiles,
+          xguiFile,
+        });
+        files[`amd/${xguiFile}`] = this.templates.render('amd_xgui.j2', context);
       }
 
       const written: Record<string, string> = {};
