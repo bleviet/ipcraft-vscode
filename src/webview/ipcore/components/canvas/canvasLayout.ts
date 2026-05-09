@@ -6,6 +6,12 @@ import type { BusPortDef } from '../../data/busDefinitions';
 /** Vertical spacing between port stubs */
 export const PORT_PITCH = 36;
 
+/** Description section geometry */
+const DESC_CHARS_PER_LINE = 36;
+const DESC_LINE_HEIGHT = 13;
+const DESC_PADDING_TOP = 10;
+const DESC_PADDING_BOTTOM = 12;
+
 /** Padding above the first port and below the last */
 export const EDGE_PADDING = 24;
 
@@ -45,6 +51,8 @@ export interface LayoutPort {
   arrayCount?: number;
   /** For single slave memory-mapped buses: the assigned memory map name */
   memoryMapRef?: string;
+  /** Signal direction (absent for bus bundles — use mode badge instead) */
+  direction?: 'in' | 'out' | 'inout';
   /** Original data reference */
   data: unknown;
   /** Index into ipCore.clocks for this port's clock domain, or -1 */
@@ -101,9 +109,33 @@ export interface CanvasLayout {
   paramSeparatorY: number;
   /** Y of separator line below the generics section, above where ports start (only rendered when parameters.length > 0) */
   portSeparatorY: number;
+  /** Wrapped description lines (empty when no description) */
+  descLines: string[];
+  /** Y of separator above the description section (only relevant when descLines is non-empty) */
+  descSeparatorY: number;
 }
 
 // --- Helpers ---
+
+function wrapText(text: string, maxChars: number): string[] {
+  const words = text.split(/\s+/);
+  const lines: string[] = [];
+  let current = '';
+  for (const word of words) {
+    if (!current) {
+      current = word;
+    } else if (current.length + 1 + word.length <= maxChars) {
+      current += ' ' + word;
+    } else {
+      lines.push(current);
+      current = word;
+    }
+  }
+  if (current) {
+    lines.push(current);
+  }
+  return lines;
+}
 
 function formatWidth(w: number | string | undefined): string {
   if (w === undefined || w === 1) {
@@ -232,7 +264,8 @@ function itemSlots(
 export function computeLayout(
   ipCore: IpCore,
   expandedBusIds: Set<string> = new Set(),
-  busPortLookup: (busType: string) => BusPortDef[] | null = () => null
+  busPortLookup: (busType: string) => BusPortDef[] | null = () => null,
+  description?: string
 ): CanvasLayout {
   const clocks = ipCore.clocks ?? [];
   const resets = ipCore.resets ?? [];
@@ -329,12 +362,20 @@ export function computeLayout(
   const maxSideSlots = Math.max(leftSlots, rightSlots, 1);
 
   // Block height must fit the params section AND the ports that follow it.
-  const blockHeight = Math.max(
+  const portsBlockHeight = Math.max(
     MIN_BLOCK_HEIGHT,
     portsAreaTopRelative !== null
       ? portsAreaTopRelative + maxSideSlots * PORT_PITCH + EDGE_PADDING
       : maxSideSlots * PORT_PITCH + EDGE_PADDING * 2
   );
+
+  // Description section appended below the ports
+  const descLines = description ? wrapText(description, DESC_CHARS_PER_LINE) : [];
+  const descSectionHeight =
+    descLines.length > 0
+      ? DESC_PADDING_TOP + descLines.length * DESC_LINE_HEIGHT + DESC_PADDING_BOTTOM
+      : 0;
+  const blockHeight = portsBlockHeight + descSectionHeight;
 
   // Block width may expand for bottom ports
   const bottomWidth = bottomItems.length * PORT_PITCH + EDGE_PADDING * 2;
@@ -369,6 +410,7 @@ export function computeLayout(
       let mode: string | undefined;
       let arrayCount: number | undefined;
       let memoryMapRef: string | undefined;
+      let direction: 'in' | 'out' | 'inout' | undefined;
       let domainIdx = -1;
 
       const d = item.data as Record<string, unknown>;
@@ -377,15 +419,18 @@ export function computeLayout(
           label = String(d.name ?? '');
           widthLabel = '';
           domainIdx = item.index;
+          direction = (d.direction as 'in' | 'out' | 'inout' | undefined) ?? 'in';
           break;
         case 'reset':
           label = String(d.name ?? '');
           widthLabel = '';
           domainIdx = resetDomainIdx(String(d.name ?? ''));
+          direction = (d.direction as 'in' | 'out' | 'inout' | undefined) ?? 'in';
           break;
         case 'port':
           label = String(d.name ?? '');
           widthLabel = formatWidth(d.width as number | string | undefined);
+          direction = d.direction as 'in' | 'out' | 'inout' | undefined;
           break;
         case 'bus': {
           protocol = busProtocolShortName(String(d.type ?? ''));
@@ -421,6 +466,7 @@ export function computeLayout(
         mode,
         arrayCount,
         memoryMapRef,
+        direction,
         data: item.data,
         clockDomainIdx: domainIdx,
       });
@@ -541,5 +587,7 @@ export function computeLayout(
       portSeparatorOffset !== null
         ? blockY + portSeparatorOffset
         : blockY + PARAM_SEPARATOR_Y_OFFSET,
+    descLines,
+    descSeparatorY: blockY + portsBlockHeight,
   };
 }

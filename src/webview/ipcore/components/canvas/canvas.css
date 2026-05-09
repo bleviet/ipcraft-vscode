@@ -233,6 +233,12 @@
   opacity: 0.8;
 }
 
+.canvas-port__dir-arrow {
+  fill: var(--vscode-foreground, #cccccc);
+  opacity: 0.55;
+  pointer-events: none;
+}
+
 /* Port kind coloring */
 .canvas-port--clock .canvas-port__stub {
   stroke: var(--vscode-charts-green, #4ec9b0);

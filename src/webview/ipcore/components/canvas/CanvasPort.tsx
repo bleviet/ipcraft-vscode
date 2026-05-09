@@ -1,5 +1,5 @@
 import React from 'react';
-import type { LayoutPort } from './canvasLayout';
+import type { LayoutPort, PortSide } from './canvasLayout';
 import { STUB_LENGTH } from './canvasLayout';
 
 import { ValidationAnnotation } from '../../hooks/useCanvasValidation';
@@ -85,6 +85,10 @@ export const CanvasPort: React.FC<CanvasPortProps> = ({
     widthY = port.y + STUB_LENGTH / 2;
   }
 
+  // Direction arrow midpoint
+  const arrowMidX = isLeft ? port.x - STUB_LENGTH / 2 : isRight ? port.x + STUB_LENGTH / 2 : port.x;
+  const arrowMidY = isBottom ? port.y + STUB_LENGTH / 2 : port.y;
+
   // Connector dot radius
   const dotR = port.kind === 'bus' ? 5 : 3;
 
@@ -145,6 +149,17 @@ export const CanvasPort: React.FC<CanvasPortProps> = ({
         className="canvas-port__dot"
         style={domainColor ? { fill: domainColor } : undefined}
       />
+
+      {/* Direction arrow */}
+      {port.direction && (
+        <DirectionArrow
+          x={arrowMidX}
+          y={arrowMidY}
+          side={port.side}
+          direction={port.direction}
+          color={domainColor}
+        />
+      )}
 
       {/* Port kind icon (clock/reset) — placed inside the block body */}
       {(port.kind === 'clock' || port.kind === 'reset') && (
@@ -228,4 +243,38 @@ const PortKindIcon: React.FC<{ kind: string; x: number; y: number; color?: strin
   }
 
   return null;
+};
+
+export const DirectionArrow: React.FC<{
+  x: number;
+  y: number;
+  side: PortSide;
+  direction: 'in' | 'out' | 'inout';
+  color?: string;
+}> = ({ x, y, side, direction, color }) => {
+  const style = color ? { fill: color } : undefined;
+
+  if (direction === 'inout') {
+    // Vertical double-headed arrow for bottom (bidirectional) ports
+    return (
+      <g transform={`translate(${x}, ${y})`} className="canvas-port__dir-arrow">
+        <polygon points="0,-7 -3.5,-3 3.5,-3" style={style} />
+        <polygon points="0,7 -3.5,3 3.5,3" style={style} />
+      </g>
+    );
+  }
+
+  // Arrow points in the direction of signal flow (toward block for in, away for out)
+  const isLeft = side === 'left';
+  const pointsRight = (isLeft && direction === 'in') || (!isLeft && direction === 'out');
+
+  return (
+    <g transform={`translate(${x}, ${y})`} className="canvas-port__dir-arrow">
+      {pointsRight ? (
+        <polygon points="5,0 -1,-3.5 -1,3.5" style={style} />
+      ) : (
+        <polygon points="-5,0 1,-3.5 1,3.5" style={style} />
+      )}
+    </g>
+  );
 };

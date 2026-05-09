@@ -52,7 +52,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
 }) => {
   const [expandedBusIds, setExpandedBusIds] = useState<Set<string>>(new Set());
   const layout = useMemo(
-    () => computeLayout(ipCore, expandedBusIds, lookupBusDef),
+    () => computeLayout(ipCore, expandedBusIds, lookupBusDef, ipCore.description ?? undefined),
     [ipCore, expandedBusIds]
   );
 
@@ -350,6 +350,8 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
     parameters,
     paramSeparatorY,
     portSeparatorY,
+    descLines,
+    descSeparatorY,
   } = layout;
 
   return (
@@ -565,20 +567,32 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
           />
         )}
 
-        {/* Description (if present) */}
-        {ipCore.description && (
-          <text
-            x={blockRect.x + blockRect.width / 2}
-            y={blockRect.y + blockRect.height - 14}
-            textAnchor="middle"
-            dominantBaseline="central"
-            className="ip-block-description"
-            style={{ pointerEvents: 'none' }}
-          >
-            {ipCore.description.length > 40
-              ? ipCore.description.slice(0, 37) + '...'
-              : ipCore.description}
-          </text>
+        {/* Description section — separator + word-wrapped text below the last port */}
+        {descLines.length > 0 && (
+          <>
+            <line
+              x1={blockRect.x + 12}
+              y1={descSeparatorY}
+              x2={blockRect.x + blockRect.width - 12}
+              y2={descSeparatorY}
+              className="ip-block-param-separator"
+            />
+            <text
+              textAnchor="middle"
+              className="ip-block-description"
+              style={{ pointerEvents: 'none' }}
+            >
+              {descLines.map((line, i) => (
+                <tspan
+                  key={i}
+                  x={blockRect.x + blockRect.width / 2}
+                  y={descSeparatorY + 10 + (i + 0.5) * 13}
+                >
+                  {line}
+                </tspan>
+              ))}
+            </text>
+          </>
         )}
 
         {/* Port stubs */}

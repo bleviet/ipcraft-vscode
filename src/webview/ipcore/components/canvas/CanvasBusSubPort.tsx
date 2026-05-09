@@ -1,6 +1,7 @@
 import React from 'react';
 import type { LayoutSubPort } from './canvasLayout';
 import { STUB_LENGTH } from './canvasLayout';
+import { DirectionArrow } from './CanvasPort';
 
 interface CanvasBusSubPortProps {
   subPort: LayoutSubPort;
@@ -73,6 +74,17 @@ export const CanvasBusSubPort: React.FC<CanvasBusSubPortProps> = ({
         className="canvas-bus-subport__dot"
         style={domainColor ? { fill: domainColor } : undefined}
       />
+
+      {/* Direction arrow at stub midpoint */}
+      {subPort.direction && (
+        <DirectionArrow
+          x={subPort.x + stubDir * (STUB_LENGTH / 2)}
+          y={subPort.y}
+          side={subPort.side}
+          direction={subPort.direction}
+          color={domainColor}
+        />
+      )}
 
       {/* Logical name — inside the block */}
       <text
