@@ -20,6 +20,7 @@ export interface ParseOptions {
   library?: string;
   version?: string;
   detectBus?: boolean;
+  outputDir?: string;
 }
 
 export interface ParseResult {
@@ -43,10 +44,10 @@ export async function parseVhdlFile(
   const parameters = extractParameters(cleaned);
   const ports = extractPorts(cleaned);
 
-  const detectBus = options.detectBus !== false;
-  const busDetection = detectBus ? detectBusInterfaces(ports) : null;
-
   const clockReset = classifyClocksResets(ports);
+
+  const detectBus = options.detectBus !== false;
+  const busDetection = detectBus ? detectBusInterfaces(ports, clockReset) : null;
 
   const excludedNames = new Set<string>();
   if (busDetection) {
@@ -57,12 +58,14 @@ export async function parseVhdlFile(
 
   const userPorts = ports.filter((port) => !excludedNames.has(port.name));
 
+  const outputDir = options.outputDir ?? path.dirname(vhdlPath);
+
   const yamlData: Record<string, unknown> = {
     vlnv: {
       vendor: options.vendor ?? 'user',
       library: options.library ?? 'ip',
       name: entityName,
-      version: options.version ?? '1.0',
+      version: options.version ?? '1.0.0',
     },
     description: `Generated from ${path.basename(vhdlPath)}`,
   };
@@ -70,15 +73,15 @@ export async function parseVhdlFile(
   if (clockReset.clocks.length > 0) {
     yamlData.clocks = clockReset.clocks.map((clock) => ({
       name: clock.name,
-      description: '',
+      direction: 'in',
     }));
   }
 
   if (clockReset.resets.length > 0) {
     yamlData.resets = clockReset.resets.map((reset) => ({
       name: reset.name,
+      direction: 'in',
       polarity: reset.polarity,
-      description: '',
     }));
   }
 
@@ -87,13 +90,21 @@ export async function parseVhdlFile(
   }
 
   if (busDetection && busDetection.busInterfaces.length > 0) {
-    yamlData.busInterfaces = busDetection.busInterfaces.map((bus) => ({
-      name: bus.name,
-      type: bus.type,
-      mode: bus.mode,
-      physicalPrefix: bus.physicalPrefix,
-      description: '',
-    }));
+    yamlData.busInterfaces = busDetection.busInterfaces.map((bus) => {
+      const entry: Record<string, unknown> = {
+        name: bus.name,
+        type: bus.type,
+        mode: bus.mode,
+        physicalPrefix: bus.physicalPrefix,
+      };
+      if (bus.associatedClock) {
+        entry.associatedClock = bus.associatedClock;
+      }
+      if (bus.associatedReset) {
+        entry.associatedReset = bus.associatedReset;
+      }
+      return entry;
+    });
   }
 
   if (parameters.length > 0) {
@@ -104,11 +115,13 @@ export async function parseVhdlFile(
     }));
   }
 
+  const relativeVhdlPath = path.relative(outputDir, vhdlPath);
+
   yamlData.fileSets = [
     {
       name: 'RTL_Sources',
       description: 'RTL source files',
-      files: [{ path: path.basename(vhdlPath), type: 'vhdl' }],
+      files: [{ path: relativeVhdlPath, type: 'vhdl' }],
     },
   ];
 
@@ -204,25 +217,26 @@ function extractPorts(content: string): ParsedPort[] {
 }
 
 function extractWidthFromType(type: string): number | string | undefined {
-  if (/\bstd_logic\b/i.test(type)) {
-    if (/std_logic_vector/i.test(type)) {
-      const rangeMatch = type.match(/\(([^)]+)\)/);
-      if (!rangeMatch) {
-        return undefined;
-      }
-      const range = rangeMatch[1];
-      const numericMatch = range.match(/(\d+)\s+downto\s+(\d+)/i);
-      if (numericMatch) {
-        const high = Number(numericMatch[1]);
-        const low = Number(numericMatch[2]);
-        return Math.abs(high - low) + 1;
-      }
-
-      const paramMatch = range.match(/(\w+)\s*-\s*1\s+downto\s+0/i);
-      if (paramMatch) {
-        return paramMatch[1];
-      }
+  if (/std_logic_vector/i.test(type)) {
+    const rangeMatch = type.match(/\(([^)]+)\)/);
+    if (!rangeMatch) {
+      return undefined;
     }
+    const range = rangeMatch[1];
+    const paramMatch = range.match(/(\w+)\s*-\s*1\s+downto\s+0/i);
+    if (paramMatch) {
+      return paramMatch[1];
+    }
+    const numericMatch = range.match(/(\d+)\s+downto\s+(\d+)/i);
+    if (numericMatch) {
+      const high = Number(numericMatch[1]);
+      const low = Number(numericMatch[2]);
+      return Math.abs(high - low) + 1;
+    }
+    return undefined;
+  }
+
+  if (/\bstd_logic\b/i.test(type)) {
     return 1;
   }
 
@@ -230,19 +244,23 @@ function extractWidthFromType(type: string): number | string | undefined {
 }
 
 function portToDict(port: ParsedPort): Record<string, unknown> {
-  let logicalName = port.name.toUpperCase();
+  const upper = port.name.toUpperCase();
+  let logicalName = upper;
   for (const prefix of ['IO_', 'I_', 'O_']) {
-    if (logicalName.startsWith(prefix)) {
-      logicalName = logicalName.slice(prefix.length);
+    if (upper.startsWith(prefix)) {
+      logicalName = upper.slice(prefix.length);
       break;
     }
   }
 
   const result: Record<string, unknown> = {
     name: port.name,
-    logicalName,
     direction: port.direction,
   };
+
+  if (logicalName !== upper) {
+    result.logicalName = logicalName;
+  }
 
   if (port.width !== undefined) {
     if (typeof port.width === 'number') {
@@ -300,12 +318,17 @@ function classifyClocksResets(ports: ParsedPort[]): {
   return { clocks, resets };
 }
 
-function detectBusInterfaces(ports: ParsedPort[]): {
+function detectBusInterfaces(
+  ports: ParsedPort[],
+  clockReset: { clocks: Array<{ name: string }>; resets: Array<{ name: string; polarity: string }> }
+): {
   busInterfaces: Array<{
     name: string;
     type: string;
     mode: string;
     physicalPrefix: string;
+    associatedClock?: string;
+    associatedReset?: string;
   }>;
   busPortNames: Set<string>;
 } {
@@ -337,7 +360,7 @@ function detectBusInterfaces(ports: ParsedPort[]): {
   let selected: {
     prefix: string;
     count: number;
-    type: 'AXI4L' | 'AVALON_MM';
+    type: string;
   } | null = null;
 
   if (axiMatch.count >= 4 || avalonMatch.count >= 3) {
@@ -345,13 +368,13 @@ function detectBusInterfaces(ports: ParsedPort[]): {
       selected = {
         prefix: axiMatch.prefix,
         count: axiMatch.count,
-        type: 'AXI4L',
+        type: 'ipcraft.busif.axi4_lite.1.0',
       };
     } else {
       selected = {
         prefix: avalonMatch.prefix,
         count: avalonMatch.count,
-        type: 'AVALON_MM',
+        type: 'ipcraft.busif.avalon_mm.1.0',
       };
     }
   }
@@ -369,6 +392,13 @@ function detectBusInterfaces(ports: ParsedPort[]): {
     }
   });
 
+  const associatedClock = clockReset.clocks.find((c) =>
+    c.name.toLowerCase().startsWith(physicalPrefix)
+  )?.name;
+  const associatedReset = clockReset.resets.find((r) =>
+    r.name.toLowerCase().startsWith(physicalPrefix)
+  )?.name;
+
   return {
     busInterfaces: [
       {
@@ -376,6 +406,8 @@ function detectBusInterfaces(ports: ParsedPort[]): {
         type: selected.type,
         mode: 'slave',
         physicalPrefix,
+        associatedClock,
+        associatedReset,
       },
     ],
     busPortNames,
