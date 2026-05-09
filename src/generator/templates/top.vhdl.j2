@@ -25,19 +25,15 @@ entity {{ entity_name }} is
     {{ clock_port }} : in std_logic;
     {{ reset_port }} : in std_logic;
 
-{% if bus_ports %}
-    -- {{ bus_type|upper }} Bus Interface
-{% for port in bus_ports %}
-    {{ "%-14s"|format(port.name) }} : {{ "%-3s"|format(port.direction) }} {{ port.type }}{{ ";" if not loop.last or secondary_bus_ports or user_ports else "" }}
-{% endfor %}
-{% endif %}
-{% if secondary_bus_ports %}
+{% for iface in expanded_bus_interfaces %}{% set iface_loop = loop %}
+{% if iface.ports %}
 
-    -- Secondary Bus Interfaces
-{% for port in secondary_bus_ports %}
-    {{ "%-14s"|format(port.name) }} : {{ "%-3s"|format(port.direction) }} {{ port.type }}{{ ";" if not loop.last or user_ports else "" }}
+    -- {{ iface.name }} ({{ iface.mode | upper }})
+{% for port in iface.ports %}
+    {{ "%-14s"|format(port.name) }} : {{ "%-3s"|format(port.direction) }} {{ port.type }}{{ ";" if not loop.last or not iface_loop.last or user_ports else "" }}
 {% endfor %}
 {% endif %}
+{% endfor %}
 {% if user_ports %}
 
     -- User ports
