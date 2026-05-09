@@ -1269,7 +1269,7 @@
 /* ── Source file sets (body inspector panel) ── */
 
 .ci-fileset {
-  margin-bottom: 8px;
+  margin-bottom: 16px;
 }
 .ci-fileset:last-child {
   margin-bottom: 2px;
