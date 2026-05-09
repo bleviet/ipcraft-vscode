@@ -8,6 +8,7 @@ import { RemoveZone } from './RemoveZone';
 import { useCanvasValidation } from '../../hooks/useCanvasValidation';
 import { lookupBusDef } from '../../data/busDefinitions';
 import type { YamlUpdateHandler } from '../../../types/editor';
+import { vscode } from '../../../vscode';
 import './canvas.css';
 
 /** Distinct colours for clock domains when multiple clocks are defined */
@@ -581,14 +582,48 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
         )}
 
         {/* Port stubs */}
-        {ports.map((p) => {
-          const isSelected = selectedId === p.id;
-          const isHovered = hoveredId === p.id;
-          const busExpanded = p.kind === 'bus' && expandedBusIds.has(p.id);
-          const hasBusDef =
-            p.kind === 'bus' && lookupBusDef((p.data as { type?: string }).type ?? '') !== null;
+        {(() => {
+          const mmImportPath = (ipCore.memoryMaps as unknown as Record<string, unknown> | undefined)
+            ?.import as string | undefined;
+          return ports.map((p) => {
+            const isSelected = selectedId === p.id;
+            const isHovered = hoveredId === p.id;
+            const busExpanded = p.kind === 'bus' && expandedBusIds.has(p.id);
+            const hasBusDef =
+              p.kind === 'bus' && lookupBusDef((p.data as { type?: string }).type ?? '') !== null;
 
-          if (p.kind === 'bus') {
+            if (p.kind === 'bus') {
+              const mmClickPath = p.memoryMapRef ? mmImportPath : undefined;
+              return (
+                <g
+                  key={p.id}
+                  onMouseEnter={() => setHoveredId(p.id)}
+                  onMouseLeave={() => setHoveredId(null)}
+                  className={isHovered ? 'canvas-element--hovered' : ''}
+                >
+                  <CanvasBusBundle
+                    port={p}
+                    selected={isSelected}
+                    annotations={annotations[p.id]}
+                    onSelect={onSelect}
+                    isExpanded={busExpanded}
+                    onToggleExpand={hasBusDef ? () => toggleBusExpand(p.id) : undefined}
+                    domainColor={getDomainColor(p.clockDomainIdx)}
+                    onMemoryMapClick={
+                      mmClickPath
+                        ? () =>
+                            vscode?.postMessage({
+                              type: 'command',
+                              command: 'openFile',
+                              path: mmClickPath,
+                            })
+                        : undefined
+                    }
+                  />
+                </g>
+              );
+            }
+
             return (
               <g
                 key={p.id}
@@ -596,36 +631,17 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
                 onMouseLeave={() => setHoveredId(null)}
                 className={isHovered ? 'canvas-element--hovered' : ''}
               >
-                <CanvasBusBundle
+                <CanvasPort
                   port={p}
                   selected={isSelected}
                   annotations={annotations[p.id]}
                   onSelect={onSelect}
-                  isExpanded={busExpanded}
-                  onToggleExpand={hasBusDef ? () => toggleBusExpand(p.id) : undefined}
                   domainColor={getDomainColor(p.clockDomainIdx)}
                 />
               </g>
             );
-          }
-
-          return (
-            <g
-              key={p.id}
-              onMouseEnter={() => setHoveredId(p.id)}
-              onMouseLeave={() => setHoveredId(null)}
-              className={isHovered ? 'canvas-element--hovered' : ''}
-            >
-              <CanvasPort
-                port={p}
-                selected={isSelected}
-                annotations={annotations[p.id]}
-                onSelect={onSelect}
-                domainColor={getDomainColor(p.clockDomainIdx)}
-              />
-            </g>
-          );
-        })}
+          });
+        })()}
 
         {/* Sub-ports for expanded bus interfaces */}
         {subPorts.map((sp) => (

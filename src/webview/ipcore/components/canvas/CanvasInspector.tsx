@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { IpCore, Clock, Reset, Port, BusInterface } from '../../../types/ipCore';
 import type { YamlUpdateHandler } from '../../../types/editor';
 import type { CanvasElement, CanvasElementKind } from '../../hooks/useCanvasSelection';
@@ -11,6 +11,7 @@ import {
 import { displayDirection } from '../../../shared/utils/formatters';
 import { lookupBusDef } from '../../data/busDefinitions';
 import { supportsMemoryMap } from './canvasLayout';
+import { vscode } from '../../../vscode';
 
 interface CanvasInspectorProps {
   selected: CanvasElement | null;
@@ -120,6 +121,7 @@ function renderPanel(
       }
       return (
         <BusPanel
+          key={element.index}
           bus={bus}
           index={element.index}
           ipCore={ipCore}
@@ -496,6 +498,31 @@ const BusPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, onUpda
   const isArray = ((bus.array as { count?: number } | undefined | null)?.count ?? 0) > 1;
   const canHaveMemoryMap = !isArray && supportsMemoryMap(bus.type, bus.mode);
 
+  const importPath =
+    ((ipCore.memoryMaps as unknown as Record<string, unknown> | undefined)?.import as string) ??
+    null;
+
+  // Sole map name when the file contains exactly one map (null otherwise)
+  const singleMapName = allMapNames.length === 1 ? allMapNames[0] : null;
+
+  // Auto-assign memoryMapRef when the linked file contains exactly one map.
+  // Fires on mount (handles already-linked files) and whenever importPath or
+  // resolved maps change. Tracks the last path we auto-assigned for so we
+  // never clobber a reference the user deliberately cleared.
+  const lastAutoAssignedForRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (
+      canHaveMemoryMap &&
+      importPath &&
+      importPath !== lastAutoAssignedForRef.current &&
+      singleMapName !== null &&
+      !bus.memoryMapRef
+    ) {
+      lastAutoAssignedForRef.current = importPath;
+      onUpdate(['busInterfaces', index, 'memoryMapRef'], singleMapName);
+    }
+  }, [canHaveMemoryMap, importPath, singleMapName, bus.memoryMapRef, index, onUpdate]);
+
   return (
     <>
       <Section title="Identity">
@@ -547,8 +574,16 @@ const BusPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, onUpda
           emptyOption="— None —"
         />
         {canHaveMemoryMap && (
+          <MemoryMapField
+            importPath={
+              ((ipCore.memoryMaps as unknown as Record<string, unknown>)?.import as string) ?? null
+            }
+            onSave={(path) => onUpdate(['memoryMaps'], path ? { import: path } : undefined)}
+          />
+        )}
+        {canHaveMemoryMap && mapOpts.length > 0 && (
           <PropSelect
-            label="Memory Map"
+            label="Map Name"
             value={bus.memoryMapRef ?? ''}
             options={mapOpts}
             onSave={(v) => onUpdate(['busInterfaces', index, 'memoryMapRef'], v || null)}
@@ -833,6 +868,64 @@ const PortWidthRow: React.FC<PortWidthRowProps> = ({
       ) : (
         <span className="ci-pw-reset-placeholder" />
       )}
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────
+//  Memory map field (dropdown + file picker)
+// ─────────────────────────────────────────────────────
+
+interface MemoryMapFieldProps {
+  /** Current value of ipCore.memoryMaps.import (relative file path) */
+  importPath: string | null;
+  /** Save new import path, or null to clear the whole memoryMaps entry */
+  onSave: (path: string | null) => void;
+}
+
+/** File-path row for the memory map import (ipCore.memoryMaps.import). */
+const MemoryMapField: React.FC<MemoryMapFieldProps> = ({ importPath, onSave }) => {
+  const handleBrowse = () => {
+    vscode?.postMessage({
+      type: 'selectFiles',
+      multi: false,
+      filters: { 'Memory Map': ['mm.yml', 'yml'] },
+      startPath: importPath ?? undefined,
+    });
+    const handler = (event: MessageEvent) => {
+      const msg = event.data as { type?: string; files?: string[] };
+      if (msg.type === 'filesSelected' && msg.files && msg.files.length > 0) {
+        onSave(msg.files[0]);
+        window.removeEventListener('message', handler);
+      }
+    };
+    window.addEventListener('message', handler);
+  };
+
+  return (
+    <div className="ci-field">
+      <label className="ci-field__label">Map File</label>
+      <div className="ci-mmap-row">
+        {importPath ? (
+          <span className="ci-mmap-path" title={importPath}>
+            {importPath}
+          </span>
+        ) : (
+          <span className="ci-mmap-path ci-mmap-path--empty">No file linked</span>
+        )}
+        <button className="ci-mmap-btn" onClick={handleBrowse} title="Browse .mm.yml file">
+          <span className="codicon codicon-folder-opened" />
+        </button>
+        {importPath && (
+          <button
+            className="ci-mmap-btn ci-mmap-btn--clear"
+            onClick={() => onSave(null)}
+            title="Remove file link"
+          >
+            <span className="codicon codicon-close" />
+          </button>
+        )}
+      </div>
     </div>
   );
 };

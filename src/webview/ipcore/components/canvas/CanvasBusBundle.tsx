@@ -12,6 +12,7 @@ interface CanvasBusBundleProps {
   isExpanded?: boolean;
   onToggleExpand?: () => void;
   domainColor?: string;
+  onMemoryMapClick?: () => void;
 }
 
 /**
@@ -28,6 +29,7 @@ export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
   isExpanded = false,
   onToggleExpand,
   domainColor,
+  onMemoryMapClick,
 }) => {
   const isLeft = port.side === 'left';
 
@@ -184,7 +186,18 @@ export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
 
       {/* Memory map ref badge (INSIDE the block, below the name) */}
       {port.memoryMapRef && (
-        <g transform={`translate(${port.x + (isLeft ? 14 : -14)}, ${port.y + 7})`}>
+        <g
+          transform={`translate(${port.x + (isLeft ? 14 : -14)}, ${port.y + 7})`}
+          onClick={
+            onMemoryMapClick
+              ? (e) => {
+                  e.stopPropagation();
+                  onMemoryMapClick();
+                }
+              : undefined
+          }
+          style={onMemoryMapClick ? { cursor: 'pointer' } : undefined}
+        >
           <rect
             x={isLeft ? 0 : -60}
             y={-6}

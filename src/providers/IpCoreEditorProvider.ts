@@ -216,12 +216,18 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
     webviewPanel: vscode.WebviewPanel
   ): Promise<void> {
     this.logger.info('Opening file picker dialog');
+    const baseDir = path.dirname(document.uri.fsPath);
+    const startPath = message.startPath as string | undefined;
+    const startDir = startPath
+      ? path.dirname(path.isAbsolute(startPath) ? startPath : path.join(baseDir, startPath))
+      : baseDir;
     const options: vscode.OpenDialogOptions = {
       canSelectMany: message.multi ?? true,
       openLabel: 'Select Files',
       canSelectFiles: true,
       canSelectFolders: false,
       filters: message.filters,
+      defaultUri: vscode.Uri.file(startDir),
     };
 
     const fileUris = await vscode.window.showOpenDialog(options);
@@ -229,7 +235,6 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
       return;
     }
 
-    const baseDir = path.dirname(document.uri.fsPath);
     const relativePaths = fileUris.map((uri) => path.relative(baseDir, uri.fsPath));
     void webviewPanel.webview.postMessage({
       type: 'filesSelected',
