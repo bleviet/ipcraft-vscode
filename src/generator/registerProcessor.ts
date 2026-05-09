@@ -3,15 +3,30 @@ import * as path from 'path';
 import * as yaml from 'js-yaml';
 import type { BusInterfaceDef, BusTypeInfo, IpCoreData } from './types';
 
+// Maps the bus name segment of an ipcraft VLNV string to BusTypeInfo.
+// The libraryKey must match the top-level key in the bundled bus_definitions YAML files.
+const VLNV_BUS_NAME_MAP: Record<string, BusTypeInfo> = {
+  axi4_lite: { libraryKey: 'AXI4_LITE', templateType: 'axil' },
+  axi4_full: { libraryKey: 'AXI4_FULL', templateType: 'axi4' },
+  axi_stream: { libraryKey: 'AXI_STREAM', templateType: 'axis' },
+  avalon_mm: { libraryKey: 'AVALON_MEMORY_MAPPED', templateType: 'avmm' },
+  avalon_st: { libraryKey: 'AVALON_STREAMING', templateType: 'avst' },
+};
+
 const BUS_TYPE_ALIASES: Record<string, BusTypeInfo> = {
-  AXI4L: { libraryKey: 'AXI4L', templateType: 'axil' },
-  AXI4LITE: { libraryKey: 'AXI4L', templateType: 'axil' },
-  AXILITE: { libraryKey: 'AXI4L', templateType: 'axil' },
-  AXIL: { libraryKey: 'AXI4L', templateType: 'axil' },
-  AVALONMM: { libraryKey: 'AVALON_MM', templateType: 'avmm' },
-  AVMM: { libraryKey: 'AVALON_MM', templateType: 'avmm' },
-  AVALON_MM: { libraryKey: 'AVALON_MM', templateType: 'avmm' },
-  'AVALON-MM': { libraryKey: 'AVALON_MM', templateType: 'avmm' },
+  AXI4L: { libraryKey: 'AXI4_LITE', templateType: 'axil' },
+  AXI4LITE: { libraryKey: 'AXI4_LITE', templateType: 'axil' },
+  AXILITE: { libraryKey: 'AXI4_LITE', templateType: 'axil' },
+  AXIL: { libraryKey: 'AXI4_LITE', templateType: 'axil' },
+  AXI4FULL: { libraryKey: 'AXI4_FULL', templateType: 'axi4' },
+  AXI4: { libraryKey: 'AXI4_FULL', templateType: 'axi4' },
+  AXISTREAM: { libraryKey: 'AXI_STREAM', templateType: 'axis' },
+  AXIS: { libraryKey: 'AXI_STREAM', templateType: 'axis' },
+  AVALONMM: { libraryKey: 'AVALON_MEMORY_MAPPED', templateType: 'avmm' },
+  AVMM: { libraryKey: 'AVALON_MEMORY_MAPPED', templateType: 'avmm' },
+  AVALONSTREAMING: { libraryKey: 'AVALON_STREAMING', templateType: 'avst' },
+  AVALONST: { libraryKey: 'AVALON_STREAMING', templateType: 'avst' },
+  AVST: { libraryKey: 'AVALON_STREAMING', templateType: 'avst' },
 };
 
 function getString(value: unknown): string {
@@ -127,8 +142,18 @@ export function normalizeIpCoreData(raw: Record<string, unknown>): IpCoreData {
 }
 
 export function normalizeBusType(typeName: string): BusTypeInfo {
-  const normalized = typeName.toUpperCase().replace(/[\s_-]/g, '');
-  return BUS_TYPE_ALIASES[normalized] ?? BUS_TYPE_ALIASES.AXI4L;
+  // Handle ipcraft VLNV format: ipcraft.busif.{name}.{version}
+  const vlnvMatch = /^ipcraft\.busif\.(.+?)\.\d/.exec(typeName);
+  if (vlnvMatch) {
+    return (
+      VLNV_BUS_NAME_MAP[vlnvMatch[1].toLowerCase()] ?? {
+        libraryKey: 'AXI4_LITE',
+        templateType: 'axil',
+      }
+    );
+  }
+  const normalized = typeName.toUpperCase().replace(/[\s_.-]/g, '');
+  return BUS_TYPE_ALIASES[normalized] ?? { libraryKey: 'AXI4_LITE', templateType: 'axil' };
 }
 
 export function getBusTypeForTemplate(ipCore: IpCoreData): string {

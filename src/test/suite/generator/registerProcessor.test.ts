@@ -36,13 +36,45 @@ describe('registerProcessor', () => {
   });
 
   describe('normalizeBusType', () => {
-    it('handles aliases', () => {
-      expect(normalizeBusType('AXI4LITE')).toEqual({ libraryKey: 'AXI4L', templateType: 'axil' });
-      expect(normalizeBusType('AVMM')).toEqual({ libraryKey: 'AVALON_MM', templateType: 'avmm' });
+    it('handles ipcraft VLNV strings', () => {
+      expect(normalizeBusType('ipcraft.busif.axi4_lite.1.0')).toEqual({
+        libraryKey: 'AXI4_LITE',
+        templateType: 'axil',
+      });
+      expect(normalizeBusType('ipcraft.busif.axi4_full.1.0')).toEqual({
+        libraryKey: 'AXI4_FULL',
+        templateType: 'axi4',
+      });
+      expect(normalizeBusType('ipcraft.busif.axi_stream.1.0')).toEqual({
+        libraryKey: 'AXI_STREAM',
+        templateType: 'axis',
+      });
+      expect(normalizeBusType('ipcraft.busif.avalon_mm.1.0')).toEqual({
+        libraryKey: 'AVALON_MEMORY_MAPPED',
+        templateType: 'avmm',
+      });
+      expect(normalizeBusType('ipcraft.busif.avalon_st.1.0')).toEqual({
+        libraryKey: 'AVALON_STREAMING',
+        templateType: 'avst',
+      });
     });
 
-    it('defaults to AXI4L', () => {
-      expect(normalizeBusType('UNKNOWN')).toEqual({ libraryKey: 'AXI4L', templateType: 'axil' });
+    it('handles short aliases', () => {
+      expect(normalizeBusType('AXI4LITE')).toEqual({
+        libraryKey: 'AXI4_LITE',
+        templateType: 'axil',
+      });
+      expect(normalizeBusType('AVMM')).toEqual({
+        libraryKey: 'AVALON_MEMORY_MAPPED',
+        templateType: 'avmm',
+      });
+    });
+
+    it('defaults to AXI4_LITE', () => {
+      expect(normalizeBusType('UNKNOWN')).toEqual({
+        libraryKey: 'AXI4_LITE',
+        templateType: 'axil',
+      });
     });
   });
 
