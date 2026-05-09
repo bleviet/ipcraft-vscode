@@ -196,8 +196,190 @@ const BodyPanel: React.FC<{ ipCore: IpCore; onUpdate: YamlUpdateHandler }> = ({
         placeholder="Describe this IP core…"
       />
     </Section>
+    <FileSetsSection ipCore={ipCore} onUpdate={onUpdate} />
   </>
 );
+
+// ─────────────────────────────────────────────────────
+//  Source files section (body panel)
+// ─────────────────────────────────────────────────────
+
+interface FsFileEntry {
+  path: string;
+  type: string;
+  managed?: boolean;
+}
+
+interface FsFileSet {
+  name: string;
+  files?: FsFileEntry[];
+}
+
+const FileSetsSection: React.FC<{ ipCore: IpCore; onUpdate: YamlUpdateHandler }> = ({
+  ipCore,
+  onUpdate,
+}) => {
+  const fileSets =
+    ((ipCore as unknown as Record<string, unknown>).fileSets as FsFileSet[] | undefined) ?? [];
+  const [fileExistence, setFileExistence] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    const allPaths = fileSets.flatMap((fs) => (fs.files ?? []).map((f) => f.path));
+    if (!allPaths.length) {
+      return;
+    }
+    vscode?.postMessage({ type: 'checkFilesExist', paths: allPaths });
+    const handler = (event: MessageEvent) => {
+      const msg = event.data as { type?: string; results?: Record<string, boolean> };
+      if (msg.type === 'filesExistResult' && msg.results) {
+        setFileExistence((prev) => ({ ...prev, ...msg.results }));
+        window.removeEventListener('message', handler);
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, [fileSets]);
+
+  if (!fileSets.length) {
+    return null;
+  }
+
+  const handleOpenFile = (path: string) => {
+    if (fileExistence[path] === false) {
+      return;
+    }
+    vscode?.postMessage({ type: 'openFile', path });
+  };
+
+  const handleAddFiles = (setIdx: number) => {
+    vscode?.postMessage({ type: 'selectFiles', multi: true });
+    const existing = fileSets[setIdx].files ?? [];
+    const handler = (event: MessageEvent) => {
+      const msg = event.data as { type?: string; files?: string[] };
+      if (msg.type === 'filesSelected' && msg.files?.length) {
+        const newFiles = msg.files.map((p) => ({ path: p, type: fsInferType(p) }));
+        onUpdate(['fileSets', setIdx, 'files'], [...existing, ...newFiles]);
+        window.removeEventListener('message', handler);
+      }
+    };
+    window.addEventListener('message', handler);
+  };
+
+  const handleRemoveFile = (setIdx: number, fileIdx: number) => {
+    const files = fileSets[setIdx].files ?? [];
+    const updated = files.filter((_, i) => i !== fileIdx);
+    onUpdate(['fileSets', setIdx, 'files'], updated.length ? updated : undefined);
+  };
+
+  return (
+    <Section title="Source Files">
+      {fileSets.map((fs, setIdx) => (
+        <div key={setIdx} className="ci-fileset">
+          {fileSets.length > 1 && <div className="ci-fileset__group">{fs.name}</div>}
+          {(fs.files ?? []).length === 0 && <div className="ci-override-empty">No files</div>}
+          {(fs.files ?? []).map((file, fileIdx) => {
+            const filename = file.path.split('/').pop() ?? file.path;
+            const missing = fileExistence[file.path] === false;
+            return (
+              <div key={fileIdx} className="ci-fileset__row">
+                <span
+                  className={`codicon ${missing ? 'codicon-warning' : fsFileIcon(file.type)}`}
+                  style={{
+                    fontSize: 11,
+                    color: missing ? 'var(--vscode-errorForeground)' : undefined,
+                    opacity: missing ? 1 : 0.55,
+                    flexShrink: 0,
+                  }}
+                />
+                <span
+                  className="ci-fileset__name"
+                  title={file.path}
+                  onClick={() => handleOpenFile(file.path)}
+                  style={{
+                    cursor: missing ? 'not-allowed' : 'pointer',
+                    color: missing
+                      ? 'var(--vscode-errorForeground)'
+                      : 'var(--vscode-textLink-foreground)',
+                    textDecoration: missing ? 'line-through' : 'underline',
+                  }}
+                >
+                  {filename}
+                </span>
+                <button
+                  className="ci-fileset__rm"
+                  onClick={() => handleRemoveFile(setIdx, fileIdx)}
+                  title="Remove file"
+                  type="button"
+                >
+                  <span className="codicon codicon-close" />
+                </button>
+              </div>
+            );
+          })}
+          <button className="ci-fileset__add" onClick={() => handleAddFiles(setIdx)} type="button">
+            <span className="codicon codicon-add" /> Add
+          </button>
+        </div>
+      ))}
+    </Section>
+  );
+};
+
+function fsFileIcon(type: string): string {
+  switch (type) {
+    case 'vhdl':
+    case 'verilog':
+    case 'systemverilog':
+      return 'codicon-circuit-board';
+    case 'tcl':
+      return 'codicon-terminal';
+    case 'python':
+      return 'codicon-snake';
+    case 'xdc':
+    case 'sdc':
+    case 'ucf':
+      return 'codicon-lock';
+    case 'xml':
+      return 'codicon-file-code';
+    case 'pdf':
+    case 'markdown':
+    case 'text':
+      return 'codicon-markdown';
+    default:
+      return 'codicon-file';
+  }
+}
+
+function fsInferType(path: string): string {
+  const ext = path.split('.').pop()?.toLowerCase() ?? '';
+  switch (ext) {
+    case 'vhd':
+    case 'vhdl':
+      return 'vhdl';
+    case 'v':
+      return 'verilog';
+    case 'sv':
+      return 'systemverilog';
+    case 'tcl':
+      return 'tcl';
+    case 'py':
+      return 'python';
+    case 'xdc':
+      return 'xdc';
+    case 'sdc':
+      return 'sdc';
+    case 'ucf':
+      return 'ucf';
+    case 'xml':
+      return 'xml';
+    case 'pdf':
+      return 'pdf';
+    case 'md':
+      return 'markdown';
+    default:
+      return 'unknown';
+  }
+}
 
 // ─────────────────────────────────────────────────────
 //  Parameter / generic panel
