@@ -56,14 +56,28 @@ Top-level fields:
 | Field | Type | Description |
 |-------|------|-------------|
 | `name` | string | Interface name |
-| `type` | string | Bus protocol type (e.g., `AXI4L`, `AVALON_MM`) |
-| `mode` | string | Interface mode (`slave` or `master`) |
-| `physicalPrefix` | string | Signal naming prefix |
-| `memoryMapRef` | string | Reference to a memory map name |
+| `type` | string | Bus protocol VLNV (e.g., `ipcraft.busif.axi4_lite.1.0`) — see [Bus Library](#bus-library) |
+| `mode` | string | Interface mode: `slave`, `master`, `sink`, `source`, or `conduit` |
+| `physicalPrefix` | string | Signal naming prefix on the RTL port list |
+| `memoryMapRef` | string | Reference to a memory map name (memory-mapped slave/master interfaces only) |
 | `associatedClock` | string | Reference to a clock name |
 | `associatedReset` | string | Reference to a reset name |
-| `array` | object | Bus interface array configuration |
-| `portSelection` | array | Selected ports from bus library |
+| `array` | object | Bus interface array configuration (see below) |
+| `portSelection` | array | Selected optional ports from bus library |
+| `portWidthOverrides` | object | Per-signal width overrides (signal name → width or generic name) |
+| `useBusLibrary` | string | Path to a custom `.busdef.yml` file (conduit interfaces) |
+| `conduitPorts` | array | Inline signal definitions for conduit interfaces (name, direction, width) |
+
+#### Array Configuration
+
+When `array` is set, the bus interface represents multiple identical interfaces instantiated in RTL:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `count` | integer | Number of interface instances |
+| `indexStart` | integer | Index of the first instance (default 0) |
+| `namingPattern` | string | Port name pattern, e.g. `s_axi_{index}` |
+| `physicalPrefixPattern` | string | Physical prefix pattern per instance |
 
 ## Memory Map Schema
 
@@ -106,18 +120,29 @@ A memory map file contains an array of memory maps, each with address blocks:
 
 ## Bus Library
 
-The built-in bus library at `common/bus_definitions.yml` defines four bus protocols:
+The built-in bus library ships as individual YAML files under `ipcraft-spec/bus_definitions/`, one per protocol:
 
-| Protocol | Vendor | Key Signals |
-|----------|--------|-------------|
-| `AXI4L` | ARM | AWADDR, AWVALID, AWREADY, WDATA, WSTRB, ARADDR, RDATA, etc. |
-| `AXIS` | ARM | TDATA, TVALID, TREADY, TLAST, etc. |
-| `AVALON_MM` | Altera | address, read, write, writedata, readdata, etc. |
-| `AVALON_ST` | Altera | data, valid, ready, startofpacket, endofpacket, etc. |
+| File | VLNV type key | Vendor | Key Signals |
+|------|---------------|--------|-------------|
+| `axi4_lite.yml` | `ipcraft.busif.axi4_lite.1.0` | ARM | AWADDR, AWVALID, AWREADY, WDATA, WSTRB, ARADDR, RDATA, etc. |
+| `axi4_full.yml` | `ipcraft.busif.axi4_full.1.0` | ARM | Full AXI4 with burst, cache, prot, ID signals |
+| `axi_stream.yml` | `ipcraft.busif.axi_stream.1.0` | ARM | TDATA, TVALID, TREADY, TLAST, TKEEP, etc. |
+| `avalon_mm.yml` | `ipcraft.busif.avalon_mm.1.0` | Intel/Altera | address, read, write, writedata, readdata, etc. |
+| `avalon_st.yml` | `ipcraft.busif.avalon_st.1.0` | Intel/Altera | data, valid, ready, startofpacket, endofpacket, etc. |
 
-Each port in the bus library has a `presence` field (`required` or `optional`) and optional `width` and `direction` fields.
+Each port entry in a bus definition file has:
 
-The bus library is loaded by `BusLibraryService` and used by the IP Core editor for port selection in bus interfaces, and by the generator for building template context.
+| Field | Description |
+|-------|-------------|
+| `presence` | `required` or `optional` |
+| `direction` | `in` or `out` (from the perspective of a slave/sink interface) |
+| `width` | Bit width (integer) or omitted for single-bit signals |
+
+The bus library is loaded by `BusLibraryService` and used by the IP Core canvas for port signal display, and by the generator for building template context.
+
+### Custom Bus Definitions
+
+A **Custom Interface** (conduit) is saved as a `<name>.busdef.yml` file in the project directory. These files share the same format as the built-in definitions and can be referenced by any IP Core in the workspace via `useBusLibrary`.
 
 ## VS Code YAML Validation
 

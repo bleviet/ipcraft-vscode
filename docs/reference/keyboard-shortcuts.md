@@ -1,5 +1,31 @@
 # Keyboard Shortcuts
 
+## IP Core Canvas
+
+These shortcuts are active when the canvas view is visible and no text field is focused.
+
+| Key | Action |
+|-----|--------|
+| `Delete` | Delete the selected element (port, clock, reset, generic, or bus interface) |
+| `Ctrl+D` / `Cmd+D` | Duplicate selected element; bus interfaces increment their array count instead of adding a copy |
+| `Ctrl+Z` / `Cmd+Z` | Undo last canvas change |
+| `Ctrl+Y` / `Cmd+Y` | Redo |
+| `Ctrl+0` / `Cmd+0` | Reset zoom to 100 % |
+| `Escape` | Deselect current element |
+| `Ctrl+H` | Focus the library palette |
+| `Ctrl+L` | Focus the canvas / editor panel |
+
+### Canvas Navigation
+
+| Interaction | Action |
+|-------------|--------|
+| `Ctrl+Wheel` | Zoom in / out |
+| Plain wheel | Pan vertically |
+| Middle-mouse drag | Pan freely |
+| Left-button drag on background | Pan freely |
+
+---
+
 ## Register Fields Table
 
 When the fields table is focused:

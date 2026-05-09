@@ -25,9 +25,9 @@ graph TB
         MM["Memory Map App\nindex.tsx"]
         IP["IP Core App\nIpCoreApp.tsx"]
         MMCOMP["MM Components\nOutline, DetailsPanel\nRegisterEditor\nBlockEditor, etc."]
-        IPCOMP["IP Core Components\nNavigationSidebar, EditorPanel\nMetadataEditor, ClocksTable\nBusInterfacesEditor, etc."]
+        IPCOMP["IP Core Components\nNavigationSidebar, EditorPanel\nMetadataEditor, ClocksTable\nBusInterfacesEditor\nIpBlockCanvas, LibraryPalette\nCanvasInspector, CanvasBusBundle"]
         HOOK["MM Hooks\nuseMemoryMapState\nuseFieldEditor\nuseYamlSync"]
-        IPHOOK["IP Core Hooks\nuseIpCoreState\nuseIpCoreSync\nuseBusInterfaceEditing"]
+        IPHOOK["IP Core Hooks\nuseIpCoreState\nuseIpCoreSync\nuseBusInterfaceEditing\nuseCanvasUndo, useCanvasValidation"]
         WSVC["Services\nDataNormalizer\nYamlPathResolver\nSpatialInsertionService\nFieldOperationService"]
         ALG["Algorithms\nBitFieldRepacker\nRegisterRepacker\nAddressBlockRepacker"]
         SHARED["Shared\nEditableTable, FormField\nvalidation, formatters\ncolors, constants"]
@@ -65,6 +65,16 @@ graph TB
 ### Host commands
 
 Webview can post `type: 'command'` (`save`, `validate`, `openFile`). Host executes VS Code actions and may show notifications.
+
+### Canvas edit (IP Core only)
+
+1. User drags an item from the library palette and drops it on the `IpBlockCanvas`
+2. `useCanvasDrop` resolves the payload into an IP Core update (e.g., push to `clocks`, `ports`, or `busInterfaces`)
+3. `useCanvasUndo` snapshots the prior YAML before applying the update
+4. `updateIpCore` writes the new value into the parsed model
+5. `useIpCoreSync` serialises the model back to YAML and posts `type: 'update'` to the host (same path as a form edit)
+
+Canvas keyboard shortcuts (Delete, Ctrl+D, Ctrl+Z/Y) follow the same update path through `updateIpCore`.
 
 ### VHDL generation
 
