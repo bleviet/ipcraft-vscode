@@ -32,71 +32,36 @@ const PALETTE: PaletteCategory[] = [
         kind: 'bus',
         type: 'ipcraft.busif.axi4_lite.1.0',
         mode: 'slave',
-        nameHint: 's_axi',
-        label: 'AXI4-Lite Slave',
-      },
-      {
-        kind: 'bus',
-        type: 'ipcraft.busif.axi4_lite.1.0',
-        mode: 'master',
-        nameHint: 'm_axi',
-        label: 'AXI4-Lite Master',
+        nameHint: 'axi_lite',
+        label: 'AXI4-Lite',
       },
       {
         kind: 'bus',
         type: 'ipcraft.busif.axi4_full.1.0',
         mode: 'slave',
-        nameHint: 's_axi_full',
-        label: 'AXI4-Full Slave',
-      },
-      {
-        kind: 'bus',
-        type: 'ipcraft.busif.axi4_full.1.0',
-        mode: 'master',
-        nameHint: 'm_axi_full',
-        label: 'AXI4-Full Master',
+        nameHint: 'axi_full',
+        label: 'AXI4-Full',
       },
       {
         kind: 'bus',
         type: 'ipcraft.busif.axi_stream.1.0',
         mode: 'sink',
-        nameHint: 's_axis',
-        label: 'AXI-Stream Sink',
-      },
-      {
-        kind: 'bus',
-        type: 'ipcraft.busif.axi_stream.1.0',
-        mode: 'source',
-        nameHint: 'm_axis',
-        label: 'AXI-Stream Source',
+        nameHint: 'axis',
+        label: 'AXI-Stream',
       },
       {
         kind: 'bus',
         type: 'ipcraft.busif.avalon_mm.1.0',
         mode: 'slave',
-        nameHint: 'avl',
-        label: 'Avalon-MM Slave',
-      },
-      {
-        kind: 'bus',
-        type: 'ipcraft.busif.avalon_mm.1.0',
-        mode: 'master',
-        nameHint: 'avl_m',
-        label: 'Avalon-MM Master',
+        nameHint: 'avl_mm',
+        label: 'Avalon-MM',
       },
       {
         kind: 'bus',
         type: 'ipcraft.busif.avalon_st.1.0',
         mode: 'sink',
-        nameHint: 'avl_st_in',
-        label: 'Avalon-ST Sink',
-      },
-      {
-        kind: 'bus',
-        type: 'ipcraft.busif.avalon_st.1.0',
-        mode: 'source',
-        nameHint: 'avl_st_out',
-        label: 'Avalon-ST Source',
+        nameHint: 'avl_st',
+        label: 'Avalon-ST',
       },
       {
         kind: 'bus',
@@ -227,22 +192,8 @@ function paletteItemIcon(item: LibraryDragPayload): string {
 }
 
 function kindBadge(item: LibraryDragPayload): string {
-  if (item.kind === 'bus' && item.mode) {
-    switch (item.mode) {
-      case 'slave':
-        return 'S';
-      case 'master':
-        return 'M';
-      case 'sink':
-        return 'Sink';
-      case 'source':
-        return 'Src';
-      default:
-        return item.mode;
-    }
-  }
   if (item.kind === 'port' && item.direction) {
-    return item.direction === 'in' ? 'in' : 'out';
+    return item.direction === 'in' ? 'in' : item.direction === 'out' ? 'out' : 'io';
   }
   if (item.kind === 'parameter' && item.dataType) {
     return item.dataType;
