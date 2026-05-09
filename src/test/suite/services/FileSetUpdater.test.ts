@@ -18,7 +18,12 @@ describe('FileSetUpdater', () => {
     const sim = result.find((set) => set.name === 'Simulation_Resources');
     const integration = result.find((set) => set.name === 'Integration');
 
-    expect(rtl?.files).toEqual([{ path: 'rtl/core.vhd', type: 'vhdl' }]);
+    expect(rtl?.files).toEqual(
+      expect.arrayContaining([
+        { path: 'rtl/core.vhd', type: 'vhdl' },
+        { path: 'rtl/core_regs.vhd', type: 'vhdl' },
+      ])
+    );
     expect(sim?.files).toEqual(
       expect.arrayContaining([
         { path: 'sim/core_tb.vhd', type: 'vhdl' },
@@ -28,7 +33,6 @@ describe('FileSetUpdater', () => {
     );
     expect(integration?.files).toEqual(
       expect.arrayContaining([
-        { path: 'rtl/core_regs.vhd', type: 'vhdl' },
         { path: 'integration/core.tcl', type: 'tcl' },
         { path: 'integration/core.xml', type: 'unknown' },
       ])

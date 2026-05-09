@@ -54,13 +54,13 @@ export function updateFileSets(
   const fileSets = [...(existingFileSets ?? [])];
 
   const rtlFiles = yamlRelativeFiles.filter(
-    (file) => file.endsWith('.vhd') && !file.endsWith('_regs.vhd') && !file.endsWith('_tb.vhd')
+    (file) => file.endsWith('.vhd') && !file.endsWith('_tb.vhd')
   );
   const simFiles = yamlRelativeFiles.filter(
     (file) => file.endsWith('.py') || file.endsWith('Makefile') || file.endsWith('_tb.vhd')
   );
   const integrationFiles = yamlRelativeFiles.filter(
-    (file) => file.endsWith('.tcl') || file.endsWith('.xml') || file.endsWith('_regs.vhd')
+    (file) => file.endsWith('.tcl') || file.endsWith('.xml')
   );
 
   updateFileSet(
@@ -94,10 +94,7 @@ export function updateFileSets(
       if (file.endsWith('.tcl')) {
         return 'tcl';
       }
-      if (file.endsWith('.xml')) {
-        return 'unknown';
-      }
-      return 'vhdl';
+      return 'unknown';
     }
   );
 
