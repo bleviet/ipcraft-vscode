@@ -173,6 +173,9 @@ bus_interfaces:
       window.postMessage({ type: 'update', text: yaml, fileName: 'test_core.ip.yml' }, '*');
     }, sampleIpCoreYaml);
 
+    // Switch to table view — the navigation sidebar is only rendered in table mode
+    await page.getByRole('button', { name: 'Table view' }).click();
+
     // The navigation sidebar should render known section labels
     await expect(page.locator('nav').getByText('Metadata')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('nav').getByText('Bus Interfaces')).toBeVisible({ timeout: 5000 });
@@ -192,6 +195,9 @@ bus_interfaces:
     await page.evaluate((yaml) => {
       window.postMessage({ type: 'update', text: yaml, fileName: 'test_core.ip.yml' }, '*');
     }, sampleIpCoreYaml);
+
+    // Switch to table view — the navigation sidebar is only rendered in table mode
+    await page.getByRole('button', { name: 'Table view' }).click();
 
     // Click Metadata in sidebar
     await page.locator('nav').getByText('Metadata').click();
