@@ -216,15 +216,11 @@ async function parseVHDL(resourceUri?: vscode.Uri): Promise<void> {
           encoder.encode(result.yamlText)
         );
 
-        const action = await vscode.window.showInformationMessage(
-          `✓ Created ${path.basename(defaultOutput)}`,
-          'Open File'
+        await vscode.commands.executeCommand(
+          'vscode.openWith',
+          vscode.Uri.file(defaultOutput),
+          'fpgaIpCore.editor'
         );
-
-        if (action === 'Open File') {
-          const doc = await vscode.workspace.openTextDocument(defaultOutput);
-          await vscode.window.showTextDocument(doc);
-        }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         void vscode.window.showErrorMessage(`Parse failed: ${message}`);
