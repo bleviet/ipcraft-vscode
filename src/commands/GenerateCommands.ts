@@ -208,7 +208,13 @@ async function parseVHDL(resourceUri?: vscode.Uri): Promise<void> {
     },
     async () => {
       try {
-        const result = await parseVhdlFile(vhdlPath, { detectBus: true });
+        const cfg = vscode.workspace.getConfiguration('ipcraft.import');
+        const result = await parseVhdlFile(vhdlPath, {
+          detectBus: true,
+          vendor: cfg.get<string>('vendor'),
+          library: cfg.get<string>('library'),
+          version: cfg.get<string>('version'),
+        });
 
         const encoder = new TextEncoder();
         await vscode.workspace.fs.writeFile(

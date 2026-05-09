@@ -86,6 +86,26 @@
         }
       ]
     },
+    "configuration": {
+      "title": "IPCraft",
+      "properties": {
+        "ipcraft.import.vendor": {
+          "type": "string",
+          "default": "user",
+          "description": "Default vendor name used when importing a VHDL file as an IP Core."
+        },
+        "ipcraft.import.library": {
+          "type": "string",
+          "default": "ip",
+          "description": "Default library name used when importing a VHDL file as an IP Core."
+        },
+        "ipcraft.import.version": {
+          "type": "string",
+          "default": "1.0.0",
+          "description": "Default version string used when importing a VHDL file as an IP Core."
+        }
+      }
+    },
     "customEditors": [
       {
         "viewType": "fpgaMemoryMap.editor",
