@@ -459,7 +459,7 @@ const IpCoreApp: React.FC = () => {
                   vscode?.postMessage({ type: 'command', command: 'fpga-ip-core.exportAltera' })
                 }
               >
-                <span className="codicon codicon-chip"></span>
+                <span className="codicon codicon-layers"></span>
               </button>
               <button
                 className="canvas-view-toggle"
