@@ -292,16 +292,10 @@ const FileSetsSection: React.FC<{ ipCore: IpCore; onUpdate: YamlUpdateHandler }>
                   }}
                 />
                 <span
-                  className="ci-fileset__name"
+                  className={`ci-fileset__name${missing ? ' ci-fileset__name--missing' : ''}`}
                   title={file.path}
                   onClick={() => handleOpenFile(file.path)}
-                  style={{
-                    cursor: missing ? 'not-allowed' : 'pointer',
-                    color: missing
-                      ? 'var(--vscode-errorForeground)'
-                      : 'var(--vscode-textLink-foreground)',
-                    textDecoration: missing ? 'line-through' : 'underline',
-                  }}
+                  style={{ cursor: missing ? 'not-allowed' : 'pointer' }}
                 >
                   {filename}
                 </span>

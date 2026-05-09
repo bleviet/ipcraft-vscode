@@ -1304,6 +1304,14 @@
   white-space: nowrap;
   font-family: var(--vscode-editor-font-family, monospace);
   font-size: 11px;
+  color: var(--vscode-focusBorder);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--vscode-focusBorder) 40%, transparent);
+}
+.ci-fileset__name--missing {
+  color: var(--vscode-errorForeground);
+  text-decoration: line-through;
+  text-decoration-color: inherit;
 }
 
 .ci-fileset__rm {
