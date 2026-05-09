@@ -64,6 +64,12 @@
         "icon": "$(file-code)"
       },
       {
+        "command": "fpga-ip-core.parseHwTcl",
+        "title": "Import from Platform Designer Component",
+        "category": "IPCraft",
+        "icon": "$(file-code)"
+      },
+      {
         "command": "fpga-ip-core.viewBusDefinitions",
         "title": "View Bus Definitions",
         "category": "IPCraft",
@@ -76,12 +82,22 @@
           "command": "fpga-ip-core.parseVHDL",
           "when": "resourceExtname == .vhd || resourceExtname == .vhdl",
           "group": "fpga@1"
+        },
+        {
+          "command": "fpga-ip-core.parseHwTcl",
+          "when": "resourceFilename =~ /_hw\\.tcl$/",
+          "group": "fpga@2"
         }
       ],
       "editor/title": [
         {
           "command": "fpga-ip-core.parseVHDL",
           "when": "resourceExtname == .vhd || resourceExtname == .vhdl",
+          "group": "navigation"
+        },
+        {
+          "command": "fpga-ip-core.parseHwTcl",
+          "when": "resourceFilename =~ /_hw\\.tcl$/",
           "group": "navigation"
         }
       ]

@@ -11,6 +11,7 @@ import { Logger } from '../utils/Logger';
 import { TemplateLoader } from '../generator/TemplateLoader';
 import { IpCoreScaffolder } from '../generator/IpCoreScaffolder';
 import { parseVhdlFile } from '../parser/VhdlParser';
+import { parseHwTclFile } from '../parser/HwTclParser';
 import { safeRegisterCommand } from '../utils/vscodeHelpers';
 import { updateFileSets } from '../services/FileSetUpdater';
 
@@ -29,6 +30,11 @@ export function registerGeneratorCommands(context: vscode.ExtensionContext): voi
   // Parse VHDL and create IP core YAML
   safeRegisterCommand(context, 'fpga-ip-core.parseVHDL', async (uri?: vscode.Uri) => {
     await parseVHDL(uri);
+  });
+
+  // Import from Platform Designer _hw.tcl component definition
+  safeRegisterCommand(context, 'fpga-ip-core.parseHwTcl', async (uri?: vscode.Uri) => {
+    await parseHwTcl(uri);
   });
 
   // View bundled bus definitions YAML
@@ -230,6 +236,73 @@ async function parseVHDL(resourceUri?: vscode.Uri): Promise<void> {
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         void vscode.window.showErrorMessage(`Parse failed: ${message}`);
+      }
+    }
+  );
+}
+
+/**
+ * Parse Platform Designer _hw.tcl file and generate IP core YAML
+ */
+async function parseHwTcl(resourceUri?: vscode.Uri): Promise<void> {
+  let tclUri = resourceUri;
+
+  if (!tclUri) {
+    const editor = vscode.window.activeTextEditor;
+    if (editor?.document.fileName.endsWith('.tcl')) {
+      tclUri = editor.document.uri;
+    }
+  }
+
+  if (!tclUri) {
+    const files = await vscode.window.showOpenDialog({
+      canSelectFiles: true,
+      canSelectFolders: false,
+      filters: { 'Platform Designer Component': ['tcl'] },
+      title: 'Select Platform Designer _hw.tcl file',
+    });
+    tclUri = files?.[0];
+  }
+
+  if (!tclUri) {
+    return;
+  }
+
+  const tclPath = tclUri.fsPath;
+  const baseName = path
+    .basename(tclPath)
+    .replace(/_hw\.tcl$/i, '')
+    .replace(/\.tcl$/i, '');
+  const outputDir = path.dirname(tclPath);
+  const outputPath = path.join(outputDir, `${baseName}.ip.yml`);
+
+  await vscode.window.withProgress(
+    {
+      location: vscode.ProgressLocation.Notification,
+      title: 'Importing from Platform Designer component...',
+      cancellable: false,
+    },
+    async () => {
+      try {
+        const cfg = vscode.workspace.getConfiguration('ipcraft.import');
+        const result = await parseHwTclFile(tclPath, {
+          library: cfg.get<string>('library'),
+        });
+
+        const encoder = new TextEncoder();
+        await vscode.workspace.fs.writeFile(
+          vscode.Uri.file(outputPath),
+          encoder.encode(result.yamlText)
+        );
+
+        await vscode.commands.executeCommand(
+          'vscode.openWith',
+          vscode.Uri.file(outputPath),
+          'fpgaIpCore.editor'
+        );
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        void vscode.window.showErrorMessage(`Import failed: ${message}`);
       }
     }
   );

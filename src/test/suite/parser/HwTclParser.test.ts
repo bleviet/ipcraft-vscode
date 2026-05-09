@@ -1,0 +1,333 @@
+import * as path from 'path';
+import * as yaml from 'js-yaml';
+import { parseHwTclContent } from '../../../parser/HwTclParser';
+
+const FAKE_PATH = '/project/intel/my_core_hw.tcl';
+
+function parse(content: string, opts?: { library?: string; outputDir?: string }) {
+  return parseHwTclContent(content, FAKE_PATH, opts);
+}
+
+function parseYaml(content: string) {
+  return yaml.load(content) as Record<string, unknown>;
+}
+
+describe('HwTclParser', () => {
+  describe('module properties', () => {
+    it('extracts NAME, VERSION, AUTHOR, DESCRIPTION', () => {
+      const tcl = `
+        set_module_property NAME my_core
+        set_module_property VERSION 2.0.0
+        set_module_property AUTHOR "acme.com"
+        set_module_property DESCRIPTION "My component"
+      `;
+      const { componentName, yamlText } = parse(tcl);
+      const doc = parseYaml(yamlText) as { vlnv: Record<string, unknown>; description: string };
+
+      expect(componentName).toBe('my_core');
+      expect(doc.vlnv.name).toBe('my_core');
+      expect(doc.vlnv.version).toBe('2.0.0');
+      expect(doc.vlnv.vendor).toBe('acme.com');
+      expect(doc.description).toBe('My component');
+    });
+
+    it('falls back to filename when NAME is absent', () => {
+      const { componentName } = parse('');
+      expect(componentName).toBe('my_core');
+    });
+
+    it('uses library option', () => {
+      const tcl = 'set_module_property NAME core';
+      const doc = parseYaml(parse(tcl, { library: 'my_lib' }).yamlText) as {
+        vlnv: Record<string, unknown>;
+      };
+      expect(doc.vlnv.library).toBe('my_lib');
+    });
+  });
+
+  describe('clock and reset interfaces', () => {
+    it('emits clock with direction:in', () => {
+      const tcl = `
+        add_interface clk clock end
+        add_interface_port clk s_axi_aclk clk Input 1
+      `;
+      const doc = parseYaml(parse(tcl).yamlText) as {
+        clocks: Array<Record<string, unknown>>;
+      };
+      expect(doc.clocks).toHaveLength(1);
+      expect(doc.clocks[0].name).toBe('s_axi_aclk');
+      expect(doc.clocks[0].direction).toBe('in');
+    });
+
+    it('detects active-low reset via synchronousEdges DEASSERT', () => {
+      const tcl = `
+        add_interface reset reset end
+        set_interface_property reset synchronousEdges DEASSERT
+        add_interface_port reset s_axi_aresetn reset Input 1
+      `;
+      const doc = parseYaml(parse(tcl).yamlText) as {
+        resets: Array<Record<string, unknown>>;
+      };
+      expect(doc.resets[0].polarity).toBe('activeLow');
+    });
+
+    it('detects active-low reset via port name ending in n', () => {
+      const tcl = `
+        add_interface rst reset end
+        add_interface_port rst rst_n reset Input 1
+      `;
+      const doc = parseYaml(parse(tcl).yamlText) as {
+        resets: Array<Record<string, unknown>>;
+      };
+      expect(doc.resets[0].polarity).toBe('activeLow');
+    });
+
+    it('detects active-high reset', () => {
+      const tcl = `
+        add_interface rst reset end
+        add_interface_port rst rst reset Input 1
+      `;
+      const doc = parseYaml(parse(tcl).yamlText) as {
+        resets: Array<Record<string, unknown>>;
+      };
+      expect(doc.resets[0].polarity).toBe('activeHigh');
+    });
+  });
+
+  describe('bus interfaces', () => {
+    it('maps axi4lite to VLNV type and slave mode', () => {
+      const tcl = `
+        add_interface s_axi axi4lite end
+        add_interface_port s_axi s_axi_awaddr awaddr Input 4
+        add_interface_port s_axi s_axi_awvalid awvalid Input 1
+        add_interface_port s_axi s_axi_wdata wdata Input 32
+      `;
+      const doc = parseYaml(parse(tcl).yamlText) as {
+        busInterfaces: Array<Record<string, unknown>>;
+      };
+      const bi = doc.busInterfaces[0];
+      expect(bi.type).toBe('ipcraft.busif.axi4_lite.1.0');
+      expect(bi.mode).toBe('slave');
+      expect(bi.physicalPrefix).toBe('s_axi_');
+    });
+
+    it('maps avalon to VLNV type', () => {
+      const tcl = `
+        add_interface avl avalon end
+        add_interface_port avl avl_address address Input 8
+      `;
+      const doc = parseYaml(parse(tcl).yamlText) as {
+        busInterfaces: Array<Record<string, unknown>>;
+      };
+      expect(doc.busInterfaces[0].type).toBe('ipcraft.busif.avalon_mm.1.0');
+    });
+
+    it('maps start mode to master', () => {
+      const tcl = `
+        add_interface m_axi axi4lite start
+        add_interface_port m_axi m_axi_awaddr awaddr Output 32
+      `;
+      const doc = parseYaml(parse(tcl).yamlText) as {
+        busInterfaces: Array<Record<string, unknown>>;
+      };
+      expect(doc.busInterfaces[0].mode).toBe('master');
+    });
+
+    it('resolves associatedClock and associatedReset to RTL port names', () => {
+      const tcl = `
+        add_interface clk clock end
+        add_interface_port clk s_axi_aclk clk Input 1
+        add_interface reset reset end
+        add_interface_port reset s_axi_aresetn reset Input 1
+        add_interface s_axi axi4lite end
+        set_interface_property s_axi associatedClock clk
+        set_interface_property s_axi associatedReset reset
+        add_interface_port s_axi s_axi_awaddr awaddr Input 4
+      `;
+      const doc = parseYaml(parse(tcl).yamlText) as {
+        busInterfaces: Array<Record<string, unknown>>;
+      };
+      expect(doc.busInterfaces[0].associatedClock).toBe('s_axi_aclk');
+      expect(doc.busInterfaces[0].associatedReset).toBe('s_axi_aresetn');
+    });
+
+    it('uses sink/source mode for streaming interfaces', () => {
+      const tcl = `
+        add_interface axis_in axi4stream end
+        add_interface_port axis_in in_tdata tdata Input 8
+        add_interface axis_out axi4stream start
+        add_interface_port axis_out out_tdata tdata Output 8
+      `;
+      const doc = parseYaml(parse(tcl).yamlText) as {
+        busInterfaces: Array<Record<string, unknown>>;
+      };
+      expect(doc.busInterfaces[0].mode).toBe('sink');
+      expect(doc.busInterfaces[1].mode).toBe('source');
+    });
+  });
+
+  describe('conduit (user ports)', () => {
+    it('emits ports from conduit interface with correct direction and width', () => {
+      const tcl = `
+        add_interface conduit conduit end
+        add_interface_port conduit out_port out_port Output 8
+        add_interface_port conduit enable enable Input 1
+      `;
+      const doc = parseYaml(parse(tcl).yamlText) as {
+        ports: Array<Record<string, unknown>>;
+      };
+      expect(doc.ports).toHaveLength(2);
+      expect(doc.ports[0]).toMatchObject({ name: 'out_port', direction: 'out', width: 8 });
+      expect(doc.ports[1]).toMatchObject({ name: 'enable', direction: 'in' });
+      expect(doc.ports[1].width).toBeUndefined();
+    });
+
+    it('maps Bidir direction to inout', () => {
+      const tcl = `
+        add_interface conduit conduit end
+        add_interface_port conduit data data Bidir 8
+      `;
+      const doc = parseYaml(parse(tcl).yamlText) as {
+        ports: Array<Record<string, unknown>>;
+      };
+      expect(doc.ports[0].direction).toBe('inout');
+    });
+  });
+
+  describe('file sets', () => {
+    it('maps QUARTUS_SYNTH to RTL_Sources with correct relative paths', () => {
+      const tcl = `
+        add_fileset QUARTUS_SYNTH QUARTUS_SYNTH "" ""
+        add_fileset_file core.vhd VHDL PATH ../rtl/core.vhd TOP_LEVEL_FILE
+      `;
+      // outputDir defaults to same dir as hw.tcl (/project/intel/)
+      const doc = parseYaml(parse(tcl).yamlText) as {
+        fileSets: Array<Record<string, unknown>>;
+      };
+      expect(doc.fileSets[0].name).toBe('RTL_Sources');
+      const files = doc.fileSets[0].files as Array<{ path: string; type: string }>;
+      expect(files[0].path).toBe(path.join('..', 'rtl', 'core.vhd'));
+      expect(files[0].type).toBe('vhdl');
+    });
+
+    it('maps SIM_VHDL to Simulation_Resources and deduplicates with SIM_VERILOG', () => {
+      const tcl = `
+        add_fileset SIM_VHDL SIM_VHDL "" ""
+        add_fileset_file tb.vhd VHDL PATH ../tb/tb.vhd
+        add_fileset SIM_VERILOG SIM_VERILOG "" ""
+        add_fileset_file tb.v VERILOG PATH ../tb/tb.v
+      `;
+      const doc = parseYaml(parse(tcl).yamlText) as {
+        fileSets: Array<Record<string, unknown>>;
+      };
+      const simSets = (doc.fileSets ?? []).filter(
+        (fs: Record<string, unknown>) => fs.name === 'Simulation_Resources'
+      );
+      expect(simSets).toHaveLength(1);
+    });
+
+    it('recomputes paths relative to a custom outputDir', () => {
+      const tcl = `
+        add_fileset QUARTUS_SYNTH QUARTUS_SYNTH "" ""
+        add_fileset_file core.vhd VHDL PATH ../rtl/core.vhd
+      `;
+      // outputDir = parent of intel/ → /project/
+      const doc = parseYaml(parse(tcl, { outputDir: '/project' }).yamlText) as {
+        fileSets: Array<Record<string, unknown>>;
+      };
+      const files = doc.fileSets[0].files as Array<{ path: string }>;
+      expect(files[0].path).toBe(path.join('rtl', 'core.vhd'));
+    });
+  });
+
+  describe('parameters', () => {
+    it('emits parameters with parsed numeric defaults', () => {
+      const tcl = `
+        add_parameter C_DATA_WIDTH INTEGER 32
+        add_parameter C_ADDR_WIDTH INTEGER 4
+      `;
+      const doc = parseYaml(parse(tcl).yamlText) as {
+        parameters: Array<Record<string, unknown>>;
+      };
+      expect(doc.parameters).toHaveLength(2);
+      expect(doc.parameters[0]).toMatchObject({
+        name: 'C_DATA_WIDTH',
+        value: 32,
+        dataType: 'integer',
+      });
+    });
+
+    it('respects set_parameter_property DEFAULT_VALUE override', () => {
+      const tcl = `
+        add_parameter C_WIDTH INTEGER 8
+        set_parameter_property C_WIDTH DEFAULT_VALUE 16
+      `;
+      const doc = parseYaml(parse(tcl).yamlText) as {
+        parameters: Array<Record<string, unknown>>;
+      };
+      expect(doc.parameters[0].value).toBe(16);
+    });
+  });
+
+  describe('full pio_core_axil example', () => {
+    it('produces the expected structure from a representative hw.tcl', () => {
+      const tcl = `
+        set_module_property NAME pio_core_axil
+        set_module_property VERSION 1.0.0
+        set_module_property AUTHOR "ipcraft"
+        set_module_property DESCRIPTION "AXI4-Lite PIO Core"
+
+        add_interface clk clock end
+        add_interface_port clk clk clk Input 1
+
+        add_interface reset reset end
+        set_interface_property reset synchronousEdges DEASSERT
+        add_interface_port reset s_axi_aresetn reset Input 1
+
+        add_interface s_axi axi4lite end
+        set_interface_property s_axi associatedClock clk
+        set_interface_property s_axi associatedReset reset
+        add_interface_port s_axi s_axi_awaddr awaddr Input 4
+        add_interface_port s_axi s_axi_awvalid awvalid Input 1
+        add_interface_port s_axi s_axi_awready awready Output 1
+        add_interface_port s_axi s_axi_wdata wdata Input 32
+        add_interface_port s_axi s_axi_wstrb wstrb Input 4
+        add_interface_port s_axi s_axi_wvalid wvalid Input 1
+        add_interface_port s_axi s_axi_wready wready Output 1
+
+        add_interface conduit conduit end
+        add_interface_port conduit out_port out_port Output 8
+
+        add_fileset QUARTUS_SYNTH QUARTUS_SYNTH "" ""
+        add_fileset_file pio_core_axil.vhd VHDL PATH ../rtl/pio_core_axil.vhd TOP_LEVEL_FILE
+      `;
+
+      const doc = parseYaml(parse(tcl).yamlText);
+      const vlnv = doc.vlnv as Record<string, unknown>;
+
+      expect(vlnv.vendor).toBe('ipcraft');
+      expect(vlnv.name).toBe('pio_core_axil');
+      expect(vlnv.version).toBe('1.0.0');
+
+      const clocks = doc.clocks as Array<Record<string, unknown>>;
+      expect(clocks[0].name).toBe('clk');
+
+      const resets = doc.resets as Array<Record<string, unknown>>;
+      expect(resets[0].name).toBe('s_axi_aresetn');
+      expect(resets[0].polarity).toBe('activeLow');
+
+      const ports = doc.ports as Array<Record<string, unknown>>;
+      expect(ports[0]).toMatchObject({ name: 'out_port', direction: 'out', width: 8 });
+
+      const bi = (doc.busInterfaces as Array<Record<string, unknown>>)[0];
+      expect(bi.type).toBe('ipcraft.busif.axi4_lite.1.0');
+      expect(bi.mode).toBe('slave');
+      expect(bi.physicalPrefix).toBe('s_axi_');
+      expect(bi.associatedClock).toBe('clk');
+      expect(bi.associatedReset).toBe('s_axi_aresetn');
+
+      const fs = (doc.fileSets as Array<Record<string, unknown>>)[0];
+      expect(fs.name).toBe('RTL_Sources');
+    });
+  });
+});
