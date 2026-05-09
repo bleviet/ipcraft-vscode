@@ -474,6 +474,7 @@ export interface ConduitPort {
   name: string;
   direction: 'in' | 'out' | 'inout';
   width?: number | string;
+  presence?: 'required' | 'optional';
 }
 
 export interface BusInterface {

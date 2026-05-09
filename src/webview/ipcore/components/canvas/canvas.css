@@ -1122,7 +1122,7 @@
 
 .ci-conduit-row {
   display: grid;
-  grid-template-columns: 1fr 54px auto 18px;
+  grid-template-columns: 1fr 54px auto 28px 18px;
   align-items: center;
   gap: 4px;
 }
@@ -1193,6 +1193,68 @@
 .ci-conduit-add:hover {
   opacity: 1;
   background: var(--vscode-list-hoverBackground);
+}
+
+.ci-conduit-presence {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 18px;
+  font-size: 9px;
+  font-weight: 700;
+  font-family: var(--vscode-font-family);
+  letter-spacing: 0.03em;
+  border-radius: 3px;
+  border: 1px solid;
+  cursor: pointer;
+  background: transparent;
+  transition: opacity 0.12s;
+}
+.ci-conduit-presence--required {
+  color: var(--vscode-charts-blue, #4fc3f7);
+  border-color: color-mix(in srgb, var(--vscode-charts-blue, #4fc3f7) 60%, transparent);
+}
+.ci-conduit-presence--optional {
+  color: var(--vscode-descriptionForeground);
+  border-color: var(--vscode-panel-border);
+  opacity: 0.6;
+}
+.ci-conduit-presence--optional:hover {
+  opacity: 1;
+}
+
+.ci-conduit-footer {
+  padding: 8px 12px 12px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.ci-conduit-save-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-family: var(--vscode-font-family);
+  background: color-mix(in srgb, var(--vscode-button-background, #0e639c) 12%, transparent);
+  color: var(--vscode-button-foreground, #fff);
+  border: 1px solid color-mix(in srgb, var(--vscode-button-background, #0e639c) 50%, transparent);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.ci-conduit-save-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--vscode-button-background, #0e639c) 25%, transparent);
+}
+.ci-conduit-save-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.ci-conduit-save-btn--saved {
+  color: var(--vscode-charts-green, #4ec9b0);
+  border-color: color-mix(in srgb, var(--vscode-charts-green, #4ec9b0) 50%, transparent);
+  background: color-mix(in srgb, var(--vscode-charts-green, #4ec9b0) 10%, transparent);
 }
 
 /* Empty state */

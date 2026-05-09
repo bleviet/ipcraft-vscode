@@ -6,7 +6,8 @@ import { CanvasBusBundle } from './CanvasBusBundle';
 import { CanvasBusSubPort } from './CanvasBusSubPort';
 import { RemoveZone } from './RemoveZone';
 import { useCanvasValidation } from '../../hooks/useCanvasValidation';
-import { lookupBusDef } from '../../data/busDefinitions';
+import { lookupBusDef, lookupBusDefFromLibrary } from '../../data/busDefinitions';
+import type { BusPortDef } from '../../data/busDefinitions';
 import type { YamlUpdateHandler } from '../../../types/editor';
 import { vscode } from '../../../vscode';
 import './canvas.css';
@@ -32,6 +33,8 @@ interface IpBlockCanvasProps {
   onDrop?: (e: React.DragEvent) => void;
   /** Remove handler when a port is dropped to delete (Phase 4) */
   onRemove?: (kind: string, id: string) => void;
+  /** Runtime bus library from imports (includes custom bus definitions) */
+  busLibrary?: Record<string, unknown>;
 }
 
 /**
@@ -49,11 +52,26 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
   onDragOver,
   onDrop,
   onRemove,
+  busLibrary,
 }) => {
   const [expandedBusIds, setExpandedBusIds] = useState<Set<string>>(new Set());
+
+  const busDefs = useMemo((): ((type: string) => BusPortDef[] | null) => {
+    if (!busLibrary) {
+      return lookupBusDef;
+    }
+    return (type: string) => {
+      const hardcoded = lookupBusDef(type);
+      if (hardcoded !== null) {
+        return hardcoded;
+      }
+      return lookupBusDefFromLibrary(type, busLibrary);
+    };
+  }, [busLibrary]);
+
   const layout = useMemo(
-    () => computeLayout(ipCore, expandedBusIds, lookupBusDef, ipCore.description ?? undefined),
-    [ipCore, expandedBusIds]
+    () => computeLayout(ipCore, expandedBusIds, busDefs, ipCore.description ?? undefined),
+    [ipCore, expandedBusIds, busDefs]
   );
 
   // Assign distinct colours per clock domain when multiple clocks are defined
@@ -603,8 +621,11 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
             const isSelected = selectedId === p.id;
             const isHovered = hoveredId === p.id;
             const busExpanded = p.kind === 'bus' && expandedBusIds.has(p.id);
-            const hasBusDef =
-              p.kind === 'bus' && lookupBusDef((p.data as { type?: string }).type ?? '') !== null;
+            const busType = (p.data as { type?: string; conduitPorts?: unknown[] }).type ?? '';
+            const hasConduitPorts = Array.isArray(
+              (p.data as { conduitPorts?: unknown[] }).conduitPorts
+            );
+            const hasBusDef = p.kind === 'bus' && (hasConduitPorts || busDefs(busType) !== null);
 
             if (p.kind === 'bus') {
               const mmClickPath = p.memoryMapRef ? mmImportPath : undefined;

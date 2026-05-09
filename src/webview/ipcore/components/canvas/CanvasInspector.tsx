@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { IpCore, Clock, Reset, Port, BusInterface, ConduitPort } from '../../../types/ipCore';
 import type { YamlUpdateHandler } from '../../../types/editor';
 import type { CanvasElement, CanvasElementKind } from '../../hooks/useCanvasSelection';
@@ -473,7 +473,7 @@ interface BusPanelProps {
 }
 
 const BusPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, onUpdate }) => {
-  if (isConduitType(bus.type)) {
+  if (isConduitType(bus.type) || bus.mode === 'conduit') {
     return <ConduitPanel bus={bus} index={index} ipCore={ipCore} onUpdate={onUpdate} />;
   }
 
@@ -609,6 +609,25 @@ const BusPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, onUpda
 //  Conduit (Custom Interface) panel
 // ─────────────────────────────────────────────────────
 
+/** Extract the meaningful name segment from a custom bus type VLNV, e.g. 'user.busif.spi.1.0' → 'spi' */
+function conduitTypeName(busType: string): string {
+  if (isConduitType(busType)) {
+    return '';
+  }
+  const parts = busType.split('.');
+  return parts.length >= 3 ? parts[2] : '';
+}
+
+/** Build a user-namespaced VLNV from a display name, e.g. 'SPI' → 'user.busif.spi.1.0' */
+function buildConduitType(name: string): string {
+  const safe =
+    name
+      .toLowerCase()
+      .replace(/\s+/g, '_')
+      .replace(/[^a-z0-9_]/g, '') || 'custom';
+  return `user.busif.${safe}.1.0`;
+}
+
 const ConduitPanel: React.FC<Omit<BusPanelProps, 'imports'>> = ({
   bus,
   index,
@@ -626,6 +645,44 @@ const ConduitPanel: React.FC<Omit<BusPanelProps, 'imports'>> = ({
   const clockOpts = clocks.map((c) => ({ value: c.name, label: c.name }));
   const resetOpts = resets.map((r) => ({ value: r.name, label: r.name }));
 
+  const typeName = conduitTypeName(bus.type);
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
+
+  const handleSaveBusDef = useCallback(() => {
+    const conduitPorts = bus.conduitPorts ?? [];
+    const tName = typeName || 'custom';
+    const displayName = tName.charAt(0).toUpperCase() + tName.slice(1);
+
+    setSaveState('saving');
+    vscode?.postMessage({
+      type: 'saveCustomBusDefinition',
+      typeName: tName,
+      displayName,
+      ports: conduitPorts.map((p) => ({
+        name: p.name,
+        direction: p.direction,
+        width: p.width,
+        presence: p.presence ?? 'required',
+      })),
+    });
+
+    const handler = (event: MessageEvent) => {
+      const msg = event.data as { type?: string; customBusLibraryDir?: string };
+      if (msg.type === 'customBusDefinitionSaved') {
+        window.removeEventListener('message', handler);
+        setSaveState('saved');
+        if (msg.customBusLibraryDir) {
+          const ipCoreData = ipCore as unknown as Record<string, unknown>;
+          if (!ipCoreData.useBusLibrary) {
+            onUpdate(['useBusLibrary'], `./${msg.customBusLibraryDir}`);
+          }
+        }
+        setTimeout(() => setSaveState('idle'), 2500);
+      }
+    };
+    window.addEventListener('message', handler);
+  }, [bus, typeName, ipCore, onUpdate]);
+
   return (
     <>
       <Section title="Identity">
@@ -635,6 +692,20 @@ const ConduitPanel: React.FC<Omit<BusPanelProps, 'imports'>> = ({
           onSave={(v) => onUpdate(['busInterfaces', index, 'name'], v)}
           validate={(v) => validateVhdlIdentifier(v) ?? validateUniqueName(v, existingNames)}
           placeholder="custom_if"
+          mono
+        />
+        <PropField
+          label="Interface Type"
+          value={typeName}
+          onSave={(v) => {
+            const trimmed = v.trim();
+            onUpdate(
+              ['busInterfaces', index, 'type'],
+              trimmed ? buildConduitType(trimmed) : 'ipcraft.busif.conduit.1.0'
+            );
+          }}
+          placeholder="SPI, I2C, UART…"
+          hint={typeName ? `VLNV: user.busif.${typeName}.1.0` : 'Give this interface a name'}
           mono
         />
       </Section>
@@ -669,6 +740,25 @@ const ConduitPanel: React.FC<Omit<BusPanelProps, 'imports'>> = ({
         paramNames={paramNames}
         onUpdate={onUpdate}
       />
+      <div className="ci-conduit-footer">
+        <button
+          className={`ci-conduit-save-btn${saveState === 'saved' ? ' ci-conduit-save-btn--saved' : ''}`}
+          onClick={handleSaveBusDef}
+          disabled={saveState === 'saving'}
+          title="Save interface definition as a reusable YAML file"
+          type="button"
+        >
+          {saveState === 'saved' ? (
+            <>
+              <span className="codicon codicon-check" aria-hidden="true" /> Saved
+            </>
+          ) : (
+            <>
+              <span className="codicon codicon-save" aria-hidden="true" /> Save Bus Definition
+            </>
+          )}
+        </button>
+      </div>
     </>
   );
 };
@@ -743,6 +833,8 @@ interface ConduitSignalRowProps {
   onRemove: () => void;
 }
 
+const PRESENCE_LABELS: Record<string, string> = { required: 'REQ', optional: 'OPT' };
+
 const ConduitSignalRow: React.FC<ConduitSignalRowProps> = ({
   port,
   paramNames,
@@ -795,6 +887,7 @@ const ConduitSignalRow: React.FC<ConduitSignalRowProps> = ({
   };
 
   const hasParams = paramNames.length > 0;
+  const presence = port.presence ?? 'required';
 
   return (
     <div className="ci-conduit-row">
@@ -890,6 +983,18 @@ const ConduitSignalRow: React.FC<ConduitSignalRowProps> = ({
           </button>
         )}
       </div>
+      <button
+        className={`ci-conduit-presence ci-conduit-presence--${presence}`}
+        onClick={() => onChange({ presence: presence === 'required' ? 'optional' : 'required' })}
+        title={
+          presence === 'required'
+            ? 'Required — click to make optional'
+            : 'Optional — click to make required'
+        }
+        type="button"
+      >
+        {PRESENCE_LABELS[presence]}
+      </button>
       <button className="ci-conduit-remove" onClick={onRemove} title="Remove signal" type="button">
         <span className="codicon codicon-close" aria-hidden="true" />
       </button>

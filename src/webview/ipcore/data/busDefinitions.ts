@@ -158,3 +158,37 @@ export function lookupBusDef(busType: string): BusPortDef[] | null {
 export function isConduitType(busType: string): boolean {
   return busType.toLowerCase().includes('conduit');
 }
+
+/**
+ * Looks up a bus definition from the runtime bus library (loaded from YAML files).
+ * The library entries follow the format: { [DisplayKey]: { busType: {vendor,library,name,version}, ports: [...] } }
+ * Returns null if the type is not found in the library.
+ */
+export function lookupBusDefFromLibrary(
+  busType: string,
+  library: Record<string, unknown>
+): BusPortDef[] | null {
+  for (const key of Object.keys(library)) {
+    const entry = library[key] as Record<string, unknown>;
+    const bt = entry.busType as Record<string, string> | undefined;
+    if (!bt) {
+      continue;
+    }
+    // Build VLNV string: vendor.library.name.version (version may contain dots)
+    const vlnv = [bt.vendor, bt.library, bt.name, bt.version].filter(Boolean).join('.');
+    if (vlnv !== busType) {
+      continue;
+    }
+    const rawPorts = entry.ports as Array<Record<string, unknown>> | undefined;
+    if (!rawPorts) {
+      return [];
+    }
+    return rawPorts.map((p) => ({
+      name: String(p.name ?? ''),
+      width: typeof p.width === 'number' ? p.width : undefined,
+      direction: p.direction as 'in' | 'out' | undefined,
+      presence: String(p.presence ?? 'required') === 'optional' ? 'optional' : 'required',
+    }));
+  }
+  return null;
+}

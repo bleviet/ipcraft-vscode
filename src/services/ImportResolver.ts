@@ -179,8 +179,9 @@ export class ImportResolver {
 
   /**
    * Resolve and cache bus library.
+   * Supports both single YAML files and directories (all .yml files are merged).
    *
-   * @param libraryPath Relative path to bus library file
+   * @param libraryPath Relative path to bus library file or directory
    * @param baseDir Base directory for resolution
    * @returns Parsed bus library data
    */
@@ -196,11 +197,16 @@ export class ImportResolver {
     this.logger.info(`Loading bus library: ${absolutePath}`);
 
     try {
-      const parsed = (await this.readYamlFile(absolutePath)) as Record<string, unknown>;
+      // Check if the path is a directory
+      const stat = await vscode.workspace.fs.stat(vscode.Uri.file(absolutePath));
+      let parsed: Record<string, unknown>;
+      if (stat.type === vscode.FileType.Directory) {
+        parsed = await this.resolveBusLibraryDirectory(absolutePath);
+      } else {
+        parsed = (await this.readYamlFile(absolutePath)) as Record<string, unknown>;
+      }
 
-      // Cache for future use
       this.busLibraryCache.set(absolutePath, parsed);
-
       return parsed;
     } catch (error) {
       this.logger.error(`Failed to load bus library: ${libraryPath}`, error as Error);
@@ -208,6 +214,39 @@ export class ImportResolver {
         `Failed to load bus library from ${libraryPath}: ${(error as Error).message}`
       );
     }
+  }
+
+  /**
+   * Load and merge all .yml files from a directory into a single bus library object.
+   */
+  private async resolveBusLibraryDirectory(dirPath: string): Promise<Record<string, unknown>> {
+    const dirUri = vscode.Uri.file(dirPath);
+    let entries: [string, vscode.FileType][];
+    try {
+      entries = await vscode.workspace.fs.readDirectory(dirUri);
+    } catch {
+      this.logger.warn(`Custom bus library directory not found: ${dirPath}`);
+      return {};
+    }
+
+    const ymlFiles = entries
+      .filter(([name, type]) => type === vscode.FileType.File && name.endsWith('.yml'))
+      .map(([name]) => name)
+      .sort();
+
+    const merged: Record<string, unknown> = {};
+    for (const fileName of ymlFiles) {
+      try {
+        const filePath = path.join(dirPath, fileName);
+        const parsed = (await this.readYamlFile(filePath)) as Record<string, unknown>;
+        Object.assign(merged, parsed);
+      } catch (err) {
+        this.logger.warn(`Skipping unreadable bus definition file: ${fileName}`);
+      }
+    }
+
+    this.logger.info(`Loaded ${ymlFiles.length} custom bus definition(s) from ${dirPath}`);
+    return merged;
   }
 
   /**

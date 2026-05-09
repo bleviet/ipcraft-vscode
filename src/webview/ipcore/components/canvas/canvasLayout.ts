@@ -167,9 +167,11 @@ function busProtocolShortName(busType: string): string {
   if (lower.includes('conduit')) {
     return 'Custom';
   }
-  // Fallback: use the last segment of the VLNV
+  // Fallback: extract the name segment from VLNV (vendor.library.name.major.minor)
   const parts = busType.split('.');
-  return parts[parts.length - 2] ?? busType;
+  const name = parts.length >= 3 ? parts[2] : (parts[parts.length - 1] ?? busType);
+  const clean = name.replace(/_/g, '-');
+  return clean.length <= 4 ? clean.toUpperCase() : clean.charAt(0).toUpperCase() + clean.slice(1);
 }
 
 /**
@@ -241,7 +243,9 @@ function itemSlots(
   };
 
   // Conduit: slot count comes from conduitPorts array
-  if ((busData.type ?? '').toLowerCase().includes('conduit')) {
+  const isConduitMode =
+    (busData.type ?? '').toLowerCase().includes('conduit') || Array.isArray(busData.conduitPorts);
+  if (isConduitMode) {
     return 1 + (busData.conduitPorts?.length ?? 0);
   }
 
@@ -497,10 +501,13 @@ export function computeLayout(
             name: string;
             direction: 'in' | 'out' | 'inout';
             width?: number | string;
+            presence?: 'required' | 'optional';
           }>;
         };
 
-        const isConduit = (busData.type ?? '').toLowerCase().includes('conduit');
+        const isConduit =
+          (busData.type ?? '').toLowerCase().includes('conduit') ||
+          Array.isArray(busData.conduitPorts);
 
         if (isConduit) {
           // Conduit: user-defined signals come from conduitPorts
@@ -516,7 +523,7 @@ export function computeLayout(
               name: cp.name,
               widthLabel: formatWidth(cp.width),
               direction: cp.direction,
-              presence: 'required',
+              presence: cp.presence ?? 'required',
               active: true,
               physicalPrefix: busData.physicalPrefix ?? '',
               clockDomainIdx: domainIdx,

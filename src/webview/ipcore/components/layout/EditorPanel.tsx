@@ -151,6 +151,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
           onDragOver={onCanvasDragOver}
           onDrop={onCanvasDrop}
           onRemove={onCanvasRemove}
+          busLibrary={imports.busLibrary as Record<string, unknown> | undefined}
         />
       </div>
     );

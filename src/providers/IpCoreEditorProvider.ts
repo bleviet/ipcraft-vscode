@@ -163,6 +163,9 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
           refreshWebview: updateWebview,
         });
       },
+      saveCustomBusDefinition: async (message) => {
+        await this.handleSaveCustomBusDefinition(message, document, webviewPanel);
+      },
     };
 
     webviewPanel.webview.onDidReceiveMessage(async (message: IpcMessage) => {
@@ -241,6 +244,74 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
       files: relativePaths,
     });
     this.logger.info(`Selected ${relativePaths.length} file(s)`);
+  }
+
+  private async handleSaveCustomBusDefinition(
+    message: IpcMessage,
+    document: vscode.TextDocument,
+    webviewPanel: vscode.WebviewPanel
+  ): Promise<void> {
+    const baseDir = path.dirname(document.uri.fsPath);
+    const typeName = String(message.typeName ?? 'custom')
+      .toLowerCase()
+      .replace(/[^a-z0-9_]/g, '_');
+    const displayName = String(message.displayName ?? typeName);
+    const ports = (message.ports ?? []) as Array<Record<string, unknown>>;
+    const version = '1.0';
+
+    const customDir = path.join(baseDir, 'custom_bus_definitions');
+    const customDirUri = vscode.Uri.file(customDir);
+    try {
+      await vscode.workspace.fs.createDirectory(customDirUri);
+    } catch {
+      // Directory already exists — ignore
+    }
+
+    // Build the YAML content matching the existing bus_definitions format
+    const portEntries = ports.map((p) => {
+      const entry: Record<string, unknown> = {
+        name: p.name,
+        presence: p.presence ?? 'required',
+      };
+      if (p.direction) {
+        entry.direction = p.direction;
+      }
+      if (p.width !== undefined && p.width !== null && p.width !== '') {
+        entry.width = p.width;
+      }
+      return entry;
+    });
+
+    const busDefObj = {
+      [displayName]: {
+        busType: {
+          vendor: 'user',
+          library: 'busif',
+          name: typeName,
+          version,
+        },
+        ports: portEntries,
+      },
+    };
+
+    const jsyaml = await import('js-yaml');
+    const yamlContent = jsyaml.dump(busDefObj, { indent: 2, lineWidth: 120 });
+
+    const filePath = path.join(customDir, `${typeName}.yml`);
+    const fileUri = vscode.Uri.file(filePath);
+    await vscode.workspace.fs.writeFile(fileUri, Buffer.from(yamlContent, 'utf8'));
+    this.logger.info(`Saved custom bus definition: ${filePath}`);
+
+    // Notify webview — it will add useBusLibrary to the IP core if not already set
+    void webviewPanel.webview.postMessage({
+      type: 'customBusDefinitionSaved',
+      typeName,
+      filePath: path.relative(baseDir, filePath),
+      customBusLibraryDir: 'custom_bus_definitions',
+    });
+
+    // Invalidate bus library cache so the new file is picked up on next reload
+    this.importResolver.clearCache();
   }
 
   private async handleCheckFilesExistMessage(
