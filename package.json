@@ -65,7 +65,7 @@
       },
       {
         "command": "fpga-ip-core.parseHwTcl",
-        "title": "Import from Platform Designer Component",
+        "title": "Import from Platform Designer Component (_hw.tcl)",
         "category": "IPCraft",
         "icon": "$(file-code)"
       },
