@@ -22,6 +22,9 @@ export class DocumentManager {
    * @returns Promise that resolves when the edit is applied
    */
   async updateDocument(document: vscode.TextDocument, text: string): Promise<boolean> {
+    if (document.getText() === text) {
+      return true;
+    }
     try {
       const edit = new vscode.WorkspaceEdit();
       const lastLine = document.lineAt(Math.max(0, document.lineCount - 1));
