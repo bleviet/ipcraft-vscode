@@ -26,6 +26,26 @@ interface PaletteCategory {
 
 const PALETTE: PaletteCategory[] = [
   {
+    title: 'Generics',
+    items: [
+      { kind: 'parameter', dataType: 'integer', nameHint: 'DATA_WIDTH', label: 'Integer Generic' },
+      { kind: 'parameter', dataType: 'natural', nameHint: 'DEPTH', label: 'Natural Generic' },
+      { kind: 'parameter', dataType: 'boolean', nameHint: 'ENABLE', label: 'Boolean Generic' },
+      { kind: 'parameter', dataType: 'string', nameHint: 'INIT_FILE', label: 'String Generic' },
+    ],
+  },
+  {
+    title: 'Infrastructure',
+    items: [
+      { kind: 'clock', nameHint: 'clk', label: 'Clock' },
+      { kind: 'reset', nameHint: 'rst_n', label: 'Reset' },
+      { kind: 'port', direction: 'out', nameHint: 'irq', label: 'Interrupt (output)' },
+      { kind: 'port', direction: 'in', nameHint: 'port_in', label: 'Input Port' },
+      { kind: 'port', direction: 'out', nameHint: 'port_out', label: 'Output Port' },
+      { kind: 'port', direction: 'inout', nameHint: 'port_io', label: 'Inout Port' },
+    ],
+  },
+  {
     title: 'Bus Protocols',
     items: [
       {
@@ -70,26 +90,6 @@ const PALETTE: PaletteCategory[] = [
         nameHint: 'custom_if',
         label: 'Custom Interface',
       },
-    ],
-  },
-  {
-    title: 'Infrastructure',
-    items: [
-      { kind: 'clock', nameHint: 'clk', label: 'Clock' },
-      { kind: 'reset', nameHint: 'rst_n', label: 'Reset' },
-      { kind: 'port', direction: 'out', nameHint: 'irq', label: 'Interrupt (output)' },
-      { kind: 'port', direction: 'in', nameHint: 'port_in', label: 'Input Port' },
-      { kind: 'port', direction: 'out', nameHint: 'port_out', label: 'Output Port' },
-      { kind: 'port', direction: 'inout', nameHint: 'port_io', label: 'Inout Port' },
-    ],
-  },
-  {
-    title: 'Generics',
-    items: [
-      { kind: 'parameter', dataType: 'integer', nameHint: 'DATA_WIDTH', label: 'Integer Generic' },
-      { kind: 'parameter', dataType: 'natural', nameHint: 'DEPTH', label: 'Natural Generic' },
-      { kind: 'parameter', dataType: 'boolean', nameHint: 'ENABLE', label: 'Boolean Generic' },
-      { kind: 'parameter', dataType: 'string', nameHint: 'INIT_FILE', label: 'String Generic' },
     ],
   },
 ];
