@@ -17,8 +17,9 @@ describe('ImportResolver', () => {
     };
 
     readFileMock = jest.fn();
-    (vscode.workspace as unknown as { fs: { readFile: jest.Mock } }).fs = {
+    (vscode.workspace as unknown as { fs: { readFile: jest.Mock; stat: jest.Mock } }).fs = {
       readFile: readFileMock,
+      stat: jest.fn().mockResolvedValue({ type: vscode.FileType.File }),
     };
     (vscode.Uri.file as jest.Mock).mockImplementation((filePath: string) => ({
       fsPath: filePath,

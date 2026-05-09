@@ -825,7 +825,7 @@ const ConduitSignalRow: React.FC<ConduitSignalRowProps> = ({
     }
   }, [port.name, nameFocused]);
 
-  const currentWidth: number | string = port.width === undefined ? 1 : port.width;
+  const currentWidth: number | string = port.width ?? 1;
   const isCurrentlyParam = typeof currentWidth === 'string' && paramNames.includes(currentWidth);
   const [widthMode, setWidthMode] = useState<'number' | 'param'>(
     isCurrentlyParam ? 'param' : 'number'
