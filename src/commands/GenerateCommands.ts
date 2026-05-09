@@ -167,13 +167,26 @@ async function scaffoldProject(context: vscode.ExtensionContext): Promise<void> 
   if (!ipCoreUri) {
     return;
   }
-  const outputDir = await pickOutputDir(
-    ipCoreUri,
-    'generated',
-    'Select output directory for scaffolded project'
-  );
-  if (!outputDir) {
-    return;
+
+  const outputDir = path.join(path.dirname(ipCoreUri.fsPath), 'generated');
+
+  let dirExists = false;
+  try {
+    await vscode.workspace.fs.stat(vscode.Uri.file(outputDir));
+    dirExists = true;
+  } catch {
+    // directory does not exist yet — will be created by the generator
+  }
+
+  if (dirExists) {
+    const answer = await vscode.window.showWarningMessage(
+      `Output directory already exists. Overwrite contents?`,
+      { modal: true },
+      'Overwrite'
+    );
+    if (answer !== 'Overwrite') {
+      return;
+    }
   }
 
   const vendorItems: Array<{ label: string; description: string; vendor: VendorOption }> = [
