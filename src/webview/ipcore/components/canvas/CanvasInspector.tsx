@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import type { IpCore, Clock, Reset, Port, BusInterface, ConduitPort } from '../../../types/ipCore';
 import type { YamlUpdateHandler } from '../../../types/editor';
 import type { CanvasElement, CanvasElementKind } from '../../hooks/useCanvasSelection';
@@ -498,31 +498,6 @@ const BusPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, onUpda
   // Only single, slave memory-mapped interfaces (AXI4-Lite/Full, Avalon-MM) may have a memory map
   const isArray = ((bus.array as { count?: number } | undefined | null)?.count ?? 0) > 1;
   const canHaveMemoryMap = !isArray && supportsMemoryMap(bus.type, bus.mode);
-
-  const importPath =
-    ((ipCore.memoryMaps as unknown as Record<string, unknown> | undefined)?.import as string) ??
-    null;
-
-  // Sole map name when the file contains exactly one map (null otherwise)
-  const singleMapName = allMapNames.length === 1 ? allMapNames[0] : null;
-
-  // Auto-assign memoryMapRef when the linked file contains exactly one map.
-  // Fires on mount (handles already-linked files) and whenever importPath or
-  // resolved maps change. Tracks the last path we auto-assigned for so we
-  // never clobber a reference the user deliberately cleared.
-  const lastAutoAssignedForRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (
-      canHaveMemoryMap &&
-      importPath &&
-      importPath !== lastAutoAssignedForRef.current &&
-      singleMapName !== null &&
-      !bus.memoryMapRef
-    ) {
-      lastAutoAssignedForRef.current = importPath;
-      onUpdate(['busInterfaces', index, 'memoryMapRef'], singleMapName);
-    }
-  }, [canHaveMemoryMap, importPath, singleMapName, bus.memoryMapRef, index, onUpdate]);
 
   return (
     <>
