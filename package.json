@@ -55,7 +55,32 @@
       {
         "command": "fpga-ip-core.generateVHDL",
         "title": "Generate VHDL",
-        "category": "IPCraft"
+        "category": "IPCraft",
+        "icon": "$(code)"
+      },
+      {
+        "command": "fpga-ip-core.scaffoldProject",
+        "title": "Scaffold VHDL Project",
+        "category": "IPCraft",
+        "icon": "$(package)"
+      },
+      {
+        "command": "fpga-ip-core.exportAltera",
+        "title": "Export Altera Platform Designer Component",
+        "category": "IPCraft",
+        "icon": "$(export)"
+      },
+      {
+        "command": "fpga-ip-core.exportXilinx",
+        "title": "Export Xilinx Vivado Component",
+        "category": "IPCraft",
+        "icon": "$(export)"
+      },
+      {
+        "command": "fpga-ip-core.generateTestbench",
+        "title": "Generate CocoTB Testbench",
+        "category": "IPCraft",
+        "icon": "$(beaker)"
       },
       {
         "command": "fpga-ip-core.parseVHDL",
@@ -79,17 +104,52 @@
     "menus": {
       "explorer/context": [
         {
+          "command": "fpga-ip-core.scaffoldProject",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/",
+          "group": "fpga@1"
+        },
+        {
+          "command": "fpga-ip-core.exportAltera",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/",
+          "group": "fpga@2"
+        },
+        {
+          "command": "fpga-ip-core.exportXilinx",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/",
+          "group": "fpga@3"
+        },
+        {
           "command": "fpga-ip-core.parseVHDL",
           "when": "resourceExtname == .vhd || resourceExtname == .vhdl",
-          "group": "fpga@1"
+          "group": "fpga@4"
         },
         {
           "command": "fpga-ip-core.parseHwTcl",
           "when": "resourceFilename =~ /_hw\\.tcl$/",
-          "group": "fpga@2"
+          "group": "fpga@5"
         }
       ],
       "editor/title": [
+        {
+          "command": "fpga-ip-core.scaffoldProject",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/",
+          "group": "ipcraft@1"
+        },
+        {
+          "command": "fpga-ip-core.exportAltera",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/",
+          "group": "ipcraft@2"
+        },
+        {
+          "command": "fpga-ip-core.exportXilinx",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/",
+          "group": "ipcraft@3"
+        },
+        {
+          "command": "fpga-ip-core.generateTestbench",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/",
+          "group": "ipcraft@4"
+        },
         {
           "command": "fpga-ip-core.parseVHDL",
           "when": "resourceExtname == .vhd || resourceExtname == .vhdl",

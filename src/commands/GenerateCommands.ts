@@ -14,6 +14,7 @@ import { parseVhdlFile } from '../parser/VhdlParser';
 import { parseHwTclFile } from '../parser/HwTclParser';
 import { safeRegisterCommand } from '../utils/vscodeHelpers';
 import { updateFileSets } from '../services/FileSetUpdater';
+import type { GenerateOptions, VendorOption } from '../generator/types';
 
 const logger = new Logger('GenerateCommands');
 
@@ -22,22 +23,34 @@ const logger = new Logger('GenerateCommands');
  */
 
 export function registerGeneratorCommands(context: vscode.ExtensionContext): void {
-  // Generate VHDL command (auto-detects bus from YAML)
   safeRegisterCommand(context, 'fpga-ip-core.generateVHDL', async () => {
     await generateVHDL(context);
   });
 
-  // Parse VHDL and create IP core YAML
+  safeRegisterCommand(context, 'fpga-ip-core.scaffoldProject', async () => {
+    await scaffoldProject(context);
+  });
+
+  safeRegisterCommand(context, 'fpga-ip-core.exportAltera', async () => {
+    await exportAltera(context);
+  });
+
+  safeRegisterCommand(context, 'fpga-ip-core.exportXilinx', async () => {
+    await exportXilinx(context);
+  });
+
+  safeRegisterCommand(context, 'fpga-ip-core.generateTestbench', async () => {
+    await generateTestbench(context);
+  });
+
   safeRegisterCommand(context, 'fpga-ip-core.parseVHDL', async (uri?: vscode.Uri) => {
     await parseVHDL(uri);
   });
 
-  // Import from Platform Designer _hw.tcl component definition
   safeRegisterCommand(context, 'fpga-ip-core.parseHwTcl', async (uri?: vscode.Uri) => {
     await parseHwTcl(uri);
   });
 
-  // View bundled bus definitions YAML
   safeRegisterCommand(context, 'fpga-ip-core.viewBusDefinitions', async () => {
     await viewBusDefinitions(context);
   });
@@ -93,71 +106,217 @@ async function viewBusDefinitions(context: vscode.ExtensionContext): Promise<voi
   }
 }
 
-/**
- * Get IP core file path from active editor
- */
-function getActiveIpCoreFile(): vscode.Uri | undefined {
-  const editor = vscode.window.activeTextEditor;
-  if (!editor) {
-    void vscode.window.showErrorMessage('No active editor. Please open an IP core YAML file.');
-    return undefined;
-  }
+function isIpCoreFile(fsPath: string): boolean {
+  return fsPath.endsWith('.ip.yml') || fsPath.endsWith('.ip.yaml');
+}
 
-  const document = editor.document;
-  if (!document.fileName.endsWith('.ip.yml') && !document.fileName.endsWith('.ip.yaml')) {
+function getActiveIpCoreFile(): vscode.Uri | undefined {
+  // Text editor active (e.g. YAML opened as raw text)
+  const editor = vscode.window.activeTextEditor;
+  if (editor) {
+    if (isIpCoreFile(editor.document.fileName)) {
+      return editor.document.uri;
+    }
     void vscode.window.showErrorMessage('Active file is not an IP core file (*.ip.yml).');
     return undefined;
   }
 
-  return document.uri;
+  // Custom editor active (IP Core Visual Editor webview)
+  const activeTab = vscode.window.tabGroups.activeTabGroup.activeTab;
+  if (activeTab?.input instanceof vscode.TabInputCustom) {
+    const { uri } = activeTab.input;
+    if (isIpCoreFile(uri.fsPath)) {
+      return uri;
+    }
+  }
+
+  void vscode.window.showErrorMessage('No active IP core file. Please open a .ip.yml file.');
+  return undefined;
 }
 
-/**
- * Main VHDL generation command - requires Python backend
- */
 async function generateVHDL(context: vscode.ExtensionContext): Promise<void> {
   const ipCoreUri = getActiveIpCoreFile();
   if (!ipCoreUri) {
     return;
   }
+  const outputDir = await pickOutputDir(
+    ipCoreUri,
+    'generated',
+    'Select output directory for VHDL files'
+  );
+  if (!outputDir) {
+    return;
+  }
+  await runGenerator(
+    context,
+    ipCoreUri,
+    outputDir,
+    {
+      vendor: 'none',
+      includeVhdl: true,
+      includeRegs: true,
+      updateYaml: true,
+    },
+    'Generating VHDL...'
+  );
+}
 
-  const sourceDir = path.dirname(ipCoreUri.fsPath);
-  const defaultOutputDir = path.join(sourceDir, 'generated');
+async function scaffoldProject(context: vscode.ExtensionContext): Promise<void> {
+  const ipCoreUri = getActiveIpCoreFile();
+  if (!ipCoreUri) {
+    return;
+  }
+  const outputDir = await pickOutputDir(
+    ipCoreUri,
+    'generated',
+    'Select output directory for scaffolded project'
+  );
+  if (!outputDir) {
+    return;
+  }
 
-  // Ask user for output directory
-  const outputUri = await vscode.window.showOpenDialog({
-    defaultUri: vscode.Uri.file(defaultOutputDir),
+  const vendorItems: Array<{ label: string; description: string; vendor: VendorOption }> = [
+    {
+      label: '$(package) Both',
+      description: 'Xilinx Vivado + Altera Platform Designer',
+      vendor: 'both',
+    },
+    {
+      label: '$(chip) Xilinx / AMD Vivado',
+      description: 'component.xml + XGUI TCL',
+      vendor: 'amd',
+    },
+    {
+      label: '$(chip) Altera / Intel Platform Designer',
+      description: '_hw.tcl component definition',
+      vendor: 'altera',
+    },
+    { label: '$(code) None', description: 'VHDL source files only', vendor: 'none' },
+  ];
+  const picked = await vscode.window.showQuickPick(vendorItems, {
+    title: 'Scaffold VHDL Project — Vendor Files',
+    placeHolder: 'Which vendor integration files should be generated?',
+  });
+  if (!picked) {
+    return;
+  }
+
+  await runGenerator(
+    context,
+    ipCoreUri,
+    outputDir,
+    {
+      vendor: picked.vendor,
+      includeVhdl: true,
+      includeRegs: true,
+      updateYaml: true,
+    },
+    'Scaffolding project...'
+  );
+}
+
+async function exportAltera(context: vscode.ExtensionContext): Promise<void> {
+  const ipCoreUri = getActiveIpCoreFile();
+  if (!ipCoreUri) {
+    return;
+  }
+  const outputDir = path.dirname(ipCoreUri.fsPath);
+  await runGenerator(
+    context,
+    ipCoreUri,
+    outputDir,
+    {
+      vendor: 'altera',
+      includeVhdl: false,
+      includeRegs: false,
+      silent: true,
+    },
+    'Exporting Altera Platform Designer component...'
+  );
+}
+
+async function exportXilinx(context: vscode.ExtensionContext): Promise<void> {
+  const ipCoreUri = getActiveIpCoreFile();
+  if (!ipCoreUri) {
+    return;
+  }
+  const outputDir = path.dirname(ipCoreUri.fsPath);
+  await runGenerator(
+    context,
+    ipCoreUri,
+    outputDir,
+    {
+      vendor: 'amd',
+      includeVhdl: false,
+      includeRegs: false,
+      silent: true,
+    },
+    'Exporting Xilinx Vivado component...'
+  );
+}
+
+async function generateTestbench(context: vscode.ExtensionContext): Promise<void> {
+  const ipCoreUri = getActiveIpCoreFile();
+  if (!ipCoreUri) {
+    return;
+  }
+  const outputDir = path.dirname(ipCoreUri.fsPath);
+  await runGenerator(
+    context,
+    ipCoreUri,
+    outputDir,
+    {
+      vendor: 'none',
+      includeVhdl: false,
+      includeRegs: false,
+      includeTestbench: true,
+      silent: true,
+    },
+    'Generating CocoTB testbench...'
+  );
+}
+
+async function pickOutputDir(
+  ipCoreUri: vscode.Uri,
+  defaultSubDir: string,
+  title: string
+): Promise<string | undefined> {
+  const defaultDir = path.join(path.dirname(ipCoreUri.fsPath), defaultSubDir);
+  const picked = await vscode.window.showOpenDialog({
+    defaultUri: vscode.Uri.file(defaultDir),
     canSelectFiles: false,
     canSelectFolders: true,
     canSelectMany: false,
-    openLabel: 'Select Output Directory',
-    title: 'Select directory for generated VHDL files',
+    openLabel: 'Select Directory',
+    title,
   });
+  return picked?.[0]?.fsPath ?? defaultDir;
+}
 
-  const outputDir = outputUri?.[0]?.fsPath ?? defaultOutputDir;
-
+async function runGenerator(
+  context: vscode.ExtensionContext,
+  ipCoreUri: vscode.Uri,
+  outputDir: string,
+  options: GenerateOptions & { updateYaml?: boolean; silent?: boolean },
+  progressTitle: string
+): Promise<void> {
   await vscode.window.withProgress(
-    {
-      location: vscode.ProgressLocation.Notification,
-      title: 'Generating VHDL files...',
-      cancellable: false,
-    },
+    { location: vscode.ProgressLocation.Notification, title: progressTitle, cancellable: false },
     async () => {
       const generator = new IpCoreScaffolder(logger, new TemplateLoader(logger), context);
-      const result = await generator.generateAll(ipCoreUri.fsPath, outputDir, {
-        updateYaml: true,
-      });
+      const result = await generator.generateAll(ipCoreUri.fsPath, outputDir, options);
 
       if (result.success) {
-        if (result.files) {
+        if (options.updateYaml && result.files) {
           await updateFileSetsInYaml(ipCoreUri, outputDir, Object.keys(result.files));
         }
-
+        if (options.silent) {
+          return;
+        }
         const action = await vscode.window.showInformationMessage(
           `✓ Generated ${String(result.count)} files`,
           'Open Folder'
         );
-
         if (action === 'Open Folder') {
           await vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(outputDir));
         }
