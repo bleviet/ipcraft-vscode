@@ -211,6 +211,7 @@ async function scaffoldProject(context: vscode.ExtensionContext): Promise<void> 
       includeVhdl: true,
       includeRegs: true,
       updateYaml: true,
+      silent: true,
     },
     'Scaffolding project...'
   );

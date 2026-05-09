@@ -166,6 +166,11 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
       saveCustomBusDefinition: async (message) => {
         await this.handleSaveCustomBusDefinition(message, document, webviewPanel);
       },
+      command: async (message) => {
+        if (message.command) {
+          await vscode.commands.executeCommand(String(message.command));
+        }
+      },
     };
 
     webviewPanel.webview.onDidReceiveMessage(async (message: IpcMessage) => {

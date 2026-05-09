@@ -416,6 +416,65 @@ const IpCoreApp: React.FC = () => {
                 <span className="codicon codicon-list-flat"></span>
               </button>
             </div>
+            {/* Generate actions */}
+            <div
+              className="flex items-center gap-1"
+              style={{ borderLeft: '1px solid var(--vscode-panel-border)', paddingLeft: '8px' }}
+            >
+              <button
+                className="canvas-view-toggle"
+                title="Generate VHDL"
+                type="button"
+                onClick={() =>
+                  vscode?.postMessage({ type: 'command', command: 'fpga-ip-core.generateVHDL' })
+                }
+              >
+                <span className="codicon codicon-code"></span>
+              </button>
+              <button
+                className="canvas-view-toggle"
+                title="Scaffold VHDL Project"
+                type="button"
+                onClick={() =>
+                  vscode?.postMessage({ type: 'command', command: 'fpga-ip-core.scaffoldProject' })
+                }
+              >
+                <span className="codicon codicon-package"></span>
+              </button>
+              <button
+                className="canvas-view-toggle"
+                title="Export Xilinx Vivado Component"
+                type="button"
+                onClick={() =>
+                  vscode?.postMessage({ type: 'command', command: 'fpga-ip-core.exportXilinx' })
+                }
+              >
+                <span className="codicon codicon-export"></span>
+              </button>
+              <button
+                className="canvas-view-toggle"
+                title="Export Altera Platform Designer Component"
+                type="button"
+                onClick={() =>
+                  vscode?.postMessage({ type: 'command', command: 'fpga-ip-core.exportAltera' })
+                }
+              >
+                <span className="codicon codicon-chip"></span>
+              </button>
+              <button
+                className="canvas-view-toggle"
+                title="Generate CocoTB Testbench"
+                type="button"
+                onClick={() =>
+                  vscode?.postMessage({
+                    type: 'command',
+                    command: 'fpga-ip-core.generateTestbench',
+                  })
+                }
+              >
+                <span className="codicon codicon-beaker"></span>
+              </button>
+            </div>
             {validationErrors.length > 0 && (
               <div className="text-sm" style={{ color: 'var(--vscode-errorForeground)' }}>
                 {validationErrors.length} validation error(s)
