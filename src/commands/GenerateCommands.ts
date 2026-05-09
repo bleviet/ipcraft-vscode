@@ -156,6 +156,7 @@ async function generateVHDL(context: vscode.ExtensionContext): Promise<void> {
       includeVhdl: true,
       includeRegs: true,
       updateYaml: true,
+      silent: true,
     },
     'Generating VHDL...'
   );
