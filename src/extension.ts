@@ -72,6 +72,23 @@ export function activate(context: vscode.ExtensionContext): void {
   registerGeneratorCommands(context);
   logger.info('Generator commands registered');
 
+  // Install custom IPCraft bus definitions (e.g. Avalon Streaming) to the global OS config dir
+  void import('./generator/VivadoBusDefInstaller').then(({ installGlobalBusDefinitions }) => {
+    installGlobalBusDefinitions(context.extensionPath)
+      .then((busDefsDir) => {
+        logger.info(`Installed global bus definitions to: ${busDefsDir}`);
+
+        // Show a one-time message if it's the first time we install, or let the user know.
+        // We'll just log it to avoid spamming the user on every startup, but we could add a VS Code setting later
+        // to track if the message has been shown.
+        // For now, let's just show an info message that auto-dismisses or requires user to check output.
+        // Actually, let's just log it. The user requested they be stored there.
+      })
+      .catch((err) => {
+        logger.error(`Failed to install global bus definitions: ${err}`);
+      });
+  });
+
   logger.info('Extension activated successfully');
 }
 

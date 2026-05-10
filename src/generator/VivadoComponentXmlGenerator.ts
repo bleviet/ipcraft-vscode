@@ -10,7 +10,7 @@ import type {
 
 // ── Custom bus definition support ─────────────────────────────────────────────
 
-interface CustomBusInfo {
+export interface CustomBusInfo {
   vendor: string;
   library: string;
   name: string;
@@ -73,7 +73,7 @@ function busDefPortMaps(
   return lines;
 }
 
-function renderBusDefinitionXml(busInfo: CustomBusInfo): string {
+export function renderBusDefinitionXml(busInfo: CustomBusInfo): string {
   const lines = [
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<spirit:busDefinition',
@@ -93,7 +93,7 @@ function renderBusDefinitionXml(busInfo: CustomBusInfo): string {
   return lines.join('\n');
 }
 
-function renderAbstractionDefinitionXml(busInfo: CustomBusInfo): string {
+export function renderAbstractionDefinitionXml(busInfo: CustomBusInfo): string {
   const lines = [
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<spirit:abstractionDefinition',
