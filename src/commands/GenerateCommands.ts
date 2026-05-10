@@ -15,6 +15,7 @@ import { parseHwTclFile } from '../parser/HwTclParser';
 import { parseComponentXmlFile } from '../parser/ComponentXmlParser';
 import { safeRegisterCommand } from '../utils/vscodeHelpers';
 import { updateFileSets } from '../services/FileSetUpdater';
+import { resolveVendor } from '../utils/resolveVendor';
 import type { GenerateOptions, VendorOption } from '../generator/types';
 
 const logger = new Logger('GenerateCommands');
@@ -466,6 +467,7 @@ async function parseHwTcl(resourceUri?: vscode.Uri): Promise<void> {
         const cfg = vscode.workspace.getConfiguration('ipcraft.import');
         const result = await parseHwTclFile(tclPath, {
           library: cfg.get<string>('library'),
+          vendor: resolveVendor(cfg.get<string>('vendor')),
         });
 
         const encoder = new TextEncoder();

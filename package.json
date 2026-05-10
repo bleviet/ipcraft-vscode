@@ -184,7 +184,7 @@
         "ipcraft.import.vendor": {
           "type": "string",
           "default": "user",
-          "description": "Default vendor name used when importing a VHDL file as an IP Core."
+          "description": "Vendor name used when importing IP cores (VHDL, hw.tcl, component.xml). Leave blank or 'user' to auto-detect from git user.email (e.g. user@company.com → company.com), falling back to 'ipcraft'."
         },
         "ipcraft.import.library": {
           "type": "string",

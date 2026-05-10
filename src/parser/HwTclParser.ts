@@ -2,10 +2,12 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
 import { lookupBusDef } from '../webview/ipcore/data/busDefinitions';
+import { resolveVendor } from '../utils/resolveVendor';
 
 export interface HwTclParseOptions {
   library?: string;
   outputDir?: string;
+  vendor?: string;
 }
 
 export interface HwTclParseResult {
@@ -170,9 +172,13 @@ export function parseHwTclContent(
       .replace(/_hw\.tcl$/i, '')
       .replace(/\.tcl$/i, '');
 
+  // Author from hw.tcl AUTHOR property; fall back through setting → git email → default
+  const authorFromTcl = moduleProps.get('AUTHOR');
+  const vendor = authorFromTcl ?? resolveVendor(options.vendor);
+
   const yamlData: Record<string, unknown> = {
     vlnv: {
-      vendor: moduleProps.get('AUTHOR') ?? 'user',
+      vendor,
       library: options.library ?? 'ip',
       name: componentName,
       version: moduleProps.get('VERSION') ?? '1.0.0',
