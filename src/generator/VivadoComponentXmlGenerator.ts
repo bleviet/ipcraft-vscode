@@ -1,5 +1,172 @@
 import { getActiveBusPortsFromDefinition } from './registerProcessor';
-import type { BusDefinitions, BusInterfaceDef, IpCoreData, ParameterDef } from './types';
+import type {
+  BusDefinitions,
+  BusInterfaceDef,
+  BusPortDefinition,
+  IpCoreData,
+  ParameterDef,
+} from './types';
+
+// ── Custom bus definition support ─────────────────────────────────────────────
+
+interface CustomBusInfo {
+  vendor: string;
+  library: string;
+  name: string;
+  version: string;
+  description: string;
+  ports: BusPortDefinition[];
+}
+
+function findCustomBusDef(ifaceType: string, busDefinitions: BusDefinitions): CustomBusInfo | null {
+  if (IPCRAFT_TO_VIVADO[ifaceType]) {
+    return null;
+  }
+  for (const def of Object.values(busDefinitions)) {
+    const bt = def.busType;
+    if (!bt?.vendor || !bt.library || !bt.name || !bt.version) {
+      continue;
+    }
+    const vlnv = `${bt.vendor}.${bt.library}.${bt.name}.${bt.version}`;
+    if (vlnv === ifaceType) {
+      return {
+        vendor: bt.vendor,
+        library: bt.library,
+        name: bt.name,
+        version: bt.version,
+        description: bt.description ?? '',
+        ports: def.ports ?? [],
+      };
+    }
+  }
+  return null;
+}
+
+function busDefPortMaps(
+  ports: BusPortDefinition[],
+  iface: BusInterfaceDef,
+  mode: string
+): string[] {
+  const activePorts = getActiveBusPortsFromDefinition(
+    ports as Array<{ name: string; width?: number; direction?: string; presence?: string }>,
+    iface.use_optional_ports ?? [],
+    String(iface.physical_prefix ?? ''),
+    mode,
+    iface.port_width_overrides ?? {}
+  );
+  if (activePorts.length === 0) {
+    return [];
+  }
+  const lines: string[] = ['      <spirit:portMaps>'];
+  for (const port of activePorts) {
+    lines.push('        <spirit:portMap>');
+    lines.push('          <spirit:logicalPort>');
+    lines.push(`            <spirit:name>${x(String(port.logical_name))}</spirit:name>`);
+    lines.push('          </spirit:logicalPort>');
+    lines.push('          <spirit:physicalPort>');
+    lines.push(`            <spirit:name>${x(String(port.name))}</spirit:name>`);
+    lines.push('          </spirit:physicalPort>');
+    lines.push('        </spirit:portMap>');
+  }
+  lines.push('      </spirit:portMaps>');
+  return lines;
+}
+
+function renderBusDefinitionXml(busInfo: CustomBusInfo): string {
+  const lines = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<spirit:busDefinition',
+    '  xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"',
+    '  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">',
+    `  <spirit:vendor>${x(busInfo.vendor)}</spirit:vendor>`,
+    `  <spirit:library>${x(busInfo.library)}</spirit:library>`,
+    `  <spirit:name>${x(busInfo.name)}</spirit:name>`,
+    `  <spirit:version>${x(busInfo.version)}</spirit:version>`,
+    '  <spirit:directConnection>false</spirit:directConnection>',
+    '  <spirit:isAddressable>false</spirit:isAddressable>',
+  ];
+  if (busInfo.description) {
+    lines.push(`  <spirit:description>${x(busInfo.description)}</spirit:description>`);
+  }
+  lines.push('</spirit:busDefinition>');
+  return lines.join('\n');
+}
+
+function renderAbstractionDefinitionXml(busInfo: CustomBusInfo): string {
+  const lines = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<spirit:abstractionDefinition',
+    '  xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"',
+    '  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">',
+    `  <spirit:vendor>${x(busInfo.vendor)}</spirit:vendor>`,
+    `  <spirit:library>${x(busInfo.library)}</spirit:library>`,
+    `  <spirit:name>${x(busInfo.name)}_rtl</spirit:name>`,
+    `  <spirit:version>${x(busInfo.version)}</spirit:version>`,
+    `  <spirit:busType spirit:vendor="${x(busInfo.vendor)}" spirit:library="${x(busInfo.library)}" spirit:name="${x(busInfo.name)}" spirit:version="${x(busInfo.version)}"/>`,
+    '  <spirit:ports>',
+  ];
+
+  for (const port of busInfo.ports) {
+    const logicalName = String(port.name);
+    if (['ACLK', 'ARESETn', 'clk', 'reset'].includes(logicalName)) {
+      continue;
+    }
+    const presence = port.presence ?? 'required';
+    const masterDir = port.direction ?? 'out';
+    const slaveDir = masterDir === 'out' ? 'in' : 'out';
+    const width = port.width ?? 1;
+
+    lines.push('    <spirit:port>');
+    lines.push(`      <spirit:logicalName>${x(logicalName)}</spirit:logicalName>`);
+    lines.push('      <spirit:wire>');
+    lines.push('        <spirit:onMaster>');
+    lines.push(`          <spirit:presence>${x(presence)}</spirit:presence>`);
+    lines.push(`          <spirit:width>${width}</spirit:width>`);
+    lines.push(`          <spirit:direction>${x(masterDir)}</spirit:direction>`);
+    lines.push('        </spirit:onMaster>');
+    lines.push('        <spirit:onSlave>');
+    lines.push(`          <spirit:presence>${x(presence)}</spirit:presence>`);
+    lines.push(`          <spirit:width>${width}</spirit:width>`);
+    lines.push(`          <spirit:direction>${x(slaveDir)}</spirit:direction>`);
+    lines.push('        </spirit:onSlave>');
+    lines.push('      </spirit:wire>');
+    lines.push('    </spirit:port>');
+  }
+
+  lines.push('  </spirit:ports>');
+  lines.push('</spirit:abstractionDefinition>');
+  return lines.join('\n');
+}
+
+/**
+ * Generate busDefinition and abstractionDefinition XML files for any custom
+ * (non-standard) bus interfaces referenced by the IP core. Returns a map of
+ * relative paths → file contents, intended to be placed inside the amd/ output
+ * directory alongside component.xml.
+ */
+export function generateCustomBusDefs(
+  ipCore: IpCoreData,
+  busDefinitions: BusDefinitions
+): Record<string, string> {
+  const files: Record<string, string> = {};
+  const seen = new Set<string>();
+
+  for (const iface of ipCore.bus_interfaces ?? []) {
+    const ifaceType = String(iface.type ?? '');
+    if (seen.has(ifaceType)) {
+      continue;
+    }
+    const custom = findCustomBusDef(ifaceType, busDefinitions);
+    if (!custom) {
+      continue;
+    }
+    seen.add(ifaceType);
+    files[`busdef/${custom.name}.xml`] = renderBusDefinitionXml(custom);
+    files[`busdef/${custom.name}_rtl.xml`] = renderAbstractionDefinitionXml(custom);
+  }
+
+  return files;
+}
 
 // ── Vivado bus type mapping ───────────────────────────────────────────────────
 
@@ -171,6 +338,7 @@ function renderBusInterface(iface: BusInterfaceDef, busDefinitions: BusDefinitio
   const mode = String(iface.mode ?? 'slave').toLowerCase();
 
   const vivadoType = IPCRAFT_TO_VIVADO[ifaceType];
+  const customBus = vivadoType ? null : findCustomBusDef(ifaceType, busDefinitions);
 
   const lines: string[] = [];
   lines.push('    <spirit:busInterface>');
@@ -183,8 +351,15 @@ function renderBusInterface(iface: BusInterfaceDef, busDefinitions: BusDefinitio
     lines.push(
       `      <spirit:abstractionType spirit:vendor="${vivadoType.vendor}" spirit:library="${vivadoType.library}" spirit:name="${vivadoType.abstraction}" spirit:version="1.0" />`
     );
+  } else if (customBus) {
+    lines.push(
+      `      <spirit:busType spirit:vendor="${x(customBus.vendor)}" spirit:library="${x(customBus.library)}" spirit:name="${x(customBus.name)}" spirit:version="${x(customBus.version)}" />`
+    );
+    lines.push(
+      `      <spirit:abstractionType spirit:vendor="${x(customBus.vendor)}" spirit:library="${x(customBus.library)}" spirit:name="${x(customBus.name)}_rtl" spirit:version="${x(customBus.version)}" />`
+    );
   } else {
-    lines.push(`      <!-- Fallback or unsupported type: ${x(ifaceType)} -->`);
+    lines.push(`      <!-- Unsupported type: ${x(ifaceType)} -->`);
     lines.push(
       `      <spirit:busType spirit:vendor="user.org" spirit:library="user" spirit:name="${x(ifaceType)}" spirit:version="1.0" />`
     );
@@ -193,40 +368,16 @@ function renderBusInterface(iface: BusInterfaceDef, busDefinitions: BusDefinitio
     );
   }
 
-  const modeTag = modeToXmlTag(mode);
-  lines.push(`      <spirit:${modeTag} />`);
+  lines.push(`      <spirit:${modeToXmlTag(mode)} />`);
 
-  // portMaps from bus library
+  // portMaps
   if (vivadoType) {
     const busDef = busDefinitions[vivadoType.libraryKey];
     if (busDef?.ports) {
-      const activePorts = getActiveBusPortsFromDefinition(
-        busDef.ports as Array<{
-          name: string;
-          width?: number;
-          direction?: string;
-          presence?: string;
-        }>,
-        iface.use_optional_ports ?? [],
-        String(iface.physical_prefix ?? ''),
-        mode,
-        iface.port_width_overrides ?? {}
-      );
-      if (activePorts.length > 0) {
-        lines.push('      <spirit:portMaps>');
-        for (const port of activePorts) {
-          lines.push('        <spirit:portMap>');
-          lines.push('          <spirit:logicalPort>');
-          lines.push(`            <spirit:name>${x(String(port.logical_name))}</spirit:name>`);
-          lines.push('          </spirit:logicalPort>');
-          lines.push('          <spirit:physicalPort>');
-          lines.push(`            <spirit:name>${x(String(port.name))}</spirit:name>`);
-          lines.push('          </spirit:physicalPort>');
-          lines.push('        </spirit:portMap>');
-        }
-        lines.push('      </spirit:portMaps>');
-      }
+      lines.push(...busDefPortMaps(busDef.ports, iface, mode));
     }
+  } else if (customBus) {
+    lines.push(...busDefPortMaps(customBus.ports, iface, mode));
   }
 
   // PROTOCOL parameter for AXI4/AXI4LITE
@@ -419,24 +570,21 @@ function renderPorts(
   }
 
   for (const iface of busInterfaces) {
-    const vivadoType = IPCRAFT_TO_VIVADO[String(iface.type ?? '')];
-    if (!vivadoType) {
-      continue;
-    }
-    const busDef = busDefinitions[vivadoType.libraryKey];
-    if (!busDef?.ports) {
+    const ifaceType = String(iface.type ?? '');
+    const mode = String(iface.mode ?? 'slave').toLowerCase();
+    const vivadoType = IPCRAFT_TO_VIVADO[ifaceType];
+    const sourcePorts: BusPortDefinition[] | undefined = vivadoType
+      ? busDefinitions[vivadoType.libraryKey]?.ports
+      : findCustomBusDef(ifaceType, busDefinitions)?.ports;
+
+    if (!sourcePorts) {
       continue;
     }
     const activePorts = getActiveBusPortsFromDefinition(
-      busDef.ports as Array<{
-        name: string;
-        width?: number;
-        direction?: string;
-        presence?: string;
-      }>,
+      sourcePorts as Array<{ name: string; width?: number; direction?: string; presence?: string }>,
       iface.use_optional_ports ?? [],
       String(iface.physical_prefix ?? ''),
-      String(iface.mode ?? 'slave').toLowerCase(),
+      mode,
       iface.port_width_overrides ?? {}
     );
     for (const port of activePorts) {

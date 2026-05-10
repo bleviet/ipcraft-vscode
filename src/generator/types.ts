@@ -24,6 +24,13 @@ export type BusPortDefinition = {
 };
 
 export type BusDefinition = {
+  busType?: {
+    vendor?: string;
+    library?: string;
+    name?: string;
+    version?: string;
+    description?: string;
+  };
   ports?: BusPortDefinition[];
 };
 

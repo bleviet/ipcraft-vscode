@@ -147,13 +147,13 @@ export function normalizeBusType(typeName: string): BusTypeInfo {
   if (vlnvMatch) {
     return (
       VLNV_BUS_NAME_MAP[vlnvMatch[1].toLowerCase()] ?? {
-        libraryKey: 'AXI4_LITE',
-        templateType: 'axil',
+        libraryKey: '',
+        templateType: 'custom',
       }
     );
   }
   const normalized = typeName.toUpperCase().replace(/[\s_.-]/g, '');
-  return BUS_TYPE_ALIASES[normalized] ?? { libraryKey: 'AXI4_LITE', templateType: 'axil' };
+  return BUS_TYPE_ALIASES[normalized] ?? { libraryKey: '', templateType: 'custom' };
 }
 
 export function getBusTypeForTemplate(ipCore: IpCoreData): string {

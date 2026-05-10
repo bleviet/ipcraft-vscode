@@ -14,8 +14,14 @@ import {
   prepareRegisters,
   resolveMemoryMaps,
 } from './registerProcessor';
-import { generateComponentXml } from './VivadoComponentXmlGenerator';
-import type { BusDefinitions, GenerateOptions, GenerateResult, IpCoreData } from './types';
+import { generateComponentXml, generateCustomBusDefs } from './VivadoComponentXmlGenerator';
+import type {
+  BusDefinitions,
+  BusPortDefinition,
+  GenerateOptions,
+  GenerateResult,
+  IpCoreData,
+} from './types';
 
 export class IpCoreScaffolder {
   private readonly logger: Logger;
@@ -37,6 +43,15 @@ export class IpCoreScaffolder {
     try {
       await this.ensureBusDefinitions();
       const ipCoreData = await this.loadIpCore(inputPath);
+
+      // Load per-IP custom bus library (useBusLibrary: ./path) without polluting the global cache
+      const useBusLib = String((ipCoreData as Record<string, unknown>).useBusLibrary ?? '');
+      if (useBusLib) {
+        const busLibPath = path.resolve(path.dirname(inputPath), useBusLib);
+        const extraDefs = await this.busLibraryService.loadFromDirectories([busLibPath]);
+        this.busDefinitions = { ...this.busDefinitions, ...extraDefs } as BusDefinitions;
+      }
+
       const busType = getBusTypeForTemplate(ipCoreData);
       const context = await this.buildTemplateContext(ipCoreData, busType, inputPath);
       const includeRegs = options.includeRegs !== false;
@@ -80,6 +95,10 @@ export class IpCoreScaffolder {
           rtlFiles,
           xguiFile,
         });
+        const customBusDefs = generateCustomBusDefs(ipCoreData, this.busDefinitions ?? {});
+        for (const [relPath, content] of Object.entries(customBusDefs)) {
+          files[`amd/${relPath}`] = content;
+        }
         files[`amd/${xguiFile}`] = this.templates.render('amd_xgui.j2', context);
       }
 
@@ -119,7 +138,20 @@ export class IpCoreScaffolder {
       return;
     }
     const library = await this.busLibraryService.loadDefaultLibrary();
-    this.busDefinitions = (library || {}) as BusDefinitions;
+
+    let userLibrary: Record<string, unknown> = {};
+    try {
+      const config = vscode.workspace.getConfiguration('ipcraft');
+      const userPaths = config.get<string[]>('busLibraryPaths', []);
+      const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+      if (userPaths.length > 0) {
+        userLibrary = await this.busLibraryService.loadFromUserPaths(userPaths, workspaceRoot);
+      }
+    } catch {
+      // VS Code workspace API unavailable (e.g. test environment)
+    }
+
+    this.busDefinitions = { ...(library || {}), ...userLibrary } as BusDefinitions;
   }
 
   private async loadIpCore(inputPath: string): Promise<IpCoreData> {
@@ -178,7 +210,10 @@ export class IpCoreScaffolder {
       expandedBusInterfaces.forEach((iface, index) => {
         const busTypeInfo = normalizeBusType(this.getString(iface.type));
         iface.altera_type = TEMPLATE_TYPE_TO_ALTERA[busTypeInfo.templateType] ?? 'conduit';
-        const busPortsForType = this.busDefinitions?.[busTypeInfo.libraryKey]?.ports ?? [];
+        const busPortsForType = this.resolvePortsForInterface(
+          busTypeInfo.libraryKey,
+          this.getString(iface.type)
+        );
         const activePorts = getActiveBusPortsFromDefinition(
           busPortsForType,
           iface.use_optional_ports ?? [],
@@ -286,6 +321,23 @@ export class IpCoreScaffolder {
         default_width: null,
       };
     });
+  }
+
+  private resolvePortsForInterface(libraryKey: string, ifaceType: string): BusPortDefinition[] {
+    const knownPorts = libraryKey ? this.busDefinitions?.[libraryKey]?.ports : undefined;
+    if (knownPorts) {
+      return knownPorts;
+    }
+    for (const def of Object.values(this.busDefinitions ?? {})) {
+      const bt = (def as { busType?: Record<string, string> }).busType;
+      if (!bt?.vendor || !bt.library || !bt.name || !bt.version) {
+        continue;
+      }
+      if (`${bt.vendor}.${bt.library}.${bt.name}.${bt.version}` === ifaceType) {
+        return def.ports ?? [];
+      }
+    }
+    return [];
   }
 
   private normalizePrefix(prefix: string): string {

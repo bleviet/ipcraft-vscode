@@ -1,4 +1,7 @@
-import { generateComponentXml } from '../../../generator/VivadoComponentXmlGenerator';
+import {
+  generateComponentXml,
+  generateCustomBusDefs,
+} from '../../../generator/VivadoComponentXmlGenerator';
 import type { BusDefinitions, IpCoreData } from '../../../generator/types';
 
 // ── Fixtures ─────────────────────────────────────────────────────────────────
@@ -196,7 +199,7 @@ describe('generateComponentXml', () => {
     });
   });
 
-  describe('unknown bus type', () => {
+  describe('unknown bus type (no bus definition)', () => {
     it('falls back to user.org with type as name', () => {
       const xml = gen({
         bus_interfaces: [
@@ -212,6 +215,74 @@ describe('generateComponentXml', () => {
       });
       expect(xml).toContain('spirit:vendor="user.org"');
       expect(xml).toContain('spirit:name="custom.busif.mybus.1.0"');
+    });
+  });
+
+  describe('custom bus type (with bus definition)', () => {
+    const CUSTOM_BUS_DEFS: BusDefinitions = {
+      ...BUS_DEFS,
+      MY_PROTO: {
+        busType: {
+          vendor: 'acme.com',
+          library: 'interface',
+          name: 'my_proto',
+          version: '1.0',
+          description: 'A proprietary data bus',
+        },
+        ports: [
+          { name: 'DATA', width: 32, direction: 'out', presence: 'required' },
+          { name: 'VALID', width: 1, direction: 'out', presence: 'required' },
+          { name: 'READY', width: 1, direction: 'in', presence: 'required' },
+        ],
+      },
+    };
+
+    function makeCustomIp(mode = 'slave') {
+      return makeIp({
+        bus_interfaces: [
+          {
+            name: 'data_in',
+            type: 'acme.com.interface.my_proto.1.0',
+            mode,
+            physical_prefix: 'data_in_',
+            use_optional_ports: [],
+            port_width_overrides: {},
+          },
+        ],
+      });
+    }
+
+    it('references the custom bus VLNV in component.xml', () => {
+      const xml = generateComponentXml(makeCustomIp(), CUSTOM_BUS_DEFS);
+      expect(xml).toContain('spirit:vendor="acme.com"');
+      expect(xml).toContain('spirit:library="interface"');
+      expect(xml).toContain('spirit:name="my_proto"');
+      expect(xml).toContain('spirit:name="my_proto_rtl"');
+      expect(xml).not.toContain('spirit:vendor="user.org"');
+    });
+
+    it('emits slave for slave mode', () => {
+      const xml = generateComponentXml(makeCustomIp('slave'), CUSTOM_BUS_DEFS);
+      expect(xml).toContain('<spirit:slave />');
+    });
+
+    it('emits master for master mode', () => {
+      const xml = generateComponentXml(makeCustomIp('master'), CUSTOM_BUS_DEFS);
+      expect(xml).toContain('<spirit:master />');
+    });
+
+    it('builds portMaps from custom bus definition (slave reverses direction)', () => {
+      const xml = generateComponentXml(makeCustomIp('slave'), CUSTOM_BUS_DEFS);
+      // DATA is out from master → slave receives it (physical input)
+      expect(xml).toContain('<spirit:name>DATA</spirit:name>');
+      expect(xml).toContain('<spirit:name>data_in_data</spirit:name>');
+    });
+
+    it('includes all active ports in model ports', () => {
+      const xml = generateComponentXml(makeCustomIp(), CUSTOM_BUS_DEFS);
+      expect(xml).toContain('<spirit:name>data_in_data</spirit:name>');
+      expect(xml).toContain('<spirit:name>data_in_valid</spirit:name>');
+      expect(xml).toContain('<spirit:name>data_in_ready</spirit:name>');
     });
   });
 
@@ -533,6 +604,145 @@ describe('generateComponentXml', () => {
       expect(xml).toContain('<spirit:component ');
       expect(xml).toContain('</spirit:component>');
     });
+  });
+});
+
+// ── generateCustomBusDefs ────────────────────────────────────────────────────
+
+describe('generateCustomBusDefs', () => {
+  const CUSTOM_PORTS = [
+    { name: 'DATA', width: 32, direction: 'out', presence: 'required' },
+    { name: 'VALID', width: 1, direction: 'out', presence: 'required' },
+    { name: 'READY', width: 1, direction: 'in', presence: 'required' },
+  ];
+
+  const DEFS_WITH_CUSTOM: BusDefinitions = {
+    ...BUS_DEFS,
+    MY_PROTO: {
+      busType: {
+        vendor: 'acme.com',
+        library: 'interface',
+        name: 'my_proto',
+        version: '2.0',
+        description: 'Proprietary streaming bus',
+      },
+      ports: CUSTOM_PORTS,
+    },
+  };
+
+  const IP_WITH_CUSTOM: IpCoreData = {
+    vlnv: { vendor: 'acme', library: 'ip', name: 'my_ip', version: '1.0.0' },
+    clocks: [{ name: 'clk' }],
+    resets: [],
+    bus_interfaces: [
+      {
+        name: 'stream_in',
+        type: 'acme.com.interface.my_proto.2.0',
+        mode: 'slave',
+        physical_prefix: 's_',
+        use_optional_ports: [],
+        port_width_overrides: {},
+      },
+    ],
+    ports: [],
+    parameters: [],
+  };
+
+  it('returns empty object when all interfaces are standard types', () => {
+    const ip: IpCoreData = {
+      ...IP_WITH_CUSTOM,
+      bus_interfaces: [
+        {
+          name: 's_axi',
+          type: 'ipcraft.busif.axi4_lite.1.0',
+          mode: 'slave',
+          physical_prefix: 's_axi_',
+          use_optional_ports: [],
+          port_width_overrides: {},
+        },
+      ],
+    };
+    expect(generateCustomBusDefs(ip, BUS_DEFS)).toEqual({});
+  });
+
+  it('returns busdef and abstraction XMLs for a custom interface', () => {
+    const files = generateCustomBusDefs(IP_WITH_CUSTOM, DEFS_WITH_CUSTOM);
+    expect(Object.keys(files)).toContain('busdef/my_proto.xml');
+    expect(Object.keys(files)).toContain('busdef/my_proto_rtl.xml');
+  });
+
+  it('busDefinition XML contains correct VLNV and directConnection', () => {
+    const { 'busdef/my_proto.xml': xml } = generateCustomBusDefs(IP_WITH_CUSTOM, DEFS_WITH_CUSTOM);
+    expect(xml).toContain('<spirit:vendor>acme.com</spirit:vendor>');
+    expect(xml).toContain('<spirit:library>interface</spirit:library>');
+    expect(xml).toContain('<spirit:name>my_proto</spirit:name>');
+    expect(xml).toContain('<spirit:version>2.0</spirit:version>');
+    expect(xml).toContain('<spirit:directConnection>false</spirit:directConnection>');
+    expect(xml).toContain('<spirit:isAddressable>false</spirit:isAddressable>');
+    expect(xml).toContain('Proprietary streaming bus');
+  });
+
+  it('abstractionDefinition XML lists ports with correct master/slave directions', () => {
+    const { 'busdef/my_proto_rtl.xml': xml } = generateCustomBusDefs(
+      IP_WITH_CUSTOM,
+      DEFS_WITH_CUSTOM
+    );
+    expect(xml).toContain('<spirit:name>my_proto_rtl</spirit:name>');
+    expect(xml).toContain('<spirit:logicalName>DATA</spirit:logicalName>');
+    // DATA: master out → slave in
+    const dataBlock = xml.slice(
+      xml.indexOf('<spirit:logicalName>DATA</spirit:logicalName>'),
+      xml.indexOf('</spirit:port>', xml.indexOf('<spirit:logicalName>DATA</spirit:logicalName>'))
+    );
+    expect(dataBlock).toContain('<spirit:direction>out</spirit:direction>'); // onMaster
+    expect(dataBlock).toContain('<spirit:direction>in</spirit:direction>'); // onSlave
+  });
+
+  it('deduplicates when the same custom type appears on multiple interfaces', () => {
+    const ip: IpCoreData = {
+      ...IP_WITH_CUSTOM,
+      bus_interfaces: [
+        { ...IP_WITH_CUSTOM.bus_interfaces![0], name: 'if_a' },
+        { ...IP_WITH_CUSTOM.bus_interfaces![0], name: 'if_b' },
+      ],
+    };
+    const files = generateCustomBusDefs(ip, DEFS_WITH_CUSTOM);
+    expect(Object.keys(files)).toHaveLength(2); // only one bus def pair
+  });
+
+  it('generates separate busdef files for two different custom types', () => {
+    const ip: IpCoreData = {
+      ...IP_WITH_CUSTOM,
+      bus_interfaces: [
+        {
+          name: 'if_a',
+          type: 'acme.com.interface.my_proto.2.0',
+          mode: 'slave',
+          physical_prefix: 'a_',
+          use_optional_ports: [],
+          port_width_overrides: {},
+        },
+        {
+          name: 'if_b',
+          type: 'acme.com.interface.other_bus.1.0',
+          mode: 'slave',
+          physical_prefix: 'b_',
+          use_optional_ports: [],
+          port_width_overrides: {},
+        },
+      ],
+    };
+    const defs: BusDefinitions = {
+      ...DEFS_WITH_CUSTOM,
+      OTHER_BUS: {
+        busType: { vendor: 'acme.com', library: 'interface', name: 'other_bus', version: '1.0' },
+        ports: [{ name: 'SIG', width: 1, direction: 'out', presence: 'required' }],
+      },
+    };
+    const files = generateCustomBusDefs(ip, defs);
+    expect(Object.keys(files)).toContain('busdef/my_proto.xml');
+    expect(Object.keys(files)).toContain('busdef/other_bus.xml');
+    expect(Object.keys(files)).toHaveLength(4); // two bus def pairs
   });
 });
 

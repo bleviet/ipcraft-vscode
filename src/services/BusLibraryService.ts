@@ -110,6 +110,7 @@ export class BusLibraryService {
    * Warns on errors rather than throwing.
    */
   private async scanDirectory(dirPath: string, merged: Record<string, unknown>): Promise<void> {
+    // called by loadFromUserPaths and loadFromDirectories
     const dirUri = vscode.Uri.file(dirPath);
     let entries: [string, vscode.FileType][];
     try {
@@ -155,6 +156,20 @@ export class BusLibraryService {
         }
       }
     }
+  }
+
+  /**
+   * Load bus definitions from specific directories without touching the user-library cache.
+   * Used for per-IP `useBusLibrary` paths that must not collide with global VS Code settings.
+   */
+  async loadFromDirectories(paths: string[]): Promise<Record<string, unknown>> {
+    const merged: Record<string, unknown> = {};
+    for (const p of paths) {
+      await this.scanDirectory(p, merged);
+    }
+    const count = Object.keys(merged).length;
+    this.logger.info(`Loaded ${count} bus definition(s) from IP-local directories`);
+    return merged;
   }
 
   clearCache(): void {

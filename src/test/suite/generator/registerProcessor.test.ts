@@ -70,10 +70,14 @@ describe('registerProcessor', () => {
       });
     });
 
-    it('defaults to AXI4_LITE', () => {
+    it('returns custom for unknown types', () => {
       expect(normalizeBusType('UNKNOWN')).toEqual({
-        libraryKey: 'AXI4_LITE',
-        templateType: 'axil',
+        libraryKey: '',
+        templateType: 'custom',
+      });
+      expect(normalizeBusType('user.busif.myif.1.0')).toEqual({
+        libraryKey: '',
+        templateType: 'custom',
       });
     });
   });
