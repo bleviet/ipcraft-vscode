@@ -1,10 +1,20 @@
 /**
- * Generates test fixtures from all template IP-core YAMLs.
+ * Generates test fixtures from all template and example IP-core YAMLs.
+ *
+ * Sources:
+ *   - ipcraft-spec/templates/   flat directory of *.ip.yml files
+ *   - ipcraft-spec/examples/    one subdirectory per example, each containing
+ *                               one or more *.ip.yml files
  *
  * Calls IpCoreScaffolder.generateAll with real bus definitions loaded from
  * dist/resources/bus_definitions/ and any per-IP useBusLibrary paths.
  * Outputs files to a stable directory under os.tmpdir() so subsequent calls
  * within the same Jest run reuse the same files.
+ *
+ * Output layout:
+ *   <FIXTURE_BASE>/
+ *     <template-name>/          # from ipcraft-spec/templates/
+ *     examples/<subdir-name>/   # from ipcraft-spec/examples/<subdir>/
  */
 
 import * as path from 'path';
@@ -17,6 +27,7 @@ import { Logger } from '../../utils/Logger';
 
 const REPO_ROOT = path.resolve(__dirname, '../../..');
 const TEMPLATES_DIR = path.join(REPO_ROOT, 'ipcraft-spec/templates');
+const EXAMPLES_DIR = path.join(REPO_ROOT, 'ipcraft-spec/examples');
 const GENERATOR_TEMPLATES = path.join(REPO_ROOT, 'src/generator/templates');
 export const FIXTURE_BASE = path.join(os.tmpdir(), 'ipcraft-integration-fixtures');
 
@@ -26,6 +37,56 @@ export interface Fixture {
   outputDir: string;
   success: boolean;
   files: Record<string, string>;
+}
+
+interface YamlSource {
+  /** Human-readable fixture name, also used as the relative output path. */
+  name: string;
+  yamlPath: string;
+}
+
+/** Collect *.ip.yml files from the flat templates directory. */
+function collectTemplateSources(): YamlSource[] {
+  return nodefs
+    .readdirSync(TEMPLATES_DIR)
+    .filter((f) => f.endsWith('.ip.yml'))
+    .sort()
+    .map((f) => ({
+      name: path.basename(f, '.ip.yml'),
+      yamlPath: path.join(TEMPLATES_DIR, f),
+    }));
+}
+
+/**
+ * Collect *.ip.yml files from each subdirectory of the examples directory.
+ * Fixture names are prefixed with "examples/<subdir>" to avoid collisions
+ * with template fixture names.
+ */
+function collectExampleSources(): YamlSource[] {
+  const sources: YamlSource[] = [];
+
+  const subdirs = nodefs
+    .readdirSync(EXAMPLES_DIR, { withFileTypes: true })
+    .filter((e) => e.isDirectory())
+    .map((e) => e.name)
+    .sort();
+
+  for (const subdir of subdirs) {
+    const dirPath = path.join(EXAMPLES_DIR, subdir);
+    const ipYamls = nodefs
+      .readdirSync(dirPath)
+      .filter((f) => f.endsWith('.ip.yml'))
+      .sort();
+
+    for (const f of ipYamls) {
+      sources.push({
+        name: `examples/${subdir}`,
+        yamlPath: path.join(dirPath, f),
+      });
+    }
+  }
+
+  return sources;
 }
 
 let cache: Fixture[] | null = null;
@@ -50,20 +111,15 @@ export async function generateFixtures(): Promise<Fixture[]> {
   const context = { extensionPath: REPO_ROOT } as unknown as import('vscode').ExtensionContext;
   const scaffolder = new IpCoreScaffolder(logger, loader, context);
 
-  const entries = nodefs.readdirSync(TEMPLATES_DIR);
-  const ipYamls = entries
-    .filter((f) => f.endsWith('.ip.yml'))
-    .sort()
-    .map((f) => path.join(TEMPLATES_DIR, f));
+  const sources: YamlSource[] = [...collectTemplateSources(), ...collectExampleSources()];
 
   await nodefsp.mkdir(FIXTURE_BASE, { recursive: true });
 
   const fixtures: Fixture[] = [];
 
-  for (const yamlPath of ipYamls) {
-    const name = path.basename(yamlPath, '.ip.yml');
-    const outputDir = path.join(FIXTURE_BASE, name);
-    await nodefsp.mkdir(outputDir, { recursive: true });
+  for (const { name, yamlPath } of sources) {
+    const outputDir = path.join(FIXTURE_BASE, ...name.split('/'));
+    await nodefsp.mkdir(path.dirname(outputDir), { recursive: true });
 
     // Fresh generation — remove stale files first
     await nodefsp.rm(outputDir, { recursive: true, force: true });
