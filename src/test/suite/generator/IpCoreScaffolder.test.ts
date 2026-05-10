@@ -87,6 +87,13 @@ describe('IpCoreScaffolder', () => {
       call[0].includes('rtl/sample_core.vhd')
     )?.[1];
     expect(vhdlContent).toContain('entity sample_core is');
+
+    // Verify altera hw.tcl maps bus interface types correctly (not 'unknown')
+    const tclContent = (fs.writeFile as unknown as jest.Mock).mock.calls.find((call) =>
+      call[0].includes('altera/sample_core_hw.tcl')
+    )?.[1];
+    expect(tclContent).toContain('add_interface S_AXI axi4lite');
+    expect(tclContent).not.toContain('add_interface S_AXI unknown');
   });
 
   it('handles generation failure gracefully', async () => {

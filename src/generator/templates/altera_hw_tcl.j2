@@ -57,17 +57,7 @@ add_interface_port reset rst reset Input 1
 # Bus Interfaces (Generic)
 # -----------------------------------------------------------------------------
 {% for iface in expanded_bus_interfaces %}
-{% if iface.type == 'AXI4L' %}
-{% set altera_type = 'axi4lite' %}
-{% elif iface.type == 'AVALON_MM' %}
-{% set altera_type = 'avalon' %}
-{% elif iface.type == 'AXIS' %}
-{% set altera_type = 'axi4stream' %}
-{% elif iface.type == 'AVALON_ST' %}
-{% set altera_type = 'avalon_streaming' %}
-{% else %}
-{% set altera_type = 'unknown' %}
-{% endif %}
+{% set altera_type = iface.altera_type %}
 {% set end_type = 'end' if iface.mode in ['slave', 'sink'] else 'start' %}
 
 # Interface: {{ iface.name }} ({{ iface.type }})
@@ -81,12 +71,9 @@ set_interface_property {{ iface.name }} CMSIS_SVD_VARIABLES ""
 set_interface_property {{ iface.name }} SVD_ADDRESS_GROUP ""
 
 # Type-specific properties
-{% if altera_type == 'axi4lite' %}
-set_interface_property {{ iface.name }} readAcceptanceCapability 1
-set_interface_property {{ iface.name }} writeAcceptanceCapability 1
-{% elif altera_type == 'avalon' %}
+{% if altera_type == 'avalon' %}
 set_interface_property {{ iface.name }} addressUnits WORDS
-set_interface_property {{ iface.name }} maximumPendingReadTransactions 1
+set_interface_property {{ iface.name }} maximumPendingReadTransactions 0
 {% endif %}
 
 # Ports
