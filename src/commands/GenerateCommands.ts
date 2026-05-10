@@ -12,6 +12,7 @@ import { TemplateLoader } from '../generator/TemplateLoader';
 import { IpCoreScaffolder } from '../generator/IpCoreScaffolder';
 import { parseVhdlFile } from '../parser/VhdlParser';
 import { parseHwTclFile } from '../parser/HwTclParser';
+import { parseComponentXmlFile } from '../parser/ComponentXmlParser';
 import { safeRegisterCommand } from '../utils/vscodeHelpers';
 import { updateFileSets } from '../services/FileSetUpdater';
 import type { GenerateOptions, VendorOption } from '../generator/types';
@@ -49,6 +50,10 @@ export function registerGeneratorCommands(context: vscode.ExtensionContext): voi
 
   safeRegisterCommand(context, 'fpga-ip-core.parseHwTcl', async (uri?: vscode.Uri) => {
     await parseHwTcl(uri);
+  });
+
+  safeRegisterCommand(context, 'fpga-ip-core.parseComponentXml', async (uri?: vscode.Uri) => {
+    await parseComponentXml(uri);
   });
 
   safeRegisterCommand(context, 'fpga-ip-core.viewBusDefinitions', async () => {
@@ -472,6 +477,78 @@ async function parseHwTcl(resourceUri?: vscode.Uri): Promise<void> {
         await vscode.commands.executeCommand(
           'vscode.openWith',
           vscode.Uri.file(outputPath),
+          'fpgaIpCore.editor'
+        );
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        void vscode.window.showErrorMessage(`Import failed: ${message}`);
+      }
+    }
+  );
+}
+
+async function parseComponentXml(resourceUri?: vscode.Uri): Promise<void> {
+  let xmlUri = resourceUri;
+
+  if (!xmlUri) {
+    const editor = vscode.window.activeTextEditor;
+    if (editor?.document.fileName.endsWith('component.xml')) {
+      xmlUri = editor.document.uri;
+    }
+  }
+
+  if (!xmlUri) {
+    const files = await vscode.window.showOpenDialog({
+      canSelectFiles: true,
+      canSelectFolders: false,
+      filters: { 'Vivado IP-XACT Component': ['xml'] },
+      title: 'Select Xilinx component.xml file',
+    });
+    xmlUri = files?.[0];
+  }
+
+  if (!xmlUri) {
+    return;
+  }
+
+  const xmlPath = xmlUri.fsPath;
+  const outputDir = path.dirname(xmlPath);
+
+  await vscode.window.withProgress(
+    {
+      location: vscode.ProgressLocation.Notification,
+      title: 'Importing from Xilinx component.xml...',
+      cancellable: false,
+    },
+    async () => {
+      try {
+        const cfg = vscode.workspace.getConfiguration('ipcraft.import');
+        const result = await parseComponentXmlFile(xmlPath, {
+          library: cfg.get<string>('library'),
+        });
+
+        const encoder = new TextEncoder();
+        const ipOutputPath = path.join(outputDir, `${result.componentName}.ip.yml`);
+        await vscode.workspace.fs.writeFile(
+          vscode.Uri.file(ipOutputPath),
+          encoder.encode(result.ipYamlText)
+        );
+
+        // Write memory map file if register data was found
+        if (result.mmYamlText && result.mmFileName) {
+          const mmOutputPath = path.join(outputDir, result.mmFileName);
+          await vscode.workspace.fs.writeFile(
+            vscode.Uri.file(mmOutputPath),
+            encoder.encode(result.mmYamlText)
+          );
+          void vscode.window.showInformationMessage(
+            `Generated ${result.componentName}.ip.yml and ${result.mmFileName}`
+          );
+        }
+
+        await vscode.commands.executeCommand(
+          'vscode.openWith',
+          vscode.Uri.file(ipOutputPath),
           'fpgaIpCore.editor'
         );
       } catch (error) {
