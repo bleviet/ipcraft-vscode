@@ -173,8 +173,9 @@ export function parseHwTclContent(
       .replace(/\.tcl$/i, '');
 
   // Author from hw.tcl AUTHOR property; fall back through setting → git email → default
-  const authorFromTcl = moduleProps.get('AUTHOR');
-  const vendor = authorFromTcl ?? resolveVendor(options.vendor);
+  const authorFromTcl = moduleProps.get('AUTHOR')?.trim();
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+  const vendor = authorFromTcl || resolveVendor(options.vendor);
 
   const yamlData: Record<string, unknown> = {
     vlnv: {

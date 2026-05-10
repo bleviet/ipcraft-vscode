@@ -36,6 +36,17 @@ describe('HwTclParser', () => {
       expect(componentName).toBe('my_core');
     });
 
+    it('falls back to resolveVendor when AUTHOR is an empty string', () => {
+      const tcl = `
+        set_module_property AUTHOR ""
+      `;
+      // By default parse calls with options={}. resolveVendor(undefined) will return the git domain or 'ipcraft'.
+      // We can just check that it does not return ''
+      const doc = parseYaml(parse(tcl).yamlText) as { vlnv: Record<string, unknown> };
+      expect(doc.vlnv.vendor).not.toBe('');
+      expect(doc.vlnv.vendor).toBeTruthy();
+    });
+
     it('uses library option', () => {
       const tcl = 'set_module_property NAME core';
       const doc = parseYaml(parse(tcl, { library: 'my_lib' }).yamlText) as {
