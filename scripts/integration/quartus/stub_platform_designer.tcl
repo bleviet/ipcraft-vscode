@@ -98,7 +98,9 @@ proc add_interface_port {iface port logical dir width args} {
     if {$dir ni {Input Output}} {
         ::pd::err "add_interface_port '${iface}.${port}': invalid direction '$dir'"
     }
-    if {![string is integer -strict $width] || $width < 1} {
+    # Accept a positive integer literal OR a non-empty string (parameter name /
+    # expression such as DATA_WIDTH), which Platform Designer resolves at elaboration.
+    if {$width eq "" || ([string is integer -strict $width] && $width < 1)} {
         ::pd::err "add_interface_port '${iface}.${port}': invalid width '$width'"
     }
     lappend ::pd::ports [dict create \
