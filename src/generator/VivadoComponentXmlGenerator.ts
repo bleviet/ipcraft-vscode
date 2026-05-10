@@ -1,4 +1,5 @@
 import { getActiveBusPortsFromDefinition } from './registerProcessor';
+import { detectVivadoVersion } from '../utils/detectVivadoVersion';
 import type {
   BusDefinitions,
   BusInterfaceDef,
@@ -342,7 +343,8 @@ export function generateComponentXml(
 
   // ── vendorExtensions ──────────────────────────────────────────────────────
 
-  lines.push(...renderVendorExtensions(derivedDisplayName));
+  const xilinxVersion = detectVivadoVersion();
+  lines.push(...renderVendorExtensions(derivedDisplayName, xilinxVersion));
 
   lines.push('</spirit:component>');
 
@@ -778,7 +780,7 @@ function renderParameters(entityName: string, parameters: ParameterDef[]): strin
   return lines;
 }
 
-function renderVendorExtensions(displayName: string): string[] {
+function renderVendorExtensions(displayName: string, xilinxVersion: string): string[] {
   const families = ['artix7', 'kintex7', 'virtex7', 'zynq', 'kintexu', 'virtexu', 'zynquplus'];
 
   const lines: string[] = [];
@@ -796,7 +798,7 @@ function renderVendorExtensions(displayName: string): string[] {
   lines.push('      <xilinx:coreRevision>1</xilinx:coreRevision>');
   lines.push('    </xilinx:coreExtensions>');
   lines.push('    <xilinx:packagingInfo>');
-  lines.push('      <xilinx:xilinxVersion>2024.2</xilinx:xilinxVersion>');
+  lines.push(`      <xilinx:xilinxVersion>${x(xilinxVersion)}</xilinx:xilinxVersion>`);
   lines.push('    </xilinx:packagingInfo>');
   lines.push('  </spirit:vendorExtensions>');
   return lines;
