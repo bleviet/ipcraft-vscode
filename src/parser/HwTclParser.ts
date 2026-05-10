@@ -247,7 +247,7 @@ export function parseHwTclContent(
   const interruptEntries = interruptIfaces.flatMap((ii) =>
     ii.ports.map((p) => ({
       name: p.portName,
-      direction: ii.mode === 'end' ? ('in' as const) : ('out' as const),
+      direction: mapDirection(p.direction),
     }))
   );
   if (interruptEntries.length > 0) {

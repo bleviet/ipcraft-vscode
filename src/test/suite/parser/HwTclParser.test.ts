@@ -194,6 +194,47 @@ describe('HwTclParser', () => {
     });
   });
 
+  describe('interrupts', () => {
+    it('interrupt sender (end + Output port) emits direction:out', () => {
+      const tcl = `
+        add_interface interrupt interrupt end
+        add_interface_port interrupt AvIrq_o irq Output 1
+      `;
+      const doc = parseYaml(parse(tcl).yamlText) as {
+        interrupts: Array<Record<string, unknown>>;
+      };
+      expect(doc.interrupts).toHaveLength(1);
+      expect(doc.interrupts[0]).toMatchObject({ name: 'AvIrq_o', direction: 'out' });
+    });
+
+    it('interrupt receiver (start + Input port) emits direction:in', () => {
+      const tcl = `
+        add_interface irq_in interrupt start
+        add_interface_port irq_in irq_in irq Input 1
+      `;
+      const doc = parseYaml(parse(tcl).yamlText) as {
+        interrupts: Array<Record<string, unknown>>;
+      };
+      expect(doc.interrupts).toHaveLength(1);
+      expect(doc.interrupts[0]).toMatchObject({ name: 'irq_in', direction: 'in' });
+    });
+
+    it('handles sender and receiver in the same component', () => {
+      const tcl = `
+        add_interface irq_in interrupt start
+        add_interface_port irq_in irq_in irq Input 1
+        add_interface irq interrupt end
+        add_interface_port irq irq irq Output 1
+      `;
+      const doc = parseYaml(parse(tcl).yamlText) as {
+        interrupts: Array<Record<string, unknown>>;
+      };
+      expect(doc.interrupts).toHaveLength(2);
+      expect(doc.interrupts[0]).toMatchObject({ name: 'irq_in', direction: 'in' });
+      expect(doc.interrupts[1]).toMatchObject({ name: 'irq', direction: 'out' });
+    });
+  });
+
   describe('file sets', () => {
     it('maps QUARTUS_SYNTH to RTL_Sources with correct relative paths', () => {
       const tcl = `
