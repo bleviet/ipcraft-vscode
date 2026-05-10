@@ -187,7 +187,10 @@ export function parseHwTclContent(
 
   const clockIfaces = Array.from(interfaces.values()).filter((i) => i.type === 'clock');
   const resetIfaces = Array.from(interfaces.values()).filter((i) => i.type === 'reset');
-  const conduitIfaces = Array.from(interfaces.values()).filter((i) => i.type === 'conduit');
+  // 'interrupt' interfaces have no IPCraft counterpart; include their ports as conduit ports
+  const conduitIfaces = Array.from(interfaces.values()).filter(
+    (i) => i.type === 'conduit' || i.type === 'interrupt'
+  );
   const busIfaces = Array.from(interfaces.values()).filter(
     (i) => BUS_TYPE_MAP[i.type] !== undefined
   );
