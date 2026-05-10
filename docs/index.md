@@ -34,6 +34,7 @@ Visual editor for IP Core and Memory Map specifications, built as a VS Code exte
 - **Import existing VHDL?** Follow [Importing from VHDL](how-to/vhdl-import.md)
 - **Using the generator?** See [Generating a Project](how-to/generating-a-project.md)
 - **Using AI tools?** See the [AI Design Guide](how-to/ai-design-guide.md)
+- **Running EDA integration tests?** See [Run the EDA Integration Tests](how-to/run-eda-integration-tests.md)
 - **Understanding the design?** Read through [Concepts](concepts/extension-model.md) and [Architecture](architecture/overview.md)
 - **Exploring reference docs?** See the [Generator Reference](reference/generator.md), [IP Core Editor](reference/ip-core-editor.md), or [Specification Schemas](reference/specification-schemas.md)
 - **Contributing?** Check the [Guidelines](contributing/guidelines.md)

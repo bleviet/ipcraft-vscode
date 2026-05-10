@@ -17,12 +17,14 @@ The repo has **five testing tiers**. Each tier covers a different process bounda
 | 3 | Node-side logic | Jest + vscode mock | Extension-host services that call VS Code APIs |
 | 4 | VS Code smoke tests | `@vscode/test-electron` (Mocha) | Real VS Code: extension activation, file opening, provider resolution |
 | 5 | Browser / webview | Playwright | Real compiled React bundles loaded in a browser, end-to-end UI interactions |
+| 6 | EDA integration | Jest + EDA tools | Generated `_hw.tcl` and `component.xml` files accepted by the real vendor tools |
 
 **Why so many tiers?**
 
 - Jest tiers (1–3) are cheap and fast — they run in seconds. They validate logic that does not depend on a real browser or a real VS Code binary.
 - The VS Code smoke tests (tier 4) spin up a real VS Code binary to answer questions that cannot be faked: does the custom editor provider actually respond when a `.mm.yml` file is opened?
 - The Playwright tests (tier 5) load the real compiled webpack bundles in a real browser to validate that the React UI behaves correctly when the extension host sends YAML data. These tests verify integration across the `postMessage` boundary.
+- The EDA integration tests (tier 6) run the generated Altera and AMD output files through the real vendor tools to confirm that the generator produces structurally valid artefacts. They require external tooling (Docker for Quartus, a host Vivado install) and are opt-in. See [EDA Integration Tests](concepts/eda-integration-tests.md) for details.
 
 ---
 
@@ -102,6 +104,18 @@ npm run test:browser -- --debug              # Open Playwright Inspector
 ```bash
 npm run test:all         # Runs test:unit, then test:e2e, then test:browser
 ```
+
+### EDA integration tests (tier 6)
+
+These tests require external tooling and are **not** included in `test:all`. See [How to Run the EDA Integration Tests](how-to/run-eda-integration-tests.md) for setup instructions.
+
+| Command | What it does |
+|---------|-------------|
+| `npm run test:integration` | Run Quartus + Vivado integration tests |
+| `npm run test:integration:quartus` | Run Quartus tests only |
+| `npm run test:integration:vivado` | Run Vivado tests only |
+| `SKIP_VIVADO=1 npm run test:integration` | Run Quartus tests, skip Vivado |
+| `SKIP_QUARTUS=1 npm run test:integration` | Run Vivado tests, skip Quartus |
 
 ### Other useful commands
 
