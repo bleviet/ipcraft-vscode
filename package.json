@@ -53,6 +53,11 @@
         "category": "IPCraft"
       },
       {
+        "command": "fpga-ip-core.editInIpPackager",
+        "title": "Edit in IP Packager",
+        "category": "IPCraft"
+      },
+      {
         "command": "fpga-ip-core.generateVHDL",
         "title": "Generate VHDL",
         "category": "IPCraft",
@@ -138,6 +143,18 @@
           "command": "fpga-ip-core.parseComponentXml",
           "when": "resourceFilename == component.xml",
           "group": "fpga@6"
+        },
+        {
+          "command": "fpga-ip-core.editInIpPackager",
+          "when": "resourceFilename == component.xml",
+          "group": "fpga@7"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "fpga-ip-core.editInIpPackager",
+          "when": "resourceFilename == component.xml",
+          "group": "navigation"
         }
       ],
       "editor/title": [
@@ -203,6 +220,11 @@
           },
           "default": [],
           "markdownDescription": "Paths to search recursively for custom bus definition YAML files (`.yml` / `.yaml`). Absolute paths or paths relative to the workspace root. Files ending in `.ip.yml` or `.mm.yml` are ignored."
+        },
+        "ipcraft.vivadoPath": {
+          "type": "string",
+          "default": "vivado",
+          "markdownDescription": "Path to the Vivado executable (e.g., `C:\\Xilinx\\Vivado\\2024.2\\bin\\vivado.bat` or `/tools/Xilinx/Vivado/2024.2/bin/vivado`). If empty, assumes `vivado` is available in your system PATH."
         }
       }
     },

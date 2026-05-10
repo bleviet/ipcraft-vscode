@@ -8,6 +8,7 @@ import {
   createIpCoreWithMemoryMapCommand,
 } from './commands/FileCreationCommands';
 import { registerGeneratorCommands } from './commands/GenerateCommands';
+import { editInIpPackagerCommand } from './commands/editInIpPackager';
 import { safeRegisterCommand } from './utils/vscodeHelpers';
 
 const SHARED_EDITOR_OPTIONS = {
@@ -67,6 +68,7 @@ export function activate(context: vscode.ExtensionContext): void {
     'fpga-ip-core.createIpCoreWithMemoryMap',
     createIpCoreWithMemoryMapCommand
   );
+  safeRegisterCommand(context, 'fpga-ip-core.editInIpPackager', editInIpPackagerCommand);
 
   // Register VHDL Generator Commands
   registerGeneratorCommands(context);
