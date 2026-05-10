@@ -605,6 +605,62 @@ describe('generateComponentXml', () => {
       expect(xml).toContain('</spirit:component>');
     });
   });
+
+  describe('interrupts', () => {
+    const interrupts = [
+      { name: 'irq_out', direction: 'out', sensitivity: 'LEVEL_HIGH' },
+      { name: 'irq_in', direction: 'in', sensitivity: 'LEVEL_HIGH' },
+    ];
+
+    it('emits interrupt bus interface for output (master)', () => {
+      const xml = gen({ interrupts } as Partial<IpCoreData>);
+      expect(xml).toContain('<spirit:name>irq_out</spirit:name>');
+      expect(xml).toContain(
+        '<spirit:busType spirit:vendor="xilinx.com" spirit:library="signal" spirit:name="interrupt" spirit:version="1.0" />'
+      );
+      expect(xml).toContain(
+        '<spirit:abstractionType spirit:vendor="xilinx.com" spirit:library="signal" spirit:name="interrupt_rtl" spirit:version="1.0" />'
+      );
+      expect(xml).toContain('<spirit:master />');
+    });
+
+    it('emits interrupt bus interface for input (slave)', () => {
+      const xml = gen({ interrupts } as Partial<IpCoreData>);
+      expect(xml).toContain('<spirit:name>irq_in</spirit:name>');
+      expect(xml).toContain('<spirit:slave />');
+    });
+
+    it('maps interrupt port to logical INTERRUPT signal', () => {
+      const xml = gen({ interrupts } as Partial<IpCoreData>);
+      expect(xml).toContain('<spirit:name>INTERRUPT</spirit:name>');
+    });
+
+    it('emits SENSITIVITY parameter for interrupt', () => {
+      const xml = gen({ interrupts } as Partial<IpCoreData>);
+      expect(xml).toContain('BUSIFPARAM_VALUE.IRQ_OUT.SENSITIVITY');
+      expect(xml).toContain('>LEVEL_HIGH<');
+    });
+
+    it('emits physical port in spirit:ports for interrupt output', () => {
+      const xml = gen({ interrupts } as Partial<IpCoreData>);
+      const portsSection = xml.slice(xml.indexOf('<spirit:ports>'), xml.indexOf('</spirit:ports>'));
+      expect(portsSection).toContain('<spirit:name>irq_out</spirit:name>');
+      expect(portsSection).toContain('<spirit:direction>out</spirit:direction>');
+    });
+
+    it('emits physical port in spirit:ports for interrupt input', () => {
+      const xml = gen({ interrupts } as Partial<IpCoreData>);
+      const portsSection = xml.slice(xml.indexOf('<spirit:ports>'), xml.indexOf('</spirit:ports>'));
+      expect(portsSection).toContain('<spirit:name>irq_in</spirit:name>');
+      expect(portsSection).toContain('<spirit:direction>in</spirit:direction>');
+    });
+
+    it('emits no interrupt elements when interrupts array is empty', () => {
+      const xml = gen({ interrupts: [] } as Partial<IpCoreData>);
+      expect(xml).not.toContain('spirit:name="interrupt"');
+      expect(xml).not.toContain('SENSITIVITY');
+    });
+  });
 });
 
 // ── generateCustomBusDefs ────────────────────────────────────────────────────

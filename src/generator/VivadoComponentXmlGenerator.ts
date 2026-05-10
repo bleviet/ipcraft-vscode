@@ -246,6 +246,12 @@ export function generateComponentXml(
   const busInterfaces = ipCore.bus_interfaces ?? [];
   const userPorts = ipCore.ports ?? [];
   const parameters = ipCore.parameters ?? [];
+  const interrupts =
+    ((ipCore as Record<string, unknown>).interrupts as Array<{
+      name: string;
+      direction: string;
+      sensitivity?: string;
+    }>) ?? [];
 
   const derivedDisplayName =
     displayName ?? name.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
@@ -300,6 +306,13 @@ export function generateComponentXml(
     busIfLines.push(...renderResetInterface(reset.name, reset.polarity ?? 'activeHigh'));
   }
 
+  for (const intr of interrupts) {
+    if (!intr.name) {
+      continue;
+    }
+    busIfLines.push(...renderInterruptInterface(intr));
+  }
+
   if (busIfLines.length > 0) {
     lines.push('  <spirit:busInterfaces>');
     lines.push(...busIfLines);
@@ -310,7 +323,7 @@ export function generateComponentXml(
 
   lines.push('  <spirit:model>');
   lines.push(...renderViews(name));
-  lines.push(...renderPorts(clocks, resets, busInterfaces, userPorts, busDefinitions));
+  lines.push(...renderPorts(clocks, resets, busInterfaces, userPorts, interrupts, busDefinitions));
   lines.push('  </spirit:model>');
 
   // ── fileSets ──────────────────────────────────────────────────────────────
@@ -494,6 +507,47 @@ function renderResetInterface(resetPort: string, polarity: string): string[] {
   return lines;
 }
 
+function renderInterruptInterface(intr: {
+  name: string;
+  direction: string;
+  sensitivity?: string;
+}): string[] {
+  const intrUpper = intr.name.toUpperCase();
+  const modeTag = intr.direction === 'in' ? 'slave' : 'master';
+  const sensitivity = intr.sensitivity ?? 'LEVEL_HIGH';
+  const lines: string[] = [];
+
+  lines.push('    <spirit:busInterface>');
+  lines.push(`      <spirit:name>${x(intr.name)}</spirit:name>`);
+  lines.push(
+    '      <spirit:busType spirit:vendor="xilinx.com" spirit:library="signal" spirit:name="interrupt" spirit:version="1.0" />'
+  );
+  lines.push(
+    '      <spirit:abstractionType spirit:vendor="xilinx.com" spirit:library="signal" spirit:name="interrupt_rtl" spirit:version="1.0" />'
+  );
+  lines.push(`      <spirit:${modeTag} />`);
+  lines.push('      <spirit:portMaps>');
+  lines.push('        <spirit:portMap>');
+  lines.push('          <spirit:logicalPort>');
+  lines.push('            <spirit:name>INTERRUPT</spirit:name>');
+  lines.push('          </spirit:logicalPort>');
+  lines.push('          <spirit:physicalPort>');
+  lines.push(`            <spirit:name>${x(intr.name)}</spirit:name>`);
+  lines.push('          </spirit:physicalPort>');
+  lines.push('        </spirit:portMap>');
+  lines.push('      </spirit:portMaps>');
+  lines.push('      <spirit:parameters>');
+  lines.push('        <spirit:parameter>');
+  lines.push('          <spirit:name>SENSITIVITY</spirit:name>');
+  lines.push(
+    `          <spirit:value spirit:id="BUSIFPARAM_VALUE.${x(intrUpper)}.SENSITIVITY">${x(sensitivity)}</spirit:value>`
+  );
+  lines.push('        </spirit:parameter>');
+  lines.push('      </spirit:parameters>');
+  lines.push('    </spirit:busInterface>');
+  return lines;
+}
+
 function renderViews(entityName: string): string[] {
   function view(
     viewName: string,
@@ -556,6 +610,7 @@ function renderPorts(
   resets: Array<{ name?: string; polarity?: string }>,
   busInterfaces: BusInterfaceDef[],
   userPorts: Array<{ name?: string; direction?: string; width?: number | string }>,
+  interrupts: Array<{ name: string; direction: string }>,
   busDefinitions: BusDefinitions
 ): string[] {
   const portLines: string[] = [];
@@ -605,6 +660,13 @@ function renderPorts(
     }
     const width = typeof port.width === 'number' ? port.width : 1;
     portLines.push(...renderModelPort(String(port.name), String(port.direction ?? 'in'), width));
+  }
+
+  for (const intr of interrupts) {
+    if (!intr.name) {
+      continue;
+    }
+    portLines.push(...renderModelPort(intr.name, intr.direction === 'in' ? 'in' : 'out', 1));
   }
 
   // Spirit XSD requires ports to be absent when empty
