@@ -94,8 +94,70 @@ const PALETTE: PaletteCategory[] = [
   },
 ];
 
+const BUILT_IN_BUS_KEYS = new Set([
+  'AXI4_LITE',
+  'AXI4_FULL',
+  'AXI_STREAM',
+  'AVALON_MEMORY_MAPPED',
+  'AVALON_STREAMING',
+]);
+
+function buildUserBusItems(busLibrary: Record<string, unknown>): LibraryDragPayload[] {
+  const items: LibraryDragPayload[] = [];
+
+  for (const [key, value] of Object.entries(busLibrary)) {
+    if (BUILT_IN_BUS_KEYS.has(key)) {
+      continue;
+    }
+
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      continue;
+    }
+
+    const entry = value as Record<string, unknown>;
+    const busType = entry.busType;
+    if (!busType || typeof busType !== 'object' || Array.isArray(busType)) {
+      continue;
+    }
+
+    const bt = busType as Record<string, unknown>;
+    const vendor = typeof bt.vendor === 'string' ? bt.vendor : 'user';
+    const library = typeof bt.library === 'string' ? bt.library : 'busif';
+    const name = typeof bt.name === 'string' ? bt.name : key.toLowerCase();
+    const version = typeof bt.version === 'string' ? bt.version : '1.0';
+    const vlnv = `${vendor}.${library}.${name}.${version}`;
+
+    // Build display label from busType.name, fall back to the key
+    let label: string;
+    if (typeof bt.name === 'string') {
+      label = bt.name
+        .replace(/_/g, '-')
+        .split('-')
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join('-');
+    } else {
+      label = key;
+    }
+
+    // Determine default mode
+    const nameLower = name.toLowerCase();
+    const mode = nameLower.includes('stream') || nameLower.includes('_st') ? 'sink' : 'slave';
+
+    items.push({
+      kind: 'bus',
+      type: vlnv,
+      mode,
+      nameHint: name,
+      label,
+    });
+  }
+
+  return items;
+}
+
 interface LibraryPaletteProps {
   onCollapse?: () => void;
+  busLibrary?: Record<string, unknown>;
 }
 
 /**
@@ -104,7 +166,7 @@ interface LibraryPaletteProps {
  * Items are grouped by category (protocols, infrastructure). Dragging an item
  * onto the canvas triggers element creation via the drop handler.
  */
-export const LibraryPalette: React.FC<LibraryPaletteProps> = ({ onCollapse }) => {
+export const LibraryPalette: React.FC<LibraryPaletteProps> = ({ onCollapse, busLibrary }) => {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
   const toggleCategory = useCallback((title: string) => {
@@ -169,6 +231,47 @@ export const LibraryPalette: React.FC<LibraryPaletteProps> = ({ onCollapse }) =>
           )}
         </div>
       ))}
+
+      {/* User Interfaces (from busLibraryPaths setting) */}
+      {busLibrary &&
+        (() => {
+          const userItems = buildUserBusItems(busLibrary);
+          if (userItems.length === 0) {
+            return null;
+          }
+          const categoryTitle = 'User Interfaces';
+          return (
+            <div key={categoryTitle} className="library-palette__category">
+              <button
+                className="library-palette__category-header"
+                onClick={() => toggleCategory(categoryTitle)}
+                type="button"
+              >
+                <span
+                  className={`codicon codicon-chevron-${collapsed[categoryTitle] ? 'right' : 'down'}`}
+                ></span>
+                <span>{categoryTitle}</span>
+              </button>
+
+              {!collapsed[categoryTitle] && (
+                <div className="library-palette__items">
+                  {userItems.map((item) => (
+                    <div
+                      key={`${item.kind}-${item.nameHint}`}
+                      className="library-palette__item"
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, item)}
+                    >
+                      <span className={`codicon ${paletteItemIcon(item)}`}></span>
+                      <span className="library-palette__item-label">{item.label}</span>
+                      <span className="library-palette__item-kind">{kindBadge(item)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })()}
     </div>
   );
 };

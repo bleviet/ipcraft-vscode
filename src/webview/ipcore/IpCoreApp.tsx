@@ -546,7 +546,7 @@ const IpCoreApp: React.FC = () => {
             )}
 
             {/* Library Palette (canvas mode only) */}
-            {viewMode === 'canvas' && <LibraryPalette />}
+            {viewMode === 'canvas' && <LibraryPalette busLibrary={imports?.busLibrary} />}
 
             <EditorPanel
               selectedSection={selectedSection}

@@ -105,9 +105,16 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
     };
 
     const changeDocumentSubscription = this.subscribeToDocumentChanges(document, updateWebview);
+    const configSubscription = vscode.workspace.onDidChangeConfiguration((e) => {
+      if (e.affectsConfiguration('ipcraft.busLibraryPaths')) {
+        this.importResolver.clearCache();
+        void updateWebview();
+      }
+    });
     this.registerDisposal(webviewPanel, () => {
       isDisposed = true;
       changeDocumentSubscription.dispose();
+      configSubscription.dispose();
     });
     this.registerWebviewMessageHandlers(document, webviewPanel, updateWebview);
 

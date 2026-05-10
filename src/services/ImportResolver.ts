@@ -80,13 +80,24 @@ export class ImportResolver {
   }
 
   /**
-   * Load default bus library from ipcore_spec.
+   * Load default bus library from ipcore_spec, extended with any user-defined paths
+   * configured via the `ipcraft.busLibraryPaths` VS Code setting.
    * Returns the library in the format expected by the UI: { [key]: { ports: [...] } }
    */
   private async loadDefaultBusLibrary(): Promise<Record<string, unknown>> {
     const library = await this.busLibraryService.loadDefaultLibrary();
     const count = library ? Object.keys(library).length : 0;
     this.logger.info(`Loaded ${count} bus types from local library`);
+
+    const config = vscode.workspace.getConfiguration('ipcraft');
+    const userPaths = config.get<string[]>('busLibraryPaths', []);
+    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+
+    if (userPaths.length > 0) {
+      const userLibrary = await this.busLibraryService.loadFromUserPaths(userPaths, workspaceRoot);
+      return { ...library, ...userLibrary };
+    }
+
     return library;
   }
 

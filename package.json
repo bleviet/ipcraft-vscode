@@ -179,6 +179,12 @@
           "type": "string",
           "default": "1.0.0",
           "description": "Default version string used when importing a VHDL file as an IP Core."
+        },
+        "ipcraft.busLibraryPaths": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "markdownDescription": "Paths to search recursively for custom bus definition YAML files (`.yml` / `.yaml`). Absolute paths or paths relative to the workspace root. Files ending in `.ip.yml` or `.mm.yml` are ignored."
         }
       }
     },
