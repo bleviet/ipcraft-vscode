@@ -161,8 +161,8 @@ export const CanvasPort: React.FC<CanvasPortProps> = ({
         />
       )}
 
-      {/* Port kind icon (clock/reset) — placed inside the block body */}
-      {(port.kind === 'clock' || port.kind === 'reset') && (
+      {/* Port kind icon (clock/reset/interrupt) — placed inside the block body */}
+      {(port.kind === 'clock' || port.kind === 'reset' || port.kind === 'interrupt') && (
         <PortKindIcon
           kind={port.kind}
           x={isLeft ? port.x + 14 : isRight ? port.x - 14 : port.x}
@@ -238,6 +238,18 @@ const PortKindIcon: React.FC<{ kind: string; x: number; y: number; color?: strin
         <path d="M 0 -4.5 A 4.5 4.5 0 1 1 -4.5 0" className="canvas-port__icon-arc" style={s} />
         {/* Arrowhead at arc end pointing downward */}
         <polygon points="-4.5,0 -6.5,-2 -2.5,-2" className="canvas-port__icon-arrow" style={f} />
+      </g>
+    );
+  }
+
+  if (kind === 'interrupt') {
+    return (
+      <g
+        transform={`translate(${x}, ${y})`}
+        className="canvas-port__icon canvas-port__icon--interrupt"
+      >
+        {/* Lightning bolt */}
+        <polygon points="1,-5 -2,0 1,0 -1,5 2,0 -1,0" style={f} />
       </g>
     );
   }

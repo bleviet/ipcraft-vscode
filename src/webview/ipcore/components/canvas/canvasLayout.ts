@@ -1,4 +1,4 @@
-import type { IpCore, BusInterface } from '../../../types/ipCore';
+import type { IpCore, BusInterface, Interrupt } from '../../../types/ipCore';
 import type { BusPortDef } from '../../data/busDefinitions';
 
 // --- Constants ---
@@ -32,7 +32,7 @@ export const CANVAS_MARGIN_Y = 40;
 
 // --- Types ---
 
-export type PortKind = 'clock' | 'reset' | 'port' | 'bus';
+export type PortKind = 'clock' | 'reset' | 'port' | 'bus' | 'interrupt';
 export type PortSide = 'left' | 'right' | 'bottom';
 
 export interface LayoutPort {
@@ -366,6 +366,16 @@ export function computeLayout(
     }
   });
 
+  // Interrupts -> right (out/default) or left (in)
+  const interrupts = (ipCore.interrupts ?? []) as Interrupt[];
+  interrupts.forEach((irq, i) => {
+    if (irq.direction === 'in') {
+      leftItems.push({ kind: 'interrupt', index: i, data: irq });
+    } else {
+      rightItems.push({ kind: 'interrupt', index: i, data: irq });
+    }
+  });
+
   // Total slots per side (accounts for expanded buses)
   const leftSlots = leftItems.reduce(
     (acc, item) => acc + itemSlots(item, expandedBusIds, busPortLookup),
@@ -447,6 +457,11 @@ export function computeLayout(
           label = String(d.name ?? '');
           widthLabel = formatWidth(d.width as number | string | undefined);
           direction = d.direction as 'in' | 'out' | 'inout' | undefined;
+          break;
+        case 'interrupt':
+          label = String(d.name ?? '');
+          widthLabel = formatWidth(d.width as number | string | undefined);
+          direction = (d.direction as 'in' | 'out' | 'inout' | undefined) ?? 'out';
           break;
         case 'bus': {
           protocol = busProtocolShortName(String(d.type ?? ''));

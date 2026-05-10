@@ -86,5 +86,20 @@ export const useCanvasValidation = (ipCore: IpCore): CanvasAnnotations => {
     }
   });
 
+  // Check interrupts
+  const irqNames = new Set<string>();
+  ((ipCore.interrupts ?? []) as Array<{ name?: string }>).forEach((irq, idx) => {
+    const id = `interrupt:${idx}`;
+    if (!irq.name) {
+      addAnnotation(id, 'error', 'Interrupt must have a name');
+    } else {
+      if (irqNames.has(irq.name)) {
+        addAnnotation(id, 'error', `Duplicate interrupt name: ${irq.name}`);
+      } else {
+        irqNames.add(irq.name);
+      }
+    }
+  });
+
   return annotations;
 };

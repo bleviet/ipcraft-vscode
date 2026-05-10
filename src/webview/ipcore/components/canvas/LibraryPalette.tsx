@@ -2,12 +2,12 @@ import React, { useState, useCallback, type DragEvent } from 'react';
 
 /** Payload attached to drag events from the library palette */
 export interface LibraryDragPayload {
-  kind: 'bus' | 'clock' | 'reset' | 'port' | 'parameter';
+  kind: 'bus' | 'clock' | 'reset' | 'port' | 'parameter' | 'interrupt';
   /** Bus type VLNV (only for kind=bus) */
   type?: string;
   /** Bus mode: slave/master/sink/source (only for kind=bus) */
   mode?: string;
-  /** Port direction (only for kind=port) */
+  /** Port/interrupt direction (only for kind=port or kind=interrupt) */
   direction?: 'in' | 'out' | 'inout';
   /** Generic data type (only for kind=parameter) */
   dataType?: string;
@@ -39,7 +39,8 @@ const PALETTE: PaletteCategory[] = [
     items: [
       { kind: 'clock', nameHint: 'clk', label: 'Clock' },
       { kind: 'reset', nameHint: 'rst_n', label: 'Reset' },
-      { kind: 'port', direction: 'out', nameHint: 'irq', label: 'Interrupt (output)' },
+      { kind: 'interrupt', direction: 'out', nameHint: 'irq', label: 'Interrupt Output' },
+      { kind: 'interrupt', direction: 'in', nameHint: 'irq_in', label: 'Interrupt Input' },
       { kind: 'port', direction: 'in', nameHint: 'port_in', label: 'Input Port' },
       { kind: 'port', direction: 'out', nameHint: 'port_out', label: 'Output Port' },
       { kind: 'port', direction: 'inout', nameHint: 'port_io', label: 'Inout Port' },
@@ -286,6 +287,8 @@ function paletteItemIcon(item: LibraryDragPayload): string {
       return 'codicon-debug-restart';
     case 'parameter':
       return 'codicon-symbol-constant';
+    case 'interrupt':
+      return 'codicon-zap';
     case 'port':
       if (item.direction === 'in') {
         return 'codicon-arrow-right';
@@ -295,6 +298,9 @@ function paletteItemIcon(item: LibraryDragPayload): string {
 }
 
 function kindBadge(item: LibraryDragPayload): string {
+  if (item.kind === 'interrupt') {
+    return item.direction === 'in' ? 'irq-in' : 'irq-out';
+  }
   if (item.kind === 'port' && item.direction) {
     return item.direction === 'in' ? 'in' : item.direction === 'out' ? 'out' : 'io';
   }

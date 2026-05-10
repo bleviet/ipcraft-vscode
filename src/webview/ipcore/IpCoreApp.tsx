@@ -120,6 +120,11 @@ const IpCoreApp: React.FC = () => {
         if (idx !== -1) {
           path = ['ports', idx];
         }
+      } else if (kind === 'interrupt') {
+        const idx = findIndex((ipCore as unknown as IpCore)?.interrupts ?? []);
+        if (idx !== -1) {
+          path = ['interrupts', idx];
+        }
       }
 
       if (path) {
@@ -185,6 +190,7 @@ const IpCoreApp: React.FC = () => {
       reset: 'resets',
       port: 'ports',
       parameter: 'parameters',
+      interrupt: 'interrupts',
     };
     const key = kindToKey[canvasSelected.kind];
     if (!key) {
@@ -219,6 +225,7 @@ const IpCoreApp: React.FC = () => {
       port: 'ports',
       busInterface: 'busInterfaces',
       parameter: 'parameters',
+      interrupt: 'interrupts',
     };
     const key = pathKey[canvasSelected.kind];
     if (!key) {

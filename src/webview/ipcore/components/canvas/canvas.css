@@ -256,6 +256,18 @@
   fill: var(--vscode-charts-orange, #ce9178);
 }
 
+.canvas-port--interrupt .canvas-port__stub {
+  stroke: var(--vscode-charts-yellow, #e5c07b);
+}
+
+.canvas-port--interrupt .canvas-port__dot {
+  fill: var(--vscode-charts-yellow, #e5c07b);
+}
+
+.canvas-port__icon--interrupt polygon {
+  fill: var(--vscode-charts-yellow, #e5c07b);
+}
+
 
 /* Hover state */
 .canvas-element--hovered .canvas-port__stub {

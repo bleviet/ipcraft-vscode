@@ -781,6 +781,13 @@ const PortTooltip: React.FC<PortTooltipProps> = ({ portId, ports }) => {
       details.push(`Polarity: ${rst.polarity}`);
     }
   }
+  if (port.kind === 'interrupt') {
+    const irq = port.data as { sensitivity?: string; direction?: string };
+    details.push(`Direction: ${irq.direction ?? 'out'}`);
+    if (irq.sensitivity) {
+      details.push(`Sensitivity: ${irq.sensitivity}`);
+    }
+  }
 
   return (
     <div className="ip-canvas-tooltip">

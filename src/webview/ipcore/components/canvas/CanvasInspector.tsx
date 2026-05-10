@@ -1,5 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import type { IpCore, Clock, Reset, Port, BusInterface, ConduitPort } from '../../../types/ipCore';
+import type {
+  IpCore,
+  Clock,
+  Reset,
+  Port,
+  BusInterface,
+  ConduitPort,
+  Interrupt,
+} from '../../../types/ipCore';
 import type { YamlUpdateHandler } from '../../../types/editor';
 import type { CanvasElement, CanvasElementKind } from '../../hooks/useCanvasSelection';
 import {
@@ -139,6 +147,20 @@ function renderPanel(
       }
       return (
         <ParameterPanel param={param} index={element.index} ipCore={ipCore} onUpdate={onUpdate} />
+      );
+    }
+    case 'interrupt': {
+      const interrupt = ((ipCore.interrupts ?? []) as Interrupt[])[element.index];
+      if (!interrupt) {
+        return <EmptyState label="Interrupt not found" />;
+      }
+      return (
+        <InterruptPanel
+          interrupt={interrupt}
+          index={element.index}
+          ipCore={ipCore}
+          onUpdate={onUpdate}
+        />
       );
     }
     default:
@@ -634,6 +656,80 @@ const PortPanel: React.FC<PortPanelProps> = ({ port, index, ipCore, onUpdate }) 
           value={currentWidth}
           paramNames={paramNames}
           onSave={(v) => onUpdate(['ports', index, 'width'], v)}
+        />
+      </Section>
+    </>
+  );
+};
+
+interface InterruptPanelProps {
+  interrupt: Interrupt;
+  index: number;
+  ipCore: IpCore;
+  onUpdate: YamlUpdateHandler;
+}
+
+const INTERRUPT_DIR_OPTS = [
+  { value: 'out', label: 'out (sender)' },
+  { value: 'in', label: 'in (receiver)' },
+];
+
+const SENSITIVITY_OPTS = [
+  { value: 'LEVEL_HIGH', label: 'LEVEL_HIGH' },
+  { value: 'LEVEL_LOW', label: 'LEVEL_LOW' },
+  { value: 'EDGE_RISING', label: 'EDGE_RISING' },
+  { value: 'EDGE_FALLING', label: 'EDGE_FALLING' },
+];
+
+const InterruptPanel: React.FC<InterruptPanelProps> = ({ interrupt, index, ipCore, onUpdate }) => {
+  const interrupts = (ipCore.interrupts ?? []) as Interrupt[];
+  const existingNames = interrupts.map((irq) => irq.name).filter((_, i) => i !== index);
+  const paramNames = ((ipCore.parameters ?? []) as unknown as Array<{ name: string }>).map(
+    (p) => p.name
+  );
+
+  const currentWidth: number | string =
+    interrupt.width === undefined || interrupt.width === null
+      ? 1
+      : (interrupt.width as number | string);
+
+  return (
+    <>
+      <Section title="Identity">
+        <PropField
+          label="Name"
+          value={interrupt.name}
+          onSave={(v) => onUpdate(['interrupts', index, 'name'], v)}
+          validate={(v) => validateVhdlIdentifier(v) ?? validateUniqueName(v, existingNames)}
+          placeholder="irq_out"
+          mono
+        />
+        <PropField
+          label="Logical Name"
+          value={interrupt.logicalName ?? ''}
+          onSave={(v) => onUpdate(['interrupts', index, 'logicalName'], v || undefined)}
+          placeholder="irq"
+          mono
+        />
+      </Section>
+      <Section title="Signal">
+        <PropSelect
+          label="Direction"
+          value={interrupt.direction ?? 'out'}
+          options={INTERRUPT_DIR_OPTS}
+          onSave={(v) => onUpdate(['interrupts', index, 'direction'], v)}
+        />
+        <PropWidthField
+          label="Width (bits)"
+          value={currentWidth}
+          paramNames={paramNames}
+          onSave={(v) => onUpdate(['interrupts', index, 'width'], v)}
+        />
+        <PropSelect
+          label="Sensitivity"
+          value={interrupt.sensitivity ?? 'LEVEL_HIGH'}
+          options={SENSITIVITY_OPTS}
+          onSave={(v) => onUpdate(['interrupts', index, 'sensitivity'], v)}
         />
       </Section>
     </>
@@ -1820,6 +1916,8 @@ function getElementName(element: CanvasElement, ipCore: IpCore): string {
         | undefined;
       return String(p?.name ?? '');
     }
+    case 'interrupt':
+      return ((ipCore.interrupts ?? []) as Interrupt[])[element.index]?.name ?? '';
     default:
       return '';
   }
@@ -1839,6 +1937,8 @@ function kindLabel(kind: CanvasElementKind): string {
       return 'Bus Interface';
     case 'parameter':
       return 'Parameter';
+    case 'interrupt':
+      return 'Interrupt';
     default:
       return kind;
   }

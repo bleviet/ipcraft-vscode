@@ -1,6 +1,13 @@
 import { useState, useCallback } from 'react';
 
-export type CanvasElementKind = 'clock' | 'reset' | 'port' | 'busInterface' | 'body' | 'parameter';
+export type CanvasElementKind =
+  | 'clock'
+  | 'reset'
+  | 'port'
+  | 'busInterface'
+  | 'body'
+  | 'parameter'
+  | 'interrupt';
 
 export interface CanvasElement {
   kind: CanvasElementKind;
@@ -36,6 +43,7 @@ export function parseCanvasId(id: string): CanvasElement | null {
     port: 'port',
     bus: 'busInterface',
     parameter: 'parameter',
+    interrupt: 'interrupt',
   };
 
   const kind = kindMap[kindRaw];

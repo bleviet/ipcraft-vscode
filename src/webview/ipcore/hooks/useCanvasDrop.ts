@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import type { YamlUpdateHandler } from '../../types/editor';
-import type { IpCore, Clock, Reset, Port, BusInterface } from '../../types/ipCore';
+import type { IpCore, Clock, Reset, Port, BusInterface, Interrupt } from '../../types/ipCore';
 import { DRAG_MIME, type LibraryDragPayload } from '../components/canvas/LibraryPalette';
 import { BLOCK_WIDTH } from '../components/canvas/canvasLayout';
 
@@ -82,6 +82,9 @@ export function useCanvasDrop({ ipCore, onUpdate, onSelect }: UseCanvasDropOptio
           break;
         case 'port':
           addPort(payload, isLeftHalf, ipCore, onUpdate, onSelect);
+          break;
+        case 'interrupt':
+          addInterrupt(payload, ipCore, onUpdate, onSelect);
           break;
         case 'parameter':
           addParameter(payload, ipCore, onUpdate, onSelect);
@@ -225,4 +228,26 @@ function addPort(
   ports.push(newPort);
   onUpdate(['ports'], ports);
   onSelect(`port:${ports.length - 1}`);
+}
+
+function addInterrupt(
+  payload: LibraryDragPayload,
+  ipCore: IpCore,
+  onUpdate: YamlUpdateHandler,
+  onSelect: (id: string) => void
+) {
+  const interrupts: Interrupt[] = [...((ipCore.interrupts ?? []) as Interrupt[])];
+  const existingNames = interrupts.map((irq) => irq.name);
+  const name = uniqueName(payload.nameHint, existingNames);
+  const direction = payload.direction === 'in' ? 'in' : 'out';
+
+  const newInterrupt: Interrupt = {
+    name,
+    direction,
+    sensitivity: 'LEVEL_HIGH',
+  };
+
+  interrupts.push(newInterrupt);
+  onUpdate(['interrupts'], interrupts);
+  onSelect(`interrupt:${interrupts.length - 1}`);
 }
