@@ -283,8 +283,11 @@ export function parseComponentXmlText(
     } else if (btName === 'axis') {
       busType = AXIS_BUS;
     } else {
-      // Unknown bus type — treat as conduit with the Xilinx vendor type
-      busType = btName;
+      // Unknown bus type — parse full VLNV from the XML attributes
+      const btVendor = attr(busTypeEl, SPIRIT_NS, 'vendor') || 'user.org';
+      const btLibrary = attr(busTypeEl, SPIRIT_NS, 'library') || 'user';
+      const btVersion = attr(busTypeEl, SPIRIT_NS, 'version') || '1.0';
+      busType = `${btVendor}.${btLibrary}.${btName}.${btVersion}`;
     }
 
     // Physical prefix
