@@ -418,24 +418,30 @@ export function parseComponentXmlText(
           const regAccess = text(regEl, 'access') || 'read-write';
 
           const fields: FieldDef[] = [];
-          const fieldsEl = el(regEl, 'fields');
-          if (fieldsEl) {
-            for (const fieldEl of childEls(fieldsEl, 'field')) {
-              const fieldName = text(fieldEl, 'name');
-              const fieldDesc = text(fieldEl, 'description') || undefined;
-              const bitOffsetStr = text(fieldEl, 'bitOffset');
-              const bitWidthStr = text(fieldEl, 'bitWidth');
-              const fieldAccess = text(fieldEl, 'access') || regAccess;
-              const resetStr = text(fieldEl, 'reset') || text(fieldEl, 'resetValue');
-              fields.push({
-                name: fieldName,
-                description: fieldDesc,
-                bitOffset: parseHexOrDec(bitOffsetStr),
-                bitWidth: parseHexOrDec(bitWidthStr) || 1,
-                access: normalizeAccess(fieldAccess),
-                reset: resetStr ? parseHexOrDec(resetStr) : undefined,
-              });
-            }
+          // IP-XACT allows fields as direct children of register OR inside a
+          // <spirit:fields> wrapper. Vivado omits the wrapper element.
+          const fieldsEl = childEl(regEl, 'fields');
+          const fieldEls = fieldsEl ? childEls(fieldsEl, 'field') : childEls(regEl, 'field');
+          for (const fieldEl of fieldEls) {
+            const fieldName = text(fieldEl, 'name');
+            const fieldDesc = text(fieldEl, 'description') || undefined;
+            const bitOffsetStr = text(fieldEl, 'bitOffset');
+            const bitWidthStr = text(fieldEl, 'bitWidth');
+            const fieldAccess = text(fieldEl, 'access') || regAccess;
+            // IP-XACT 2009: <spirit:reset>0x0</spirit:reset> (plain text)
+            // Vivado extension: <spirit:reset><spirit:value>0x0</spirit:value></spirit:reset>
+            const resetEl = childEl(fieldEl, 'reset');
+            const resetStr = resetEl
+              ? text(resetEl, 'value') || resetEl.textContent?.trim() || ''
+              : text(fieldEl, 'resetValue');
+            fields.push({
+              name: fieldName,
+              description: fieldDesc,
+              bitOffset: parseHexOrDec(bitOffsetStr),
+              bitWidth: parseHexOrDec(bitWidthStr) || 1,
+              access: normalizeAccess(fieldAccess),
+              reset: resetStr ? parseHexOrDec(resetStr) : undefined,
+            });
           }
 
           registers.push({
