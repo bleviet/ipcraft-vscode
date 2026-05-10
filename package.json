@@ -96,7 +96,7 @@
       },
       {
         "command": "fpga-ip-core.parseComponentXml",
-        "title": "Import Xilinx component.xml to .ip.yml",
+        "title": "Parse Xilinx component.xml to .ip.yml",
         "category": "IPCraft",
         "icon": "$(file-code)"
       },
