@@ -20,6 +20,10 @@ export const workspace = {
   onDidChangeTextDocument: jest.fn(),
   applyEdit: jest.fn(),
   asRelativePath: jest.fn((path) => path.toString()),
+  getConfiguration: jest.fn(() => ({
+    get: jest.fn((_key: string, defaultValue?: unknown) => defaultValue),
+  })),
+  workspaceFolders: undefined as undefined | Array<{ uri: { fsPath: string } }>,
 };
 
 export enum FileType {

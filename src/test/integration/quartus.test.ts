@@ -33,6 +33,7 @@ it('generates at least one Altera fixture with _hw.tcl', () => {
 
 it('all Altera _hw.tcl files pass Platform Designer stub validation', () => {
   if (SKIP) {
+    // eslint-disable-next-line no-console
     console.log('Skipping Quartus validation (SKIP_QUARTUS=1)');
     return;
   }
@@ -94,5 +95,6 @@ it('all Altera _hw.tcl files pass Platform Designer stub validation', () => {
     );
   }
 
+  // eslint-disable-next-line no-console
   console.log(`  PASS: ${hwTclEntries.length} hw.tcl file(s) validated`);
 });

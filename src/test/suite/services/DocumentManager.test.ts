@@ -21,6 +21,7 @@ describe('DocumentManager', () => {
   it('updates document content and returns true when edit is applied', async () => {
     const document = {
       uri: { fsPath: '/project/ip/core.yml' } as vscode.Uri,
+      getText: jest.fn().mockReturnValue('name: old'),
       lineCount: 2,
       lineAt: jest.fn().mockReturnValue({ lineNumber: 1, text: 'tail' }),
     } as unknown as vscode.TextDocument;
@@ -49,6 +50,7 @@ describe('DocumentManager', () => {
   it('returns false when applyEdit returns false', async () => {
     const document = {
       uri: { fsPath: '/project/ip/core.yml' } as vscode.Uri,
+      getText: jest.fn().mockReturnValue('old'),
       lineCount: 1,
       lineAt: jest.fn().mockReturnValue({ lineNumber: 0, text: 'x' }),
     } as unknown as vscode.TextDocument;
@@ -66,6 +68,7 @@ describe('DocumentManager', () => {
     });
     const document = {
       uri: { fsPath: '/project/ip/core.yml' } as vscode.Uri,
+      getText: jest.fn().mockReturnValue('old'),
       lineCount: 1,
       lineAt: jest.fn().mockImplementation(() => {
         throw new Error('line failure');

@@ -35,6 +35,7 @@ it('generates at least one AMD fixture with component.xml', () => {
 
 it('all AMD fixtures pass Vivado ipx::check_integrity', () => {
   if (SKIP) {
+    // eslint-disable-next-line no-console
     console.log('Skipping Vivado validation (SKIP_VIVADO=1)');
     return;
   }
@@ -62,6 +63,7 @@ it('all AMD fixtures pass Vivado ipx::check_integrity', () => {
     // validate.tcl exits 0 on success; it also prints "PASS: <vlnv>"
     const passed = result.status === 0;
     if (passed) {
+      // eslint-disable-next-line no-console
       console.log(`  PASS: ${fixture.name}`);
     } else {
       failures.push(

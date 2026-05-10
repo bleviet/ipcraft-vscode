@@ -25,6 +25,10 @@ describe('ImportResolver', () => {
       fsPath: filePath,
       toString: () => filePath,
     }));
+    (vscode.workspace.getConfiguration as jest.Mock).mockReturnValue({
+      get: (_key: string, defaultValue?: unknown) => defaultValue,
+    });
+    (vscode.workspace as { workspaceFolders?: unknown }).workspaceFolders = undefined;
 
     context = {
       extensionPath: '/ext',
