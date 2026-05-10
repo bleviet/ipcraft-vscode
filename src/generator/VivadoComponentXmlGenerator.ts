@@ -781,7 +781,7 @@ function renderParameters(entityName: string, parameters: ParameterDef[]): strin
 }
 
 function renderVendorExtensions(displayName: string, xilinxVersion: string): string[] {
-  const families = ['artix7', 'kintex7', 'virtex7', 'zynq', 'kintexu', 'virtexu', 'zynquplus'];
+  const families = ['versal', 'qzynq', 'zynquplus', 'azynq', 'zynq'];
 
   const lines: string[] = [];
   lines.push('  <spirit:vendorExtensions>');
