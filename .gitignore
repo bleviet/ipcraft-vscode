@@ -10,3 +10,5 @@ coverage/
 *.log
 site/
 test-results/
+*.jou
+*.log
