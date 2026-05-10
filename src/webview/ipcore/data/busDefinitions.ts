@@ -118,7 +118,7 @@ export function lookupBusDef(busType: string): BusPortDef[] | null {
   if (lower.includes('axi4_lite') || lower.includes('axi4-lite') || lower.includes('axi4l')) {
     return AXI4_LITE;
   }
-  if (lower.includes('axi4_full') || lower.includes('axi4-full')) {
+  if (lower.includes('axi4_full') || lower.includes('axi4-full') || lower.includes('axi4f')) {
     return AXI4_FULL;
   }
   if (

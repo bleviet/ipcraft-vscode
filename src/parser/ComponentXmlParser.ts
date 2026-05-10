@@ -1,6 +1,7 @@
 import * as fs from 'fs/promises';
 import * as yaml from 'js-yaml';
 import { DOMParser } from '@xmldom/xmldom';
+import { lookupBusDef } from '../webview/ipcore/data/busDefinitions';
 
 // IP-XACT 1685-2009 namespace
 const SPIRIT_NS = 'http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009';
@@ -254,6 +255,7 @@ export function parseComponentXmlText(
     associatedClock?: string;
     associatedReset?: string;
     memoryMapRef?: string;
+    useOptionalPorts?: string[];
   }
   const busInterfaces: BusIfEntry[] = [];
 
@@ -321,6 +323,18 @@ export function parseComponentXmlText(
     }
     if (memoryMapRef) {
       entry.memoryMapRef = memoryMapRef;
+    }
+
+    // Optional ports detection
+    const busDef = lookupBusDef(busType);
+    if (busDef) {
+      const logPorts = logicalPortNames(busIf);
+      const useOptionalPorts = busDef
+        .filter((def) => def.presence === 'optional' && logPorts.has(def.name.toUpperCase()))
+        .map((def) => def.name.toLowerCase());
+      if (useOptionalPorts.length > 0) {
+        entry.useOptionalPorts = useOptionalPorts;
+      }
     }
 
     busInterfaces.push(entry);
@@ -399,6 +413,54 @@ export function parseComponentXmlText(
       }
 
       parameters.push({ name: pName, value, dataType });
+    }
+  }
+
+  // ---- Standalone User Ports ----------------------------------------------
+  interface UserPort {
+    name: string;
+    direction: 'in' | 'out';
+    width: number;
+  }
+  const userPorts: UserPort[] = [];
+
+  const assignedPorts = new Set<string>();
+  for (const [, port] of clockPortMap) {
+    assignedPorts.add(port);
+  }
+  for (const [, r] of resetPortMap) {
+    assignedPorts.add(r.port);
+  }
+  for (const intr of interrupts) {
+    assignedPorts.add(intr.name);
+  }
+  for (const busIf of busInterfaceEls) {
+    for (const p of physicalPortNames(busIf)) {
+      assignedPorts.add(p);
+    }
+  }
+
+  const modelEl = childEl(root, 'model');
+  const portsEl = modelEl ? childEl(modelEl, 'ports') : undefined;
+  if (portsEl) {
+    for (const portEl of childEls(portsEl, 'port')) {
+      const pName = text(portEl, 'name');
+      if (!pName || assignedPorts.has(pName)) {
+        continue;
+      }
+      const wireEl = childEl(portEl, 'wire');
+      if (!wireEl) {
+        continue;
+      }
+      const direction = text(wireEl, 'direction') === 'out' ? 'out' : 'in';
+      const vectorEl = childEl(wireEl, 'vector');
+      let width = 1;
+      if (vectorEl) {
+        const left = parseHexOrDec(text(vectorEl, 'left'));
+        const right = parseHexOrDec(text(vectorEl, 'right'));
+        width = Math.abs(left - right) + 1;
+      }
+      userPorts.push({ name: pName, direction, width });
     }
   }
 
@@ -529,6 +591,9 @@ export function parseComponentXmlText(
   }
   if (ipMemoryMaps) {
     ipObj.memoryMaps = ipMemoryMaps;
+  }
+  if (userPorts.length > 0) {
+    ipObj.ports = userPorts;
   }
   if (parameters.length > 0) {
     ipObj.parameters = parameters;
