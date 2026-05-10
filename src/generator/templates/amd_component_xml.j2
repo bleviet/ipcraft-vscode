@@ -108,6 +108,34 @@
         </spirit:parameter>
       </spirit:parameters>
     </spirit:busInterface>
+{% if interrupt_ports %}
+{% for intr in interrupt_ports %}
+    <spirit:busInterface>
+      <spirit:name>{{ intr.name }}</spirit:name>
+      <spirit:busType spirit:vendor="xilinx.com" spirit:library="signal" spirit:name="interrupt" spirit:version="1.0" />
+      <spirit:abstractionType spirit:vendor="xilinx.com" spirit:library="signal" spirit:name="interrupt_rtl"
+        spirit:version="1.0" />
+      {% if intr.direction == 'in' %}<spirit:slave />{% else %}<spirit:master />{% endif %}
+
+      <spirit:portMaps>
+        <spirit:portMap>
+          <spirit:logicalPort>
+            <spirit:name>INTERRUPT</spirit:name>
+          </spirit:logicalPort>
+          <spirit:physicalPort>
+            <spirit:name>{{ intr.name }}</spirit:name>
+          </spirit:physicalPort>
+        </spirit:portMap>
+      </spirit:portMaps>
+      <spirit:parameters>
+        <spirit:parameter>
+          <spirit:name>SENSITIVITY</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.{{ intr.name | upper }}.SENSITIVITY">{{ intr.sensitivity }}</spirit:value>
+        </spirit:parameter>
+      </spirit:parameters>
+    </spirit:busInterface>
+{% endfor %}
+{% endif %}
   </spirit:busInterfaces>
   <spirit:memoryMaps>
     <spirit:memoryMap>

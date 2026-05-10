@@ -117,10 +117,10 @@ describeIf('HwTclParser — real Altera files', () => {
       expect(portNames).toContain('scl_in');
     });
 
-    it('includes interrupt port as conduit', () => {
-      const ports: AnyRecord[] = doc.ports ?? [];
-      const portNames = ports.map((p) => p.name as string);
-      expect(portNames).toContain('intr');
+    it('includes interrupt port in interrupts[]', () => {
+      const interrupts: AnyRecord[] = (doc.interrupts as AnyRecord[]) ?? [];
+      const intrNames = interrupts.map((p) => p.name as string);
+      expect(intrNames).toContain('intr');
     });
 
     it('includes parameters', () => {
@@ -189,10 +189,10 @@ describeIf('HwTclParser — real Altera files', () => {
       expect(portNames).toContain('txd');
     });
 
-    it('includes interrupt irq port as conduit', () => {
-      const ports: AnyRecord[] = doc.ports ?? [];
-      const portNames = ports.map((p) => p.name as string);
-      expect(portNames).toContain('irq');
+    it('includes interrupt irq in interrupts[]', () => {
+      const interrupts: AnyRecord[] = (doc.interrupts as AnyRecord[]) ?? [];
+      const intrNames = interrupts.map((p) => p.name as string);
+      expect(intrNames).toContain('irq');
     });
 
     it('includes UART parameters (baud, dataBits)', () => {
@@ -230,10 +230,10 @@ describeIf('HwTclParser — real Altera files', () => {
       expect(ctrl?.mode).toBe('slave');
     });
 
-    it('includes interrupt irq port as conduit', () => {
-      const ports: AnyRecord[] = doc.ports ?? [];
-      const portNames = ports.map((p) => p.name as string);
-      expect(portNames).toContain('irq');
+    it('includes interrupt irq in interrupts[]', () => {
+      const interrupts: AnyRecord[] = (doc.interrupts as AnyRecord[]) ?? [];
+      const intrNames = interrupts.map((p) => p.name as string);
+      expect(intrNames).toContain('irq');
     });
 
     it('includes SPI parameters (dataWidth, clockPhase)', () => {

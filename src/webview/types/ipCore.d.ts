@@ -97,7 +97,7 @@ export type Name3 = string;
  */
 export type Logicalname2 = string;
 /**
- * Port direction
+ * Port direction (typically 'out')
  */
 export type PortDirection2 = 'in' | 'out' | 'inout';
 /**
@@ -105,13 +105,41 @@ export type PortDirection2 = 'in' | 'out' | 'inout';
  */
 export type Width2 = number | string;
 /**
+ * Interrupt sensitivity (LEVEL_HIGH, LEVEL_LOW, EDGE_RISING, EDGE_FALLING)
+ */
+export type Sensitivity = 'LEVEL_HIGH' | 'LEVEL_LOW' | 'EDGE_RISING' | 'EDGE_FALLING';
+/**
+ * Interrupt signal description
+ */
+export type Description3 = string;
+/**
+ * Interrupt output definitions
+ */
+export type Interrupts = Interrupt[];
+/**
+ * Physical port name (HDL)
+ */
+export type Name4 = string;
+/**
+ * Standard logical name for association
+ */
+export type Logicalname3 = string;
+/**
+ * Port direction
+ */
+export type PortDirection3 = 'in' | 'out' | 'inout';
+/**
+ * Port width in bits or parameter name
+ */
+export type Width3 = number | string;
+/**
  * VHDL type (e.g. std_logic, std_logic_vector)
  */
 export type Type2 = string;
 /**
  * Port description
  */
-export type Description3 = string;
+export type Description4 = string;
 /**
  * Data/control ports
  */
@@ -119,7 +147,7 @@ export type Ports = Port[];
 /**
  * Logical interface name
  */
-export type Name4 = string;
+export type Name5 = string;
 /**
  * Bus type identifier in vendor.library.name.version format (e.g., 'ipcraft.busif.axi4_lite.1.0')
  */
@@ -127,7 +155,7 @@ export type Type3 = string;
 /**
  * Interface mode: 'master' or 'slave'
  */
-export type BusInterfaceMode = 'master' | 'slave' | 'source' | 'sink' | 'conduit';
+export type BusInterfaceMode = 'master' | 'slave' | 'source' | 'sink';
 /**
  * Prefix for physical port names (e.g., 's_axi_')
  */
@@ -167,7 +195,7 @@ export type Physicalprefixpattern = string;
 /**
  * Interface description
  */
-export type Description4 = string;
+export type Description5 = string;
 /**
  * Bus interface definitions
  */
@@ -175,15 +203,15 @@ export type Businterfaces = BusInterface[];
 /**
  * Memory map name
  */
-export type Name5 = string;
+export type Name6 = string;
 /**
  * Memory map description
  */
-export type Description5 = string;
+export type Description6 = string;
 /**
  * Block name
  */
-export type Name6 = string;
+export type Name7 = string;
 /**
  * Block starting address
  */
@@ -208,7 +236,7 @@ export type AccessType =
 /**
  * Block description
  */
-export type Description6 = string;
+export type Description7 = string;
 /**
  * Default register width
  */
@@ -216,7 +244,7 @@ export type Defaultregwidth = number;
 /**
  * Register name
  */
-export type Name7 = string;
+export type Name8 = string;
 /**
  * Offset from address block base
  */
@@ -241,11 +269,11 @@ export type Resetvalue = number | null;
 /**
  * Register description
  */
-export type Description7 = string;
+export type Description8 = string;
 /**
  * Bit field name
  */
-export type Name8 = string;
+export type Name9 = string;
 /**
  * Starting bit position (LSB = 0)
  */
@@ -253,7 +281,7 @@ export type Offset1 = number | null;
 /**
  * Number of bits
  */
-export type Width3 = number | null;
+export type Width4 = number | null;
 /**
  * Bit range string e.g. [7:0]
  */
@@ -274,7 +302,7 @@ export type Resetvalue1 = number | null;
 /**
  * Field description
  */
-export type Description8 = string;
+export type Description9 = string;
 /**
  * Enumeration mapping {value: name}
  */
@@ -308,11 +336,15 @@ export type Addressblocks = AddressBlock[];
 /**
  * File set name
  */
-export type Name9 = string;
+export type Name10 = string;
 /**
  * File set description
  */
-export type Description9 = string;
+export type Description10 = string;
+/**
+ * Whether the file should be overwritten on generation
+ */
+export type Managed = boolean;
 /**
  * Relative or absolute file path
  */
@@ -344,7 +376,7 @@ export type FileType =
 /**
  * File description
  */
-export type Description10 = string;
+export type Description11 = string;
 /**
  * Whether file is an include file
  */
@@ -352,7 +384,7 @@ export type Isincludefile = boolean;
 /**
  * Logical name (e.g., library name for VHDL)
  */
-export type Logicalname3 = string;
+export type Logicalname4 = string;
 /**
  * Files in this set
  */
@@ -364,7 +396,7 @@ export type Filesets = FileSet[];
 /**
  * Parameter name
  */
-export type Name10 = string;
+export type Name11 = string;
 /**
  * Data type
  */
@@ -372,7 +404,7 @@ export type ParameterType = 'integer' | 'natural' | 'positive' | 'real' | 'boole
 /**
  * Parameter description
  */
-export type Description11 = string;
+export type Description12 = string;
 /**
  * Generics/parameters
  */
@@ -394,6 +426,7 @@ export interface IpCore {
   description?: Description;
   clocks?: Clocks;
   resets?: Resets;
+  interrupts?: Interrupts;
   ports?: Ports;
   busInterfaces?: Businterfaces;
   /**
@@ -452,17 +485,31 @@ export interface Reset {
   polarity?: Polarity;
 }
 /**
+ * Interrupt output definition for an IP core.
+ *
+ * Defines both logical (internal) and physical (port) names for interrupt signals.
+ * Inherits from Port, typically with direction=out and width=1.
+ */
+export interface Interrupt {
+  name: Name3;
+  logicalName?: Logicalname2;
+  direction?: PortDirection2;
+  width?: Width2;
+  sensitivity?: Sensitivity;
+  description?: Description3;
+}
+/**
  * Generic port definition for IP cores.
  *
  * Used for data and control ports that are not part of clock, reset, or bus interfaces.
  */
 export interface Port {
-  name: Name3;
-  logicalName?: Logicalname2;
-  direction: PortDirection2;
-  width?: Width2;
+  name: Name4;
+  logicalName?: Logicalname3;
+  direction: PortDirection3;
+  width?: Width3;
   type?: Type2;
-  description?: Description3;
+  description?: Description4;
 }
 /**
  * Bus interface definition for an IP core.
@@ -470,15 +517,8 @@ export interface Port {
  * Represents a standardized bus connection (AXI, Avalon, etc.) with
  * optional width overrides, clock/reset associations, and array support.
  */
-export interface ConduitPort {
-  name: string;
-  direction: 'in' | 'out' | 'inout';
-  width?: number | string;
-  presence?: 'required' | 'optional';
-}
-
 export interface BusInterface {
-  name: Name4;
+  name: Name5;
   type: Type3;
   mode: BusInterfaceMode;
   physicalPrefix: Physicalprefix;
@@ -487,19 +527,17 @@ export interface BusInterface {
   memoryMapRef?: Memorymapref;
   useOptionalPorts?: Useoptionalports;
   portWidthOverrides?: Portwidthoverrides;
-  /** User-defined signals for conduit (custom) interfaces */
-  conduitPorts?: ConduitPort[];
   /**
    * Array configuration for multiple instances
    */
   array?: ArrayConfig | null;
-  description?: Description4;
+  description?: Description5;
 }
 /**
- * Port width overrides {port_name: width}
+ * Port width overrides {port_name: width_or_parameter_name}
  */
 export interface Portwidthoverrides {
-  [k: string]: number;
+  [k: string]: number | string;
 }
 /**
  * Configuration for array of bus interfaces.
@@ -518,8 +556,8 @@ export interface ArrayConfig {
  * Organizes registers into address blocks with validation.
  */
 export interface MemoryMap {
-  name: Name5;
-  description?: Description5;
+  name: Name6;
+  description?: Description6;
   addressBlocks?: Addressblocks;
 }
 /**
@@ -528,12 +566,12 @@ export interface MemoryMap {
  * Can contain registers, memory, or reserved space.
  */
 export interface AddressBlock {
-  name: Name6;
+  name: Name7;
   baseAddress?: Baseaddress;
   range?: Range;
   usage?: BlockUsage;
   access?: AccessType;
-  description?: Description6;
+  description?: Description7;
   defaultRegWidth?: Defaultregwidth;
   registers?: Registers;
   [k: string]: unknown;
@@ -544,12 +582,12 @@ export interface AddressBlock {
  * Represents a memory-mapped register with bit fields.
  */
 export interface RegisterDef {
-  name: Name7;
+  name: Name8;
   offset?: Offset;
   size?: Size;
   access?: AccessType1;
   resetValue?: Resetvalue;
-  description?: Description7;
+  description?: Description8;
   fields?: Fields;
   registers?: Registers1;
   count?: Count1;
@@ -562,13 +600,13 @@ export interface RegisterDef {
  * Represents a named range of bits with specific access semantics.
  */
 export interface BitFieldDef {
-  name: Name8;
+  name: Name9;
   offset?: Offset1;
-  width?: Width3;
+  width?: Width4;
   bits?: Bits;
   access?: AccessType2;
   resetValue?: Resetvalue1;
-  description?: Description8;
+  description?: Description9;
   enumeratedValues?: Enumeratedvalues;
   [k: string]: unknown;
 }
@@ -578,8 +616,8 @@ export interface BitFieldDef {
  * Groups related files together (e.g., RTL sources, C API, documentation).
  */
 export interface FileSet {
-  name: Name9;
-  description?: Description9;
+  name: Name10;
+  description?: Description10;
   files?: Files;
 }
 /**
@@ -587,17 +625,13 @@ export interface FileSet {
  *
  * Represents a file that is part of the IP core (source, constraint, doc, etc.).
  */
-/**
- * Whether the file should be overwritten on generation
- */
-export type Managed = boolean;
 export interface File {
   managed?: Managed;
   path: Path;
   type: FileType;
-  description?: Description10;
+  description?: Description11;
   isIncludeFile?: Isincludefile;
-  logicalName?: Logicalname3;
+  logicalName?: Logicalname4;
 }
 /**
  * Generic parameter/generic definition for IP cores.
@@ -605,10 +639,10 @@ export interface File {
  * Used for VHDL generics, Verilog parameters, or component configuration.
  */
 export interface Parameter {
-  name: Name10;
+  name: Name11;
   value: Value;
   dataType?: ParameterType;
-  description?: Description11;
+  description?: Description12;
 }
 /**
  * Default value

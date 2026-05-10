@@ -187,10 +187,8 @@ export function parseHwTclContent(
 
   const clockIfaces = Array.from(interfaces.values()).filter((i) => i.type === 'clock');
   const resetIfaces = Array.from(interfaces.values()).filter((i) => i.type === 'reset');
-  // 'interrupt' interfaces have no IPCraft counterpart; include their ports as conduit ports
-  const conduitIfaces = Array.from(interfaces.values()).filter(
-    (i) => i.type === 'conduit' || i.type === 'interrupt'
-  );
+  const conduitIfaces = Array.from(interfaces.values()).filter((i) => i.type === 'conduit');
+  const interruptIfaces = Array.from(interfaces.values()).filter((i) => i.type === 'interrupt');
   const busIfaces = Array.from(interfaces.values()).filter(
     (i) => BUS_TYPE_MAP[i.type] !== undefined
   );
@@ -242,6 +240,18 @@ export function parseHwTclContent(
   );
   if (portEntries.length > 0) {
     yamlData.ports = portEntries;
+  }
+
+  // ── Interrupts ─────────────────────────────────────────────────────────────
+
+  const interruptEntries = interruptIfaces.flatMap((ii) =>
+    ii.ports.map((p) => ({
+      name: p.portName,
+      direction: ii.mode === 'end' ? ('in' as const) : ('out' as const),
+    }))
+  );
+  if (interruptEntries.length > 0) {
+    yamlData.interrupts = interruptEntries;
   }
 
   // ── Bus interfaces ──────────────────────────────────────────────────────────

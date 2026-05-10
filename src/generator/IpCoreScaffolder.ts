@@ -237,6 +237,7 @@ export class IpCoreScaffolder {
       hw_registers: hwRegisters,
       generics: this.prepareGenerics(ipCore),
       user_ports: this.prepareUserPorts(ipCore),
+      interrupt_ports: this.prepareInterruptPorts(ipCore),
       bus_type: busType,
       bus_ports: busPorts,
       secondary_bus_ports: secondaryBusPorts,
@@ -321,6 +322,20 @@ export class IpCoreScaffolder {
         default_width: null,
       };
     });
+  }
+
+  private prepareInterruptPorts(ipCore: IpCoreData): Array<Record<string, unknown>> {
+    const interrupts = (ipCore as Record<string, unknown>)?.interrupts as
+      | Array<Record<string, unknown>>
+      | undefined;
+    if (!interrupts || interrupts.length === 0) {
+      return [];
+    }
+    return interrupts.map((intr) => ({
+      name: String(intr.name ?? '').toLowerCase(),
+      direction: String(intr.direction ?? 'out').toLowerCase(),
+      sensitivity: String(intr.sensitivity ?? 'LEVEL_HIGH'),
+    }));
   }
 
   private resolvePortsForInterface(libraryKey: string, ifaceType: string): BusPortDefinition[] {

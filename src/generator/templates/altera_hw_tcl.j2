@@ -103,6 +103,20 @@ port.is_parameterized %}{{ port.width_expr }}{% else %}{{ port.width | default(1
 
 {% endfor %}
 {% endif %}
+
+{% if interrupt_ports %}
+# -----------------------------------------------------------------------------
+# Interrupt Sender Interface(s)
+# -----------------------------------------------------------------------------
+{% for intr in interrupt_ports %}
+add_interface {{ intr.name }} interrupt {{ 'end' if intr.direction == 'in' else 'start' }}
+set_interface_property {{ intr.name }} associatedAddressablePoint ""
+set_interface_property {{ intr.name }} ENABLED true
+
+add_interface_port {{ intr.name }} {{ intr.name }} irq {{ 'Input' if intr.direction == 'in' else 'Output' }} 1
+
+{% endfor %}
+{% endif %}
 }
 
 # -----------------------------------------------------------------------------

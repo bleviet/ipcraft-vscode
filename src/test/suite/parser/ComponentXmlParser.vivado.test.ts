@@ -91,6 +91,14 @@ describeIf('ComponentXmlParser — real Vivado files', () => {
       const resets: AnyRecord[] = doc.resets ?? [];
       expect(resets.length).toBeGreaterThan(0);
     });
+
+    it('ip.yml has interrupt(s) parsed from interrupt bus interface', () => {
+      const doc = yaml.load(result.ipYamlText) as AnyRecord;
+      const interrupts: AnyRecord[] = (doc.interrupts as AnyRecord[]) ?? [];
+      expect(interrupts.length).toBeGreaterThan(0);
+      expect(interrupts[0].name).toBeTruthy();
+      expect(interrupts[0].direction).toBe('out');
+    });
   });
 
   // ─── axi_uartlite_v2_0 ────────────────────────────────────────────────────

@@ -263,7 +263,7 @@ export function parseComponentXmlText(
       continue;
     }
     const btName = attr(busTypeEl, SPIRIT_NS, 'name');
-    // skip clock/reset/interrupt/data busInterfaces as they are decorators
+    // skip clock/reset; interrupt is handled separately below
     if (btName === 'clock' || btName === 'reset' || btName === 'interrupt') {
       continue;
     }
@@ -324,6 +324,44 @@ export function parseComponentXmlText(
     }
 
     busInterfaces.push(entry);
+  }
+
+  // ---- Interrupt bus interfaces -------------------------------------------
+  interface InterruptEntry {
+    name: string;
+    direction: 'out' | 'in';
+    sensitivity?: string;
+  }
+  const interrupts: InterruptEntry[] = [];
+
+  for (const busIf of busInterfaceEls) {
+    const busTypeEl = busIf.getElementsByTagNameNS(SPIRIT_NS, 'busType')[0] as Element | undefined;
+    if (!busTypeEl) {
+      continue;
+    }
+    const btName = attr(busTypeEl, SPIRIT_NS, 'name');
+    if (btName !== 'interrupt') {
+      continue;
+    }
+
+    const phyPorts = physicalPortNames(busIf);
+    if (phyPorts.length === 0) {
+      continue;
+    }
+
+    // master = sender (output interrupt), slave = receiver (input interrupt)
+    const isSlave = !!busIf.getElementsByTagNameNS(SPIRIT_NS, 'slave')[0];
+    const direction: 'out' | 'in' = isSlave ? 'in' : 'out';
+
+    const sensitivity = getBusIfParam(busIf, 'SENSITIVITY');
+
+    for (const portName of phyPorts) {
+      const entry: InterruptEntry = { name: portName, direction };
+      if (sensitivity) {
+        entry.sensitivity = sensitivity;
+      }
+      interrupts.push(entry);
+    }
   }
 
   // ---- Parameters ---------------------------------------------------------
@@ -482,6 +520,9 @@ export function parseComponentXmlText(
   }
   if (resets.length > 0) {
     ipObj.resets = resets;
+  }
+  if (interrupts.length > 0) {
+    ipObj.interrupts = interrupts;
   }
   if (busInterfaces.length > 0) {
     ipObj.busInterfaces = busInterfaces;
