@@ -57,6 +57,8 @@ module.exports = {
         // e2e and browser tests are run by @vscode/test-electron and Playwright respectively
         '/src/test/e2e/',
         '/src/test/browser/',
+        // integration tests have their own config (jest.integration.js)
+        '/src/test/integration/',
     ],
     // Module file extensions
     moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],

@@ -270,11 +270,13 @@ export function generateComponentXml(
   lines.push(`  <spirit:version>${x(version)}</spirit:version>`);
 
   // ── busInterfaces ─────────────────────────────────────────────────────────
+  // Spirit XSD requires busInterfaces to be absent when empty — never emit an
+  // empty <spirit:busInterfaces/> element.
 
-  lines.push('  <spirit:busInterfaces>');
+  const busIfLines: string[] = [];
 
   for (const iface of busInterfaces) {
-    lines.push(...renderBusInterface(iface, busDefinitions));
+    busIfLines.push(...renderBusInterface(iface, busDefinitions));
   }
 
   for (const clock of clocks) {
@@ -288,17 +290,21 @@ export function generateComponentXml(
     const assocReset = busInterfaces
       .filter((bi) => bi.associated_clock === clock.name && bi.associated_reset)
       .map((bi) => bi.associated_reset)[0];
-    lines.push(...renderClockInterface(clock.name, assocBusIfs, assocReset));
+    busIfLines.push(...renderClockInterface(clock.name, assocBusIfs, assocReset));
   }
 
   for (const reset of resets) {
     if (!reset.name) {
       continue;
     }
-    lines.push(...renderResetInterface(reset.name, reset.polarity ?? 'activeHigh'));
+    busIfLines.push(...renderResetInterface(reset.name, reset.polarity ?? 'activeHigh'));
   }
 
-  lines.push('  </spirit:busInterfaces>');
+  if (busIfLines.length > 0) {
+    lines.push('  <spirit:busInterfaces>');
+    lines.push(...busIfLines);
+    lines.push('  </spirit:busInterfaces>');
+  }
 
   // ── model ─────────────────────────────────────────────────────────────────
 
@@ -552,21 +558,20 @@ function renderPorts(
   userPorts: Array<{ name?: string; direction?: string; width?: number | string }>,
   busDefinitions: BusDefinitions
 ): string[] {
-  const lines: string[] = [];
-  lines.push('    <spirit:ports>');
+  const portLines: string[] = [];
 
   for (const clock of clocks) {
     if (!clock.name) {
       continue;
     }
-    lines.push(...renderModelPort(clock.name, 'in', 1));
+    portLines.push(...renderModelPort(clock.name, 'in', 1));
   }
 
   for (const reset of resets) {
     if (!reset.name) {
       continue;
     }
-    lines.push(...renderModelPort(reset.name, 'in', 1));
+    portLines.push(...renderModelPort(reset.name, 'in', 1));
   }
 
   for (const iface of busInterfaces) {
@@ -588,7 +593,9 @@ function renderPorts(
       iface.port_width_overrides ?? {}
     );
     for (const port of activePorts) {
-      lines.push(...renderModelPort(String(port.name), String(port.direction), Number(port.width)));
+      portLines.push(
+        ...renderModelPort(String(port.name), String(port.direction), Number(port.width))
+      );
     }
   }
 
@@ -597,11 +604,14 @@ function renderPorts(
       continue;
     }
     const width = typeof port.width === 'number' ? port.width : 1;
-    lines.push(...renderModelPort(String(port.name), String(port.direction ?? 'in'), width));
+    portLines.push(...renderModelPort(String(port.name), String(port.direction ?? 'in'), width));
   }
 
-  lines.push('    </spirit:ports>');
-  return lines;
+  // Spirit XSD requires ports to be absent when empty
+  if (portLines.length === 0) {
+    return [];
+  }
+  return ['    <spirit:ports>', ...portLines, '    </spirit:ports>'];
 }
 
 function renderModelPort(name: string, direction: string, width: number): string[] {
