@@ -1,6 +1,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
+import { lookupBusDef } from '../webview/ipcore/data/busDefinitions';
 
 export interface HwTclParseOptions {
   library?: string;
@@ -281,6 +282,18 @@ export function parseHwTclContent(
     const resetPort = assocResetIface ? resetPortByIface.get(assocResetIface) : undefined;
     if (resetPort) {
       entry.associatedReset = resetPort;
+    }
+
+    // Detect optional ports that are actually present in the hw.tcl
+    const busDef = lookupBusDef(BUS_TYPE_MAP[bi.type]);
+    if (busDef) {
+      const presentLogical = new Set(bi.ports.map((p) => p.logicalName.toLowerCase()));
+      const useOptionalPorts = busDef
+        .filter((def) => def.presence === 'optional' && presentLogical.has(def.name.toLowerCase()))
+        .map((def) => def.name.toLowerCase());
+      if (useOptionalPorts.length > 0) {
+        entry.useOptionalPorts = useOptionalPorts;
+      }
     }
 
     return entry;

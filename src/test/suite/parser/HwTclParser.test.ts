@@ -164,6 +164,68 @@ describe('HwTclParser', () => {
       expect(doc.busInterfaces[0].mode).toBe('sink');
       expect(doc.busInterfaces[1].mode).toBe('source');
     });
+
+    it('emits useOptionalPorts for optional ports present in hw.tcl', () => {
+      const tcl = `
+        add_interface s_axi axi4lite end
+        add_interface_port s_axi s_axi_awaddr awaddr Input 32
+        add_interface_port s_axi s_axi_awvalid awvalid Input 1
+        add_interface_port s_axi s_axi_awready awready Output 1
+        add_interface_port s_axi s_axi_awprot awprot Input 3
+        add_interface_port s_axi s_axi_wdata wdata Input 32
+        add_interface_port s_axi s_axi_wstrb wstrb Input 4
+        add_interface_port s_axi s_axi_wvalid wvalid Input 1
+        add_interface_port s_axi s_axi_wready wready Output 1
+        add_interface_port s_axi s_axi_bresp bresp Output 2
+        add_interface_port s_axi s_axi_bvalid bvalid Output 1
+        add_interface_port s_axi s_axi_bready bready Input 1
+        add_interface_port s_axi s_axi_araddr araddr Input 32
+        add_interface_port s_axi s_axi_arvalid arvalid Input 1
+        add_interface_port s_axi s_axi_arready arready Output 1
+        add_interface_port s_axi s_axi_arprot arprot Input 3
+        add_interface_port s_axi s_axi_rdata rdata Output 32
+        add_interface_port s_axi s_axi_rresp rresp Output 2
+        add_interface_port s_axi s_axi_rvalid rvalid Output 1
+        add_interface_port s_axi s_axi_rready rready Input 1
+      `;
+      const doc = parseYaml(parse(tcl).yamlText) as {
+        busInterfaces: Array<Record<string, unknown>>;
+      };
+      const bi = doc.busInterfaces[0];
+      expect(bi.useOptionalPorts).toEqual(['awprot', 'arprot']);
+    });
+
+    it('does not emit useOptionalPorts when only required ports are present', () => {
+      const tcl = `
+        add_interface s_axi axi4lite end
+        add_interface_port s_axi s_axi_awaddr awaddr Input 32
+        add_interface_port s_axi s_axi_awvalid awvalid Input 1
+        add_interface_port s_axi s_axi_awready awready Output 1
+        add_interface_port s_axi s_axi_wdata wdata Input 32
+      `;
+      const doc = parseYaml(parse(tcl).yamlText) as {
+        busInterfaces: Array<Record<string, unknown>>;
+      };
+      expect(doc.busInterfaces[0].useOptionalPorts).toBeUndefined();
+    });
+
+    it('emits useOptionalPorts for AXI-Stream optional ports', () => {
+      const tcl = `
+        add_interface m_axis axi4stream start
+        add_interface_port m_axis m_axis_tdata tdata Output 32
+        add_interface_port m_axis m_axis_tvalid tvalid Output 1
+        add_interface_port m_axis m_axis_tready tready Input 1
+        add_interface_port m_axis m_axis_tlast tlast Output 1
+        add_interface_port m_axis m_axis_tkeep tkeep Output 4
+      `;
+      const doc = parseYaml(parse(tcl).yamlText) as {
+        busInterfaces: Array<Record<string, unknown>>;
+      };
+      const bi = doc.busInterfaces[0];
+      const optPorts = bi.useOptionalPorts as string[];
+      expect(optPorts).toContain('tlast');
+      expect(optPorts).toContain('tkeep');
+    });
   });
 
   describe('conduit (user ports)', () => {
