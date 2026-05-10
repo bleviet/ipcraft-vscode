@@ -33,7 +33,7 @@ export type Name1 = string;
  */
 export type Logicalname = string;
 /**
- * Port direction (typically 'in')
+ * Port direction enumeration.
  */
 export type PortDirection = 'in' | 'out' | 'inout';
 /**
@@ -65,7 +65,7 @@ export type Name2 = string;
  */
 export type Logicalname1 = string;
 /**
- * Port direction (typically 'in')
+ * Port direction enumeration.
  */
 export type PortDirection1 = 'in' | 'out' | 'inout';
 /**
@@ -97,7 +97,7 @@ export type Name3 = string;
  */
 export type Logicalname2 = string;
 /**
- * Port direction (typically 'out')
+ * Port direction enumeration.
  */
 export type PortDirection2 = 'in' | 'out' | 'inout';
 /**
@@ -125,7 +125,7 @@ export type Name4 = string;
  */
 export type Logicalname3 = string;
 /**
- * Port direction
+ * Port direction enumeration.
  */
 export type PortDirection3 = 'in' | 'out' | 'inout';
 /**
@@ -155,7 +155,7 @@ export type Type3 = string;
 /**
  * Interface mode: 'master' or 'slave'
  */
-export type BusInterfaceMode = 'master' | 'slave' | 'source' | 'sink';
+export type BusInterfaceMode = 'master' | 'slave' | 'source' | 'sink' | 'conduit';
 /**
  * Prefix for physical port names (e.g., 's_axi_')
  */
@@ -197,21 +197,45 @@ export type Physicalprefixpattern = string;
  */
 export type Description5 = string;
 /**
+ * User-defined signals for conduit (custom) interfaces
+ */
+export type ConduitPorts = ConduitPort[] | null;
+/**
+ * Port name (HDL signal name)
+ */
+export type Name6 = string;
+/**
+ * Port direction enumeration.
+ */
+export type PortDirection4 = 'in' | 'out' | 'inout';
+/**
+ * Port width in bits or parameter name
+ */
+export type Width4 = number | string;
+/**
+ * Optional port description
+ */
+export type Description6 = string | null;
+/**
+ * Whether the port is required or optional in the generated interface
+ */
+export type Presence = ('required' | 'optional') | null;
+/**
  * Bus interface definitions
  */
 export type Businterfaces = BusInterface[];
 /**
  * Memory map name
  */
-export type Name6 = string;
+export type Name7 = string;
 /**
  * Memory map description
  */
-export type Description6 = string;
+export type Description7 = string;
 /**
  * Block name
  */
-export type Name7 = string;
+export type Name8 = string;
 /**
  * Block starting address
  */
@@ -236,7 +260,7 @@ export type AccessType =
 /**
  * Block description
  */
-export type Description7 = string;
+export type Description8 = string;
 /**
  * Default register width
  */
@@ -244,7 +268,7 @@ export type Defaultregwidth = number;
 /**
  * Register name
  */
-export type Name8 = string;
+export type Name9 = string;
 /**
  * Offset from address block base
  */
@@ -269,11 +293,11 @@ export type Resetvalue = number | null;
 /**
  * Register description
  */
-export type Description8 = string;
+export type Description9 = string;
 /**
  * Bit field name
  */
-export type Name9 = string;
+export type Name10 = string;
 /**
  * Starting bit position (LSB = 0)
  */
@@ -281,7 +305,7 @@ export type Offset1 = number | null;
 /**
  * Number of bits
  */
-export type Width4 = number | null;
+export type Width5 = number | null;
 /**
  * Bit range string e.g. [7:0]
  */
@@ -302,7 +326,7 @@ export type Resetvalue1 = number | null;
 /**
  * Field description
  */
-export type Description9 = string;
+export type Description10 = string;
 /**
  * Enumeration mapping {value: name}
  */
@@ -336,11 +360,11 @@ export type Addressblocks = AddressBlock[];
 /**
  * File set name
  */
-export type Name10 = string;
+export type Name11 = string;
 /**
  * File set description
  */
-export type Description10 = string;
+export type Description11 = string;
 /**
  * Whether the file should be overwritten on generation
  */
@@ -376,7 +400,7 @@ export type FileType =
 /**
  * File description
  */
-export type Description11 = string;
+export type Description12 = string;
 /**
  * Whether file is an include file
  */
@@ -396,7 +420,7 @@ export type Filesets = FileSet[];
 /**
  * Parameter name
  */
-export type Name11 = string;
+export type Name12 = string;
 /**
  * Data type
  */
@@ -404,7 +428,7 @@ export type ParameterType = 'integer' | 'natural' | 'positive' | 'real' | 'boole
 /**
  * Parameter description
  */
-export type Description12 = string;
+export type Description13 = string;
 /**
  * Generics/parameters
  */
@@ -532,6 +556,7 @@ export interface BusInterface {
    */
   array?: ArrayConfig | null;
   description?: Description5;
+  conduitPorts?: ConduitPorts;
 }
 /**
  * Port width overrides {port_name: width_or_parameter_name}
@@ -551,13 +576,26 @@ export interface ArrayConfig {
   physicalPrefixPattern: Physicalprefixpattern;
 }
 /**
+ * A single signal within a conduit (custom) bus interface.
+ */
+export interface ConduitPort {
+  name: Name6;
+  /**
+   * Port direction
+   */
+  direction?: PortDirection4;
+  width?: Width4;
+  description?: Description6;
+  presence?: Presence;
+}
+/**
  * Complete memory map for an IP core (Pydantic model).
  *
  * Organizes registers into address blocks with validation.
  */
 export interface MemoryMap {
-  name: Name6;
-  description?: Description6;
+  name: Name7;
+  description?: Description7;
   addressBlocks?: Addressblocks;
 }
 /**
@@ -566,12 +604,12 @@ export interface MemoryMap {
  * Can contain registers, memory, or reserved space.
  */
 export interface AddressBlock {
-  name: Name7;
+  name: Name8;
   baseAddress?: Baseaddress;
   range?: Range;
   usage?: BlockUsage;
   access?: AccessType;
-  description?: Description7;
+  description?: Description8;
   defaultRegWidth?: Defaultregwidth;
   registers?: Registers;
   [k: string]: unknown;
@@ -582,12 +620,12 @@ export interface AddressBlock {
  * Represents a memory-mapped register with bit fields.
  */
 export interface RegisterDef {
-  name: Name8;
+  name: Name9;
   offset?: Offset;
   size?: Size;
   access?: AccessType1;
   resetValue?: Resetvalue;
-  description?: Description8;
+  description?: Description9;
   fields?: Fields;
   registers?: Registers1;
   count?: Count1;
@@ -600,13 +638,13 @@ export interface RegisterDef {
  * Represents a named range of bits with specific access semantics.
  */
 export interface BitFieldDef {
-  name: Name9;
+  name: Name10;
   offset?: Offset1;
-  width?: Width4;
+  width?: Width5;
   bits?: Bits;
   access?: AccessType2;
   resetValue?: Resetvalue1;
-  description?: Description9;
+  description?: Description10;
   enumeratedValues?: Enumeratedvalues;
   [k: string]: unknown;
 }
@@ -616,8 +654,8 @@ export interface BitFieldDef {
  * Groups related files together (e.g., RTL sources, C API, documentation).
  */
 export interface FileSet {
-  name: Name10;
-  description?: Description10;
+  name: Name11;
+  description?: Description11;
   files?: Files;
 }
 /**
@@ -629,7 +667,7 @@ export interface File {
   managed?: Managed;
   path: Path;
   type: FileType;
-  description?: Description11;
+  description?: Description12;
   isIncludeFile?: Isincludefile;
   logicalName?: Logicalname4;
 }
@@ -639,10 +677,10 @@ export interface File {
  * Used for VHDL generics, Verilog parameters, or component configuration.
  */
 export interface Parameter {
-  name: Name11;
+  name: Name12;
   value: Value;
   dataType?: ParameterType;
-  description?: Description12;
+  description?: Description13;
 }
 /**
  * Default value
