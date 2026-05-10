@@ -205,18 +205,11 @@ const IPCRAFT_TO_VIVADO: Record<string, VivadoBusTypeInfo> = {
     libraryKey: 'AXI_STREAM',
   },
   'ipcraft.busif.avalon_mm.1.0': {
-    vendor: 'altera.com',
+    vendor: 'xilinx.com',
     library: 'interface',
     name: 'avalon',
     abstraction: 'avalon_rtl',
     libraryKey: 'AVALON_MM',
-  },
-  'ipcraft.busif.avalon_st.1.0': {
-    vendor: 'altera.com',
-    library: 'interface',
-    name: 'avalon_st',
-    abstraction: 'avalon_st_rtl',
-    libraryKey: 'AVALON_ST',
   },
 };
 
