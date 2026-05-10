@@ -574,7 +574,7 @@ describe('generateComponentXml', () => {
 
     it('includes standard supported FPGA families', () => {
       const xml = gen();
-      expect(xml).toContain('artix7');
+      expect(xml).toContain('versal');
       expect(xml).toContain('zynquplus');
     });
 
