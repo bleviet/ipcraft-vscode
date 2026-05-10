@@ -17,19 +17,30 @@ const logger = new Logger('VivadoBusDefInstaller');
  * so they can be referenced globally by Vivado.
  */
 export async function installGlobalBusDefinitions(extensionPath: string): Promise<string> {
-  const definitionsPath = path.join(extensionPath, 'dist', 'resources', 'bus_definitions.yml');
-  let yamlText: string;
+  const definitionsDir = path.join(extensionPath, 'dist', 'resources', 'bus_definitions');
+  let files: string[] = [];
+  let currentDir = definitionsDir;
+
   try {
-    yamlText = await fs.readFile(definitionsPath, 'utf-8');
+    files = await fs.readdir(currentDir);
   } catch (err) {
     // Fallback if not running in production dist
-    yamlText = await fs.readFile(
-      path.join(extensionPath, 'resources', 'bus_definitions.yml'),
-      'utf-8'
-    );
+    currentDir = path.join(extensionPath, 'ipcraft-spec', 'bus_definitions');
+    files = await fs.readdir(currentDir);
   }
 
-  const busDefinitions = yaml.load(yamlText) as BusDefinitions;
+  const busDefinitions: BusDefinitions = {};
+
+  for (const file of files) {
+    if (file.endsWith('.yml') || file.endsWith('.yaml')) {
+      const filePath = path.join(currentDir, file);
+      const yamlText = await fs.readFile(filePath, 'utf-8');
+      const parsed = yaml.load(yamlText) as Record<string, unknown>;
+      if (parsed && typeof parsed === 'object') {
+        Object.assign(busDefinitions, parsed);
+      }
+    }
+  }
 
   const configDir = getIpcraftConfigDir();
   const vivadoBusDefsDir = path.join(configDir, 'vivado', 'busdefs');

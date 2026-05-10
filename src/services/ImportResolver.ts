@@ -4,7 +4,7 @@
  * Resolves external references:
  * - memoryMaps: { import: "file.mm.yml" }
  * - fileSets: [{ import: "file.fileset.yml" }]
- * - useBusLibrary: "path/to/bus_definitions.yml"
+ * - useBusLibrary: "path/to/bus_definitions"
  */
 
 import * as vscode from 'vscode';
