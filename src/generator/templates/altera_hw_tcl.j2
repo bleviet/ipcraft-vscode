@@ -13,6 +13,20 @@
 package require qsys
 
 # -----------------------------------------------------------------------------
+# Parameters
+# -----------------------------------------------------------------------------
+{% for generic in generics %}
+add_parameter {{ generic.name | upper }} {{ generic.type | upper }} {{ generic.default_value }}
+set_parameter_property {{ generic.name | upper }} DEFAULT_VALUE {{ generic.default_value }}
+set_parameter_property {{ generic.name | upper }} DISPLAY_NAME "{{ generic.name | replace('_', ' ') | title }}"
+set_parameter_property {{ generic.name | upper }} TYPE {{ generic.type | upper }}
+set_parameter_property {{ generic.name | upper }} UNITS None
+set_parameter_property {{ generic.name | upper }} HDL_PARAMETER true
+set_parameter_property {{ generic.name | upper }} AFFECTS_GENERATION false
+set_parameter_property {{ generic.name | upper }} AFFECTS_ELABORATION true
+
+{% endfor %}
+# -----------------------------------------------------------------------------
 # Validation Callback
 # -----------------------------------------------------------------------------
 proc validate {} {
@@ -106,10 +120,11 @@ port.is_parameterized %}{{ port.width_expr }}{% else %}{{ port.width | default(1
 
 {% if interrupt_ports %}
 # -----------------------------------------------------------------------------
-# Interrupt Sender Interface(s)
+# Interrupt Interface(s)
 # -----------------------------------------------------------------------------
 {% for intr in interrupt_ports %}
-add_interface {{ intr.name }} interrupt {{ 'end' if intr.direction == 'in' else 'start' }}
+# {{ intr.name }}: interrupt {{ 'receiver (in)' if intr.direction == 'in' else 'sender (out)' }}
+add_interface {{ intr.name }} interrupt {{ 'start' if intr.direction == 'in' else 'end' }}
 set_interface_property {{ intr.name }} associatedAddressablePoint ""
 set_interface_property {{ intr.name }} ENABLED true
 
@@ -159,18 +174,3 @@ add_fileset_file {{ entity_name }}_regs.vhd VHDL PATH ../rtl/{{ entity_name }}_r
 add_fileset_file {{ entity_name }}_core.vhd VHDL PATH ../rtl/{{ entity_name }}_core.vhd
 add_fileset_file {{ entity_name }}_{{ bus_type }}.vhd VHDL PATH ../rtl/{{ entity_name }}_{{ bus_type }}.vhd
 add_fileset_file {{ entity_name }}.vhd VHDL PATH ../rtl/{{ entity_name }}.vhd TOP_LEVEL_FILE
-
-# -----------------------------------------------------------------------------
-# Parameters
-# -----------------------------------------------------------------------------
-{% for generic in generics %}
-add_parameter {{ generic.name | upper }} {{ generic.type | upper }} {{ generic.default_value }}
-set_parameter_property {{ generic.name | upper }} DEFAULT_VALUE {{ generic.default_value }}
-set_parameter_property {{ generic.name | upper }} DISPLAY_NAME "{{ generic.name | replace('_', ' ') | title }}"
-set_parameter_property {{ generic.name | upper }} TYPE {{ generic.type | upper }}
-set_parameter_property {{ generic.name | upper }} UNITS None
-set_parameter_property {{ generic.name | upper }} HDL_PARAMETER true
-set_parameter_property {{ generic.name | upper }} AFFECTS_GENERATION false
-set_parameter_property {{ generic.name | upper }} AFFECTS_ELABORATION true
-
-{% endfor %}
