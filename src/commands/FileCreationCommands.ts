@@ -1,15 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-
-const IP_CORE_TEMPLATE = `vlnv:
-  vendor: my_vendor
-  library: my_library
-  name: New_IP_Core
-  version: 1.0.0
-
-description: A new IP Core definition
-
-`;
+import { resolveVendor } from '../utils/resolveVendor';
 
 const MEMORY_MAP_TEMPLATE = `- name: NEW_MEMORY_MAP
   description: Description of this memory map
@@ -30,14 +21,49 @@ const MEMORY_MAP_TEMPLATE = `- name: NEW_MEMORY_MAP
               description: Enable bit
 `;
 
-/**
- * Generate IP Core template with memory map reference
- */
-function generateIpCoreWithMemoryMapTemplate(memoryMapFileName: string): string {
+function resolveVendorFromSettings(): string {
+  const cfg = vscode.workspace.getConfiguration('ipcraft.import');
+  return resolveVendor(cfg.get<string>('vendor'));
+}
+
+function nameFromFilePath(fsPath: string): string {
+  const base = path.basename(fsPath);
+  if (base.endsWith('.ip.yml')) {
+    return base.slice(0, -'.ip.yml'.length);
+  }
+  if (base.endsWith('.ip.yaml')) {
+    return base.slice(0, -'.ip.yaml'.length);
+  }
+  if (base.endsWith('.yml')) {
+    return base.slice(0, -'.yml'.length);
+  }
+  if (base.endsWith('.yaml')) {
+    return base.slice(0, -'.yaml'.length);
+  }
+  return base;
+}
+
+function generateIpCoreTemplate(vendor: string, name: string): string {
   return `vlnv:
-  vendor: my_vendor
+  vendor: ${vendor}
   library: my_library
-  name: New_IP_Core
+  name: ${name}
+  version: 1.0.0
+
+description: A new IP Core definition
+
+`;
+}
+
+function generateIpCoreWithMemoryMapTemplate(
+  vendor: string,
+  name: string,
+  memoryMapFileName: string
+): string {
+  return `vlnv:
+  vendor: ${vendor}
+  library: my_library
+  name: ${name}
   version: 1.0.0
 
 description: A new IP Core definition
@@ -49,7 +75,37 @@ memoryMaps:
 }
 
 export async function createIpCoreCommand(): Promise<void> {
-  await createFileWithTemplate('new_ip_core.ip.yml', IP_CORE_TEMPLATE);
+  const workspaceFolders = vscode.workspace.workspaceFolders;
+  let defaultUri: vscode.Uri | undefined;
+  if (workspaceFolders && workspaceFolders.length > 0) {
+    defaultUri = vscode.Uri.joinPath(workspaceFolders[0].uri, 'new_ip_core.ip.yml');
+  }
+
+  const uri = await vscode.window.showSaveDialog({
+    defaultUri,
+    saveLabel: 'Create File',
+    title: 'Create new_ip_core.ip.yml',
+    filters: { 'YAML Files': ['yml', 'yaml'] },
+  });
+
+  if (!uri) {
+    return;
+  }
+
+  try {
+    const vendor = resolveVendorFromSettings();
+    const name = nameFromFilePath(uri.fsPath);
+    await vscode.workspace.fs.writeFile(
+      uri,
+      new Uint8Array(Buffer.from(generateIpCoreTemplate(vendor, name)))
+    );
+    const document = await vscode.workspace.openTextDocument(uri);
+    await vscode.window.showTextDocument(document);
+  } catch (error) {
+    void vscode.window.showErrorMessage(
+      `Failed to create file: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
 }
 
 export async function createMemoryMapCommand(): Promise<void> {
@@ -64,7 +120,6 @@ export async function createIpCoreWithMemoryMapCommand(): Promise<void> {
     defaultUri = vscode.Uri.joinPath(workspaceFolders[0].uri, 'new_ip_core.ip.yml');
   }
 
-  // Prompt user for IP Core file location
   const ipCoreUri = await vscode.window.showSaveDialog({
     defaultUri,
     saveLabel: 'Create IP Core',
@@ -79,12 +134,9 @@ export async function createIpCoreWithMemoryMapCommand(): Promise<void> {
   }
 
   try {
-    // Derive memory map filename from IP Core filename
-    // e.g., my_core.ip.yml -> my_core.mm.yml
     const ipCoreBaseName = path.basename(ipCoreUri.fsPath);
     const ipCoreDir = path.dirname(ipCoreUri.fsPath);
 
-    // Remove .ip.yml or .yml suffix and add .mm.yml
     let memoryMapBaseName: string;
     if (ipCoreBaseName.endsWith('.ip.yml')) {
       memoryMapBaseName = ipCoreBaseName.slice(0, -'.ip.yml'.length) + '.mm.yml';
@@ -96,17 +148,16 @@ export async function createIpCoreWithMemoryMapCommand(): Promise<void> {
 
     const memoryMapUri = vscode.Uri.file(path.join(ipCoreDir, memoryMapBaseName));
 
-    // Create memory map file
     await vscode.workspace.fs.writeFile(
       memoryMapUri,
       new Uint8Array(Buffer.from(MEMORY_MAP_TEMPLATE))
     );
 
-    // Create IP Core file with reference to memory map
-    const ipCoreContent = generateIpCoreWithMemoryMapTemplate(memoryMapBaseName);
+    const vendor = resolveVendorFromSettings();
+    const name = nameFromFilePath(ipCoreUri.fsPath);
+    const ipCoreContent = generateIpCoreWithMemoryMapTemplate(vendor, name, memoryMapBaseName);
     await vscode.workspace.fs.writeFile(ipCoreUri, new Uint8Array(Buffer.from(ipCoreContent)));
 
-    // Open the IP Core file
     const document = await vscode.workspace.openTextDocument(ipCoreUri);
     await vscode.window.showTextDocument(document);
 

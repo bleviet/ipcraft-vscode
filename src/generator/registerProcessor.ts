@@ -165,6 +165,20 @@ export function getBusTypeForTemplate(ipCore: IpCoreData): string {
   return 'axil';
 }
 
+const MEMORY_MAPPED_TEMPLATE_TYPES = new Set(['axil', 'axi4', 'avmm']);
+
+export function hasMemoryMappedSlaveInterface(ipCore: IpCoreData): boolean {
+  for (const bus of ipCore.bus_interfaces ?? []) {
+    if ((bus.mode ?? '').toLowerCase() === 'slave') {
+      const templateType = normalizeBusType(getString(bus.type)).templateType;
+      if (MEMORY_MAPPED_TEMPLATE_TYPES.has(templateType)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 export function expandBusInterfaces(ipCore: IpCoreData): BusInterfaceDef[] {
   const busInterfaces = ipCore.bus_interfaces ?? [];
   const expanded: BusInterfaceDef[] = [];

@@ -9,6 +9,7 @@ import {
   expandBusInterfaces,
   getActiveBusPortsFromDefinition,
   getBusTypeForTemplate,
+  hasMemoryMappedSlaveInterface,
   normalizeBusType,
   normalizeIpCoreData,
   prepareRegisters,
@@ -53,8 +54,10 @@ export class IpCoreScaffolder {
       }
 
       const busType = getBusTypeForTemplate(ipCoreData);
+      const hasMmSlave = hasMemoryMappedSlaveInterface(ipCoreData);
       const context = await this.buildTemplateContext(ipCoreData, busType, inputPath);
-      const includeRegs = options.includeRegs !== false;
+      context.has_memory_mapped_slave = hasMmSlave;
+      const includeRegs = options.includeRegs !== false && hasMmSlave;
       const includeTestbench = options.includeTestbench === true;
       const vendor = options.vendor ?? 'both';
       const includeVhdl = options.includeVhdl !== false;
@@ -63,13 +66,17 @@ export class IpCoreScaffolder {
       const name = String(ipCoreData?.vlnv?.name ?? 'ip_core').toLowerCase();
 
       if (includeVhdl) {
-        files[`rtl/${name}_pkg.vhd`] = this.templates.render('package.vhdl.j2', context);
+        if (hasMmSlave) {
+          files[`rtl/${name}_pkg.vhd`] = this.templates.render('package.vhdl.j2', context);
+        }
         files[`rtl/${name}.vhd`] = this.templates.render('top.vhdl.j2', context);
-        files[`rtl/${name}_core.vhd`] = this.templates.render('core.vhdl.j2', context);
-        files[`rtl/${name}_${busType}.vhd`] = this.templates.render(
-          `bus_${busType}.vhdl.j2`,
-          context
-        );
+        if (hasMmSlave) {
+          files[`rtl/${name}_core.vhd`] = this.templates.render('core.vhdl.j2', context);
+          files[`rtl/${name}_${busType}.vhd`] = this.templates.render(
+            `bus_${busType}.vhdl.j2`,
+            context
+          );
+        }
       }
 
       if (includeRegs) {
@@ -264,11 +271,34 @@ export class IpCoreScaffolder {
 
   private prepareGenerics(ipCore: IpCoreData): Array<Record<string, unknown>> {
     const params = ipCore?.parameters ?? [];
-    return params.map((param) => ({
-      name: param.name,
-      type: this.getString(param.data_type),
-      default_value: param.value,
-    }));
+    return params.map((param) => {
+      const type = this.getString(param.data_type);
+      return {
+        name: param.name,
+        type,
+        default_value: this.resolveGenericDefault(param.value, type),
+      };
+    });
+  }
+
+  private resolveGenericDefault(
+    value: number | string | undefined,
+    type: string
+  ): number | string | null {
+    if (value !== undefined && value !== null) {
+      return value;
+    }
+    const t = type.toLowerCase().trim();
+    if (t === 'integer' || t === 'natural' || t === 'positive') {
+      return 0;
+    }
+    if (t === 'boolean') {
+      return 'false';
+    }
+    if (t === 'string') {
+      return '""';
+    }
+    return null;
   }
 
   private prepareUserPorts(ipCore: IpCoreData): Array<Record<string, unknown>> {

@@ -145,11 +145,7 @@ async function generateVHDL(context: vscode.ExtensionContext): Promise<void> {
   if (!ipCoreUri) {
     return;
   }
-  const outputDir = await pickOutputDir(
-    ipCoreUri,
-    'generated',
-    'Select output directory for VHDL files'
-  );
+  const outputDir = await pickOutputDir(ipCoreUri, 'Select output directory for VHDL files');
   if (!outputDir) {
     return;
   }
@@ -174,7 +170,7 @@ async function scaffoldProject(context: vscode.ExtensionContext): Promise<void> 
     return;
   }
 
-  const outputDir = path.join(path.dirname(ipCoreUri.fsPath), 'generated');
+  const outputDir = path.dirname(ipCoreUri.fsPath);
 
   let dirExists = false;
   try {
@@ -297,12 +293,8 @@ async function generateTestbench(context: vscode.ExtensionContext): Promise<void
   );
 }
 
-async function pickOutputDir(
-  ipCoreUri: vscode.Uri,
-  defaultSubDir: string,
-  title: string
-): Promise<string | undefined> {
-  const defaultDir = path.join(path.dirname(ipCoreUri.fsPath), defaultSubDir);
+async function pickOutputDir(ipCoreUri: vscode.Uri, title: string): Promise<string | undefined> {
+  const defaultDir = path.dirname(ipCoreUri.fsPath);
   const picked = await vscode.window.showOpenDialog({
     defaultUri: vscode.Uri.file(defaultDir),
     canSelectFiles: false,

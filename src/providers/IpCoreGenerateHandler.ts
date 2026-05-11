@@ -1,5 +1,4 @@
 import * as path from 'path';
-import * as jsyaml from 'js-yaml';
 import * as vscode from 'vscode';
 import * as YAML from 'yaml';
 import { updateFileSets } from '../services/FileSetUpdater';
@@ -47,9 +46,6 @@ export async function handleGenerateRequest({
   logger.info('Generate request received', message.options as Record<string, unknown> | undefined);
 
   const baseDir = path.dirname(document.uri.fsPath);
-  const text = document.getText();
-  const rawData = jsyaml.load(text) as { vlnv?: { name?: string } };
-  const ipName = rawData.vlnv?.name?.toLowerCase() ?? 'ip_core';
 
   const folderUris = await vscode.window.showOpenDialog({
     canSelectFiles: false,
@@ -57,7 +53,7 @@ export async function handleGenerateRequest({
     canSelectMany: false,
     openLabel: 'Select Output Folder',
     title: 'Select Output Directory for Generated Files',
-    defaultUri: vscode.Uri.file(path.dirname(document.uri.fsPath)),
+    defaultUri: vscode.Uri.file(baseDir),
   });
 
   if (!folderUris || folderUris.length === 0) {
@@ -69,7 +65,7 @@ export async function handleGenerateRequest({
     return;
   }
 
-  const outputBaseDir = path.join(folderUris[0].fsPath, ipName);
+  const outputBaseDir = folderUris[0].fsPath;
 
   const generator = new IpCoreScaffolder(logger, new TemplateLoader(logger), context);
   const result = await generator.generateAll(document.uri.fsPath, outputBaseDir, {
