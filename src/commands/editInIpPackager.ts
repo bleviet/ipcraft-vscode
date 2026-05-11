@@ -34,9 +34,6 @@ ipx::edit_ip_in_project -name edit_ip_project -directory {${tempProjectDir}} $co
 `;
     await fs.writeFile(tclScriptPath, tclScript, 'utf8');
 
-    vscode.window.showInformationMessage(
-      `Launching Vivado IP Packager for ${path.basename(path.dirname(componentPath))}...`
-    );
     logger.info(`Launching vivado: ${vivadoPath} -mode gui -source ${tclScriptPath}`);
 
     // Spawn Vivado
