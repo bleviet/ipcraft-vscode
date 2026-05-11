@@ -491,6 +491,7 @@ export interface Clock {
   type?: Type;
   description?: Description1;
   frequency?: Frequency;
+  associatedReset?: string | null;
 }
 /**
  * Reset definition for an IP core.
@@ -507,6 +508,7 @@ export interface Reset {
   type?: Type1;
   description?: Description2;
   polarity?: Polarity;
+  associatedClock?: string | null;
 }
 /**
  * Interrupt output definition for an IP core.

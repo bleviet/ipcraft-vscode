@@ -129,10 +129,18 @@ export function normalizeIpCoreData(raw: Record<string, unknown>): IpCoreData {
       presence: getString(port.presence),
     })),
     bus_interfaces: busInterfaces.map(normalizeBusInterface),
-    clocks: clocks.map((clock) => ({ name: getString(clock.name) })),
+    clocks: clocks.map((clock) => ({
+      name: getString(clock.name),
+      ...((clock.associatedReset ?? clock.associated_reset)
+        ? { associated_reset: getString(clock.associatedReset ?? clock.associated_reset) }
+        : {}),
+    })),
     resets: resets.map((reset) => ({
       name: getString(reset.name),
       polarity: getString(reset.polarity),
+      ...((reset.associatedClock ?? reset.associated_clock)
+        ? { associated_clock: getString(reset.associatedClock ?? reset.associated_clock) }
+        : {}),
     })),
     memory_maps: (raw.memory_maps ?? raw.memoryMaps ?? undefined) as
       | Record<string, unknown>

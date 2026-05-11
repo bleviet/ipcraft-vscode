@@ -79,11 +79,13 @@ export interface PortDef {
 
 export interface ClockDef {
   name?: string;
+  associated_reset?: string;
 }
 
 export interface ResetDef {
   name?: string;
   polarity?: string;
+  associated_clock?: string;
 }
 
 export interface IpCoreData {

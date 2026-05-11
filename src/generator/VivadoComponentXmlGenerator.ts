@@ -287,9 +287,11 @@ export function generateComponentXml(
       .filter((bi) => bi.associated_clock === clock.name)
       .map((bi) => String(bi.name).toUpperCase())
       .join(':');
-    const assocReset = busInterfaces
-      .filter((bi) => bi.associated_clock === clock.name && bi.associated_reset)
-      .map((bi) => bi.associated_reset)[0];
+    const assocReset =
+      clock.associated_reset ??
+      busInterfaces
+        .filter((bi) => bi.associated_clock === clock.name && bi.associated_reset)
+        .map((bi) => bi.associated_reset)[0];
     busIfLines.push(...renderClockInterface(clock.name, assocBusIfs, assocReset));
   }
 
@@ -441,26 +443,30 @@ function renderClockInterface(
 
   const hasAssocBusIf = associatedBusIfs.length > 0;
   const hasAssocReset = associatedReset && associatedReset.length > 0;
-  if (hasAssocBusIf || hasAssocReset) {
-    lines.push('      <spirit:parameters>');
-    if (hasAssocBusIf) {
-      lines.push('        <spirit:parameter>');
-      lines.push('          <spirit:name>ASSOCIATED_BUSIF</spirit:name>');
-      lines.push(
-        `          <spirit:value spirit:id="BUSIFPARAM_VALUE.${x(clkUpper)}.ASSOCIATED_BUSIF">${x(associatedBusIfs)}</spirit:value>`
-      );
-      lines.push('        </spirit:parameter>');
-    }
-    if (hasAssocReset) {
-      lines.push('        <spirit:parameter>');
-      lines.push('          <spirit:name>ASSOCIATED_RESET</spirit:name>');
-      lines.push(
-        `          <spirit:value spirit:id="BUSIFPARAM_VALUE.${x(clkUpper)}.ASSOCIATED_RESET">${x(String(associatedReset))}</spirit:value>`
-      );
-      lines.push('        </spirit:parameter>');
-    }
-    lines.push('      </spirit:parameters>');
+  lines.push('      <spirit:parameters>');
+  if (hasAssocBusIf) {
+    lines.push('        <spirit:parameter>');
+    lines.push('          <spirit:name>ASSOCIATED_BUSIF</spirit:name>');
+    lines.push(
+      `          <spirit:value spirit:id="BUSIFPARAM_VALUE.${x(clkUpper)}.ASSOCIATED_BUSIF">${x(associatedBusIfs)}</spirit:value>`
+    );
+    lines.push('        </spirit:parameter>');
   }
+  if (hasAssocReset) {
+    lines.push('        <spirit:parameter>');
+    lines.push('          <spirit:name>ASSOCIATED_RESET</spirit:name>');
+    lines.push(
+      `          <spirit:value spirit:id="BUSIFPARAM_VALUE.${x(clkUpper)}.ASSOCIATED_RESET">${x(String(associatedReset))}</spirit:value>`
+    );
+    lines.push('        </spirit:parameter>');
+  }
+  lines.push('        <spirit:parameter>');
+  lines.push('          <spirit:name>FREQ_HZ</spirit:name>');
+  lines.push(
+    `          <spirit:value spirit:format="long" spirit:resolve="user" spirit:id="BUSIFPARAM_VALUE.${x(clkUpper)}.FREQ_HZ">100000000</spirit:value>`
+  );
+  lines.push('        </spirit:parameter>');
+  lines.push('      </spirit:parameters>');
 
   lines.push('    </spirit:busInterface>');
   return lines;
@@ -741,6 +747,21 @@ function renderVhdlFile(filePath: string): string[] {
   ];
 }
 
+function paramSpiritFormat(pType: string): { format: string; defaultValue: string } {
+  switch (pType) {
+    case 'integer':
+    case 'natural':
+    case 'positive':
+      return { format: 'long', defaultValue: '0' };
+    case 'boolean':
+      return { format: 'bool', defaultValue: 'false' };
+    case 'real':
+      return { format: 'float', defaultValue: '0.0' };
+    default:
+      return { format: 'string', defaultValue: '' };
+  }
+}
+
 function renderParameters(entityName: string, parameters: ParameterDef[]): string[] {
   const lines: string[] = [];
   lines.push('  <spirit:parameters>');
@@ -758,13 +779,15 @@ function renderParameters(entityName: string, parameters: ParameterDef[]): strin
     }
     const pName = String(param.name);
     const pType = String(param.data_type ?? 'integer').toLowerCase();
-    const format = pType === 'integer' ? 'long' : 'string';
+    const { format, defaultValue } = paramSpiritFormat(pType);
+    const value =
+      param.value !== undefined && param.value !== null ? String(param.value) : defaultValue;
     const paramId = `PARAM_VALUE.${pName.toUpperCase()}`;
     lines.push('    <spirit:parameter>');
     lines.push(`      <spirit:name>${x(pName)}</spirit:name>`);
     lines.push(`      <spirit:displayName>${x(pName.replace(/_/g, ' '))}</spirit:displayName>`);
     lines.push(
-      `      <spirit:value spirit:format="${format}" spirit:resolve="user" spirit:id="${x(paramId)}">${x(String(param.value ?? ''))}</spirit:value>`
+      `      <spirit:value spirit:format="${format}" spirit:resolve="user" spirit:id="${x(paramId)}">${x(value)}</spirit:value>`
     );
     lines.push('    </spirit:parameter>');
   }

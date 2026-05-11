@@ -533,6 +533,17 @@ const ClockPanel: React.FC<ClockPanelProps> = ({ clock, index, ipCore, onUpdate 
           hint="e.g. 100 MHz, 50 MHz"
         />
       </Section>
+      {(ipCore.resets ?? []).length > 0 && (
+        <Section title="Associations">
+          <PropSelect
+            label="Associated Reset"
+            value={clock.associatedReset ?? ''}
+            options={(ipCore.resets as Reset[]).map((r) => ({ value: r.name, label: r.name }))}
+            emptyOption="— none —"
+            onSave={(v) => onUpdate(['clocks', index, 'associatedReset'], v || null)}
+          />
+        </Section>
+      )}
       {usedBy.length > 0 && (
         <Section title="Used By">
           <div className="ci-chips">
@@ -599,6 +610,17 @@ const ResetPanel: React.FC<ResetPanelProps> = ({ reset, index, ipCore, onUpdate 
           }}
         />
       </Section>
+      {(ipCore.clocks ?? []).length > 0 && (
+        <Section title="Associations">
+          <PropSelect
+            label="Associated Clock"
+            value={reset.associatedClock ?? ''}
+            options={(ipCore.clocks as Clock[]).map((c) => ({ value: c.name, label: c.name }))}
+            emptyOption="— none —"
+            onSave={(v) => onUpdate(['resets', index, 'associatedClock'], v || null)}
+          />
+        </Section>
+      )}
       {usedBy.length > 0 && (
         <Section title="Used By">
           <div className="ci-chips">
