@@ -132,7 +132,7 @@ add_interface_port {{ intr.name }} {{ intr.name }} irq {{ 'Input' if intr.direct
 # -----------------------------------------------------------------------------
 # Module Properties
 # -----------------------------------------------------------------------------
-set_module_property DESCRIPTION "{{ description | default('IP core with register interface') }}"
+set_module_property DESCRIPTION "{{ description | default('') }}"
 set_module_property NAME {{ entity_name }}
 set_module_property VERSION {{ version | default('1.0') }}
 set_module_property INTERNAL false
