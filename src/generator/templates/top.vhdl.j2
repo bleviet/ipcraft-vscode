@@ -31,11 +31,11 @@ entity {{ entity_name }} is
 
     -- {{ iface.name }} ({{ iface.mode | upper }})
 {% for port in iface.ports %}
-    {{ "%-14s"|format(port.name) }} : {{ "%-3s"|format(port.direction) }} {{ port.type }}{{ ";" if not loop.last or not iface_loop.last or user_ports else "" }}
+    {{ "%-14s"|format(port.name) }} : {{ "%-3s"|format(port.direction) }} {{ port.type }}{{ ";" if not loop.last or not iface_loop.last or user_ports | length else "" }}
 {% endfor %}
 {% endif %}
 {% endfor %}
-{% if user_ports %}
+{% if user_ports | length %}
 
     -- User ports
 {% for port in user_ports %}
@@ -88,13 +88,13 @@ begin
       clk => {{ clock_port }},
       rst => {% if reset_active_high %}{{ reset_port }}{% else %}not {{ reset_port }}{% endif %},
       regs_in => regs_sw2hw,
-      regs_out => regs_hw2sw{{ "," if secondary_bus_ports or user_ports else "" }}
-{% if secondary_bus_ports %}
+      regs_out => regs_hw2sw{{ "," if secondary_bus_ports | length or user_ports | length else "" }}
+{% if secondary_bus_ports | length %}
 {% for port in secondary_bus_ports %}
-      {{ "%-14s"|format(port.name) }} => {{ port.name }}{{ "," if not loop.last or user_ports else "" }}
+      {{ "%-14s"|format(port.name) }} => {{ port.name }}{{ "," if not loop.last or user_ports | length else "" }}
 {% endfor %}
 {% endif %}
-{% if user_ports %}
+{% if user_ports | length %}
 {% for port in user_ports %}
       {{ port.name }} => {{ port.name }}{{ "," if not loop.last else "" }}
 {% endfor %}

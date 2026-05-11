@@ -27,15 +27,15 @@ entity {{ entity_name }}_core is
 
     -- Register interface (record-based)
     regs_in : in t_regs_sw2hw; -- SW-writable registers (from bus wrapper)
-    regs_out : out t_regs_hw2sw{{ ";" if secondary_bus_ports or user_ports else "" }} -- HW-writable registers (to bus wrapper)
-{% if secondary_bus_ports %}
+    regs_out : out t_regs_hw2sw{{ ";" if secondary_bus_ports | length or user_ports | length else "" }} -- HW-writable registers (to bus wrapper)
+{% if secondary_bus_ports | length %}
 
     -- Secondary Bus Interfaces
 {% for port in secondary_bus_ports %}
-    {{ "%-14s"|format(port.name) }} : {{ "%-3s"|format(port.direction) }} {{ port.type }}{{ ";" if not loop.last or user_ports else "" }}
+    {{ "%-14s"|format(port.name) }} : {{ "%-3s"|format(port.direction) }} {{ port.type }}{{ ";" if not loop.last or user_ports | length else "" }}
 {% endfor %}
 {% endif %}
-{% if user_ports %}
+{% if user_ports | length %}
 
     -- User ports
 {% for port in user_ports %}
