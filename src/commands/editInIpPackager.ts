@@ -27,11 +27,14 @@ export async function editInIpPackagerCommand(uri?: vscode.Uri): Promise<void> {
     const tempProjectDir = path.join(tmpDir, 'edit_ip_project').replace(/\\/g, '/');
     const tclScriptPath = path.join(tmpDir, 'open_ip.tcl');
 
-    // Create the Tcl script to open the IP in Vivado Packager
-    const tclScript = `
-set core [ipx::open_core -set_current false {${componentPath}}]
-ipx::edit_ip_in_project -name edit_ip_project -directory {${tempProjectDir}} $core
-`;
+    // Create the Tcl script to open the IP in Vivado Packager.
+    // create_project -in_memory provides the project context that
+    // ipx::edit_ip_in_project requires without writing any project files.
+    const tclScript =
+      [
+        `create_project -force -in_memory`,
+        `ipx::edit_ip_in_project -name edit_ip_project -directory {${tempProjectDir}} {${componentPath}}`,
+      ].join('\n') + '\n';
     await fs.writeFile(tclScriptPath, tclScript, 'utf8');
 
     logger.info(`Launching vivado: ${vivadoPath} -mode gui -source ${tclScriptPath}`);
