@@ -564,10 +564,6 @@
 }
 
 /* Drop Zone Overlay */
-.ip-canvas-container--drag-active .ip-canvas-svg {
-  background: color-mix(in srgb, var(--vscode-editor-background) 80%, var(--vscode-focusBorder));
-}
-
 .ip-canvas-drop-zone {
   fill: color-mix(in srgb, var(--vscode-focusBorder) 10%, transparent);
   stroke: var(--vscode-focusBorder);
@@ -581,6 +577,34 @@
   to {
     stroke-dashoffset: -12;
   }
+}
+
+.ip-canvas-drop-half {
+  fill: color-mix(in srgb, var(--vscode-focusBorder) 8%, transparent);
+  transition: fill 0.1s ease;
+}
+
+.ip-canvas-drop-half--active {
+  fill: color-mix(in srgb, var(--vscode-focusBorder) 22%, transparent);
+}
+
+.ip-canvas-drop-divider {
+  stroke: color-mix(in srgb, var(--vscode-focusBorder) 35%, transparent);
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+}
+
+.ip-canvas-drop-label {
+  fill: var(--vscode-focusBorder);
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 0.2;
+  letter-spacing: 2px;
+  transition: opacity 0.1s ease;
+}
+
+.ip-canvas-drop-label--active {
+  opacity: 0.85;
 }
 
 /* ========================================

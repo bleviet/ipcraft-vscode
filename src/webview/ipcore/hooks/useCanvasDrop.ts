@@ -84,7 +84,7 @@ export function useCanvasDrop({ ipCore, onUpdate, onSelect }: UseCanvasDropOptio
           addPort(payload, isLeftHalf, ipCore, onUpdate, onSelect);
           break;
         case 'interrupt':
-          addInterrupt(payload, ipCore, onUpdate, onSelect);
+          addInterrupt(payload, isLeftHalf, ipCore, onUpdate, onSelect);
           break;
         case 'parameter':
           addParameter(payload, ipCore, onUpdate, onSelect);
@@ -232,6 +232,7 @@ function addPort(
 
 function addInterrupt(
   payload: LibraryDragPayload,
+  isLeftHalf: boolean,
   ipCore: IpCore,
   onUpdate: YamlUpdateHandler,
   onSelect: (id: string) => void
@@ -239,7 +240,7 @@ function addInterrupt(
   const interrupts: Interrupt[] = [...((ipCore.interrupts ?? []) as Interrupt[])];
   const existingNames = interrupts.map((irq) => irq.name);
   const name = uniqueName(payload.nameHint, existingNames);
-  const direction = payload.direction === 'in' ? 'in' : 'out';
+  const direction = payload.direction ?? (isLeftHalf ? 'in' : 'out');
 
   const newInterrupt: Interrupt = {
     name,

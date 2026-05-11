@@ -19,6 +19,13 @@ export interface LibraryDragPayload {
 
 const DRAG_MIME = 'application/x-ipcraft-palette';
 
+/** Module-level reference to the payload currently being dragged from the palette.
+ *  Set on dragstart, cleared on dragend. Readable during dragover across the same page. */
+let _activeDragPayload: LibraryDragPayload | null = null;
+export function getActiveDragPayload(): LibraryDragPayload | null {
+  return _activeDragPayload;
+}
+
 interface PaletteCategory {
   title: string;
   items: LibraryDragPayload[];
@@ -39,11 +46,8 @@ const PALETTE: PaletteCategory[] = [
     items: [
       { kind: 'clock', nameHint: 'clk', label: 'Clock' },
       { kind: 'reset', nameHint: 'rst_n', label: 'Reset' },
-      { kind: 'interrupt', direction: 'out', nameHint: 'irq', label: 'Interrupt Output' },
-      { kind: 'interrupt', direction: 'in', nameHint: 'irq_in', label: 'Interrupt Input' },
-      { kind: 'port', direction: 'in', nameHint: 'port_in', label: 'Input Port' },
-      { kind: 'port', direction: 'out', nameHint: 'port_out', label: 'Output Port' },
-      { kind: 'port', direction: 'inout', nameHint: 'port_io', label: 'Inout Port' },
+      { kind: 'interrupt', nameHint: 'irq', label: 'Interrupt' },
+      { kind: 'port', nameHint: 'port', label: 'Port' },
     ],
   },
   {
@@ -175,8 +179,13 @@ export const LibraryPalette: React.FC<LibraryPaletteProps> = ({ onCollapse, busL
   }, []);
 
   const handleDragStart = useCallback((e: DragEvent, item: LibraryDragPayload) => {
+    _activeDragPayload = item;
     e.dataTransfer.setData(DRAG_MIME, JSON.stringify(item));
     e.dataTransfer.effectAllowed = 'copy';
+  }, []);
+
+  const handleDragEnd = useCallback(() => {
+    _activeDragPayload = null;
   }, []);
 
   return (
@@ -222,6 +231,7 @@ export const LibraryPalette: React.FC<LibraryPaletteProps> = ({ onCollapse, busL
                   className="library-palette__item"
                   draggable
                   onDragStart={(e) => handleDragStart(e, item)}
+                  onDragEnd={handleDragEnd}
                 >
                   <span className={`codicon ${paletteItemIcon(item)}`}></span>
                   <span className="library-palette__item-label">{item.label}</span>
@@ -262,6 +272,7 @@ export const LibraryPalette: React.FC<LibraryPaletteProps> = ({ onCollapse, busL
                       className="library-palette__item"
                       draggable
                       onDragStart={(e) => handleDragStart(e, item)}
+                      onDragEnd={handleDragEnd}
                     >
                       <span className={`codicon ${paletteItemIcon(item)}`}></span>
                       <span className="library-palette__item-label">{item.label}</span>
@@ -293,12 +304,18 @@ function paletteItemIcon(item: LibraryDragPayload): string {
       if (item.direction === 'in') {
         return 'codicon-arrow-right';
       }
-      return 'codicon-arrow-left';
+      if (item.direction === 'out') {
+        return 'codicon-arrow-left';
+      }
+      return 'codicon-arrow-both';
   }
 }
 
 function kindBadge(item: LibraryDragPayload): string {
   if (item.kind === 'interrupt') {
+    if (!item.direction) {
+      return '';
+    }
     return item.direction === 'in' ? 'irq-in' : 'irq-out';
   }
   if (item.kind === 'port' && item.direction) {

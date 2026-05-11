@@ -9,6 +9,7 @@ import { useCanvasValidation } from '../../hooks/useCanvasValidation';
 import { lookupBusDef, lookupBusDefFromLibrary } from '../../data/busDefinitions';
 import type { BusPortDef } from '../../data/busDefinitions';
 import type { YamlUpdateHandler } from '../../../types/editor';
+import { DRAG_MIME, getActiveDragPayload, type LibraryDragPayload } from './LibraryPalette';
 import { vscode } from '../../../vscode';
 import './canvas.css';
 
@@ -90,6 +91,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
   const [blockHovered, setBlockHovered] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [dragOutActive, setDragOutActive] = useState(false);
+  const [dragHoverSide, setDragHoverSide] = useState<'left' | 'right' | null>(null);
 
   const [zoom, setZoom] = useState(1.0);
   const [showZoomIndicator, setShowZoomIndicator] = useState(false);
@@ -311,7 +313,6 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
 
   const handleDragOver = useCallback(
     (e: React.DragEvent) => {
-      // Check if this is a drag-to-remove from our own ports
       if (e.dataTransfer.types.includes('application/x-ipcraft-remove')) {
         e.preventDefault();
         setDragOutActive(true);
@@ -319,6 +320,13 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
       }
 
       setDragActive(true);
+
+      if (e.dataTransfer.types.includes(DRAG_MIME)) {
+        const svgEl = e.currentTarget as Element;
+        const rect = svgEl.getBoundingClientRect();
+        setDragHoverSide((e.clientX - rect.left) / rect.width < 0.5 ? 'left' : 'right');
+      }
+
       onDragOver?.(e);
     },
     [onDragOver]
@@ -327,12 +335,14 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
   const handleDragLeave = useCallback(() => {
     setDragActive(false);
     setDragOutActive(false);
+    setDragHoverSide(null);
   }, []);
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
       setDragActive(false);
       setDragOutActive(false);
+      setDragHoverSide(null);
 
       if (e.dataTransfer.types.includes('application/x-ipcraft-remove')) {
         try {
@@ -613,6 +623,74 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
           </>
         )}
 
+        {/* Half-zone drop hint — clipped to block rect, rendered before ports so ports stay on top */}
+        {dragActive &&
+          (() => {
+            const labels = getDragHintLabels(getActiveDragPayload());
+            if (!labels) {
+              return null;
+            }
+            const halfW = blockRect.width / 2;
+            const midY = blockRect.y + blockRect.height / 2;
+            return (
+              <g style={{ pointerEvents: 'none' }}>
+                <defs>
+                  <clipPath id="ip-canvas-block-clip">
+                    <rect
+                      x={blockRect.x}
+                      y={blockRect.y}
+                      width={blockRect.width}
+                      height={blockRect.height}
+                      rx={6}
+                      ry={6}
+                    />
+                  </clipPath>
+                </defs>
+                <g clipPath="url(#ip-canvas-block-clip)">
+                  <rect
+                    x={blockRect.x}
+                    y={blockRect.y}
+                    width={halfW}
+                    height={blockRect.height}
+                    className={`ip-canvas-drop-half${dragHoverSide === 'left' ? ' ip-canvas-drop-half--active' : ''}`}
+                  />
+                  <rect
+                    x={blockRect.x + halfW}
+                    y={blockRect.y}
+                    width={halfW}
+                    height={blockRect.height}
+                    className={`ip-canvas-drop-half${dragHoverSide === 'right' ? ' ip-canvas-drop-half--active' : ''}`}
+                  />
+                </g>
+                <line
+                  x1={blockRect.x + halfW}
+                  y1={blockRect.y + 8}
+                  x2={blockRect.x + halfW}
+                  y2={blockRect.y + blockRect.height - 8}
+                  className="ip-canvas-drop-divider"
+                />
+                <text
+                  x={blockRect.x + halfW / 2}
+                  y={midY}
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  className={`ip-canvas-drop-label${dragHoverSide === 'left' ? ' ip-canvas-drop-label--active' : ''}`}
+                >
+                  {labels.left}
+                </text>
+                <text
+                  x={blockRect.x + halfW * 1.5}
+                  y={midY}
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  className={`ip-canvas-drop-label${dragHoverSide === 'right' ? ' ip-canvas-drop-label--active' : ''}`}
+                >
+                  {labels.right}
+                </text>
+              </g>
+            );
+          })()}
+
         {/* Port stubs */}
         {(() => {
           const mmImportPath = (ipCore.memoryMaps as unknown as Record<string, unknown> | undefined)
@@ -720,6 +798,27 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
 };
 
 // --- Helper sub-components ---
+
+function getDragHintLabels(
+  payload: LibraryDragPayload | null
+): { left: string; right: string } | null {
+  if (!payload) {
+    return null;
+  }
+  switch (payload.kind) {
+    case 'port':
+      return { left: '▶  IN', right: 'OUT  ▶' };
+    case 'interrupt':
+      return { left: '▶  IRQ IN', right: 'IRQ OUT  ▶' };
+    case 'bus': {
+      const mode = payload.mode ?? 'slave';
+      const streaming = mode === 'sink' || mode === 'source';
+      return { left: streaming ? 'SINK' : 'SLAVE', right: streaming ? 'SOURCE' : 'MASTER' };
+    }
+    default:
+      return null;
+  }
+}
 
 function renderEdgeBadge(
   ports: ReturnType<typeof computeLayout>['ports'],
