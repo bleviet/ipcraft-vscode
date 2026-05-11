@@ -219,7 +219,7 @@ function isLeftSide(bus: BusInterface): boolean {
 }
 
 function isInputDirection(dir: string | undefined): boolean {
-  return dir === 'in' || dir === undefined;
+  return dir === 'in' || dir === 'input' || dir === undefined;
 }
 
 /** How many layout slots an item occupies (1 normally, 1 + visible ports if expanded bus) */

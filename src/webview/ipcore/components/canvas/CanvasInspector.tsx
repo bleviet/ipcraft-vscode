@@ -16,7 +16,6 @@ import {
   validateRequired,
   validateVersion,
 } from '../../../shared/utils/validation';
-import { displayDirection } from '../../../shared/utils/formatters';
 import { lookupBusDef, isConduitType } from '../../data/busDefinitions';
 import { supportsMemoryMap } from './canvasLayout';
 import { vscode } from '../../../vscode';
@@ -522,7 +521,7 @@ const ClockPanel: React.FC<ClockPanelProps> = ({ clock, index, ipCore, onUpdate 
       <Section title="Signal">
         <PropSelect
           label="Direction"
-          value={displayDirection(clock.direction, 'input')}
+          value={canonicalDirection(clock.direction, 'in')}
           options={DIR_2WAY}
           onSave={(v) => onUpdate(['clocks', index, 'direction'], v)}
         />
@@ -586,7 +585,7 @@ const ResetPanel: React.FC<ResetPanelProps> = ({ reset, index, ipCore, onUpdate 
       <Section title="Signal">
         <PropSelect
           label="Direction"
-          value={displayDirection(reset.direction, 'input')}
+          value={canonicalDirection(reset.direction, 'in')}
           options={DIR_2WAY}
           onSave={(v) => onUpdate(['resets', index, 'direction'], v)}
         />
@@ -647,7 +646,7 @@ const PortPanel: React.FC<PortPanelProps> = ({ port, index, ipCore, onUpdate }) 
       <Section title="Signal">
         <PropSelect
           label="Direction"
-          value={displayDirection(port.direction, 'input')}
+          value={canonicalDirection(port.direction, 'in')}
           options={DIR_3WAY}
           onSave={(v) => onUpdate(['ports', index, 'direction'], v)}
         />
@@ -1944,6 +1943,19 @@ function kindLabel(kind: CanvasElementKind): string {
   }
 }
 
+function canonicalDirection(dir?: string, fallback = 'in'): string {
+  if (dir === 'in' || dir === 'input') {
+    return 'in';
+  }
+  if (dir === 'out' || dir === 'output') {
+    return 'out';
+  }
+  if (dir === 'inout') {
+    return 'inout';
+  }
+  return fallback;
+}
+
 function normalizePolarity(p?: string): string {
   if (p === 'active_low' || p === 'activeLow') {
     return 'activeLow';
@@ -1955,13 +1967,13 @@ function normalizePolarity(p?: string): string {
 }
 
 const DIR_2WAY = [
-  { value: 'input', label: 'input' },
-  { value: 'output', label: 'output' },
+  { value: 'in', label: 'input' },
+  { value: 'out', label: 'output' },
 ];
 
 const DIR_3WAY = [
-  { value: 'input', label: 'input' },
-  { value: 'output', label: 'output' },
+  { value: 'in', label: 'input' },
+  { value: 'out', label: 'output' },
   { value: 'inout', label: 'inout' },
 ];
 
