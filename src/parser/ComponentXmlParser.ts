@@ -602,32 +602,75 @@ export function parseComponentXmlText(
     ipObj.parameters = parameters;
   }
 
-  // ---- Parse xilinx:subCoreRef from vendorExtensions ----------------------
+  // ---- Parse xilinx:subCoreRef from fileSets (new format) and coreExtensions (legacy) ---
   const XILINX_NS = 'http://www.xilinx.com';
-  const vendorExtEl = childEl(root, 'vendorExtensions');
-  if (vendorExtEl) {
-    const coreExtEls = vendorExtEl.getElementsByTagNameNS(XILINX_NS, 'coreExtensions');
-    const coreExtEl = coreExtEls[0] as Element | undefined;
-    if (coreExtEl) {
-      const subCoreRefEls = coreExtEl.getElementsByTagNameNS(XILINX_NS, 'subCoreRef');
-      const subcores: string[] = [];
-      for (let i = 0; i < subCoreRefEls.length; i++) {
-        const scRef = subCoreRefEls[i];
-        const vlnvEls = scRef.getElementsByTagNameNS(XILINX_NS, 'vlnv');
-        const vlnvEl = vlnvEls[0] as Element | undefined;
-        if (vlnvEl) {
-          const scVendor = vlnvEl.getAttributeNS(XILINX_NS, 'vendor') ?? '';
-          const scLibrary = vlnvEl.getAttributeNS(XILINX_NS, 'library') ?? '';
-          const scName = vlnvEl.getAttributeNS(XILINX_NS, 'name') ?? '';
-          const scVersion = vlnvEl.getAttributeNS(XILINX_NS, 'version') ?? '';
-          if (scVendor && scLibrary && scName && scVersion) {
-            subcores.push(`${scVendor}:${scLibrary}:${scName}:${scVersion}`);
+  {
+    const seen = new Set<string>();
+    const subcores: string[] = [];
+
+    function extractVlnvFromSubCoreRef(scRef: Element): void {
+      // New format: <xilinx:componentRef xilinx:vendor="..." ...>
+      const compRefEls = scRef.getElementsByTagNameNS(XILINX_NS, 'componentRef');
+      const compRefEl = compRefEls[0] as Element | undefined;
+      if (compRefEl) {
+        const vendor = compRefEl.getAttributeNS(XILINX_NS, 'vendor') ?? '';
+        const library = compRefEl.getAttributeNS(XILINX_NS, 'library') ?? '';
+        const name = compRefEl.getAttributeNS(XILINX_NS, 'name') ?? '';
+        const version = compRefEl.getAttributeNS(XILINX_NS, 'version') ?? '';
+        if (vendor && library && name && version) {
+          const vlnv = `${vendor}:${library}:${name}:${version}`;
+          if (!seen.has(vlnv)) {
+            seen.add(vlnv);
+            subcores.push(vlnv);
+          }
+        }
+        return;
+      }
+      // Legacy format: <xilinx:vlnv xilinx:vendor="..." .../>
+      const vlnvEls = scRef.getElementsByTagNameNS(XILINX_NS, 'vlnv');
+      const vlnvEl = vlnvEls[0] as Element | undefined;
+      if (vlnvEl) {
+        const vendor = vlnvEl.getAttributeNS(XILINX_NS, 'vendor') ?? '';
+        const library = vlnvEl.getAttributeNS(XILINX_NS, 'library') ?? '';
+        const name = vlnvEl.getAttributeNS(XILINX_NS, 'name') ?? '';
+        const version = vlnvEl.getAttributeNS(XILINX_NS, 'version') ?? '';
+        if (vendor && library && name && version) {
+          const vlnv = `${vendor}:${library}:${name}:${version}`;
+          if (!seen.has(vlnv)) {
+            seen.add(vlnv);
+            subcores.push(vlnv);
           }
         }
       }
-      if (subcores.length > 0) {
-        ipObj.subcores = subcores;
+    }
+
+    // Search fileSets for subCoreRef (new fileset-based structure)
+    const fileSetsEl = root.getElementsByTagNameNS(
+      'http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009',
+      'fileSets'
+    )[0] as Element | undefined;
+    if (fileSetsEl) {
+      const subCoreRefEls = fileSetsEl.getElementsByTagNameNS(XILINX_NS, 'subCoreRef');
+      for (let i = 0; i < subCoreRefEls.length; i++) {
+        extractVlnvFromSubCoreRef(subCoreRefEls[i]);
       }
+    }
+
+    // Also search coreExtensions for legacy subCoreRef
+    const vendorExtEl = childEl(root, 'vendorExtensions');
+    if (vendorExtEl) {
+      const coreExtEls = vendorExtEl.getElementsByTagNameNS(XILINX_NS, 'coreExtensions');
+      const coreExtEl = coreExtEls[0] as Element | undefined;
+      if (coreExtEl) {
+        const subCoreRefEls = coreExtEl.getElementsByTagNameNS(XILINX_NS, 'subCoreRef');
+        for (let i = 0; i < subCoreRefEls.length; i++) {
+          extractVlnvFromSubCoreRef(subCoreRefEls[i]);
+        }
+      }
+    }
+
+    if (subcores.length > 0) {
+      ipObj.subcores = subcores;
     }
   }
 

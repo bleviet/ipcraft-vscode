@@ -682,7 +682,7 @@ describe('subcores in vendorExtensions', () => {
     expect(xml).toContain('xilinx:version="13.2"');
   });
 
-  it('emits multiple subCoreRef elements for multiple subcores', () => {
+  it('emits multiple subCoreRef elements for multiple subcores (2 filesets each)', () => {
     const xml = gen({
       subcores: [
         { vlnv: 'xilinx.com:ip:fifo_generator:13.2' },
@@ -690,17 +690,33 @@ describe('subcores in vendorExtensions', () => {
       ],
     });
     const count = (xml.match(/<xilinx:subCoreRef>/g) ?? []).length;
-    expect(count).toBe(2);
+    expect(count).toBe(4); // 2 subcores × 2 filesets (synthesis + simulation)
   });
 
-  it('emits subCoreRef inside xilinx:coreExtensions', () => {
+  it('emits subCoreRef inside spirit:fileSet vendorExtensions, not in coreExtensions', () => {
     const xml = gen({ subcores: [{ vlnv: 'xilinx.com:ip:fifo_generator:13.2' }] });
     const extOpen = xml.indexOf('<xilinx:coreExtensions>');
     const extClose = xml.indexOf('</xilinx:coreExtensions>');
     const refIdx = xml.indexOf('<xilinx:subCoreRef>');
-    expect(extOpen).toBeGreaterThan(-1);
-    expect(refIdx).toBeGreaterThan(extOpen);
-    expect(refIdx).toBeLessThan(extClose);
+    // subCoreRef must be OUTSIDE coreExtensions (either before or after it)
+    expect(refIdx).toBeGreaterThan(-1);
+    expect(extOpen === -1 || refIdx < extOpen || refIdx > extClose).toBe(true);
+  });
+
+  it('emits componentRef (not vlnv) inside subCoreRef', () => {
+    const xml = gen({ subcores: [{ vlnv: 'xilinx.com:ip:fifo_generator:13.2' }] });
+    expect(xml).toContain('<xilinx:componentRef');
+    expect(xml).toContain('<xilinx:mode xilinx:name="create_mode"/>');
+  });
+
+  it('adds fileSetRef for synthesis and simulation views', () => {
+    const xml = gen({ subcores: [{ vlnv: 'xilinx.com:ip:fifo_generator:13.2' }] });
+    expect(xml).toContain(
+      'xilinx_vhdlsynthesis_xilinx_com_ip_fifo_generator_13_2__ref_view_fileset'
+    );
+    expect(xml).toContain(
+      'xilinx_vhdlbehavioralsimulation_xilinx_com_ip_fifo_generator_13_2__ref_view_fileset'
+    );
   });
 });
 

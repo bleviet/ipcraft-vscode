@@ -320,13 +320,15 @@ export function generateComponentXml(
   // ── model ─────────────────────────────────────────────────────────────────
 
   lines.push('  <spirit:model>');
-  lines.push(...renderViews(name));
+  lines.push(...renderViews(name, ipCore.subcores ?? []));
   lines.push(...renderPorts(clocks, resets, busInterfaces, userPorts, interrupts, busDefinitions));
   lines.push('  </spirit:model>');
 
   // ── fileSets ──────────────────────────────────────────────────────────────
 
-  lines.push(...renderFileSets(resolvedRtlFiles, resolvedSimFiles, derivedXguiFile));
+  lines.push(
+    ...renderFileSets(resolvedRtlFiles, resolvedSimFiles, derivedXguiFile, ipCore.subcores ?? [])
+  );
 
   // ── description ───────────────────────────────────────────────────────────
 
@@ -341,7 +343,7 @@ export function generateComponentXml(
   // ── vendorExtensions ──────────────────────────────────────────────────────
 
   const xilinxVersion = detectVivadoVersion();
-  lines.push(...renderVendorExtensions(derivedDisplayName, xilinxVersion, ipCore.subcores ?? []));
+  lines.push(...renderVendorExtensions(derivedDisplayName, xilinxVersion));
 
   lines.push('</spirit:component>');
 
@@ -551,13 +553,14 @@ function renderInterruptInterface(intr: {
   return lines;
 }
 
-function renderViews(entityName: string): string[] {
+function renderViews(entityName: string, subcores: SubcoreRef[] = []): string[] {
   function view(
     viewName: string,
     displayName: string,
     envId: string,
-    fileSetRef: string,
-    language?: string
+    mainFileSetRef: string,
+    language?: string,
+    extraFileSetRefs: string[] = []
   ): string[] {
     const out: string[] = [];
     out.push('      <spirit:view>');
@@ -568,8 +571,13 @@ function renderViews(entityName: string): string[] {
       out.push(`        <spirit:language>${x(language)}</spirit:language>`);
       out.push(`        <spirit:modelName>${x(entityName)}</spirit:modelName>`);
     }
+    for (const fsRef of extraFileSetRefs) {
+      out.push('        <spirit:fileSetRef>');
+      out.push(`          <spirit:localName>${x(fsRef)}</spirit:localName>`);
+      out.push('        </spirit:fileSetRef>');
+    }
     out.push('        <spirit:fileSetRef>');
-    out.push(`          <spirit:localName>${x(fileSetRef)}</spirit:localName>`);
+    out.push(`          <spirit:localName>${x(mainFileSetRef)}</spirit:localName>`);
     out.push('        </spirit:fileSetRef>');
     out.push('        <spirit:parameters>');
     out.push('          <spirit:parameter>');
@@ -581,6 +589,15 @@ function renderViews(entityName: string): string[] {
     return out;
   }
 
+  const synthRefs = subcores.map((ref) => {
+    const v = parseVlnv(ref.vlnv);
+    return `xilinx_vhdlsynthesis_${makeRefFileSetSuffix(v)}__ref_view_fileset`;
+  });
+  const simRefs = subcores.map((ref) => {
+    const v = parseVlnv(ref.vlnv);
+    return `xilinx_vhdlbehavioralsimulation_${makeRefFileSetSuffix(v)}__ref_view_fileset`;
+  });
+
   const lines: string[] = [];
   lines.push('    <spirit:views>');
   lines.push(
@@ -589,7 +606,8 @@ function renderViews(entityName: string): string[] {
       'VHDL Synthesis',
       'vhdlSource:vivado.xilinx.com:synthesis',
       'xilinx_vhdlsynthesis_view_fileset',
-      'vhdl'
+      'vhdl',
+      synthRefs
     )
   );
   lines.push(
@@ -598,7 +616,8 @@ function renderViews(entityName: string): string[] {
       'VHDL Simulation',
       'vhdlSource:vivado.xilinx.com:simulation',
       'xilinx_vhdlbehavioralsimulation_view_fileset',
-      'vhdl'
+      'vhdl',
+      simRefs
     )
   );
   lines.push(
@@ -707,7 +726,12 @@ function renderModelPort(name: string, direction: string, width: number): string
   return lines;
 }
 
-function renderFileSets(rtlFiles: string[], simFiles: string[], xguiFile: string): string[] {
+function renderFileSets(
+  rtlFiles: string[],
+  simFiles: string[],
+  xguiFile: string,
+  subcores: SubcoreRef[] = []
+): string[] {
   const lines: string[] = [];
   lines.push('  <spirit:fileSets>');
 
@@ -733,6 +757,25 @@ function renderFileSets(rtlFiles: string[], simFiles: string[], xguiFile: string
   lines.push('        <spirit:userFileType>XGUI_VERSION_2</spirit:userFileType>');
   lines.push('      </spirit:file>');
   lines.push('    </spirit:fileSet>');
+
+  for (const ref of subcores) {
+    const v = parseVlnv(ref.vlnv);
+    const suffix = makeRefFileSetSuffix(v);
+    for (const prefix of ['xilinx_vhdlsynthesis', 'xilinx_vhdlbehavioralsimulation']) {
+      lines.push('    <spirit:fileSet>');
+      lines.push(`      <spirit:name>${prefix}_${suffix}__ref_view_fileset</spirit:name>`);
+      lines.push('      <spirit:vendorExtensions>');
+      lines.push('        <xilinx:subCoreRef>');
+      lines.push(
+        `          <xilinx:componentRef xilinx:vendor="${x(v.vendor)}" xilinx:library="${x(v.library)}" xilinx:name="${x(v.name)}" xilinx:version="${x(v.version)}">`
+      );
+      lines.push('            <xilinx:mode xilinx:name="create_mode"/>');
+      lines.push('          </xilinx:componentRef>');
+      lines.push('        </xilinx:subCoreRef>');
+      lines.push('      </spirit:vendorExtensions>');
+      lines.push('    </spirit:fileSet>');
+    }
+  }
 
   lines.push('  </spirit:fileSets>');
   return lines;
@@ -798,30 +841,7 @@ function renderParameters(entityName: string, parameters: ParameterDef[]): strin
   return lines;
 }
 
-function renderSubcoreRefs(subcores: SubcoreRef[]): string[] {
-  if (subcores.length === 0) {
-    return [];
-  }
-  const lines: string[] = [];
-  for (const ref of subcores) {
-    const v = parseVlnv(ref.vlnv);
-    lines.push('      <xilinx:subCoreRef>');
-    lines.push(
-      `        <xilinx:vlnv xilinx:vendor="${x(v.vendor)}" ` +
-        `xilinx:library="${x(v.library)}" ` +
-        `xilinx:name="${x(v.name)}" ` +
-        `xilinx:version="${x(v.version)}" />`
-    );
-    lines.push('      </xilinx:subCoreRef>');
-  }
-  return lines;
-}
-
-function renderVendorExtensions(
-  displayName: string,
-  xilinxVersion: string,
-  subcores: SubcoreRef[] = []
-): string[] {
+function renderVendorExtensions(displayName: string, xilinxVersion: string): string[] {
   const families = ['versal', 'qzynq', 'zynquplus', 'azynq', 'zynq'];
 
   const lines: string[] = [];
@@ -837,7 +857,6 @@ function renderVendorExtensions(
   lines.push('      </xilinx:taxonomies>');
   lines.push(`      <xilinx:displayName>${x(displayName)}</xilinx:displayName>`);
   lines.push('      <xilinx:coreRevision>1</xilinx:coreRevision>');
-  lines.push(...renderSubcoreRefs(subcores));
   lines.push('    </xilinx:coreExtensions>');
   lines.push('    <xilinx:packagingInfo>');
   lines.push(`      <xilinx:xilinxVersion>${x(xilinxVersion)}</xilinx:xilinxVersion>`);
@@ -847,6 +866,17 @@ function renderVendorExtensions(
 }
 
 // ── Utility helpers ───────────────────────────────────────────────────────────
+
+function makeRefFileSetSuffix(v: {
+  vendor: string;
+  library: string;
+  name: string;
+  version: string;
+}): string {
+  return [v.vendor, v.library, v.name, v.version]
+    .map((s) => s.replace(/[^a-zA-Z0-9]/g, '_'))
+    .join('_');
+}
 
 function x(str: string): string {
   return str
