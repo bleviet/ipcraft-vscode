@@ -417,6 +417,19 @@ const DependenciesSection: React.FC<{ ipCore: IpCore; onUpdate: YamlUpdateHandle
 }) => {
   const rawSubcores = (ipCore.subcores ?? []) as Array<string | { vlnv: string; path?: string }>;
 
+  // Listen for the subcoreAdded response from the extension host QuickPick
+  useEffect(() => {
+    const handler = (event: MessageEvent) => {
+      const message = event.data as { type?: string; vlnv?: string };
+      if (message.type === 'subcoreAdded' && message.vlnv) {
+        const updated = [...rawSubcores, message.vlnv];
+        onUpdate(['subcores'], updated);
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, [rawSubcores, onUpdate]);
+
   const handleAdd = () => {
     vscode?.postMessage({ type: 'addSubcore' });
   };
