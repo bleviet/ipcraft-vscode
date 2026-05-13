@@ -479,3 +479,47 @@ describe('ComponentXmlParser', () => {
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+// Component with subCoreRef vendor extensions
+// ---------------------------------------------------------------------------
+const SUBCORES_XML = `<?xml version="1.0" encoding="UTF-8"?>
+<spirit:component
+  xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+  xmlns:xilinx="http://www.xilinx.com">
+  <spirit:vendor>acme.com</spirit:vendor>
+  <spirit:library>ip</spirit:library>
+  <spirit:name>top_ip</spirit:name>
+  <spirit:version>1.0</spirit:version>
+  <spirit:vendorExtensions>
+    <xilinx:coreExtensions>
+      <xilinx:subCoreRef>
+        <xilinx:vlnv xilinx:vendor="xilinx.com" xilinx:library="ip" xilinx:name="fifo_generator" xilinx:version="13.2"/>
+      </xilinx:subCoreRef>
+      <xilinx:subCoreRef>
+        <xilinx:vlnv xilinx:vendor="acme.com" xilinx:library="user" xilinx:name="my_block" xilinx:version="2.0"/>
+      </xilinx:subCoreRef>
+    </xilinx:coreExtensions>
+  </spirit:vendorExtensions>
+</spirit:component>`;
+
+describe('subCoreRef parsing', () => {
+  it('extracts subcores from vendorExtensions as VLNV strings', () => {
+    const { ipYamlText } = parseComponentXmlText(SUBCORES_XML);
+    const ip = parseYaml(ipYamlText) as { subcores?: string[] };
+    expect(ip.subcores).toBeDefined();
+    expect(ip.subcores).toHaveLength(2);
+    expect(ip.subcores![0]).toBe('xilinx.com:ip:fifo_generator:13.2');
+    expect(ip.subcores![1]).toBe('acme.com:user:my_block:2.0');
+  });
+
+  it('returns no subcores for component without vendorExtensions', () => {
+    const { ipYamlText } = parseComponentXmlText(MINIMAL_XML);
+    const ip = parseYaml(ipYamlText) as { subcores?: unknown };
+    expect(
+      ip.subcores === null ||
+        ip.subcores === undefined ||
+        (Array.isArray(ip.subcores) && ip.subcores.length === 0)
+    ).toBe(true);
+  });
+});

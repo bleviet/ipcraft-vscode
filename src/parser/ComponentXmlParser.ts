@@ -602,6 +602,35 @@ export function parseComponentXmlText(
     ipObj.parameters = parameters;
   }
 
+  // ---- Parse xilinx:subCoreRef from vendorExtensions ----------------------
+  const XILINX_NS = 'http://www.xilinx.com';
+  const vendorExtEl = childEl(root, 'vendorExtensions');
+  if (vendorExtEl) {
+    const coreExtEls = vendorExtEl.getElementsByTagNameNS(XILINX_NS, 'coreExtensions');
+    const coreExtEl = coreExtEls[0] as Element | undefined;
+    if (coreExtEl) {
+      const subCoreRefEls = coreExtEl.getElementsByTagNameNS(XILINX_NS, 'subCoreRef');
+      const subcores: string[] = [];
+      for (let i = 0; i < subCoreRefEls.length; i++) {
+        const scRef = subCoreRefEls[i];
+        const vlnvEls = scRef.getElementsByTagNameNS(XILINX_NS, 'vlnv');
+        const vlnvEl = vlnvEls[0] as Element | undefined;
+        if (vlnvEl) {
+          const scVendor = vlnvEl.getAttributeNS(XILINX_NS, 'vendor') ?? '';
+          const scLibrary = vlnvEl.getAttributeNS(XILINX_NS, 'library') ?? '';
+          const scName = vlnvEl.getAttributeNS(XILINX_NS, 'name') ?? '';
+          const scVersion = vlnvEl.getAttributeNS(XILINX_NS, 'version') ?? '';
+          if (scVendor && scLibrary && scName && scVersion) {
+            subcores.push(`${scVendor}:${scLibrary}:${scName}:${scVersion}`);
+          }
+        }
+      }
+      if (subcores.length > 0) {
+        ipObj.subcores = subcores;
+      }
+    }
+  }
+
   const ipYamlText = yaml.dump(ipObj, { lineWidth: 120, noRefs: true });
 
   // ---- Build .mm.yml object -----------------------------------------------

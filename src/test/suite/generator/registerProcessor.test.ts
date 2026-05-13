@@ -193,4 +193,41 @@ describe('registerProcessor', () => {
       expect(result[1].offset).toBe(16);
     });
   });
+
+  describe('normalizeIpCoreData subcores', () => {
+    it('normalizes string subcores to object form', () => {
+      const raw = { subcores: ['xilinx.com:ip:fifo_generator:13.2'] };
+      const result = normalizeIpCoreData(raw);
+      expect(result.subcores).toEqual([{ vlnv: 'xilinx.com:ip:fifo_generator:13.2' }]);
+    });
+
+    it('preserves object subcores with path', () => {
+      const raw = {
+        subcores: [{ vlnv: 'xilinx.com:ip:fifo_generator:13.2', path: '/some/path' }],
+      };
+      const result = normalizeIpCoreData(raw);
+      expect(result.subcores).toEqual([
+        { vlnv: 'xilinx.com:ip:fifo_generator:13.2', path: '/some/path' },
+      ]);
+    });
+
+    it('handles mixed string and object subcores', () => {
+      const raw = {
+        subcores: [
+          'xilinx.com:ip:fifo_generator:13.2',
+          { vlnv: 'acme.com:user:my_ip:1.0', path: '/path' },
+        ],
+      };
+      const result = normalizeIpCoreData(raw);
+      expect(result.subcores).toHaveLength(2);
+      expect(result.subcores![0]).toEqual({ vlnv: 'xilinx.com:ip:fifo_generator:13.2' });
+      expect(result.subcores![1]).toEqual({ vlnv: 'acme.com:user:my_ip:1.0', path: '/path' });
+    });
+
+    it('returns empty array when no subcores field', () => {
+      const raw = { vlnv: { name: 'test' } };
+      const result = normalizeIpCoreData(raw);
+      expect(result.subcores).toEqual([]);
+    });
+  });
 });

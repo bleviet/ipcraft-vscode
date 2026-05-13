@@ -110,6 +110,11 @@
         "title": "View Bus Definitions",
         "category": "IPCraft",
         "icon": "$(list-unordered)"
+      },
+      {
+        "command": "fpga-ip-core.scanVivadoCatalog",
+        "title": "Scan Vivado IP Catalog",
+        "category": "IPCraft"
       }
     ],
     "menus": {
@@ -201,7 +206,7 @@
         "ipcraft.import.vendor": {
           "type": "string",
           "default": "user",
-          "description": "Vendor name used when importing IP cores (VHDL, hw.tcl, component.xml). Leave blank or 'user' to auto-detect from git user.email (e.g. user@company.com → company.com), falling back to 'ipcraft'."
+          "description": "Vendor name used when importing IP cores (VHDL, hw.tcl, component.xml). Leave blank or 'user' to auto-detect from git user.email (e.g. user@company.com \u2192 company.com), falling back to 'ipcraft'."
         },
         "ipcraft.import.library": {
           "type": "string",
@@ -225,6 +230,14 @@
           "type": "string",
           "default": "vivado",
           "markdownDescription": "Path to the Vivado executable (e.g., `C:\\Xilinx\\Vivado\\2024.2\\bin\\vivado.bat` or `/tools/Xilinx/Vivado/2024.2/bin/vivado`). If empty, assumes `vivado` is available in your system PATH."
+        },
+        "ipcraft.ipRepositoryPaths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "markdownDescription": "Additional file system paths to scan for IP cores (directories containing `.ip.yml` or `component.xml` files)."
         }
       }
     },

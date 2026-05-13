@@ -6,6 +6,7 @@ export type Section =
   | 'resets'
   | 'ports'
   | 'busInterfaces'
+  | 'subcores'
   | 'memoryMaps'
   | 'parameters'
   | 'fileSets'

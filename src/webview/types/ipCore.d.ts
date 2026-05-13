@@ -466,6 +466,7 @@ export interface IpCore {
       };
   fileSets?: Filesets;
   parameters?: Parameters;
+  subcores?: (string | { vlnv: string; path?: string })[];
 }
 /**
  * Unique identifier

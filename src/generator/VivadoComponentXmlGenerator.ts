@@ -1,11 +1,13 @@
 import { getActiveBusPortsFromDefinition } from './registerProcessor';
 import { detectVivadoVersion } from '../utils/detectVivadoVersion';
+import { parseVlnv } from '../utils/vlnv';
 import type {
   BusDefinitions,
   BusInterfaceDef,
   BusPortDefinition,
   IpCoreData,
   ParameterDef,
+  SubcoreRef,
 } from './types';
 
 // ── Custom bus definition support ─────────────────────────────────────────────
@@ -339,7 +341,7 @@ export function generateComponentXml(
   // ── vendorExtensions ──────────────────────────────────────────────────────
 
   const xilinxVersion = detectVivadoVersion();
-  lines.push(...renderVendorExtensions(derivedDisplayName, xilinxVersion));
+  lines.push(...renderVendorExtensions(derivedDisplayName, xilinxVersion, ipCore.subcores ?? []));
 
   lines.push('</spirit:component>');
 
@@ -796,7 +798,30 @@ function renderParameters(entityName: string, parameters: ParameterDef[]): strin
   return lines;
 }
 
-function renderVendorExtensions(displayName: string, xilinxVersion: string): string[] {
+function renderSubcoreRefs(subcores: SubcoreRef[]): string[] {
+  if (subcores.length === 0) {
+    return [];
+  }
+  const lines: string[] = [];
+  for (const ref of subcores) {
+    const v = parseVlnv(ref.vlnv);
+    lines.push('      <xilinx:subCoreRef>');
+    lines.push(
+      `        <xilinx:vlnv xilinx:vendor="${x(v.vendor)}" ` +
+        `xilinx:library="${x(v.library)}" ` +
+        `xilinx:name="${x(v.name)}" ` +
+        `xilinx:version="${x(v.version)}" />`
+    );
+    lines.push('      </xilinx:subCoreRef>');
+  }
+  return lines;
+}
+
+function renderVendorExtensions(
+  displayName: string,
+  xilinxVersion: string,
+  subcores: SubcoreRef[] = []
+): string[] {
   const families = ['versal', 'qzynq', 'zynquplus', 'azynq', 'zynq'];
 
   const lines: string[] = [];
@@ -812,6 +837,7 @@ function renderVendorExtensions(displayName: string, xilinxVersion: string): str
   lines.push('      </xilinx:taxonomies>');
   lines.push(`      <xilinx:displayName>${x(displayName)}</xilinx:displayName>`);
   lines.push('      <xilinx:coreRevision>1</xilinx:coreRevision>');
+  lines.push(...renderSubcoreRefs(subcores));
   lines.push('    </xilinx:coreExtensions>');
   lines.push('    <xilinx:packagingInfo>');
   lines.push(`      <xilinx:xilinxVersion>${x(xilinxVersion)}</xilinx:xilinxVersion>`);

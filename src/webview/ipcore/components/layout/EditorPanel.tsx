@@ -10,6 +10,7 @@ import { FileSetsEditor } from '../sections/FileSetsEditor';
 import { BusInterfacesEditor } from '../sections/BusInterfacesEditor';
 import { MemoryMapsEditor } from '../sections/MemoryMapsEditor';
 import { GeneratorPanel } from '../sections/GeneratorPanel';
+import { SubcoresEditor } from '../sections/SubcoresEditor';
 import { IpBlockCanvas } from '../canvas/IpBlockCanvas';
 import { Section } from '../../hooks/useNavigation';
 
@@ -114,6 +115,8 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
             highlight={highlight}
           />
         );
+      case 'subcores':
+        return <SubcoresEditor subcores={ip.subcores ?? []} onUpdate={onUpdate} />;
       case 'memoryMaps':
         return (
           <MemoryMapsEditor memoryMaps={ip.memoryMaps} imports={imports} onUpdate={onUpdate} />

@@ -665,6 +665,45 @@ describe('generateComponentXml', () => {
 
 // ── generateCustomBusDefs ────────────────────────────────────────────────────
 
+// ── generateCustomBusDefs ────────────────────────────────────────────────────
+
+describe('subcores in vendorExtensions', () => {
+  it('emits no subCoreRef elements when subcores is empty', () => {
+    const xml = gen({ subcores: [] });
+    expect(xml).not.toContain('subCoreRef');
+  });
+
+  it('emits xilinx:subCoreRef for a single subcore', () => {
+    const xml = gen({ subcores: [{ vlnv: 'xilinx.com:ip:fifo_generator:13.2' }] });
+    expect(xml).toContain('<xilinx:subCoreRef>');
+    expect(xml).toContain('xilinx:vendor="xilinx.com"');
+    expect(xml).toContain('xilinx:library="ip"');
+    expect(xml).toContain('xilinx:name="fifo_generator"');
+    expect(xml).toContain('xilinx:version="13.2"');
+  });
+
+  it('emits multiple subCoreRef elements for multiple subcores', () => {
+    const xml = gen({
+      subcores: [
+        { vlnv: 'xilinx.com:ip:fifo_generator:13.2' },
+        { vlnv: 'xilinx.com:ip:axi_uartlite:2.0' },
+      ],
+    });
+    const count = (xml.match(/<xilinx:subCoreRef>/g) ?? []).length;
+    expect(count).toBe(2);
+  });
+
+  it('emits subCoreRef inside xilinx:coreExtensions', () => {
+    const xml = gen({ subcores: [{ vlnv: 'xilinx.com:ip:fifo_generator:13.2' }] });
+    const extOpen = xml.indexOf('<xilinx:coreExtensions>');
+    const extClose = xml.indexOf('</xilinx:coreExtensions>');
+    const refIdx = xml.indexOf('<xilinx:subCoreRef>');
+    expect(extOpen).toBeGreaterThan(-1);
+    expect(refIdx).toBeGreaterThan(extOpen);
+    expect(refIdx).toBeLessThan(extClose);
+  });
+});
+
 describe('generateCustomBusDefs', () => {
   const CUSTOM_PORTS = [
     { name: 'DATA', width: 32, direction: 'out', presence: 'required' },

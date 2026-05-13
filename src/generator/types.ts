@@ -88,6 +88,11 @@ export interface ResetDef {
   associated_clock?: string;
 }
 
+export interface SubcoreRef {
+  vlnv: string;
+  path?: string;
+}
+
 export interface IpCoreData {
   vlnv?: VlnvDef;
   description?: string;
@@ -97,6 +102,7 @@ export interface IpCoreData {
   clocks?: ClockDef[];
   resets?: ResetDef[];
   memory_maps?: Record<string, unknown> | Record<string, unknown>[];
+  subcores?: SubcoreRef[];
   [key: string]: unknown;
 }
 

@@ -146,6 +146,16 @@ export function normalizeIpCoreData(raw: Record<string, unknown>): IpCoreData {
       | Record<string, unknown>
       | Record<string, unknown>[]
       | undefined,
+    subcores: ((raw.subcores as unknown[]) ?? []).map((sc) => {
+      if (typeof sc === 'string') {
+        return { vlnv: sc };
+      }
+      const obj = sc as Record<string, unknown>;
+      return {
+        vlnv: getString(obj.vlnv),
+        ...(obj.path ? { path: getString(obj.path) } : {}),
+      };
+    }),
   };
 }
 

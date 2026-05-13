@@ -65,6 +65,15 @@ const SECTIONS: SectionItem[] = [
     count: (ip) => (ip as Record<string, unknown[]>)?.busInterfaces?.length || 0,
   },
   {
+    id: 'subcores',
+    label: 'Dependencies',
+    icon: 'extensions',
+    count: (ip) => {
+      const subcores = (ip as Record<string, unknown[]>)?.subcores;
+      return Array.isArray(subcores) ? subcores.length : 0;
+    },
+  },
+  {
     id: 'memoryMaps',
     label: 'Memory Maps',
     icon: 'circuit-board',

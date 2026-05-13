@@ -6,6 +6,8 @@ import { HtmlGenerator } from '../services/HtmlGenerator';
 import { MessageHandler } from '../services/MessageHandler';
 import { DocumentManager } from '../services/DocumentManager';
 import { ImportResolver } from '../services/ImportResolver';
+import { SubcoreResolver } from '../services/SubcoreResolver';
+import { isValidVlnv } from '../utils/vlnv';
 import { createNotIpCoreHtml } from './ipCoreErrorHtml';
 import { createSharedProviderServices } from './providerServices';
 import {
@@ -34,6 +36,7 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
   private readonly messageHandler: MessageHandler;
   private readonly documentManager: DocumentManager;
   private readonly importResolver: ImportResolver;
+  private readonly subcoreResolver: SubcoreResolver;
 
   constructor(private readonly context: vscode.ExtensionContext) {
     const services = createSharedProviderServices(context);
@@ -41,6 +44,8 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
     this.messageHandler = services.messageHandler;
     this.documentManager = services.documentManager;
     this.importResolver = new ImportResolver(this.logger, context);
+    this.subcoreResolver = new SubcoreResolver(context);
+    void this.subcoreResolver.initialize();
 
     this.logger.info('IpCoreEditorProvider initialized');
   }
@@ -180,6 +185,9 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
       },
       openFile: async (message) => {
         await this.handleOpenFileMessage(message, document);
+      },
+      addSubcore: async () => {
+        await this.handleAddSubcoreMessage(webviewPanel);
       },
     };
 
@@ -344,6 +352,69 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
     } catch (error) {
       this.logger.error('Failed to open file', error as Error);
     }
+  }
+
+  private async handleAddSubcoreMessage(webviewPanel: vscode.WebviewPanel): Promise<void> {
+    const candidates = this.subcoreResolver.getAvailableIps();
+
+    const items: vscode.QuickPickItem[] = [];
+
+    const workspaceIps = candidates.filter((c) => c.source === 'workspace');
+    if (workspaceIps.length > 0) {
+      items.push({ label: 'Workspace IPs', kind: vscode.QuickPickItemKind.Separator });
+      items.push(
+        ...workspaceIps.map((c) => ({
+          label: c.vlnv,
+          description: c.fsPath ? path.basename(c.fsPath) : undefined,
+        }))
+      );
+    }
+
+    const repoIps = candidates.filter((c) => c.source === 'user-repo');
+    if (repoIps.length > 0) {
+      items.push({ label: 'User IP Repositories', kind: vscode.QuickPickItemKind.Separator });
+      items.push(...repoIps.map((c) => ({ label: c.vlnv, description: c.fsPath })));
+    }
+
+    const catalogIps = candidates.filter(
+      (c) => c.source === 'vivado-catalog' || c.source === 'builtin'
+    );
+    if (catalogIps.length > 0) {
+      items.push({ label: 'Vivado Catalog', kind: vscode.QuickPickItemKind.Separator });
+      items.push(...catalogIps.map((c) => ({ label: c.vlnv })));
+    }
+
+    items.push({
+      label: 'Enter custom VLNV...',
+      kind: vscode.QuickPickItemKind.Default,
+      description: 'vendor:library:name:version',
+    });
+
+    const selected = await vscode.window.showQuickPick(items, {
+      placeHolder: 'Select an IP dependency (vendor:library:name:version)',
+      matchOnDescription: true,
+    });
+
+    if (!selected) {
+      return;
+    }
+
+    let vlnv: string;
+    if (selected.label === 'Enter custom VLNV...') {
+      const input = await vscode.window.showInputBox({
+        prompt: 'Enter VLNV (vendor:library:name:version)',
+        placeHolder: 'xilinx.com:ip:fifo_generator:13.2',
+        validateInput: (v) => (isValidVlnv(v) ? null : 'Format: vendor:library:name:version'),
+      });
+      if (!input) {
+        return;
+      }
+      vlnv = input;
+    } else {
+      vlnv = selected.label;
+    }
+
+    void webviewPanel.webview.postMessage({ type: 'subcoreAdded', vlnv });
   }
 
   private async handleCheckFilesExistMessage(
