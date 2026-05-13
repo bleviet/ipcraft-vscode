@@ -7,7 +7,8 @@ export type CanvasElementKind =
   | 'busInterface'
   | 'body'
   | 'parameter'
-  | 'interrupt';
+  | 'interrupt'
+  | 'subcore';
 
 export interface CanvasElement {
   kind: CanvasElementKind;
@@ -44,6 +45,7 @@ export function parseCanvasId(id: string): CanvasElement | null {
     bus: 'busInterface',
     parameter: 'parameter',
     interrupt: 'interrupt',
+    subcore: 'subcore',
   };
 
   const kind = kindMap[kindRaw];

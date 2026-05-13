@@ -170,6 +170,47 @@
   opacity: 0.7;
 }
 
+/* --- Subcores / Dependencies section inside block --- */
+
+.ip-block-dep-separator {
+  stroke: var(--vscode-panel-border);
+  stroke-width: 1;
+  opacity: 0.6;
+}
+
+.ip-block-dep-header {
+  fill: var(--vscode-descriptionForeground);
+  font-family: var(--vscode-font-family);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.55;
+}
+
+.ip-block-dep-row-bg {
+  fill: transparent;
+  transition: fill 0.1s;
+}
+.ip-block-dep-row-bg:hover {
+  fill: color-mix(in srgb, var(--vscode-charts-blue, #4fc1ff) 8%, transparent);
+}
+.ip-block-dep-row-bg--selected {
+  fill: color-mix(in srgb, var(--vscode-charts-blue, #4fc1ff) 18%, transparent);
+}
+
+.ip-block-dep-icon {
+  fill: var(--vscode-charts-blue, #4fc1ff);
+  font-size: 10px;
+  opacity: 0.8;
+}
+
+.ip-block-dep-name {
+  fill: var(--vscode-charts-blue, #4fc1ff);
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 11px;
+}
+
 /* --- Port stubs --- */
 
 .canvas-port__stub {
@@ -798,6 +839,11 @@
   background: color-mix(in srgb, var(--vscode-charts-yellow, #dcdcaa) 18%, transparent);
   color: var(--vscode-charts-yellow, #dcdcaa);
   border: 1px solid color-mix(in srgb, var(--vscode-charts-yellow, #dcdcaa) 35%, transparent);
+}
+.ci-badge--subcore {
+  background: color-mix(in srgb, var(--vscode-charts-blue, #4fc1ff) 18%, transparent);
+  color: var(--vscode-charts-blue, #4fc1ff);
+  border: 1px solid color-mix(in srgb, var(--vscode-charts-blue, #4fc1ff) 35%, transparent);
 }
 
 /* Body */

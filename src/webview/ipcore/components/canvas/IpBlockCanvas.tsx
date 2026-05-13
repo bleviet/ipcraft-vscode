@@ -380,6 +380,8 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
     portSeparatorY,
     descLines,
     descSeparatorY,
+    subcoreDeps,
+    depSeparatorY,
   } = layout;
 
   return (
@@ -501,6 +503,74 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
           </text>
         )}
 
+        {/* ── Dependencies (subcores) section inside block ── */}
+        {subcoreDeps.length > 0 && (
+          <g style={{ pointerEvents: 'none' }}>
+            {/* Separator line above the section */}
+            <line
+              x1={blockRect.x + 8}
+              y1={depSeparatorY}
+              x2={blockRect.x + blockRect.width - 8}
+              y2={depSeparatorY}
+              className="ip-block-dep-separator"
+            />
+            {/* "Dependencies" header */}
+            <text
+              x={blockRect.x + blockRect.width / 2}
+              y={depSeparatorY + 11}
+              textAnchor="middle"
+              dominantBaseline="central"
+              className="ip-block-dep-header"
+            >
+              Dependencies
+            </text>
+          </g>
+        )}
+        {subcoreDeps.map((dep) => {
+          const isDepSelected = selectedId === `subcore:${dep.index}`;
+          return (
+            <g
+              key={dep.index}
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelect(`subcore:${dep.index}`);
+              }}
+              style={{ cursor: 'pointer' }}
+            >
+              {/* Hit + selection highlight */}
+              <rect
+                x={blockRect.x + 4}
+                y={dep.y - 8}
+                width={blockRect.width - 8}
+                height={16}
+                rx={3}
+                className={`ip-block-dep-row-bg${isDepSelected ? ' ip-block-dep-row-bg--selected' : ''}`}
+              />
+              {/* Chain-link icon */}
+              <text
+                x={blockRect.x + 14}
+                y={dep.y}
+                textAnchor="middle"
+                dominantBaseline="central"
+                className="ip-block-dep-icon"
+                style={{ pointerEvents: 'none' }}
+              >
+                ⛓
+              </text>
+              {/* Short name */}
+              <text
+                x={blockRect.x + 24}
+                y={dep.y}
+                dominantBaseline="central"
+                className="ip-block-dep-name"
+                style={{ pointerEvents: 'none' }}
+              >
+                {dep.shortName}
+              </text>
+            </g>
+          );
+        })}
+
         {/* ── Generic / parameter section inside block ── */}
         {parameters.length > 0 && (
           <g style={{ pointerEvents: 'none' }}>
@@ -583,8 +653,8 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
           );
         })}
 
-        {/* Second separator — below generics, above where port stubs connect */}
-        {parameters.length > 0 && (
+        {/* Second separator — below generics/deps, above where port stubs connect */}
+        {(parameters.length > 0 || subcoreDeps.length > 0) && (
           <line
             x1={blockRect.x + 8}
             y1={portSeparatorY}

@@ -59,6 +59,18 @@ export interface LayoutPort {
   clockDomainIdx: number;
 }
 
+/** A dependency entry rendered inside the block body */
+export interface LayoutSubcoreDep {
+  /** Index into ipCore.subcores */
+  index: number;
+  /** Full VLNV string, e.g. `xilinx.com:ip:fifo_generator:13.2` */
+  vlnv: string;
+  /** Short display name: just the name segment of the VLNV */
+  shortName: string;
+  /** Absolute Y centre of this row in canvas coordinates */
+  y: number;
+}
+
 /** An individual signal port of an expanded bus interface */
 export interface LayoutSubPort {
   /** Stable ID: `bus:0:AWADDR` */
@@ -113,6 +125,10 @@ export interface CanvasLayout {
   descLines: string[];
   /** Y of separator above the description section (only relevant when descLines is non-empty) */
   descSeparatorY: number;
+  /** Dependency subcores rendered inside the block, above the parameters section */
+  subcoreDeps: LayoutSubcoreDep[];
+  /** Y of separator line above the subcores section (only rendered when subcoreDeps.length > 0) */
+  depSeparatorY: number;
 }
 
 // --- Helpers ---
@@ -297,18 +313,40 @@ export function computeLayout(
     return { index: i, name: String(p.name ?? ''), value };
   });
 
+  // Build the subcores section (Dependencies) shown inside the block above parameters
+  const DEP_SEPARATOR_Y_OFFSET = 60; // separator from blockY (below VLNV header)
+  const DEP_HEADER_HEIGHT = 26; // height occupied by separator line + "Dependencies" label
+  const DEP_ROW_HEIGHT = 18;
+  const DEP_AFTER_GAP = 8; // gap between last dep row and the parameter separator
+
+  const rawSubcores = (ipCore.subcores ?? []) as Array<string | { vlnv: string; path?: string }>;
+  const subcoreDeps: LayoutSubcoreDep[] = rawSubcores.map((s, i) => {
+    const vlnv = typeof s === 'string' ? s : s.vlnv;
+    const namePart = vlnv.split(':')[2] ?? vlnv;
+    const rowCenterY =
+      DEP_SEPARATOR_Y_OFFSET + DEP_HEADER_HEIGHT + i * DEP_ROW_HEIGHT + DEP_ROW_HEIGHT / 2;
+    return { index: i, vlnv, shortName: namePart, y: rowCenterY };
+  });
+
+  const S = subcoreDeps.length;
+  const depSectionHeight = S > 0 ? DEP_HEADER_HEIGHT + S * DEP_ROW_HEIGHT + DEP_AFTER_GAP : 0;
+
   // Vertical layout constants for the generics section inside the block
-  const PARAM_SEPARATOR_Y_OFFSET = 60; // first separator from blockY (below VLNV)
-  const PARAM_FIRST_ROW_OFFSET = 86; // first param row center from blockY (separator + 26)
+  const PARAM_SEPARATOR_Y_OFFSET = DEP_SEPARATOR_Y_OFFSET + depSectionHeight;
+  const PARAM_FIRST_ROW_OFFSET = PARAM_SEPARATOR_Y_OFFSET + 26; // separator + 26px header
   const PARAM_ROW_HEIGHT = 18;
   const AFTER_PARAMS_GAP = 12; // gap from last param row to port separator
 
   const N = layoutParameters.length;
 
-  // When params exist, ports are pushed below the param section.
+  // When subcores or params exist, ports are pushed below those sections.
   // portSeparatorOffset: distance from blockY to the second separator line.
   const portSeparatorOffset =
-    N > 0 ? PARAM_FIRST_ROW_OFFSET + N * PARAM_ROW_HEIGHT + AFTER_PARAMS_GAP : null;
+    N > 0
+      ? PARAM_FIRST_ROW_OFFSET + N * PARAM_ROW_HEIGHT + AFTER_PARAMS_GAP
+      : S > 0
+        ? PARAM_SEPARATOR_Y_OFFSET
+        : null;
 
   // portsAreaTopRelative: distance from blockY to where port stubs begin.
   const portsAreaTopRelative =
@@ -653,5 +691,7 @@ export function computeLayout(
         : blockY + PARAM_SEPARATOR_Y_OFFSET,
     descLines,
     descSeparatorY: blockY + portsBlockHeight,
+    subcoreDeps: subcoreDeps.map((d) => ({ ...d, y: blockY + d.y })),
+    depSeparatorY: blockY + DEP_SEPARATOR_Y_OFFSET,
   };
 }

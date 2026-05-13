@@ -162,6 +162,16 @@ function renderPanel(
         />
       );
     }
+    case 'subcore': {
+      const rawSubcores = (ipCore.subcores ?? []) as Array<
+        string | { vlnv: string; path?: string }
+      >;
+      const sub = rawSubcores[element.index];
+      if (sub === undefined) {
+        return <EmptyState label="Dependency not found" />;
+      }
+      return <SubcorePanel entry={sub} index={element.index} ipCore={ipCore} onUpdate={onUpdate} />;
+    }
     default:
       return <EmptyState label="Select a port on the canvas to inspect it" />;
   }
@@ -218,6 +228,7 @@ const BodyPanel: React.FC<{ ipCore: IpCore; onUpdate: YamlUpdateHandler }> = ({
       />
     </Section>
     <FileSetsSection ipCore={ipCore} onUpdate={onUpdate} />
+    <DependenciesSection ipCore={ipCore} onUpdate={onUpdate} />
   </>
 );
 
@@ -395,6 +406,127 @@ function fsInferType(path: string): string {
       return 'unknown';
   }
 }
+
+// ─────────────────────────────────────────────────────
+//  Dependencies section (inside BodyPanel)
+// ─────────────────────────────────────────────────────
+
+const DependenciesSection: React.FC<{ ipCore: IpCore; onUpdate: YamlUpdateHandler }> = ({
+  ipCore,
+  onUpdate,
+}) => {
+  const rawSubcores = (ipCore.subcores ?? []) as Array<string | { vlnv: string; path?: string }>;
+
+  const handleAdd = () => {
+    vscode?.postMessage({ type: 'addSubcore' });
+  };
+
+  const handleDelete = (index: number) => {
+    const updated = rawSubcores.filter((_, i) => i !== index);
+    onUpdate(['subcores'], updated.length ? updated : null);
+  };
+
+  return (
+    <Section title="Dependencies">
+      {rawSubcores.length === 0 && <div className="ci-override-empty">No dependencies</div>}
+      <div className="ci-fileset">
+        {rawSubcores.map((sub, i) => {
+          const vlnv = typeof sub === 'string' ? sub : sub.vlnv;
+          const shortName = vlnv.split(':')[2] ?? vlnv;
+          return (
+            <div key={i} className="ci-fileset__row">
+              <span className="codicon codicon-link" style={{ fontSize: 11, flexShrink: 0 }} />
+              <span className="ci-fileset__name" title={vlnv}>
+                {shortName}
+              </span>
+              <button
+                className="ci-fileset__rm"
+                title={`Remove ${vlnv}`}
+                onClick={() => handleDelete(i)}
+              >
+                <span className="codicon codicon-trash" />
+              </button>
+            </div>
+          );
+        })}
+        <button className="ci-fileset__add" onClick={handleAdd}>
+          <span className="codicon codicon-add" />
+          Add Dependency
+        </button>
+      </div>
+    </Section>
+  );
+};
+
+// ─────────────────────────────────────────────────────
+//  Individual subcore / dependency panel
+// ─────────────────────────────────────────────────────
+
+interface SubcorePanelProps {
+  entry: string | { vlnv: string; path?: string };
+  index: number;
+  ipCore: IpCore;
+  onUpdate: YamlUpdateHandler;
+}
+
+const SubcorePanel: React.FC<SubcorePanelProps> = ({ entry, index, ipCore, onUpdate }) => {
+  const vlnv = typeof entry === 'string' ? entry : entry.vlnv;
+  const path = typeof entry === 'object' ? entry.path : undefined;
+  const rawSubcores = (ipCore.subcores ?? []) as Array<string | { vlnv: string; path?: string }>;
+
+  const handleOpenFile = () => {
+    if (path) {
+      vscode?.postMessage({ type: 'openFile', path });
+    }
+  };
+
+  return (
+    <>
+      <Section title="Dependency">
+        <PropField
+          label="VLNV"
+          value={vlnv}
+          onSave={(v) => {
+            const current = rawSubcores[index];
+            const updated = [...rawSubcores];
+            if (typeof current === 'object') {
+              updated[index] = { ...current, vlnv: v };
+            } else {
+              updated[index] = v;
+            }
+            onUpdate(['subcores'], updated);
+          }}
+          validate={validateRequired}
+          placeholder="vendor:library:name:version"
+          mono
+        />
+        {path !== undefined && (
+          <PropField
+            label="Path"
+            value={path ?? ''}
+            onSave={(v) => {
+              const updated = [...rawSubcores];
+              const current = updated[index];
+              const base = typeof current === 'string' ? { vlnv: current } : { ...current };
+              updated[index] = { ...base, path: v || undefined };
+              onUpdate(['subcores'], updated);
+            }}
+            placeholder="path/to/core"
+            mono
+          />
+        )}
+      </Section>
+      {path && (
+        <div className="ci-fileset" style={{ paddingTop: 0 }}>
+          <button className="ci-fileset__add" onClick={handleOpenFile}>
+            <span className="codicon codicon-go-to-file" />
+            Open File
+          </button>
+        </div>
+      )}
+    </>
+  );
+};
 
 // ─────────────────────────────────────────────────────
 //  Parameter / generic panel
@@ -1939,6 +2071,17 @@ function getElementName(element: CanvasElement, ipCore: IpCore): string {
     }
     case 'interrupt':
       return ((ipCore.interrupts ?? []) as Interrupt[])[element.index]?.name ?? '';
+    case 'subcore': {
+      const rawSubcores = (ipCore.subcores ?? []) as Array<
+        string | { vlnv: string; path?: string }
+      >;
+      const sub = rawSubcores[element.index];
+      if (!sub) {
+        return '';
+      }
+      const vlnv = typeof sub === 'string' ? sub : sub.vlnv;
+      return vlnv.split(':')[2] ?? vlnv;
+    }
     default:
       return '';
   }
@@ -1960,6 +2103,8 @@ function kindLabel(kind: CanvasElementKind): string {
       return 'Parameter';
     case 'interrupt':
       return 'Interrupt';
+    case 'subcore':
+      return 'Dependency';
     default:
       return kind;
   }

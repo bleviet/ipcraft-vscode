@@ -226,6 +226,7 @@ const IpCoreApp: React.FC = () => {
       busInterface: 'busInterfaces',
       parameter: 'parameters',
       interrupt: 'interrupts',
+      subcore: 'subcores',
     };
     const key = pathKey[canvasSelected.kind];
     if (!key) {

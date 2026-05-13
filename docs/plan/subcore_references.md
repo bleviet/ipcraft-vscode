@@ -634,3 +634,77 @@ Execute in this order to minimize broken intermediate states:
 18. `package.json` (command + setting)
 19. Run `npm run lint`, fix any issues
 20. Run tests
+
+---
+
+## Phase 2 — Canvas View Integration
+
+### Goal
+
+Display subcores (IP dependencies) natively inside the **SVG schematic canvas** view, with interactive selection and a dedicated inspector panel. The canvas view was the only view that did not surface the `subcores` field after Phase 1.
+
+### Design
+
+#### Block appearance
+
+When a core has one or more `subcores` entries, a **"Dependencies" section** appears inside the SVG block body, directly below the VLNV header and **above** the Generics (parameters) section:
+
+```
+┌────────────────────────────────┐
+│  my_core                       │
+│  vendor:lib:my_core:1.0.0      │
+├ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┤  ← dep separator (Y = blockY + 60)
+│  DEPENDENCIES                   │
+│  ⛓ fifo_generator              │  ← clickable row, blue text
+│  ⛓ clk_wiz                     │
+├ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┤  ← param separator (pushed down)
+│  GENERICS                       │
+│  ⊳ WIDTH               = 8     │
+├ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┤
+│  (port stubs)                   │
+└────────────────────────────────┘
+```
+
+Each dependency row:
+- Shows a chain-link icon (`⛓`) and the **name segment** of the VLNV (e.g. `fifo_generator` from `xilinx.com:ip:fifo_generator:13.2`)
+- Is styled in blue (`var(--vscode-charts-blue, #4fc1ff)`)
+- Is individually clickable → selects element `subcore:N`
+
+When subcores exist, the parameter separator, port separator, and block height are all pushed down by `DEP_HEADER_HEIGHT (26) + S × DEP_ROW_HEIGHT (18) + DEP_AFTER_GAP (8)` pixels.
+
+#### Selection and inspector
+
+Clicking a dep row selects `subcore:N` in `useCanvasSelection`. The inspector panel opens with:
+- **Badge**: "Dependency" (blue, `ci-badge--subcore`)
+- **Title**: the name segment of the VLNV
+- **"Dependency" section**: editable VLNV field; optional Path field (shown when entry is an object with a `path`)
+- **"Open File" button** (when a `path` is defined)
+- **Footer "Delete" button**: removes the entry from `subcores[]` via `handleInspectorDelete`
+
+#### BodyPanel — Dependencies section
+
+When the body (IP Core block) is selected, the inspector's `BodyPanel` now includes a **Dependencies section** at the bottom (after Source Files). This section:
+- Shows all subcores as compact rows (name + trash icon)
+- Has an "Add Dependency" button that posts `{ type: 'addSubcore' }` to trigger the QuickPick flow in the extension host
+
+### Files changed (Phase 2)
+
+| File | Change |
+|---|---|
+| `src/webview/ipcore/components/canvas/canvasLayout.ts` | `LayoutSubcoreDep` type; `subcoreDeps`, `depSeparatorY` on `CanvasLayout`; layout computation accounts for dep section height |
+| `src/webview/ipcore/hooks/useCanvasSelection.ts` | `'subcore'` added to `CanvasElementKind`; `subcore:N` in `parseCanvasId` |
+| `src/webview/ipcore/components/canvas/IpBlockCanvas.tsx` | Renders dep separator, header, and clickable dep rows; bottom separator condition extended to `subcoreDeps.length > 0` |
+| `src/webview/ipcore/components/canvas/CanvasInspector.tsx` | `SubcorePanel`; `DependenciesSection` added to `BodyPanel`; `case 'subcore'` in `renderPanel()`; `kindLabel`/`getElementName` updated |
+| `src/webview/ipcore/IpCoreApp.tsx` | `'subcore': 'subcores'` added to `handleInspectorDelete`'s `pathKey` map |
+| `src/webview/ipcore/components/canvas/canvas.css` | `.ip-block-dep-*` SVG classes; `.ci-badge--subcore` inspector badge |
+| `src/test/suite/webview/canvasLayout.test.ts` | 7 new tests under `subcores / Dependencies section` |
+
+### Implementation order
+
+1. `canvasLayout.ts` — layout types and computation
+2. `useCanvasSelection.ts` — extend `CanvasElementKind`
+3. `IpBlockCanvas.tsx` — SVG rendering
+4. `CanvasInspector.tsx` — inspector panels and routing
+5. `IpCoreApp.tsx` — wire delete for subcore kind
+6. `canvas.css` — visual styles
+7. `canvasLayout.test.ts` — unit tests

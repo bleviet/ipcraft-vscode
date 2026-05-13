@@ -216,4 +216,85 @@ describe('computeLayout', () => {
     expect(sourceBus!.mode).toBe('Src');
     expect(sinkBus!.protocol).toBe('AXI-Stream');
   });
+
+  describe('subcores / Dependencies section', () => {
+    it('produces empty subcoreDeps when no subcores are defined', () => {
+      const ip = makeIpCore();
+      const layout = computeLayout(ip);
+      expect(layout.subcoreDeps).toHaveLength(0);
+    });
+
+    it('computes subcoreDeps entries from string subcores', () => {
+      const ip = makeIpCore({
+        subcores: ['xilinx.com:ip:fifo_generator:13.2', 'xilinx.com:ip:clk_wiz:6.0'],
+      } as Partial<IpCore>);
+      const layout = computeLayout(ip);
+
+      expect(layout.subcoreDeps).toHaveLength(2);
+      expect(layout.subcoreDeps[0].vlnv).toBe('xilinx.com:ip:fifo_generator:13.2');
+      expect(layout.subcoreDeps[0].shortName).toBe('fifo_generator');
+      expect(layout.subcoreDeps[0].index).toBe(0);
+      expect(layout.subcoreDeps[1].vlnv).toBe('xilinx.com:ip:clk_wiz:6.0');
+      expect(layout.subcoreDeps[1].shortName).toBe('clk_wiz');
+      expect(layout.subcoreDeps[1].index).toBe(1);
+    });
+
+    it('computes subcoreDeps entries from object subcores', () => {
+      const ip = makeIpCore({
+        subcores: [{ vlnv: 'my.com:lib:my_sub:1.0', path: 'cores/my_sub' }],
+      } as Partial<IpCore>);
+      const layout = computeLayout(ip);
+
+      expect(layout.subcoreDeps).toHaveLength(1);
+      expect(layout.subcoreDeps[0].vlnv).toBe('my.com:lib:my_sub:1.0');
+      expect(layout.subcoreDeps[0].shortName).toBe('my_sub');
+    });
+
+    it('depSeparatorY is at blockY + 60 regardless of subcores count', () => {
+      const ip = makeIpCore({
+        subcores: ['a.com:l:foo:1.0'],
+      } as Partial<IpCore>);
+      const layout = computeLayout(ip);
+      expect(layout.depSeparatorY).toBe(layout.blockRect.y + 60);
+    });
+
+    it('subcore rows have increasing Y positions', () => {
+      const ip = makeIpCore({
+        subcores: ['a:b:c:1', 'a:b:d:1', 'a:b:e:1'],
+      } as Partial<IpCore>);
+      const layout = computeLayout(ip);
+
+      const ys = layout.subcoreDeps.map((d) => d.y);
+      expect(ys[1]).toBeGreaterThan(ys[0]);
+      expect(ys[2]).toBeGreaterThan(ys[1]);
+    });
+
+    it('paramSeparatorY is pushed below the subcores section', () => {
+      const ipNoSub = makeIpCore({
+        parameters: [{ name: 'WIDTH', defaultValue: 8 }] as unknown as IpCore['parameters'],
+      });
+      const ipWithSub = makeIpCore({
+        subcores: ['a:b:c:1', 'a:b:d:1'],
+        parameters: [{ name: 'WIDTH', defaultValue: 8 }] as unknown as IpCore['parameters'],
+      } as Partial<IpCore>);
+
+      const layoutNoSub = computeLayout(ipNoSub);
+      const layoutWithSub = computeLayout(ipWithSub);
+
+      // Having subcores must push the parameter separator lower
+      expect(layoutWithSub.paramSeparatorY).toBeGreaterThan(layoutNoSub.paramSeparatorY);
+    });
+
+    it('block height increases to accommodate subcores section', () => {
+      const ipNoSub = makeIpCore();
+      const ipWithSub = makeIpCore({
+        subcores: ['a:b:c:1', 'a:b:d:1', 'a:b:e:1'],
+      } as Partial<IpCore>);
+
+      const layoutNoSub = computeLayout(ipNoSub);
+      const layoutWithSub = computeLayout(ipWithSub);
+
+      expect(layoutWithSub.blockRect.height).toBeGreaterThan(layoutNoSub.blockRect.height);
+    });
+  });
 });
