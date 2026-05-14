@@ -605,12 +605,12 @@ function detectBusInterfaces(
 
     const busName = prefix.replace(/_+$/, '') || busDef.id.split('.')[3] || 'bus';
 
-    const associatedClock = clockReset.clocks.find((c) =>
-      c.name.toLowerCase().startsWith(prefix)
-    )?.name;
-    const associatedReset = clockReset.resets.find((r) =>
-      r.name.toLowerCase().startsWith(prefix)
-    )?.name;
+    const associatedClock =
+      clockReset.clocks.find((c) => c.name.toLowerCase().startsWith(prefix))?.name ??
+      (clockReset.clocks.length === 1 ? clockReset.clocks[0].name : undefined);
+    const associatedReset =
+      clockReset.resets.find((r) => r.name.toLowerCase().startsWith(prefix))?.name ??
+      (clockReset.resets.length === 1 ? clockReset.resets[0].name : undefined);
 
     busInterfaces.push({
       name: busName,
