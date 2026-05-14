@@ -140,65 +140,36 @@
         "category": "IPCraft"
       }
     ],
+    "submenus": [
+      {
+        "id": "ipcraft.submenu",
+        "label": "IPCraft"
+      }
+    ],
     "menus": {
-      "explorer/context": [
+      "menuBar": [
         {
-          "command": "fpga-ip-core.scaffoldProject",
-          "when": "resourceFilename =~ /\\.ip\\.yml$/",
-          "group": "fpga@1"
-        },
-        {
-          "command": "fpga-ip-core.exportAltera",
-          "when": "resourceFilename =~ /\\.ip\\.yml$/",
-          "group": "fpga@2"
-        },
-        {
-          "command": "fpga-ip-core.exportXilinx",
-          "when": "resourceFilename =~ /\\.ip\\.yml$/",
-          "group": "fpga@3"
-        },
-        {
-          "command": "fpga-ip-core.generateVivadoProject",
-          "when": "resourceFilename =~ /\\.ip\\.yml$/",
-          "group": "fpga@4"
-        },
-        {
-          "command": "fpga-ip-core.generateQuartusProject",
-          "when": "resourceFilename =~ /\\.ip\\.yml$/",
-          "group": "fpga@4"
-        },
-        {
-          "command": "fpga-ip-core.build",
-          "when": "resourceFilename =~ /\\.ip\\.yml$/",
-          "group": "fpga@5"
-        },
-        {
-          "command": "fpga-ip-core.parseVHDL",
-          "when": "resourceExtname == .vhd || resourceExtname == .vhdl",
-          "group": "fpga@4"
-        },
-        {
-          "command": "fpga-ip-core.parseHwTcl",
-          "when": "resourceFilename =~ /_hw\\.tcl$/",
-          "group": "fpga@5"
-        },
-        {
-          "command": "fpga-ip-core.parseComponentXml",
-          "when": "resourceFilename == component.xml",
-          "group": "fpga@6"
-        },
-        {
-          "command": "fpga-ip-core.editInIpPackager",
-          "when": "resourceFilename == component.xml",
-          "group": "fpga@7"
-        }
-      ],
-      "editor/context": [
-        {
-          "command": "fpga-ip-core.editInIpPackager",
-          "when": "resourceFilename == component.xml",
+          "submenu": "ipcraft.submenu",
           "group": "navigation"
         }
+      ],
+      "ipcraft.submenu": [
+        { "command": "fpga-ip-core.createIpCore",              "group": "1_create@1" },
+        { "command": "fpga-ip-core.createMemoryMap",           "group": "1_create@2" },
+        { "command": "fpga-ip-core.createIpCoreWithMemoryMap", "group": "1_create@3" },
+        { "command": "fpga-ip-core.viewBusDefinitions",        "group": "2_view@1"   },
+        { "command": "fpga-ip-core.scaffoldProject",       "when": "resourceFilename =~ /\\.ip\\.yml$/",              "group": "3_ipfile@1" },
+        { "command": "fpga-ip-core.exportAltera",          "when": "resourceFilename =~ /\\.ip\\.yml$/",              "group": "3_ipfile@2" },
+        { "command": "fpga-ip-core.exportXilinx",          "when": "resourceFilename =~ /\\.ip\\.yml$/",              "group": "3_ipfile@3" },
+        { "command": "fpga-ip-core.generateTestbench",     "when": "resourceFilename =~ /\\.ip\\.yml$/",              "group": "3_ipfile@4" },
+        { "command": "fpga-ip-core.generateVivadoProject", "when": "resourceFilename =~ /\\.ip\\.yml$/",              "group": "4_build@1"  },
+        { "command": "fpga-ip-core.generateQuartusProject","when": "resourceFilename =~ /\\.ip\\.yml$/",              "group": "4_build@2"  },
+        { "command": "fpga-ip-core.build",                 "when": "resourceFilename =~ /\\.ip\\.yml$/",              "group": "4_build@3"  },
+        { "command": "fpga-ip-core.showBuildOutput",       "when": "resourceFilename =~ /\\.ip\\.yml$/",              "group": "4_build@4"  },
+        { "command": "fpga-ip-core.parseVHDL",         "when": "resourceExtname == .vhd || resourceExtname == .vhdl", "group": "5_import@1" },
+        { "command": "fpga-ip-core.parseHwTcl",        "when": "resourceFilename =~ /_hw\\.tcl$/",                   "group": "5_import@2" },
+        { "command": "fpga-ip-core.parseComponentXml", "when": "resourceFilename == component.xml",                  "group": "5_import@3" },
+        { "command": "fpga-ip-core.editInIpPackager",  "when": "resourceFilename == component.xml",                  "group": "5_import@4" }
       ],
       "editor/title": [
         {
