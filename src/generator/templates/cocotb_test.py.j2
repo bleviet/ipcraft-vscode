@@ -1,3 +1,5 @@
+{% set reset_assert = 1 if reset_active_high else 0 %}
+{% set reset_deassert = 0 if reset_active_high else 1 %}
 {% if has_memory_mapped_slave %}
 import os
 import cocotb
@@ -20,10 +22,9 @@ async def test_register_access(dut):
     cocotb.start_soon(Clock(dut.{{ clock_port }}, 10, units="ns").start())
 
     # 2. Reset
-    dut.{{ reset_port }}.value = {% if reset_active_high %}1{% else %}0{% endif %}
-
+    dut.{{ reset_port }}.value = {{ reset_assert }}
     await Timer(100, units="ns")
-    dut.{{ reset_port }}.value = {% if reset_active_high %}0{% else %}1{% endif %}
+    dut.{{ reset_port }}.value = {{ reset_deassert }}
 
     await RisingEdge(dut.{{ clock_port }})
     await RisingEdge(dut.{{ clock_port }})
@@ -111,10 +112,9 @@ async def test_field_access(dut):
 
     # Setup
     cocotb.start_soon(Clock(dut.{{ clock_port }}, 10, units="ns").start())
-    dut.{{ reset_port }}.value = {% if reset_active_high %}1{% else %}0{% endif %}
-
+    dut.{{ reset_port }}.value = {{ reset_assert }}
     await Timer(100, units="ns")
-    dut.{{ reset_port }}.value = {% if reset_active_high %}0{% else %}1{% endif %}
+    dut.{{ reset_port }}.value = {{ reset_deassert }}
 
     await RisingEdge(dut.{{ clock_port }})
     await RisingEdge(dut.{{ clock_port }})
@@ -171,9 +171,9 @@ from cocotb.triggers import RisingEdge, Timer
 
 async def reset_dut(dut):
     """Apply reset sequence to {{ entity_name }}."""
-    dut.{{ reset_port }}.value = {% if reset_active_high %}1{% else %}0{% endif %}
+    dut.{{ reset_port }}.value = {{ reset_assert }}
     await Timer(100, units="ns")
-    dut.{{ reset_port }}.value = {% if reset_active_high %}0{% else %}1{% endif %}
+    dut.{{ reset_port }}.value = {{ reset_deassert }}
     await RisingEdge(dut.{{ clock_port }})
     await RisingEdge(dut.{{ clock_port }})
     dut._log.info("Reset complete")
