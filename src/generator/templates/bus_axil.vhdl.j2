@@ -23,7 +23,7 @@ entity {{ entity_name }}_axil is
     clk : in std_logic;
     rst : in std_logic;
 
-{% if bus_ports %}
+{% if bus_ports | length > 0 %}
     -- AXI-Lite Slave Interface
 {% for port in bus_ports %}
     {{ "%-14s"|format(port.name) }} : {{ "%-3s"|format(port.direction) }} {{ port.type }}{{ ";" if not loop.last else "" }}
@@ -44,16 +44,23 @@ architecture rtl of {{ entity_name }}_axil is
   constant C_RESP_SLVERR : std_logic_vector(1 downto 0) := "10";
 
   -- AXI internal signals
-  signal axi_awaddr  : std_logic_vector(C_ADDR_WIDTH - 1 downto 0) := (others => '0');
-  signal axi_awready : std_logic                                    := '0';
-  signal axi_wready  : std_logic                                    := '0';
-  signal axi_bresp   : std_logic_vector(1 downto 0)                 := C_RESP_OKAY;
-  signal axi_bvalid  : std_logic                                    := '0';
-  signal axi_araddr  : std_logic_vector(C_ADDR_WIDTH - 1 downto 0) := (others => '0');
-  signal axi_arready : std_logic                                    := '0';
-  signal axi_rdata   : std_logic_vector(C_DATA_WIDTH - 1 downto 0) := (others => '0');
-  signal axi_rresp   : std_logic_vector(1 downto 0)                 := C_RESP_OKAY;
-  signal axi_rvalid  : std_logic                                    := '0';
+  signal awaddr  : std_logic_vector(C_ADDR_WIDTH - 1 downto 0) := (others => '0');
+  signal awready : std_logic                                    := '0';
+  signal wready  : std_logic                                    := '0';
+  signal bresp   : std_logic_vector(1 downto 0)                 := C_RESP_OKAY;
+  signal bvalid  : std_logic                                    := '0';
+  signal araddr  : std_logic_vector(C_ADDR_WIDTH - 1 downto 0) := (others => '0');
+  signal arready : std_logic                                    := '0';
+  signal rdata   : std_logic_vector(C_DATA_WIDTH - 1 downto 0) := (others => '0');
+  signal rresp   : std_logic_vector(1 downto 0)                 := C_RESP_OKAY;
+  signal rvalid  : std_logic                                    := '0';
+  signal awvalid : std_logic                                    := '0';
+  signal wvalid  : std_logic                                    := '0';
+  signal arvalid : std_logic                                    := '0';
+  signal rready  : std_logic                                    := '0';
+  signal wdata   : std_logic_vector(C_DATA_WIDTH - 1 downto 0) := (others => '0');
+  signal wstrb   : std_logic_vector((C_DATA_WIDTH/8) - 1 downto 0) := (others => '0');
+  signal bready  : std_logic                                    := '0';
 
   -- Register bank interface signals
   signal wr_en     : std_logic;
@@ -96,25 +103,58 @@ begin
     );
 
   -- Connect internal AXI signals to ports
-{% for port in bus_ports %}
-{% if port.logical_name == 'AWREADY' %}
-  s_axi_awready <= axi_awready;
-{% elif port.logical_name == 'WREADY' %}
-  s_axi_wready  <= axi_wready;
-{% elif port.logical_name == 'BRESP' %}
-  s_axi_bresp   <= axi_bresp;
-{% elif port.logical_name == 'BVALID' %}
-  s_axi_bvalid  <= axi_bvalid;
-{% elif port.logical_name == 'ARREADY' %}
-  s_axi_arready <= axi_arready;
-{% elif port.logical_name == 'RDATA' %}
-  s_axi_rdata   <= axi_rdata;
-{% elif port.logical_name == 'RRESP' %}
-  s_axi_rresp   <= axi_rresp;
-{% elif port.logical_name == 'RVALID' %}
-  s_axi_rvalid  <= axi_rvalid;
+{% set awaddr_port  = (bus_ports | selectattr('logical_name', 'equalto', 'AWADDR')  | list) %}
+{% set awvalid_port = (bus_ports | selectattr('logical_name', 'equalto', 'AWVALID') | list) %}
+{% set awready_port = (bus_ports | selectattr('logical_name', 'equalto', 'AWREADY') | list) %}
+{% set wdata_port   = (bus_ports | selectattr('logical_name', 'equalto', 'WDATA')   | list) %}
+{% set wstrb_port   = (bus_ports | selectattr('logical_name', 'equalto', 'WSTRB')   | list) %}
+{% set wvalid_port  = (bus_ports | selectattr('logical_name', 'equalto', 'WVALID')  | list) %}
+{% set wready_port  = (bus_ports | selectattr('logical_name', 'equalto', 'WREADY')  | list) %}
+{% set bresp_port   = (bus_ports | selectattr('logical_name', 'equalto', 'BRESP')   | list) %}
+{% set bvalid_port  = (bus_ports | selectattr('logical_name', 'equalto', 'BVALID')  | list) %}
+{% set bready_port  = (bus_ports | selectattr('logical_name', 'equalto', 'BREADY')  | list) %}
+{% set araddr_port  = (bus_ports | selectattr('logical_name', 'equalto', 'ARADDR')  | list) %}
+{% set arvalid_port = (bus_ports | selectattr('logical_name', 'equalto', 'ARVALID') | list) %}
+{% set arready_port = (bus_ports | selectattr('logical_name', 'equalto', 'ARREADY') | list) %}
+{% set rdata_port   = (bus_ports | selectattr('logical_name', 'equalto', 'RDATA')   | list) %}
+{% set rresp_port   = (bus_ports | selectattr('logical_name', 'equalto', 'RRESP')   | list) %}
+{% set rvalid_port  = (bus_ports | selectattr('logical_name', 'equalto', 'RVALID')  | list) %}
+{% set rready_port  = (bus_ports | selectattr('logical_name', 'equalto', 'RREADY')  | list) %}
+  -- Inputs (master → slave)
+  awaddr  <= {{ awaddr_port[0].name  if awaddr_port  | length > 0 else "(others => '0')" }};
+  awvalid <= {{ awvalid_port[0].name if awvalid_port | length > 0 else "'0'" }};
+  wdata   <= {{ wdata_port[0].name   if wdata_port   | length > 0 else "(others => '0')" }};
+  wstrb   <= {{ wstrb_port[0].name   if wstrb_port   | length > 0 else "(others => '1')" }};
+  wvalid  <= {{ wvalid_port[0].name  if wvalid_port  | length > 0 else "'0'" }};
+  bready  <= {{ bready_port[0].name  if bready_port  | length > 0 else "'1'" }};
+  araddr  <= {{ araddr_port[0].name  if araddr_port  | length > 0 else "(others => '0')" }};
+  arvalid <= {{ arvalid_port[0].name if arvalid_port | length > 0 else "'0'" }};
+  rready  <= {{ rready_port[0].name  if rready_port  | length > 0 else "'1'" }};
+  -- Outputs (slave → master)
+{% if awready_port | length > 0 %}
+  {{ awready_port[0].name }} <= awready;
 {% endif %}
-{% endfor %}
+{% if wready_port | length > 0 %}
+  {{ wready_port[0].name }} <= wready;
+{% endif %}
+{% if bresp_port | length > 0 %}
+  {{ bresp_port[0].name }} <= bresp;
+{% endif %}
+{% if bvalid_port | length > 0 %}
+  {{ bvalid_port[0].name }} <= bvalid;
+{% endif %}
+{% if arready_port | length > 0 %}
+  {{ arready_port[0].name }} <= arready;
+{% endif %}
+{% if rdata_port | length > 0 %}
+  {{ rdata_port[0].name }} <= rdata;
+{% endif %}
+{% if rresp_port | length > 0 %}
+  {{ rresp_port[0].name }} <= rresp;
+{% endif %}
+{% if rvalid_port | length > 0 %}
+  {{ rvalid_port[0].name }} <= rvalid;
+{% endif %}
 
   ----------------------------------------------------------------------------
   -- Write Address Channel
@@ -124,24 +164,24 @@ begin
   begin
     if rising_edge(clk) then
       if rst = '1' then
-        axi_awready             <= '0';
-        write_txn.aw_en         <= '1';
-        axi_awaddr              <= (others => '0');
+        awready             <= '0';
+        write_txn.aw_en     <= '1';
+        awaddr              <= (others => '0');
         write_txn.addr_received <= '0';
       else
-        if (axi_awready = '0' and s_axi_awvalid = '1' and write_txn.aw_en = '1') then
+        if (awready = '0' and awvalid = '1' and write_txn.aw_en = '1') then
           -- Ready to accept write address
-          axi_awready             <= '1';
-          write_txn.aw_en         <= '0';
-          axi_awaddr              <= s_axi_awaddr;
+          awready             <= '1';
+          write_txn.aw_en     <= '0';
+          awaddr              <= awaddr;
           write_txn.addr_received <= '1';
-        elsif (axi_bvalid = '1' and s_axi_bready = '1') then
+        elsif (bvalid = '1' and bready = '1') then
           -- Write response completed, ready for next transaction
           write_txn.aw_en         <= '1';
           write_txn.addr_received <= '0';
-          axi_awready             <= '0';
+          awready             <= '0';
         else
-          axi_awready <= '0';
+          awready <= '0';
         end if;
       end if;
     end if;
@@ -155,19 +195,19 @@ begin
   begin
     if rising_edge(clk) then
       if rst = '1' then
-        axi_wready              <= '0';
+        wready              <= '0';
         write_txn.data_received <= '0';
       else
-        if (axi_wready = '0' and s_axi_wvalid = '1') then
+        if (wready = '0' and wvalid = '1') then
           -- Ready to accept write data
-          axi_wready              <= '1';
+          wready              <= '1';
           write_txn.data_received <= '1';
-        elsif (axi_bvalid = '1' and s_axi_bready = '1') then
+        elsif (bvalid = '1' and bready = '1') then
           -- Write response completed, ready for next transaction
           write_txn.data_received <= '0';
-          axi_wready              <= '0';
+          wready              <= '0';
         else
-          axi_wready <= '0';
+          wready <= '0';
         end if;
       end if;
     end if;
@@ -178,9 +218,9 @@ begin
   -- Generate write enable to register bank when both address and data received
   ----------------------------------------------------------------------------
   wr_en   <= write_txn.addr_received and write_txn.data_received;
-  wr_addr <= axi_awaddr;
-  wr_data <= s_axi_wdata;
-  wr_strb <= s_axi_wstrb;
+  wr_addr <= awaddr;
+  wr_data <= wdata;
+  wr_strb <= wstrb;
 
   ----------------------------------------------------------------------------
   -- Write Response Logic
@@ -189,16 +229,16 @@ begin
   begin
     if rising_edge(clk) then
       if rst = '1' then
-        axi_bvalid <= '0';
-        axi_bresp  <= C_RESP_OKAY;
+        bvalid <= '0';
+        bresp  <= C_RESP_OKAY;
       else
-        if (write_txn.addr_received = '1' and write_txn.data_received = '1' and axi_bvalid = '0') then
+        if (write_txn.addr_received = '1' and write_txn.data_received = '1' and bvalid = '0') then
           -- Both address and data received, assert write response
-          axi_bvalid <= '1';
-          axi_bresp  <= C_RESP_OKAY;
-        elsif (s_axi_bready = '1' and axi_bvalid = '1') then
+          bvalid <= '1';
+          bresp  <= C_RESP_OKAY;
+        elsif (bready = '1' and bvalid = '1') then
           -- Write response accepted by master
-          axi_bvalid <= '0';
+          bvalid <= '0';
         end if;
       end if;
     end if;
@@ -211,14 +251,14 @@ begin
   begin
     if rising_edge(clk) then
       if rst = '1' then
-        axi_arready <= '0';
-        axi_araddr  <= (others => '0');
+        arready <= '0';
+        araddr  <= (others => '0');
       else
-        if (axi_arready = '0' and s_axi_arvalid = '1') then
-          axi_arready <= '1';
-          axi_araddr  <= s_axi_araddr;
+        if (arready = '0' and arvalid = '1') then
+          arready <= '1';
+          araddr  <= araddr;
         else
-          axi_arready <= '0';
+          arready <= '0';
         end if;
       end if;
     end if;
@@ -228,8 +268,8 @@ begin
   -- Register Read Control
   -- Trigger read from register bank when address is accepted
   ----------------------------------------------------------------------------
-  rd_en   <= axi_arready and s_axi_arvalid and not axi_rvalid;
-  rd_addr <= axi_araddr;
+  rd_en   <= arready and arvalid and not rvalid;
+  rd_addr <= araddr;
 
   ----------------------------------------------------------------------------
   -- Read Valid Generation
@@ -239,18 +279,18 @@ begin
   begin
     if rising_edge(clk) then
       if rst = '1' then
-        axi_rvalid <= '0';
-        axi_rresp  <= C_RESP_OKAY;
-        axi_rdata  <= (others => '0');
+        rvalid <= '0';
+        rresp  <= C_RESP_OKAY;
+        rdata  <= (others => '0');
       else
         if rd_valid = '1' then
           -- Register bank has valid data
-          axi_rvalid <= '1';
-          axi_rresp  <= C_RESP_OKAY;
-          axi_rdata  <= rd_data;
-        elsif (axi_rvalid = '1' and s_axi_rready = '1') then
+          rvalid <= '1';
+          rresp  <= C_RESP_OKAY;
+          rdata  <= rd_data;
+        elsif (rvalid = '1' and rready = '1') then
           -- Master accepted read data
-          axi_rvalid <= '0';
+          rvalid <= '0';
         end if;
       end if;
     end if;

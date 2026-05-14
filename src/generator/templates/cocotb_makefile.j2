@@ -10,7 +10,9 @@
 # Prerequisites:
 #   - GHDL (with mcode or LLVM backend)
 #   - cocotb (pip install cocotb)
-#   - cocotbext-axi (pip install cocotbext-axi) [for AXI verification]
+{% if bus_type in ['axil', 'axi4'] %}
+#   - cocotbext-axi (pip install cocotbext-axi)
+{% endif %}
 
 # Simulator settings
 SIM ?= ghdl
@@ -22,10 +24,8 @@ RTL_DIR = $(CURDIR)/../rtl
 VHDL_SOURCES += $(RTL_DIR)/{{ entity_name }}_pkg.vhd
 VHDL_SOURCES += $(RTL_DIR)/{{ entity_name }}_regs.vhd
 VHDL_SOURCES += $(RTL_DIR)/{{ entity_name }}_core.vhd
-{% if bus_type == 'axil' %}
+{% if bus_type == 'axil' or bus_type == 'avmm' %}
 VHDL_SOURCES += $(RTL_DIR)/{{ entity_name }}_{{ bus_type }}.vhd
-{% else %}
-VHDL_SOURCES += $(RTL_DIR)/{{ entity_name }}_avmm.vhd
 {% endif %}
 {% endif %}
 VHDL_SOURCES += $(RTL_DIR)/{{ entity_name }}.vhd
@@ -59,10 +59,7 @@ endif
 # Cocotb settings
 export COCOTB_REDUCED_LOG_FMT=1
 
-{% if has_memory_mapped_slave %}
-# Add ipcore_lib to Python path (go up to workspace root: tb -> <ip> -> ... -> ipcore_lib)
-export PYTHONPATH := $(shell cd $(CURDIR)/../../../.. && pwd):$(PYTHONPATH)
-{% endif %}
+
 
 # Default target
 include $(shell cocotb-config --makefiles)/Makefile.sim

@@ -54,40 +54,32 @@ begin
   ----------------------------------------------------------------------------
   -- Bus Interface Connections
   ----------------------------------------------------------------------------
-{#- Input mapping -#}
-{%- set address_port = (bus_ports | selectattr('logical_name', 'equalto', 'address') | list) %}
-{%- set read_port = (bus_ports | selectattr('logical_name', 'equalto', 'read') | list) %}
-{%- set write_port = (bus_ports | selectattr('logical_name', 'equalto', 'write') | list) %}
-{%- set writedata_port = (bus_ports | selectattr('logical_name', 'equalto', 'writedata') | list) %}
-{%- set byteenable_port = (bus_ports | selectattr('logical_name', 'equalto', 'byteenable') | list) %}
-
-  address   <= {{ address_port[0].name if address_port else "(others => '0')" }};
-  read      <= {{ read_port[0].name if read_port else "'0'" }};
-  write     <= {{ write_port[0].name if write_port else "'0'" }};
-  writedata <= {{ writedata_port[0].name if writedata_port else "(others => '0')" }};
-
-{%- if byteenable_port %}
+{% set address_port       = (bus_ports | selectattr('logical_name', 'equalto', 'address')       | list) %}
+{% set read_port          = (bus_ports | selectattr('logical_name', 'equalto', 'read')          | list) %}
+{% set write_port         = (bus_ports | selectattr('logical_name', 'equalto', 'write')         | list) %}
+{% set writedata_port     = (bus_ports | selectattr('logical_name', 'equalto', 'writedata')     | list) %}
+{% set byteenable_port    = (bus_ports | selectattr('logical_name', 'equalto', 'byteenable')    | list) %}
+{% set readdata_port      = (bus_ports | selectattr('logical_name', 'equalto', 'readdata')      | list) %}
+{% set readdatavalid_port = (bus_ports | selectattr('logical_name', 'equalto', 'readdatavalid') | list) %}
+{% set waitrequest_port   = (bus_ports | selectattr('logical_name', 'equalto', 'waitrequest')   | list) %}
+  address   <= {{ address_port[0].name   if address_port   | length > 0 else "(others => '0')" }};
+  read      <= {{ read_port[0].name      if read_port      | length > 0 else "'0'" }};
+  write     <= {{ write_port[0].name     if write_port     | length > 0 else "'0'" }};
+  writedata <= {{ writedata_port[0].name if writedata_port | length > 0 else "(others => '0')" }};
+{% if byteenable_port | length > 0 %}
   byteenable <= {{ byteenable_port[0].name }};
-{%- else %}
+{% else %}
   byteenable <= (others => '1');
-{%- endif %}
-
-{#- Output mapping -#}
-{%- set readdata_port = (bus_ports | selectattr('logical_name', 'equalto', 'readdata') | list) %}
-{%- set readdatavalid_port = (bus_ports | selectattr('logical_name', 'equalto', 'readdatavalid') | list) %}
-{%- set waitrequest_port = (bus_ports | selectattr('logical_name', 'equalto', 'waitrequest') | list) %}
-
-{%- if readdata_port %}
+{% endif %}
+{% if readdata_port | length > 0 %}
   {{ readdata_port[0].name }} <= readdata;
-{%- endif %}
-
-{%- if readdatavalid_port %}
+{% endif %}
+{% if readdatavalid_port | length > 0 %}
   {{ readdatavalid_port[0].name }} <= readdatavalid;
-{%- endif %}
-
-{%- if waitrequest_port %}
+{% endif %}
+{% if waitrequest_port | length > 0 %}
   {{ waitrequest_port[0].name }} <= waitrequest;
-{%- endif %}
+{% endif %}
 
   ----------------------------------------------------------------------------
   -- Bus Logic
