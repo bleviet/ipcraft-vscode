@@ -16,6 +16,50 @@ import '../index.css';
 
 export type FocusedPanel = 'left' | 'right';
 
+// ---------------------------------------------------------------------------
+// Toolbar primitives
+// ---------------------------------------------------------------------------
+
+interface ToolbarButtonProps {
+  title: string;
+  icon: string;
+  command: string;
+}
+
+const ToolbarButton: React.FC<ToolbarButtonProps> = ({ title, icon, command }) => (
+  <button
+    className="canvas-view-toggle"
+    title={title}
+    type="button"
+    onClick={() => vscode?.postMessage({ type: 'command', command })}
+    aria-label={title}
+  >
+    <span className={`codicon codicon-${icon}`} />
+  </button>
+);
+
+interface ToolbarGroupProps {
+  label: string;
+  children: React.ReactNode;
+}
+
+const ToolbarGroup: React.FC<ToolbarGroupProps> = ({ label, children }) => (
+  <div className="flex flex-col items-center gap-0.5">
+    <div className="flex items-center gap-0.5">{children}</div>
+    <span
+      style={{
+        fontSize: '9px',
+        opacity: 0.45,
+        letterSpacing: '0.03em',
+        lineHeight: 1,
+        userSelect: 'none',
+      }}
+    >
+      {label}
+    </span>
+  </div>
+);
+
 /**
  * Main IP Core Visual Editor application
  */
@@ -424,74 +468,96 @@ const IpCoreApp: React.FC = () => {
                 <span className="codicon codicon-list-flat"></span>
               </button>
             </div>
-            {/* Generate actions */}
+            {/* Action groups */}
             <div
-              className="flex items-center gap-1"
-              style={{ borderLeft: '1px solid var(--vscode-panel-border)', paddingLeft: '8px' }}
+              className="flex items-center gap-2"
+              style={{ borderLeft: '1px solid var(--vscode-panel-border)', paddingLeft: '10px' }}
             >
-              <button
-                className="canvas-view-toggle"
-                title="Generate VHDL"
-                type="button"
-                onClick={() =>
-                  vscode?.postMessage({ type: 'command', command: 'fpga-ip-core.generateVHDL' })
-                }
-              >
-                <span className="codicon codicon-code"></span>
-              </button>
-              <button
-                className="canvas-view-toggle"
-                title="Scaffold VHDL Project"
-                type="button"
-                onClick={() =>
-                  vscode?.postMessage({ type: 'command', command: 'fpga-ip-core.scaffoldProject' })
-                }
-              >
-                <span className="codicon codicon-package"></span>
-              </button>
-              <button
-                className="canvas-view-toggle"
-                title="Export Xilinx Vivado Component"
-                type="button"
-                onClick={() =>
-                  vscode?.postMessage({ type: 'command', command: 'fpga-ip-core.exportXilinx' })
-                }
-              >
-                <span className="codicon codicon-export"></span>
-              </button>
-              <button
-                className="canvas-view-toggle"
-                title="Export Altera Platform Designer Component"
-                type="button"
-                onClick={() =>
-                  vscode?.postMessage({ type: 'command', command: 'fpga-ip-core.exportAltera' })
-                }
-              >
-                <span className="codicon codicon-layers"></span>
-              </button>
-              <button
-                className="canvas-view-toggle"
-                title="Generate CocoTB Testbench"
-                type="button"
-                onClick={() =>
-                  vscode?.postMessage({
-                    type: 'command',
-                    command: 'fpga-ip-core.generateTestbench',
-                  })
-                }
-              >
-                <span className="codicon codicon-beaker"></span>
-              </button>
-              <button
-                className="canvas-view-toggle"
-                title="Create Memory Map"
-                type="button"
-                onClick={() =>
-                  vscode?.postMessage({ type: 'command', command: 'fpga-ip-core.createMemoryMap' })
-                }
-              >
-                <span className="codicon codicon-map"></span>
-              </button>
+              <ToolbarGroup label="Scaffold">
+                <ToolbarButton
+                  title="Scaffold VHDL Project"
+                  icon="package"
+                  command="fpga-ip-core.scaffoldProject"
+                />
+              </ToolbarGroup>
+
+              <div
+                style={{
+                  width: '1px',
+                  height: '28px',
+                  background: 'var(--vscode-panel-border)',
+                  opacity: 0.6,
+                }}
+              />
+
+              <ToolbarGroup label="Design">
+                <ToolbarButton
+                  title="Create Memory Map"
+                  icon="map"
+                  command="fpga-ip-core.createMemoryMap"
+                />
+                <ToolbarButton
+                  title="Generate VHDL"
+                  icon="code"
+                  command="fpga-ip-core.generateVHDL"
+                />
+              </ToolbarGroup>
+
+              <div
+                style={{
+                  width: '1px',
+                  height: '28px',
+                  background: 'var(--vscode-panel-border)',
+                  opacity: 0.6,
+                }}
+              />
+
+              <ToolbarGroup label="CocoTB">
+                <ToolbarButton
+                  title="Generate CocoTB Testbench"
+                  icon="beaker"
+                  command="fpga-ip-core.generateTestbench"
+                />
+              </ToolbarGroup>
+
+              <div
+                style={{
+                  width: '1px',
+                  height: '28px',
+                  background: 'var(--vscode-panel-border)',
+                  opacity: 0.6,
+                }}
+              />
+
+              <ToolbarGroup label="Altera">
+                <ToolbarButton
+                  title="Export Altera Platform Designer"
+                  icon="layers"
+                  command="fpga-ip-core.exportAltera"
+                />
+              </ToolbarGroup>
+
+              <div
+                style={{
+                  width: '1px',
+                  height: '28px',
+                  background: 'var(--vscode-panel-border)',
+                  opacity: 0.6,
+                }}
+              />
+
+              <ToolbarGroup label="Xilinx">
+                <ToolbarButton
+                  title="Export Vivado Component XML"
+                  icon="export"
+                  command="fpga-ip-core.exportXilinx"
+                />
+                <ToolbarButton
+                  title="Generate Vivado Project"
+                  icon="circuit-board"
+                  command="fpga-ip-core.generateVivadoProject"
+                />
+              </ToolbarGroup>
             </div>
             {validationErrors.length > 0 && (
               <div className="text-sm" style={{ color: 'var(--vscode-errorForeground)' }}>
