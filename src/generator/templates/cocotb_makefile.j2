@@ -4,7 +4,7 @@
 # Usage:
 #   make                    # Run all tests
 #   make SIM=ghdl           # Explicitly use GHDL
-#   make WAVES=1            # Generate waveforms (GHW format)
+#   make WAVES=0            # Suppress waveform generation
 #   make TESTCASE=test_xyz  # Run specific test
 #
 # Prerequisites:
@@ -44,7 +44,8 @@ ifeq ($(SIM),ghdl)
     # Relaxed rules for better compatibility
     COMPILE_ARGS += -frelaxed
 
-    # Generate waveforms if WAVES=1
+    # Generate waveforms by default; suppress with WAVES=0
+    WAVES ?= 1
     ifeq ($(WAVES),1)
         SIM_ARGS += --wave={{ entity_name }}.ghw
     endif
@@ -87,7 +88,7 @@ help:
 	@echo ""
 	@echo "Targets:"
 	@echo "  make            - Run all tests"
-	@echo "  make WAVES=1    - Run tests and generate waveforms"
+	@echo "  make WAVES=0    - Run tests without generating waveforms"
 	@echo "  make view_waves - Open waveforms in GTKWave"
 	@echo "  make lint       - Check VHDL syntax"
 	@echo "  make clean      - Remove simulation build files"
@@ -95,6 +96,6 @@ help:
 	@echo ""
 	@echo "Options:"
 	@echo "  SIM=ghdl|modelsim|questa  - Simulator (default: ghdl)"
-	@echo "  WAVES=1                   - Generate waveform file"
+	@echo "  WAVES=0                   - Suppress waveform generation (default: 1)"
 	@echo "  TESTCASE=test_name        - Run specific test"
 	@echo "  COCOTB_LOG_LEVEL=DEBUG    - Verbose logging"

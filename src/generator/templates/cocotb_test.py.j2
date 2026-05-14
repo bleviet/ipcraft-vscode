@@ -6,7 +6,7 @@ from cocotb.clock import Clock
 from cocotb.triggers import RisingEdge, Timer
 {% if bus_type in ['axil', 'axi4'] %}
 {% if bus_type == 'axil' %}
-from cocotbext.axi import AxiLiteMaster, AxiBus
+from cocotbext.axi import AxiLiteMaster, AxiLiteBus
 {% else %}
 from cocotbext.axi import AxiMaster, AxiBus
 {% endif %}
@@ -72,7 +72,7 @@ async def test_register_access(dut):
 
 {% if bus_type in ['axil', 'axi4'] %}
 {% if bus_type == 'axil' %}
-    master = AxiLiteMaster(AxiBus.from_prefix(dut, "{{ bus_prefix }}"), dut.{{ clock_port }})
+    master = AxiLiteMaster(AxiLiteBus.from_prefix(dut, "{{ bus_prefix }}"), dut.{{ clock_port }})
 {% else %}
     master = AxiMaster(AxiBus.from_prefix(dut, "{{ bus_prefix }}"), dut.{{ clock_port }})
 {% endif %}
@@ -105,7 +105,7 @@ async def test_reset_values(dut):
 
 {% if bus_type in ['axil', 'axi4'] %}
 {% if bus_type == 'axil' %}
-    master = AxiLiteMaster(AxiBus.from_prefix(dut, "{{ bus_prefix }}"), dut.{{ clock_port }})
+    master = AxiLiteMaster(AxiLiteBus.from_prefix(dut, "{{ bus_prefix }}"), dut.{{ clock_port }})
 {% else %}
     master = AxiMaster(AxiBus.from_prefix(dut, "{{ bus_prefix }}"), dut.{{ clock_port }})
 {% endif %}
