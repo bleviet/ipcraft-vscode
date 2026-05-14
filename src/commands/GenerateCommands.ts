@@ -45,6 +45,10 @@ export function registerGeneratorCommands(context: vscode.ExtensionContext): voi
     await generateVivadoProject(context);
   });
 
+  safeRegisterCommand(context, 'fpga-ip-core.generateQuartusProject', async () => {
+    await generateQuartusProject(context);
+  });
+
   safeRegisterCommand(context, 'fpga-ip-core.generateTestbench', async () => {
     await generateTestbench(context);
   });
@@ -331,6 +335,43 @@ async function generateVivadoProject(context: vscode.ExtensionContext): Promise<
       silent: true,
     },
     'Generating Vivado project...'
+  );
+}
+
+async function generateQuartusProject(context: vscode.ExtensionContext): Promise<void> {
+  const ipCoreUri = getActiveIpCoreFile();
+  if (!ipCoreUri) {
+    return;
+  }
+
+  const cfg = vscode.workspace.getConfiguration('ipcraft');
+  const defaultDevice = cfg.get<string>('quartus.defaultDevice', '5CSEBA6U23I7');
+
+  const deviceInput = await vscode.window.showInputBox({
+    title: 'Generate Quartus Project — Target Device',
+    prompt: 'Enter the Intel/Altera device part number',
+    value: defaultDevice,
+    placeHolder: 'e.g. 5CSEBA6U23I7 (DE10-Nano Cyclone V SoC)',
+    validateInput: (v) => (v.trim() ? null : 'Device part number cannot be empty'),
+  });
+  if (deviceInput === undefined) {
+    return;
+  }
+
+  const outputDir = path.dirname(ipCoreUri.fsPath);
+  await runGenerator(
+    context,
+    ipCoreUri,
+    outputDir,
+    {
+      vendor: 'none',
+      includeVhdl: true,
+      includeRegs: true,
+      includeQuartusProject: true,
+      quartusDevice: deviceInput.trim(),
+      silent: true,
+    },
+    'Generating Quartus project...'
   );
 }
 

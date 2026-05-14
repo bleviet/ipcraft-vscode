@@ -550,6 +550,11 @@ const IpCoreApp: React.FC = () => {
                   icon="layers"
                   command="fpga-ip-core.exportAltera"
                 />
+                <ToolbarButton
+                  title="Generate Quartus Project"
+                  icon="circuit-board"
+                  command="fpga-ip-core.generateQuartusProject"
+                />
               </ToolbarGroup>
 
               <div

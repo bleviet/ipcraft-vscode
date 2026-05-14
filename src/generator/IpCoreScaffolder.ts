@@ -128,6 +128,27 @@ export class IpCoreScaffolder {
         files[`vivado/${xdcRelPath}`] = this.templates.render('vivado_ooc.xdc.j2', vivadoContext);
       }
 
+      if (options.includeQuartusProject) {
+        const targetDevice = options.quartusDevice ?? '5CSEBA6U23I7';
+        const deviceFamily = quartusDeviceFamily(targetDevice);
+        const rtlFiles = Object.keys(files)
+          .filter((f) => f.startsWith('rtl/'))
+          .map((f) => `../${f}`);
+        const sdcRelPath = `${name}.sdc`;
+        const quartusContext = {
+          ...context,
+          target_device: targetDevice,
+          device_family: deviceFamily,
+          rtl_files: rtlFiles,
+          sdc_file: sdcRelPath,
+        };
+        files[`quartus/${name}_project.tcl`] = this.templates.render(
+          'quartus_project.tcl.j2',
+          quartusContext
+        );
+        files[`quartus/${sdcRelPath}`] = this.templates.render('quartus_sdc.j2', quartusContext);
+      }
+
       const written: Record<string, string> = {};
       await Promise.all(
         Object.entries(files).map(async ([relativePath, content]) => {
@@ -454,4 +475,49 @@ function parseClockPeriodNs(frequency: string | null | undefined): string | null
   }
   const periodNs = 1e9 / hz;
   return periodNs.toFixed(3);
+}
+
+/**
+ * Derive Quartus device family string from a part number.
+ * Handles the most common Intel/Altera Cyclone, Arria, Stratix and MAX families.
+ */
+function quartusDeviceFamily(device: string): string {
+  const d = device.toUpperCase();
+  if (d.startsWith('5C')) {
+    return 'Cyclone V';
+  }
+  if (d.startsWith('10CX')) {
+    return 'Cyclone 10 LP';
+  }
+  if (d.startsWith('10M')) {
+    return 'MAX 10';
+  }
+  if (d.startsWith('EP4CGX')) {
+    return 'Cyclone IV GX';
+  }
+  if (d.startsWith('EP4C')) {
+    return 'Cyclone IV E';
+  }
+  if (d.startsWith('EP3C')) {
+    return 'Cyclone III';
+  }
+  if (d.startsWith('EP2C')) {
+    return 'Cyclone II';
+  }
+  if (d.startsWith('5AGZ')) {
+    return 'Arria V GZ';
+  }
+  if (d.startsWith('5A')) {
+    return 'Arria V';
+  }
+  if (d.startsWith('EP5S')) {
+    return 'Stratix V';
+  }
+  if (d.startsWith('EP4S')) {
+    return 'Stratix IV';
+  }
+  if (d.startsWith('EP3S')) {
+    return 'Stratix III';
+  }
+  return 'Cyclone V';
 }

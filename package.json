@@ -94,6 +94,12 @@
         "icon": "$(circuit-board)"
       },
       {
+        "command": "fpga-ip-core.generateQuartusProject",
+        "title": "Generate Quartus Project",
+        "category": "IPCraft",
+        "icon": "$(circuit-board)"
+      },
+      {
         "command": "fpga-ip-core.parseVHDL",
         "title": "Parse VHDL to .ip.yml",
         "category": "IPCraft",
@@ -142,6 +148,11 @@
         },
         {
           "command": "fpga-ip-core.generateVivadoProject",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/",
+          "group": "fpga@4"
+        },
+        {
+          "command": "fpga-ip-core.generateQuartusProject",
           "when": "resourceFilename =~ /\\.ip\\.yml$/",
           "group": "fpga@4"
         },
@@ -200,6 +211,11 @@
           "group": "ipcraft@5"
         },
         {
+          "command": "fpga-ip-core.generateQuartusProject",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/",
+          "group": "ipcraft@5"
+        },
+        {
           "command": "fpga-ip-core.parseVHDL",
           "when": "resourceExtname == .vhd || resourceExtname == .vhdl",
           "group": "navigation"
@@ -251,6 +267,11 @@
           "type": "string",
           "default": "xc7z020clg484-1",
           "description": "Default FPGA part number used when generating a Vivado project (e.g. xc7z020clg484-1, xczu3eg-sbva484-1-e)."
+        },
+        "ipcraft.quartus.defaultDevice": {
+          "type": "string",
+          "default": "5CSEBA6U23I7",
+          "description": "Default Intel/Altera device part number used when generating a Quartus project (e.g. 5CSEBA6U23I7 for the DE10-Nano Cyclone V SoC, 10M50DAF484C7G for MAX 10)."
         },
         "ipcraft.ipRepositoryPaths": {
           "type": "array",

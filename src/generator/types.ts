@@ -7,6 +7,8 @@ export interface GenerateOptions {
   includeVhdl?: boolean;
   includeVivadoProject?: boolean;
   targetPart?: string;
+  includeQuartusProject?: boolean;
+  quartusDevice?: string;
   updateYaml?: boolean;
 }
 
