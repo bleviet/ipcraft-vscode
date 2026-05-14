@@ -14,7 +14,7 @@ interface GeneratorPanelProps {
 }
 
 type BusType = 'axil' | 'avmm';
-type VendorType = 'none' | 'altera' | 'amd' | 'both';
+type VendorType = 'none' | 'altera' | 'xilinx' | 'both';
 
 interface GenerationOptions {
   busType: BusType;
@@ -304,8 +304,8 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({ ipCore }) => {
             >
               <option value="none">None</option>
               <option value="altera">Altera Platform Designer (_hw.tcl)</option>
-              <option value="amd">AMD Vivado (component.xml)</option>
-              <option value="both">Both Altera and AMD</option>
+              <option value="xilinx">Xilinx/AMD Vivado (component.xml)</option>
+              <option value="both">Both Altera and Xilinx</option>
             </select>
           </div>
 
@@ -362,9 +362,9 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({ ipCore }) => {
                   <div style={{ paddingLeft: '24px', opacity: 0.8 }}>└── {ipName}_hw.tcl</div>
                 </div>
               )}
-              {(options.vendorFiles === 'amd' || options.vendorFiles === 'both') && (
+              {(options.vendorFiles === 'xilinx' || options.vendorFiles === 'both') && (
                 <div style={{ paddingLeft: '16px' }}>
-                  <div>└── amd/</div>
+                  <div>└── xilinx/</div>
                   <div style={{ paddingLeft: '24px', opacity: 0.8 }}>├── component.xml</div>
                   <div style={{ paddingLeft: '24px', opacity: 0.8 }}>└── xgui/{ipName}_v*.tcl</div>
                 </div>
@@ -379,12 +379,12 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({ ipCore }) => {
                 if (options.vendorFiles === 'altera') {
                   count += 1;
                 }
-                if (options.vendorFiles === 'amd') {
+                if (options.vendorFiles === 'xilinx') {
                   count += 2;
                 } // component.xml + xgui
                 if (options.vendorFiles === 'both') {
                   count += 3;
-                } // altera hw.tcl + amd 2 files
+                } // altera hw.tcl + xilinx 2 files
                 if (options.includeTestbench) {
                   count += 2;
                 }

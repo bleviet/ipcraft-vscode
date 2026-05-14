@@ -1,7 +1,7 @@
 /**
  * Vivado integration tests.
  *
- * For each template IP core that produces an amd/component.xml, runs Vivado
+ * For each template IP core that produces an xilinx/component.xml, runs Vivado
  * in batch mode with scripts/integration/vivado/validate.tcl and asserts that
  * ipx::check_integrity reports 0 errors.
  *
@@ -13,7 +13,7 @@
 
 import * as path from 'path';
 import { spawnSync } from 'child_process';
-import { generateFixtures, amdFixtures, Fixture } from './generator';
+import { generateFixtures, xilinxFixtures, Fixture } from './generator';
 
 const VIVADO_BIN =
   process.env.VIVADO_BIN ?? '/home/balevision/tools/Xilinx/Vivado/2024.2/bin/vivado';
@@ -22,36 +22,36 @@ const VALIDATE_TCL = path.resolve(__dirname, '../../../scripts/integration/vivad
 
 const SKIP = process.env.SKIP_VIVADO === '1';
 
-let amds: Fixture[] = [];
+let xilinxes: Fixture[] = [];
 
 beforeAll(async () => {
   const all = await generateFixtures();
-  amds = amdFixtures(all);
+  xilinxes = xilinxFixtures(all);
 }, 300_000);
 
-it('generates at least one AMD fixture with component.xml', () => {
-  expect(amds.length).toBeGreaterThan(0);
+it('generates at least one Xilinx fixture with component.xml', () => {
+  expect(xilinxes.length).toBeGreaterThan(0);
 });
 
-it('all AMD fixtures pass Vivado ipx::check_integrity', () => {
+it('all Xilinx fixtures pass Vivado ipx::check_integrity', () => {
   if (SKIP) {
     // eslint-disable-next-line no-console
     console.log('Skipping Vivado validation (SKIP_VIVADO=1)');
     return;
   }
 
-  if (amds.length === 0) {
-    throw new Error('No AMD fixtures were generated — check generator output');
+  if (xilinxes.length === 0) {
+    throw new Error('No Xilinx fixtures were generated — check generator output');
   }
 
   const failures: string[] = [];
 
-  for (const fixture of amds) {
-    const amdDir = path.join(fixture.outputDir, 'amd');
+  for (const fixture of xilinxes) {
+    const xilinxDir = path.join(fixture.outputDir, 'xilinx');
 
     const result = spawnSync(
       VIVADO_BIN,
-      ['-mode', 'batch', '-source', VALIDATE_TCL, '-tclargs', amdDir],
+      ['-mode', 'batch', '-source', VALIDATE_TCL, '-tclargs', xilinxDir],
       { encoding: 'utf8', timeout: 120_000 }
     );
 
@@ -78,7 +78,7 @@ it('all AMD fixtures pass Vivado ipx::check_integrity', () => {
 
   if (failures.length > 0) {
     throw new Error(
-      `Vivado validation failed for ${failures.length} of ${amds.length} fixture(s):\n\n` +
+      `Vivado validation failed for ${failures.length} of ${xilinxes.length} fixture(s):\n\n` +
         failures.join('\n\n---\n\n')
     );
   }

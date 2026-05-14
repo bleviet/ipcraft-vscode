@@ -235,6 +235,23 @@
     "configuration": {
       "title": "IPCraft",
       "properties": {
+        "ipcraft.generate.vendor": {
+          "type": "string",
+          "enum": ["none", "altera", "xilinx", "both"],
+          "enumDescriptions": [
+            "HDL and testbench only — no vendor integration files",
+            "Altera/Intel: Platform Designer _hw.tcl",
+            "Xilinx/AMD: Vivado component.xml and XGUI TCL",
+            "Both Altera and Xilinx integration files"
+          ],
+          "default": "none",
+          "description": "Vendor integration files to generate when scaffolding a project."
+        },
+        "ipcraft.generate.includeTestbench": {
+          "type": "boolean",
+          "default": true,
+          "description": "Generate a cocotb testbench (tb/ folder) when scaffolding a project."
+        },
         "ipcraft.import.vendor": {
           "type": "string",
           "default": "user",

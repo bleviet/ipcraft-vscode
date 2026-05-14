@@ -147,9 +147,11 @@ export async function generateFixtures(): Promise<Fixture[]> {
   return fixtures;
 }
 
-/** Return all fixtures that produced a component.xml (AMD/Vivado output). */
-export function amdFixtures(fixtures: Fixture[]): Fixture[] {
-  return fixtures.filter((f) => nodefs.existsSync(path.join(f.outputDir, 'amd', 'component.xml')));
+/** Return all fixtures that produced a component.xml (Xilinx/Vivado output). */
+export function xilinxFixtures(fixtures: Fixture[]): Fixture[] {
+  return fixtures.filter((f) =>
+    nodefs.existsSync(path.join(f.outputDir, 'xilinx', 'component.xml'))
+  );
 }
 
 /** Return all fixtures that produced a hw.tcl (Altera/Quartus output). */

@@ -199,40 +199,19 @@ async function scaffoldProject(context: vscode.ExtensionContext): Promise<void> 
     }
   }
 
-  const vendorItems: Array<{ label: string; description: string; vendor: VendorOption }> = [
-    {
-      label: '$(package) Both',
-      description: 'Xilinx Vivado + Altera Platform Designer',
-      vendor: 'both',
-    },
-    {
-      label: '$(chip) Xilinx / AMD Vivado',
-      description: 'component.xml + XGUI TCL',
-      vendor: 'amd',
-    },
-    {
-      label: '$(chip) Altera / Intel Platform Designer',
-      description: '_hw.tcl component definition',
-      vendor: 'altera',
-    },
-    { label: '$(code) None', description: 'VHDL source files only', vendor: 'none' },
-  ];
-  const picked = await vscode.window.showQuickPick(vendorItems, {
-    title: 'Scaffold VHDL Project — Vendor Files',
-    placeHolder: 'Which vendor integration files should be generated?',
-  });
-  if (!picked) {
-    return;
-  }
+  const cfg = vscode.workspace.getConfiguration('ipcraft.generate');
+  const vendor = (cfg.get<string>('vendor', 'none') as VendorOption) ?? 'none';
+  const includeTestbench = cfg.get<boolean>('includeTestbench', true);
 
   await runGenerator(
     context,
     ipCoreUri,
     outputDir,
     {
-      vendor: picked.vendor,
+      vendor,
       includeVhdl: true,
       includeRegs: true,
+      includeTestbench,
       updateYaml: true,
       silent: true,
     },
@@ -271,7 +250,7 @@ async function exportXilinx(context: vscode.ExtensionContext): Promise<void> {
     ipCoreUri,
     outputDir,
     {
-      vendor: 'amd',
+      vendor: 'xilinx',
       includeVhdl: false,
       includeRegs: false,
       silent: true,

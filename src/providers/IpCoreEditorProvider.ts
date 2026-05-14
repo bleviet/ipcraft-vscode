@@ -194,7 +194,7 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
       editInIpPackager: async () => {
         const componentXmlPath = path.join(
           path.dirname(document.uri.fsPath),
-          'amd',
+          'xilinx',
           'component.xml'
         );
         await editInIpPackagerCommand(vscode.Uri.file(componentXmlPath));
@@ -231,7 +231,7 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
       );
 
       const hasComponentXml = await fs
-        .access(path.join(baseDir, 'amd', 'component.xml'))
+        .access(path.join(baseDir, 'xilinx', 'component.xml'))
         .then(() => true)
         .catch(() => false);
 

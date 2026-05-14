@@ -8,7 +8,7 @@ import { Logger } from '../utils/Logger';
 import { DocumentManager } from '../services/DocumentManager';
 
 export interface GenerateOptionsMessage {
-  vendorFiles?: 'none' | 'altera' | 'amd' | 'both';
+  vendorFiles?: 'none' | 'altera' | 'xilinx' | 'both';
   includeTestbench?: boolean;
   includeRegfile?: boolean;
   includeVhdl?: boolean;

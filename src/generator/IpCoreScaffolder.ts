@@ -58,8 +58,8 @@ export class IpCoreScaffolder {
       const context = await this.buildTemplateContext(ipCoreData, busType, inputPath);
       context.has_memory_mapped_slave = hasMmSlave;
       const includeRegs = options.includeRegs !== false && hasMmSlave;
-      const includeTestbench = options.includeTestbench === true;
-      const vendor = options.vendor ?? 'both';
+      const includeTestbench = options.includeTestbench !== false;
+      const vendor = options.vendor ?? 'none';
       const includeVhdl = options.includeVhdl !== false;
 
       const files: Record<string, string> = {};
@@ -92,7 +92,7 @@ export class IpCoreScaffolder {
         files[`altera/${name}_hw.tcl`] = this.templates.render('altera_hw_tcl.j2', context);
       }
 
-      if (vendor === 'amd' || vendor === 'both') {
+      if (vendor === 'xilinx' || vendor === 'both') {
         const versionStr = String(ipCoreData?.vlnv?.version ?? '1.0').replace(/\./g, '_');
         const xguiFile = `xgui/${name}_v${versionStr}.tcl`;
         const rtlFiles = Object.keys(files)
