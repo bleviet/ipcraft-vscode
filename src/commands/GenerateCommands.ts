@@ -41,6 +41,10 @@ export function registerGeneratorCommands(context: vscode.ExtensionContext): voi
     await exportXilinx(context);
   });
 
+  safeRegisterCommand(context, 'fpga-ip-core.generateVivadoProject', async () => {
+    await generateVivadoProject(context);
+  });
+
   safeRegisterCommand(context, 'fpga-ip-core.generateTestbench', async () => {
     await generateTestbench(context);
   });
@@ -290,6 +294,43 @@ async function generateTestbench(context: vscode.ExtensionContext): Promise<void
       silent: true,
     },
     'Generating CocoTB testbench...'
+  );
+}
+
+async function generateVivadoProject(context: vscode.ExtensionContext): Promise<void> {
+  const ipCoreUri = getActiveIpCoreFile();
+  if (!ipCoreUri) {
+    return;
+  }
+
+  const cfg = vscode.workspace.getConfiguration('ipcraft');
+  const defaultPart = cfg.get<string>('vivado.defaultPart', 'xc7z020clg484-1');
+
+  const partInput = await vscode.window.showInputBox({
+    title: 'Generate Vivado Project — Target FPGA Part',
+    prompt: 'Enter the Xilinx/AMD part number for out-of-context synthesis',
+    value: defaultPart,
+    placeHolder: 'e.g. xc7z020clg484-1',
+    validateInput: (v) => (v.trim() ? null : 'Part number cannot be empty'),
+  });
+  if (partInput === undefined) {
+    return;
+  }
+
+  const outputDir = path.dirname(ipCoreUri.fsPath);
+  await runGenerator(
+    context,
+    ipCoreUri,
+    outputDir,
+    {
+      vendor: 'none',
+      includeVhdl: true,
+      includeRegs: true,
+      includeVivadoProject: true,
+      targetPart: partInput.trim(),
+      silent: true,
+    },
+    'Generating Vivado project...'
   );
 }
 

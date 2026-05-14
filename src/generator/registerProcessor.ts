@@ -131,6 +131,9 @@ export function normalizeIpCoreData(raw: Record<string, unknown>): IpCoreData {
     bus_interfaces: busInterfaces.map(normalizeBusInterface),
     clocks: clocks.map((clock) => ({
       name: getString(clock.name),
+      ...((clock.frequency ?? null) !== null
+        ? { frequency: getString(clock.frequency) || null }
+        : {}),
       ...((clock.associatedReset ?? clock.associated_reset)
         ? { associated_reset: getString(clock.associatedReset ?? clock.associated_reset) }
         : {}),

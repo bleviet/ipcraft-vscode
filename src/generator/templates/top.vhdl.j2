@@ -14,7 +14,7 @@ use work.{{ entity_name }}_pkg.all;
 {% endif %}
 
 entity {{ entity_name }} is
-{% if generics %}
+{% if generics | length %}
   generic (
 {% for generic in generics %}
     {{ generic.name }} : {{ generic.type }}{{ " := " ~ generic.default_value if generic.default_value is not none else "" }}{{ ";" if not loop.last else "" }}
@@ -24,7 +24,7 @@ entity {{ entity_name }} is
   port (
     -- Clock and reset
     {{ clock_port }} : in std_logic;
-    {{ reset_port }} : in std_logic;
+    {{ reset_port }} : in std_logic{{ ";" if bus_ports | length or secondary_bus_ports | length or user_ports | length else "" }}
 
 {% for iface in expanded_bus_interfaces %}{% set iface_loop = loop %}
 {% if iface.ports %}

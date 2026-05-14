@@ -5,6 +5,8 @@ export interface GenerateOptions {
   includeTestbench?: boolean;
   includeRegs?: boolean;
   includeVhdl?: boolean;
+  includeVivadoProject?: boolean;
+  targetPart?: string;
   updateYaml?: boolean;
 }
 
@@ -79,6 +81,7 @@ export interface PortDef {
 
 export interface ClockDef {
   name?: string;
+  frequency?: string | null;
   associated_reset?: string;
 }
 

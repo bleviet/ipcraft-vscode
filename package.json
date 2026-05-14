@@ -88,6 +88,12 @@
         "icon": "$(beaker)"
       },
       {
+        "command": "fpga-ip-core.generateVivadoProject",
+        "title": "Generate Vivado Project",
+        "category": "IPCraft",
+        "icon": "$(circuit-board)"
+      },
+      {
         "command": "fpga-ip-core.parseVHDL",
         "title": "Parse VHDL to .ip.yml",
         "category": "IPCraft",
@@ -133,6 +139,11 @@
           "command": "fpga-ip-core.exportXilinx",
           "when": "resourceFilename =~ /\\.ip\\.yml$/",
           "group": "fpga@3"
+        },
+        {
+          "command": "fpga-ip-core.generateVivadoProject",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/",
+          "group": "fpga@4"
         },
         {
           "command": "fpga-ip-core.parseVHDL",
@@ -184,6 +195,11 @@
           "group": "ipcraft@4"
         },
         {
+          "command": "fpga-ip-core.generateVivadoProject",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/",
+          "group": "ipcraft@5"
+        },
+        {
           "command": "fpga-ip-core.parseVHDL",
           "when": "resourceExtname == .vhd || resourceExtname == .vhdl",
           "group": "navigation"
@@ -230,6 +246,11 @@
           "type": "string",
           "default": "vivado",
           "markdownDescription": "Path to the Vivado executable (e.g., `C:\\Xilinx\\Vivado\\2024.2\\bin\\vivado.bat` or `/tools/Xilinx/Vivado/2024.2/bin/vivado`). If empty, assumes `vivado` is available in your system PATH."
+        },
+        "ipcraft.vivado.defaultPart": {
+          "type": "string",
+          "default": "xc7z020clg484-1",
+          "description": "Default FPGA part number used when generating a Vivado project (e.g. xc7z020clg484-1, xczu3eg-sbva484-1-e)."
         },
         "ipcraft.ipRepositoryPaths": {
           "type": "array",

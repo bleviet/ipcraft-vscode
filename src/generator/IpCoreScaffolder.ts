@@ -109,6 +109,25 @@ export class IpCoreScaffolder {
         files[`amd/${xguiFile}`] = this.templates.render('amd_xgui.j2', context);
       }
 
+      if (options.includeVivadoProject) {
+        const targetPart = options.targetPart ?? 'xc7z020clg484-1';
+        const rtlFiles = Object.keys(files)
+          .filter((f) => f.startsWith('rtl/'))
+          .map((f) => `../${f}`);
+        const xdcRelPath = `${name}_ooc.xdc`;
+        const vivadoContext = {
+          ...context,
+          target_part: targetPart,
+          rtl_files: rtlFiles,
+          xdc_file: xdcRelPath,
+        };
+        files[`vivado/${name}_project.tcl`] = this.templates.render(
+          'vivado_project.tcl.j2',
+          vivadoContext
+        );
+        files[`vivado/${xdcRelPath}`] = this.templates.render('vivado_ooc.xdc.j2', vivadoContext);
+      }
+
       const written: Record<string, string> = {};
       await Promise.all(
         Object.entries(files).map(async ([relativePath, content]) => {
@@ -237,6 +256,12 @@ export class IpCoreScaffolder {
       });
     }
 
+    const clocksWithPeriod = clocks.map((clock) => ({
+      name: clock.name ?? '',
+      frequency: clock.frequency ?? null,
+      period_ns: parseClockPeriodNs(clock.frequency),
+    }));
+
     return {
       entity_name: name,
       registers,
@@ -257,6 +282,7 @@ export class IpCoreScaffolder {
       clock_port: clockPort,
       reset_port: resetPort,
       reset_active_high: resetActiveHigh,
+      clocks_with_period: clocksWithPeriod,
       memmap_relpath: `../../${name}.mm.yml`,
       vendor: ipCore?.vlnv?.vendor,
       library: ipCore?.vlnv?.library,
@@ -404,4 +430,28 @@ export class IpCoreScaffolder {
     }
     return String(value);
   }
+}
+
+function parseClockPeriodNs(frequency: string | null | undefined): string | null {
+  if (!frequency) {
+    return null;
+  }
+  const m = /^(\d+(?:\.\d+)?)\s*(GHz|MHz|kHz|Hz)$/i.exec(frequency.trim());
+  if (!m) {
+    return null;
+  }
+  const value = parseFloat(m[1]);
+  const unit = m[2].toLowerCase();
+  let hz: number;
+  if (unit === 'ghz') {
+    hz = value * 1e9;
+  } else if (unit === 'mhz') {
+    hz = value * 1e6;
+  } else if (unit === 'khz') {
+    hz = value * 1e3;
+  } else {
+    hz = value;
+  }
+  const periodNs = 1e9 / hz;
+  return periodNs.toFixed(3);
 }
