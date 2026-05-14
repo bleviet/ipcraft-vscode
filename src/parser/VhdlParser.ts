@@ -70,19 +70,31 @@ export async function parseVhdlFile(
     description: `Generated from ${path.basename(vhdlPath)}`,
   };
 
+  const soleReset = clockReset.resets.length === 1 ? clockReset.resets[0].name : undefined;
+  const soleClock = clockReset.clocks.length === 1 ? clockReset.clocks[0].name : undefined;
+
   if (clockReset.clocks.length > 0) {
-    yamlData.clocks = clockReset.clocks.map((clock) => ({
-      name: clock.name,
-      direction: 'in',
-    }));
+    yamlData.clocks = clockReset.clocks.map((clock) => {
+      const entry: Record<string, unknown> = { name: clock.name, direction: 'in' };
+      if (soleReset) {
+        entry.associatedReset = soleReset;
+      }
+      return entry;
+    });
   }
 
   if (clockReset.resets.length > 0) {
-    yamlData.resets = clockReset.resets.map((reset) => ({
-      name: reset.name,
-      direction: 'in',
-      polarity: reset.polarity,
-    }));
+    yamlData.resets = clockReset.resets.map((reset) => {
+      const entry: Record<string, unknown> = {
+        name: reset.name,
+        direction: 'in',
+        polarity: reset.polarity,
+      };
+      if (soleClock) {
+        entry.associatedClock = soleClock;
+      }
+      return entry;
+    });
   }
 
   if (userPorts.length > 0) {
