@@ -68,6 +68,10 @@ describe('registerProcessor', () => {
         libraryKey: 'AVALON_MEMORY_MAPPED',
         templateType: 'avmm',
       });
+      expect(normalizeBusType('AVALON_MEMORY_MAPPED')).toEqual({
+        libraryKey: 'AVALON_MEMORY_MAPPED',
+        templateType: 'avmm',
+      });
     });
 
     it('returns custom for unknown types', () => {
@@ -144,6 +148,19 @@ describe('registerProcessor', () => {
       expect(result.map((p) => p.logical_name)).toContain('REQ');
       expect(result.map((p) => p.logical_name)).toContain('OPT');
       expect(result.map((p) => p.logical_name)).not.toContain('SKIP');
+    });
+
+    it('inverts port directions for sink mode (Avalon-ST SINK)', () => {
+      const defPorts = [
+        { name: 'data', direction: 'out', presence: 'required', width: 32 },
+        { name: 'valid', direction: 'out', presence: 'required', width: 1 },
+        { name: 'ready', direction: 'in', presence: 'required', width: 1 },
+      ];
+      const result = getActiveBusPortsFromDefinition(defPorts, [], 'avl_st_', 'sink', {});
+      const byName = Object.fromEntries(result.map((p) => [p.logical_name, p.direction]));
+      expect(byName['data']).toBe('in');
+      expect(byName['valid']).toBe('in');
+      expect(byName['ready']).toBe('out');
     });
   });
 

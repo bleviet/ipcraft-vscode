@@ -24,6 +24,7 @@ const BUS_TYPE_ALIASES: Record<string, BusTypeInfo> = {
   AXIS: { libraryKey: 'AXI_STREAM', templateType: 'axis' },
   AVALONMM: { libraryKey: 'AVALON_MEMORY_MAPPED', templateType: 'avmm' },
   AVMM: { libraryKey: 'AVALON_MEMORY_MAPPED', templateType: 'avmm' },
+  AVALONMEMORYMAPPED: { libraryKey: 'AVALON_MEMORY_MAPPED', templateType: 'avmm' },
   AVALONSTREAMING: { libraryKey: 'AVALON_STREAMING', templateType: 'avst' },
   AVALONST: { libraryKey: 'AVALON_STREAMING', templateType: 'avst' },
   AVST: { libraryKey: 'AVALON_STREAMING', templateType: 'avst' },
@@ -295,7 +296,7 @@ export function getActiveBusPortsFromDefinition(
     }
 
     let direction = port.direction ?? 'in';
-    if (mode === 'slave') {
+    if (mode === 'slave' || mode === 'sink') {
       direction = direction === 'out' ? 'in' : direction === 'in' ? 'out' : direction;
     }
 
