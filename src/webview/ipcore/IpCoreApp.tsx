@@ -23,16 +23,26 @@ export type FocusedPanel = 'left' | 'right';
 interface ToolbarButtonProps {
   title: string;
   icon: string;
-  command: string;
+  command?: string;
+  disabled?: boolean;
+  onClick?: () => void;
 }
 
-const ToolbarButton: React.FC<ToolbarButtonProps> = ({ title, icon, command }) => (
+const ToolbarButton: React.FC<ToolbarButtonProps> = ({
+  title,
+  icon,
+  command,
+  disabled,
+  onClick,
+}) => (
   <button
     className="canvas-view-toggle"
     title={title}
     type="button"
-    onClick={() => vscode?.postMessage({ type: 'command', command })}
+    disabled={disabled}
+    onClick={onClick ?? (() => command && vscode?.postMessage({ type: 'command', command }))}
     aria-label={title}
+    style={disabled ? { opacity: 0.4, cursor: 'not-allowed', pointerEvents: 'none' } : undefined}
   >
     <span className={`codicon codicon-${icon}`} />
   </button>
@@ -116,6 +126,9 @@ const IpCoreApp: React.FC = () => {
 
   // Canvas vs table view mode
   const [viewMode, setViewMode] = useState<ViewMode>('canvas');
+
+  // Whether amd/component.xml exists alongside this .ip.yml (sent by extension on each update)
+  const [hasComponentXml, setHasComponentXml] = useState(false);
 
   // Canvas element selection (Phase 2)
   const {
@@ -365,11 +378,13 @@ const IpCoreApp: React.FC = () => {
         text: string;
         fileName: string;
         imports?: Record<string, unknown>;
+        hasComponentXml?: boolean;
       };
 
       switch (message.type) {
         case 'update':
           updateFromYaml(message.text, message.fileName, message.imports);
+          setHasComponentXml(message.hasComponentXml ?? false);
           break;
       }
     };
@@ -556,6 +571,16 @@ const IpCoreApp: React.FC = () => {
                   title="Generate Vivado Project"
                   icon="circuit-board"
                   command="fpga-ip-core.generateVivadoProject"
+                />
+                <ToolbarButton
+                  title={
+                    hasComponentXml
+                      ? 'Edit in IP Packager (Vivado)'
+                      : 'Edit in IP Packager — run Export Component XML first'
+                  }
+                  icon="edit"
+                  disabled={!hasComponentXml}
+                  onClick={() => vscode?.postMessage({ type: 'editInIpPackager' })}
                 />
               </ToolbarGroup>
             </div>

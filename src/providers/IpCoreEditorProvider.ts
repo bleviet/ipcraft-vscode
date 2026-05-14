@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import * as fs from 'fs/promises';
 import * as jsyaml from 'js-yaml';
 import { Logger } from '../utils/Logger';
 import { HtmlGenerator } from '../services/HtmlGenerator';
@@ -15,6 +16,7 @@ import {
   type GenerateRequestMessage,
   type GenerateOptionsMessage,
 } from './IpCoreGenerateHandler';
+import { editInIpPackagerCommand } from '../commands/editInIpPackager';
 
 interface IpcMessage {
   type: string;
@@ -189,6 +191,14 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
       addSubcore: async () => {
         await this.handleAddSubcoreMessage(webviewPanel);
       },
+      editInIpPackager: async () => {
+        const componentXmlPath = path.join(
+          path.dirname(document.uri.fsPath),
+          'amd',
+          'component.xml'
+        );
+        await editInIpPackagerCommand(vscode.Uri.file(componentXmlPath));
+      },
     };
 
     webviewPanel.webview.onDidReceiveMessage(async (message: IpcMessage) => {
@@ -220,6 +230,11 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
         baseDir
       );
 
+      const hasComponentXml = await fs
+        .access(path.join(baseDir, 'amd', 'component.xml'))
+        .then(() => true)
+        .catch(() => false);
+
       if (isDisposed()) {
         this.logger.debug('Webview disposed during import resolution, skipping update');
         return;
@@ -230,6 +245,7 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
         text,
         fileName: path.basename(document.uri.fsPath),
         imports,
+        hasComponentXml,
       });
     } catch (error) {
       this.logger.error('Failed to update webview', error as Error);
