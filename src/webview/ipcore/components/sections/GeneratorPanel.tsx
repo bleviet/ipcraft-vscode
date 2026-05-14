@@ -91,21 +91,21 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({ ipCore }) => {
 
   const [options, setOptions] = useState<GenerationOptions>(() => {
     const savedState = (vscode?.getState() as Record<string, unknown>) || {};
-    return Object.keys(savedState).length > 0 && savedState.generationOptions
-      ? (savedState.generationOptions as GenerationOptions)
-      : {
-          busType: detectedBus?.busType ?? 'axil',
-          includeVhdl: true,
-          includeRegfile: true,
-          vendorFiles: 'none',
-          includeTestbench: true,
-        };
+    // Use _v2 key so stale saved state (which had includeTestbench: false as default) is ignored.
+    const saved = savedState.generationOptions_v2 as Partial<GenerationOptions> | undefined;
+    return {
+      busType: saved?.busType ?? detectedBus?.busType ?? 'axil',
+      includeVhdl: saved?.includeVhdl ?? true,
+      includeRegfile: saved?.includeRegfile ?? true,
+      vendorFiles: saved?.vendorFiles ?? 'none',
+      includeTestbench: saved?.includeTestbench ?? true,
+    };
   });
 
   // Persist options state
   useEffect(() => {
     const currentState = (vscode?.getState() as Record<string, unknown>) || {};
-    vscode?.setState({ ...currentState, generationOptions: options });
+    vscode?.setState({ ...currentState, generationOptions_v2: options });
   }, [options]);
 
   const [status, setStatus] = useState<GenerationStatus>({ status: 'idle' });
