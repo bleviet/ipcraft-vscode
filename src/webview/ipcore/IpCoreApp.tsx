@@ -492,7 +492,7 @@ const IpCoreApp: React.FC = () => {
               <ToolbarGroup label="Xilinx">
                 <ToolbarButton
                   title="Export Vivado Component XML"
-                  icon="export"
+                  icon="layers"
                   command="fpga-ip-core.exportXilinx"
                 />
                 <ToolbarButton
