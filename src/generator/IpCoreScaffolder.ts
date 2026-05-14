@@ -84,6 +84,7 @@ export class IpCoreScaffolder {
       }
 
       if (includeTestbench) {
+        files['tb/mm_loader.py'] = this.templates.render('mm_loader.py.j2', context);
         files[`tb/${name}_test.py`] = this.templates.render('cocotb_test.py.j2', context);
         files['tb/Makefile'] = this.templates.render('cocotb_makefile.j2', context);
       }
@@ -335,7 +336,7 @@ export class IpCoreScaffolder {
       reset_port: resetPort,
       reset_active_high: resetActiveHigh,
       clocks_with_period: clocksWithPeriod,
-      memmap_relpath: `../../${name}.mm.yml`,
+      memmap_relpath: `../${name}.mm.yml`,
       vendor: ipCore?.vlnv?.vendor,
       library: ipCore?.vlnv?.library,
       version: ipCore?.vlnv?.version,

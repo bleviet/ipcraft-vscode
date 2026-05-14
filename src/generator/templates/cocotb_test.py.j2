@@ -1,9 +1,11 @@
 {% set reset_assert = 1 if reset_active_high else 0 %}
 {% set reset_deassert = 0 if reset_active_high else 1 %}
 {% if has_memory_mapped_slave %}
+import os
 import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import RisingEdge, Timer
+from mm_loader import load_regmap
 {% if bus_type in ['axil', 'axi4'] %}
 {% if bus_type == 'axil' %}
 from cocotbext.axi import AxiLiteMaster, AxiLiteBus
@@ -54,6 +56,10 @@ async def _read_reg(dut, addr: int) -> int:
 {% endif %}
 
 
+_MM_YML = os.path.join(os.path.dirname(__file__), "{{ memmap_relpath }}")
+regmap = load_regmap(_MM_YML)
+
+
 async def _reset_dut(dut) -> None:
     """Apply and release reset for {{ entity_name }}."""
     dut.{{ reset_port }}.value = {{ reset_assert }}
@@ -69,7 +75,6 @@ async def test_register_access(dut):
     """Test register read/write access for {{ entity_name }}."""
     cocotb.start_soon(Clock(dut.{{ clock_port }}, 10, units="ns").start())
     await _reset_dut(dut)
-
 {% if bus_type in ['axil', 'axi4'] %}
 {% if bus_type == 'axil' %}
     master = AxiLiteMaster(AxiLiteBus.from_prefix(dut, "{{ bus_prefix }}"), dut.{{ clock_port }})
@@ -78,21 +83,15 @@ async def test_register_access(dut):
 {% endif %}
 {% endif %}
 
-{% for reg in registers %}
-{% set access = reg.access | lower %}
-{% if 'write' in access %}
-    # {{ reg.name }} @ 0x{{ "%04X" | format(reg.offset) }}
-    await _write_reg({% if bus_type in ['axil', 'axi4'] %}master{% else %}dut{% endif %}, 0x{{ "%04X" | format(reg.offset) }}, 0xA5A5A5A5)
-{% if 'read' in access %}
-    val = await _read_reg({% if bus_type in ['axil', 'axi4'] %}master{% else %}dut{% endif %}, 0x{{ "%04X" | format(reg.offset) }})
-    dut._log.info(f"{{ reg.name }}: wrote 0xA5A5A5A5, read back 0x{val:08X}")
-{% endif %}
-{% elif 'read' in access %}
-    # {{ reg.name }} @ 0x{{ "%04X" | format(reg.offset) }} (read-only)
-    val = await _read_reg({% if bus_type in ['axil', 'axi4'] %}master{% else %}dut{% endif %}, 0x{{ "%04X" | format(reg.offset) }})
-    dut._log.info(f"{{ reg.name }}: 0x{val:08X}")
-{% endif %}
-{% endfor %}
+    for reg in regmap:
+        if "write" in reg.access:
+            await _write_reg({% if bus_type in ['axil', 'axi4'] %}master{% else %}dut{% endif %}, reg.offset, 0xA5A5A5A5)
+            if "read" in reg.access:
+                val = await _read_reg({% if bus_type in ['axil', 'axi4'] %}master{% else %}dut{% endif %}, reg.offset)
+                dut._log.info(f"{reg.name}: wrote 0xA5A5A5A5, read back 0x{val:08X}")
+        elif "read" in reg.access:
+            val = await _read_reg({% if bus_type in ['axil', 'axi4'] %}master{% else %}dut{% endif %}, reg.offset)
+            dut._log.info(f"{reg.name}: 0x{val:08X}")
 
     dut._log.info("Register access test passed!")
 
@@ -102,7 +101,6 @@ async def test_reset_values(dut):
     """Read all registers after reset and log their values for {{ entity_name }}."""
     cocotb.start_soon(Clock(dut.{{ clock_port }}, 10, units="ns").start())
     await _reset_dut(dut)
-
 {% if bus_type in ['axil', 'axi4'] %}
 {% if bus_type == 'axil' %}
     master = AxiLiteMaster(AxiLiteBus.from_prefix(dut, "{{ bus_prefix }}"), dut.{{ clock_port }})
@@ -111,13 +109,10 @@ async def test_reset_values(dut):
 {% endif %}
 {% endif %}
 
-{% for reg in registers %}
-{% set access = reg.access | lower %}
-{% if 'read' in access %}
-    val = await _read_reg({% if bus_type in ['axil', 'axi4'] %}master{% else %}dut{% endif %}, 0x{{ "%04X" | format(reg.offset) }})
-    dut._log.info(f"{{ reg.name }} reset value: 0x{val:08X}")
-{% endif %}
-{% endfor %}
+    for reg in regmap:
+        if "read" in reg.access:
+            val = await _read_reg({% if bus_type in ['axil', 'axi4'] %}master{% else %}dut{% endif %}, reg.offset)
+            dut._log.info(f"{reg.name} reset value: 0x{val:08X}")
 
     dut._log.info("Reset value read-back passed!")
 
@@ -146,7 +141,6 @@ async def test_basic_smoke(dut):
     cocotb.start_soon(Clock(dut.{{ clock_port }}, 10, units="ns").start())
     await reset_dut(dut)
 
-    # Run for a number of clock cycles and verify the DUT is responsive
     for i in range(20):
         await RisingEdge(dut.{{ clock_port }})
 
@@ -168,4 +162,3 @@ async def test_reset_behaviour(dut):
 
     dut._log.info("Reset behaviour test passed")
 {% endif %}
-
