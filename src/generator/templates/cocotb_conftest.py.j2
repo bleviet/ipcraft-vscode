@@ -1,0 +1,81 @@
+"""pytest fixtures for {{ entity_name }} cocotb simulation.
+
+This file is loaded automatically by pytest before any test in tb/ runs.
+It builds the HDL design once per session and exposes a ``sim_runner``
+fixture that each test uses to invoke a specific @cocotb.test() function.
+
+Changing the simulator:
+    SIM=icarus pytest tb/
+    SIM=modelsim pytest tb/
+    SIM=questa   pytest tb/
+"""
+
+import os
+import pathlib
+import pytest
+from cocotb.runner import get_runner
+
+TB_DIR = pathlib.Path(__file__).parent
+RTL_DIR = TB_DIR.parent / "rtl"
+
+SIM = os.environ.get("SIM", "ghdl")
+TOPLEVEL = "{{ entity_name }}"
+TOPLEVEL_LANG = "vhdl"
+
+# VHDL sources in compilation order (packages before entities that use them)
+VHDL_SOURCES = [
+{% if has_memory_mapped_slave %}
+    RTL_DIR / "{{ entity_name }}_pkg.vhd",
+    RTL_DIR / "{{ entity_name }}_regs.vhd",
+    RTL_DIR / "{{ entity_name }}_core.vhd",
+{% if bus_type in ['axil', 'avmm'] %}
+    RTL_DIR / "{{ entity_name }}_{{ bus_type }}.vhd",
+{% endif %}
+{% endif %}
+    RTL_DIR / "{{ entity_name }}.vhd",
+]
+
+_GHDL_BUILD_ARGS = ["--std=08", "-frelaxed"]
+
+
+@pytest.fixture(scope="session")
+def sim_runner(tmp_path_factory):
+    """Compile the HDL once per session; return a ``run(testcase)`` callable.
+
+    Each test passes its own name as *testcase* so the simulator runs only
+    that @cocotb.test() function, keeping individual test results independent.
+
+    Example usage inside a test::
+
+        def test_my_case(sim_runner):
+            sim_runner("test_my_case")
+    """
+    missing = [str(s) for s in VHDL_SOURCES if not s.exists()]
+    if missing:
+        raise FileNotFoundError(
+            "RTL sources not found — run the IPCraft scaffolder first:\n"
+            + "\n".join(f"  {s}" for s in missing)
+        )
+
+    build_dir = tmp_path_factory.mktemp("sim_build")
+    runner = get_runner(SIM)
+    runner.build(
+        vhdl_sources=VHDL_SOURCES,
+        hdl_toplevel=TOPLEVEL,
+        always=True,
+        build_dir=str(build_dir),
+        build_args=_GHDL_BUILD_ARGS if SIM == "ghdl" else [],
+    )
+
+    def run(testcase: str) -> None:
+        runner.test(
+            test_module="{{ entity_name }}_test",
+            hdl_toplevel=TOPLEVEL,
+            hdl_toplevel_lang=TOPLEVEL_LANG,
+            testcase=testcase,
+            build_dir=str(build_dir),
+            test_dir=str(TB_DIR),
+            results_xml=str(TB_DIR / f"results_{testcase}.xml"),
+        )
+
+    return run
