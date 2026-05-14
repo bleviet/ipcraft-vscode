@@ -59,8 +59,10 @@ endif
 # Cocotb settings
 export COCOTB_REDUCED_LOG_FMT=1
 
-# Add ipcore_lib to Python path (go up to workspace root: tb -> led -> examples -> ipcore_spec -> ipcore_lib)
+{% if has_memory_mapped_slave %}
+# Add ipcore_lib to Python path (go up to workspace root: tb -> <ip> -> ... -> ipcore_lib)
 export PYTHONPATH := $(shell cd $(CURDIR)/../../../.. && pwd):$(PYTHONPATH)
+{% endif %}
 
 # Default target
 include $(shell cocotb-config --makefiles)/Makefile.sim
