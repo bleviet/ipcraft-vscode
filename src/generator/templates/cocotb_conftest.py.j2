@@ -1,8 +1,9 @@
 """pytest fixtures for {{ entity_name }} cocotb simulation.
 
-This file is loaded automatically by pytest before any test in tb/ runs.
-It builds the HDL design once per session and exposes a ``sim_runner``
-fixture that each test uses to invoke a specific @cocotb.test() function.
+Compatible with cocotb ≥ 1.7 and cocotb 2.x. Each test is run by invoking
+``make`` with ``TESTCASE=<name>`` so only the requested ``@cocotb.test()``
+function executes. make's dependency tracking recompiles the HDL only when
+source files change, so repeated runs reuse the previous build.
 
 Changing the simulator:
     SIM=icarus pytest tb/
@@ -12,15 +13,13 @@ Changing the simulator:
 
 import os
 import pathlib
+import subprocess
 import pytest
-from cocotb.runner import get_runner
 
 TB_DIR = pathlib.Path(__file__).parent
 RTL_DIR = TB_DIR.parent / "rtl"
 
 SIM = os.environ.get("SIM", "ghdl")
-TOPLEVEL = "{{ entity_name }}"
-TOPLEVEL_LANG = "vhdl"
 
 # VHDL sources in compilation order (packages before entities that use them)
 VHDL_SOURCES = [
@@ -35,15 +34,15 @@ VHDL_SOURCES = [
     RTL_DIR / "{{ entity_name }}.vhd",
 ]
 
-_GHDL_BUILD_ARGS = ["--std=08", "-frelaxed"]
-
 
 @pytest.fixture(scope="session")
-def sim_runner(tmp_path_factory):
-    """Compile the HDL once per session; return a ``run(testcase)`` callable.
+def sim_runner():
+    """Return a ``run(testcase)`` callable that drives cocotb via make.
 
-    Each test passes its own name as *testcase* so the simulator runs only
-    that @cocotb.test() function, keeping individual test results independent.
+    The first call compiles the HDL; subsequent calls within the same pytest
+    session skip recompilation if no source files changed (make dependency
+    tracking). Waveform generation is suppressed (``WAVES=0``) for speed;
+    set ``WAVES=1`` in the environment to enable it.
 
     Example usage inside a test::
 
@@ -57,25 +56,19 @@ def sim_runner(tmp_path_factory):
             + "\n".join(f"  {s}" for s in missing)
         )
 
-    build_dir = tmp_path_factory.mktemp("sim_build")
-    runner = get_runner(SIM)
-    runner.build(
-        vhdl_sources=VHDL_SOURCES,
-        hdl_toplevel=TOPLEVEL,
-        always=True,
-        build_dir=str(build_dir),
-        build_args=_GHDL_BUILD_ARGS if SIM == "ghdl" else [],
-    )
-
     def run(testcase: str) -> None:
-        runner.test(
-            test_module="{{ entity_name }}_test",
-            hdl_toplevel=TOPLEVEL,
-            hdl_toplevel_lang=TOPLEVEL_LANG,
-            testcase=testcase,
-            build_dir=str(build_dir),
-            test_dir=str(TB_DIR),
-            results_xml=str(TB_DIR / f"results_{testcase}.xml"),
+        env = {**os.environ, "TESTCASE": testcase, "WAVES": os.environ.get("WAVES", "0")}
+        result = subprocess.run(
+            ["make", f"SIM={SIM}"],
+            cwd=str(TB_DIR),
+            env=env,
+            capture_output=True,
+            text=True,
         )
+        if result.returncode != 0:
+            output = (result.stdout + result.stderr).strip()
+            raise AssertionError(
+                f"cocotb simulation failed for '{testcase}':\n\n{output[-3000:]}"
+            )
 
     return run
