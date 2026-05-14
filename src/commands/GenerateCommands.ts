@@ -16,7 +16,7 @@ import { parseComponentXmlFile } from '../parser/ComponentXmlParser';
 import { safeRegisterCommand } from '../utils/vscodeHelpers';
 import { updateFileSets } from '../services/FileSetUpdater';
 import { resolveVendor } from '../utils/resolveVendor';
-import type { GenerateOptions, VendorOption } from '../generator/types';
+import type { GenerateOptions } from '../generator/types';
 
 const logger = new Logger('GenerateCommands');
 
@@ -199,19 +199,25 @@ async function scaffoldProject(context: vscode.ExtensionContext): Promise<void> 
     }
   }
 
-  const cfg = vscode.workspace.getConfiguration('ipcraft.generate');
-  const vendor = (cfg.get<string>('vendor', 'none') as VendorOption) ?? 'none';
-  const includeTestbench = cfg.get<boolean>('includeTestbench', true);
+  const cfg = vscode.workspace.getConfiguration('ipcraft');
+  const genCfg = vscode.workspace.getConfiguration('ipcraft.generate');
+  const includeTestbench = genCfg.get<boolean>('includeTestbench', true);
+  const targetPart = cfg.get<string>('vivado.defaultPart', 'xc7z020clg484-1');
+  const quartusDevice = cfg.get<string>('quartus.defaultDevice', '5CSEBA6U23I7');
 
   await runGenerator(
     context,
     ipCoreUri,
     outputDir,
     {
-      vendor,
+      vendor: 'both',
       includeVhdl: true,
       includeRegs: true,
       includeTestbench,
+      includeVivadoProject: true,
+      targetPart,
+      includeQuartusProject: true,
+      quartusDevice,
       updateYaml: true,
       silent: true,
     },
