@@ -46,11 +46,15 @@ entity {{ entity_name }} is
 end entity {{ entity_name }};
 
 architecture rtl of {{ entity_name }} is
-{% if has_memory_mapped_slave and registers %}
+{% if has_memory_mapped_slave and (sw_registers | length > 0 or hw_registers | length > 0) %}
 
     -- Internal register signals
+{% if sw_registers | length > 0 %}
   signal regs_sw2hw : t_regs_sw2hw;
+{% endif %}
+{% if hw_registers | length > 0 %}
   signal regs_hw2sw : t_regs_hw2sw;
+{% endif %}
 {% endif %}
 
 begin
@@ -64,13 +68,18 @@ begin
       clk => {{ clock_port }},
       rst => {% if reset_active_high %}{{ reset_port }}{% else %}not {{ reset_port }}{% endif %},
 
+{% set has_regs_ports = sw_registers | length > 0 or hw_registers | length > 0 %}
 {% if bus_ports %}
 {% for port in bus_ports %}
-      {{ "%-14s"|format(port.name) }} => {{ port.name }},
+      {{ "%-14s"|format(port.name) }} => {{ port.name }}{{ "," if not loop.last or has_regs_ports else "" }}
 {% endfor %}
 {% endif %}
-      regs_out => regs_sw2hw,
-      regs_in => regs_hw2sw
+{% if sw_registers | length > 0 %}
+      regs_out => regs_sw2hw{{ "," if hw_registers | length > 0 else "" }}
+{% endif %}
+{% if hw_registers | length > 0 %}
+      regs_in  => regs_hw2sw
+{% endif %}
     );
 
     ----------------------------------------------------------------------------
@@ -87,8 +96,12 @@ begin
     port map (
       clk => {{ clock_port }},
       rst => {% if reset_active_high %}{{ reset_port }}{% else %}not {{ reset_port }}{% endif %},
-      regs_in => regs_sw2hw,
-      regs_out => regs_hw2sw{{ "," if secondary_bus_ports | length or user_ports | length else "" }}
+{% if sw_registers | length > 0 %}
+      regs_in  => regs_sw2hw{{ "," if hw_registers | length > 0 or secondary_bus_ports | length > 0 or user_ports | length > 0 else "" }}
+{% endif %}
+{% if hw_registers | length > 0 %}
+      regs_out => regs_hw2sw{{ "," if secondary_bus_ports | length > 0 or user_ports | length > 0 else "" }}
+{% endif %}
 {% if secondary_bus_ports | length %}
 {% for port in secondary_bus_ports %}
       {{ "%-14s"|format(port.name) }} => {{ port.name }}{{ "," if not loop.last or user_ports | length else "" }}

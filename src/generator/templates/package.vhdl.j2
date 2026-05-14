@@ -18,7 +18,7 @@ package {{ entity_name }}_pkg is
   constant C_ADDR_WIDTH : natural := {{ addr_width | default(8) }};
   constant C_REG_WIDTH  : natural := {{ reg_width | default(4) }};  -- Bytes per register
 
-{% if registers %}
+{% if registers | length %}
   ----------------------------------------------------------------------------
   -- Register Enumeration (Order defines address)
   ----------------------------------------------------------------------------
@@ -36,7 +36,7 @@ package {{ entity_name }}_pkg is
   -- Register Record Types
   ----------------------------------------------------------------------------
 {% for reg in registers %}
-{% if reg.fields %}
+{% if reg.fields | length %}
 
   -- {{ reg.name }} register fields
   type t_reg_{{ reg.name | lower }} is record
@@ -64,42 +64,38 @@ package {{ entity_name }}_pkg is
 {% endif %}
 {% endfor %}
 
-{% if registers %}
+{% if sw_registers | length %}
   ----------------------------------------------------------------------------
   -- Aggregate Register Records (for clean port interface)
   ----------------------------------------------------------------------------
-{% set sw2hw_regs = registers | selectattr('access', 'in', ['read-write', 'write-only', 'rw', 'wo']) | list %}
-{% set hw2sw_regs = registers | selectattr('access', 'in', ['read-only', 'ro']) | list %}
-{% if sw2hw_regs %}
 
   -- SW -> HW: Registers written by software, read by hardware
   type t_regs_sw2hw is record
-{% for reg in sw2hw_regs %}
+{% for reg in sw_registers %}
     {{ reg.name | lower }} : t_reg_{{ reg.name | lower }};
 {% endfor %}
   end record;
 
   constant C_REGS_SW2HW_RESET : t_regs_sw2hw := (
-{% for reg in sw2hw_regs %}
+{% for reg in sw_registers %}
     {{ reg.name | lower }} => C_REG_{{ reg.name | upper }}_RESET{{ "," if not loop.last else "" }}
 {% endfor %}
   );
 {% endif %}
-{% if hw2sw_regs %}
+{% if hw_registers | length %}
 
   -- HW -> SW: Registers written by hardware, read by software
   type t_regs_hw2sw is record
-{% for reg in hw2sw_regs %}
+{% for reg in hw_registers %}
     {{ reg.name | lower }} : t_reg_{{ reg.name | lower }};
 {% endfor %}
   end record;
 
   constant C_REGS_HW2SW_RESET : t_regs_hw2sw := (
-{% for reg in hw2sw_regs %}
+{% for reg in hw_registers %}
     {{ reg.name | lower }} => C_REG_{{ reg.name | upper }}_RESET{{ "," if not loop.last else "" }}
 {% endfor %}
   );
-{% endif %}
 {% endif %}
 
 end package {{ entity_name }}_pkg;
@@ -107,7 +103,7 @@ end package {{ entity_name }}_pkg;
 
 package body {{ entity_name }}_pkg is
 
-{% if registers %}
+{% if registers | length %}
   ----------------------------------------------------------------------------
   -- Register Address Function
   ----------------------------------------------------------------------------
@@ -121,7 +117,7 @@ package body {{ entity_name }}_pkg is
   -- Conversion Functions
   ----------------------------------------------------------------------------
 {% for reg in registers %}
-{% if reg.fields %}
+{% if reg.fields | length %}
 
   -- {{ reg.name }} conversions
   function to_slv(reg : t_reg_{{ reg.name | lower }}) return std_logic_vector is
