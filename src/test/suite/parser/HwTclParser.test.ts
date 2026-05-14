@@ -178,11 +178,12 @@ describe('HwTclParser', () => {
 
     it('emits useOptionalPorts for optional ports present in hw.tcl', () => {
       const tcl = `
-        add_interface s_axi axi4lite end
+        add_interface s_axi axi4 end
         add_interface_port s_axi s_axi_awaddr awaddr Input 32
         add_interface_port s_axi s_axi_awvalid awvalid Input 1
         add_interface_port s_axi s_axi_awready awready Output 1
         add_interface_port s_axi s_axi_awprot awprot Input 3
+        add_interface_port s_axi s_axi_awlen awlen Input 8
         add_interface_port s_axi s_axi_wdata wdata Input 32
         add_interface_port s_axi s_axi_wstrb wstrb Input 4
         add_interface_port s_axi s_axi_wvalid wvalid Input 1
@@ -203,7 +204,7 @@ describe('HwTclParser', () => {
         busInterfaces: Array<Record<string, unknown>>;
       };
       const bi = doc.busInterfaces[0];
-      expect(bi.useOptionalPorts).toEqual(['awprot', 'arprot']);
+      expect(bi.useOptionalPorts).toEqual(['awlen']);
     });
 
     it('does not emit useOptionalPorts when only required ports are present', () => {
