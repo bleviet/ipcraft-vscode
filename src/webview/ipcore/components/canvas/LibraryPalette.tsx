@@ -47,7 +47,7 @@ const PALETTE: PaletteCategory[] = [
       { kind: 'clock', nameHint: 'clk', label: 'Clock' },
       { kind: 'reset', nameHint: 'rst_n', label: 'Reset' },
       { kind: 'interrupt', nameHint: 'irq', label: 'Interrupt' },
-      { kind: 'port', nameHint: 'port', label: 'Port' },
+      { kind: 'port', nameHint: 'port_0', label: 'Port' },
     ],
   },
   {

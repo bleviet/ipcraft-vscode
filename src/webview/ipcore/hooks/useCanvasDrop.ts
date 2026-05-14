@@ -6,16 +6,21 @@ import { BLOCK_WIDTH } from '../components/canvas/canvasLayout';
 
 /**
  * Generates a unique name by appending `_N` if the base name already exists.
+ * If the base already ends in `_N` (e.g. `port_0`), the numeric suffix is
+ * stripped to produce a clean stem (`port`) so subsequent names are
+ * `port_1`, `port_2`, … instead of `port_0_0`, `port_0_1`, …
  */
 function uniqueName(base: string, existing: string[]): string {
   if (!existing.includes(base)) {
     return base;
   }
+  const suffixMatch = base.match(/^(.+)_(\d+)$/);
+  const stem = suffixMatch ? suffixMatch[1] : base;
   let i = 0;
-  while (existing.includes(`${base}_${i}`)) {
+  while (existing.includes(`${stem}_${i}`)) {
     i++;
   }
-  return `${base}_${i}`;
+  return `${stem}_${i}`;
 }
 
 interface UseCanvasDropOptions {
