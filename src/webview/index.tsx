@@ -12,6 +12,7 @@ import { useSelectionLifecycle } from './hooks/useSelectionLifecycle';
 import { useOutlineRename } from './hooks/useOutlineRename';
 import { useDetailsNavigation } from './hooks/useDetailsNavigation';
 import { useYamlUpdateHandler } from './hooks/useYamlUpdateHandler';
+import '@vscode/codicons/dist/codicon.css';
 import './index.css';
 
 /**

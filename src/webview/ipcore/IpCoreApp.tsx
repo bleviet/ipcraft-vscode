@@ -10,6 +10,7 @@ import { useCanvasUndo } from './hooks/useCanvasUndo';
 import { LibraryPalette } from './components/canvas/LibraryPalette';
 import { vscode } from '../vscode';
 import type { IpCore, BusInterface } from '../types/ipCore';
+import '@vscode/codicons/dist/codicon.css';
 import '../index.css';
 
 // ---------------------------------------------------------------------------

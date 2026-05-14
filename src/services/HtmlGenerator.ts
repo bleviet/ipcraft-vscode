@@ -47,13 +47,6 @@ export class HtmlGenerator {
   ): string {
     const scriptUri = this.getWebviewUri(webview, 'dist', options.scriptName);
     const stylesheetUri = this.getWebviewUri(webview, 'dist', options.styleName);
-    const codiconsUri = this.getWebviewUri(
-      webview,
-      'node_modules',
-      '@vscode/codicons',
-      'dist',
-      'codicon.css'
-    );
 
     const csp = this.getContentSecurityPolicy(webview);
 
@@ -66,7 +59,7 @@ export class HtmlGenerator {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         ${csp}
-        ${this.getStylesheets(codiconsUri, stylesheetUri)}
+        ${this.getStylesheets(stylesheetUri)}
         <title>${options.title}</title>
       </head>
       <body class="bg-gray-50 text-gray-900 font-sans h-screen flex flex-col overflow-hidden">
@@ -99,13 +92,7 @@ export class HtmlGenerator {
     `;
   }
 
-  /**
-   * Get stylesheet links
-   */
-  private getStylesheets(codiconsUri: vscode.Uri, stylesheetUri: vscode.Uri): string {
-    return `
-      <link href="${codiconsUri.toString()}" rel="stylesheet" />
-      <link href="${stylesheetUri.toString()}" rel="stylesheet" />
-    `;
+  private getStylesheets(stylesheetUri: vscode.Uri): string {
+    return `<link href="${stylesheetUri.toString()}" rel="stylesheet" />`;
   }
 }
