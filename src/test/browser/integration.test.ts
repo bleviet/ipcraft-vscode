@@ -154,8 +154,7 @@ bus_interfaces:
     }
   });
 
-  test('should render IP Core navigation sidebar from injected YAML', async ({ page }) => {
-    // Wait for ready message from the webview
+  test('should render canvas view from injected YAML', async ({ page }) => {
     const readyPromise = page.waitForEvent('console', {
       predicate: (msg) => msg.text().includes('VSCODE_MESSAGE:') && msg.text().includes('"ready"'),
       timeout: 10000,
@@ -173,16 +172,12 @@ bus_interfaces:
       window.postMessage({ type: 'update', text: yaml, fileName: 'test_core.ip.yml' }, '*');
     }, sampleIpCoreYaml);
 
-    // Switch to table view — the navigation sidebar is only rendered in table mode
-    await page.getByRole('button', { name: 'Table view' }).click();
-
-    // The navigation sidebar should render known section labels
-    await expect(page.locator('nav').getByText('Metadata')).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('nav').getByText('Bus Interfaces')).toBeVisible({ timeout: 5000 });
-    await expect(page.locator('nav').getByText('Ports')).toBeVisible({ timeout: 5000 });
+    // The header should show the file name and VLNV info
+    await expect(page.getByText('test_core.ip.yml')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/test\.com.*smoke.*test_core/)).toBeVisible({ timeout: 5000 });
   });
 
-  test('should navigate to Metadata section and display VLNV fields', async ({ page }) => {
+  test('should display VLNV info in header from injected YAML', async ({ page }) => {
     const readyPromise = page.waitForEvent('console', {
       predicate: (msg) => msg.text().includes('VSCODE_MESSAGE:') && msg.text().includes('"ready"'),
       timeout: 10000,
@@ -196,15 +191,12 @@ bus_interfaces:
       window.postMessage({ type: 'update', text: yaml, fileName: 'test_core.ip.yml' }, '*');
     }, sampleIpCoreYaml);
 
-    // Switch to table view — the navigation sidebar is only rendered in table mode
-    await page.getByRole('button', { name: 'Table view' }).click();
+    // The canvas view should be the only view — verify no table-view toggle exists
+    await expect(page.getByRole('button', { name: 'Table view' })).not.toBeVisible({
+      timeout: 5000,
+    });
 
-    // Click Metadata in sidebar
-    await page.locator('nav').getByText('Metadata').click();
-
-    // The editor panel should show the Metadata heading and VLNV row labels
-    await expect(page.locator('h2', { hasText: 'Metadata' })).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText('Vendor')).toBeVisible({ timeout: 5000 });
-    await expect(page.getByText('Name')).toBeVisible({ timeout: 5000 });
+    // VLNV info visible in header
+    await expect(page.getByText(/test\.com/)).toBeVisible({ timeout: 10000 });
   });
 });

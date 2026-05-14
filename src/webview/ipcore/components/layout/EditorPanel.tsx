@@ -1,31 +1,15 @@
-import React, { RefObject, useEffect, useRef } from 'react';
+import React from 'react';
 import type { YamlUpdateHandler } from '../../../types/editor';
 import type { IpCore } from '../../../types/ipCore';
-import { MetadataEditor } from '../sections/MetadataEditor';
-import { ClocksTable } from '../sections/ClocksTable';
-import { ResetsTable } from '../sections/ResetsTable';
-import { PortsTable } from '../sections/PortsTable';
-import { ParametersTable } from '../sections/ParametersTable';
-import { FileSetsEditor } from '../sections/FileSetsEditor';
-import { BusInterfacesEditor } from '../sections/BusInterfacesEditor';
-import { MemoryMapsEditor } from '../sections/MemoryMapsEditor';
-import { GeneratorPanel } from '../sections/GeneratorPanel';
-import { SubcoresEditor } from '../sections/SubcoresEditor';
 import { IpBlockCanvas } from '../canvas/IpBlockCanvas';
-import { Section } from '../../hooks/useNavigation';
-
-export type ViewMode = 'table' | 'canvas';
 
 interface EditorPanelProps {
-  selectedSection: Section;
-  viewMode: ViewMode;
   ipCore: IpCore | null;
   imports?: { busLibrary?: unknown; memoryMaps?: unknown[] };
   onUpdate: YamlUpdateHandler;
   isFocused?: boolean;
   onFocus?: () => void;
-  panelRef?: RefObject<HTMLDivElement>;
-  highlight?: { entityName: string; field: string };
+  panelRef?: React.RefObject<HTMLDivElement>;
   canvasSelectedId?: string | null;
   onCanvasSelect?: (id: string | null) => void;
   onCanvasDragOver?: (e: React.DragEvent) => void;
@@ -33,129 +17,23 @@ interface EditorPanelProps {
   onCanvasRemove?: (kind: string, id: string) => void;
 }
 
-/**
- * Main editor panel that displays the selected section
- */
 export const EditorPanel: React.FC<EditorPanelProps> = ({
-  selectedSection,
-  viewMode,
   ipCore,
   imports = {},
   onUpdate,
   isFocused = false,
   onFocus,
   panelRef,
-  highlight,
   canvasSelectedId = null,
   onCanvasSelect,
   onCanvasDragOver,
   onCanvasDrop,
   onCanvasRemove,
 }) => {
-  const contentRef = useRef<HTMLDivElement>(null);
-  const ip = ipCore as IpCore;
-
-  // Auto-focus the inner table container when panel receives focus
-  useEffect(() => {
-    if (isFocused && contentRef.current) {
-      // Find and focus the first focusable element with tabIndex (table container)
-      const focusableElement = contentRef.current.querySelector('[tabindex="0"]') as HTMLElement;
-      if (focusableElement) {
-        focusableElement.focus();
-      }
-    }
-  }, [isFocused]);
-
-  if (!ip) {
+  if (!ipCore) {
     return (
       <div className="flex-1 flex items-center justify-center text-gray-500">
         <p>No IP core loaded</p>
-      </div>
-    );
-  }
-
-  const renderSection = () => {
-    switch (selectedSection) {
-      case 'metadata':
-        return <MetadataEditor ipCore={ip} onUpdate={onUpdate} />;
-      case 'clocks':
-        return (
-          <ClocksTable
-            clocks={ip.clocks ?? []}
-            busInterfaces={ip.busInterfaces ?? []}
-            onUpdate={onUpdate}
-          />
-        );
-      case 'resets':
-        return (
-          <ResetsTable
-            resets={ip.resets ?? []}
-            busInterfaces={ip.busInterfaces ?? []}
-            onUpdate={onUpdate}
-          />
-        );
-      case 'ports':
-        return (
-          <PortsTable
-            ports={ip.ports ?? []}
-            onUpdate={onUpdate}
-            parameters={(ip.parameters ?? []) as Array<{ name: string; dataType?: string }>}
-          />
-        );
-      case 'busInterfaces':
-        return (
-          <BusInterfacesEditor
-            busInterfaces={ip.busInterfaces ?? []}
-            busLibrary={imports.busLibrary}
-            imports={imports}
-            clocks={ip.clocks ?? []}
-            resets={ip.resets ?? []}
-            parameters={ip.parameters ?? []}
-            onUpdate={onUpdate}
-            highlight={highlight}
-          />
-        );
-      case 'subcores':
-        return <SubcoresEditor subcores={ip.subcores ?? []} onUpdate={onUpdate} />;
-      case 'memoryMaps':
-        return (
-          <MemoryMapsEditor memoryMaps={ip.memoryMaps} imports={imports} onUpdate={onUpdate} />
-        );
-      case 'parameters':
-        return <ParametersTable parameters={ip.parameters ?? []} onUpdate={onUpdate} />;
-      case 'fileSets':
-        return <FileSetsEditor fileSets={ip.fileSets ?? []} onUpdate={onUpdate} />;
-      case 'generate':
-        return <GeneratorPanel ipCore={ip} />;
-      default:
-        return <div>Unknown section</div>;
-    }
-  };
-
-  if (viewMode === 'canvas' && ip) {
-    return (
-      <div
-        ref={panelRef}
-        tabIndex={-1}
-        onClick={onFocus}
-        className="flex-1 min-w-0 outline-none"
-        style={{
-          outline: isFocused ? '1px solid var(--vscode-focusBorder)' : 'none',
-          outlineOffset: '-1px',
-          opacity: isFocused ? 1 : 0.7,
-          transition: 'opacity 0.2s',
-        }}
-      >
-        <IpBlockCanvas
-          ipCore={ip}
-          selectedId={canvasSelectedId}
-          onSelect={onCanvasSelect ?? (() => {})}
-          onUpdate={onUpdate}
-          onDragOver={onCanvasDragOver}
-          onDrop={onCanvasDrop}
-          onRemove={onCanvasRemove}
-          busLibrary={imports.busLibrary as Record<string, unknown> | undefined}
-        />
       </div>
     );
   }
@@ -165,7 +43,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
       ref={panelRef}
       tabIndex={-1}
       onClick={onFocus}
-      className="flex-1 overflow-y-auto min-w-0 outline-none"
+      className="flex-1 min-w-0 outline-none"
       style={{
         outline: isFocused ? '1px solid var(--vscode-focusBorder)' : 'none',
         outlineOffset: '-1px',
@@ -173,7 +51,16 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
         transition: 'opacity 0.2s',
       }}
     >
-      <div ref={contentRef}>{renderSection()}</div>
+      <IpBlockCanvas
+        ipCore={ipCore}
+        selectedId={canvasSelectedId}
+        onSelect={onCanvasSelect ?? (() => {})}
+        onUpdate={onUpdate}
+        onDragOver={onCanvasDragOver}
+        onDrop={onCanvasDrop}
+        onRemove={onCanvasRemove}
+        busLibrary={imports.busLibrary as Record<string, unknown> | undefined}
+      />
     </div>
   );
 };

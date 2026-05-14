@@ -1,10 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
-import { NavigationSidebar } from './components/layout/NavigationSidebar';
-import { EditorPanel, type ViewMode } from './components/layout/EditorPanel';
+import { EditorPanel } from './components/layout/EditorPanel';
 import { CanvasInspector } from './components/canvas/CanvasInspector';
 import { useIpCoreState } from './hooks/useIpCoreState';
-import { useNavigation } from './hooks/useNavigation';
 import { useIpCoreSync } from './hooks/useIpCoreSync';
 import { useCanvasSelection } from './hooks/useCanvasSelection';
 import { useCanvasDrop } from './hooks/useCanvasDrop';
@@ -13,8 +11,6 @@ import { LibraryPalette } from './components/canvas/LibraryPalette';
 import { vscode } from '../vscode';
 import type { IpCore, BusInterface } from '../types/ipCore';
 import '../index.css';
-
-export type FocusedPanel = 'left' | 'right';
 
 // ---------------------------------------------------------------------------
 // Toolbar primitives
@@ -84,7 +80,6 @@ const IpCoreApp: React.FC = () => {
     updateIpCore: baseUpdateIpCore,
     getValidationErrors,
   } = useIpCoreState();
-  const { selectedSection, navigate } = useNavigation();
   useIpCoreSync(rawYaml);
 
   // Undo/Redo stack for canvas actions
@@ -120,12 +115,6 @@ const IpCoreApp: React.FC = () => {
     setToast(message);
     toastTimerRef.current = setTimeout(() => setToast(null), 4000);
   }, []);
-
-  // Sidebar toggle state for mobile
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  // Canvas vs table view mode
-  const [viewMode, setViewMode] = useState<ViewMode>('canvas');
 
   // Whether amd/component.xml exists alongside this .ip.yml (sent by extension on each update)
   const [hasComponentXml, setHasComponentXml] = useState(false);
@@ -299,59 +288,24 @@ const IpCoreApp: React.FC = () => {
     canvasDeselect();
   }, [canvasSelected, ipCore, updateIpCore, canvasDeselect]);
 
-  // Panel focus state for Ctrl+H/L navigation
-  const [focusedPanel, setFocusedPanel] = useState<FocusedPanel>('left');
-  const leftPanelRef = useRef<HTMLDivElement>(null);
-  const rightPanelRef = useRef<HTMLDivElement>(null);
-
-  // Highlight state for validation errors
-  const [highlight, setHighlight] = useState<{ entityName: string; field: string } | undefined>(
-    undefined
-  );
-
   const validationErrors = getValidationErrors();
 
-  // Clear highlight if the error is no longer in the validation list (e.g., fixed by undo or edit)
-  useEffect(() => {
-    if (highlight) {
-      const errorStillExists = validationErrors.some(
-        (e) => e.entityName === highlight.entityName && e.field === highlight.field
-      );
-      if (!errorStillExists) {
-        setHighlight(undefined);
-      }
-    }
-  }, [validationErrors, highlight]);
-
-  // Handle global keyboard shortcuts for panel switching and canvas deletion
+  // Handle global keyboard shortcuts for canvas deletion
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const activeTag = document.activeElement?.tagName.toLowerCase();
       const isTyping = activeTag === 'input' || activeTag === 'textarea';
 
-      // Ctrl+H: Focus left panel
-      if (e.ctrlKey && e.key.toLowerCase() === 'h') {
-        e.preventDefault();
-        setFocusedPanel('left');
-        leftPanelRef.current?.focus();
-      }
-      // Ctrl+L: Focus right panel (EditorPanel's useEffect will auto-focus the table)
-      else if (e.ctrlKey && e.key.toLowerCase() === 'l') {
-        e.preventDefault();
-        setFocusedPanel('right');
-        // The EditorPanel will auto-focus the inner table container via its useEffect
-      }
-      // Delete: remove selected canvas element (ports, buses, clocks, resets, generics)
-      else if (e.key === 'Delete' && !isTyping && viewMode === 'canvas' && canvasSelected) {
+      // Delete: remove selected canvas element
+      if (e.key === 'Delete' && !isTyping && canvasSelected) {
         e.preventDefault();
         handleInspectorDelete();
       }
-      // Ctrl+D: duplicate selected canvas element (bus interfaces become arrays)
+      // Ctrl+D: duplicate selected canvas element
       else if (
         (e.ctrlKey || e.metaKey) &&
         e.key.toLowerCase() === 'd' &&
         !isTyping &&
-        viewMode === 'canvas' &&
         canvasSelected
       ) {
         e.preventDefault();
@@ -361,7 +315,7 @@ const IpCoreApp: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [viewMode, canvasSelected, handleInspectorDelete, handleDuplicate]);
+  }, [canvasSelected, handleInspectorDelete, handleDuplicate]);
 
   // Notify extension that webview is ready
   useEffect(() => {
@@ -413,18 +367,6 @@ const IpCoreApp: React.FC = () => {
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            {/* Mobile sidebar toggle (table mode only) */}
-            {viewMode === 'table' && (
-              <button
-                className="sidebar-toggle-btn p-2 rounded-md transition-colors vscode-icon-button"
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                title="Toggle navigation"
-                aria-label="Toggle navigation"
-                type="button"
-              >
-                <span className="codicon codicon-menu"></span>
-              </button>
-            )}
             <h1 className="text-sm font-semibold">{fileName || 'IP Core Editor'}</h1>
             {typedIpCore?.vlnv && typeof typedIpCore.vlnv === 'object' && (
               <span className="text-xs" style={{ opacity: 0.7 }}>
@@ -433,54 +375,34 @@ const IpCoreApp: React.FC = () => {
             )}
           </div>
           <div className="flex items-center gap-3">
-            {/* View mode toggle */}
             <div className="flex items-center gap-1">
               <button
-                className={`canvas-view-toggle`}
+                className="canvas-view-toggle"
                 onClick={undo}
-                disabled={!canUndo || viewMode === 'table'}
+                disabled={!canUndo}
                 title="Undo (Ctrl+Z)"
                 aria-label="Undo"
                 type="button"
                 style={{
-                  opacity: !canUndo || viewMode === 'table' ? 0.4 : 1,
-                  cursor: !canUndo || viewMode === 'table' ? 'not-allowed' : 'pointer',
+                  opacity: !canUndo ? 0.4 : 1,
+                  cursor: !canUndo ? 'not-allowed' : 'pointer',
                 }}
               >
                 <span className="codicon codicon-discard"></span>
               </button>
               <button
-                className={`canvas-view-toggle`}
+                className="canvas-view-toggle"
                 onClick={redo}
-                disabled={!canRedo || viewMode === 'table'}
+                disabled={!canRedo}
                 title="Redo (Ctrl+Y)"
                 aria-label="Redo"
                 type="button"
                 style={{
-                  opacity: !canRedo || viewMode === 'table' ? 0.4 : 1,
-                  cursor: !canRedo || viewMode === 'table' ? 'not-allowed' : 'pointer',
+                  opacity: !canRedo ? 0.4 : 1,
+                  cursor: !canRedo ? 'not-allowed' : 'pointer',
                 }}
               >
                 <span className="codicon codicon-redo"></span>
-              </button>
-              <div style={{ width: '8px' }}></div>
-              <button
-                className={`canvas-view-toggle ${viewMode === 'canvas' ? 'canvas-view-toggle--active' : ''}`}
-                onClick={() => setViewMode('canvas')}
-                title="Canvas view"
-                aria-label="Canvas view"
-                type="button"
-              >
-                <span className="codicon codicon-symbol-misc"></span>
-              </button>
-              <button
-                className={`canvas-view-toggle ${viewMode === 'table' ? 'canvas-view-toggle--active' : ''}`}
-                onClick={() => setViewMode('table')}
-                title="Table view"
-                aria-label="Table view"
-                type="button"
-              >
-                <span className="codicon codicon-list-flat"></span>
               </button>
             </div>
             {/* Action groups */}
@@ -631,45 +553,20 @@ const IpCoreApp: React.FC = () => {
           </div>
         ) : (
           <>
-            {/* Sidebar (table mode only) */}
-            {viewMode === 'table' && (
-              <>
-                {sidebarOpen && (
-                  <div className="sidebar-backdrop active" onClick={() => setSidebarOpen(false)} />
-                )}
-                <NavigationSidebar
-                  selectedSection={selectedSection}
-                  onNavigate={navigate}
-                  ipCore={{ ...typedIpCore, imports }}
-                  isFocused={focusedPanel === 'left'}
-                  onFocus={() => setFocusedPanel('left')}
-                  panelRef={leftPanelRef}
-                  className={sidebarOpen ? 'sidebar-open' : ''}
-                />
-              </>
-            )}
-
-            {/* Library Palette (canvas mode only) */}
-            {viewMode === 'canvas' && <LibraryPalette busLibrary={imports?.busLibrary} />}
+            <LibraryPalette busLibrary={imports?.busLibrary} />
 
             <EditorPanel
-              selectedSection={selectedSection}
-              viewMode={viewMode}
               ipCore={typedIpCore}
               imports={imports}
               onUpdate={updateIpCore}
-              isFocused={viewMode === 'canvas' || focusedPanel === 'right'}
-              onFocus={() => setFocusedPanel('right')}
-              panelRef={rightPanelRef}
-              highlight={highlight}
+              isFocused={true}
               canvasSelectedId={canvasSelectedId}
               onCanvasSelect={canvasSelect}
               onCanvasDragOver={onCanvasDragOver}
               onCanvasDrop={onCanvasDrop}
               onCanvasRemove={handleCanvasRemove}
             />
-            {/* Context-aware inspector (canvas mode only) */}
-            {viewMode === 'canvas' && canvasSelected && typedIpCore && (
+            {canvasSelected && typedIpCore && (
               <CanvasInspector
                 selected={canvasSelected}
                 ipCore={typedIpCore}
@@ -695,20 +592,7 @@ const IpCoreApp: React.FC = () => {
           <p className="text-sm font-semibold mb-1">Reference Validation Errors:</p>
           <ul className="text-xs list-disc list-inside">
             {validationErrors.map((error, idx) => (
-              <li
-                key={idx}
-                className="cursor-pointer hover:underline"
-                onClick={() => {
-                  navigate(error.section);
-                  setHighlight({
-                    entityName: error.entityName,
-                    field: error.field,
-                  });
-                  setFocusedPanel('right');
-                }}
-              >
-                {error.message}
-              </li>
+              <li key={idx}>{error.message}</li>
             ))}
           </ul>
         </div>
