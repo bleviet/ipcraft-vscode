@@ -26,9 +26,9 @@ IPCraft can import from three source formats:
 2. Run `IPCraft: Parse VHDL to .ip.yml`
 3. Select the VHDL file from the file picker
 
-**Explorer context menu:**
+**IPCraft application menu:**
 
-Right-click a `.vhd` or `.vhdl` file → **IPCraft: Parse VHDL to .ip.yml**
+Open the **IPCraft** top-level menu → **Import** group → **Parse VHDL to .ip.yml**
 
 **Editor title bar:**
 
@@ -40,17 +40,22 @@ Open a `.vhd` or `.vhdl` file → click the **Parse VHDL to .ip.yml** icon in th
 |----------------|---------------|
 | Entity name | `vlnv.name` |
 | `generic` declarations | `parameters` (name, type, default value) |
-| Ports ending in `clk`, `clock`, `aclk` | `clocks` |
-| Ports ending in `rst`, `reset`, `rst_n`, `aresetn` | `resets` (polarity auto-detected) |
+| Ports ending in `clk`, `clock`, `aclk` | `clocks` (with `associatedReset` when unambiguous) |
+| Ports ending in `rst`, `reset`, `rst_n`, `aresetn` | `resets` (polarity auto-detected; `associatedClock` set when unambiguous) |
 | Remaining port declarations | `ports` (direction, width, logical name) |
-| AXI-Lite or Avalon-MM port patterns | `busInterfaces` (type, mode, physical prefix) |
+| Bus port patterns | `busInterfaces` (type, mode, physical prefix, `associatedClock`, `associatedReset`) |
 
-**Bus interface detection:** The parser looks for known signal name patterns:
+**Bus interface detection:** The parser scores every candidate signal-name prefix against all supported bus definitions and picks the best-matching bus type for each prefix. A pollution check rejects prefixes whose unrecognized sibling signals outnumber the matched bus signals, which prevents false-positive matches (e.g. a `rd_data`/`rd_valid` pair triggering an Avalon-ST hit when `rd_en` and `rd_addr` are also present).
 
-- **AXI-Lite** — detected when 4+ ports match `<prefix>awaddr`, `<prefix>awvalid`, `<prefix>wdata`, etc.
-- **Avalon-MM** — detected when 3+ ports match `<prefix>address`, `<prefix>read`, `<prefix>writedata`, etc.
+| Bus type | Min matched signals | Disambiguation |
+|----------|:------------------:|----------------|
+| **AXI4-Full** | 8 | Requires at least one exclusive signal (`awlen`, `awburst`, `wlast`, `rlast`) |
+| **AXI4-Lite** | 4 | Matched when AXI4-Full exclusive signals are absent |
+| **AXI-Stream** | 2 | `tvalid` + `tdata` (or `tvalid` + `tready`) |
+| **Avalon-MM** | 3 | `address` + `read`/`write` + `readdata`/`writedata` |
+| **Avalon-ST** | 2 | `valid` + `data` (rejected if pollution ratio is high) |
 
-The prefix (e.g., `s_axi_`) is set as `physicalPrefix`.
+The prefix (e.g., `s_axi_`) is set as `physicalPrefix`. When the module has exactly one clock and one reset port, `associatedClock` and `associatedReset` are set on all detected bus interfaces automatically.
 
 **Port widths:**
 
@@ -84,9 +89,9 @@ Creates `<entity_name>.ip.yml` in the same directory as the source VHDL file. Op
 1. Run `IPCraft: Parse Altera Platform Designer Component (_hw.tcl) to .ip.yml`
 2. Select the `_hw.tcl` file from the file picker
 
-**Explorer context menu:**
+**IPCraft application menu:**
 
-Right-click a `_hw.tcl` file → **IPCraft: Parse Altera Platform Designer Component (_hw.tcl) to .ip.yml**
+Open the **IPCraft** top-level menu → **Import** group → **Parse Altera Platform Designer Component (_hw.tcl) to .ip.yml**
 
 **Editor title bar:**
 
@@ -111,9 +116,9 @@ Creates `<component_name>.ip.yml` in the same directory as the `_hw.tcl` file.
 1. Run `IPCraft: Parse Xilinx component.xml to .ip.yml`
 2. Select the `component.xml` file from the file picker
 
-**Explorer context menu:**
+**IPCraft application menu:**
 
-Right-click `component.xml` → **IPCraft: Parse Xilinx component.xml to .ip.yml**
+Open the **IPCraft** top-level menu → **Import** group → **Parse Xilinx component.xml to .ip.yml**
 
 **Editor title bar:**
 

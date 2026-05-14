@@ -6,15 +6,15 @@ Complete reference for all IPCraft commands, context menus, and configuration se
 
 ## Commands
 
-All commands are available in the Command Palette (`Ctrl+Shift+P`) under the **IPCraft** category. The tables below also indicate where each command appears in context menus.
+All commands are available in the Command Palette (`Ctrl+Shift+P`) under the **IPCraft** category. Many commands are also reachable from the **IPCraft** top-level application menu bar entry or from the editor title bar icon.
 
 ### Create
 
-| Command | Palette | Explorer | Editor Title |
-|---------|:-------:|:--------:|:------------:|
-| `IPCraft: New IP Core` | ✓ | | |
-| `IPCraft: New Memory Map` | ✓ | | |
-| `IPCraft: New IP Core + Memory Map` | ✓ | | |
+| Command | Palette | IPCraft Menu | Editor Title |
+|---------|:-------:|:------------:|:------------:|
+| `IPCraft: New IP Core` | ✓ | ✓ | |
+| `IPCraft: New Memory Map` | ✓ | ✓ | |
+| `IPCraft: New IP Core + Memory Map` | ✓ | ✓ | |
 
 **New IP Core** — Creates a new `.ip.yml` file with a minimal VLNV skeleton and opens it in the IP Core visual editor.
 
@@ -28,11 +28,11 @@ All commands are available in the Command Palette (`Ctrl+Shift+P`) under the **I
 
 These commands are available on `.ip.yml` files.
 
-| Command | Palette | Explorer | Editor Title |
-|---------|:-------:|:--------:|:------------:|
+| Command | Palette | IPCraft Menu | Editor Title |
+|---------|:-------:|:------------:|:------------:|
 | `IPCraft: Scaffold VHDL Project` | ✓ | ✓ | ✓ |
 | `IPCraft: Generate VHDL` | ✓ | | |
-| `IPCraft: Generate CocoTB Testbench` | ✓ | | ✓ |
+| `IPCraft: Generate CocoTB Testbench` | ✓ | ✓ | ✓ |
 | `IPCraft: Generate Vivado Project` | ✓ | ✓ | ✓ |
 | `IPCraft: Generate Quartus Project` | ✓ | ✓ | ✓ |
 | `IPCraft: Generate Altera Platform Designer Component (_hw.tcl)` | ✓ | ✓ | ✓ |
@@ -58,10 +58,10 @@ These commands are available on `.ip.yml` files.
 
 These commands are available on `.ip.yml` files and require vendor tools installed and reachable (see Settings below).
 
-| Command | Palette | Explorer | Editor Title | Status Bar |
-|---------|:-------:|:--------:|:------------:|:----------:|
+| Command | Palette | IPCraft Menu | Editor Title | Status Bar |
+|---------|:-------:|:------------:|:------------:|:----------:|
 | `IPCraft: Build` | ✓ | ✓ | ✓ | |
-| `IPCraft: Show Build Output` | ✓ | | | ✓ (click) |
+| `IPCraft: Show Build Output` | ✓ | ✓ | | ✓ (click) |
 
 **Build** — Detects available build targets by checking for `xilinx/<ip_name>_run_ooc.tcl`, `xilinx/<ip_name>_run_xpr.tcl`, and `altera/<ip_name>_project.tcl`. When multiple targets exist, a QuickPick is shown. The selected tool runs in batch mode; output streams live to the *IPCraft Build* Output Channel. On completion, the *IPCraft Build* sidebar panel updates with parsed timing and utilization metrics.
 
@@ -79,13 +79,13 @@ Available build targets:
 
 ### Import
 
-| Command | Palette | Explorer | Editor Title |
-|---------|:-------:|:--------:|:------------:|
-| `IPCraft: Parse VHDL to .ip.yml` | ✓ | ✓ (`.vhd`, `.vhdl`) | ✓ (`.vhd`, `.vhdl`) |
-| `IPCraft: Parse Altera Platform Designer Component (_hw.tcl) to .ip.yml` | ✓ | ✓ (`_hw.tcl`) | ✓ (`_hw.tcl`) |
-| `IPCraft: Parse Xilinx component.xml to .ip.yml` | ✓ | ✓ (`component.xml`) | ✓ (`component.xml`) |
+| Command | Palette | IPCraft Menu | Editor Title |
+|---------|:-------:|:------------:|:------------:|
+| `IPCraft: Parse VHDL to .ip.yml` | ✓ | ✓ | ✓ (`.vhd`, `.vhdl`) |
+| `IPCraft: Parse Altera Platform Designer Component (_hw.tcl) to .ip.yml` | ✓ | ✓ | ✓ (`_hw.tcl`) |
+| `IPCraft: Parse Xilinx component.xml to .ip.yml` | ✓ | ✓ | ✓ (`component.xml`) |
 
-**Parse VHDL to .ip.yml** — Parses a `.vhd` or `.vhdl` file and extracts entity name, generics, clock/reset/port signals, and AXI-Lite or Avalon-MM bus interfaces. Creates `<entity_name>.ip.yml` in the same directory.
+**Parse VHDL to .ip.yml** — Parses a `.vhd` or `.vhdl` file and extracts entity name, generics, clock/reset/port signals, and bus interfaces (AXI4-Full, AXI4-Lite, AXI-Stream, Avalon-MM, Avalon-ST). Creates `<entity_name>.ip.yml` in the same directory.
 
 **Parse Altera Platform Designer Component** — Parses a `_hw.tcl` file (Altera IP specification language) and creates an `.ip.yml` spec.
 
@@ -95,9 +95,9 @@ Available build targets:
 
 ### Vivado Integration
 
-| Command | Palette | Explorer | Editor Title |
-|---------|:-------:|:--------:|:------------:|
-| `IPCraft: Edit in IP Packager` | | ✓ (`component.xml`) | ✓ (`component.xml`) |
+| Command | Palette | IPCraft Menu | Editor Title |
+|---------|:-------:|:------------:|:------------:|
+| `IPCraft: Edit in IP Packager` | | ✓ | ✓ (`component.xml`) |
 | `IPCraft: Scan Vivado IP Catalog` | ✓ | | |
 
 **Edit in IP Packager** — Launches Vivado in GUI mode with the selected `component.xml`, opening it directly in the IP Packager. Requires `ipcraft.vivadoPath` to be set correctly.

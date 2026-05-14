@@ -13,7 +13,7 @@ How to scaffold a complete RTL project from an IP Core specification.
 
 1. Open your `.ip.yml` file (visual editor or text editor)
 2. Open the Command Palette (`Ctrl+Shift+P`) and run **IPCraft: Scaffold VHDL Project**
-   - Also available as a button in the editor title bar and in the Explorer right-click menu
+   - Also available as a button in the editor title bar and via the **IPCraft** top-level menu
 3. If the output directory already exists, confirm the overwrite prompt
 4. All files are written next to the `.ip.yml` file
 

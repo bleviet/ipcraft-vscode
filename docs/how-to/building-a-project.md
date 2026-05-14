@@ -11,8 +11,8 @@ How to compile an IP core headlessly — without opening Vivado or Quartus — a
 
 ## Run a Build
 
-1. Open a `.ip.yml` file in the IP Core editor, or right-click it in the Explorer
-2. Run **IPCraft: Build** from the Command Palette (`Ctrl+Shift+P`), the editor title bar, or the Explorer context menu
+1. Open a `.ip.yml` file in the IP Core editor
+2. Run **IPCraft: Build** from the Command Palette (`Ctrl+Shift+P`), the editor title bar, or the **IPCraft** top-level menu
 3. If multiple targets are available, a QuickPick appears — select one:
     - **Vivado OOC Synthesis** — fast, synthesis-only; good for checking synthesisability and resource estimates
     - **Vivado Full Implementation (XPR)** — synthesis + place + route; provides real timing numbers and a routed netlist
