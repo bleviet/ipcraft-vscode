@@ -18,6 +18,7 @@ TOPLEVEL_LANG ?= vhdl
 
 # VHDL source files (relative to tb/ directory)
 RTL_DIR = $(CURDIR)/../rtl
+{% if has_memory_mapped_slave %}
 VHDL_SOURCES += $(RTL_DIR)/{{ entity_name }}_pkg.vhd
 VHDL_SOURCES += $(RTL_DIR)/{{ entity_name }}_regs.vhd
 VHDL_SOURCES += $(RTL_DIR)/{{ entity_name }}_core.vhd
@@ -25,6 +26,7 @@ VHDL_SOURCES += $(RTL_DIR)/{{ entity_name }}_core.vhd
 VHDL_SOURCES += $(RTL_DIR)/{{ entity_name }}_{{ bus_type }}.vhd
 {% else %}
 VHDL_SOURCES += $(RTL_DIR)/{{ entity_name }}_avmm.vhd
+{% endif %}
 {% endif %}
 VHDL_SOURCES += $(RTL_DIR)/{{ entity_name }}.vhd
 

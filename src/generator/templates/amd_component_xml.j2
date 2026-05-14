@@ -308,6 +308,7 @@
   <spirit:fileSets>
     <spirit:fileSet>
       <spirit:name>amd_vhdlsynthesis_view_fileset</spirit:name>
+{% if has_memory_mapped_slave %}
       <spirit:file>
         <spirit:name>../rtl/{{ entity_name }}_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
@@ -332,6 +333,7 @@
         <spirit:userFileType>VHDL 2008</spirit:userFileType>
         <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
+{% endif %}
       <spirit:file>
         <spirit:name>../rtl/{{ entity_name }}.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
@@ -342,6 +344,7 @@
     </spirit:fileSet>
     <spirit:fileSet>
       <spirit:name>amd_vhdlbehavioralsimulation_view_fileset</spirit:name>
+{% if has_memory_mapped_slave %}
       <spirit:file>
         <spirit:name>../rtl/{{ entity_name }}_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
@@ -366,6 +369,7 @@
         <spirit:userFileType>VHDL 2008</spirit:userFileType>
         <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
+{% endif %}
       <spirit:file>
         <spirit:name>../rtl/{{ entity_name }}.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>

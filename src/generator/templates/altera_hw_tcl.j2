@@ -154,18 +154,22 @@ add_fileset QUARTUS_SYNTH QUARTUS_SYNTH "" ""
 set_fileset_property QUARTUS_SYNTH TOP_LEVEL {{ entity_name }}
 set_fileset_property QUARTUS_SYNTH ENABLE_RELATIVE_INCLUDE_PATHS false
 set_fileset_property QUARTUS_SYNTH ENABLE_FILE_OVERWRITE_MODE false
+{% if has_memory_mapped_slave %}
 add_fileset_file {{ entity_name }}_pkg.vhd VHDL PATH ../rtl/{{ entity_name }}_pkg.vhd
 add_fileset_file {{ entity_name }}_regs.vhd VHDL PATH ../rtl/{{ entity_name }}_regs.vhd
 add_fileset_file {{ entity_name }}_core.vhd VHDL PATH ../rtl/{{ entity_name }}_core.vhd
 add_fileset_file {{ entity_name }}_{{ bus_type }}.vhd VHDL PATH ../rtl/{{ entity_name }}_{{ bus_type }}.vhd
+{% endif %}
 add_fileset_file {{ entity_name }}.vhd VHDL PATH ../rtl/{{ entity_name }}.vhd TOP_LEVEL_FILE
 
 add_fileset SIM_VHDL SIM_VHDL "" ""
 set_fileset_property SIM_VHDL TOP_LEVEL {{ entity_name }}
 set_fileset_property SIM_VHDL ENABLE_RELATIVE_INCLUDE_PATHS false
 set_fileset_property SIM_VHDL ENABLE_FILE_OVERWRITE_MODE false
+{% if has_memory_mapped_slave %}
 add_fileset_file {{ entity_name }}_pkg.vhd VHDL PATH ../rtl/{{ entity_name }}_pkg.vhd
 add_fileset_file {{ entity_name }}_regs.vhd VHDL PATH ../rtl/{{ entity_name }}_regs.vhd
 add_fileset_file {{ entity_name }}_core.vhd VHDL PATH ../rtl/{{ entity_name }}_core.vhd
 add_fileset_file {{ entity_name }}_{{ bus_type }}.vhd VHDL PATH ../rtl/{{ entity_name }}_{{ bus_type }}.vhd
+{% endif %}
 add_fileset_file {{ entity_name }}.vhd VHDL PATH ../rtl/{{ entity_name }}.vhd TOP_LEVEL_FILE
