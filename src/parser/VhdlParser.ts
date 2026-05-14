@@ -526,16 +526,29 @@ function detectBusInterfaces(
         }
       }
 
-      if (requiredCount >= busDef.minRequired) {
-        candidates.push({
-          prefix,
-          busDef,
-          requiredCount,
-          totalCount,
-          mode: slaveVotes >= masterVotes ? 'slave' : 'master',
-          matchedPorts,
-        });
+      if (requiredCount < busDef.minRequired) {
+        continue;
       }
+      // For prefixed groups, reject the candidate when the number of same-prefix
+      // ports that the bus definition does NOT explain is at least as large as the
+      // number it does explain.  This prevents generic suffixes like "data"/"valid"
+      // from triggering Avalon-ST (or similar) on a plain register-bank interface
+      // that happens to have rd_data / rd_valid alongside rd_en / rd_addr.
+      if (prefix) {
+        const samePrefixCount = [...portMap.keys()].filter((k) => k.startsWith(prefix)).length;
+        const unrecognizedCount = samePrefixCount - matchedPorts.size;
+        if (unrecognizedCount >= matchedPorts.size) {
+          continue;
+        }
+      }
+      candidates.push({
+        prefix,
+        busDef,
+        requiredCount,
+        totalCount,
+        mode: slaveVotes >= masterVotes ? 'slave' : 'master',
+        matchedPorts,
+      });
     }
   }
 
