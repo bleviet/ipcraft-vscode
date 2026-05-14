@@ -174,7 +174,9 @@ bus_interfaces:
 
     // The header should show the file name and VLNV info
     await expect(page.getByText('test_core.ip.yml')).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText(/test\.com.*smoke.*test_core/)).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('span', { hasText: /test\.com.*smoke.*test_core/ })).toBeVisible({
+      timeout: 5000,
+    });
   });
 
   test('should display VLNV info in header from injected YAML', async ({ page }) => {
@@ -197,6 +199,6 @@ bus_interfaces:
     });
 
     // VLNV info visible in header
-    await expect(page.getByText(/test\.com/)).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('span', { hasText: /test\.com/ })).toBeVisible({ timeout: 10000 });
   });
 });
