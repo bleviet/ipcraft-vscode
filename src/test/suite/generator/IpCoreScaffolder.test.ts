@@ -80,7 +80,7 @@ describe('IpCoreScaffolder', () => {
     expect(writtenFiles.some((f) => f.includes('rtl/sample_core_regs.vhd'))).toBe(true);
     expect(writtenFiles.some((f) => f.includes('tb/Makefile'))).toBe(true);
     expect(writtenFiles.some((f) => f.includes('altera/sample_core_hw.tcl'))).toBe(true);
-    expect(writtenFiles.some((f) => f.includes('amd/component.xml'))).toBe(true);
+    expect(writtenFiles.some((f) => f.includes('xilinx/component.xml'))).toBe(true);
 
     // Verify content of one file
     const vhdlContent = (fs.writeFile as unknown as jest.Mock).mock.calls.find((call) =>

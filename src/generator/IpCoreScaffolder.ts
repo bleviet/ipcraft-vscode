@@ -98,15 +98,19 @@ export class IpCoreScaffolder {
         const rtlFiles = Object.keys(files)
           .filter((f) => f.startsWith('rtl/'))
           .map((f) => `../${f}`);
-        files['amd/component.xml'] = generateComponentXml(ipCoreData, this.busDefinitions ?? {}, {
-          rtlFiles,
-          xguiFile,
-        });
+        files['xilinx/component.xml'] = generateComponentXml(
+          ipCoreData,
+          this.busDefinitions ?? {},
+          {
+            rtlFiles,
+            xguiFile,
+          }
+        );
         const customBusDefs = generateCustomBusDefs(ipCoreData, this.busDefinitions ?? {});
         for (const [relPath, content] of Object.entries(customBusDefs)) {
-          files[`amd/${relPath}`] = content;
+          files[`xilinx/${relPath}`] = content;
         }
-        files[`amd/${xguiFile}`] = this.templates.render('amd_xgui.j2', context);
+        files[`xilinx/${xguiFile}`] = this.templates.render('amd_xgui.j2', context);
       }
 
       if (options.includeVivadoProject) {
@@ -121,11 +125,11 @@ export class IpCoreScaffolder {
           rtl_files: rtlFiles,
           xdc_file: xdcRelPath,
         };
-        files[`vivado/${name}_project.tcl`] = this.templates.render(
+        files[`xilinx/${name}_project.tcl`] = this.templates.render(
           'vivado_project.tcl.j2',
           vivadoContext
         );
-        files[`vivado/${xdcRelPath}`] = this.templates.render('vivado_ooc.xdc.j2', vivadoContext);
+        files[`xilinx/${xdcRelPath}`] = this.templates.render('vivado_ooc.xdc.j2', vivadoContext);
       }
 
       if (options.includeQuartusProject) {
@@ -142,11 +146,11 @@ export class IpCoreScaffolder {
           rtl_files: rtlFiles,
           sdc_file: sdcRelPath,
         };
-        files[`quartus/${name}_project.tcl`] = this.templates.render(
+        files[`altera/${name}_project.tcl`] = this.templates.render(
           'quartus_project.tcl.j2',
           quartusContext
         );
-        files[`quartus/${sdcRelPath}`] = this.templates.render('quartus_sdc.j2', quartusContext);
+        files[`altera/${sdcRelPath}`] = this.templates.render('quartus_sdc.j2', quartusContext);
       }
 
       const written: Record<string, string> = {};
