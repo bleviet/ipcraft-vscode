@@ -44,23 +44,18 @@ architecture rtl of {{ entity_name }}_axil is
   constant C_RESP_SLVERR : std_logic_vector(1 downto 0) := "10";
 
   -- AXI internal signals
-  signal awaddr  : std_logic_vector(C_ADDR_WIDTH - 1 downto 0) := (others => '0');
-  signal awready : std_logic                                    := '0';
-  signal wready  : std_logic                                    := '0';
-  signal bresp   : std_logic_vector(1 downto 0)                 := C_RESP_OKAY;
-  signal bvalid  : std_logic                                    := '0';
-  signal araddr  : std_logic_vector(C_ADDR_WIDTH - 1 downto 0) := (others => '0');
-  signal arready : std_logic                                    := '0';
-  signal rdata   : std_logic_vector(C_DATA_WIDTH - 1 downto 0) := (others => '0');
-  signal rresp   : std_logic_vector(1 downto 0)                 := C_RESP_OKAY;
-  signal rvalid  : std_logic                                    := '0';
-  signal awvalid : std_logic                                    := '0';
-  signal wvalid  : std_logic                                    := '0';
-  signal arvalid : std_logic                                    := '0';
-  signal rready  : std_logic                                    := '0';
-  signal wdata   : std_logic_vector(C_DATA_WIDTH - 1 downto 0) := (others => '0');
-  signal wstrb   : std_logic_vector((C_DATA_WIDTH/8) - 1 downto 0) := (others => '0');
-  signal bready  : std_logic                                    := '0';
+{% for port in bus_ports %}
+{% if port.logical_name != 'AWPROT' and port.logical_name != 'ARPROT' %}
+{% if port.logical_name == 'BRESP' or port.logical_name == 'RRESP' %}
+{% set sig_init = 'C_RESP_OKAY' %}
+{% elif port.type == 'std_logic' %}
+{% set sig_init = "'0'" %}
+{% else %}
+{% set sig_init = "(others => '0')" %}
+{% endif %}
+  signal {{ "%-8s"|format(port.logical_name | lower) }} : {{ "%-48s"|format(port.type) }} := {{ sig_init }};
+{% endif %}
+{% endfor %}
 
   -- Register bank interface signals
   signal wr_en     : std_logic;
