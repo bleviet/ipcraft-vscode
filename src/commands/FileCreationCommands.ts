@@ -109,7 +109,24 @@ export async function createIpCoreCommand(): Promise<void> {
 }
 
 export async function createMemoryMapCommand(): Promise<void> {
-  await createFileWithTemplate('new_memory_map.mm.yml', MEMORY_MAP_TEMPLATE);
+  let defaultFileName = 'new_memory_map.mm.yml';
+  let defaultDir: vscode.Uri | undefined;
+
+  const isIpCore = (fsPath: string) => fsPath.endsWith('.ip.yml') || fsPath.endsWith('.ip.yaml');
+
+  const editor = vscode.window.activeTextEditor;
+  if (editor && isIpCore(editor.document.fileName)) {
+    defaultFileName = `${nameFromFilePath(editor.document.fileName)}.mm.yml`;
+    defaultDir = vscode.Uri.file(path.dirname(editor.document.fileName));
+  } else {
+    const activeTab = vscode.window.tabGroups.activeTabGroup.activeTab;
+    if (activeTab?.input instanceof vscode.TabInputCustom && isIpCore(activeTab.input.uri.fsPath)) {
+      defaultFileName = `${nameFromFilePath(activeTab.input.uri.fsPath)}.mm.yml`;
+      defaultDir = vscode.Uri.file(path.dirname(activeTab.input.uri.fsPath));
+    }
+  }
+
+  await createFileWithTemplate(defaultFileName, MEMORY_MAP_TEMPLATE, defaultDir);
 }
 
 export async function createIpCoreWithMemoryMapCommand(): Promise<void> {
@@ -169,12 +186,20 @@ export async function createIpCoreWithMemoryMapCommand(): Promise<void> {
   }
 }
 
-async function createFileWithTemplate(defaultFileName: string, template: string): Promise<void> {
-  const workspaceFolders = vscode.workspace.workspaceFolders;
+async function createFileWithTemplate(
+  defaultFileName: string,
+  template: string,
+  defaultDir?: vscode.Uri
+): Promise<void> {
   let defaultUri: vscode.Uri | undefined;
 
-  if (workspaceFolders && workspaceFolders.length > 0) {
-    defaultUri = vscode.Uri.joinPath(workspaceFolders[0].uri, defaultFileName);
+  if (defaultDir) {
+    defaultUri = vscode.Uri.joinPath(defaultDir, defaultFileName);
+  } else {
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (workspaceFolders && workspaceFolders.length > 0) {
+      defaultUri = vscode.Uri.joinPath(workspaceFolders[0].uri, defaultFileName);
+    }
   }
 
   const uri = await vscode.window.showSaveDialog({

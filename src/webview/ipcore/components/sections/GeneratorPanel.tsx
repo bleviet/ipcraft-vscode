@@ -98,7 +98,7 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({ ipCore }) => {
           includeVhdl: true,
           includeRegfile: true,
           vendorFiles: 'none',
-          includeTestbench: false,
+          includeTestbench: true,
         };
   });
 
