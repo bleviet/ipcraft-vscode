@@ -7,73 +7,89 @@ How to scaffold a complete RTL project from an IP Core specification.
 - An IP Core file (`.ip.yml`) with at least one bus interface that has a `memoryMapRef`
 - A corresponding memory map file (`.mm.yml`) with registers defined
 
-## From the IP Core Editor
+## Quick Path: Scaffold Everything at Once
 
-1. Open your `.ip.yml` file in the IP Core visual editor
-2. Click **Generator** in the navigation sidebar
-3. Configure the generation options:
+`IPCraft: Scaffold VHDL Project` is the all-in-one command. It generates VHDL RTL files, a cocotb testbench, and vendor project files (Vivado + Quartus) in a single step.
 
-| Option | Description |
-|--------|-------------|
-| **Vendor** | Which vendor integration files to generate (`None`, `Altera`, `AMD`, `Both`) |
-| **Include VHDL** | Generate RTL source files (package, top, core, bus wrapper, register file) |
-| **Include Registers** | Generate the register file with decode logic |
-| **Include Testbench** | Generate cocotb Python test and GHDL Makefile |
+1. Open your `.ip.yml` file (visual editor or text editor)
+2. Open the Command Palette (`Ctrl+Shift+P`) and run **IPCraft: Scaffold VHDL Project**
+   - Also available as a button in the editor title bar and in the Explorer right-click menu
+3. If the output directory already exists, confirm the overwrite prompt
+4. All files are written next to the `.ip.yml` file
 
-4. Click **Generate Files**
-5. Select the output directory (defaults to `generated/` next to the spec file)
+Settings that control scaffold output:
 
-## From the Command Palette
+| Setting | Default | Effect |
+|---------|---------|--------|
+| `ipcraft.generate.vendor` | `none` | Which vendor project files to include (`none`, `altera`, `xilinx`, `both`) |
+| `ipcraft.generate.includeTestbench` | `true` | Whether to generate a cocotb testbench |
+| `ipcraft.vivado.defaultPart` | `xc7z020clg484-1` | FPGA part used for the Vivado project |
+| `ipcraft.quartus.defaultDevice` | `5CSEBA6U23I7` | Device used for the Quartus project |
 
-1. Open your `.ip.yml` file in any editor
-2. Open the command palette (`Ctrl+Shift+P`)
-3. Type `IPCraft: Generate VHDL`
-4. Select the output directory
+## Generating Individual Pieces
+
+Use the following commands when you need to regenerate a specific part without touching everything else:
+
+| Command | What it generates |
+|---------|-------------------|
+| `IPCraft: Generate VHDL` | RTL files only (package, top, core, bus wrapper, register file) |
+| `IPCraft: Generate CocoTB Testbench` | `tb/<ip_name>_test.py` + `tb/Makefile` |
+| `IPCraft: Generate Vivado Project` | Vivado `.tcl` project scripts + `.xdc` constraints (prompts for part number) |
+| `IPCraft: Generate Quartus Project` | Quartus `.tcl` + `.sdc` (prompts for device) |
+| `IPCraft: Generate Altera Platform Designer Component` | `altera/<ip_name>_hw.tcl` |
+| `IPCraft: Generate Xilinx Vivado Component` | `xilinx/component.xml` + `xilinx/xgui/*.tcl` |
 
 ## Generated Output
 
-The scaffolder produces a structured project:
+The scaffolder produces a structured project next to the `.ip.yml` file:
 
 ```text
 <ip_name>/
   rtl/
-    <ip_name>_pkg.vhd        # Package with register constants and types
-    <ip_name>.vhd             # Top-level entity (instantiates core + bus)
+    <ip_name>_pkg.vhd        # Package — register constants and types
+    <ip_name>.vhd             # Top entity — instantiates core + bus wrapper
     <ip_name>_core.vhd        # User logic skeleton (edit this)
-    <ip_name>_<bus>.vhd       # Bus wrapper (axil or avmm)
+    <ip_name>_axil.vhd        # AXI-Lite bus wrapper  (or _avmm for Avalon-MM)
     <ip_name>_regs.vhd        # Register file with field decode
-  altera/
-    <ip_name>_hw.tcl          # Platform Designer component
-  amd/
-    component.xml             # Vivado IP-XACT descriptor
-    xgui/<ip_name>_v*.tcl     # Vivado GUI customization
   tb/
     <ip_name>_test.py         # cocotb test skeleton
     Makefile                  # GHDL simulation Makefile
+  xilinx/
+    component.xml             # Vivado IP-XACT descriptor
+    xgui/<ip_name>_v*.tcl    # Vivado XGUI customization
+    <ip_name>_project.tcl    # Creates Vivado OOC synthesis project
+    <ip_name>_run_ooc.tcl    # Runs OOC synthesis headlessly
+    <ip_name>_run_xpr.tcl    # Runs full synthesis + implementation headlessly
+    <ip_name>_ooc.xdc        # OOC timing constraints (clocks)
+  altera/
+    <ip_name>_hw.tcl          # Platform Designer component
+    <ip_name>_project.tcl    # Creates Quartus project
+    <ip_name>.sdc             # SDC timing constraints
 ```
 
 ## Bus Type Detection
 
-The generator automatically selects the bus wrapper template based on your bus interface type:
+The generator selects the bus wrapper template automatically based on the bus interface type in the spec:
 
-| Bus Type in Spec | Generated Wrapper |
-|------------------|-------------------|
+| Bus type in `.ip.yml` | Generated wrapper |
+|-----------------------|-------------------|
 | `AXI4L`, `axi4lite`, `axi*` | AXI-Lite (`bus_axil.vhdl.j2`) |
 | `Avalon-MM`, `avmm`, `avalon*` | Avalon-MM (`bus_avmm.vhdl.j2`) |
 
-If no bus interface with a memory map reference is found, the generator defaults to AXI-Lite.
+If no bus interface with a `memoryMapRef` is found, the generator defaults to AXI-Lite.
 
 ## After Generation
 
 1. The IP Core's `fileSets` section is automatically updated with the generated file paths
-2. Edit `<ip_name>_core.vhd` to add your custom logic
-3. Use the generated testbench as a starting point for verification
-4. Import the vendor files into Quartus Platform Designer or Vivado IP Packager
+2. Edit `<ip_name>_core.vhd` to implement your custom logic
+3. Run **IPCraft: Build** to synthesize or implement the design headlessly — see [Building a Project](building-a-project.md)
+4. Open `xilinx/<ip_name>_project.tcl` in the Vivado IDE or import `altera/<ip_name>_hw.tcl` into Platform Designer as an alternative
 
 ## Troubleshooting
 
 | Problem | Solution |
 |---------|----------|
-| Generator produces empty files | Verify the IP Core has a bus interface with a `memoryMapRef` pointing to an existing memory map |
-| Missing register file | Ensure `Include Registers` is enabled and the memory map has at least one register |
-| Wrong bus type | Check the `type` field of your bus interface in the IP Core spec |
+| Empty VHDL files | Verify the IP Core has a bus interface with a valid `memoryMapRef` pointing to an existing memory map |
+| Missing register file | Ensure the memory map has at least one register |
+| Wrong bus type | Check the `type` field of the bus interface in the IP Core spec |
+| Vendor files not generated | Check `ipcraft.generate.vendor` in Settings, or use the vendor-specific generate commands |

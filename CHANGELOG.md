@@ -2,6 +2,22 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased]
+
+### Added
+- **Headless build** (`IPCraft: Build`): compiles Vivado (OOC and full XPR) and Quartus projects in batch mode from inside VS Code, without opening the GUI. Live output streams to a dedicated *IPCraft Build* Output Channel.
+- **Build Reports panel**: Explorer sidebar tree view showing WNS/WHS (Vivado) or Fmax (Quartus), LUT/FF/BRAM/DSP utilization, and CDC violations. Click any node to open the corresponding report file.
+- **Status bar build indicator**: shows live `$(loading~spin) Building…` while running; collapses to `$(pass) WNS +1.23ns` or `$(pass) Fmax 156 MHz` on success.
+- **`vivado_run_ooc.tcl`** and **`vivado_run_xpr.tcl`** scripts generated alongside the Vivado project files, allowing headless OOC synthesis and full implementation via `vivado -mode batch`.
+- New settings: `ipcraft.quartus.shellPath` (path to `quartus_sh`) and `ipcraft.build.jobs` (parallel job count).
+- Vivado project output directory changed from `<ip_name>_vivado/` to `build/ooc/` to keep source files clean.
+
+### Changed
+- `IPCraft: Scaffold VHDL Project` now always generates Vivado and Quartus project files by default.
+- Removed the table view from the IP Core editor; the canvas is now the default (and only) view.
+- Vendor output directory for Vivado renamed from `amd/` to `xilinx/` to better reflect common usage.
+- Documentation: updated all references to `amd/` → `xilinx/`; added Commands & Settings reference page; added Building a Project how-to; updated README with complete command listing.
+
 ## [0.1.0] - 2026-03-29
 
 ### Added

@@ -51,8 +51,9 @@ nav:
       - Quick Start: getting-started/quickstart.md
       - Development Setup: getting-started/development.md
   - How-to Guides:
-      - Importing from VHDL: how-to/vhdl-import.md
+      - Importing from Existing Files: how-to/vhdl-import.md
       - Generating a Project: how-to/generating-a-project.md
+      - Building a Project (Headless): how-to/building-a-project.md
       - Building a VSIX Package: how-to/build-vsix.md
       - AI Design Guide: how-to/ai-design-guide.md
   - Concepts:
@@ -65,11 +66,12 @@ nav:
       - Extension Host: architecture/extension-host.md
       - Webview (React): architecture/webview.md
   - Reference:
-      - Specification Schemas: reference/specification-schemas.md
-      - Bit Field Interaction: reference/bitfield-interaction.md
+      - Commands & Settings: reference/commands.md
       - Keyboard Shortcuts: reference/keyboard-shortcuts.md
       - Generator: reference/generator.md
       - IP Core Editor: reference/ip-core-editor.md
+      - Specification Schemas: reference/specification-schemas.md
+      - Bit Field Interaction: reference/bitfield-interaction.md
       - YAML Libraries: reference/yaml-libraries.md
   - Contributing:
       - Guidelines: contributing/guidelines.md

@@ -1,75 +1,134 @@
-# Importing from VHDL
+# Importing from Existing Files
 
-How to convert an existing VHDL entity into an IPCraft specification file.
+How to reverse-engineer existing hardware description files into IPCraft specifications.
 
-## Prerequisites
+IPCraft can import from three source formats:
 
-- IPCraft extension installed and active in VS Code
+| Source | Command | Output |
+|--------|---------|--------|
+| VHDL entity (`.vhd`, `.vhdl`) | `IPCraft: Parse VHDL to .ip.yml` | `.ip.yml` |
+| Altera Platform Designer (`_hw.tcl`) | `IPCraft: Parse Altera Platform Designer Component (_hw.tcl) to .ip.yml` | `.ip.yml` |
+| Xilinx IP-XACT (`component.xml`) | `IPCraft: Parse Xilinx component.xml to .ip.yml` | `.ip.yml` (+ `.mm.yml` if registers found) |
+
+---
+
+## Importing from VHDL
+
+### Prerequisites
+
 - A `.vhd` or `.vhdl` file containing a VHDL entity declaration
 
-## Methods
+### How to trigger
 
-There are three ways to trigger the import:
+**Command Palette:**
 
-### Command Palette
-
-1. Open the command palette (`Ctrl+Shift+P`)
-2. Type `IPCraft: Import from VHDL`
+1. Open the Command Palette (`Ctrl+Shift+P`)
+2. Run `IPCraft: Parse VHDL to .ip.yml`
 3. Select the VHDL file from the file picker
 
-### Context Menu
+**Explorer context menu:**
 
-1. Right-click a `.vhd` or `.vhdl` file in the Explorer sidebar
-2. Click **Import from VHDL**
+Right-click a `.vhd` or `.vhdl` file → **IPCraft: Parse VHDL to .ip.yml**
 
-### Editor Title Bar
+**Editor title bar:**
 
-1. Open a `.vhd` or `.vhdl` file in the text editor
-2. Click the **Import from VHDL** icon in the editor title bar
+Open a `.vhd` or `.vhdl` file → click the **Parse VHDL to .ip.yml** icon in the title bar
 
-## What Gets Imported
+### What gets imported
 
-The parser extracts the following from your VHDL entity:
-
-| VHDL Construct | IPCraft Field |
+| VHDL construct | IPCraft field |
 |----------------|---------------|
 | Entity name | `vlnv.name` |
-| `generic` declarations | `parameters` (with name, type, default value) |
-| `port` signals ending in `clk`, `clock`, `aclk` | `clocks` |
-| `port` signals ending in `rst`, `reset`, `rst_n`, `aresetn` | `resets` (polarity auto-detected) |
-| Remaining `port` declarations | `ports` (with direction, width, logical name) |
-| AXI-Lite or Avalon-MM signal patterns | `busInterfaces` (with type, mode, physical prefix) |
+| `generic` declarations | `parameters` (name, type, default value) |
+| Ports ending in `clk`, `clock`, `aclk` | `clocks` |
+| Ports ending in `rst`, `reset`, `rst_n`, `aresetn` | `resets` (polarity auto-detected) |
+| Remaining port declarations | `ports` (direction, width, logical name) |
+| AXI-Lite or Avalon-MM port patterns | `busInterfaces` (type, mode, physical prefix) |
 
-### Bus Interface Detection
+**Bus interface detection:** The parser looks for known signal name patterns:
 
-The parser looks for known signal name patterns to detect bus interfaces:
+- **AXI-Lite** — detected when 4+ ports match `<prefix>awaddr`, `<prefix>awvalid`, `<prefix>wdata`, etc.
+- **Avalon-MM** — detected when 3+ ports match `<prefix>address`, `<prefix>read`, `<prefix>writedata`, etc.
 
-- **AXI-Lite**: detected when 4+ ports match the pattern `<prefix>awaddr`, `<prefix>awvalid`, `<prefix>wdata`, etc.
-- **Avalon-MM**: detected when 3+ ports match `<prefix>address`, `<prefix>read`, `<prefix>writedata`, etc.
+The prefix (e.g., `s_axi_`) is set as `physicalPrefix`.
 
-The prefix (e.g., `s_axi_`) is extracted and set as `physicalPrefix`.
+**Port widths:**
 
-### Port Width Handling
+- `std_logic` → width `1`
+- `std_logic_vector(N downto 0)` → width `N+1`
+- `std_logic_vector(PARAM-1 downto 0)` → parameterized width referencing the generic name
 
-- `std_logic` signals are imported with width 1
-- `std_logic_vector(N downto 0)` signals are imported with numeric width `N+1`
-- `std_logic_vector(PARAM-1 downto 0)` signals are imported with parameterized width referencing the generic name
+### Output
 
-## Output
+Creates `<entity_name>.ip.yml` in the same directory as the source VHDL file. Opens the file in the IP Core visual editor after import.
 
-The importer creates a `<entity_name>.ip.yml` file in the same directory as the source VHDL file. The file includes:
+### Post-import steps
 
-- `apiVersion: ipcore/v1.0`
-- VLNV with the entity name
-- All detected clocks, resets, ports, bus interfaces, and parameters
-- A `fileSets` entry referencing the original VHDL file
+1. Review and refine the VLNV metadata (vendor, library, version)
+2. Add `memoryMapRef` to any bus interfaces that should have register maps
+3. Create a corresponding `.mm.yml` file if your IP has registers
+4. Fill in descriptions for clocks, resets, and ports
 
-After import, click **Open File** in the notification to open the generated spec in the IP Core visual editor.
+---
 
-## Post-Import Steps
+## Importing from Platform Designer (`_hw.tcl`)
 
-1. Open the generated `.ip.yml` in the IP Core editor
-2. Review and refine the VLNV metadata (vendor, library, version)
-3. Add `memoryMapRef` to any bus interfaces that should have register maps
-4. Create a corresponding `.mm.yml` file if your IP has registers
-5. Fill in descriptions for clocks, resets, and ports
+### Prerequisites
+
+- An Altera `_hw.tcl` file (Quartus Platform Designer IP specification)
+
+### How to trigger
+
+**Command Palette:**
+
+1. Run `IPCraft: Parse Altera Platform Designer Component (_hw.tcl) to .ip.yml`
+2. Select the `_hw.tcl` file from the file picker
+
+**Explorer context menu:**
+
+Right-click a `_hw.tcl` file → **IPCraft: Parse Altera Platform Designer Component (_hw.tcl) to .ip.yml**
+
+**Editor title bar:**
+
+Open a `_hw.tcl` file → click the import icon in the title bar
+
+### Output
+
+Creates `<component_name>.ip.yml` in the same directory as the `_hw.tcl` file.
+
+---
+
+## Importing from Vivado IP-XACT (`component.xml`)
+
+### Prerequisites
+
+- A Xilinx `component.xml` file (Vivado IP-XACT descriptor)
+
+### How to trigger
+
+**Command Palette:**
+
+1. Run `IPCraft: Parse Xilinx component.xml to .ip.yml`
+2. Select the `component.xml` file from the file picker
+
+**Explorer context menu:**
+
+Right-click `component.xml` → **IPCraft: Parse Xilinx component.xml to .ip.yml**
+
+**Editor title bar:**
+
+Open `component.xml` → click the import icon in the title bar
+
+### Output
+
+Creates `<component_name>.ip.yml` in the same directory. If the `component.xml` contains register data (memory maps), a `<component_name>.mm.yml` is also created and linked via `memoryMapRef`.
+
+---
+
+## Settings
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `ipcraft.import.vendor` | `"user"` | Vendor name to assign. `"user"` auto-detects from `git user.email` domain. |
+| `ipcraft.import.library` | `"ip"` | Default library name. |
+| `ipcraft.import.version` | `"1.0.0"` | Default version string. |
