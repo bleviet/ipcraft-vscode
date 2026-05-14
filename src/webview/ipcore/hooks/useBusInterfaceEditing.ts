@@ -314,10 +314,27 @@ export const useBusInterfaceEditing = ({
 
   const getOptionalPorts = useCallback(
     (bus: BusInterface): BusPort[] => {
-      if (!busLibrary || !bus.type || !busLibrary[bus.type]) {
+      if (!busLibrary || !bus.type) {
         return [];
       }
-      const libraryDef = busLibrary[bus.type];
+      // Try direct library key lookup first (e.g., 'AXI4_LITE')
+      let libraryDef = busLibrary[bus.type];
+      // Fall back to VLNV string match (e.g., 'ipcraft.busif.axi_stream.1.0')
+      if (!libraryDef) {
+        for (const entry of Object.values(busLibrary)) {
+          const bt = (entry as unknown as { busType?: Record<string, string> }).busType;
+          if (bt) {
+            const vlnv = [bt.vendor, bt.library, bt.name, bt.version].filter(Boolean).join('.');
+            if (vlnv === bus.type) {
+              libraryDef = entry;
+              break;
+            }
+          }
+        }
+      }
+      if (!libraryDef) {
+        return [];
+      }
       return (libraryDef.ports ?? []).filter((p) => p.presence === 'optional');
     },
     [busLibrary]

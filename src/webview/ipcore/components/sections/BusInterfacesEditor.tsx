@@ -58,15 +58,41 @@ const TEXT_STYLES = {
   muted: { opacity: 0.7 },
 };
 
+function resolveBusLibraryEntry(
+  busType: string,
+  busLibrary: Record<string, { ports?: BusPort[] }> | undefined
+): { ports?: BusPort[] } | undefined {
+  if (!busLibrary || !busType) {
+    return undefined;
+  }
+  if (busLibrary[busType]) {
+    return busLibrary[busType];
+  }
+  // Fall back to VLNV string match (e.g., 'ipcraft.busif.axi4_lite.1.0')
+  for (const entry of Object.values(busLibrary)) {
+    const bt = (entry as unknown as { busType?: Record<string, string> }).busType;
+    if (bt) {
+      const vlnv = [bt.vendor, bt.library, bt.name, bt.version].filter(Boolean).join('.');
+      if (vlnv === busType) {
+        return entry;
+      }
+    }
+  }
+  return undefined;
+}
+
 function getEffectivePorts(
   bus: BusInterface,
   busLibrary: Record<string, { ports?: BusPort[] }> | undefined
 ): BusPort[] {
-  if (!busLibrary || !bus.type || !busLibrary[bus.type]) {
+  if (!busLibrary || !bus.type) {
     return [];
   }
 
-  const libraryDef = busLibrary[bus.type];
+  const libraryDef = resolveBusLibraryEntry(bus.type, busLibrary);
+  if (!libraryDef) {
+    return [];
+  }
   const libraryPorts = libraryDef.ports ?? [];
   const optionalPorts = bus.useOptionalPorts ?? [];
   const widthOverrides = bus.portWidthOverrides ?? {};
