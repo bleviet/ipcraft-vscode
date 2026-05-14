@@ -303,6 +303,20 @@ const FileSetsSection: React.FC<{ ipCore: IpCore; onUpdate: YamlUpdateHandler }>
     onUpdate(['fileSets', setIdx, 'files'], updated.length ? updated : undefined);
   };
 
+  const handleToggleManaged = (setIdx: number, fileIdx: number) => {
+    const files = fileSets[setIdx].files ?? [];
+    const file = files[fileIdx];
+    const updatedFile: FsFileEntry = { ...file };
+    if (file.managed === false) {
+      delete updatedFile.managed;
+    } else {
+      updatedFile.managed = false;
+    }
+    const updatedFiles = [...files];
+    updatedFiles[fileIdx] = updatedFile;
+    onUpdate(['fileSets', setIdx, 'files'], updatedFiles);
+  };
+
   return (
     <Section title="Source Files">
       {fileSets.map((fs, setIdx) => (
@@ -331,6 +345,27 @@ const FileSetsSection: React.FC<{ ipCore: IpCore; onUpdate: YamlUpdateHandler }>
                 >
                   {filename}
                 </span>
+                <button
+                  className="ci-fileset__rm"
+                  onClick={() => handleToggleManaged(setIdx, fileIdx)}
+                  title={
+                    file.managed === false
+                      ? 'Allow IPCraft to overwrite this file on regeneration'
+                      : 'Protect from overwrite — mark as user-managed'
+                  }
+                  type="button"
+                  style={{
+                    color:
+                      file.managed === false
+                        ? 'var(--vscode-statusBarItem-warningForeground)'
+                        : undefined,
+                    opacity: file.managed === false ? 1 : 0.35,
+                  }}
+                >
+                  <span
+                    className={`codicon ${file.managed === false ? 'codicon-lock' : 'codicon-unlock'}`}
+                  />
+                </button>
                 <button
                   className="ci-fileset__rm"
                   onClick={() => handleRemoveFile(setIdx, fileIdx)}
