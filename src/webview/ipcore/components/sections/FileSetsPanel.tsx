@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import type { YamlUpdateHandler } from '../../../types/editor';
 import { vscode } from '../../../vscode';
 
 interface FileEntry {
@@ -88,9 +89,10 @@ function fileTypeIcon(type: string): string {
 
 interface FileSetsProps {
   fileSets: unknown[];
+  onUpdate?: YamlUpdateHandler;
 }
 
-export const FileSetsPanel: React.FC<FileSetsProps> = ({ fileSets: rawFileSets }) => {
+export const FileSetsPanel: React.FC<FileSetsProps> = ({ fileSets: rawFileSets, onUpdate }) => {
   const fileSets = rawFileSets as FileSet[];
   const [fileExistence, setFileExistence] = useState<Record<string, boolean>>({});
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
@@ -127,6 +129,29 @@ export const FileSetsPanel: React.FC<FileSetsProps> = ({ fileSets: rawFileSets }
       return;
     }
     vscode?.postMessage({ type: 'openFile', path: filePath });
+  };
+
+  const handleToggleManaged = (fsName: string, fileIdx: number) => {
+    if (!onUpdate) {
+      return;
+    }
+    const fsIdx = fileSets.findIndex((fs) => fs.name === fsName);
+    if (fsIdx === -1) {
+      return;
+    }
+    const fs = fileSets[fsIdx];
+    const file = (fs.files ?? [])[fileIdx];
+    const updatedFile: FileEntry = { ...file };
+    if (file.managed === false) {
+      delete updatedFile.managed;
+    } else {
+      updatedFile.managed = false;
+    }
+    const updatedFiles = [...(fs.files ?? [])];
+    updatedFiles[fileIdx] = updatedFile;
+    const updated = [...fileSets];
+    updated[fsIdx] = { ...fs, files: updatedFiles };
+    onUpdate(['fileSets'], updated);
   };
 
   const toggleCollapse = (name: string) => {
@@ -275,18 +300,6 @@ export const FileSetsPanel: React.FC<FileSetsProps> = ({ fileSets: rawFileSets }
                         >
                           {TYPE_LABELS[file.type] ?? file.type}
                         </span>
-                        {file.managed === false && (
-                          <span
-                            className="text-xs px-1 py-0.5 rounded flex-shrink-0"
-                            title="User-managed — not overwritten on generation"
-                            style={{
-                              background: 'var(--vscode-statusBarItem-warningBackground)',
-                              color: 'var(--vscode-statusBarItem-warningForeground)',
-                            }}
-                          >
-                            user
-                          </span>
-                        )}
                         {missing && (
                           <span
                             className="text-xs flex-shrink-0"
@@ -294,6 +307,32 @@ export const FileSetsPanel: React.FC<FileSetsProps> = ({ fileSets: rawFileSets }
                           >
                             not found
                           </span>
+                        )}
+                        {onUpdate && (
+                          <button
+                            onClick={() => handleToggleManaged(fs.name, idx)}
+                            className="flex-shrink-0 p-0.5 rounded"
+                            title={
+                              file.managed === false
+                                ? 'Allow IPCraft to overwrite this file on regeneration'
+                                : 'Protect from overwrite — mark as user-managed'
+                            }
+                            style={{
+                              color:
+                                file.managed === false
+                                  ? 'var(--vscode-statusBarItem-warningForeground)'
+                                  : undefined,
+                              opacity: file.managed === false ? 1 : 0.35,
+                              background: 'transparent',
+                              border: 'none',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            <span
+                              className={`codicon ${file.managed === false ? 'codicon-lock' : 'codicon-unlock'}`}
+                              style={{ fontSize: '11px' }}
+                            ></span>
+                          </button>
                         )}
                       </div>
                     );

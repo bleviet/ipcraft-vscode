@@ -150,8 +150,27 @@ export class IpCoreScaffolder {
       }
 
       const written: Record<string, string> = {};
+
+      // Collect paths marked managed: false — these are user-owned and must not be overwritten
+      type FileSetEntry = { files?: Array<{ path?: string; managed?: boolean }> };
+      const rawFileSets = (ipCoreData as Record<string, unknown>).fileSets as
+        | FileSetEntry[]
+        | undefined;
+      const protectedPaths = new Set<string>();
+      for (const fset of rawFileSets ?? []) {
+        for (const f of fset.files ?? []) {
+          if (f.managed === false && f.path) {
+            protectedPaths.add(f.path);
+          }
+        }
+      }
+
       await Promise.all(
         Object.entries(files).map(async ([relativePath, content]) => {
+          if (protectedPaths.has(relativePath)) {
+            this.logger.info(`Skipping managed:false file: ${relativePath}`);
+            return;
+          }
           const fullPath = path.join(outputDir, relativePath);
           await fs.mkdir(path.dirname(fullPath), { recursive: true });
           await fs.writeFile(fullPath, content, 'utf8');

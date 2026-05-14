@@ -413,7 +413,7 @@ export const MetadataEditor: React.FC<MetadataEditorProps> = ({ ipCore, onUpdate
             marginTop: '4px',
           }}
         >
-          <FileSetsPanel fileSets={(ipCore.fileSets as unknown[]) ?? []} />
+          <FileSetsPanel fileSets={(ipCore.fileSets as unknown[]) ?? []} onUpdate={onUpdate} />
         </div>
       )}
     </div>

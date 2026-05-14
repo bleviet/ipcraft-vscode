@@ -220,6 +220,22 @@ export const FileSetsEditor: React.FC<FileSetsEditorProps> = ({
     onUpdate(['fileSets'], updated);
   };
 
+  const handleToggleManaged = (setIdx: number, fileIdx: number) => {
+    const fileSet = fileSets[setIdx];
+    const file = fileSet.files[fileIdx];
+    const updatedFile: FileEntry = { ...file };
+    if (file.managed === false) {
+      delete updatedFile.managed;
+    } else {
+      updatedFile.managed = false;
+    }
+    const updatedFiles = [...fileSet.files];
+    updatedFiles[fileIdx] = updatedFile;
+    const updated = [...fileSets];
+    updated[setIdx] = { ...fileSet, files: updatedFiles };
+    onUpdate(['fileSets'], updated);
+  };
+
   return (
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between">
@@ -523,10 +539,10 @@ export const FileSetsEditor: React.FC<FileSetsEditorProps> = ({
                               >
                                 {file.type}
                               </span>
-                              {file.managed === false && (
+                              {file.managed === false ? (
                                 <span
                                   className="text-xs px-1.5 py-0.5 rounded"
-                                  title="managed: false — this file will not be overwritten on generation"
+                                  title="User-managed — not overwritten on generation"
                                   style={{
                                     background: 'var(--vscode-statusBarItem-warningBackground)',
                                     color: 'var(--vscode-statusBarItem-warningForeground)',
@@ -534,9 +550,29 @@ export const FileSetsEditor: React.FC<FileSetsEditorProps> = ({
                                 >
                                   user file
                                 </span>
-                              )}
+                              ) : null}
                             </div>
                             <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => handleToggleManaged(setIdx, fileIdx)}
+                                className="p-1"
+                                title={
+                                  file.managed === false
+                                    ? 'Allow IPCraft to overwrite this file on regeneration'
+                                    : 'Protect from overwrite — mark as user-managed'
+                                }
+                                style={{
+                                  color:
+                                    file.managed === false
+                                      ? 'var(--vscode-statusBarItem-warningForeground)'
+                                      : undefined,
+                                  opacity: file.managed === false ? 1 : 0.5,
+                                }}
+                              >
+                                <span
+                                  className={`codicon ${file.managed === false ? 'codicon-lock' : 'codicon-unlock'}`}
+                                ></span>
+                              </button>
                               <button
                                 onClick={() => {
                                   setEditingFile({ setIdx, fileIdx });
