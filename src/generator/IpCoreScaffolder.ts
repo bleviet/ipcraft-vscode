@@ -130,6 +130,14 @@ export class IpCoreScaffolder {
           vivadoContext
         );
         files[`xilinx/${xdcRelPath}`] = this.templates.render('vivado_ooc.xdc.j2', vivadoContext);
+        files[`xilinx/${name}_run_ooc.tcl`] = this.templates.render(
+          'vivado_run_ooc.tcl.j2',
+          vivadoContext
+        );
+        files[`xilinx/${name}_run_xpr.tcl`] = this.templates.render(
+          'vivado_run_xpr.tcl.j2',
+          vivadoContext
+        );
       }
 
       if (options.includeQuartusProject) {

@@ -2,12 +2,14 @@ import * as vscode from 'vscode';
 import { Logger, LogLevel } from './utils/Logger';
 import { MemoryMapEditorProvider } from './providers/MemoryMapEditorProvider';
 import { IpCoreEditorProvider } from './providers/IpCoreEditorProvider';
+import { ReportsTreeProvider } from './providers/ReportsTreeProvider';
 import {
   createIpCoreCommand,
   createMemoryMapCommand,
   createIpCoreWithMemoryMapCommand,
 } from './commands/FileCreationCommands';
 import { registerGeneratorCommands } from './commands/GenerateCommands';
+import { registerBuildCommands } from './commands/BuildCommands';
 import { editInIpPackagerCommand } from './commands/editInIpPackager';
 import { scanVivadoCatalogCommand } from './commands/scanVivadoCatalog';
 import { safeRegisterCommand } from './utils/vscodeHelpers';
@@ -75,6 +77,22 @@ export function activate(context: vscode.ExtensionContext): void {
   // Register VHDL Generator Commands
   registerGeneratorCommands(context);
   logger.info('Generator commands registered');
+
+  // Register Build Commands + Reports tree view
+  const reportsProvider = new ReportsTreeProvider();
+  context.subscriptions.push(
+    vscode.window.registerTreeDataProvider('fpga-ip-core.reportsView', reportsProvider)
+  );
+
+  const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 10);
+  statusBarItem.text = '$(circuit-board) IPCraft';
+  statusBarItem.command = 'fpga-ip-core.showBuildOutput';
+  statusBarItem.tooltip = 'IPCraft: Click to show build output';
+  statusBarItem.show();
+  context.subscriptions.push(statusBarItem);
+
+  registerBuildCommands(context, reportsProvider, statusBarItem);
+  logger.info('Build commands registered');
 
   // Install custom IPCraft bus definitions (e.g. Avalon Streaming) to the global OS config dir
   void import('./generator/VivadoBusDefInstaller').then(({ installGlobalBusDefinitions }) => {

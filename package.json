@@ -127,6 +127,17 @@
         "command": "fpga-ip-core.scanVivadoCatalog",
         "title": "Scan Vivado IP Catalog",
         "category": "IPCraft"
+      },
+      {
+        "command": "fpga-ip-core.build",
+        "title": "Build",
+        "category": "IPCraft",
+        "icon": "$(play)"
+      },
+      {
+        "command": "fpga-ip-core.showBuildOutput",
+        "title": "Show Build Output",
+        "category": "IPCraft"
       }
     ],
     "menus": {
@@ -155,6 +166,11 @@
           "command": "fpga-ip-core.generateQuartusProject",
           "when": "resourceFilename =~ /\\.ip\\.yml$/",
           "group": "fpga@4"
+        },
+        {
+          "command": "fpga-ip-core.build",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/",
+          "group": "fpga@5"
         },
         {
           "command": "fpga-ip-core.parseVHDL",
@@ -214,6 +230,11 @@
           "command": "fpga-ip-core.generateQuartusProject",
           "when": "resourceFilename =~ /\\.ip\\.yml$/",
           "group": "ipcraft@5"
+        },
+        {
+          "command": "fpga-ip-core.build",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/",
+          "group": "ipcraft@6"
         },
         {
           "command": "fpga-ip-core.parseVHDL",
@@ -290,6 +311,17 @@
           "default": "5CSEBA6U23I7",
           "description": "Default Intel/Altera device part number used when generating a Quartus project (e.g. 5CSEBA6U23I7 for the DE10-Nano Cyclone V SoC, 10M50DAF484C7G for MAX 10)."
         },
+        "ipcraft.quartus.shellPath": {
+          "type": "string",
+          "default": "quartus_sh",
+          "markdownDescription": "Path to the Quartus Shell executable (`quartus_sh`). If empty, assumes it is available in your system PATH."
+        },
+        "ipcraft.build.jobs": {
+          "type": "number",
+          "default": 4,
+          "minimum": 1,
+          "description": "Number of parallel jobs passed to Vivado launch_runs and Quartus compilation."
+        },
         "ipcraft.ipRepositoryPaths": {
           "type": "array",
           "items": {
@@ -299,6 +331,14 @@
           "markdownDescription": "Additional file system paths to scan for IP cores (directories containing `.ip.yml` or `component.xml` files)."
         }
       }
+    },
+    "views": {
+      "explorer": [
+        {
+          "id": "fpga-ip-core.reportsView",
+          "name": "IPCraft Build"
+        }
+      ]
     },
     "customEditors": [
       {

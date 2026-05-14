@@ -17,7 +17,7 @@
 
 set script_dir   [file normalize [file dirname [info script]]]
 set project_name {{ entity_name }}
-set project_dir  [file join $script_dir ${project_name}_vivado]
+set project_dir  [file join $script_dir build ooc]
 set part         {{ target_part }}
 
 if {[file exists $project_dir]} {
@@ -58,9 +58,6 @@ set_property top {{ entity_name }} [current_fileset]
 update_compile_order -fileset sources_1
 
 puts ""
-puts "Project ready.  Run synthesis with:"
-puts "  launch_runs synth_1 -jobs 4"
-puts "  wait_on_run synth_1"
-puts "  open_run synth_1 -name synth_1"
-puts "  report_timing_summary -file \
-    [file join $project_dir ${project_name}.runs synth_1 timing_summary.rpt]"
+puts "Project created at: $project_dir"
+puts "Open in GUI  : open_project [file join $project_dir ${project_name}.xpr]"
+puts "Run via IPCraft: vivado -mode batch -source ${project_name}_run_ooc.tcl -nojournal -nolog"
