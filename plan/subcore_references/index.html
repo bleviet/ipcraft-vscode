@@ -1,0 +1,2763 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Visual editor for FPGA IP Core and Memory Map specifications">
+      
+      
+        <meta name="author" content="Le Viet Bach">
+      
+      
+        <link rel="canonical" href="https://bleviet.github.io/ipcraft-vscode/plan/subcore_references/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>IP Core Dependencies (Subcore References) -- Implementation Plan - IPCraft for VS Code</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#ip-core-dependencies-subcore-references-implementation-plan" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="IPCraft for VS Code" class="md-header__button md-logo" aria-label="IPCraft for VS Code" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            IPCraft for VS Code
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              IP Core Dependencies (Subcore References) -- Implementation Plan
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/bleviet/ipcraft-vscode" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../getting-started/quickstart/" class="md-tabs__link">
+          
+  
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../how-to/vhdl-import/" class="md-tabs__link">
+          
+  
+  
+  How-to Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../concepts/extension-model/" class="md-tabs__link">
+          
+  
+  
+  Concepts
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../architecture/overview/" class="md-tabs__link">
+          
+  
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../reference/commands/" class="md-tabs__link">
+          
+  
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../contributing/guidelines/" class="md-tabs__link">
+          
+  
+  
+  Contributing
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../blog/building-ipcraft/" class="md-tabs__link">
+          
+  
+  
+  Blog
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="IPCraft for VS Code" class="md-nav__button md-logo" aria-label="IPCraft for VS Code" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    IPCraft for VS Code
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/bleviet/ipcraft-vscode" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How-to Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    How-to Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/vhdl-import/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Importing from Existing Files
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/generating-a-project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generating a Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/building-a-project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building a Project (Headless)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/build-vsix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building a VSIX Package
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/ai-design-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI Design Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Concepts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/extension-model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VS Code Extension Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/yaml-data-flow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YAML Data Flow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/spatial-editing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spatial Editing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/responsive-design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Responsive Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/extension-host/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Extension Host
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/webview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Webview (React)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Commands & Settings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/keyboard-shortcuts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Keyboard Shortcuts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/generator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/ip-core-editor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IP Core Editor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/specification-schemas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Specification Schemas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/bitfield-interaction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bit Field Interaction
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/yaml-libraries/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YAML Libraries
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contributing
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/guidelines/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guidelines
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Blog
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Blog
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../blog/building-ipcraft/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building IPCraft
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-vlnv-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. VLNV Format
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-yaml-schema" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. YAML Schema
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. YAML Schema">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-simple-form-string-shorthand" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 Simple form (string shorthand)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-object-form-with-optional-path-override" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 Object form (with optional path override)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-ip-discovery-sources" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. IP Discovery Sources
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. IP Discovery Sources">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-workspace-scan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 Workspace scan
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-user-ip-repository-paths-new-setting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 User IP repository paths (new setting)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-vivado-catalog-scan-manual-command" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 Vivado catalog scan (manual command)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-file-by-file-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. File-by-File Changes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. File-by-File Changes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-new-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 New files
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5.1 New files">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#srcutilsvlnvts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        src/utils/vlnv.ts
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#srcservicessubcoreresolverts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        src/services/SubcoreResolver.ts
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#srcservicesvivadocatalogscannerts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        src/services/VivadoCatalogScanner.ts
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#srcdataxilinxcatalogts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        src/data/xilinxCatalog.ts
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#srccommandsscanvivadocatalogts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        src/commands/scanVivadoCatalog.ts
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#srcwebviewipcorecomponentssectionssubcoreseditortsx" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        src/webview/ipcore/components/sections/SubcoresEditor.tsx
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-modified-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2 Modified files
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5.2 Modified files">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ipcraft-specschemasip_coreschemajson" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ipcraft-spec/schemas/ip_core.schema.json
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#srcgeneratortypests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        src/generator/types.ts
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#srcwebviewtypesipcoredts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        src/webview/types/ipCore.d.ts
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#srcgeneratorvivadocomponentxmlgeneratorts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        src/generator/VivadoComponentXmlGenerator.ts
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#srcgeneratorregisterprocessorts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        src/generator/registerProcessor.ts
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#srcparsercomponentxmlparserts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        src/parser/ComponentXmlParser.ts
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#srcwebviewipcorehooksusenavigationts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        src/webview/ipcore/hooks/useNavigation.ts
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#srcwebviewipcorecomponentslayoutnavigationsidebartsx" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        src/webview/ipcore/components/layout/NavigationSidebar.tsx
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#srcwebviewipcorecomponentslayouteditorpaneltsx" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        src/webview/ipcore/components/layout/EditorPanel.tsx
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#srcprovidersipcoreeditorproviderts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        src/providers/IpCoreEditorProvider.ts
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#srcextensionts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        src/extension.ts
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#packagejson" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        package.json
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-test-plan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Test Plan
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Test Plan">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#61-unit-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.1 Unit tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#62-lint" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.2 Lint
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#63-manual-verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.3 Manual verification
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-implementation-order" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Implementation Order
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-2-canvas-view-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 2 — Canvas View Integration
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 2 — Canvas View Integration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#goal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Goal
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Design
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Design">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#block-appearance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Block appearance
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#selection-and-inspector" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Selection and inspector
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bodypanel-dependencies-section" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BodyPanel — Dependencies section
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#files-changed-phase-2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Files changed (Phase 2)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#implementation-order" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implementation order
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/bleviet/ipcraft-vscode/edit/main/docs/plan/subcore_references.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="ip-core-dependencies-subcore-references-implementation-plan">IP Core Dependencies (Subcore References) -- Implementation Plan<a class="headerlink" href="#ip-core-dependencies-subcore-references-implementation-plan" title="Permanent link">&para;</a></h1>
+<h2 id="1-overview">1. Overview<a class="headerlink" href="#1-overview" title="Permanent link">&para;</a></h2>
+<p>Add dependency management to IPCraft so an IP core can declare references to other IP cores it depends on. Dependencies come from three sources:</p>
+<ol>
+<li><strong>Workspace IPs</strong> -- other <code>.ip.yml</code> files in the VS Code workspace</li>
+<li><strong>User IP repositories</strong> -- custom paths configured via VS Code settings (e.g. shared team IP libraries)</li>
+<li><strong>Vivado catalog IPs</strong> -- IPs from an installed AMD Vivado (detected via manual scan command)</li>
+</ol>
+<p>Dependencies are stored in the <code>.ip.yml</code> file as <code>subcores</code>, emitted as <code>&lt;xilinx:subCoreRef&gt;</code> in <code>component.xml</code>, and managed via a "Dependencies" section in the webview editor.</p>
+<h2 id="2-vlnv-format">2. VLNV Format<a class="headerlink" href="#2-vlnv-format" title="Permanent link">&para;</a></h2>
+<p>Use <strong>colon-separated</strong> strings: <code>vendor:library:name:version</code></p>
+<p>Examples: <code>xilinx.com:ip:fifo_generator:13.2</code>, <code>ipcraft:examples:my_fifo:1.0</code></p>
+<p>Colons are unambiguous because vendor names contain dots but never colons. This matches Vivado's own <code>get_ipdefs</code> output format. Parsing is a simple <code>vlnv.split(':')</code> yielding exactly 4 parts.</p>
+<h2 id="3-yaml-schema">3. YAML Schema<a class="headerlink" href="#3-yaml-schema" title="Permanent link">&para;</a></h2>
+<h3 id="31-simple-form-string-shorthand">3.1 Simple form (string shorthand)<a class="headerlink" href="#31-simple-form-string-shorthand" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nt">subcores</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">xilinx.com:ip:fifo_generator:13.2</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">xilinx.com:ip:axi_interconnect:2.1</span>
+</code></pre></div>
+<h3 id="32-object-form-with-optional-path-override">3.2 Object form (with optional path override)<a class="headerlink" href="#32-object-form-with-optional-path-override" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nt">subcores</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">vlnv</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">mycompany.com:dsp:custom_fir:2.0</span>
+<span class="w">    </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">../custom_fir</span>
+</code></pre></div>
+<p>Both forms can be mixed in the same array.</p>
+<h2 id="4-ip-discovery-sources">4. IP Discovery Sources<a class="headerlink" href="#4-ip-discovery-sources" title="Permanent link">&para;</a></h2>
+<h3 id="41-workspace-scan">4.1 Workspace scan<a class="headerlink" href="#41-workspace-scan" title="Permanent link">&para;</a></h3>
+<p>On activation and on <code>.ip.yml</code> file changes, scan all <code>**/*.ip.yml</code> files in the workspace. For each file, quick-parse the <code>vlnv:</code> header (read first ~20 lines with regex, no full YAML parse) and build a <code>Map&lt;string, string&gt;</code> of <code>vlnv -&gt; fsPath</code>.</p>
+<h3 id="42-user-ip-repository-paths-new-setting">4.2 User IP repository paths (new setting)<a class="headerlink" href="#42-user-ip-repository-paths-new-setting" title="Permanent link">&para;</a></h3>
+<p>Add a new VS Code setting <code>ipcraft.ipRepositoryPaths</code> (array of strings). These are absolute paths or paths relative to the workspace root pointing to directories containing IP cores. The extension scans these recursively for <code>.ip.yml</code> files and also for <code>component.xml</code> files (Vivado-packaged IPs). This covers shared team IP libraries and third-party IP.</p>
+<p>Scanning logic is the same as workspace scan but rooted at the configured paths.</p>
+<h3 id="43-vivado-catalog-scan-manual-command">4.3 Vivado catalog scan (manual command)<a class="headerlink" href="#43-vivado-catalog-scan-manual-command" title="Permanent link">&para;</a></h3>
+<p>A new command <code>IPCraft: Scan Vivado IP Catalog</code> that:</p>
+<ol>
+<li>Reads <code>ipcraft.vivadoPath</code> setting (default: <code>vivado</code>)</li>
+<li>Writes a temp Tcl script that creates an in-memory project and dumps <code>get_ipdefs *</code></li>
+<li>Runs <code>vivado -mode batch -source &lt;script&gt; -nojournal -nolog</code></li>
+<li>Parses the colon-separated VLNVs from stdout</li>
+<li>Writes results to <code>&lt;configDir&gt;/vivado/catalog.json</code> (using existing <code>getIpcraftConfigDir()</code>)</li>
+<li>Shows info notification with count</li>
+</ol>
+<p>Falls back to a built-in curated list of ~20 common Xilinx IPs when no catalog file exists.</p>
+<h2 id="5-file-by-file-changes">5. File-by-File Changes<a class="headerlink" href="#5-file-by-file-changes" title="Permanent link">&para;</a></h2>
+<h3 id="51-new-files">5.1 New files<a class="headerlink" href="#51-new-files" title="Permanent link">&para;</a></h3>
+<hr />
+<h4 id="srcutilsvlnvts"><code>src/utils/vlnv.ts</code><a class="headerlink" href="#srcutilsvlnvts" title="Permanent link">&para;</a></h4>
+<p>VLNV parsing utility.</p>
+<div class="highlight"><pre><span></span><code><span class="k">export</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nx">ParsedVlnv</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">vendor</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">library</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">version</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">export</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="nx">parseVlnv</span><span class="p">(</span><span class="nx">vlnv</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="nx">ParsedVlnv</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">parts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">vlnv</span><span class="p">.</span><span class="nx">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">);</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">parts</span><span class="p">.</span><span class="nx">length</span><span class="w"> </span><span class="o">!==</span><span class="w"> </span><span class="mf">4</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nx">parts</span><span class="p">.</span><span class="nx">some</span><span class="p">(</span><span class="nx">p</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="o">!</span><span class="nx">p</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">throw</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="ne">Error</span><span class="p">(</span><span class="sb">`Invalid VLNV &quot;</span><span class="si">${</span><span class="nx">vlnv</span><span class="si">}</span><span class="sb">&quot;: expected vendor:library:name:version`</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">vendor</span><span class="o">:</span><span class="w"> </span><span class="kt">parts</span><span class="p">[</span><span class="mf">0</span><span class="p">],</span><span class="w"> </span><span class="nx">library</span><span class="o">:</span><span class="w"> </span><span class="kt">parts</span><span class="p">[</span><span class="mf">1</span><span class="p">],</span><span class="w"> </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="kt">parts</span><span class="p">[</span><span class="mf">2</span><span class="p">],</span><span class="w"> </span><span class="nx">version</span><span class="o">:</span><span class="w"> </span><span class="kt">parts</span><span class="p">[</span><span class="mf">3</span><span class="p">]</span><span class="w"> </span><span class="p">};</span>
+<span class="p">}</span>
+
+<span class="k">export</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="nx">formatVlnv</span><span class="p">(</span><span class="nx">v</span><span class="o">:</span><span class="w"> </span><span class="kt">ParsedVlnv</span><span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="sb">`</span><span class="si">${</span><span class="nx">v</span><span class="p">.</span><span class="nx">vendor</span><span class="si">}</span><span class="sb">:</span><span class="si">${</span><span class="nx">v</span><span class="p">.</span><span class="nx">library</span><span class="si">}</span><span class="sb">:</span><span class="si">${</span><span class="nx">v</span><span class="p">.</span><span class="nx">name</span><span class="si">}</span><span class="sb">:</span><span class="si">${</span><span class="nx">v</span><span class="p">.</span><span class="nx">version</span><span class="si">}</span><span class="sb">`</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">export</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="nx">isValidVlnv</span><span class="p">(</span><span class="nx">vlnv</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="kt">boolean</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="sr">/^[^:]+:[^:]+:[^:]+:[^:]+$/</span><span class="p">.</span><span class="nx">test</span><span class="p">(</span><span class="nx">vlnv</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div>
+<hr />
+<h4 id="srcservicessubcoreresolverts"><code>src/services/SubcoreResolver.ts</code><a class="headerlink" href="#srcservicessubcoreresolverts" title="Permanent link">&para;</a></h4>
+<p>Discovers IPs from workspace, user repo paths, and Vivado catalog. Resolves subcore references.</p>
+<p><strong>Constructor</strong>: accepts <code>ExtensionContext</code>.</p>
+<p><strong>Public interface</strong>:</p>
+<div class="highlight"><pre><span></span><code><span class="k">export</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nx">ResolvedSubcore</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">vlnv</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">source</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;workspace&#39;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;user-repo&#39;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;vivado-catalog&#39;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;builtin&#39;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;unresolved&#39;</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">fsPath?</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">export</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nx">SubcoreCandidate</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">vlnv</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">source</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;workspace&#39;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;user-repo&#39;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;vivado-catalog&#39;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;builtin&#39;</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">label?</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w">     </span><span class="c1">// human-friendly display name</span>
+<span class="w">  </span><span class="nx">fsPath?</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">export</span><span class="w"> </span><span class="kd">class</span><span class="w"> </span><span class="nx">SubcoreResolver</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">async</span><span class="w"> </span><span class="nx">initialize</span><span class="p">()</span><span class="o">:</span><span class="w"> </span><span class="nb">Promise</span><span class="o">&lt;</span><span class="ow">void</span><span class="o">&gt;</span><span class="p">;</span><span class="w">            </span><span class="c1">// initial scan</span>
+<span class="w">  </span><span class="nx">resolve</span><span class="p">(</span><span class="nx">vlnv</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="nx">ResolvedSubcore</span><span class="p">;</span><span class="w">       </span><span class="c1">// resolve single ref</span>
+<span class="w">  </span><span class="nx">getAvailableIps</span><span class="p">()</span><span class="o">:</span><span class="w"> </span><span class="nx">SubcoreCandidate</span><span class="p">[];</span><span class="w">        </span><span class="c1">// for QuickPick</span>
+<span class="w">  </span><span class="nx">refresh</span><span class="p">()</span><span class="o">:</span><span class="w"> </span><span class="nb">Promise</span><span class="o">&lt;</span><span class="ow">void</span><span class="o">&gt;</span><span class="p">;</span><span class="w">                     </span><span class="c1">// re-scan all sources</span>
+<span class="p">}</span>
+</code></pre></div>
+<p><strong>Implementation details</strong>:</p>
+<ul>
+<li><code>initialize()</code>: calls <code>scanWorkspace()</code>, <code>scanUserRepoPaths()</code>, <code>loadVivadoCatalog()</code>, <code>loadBuiltinCatalog()</code></li>
+<li><code>scanWorkspace()</code>: uses <code>vscode.workspace.findFiles('**/*.ip.yml')</code>. For each file, read first 20 lines with <code>fs.readFile</code>, regex-match <code>vendor:</code>, <code>library:</code>, <code>name:</code>, <code>version:</code> fields from the vlnv block. Build index.</li>
+<li><code>scanUserRepoPaths()</code>: reads <code>ipcraft.ipRepositoryPaths</code> setting. For each path, glob for <code>*.ip.yml</code> and <code>component.xml</code>. Parse VLNVs. For <code>component.xml</code>, extract <code>spirit:vendor/library/name/version</code> from the root element.</li>
+<li><code>loadVivadoCatalog()</code>: reads <code>&lt;configDir&gt;/vivado/catalog.json</code> if it exists.</li>
+<li><code>loadBuiltinCatalog()</code>: loads from <code>src/data/xilinxCatalog.ts</code>.</li>
+<li><code>resolve()</code>: looks up the vlnv string in workspace index first, then user-repo index, then vivado catalog, then builtin. Returns the match with its source.</li>
+<li>Register <code>FileSystemWatcher</code> on <code>**/*.ip.yml</code> to invalidate and re-scan workspace index.</li>
+<li>Listen to <code>onDidChangeConfiguration</code> for <code>ipcraft.ipRepositoryPaths</code> changes.</li>
+</ul>
+<hr />
+<h4 id="srcservicesvivadocatalogscannerts"><code>src/services/VivadoCatalogScanner.ts</code><a class="headerlink" href="#srcservicesvivadocatalogscannerts" title="Permanent link">&para;</a></h4>
+<p>Handles the manual Vivado catalog scan command.</p>
+<div class="highlight"><pre><span></span><code><span class="k">export</span><span class="w"> </span><span class="kd">class</span><span class="w"> </span><span class="nx">VivadoCatalogScanner</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">async</span><span class="w"> </span><span class="nx">scan</span><span class="p">()</span><span class="o">:</span><span class="w"> </span><span class="nb">Promise</span><span class="o">&lt;</span><span class="p">{</span><span class="w"> </span><span class="nx">count</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">;</span><span class="w"> </span><span class="nx">catalogPath</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="p">}</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="w">  </span><span class="k">async</span><span class="w"> </span><span class="nx">loadCachedCatalog</span><span class="p">()</span><span class="o">:</span><span class="w"> </span><span class="nb">Promise</span><span class="o">&lt;</span><span class="kt">string</span><span class="p">[]</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+<p><strong><code>scan()</code> implementation</strong>:</p>
+<ol>
+<li>Get <code>ipcraft.vivadoPath</code> from config (default <code>'vivado'</code>)</li>
+<li>Create temp dir inside workspace <code>.ipcraft-tmp/</code> (cleaned up after)</li>
+<li>Write Tcl script:
+   <div class="highlight"><pre><span></span><code><span class="nv">create_project</span><span class="w"> </span><span class="o">-</span>in_memory<span class="w"> </span><span class="o">-</span>part<span class="w"> </span>xc7z020clg484-1
+<span class="k">set</span><span class="w"> </span>fh<span class="w"> </span><span class="k">[</span><span class="nb">open</span><span class="w"> </span><span class="k">{</span><span class="nv">OUTPUT_FILE</span><span class="k">}</span><span class="w"> </span>w<span class="k">]</span>
+<span class="k">foreach</span><span class="w"> </span>ipdef<span class="w"> </span><span class="k">[</span><span class="nv">get_ipdefs</span><span class="w"> </span><span class="o">*</span><span class="k">]</span><span class="w"> </span><span class="k">{</span><span class="w"> </span><span class="nb">puts</span><span class="w"> </span><span class="nv">$fh</span><span class="w"> </span><span class="s2">&quot;$ipdef&quot;</span><span class="w"> </span><span class="k">}</span>
+<span class="nb">close</span><span class="w"> </span><span class="nv">$fh</span>
+<span class="nb">exit</span>
+</code></pre></div></li>
+<li>Spawn: <code>vivado -mode batch -source &lt;script&gt; -nojournal -nolog</code></li>
+<li>Read output file, parse each line as a colon-separated VLNV</li>
+<li>Write to <code>path.join(getIpcraftConfigDir(), 'vivado', 'catalog.json')</code>:
+   <div class="highlight"><pre><span></span><code><span class="p">{</span><span class="w"> </span><span class="nt">&quot;version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2024.2&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;scannedAt&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-05-12T...&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;ipdefs&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;xilinx.com:ip:fifo_generator:13.2&quot;</span><span class="p">,</span><span class="w"> </span><span class="err">...</span><span class="p">]</span><span class="w"> </span><span class="p">}</span>
+</code></pre></div></li>
+<li>Clean up temp files</li>
+<li>Return <code>{ count, catalogPath }</code></li>
+</ol>
+<p><strong><code>loadCachedCatalog()</code></strong>: reads catalog.json, returns the <code>ipdefs</code> array or empty array.</p>
+<hr />
+<h4 id="srcdataxilinxcatalogts"><code>src/data/xilinxCatalog.ts</code><a class="headerlink" href="#srcdataxilinxcatalogts" title="Permanent link">&para;</a></h4>
+<p>Static fallback list of common Xilinx IPs.</p>
+<div class="highlight"><pre><span></span><code><span class="k">export</span><span class="w"> </span><span class="kd">const</span><span class="w"> </span><span class="nx">XILINX_COMMON_IPS</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">[]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span>
+<span class="w">  </span><span class="s1">&#39;xilinx.com:ip:fifo_generator:13.2&#39;</span><span class="p">,</span>
+<span class="w">  </span><span class="s1">&#39;xilinx.com:ip:axi_interconnect:2.1&#39;</span><span class="p">,</span>
+<span class="w">  </span><span class="s1">&#39;xilinx.com:ip:clk_wiz:6.0&#39;</span><span class="p">,</span>
+<span class="w">  </span><span class="s1">&#39;xilinx.com:ip:axi_dma:7.1&#39;</span><span class="p">,</span>
+<span class="w">  </span><span class="s1">&#39;xilinx.com:ip:axi_gpio:2.0&#39;</span><span class="p">,</span>
+<span class="w">  </span><span class="s1">&#39;xilinx.com:ip:axi_bram_ctrl:4.1&#39;</span><span class="p">,</span>
+<span class="w">  </span><span class="s1">&#39;xilinx.com:ip:proc_sys_reset:5.0&#39;</span><span class="p">,</span>
+<span class="w">  </span><span class="s1">&#39;xilinx.com:ip:xlconcat:2.1&#39;</span><span class="p">,</span>
+<span class="w">  </span><span class="s1">&#39;xilinx.com:ip:xlslice:1.0&#39;</span><span class="p">,</span>
+<span class="w">  </span><span class="s1">&#39;xilinx.com:ip:axis_data_fifo:2.0&#39;</span><span class="p">,</span>
+<span class="w">  </span><span class="s1">&#39;xilinx.com:ip:axi_crossbar:2.1&#39;</span><span class="p">,</span>
+<span class="w">  </span><span class="s1">&#39;xilinx.com:ip:blk_mem_gen:8.4&#39;</span><span class="p">,</span>
+<span class="w">  </span><span class="s1">&#39;xilinx.com:ip:ila:6.2&#39;</span><span class="p">,</span>
+<span class="w">  </span><span class="s1">&#39;xilinx.com:ip:vio:3.0&#39;</span><span class="p">,</span>
+<span class="w">  </span><span class="s1">&#39;xilinx.com:ip:axi_protocol_converter:2.1&#39;</span><span class="p">,</span>
+<span class="w">  </span><span class="s1">&#39;xilinx.com:ip:axi_clock_converter:2.1&#39;</span><span class="p">,</span>
+<span class="w">  </span><span class="s1">&#39;xilinx.com:ip:util_vector_logic:2.0&#39;</span><span class="p">,</span>
+<span class="w">  </span><span class="s1">&#39;xilinx.com:ip:axi_uartlite:2.0&#39;</span><span class="p">,</span>
+<span class="w">  </span><span class="s1">&#39;xilinx.com:ip:axi_timer:2.0&#39;</span><span class="p">,</span>
+<span class="w">  </span><span class="s1">&#39;xilinx.com:ip:axi_intc:4.1&#39;</span><span class="p">,</span>
+<span class="p">];</span>
+</code></pre></div>
+<hr />
+<h4 id="srccommandsscanvivadocatalogts"><code>src/commands/scanVivadoCatalog.ts</code><a class="headerlink" href="#srccommandsscanvivadocatalogts" title="Permanent link">&para;</a></h4>
+<p>Command handler for <code>fpga-ip-core.scanVivadoCatalog</code>.</p>
+<div class="highlight"><pre><span></span><code><span class="k">export</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="nx">scanVivadoCatalogCommand</span><span class="p">()</span><span class="o">:</span><span class="w"> </span><span class="nb">Promise</span><span class="o">&lt;</span><span class="ow">void</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="c1">// Show progress notification</span>
+<span class="w">  </span><span class="k">await</span><span class="w"> </span><span class="nx">vscode</span><span class="p">.</span><span class="nb">window</span><span class="p">.</span><span class="nx">withProgress</span><span class="p">(</span>
+<span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="nx">location</span><span class="o">:</span><span class="w"> </span><span class="kt">vscode.ProgressLocation.Notification</span><span class="p">,</span><span class="w"> </span><span class="nx">title</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;Scanning Vivado IP catalog...&#39;</span><span class="w"> </span><span class="p">},</span>
+<span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="kd">const</span><span class="w"> </span><span class="nx">scanner</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="nx">VivadoCatalogScanner</span><span class="p">();</span>
+<span class="w">      </span><span class="kd">const</span><span class="w"> </span><span class="nx">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">scanner</span><span class="p">.</span><span class="nx">scan</span><span class="p">();</span>
+<span class="w">      </span><span class="ow">void</span><span class="w"> </span><span class="nx">vscode</span><span class="p">.</span><span class="nb">window</span><span class="p">.</span><span class="nx">showInformationMessage</span><span class="p">(</span>
+<span class="w">        </span><span class="sb">`Found </span><span class="si">${</span><span class="nx">result</span><span class="p">.</span><span class="nx">count</span><span class="si">}</span><span class="sb"> IPs. Catalog saved to </span><span class="si">${</span><span class="nx">result</span><span class="p">.</span><span class="nx">catalogPath</span><span class="si">}</span><span class="sb">`</span>
+<span class="w">      </span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div>
+<hr />
+<h4 id="srcwebviewipcorecomponentssectionssubcoreseditortsx"><code>src/webview/ipcore/components/sections/SubcoresEditor.tsx</code><a class="headerlink" href="#srcwebviewipcorecomponentssectionssubcoreseditortsx" title="Permanent link">&para;</a></h4>
+<p>New React component for the Dependencies tab.</p>
+<p><strong>Props</strong>: <code>{ subcores: (string | { vlnv: string; path?: string })[]; onUpdate: YamlUpdateHandler }</code></p>
+<p><strong>Layout</strong> (follow the same style patterns as <code>MemoryMapsEditor.tsx</code> and <code>FileSetsEditor.tsx</code>):</p>
+<ol>
+<li><strong>Header</strong>: "Dependencies" title</li>
+<li><strong>List of current subcores</strong>: each entry shows:</li>
+<li>VLNV string in monospace font</li>
+<li>Path label (if present, shown in smaller text below)</li>
+<li>Delete button (<code>codicon-close</code>) that calls <code>onUpdate(['subcores'], filteredArray)</code></li>
+<li>"Open" button (<code>codicon-go-to-file</code>) that sends <code>vscode.postMessage({ type: 'openFile', path })</code> -- only shown if path is set</li>
+<li><strong>"Add Dependency" button</strong> at the bottom: sends <code>vscode.postMessage({ type: 'addSubcore' })</code></li>
+<li><strong>Empty state</strong>: dashed border box with "No dependencies declared." text and the add button</li>
+</ol>
+<p><strong>Message handling</strong>: listen for <code>subcoreAdded</code> message from the extension host:
+<div class="highlight"><pre><span></span><code><span class="nb">window</span><span class="p">.</span><span class="nx">addEventListener</span><span class="p">(</span><span class="s1">&#39;message&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="nx">event</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">event</span><span class="p">.</span><span class="nx">data</span><span class="p">.</span><span class="kr">type</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="s1">&#39;subcoreAdded&#39;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">const</span><span class="w"> </span><span class="nx">newVlnv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">event</span><span class="p">.</span><span class="nx">data</span><span class="p">.</span><span class="nx">vlnv</span><span class="w"> </span><span class="kr">as</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">    </span><span class="kd">const</span><span class="w"> </span><span class="nx">currentSubcores</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[...(</span><span class="nx">subcores</span><span class="w"> </span><span class="o">??</span><span class="w"> </span><span class="p">[])];</span>
+<span class="w">    </span><span class="nx">currentSubcores</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">newVlnv</span><span class="p">);</span>
+<span class="w">    </span><span class="nx">onUpdate</span><span class="p">([</span><span class="s1">&#39;subcores&#39;</span><span class="p">],</span><span class="w"> </span><span class="nx">currentSubcores</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">});</span>
+</code></pre></div></p>
+<p><strong>Style</strong>: use <code>var(--vscode-*)</code> tokens matching the existing sections. Use <code>sectionStyle</code>, <code>labelStyle</code> patterns from <code>GeneratorPanel.tsx</code>.</p>
+<hr />
+<h3 id="52-modified-files">5.2 Modified files<a class="headerlink" href="#52-modified-files" title="Permanent link">&para;</a></h3>
+<hr />
+<h4 id="ipcraft-specschemasip_coreschemajson"><code>ipcraft-spec/schemas/ip_core.schema.json</code><a class="headerlink" href="#ipcraft-specschemasip_coreschemajson" title="Permanent link">&para;</a></h4>
+<p>Add to <code>$defs</code>:
+<div class="highlight"><pre><span></span><code><span class="nt">&quot;SubcoreRef&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;additionalProperties&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Sub-IP core reference with optional path override.&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;properties&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;vlnv&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;string&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;pattern&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;^[^:]+:[^:]+:[^:]+:[^:]+$&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Colon-separated VLNV: vendor:library:name:version&quot;</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;string&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Relative path to the sub-IP project root&quot;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;required&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;vlnv&quot;</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;object&quot;</span>
+<span class="p">}</span>
+</code></pre></div></p>
+<p>Add <code>subcores</code> to <code>IpCore.properties</code> (at the end, after <code>parameters</code>):
+<div class="highlight"><pre><span></span><code><span class="nt">&quot;subcores&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Sub-IP core dependencies&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;items&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;oneOf&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;string&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;pattern&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;^[^:]+:[^:]+:[^:]+:[^:]+$&quot;</span><span class="w"> </span><span class="p">},</span>
+<span class="w">      </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;$ref&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;#/$defs/SubcoreRef&quot;</span><span class="w"> </span><span class="p">}</span>
+<span class="w">    </span><span class="p">]</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;array&quot;</span>
+<span class="p">}</span>
+</code></pre></div></p>
+<hr />
+<h4 id="srcgeneratortypests"><code>src/generator/types.ts</code><a class="headerlink" href="#srcgeneratortypests" title="Permanent link">&para;</a></h4>
+<p>Add interface and extend <code>IpCoreData</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="k">export</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nx">SubcoreRef</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">vlnv</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w">   </span><span class="c1">// colon-separated</span>
+<span class="w">  </span><span class="nx">path?</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Add <code>subcores?: SubcoreRef[]</code> to <code>IpCoreData</code>.</p>
+<hr />
+<h4 id="srcwebviewtypesipcoredts"><code>src/webview/types/ipCore.d.ts</code><a class="headerlink" href="#srcwebviewtypesipcoredts" title="Permanent link">&para;</a></h4>
+<p>Add to <code>IpCore</code> interface:</p>
+<div class="highlight"><pre><span></span><code><span class="nx">subcores</span><span class="o">?:</span><span class="w"> </span><span class="p">(</span><span class="kt">string</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">vlnv</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w"> </span><span class="nx">path?</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="p">})[];</span>
+</code></pre></div>
+<p>Note: this file is auto-generated by <code>npm run generate-types</code>. After updating the schema, re-run the script. If the auto-generation does not pick up <code>subcores</code>, add it manually.</p>
+<hr />
+<h4 id="srcgeneratorvivadocomponentxmlgeneratorts"><code>src/generator/VivadoComponentXmlGenerator.ts</code><a class="headerlink" href="#srcgeneratorvivadocomponentxmlgeneratorts" title="Permanent link">&para;</a></h4>
+<p><strong>Add</strong> a new function <code>renderSubcoreRefs()</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">parseVlnv</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;../utils/vlnv&#39;</span><span class="p">;</span>
+
+<span class="kd">function</span><span class="w"> </span><span class="nx">renderSubcoreRefs</span><span class="p">(</span><span class="nx">subcores</span><span class="o">:</span><span class="w"> </span><span class="kt">SubcoreRef</span><span class="p">[])</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">[]</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">subcores</span><span class="p">.</span><span class="nx">length</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="mf">0</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="p">[];</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">lines</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">[]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[];</span>
+<span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kd">const</span><span class="w"> </span><span class="nx">ref</span><span class="w"> </span><span class="k">of</span><span class="w"> </span><span class="nx">subcores</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">const</span><span class="w"> </span><span class="nx">v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">parseVlnv</span><span class="p">(</span><span class="nx">ref</span><span class="p">.</span><span class="nx">vlnv</span><span class="p">);</span>
+<span class="w">    </span><span class="nx">lines</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="s1">&#39;      &lt;xilinx:subCoreRef&gt;&#39;</span><span class="p">);</span>
+<span class="w">    </span><span class="nx">lines</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span>
+<span class="w">      </span><span class="sb">`        &lt;xilinx:vlnv xilinx:vendor=&quot;</span><span class="si">${</span><span class="nx">x</span><span class="p">(</span><span class="nx">v</span><span class="p">.</span><span class="nx">vendor</span><span class="p">)</span><span class="si">}</span><span class="sb">&quot; `</span><span class="w"> </span><span class="o">+</span>
+<span class="w">      </span><span class="sb">`xilinx:library=&quot;</span><span class="si">${</span><span class="nx">x</span><span class="p">(</span><span class="nx">v</span><span class="p">.</span><span class="nx">library</span><span class="p">)</span><span class="si">}</span><span class="sb">&quot; `</span><span class="w"> </span><span class="o">+</span>
+<span class="w">      </span><span class="sb">`xilinx:name=&quot;</span><span class="si">${</span><span class="nx">x</span><span class="p">(</span><span class="nx">v</span><span class="p">.</span><span class="nx">name</span><span class="p">)</span><span class="si">}</span><span class="sb">&quot; `</span><span class="w"> </span><span class="o">+</span>
+<span class="w">      </span><span class="sb">`xilinx:version=&quot;</span><span class="si">${</span><span class="nx">x</span><span class="p">(</span><span class="nx">v</span><span class="p">.</span><span class="nx">version</span><span class="p">)</span><span class="si">}</span><span class="sb">&quot; /&gt;`</span>
+<span class="w">    </span><span class="p">);</span>
+<span class="w">    </span><span class="nx">lines</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="s1">&#39;      &lt;/xilinx:subCoreRef&gt;&#39;</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nx">lines</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+<p><strong>Modify</strong> <code>renderVendorExtensions()</code> (or wherever <code>&lt;xilinx:coreExtensions&gt;</code> is built): accept <code>subcores</code> parameter, insert the output of <code>renderSubcoreRefs()</code> after <code>coreRevision</code> and before the closing <code>&lt;/xilinx:coreExtensions&gt;</code>.</p>
+<p><strong>Modify</strong> <code>generateComponentXml()</code>: read <code>subcores</code> from <code>IpCoreData</code>, pass to <code>renderVendorExtensions()</code>.</p>
+<hr />
+<h4 id="srcgeneratorregisterprocessorts"><code>src/generator/registerProcessor.ts</code><a class="headerlink" href="#srcgeneratorregisterprocessorts" title="Permanent link">&para;</a></h4>
+<p><strong>Modify</strong> <code>normalizeIpCoreData()</code>: add subcores normalization after the existing <code>memory_maps</code> normalization:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">const</span><span class="w"> </span><span class="nx">rawSubcores</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">((</span><span class="nx">raw</span><span class="p">.</span><span class="nx">subcores</span><span class="w"> </span><span class="kr">as</span><span class="w"> </span><span class="nx">unknown</span><span class="p">[])</span><span class="w"> </span><span class="o">??</span><span class="w"> </span><span class="p">[]);</span>
+<span class="c1">// ... in the return object:</span>
+<span class="nx">subcores</span><span class="o">:</span><span class="w"> </span><span class="kt">rawSubcores.map</span><span class="p">(</span><span class="nx">sc</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="ow">typeof</span><span class="w"> </span><span class="nx">sc</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="s1">&#39;string&#39;</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">vlnv</span><span class="o">:</span><span class="w"> </span><span class="kt">sc</span><span class="w"> </span><span class="p">};</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">obj</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">sc</span><span class="w"> </span><span class="kr">as</span><span class="w"> </span><span class="nx">Record</span><span class="o">&lt;</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">unknown</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">vlnv</span><span class="o">:</span><span class="w"> </span><span class="kt">getString</span><span class="p">(</span><span class="nx">obj</span><span class="p">.</span><span class="nx">vlnv</span><span class="p">),</span><span class="w"> </span><span class="p">...(</span><span class="nx">obj</span><span class="p">.</span><span class="nx">path</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">path</span><span class="o">:</span><span class="w"> </span><span class="kt">getString</span><span class="p">(</span><span class="nx">obj</span><span class="p">.</span><span class="nx">path</span><span class="p">)</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="p">{})</span><span class="w"> </span><span class="p">};</span>
+<span class="p">}),</span>
+</code></pre></div>
+<hr />
+<h4 id="srcparsercomponentxmlparserts"><code>src/parser/ComponentXmlParser.ts</code><a class="headerlink" href="#srcparsercomponentxmlparserts" title="Permanent link">&para;</a></h4>
+<p><strong>Modify</strong> <code>parseComponentXmlText()</code>: after existing vendor extensions parsing, extract <code>&lt;xilinx:subCoreRef&gt;</code> elements.</p>
+<p>Find the <code>vendorExtensions</code> element, then <code>coreExtensions</code>, then iterate <code>subCoreRef</code> children. For each, extract the 4 VLNV attributes from the <code>&lt;xilinx:vlnv&gt;</code> child element and format as a colon-separated string.</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// After existing parsing, before returning ipObj:</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">vendorExtEl</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="cm">/* find spirit:vendorExtensions element */</span><span class="p">;</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">vendorExtEl</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="c1">// getElementsByTagName with namespace or simple tag matching</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">subCoreRefEls</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="cm">/* find all xilinx:subCoreRef elements */</span><span class="p">;</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">subcores</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">[]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[];</span>
+<span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kd">const</span><span class="w"> </span><span class="nx">scRef</span><span class="w"> </span><span class="k">of</span><span class="w"> </span><span class="nx">subCoreRefEls</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">const</span><span class="w"> </span><span class="nx">vlnvEl</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="cm">/* find xilinx:vlnv child */</span><span class="p">;</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">vlnvEl</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="kd">const</span><span class="w"> </span><span class="nx">vendor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">vlnvEl</span><span class="p">.</span><span class="nx">getAttribute</span><span class="p">(</span><span class="s1">&#39;xilinx:vendor&#39;</span><span class="p">)</span><span class="w"> </span><span class="o">??</span><span class="w"> </span><span class="s1">&#39;&#39;</span><span class="p">;</span>
+<span class="w">      </span><span class="kd">const</span><span class="w"> </span><span class="nx">library</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">vlnvEl</span><span class="p">.</span><span class="nx">getAttribute</span><span class="p">(</span><span class="s1">&#39;xilinx:library&#39;</span><span class="p">)</span><span class="w"> </span><span class="o">??</span><span class="w"> </span><span class="s1">&#39;&#39;</span><span class="p">;</span>
+<span class="w">      </span><span class="kd">const</span><span class="w"> </span><span class="nx">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">vlnvEl</span><span class="p">.</span><span class="nx">getAttribute</span><span class="p">(</span><span class="s1">&#39;xilinx:name&#39;</span><span class="p">)</span><span class="w"> </span><span class="o">??</span><span class="w"> </span><span class="s1">&#39;&#39;</span><span class="p">;</span>
+<span class="w">      </span><span class="kd">const</span><span class="w"> </span><span class="nx">version</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">vlnvEl</span><span class="p">.</span><span class="nx">getAttribute</span><span class="p">(</span><span class="s1">&#39;xilinx:version&#39;</span><span class="p">)</span><span class="w"> </span><span class="o">??</span><span class="w"> </span><span class="s1">&#39;&#39;</span><span class="p">;</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">vendor</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nx">library</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nx">name</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nx">version</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nx">subcores</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="sb">`</span><span class="si">${</span><span class="nx">vendor</span><span class="si">}</span><span class="sb">:</span><span class="si">${</span><span class="nx">library</span><span class="si">}</span><span class="sb">:</span><span class="si">${</span><span class="nx">name</span><span class="si">}</span><span class="sb">:</span><span class="si">${</span><span class="nx">version</span><span class="si">}</span><span class="sb">`</span><span class="p">);</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">subcores</span><span class="p">.</span><span class="nx">length</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mf">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">ipObj</span><span class="p">.</span><span class="nx">subcores</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">subcores</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Note: The existing parser uses <code>@xmldom/xmldom</code>. Use <code>getElementsByTagName</code> or manual child traversal matching the patterns already used in the file.</p>
+<hr />
+<h4 id="srcwebviewipcorehooksusenavigationts"><code>src/webview/ipcore/hooks/useNavigation.ts</code><a class="headerlink" href="#srcwebviewipcorehooksusenavigationts" title="Permanent link">&para;</a></h4>
+<p>Add <code>'subcores'</code> to the <code>Section</code> union type, between <code>'busInterfaces'</code> and <code>'memoryMaps'</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="k">export</span><span class="w"> </span><span class="kr">type</span><span class="w"> </span><span class="nx">Section</span><span class="w"> </span><span class="o">=</span>
+<span class="w">  </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;metadata&#39;</span>
+<span class="w">  </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;clocks&#39;</span>
+<span class="w">  </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;resets&#39;</span>
+<span class="w">  </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;ports&#39;</span>
+<span class="w">  </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;busInterfaces&#39;</span>
+<span class="w">  </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;subcores&#39;</span><span class="w">       </span><span class="c1">// NEW</span>
+<span class="w">  </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;memoryMaps&#39;</span>
+<span class="w">  </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;parameters&#39;</span>
+<span class="w">  </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;fileSets&#39;</span>
+<span class="w">  </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;generate&#39;</span><span class="p">;</span>
+</code></pre></div>
+<hr />
+<h4 id="srcwebviewipcorecomponentslayoutnavigationsidebartsx"><code>src/webview/ipcore/components/layout/NavigationSidebar.tsx</code><a class="headerlink" href="#srcwebviewipcorecomponentslayoutnavigationsidebartsx" title="Permanent link">&para;</a></h4>
+<p>Add entry in the <code>SECTIONS</code> array after the <code>busInterfaces</code> entry and before <code>memoryMaps</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nx">id</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;subcores&#39;</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">label</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;Dependencies&#39;</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">icon</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;extensions&#39;</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">count</span><span class="o">:</span><span class="w"> </span><span class="p">(</span><span class="nx">ip</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">const</span><span class="w"> </span><span class="nx">subcores</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="nx">ip</span><span class="w"> </span><span class="kr">as</span><span class="w"> </span><span class="nx">Record</span><span class="o">&lt;</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">unknown</span><span class="p">[]</span><span class="o">&gt;</span><span class="p">)</span><span class="o">?</span><span class="p">.</span><span class="nx">subcores</span><span class="p">;</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nb">Array</span><span class="p">.</span><span class="nx">isArray</span><span class="p">(</span><span class="nx">subcores</span><span class="p">)</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="nx">subcores.length</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="kt">0</span><span class="p">;</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="p">},</span>
+</code></pre></div>
+<hr />
+<h4 id="srcwebviewipcorecomponentslayouteditorpaneltsx"><code>src/webview/ipcore/components/layout/EditorPanel.tsx</code><a class="headerlink" href="#srcwebviewipcorecomponentslayouteditorpaneltsx" title="Permanent link">&para;</a></h4>
+<p>Add import for <code>SubcoresEditor</code> and add case in <code>renderSection()</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">SubcoresEditor</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;../sections/SubcoresEditor&#39;</span><span class="p">;</span>
+
+<span class="c1">// In renderSection():</span>
+<span class="k">case</span><span class="w"> </span><span class="s1">&#39;subcores&#39;</span><span class="o">:</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="o">&lt;</span><span class="nx">SubcoresEditor</span><span class="w"> </span><span class="nx">subcores</span><span class="o">=</span><span class="p">{</span><span class="nx">ip</span><span class="p">.</span><span class="nx">subcores</span><span class="w"> </span><span class="o">??</span><span class="w"> </span><span class="p">[]}</span><span class="w"> </span><span class="nx">onUpdate</span><span class="o">=</span><span class="p">{</span><span class="nx">onUpdate</span><span class="p">}</span><span class="w"> </span><span class="o">/&gt;</span><span class="p">;</span>
+</code></pre></div>
+<hr />
+<h4 id="srcprovidersipcoreeditorproviderts"><code>src/providers/IpCoreEditorProvider.ts</code><a class="headerlink" href="#srcprovidersipcoreeditorproviderts" title="Permanent link">&para;</a></h4>
+<p>Add handler for the <code>addSubcore</code> message type in <code>registerWebviewMessageHandlers()</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="nx">addSubcore</span><span class="o">:</span><span class="w"> </span><span class="kt">async</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">await</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="nx">handleAddSubcoreMessage</span><span class="p">(</span><span class="nx">webviewPanel</span><span class="p">);</span>
+<span class="p">},</span>
+</code></pre></div>
+<p>Add method <code>handleAddSubcoreMessage()</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="k">private</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="nx">handleAddSubcoreMessage</span><span class="p">(</span>
+<span class="w">  </span><span class="nx">webviewPanel</span><span class="o">:</span><span class="w"> </span><span class="kt">vscode.WebviewPanel</span>
+<span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="nb">Promise</span><span class="o">&lt;</span><span class="ow">void</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="c1">// Get available IPs from SubcoreResolver (accessed via a singleton or passed in)</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">candidates</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="nx">subcoreResolver</span><span class="p">.</span><span class="nx">getAvailableIps</span><span class="p">();</span>
+
+<span class="w">  </span><span class="c1">// Build QuickPick items grouped by source</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">items</span><span class="o">:</span><span class="w"> </span><span class="kt">vscode.QuickPickItem</span><span class="p">[]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[];</span>
+
+<span class="w">  </span><span class="c1">// Group: Workspace</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">workspaceIps</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">candidates</span><span class="p">.</span><span class="nx">filter</span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">source</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="s1">&#39;workspace&#39;</span><span class="p">);</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">workspaceIps</span><span class="p">.</span><span class="nx">length</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mf">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">items</span><span class="p">.</span><span class="nx">push</span><span class="p">({</span><span class="w"> </span><span class="nx">label</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;Workspace IPs&#39;</span><span class="p">,</span><span class="w"> </span><span class="nx">kind</span><span class="o">:</span><span class="w"> </span><span class="kt">vscode.QuickPickItemKind.Separator</span><span class="w"> </span><span class="p">});</span>
+<span class="w">    </span><span class="nx">items</span><span class="p">.</span><span class="nx">push</span><span class="p">(...</span><span class="nx">workspaceIps</span><span class="p">.</span><span class="nx">map</span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">({</span>
+<span class="w">      </span><span class="nx">label</span><span class="o">:</span><span class="w"> </span><span class="kt">c.vlnv</span><span class="p">,</span>
+<span class="w">      </span><span class="nx">description</span><span class="o">:</span><span class="w"> </span><span class="kt">c.fsPath</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="nx">path</span><span class="p">.</span><span class="nx">basename</span><span class="p">(</span><span class="nx">c</span><span class="p">.</span><span class="nx">fsPath</span><span class="p">)</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="kc">undefined</span><span class="p">,</span>
+<span class="w">    </span><span class="p">})));</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// Group: User repositories</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">repoIps</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">candidates</span><span class="p">.</span><span class="nx">filter</span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">source</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="s1">&#39;user-repo&#39;</span><span class="p">);</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">repoIps</span><span class="p">.</span><span class="nx">length</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mf">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">items</span><span class="p">.</span><span class="nx">push</span><span class="p">({</span><span class="w"> </span><span class="nx">label</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;User IP Repositories&#39;</span><span class="p">,</span><span class="w"> </span><span class="nx">kind</span><span class="o">:</span><span class="w"> </span><span class="kt">vscode.QuickPickItemKind.Separator</span><span class="w"> </span><span class="p">});</span>
+<span class="w">    </span><span class="nx">items</span><span class="p">.</span><span class="nx">push</span><span class="p">(...</span><span class="nx">repoIps</span><span class="p">.</span><span class="nx">map</span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">({</span><span class="w"> </span><span class="nx">label</span><span class="o">:</span><span class="w"> </span><span class="kt">c.vlnv</span><span class="p">,</span><span class="w"> </span><span class="nx">description</span><span class="o">:</span><span class="w"> </span><span class="kt">c.fsPath</span><span class="w"> </span><span class="p">})));</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// Group: Vivado catalog / builtin</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">catalogIps</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">candidates</span><span class="p">.</span><span class="nx">filter</span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">source</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="s1">&#39;vivado-catalog&#39;</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">source</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="s1">&#39;builtin&#39;</span><span class="p">);</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">catalogIps</span><span class="p">.</span><span class="nx">length</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mf">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">items</span><span class="p">.</span><span class="nx">push</span><span class="p">({</span><span class="w"> </span><span class="nx">label</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;Vivado Catalog&#39;</span><span class="p">,</span><span class="w"> </span><span class="nx">kind</span><span class="o">:</span><span class="w"> </span><span class="kt">vscode.QuickPickItemKind.Separator</span><span class="w"> </span><span class="p">});</span>
+<span class="w">    </span><span class="nx">items</span><span class="p">.</span><span class="nx">push</span><span class="p">(...</span><span class="nx">catalogIps</span><span class="p">.</span><span class="nx">map</span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">({</span><span class="w"> </span><span class="nx">label</span><span class="o">:</span><span class="w"> </span><span class="kt">c.vlnv</span><span class="w"> </span><span class="p">})));</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// Free-text entry option</span>
+<span class="w">  </span><span class="nx">items</span><span class="p">.</span><span class="nx">push</span><span class="p">({</span><span class="w"> </span><span class="nx">label</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;Enter custom VLNV...&#39;</span><span class="p">,</span><span class="w"> </span><span class="nx">kind</span><span class="o">:</span><span class="w"> </span><span class="kt">vscode.QuickPickItemKind.Default</span><span class="p">,</span><span class="w"> </span><span class="nx">description</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;vendor:library:name:version&#39;</span><span class="w"> </span><span class="p">});</span>
+
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">selected</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">vscode</span><span class="p">.</span><span class="nb">window</span><span class="p">.</span><span class="nx">showQuickPick</span><span class="p">(</span><span class="nx">items</span><span class="p">,</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">placeHolder</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;Select an IP dependency (vendor:library:name:version)&#39;</span><span class="p">,</span>
+<span class="w">    </span><span class="nx">matchOnDescription</span><span class="o">:</span><span class="w"> </span><span class="kt">true</span><span class="p">,</span>
+<span class="w">  </span><span class="p">});</span>
+
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="nx">selected</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="p">;</span>
+
+<span class="w">  </span><span class="kd">let</span><span class="w"> </span><span class="nx">vlnv</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">selected</span><span class="p">.</span><span class="nx">label</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="s1">&#39;Enter custom VLNV...&#39;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">const</span><span class="w"> </span><span class="nx">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">vscode</span><span class="p">.</span><span class="nb">window</span><span class="p">.</span><span class="nx">showInputBox</span><span class="p">({</span>
+<span class="w">      </span><span class="nx">prompt</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;Enter VLNV (vendor:library:name:version)&#39;</span><span class="p">,</span>
+<span class="w">      </span><span class="nx">placeHolder</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;xilinx.com:ip:fifo_generator:13.2&#39;</span><span class="p">,</span>
+<span class="w">      </span><span class="nx">validateInput</span><span class="o">:</span><span class="w"> </span><span class="p">(</span><span class="nx">v</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nx">isValidVlnv</span><span class="p">(</span><span class="nx">v</span><span class="p">)</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="kc">null</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;Format: vendor:library:name:version&#39;</span><span class="p">,</span>
+<span class="w">    </span><span class="p">});</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="nx">input</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="p">;</span>
+<span class="w">    </span><span class="nx">vlnv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">input</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">vlnv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">selected</span><span class="p">.</span><span class="nx">label</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="ow">void</span><span class="w"> </span><span class="nx">webviewPanel</span><span class="p">.</span><span class="nx">webview</span><span class="p">.</span><span class="nx">postMessage</span><span class="p">({</span><span class="w"> </span><span class="kr">type</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;subcoreAdded&#39;</span><span class="p">,</span><span class="w"> </span><span class="nx">vlnv</span><span class="w"> </span><span class="p">});</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Also: inject <code>SubcoreResolver</code> into the provider (construct in constructor, call <code>initialize()</code> asynchronously).</p>
+<hr />
+<h4 id="srcextensionts"><code>src/extension.ts</code><a class="headerlink" href="#srcextensionts" title="Permanent link">&para;</a></h4>
+<ol>
+<li>
+<p>Register new command:
+<div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">scanVivadoCatalogCommand</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;./commands/scanVivadoCatalog&#39;</span><span class="p">;</span>
+<span class="nx">safeRegisterCommand</span><span class="p">(</span><span class="nx">context</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;fpga-ip-core.scanVivadoCatalog&#39;</span><span class="p">,</span><span class="w"> </span><span class="nx">scanVivadoCatalogCommand</span><span class="p">);</span>
+</code></pre></div></p>
+</li>
+<li>
+<p>Initialize <code>SubcoreResolver</code> on activation (lazy, non-blocking):
+<div class="highlight"><pre><span></span><code><span class="ow">void</span><span class="w"> </span><span class="k">import</span><span class="p">(</span><span class="s1">&#39;./services/SubcoreResolver&#39;</span><span class="p">).</span><span class="nx">then</span><span class="p">(({</span><span class="w"> </span><span class="nx">SubcoreResolver</span><span class="w"> </span><span class="p">})</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">resolver</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="nx">SubcoreResolver</span><span class="p">(</span><span class="nx">context</span><span class="p">);</span>
+<span class="w">  </span><span class="ow">void</span><span class="w"> </span><span class="nx">resolver</span><span class="p">.</span><span class="nx">initialize</span><span class="p">();</span>
+<span class="w">  </span><span class="c1">// Store on context or export for IpCoreEditorProvider to access</span>
+<span class="p">});</span>
+</code></pre></div></p>
+</li>
+</ol>
+<hr />
+<h4 id="packagejson"><code>package.json</code><a class="headerlink" href="#packagejson" title="Permanent link">&para;</a></h4>
+<p>Add command:
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;fpga-ip-core.scanVivadoCatalog&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Scan Vivado IP Catalog&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;category&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;IPCraft&quot;</span>
+<span class="p">}</span>
+</code></pre></div></p>
+<p>Add setting:
+<div class="highlight"><pre><span></span><code><span class="nt">&quot;ipcraft.ipRepositoryPaths&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;array&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;items&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;string&quot;</span><span class="w"> </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;default&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">  </span><span class="nt">&quot;markdownDescription&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Paths to directories containing IP cores (`.ip.yml` or Vivado `component.xml`). Absolute or relative to workspace root. These IPs appear as dependency candidates.&quot;</span>
+<span class="p">}</span>
+</code></pre></div></p>
+<hr />
+<h2 id="6-test-plan">6. Test Plan<a class="headerlink" href="#6-test-plan" title="Permanent link">&para;</a></h2>
+<h3 id="61-unit-tests">6.1 Unit tests<a class="headerlink" href="#61-unit-tests" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Test file</th>
+<th>What to test</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>src/test/suite/utils/vlnv.test.ts</code></td>
+<td><code>parseVlnv()</code> valid/invalid/edge cases, <code>formatVlnv()</code>, <code>isValidVlnv()</code></td>
+</tr>
+<tr>
+<td><code>src/test/suite/generator/VivadoComponentXmlGenerator.test.ts</code></td>
+<td><code>renderSubcoreRefs()</code> generates correct XML; <code>generateComponentXml()</code> with subcores includes <code>&lt;xilinx:subCoreRef&gt;</code> elements</td>
+</tr>
+<tr>
+<td><code>src/test/suite/generator/registerProcessor.test.ts</code></td>
+<td><code>normalizeIpCoreData()</code> normalizes string and object subcores forms</td>
+</tr>
+<tr>
+<td><code>src/test/suite/parser/ComponentXmlParser.test.ts</code></td>
+<td>Round-trip: XML with <code>&lt;xilinx:subCoreRef&gt;</code> parses back to subcores array</td>
+</tr>
+</tbody>
+</table>
+<h3 id="62-lint">6.2 Lint<a class="headerlink" href="#62-lint" title="Permanent link">&para;</a></h3>
+<p><code>npm run lint</code> must pass with zero warnings.</p>
+<h3 id="63-manual-verification">6.3 Manual verification<a class="headerlink" href="#63-manual-verification" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Generate component.xml from an <code>.ip.yml</code> with subcores, open in Vivado IP Packager</li>
+<li>Test webview Dependencies tab: add, remove, display</li>
+<li>Run <code>IPCraft: Scan Vivado IP Catalog</code> with/without Vivado installed</li>
+<li>Verify catalog stored in <code>~/.config/ipcraft/vivado/catalog.json</code></li>
+</ul>
+<h2 id="7-implementation-order">7. Implementation Order<a class="headerlink" href="#7-implementation-order" title="Permanent link">&para;</a></h2>
+<p>Execute in this order to minimize broken intermediate states:</p>
+<ol>
+<li><code>src/utils/vlnv.ts</code> + tests</li>
+<li><code>src/generator/types.ts</code> (add <code>SubcoreRef</code>, extend <code>IpCoreData</code>)</li>
+<li><code>src/generator/registerProcessor.ts</code> (normalize subcores)</li>
+<li><code>src/generator/VivadoComponentXmlGenerator.ts</code> (render subcores in XML)</li>
+<li><code>src/parser/ComponentXmlParser.ts</code> (parse subcores from XML)</li>
+<li><code>ipcraft-spec/schemas/ip_core.schema.json</code> (schema update)</li>
+<li><code>src/webview/types/ipCore.d.ts</code> (add subcores to IpCore)</li>
+<li><code>src/data/xilinxCatalog.ts</code> (static fallback)</li>
+<li><code>src/services/VivadoCatalogScanner.ts</code></li>
+<li><code>src/services/SubcoreResolver.ts</code></li>
+<li><code>src/commands/scanVivadoCatalog.ts</code></li>
+<li><code>src/webview/ipcore/hooks/useNavigation.ts</code> (add section)</li>
+<li><code>src/webview/ipcore/components/sections/SubcoresEditor.tsx</code></li>
+<li><code>src/webview/ipcore/components/layout/NavigationSidebar.tsx</code> (add entry)</li>
+<li><code>src/webview/ipcore/components/layout/EditorPanel.tsx</code> (add case)</li>
+<li><code>src/providers/IpCoreEditorProvider.ts</code> (handle addSubcore message)</li>
+<li><code>src/extension.ts</code> (register command, init resolver)</li>
+<li><code>package.json</code> (command + setting)</li>
+<li>Run <code>npm run lint</code>, fix any issues</li>
+<li>Run tests</li>
+</ol>
+<hr />
+<h2 id="phase-2-canvas-view-integration">Phase 2 — Canvas View Integration<a class="headerlink" href="#phase-2-canvas-view-integration" title="Permanent link">&para;</a></h2>
+<h3 id="goal">Goal<a class="headerlink" href="#goal" title="Permanent link">&para;</a></h3>
+<p>Display subcores (IP dependencies) natively inside the <strong>SVG schematic canvas</strong> view, with interactive selection and a dedicated inspector panel. The canvas view was the only view that did not surface the <code>subcores</code> field after Phase 1.</p>
+<h3 id="design">Design<a class="headerlink" href="#design" title="Permanent link">&para;</a></h3>
+<h4 id="block-appearance">Block appearance<a class="headerlink" href="#block-appearance" title="Permanent link">&para;</a></h4>
+<p>When a core has one or more <code>subcores</code> entries, a <strong>"Dependencies" section</strong> appears inside the SVG block body, directly below the VLNV header and <strong>above</strong> the Generics (parameters) section:</p>
+<div class="highlight"><pre><span></span><code>┌────────────────────────────────┐
+│  my_core                       │
+│  vendor:lib:my_core:1.0.0      │
+├ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┤  ← dep separator (Y = blockY + 60)
+│  DEPENDENCIES                   │
+│  ⛓ fifo_generator              │  ← clickable row, blue text
+│  ⛓ clk_wiz                     │
+├ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┤  ← param separator (pushed down)
+│  GENERICS                       │
+│  ⊳ WIDTH               = 8     │
+├ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┤
+│  (port stubs)                   │
+└────────────────────────────────┘
+</code></pre></div>
+<p>Each dependency row:
+- Shows a chain-link icon (<code>⛓</code>) and the <strong>name segment</strong> of the VLNV (e.g. <code>fifo_generator</code> from <code>xilinx.com:ip:fifo_generator:13.2</code>)
+- Is styled in blue (<code>var(--vscode-charts-blue, #4fc1ff)</code>)
+- Is individually clickable → selects element <code>subcore:N</code></p>
+<p>When subcores exist, the parameter separator, port separator, and block height are all pushed down by <code>DEP_HEADER_HEIGHT (26) + S × DEP_ROW_HEIGHT (18) + DEP_AFTER_GAP (8)</code> pixels.</p>
+<h4 id="selection-and-inspector">Selection and inspector<a class="headerlink" href="#selection-and-inspector" title="Permanent link">&para;</a></h4>
+<p>Clicking a dep row selects <code>subcore:N</code> in <code>useCanvasSelection</code>. The inspector panel opens with:
+- <strong>Badge</strong>: "Dependency" (blue, <code>ci-badge--subcore</code>)
+- <strong>Title</strong>: the name segment of the VLNV
+- <strong>"Dependency" section</strong>: editable VLNV field; optional Path field (shown when entry is an object with a <code>path</code>)
+- <strong>"Open File" button</strong> (when a <code>path</code> is defined)
+- <strong>Footer "Delete" button</strong>: removes the entry from <code>subcores[]</code> via <code>handleInspectorDelete</code></p>
+<h4 id="bodypanel-dependencies-section">BodyPanel — Dependencies section<a class="headerlink" href="#bodypanel-dependencies-section" title="Permanent link">&para;</a></h4>
+<p>When the body (IP Core block) is selected, the inspector's <code>BodyPanel</code> now includes a <strong>Dependencies section</strong> at the bottom (after Source Files). This section:
+- Shows all subcores as compact rows (name + trash icon)
+- Has an "Add Dependency" button that posts <code>{ type: 'addSubcore' }</code> to trigger the QuickPick flow in the extension host</p>
+<h3 id="files-changed-phase-2">Files changed (Phase 2)<a class="headerlink" href="#files-changed-phase-2" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>src/webview/ipcore/components/canvas/canvasLayout.ts</code></td>
+<td><code>LayoutSubcoreDep</code> type; <code>subcoreDeps</code>, <code>depSeparatorY</code> on <code>CanvasLayout</code>; layout computation accounts for dep section height</td>
+</tr>
+<tr>
+<td><code>src/webview/ipcore/hooks/useCanvasSelection.ts</code></td>
+<td><code>'subcore'</code> added to <code>CanvasElementKind</code>; <code>subcore:N</code> in <code>parseCanvasId</code></td>
+</tr>
+<tr>
+<td><code>src/webview/ipcore/components/canvas/IpBlockCanvas.tsx</code></td>
+<td>Renders dep separator, header, and clickable dep rows; bottom separator condition extended to <code>subcoreDeps.length &gt; 0</code></td>
+</tr>
+<tr>
+<td><code>src/webview/ipcore/components/canvas/CanvasInspector.tsx</code></td>
+<td><code>SubcorePanel</code>; <code>DependenciesSection</code> added to <code>BodyPanel</code>; <code>case 'subcore'</code> in <code>renderPanel()</code>; <code>kindLabel</code>/<code>getElementName</code> updated</td>
+</tr>
+<tr>
+<td><code>src/webview/ipcore/IpCoreApp.tsx</code></td>
+<td><code>'subcore': 'subcores'</code> added to <code>handleInspectorDelete</code>'s <code>pathKey</code> map</td>
+</tr>
+<tr>
+<td><code>src/webview/ipcore/components/canvas/canvas.css</code></td>
+<td><code>.ip-block-dep-*</code> SVG classes; <code>.ci-badge--subcore</code> inspector badge</td>
+</tr>
+<tr>
+<td><code>src/test/suite/webview/canvasLayout.test.ts</code></td>
+<td>7 new tests under <code>subcores / Dependencies section</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="implementation-order">Implementation order<a class="headerlink" href="#implementation-order" title="Permanent link">&para;</a></h3>
+<ol>
+<li><code>canvasLayout.ts</code> — layout types and computation</li>
+<li><code>useCanvasSelection.ts</code> — extend <code>CanvasElementKind</code></li>
+<li><code>IpBlockCanvas.tsx</code> — SVG rendering</li>
+<li><code>CanvasInspector.tsx</code> — inspector panels and routing</li>
+<li><code>IpCoreApp.tsx</code> — wire delete for subcore kind</li>
+<li><code>canvas.css</code> — visual styles</li>
+<li><code>canvasLayout.test.ts</code> — unit tests</li>
+</ol>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2026 Le Viet Bach
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.expand", "navigation.tabs", "navigation.top", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

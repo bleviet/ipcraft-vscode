@@ -1,0 +1,2442 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Visual editor for FPGA IP Core and Memory Map specifications">
+      
+      
+        <meta name="author" content="Le Viet Bach">
+      
+      
+        <link rel="canonical" href="https://bleviet.github.io/ipcraft-vscode/plan/ip_core_architect/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>IP Core Architect -- Canvas-First Visual Editor - IPCraft for VS Code</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#ip-core-architect-canvas-first-visual-editor" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="IPCraft for VS Code" class="md-header__button md-logo" aria-label="IPCraft for VS Code" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            IPCraft for VS Code
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              IP Core Architect -- Canvas-First Visual Editor
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/bleviet/ipcraft-vscode" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../getting-started/quickstart/" class="md-tabs__link">
+          
+  
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../how-to/vhdl-import/" class="md-tabs__link">
+          
+  
+  
+  How-to Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../concepts/extension-model/" class="md-tabs__link">
+          
+  
+  
+  Concepts
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../architecture/overview/" class="md-tabs__link">
+          
+  
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../reference/commands/" class="md-tabs__link">
+          
+  
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../contributing/guidelines/" class="md-tabs__link">
+          
+  
+  
+  Contributing
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../blog/building-ipcraft/" class="md-tabs__link">
+          
+  
+  
+  Blog
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="IPCraft for VS Code" class="md-nav__button md-logo" aria-label="IPCraft for VS Code" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    IPCraft for VS Code
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/bleviet/ipcraft-vscode" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How-to Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    How-to Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/vhdl-import/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Importing from Existing Files
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/generating-a-project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generating a Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/building-a-project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building a Project (Headless)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/build-vsix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building a VSIX Package
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/ai-design-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI Design Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Concepts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/extension-model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VS Code Extension Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/yaml-data-flow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YAML Data Flow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/spatial-editing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spatial Editing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/responsive-design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Responsive Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/extension-host/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Extension Host
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/webview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Webview (React)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Commands & Settings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/keyboard-shortcuts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Keyboard Shortcuts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/generator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/ip-core-editor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IP Core Editor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/specification-schemas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Specification Schemas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/bitfield-interaction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bit Field Interaction
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/yaml-libraries/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YAML Libraries
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contributing
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/guidelines/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guidelines
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Blog
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Blog
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../blog/building-ipcraft/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building IPCraft
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#architecture-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architecture Overview
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Architecture Overview">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#existing-stack" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Existing Stack
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#design-decisions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Design Decisions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#data-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#file-inventory" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        File Inventory
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="File Inventory">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#new-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        New Files
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#modified-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Modified Files
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#implementation-phases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implementation Phases
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Implementation Phases">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#phase-1-read-only-canvas-view-done" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 1 -- Read-Only Canvas View [DONE]
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-2-context-aware-inspector-done" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 2 -- Context-Aware Inspector [DONE]
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-3-drag-and-drop-interface-library-done" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 3 -- Drag-and-Drop Interface Library [DONE]
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-4-drag-to-remove-and-undo-done" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 4 -- Drag-to-Remove and Undo [DONE]
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-5-visual-validation-and-polish-done" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 5 -- Visual Validation and Polish [DONE]
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-6-inline-generics-section-done" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 6 -- Inline Generics Section [DONE]
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#block-layout-with-generics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Block Layout (with Generics)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verification
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Verification">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#automated" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Automated
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#manual" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manual
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/bleviet/ipcraft-vscode/edit/main/docs/plan/ip_core_architect.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="ip-core-architect-canvas-first-visual-editor">IP Core Architect -- Canvas-First Visual Editor<a class="headerlink" href="#ip-core-architect-canvas-first-visual-editor" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p><strong>Goal:</strong> Replace the table-driven IP Core editor with a canvas-based schematic
+block diagram. The primary interaction happens on a live SVG schematic;
+existing table editors remain accessible via a toggle and as an inspector panel.</p>
+<p><strong>Supersedes:</strong> Task 4.2 (ASCII IP symbol diagram) from <code>port_python_features.md</code>.</p>
+</blockquote>
+<hr />
+<h2 id="architecture-overview">Architecture Overview<a class="headerlink" href="#architecture-overview" title="Permanent link">&para;</a></h2>
+<h3 id="existing-stack">Existing Stack<a class="headerlink" href="#existing-stack" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Technology</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Webview framework</td>
+<td>React 18, webpack (<code>config/webpack.config.js</code>)</td>
+</tr>
+<tr>
+<td>IP Core entry</td>
+<td><code>src/webview/ipcore/IpCoreApp.tsx</code></td>
+</tr>
+<tr>
+<td>Editor provider</td>
+<td><code>src/providers/IpCoreEditorProvider.ts</code> (CustomTextEditorProvider)</td>
+</tr>
+<tr>
+<td>State management</td>
+<td><code>useIpCoreState</code> hook (YAML parse) + <code>useIpCoreSync</code> (write back)</td>
+</tr>
+<tr>
+<td>Type system</td>
+<td><code>src/webview/types/ipCore.d.ts</code> (generated from JSON schema)</td>
+</tr>
+<tr>
+<td>Bus definitions</td>
+<td><code>ipcraft-spec/bus_definitions/*.yml</code></td>
+</tr>
+<tr>
+<td>CSS</td>
+<td>Tailwind utilities + custom CSS in <code>src/webview/index.css</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="design-decisions">Design Decisions<a class="headerlink" href="#design-decisions" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Pure SVG + React</strong> -- no external graph library. The block diagram is a
+  single rectangle with ports along edges; React Flow or similar would add
+  ~200KB of unnecessary bundle weight.</li>
+<li><strong>Coexistence</strong> -- canvas and table views are toggle modes in the same editor.
+  Canvas is the default; table is accessible via a toolbar button.</li>
+<li><strong>No extension host changes</strong> -- the canvas is purely a webview concern. The
+  same <code>postMessage</code> protocol and <code>IpCoreEditorProvider</code> are reused.</li>
+<li><strong>Layout is a pure function</strong> -- <code>computeLayout(ipCore)</code> is side-effect free
+  and trivially unit-testable.</li>
+</ul>
+<h3 id="data-flow">Data Flow<a class="headerlink" href="#data-flow" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>.ip.yml --&gt; IpCoreEditorProvider --&gt; postMessage(&#39;update&#39;) --&gt; IpCoreApp
+  --&gt; useIpCoreState --&gt; IpCore object --&gt; computeLayout() --&gt; CanvasLayout
+  --&gt; IpBlockCanvas (SVG render)
+  --&gt; click --&gt; useCanvasSelection --&gt; CanvasInspector --&gt; onUpdate
+  --&gt; useIpCoreState.updateIpCore --&gt; serialize YAML --&gt; postMessage
+  --&gt; IpCoreEditorProvider.applyEdit --&gt; .ip.yml
+</code></pre></div>
+<hr />
+<h2 id="file-inventory">File Inventory<a class="headerlink" href="#file-inventory" title="Permanent link">&para;</a></h2>
+<h3 id="new-files">New Files<a class="headerlink" href="#new-files" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Phase</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>src/webview/ipcore/components/canvas/canvasLayout.ts</code></td>
+<td>1</td>
+<td>Pure layout computation function</td>
+</tr>
+<tr>
+<td><code>src/webview/ipcore/components/canvas/CanvasPort.tsx</code></td>
+<td>1</td>
+<td>Individual port stub renderer (SVG)</td>
+</tr>
+<tr>
+<td><code>src/webview/ipcore/components/canvas/CanvasBusBundle.tsx</code></td>
+<td>1</td>
+<td>Bus interface bundle renderer (SVG)</td>
+</tr>
+<tr>
+<td><code>src/webview/ipcore/components/canvas/IpBlockCanvas.tsx</code></td>
+<td>1</td>
+<td>Main canvas SVG component</td>
+</tr>
+<tr>
+<td><code>src/webview/ipcore/components/canvas/canvas.css</code></td>
+<td>1</td>
+<td>Canvas-specific styles (VS Code theme tokens)</td>
+</tr>
+<tr>
+<td><code>src/webview/ipcore/hooks/useCanvasSelection.ts</code></td>
+<td>2</td>
+<td>Selection state management</td>
+</tr>
+<tr>
+<td><code>src/webview/ipcore/components/canvas/CanvasInspector.tsx</code></td>
+<td>2</td>
+<td>Context-aware property editor panel</td>
+</tr>
+<tr>
+<td><code>src/webview/ipcore/components/canvas/LibraryPalette.tsx</code></td>
+<td>3</td>
+<td>Draggable protocol/infrastructure palette</td>
+</tr>
+<tr>
+<td><code>src/webview/ipcore/hooks/useCanvasDrop.ts</code></td>
+<td>3</td>
+<td>Drop handler for adding new elements</td>
+</tr>
+<tr>
+<td><code>src/webview/ipcore/hooks/useCanvasUndo.ts</code></td>
+<td>4</td>
+<td>Undo/redo stack</td>
+</tr>
+<tr>
+<td><code>src/webview/ipcore/components/canvas/RemoveZone.tsx</code></td>
+<td>4</td>
+<td>Visual delete zone overlay</td>
+</tr>
+<tr>
+<td><code>src/webview/ipcore/hooks/useCanvasValidation.ts</code></td>
+<td>5</td>
+<td>Live validation annotations</td>
+</tr>
+<tr>
+<td><code>src/test/suite/webview/canvasLayout.test.ts</code></td>
+<td>1</td>
+<td>Unit tests for layout algorithm</td>
+</tr>
+</tbody>
+</table>
+<h3 id="modified-files">Modified Files<a class="headerlink" href="#modified-files" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Phase</th>
+<th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>src/webview/ipcore/components/layout/EditorPanel.tsx</code></td>
+<td>1</td>
+<td>Added <code>viewMode</code> prop + canvas rendering path</td>
+</tr>
+<tr>
+<td><code>src/webview/ipcore/IpCoreApp.tsx</code></td>
+<td>1-3</td>
+<td>View mode toggle, canvas layout, inspector wiring</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="implementation-phases">Implementation Phases<a class="headerlink" href="#implementation-phases" title="Permanent link">&para;</a></h2>
+<h3 id="phase-1-read-only-canvas-view-done">Phase 1 -- Read-Only Canvas View [DONE]<a class="headerlink" href="#phase-1-read-only-canvas-view-done" title="Permanent link">&para;</a></h3>
+<p>Render the IP core as a non-editable SVG schematic block. Introduces the
+canvas/table view toggle.</p>
+<ul>
+<li>[x] <strong><code>canvasLayout.ts</code></strong> -- Pure function <code>computeLayout(ipCore: IpCore): CanvasLayout</code>.
+  Classifies every element by direction and computes (x, y) positions:</li>
+<li>Left edge (top-down): clocks, resets, slave/sink buses, input ports</li>
+<li>Right edge (top-down): master/source buses, output ports</li>
+<li>Bottom edge: bidirectional (inout) ports</li>
+<li>Block height scales with <code>max(leftCount, rightCount) * PORT_PITCH</code></li>
+<li>Returns <code>blockRect</code>, <code>ports[]</code> (with id, position, kind, label), <code>viewBox</code></li>
+<li>
+<p>Exports constants: <code>PORT_PITCH</code>, <code>EDGE_PADDING</code>, <code>MIN_BLOCK_HEIGHT</code>,
+    <code>BLOCK_WIDTH</code>, <code>STUB_LENGTH</code></p>
+</li>
+<li>
+<p>[x] <strong><code>CanvasPort.tsx</code></strong> -- SVG group rendering a port stub:</p>
+</li>
+<li>Horizontal/vertical stub line from block edge (length = <code>STUB_LENGTH</code>)</li>
+<li>Connector dot at block edge (larger for buses)</li>
+<li>Port name label (monospace, positioned outside the block)</li>
+<li>Width annotation (e.g., <code>[31:0]</code>, <code>[DATA_WIDTH]</code>)</li>
+<li>Kind icons rendered <strong>inside</strong> the block body (not on the stub) to avoid
+    overlap: 🕐 for clock, ↺ for reset</li>
+<li>Selection ring when active</li>
+<li>Hit area (invisible wider stroke) for easy clicking</li>
+<li>
+<p>CSS classes: <code>.canvas-port</code>, <code>.canvas-port--clock</code>, <code>.canvas-port--reset</code>,
+    <code>.canvas-port--selected</code></p>
+</li>
+<li>
+<p>[x] <strong><code>CanvasBusBundle.tsx</code></strong> -- SVG group rendering a bus interface:</p>
+</li>
+<li>Thick stub line (strokeWidth 4)</li>
+<li>Connector block at block edge</li>
+<li>Protocol badge (e.g., "AXI4-Lite") -- 80px rounded rect with label</li>
+<li>Mode indicator (S/M/Sink/Src) -- small badge above the stub</li>
+<li>Name label <strong>inside</strong> the block body (avoids overlap with protocol badge)</li>
+<li>Association indicator dots (green = clock, orange = reset, yellow = memmap)</li>
+<li>Selection ring (dashed rect) when active</li>
+<li>
+<p>CSS classes: <code>.canvas-bus-bundle</code>, <code>.canvas-bus-bundle--selected</code></p>
+</li>
+<li>
+<p>[x] <strong><code>IpBlockCanvas.tsx</code></strong> -- Main canvas SVG component:</p>
+</li>
+<li>Calls <code>computeLayout(ipCore)</code> via <code>useMemo</code></li>
+<li>Renders SVG with dot-grid background pattern</li>
+<li>Block body: rounded rect with drop shadow, <strong>clickable</strong> to open VLNV inspector</li>
+<li>Block header stripe with core name (bold, monospace)</li>
+<li>VLNV subtitle (smaller, muted)</li>
+<li>Description text (truncated at 40 chars)</li>
+<li>Delegates to <code>CanvasPort</code> / <code>CanvasBusBundle</code> per element</li>
+<li>Hover state tracking (per-element <code>onMouseEnter</code>/<code>onMouseLeave</code>)</li>
+<li>Background click deselects</li>
+<li>Edge count badges (port count at bottom of each edge)</li>
+<li>Hover tooltip (positioned bottom-left, shows port details)</li>
+<li>
+<p><code>preserveAspectRatio="xMidYMid meet"</code> for fit-to-view</p>
+</li>
+<li>
+<p>[x] <strong><code>canvas.css</code></strong> -- All styles use <code>var(--vscode-*)</code> tokens:</p>
+</li>
+<li>Block body: editor background fill, panel border stroke</li>
+<li>Header: focus border tint</li>
+<li>Port stubs: foreground color, kind-specific colors (green=clock,
+    orange=reset, blue=bus)</li>
+<li>Hover: increased opacity, thicker stroke, link-colored label</li>
+<li>Selected: focus border color, bold label</li>
+<li>Bus bundle: blue accent, purple mode badge</li>
+<li>Tooltip: hover widget background, panel border, box shadow</li>
+<li>
+<p>View toggle button: secondary button style, active = primary button</p>
+</li>
+<li>
+<p>[x] <strong><code>EditorPanel.tsx</code></strong> (modified):</p>
+</li>
+<li>New <code>viewMode: 'table' | 'canvas'</code> prop (exported as <code>ViewMode</code> type)</li>
+<li>New optional props: <code>canvasSelectedId</code>, <code>onCanvasSelect</code></li>
+<li>When <code>viewMode === 'canvas'</code>: renders <code>IpBlockCanvas</code> instead of section editors</li>
+<li>
+<p>Table mode rendering unchanged</p>
+</li>
+<li>
+<p>[x] <strong><code>IpCoreApp.tsx</code></strong> (modified):</p>
+</li>
+<li><code>viewMode</code> state, defaults to <code>'canvas'</code></li>
+<li>Canvas/table toggle buttons in header (codicons: <code>symbol-misc</code>, <code>list-flat</code>)</li>
+<li>Sidebar hidden in canvas mode</li>
+<li>
+<p><code>viewMode</code> + canvas props passed to <code>EditorPanel</code></p>
+</li>
+<li>
+<p>[x] <strong><code>canvasLayout.test.ts</code></strong> -- 10 unit tests:</p>
+</li>
+<li>Empty core (no ports) produces valid layout</li>
+<li>Clocks placed on left edge</li>
+<li>Resets placed on left edge below clocks</li>
+<li>Slave buses left, master buses right, with correct protocol/mode labels</li>
+<li>Input ports left, output ports right, with width labels</li>
+<li>Bidirectional ports on bottom edge</li>
+<li>Block height scales with many ports</li>
+<li>All IDs unique</li>
+<li>Width label formatting (1 = none, 8 = <code>[7:0]</code>, string = <code>[DATA_WIDTH]</code>)</li>
+<li>Sink/source bus modes mapped correctly</li>
+</ul>
+<hr />
+<h3 id="phase-2-context-aware-inspector-done">Phase 2 -- Context-Aware Inspector [DONE]<a class="headerlink" href="#phase-2-context-aware-inspector-done" title="Permanent link">&para;</a></h3>
+<p>Clicking a port/bus/block on the canvas opens a slide-in inspector panel with
+direct inline editing fields — no table embeds.</p>
+<ul>
+<li>[x] <strong><code>useCanvasSelection.ts</code></strong> -- Hook managing selection state:</li>
+<li><code>CanvasElementKind</code>: <code>'clock' | 'reset' | 'port' | 'busInterface' | 'body' | 'parameter'</code></li>
+<li><code>CanvasElement</code> type: <code>{ kind, index, id }</code></li>
+<li><code>parseCanvasId(id: string)</code> converts layout IDs (e.g., <code>bus:0</code>, <code>body</code>) to
+    structured elements</li>
+<li>
+<p>Returns <code>{ selected, selectedId, select, deselect }</code></p>
+</li>
+<li>
+<p>[x] <strong><code>CanvasInspector.tsx</code></strong> -- Slide-in panel (288px, right side):</p>
+</li>
+<li>Header: element kind badge, element name, close button</li>
+<li>Footer: Delete button (hidden for <code>body</code> kind)</li>
+<li>Inline form primitives (save-on-blur / immediate):<ul>
+<li><code>PropField</code> -- text input, validate-on-blur, reverts on error or Escape</li>
+<li><code>PropSelect</code> -- dropdown, saves immediately on change</li>
+<li><code>PropTextArea</code> -- multiline, save-on-blur</li>
+</ul>
+</li>
+<li>Per-kind panels:<ul>
+<li><code>body</code> → VLNV fields (Vendor, Library, Name, Version) + Description textarea</li>
+<li><code>clock</code> → Physical name, logical name, direction, frequency + "Used By" chips</li>
+<li><code>reset</code> → Physical name, logical name, direction, polarity + "Used By" chips</li>
+<li><code>port</code> → Name, direction, width</li>
+<li><code>busInterface</code> → Name, bus type, mode, physical prefix, clock/reset/memmap associations</li>
+<li><code>parameter</code> → Name (validated identifier), data type select, default value</li>
+</ul>
+</li>
+<li>Block body click opens <code>body</code> panel to edit VLNV and description</li>
+<li>
+<p>Edit hint icon (✎) shown on block hover/selection</p>
+</li>
+<li>
+<p>[x] <strong><code>IpCoreApp.tsx</code></strong> (modified):</p>
+</li>
+<li>Replaced simple <code>canvasSelectedId</code> state with <code>useCanvasSelection</code> hook</li>
+<li><code>handleInspectorDelete</code> uses array-filter pattern (safe removal by index)</li>
+<li>Renders <code>CanvasInspector</code> next to <code>EditorPanel</code> in canvas mode</li>
+<li>Inspector closes on <code>canvasDeselect</code> (click empty canvas or close button)</li>
+</ul>
+<hr />
+<h3 id="phase-3-drag-and-drop-interface-library-done">Phase 3 -- Drag-and-Drop Interface Library [DONE]<a class="headerlink" href="#phase-3-drag-and-drop-interface-library-done" title="Permanent link">&para;</a></h3>
+<p>Users drag protocol primitives and generics from a palette onto the canvas to add them.</p>
+<ul>
+<li>[x] <strong><code>LibraryPalette.tsx</code></strong> -- Collapsible left sidebar with draggable items:</li>
+<li><strong>Bus Protocols</strong>: AXI4-Lite (S/M), AXI4-Full, AXI-Stream (Sink/Source),
+    Avalon-MM (S/M), Avalon-ST</li>
+<li><strong>Infrastructure</strong>: Clock, Reset, Interrupt, GPIO (in/out)</li>
+<li><strong>Generics</strong>: Integer, Natural, Boolean, String generic parameters</li>
+<li>
+<p>Each item uses HTML drag-and-drop API with JSON payload:
+    <div class="highlight"><pre><span></span><code><span class="p">{</span><span class="w"> </span><span class="nt">&quot;kind&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;bus&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ipcraft.busif.axi4_lite.1.0&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;mode&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;slave&quot;</span><span class="w"> </span><span class="p">}</span>
+<span class="p">{</span><span class="w"> </span><span class="nt">&quot;kind&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;clock&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;nameHint&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;clk&quot;</span><span class="w"> </span><span class="p">}</span>
+<span class="p">{</span><span class="w"> </span><span class="nt">&quot;kind&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;parameter&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;dataType&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;integer&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;nameHint&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;DATA_WIDTH&quot;</span><span class="w"> </span><span class="p">}</span>
+</code></pre></div></p>
+</li>
+<li>
+<p>[x] <strong><code>useCanvasDrop.ts</code></strong> -- Drop handler hook:</p>
+</li>
+<li>Parses drag payload from <code>dataTransfer</code></li>
+<li>Determines placement side from drop position (left half -&gt; slave, right -&gt; master)</li>
+<li>Generates unique default name (e.g., <code>s_axi_0</code>, <code>clk_0</code>, <code>DATA_WIDTH</code>)</li>
+<li>Calls <code>onUpdate</code> with YAML path and new element</li>
+<li>Auto-selects the new element to open inspector</li>
+<li>
+<p>Handles <code>'parameter'</code> kind: appends to <code>parameters[]</code> with sensible defaults
+    per data type (integer → 0, boolean → false, string → "")</p>
+</li>
+<li>
+<p>[x] <strong><code>IpBlockCanvas.tsx</code></strong> (modify):</p>
+</li>
+<li>Add <code>onDragOver</code> and <code>onDrop</code> handlers</li>
+<li>Show drop zone highlight on valid edges during drag</li>
+<li>
+<p>CSS transition for new port appearing</p>
+</li>
+<li>
+<p>[x] <strong><code>IpCoreApp.tsx</code></strong> (modify):</p>
+</li>
+<li>Render <code>LibraryPalette</code> as left sidebar in canvas mode</li>
+</ul>
+<hr />
+<h3 id="phase-4-drag-to-remove-and-undo-done">Phase 4 -- Drag-to-Remove and Undo [DONE]<a class="headerlink" href="#phase-4-drag-to-remove-and-undo-done" title="Permanent link">&para;</a></h3>
+<p>Dragging a port off the block edge deletes it. An undo stack provides safety.</p>
+<ul>
+<li>[x] <strong><code>useCanvasUndo.ts</code></strong> -- Undo/redo stack:</li>
+<li><code>push(snapshot: string)</code> -- captures raw YAML before each mutation</li>
+<li><code>undo() / redo()</code> -- returns previous/next YAML snapshot</li>
+<li><code>canUndo / canRedo</code> -- boolean flags</li>
+<li>
+<p>Wired to <code>Ctrl+Z</code> / <code>Ctrl+Y</code> keyboard shortcuts</p>
+</li>
+<li>
+<p>[x] <strong><code>RemoveZone.tsx</code></strong> -- Visual overlay:</p>
+</li>
+<li>Red-tinted area with trash icon and "Release to remove" text</li>
+<li>Appears when dragging a port &gt; 40px beyond block boundary</li>
+<li>
+<p>CSS fade-in animation</p>
+</li>
+<li>
+<p>[x] <strong><code>CanvasPort.tsx</code> / <code>CanvasBusBundle.tsx</code></strong> (modify):</p>
+</li>
+<li>Make elements <code>draggable="true"</code></li>
+<li>Drag payload: <code>{ action: 'remove', kind: '...', index: N }</code></li>
+<li>
+<p>Visual feedback during drag (opacity reduction on source element)</p>
+</li>
+<li>
+<p>[x] <strong><code>IpBlockCanvas.tsx</code></strong> (modify):</p>
+</li>
+<li>Track drag-out state (is port being dragged beyond boundary?)</li>
+<li>On drop outside block, dispatch removal via <code>onUpdate</code></li>
+<li>Push undo snapshot before removal</li>
+</ul>
+<hr />
+<h3 id="phase-5-visual-validation-and-polish-done">Phase 5 -- Visual Validation and Polish [DONE]<a class="headerlink" href="#phase-5-visual-validation-and-polish-done" title="Permanent link">&para;</a></h3>
+<p>Overlay validation feedback directly on canvas elements and polish interactions.</p>
+<ul>
+<li>[x] <strong><code>useCanvasValidation.ts</code></strong> -- Validation hook:</li>
+<li>Returns <code>ValidationAnnotation[]</code> per element</li>
+<li>
+<p>Rules:</p>
+<ul>
+<li>Bus interface missing <code>associatedClock</code> -&gt; warning</li>
+<li>Bus interface missing <code>associatedReset</code> -&gt; warning</li>
+<li>Port name collision -&gt; error on both ports</li>
+<li>Bus interface with invalid type -&gt; error</li>
+<li>Referenced clock not in <code>clocks[]</code> -&gt; error on bus bundle</li>
+</ul>
+</li>
+<li>
+<p>[x] <strong><code>CanvasPort.tsx</code> / <code>CanvasBusBundle.tsx</code></strong> (modify):</p>
+</li>
+<li>Accept <code>annotations: ValidationAnnotation[]</code> prop</li>
+<li>Render colored indicator dot (orange = warning, red = error)</li>
+<li>
+<p>Show annotation messages in hover tooltip</p>
+</li>
+<li>
+<p>[x] <strong><code>IpBlockCanvas.tsx</code></strong> (modify):</p>
+</li>
+<li>Compute annotations from <code>useCanvasValidation</code></li>
+<li>
+<p>Pass annotations down to each port/bundle component</p>
+</li>
+<li>
+<p>[x] <strong>Polish items</strong> (across existing canvas files):</p>
+</li>
+<li>Smooth CSS transitions on port add/remove/reorder</li>
+<li>Keyboard shortcuts: <code>Delete</code> removes selected element, <code>Escape</code> deselects</li>
+<li>Responsive: canvas fills available space, text scales for readability</li>
+<li>Clock/reset icons rendered inside the block body to avoid stub overlap</li>
+<li>Bus bundle name label rendered inside the block body</li>
+</ul>
+<hr />
+<h3 id="phase-6-inline-generics-section-done">Phase 6 -- Inline Generics Section [DONE]<a class="headerlink" href="#phase-6-inline-generics-section-done" title="Permanent link">&para;</a></h3>
+<p>Generic parameters are displayed inside the block body (not as port stubs) and
+added via drag-and-drop from the library palette.</p>
+<ul>
+<li>[x] <strong><code>canvasLayout.ts</code></strong> -- Extended layout for inline generics:</li>
+<li><code>LayoutParameter</code> type: <code>{ index, name, value }</code> (value = formatted default)</li>
+<li><code>CanvasLayout</code> extended with <code>parameters[]</code>, <code>paramSeparatorY</code>, <code>portSeparatorY</code></li>
+<li>When parameters exist, the block body is divided into three zones:<ol>
+<li><strong>Header zone</strong> (top): IP name + VLNV + first separator</li>
+<li><strong>Generics zone</strong> (middle): "Generics" label + clickable parameter rows + second separator</li>
+<li><strong>Port zone</strong> (bottom): port stubs connect to the block edge here</li>
+</ol>
+</li>
+<li>Port <code>startY</code> is pushed below the generics zone — ports never overlap generics</li>
+<li>Block height grows to fit both zones: <code>max(MIN_BLOCK_HEIGHT, portsAreaTop + maxPorts * PORT_PITCH + EDGE_PADDING)</code></li>
+<li>
+<p>When no parameters exist, port layout is unchanged (vertical centering)</p>
+</li>
+<li>
+<p>[x] <strong><code>IpBlockCanvas.tsx</code></strong> -- Inline generics rendering:</p>
+</li>
+<li>First separator line at <code>paramSeparatorY</code> (below VLNV)</li>
+<li>"Generics" section header label</li>
+<li>Each parameter rendered as a clickable row: <code>⊳ NAME = value</code></li>
+<li>Row background highlight on hover and selection (yellow tint, VS Code theme)</li>
+<li>Second separator line at <code>portSeparatorY</code> (below last generic, above ports)</li>
+<li>
+<p>Clicking a parameter row selects it and opens the <code>ParameterPanel</code> inspector</p>
+</li>
+<li>
+<p>[x] <strong><code>LibraryPalette.tsx</code></strong> -- New "Generics" category:</p>
+</li>
+<li>Integer Generic, Natural Generic, Boolean Generic, String Generic</li>
+<li>Icon: <code>codicon-symbol-constant</code></li>
+<li>
+<p>Drag payload includes <code>dataType</code> field</p>
+</li>
+<li>
+<p>[x] <strong><code>useCanvasDrop.ts</code></strong> -- Parameter drop handler:</p>
+</li>
+<li>Generates unique name from <code>nameHint</code></li>
+<li>Sensible <code>defaultValue</code> per <code>dataType</code> (integer→0, natural→0, positive→1,
+    real→0.0, boolean→false, string→"")</li>
+<li>
+<p>Auto-selects new parameter after insertion</p>
+</li>
+<li>
+<p>[x] <strong><code>canvas.css</code></strong> -- Inline parameter styles:</p>
+</li>
+<li><code>.ip-block-param-separator</code> -- muted horizontal rule</li>
+<li><code>.ip-block-param-header</code> -- small uppercase section label</li>
+<li><code>.ip-block-param-row-bg</code> -- transparent hit area, yellow tint on hover/select</li>
+<li><code>.ip-block-param-icon</code> -- yellow ⊳ glyph</li>
+<li><code>.ip-block-param-name</code> -- monospace yellow name</li>
+<li><code>.ip-block-param-value</code> -- muted default value annotation</li>
+</ul>
+<hr />
+<h2 id="block-layout-with-generics">Block Layout (with Generics)<a class="headerlink" href="#block-layout-with-generics" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>+--------------------------------------------------+
+|                   [Core Name]                     |
+|                vendor:lib:name:ver                |
++ - - - - - - - - - - - - - - - - - - - - - - - - +
+|                    GENERICS                       |
+|  ⊳ DATA_WIDTH                            = 32    |
+|  ⊳ DEPTH                                = 256    |
++ - - - - - - - - - - - - - - - - - - - - - - - - +
+|                                                   |
+|  CLK  🕐|                            |~~~ M_AXI  |
+|  RST  ↺ |                            |           |
+|          |                            |           |
+|  S_AXI ==|                            |=== M_AXIS |
+|          |                            |           |
+|  data_in -|                           |- data_out |
+|  enable  -|                           |- irq      |
+|          |                            |           |
++--------------------------------------------------+
+               |           |
+              sda         scl
+           (bidirectional ports)
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Position</th>
+<th>Element Types</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Inside block, top</td>
+<td>IP name, VLNV, separator</td>
+</tr>
+<tr>
+<td>Inside block, middle</td>
+<td>Generics section (clickable rows, drag-to-add from palette)</td>
+</tr>
+<tr>
+<td>Inside block, separator</td>
+<td>Visual divider before port area</td>
+</tr>
+<tr>
+<td>Left edge</td>
+<td>Clocks (icon: 🕐 inside block), Resets (icon: ↺ inside block), Slave/sink buses, Input ports</td>
+</tr>
+<tr>
+<td>Right edge</td>
+<td>Master/source buses, Output ports</td>
+</tr>
+<tr>
+<td>Bottom edge</td>
+<td>Bidirectional (inout) ports</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="verification">Verification<a class="headerlink" href="#verification" title="Permanent link">&para;</a></h2>
+<h3 id="automated">Automated<a class="headerlink" href="#automated" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># Run canvas layout tests</span>
+npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>--testPathPatterns<span class="o">=</span><span class="s2">&quot;canvasLayout&quot;</span><span class="w"> </span>--no-coverage
+
+<span class="c1"># Run full test suite (must pass with zero failures)</span>
+npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>--no-coverage
+
+<span class="c1"># Lint all canvas files (must pass with zero errors/warnings)</span>
+npx<span class="w"> </span>eslint<span class="w"> </span>src/webview/ipcore/components/canvas/<span class="w"> </span><span class="se">\</span>
+<span class="w">           </span>src/webview/ipcore/hooks/useCanvasSelection.ts<span class="w"> </span><span class="se">\</span>
+<span class="w">           </span>src/webview/ipcore/IpCoreApp.tsx<span class="w"> </span><span class="se">\</span>
+<span class="w">           </span>src/webview/ipcore/components/layout/EditorPanel.tsx<span class="w"> </span><span class="se">\</span>
+<span class="w">           </span>--max-warnings<span class="w"> </span><span class="m">0</span>
+</code></pre></div>
+<h3 id="manual">Manual<a class="headerlink" href="#manual" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Open a <code>.ip.yml</code> file and verify the canvas renders the IP block correctly</li>
+<li>Toggle between canvas and table views via header buttons</li>
+<li>Verify port names, directions, bus protocols, and widths match the YAML</li>
+<li>Click the block body and verify the VLNV/description inspector opens</li>
+<li>Click a port on the canvas and verify the inspector opens with inline edit fields</li>
+<li>Edit a property in the inspector and verify the canvas updates live</li>
+<li>Drag a bus interface from the palette and verify it appears in YAML</li>
+<li>Drag a generic from the palette and verify it appears inside the block body,
+   does not overlap port stubs, and opens the parameter inspector on click</li>
+<li>Drag a port off the block edge and verify removal + undo</li>
+<li>Remove a clock referenced by a bus interface and verify warning indicator</li>
+<li>Edit the <code>.ip.yml</code> in the text editor side-by-side and verify real-time sync</li>
+</ol>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2026 Le Viet Bach
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.expand", "navigation.tabs", "navigation.top", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

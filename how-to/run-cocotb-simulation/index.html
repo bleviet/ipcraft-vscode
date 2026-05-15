@@ -1,0 +1,2136 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Visual editor for FPGA IP Core and Memory Map specifications">
+      
+      
+        <meta name="author" content="Le Viet Bach">
+      
+      
+        <link rel="canonical" href="https://bleviet.github.io/ipcraft-vscode/how-to/run-cocotb-simulation/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>How to Run cocotb Simulations - IPCraft for VS Code</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#how-to-run-cocotb-simulations" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="IPCraft for VS Code" class="md-header__button md-logo" aria-label="IPCraft for VS Code" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            IPCraft for VS Code
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              How to Run cocotb Simulations
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/bleviet/ipcraft-vscode" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../getting-started/quickstart/" class="md-tabs__link">
+          
+  
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../vhdl-import/" class="md-tabs__link">
+          
+  
+  
+  How-to Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../concepts/extension-model/" class="md-tabs__link">
+          
+  
+  
+  Concepts
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../architecture/overview/" class="md-tabs__link">
+          
+  
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../reference/commands/" class="md-tabs__link">
+          
+  
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../contributing/guidelines/" class="md-tabs__link">
+          
+  
+  
+  Contributing
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../blog/building-ipcraft/" class="md-tabs__link">
+          
+  
+  
+  Blog
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="IPCraft for VS Code" class="md-nav__button md-logo" aria-label="IPCraft for VS Code" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    IPCraft for VS Code
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/bleviet/ipcraft-vscode" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How-to Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    How-to Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vhdl-import/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Importing from Existing Files
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../generating-a-project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generating a Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../building-a-project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building a Project (Headless)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../build-vsix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building a VSIX Package
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ai-design-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI Design Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Concepts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/extension-model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VS Code Extension Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/yaml-data-flow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YAML Data Flow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/spatial-editing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spatial Editing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/responsive-design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Responsive Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/extension-host/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Extension Host
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/webview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Webview (React)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Commands & Settings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/keyboard-shortcuts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Keyboard Shortcuts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/generator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/ip-core-editor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IP Core Editor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/specification-schemas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Specification Schemas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/bitfield-interaction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bit Field Interaction
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/yaml-libraries/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YAML Libraries
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contributing
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/guidelines/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guidelines
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Blog
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Blog
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../blog/building-ipcraft/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building IPCraft
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#generated-file-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Generated file structure
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#running-all-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running all tests
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#running-a-single-test" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running a single test
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#using-a-different-simulator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Using a different simulator
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#inspecting-test-results" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Inspecting test results
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#vs-code-testing-panel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        VS Code Testing panel
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#writing-a-custom-test-using-the-register-map" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Writing a custom test using the register map
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Writing a custom test using the register map">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#load-the-register-map" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Load the register map
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#iterate-all-registers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Iterate all registers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#access-a-specific-register" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Access a specific register
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#access-fields-within-a-register" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Access fields within a register
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#extract-and-insert-field-values" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Extract and insert field values
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#adding-the-test-to-pytest" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding the test to pytest
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Troubleshooting
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Troubleshooting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rtl-sources-not-found" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RTL sources not found
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#simulator-not-found" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Simulator not found
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pytest-collects-zero-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pytest collects zero tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ghdl-vhdl-2008-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GHDL VHDL-2008 errors
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#modulenotfounderror-no-module-named-cocotbrunner" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ModuleNotFoundError: No module named 'cocotb.runner'
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#test-passes-in-makefile-but-fails-under-pytest" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test passes in Makefile but fails under pytest
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/bleviet/ipcraft-vscode/edit/main/docs/how-to/run-cocotb-simulation.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="how-to-run-cocotb-simulations">How to Run cocotb Simulations<a class="headerlink" href="#how-to-run-cocotb-simulations" title="Permanent link">&para;</a></h1>
+<p>How to simulate a scaffolded IP core using cocotb, pytest, and the VS Code Testing panel.</p>
+<hr />
+<h2 id="prerequisites">Prerequisites<a class="headerlink" href="#prerequisites" title="Permanent link">&para;</a></h2>
+<p>Install the required Python packages into your project's virtual environment:</p>
+<div class="highlight"><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>cocotb<span class="w"> </span>pytest<span class="w"> </span>pyyaml
+</code></pre></div>
+<p>For IP cores with an <strong>AXI-Lite or AXI4</strong> bus interface, also install:</p>
+<div class="highlight"><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>cocotbext-axi
+</code></pre></div>
+<p>Install a VHDL simulator. <a href="https://github.com/ghdl/ghdl">GHDL</a> is the recommended open-source option:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Ubuntu / Debian</span>
+sudo<span class="w"> </span>apt<span class="w"> </span>install<span class="w"> </span>ghdl
+
+<span class="c1"># macOS (Homebrew)</span>
+brew<span class="w"> </span>install<span class="w"> </span>ghdl
+</code></pre></div>
+<p>Other simulators (Icarus, ModelSim, Questa, Riviera-PRO) work too — see <a href="#using-a-different-simulator">Using a different simulator</a>.</p>
+<p><strong>Verify the simulator is on your PATH:</strong></p>
+<div class="highlight"><pre><span></span><code>ghdl<span class="w"> </span>--version
+</code></pre></div>
+<blockquote>
+<p><strong>Compatibility note:</strong> the generated <code>conftest.py</code> uses <code>subprocess</code> + <code>make</code> instead of <code>cocotb.runner</code>, so it works with cocotb 1.7+, cocotb 2.x, and any supported simulator.</p>
+</blockquote>
+<hr />
+<h2 id="generated-file-structure">Generated file structure<a class="headerlink" href="#generated-file-structure" title="Permanent link">&para;</a></h2>
+<p>After running <strong>IPCraft: Scaffold VHDL Project</strong> with the <code>ipcraft.generate.includeTestbench</code> setting enabled (the default), the following simulation files are placed next to the <code>.ip.yml</code> source:</p>
+<div class="highlight"><pre><span></span><code>&lt;ip_name&gt;/
+  .vscode/
+    settings.json              # Tells VS Code to discover tests in tb/
+  tb/
+    mm_loader.py               # Generic .mm.yml reader — no ipcraft dependency
+    &lt;ip_name&gt;_test.py          # cocotb @cocotb.test() functions
+    conftest.py                # pytest session fixture: builds HDL once, exposes sim_runner
+    test_&lt;ip_name&gt;_sim.py      # pytest wrapper functions — one per @cocotb.test()
+    Makefile                   # GNU Make entry point — also used by conftest.py internally
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>mm_loader.py</code></td>
+<td>Reads <code>&lt;ip_name&gt;.mm.yml</code> at test startup. No regeneration needed when registers change.</td>
+</tr>
+<tr>
+<td><code>&lt;ip_name&gt;_test.py</code></td>
+<td>The actual cocotb coroutines (<code>@cocotb.test()</code>). Edit this file to add stimulus.</td>
+</tr>
+<tr>
+<td><code>conftest.py</code></td>
+<td>Exposes the <code>sim_runner</code> fixture; each test invokes <code>make TESTCASE=&lt;name&gt;</code> internally.</td>
+</tr>
+<tr>
+<td><code>test_&lt;ip_name&gt;_sim.py</code></td>
+<td>Thin wrappers that call <code>sim_runner("test_name")</code>, making each test visible as a separate pytest item in VS Code and the terminal.</td>
+</tr>
+<tr>
+<td><code>Makefile</code></td>
+<td>Drives the actual simulation. Used by <code>conftest.py</code> internally and directly via <code>make</code>.</td>
+</tr>
+</tbody>
+</table>
+<p>The memory map file (<code>&lt;ip_name&gt;.mm.yml</code>) sits <strong>one directory above</strong> <code>tb/</code> and is the single source of truth. <code>mm_loader.py</code> reads it at test startup; you never need to regenerate <code>mm_loader.py</code> when you edit the YAML.</p>
+<hr />
+<h2 id="running-all-tests">Running all tests<a class="headerlink" href="#running-all-tests" title="Permanent link">&para;</a></h2>
+<p>From the project root (the directory that contains <code>tb/</code>):</p>
+<div class="highlight"><pre><span></span><code>pytest<span class="w"> </span>tb/
+</code></pre></div>
+<p>pytest loads <code>conftest.py</code> and runs each test function by invoking <code>make TESTCASE=&lt;name&gt;</code>. make compiles the VHDL on the first run and reuses the cached build for subsequent tests. Expected output:</p>
+<div class="highlight"><pre><span></span><code>============================= test session starts ==============================
+collected 2 items
+
+tb/test_myip_sim.py::test_register_access PASSED
+tb/test_myip_sim.py::test_reset_values    PASSED
+
+============================== 2 passed in 12.34s ==============================
+</code></pre></div>
+<hr />
+<h2 id="running-a-single-test">Running a single test<a class="headerlink" href="#running-a-single-test" title="Permanent link">&para;</a></h2>
+<p>Use the <code>-k</code> flag to select tests by name:</p>
+<div class="highlight"><pre><span></span><code>pytest<span class="w"> </span>tb/<span class="w"> </span>-k<span class="w"> </span>test_register_access
+pytest<span class="w"> </span>tb/<span class="w"> </span>-k<span class="w"> </span>test_reset_values
+</code></pre></div>
+<p>make's dependency tracking means the HDL is not recompiled if sources are unchanged; only the matching cocotb test function runs.</p>
+<hr />
+<h2 id="using-a-different-simulator">Using a different simulator<a class="headerlink" href="#using-a-different-simulator" title="Permanent link">&para;</a></h2>
+<p>Set the <code>SIM</code> environment variable before invoking pytest. The value is forwarded to <code>make SIM=&lt;name&gt;</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Simulator</th>
+<th>Command</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GHDL (default)</td>
+<td><code>pytest tb/</code></td>
+</tr>
+<tr>
+<td>Icarus Verilog</td>
+<td><code>SIM=icarus pytest tb/</code></td>
+</tr>
+<tr>
+<td>ModelSim</td>
+<td><code>SIM=modelsim pytest tb/</code></td>
+</tr>
+<tr>
+<td>Questa</td>
+<td><code>SIM=questa pytest tb/</code></td>
+</tr>
+<tr>
+<td>Riviera-PRO</td>
+<td><code>SIM=riviera pytest tb/</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> GHDL-specific build flags (<code>--std=08 -frelaxed</code>) are configured inside the generated <code>Makefile</code>. If your design requires extra flags for a different simulator, edit <code>COMPILE_ARGS</code> in the Makefile.</p>
+</blockquote>
+<hr />
+<h2 id="inspecting-test-results">Inspecting test results<a class="headerlink" href="#inspecting-test-results" title="Permanent link">&para;</a></h2>
+<p>Each test writes a JUnit-compatible XML file into the <code>tb/</code> directory:</p>
+<div class="highlight"><pre><span></span><code>tb/results.xml
+</code></pre></div>
+<p>This file is generated by cocotb via the Makefile and contains pass/fail status plus log messages captured during simulation. It is compatible with CI systems that consume JUnit XML (GitHub Actions, Jenkins, GitLab CI).</p>
+<p>Compiled simulation artefacts are cached in <code>tb/sim_build/</code>. Delete this directory to force a full recompilation:</p>
+<div class="highlight"><pre><span></span><code>make<span class="w"> </span>-C<span class="w"> </span>tb<span class="w"> </span>clean
+</code></pre></div>
+<p>To see verbose cocotb log output in the terminal:</p>
+<div class="highlight"><pre><span></span><code>pytest<span class="w"> </span>tb/<span class="w"> </span>-s
+</code></pre></div>
+<hr />
+<h2 id="vs-code-testing-panel">VS Code Testing panel<a class="headerlink" href="#vs-code-testing-panel" title="Permanent link">&para;</a></h2>
+<p>The generated <code>.vscode/settings.json</code> configures the Python test extension to look in <code>tb/</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;python.testing.pytestEnabled&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;python.testing.unittestEnabled&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;python.testing.pytestArgs&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;tb&quot;</span><span class="p">]</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>To use the Testing panel:</p>
+<ol>
+<li>Open the project folder in VS Code (the folder that contains <code>.vscode/</code>).</li>
+<li>Ensure the <a href="https://marketplace.visualstudio.com/items?itemName=ms-python.python">Python extension</a> is installed and the correct interpreter (your virtual environment) is selected.</li>
+<li>Open the <strong>Testing</strong> panel (flask icon in the Activity Bar, or <code>Ctrl+Shift+P</code> → <strong>Testing: Focus on Test Explorer View</strong>).</li>
+<li>Click <strong>Refresh Tests</strong> (the circular arrow at the top of the panel).</li>
+</ol>
+<p>Each function in <code>test_&lt;ip_name&gt;_sim.py</code> appears as a separate test item. You can:</p>
+<ul>
+<li><strong>Run all</strong> — click the run button at the top of the Testing panel.</li>
+<li><strong>Run one</strong> — click the run button next to the individual test.</li>
+<li><strong>Re-run failed</strong> — click the <strong>Re-run Failed Tests</strong> button after a failed run.</li>
+<li><strong>Debug</strong> — click the debug button to attach the VS Code debugger to the pytest process (useful for inspecting <code>conftest.py</code> fixture logic; cocotb coroutines run inside the simulator subprocess and are not debuggable this way).</li>
+</ul>
+<blockquote>
+<p><strong>Note:</strong> Each test invokes <code>make</code> internally. make compiles the HDL only when sources have changed, so the first test in a clean tree is slower; subsequent tests skip recompilation and go straight to simulation.</p>
+</blockquote>
+<hr />
+<h2 id="writing-a-custom-test-using-the-register-map">Writing a custom test using the register map<a class="headerlink" href="#writing-a-custom-test-using-the-register-map" title="Permanent link">&para;</a></h2>
+<p><code>mm_loader.py</code> provides a <code>RegMap</code> class that reads <code>&lt;ip_name&gt;.mm.yml</code> at runtime and exposes registers and fields as Python attributes.</p>
+<h3 id="load-the-register-map">Load the register map<a class="headerlink" href="#load-the-register-map" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mm_loader</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_regmap</span>
+
+<span class="n">_MM_YML</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">),</span> <span class="s2">&quot;../my_ip.mm.yml&quot;</span><span class="p">)</span>
+<span class="n">regmap</span> <span class="o">=</span> <span class="n">load_regmap</span><span class="p">(</span><span class="n">_MM_YML</span><span class="p">)</span>
+</code></pre></div>
+<p>The path <code>../my_ip.mm.yml</code> goes one level up from <code>tb/</code> to the project root, where the <code>.mm.yml</code> file lives.</p>
+<h3 id="iterate-all-registers">Iterate all registers<a class="headerlink" href="#iterate-all-registers" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="k">for</span> <span class="n">reg</span> <span class="ow">in</span> <span class="n">regmap</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">reg</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> @ 0x</span><span class="si">{</span><span class="n">reg</span><span class="o">.</span><span class="n">offset</span><span class="si">:</span><span class="s2">04X</span><span class="si">}</span><span class="s2">  access=</span><span class="si">{</span><span class="n">reg</span><span class="o">.</span><span class="n">access</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="access-a-specific-register">Access a specific register<a class="headerlink" href="#access-a-specific-register" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="n">ctrl</span> <span class="o">=</span> <span class="n">regmap</span><span class="o">.</span><span class="n">CTRL</span>        <span class="c1"># attribute-style — works for valid Python identifiers</span>
+<span class="n">ctrl</span> <span class="o">=</span> <span class="n">regmap</span><span class="p">[</span><span class="s2">&quot;CTRL&quot;</span><span class="p">]</span>     <span class="c1"># dict-style — always works</span>
+
+<span class="n">ctrl</span><span class="o">.</span><span class="n">offset</span>               <span class="c1"># int byte address</span>
+<span class="n">ctrl</span><span class="o">.</span><span class="n">access</span>               <span class="c1"># str, e.g. &quot;read-write&quot;</span>
+</code></pre></div>
+<h3 id="access-fields-within-a-register">Access fields within a register<a class="headerlink" href="#access-fields-within-a-register" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="n">f</span> <span class="o">=</span> <span class="n">ctrl</span><span class="o">.</span><span class="n">fields</span><span class="o">.</span><span class="n">ENABLE</span>    <span class="c1"># attribute-style</span>
+<span class="n">f</span> <span class="o">=</span> <span class="n">ctrl</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="s2">&quot;ENABLE&quot;</span><span class="p">]</span> <span class="c1"># dict-style</span>
+
+<span class="n">f</span><span class="o">.</span><span class="n">bit_offset</span>              <span class="c1"># int, LSB position</span>
+<span class="n">f</span><span class="o">.</span><span class="n">bit_width</span>               <span class="c1"># int, number of bits</span>
+<span class="n">f</span><span class="o">.</span><span class="n">mask</span>                    <span class="c1"># int, field mask pre-shifted into register position</span>
+<span class="n">f</span><span class="o">.</span><span class="n">access</span>                  <span class="c1"># str, e.g. &quot;read-write&quot;</span>
+</code></pre></div>
+<h3 id="extract-and-insert-field-values">Extract and insert field values<a class="headerlink" href="#extract-and-insert-field-values" title="Permanent link">&para;</a></h3>
+<p><code>extract</code> and <code>insert</code> operate on a full 32-bit register word read from or written to the bus. They do not perform any bus transactions themselves.</p>
+<div class="highlight"><pre><span></span><code><span class="n">reg_val</span> <span class="o">=</span> <span class="k">await</span> <span class="n">_read_reg</span><span class="p">(</span><span class="n">master</span><span class="p">,</span> <span class="n">ctrl</span><span class="o">.</span><span class="n">offset</span><span class="p">)</span>
+
+<span class="c1"># Isolate the ENABLE field from the register word</span>
+<span class="n">enable</span> <span class="o">=</span> <span class="n">ctrl</span><span class="o">.</span><span class="n">fields</span><span class="o">.</span><span class="n">ENABLE</span><span class="o">.</span><span class="n">extract</span><span class="p">(</span><span class="n">reg_val</span><span class="p">)</span>
+
+<span class="c1"># Set ENABLE=1, leave all other fields unchanged</span>
+<span class="n">new_val</span> <span class="o">=</span> <span class="n">ctrl</span><span class="o">.</span><span class="n">fields</span><span class="o">.</span><span class="n">ENABLE</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">reg_val</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="k">await</span> <span class="n">_write_reg</span><span class="p">(</span><span class="n">master</span><span class="p">,</span> <span class="n">ctrl</span><span class="o">.</span><span class="n">offset</span><span class="p">,</span> <span class="n">new_val</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="adding-the-test-to-pytest">Adding the test to pytest<a class="headerlink" href="#adding-the-test-to-pytest" title="Permanent link">&para;</a></h3>
+<p>Add a new <code>@cocotb.test()</code> function to <code>&lt;ip_name&gt;_test.py</code>, then add a corresponding wrapper in <code>test_&lt;ip_name&gt;_sim.py</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># In &lt;ip_name&gt;_test.py</span>
+<span class="nd">@cocotb</span><span class="o">.</span><span class="n">test</span><span class="p">()</span>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">test_enable_flag</span><span class="p">(</span><span class="n">dut</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Set CTRL.ENABLE and verify the output port responds.&quot;&quot;&quot;</span>
+    <span class="n">cocotb</span><span class="o">.</span><span class="n">start_soon</span><span class="p">(</span><span class="n">Clock</span><span class="p">(</span><span class="n">dut</span><span class="o">.</span><span class="n">clk</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="s2">&quot;ns&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">start</span><span class="p">())</span>
+    <span class="k">await</span> <span class="n">_reset_dut</span><span class="p">(</span><span class="n">dut</span><span class="p">)</span>
+    <span class="n">master</span> <span class="o">=</span> <span class="n">AxiLiteMaster</span><span class="p">(</span><span class="n">AxiLiteBus</span><span class="o">.</span><span class="n">from_prefix</span><span class="p">(</span><span class="n">dut</span><span class="p">,</span> <span class="s2">&quot;s_axil&quot;</span><span class="p">),</span> <span class="n">dut</span><span class="o">.</span><span class="n">clk</span><span class="p">)</span>
+
+    <span class="n">raw</span> <span class="o">=</span> <span class="k">await</span> <span class="n">_read_reg</span><span class="p">(</span><span class="n">master</span><span class="p">,</span> <span class="n">regmap</span><span class="o">.</span><span class="n">CTRL</span><span class="o">.</span><span class="n">offset</span><span class="p">)</span>
+    <span class="n">new</span> <span class="o">=</span> <span class="n">regmap</span><span class="o">.</span><span class="n">CTRL</span><span class="o">.</span><span class="n">fields</span><span class="o">.</span><span class="n">ENABLE</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">await</span> <span class="n">_write_reg</span><span class="p">(</span><span class="n">master</span><span class="p">,</span> <span class="n">regmap</span><span class="o">.</span><span class="n">CTRL</span><span class="o">.</span><span class="n">offset</span><span class="p">,</span> <span class="n">new</span><span class="p">)</span>
+
+    <span class="k">await</span> <span class="n">RisingEdge</span><span class="p">(</span><span class="n">dut</span><span class="o">.</span><span class="n">clk</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">dut</span><span class="o">.</span><span class="n">enable_out</span><span class="o">.</span><span class="n">value</span> <span class="o">==</span> <span class="mi">1</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="c1"># In test_&lt;ip_name&gt;_sim.py</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">test_enable_flag</span><span class="p">(</span><span class="n">sim_runner</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Set CTRL.ENABLE and verify the output port responds.&quot;&quot;&quot;</span>
+    <span class="n">sim_runner</span><span class="p">(</span><span class="s2">&quot;test_enable_flag&quot;</span><span class="p">)</span>
+</code></pre></div>
+<p>The new test appears automatically in the VS Code Testing panel on the next <strong>Refresh Tests</strong>.</p>
+<hr />
+<h2 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">&para;</a></h2>
+<h3 id="rtl-sources-not-found">RTL sources not found<a class="headerlink" href="#rtl-sources-not-found" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>FileNotFoundError: RTL sources not found — run the IPCraft scaffolder first:
+  /path/to/myip/rtl/myip_pkg.vhd
+</code></pre></div>
+<p>The <code>conftest.py</code> checks that all source files listed in <code>VHDL_SOURCES</code> exist before attempting compilation. Run <strong>IPCraft: Scaffold VHDL Project</strong> (or <strong>IPCraft: Generate VHDL</strong>) to create them, then run pytest again.</p>
+<h3 id="simulator-not-found">Simulator not found<a class="headerlink" href="#simulator-not-found" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>FileNotFoundError: [Errno 2] No such file or directory: &#39;ghdl&#39;
+</code></pre></div>
+<p>The simulator binary is not on <code>PATH</code>. Either install GHDL (<code>apt install ghdl</code> / <code>brew install ghdl</code>) or switch to a different simulator with <code>SIM=&lt;name&gt; pytest tb/</code>.</p>
+<h3 id="pytest-collects-zero-tests">pytest collects zero tests<a class="headerlink" href="#pytest-collects-zero-tests" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>no tests ran
+</code></pre></div>
+<p>This usually means pytest was not pointed at the right directory. From the project root, run:</p>
+<div class="highlight"><pre><span></span><code>pytest<span class="w"> </span>tb/
+</code></pre></div>
+<p>Do not run <code>pytest</code> from inside <code>tb/</code> — the fixture and wrapper files use relative paths that assume the working directory is one level above <code>tb/</code>.</p>
+<p>Also confirm that <code>.vscode/settings.json</code> lists <code>"tb"</code> in <code>pytestArgs</code>, not <code>"."</code> or <code>"tb/"</code>.</p>
+<h3 id="ghdl-vhdl-2008-errors">GHDL VHDL-2008 errors<a class="headerlink" href="#ghdl-vhdl-2008-errors" title="Permanent link">&para;</a></h3>
+<p>If GHDL reports syntax or analysis errors, check the GHDL version:</p>
+<div class="highlight"><pre><span></span><code>ghdl<span class="w"> </span>--version
+</code></pre></div>
+<p>The generated <code>conftest.py</code> passes <code>--std=08</code> (VHDL-2008) and <code>-frelaxed</code> to GHDL. GHDL 2.0 or newer is recommended. Older versions may not support all VHDL-2008 constructs used by the generated register file.</p>
+<h3 id="modulenotfounderror-no-module-named-cocotbrunner"><code>ModuleNotFoundError: No module named 'cocotb.runner'</code><a class="headerlink" href="#modulenotfounderror-no-module-named-cocotbrunner" title="Permanent link">&para;</a></h3>
+<p>This error comes from a stale <code>conftest.py</code> generated before IPCraft switched to the Makefile-based approach. Regenerate the testbench (<strong>IPCraft: Generate CocoTB Testbench</strong>) and the new <code>conftest.py</code> will no longer import <code>cocotb.runner</code>.</p>
+<h3 id="test-passes-in-makefile-but-fails-under-pytest">Test passes in Makefile but fails under pytest<a class="headerlink" href="#test-passes-in-makefile-but-fails-under-pytest" title="Permanent link">&para;</a></h3>
+<p><code>conftest.py</code> invokes <code>make</code> from <code>TB_DIR</code> (the <code>tb/</code> directory), so the working directory inside the simulation is the same whether you run <code>make</code> directly or <code>pytest tb/</code>. If a test passes via <code>make</code> but fails via <code>pytest</code>, check whether your test reads files using a path relative to somewhere other than <code>TB_DIR</code>. All filesystem paths in the test should be anchored to <code>os.path.dirname(__file__)</code> or <code>TB_DIR</code>.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2026 Le Viet Bach
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.expand", "navigation.tabs", "navigation.top", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

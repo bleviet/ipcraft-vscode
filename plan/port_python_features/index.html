@@ -1,0 +1,3547 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Visual editor for FPGA IP Core and Memory Map specifications">
+      
+      
+        <meta name="author" content="Le Viet Bach">
+      
+      
+        <link rel="canonical" href="https://bleviet.github.io/ipcraft-vscode/plan/port_python_features/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Porting Python IPCraft Features to ipcraft-vscode - IPCraft for VS Code</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#porting-python-ipcraft-features-to-ipcraft-vscode" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="IPCraft for VS Code" class="md-header__button md-logo" aria-label="IPCraft for VS Code" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            IPCraft for VS Code
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Porting Python IPCraft Features to ipcraft-vscode
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/bleviet/ipcraft-vscode" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../getting-started/quickstart/" class="md-tabs__link">
+          
+  
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../how-to/vhdl-import/" class="md-tabs__link">
+          
+  
+  
+  How-to Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../concepts/extension-model/" class="md-tabs__link">
+          
+  
+  
+  Concepts
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../architecture/overview/" class="md-tabs__link">
+          
+  
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../reference/commands/" class="md-tabs__link">
+          
+  
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../contributing/guidelines/" class="md-tabs__link">
+          
+  
+  
+  Contributing
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../blog/building-ipcraft/" class="md-tabs__link">
+          
+  
+  
+  Blog
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="IPCraft for VS Code" class="md-nav__button md-logo" aria-label="IPCraft for VS Code" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    IPCraft for VS Code
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/bleviet/ipcraft-vscode" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How-to Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    How-to Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/vhdl-import/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Importing from Existing Files
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/generating-a-project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generating a Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/building-a-project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building a Project (Headless)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/build-vsix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building a VSIX Package
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/ai-design-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI Design Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Concepts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/extension-model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VS Code Extension Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/yaml-data-flow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YAML Data Flow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/spatial-editing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spatial Editing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/responsive-design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Responsive Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/extension-host/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Extension Host
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/webview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Webview (React)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Commands & Settings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/keyboard-shortcuts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Keyboard Shortcuts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/generator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/ip-core-editor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IP Core Editor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/specification-schemas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Specification Schemas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/bitfield-interaction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bit Field Interaction
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/yaml-libraries/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YAML Libraries
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contributing
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/guidelines/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guidelines
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Blog
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Blog
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../blog/building-ipcraft/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building IPCraft
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#current-state-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Current State Summary
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Current State Summary">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#what-ipcraft-vscode-already-has" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What ipcraft-vscode already has
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-is-missing-features-in-python-ipcraft-but-not-in-ipcraft-vscode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What is missing (features in Python ipcraft but not in ipcraft-vscode)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-1-validation-framework" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 1 — Validation Framework
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 1 — Validation Framework">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#task-11-create-ipcorevalidator-service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 1.1 — Create IpCoreValidator service
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-12-create-memorymapvalidator-service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 1.2 — Create MemoryMapValidator service
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-13-wire-validators-into-editor-providers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 1.3 — Wire validators into editor providers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-14-add-json-schema-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 1.4 — Add JSON Schema validation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-2-additional-parsers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 2 — Additional Parsers
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 2 — Additional Parsers">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#task-21-verilog-parser" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 2.1 — Verilog parser
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-22-ip-xact-parser" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 2.2 — IP-XACT parser
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-23-intel-_hwtcl-parser" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 2.3 — Intel _hw.tcl parser
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-24-parse-dispatcher" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 2.4 — Parse dispatcher
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-25-register-import-from-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 2.5 — Register "Import from…" commands
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-3-enhanced-code-generation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 3 — Enhanced Code Generation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 3 — Enhanced Code Generation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#task-31-register-map-markdown-documentation-generation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 3.1 — Register map Markdown documentation generation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-32-xilinx-package_iptcl-template" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 3.2 — Xilinx package_ip.tcl template
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-33-memmapyml-generation-for-python-drivers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 3.3 — memmap.yml generation for Python drivers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-34-structured-output-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 3.4 — Structured output layout
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-35-custom-template-directory-support" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 3.5 — Custom template directory support
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-36-template-context-dump" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 3.6 — Template context dump
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-37-dry-run-mode-for-generation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 3.7 — Dry-run mode for generation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-38-generation-progress-reporting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 3.8 — Generation progress reporting
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-4-interactive-project-scaffolding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 4 — Interactive Project Scaffolding
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 4 — Interactive Project Scaffolding">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#task-41-enhanced-ipcraft-new-wizard" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 4.1 — Enhanced ipcraft new wizard
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-42-ascii-ip-symbol-diagram-in-webview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 4.2 — ASCII IP symbol diagram in webview
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-5-register-templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 5 — Register Templates
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 5 — Register Templates">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#task-51-register-template-yaml-support" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 5.1 — Register template YAML support
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-52-register-template-ui-in-webview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 5.2 — Register template UI in webview
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-53-built-in-register-template-library" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 5.3 — Built-in register template library
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-6-watch-mode-automation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 6 — Watch Mode &amp; Automation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 6 — Watch Mode &amp; Automation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#task-61-auto-regeneration-on-file-change" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 6.1 — Auto-regeneration on file change
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-62-output-channel-for-generation-logs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 6.2 — Output channel for generation logs
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-7-json-output-mode-cli-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 7 — JSON Output Mode &amp; CLI Integration
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 7 — JSON Output Mode &amp; CLI Integration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#task-71-machine-readable-json-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 7.1 — Machine-readable JSON output
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-72-cli-bridge-for-external-tool-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 7.2 — CLI bridge for external tool integration
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-8-runtime-driver-features" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 8 — Runtime &amp; Driver Features
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 8 — Runtime &amp; Driver Features">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#task-81-generate-python-driver-module" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 8.1 — Generate Python driver module
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-82-generate-c-header-for-register-definitions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 8.2 — Generate C header for register definitions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-83-generate-systemverilog-header" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 8.3 — Generate SystemVerilog header
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-9-quality-of-life-improvements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 9 — Quality of Life Improvements
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 9 — Quality of Life Improvements">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#task-91-webview-validation-error-indicators" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 9.1 — Webview validation error indicators
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-92-register-map-documentation-preview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 9.2 — Register map documentation preview
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-93-code-lens-for-generation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 9.3 — Code lens for generation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-94-hover-information-in-yaml-text-editor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 9.4 — Hover information in YAML text editor
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-95-completion-provider-for-yaml-text-editor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 9.5 — Completion provider for YAML text editor
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-10-testing-documentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 10 — Testing &amp; Documentation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 10 — Testing &amp; Documentation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#task-101-parser-test-suites" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 10.1 — Parser test suites
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-102-validator-test-suites" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 10.2 — Validator test suites
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-103-generator-test-suites" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 10.3 — Generator test suites
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-104-update-extension-documentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 10.4 — Update extension documentation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#implementation-order-dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implementation Order &amp; Dependencies
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#effort-estimates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Effort Estimates
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#recommended-development-sequence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recommended Development Sequence
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reference-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reference Files
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Reference Files">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#python-ipcraft-source-of-truth-for-porting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Python ipcraft (source of truth for porting)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ipcraft-vscode-files-to-create-or-modify" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ipcraft-vscode (files to create or modify)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/bleviet/ipcraft-vscode/edit/main/docs/plan/port_python_features.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="porting-python-ipcraft-features-to-ipcraft-vscode">Porting Python IPCraft Features to ipcraft-vscode<a class="headerlink" href="#porting-python-ipcraft-features-to-ipcraft-vscode" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p><strong>Goal:</strong> Bring every feature from the Python <code>ipcraft</code> CLI/library into the VS Code extension, so users have full parity within the editor.</p>
+</blockquote>
+<hr />
+<h2 id="current-state-summary">Current State Summary<a class="headerlink" href="#current-state-summary" title="Permanent link">&para;</a></h2>
+<h3 id="what-ipcraft-vscode-already-has">What ipcraft-vscode already has<a class="headerlink" href="#what-ipcraft-vscode-already-has" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Area</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>VHDL generation (pkg, top, core, bus wrapper, regs)</td>
+<td>✅ Complete</td>
+</tr>
+<tr>
+<td>VHDL import → <code>.ip.yml</code></td>
+<td>✅ Complete</td>
+</tr>
+<tr>
+<td>Visual memory map editor (outline, register map, bitfield)</td>
+<td>✅ Complete</td>
+</tr>
+<tr>
+<td>Visual IP core editor (metadata, ports, clocks, resets, bus interfaces, file sets)</td>
+<td>✅ Complete</td>
+</tr>
+<tr>
+<td>AXI4-Lite &amp; Avalon-MM bus wrappers</td>
+<td>✅ Complete</td>
+</tr>
+<tr>
+<td>Cocotb testbench &amp; Makefile generation</td>
+<td>✅ Complete</td>
+</tr>
+<tr>
+<td>Altera <code>_hw.tcl</code> generation</td>
+<td>✅ Complete</td>
+</tr>
+<tr>
+<td>AMD/Xilinx <code>component.xml</code> + XGUI generation</td>
+<td>✅ Complete</td>
+</tr>
+<tr>
+<td><code>$import</code> for memory maps &amp; file sets</td>
+<td>✅ Complete</td>
+</tr>
+<tr>
+<td>Bus library loading (built-in + custom)</td>
+<td>✅ Complete</td>
+</tr>
+<tr>
+<td>Enumerated values on bitfields</td>
+<td>✅ Complete</td>
+</tr>
+<tr>
+<td>Register arrays (count/stride)</td>
+<td>✅ Complete</td>
+</tr>
+<tr>
+<td>File set auto-update after generation</td>
+<td>✅ Complete</td>
+</tr>
+<tr>
+<td>Bitfield drag/resize/reorder in visual editor</td>
+<td>✅ Complete</td>
+</tr>
+<tr>
+<td>Three bitfield layout views (default, pro, vertical)</td>
+<td>✅ Complete</td>
+</tr>
+</tbody>
+</table>
+<h3 id="what-is-missing-features-in-python-ipcraft-but-not-in-ipcraft-vscode">What is missing (features in Python ipcraft but not in ipcraft-vscode)<a class="headerlink" href="#what-is-missing-features-in-python-ipcraft-but-not-in-ipcraft-vscode" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Feature</th>
+<th>Priority</th>
+<th>Effort</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Verilog parser</td>
+<td>High</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>2</td>
+<td>IP-XACT (<code>component.xml</code>) parser</td>
+<td>High</td>
+<td>Large</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Intel <code>_hw.tcl</code> parser</td>
+<td>Medium</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Parse dispatcher (auto-detect input format)</td>
+<td>Medium</td>
+<td>Small</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Comprehensive validation framework</td>
+<td>Critical</td>
+<td>Large</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Register map documentation generation (Markdown)</td>
+<td>High</td>
+<td>Small</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Register templates (reusable register definitions)</td>
+<td>Medium</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Runtime/driver layer (Python register abstraction)</td>
+<td>Low</td>
+<td>Large</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Interactive init wizard (TUI-style project scaffolding)</td>
+<td>Medium</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Dry-run mode for generation</td>
+<td>Medium</td>
+<td>Small</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Watch mode for auto-regeneration</td>
+<td>Low</td>
+<td>Small</td>
+</tr>
+<tr>
+<td>12</td>
+<td>Custom template directory support</td>
+<td>Medium</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>13</td>
+<td>Template context dump (<code>--dump-context</code>)</td>
+<td>Low</td>
+<td>Small</td>
+</tr>
+<tr>
+<td>14</td>
+<td>ASCII IP symbol diagram</td>
+<td>Low</td>
+<td>Small</td>
+</tr>
+<tr>
+<td>15</td>
+<td>Xilinx <code>package_ip.tcl</code> template</td>
+<td>Medium</td>
+<td>Small</td>
+</tr>
+<tr>
+<td>16</td>
+<td><code>memmap.yml</code> generation (Python driver memory map)</td>
+<td>Low</td>
+<td>Small</td>
+</tr>
+<tr>
+<td>17</td>
+<td>Structured output layout (<code>rtl/</code>, <code>tb/</code>, <code>docs/</code>, …)</td>
+<td>Medium</td>
+<td>Small</td>
+</tr>
+<tr>
+<td>18</td>
+<td>JSON machine-readable output mode</td>
+<td>Low</td>
+<td>Small</td>
+</tr>
+<tr>
+<td>19</td>
+<td>Generation progress reporting</td>
+<td>Low</td>
+<td>Small</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="phase-1-validation-framework">Phase 1 — Validation Framework<a class="headerlink" href="#phase-1-validation-framework" title="Permanent link">&para;</a></h2>
+<p><strong>Why first:</strong> Validation is foundational — every subsequent feature (parsers, generation, editing) benefits from a robust validation layer. The current <code>YamlValidator</code> only checks YAML syntax; the Python version validates 100+ rules.</p>
+<h3 id="task-11-create-ipcorevalidator-service">Task 1.1 — Create <code>IpCoreValidator</code> service<a class="headerlink" href="#task-11-create-ipcorevalidator-service" title="Permanent link">&para;</a></h3>
+<p><strong>File:</strong> <code>src/services/IpCoreValidator.ts</code></p>
+<p>Implement a validation service modeled after <code>ipcraft/model/validators.py::IpCoreValidator</code>.</p>
+<p><strong>Validation rules to implement:</strong></p>
+<ol>
+<li><strong>VLNV validation</strong></li>
+<li>All four fields (vendor, library, name, version) must be non-empty strings</li>
+<li>Only valid characters allowed (alphanumeric, <code>.</code>, <code>-</code>, <code>_</code>)</li>
+<li>
+<p>Version should follow semver-like pattern</p>
+</li>
+<li>
+<p><strong>Clock validation</strong></p>
+</li>
+<li>Clock names must be unique</li>
+<li>Physical name must exist</li>
+<li>
+<p>Frequency format validation if provided (supports Hz, KHz, MHz, GHz suffixes)</p>
+</li>
+<li>
+<p><strong>Reset validation</strong></p>
+</li>
+<li>Reset names must be unique</li>
+<li>Physical name must exist</li>
+<li>
+<p>Polarity must be <code>"activeHigh"</code> or <code>"activeLow"</code></p>
+</li>
+<li>
+<p><strong>Port validation</strong></p>
+</li>
+<li>Port names must be unique</li>
+<li>Direction must be <code>"in"</code>, <code>"out"</code>, or <code>"inout"</code></li>
+<li>Width must be positive integer or valid parameter reference</li>
+<li>
+<p>No conflicts with bus interface physical ports</p>
+</li>
+<li>
+<p><strong>Bus interface validation</strong></p>
+</li>
+<li>Interface names must be unique</li>
+<li>Type must exist in loaded bus library</li>
+<li>Mode must be valid for bus type (<code>master</code>/<code>slave</code> for AXI/Avalon, <code>source</code>/<code>sink</code> for streaming)</li>
+<li>Physical prefix must be non-empty</li>
+<li><code>associated_clock</code> and <code>associated_reset</code> must reference existing clocks/resets</li>
+<li><code>memory_map_ref</code> must reference existing memory map (if specified)</li>
+<li>Port width overrides must be positive integers</li>
+<li>
+<p>Array config validation: <code>count</code> ≥ 1, <code>index_start</code> ≥ 0, patterns must contain <code>{index}</code> placeholder</p>
+</li>
+<li>
+<p><strong>Memory map validation</strong></p>
+</li>
+<li>Memory map names must be unique</li>
+<li>Address block names must be unique within a memory map</li>
+<li>Address block overlap detection (no two blocks may occupy same address range)</li>
+<li>Register name uniqueness within a block</li>
+<li>Register offset must be non-negative and word-aligned</li>
+<li>Field bit-range validation: no field overlaps within a register</li>
+<li>Field width + offset must not exceed register size</li>
+<li>Access type must be one of the valid enum values</li>
+<li>Register array: stride must be ≥ 4 and word-aligned, count ≥ 1</li>
+<li>
+<p>Reset values must fit within the field/register width</p>
+</li>
+<li>
+<p><strong>File set validation</strong></p>
+</li>
+<li>File set names must be unique</li>
+<li>File paths must be non-empty</li>
+<li>
+<p>File types must be valid enum values</p>
+</li>
+<li>
+<p><strong>Parameter validation</strong></p>
+</li>
+<li>Parameter names must be unique</li>
+<li>Data types must be valid (<code>integer</code>, <code>natural</code>, <code>positive</code>, <code>real</code>, <code>boolean</code>, <code>string</code>)</li>
+<li>Value must be compatible with declared data type</li>
+</ol>
+<p><strong>Implementation details:</strong>
+- Return structured results: <code>{ valid: boolean, errors: ValidationError[], warnings: ValidationWarning[] }</code>
+- Each error/warning should include: <code>path</code> (YAML path, e.g., <code>busInterfaces[0].associated_clock</code>), <code>message</code>, <code>severity</code>
+- Integrate with VS Code diagnostics API to show squiggles in the YAML text editor</p>
+<p><strong>Reference files:</strong>
+- Python: <code>ipcraft/model/validators.py</code>
+- Python: <code>ipcraft/model/memory_map.py</code> (address overlap logic)
+- VS Code: <code>src/services/YamlValidator.ts</code> (extend or wrap)</p>
+<h3 id="task-12-create-memorymapvalidator-service">Task 1.2 — Create <code>MemoryMapValidator</code> service<a class="headerlink" href="#task-12-create-memorymapvalidator-service" title="Permanent link">&para;</a></h3>
+<p><strong>File:</strong> <code>src/services/MemoryMapValidator.ts</code></p>
+<p>Focused validation for <code>.mm.yml</code> files (can be used standalone without an IP core context).</p>
+<p><strong>Rules:</strong>
+- Address block base addresses must not overlap
+- Register offsets must not collide within a block
+- Bitfield ranges must not overlap within a register
+- Bitfields must fit within the register width
+- All <code>access</code> values must be from the valid enum set
+- <code>enumerated_values</code> keys must be valid integers fitting in the field width
+- Register array stride × count must not exceed the address block range</p>
+<h3 id="task-13-wire-validators-into-editor-providers">Task 1.3 — Wire validators into editor providers<a class="headerlink" href="#task-13-wire-validators-into-editor-providers" title="Permanent link">&para;</a></h3>
+<p><strong>Files to modify:</strong>
+- <code>src/providers/MemoryMapEditorProvider.ts</code>
+- <code>src/providers/IpCoreEditorProvider.ts</code>
+- <code>src/services/MessageHandler.ts</code></p>
+<p><strong>Steps:</strong>
+1. Run validation on document open and on every document change (debounced, 500ms)
+2. Report errors/warnings via <code>vscode.languages.createDiagnosticCollection</code>
+3. Send validation results to webview for inline error indicators
+4. Add a <code>fpga-ip-core.validate</code> command to the command palette</p>
+<h3 id="task-14-add-json-schema-validation">Task 1.4 — Add JSON Schema validation<a class="headerlink" href="#task-14-add-json-schema-validation" title="Permanent link">&para;</a></h3>
+<p><strong>Files to modify:</strong>
+- <code>src/services/YamlValidator.ts</code></p>
+<p><strong>Steps:</strong>
+1. Add <code>ajv</code> (or similar) as a dependency
+2. Load schemas from <code>ipcraft-spec/schemas/ip_core.schema.json</code> and <code>memory_map.schema.json</code>
+3. Validate parsed YAML against the JSON schema before running semantic validators
+4. Map schema validation errors to <code>ValidationError[]</code> format</p>
+<hr />
+<h2 id="phase-2-additional-parsers">Phase 2 — Additional Parsers<a class="headerlink" href="#phase-2-additional-parsers" title="Permanent link">&para;</a></h2>
+<h3 id="task-21-verilog-parser">Task 2.1 — Verilog parser<a class="headerlink" href="#task-21-verilog-parser" title="Permanent link">&para;</a></h3>
+<p><strong>File:</strong> <code>src/parser/VerilogParser.ts</code></p>
+<p>Port <code>ipcraft/parser/hdl/verilog_parser.py</code> to TypeScript.</p>
+<p><strong>Features to implement:</strong>
+- Extract module name from <code>module &lt;name&gt; (</code> declaration
+- Parse parameter definitions from <code>#(parameter ...)</code> blocks
+  - Name, type, default value
+- Parse port declarations (both ANSI and non-ANSI styles)
+  - Direction: <code>input</code>, <code>output</code>, <code>inout</code>
+  - Width: from <code>[N:0]</code> range expressions
+  - Wire/reg distinction
+- Strip <code>//</code> and <code>/* */</code> comments before parsing
+- Handle `include directives gracefully (skip them)</p>
+<p><strong>Approach:</strong>
+- Use regex-based parsing similar to existing <code>VhdlParser.ts</code> style
+- Reference: <code>ipcraft/parser/hdl/verilog_parser.py</code> (pyparsing grammar → convert to regex/manual parser)</p>
+<p><strong>Output model:</strong> Same <code>IpCoreData</code> structure as VHDL parser produces.</p>
+<p><strong>Test file:</strong> <code>src/test/suite/parser/VerilogParser.test.ts</code>
+- Test with simple modules, parameterized modules, multi-port entities
+- Add Verilog fixture files to <code>src/test/fixtures/</code></p>
+<h3 id="task-22-ip-xact-parser">Task 2.2 — IP-XACT parser<a class="headerlink" href="#task-22-ip-xact-parser" title="Permanent link">&para;</a></h3>
+<p><strong>File:</strong> <code>src/parser/IpXactParser.ts</code></p>
+<p>Port <code>ipcraft/parser/vendor/ipxact_parser.py</code> to TypeScript.</p>
+<p><strong>Features to implement:</strong>
+- Parse Xilinx IP-XACT <code>component.xml</code> files
+- Support both namespaces:
+  - IP-XACT 2009: <code>spirit:</code> namespace (<code>http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009</code>)
+  - IP-XACT 2014: <code>ipxact:</code> namespace (<code>http://www.accellera.org/XMLSchema/IPXACT/1685-2014</code>)
+- Extract:
+  - VLNV from <code>&lt;vendor&gt;</code>, <code>&lt;library&gt;</code>, <code>&lt;name&gt;</code>, <code>&lt;version&gt;</code> elements
+  - Ports from <code>&lt;model&gt;&lt;ports&gt;&lt;port&gt;</code> elements (name, direction, width from vectors)
+  - Bus interfaces from <code>&lt;busInterfaces&gt;&lt;busInterface&gt;</code> (name, type VLNV, mode, port maps)
+  - Parameters from <code>&lt;parameters&gt;&lt;parameter&gt;</code> (name, value, type)
+  - Clock/reset classification from bus interface associations
+  - Memory maps from <code>&lt;memoryMaps&gt;&lt;memoryMap&gt;</code> (address blocks, registers, fields)
+- Bus type mapping: <code>aximm</code> → <code>AXI4_LITE</code> or <code>AXI4_FULL</code> (use address width heuristic: ≤ 32 → Lite)</p>
+<p><strong>Dependencies:</strong>
+- Use a lightweight XML parser: <code>fast-xml-parser</code> or Node.js built-in <code>DOMParser</code> (available in extension host)</p>
+<p><strong>Test file:</strong> <code>src/test/suite/parser/IpXactParser.test.ts</code>
+- Add IP-XACT fixture files (Xilinx-generated component.xml samples)</p>
+<h3 id="task-23-intel-_hwtcl-parser">Task 2.3 — Intel <code>_hw.tcl</code> parser<a class="headerlink" href="#task-23-intel-_hwtcl-parser" title="Permanent link">&para;</a></h3>
+<p><strong>File:</strong> <code>src/parser/HwTclParser.ts</code></p>
+<p>Port <code>ipcraft/parser/vendor/hw_tcl_parser.py</code> to TypeScript.</p>
+<p><strong>Features to implement:</strong>
+- Regex-based extraction (no TCL interpreter needed):
+  - <code>set_module_property NAME &lt;value&gt;</code> → VLNV fields, description
+  - <code>add_interface &lt;name&gt; &lt;type&gt; &lt;direction&gt;</code> → bus interface list
+  - <code>set_interface_property &lt;name&gt; &lt;prop&gt; &lt;value&gt;</code> → associated clock/reset
+  - <code>add_interface_port &lt;iface&gt; &lt;physical&gt; &lt;logical&gt; &lt;dir&gt; &lt;width&gt;</code> → port mappings
+  - <code>add_parameter &lt;name&gt; &lt;type&gt; &lt;default&gt;</code> → parameters
+- Interface direction mapping: <code>end</code>/<code>slave</code>/<code>sink</code> vs <code>start</code>/<code>master</code>/<code>source</code>
+- Bus type mapping for Avalon and AXI variants</p>
+<p><strong>Test file:</strong> <code>src/test/suite/parser/HwTclParser.test.ts</code>
+- Add <code>_hw.tcl</code> fixture files</p>
+<h3 id="task-24-parse-dispatcher">Task 2.4 — Parse dispatcher<a class="headerlink" href="#task-24-parse-dispatcher" title="Permanent link">&para;</a></h3>
+<p><strong>File:</strong> <code>src/parser/ParseDispatcher.ts</code></p>
+<p>Port <code>ipcraft/parser/vendor/parse_dispatcher.py</code> to TypeScript.</p>
+<p><strong>Features to implement:</strong>
+- Auto-detect input file format from extension and content:
+  - <code>.vhd</code>, <code>.vhdl</code> → <code>VhdlParser</code>
+  - <code>.v</code>, <code>.sv</code> → <code>VerilogParser</code>
+  - <code>*_hw.tcl</code> → <code>HwTclParser</code>
+  - <code>.xml</code> (with IP-XACT root element) → <code>IpXactParser</code>
+- Unified <code>parse(filePath: string): Promise&lt;IpCoreData&gt;</code> interface
+- Error handling for unsupported formats</p>
+<h3 id="task-25-register-import-from-commands">Task 2.5 — Register "Import from…" commands<a class="headerlink" href="#task-25-register-import-from-commands" title="Permanent link">&para;</a></h3>
+<p><strong>Files to modify:</strong>
+- <code>src/commands/GenerateCommands.ts</code>
+- <code>package.json</code> (add commands and context menus)</p>
+<p><strong>New commands:</strong>
+- <code>fpga-ip-core.parseVerilog</code> — Import from Verilog file
+- <code>fpga-ip-core.parseIpXact</code> — Import from IP-XACT <code>component.xml</code>
+- <code>fpga-ip-core.parseHwTcl</code> — Import from Intel <code>_hw.tcl</code>
+- <code>fpga-ip-core.parseAny</code> — Auto-detect format and import (uses ParseDispatcher)</p>
+<p><strong>Context menu entries:</strong>
+- Add these to Explorer context menu for relevant file extensions (<code>.v</code>, <code>.sv</code>, <code>.xml</code>, <code>.tcl</code>)
+- Add "Import to IP Core YAML…" to editor title menu</p>
+<p><strong>UI flow:</strong>
+1. User right-clicks file → "Import to IP Core YAML…"
+2. Dispatcher detects format, runs parser
+3. Quick pick for VLNV fields (vendor, library, version) — pre-fill from parsed data
+4. Option to also generate <code>.mm.yml</code> skeleton (checkbox)
+5. Opens generated <code>.ip.yml</code> in the visual editor</p>
+<hr />
+<h2 id="phase-3-enhanced-code-generation">Phase 3 — Enhanced Code Generation<a class="headerlink" href="#phase-3-enhanced-code-generation" title="Permanent link">&para;</a></h2>
+<h3 id="task-31-register-map-markdown-documentation-generation">Task 3.1 — Register map Markdown documentation generation<a class="headerlink" href="#task-31-register-map-markdown-documentation-generation" title="Permanent link">&para;</a></h3>
+<p><strong>File:</strong> <code>src/generator/RegmapDocGenerator.ts</code>
+<strong>Template:</strong> <code>src/generator/templates/regmap_docs.md.j2</code></p>
+<p>Port <code>regmap_docs.md.j2</code> from the Python repo.</p>
+<p><strong>Output:</strong> <code>{name}_regmap.md</code> containing:
+- Title and description
+- Register summary table (offset in hex, name, access, reset value, description)
+- Per-register detail sections:
+  - Bitfield table (bits range, field name, access, reset, description)
+  - Enumerated value tables where applicable
+- Register array sections with indexed names
+- Address block headers with base address and range</p>
+<p><strong>Integration:</strong>
+- Add to <code>IpCoreScaffolder.ts</code> as an optional generation step
+- Add checkbox in <code>GeneratorPanel.tsx</code>: "Generate register map documentation"
+- Place output in <code>docs/</code> subdirectory when using structured layout</p>
+<h3 id="task-32-xilinx-package_iptcl-template">Task 3.2 — Xilinx <code>package_ip.tcl</code> template<a class="headerlink" href="#task-32-xilinx-package_iptcl-template" title="Permanent link">&para;</a></h3>
+<p><strong>Template:</strong> <code>src/generator/templates/amd_package_ip_tcl.j2</code></p>
+<p>Port <code>xilinx_package_ip_tcl.j2</code> from the Python repo.</p>
+<p><strong>Content:</strong>
+- Temporary Vivado project creation script
+- Source file discovery via <code>glob</code>
+- IP-XACT core setup
+- VLNV metadata application
+- Bus interface property setting
+- Parameter definitions
+- Packaging and archival</p>
+<p><strong>Integration:</strong>
+- Generate alongside <code>component.xml</code> when AMD/Xilinx vendor is selected
+- Output path: <code>amd/package_ip.tcl</code>
+- Add to file set under "Integration" category</p>
+<h3 id="task-33-memmapyml-generation-for-python-drivers">Task 3.3 — <code>memmap.yml</code> generation for Python drivers<a class="headerlink" href="#task-33-memmapyml-generation-for-python-drivers" title="Permanent link">&para;</a></h3>
+<p><strong>Template:</strong> <code>src/generator/templates/memmap.yml.j2</code> (already exists as placeholder)</p>
+<p>Port the actual <code>memmap.yml.j2</code> content from the Python repo.</p>
+<p><strong>Content:</strong>
+- Simplified YAML memory map consumable by <code>ipcraft.runtime</code> Python driver
+- Registers with absolute addresses (base + offset)
+- Field definitions with bit ranges and access types
+- Used by cocotb testbenches to auto-discover registers</p>
+<p><strong>Integration:</strong>
+- Generate alongside cocotb testbench files
+- Output path: <code>tb/memmap.yml</code></p>
+<h3 id="task-34-structured-output-layout">Task 3.4 — Structured output layout<a class="headerlink" href="#task-34-structured-output-layout" title="Permanent link">&para;</a></h3>
+<p><strong>File to modify:</strong> <code>src/generator/IpCoreScaffolder.ts</code></p>
+<p>Currently all generated files are placed in a flat or semi-structured layout. Fully implement the structured layout matching the Python <code>generate_all_with_structure()</code>:</p>
+<div class="highlight"><pre><span></span><code>output/
+├── rtl/
+│   ├── {name}_pkg.vhd
+│   ├── {name}.vhd
+│   ├── {name}_core.vhd
+│   ├── {name}_{bus}.vhd
+│   └── {name}_regs.vhd          (optional)
+├── tb/
+│   ├── {name}_test.py           (optional)
+│   ├── Makefile                 (optional)
+│   └── memmap.yml               (optional)
+├── docs/
+│   └── {name}_regmap.md         (optional)
+├── intel/
+│   └── {name}_hw.tcl            (if vendor=intel|both)
+└── amd/
+    ├── component.xml            (if vendor=amd|both)
+    ├── package_ip.tcl           (if vendor=amd|both)
+    └── xgui/{name}_v*.tcl       (if vendor=amd|both)
+</code></pre></div>
+<p><strong>Steps:</strong>
+1. Rename <code>altera/</code> to <code>intel/</code> to match Python convention (or make configurable)
+2. Add <code>docs/</code> output directory
+3. Ensure file set updater categorizes files into correct sets</p>
+<h3 id="task-35-custom-template-directory-support">Task 3.5 — Custom template directory support<a class="headerlink" href="#task-35-custom-template-directory-support" title="Permanent link">&para;</a></h3>
+<p><strong>Files to modify:</strong>
+- <code>src/generator/TemplateLoader.ts</code>
+- <code>src/generator/IpCoreScaffolder.ts</code>
+- <code>package.json</code> (add setting)</p>
+<p><strong>Implementation:</strong>
+1. Add VS Code setting: <code>ipcraft.customTemplateDirs: string[]</code>
+2. Modify <code>TemplateLoader</code> to search custom directories first, then fall back to built-in templates
+3. Support multiple cascading directories (first match wins)
+4. Document the template context variables available to custom templates</p>
+<p><strong>Setting in <code>package.json</code>:</strong>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;ipcraft.customTemplateDirs&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;array&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;items&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;string&quot;</span><span class="w"> </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;default&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">    </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Additional directories to search for Jinja2/Nunjucks templates (searched before built-in templates)&quot;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></p>
+<h3 id="task-36-template-context-dump">Task 3.6 — Template context dump<a class="headerlink" href="#task-36-template-context-dump" title="Permanent link">&para;</a></h3>
+<p><strong>Files to modify:</strong>
+- <code>src/generator/IpCoreScaffolder.ts</code>
+- <code>src/commands/GenerateCommands.ts</code></p>
+<p><strong>Implementation:</strong>
+1. Add option to dump the full Nunjucks template context as <code>template_context.json</code>
+2. Add command: <code>fpga-ip-core.dumpTemplateContext</code>
+3. Useful for users writing custom templates to inspect available variables
+4. Only generate when explicitly requested (checkbox or command)</p>
+<h3 id="task-37-dry-run-mode-for-generation">Task 3.7 — Dry-run mode for generation<a class="headerlink" href="#task-37-dry-run-mode-for-generation" title="Permanent link">&para;</a></h3>
+<p><strong>Files to modify:</strong>
+- <code>src/generator/IpCoreScaffolder.ts</code>
+- <code>src/commands/GenerateCommands.ts</code>
+- <code>src/webview/ipcore/components/sections/GeneratorPanel.tsx</code></p>
+<p><strong>Implementation:</strong>
+1. Add <code>dryRun: boolean</code> option to scaffolder
+2. When <code>dryRun</code> is true:
+   - Compute all output file paths
+   - Check which files already exist (new / changed / unchanged / unmanaged)
+   - Return a summary without writing any files
+3. Show dry-run results in a VS Code information message or output channel:
+   - 🆕 <code>rtl/my_core_pkg.vhd</code> (new)
+   - ✏️ <code>rtl/my_core.vhd</code> (modified)
+   - ✅ <code>rtl/my_core_axil.vhd</code> (unchanged)
+   - ⚠️ <code>rtl/my_core_custom.vhd</code> (unmanaged — will not overwrite)
+4. Add "Preview Generation" button in GeneratorPanel
+5. Ask for confirmation after dry-run before proceeding with actual generation</p>
+<h3 id="task-38-generation-progress-reporting">Task 3.8 — Generation progress reporting<a class="headerlink" href="#task-38-generation-progress-reporting" title="Permanent link">&para;</a></h3>
+<p><strong>Files to modify:</strong>
+- <code>src/generator/IpCoreScaffolder.ts</code>
+- <code>src/commands/GenerateCommands.ts</code></p>
+<p><strong>Implementation:</strong>
+1. Use <code>vscode.window.withProgress()</code> to show a progress bar during generation
+2. Report each file being generated: "Generating rtl/my_core_pkg.vhd… (3/12)"
+3. Show summary notification on completion: "Generated 12 files in rtl/, tb/, docs/"</p>
+<hr />
+<h2 id="phase-4-interactive-project-scaffolding">Phase 4 — Interactive Project Scaffolding<a class="headerlink" href="#phase-4-interactive-project-scaffolding" title="Permanent link">&para;</a></h2>
+<h3 id="task-41-enhanced-ipcraft-new-wizard">Task 4.1 — Enhanced <code>ipcraft new</code> wizard<a class="headerlink" href="#task-41-enhanced-ipcraft-new-wizard" title="Permanent link">&para;</a></h3>
+<p><strong>File:</strong> <code>src/commands/FileCreationCommands.ts</code> (extend existing)</p>
+<p>Port the <code>ipcraft init</code> / <code>ipcraft new</code> interactive wizard from <code>ipcraft/cli_init.py</code>.</p>
+<p><strong>Wizard flow (using VS Code Quick Picks and Input Boxes):</strong></p>
+<ol>
+<li><strong>Step 1 — IP Core name</strong></li>
+<li>
+<p>Input box: "Enter IP core name" (validate: non-empty, valid identifier)</p>
+</li>
+<li>
+<p><strong>Step 2 — VLNV metadata</strong></p>
+</li>
+<li>Input box: Vendor (default: "user")</li>
+<li>Input box: Library (default: "ip")</li>
+<li>
+<p>Input box: Version (default: "1.0.0")</p>
+</li>
+<li>
+<p><strong>Step 3 — Bus interface selection</strong></p>
+</li>
+<li>Quick pick: "Select primary bus interface"</li>
+<li>
+<p>Options: <code>AXI4-Lite (Recommended)</code>, <code>Avalon-MM</code>, <code>AXI4 Full</code>, <code>AXI Stream</code>, <code>Avalon Streaming</code>, <code>None</code></p>
+</li>
+<li>
+<p><strong>Step 4 — Bus mode</strong></p>
+</li>
+<li>Quick pick: "Bus interface mode"</li>
+<li>
+<p>Options: <code>Slave</code>, <code>Master</code> (filtered by bus type)</p>
+</li>
+<li>
+<p><strong>Step 5 — Memory map</strong></p>
+</li>
+<li>Quick pick: "Create memory map?"</li>
+<li>
+<p>Options: <code>Yes — create linked .mm.yml</code>, <code>No — add later</code></p>
+</li>
+<li>
+<p><strong>Step 6 — Output directory</strong></p>
+</li>
+<li>Folder picker: "Select output directory"</li>
+<li>
+<p>Default: workspace root or current folder</p>
+</li>
+<li>
+<p><strong>Step 7 — Generation options</strong></p>
+</li>
+<li>Multi-select quick pick: "What to generate?"</li>
+<li>
+<p>Options: <code>VHDL RTL</code>, <code>Register bank</code>, <code>Cocotb testbench</code>, <code>Intel Platform Designer files</code>, <code>AMD/Xilinx Vivado files</code>, <code>Register map documentation</code></p>
+</li>
+<li>
+<p><strong>Step 8 — Confirmation</strong></p>
+</li>
+<li>Show summary of selections</li>
+<li>Confirm → generate <code>.ip.yml</code> + <code>.mm.yml</code> + selected artifacts</li>
+</ol>
+<p><strong>Output:</strong>
+- <code>.ip.yml</code> file pre-populated with VLNV, bus interface, clocks, resets
+- <code>.mm.yml</code> file (if selected) with a skeleton address block containing CTRL/STATUS registers
+- Optionally auto-run VHDL generation</p>
+<p><strong>Command:</strong> <code>fpga-ip-core.initProject</code>
+<strong>Keybinding:</strong> Consider <code>Ctrl+Shift+I</code> or no default</p>
+<h3 id="task-42-ascii-ip-symbol-diagram-in-webview">Task 4.2 — ASCII IP symbol diagram in webview<a class="headerlink" href="#task-42-ascii-ip-symbol-diagram-in-webview" title="Permanent link">&para;</a></h3>
+<p><strong>File:</strong> <code>src/webview/ipcore/components/IpSymbolDiagram.tsx</code></p>
+<p>Port <code>ipcraft.utils.ascii_diagram.generate_ascii_diagram()</code> — but render as an SVG/HTML component in the webview rather than ASCII text.</p>
+<p><strong>Features:</strong>
+- Visual IP block symbol with:
+  - Entity name at center
+  - Input ports on the left
+  - Output ports on the right
+  - Bidirectional ports on the bottom
+  - Bus interfaces labeled with protocol name
+  - Clock/reset ports distinguished with icons
+  - Port widths shown as bus notation (e.g., <code>[31:0]</code>)
+- Auto-layout based on port count
+- Updates live as ports are added/removed in the editor</p>
+<p><strong>Integration:</strong>
+- Add as a collapsible section in the IP Core editor ("IP Symbol Preview")
+- Alternatively, add as a command: <code>fpga-ip-core.showSymbol</code> that opens a side panel</p>
+<hr />
+<h2 id="phase-5-register-templates">Phase 5 — Register Templates<a class="headerlink" href="#phase-5-register-templates" title="Permanent link">&para;</a></h2>
+<h3 id="task-51-register-template-yaml-support">Task 5.1 — Register template YAML support<a class="headerlink" href="#task-51-register-template-yaml-support" title="Permanent link">&para;</a></h3>
+<p><strong>Files to modify:</strong>
+- <code>src/webview/services/YamlService.ts</code>
+- <code>src/webview/services/DataNormalizer.ts</code>
+- <code>ipcraft-spec/schemas/memory_map.schema.json</code></p>
+<p><strong>YAML format to support:</strong>
+<div class="highlight"><pre><span></span><code><span class="nn">---</span>
+<span class="nt">registerTemplates</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">STANDARD_STATUS</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">fields</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;BUSY&quot;</span>
+<span class="w">        </span><span class="nt">bits</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;[0]&quot;</span>
+<span class="w">        </span><span class="nt">access</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;read-only&quot;</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;ERROR&quot;</span>
+<span class="w">        </span><span class="nt">bits</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;[1]&quot;</span>
+<span class="w">        </span><span class="nt">access</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;read-only&quot;</span>
+<span class="w">  </span><span class="nt">STANDARD_CTRL</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">fields</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;ENABLE&quot;</span>
+<span class="w">        </span><span class="nt">bits</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;[0]&quot;</span>
+<span class="w">        </span><span class="nt">access</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;read-write&quot;</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;RESET&quot;</span>
+<span class="w">        </span><span class="nt">bits</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;[1]&quot;</span>
+<span class="w">        </span><span class="nt">access</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;write-1-to-clear&quot;</span>
+<span class="nn">---</span>
+<span class="nt">memoryMaps</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;default&quot;</span>
+<span class="w">    </span><span class="nt">addressBlocks</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;regs&quot;</span>
+<span class="w">        </span><span class="nt">baseAddress</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0x0</span>
+<span class="w">        </span><span class="nt">range</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;4K&quot;</span>
+<span class="w">        </span><span class="nt">registers</span><span class="p">:</span>
+<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;STATUS&quot;</span>
+<span class="w">            </span><span class="nt">offset</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0x00</span>
+<span class="w">            </span><span class="nt">template</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;STANDARD_STATUS&quot;</span>
+<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;CTRL&quot;</span>
+<span class="w">            </span><span class="nt">offset</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0x04</span>
+<span class="w">            </span><span class="nt">template</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;STANDARD_CTRL&quot;</span>
+</code></pre></div></p>
+<p><strong>Implementation:</strong>
+1. Support multi-document YAML (separated by <code>---</code>)
+2. Parse <code>registerTemplates</code> from the first document
+3. When a register has a <code>template</code> field, resolve it against the template library
+4. Merge template fields with register-specific overrides (register fields take priority)
+5. Normalize into standard <code>RegisterDef</code> objects after template resolution</p>
+<h3 id="task-52-register-template-ui-in-webview">Task 5.2 — Register template UI in webview<a class="headerlink" href="#task-52-register-template-ui-in-webview" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong>
+- <code>src/webview/components/memorymap/RegisterTemplatePanel.tsx</code> (new)
+- <code>src/webview/hooks/useRegisterTemplates.ts</code> (new)</p>
+<p><strong>Features:</strong>
+- Panel showing available register templates
+- "Apply template" action on a register (replaces fields with template fields)
+- "Save as template" action on a register (extracts fields into a template)
+- Template library browser with preview of fields
+- Template management (create, edit, delete)</p>
+<h3 id="task-53-built-in-register-template-library">Task 5.3 — Built-in register template library<a class="headerlink" href="#task-53-built-in-register-template-library" title="Permanent link">&para;</a></h3>
+<p><strong>File:</strong> <code>src/resources/register_templates.yml</code></p>
+<p><strong>Provide common register templates:</strong>
+- <code>CTRL</code> — Enable, Reset, Mode select
+- <code>STATUS</code> — Busy, Error, Done, Overflow
+- <code>IRQ_STATUS</code> — Interrupt status (W1C fields)
+- <code>IRQ_ENABLE</code> — Interrupt enable mask
+- <code>IRQ_SET</code> — Software interrupt set
+- <code>VERSION</code> — Major, Minor, Patch (read-only)
+- <code>SCRATCH</code> — Scratch pad register (read-write)
+- <code>ID</code> — Read-only identification register</p>
+<hr />
+<h2 id="phase-6-watch-mode-automation">Phase 6 — Watch Mode &amp; Automation<a class="headerlink" href="#phase-6-watch-mode-automation" title="Permanent link">&para;</a></h2>
+<h3 id="task-61-auto-regeneration-on-file-change">Task 6.1 — Auto-regeneration on file change<a class="headerlink" href="#task-61-auto-regeneration-on-file-change" title="Permanent link">&para;</a></h3>
+<p><strong>File:</strong> <code>src/services/WatchService.ts</code> (new)</p>
+<p>Port <code>--watch</code> flag behavior from <code>ipcraft/cli.py</code>.</p>
+<p><strong>Implementation:</strong>
+1. Use <code>vscode.workspace.createFileSystemWatcher</code> to watch <code>.ip.yml</code> and <code>.mm.yml</code> files
+2. On change, debounce (1 second), then auto-regenerate VHDL output
+3. Show status bar item: "IPCraft: Watching ⟳" or "IPCraft: Idle"
+4. Only regenerate files that are affected by the change (if possible, otherwise regenerate all)
+5. Report results in an output channel: "IPCraft Output"</p>
+<p><strong>Commands:</strong>
+- <code>fpga-ip-core.startWatch</code> — Start watching current IP core file
+- <code>fpga-ip-core.stopWatch</code> — Stop watching</p>
+<p><strong>Activation:</strong>
+- Toggle via status bar click
+- Setting: <code>ipcraft.autoRegenerate: boolean</code> (default: <code>false</code>)</p>
+<h3 id="task-62-output-channel-for-generation-logs">Task 6.2 — Output channel for generation logs<a class="headerlink" href="#task-62-output-channel-for-generation-logs" title="Permanent link">&para;</a></h3>
+<p><strong>File:</strong> <code>src/utils/OutputChannel.ts</code> (new)</p>
+<p><strong>Implementation:</strong>
+1. Create <code>vscode.window.createOutputChannel("IPCraft")</code>
+2. Route all generation logs (file created, skipped, errors) to this channel
+3. Auto-reveal channel on errors
+4. Timestamp each entry
+5. Use in watch mode, validation, and normal generation</p>
+<hr />
+<h2 id="phase-7-json-output-mode-cli-integration">Phase 7 — JSON Output Mode &amp; CLI Integration<a class="headerlink" href="#phase-7-json-output-mode-cli-integration" title="Permanent link">&para;</a></h2>
+<h3 id="task-71-machine-readable-json-output">Task 7.1 — Machine-readable JSON output<a class="headerlink" href="#task-71-machine-readable-json-output" title="Permanent link">&para;</a></h3>
+<p><strong>File:</strong> <code>src/services/JsonOutputService.ts</code> (new)</p>
+<p><strong>Purpose:</strong> Enable programmatic integration with external tools, CI/CD pipelines.</p>
+<p><strong>Implementation:</strong>
+1. Define JSON response schemas for each operation:
+   <div class="highlight"><pre><span></span><code><span class="kd">interface</span><span class="w"> </span><span class="nx">GenerationResult</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">success</span><span class="o">:</span><span class="w"> </span><span class="kt">boolean</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">files</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">path</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w"> </span><span class="nx">status</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;created&#39;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;updated&#39;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;skipped&#39;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;error&#39;</span><span class="p">;</span><span class="w"> </span><span class="p">}[];</span>
+<span class="w">  </span><span class="nx">errors</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">message</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w"> </span><span class="nx">path?</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w"> </span><span class="p">}[];</span>
+<span class="p">}</span>
+
+<span class="kd">interface</span><span class="w"> </span><span class="nx">ValidationResult</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">valid</span><span class="o">:</span><span class="w"> </span><span class="kt">boolean</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">errors</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">path</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w"> </span><span class="nx">message</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w"> </span><span class="nx">severity</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;error&#39;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;warning&#39;</span><span class="p">;</span><span class="w"> </span><span class="p">}[];</span>
+<span class="p">}</span>
+
+<span class="kd">interface</span><span class="w"> </span><span class="nx">ParseResult</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">success</span><span class="o">:</span><span class="w"> </span><span class="kt">boolean</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">outputFiles</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">[];</span>
+<span class="w">  </span><span class="nx">warnings</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">[];</span>
+<span class="p">}</span>
+</code></pre></div>
+2. Add JSON output option to generation and validation commands
+3. Write to output channel in structured format</p>
+<h3 id="task-72-cli-bridge-for-external-tool-integration">Task 7.2 — CLI bridge for external tool integration<a class="headerlink" href="#task-72-cli-bridge-for-external-tool-integration" title="Permanent link">&para;</a></h3>
+<p><strong>File:</strong> <code>src/commands/CliCommands.ts</code> (new)</p>
+<p><strong>Purpose:</strong> Allow running ipcraft operations from VS Code's integrated terminal or task runner.</p>
+<p><strong>Implementation:</strong>
+1. Register VS Code tasks for common operations:
+   - <code>ipcraft: Generate VHDL</code> — runs generation on the active file
+   - <code>ipcraft: Validate</code> — runs validation on the active file
+   - <code>ipcraft: Parse</code> — imports a file
+2. Task definitions in <code>package.json</code> <code>taskDefinitions</code>
+3. Problem matchers to parse validation errors into VS Code's Problems panel</p>
+<hr />
+<h2 id="phase-8-runtime-driver-features">Phase 8 — Runtime &amp; Driver Features<a class="headerlink" href="#phase-8-runtime-driver-features" title="Permanent link">&para;</a></h2>
+<blockquote>
+<p><strong>Note:</strong> This phase is lower priority because the Python runtime/driver is primarily used in simulation (cocotb) and Python scripting contexts, not within VS Code. Consider whether these features add value in the extension or should remain Python-only.</p>
+</blockquote>
+<h3 id="task-81-generate-python-driver-module">Task 8.1 — Generate Python driver module<a class="headerlink" href="#task-81-generate-python-driver-module" title="Permanent link">&para;</a></h3>
+<p><strong>Template:</strong> <code>src/generator/templates/driver.py.j2</code> (new)</p>
+<p><strong>Features:</strong>
+- Generate a Python module with register/field classes for each memory map
+- Classes include <code>read()</code>, <code>write()</code>, <code>read_field()</code>, <code>write_field()</code> methods
+- Auto-generated from memory map definition
+- Compatible with <code>ipcraft.runtime.register</code> base classes</p>
+<p><strong>Output:</strong> <code>tb/{name}_driver.py</code> or <code>sw/{name}_regs.py</code></p>
+<h3 id="task-82-generate-c-header-for-register-definitions">Task 8.2 — Generate C header for register definitions<a class="headerlink" href="#task-82-generate-c-header-for-register-definitions" title="Permanent link">&para;</a></h3>
+<p><strong>Template:</strong> <code>src/generator/templates/regs_header.h.j2</code> (new)</p>
+<p><strong>Features:</strong>
+- <code>#define</code> macros for register addresses
+- <code>#define</code> macros for field masks and shifts
+- Struct definitions for register layouts (bitfield structs)
+- Read/write accessor macros
+- Enumerated value <code>#define</code> constants</p>
+<p><strong>Output:</strong> <code>sw/{name}_regs.h</code></p>
+<p>This is a commonly requested feature for embedded firmware development.</p>
+<h3 id="task-83-generate-systemverilog-header">Task 8.3 — Generate SystemVerilog header<a class="headerlink" href="#task-83-generate-systemverilog-header" title="Permanent link">&para;</a></h3>
+<p><strong>Template:</strong> <code>src/generator/templates/regs_svh.j2</code> (new)</p>
+<p><strong>Features:</strong>
+- <code>parameter</code> definitions for register addresses
+- <code>typedef enum</code> for field enumerations
+- <code>typedef struct packed</code> for register layouts
+- Package wrapper</p>
+<p><strong>Output:</strong> <code>rtl/{name}_regs_pkg.sv</code></p>
+<hr />
+<h2 id="phase-9-quality-of-life-improvements">Phase 9 — Quality of Life Improvements<a class="headerlink" href="#phase-9-quality-of-life-improvements" title="Permanent link">&para;</a></h2>
+<h3 id="task-91-webview-validation-error-indicators">Task 9.1 — Webview validation error indicators<a class="headerlink" href="#task-91-webview-validation-error-indicators" title="Permanent link">&para;</a></h3>
+<p><strong>Files to modify:</strong>
+- <code>src/webview/components/outline/OutlineNode.tsx</code>
+- <code>src/webview/components/DetailsPanel.tsx</code>
+- <code>src/webview/hooks/useValidation.ts</code> (new)</p>
+<p><strong>Implementation:</strong>
+1. Extension sends validation results to webview via <code>postMessage</code>
+2. Outline tree nodes show error/warning icons (🔴/🟡) next to invalid items
+3. Details panel shows inline error messages below invalid fields
+4. Clicking an error in the Problems panel navigates to the relevant element in the visual editor</p>
+<h3 id="task-92-register-map-documentation-preview">Task 9.2 — Register map documentation preview<a class="headerlink" href="#task-92-register-map-documentation-preview" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong>
+- <code>src/commands/PreviewCommands.ts</code> (new)</p>
+<p><strong>Implementation:</strong>
+1. Command: <code>fpga-ip-core.previewRegmap</code>
+2. Opens a VS Code Markdown preview panel showing the generated register map documentation
+3. Auto-updates on memory map changes (live preview)
+4. Uses <code>vscode.commands.executeCommand('markdown.showPreview')</code></p>
+<h3 id="task-93-code-lens-for-generation">Task 9.3 — Code lens for generation<a class="headerlink" href="#task-93-code-lens-for-generation" title="Permanent link">&para;</a></h3>
+<p><strong>File:</strong> <code>src/providers/IpCoreCodeLensProvider.ts</code> (new)</p>
+<p><strong>Implementation:</strong>
+1. Show code lenses above the VLNV section in <code>.ip.yml</code> files:
+   - <code>▶ Generate VHDL</code> — triggers generation
+   - <code>✓ Validate</code> — triggers validation
+   - <code>📋 Preview Register Map</code> — opens regmap docs preview
+2. Show code lenses in <code>.mm.yml</code> files:
+   - <code>✓ Validate Memory Map</code> — triggers memory map validation</p>
+<h3 id="task-94-hover-information-in-yaml-text-editor">Task 9.4 — Hover information in YAML text editor<a class="headerlink" href="#task-94-hover-information-in-yaml-text-editor" title="Permanent link">&para;</a></h3>
+<p><strong>File:</strong> <code>src/providers/YamlHoverProvider.ts</code> (new)</p>
+<p><strong>Implementation:</strong>
+1. Register hover provider for <code>.ip.yml</code> and <code>.mm.yml</code> files
+2. Show contextual information on hover:
+   - Register: computed absolute address, total fields, access summary
+   - Field: bit range visualization, mask in hex, max value
+   - Address block: address range, register count, utilization %
+   - Bus interface: expanded port list, required vs optional ports
+3. Use <code>vscode.languages.registerHoverProvider</code></p>
+<h3 id="task-95-completion-provider-for-yaml-text-editor">Task 9.5 — Completion provider for YAML text editor<a class="headerlink" href="#task-95-completion-provider-for-yaml-text-editor" title="Permanent link">&para;</a></h3>
+<p><strong>File:</strong> <code>src/providers/YamlCompletionProvider.ts</code> (new)</p>
+<p><strong>Implementation:</strong>
+1. Register completion provider for <code>.ip.yml</code> and <code>.mm.yml</code>
+2. Contextual completions:
+   - <code>access:</code> → suggest <code>read-only</code>, <code>write-only</code>, <code>read-write</code>, <code>write-1-to-clear</code>
+   - <code>type:</code> (bus interface) → suggest <code>AXI4_LITE</code>, <code>AVALON_MM</code>, <code>AXI_STREAM</code>, etc.
+   - <code>mode:</code> → suggest <code>master</code>, <code>slave</code>, <code>source</code>, <code>sink</code>
+   - <code>polarity:</code> → suggest <code>activeHigh</code>, <code>activeLow</code>
+   - <code>data_type:</code> → suggest <code>integer</code>, <code>natural</code>, <code>positive</code>, <code>boolean</code>, <code>string</code>
+   - <code>associated_clock:</code> → suggest from available clock names
+   - <code>associated_reset:</code> → suggest from available reset names
+   - <code>template:</code> (register) → suggest from <code>registerTemplates</code>
+   - <code>import:</code> → file path completion for <code>.mm.yml</code> / <code>.ip.yml</code> files
+3. Snippet completions for common constructs (new register, new field, new bus interface)</p>
+<hr />
+<h2 id="phase-10-testing-documentation">Phase 10 — Testing &amp; Documentation<a class="headerlink" href="#phase-10-testing-documentation" title="Permanent link">&para;</a></h2>
+<h3 id="task-101-parser-test-suites">Task 10.1 — Parser test suites<a class="headerlink" href="#task-101-parser-test-suites" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong>
+- <code>src/test/suite/parser/VerilogParser.test.ts</code>
+- <code>src/test/suite/parser/IpXactParser.test.ts</code>
+- <code>src/test/suite/parser/HwTclParser.test.ts</code>
+- <code>src/test/suite/parser/ParseDispatcher.test.ts</code></p>
+<p><strong>Test fixtures needed:</strong>
+- <code>src/test/fixtures/simple_module.v</code> — basic Verilog module
+- <code>src/test/fixtures/parameterized_module.v</code> — module with parameters
+- <code>src/test/fixtures/axi_slave.v</code> — Verilog with AXI-Lite slave ports
+- <code>src/test/fixtures/component.xml</code> — Xilinx IP-XACT sample
+- <code>src/test/fixtures/component_2009.xml</code> — IP-XACT 2009 namespace sample
+- <code>src/test/fixtures/my_core_hw.tcl</code> — Intel Platform Designer sample</p>
+<p><strong>Coverage targets:</strong>
+- Each parser: ≥ 90% line coverage
+- Edge cases: empty files, malformed inputs, partial declarations</p>
+<h3 id="task-102-validator-test-suites">Task 10.2 — Validator test suites<a class="headerlink" href="#task-102-validator-test-suites" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong>
+- <code>src/test/suite/services/IpCoreValidator.test.ts</code>
+- <code>src/test/suite/services/MemoryMapValidator.test.ts</code></p>
+<p><strong>Test categories:</strong>
+- Valid inputs → no errors
+- Missing required fields → appropriate errors
+- Duplicate names → uniqueness errors
+- Address/bitfield overlaps → collision errors
+- Invalid enum values → type errors
+- Cross-reference validation → reference errors (e.g., non-existent clock)</p>
+<h3 id="task-103-generator-test-suites">Task 10.3 — Generator test suites<a class="headerlink" href="#task-103-generator-test-suites" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong>
+- <code>src/test/suite/generator/RegmapDocGenerator.test.ts</code>
+- <code>src/test/suite/generator/DryRun.test.ts</code></p>
+<h3 id="task-104-update-extension-documentation">Task 10.4 — Update extension documentation<a class="headerlink" href="#task-104-update-extension-documentation" title="Permanent link">&para;</a></h3>
+<p><strong>Files to create/update:</strong>
+- <code>docs/features/validation.md</code> — Document all validation rules
+- <code>docs/features/parsers.md</code> — Document import capabilities (supported formats, options)
+- <code>docs/features/generation.md</code> — Document all generation options and outputs
+- <code>docs/features/templates.md</code> — Document custom template support and context variables
+- <code>docs/features/register-templates.md</code> — Document register template system
+- <code>README.md</code> — Update feature list and screenshots</p>
+<hr />
+<h2 id="implementation-order-dependencies">Implementation Order &amp; Dependencies<a class="headerlink" href="#implementation-order-dependencies" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>Phase 1: Validation Framework
+  ├── 1.1 IpCoreValidator          (no deps)
+  ├── 1.2 MemoryMapValidator       (no deps)
+  ├── 1.3 Wire into providers      (depends on 1.1, 1.2)
+  └── 1.4 JSON Schema validation   (no deps)
+
+Phase 2: Additional Parsers
+  ├── 2.1 Verilog parser           (no deps)
+  ├── 2.2 IP-XACT parser           (no deps)
+  ├── 2.3 HwTcl parser             (no deps)
+  ├── 2.4 Parse dispatcher         (depends on 2.1, 2.2, 2.3)
+  └── 2.5 Import commands          (depends on 2.4)
+
+Phase 3: Enhanced Code Generation
+  ├── 3.1 Regmap docs              (no deps)
+  ├── 3.2 package_ip.tcl template  (no deps)
+  ├── 3.3 memmap.yml template      (no deps)
+  ├── 3.4 Structured layout        (no deps)
+  ├── 3.5 Custom template dirs     (no deps)
+  ├── 3.6 Template context dump    (no deps)
+  ├── 3.7 Dry-run mode             (no deps)
+  └── 3.8 Progress reporting       (no deps)
+
+Phase 4: Interactive Scaffolding
+  ├── 4.1 Init wizard              (no deps)
+  └── 4.2 IP symbol diagram        (no deps)
+
+Phase 5: Register Templates
+  ├── 5.1 YAML support             (no deps)
+  ├── 5.2 Template UI              (depends on 5.1)
+  └── 5.3 Built-in library         (depends on 5.1)
+
+Phase 6: Watch Mode &amp; Automation
+  ├── 6.1 Auto-regeneration        (no deps)
+  └── 6.2 Output channel           (no deps)
+
+Phase 7: JSON Output &amp; CLI
+  ├── 7.1 JSON output service      (no deps)
+  └── 7.2 CLI bridge               (depends on 7.1)
+
+Phase 8: Runtime &amp; Driver Features
+  ├── 8.1 Python driver gen        (no deps)
+  ├── 8.2 C header gen             (no deps)
+  └── 8.3 SystemVerilog header     (no deps)
+
+Phase 9: Quality of Life
+  ├── 9.1 Validation indicators    (depends on 1.3)
+  ├── 9.2 Regmap preview           (depends on 3.1)
+  ├── 9.3 Code lens                (depends on 1.3, 3.x)
+  ├── 9.4 Hover provider           (no deps)
+  └── 9.5 Completion provider      (no deps)
+
+Phase 10: Testing &amp; Documentation
+  ├── 10.1 Parser tests            (depends on Phase 2)
+  ├── 10.2 Validator tests         (depends on Phase 1)
+  ├── 10.3 Generator tests         (depends on Phase 3)
+  └── 10.4 Documentation           (depends on all phases)
+</code></pre></div>
+<hr />
+<h2 id="effort-estimates">Effort Estimates<a class="headerlink" href="#effort-estimates" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Tasks</th>
+<th>Estimated Complexity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Phase 1 — Validation</td>
+<td>4 tasks</td>
+<td>Large</td>
+</tr>
+<tr>
+<td>Phase 2 — Parsers</td>
+<td>5 tasks</td>
+<td>Large</td>
+</tr>
+<tr>
+<td>Phase 3 — Generation</td>
+<td>8 tasks</td>
+<td>Medium-Large</td>
+</tr>
+<tr>
+<td>Phase 4 — Scaffolding</td>
+<td>2 tasks</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>Phase 5 — Register Templates</td>
+<td>3 tasks</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>Phase 6 — Watch &amp; Automation</td>
+<td>2 tasks</td>
+<td>Small</td>
+</tr>
+<tr>
+<td>Phase 7 — JSON &amp; CLI</td>
+<td>2 tasks</td>
+<td>Small</td>
+</tr>
+<tr>
+<td>Phase 8 — Runtime/Drivers</td>
+<td>3 tasks</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>Phase 9 — Quality of Life</td>
+<td>5 tasks</td>
+<td>Medium-Large</td>
+</tr>
+<tr>
+<td>Phase 10 — Testing &amp; Docs</td>
+<td>4 tasks</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td><strong>Total</strong></td>
+<td><strong>38 tasks</strong></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="recommended-development-sequence">Recommended Development Sequence<a class="headerlink" href="#recommended-development-sequence" title="Permanent link">&para;</a></h2>
+<p>For maximum value delivered earliest:</p>
+<ol>
+<li><strong>Phase 1</strong> (Validation) — Immediately improves user experience for all users</li>
+<li><strong>Phase 3.1, 3.7</strong> (Regmap docs + Dry-run) — Quick wins with high visibility</li>
+<li><strong>Phase 2</strong> (Parsers) — Unlocks import from all major formats</li>
+<li><strong>Phase 4.1</strong> (Init wizard) — Improves onboarding for new users</li>
+<li><strong>Phase 3</strong> remainder (Generation enhancements) — Fills in feature gaps</li>
+<li><strong>Phase 9</strong> (Quality of Life) — Polish and usability</li>
+<li><strong>Phase 5</strong> (Register templates) — Power user feature</li>
+<li><strong>Phase 6</strong> (Watch mode) — Automation convenience</li>
+<li><strong>Phase 8</strong> (Runtime/drivers) — Extends to firmware developers</li>
+<li><strong>Phase 7</strong> (JSON/CLI) — Integration and automation</li>
+</ol>
+<hr />
+<h2 id="reference-files">Reference Files<a class="headerlink" href="#reference-files" title="Permanent link">&para;</a></h2>
+<h3 id="python-ipcraft-source-of-truth-for-porting">Python ipcraft (source of truth for porting)<a class="headerlink" href="#python-ipcraft-source-of-truth-for-porting" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Python file</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CLI commands</td>
+<td><code>ipcraft/cli.py</code>, <code>ipcraft/cli_init.py</code></td>
+</tr>
+<tr>
+<td>Validators</td>
+<td><code>ipcraft/model/validators.py</code></td>
+</tr>
+<tr>
+<td>VHDL parser</td>
+<td><code>ipcraft/parser/hdl/vhdl_parser.py</code></td>
+</tr>
+<tr>
+<td>Verilog parser</td>
+<td><code>ipcraft/parser/hdl/verilog_parser.py</code></td>
+</tr>
+<tr>
+<td>Bus detector</td>
+<td><code>ipcraft/parser/hdl/bus_detector.py</code></td>
+</tr>
+<tr>
+<td>IP-XACT parser</td>
+<td><code>ipcraft/parser/vendor/ipxact_parser.py</code></td>
+</tr>
+<tr>
+<td>HwTcl parser</td>
+<td><code>ipcraft/parser/vendor/hw_tcl_parser.py</code></td>
+</tr>
+<tr>
+<td>Parse dispatcher</td>
+<td><code>ipcraft/parser/vendor/parse_dispatcher.py</code></td>
+</tr>
+<tr>
+<td>Generator</td>
+<td><code>ipcraft/generator/hdl/ipcore_project_generator.py</code></td>
+</tr>
+<tr>
+<td>Vendor generator</td>
+<td><code>ipcraft/generator/hdl/vendor_generator.py</code></td>
+</tr>
+<tr>
+<td>Testbench generator</td>
+<td><code>ipcraft/generator/hdl/testbench_generator.py</code></td>
+</tr>
+<tr>
+<td>Fileset manager</td>
+<td><code>ipcraft/generator/hdl/fileset_manager.py</code></td>
+</tr>
+<tr>
+<td>Boilerplate</td>
+<td><code>ipcraft/generator/yaml/boilerplate.py</code></td>
+</tr>
+<tr>
+<td>IP YAML generator</td>
+<td><code>ipcraft/generator/yaml/ip_yaml_generator.py</code></td>
+</tr>
+<tr>
+<td>MM YAML generator</td>
+<td><code>ipcraft/generator/yaml/mm_yaml_generator.py</code></td>
+</tr>
+<tr>
+<td>Data models</td>
+<td><code>ipcraft/model/core.py</code>, <code>bus.py</code>, <code>port.py</code>, <code>clock_reset.py</code>, <code>memory_map.py</code>, <code>fileset.py</code></td>
+</tr>
+<tr>
+<td>Bus library</td>
+<td><code>ipcraft/model/bus_library.py</code></td>
+</tr>
+<tr>
+<td>Runtime</td>
+<td><code>ipcraft/runtime/register.py</code></td>
+</tr>
+<tr>
+<td>Driver loader</td>
+<td><code>ipcraft/driver/loader.py</code>, <code>bus.py</code></td>
+</tr>
+<tr>
+<td>Templates</td>
+<td><code>ipcraft/generator/hdl/templates/*.j2</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="ipcraft-vscode-files-to-create-or-modify">ipcraft-vscode (files to create or modify)<a class="headerlink" href="#ipcraft-vscode-files-to-create-or-modify" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>VS Code file</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>IP Core validator</td>
+<td><code>src/services/IpCoreValidator.ts</code> (new)</td>
+</tr>
+<tr>
+<td>Memory Map validator</td>
+<td><code>src/services/MemoryMapValidator.ts</code> (new)</td>
+</tr>
+<tr>
+<td>Verilog parser</td>
+<td><code>src/parser/VerilogParser.ts</code> (new)</td>
+</tr>
+<tr>
+<td>IP-XACT parser</td>
+<td><code>src/parser/IpXactParser.ts</code> (new)</td>
+</tr>
+<tr>
+<td>HwTcl parser</td>
+<td><code>src/parser/HwTclParser.ts</code> (new)</td>
+</tr>
+<tr>
+<td>Parse dispatcher</td>
+<td><code>src/parser/ParseDispatcher.ts</code> (new)</td>
+</tr>
+<tr>
+<td>Regmap doc generator</td>
+<td><code>src/generator/RegmapDocGenerator.ts</code> (new)</td>
+</tr>
+<tr>
+<td>Watch service</td>
+<td><code>src/services/WatchService.ts</code> (new)</td>
+</tr>
+<tr>
+<td>Output channel</td>
+<td><code>src/utils/OutputChannel.ts</code> (new)</td>
+</tr>
+<tr>
+<td>JSON output</td>
+<td><code>src/services/JsonOutputService.ts</code> (new)</td>
+</tr>
+<tr>
+<td>Register templates hook</td>
+<td><code>src/webview/hooks/useRegisterTemplates.ts</code> (new)</td>
+</tr>
+<tr>
+<td>Register template panel</td>
+<td><code>src/webview/components/memorymap/RegisterTemplatePanel.tsx</code> (new)</td>
+</tr>
+<tr>
+<td>IP symbol diagram</td>
+<td><code>src/webview/ipcore/components/IpSymbolDiagram.tsx</code> (new)</td>
+</tr>
+<tr>
+<td>Code lens provider</td>
+<td><code>src/providers/IpCoreCodeLensProvider.ts</code> (new)</td>
+</tr>
+<tr>
+<td>Hover provider</td>
+<td><code>src/providers/YamlHoverProvider.ts</code> (new)</td>
+</tr>
+<tr>
+<td>Completion provider</td>
+<td><code>src/providers/YamlCompletionProvider.ts</code> (new)</td>
+</tr>
+<tr>
+<td>Scaffolder (modify)</td>
+<td><code>src/generator/IpCoreScaffolder.ts</code></td>
+</tr>
+<tr>
+<td>Template loader (modify)</td>
+<td><code>src/generator/TemplateLoader.ts</code></td>
+</tr>
+<tr>
+<td>Generate commands (modify)</td>
+<td><code>src/commands/GenerateCommands.ts</code></td>
+</tr>
+<tr>
+<td>File creation commands (modify)</td>
+<td><code>src/commands/FileCreationCommands.ts</code></td>
+</tr>
+<tr>
+<td>YAML validator (modify)</td>
+<td><code>src/services/YamlValidator.ts</code></td>
+</tr>
+<tr>
+<td>Extension entry (modify)</td>
+<td><code>src/extension.ts</code></td>
+</tr>
+<tr>
+<td>Package manifest (modify)</td>
+<td><code>package.json</code></td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2026 Le Viet Bach
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.expand", "navigation.tabs", "navigation.top", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
