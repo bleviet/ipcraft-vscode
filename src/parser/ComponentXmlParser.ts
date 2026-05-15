@@ -604,6 +604,7 @@ export function parseComponentXmlText(
 
   // ---- Parse xilinx:subCoreRef from fileSets (new format) and coreExtensions (legacy) ---
   const XILINX_NS = 'http://www.xilinx.com';
+  const fileSetsEl = childEl(root, 'fileSets');
   {
     const seen = new Set<string>();
     const subcores: string[] = [];
@@ -645,10 +646,6 @@ export function parseComponentXmlText(
     }
 
     // Search fileSets for subCoreRef (new fileset-based structure)
-    const fileSetsEl = root.getElementsByTagNameNS(
-      'http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009',
-      'fileSets'
-    )[0] as Element | undefined;
     if (fileSetsEl) {
       const subCoreRefEls = fileSetsEl.getElementsByTagNameNS(XILINX_NS, 'subCoreRef');
       for (let i = 0; i < subCoreRefEls.length; i++) {
@@ -671,6 +668,88 @@ export function parseComponentXmlText(
 
     if (subcores.length > 0) {
       ipObj.subcores = subcores;
+    }
+  }
+
+  // ---- Build fileSets from spirit:fileSets --------------------------------
+  if (fileSetsEl) {
+    interface FileEntry {
+      path: string;
+      type: string;
+      logicalName?: string;
+      isIncludeFile?: boolean;
+    }
+    interface Bucket {
+      description: string;
+      files: FileEntry[];
+      seenPaths: Set<string>;
+    }
+
+    // Accumulate into canonical buckets (Map preserves insertion order)
+    const buckets = new Map<string, Bucket>();
+
+    for (const fsEl of childEls(fileSetsEl, 'fileSet')) {
+      const fsName = text(fsEl, 'name');
+      if (!fsName) {
+        continue;
+      }
+
+      const canonical = vivadoFilesetCanonicalName(fsName);
+      if (!canonical) {
+        continue; // explicitly skipped category
+      }
+
+      const fileEls = childEls(fsEl, 'file');
+      if (fileEls.length === 0) {
+        continue;
+      }
+
+      if (!buckets.has(canonical.name)) {
+        buckets.set(canonical.name, {
+          description: canonical.description,
+          files: [],
+          seenPaths: new Set(),
+        });
+      }
+      const bucket = buckets.get(canonical.name)!;
+
+      for (const fileEl of fileEls) {
+        const filePath = text(fileEl, 'name');
+        if (!filePath || filePath.startsWith('http://') || filePath.startsWith('https://')) {
+          continue;
+        }
+        if (bucket.seenPaths.has(filePath)) {
+          continue; // deduplicate across merged filesets
+        }
+        bucket.seenPaths.add(filePath);
+
+        const entry: FileEntry = { path: filePath, type: mapFileType(text(fileEl, 'fileType')) };
+
+        const logicalName = text(fileEl, 'logicalName');
+        if (logicalName) {
+          entry.logicalName = logicalName;
+        }
+        if (text(fileEl, 'isIncludeFile') === 'true') {
+          entry.isIncludeFile = true;
+        }
+
+        bucket.files.push(entry);
+      }
+    }
+
+    const fileSetList: Array<{ name: string; description?: string; files: FileEntry[] }> = [];
+    for (const [name, { description, files }] of buckets) {
+      if (files.length > 0) {
+        const entry: { name: string; description?: string; files: FileEntry[] } = { name, files };
+        if (description) {
+          entry.description = description;
+        }
+        fileSetList.push(entry);
+      }
+    }
+
+    if (fileSetList.length > 0) {
+      ipObj.fileSets = fileSetList;
     }
   }
 
@@ -749,6 +828,75 @@ function parseHexOrDec(s: string): number {
     return parseInt(trimmed, 16);
   }
   return parseInt(trimmed, 10) || 0;
+}
+
+/**
+ * Maps a spirit:fileSet name to an ipcraft canonical fileset name + description.
+ * Returns null for filesets that should be skipped entirely (subcores, examples, etc.).
+ * Non-Vivado names are passed through unchanged.
+ */
+function vivadoFilesetCanonicalName(name: string): { name: string; description: string } | null {
+  // Subcore reference filesets — source files are owned by the subcore
+  if (name.endsWith('_ref_view_fileset')) {
+    return null;
+  }
+  // Example designs, product guides, upgrade scripts, version info
+  if (
+    /^xilinx_(examples|examplesscriptext|examplessimulation|examplessynthesis|productguide|upgradescripts|versioninformation)/.test(
+      name
+    )
+  ) {
+    return null;
+  }
+  // Synthesis (VHDL, Verilog, SV, …) → RTL_Sources
+  if (/synthesis/i.test(name)) {
+    return { name: 'RTL_Sources', description: 'RTL Sources' };
+  }
+  // Behavioral / functional simulation → Simulation_Resources
+  if (/simulation/i.test(name)) {
+    return { name: 'Simulation_Resources', description: 'Simulation Files' };
+  }
+  // XGUI, block diagram, implementation constraints → Integration
+  if (/^xilinx_(xpgui|blockdiagram|implementation)_/.test(name)) {
+    return { name: 'Integration', description: 'Integration Files' };
+  }
+  // Non-Vivado or unrecognised: keep original name without a description
+  return { name, description: '' };
+}
+
+function mapFileType(fileTypeStr: string): string {
+  switch (fileTypeStr) {
+    case 'vhdlSource':
+      return 'vhdl';
+    case 'verilogSource':
+      return 'verilog';
+    case 'systemVerilogSource':
+      return 'systemverilog';
+    case 'xdcSource':
+      return 'xdc';
+    case 'sdcSource':
+      return 'sdc';
+    case 'ucfSource':
+      return 'ucf';
+    case 'tclSource':
+      return 'tcl';
+    case 'cSource':
+      return 'cSource';
+    case 'cppSource':
+      return 'cppSource';
+    case 'python':
+    case 'pythonSource':
+      return 'python';
+    case 'pdf':
+      return 'pdf';
+    case 'markdown':
+      return 'markdown';
+    case 'text':
+    case 'textSource':
+      return 'text';
+    default:
+      return 'unknown';
+  }
 }
 
 function normalizeAccess(access: string): string {

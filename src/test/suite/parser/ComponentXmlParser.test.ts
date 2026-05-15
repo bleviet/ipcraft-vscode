@@ -556,6 +556,187 @@ const SUBCORES_LEGACY_XML = `<?xml version="1.0" encoding="UTF-8"?>
   </spirit:vendorExtensions>
 </spirit:component>`;
 
+// ---------------------------------------------------------------------------
+// Component with spirit:fileSets containing actual source files
+// ---------------------------------------------------------------------------
+const FILESETS_XML = `<?xml version="1.0" encoding="UTF-8"?>
+<spirit:component xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009">
+  <spirit:vendor>acme.com</spirit:vendor>
+  <spirit:library>ip</spirit:library>
+  <spirit:name>my_core</spirit:name>
+  <spirit:version>1.0</spirit:version>
+  <spirit:fileSets>
+    <spirit:fileSet>
+      <spirit:name>xilinx_vhdlsynthesis_view_fileset</spirit:name>
+      <spirit:file>
+        <spirit:name>hdl/my_core.vhd</spirit:name>
+        <spirit:fileType>vhdlSource</spirit:fileType>
+        <spirit:logicalName>work</spirit:logicalName>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>constraints/my_core.xdc</spirit:name>
+        <spirit:fileType>xdcSource</spirit:fileType>
+      </spirit:file>
+    </spirit:fileSet>
+    <spirit:fileSet>
+      <spirit:name>xilinx_verilogsynthesis_view_fileset</spirit:name>
+      <spirit:file>
+        <spirit:name>hdl/my_core.vhd</spirit:name>
+        <spirit:fileType>vhdlSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>hdl/my_core_extra.v</spirit:name>
+        <spirit:fileType>verilogSource</spirit:fileType>
+      </spirit:file>
+    </spirit:fileSet>
+    <spirit:fileSet>
+      <spirit:name>xilinx_vhdlbehavioralsimulation_view_fileset</spirit:name>
+      <spirit:file>
+        <spirit:name>sim/my_core_tb.vhd</spirit:name>
+        <spirit:fileType>vhdlSource</spirit:fileType>
+        <spirit:isIncludeFile>true</spirit:isIncludeFile>
+      </spirit:file>
+    </spirit:fileSet>
+    <spirit:fileSet>
+      <spirit:name>xilinx_xpgui_view_fileset</spirit:name>
+      <spirit:file>
+        <spirit:name>xgui/my_core_v1_0.tcl</spirit:name>
+        <spirit:fileType>tclSource</spirit:fileType>
+      </spirit:file>
+    </spirit:fileSet>
+    <spirit:fileSet>
+      <spirit:name>xilinx_productguide_view_fileset</spirit:name>
+      <spirit:file>
+        <spirit:name>http://www.xilinx.com/docs/pg001.pdf</spirit:name>
+      </spirit:file>
+    </spirit:fileSet>
+    <spirit:fileSet>
+      <spirit:name>xilinx_vhdlsynthesis_xilinx_com_ip_sub_core_1_0__ref_view_fileset</spirit:name>
+      <spirit:file>
+        <spirit:name>hdl/sub_core.vhd</spirit:name>
+        <spirit:fileType>vhdlSource</spirit:fileType>
+      </spirit:file>
+    </spirit:fileSet>
+    <spirit:fileSet>
+      <spirit:name>empty_fileset</spirit:name>
+    </spirit:fileSet>
+    <spirit:fileSet>
+      <spirit:name>custom_fileset</spirit:name>
+      <spirit:file>
+        <spirit:name>doc/readme.md</spirit:name>
+        <spirit:fileType>markdown</spirit:fileType>
+      </spirit:file>
+    </spirit:fileSet>
+  </spirit:fileSets>
+</spirit:component>`;
+
+describe('fileSets extraction', () => {
+  it('maps xilinx_vhdlsynthesis_view_fileset to RTL_Sources', () => {
+    const { ipYamlText } = parseComponentXmlText(FILESETS_XML);
+    const doc = parseYaml(ipYamlText) as { fileSets: Array<{ name: string }> };
+    expect(doc.fileSets.find((f) => f.name === 'RTL_Sources')).toBeDefined();
+  });
+
+  it('maps xilinx_vhdlbehavioralsimulation_view_fileset to Simulation_Resources', () => {
+    const { ipYamlText } = parseComponentXmlText(FILESETS_XML);
+    const doc = parseYaml(ipYamlText) as { fileSets: Array<{ name: string }> };
+    expect(doc.fileSets.find((f) => f.name === 'Simulation_Resources')).toBeDefined();
+  });
+
+  it('maps xilinx_xpgui_view_fileset to Integration', () => {
+    const { ipYamlText } = parseComponentXmlText(FILESETS_XML);
+    const doc = parseYaml(ipYamlText) as { fileSets: Array<{ name: string }> };
+    expect(doc.fileSets.find((f) => f.name === 'Integration')).toBeDefined();
+  });
+
+  it('merges multiple synthesis filesets into one RTL_Sources and deduplicates', () => {
+    const { ipYamlText } = parseComponentXmlText(FILESETS_XML);
+    const doc = parseYaml(ipYamlText) as {
+      fileSets: Array<{ name: string; files: Array<{ path: string }> }>;
+    };
+    const rtl = doc.fileSets.find((f) => f.name === 'RTL_Sources')!;
+    // hdl/my_core.vhd appears in both synthesis filesets — only once in output
+    const vhdlFiles = rtl.files.filter((f) => f.path === 'hdl/my_core.vhd');
+    expect(vhdlFiles.length).toBe(1);
+    // hdl/my_core_extra.v from the second synthesis fileset is included
+    expect(rtl.files.find((f) => f.path === 'hdl/my_core_extra.v')).toBeDefined();
+  });
+
+  it('adds description to canonical filesets', () => {
+    const { ipYamlText } = parseComponentXmlText(FILESETS_XML);
+    const doc = parseYaml(ipYamlText) as {
+      fileSets: Array<{ name: string; description?: string }>;
+    };
+    expect(doc.fileSets.find((f) => f.name === 'RTL_Sources')?.description).toBe('RTL Sources');
+    expect(doc.fileSets.find((f) => f.name === 'Simulation_Resources')?.description).toBe(
+      'Simulation Files'
+    );
+    expect(doc.fileSets.find((f) => f.name === 'Integration')?.description).toBe(
+      'Integration Files'
+    );
+  });
+
+  it('maps spirit fileType values to ip.yml types', () => {
+    const { ipYamlText } = parseComponentXmlText(FILESETS_XML);
+    const doc = parseYaml(ipYamlText) as {
+      fileSets: Array<{ name: string; files: Array<{ path: string; type: string }> }>;
+    };
+    const rtl = doc.fileSets.find((f) => f.name === 'RTL_Sources')!;
+    expect(rtl.files.find((f) => f.path === 'hdl/my_core.vhd')?.type).toBe('vhdl');
+    expect(rtl.files.find((f) => f.path === 'constraints/my_core.xdc')?.type).toBe('xdc');
+    expect(rtl.files.find((f) => f.path === 'hdl/my_core_extra.v')?.type).toBe('verilog');
+  });
+
+  it('preserves logicalName when present', () => {
+    const { ipYamlText } = parseComponentXmlText(FILESETS_XML);
+    const doc = parseYaml(ipYamlText) as {
+      fileSets: Array<{ name: string; files: Array<{ path: string; logicalName?: string }> }>;
+    };
+    const rtl = doc.fileSets.find((f) => f.name === 'RTL_Sources')!;
+    expect(rtl.files.find((f) => f.path === 'hdl/my_core.vhd')?.logicalName).toBe('work');
+  });
+
+  it('marks isIncludeFile when true', () => {
+    const { ipYamlText } = parseComponentXmlText(FILESETS_XML);
+    const doc = parseYaml(ipYamlText) as {
+      fileSets: Array<{ name: string; files: Array<{ path: string; isIncludeFile?: boolean }> }>;
+    };
+    const sim = doc.fileSets.find((f) => f.name === 'Simulation_Resources')!;
+    expect(sim.files[0].isIncludeFile).toBe(true);
+  });
+
+  it('skips _ref_view_fileset (subcore-owned files)', () => {
+    const { ipYamlText } = parseComponentXmlText(FILESETS_XML);
+    const doc = parseYaml(ipYamlText) as { fileSets: Array<{ name: string }> };
+    const names = doc.fileSets.map((f) => f.name);
+    expect(names.every((n) => !n.endsWith('_ref_view_fileset'))).toBe(true);
+  });
+
+  it('skips xilinx_productguide (skipped category)', () => {
+    const { ipYamlText } = parseComponentXmlText(FILESETS_XML);
+    const doc = parseYaml(ipYamlText) as { fileSets: Array<{ name: string }> };
+    expect(doc.fileSets.find((f) => f.name.includes('productguide'))).toBeUndefined();
+  });
+
+  it('passes through non-Vivado fileset names unchanged', () => {
+    const { ipYamlText } = parseComponentXmlText(FILESETS_XML);
+    const doc = parseYaml(ipYamlText) as { fileSets: Array<{ name: string }> };
+    expect(doc.fileSets.find((f) => f.name === 'custom_fileset')).toBeDefined();
+  });
+
+  it('skips empty fileSets', () => {
+    const { ipYamlText } = parseComponentXmlText(FILESETS_XML);
+    const doc = parseYaml(ipYamlText) as { fileSets: Array<{ name: string }> };
+    expect(doc.fileSets.find((f) => f.name === 'empty_fileset')).toBeUndefined();
+  });
+
+  it('omits fileSets section when no filesets have files', () => {
+    const { ipYamlText } = parseComponentXmlText(MINIMAL_XML);
+    const doc = parseYaml(ipYamlText) as { fileSets?: unknown };
+    expect(doc.fileSets).toBeUndefined();
+  });
+});
+
 describe('subCoreRef parsing', () => {
   it('extracts subcores from fileSets using componentRef format', () => {
     const { ipYamlText } = parseComponentXmlText(SUBCORES_XML);

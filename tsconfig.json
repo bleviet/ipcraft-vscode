@@ -34,6 +34,7 @@
         ".vscode-test",
         "__mocks__",
         "config",
-        "build"
+        "build",
+        "scripts"
     ]
 }
