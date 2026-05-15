@@ -53,16 +53,16 @@ After running **IPCraft: Scaffold VHDL Project** with the `ipcraft.generate.incl
     <ip_name>_test.py          # cocotb @cocotb.test() functions
     conftest.py                # pytest session fixture: builds HDL once, exposes sim_runner
     test_<ip_name>_sim.py      # pytest wrapper functions — one per @cocotb.test()
-    Makefile                   # Alternative GNU Make entry point (GHDL only)
+    Makefile                   # GNU Make entry point — also used by conftest.py internally
 ```
 
 | File | Purpose |
 |------|---------|
 | `mm_loader.py` | Reads `<ip_name>.mm.yml` at test startup. No regeneration needed when registers change. |
 | `<ip_name>_test.py` | The actual cocotb coroutines (`@cocotb.test()`). Edit this file to add stimulus. |
-| `conftest.py` | Compiles the VHDL once per `pytest` session and exposes the `sim_runner` fixture. |
+| `conftest.py` | Exposes the `sim_runner` fixture; each test invokes `make TESTCASE=<name>` internally. |
 | `test_<ip_name>_sim.py` | Thin wrappers that call `sim_runner("test_name")`, making each test visible as a separate pytest item in VS Code and the terminal. |
-| `Makefile` | GNU Make entry point for running the full test suite via `make` instead of pytest. |
+| `Makefile` | Drives the actual simulation. Used by `conftest.py` internally and directly via `make`. |
 
 The memory map file (`<ip_name>.mm.yml`) sits **one directory above** `tb/` and is the single source of truth. `mm_loader.py` reads it at test startup; you never need to regenerate `mm_loader.py` when you edit the YAML.
 
@@ -76,7 +76,7 @@ From the project root (the directory that contains `tb/`):
 pytest tb/
 ```
 
-pytest loads `conftest.py`, compiles the VHDL (once), then runs each test function. Expected output:
+pytest loads `conftest.py` and runs each test function by invoking `make TESTCASE=<name>`. make compiles the VHDL on the first run and reuses the cached build for subsequent tests. Expected output:
 
 ```
 ============================= test session starts ==============================
@@ -99,13 +99,13 @@ pytest tb/ -k test_register_access
 pytest tb/ -k test_reset_values
 ```
 
-The HDL is still compiled once; only the matching cocotb test function is invoked.
+make's dependency tracking means the HDL is not recompiled if sources are unchanged; only the matching cocotb test function runs.
 
 ---
 
 ## Using a different simulator
 
-Set the `SIM` environment variable before invoking pytest. The value is passed directly to `cocotb.runner.get_runner()`.
+Set the `SIM` environment variable before invoking pytest. The value is forwarded to `make SIM=<name>`.
 
 | Simulator | Command |
 |-----------|---------|
@@ -115,7 +115,7 @@ Set the `SIM` environment variable before invoking pytest. The value is passed d
 | Questa | `SIM=questa pytest tb/` |
 | Riviera-PRO | `SIM=riviera pytest tb/` |
 
-> **Note:** GHDL is the only simulator configured with build arguments (`--std=08 -frelaxed`) in the generated `conftest.py`. Other simulators use an empty build-args list. If your design requires extra flags for a different simulator, edit the `_GHDL_BUILD_ARGS` section in `conftest.py` accordingly.
+> **Note:** GHDL-specific build flags (`--std=08 -frelaxed`) are configured inside the generated `Makefile`. If your design requires extra flags for a different simulator, edit `COMPILE_ARGS` in the Makefile.
 
 ---
 
@@ -169,7 +169,7 @@ Each function in `test_<ip_name>_sim.py` appears as a separate test item. You ca
 - **Re-run failed** — click the **Re-run Failed Tests** button after a failed run.
 - **Debug** — click the debug button to attach the VS Code debugger to the pytest process (useful for inspecting `conftest.py` fixture logic; cocotb coroutines run inside the simulator subprocess and are not debuggable this way).
 
-> **Note:** Each test triggers a full cocotb simulation run. The HDL compile step runs once per `pytest` session, so the first test is slower; subsequent tests in the same session reuse the compiled artefacts.
+> **Note:** Each test invokes `make` internally. make compiles the HDL only when sources have changed, so the first test in a clean tree is slower; subsequent tests skip recompilation and go straight to simulation.
 
 ---
 
@@ -316,4 +316,4 @@ This error comes from a stale `conftest.py` generated before IPCraft switched to
 
 ### Test passes in Makefile but fails under pytest
 
-The `Makefile` and `conftest.py` both invoke the cocotb runner, but with different working directories and result paths. If a test passes via `make` but fails via `pytest`, check whether the test reads a file from the filesystem using a hardcoded relative path. In `conftest.py`, `TB_DIR` is the directory that contains `conftest.py`, and all paths should be constructed relative to `TB_DIR` (not relative to the current working directory).
+`conftest.py` invokes `make` from `TB_DIR` (the `tb/` directory), so the working directory inside the simulation is the same whether you run `make` directly or `pytest tb/`. If a test passes via `make` but fails via `pytest`, check whether your test reads files using a path relative to somewhere other than `TB_DIR`. All filesystem paths in the test should be anchored to `os.path.dirname(__file__)` or `TB_DIR`.
