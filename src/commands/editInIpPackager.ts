@@ -17,9 +17,10 @@ export async function editInIpPackagerCommand(uri?: vscode.Uri): Promise<void> {
 
   const componentPath = targetUri.fsPath.replace(/\\/g, '/');
 
-  // Get Vivado path from config
+  // Get Vivado config
   const config = vscode.workspace.getConfiguration('ipcraft');
   const vivadoPath = config.get<string>('vivadoPath', 'vivado');
+  const vivadoDockerImage = (config.get<string>('vivado.dockerImage') ?? '').trim();
 
   try {
     // Create a temporary directory in the system tmp folder
@@ -37,10 +38,44 @@ export async function editInIpPackagerCommand(uri?: vscode.Uri): Promise<void> {
       ].join('\n') + '\n';
     await fs.writeFile(tclScriptPath, tclScript, 'utf8');
 
-    logger.info(`Launching vivado: ${vivadoPath} -mode gui -source ${tclScriptPath}`);
+    let spawnExe: string;
+    let spawnArgs: string[];
 
-    // Spawn Vivado
-    const child = spawn(vivadoPath, ['-mode', 'gui', '-source', tclScriptPath], {
+    if (vivadoDockerImage) {
+      // Mount tmpDir and the component.xml directory at their exact host paths so
+      // the pre-written TCL script (which contains absolute paths) works unchanged.
+      const componentDir = path.dirname(componentPath);
+      const x11Args: string[] = process.env.DISPLAY
+        ? ['-e', `DISPLAY=${process.env.DISPLAY}`, '-v', '/tmp/.X11-unix:/tmp/.X11-unix']
+        : [];
+
+      spawnExe = 'docker';
+      spawnArgs = [
+        'run',
+        '--rm',
+        ...x11Args,
+        '-v',
+        `${tmpDir}:${tmpDir}`,
+        '-v',
+        `${componentDir}:${componentDir}`,
+        '-w',
+        tmpDir,
+        vivadoDockerImage,
+        vivadoPath || 'vivado',
+        '-mode',
+        'gui',
+        '-source',
+        tclScriptPath,
+      ];
+    } else {
+      spawnExe = vivadoPath;
+      spawnArgs = ['-mode', 'gui', '-source', tclScriptPath];
+    }
+
+    logger.info(`Launching vivado: ${spawnExe} ${spawnArgs.join(' ')}`);
+
+    // Spawn Vivado (detached so it outlives VS Code)
+    const child = spawn(spawnExe, spawnArgs, {
       cwd: tmpDir,
       detached: true,
       stdio: 'ignore',
@@ -49,9 +84,15 @@ export async function editInIpPackagerCommand(uri?: vscode.Uri): Promise<void> {
     child.on('error', (err: Error & { code?: string }) => {
       logger.error(`Failed to start Vivado: ${err.message}`);
       if (err.code === 'ENOENT') {
-        vscode.window.showErrorMessage(
-          `Could not find Vivado executable '${vivadoPath}'. Please check the 'ipcraft.vivadoPath' setting.`
-        );
+        if (vivadoDockerImage) {
+          vscode.window.showErrorMessage(
+            `Could not find 'docker'. Is Docker installed and in your PATH?`
+          );
+        } else {
+          vscode.window.showErrorMessage(
+            `Could not find Vivado executable '${vivadoPath}'. Please check the 'ipcraft.vivadoPath' setting.`
+          );
+        }
       } else {
         vscode.window.showErrorMessage(`Failed to start Vivado: ${err.message}`);
       }
