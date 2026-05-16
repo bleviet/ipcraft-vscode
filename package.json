@@ -143,6 +143,16 @@
         "command": "fpga-ip-core.showBuildOutput",
         "title": "Show Build Output",
         "category": "IPCraft"
+      },
+      {
+        "command": "fpga-ip-core.openInVivado",
+        "title": "Open in Vivado",
+        "category": "IPCraft"
+      },
+      {
+        "command": "fpga-ip-core.openInQuartus",
+        "title": "Open in Quartus",
+        "category": "IPCraft"
       }
     ],
     "submenus": [
@@ -239,6 +249,16 @@
           "command": "fpga-ip-core.editInIpPackager",
           "when": "resourceFilename == component.xml",
           "group": "5_import@5"
+        },
+        {
+          "command": "fpga-ip-core.openInVivado",
+          "when": "resourceExtname == .xpr",
+          "group": "5_import@6"
+        },
+        {
+          "command": "fpga-ip-core.openInQuartus",
+          "when": "resourceExtname == .qpf",
+          "group": "5_import@7"
         }
       ],
       "editor/title": [
@@ -300,6 +320,16 @@
         {
           "command": "fpga-ip-core.editInIpPackager",
           "when": "resourceFilename == component.xml",
+          "group": "navigation"
+        },
+        {
+          "command": "fpga-ip-core.openInVivado",
+          "when": "resourceExtname == .xpr",
+          "group": "navigation"
+        },
+        {
+          "command": "fpga-ip-core.openInQuartus",
+          "when": "resourceExtname == .qpf",
           "group": "navigation"
         }
       ]
@@ -424,6 +454,11 @@
             "type": "string",
             "default": "quartus_sh",
             "markdownDescription": "Path to the Quartus Shell executable. Leave empty to use `quartus_sh` from your system PATH."
+          },
+          "ipcraft.quartus.guiPath": {
+            "type": "string",
+            "default": "quartus",
+            "markdownDescription": "Path to the Quartus Prime GUI executable. Leave empty to use `quartus` from your system PATH."
           },
           "ipcraft.quartus.qsysEditPath": {
             "type": "string",

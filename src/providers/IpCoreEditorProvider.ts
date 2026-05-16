@@ -18,6 +18,8 @@ import {
 } from './IpCoreGenerateHandler';
 import { editInIpPackagerCommand } from '../commands/editInIpPackager';
 import { editInPlatformDesignerCommand } from '../commands/editInPlatformDesigner';
+import { openInVivadoCommand } from '../commands/openInVivado';
+import { openInQuartusCommand } from '../commands/openInQuartus';
 
 interface IpcMessage {
   type: string;
@@ -209,6 +211,27 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
         );
         await editInPlatformDesignerCommand(vscode.Uri.file(hwTclPath));
       },
+      openInVivado: async () => {
+        const ipName = path.basename(document.uri.fsPath).replace(/\.ip\.ya?ml$/, '');
+        const xprPath = path.join(
+          path.dirname(document.uri.fsPath),
+          'xilinx',
+          'build',
+          'xpr',
+          `${ipName}.xpr`
+        );
+        await openInVivadoCommand(vscode.Uri.file(xprPath));
+      },
+      openInQuartus: async () => {
+        const ipName = path.basename(document.uri.fsPath).replace(/\.ip\.ya?ml$/, '');
+        const qpfPath = path.join(
+          path.dirname(document.uri.fsPath),
+          'altera',
+          'build',
+          `${ipName}.qpf`
+        );
+        await openInQuartusCommand(vscode.Uri.file(qpfPath));
+      },
     };
 
     webviewPanel.webview.onDidReceiveMessage(async (message: IpcMessage) => {
@@ -242,13 +265,21 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
 
       const ipName = path.basename(document.uri.fsPath).replace(/\.ip\.ya?ml$/, '');
 
-      const [hasComponentXml, hasHwTcl] = await Promise.all([
+      const [hasComponentXml, hasHwTcl, hasXpr, hasQpf] = await Promise.all([
         fs
           .access(path.join(baseDir, 'xilinx', 'component.xml'))
           .then(() => true)
           .catch(() => false),
         fs
           .access(path.join(baseDir, 'altera', `${ipName}_hw.tcl`))
+          .then(() => true)
+          .catch(() => false),
+        fs
+          .access(path.join(baseDir, 'xilinx', 'build', 'xpr', `${ipName}.xpr`))
+          .then(() => true)
+          .catch(() => false),
+        fs
+          .access(path.join(baseDir, 'altera', 'build', `${ipName}.qpf`))
           .then(() => true)
           .catch(() => false),
       ]);
@@ -265,6 +296,8 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
         imports,
         hasComponentXml,
         hasHwTcl,
+        hasXpr,
+        hasQpf,
       });
     } catch (error) {
       this.logger.error('Failed to update webview', error as Error);

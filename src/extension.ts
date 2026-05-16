@@ -12,6 +12,8 @@ import { registerGeneratorCommands } from './commands/GenerateCommands';
 import { registerBuildCommands } from './commands/BuildCommands';
 import { editInIpPackagerCommand } from './commands/editInIpPackager';
 import { editInPlatformDesignerCommand } from './commands/editInPlatformDesigner';
+import { openInVivadoCommand } from './commands/openInVivado';
+import { openInQuartusCommand } from './commands/openInQuartus';
 import { scanVivadoCatalogCommand } from './commands/scanVivadoCatalog';
 import { safeRegisterCommand } from './utils/vscodeHelpers';
 
@@ -78,6 +80,8 @@ export function activate(context: vscode.ExtensionContext): void {
     'fpga-ip-core.editInPlatformDesigner',
     editInPlatformDesignerCommand
   );
+  safeRegisterCommand(context, 'fpga-ip-core.openInVivado', openInVivadoCommand);
+  safeRegisterCommand(context, 'fpga-ip-core.openInQuartus', openInQuartusCommand);
   safeRegisterCommand(context, 'fpga-ip-core.scanVivadoCatalog', scanVivadoCatalogCommand);
 
   // Register VHDL Generator Commands

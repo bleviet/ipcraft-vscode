@@ -120,6 +120,8 @@ const IpCoreApp: React.FC = () => {
   // Whether vendor files exist alongside this .ip.yml (sent by extension on each update)
   const [hasComponentXml, setHasComponentXml] = useState(false);
   const [hasHwTcl, setHasHwTcl] = useState(false);
+  const [hasXpr, setHasXpr] = useState(false);
+  const [hasQpf, setHasQpf] = useState(false);
 
   // Canvas element selection (Phase 2)
   const {
@@ -336,6 +338,8 @@ const IpCoreApp: React.FC = () => {
         imports?: Record<string, unknown>;
         hasComponentXml?: boolean;
         hasHwTcl?: boolean;
+        hasXpr?: boolean;
+        hasQpf?: boolean;
       };
 
       switch (message.type) {
@@ -343,6 +347,8 @@ const IpCoreApp: React.FC = () => {
           updateFromYaml(message.text, message.fileName, message.imports);
           setHasComponentXml(message.hasComponentXml ?? false);
           setHasHwTcl(message.hasHwTcl ?? false);
+          setHasXpr(message.hasXpr ?? false);
+          setHasQpf(message.hasQpf ?? false);
           break;
       }
     };
@@ -491,6 +497,12 @@ const IpCoreApp: React.FC = () => {
                   disabled={!hasHwTcl}
                   onClick={() => vscode?.postMessage({ type: 'editInPlatformDesigner' })}
                 />
+                <ToolbarButton
+                  title={hasQpf ? 'Open in Quartus' : 'Open in Quartus — generate project first'}
+                  icon="folder-opened"
+                  disabled={!hasQpf}
+                  onClick={() => vscode?.postMessage({ type: 'openInQuartus' })}
+                />
               </ToolbarGroup>
 
               <div
@@ -522,6 +534,12 @@ const IpCoreApp: React.FC = () => {
                   icon="edit"
                   disabled={!hasComponentXml}
                   onClick={() => vscode?.postMessage({ type: 'editInIpPackager' })}
+                />
+                <ToolbarButton
+                  title={hasXpr ? 'Open in Vivado' : 'Open in Vivado — generate project first'}
+                  icon="folder-opened"
+                  disabled={!hasXpr}
+                  onClick={() => vscode?.postMessage({ type: 'openInVivado' })}
                 />
               </ToolbarGroup>
             </div>
