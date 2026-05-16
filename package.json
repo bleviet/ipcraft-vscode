@@ -159,23 +159,87 @@
         }
       ],
       "ipcraft.submenu": [
-        { "command": "fpga-ip-core.createIpCore",              "group": "1_create@1" },
-        { "command": "fpga-ip-core.createMemoryMap",           "group": "1_create@2" },
-        { "command": "fpga-ip-core.createIpCoreWithMemoryMap", "group": "1_create@3" },
-        { "command": "fpga-ip-core.viewBusDefinitions",        "group": "2_view@1"   },
-        { "command": "fpga-ip-core.scaffoldProject",       "when": "resourceFilename =~ /\\.ip\\.yml$/",              "group": "3_ipfile@1" },
-        { "command": "fpga-ip-core.exportAltera",          "when": "resourceFilename =~ /\\.ip\\.yml$/",              "group": "3_ipfile@2" },
-        { "command": "fpga-ip-core.exportXilinx",          "when": "resourceFilename =~ /\\.ip\\.yml$/",              "group": "3_ipfile@3" },
-        { "command": "fpga-ip-core.generateTestbench",     "when": "resourceFilename =~ /\\.ip\\.yml$/",              "group": "3_ipfile@4" },
-        { "command": "fpga-ip-core.generateVivadoProject", "when": "resourceFilename =~ /\\.ip\\.yml$/",              "group": "4_build@1"  },
-        { "command": "fpga-ip-core.generateQuartusProject","when": "resourceFilename =~ /\\.ip\\.yml$/",              "group": "4_build@2"  },
-        { "command": "fpga-ip-core.build",                 "when": "resourceFilename =~ /\\.ip\\.yml$/",              "group": "4_build@3"  },
-        { "command": "fpga-ip-core.showBuildOutput",       "when": "resourceFilename =~ /\\.ip\\.yml$/",              "group": "4_build@4"  },
-        { "command": "fpga-ip-core.parseVHDL",         "when": "resourceExtname == .vhd || resourceExtname == .vhdl", "group": "5_import@1" },
-        { "command": "fpga-ip-core.parseHwTcl",               "when": "resourceFilename =~ /_hw\\.tcl$/",  "group": "5_import@2" },
-        { "command": "fpga-ip-core.editInPlatformDesigner",  "when": "resourceFilename =~ /_hw\\.tcl$/",  "group": "5_import@3" },
-        { "command": "fpga-ip-core.parseComponentXml",       "when": "resourceFilename == component.xml", "group": "5_import@4" },
-        { "command": "fpga-ip-core.editInIpPackager",        "when": "resourceFilename == component.xml", "group": "5_import@5" }
+        {
+          "command": "fpga-ip-core.createIpCore",
+          "group": "1_create@1"
+        },
+        {
+          "command": "fpga-ip-core.createMemoryMap",
+          "group": "1_create@2"
+        },
+        {
+          "command": "fpga-ip-core.createIpCoreWithMemoryMap",
+          "group": "1_create@3"
+        },
+        {
+          "command": "fpga-ip-core.viewBusDefinitions",
+          "group": "2_view@1"
+        },
+        {
+          "command": "fpga-ip-core.scaffoldProject",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/",
+          "group": "3_ipfile@1"
+        },
+        {
+          "command": "fpga-ip-core.exportAltera",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/",
+          "group": "3_ipfile@2"
+        },
+        {
+          "command": "fpga-ip-core.exportXilinx",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/",
+          "group": "3_ipfile@3"
+        },
+        {
+          "command": "fpga-ip-core.generateTestbench",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/",
+          "group": "3_ipfile@4"
+        },
+        {
+          "command": "fpga-ip-core.generateVivadoProject",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/",
+          "group": "4_build@1"
+        },
+        {
+          "command": "fpga-ip-core.generateQuartusProject",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/",
+          "group": "4_build@2"
+        },
+        {
+          "command": "fpga-ip-core.build",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/",
+          "group": "4_build@3"
+        },
+        {
+          "command": "fpga-ip-core.showBuildOutput",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/",
+          "group": "4_build@4"
+        },
+        {
+          "command": "fpga-ip-core.parseVHDL",
+          "when": "resourceExtname == .vhd || resourceExtname == .vhdl",
+          "group": "5_import@1"
+        },
+        {
+          "command": "fpga-ip-core.parseHwTcl",
+          "when": "resourceFilename =~ /_hw\\.tcl$/",
+          "group": "5_import@2"
+        },
+        {
+          "command": "fpga-ip-core.editInPlatformDesigner",
+          "when": "resourceFilename =~ /_hw\\.tcl$/",
+          "group": "5_import@3"
+        },
+        {
+          "command": "fpga-ip-core.parseComponentXml",
+          "when": "resourceFilename == component.xml",
+          "group": "5_import@4"
+        },
+        {
+          "command": "fpga-ip-core.editInIpPackager",
+          "when": "resourceFilename == component.xml",
+          "group": "5_import@5"
+        }
       ],
       "editor/title": [
         {
@@ -240,140 +304,179 @@
         }
       ]
     },
-    "configuration": {
-      "title": "IPCraft",
-      "properties": {
-        "ipcraft.generate.vendor": {
-          "type": "string",
-          "enum": ["none", "altera", "xilinx", "both"],
-          "enumDescriptions": [
-            "HDL and testbench only — no vendor integration files",
-            "Altera/Intel: Platform Designer _hw.tcl",
-            "Xilinx/AMD: Vivado component.xml and XGUI TCL",
-            "Both Altera and Xilinx integration files"
-          ],
-          "default": "none",
-          "description": "Vendor integration files to generate when scaffolding a project."
-        },
-        "ipcraft.generate.includeTestbench": {
-          "type": "boolean",
-          "default": true,
-          "description": "Generate a cocotb testbench (tb/ folder) when scaffolding a project."
-        },
-        "ipcraft.import.vendor": {
-          "type": "string",
-          "default": "user",
-          "description": "Vendor name used when importing IP cores (VHDL, hw.tcl, component.xml). Leave blank or 'user' to auto-detect from git user.email (e.g. user@company.com \u2192 company.com), falling back to 'ipcraft'."
-        },
-        "ipcraft.import.library": {
-          "type": "string",
-          "default": "ip",
-          "description": "Default library name used when importing a VHDL file as an IP Core."
-        },
-        "ipcraft.import.version": {
-          "type": "string",
-          "default": "1.0.0",
-          "description": "Default version string used when importing a VHDL file as an IP Core."
-        },
-        "ipcraft.busLibraryPaths": {
-          "type": "array",
-          "items": {
-            "type": "string"
+    "configuration": [
+      {
+        "title": "General",
+        "properties": {
+          "ipcraft.busLibraryPaths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": [],
+            "markdownDescription": "Paths to search recursively for custom bus definition YAML files (`.yml` / `.yaml`). Absolute paths or paths relative to the workspace root. Files ending in `.ip.yml` or `.mm.yml` are ignored."
           },
-          "default": [],
-          "markdownDescription": "Paths to search recursively for custom bus definition YAML files (`.yml` / `.yaml`). Absolute paths or paths relative to the workspace root. Files ending in `.ip.yml` or `.mm.yml` are ignored."
-        },
-        "ipcraft.vivadoPath": {
-          "type": "string",
-          "default": "vivado",
-          "markdownDescription": "Path to the Vivado executable (e.g., `C:\\Xilinx\\Vivado\\2024.2\\bin\\vivado.bat` or `/tools/Xilinx/Vivado/2024.2/bin/vivado`). If empty, assumes `vivado` is available in your system PATH."
-        },
-        "ipcraft.vivado.dockerImage": {
-          "type": "string",
-          "default": "",
-          "markdownDescription": "Docker image used to run Vivado (e.g. `cvsoc/vivado:2024.2`). When set, every Vivado build command is executed inside this container via `docker run --rm`, with the IP core directory mounted as `/work`. Leave empty to use a locally installed Vivado."
-        },
-        "ipcraft.vivado.defaultPart": {
-          "type": "string",
-          "default": "xc7z020clg484-1",
-          "markdownDescription": "Fallback part number used when no board has been selected yet. The board picker remembers the last-used selection across sessions, so this setting rarely needs to be changed manually."
-        },
-        "ipcraft.customBoards.vivado": {
-          "type": "array",
-          "default": [],
-          "markdownDescription": "Your own boards for Vivado. Each entry appears at the top of the board picker under **My Boards**.",
-          "items": {
-            "type": "object",
-            "required": ["label", "part"],
-            "additionalProperties": false,
-            "properties": {
-              "label": {
-                "type": "string",
-                "description": "Display name shown in the board picker (e.g. My Zynq Module)"
-              },
-              "part": {
-                "type": "string",
-                "description": "Xilinx/AMD part number (e.g. xc7z020clg484-1)"
+          "ipcraft.ipRepositoryPaths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": [],
+            "markdownDescription": "Additional file system paths to scan for IP cores (directories containing `.ip.yml` or `component.xml` files)."
+          }
+        }
+      },
+      {
+        "title": "Scaffold & Generate",
+        "properties": {
+          "ipcraft.generate.vendor": {
+            "type": "string",
+            "enum": [
+              "none",
+              "altera",
+              "xilinx",
+              "both"
+            ],
+            "enumDescriptions": [
+              "HDL and testbench only — no vendor integration files",
+              "Altera/Intel: Platform Designer _hw.tcl",
+              "Xilinx/AMD: Vivado component.xml and XGUI TCL",
+              "Both Altera and Xilinx integration files"
+            ],
+            "default": "none",
+            "description": "Vendor integration files to generate when scaffolding a project."
+          },
+          "ipcraft.generate.includeTestbench": {
+            "type": "boolean",
+            "default": true,
+            "description": "Generate a cocotb testbench (tb/ folder) when scaffolding a project."
+          }
+        }
+      },
+      {
+        "title": "Import",
+        "properties": {
+          "ipcraft.import.vendor": {
+            "type": "string",
+            "default": "user",
+            "description": "Vendor name used when importing IP cores (VHDL, hw.tcl, component.xml). Leave blank or 'user' to auto-detect from git user.email (e.g. user@company.com → company.com), falling back to 'ipcraft'.",
+            "markdownDescription": "Vendor name used when importing IP cores (VHDL, `_hw.tcl`, `component.xml`). Leave blank or `user` to auto-detect from git `user.email` (e.g. `user@company.com` → `company.com`), falling back to `ipcraft`."
+          },
+          "ipcraft.import.library": {
+            "type": "string",
+            "default": "ip",
+            "description": "Default library name used when importing a VHDL file as an IP Core."
+          },
+          "ipcraft.import.version": {
+            "type": "string",
+            "default": "1.0.0",
+            "description": "Default version string used when importing a VHDL file as an IP Core."
+          }
+        }
+      },
+      {
+        "title": "Vivado (Xilinx/AMD)",
+        "properties": {
+          "ipcraft.vivadoPath": {
+            "type": "string",
+            "default": "vivado",
+            "markdownDescription": "Path to the Vivado executable. Leave empty to use `vivado` from your system PATH. Example: `/tools/Xilinx/Vivado/2024.2/bin/vivado`."
+          },
+          "ipcraft.vivado.dockerImage": {
+            "type": "string",
+            "default": "",
+            "markdownDescription": "Docker image used to run Vivado (e.g. `cvsoc/vivado:2024.2`). When set, every Vivado build command is executed inside this container via `docker run --rm`, with the IP core directory mounted as `/work`. Leave empty to use a locally installed Vivado."
+          },
+          "ipcraft.vivado.defaultPart": {
+            "type": "string",
+            "default": "xc7z020clg484-1",
+            "markdownDescription": "Fallback part number used when no board has been selected yet. The board picker remembers the last-used selection across sessions, so this setting rarely needs to be changed manually."
+          },
+          "ipcraft.customBoards.vivado": {
+            "type": "array",
+            "default": [],
+            "markdownDescription": "Your own boards for Vivado. Each entry appears at the top of the board picker under **My Boards**.",
+            "items": {
+              "type": "object",
+              "required": [
+                "label",
+                "part"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "description": "Display name shown in the board picker (e.g. My Zynq Module)"
+                },
+                "part": {
+                  "type": "string",
+                  "description": "Xilinx/AMD part number (e.g. xc7z020clg484-1)"
+                }
               }
             }
           }
-        },
-        "ipcraft.quartus.defaultDevice": {
-          "type": "string",
-          "default": "5CSEBA6U23I7",
-          "markdownDescription": "Fallback device number used when no board has been selected yet. The board picker remembers the last-used selection across sessions, so this setting rarely needs to be changed manually."
-        },
-        "ipcraft.customBoards.quartus": {
-          "type": "array",
-          "default": [],
-          "markdownDescription": "Your own boards for Quartus. Each entry appears at the top of the board picker under **My Boards**.",
-          "items": {
-            "type": "object",
-            "required": ["label", "device"],
-            "additionalProperties": false,
-            "properties": {
-              "label": {
-                "type": "string",
-                "description": "Display name shown in the board picker (e.g. My Cyclone V Board)"
-              },
-              "device": {
-                "type": "string",
-                "description": "Intel/Altera device part number (e.g. 5CSEBA6U23I7)"
+        }
+      },
+      {
+        "title": "Quartus (Intel/Altera)",
+        "properties": {
+          "ipcraft.quartus.shellPath": {
+            "type": "string",
+            "default": "quartus_sh",
+            "markdownDescription": "Path to the Quartus Shell executable. Leave empty to use `quartus_sh` from your system PATH."
+          },
+          "ipcraft.quartus.qsysEditPath": {
+            "type": "string",
+            "default": "qsys-edit",
+            "markdownDescription": "Path to the Platform Designer executable. Leave empty to use `qsys-edit` from your system PATH."
+          },
+          "ipcraft.quartus.dockerImage": {
+            "type": "string",
+            "default": "",
+            "markdownDescription": "Docker image used to run Quartus (e.g. `cvsoc/quartus:23.1`). When set, every Quartus build command is executed inside this container via `docker run --rm`, with the IP core directory mounted as `/work`. Leave empty to use a locally installed Quartus."
+          },
+          "ipcraft.quartus.defaultDevice": {
+            "type": "string",
+            "default": "5CSEBA6U23I7",
+            "markdownDescription": "Fallback device number used when no board has been selected yet. The board picker remembers the last-used selection across sessions, so this setting rarely needs to be changed manually."
+          },
+          "ipcraft.customBoards.quartus": {
+            "type": "array",
+            "default": [],
+            "markdownDescription": "Your own boards for Quartus. Each entry appears at the top of the board picker under **My Boards**.",
+            "items": {
+              "type": "object",
+              "required": [
+                "label",
+                "device"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "description": "Display name shown in the board picker (e.g. My Cyclone V Board)"
+                },
+                "device": {
+                  "type": "string",
+                  "description": "Intel/Altera device part number (e.g. 5CSEBA6U23I7)"
+                }
               }
             }
           }
-        },
-        "ipcraft.quartus.shellPath": {
-          "type": "string",
-          "default": "quartus_sh",
-          "markdownDescription": "Path to the Quartus Shell executable (`quartus_sh`). If empty, assumes it is available in your system PATH."
-        },
-        "ipcraft.quartus.qsysEditPath": {
-          "type": "string",
-          "default": "qsys-edit",
-          "markdownDescription": "Path to the Platform Designer executable (`qsys-edit`). If empty, assumes it is available in your system PATH."
-        },
-        "ipcraft.quartus.dockerImage": {
-          "type": "string",
-          "default": "",
-          "markdownDescription": "Docker image used to run Quartus (e.g. `cvsoc/quartus:23.1`). When set, every Quartus build command is executed inside this container via `docker run --rm`, with the IP core directory mounted as `/work`. Leave empty to use a locally installed Quartus."
-        },
-        "ipcraft.build.jobs": {
-          "type": "number",
-          "default": 4,
-          "minimum": 1,
-          "description": "Number of parallel jobs passed to Vivado launch_runs and Quartus compilation."
-        },
-        "ipcraft.ipRepositoryPaths": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "default": [],
-          "markdownDescription": "Additional file system paths to scan for IP cores (directories containing `.ip.yml` or `component.xml` files)."
+        }
+      },
+      {
+        "title": "Build",
+        "properties": {
+          "ipcraft.build.jobs": {
+            "type": "number",
+            "default": 4,
+            "minimum": 1,
+            "description": "Number of parallel jobs passed to Vivado launch_runs and Quartus compilation."
+          }
         }
       }
-    },
+    ],
     "views": {
       "explorer": [
         {
