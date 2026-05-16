@@ -272,6 +272,11 @@
           "default": "vivado",
           "markdownDescription": "Path to the Vivado executable (e.g., `C:\\Xilinx\\Vivado\\2024.2\\bin\\vivado.bat` or `/tools/Xilinx/Vivado/2024.2/bin/vivado`). If empty, assumes `vivado` is available in your system PATH."
         },
+        "ipcraft.vivado.dockerImage": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Docker image used to run Vivado (e.g. `cvsoc/vivado:2024.2`). When set, every Vivado build command is executed inside this container via `docker run --rm`, with the IP core directory mounted as `/work`. Leave empty to use a locally installed Vivado."
+        },
         "ipcraft.vivado.defaultPart": {
           "type": "string",
           "default": "xc7z020clg484-1",
@@ -286,6 +291,11 @@
           "type": "string",
           "default": "quartus_sh",
           "markdownDescription": "Path to the Quartus Shell executable (`quartus_sh`). If empty, assumes it is available in your system PATH."
+        },
+        "ipcraft.quartus.dockerImage": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Docker image used to run Quartus (e.g. `cvsoc/quartus:23.1`). When set, every Quartus build command is executed inside this container via `docker run --rm`, with the IP core directory mounted as `/work`. Leave empty to use a locally installed Quartus."
         },
         "ipcraft.build.jobs": {
           "type": "number",

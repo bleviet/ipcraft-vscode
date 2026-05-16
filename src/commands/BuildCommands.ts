@@ -97,6 +97,15 @@ async function detectTargets(name: string, ipDir: string): Promise<BuildTarget[]
   const quartusExe = (cfg.get<string>('quartus.shellPath') ?? 'quartus_sh') || 'quartus_sh';
   const jobs = cfg.get<number>('build.jobs') ?? 4;
 
+  const vivadoDockerImage = (cfg.get<string>('vivado.dockerImage') ?? '').trim();
+  const quartusDockerImage = (cfg.get<string>('quartus.dockerImage') ?? '').trim();
+  const vivadoDocker = vivadoDockerImage
+    ? { image: vivadoDockerImage, mountBase: ipDir }
+    : undefined;
+  const quartusDocker = quartusDockerImage
+    ? { image: quartusDockerImage, mountBase: ipDir }
+    : undefined;
+
   const targets: BuildTarget[] = [];
 
   if (await fileExists(path.join(xilinxDir, `${name}_run_ooc.tcl`))) {
@@ -117,7 +126,7 @@ async function detectTargets(name: string, ipDir: string): Promise<BuildTarget[]
             '-tclargs',
             String(jobs),
           ],
-          { cwd: xilinxDir, outputChannel: getOutputChannel() }
+          { cwd: xilinxDir, outputChannel: getOutputChannel(), docker: vivadoDocker }
         );
         if (!result.success) {
           return undefined;
@@ -145,7 +154,7 @@ async function detectTargets(name: string, ipDir: string): Promise<BuildTarget[]
             '-tclargs',
             String(jobs),
           ],
-          { cwd: xilinxDir, outputChannel: getOutputChannel() }
+          { cwd: xilinxDir, outputChannel: getOutputChannel(), docker: vivadoDocker }
         );
         if (!result.success) {
           return undefined;
@@ -167,6 +176,7 @@ async function detectTargets(name: string, ipDir: string): Promise<BuildTarget[]
         const step1 = await runProcess(quartusExe, ['-t', projectTcl], {
           cwd: buildDir,
           outputChannel: getOutputChannel(),
+          docker: quartusDocker,
         });
         if (!step1.success) {
           return undefined;
@@ -175,6 +185,7 @@ async function detectTargets(name: string, ipDir: string): Promise<BuildTarget[]
         const step2 = await runProcess(quartusExe, ['--flow', 'compile', name], {
           cwd: buildDir,
           outputChannel: getOutputChannel(),
+          docker: quartusDocker,
         });
         if (!step2.success) {
           return undefined;
