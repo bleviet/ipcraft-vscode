@@ -58,6 +58,11 @@
         "category": "IPCraft"
       },
       {
+        "command": "fpga-ip-core.editInPlatformDesigner",
+        "title": "Edit in Platform Designer",
+        "category": "IPCraft"
+      },
+      {
         "command": "fpga-ip-core.generateVHDL",
         "title": "Generate VHDL",
         "category": "IPCraft",
@@ -167,9 +172,10 @@
         { "command": "fpga-ip-core.build",                 "when": "resourceFilename =~ /\\.ip\\.yml$/",              "group": "4_build@3"  },
         { "command": "fpga-ip-core.showBuildOutput",       "when": "resourceFilename =~ /\\.ip\\.yml$/",              "group": "4_build@4"  },
         { "command": "fpga-ip-core.parseVHDL",         "when": "resourceExtname == .vhd || resourceExtname == .vhdl", "group": "5_import@1" },
-        { "command": "fpga-ip-core.parseHwTcl",        "when": "resourceFilename =~ /_hw\\.tcl$/",                   "group": "5_import@2" },
-        { "command": "fpga-ip-core.parseComponentXml", "when": "resourceFilename == component.xml",                  "group": "5_import@3" },
-        { "command": "fpga-ip-core.editInIpPackager",  "when": "resourceFilename == component.xml",                  "group": "5_import@4" }
+        { "command": "fpga-ip-core.parseHwTcl",               "when": "resourceFilename =~ /_hw\\.tcl$/",  "group": "5_import@2" },
+        { "command": "fpga-ip-core.editInPlatformDesigner",  "when": "resourceFilename =~ /_hw\\.tcl$/",  "group": "5_import@3" },
+        { "command": "fpga-ip-core.parseComponentXml",       "when": "resourceFilename == component.xml", "group": "5_import@4" },
+        { "command": "fpga-ip-core.editInIpPackager",        "when": "resourceFilename == component.xml", "group": "5_import@5" }
       ],
       "editor/title": [
         {
@@ -214,6 +220,11 @@
         },
         {
           "command": "fpga-ip-core.parseHwTcl",
+          "when": "resourceFilename =~ /_hw\\.tcl$/",
+          "group": "navigation"
+        },
+        {
+          "command": "fpga-ip-core.editInPlatformDesigner",
           "when": "resourceFilename =~ /_hw\\.tcl$/",
           "group": "navigation"
         },
@@ -291,6 +302,11 @@
           "type": "string",
           "default": "quartus_sh",
           "markdownDescription": "Path to the Quartus Shell executable (`quartus_sh`). If empty, assumes it is available in your system PATH."
+        },
+        "ipcraft.quartus.qsysEditPath": {
+          "type": "string",
+          "default": "qsys-edit",
+          "markdownDescription": "Path to the Platform Designer executable (`qsys-edit`). If empty, assumes it is available in your system PATH."
         },
         "ipcraft.quartus.dockerImage": {
           "type": "string",

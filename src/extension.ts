@@ -11,6 +11,7 @@ import {
 import { registerGeneratorCommands } from './commands/GenerateCommands';
 import { registerBuildCommands } from './commands/BuildCommands';
 import { editInIpPackagerCommand } from './commands/editInIpPackager';
+import { editInPlatformDesignerCommand } from './commands/editInPlatformDesigner';
 import { scanVivadoCatalogCommand } from './commands/scanVivadoCatalog';
 import { safeRegisterCommand } from './utils/vscodeHelpers';
 
@@ -72,6 +73,11 @@ export function activate(context: vscode.ExtensionContext): void {
     createIpCoreWithMemoryMapCommand
   );
   safeRegisterCommand(context, 'fpga-ip-core.editInIpPackager', editInIpPackagerCommand);
+  safeRegisterCommand(
+    context,
+    'fpga-ip-core.editInPlatformDesigner',
+    editInPlatformDesignerCommand
+  );
   safeRegisterCommand(context, 'fpga-ip-core.scanVivadoCatalog', scanVivadoCatalogCommand);
 
   // Register VHDL Generator Commands
