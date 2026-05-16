@@ -2,7 +2,8 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { resolveVendor } from '../utils/resolveVendor';
 
-const MEMORY_MAP_TEMPLATE = `- name: NEW_MEMORY_MAP
+function generateMemoryMapTemplate(name: string): string {
+  return `- name: ${name}
   description: Description of this memory map
   addressBlocks:
     - name: BLOCK_0
@@ -20,6 +21,7 @@ const MEMORY_MAP_TEMPLATE = `- name: NEW_MEMORY_MAP
               access: read-write
               description: Enable bit
 `;
+}
 
 function resolveVendorFromSettings(): string {
   const cfg = vscode.workspace.getConfiguration('ipcraft.import');
@@ -111,22 +113,31 @@ export async function createIpCoreCommand(): Promise<void> {
 export async function createMemoryMapCommand(): Promise<void> {
   let defaultFileName = 'new_memory_map.mm.yml';
   let defaultDir: vscode.Uri | undefined;
+  let memoryMapName = 'NEW_MEMORY_MAP';
 
   const isIpCore = (fsPath: string) => fsPath.endsWith('.ip.yml') || fsPath.endsWith('.ip.yaml');
 
   const editor = vscode.window.activeTextEditor;
   if (editor && isIpCore(editor.document.fileName)) {
-    defaultFileName = `${nameFromFilePath(editor.document.fileName)}.mm.yml`;
+    const ipCoreName = nameFromFilePath(editor.document.fileName);
+    defaultFileName = `${ipCoreName}.mm.yml`;
     defaultDir = vscode.Uri.file(path.dirname(editor.document.fileName));
+    memoryMapName = `${ipCoreName.toUpperCase()}_MEMMAP`;
   } else {
     const activeTab = vscode.window.tabGroups.activeTabGroup.activeTab;
     if (activeTab?.input instanceof vscode.TabInputCustom && isIpCore(activeTab.input.uri.fsPath)) {
-      defaultFileName = `${nameFromFilePath(activeTab.input.uri.fsPath)}.mm.yml`;
+      const ipCoreName = nameFromFilePath(activeTab.input.uri.fsPath);
+      defaultFileName = `${ipCoreName}.mm.yml`;
       defaultDir = vscode.Uri.file(path.dirname(activeTab.input.uri.fsPath));
+      memoryMapName = `${ipCoreName.toUpperCase()}_MEMMAP`;
     }
   }
 
-  await createFileWithTemplate(defaultFileName, MEMORY_MAP_TEMPLATE, defaultDir);
+  await createFileWithTemplate(
+    defaultFileName,
+    generateMemoryMapTemplate(memoryMapName),
+    defaultDir
+  );
 }
 
 export async function createIpCoreWithMemoryMapCommand(): Promise<void> {
@@ -165,13 +176,13 @@ export async function createIpCoreWithMemoryMapCommand(): Promise<void> {
 
     const memoryMapUri = vscode.Uri.file(path.join(ipCoreDir, memoryMapBaseName));
 
-    await vscode.workspace.fs.writeFile(
-      memoryMapUri,
-      new Uint8Array(Buffer.from(MEMORY_MAP_TEMPLATE))
-    );
-
     const vendor = resolveVendorFromSettings();
     const name = nameFromFilePath(ipCoreUri.fsPath);
+    const memoryMapName = `${name.toUpperCase()}_MEMMAP`;
+    await vscode.workspace.fs.writeFile(
+      memoryMapUri,
+      new Uint8Array(Buffer.from(generateMemoryMapTemplate(memoryMapName)))
+    );
     const ipCoreContent = generateIpCoreWithMemoryMapTemplate(vendor, name, memoryMapBaseName);
     await vscode.workspace.fs.writeFile(ipCoreUri, new Uint8Array(Buffer.from(ipCoreContent)));
 
