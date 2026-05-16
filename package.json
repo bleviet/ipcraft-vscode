@@ -296,12 +296,52 @@
         "ipcraft.vivado.defaultPart": {
           "type": "string",
           "default": "xc7z020clg484-1",
-          "description": "Default FPGA part number used when generating a Vivado project (e.g. xc7z020clg484-1, xczu3eg-sbva484-1-e)."
+          "markdownDescription": "Fallback part number used when no board has been selected yet. The board picker remembers the last-used selection across sessions, so this setting rarely needs to be changed manually."
+        },
+        "ipcraft.customBoards.vivado": {
+          "type": "array",
+          "default": [],
+          "markdownDescription": "Your own boards for Vivado. Each entry appears at the top of the board picker under **My Boards**.",
+          "items": {
+            "type": "object",
+            "required": ["label", "part"],
+            "additionalProperties": false,
+            "properties": {
+              "label": {
+                "type": "string",
+                "description": "Display name shown in the board picker (e.g. My Zynq Module)"
+              },
+              "part": {
+                "type": "string",
+                "description": "Xilinx/AMD part number (e.g. xc7z020clg484-1)"
+              }
+            }
+          }
         },
         "ipcraft.quartus.defaultDevice": {
           "type": "string",
           "default": "5CSEBA6U23I7",
-          "description": "Default Intel/Altera device part number used when generating a Quartus project (e.g. 5CSEBA6U23I7 for the DE10-Nano Cyclone V SoC, 10M50DAF484C7G for MAX 10)."
+          "markdownDescription": "Fallback device number used when no board has been selected yet. The board picker remembers the last-used selection across sessions, so this setting rarely needs to be changed manually."
+        },
+        "ipcraft.customBoards.quartus": {
+          "type": "array",
+          "default": [],
+          "markdownDescription": "Your own boards for Quartus. Each entry appears at the top of the board picker under **My Boards**.",
+          "items": {
+            "type": "object",
+            "required": ["label", "device"],
+            "additionalProperties": false,
+            "properties": {
+              "label": {
+                "type": "string",
+                "description": "Display name shown in the board picker (e.g. My Cyclone V Board)"
+              },
+              "device": {
+                "type": "string",
+                "description": "Intel/Altera device part number (e.g. 5CSEBA6U23I7)"
+              }
+            }
+          }
         },
         "ipcraft.quartus.shellPath": {
           "type": "string",

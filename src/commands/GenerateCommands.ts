@@ -13,6 +13,7 @@ import { IpCoreScaffolder } from '../generator/IpCoreScaffolder';
 import { parseVhdlFile } from '../parser/VhdlParser';
 import { parseHwTclFile } from '../parser/HwTclParser';
 import { parseComponentXmlFile } from '../parser/ComponentXmlParser';
+import { pickVivadoPart, pickQuartusDevice } from '../utils/pickBoard';
 import { safeRegisterCommand } from '../utils/vscodeHelpers';
 import { updateFileSets } from '../services/FileSetUpdater';
 import { resolveVendor } from '../utils/resolveVendor';
@@ -202,8 +203,22 @@ async function scaffoldProject(context: vscode.ExtensionContext): Promise<void> 
   const cfg = vscode.workspace.getConfiguration('ipcraft');
   const genCfg = vscode.workspace.getConfiguration('ipcraft.generate');
   const includeTestbench = genCfg.get<boolean>('includeTestbench', true);
-  const targetPart = cfg.get<string>('vivado.defaultPart', 'xc7z020clg484-1');
-  const quartusDevice = cfg.get<string>('quartus.defaultDevice', '5CSEBA6U23I7');
+
+  const targetPart = await pickVivadoPart(
+    context,
+    cfg.get<string>('vivado.defaultPart', 'xc7z020clg484-1')
+  );
+  if (!targetPart) {
+    return;
+  }
+
+  const quartusDevice = await pickQuartusDevice(
+    context,
+    cfg.get<string>('quartus.defaultDevice', '5CSEBA6U23I7')
+  );
+  if (!quartusDevice) {
+    return;
+  }
 
   await runGenerator(
     context,
@@ -293,16 +308,11 @@ async function generateVivadoProject(context: vscode.ExtensionContext): Promise<
   }
 
   const cfg = vscode.workspace.getConfiguration('ipcraft');
-  const defaultPart = cfg.get<string>('vivado.defaultPart', 'xc7z020clg484-1');
-
-  const partInput = await vscode.window.showInputBox({
-    title: 'Generate Vivado Project — Target FPGA Part',
-    prompt: 'Enter the Xilinx/AMD part number for out-of-context synthesis',
-    value: defaultPart,
-    placeHolder: 'e.g. xc7z020clg484-1',
-    validateInput: (v) => (v.trim() ? null : 'Part number cannot be empty'),
-  });
-  if (partInput === undefined) {
+  const targetPart = await pickVivadoPart(
+    context,
+    cfg.get<string>('vivado.defaultPart', 'xc7z020clg484-1')
+  );
+  if (!targetPart) {
     return;
   }
 
@@ -316,7 +326,7 @@ async function generateVivadoProject(context: vscode.ExtensionContext): Promise<
       includeVhdl: true,
       includeRegs: true,
       includeVivadoProject: true,
-      targetPart: partInput.trim(),
+      targetPart,
       silent: true,
     },
     'Generating Vivado project...'
@@ -330,16 +340,11 @@ async function generateQuartusProject(context: vscode.ExtensionContext): Promise
   }
 
   const cfg = vscode.workspace.getConfiguration('ipcraft');
-  const defaultDevice = cfg.get<string>('quartus.defaultDevice', '5CSEBA6U23I7');
-
-  const deviceInput = await vscode.window.showInputBox({
-    title: 'Generate Quartus Project — Target Device',
-    prompt: 'Enter the Intel/Altera device part number',
-    value: defaultDevice,
-    placeHolder: 'e.g. 5CSEBA6U23I7 (DE10-Nano Cyclone V SoC)',
-    validateInput: (v) => (v.trim() ? null : 'Device part number cannot be empty'),
-  });
-  if (deviceInput === undefined) {
+  const quartusDevice = await pickQuartusDevice(
+    context,
+    cfg.get<string>('quartus.defaultDevice', '5CSEBA6U23I7')
+  );
+  if (!quartusDevice) {
     return;
   }
 
@@ -353,7 +358,7 @@ async function generateQuartusProject(context: vscode.ExtensionContext): Promise
       includeVhdl: true,
       includeRegs: true,
       includeQuartusProject: true,
-      quartusDevice: deviceInput.trim(),
+      quartusDevice,
       silent: true,
     },
     'Generating Quartus project...'
