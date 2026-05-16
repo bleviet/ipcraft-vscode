@@ -117,8 +117,9 @@ const IpCoreApp: React.FC = () => {
     toastTimerRef.current = setTimeout(() => setToast(null), 4000);
   }, []);
 
-  // Whether amd/component.xml exists alongside this .ip.yml (sent by extension on each update)
+  // Whether vendor files exist alongside this .ip.yml (sent by extension on each update)
   const [hasComponentXml, setHasComponentXml] = useState(false);
+  const [hasHwTcl, setHasHwTcl] = useState(false);
 
   // Canvas element selection (Phase 2)
   const {
@@ -334,12 +335,14 @@ const IpCoreApp: React.FC = () => {
         fileName: string;
         imports?: Record<string, unknown>;
         hasComponentXml?: boolean;
+        hasHwTcl?: boolean;
       };
 
       switch (message.type) {
         case 'update':
           updateFromYaml(message.text, message.fileName, message.imports);
           setHasComponentXml(message.hasComponentXml ?? false);
+          setHasHwTcl(message.hasHwTcl ?? false);
           break;
       }
     };
@@ -477,6 +480,16 @@ const IpCoreApp: React.FC = () => {
                   title="Generate Quartus Project"
                   icon="circuit-board"
                   command="fpga-ip-core.generateQuartusProject"
+                />
+                <ToolbarButton
+                  title={
+                    hasHwTcl
+                      ? 'Edit in Platform Designer (Quartus)'
+                      : 'Edit in Platform Designer — run Export Altera first'
+                  }
+                  icon="edit"
+                  disabled={!hasHwTcl}
+                  onClick={() => vscode?.postMessage({ type: 'editInPlatformDesigner' })}
                 />
               </ToolbarGroup>
 

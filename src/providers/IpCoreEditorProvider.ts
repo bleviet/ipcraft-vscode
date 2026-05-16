@@ -17,6 +17,7 @@ import {
   type GenerateOptionsMessage,
 } from './IpCoreGenerateHandler';
 import { editInIpPackagerCommand } from '../commands/editInIpPackager';
+import { editInPlatformDesignerCommand } from '../commands/editInPlatformDesigner';
 
 interface IpcMessage {
   type: string;
@@ -199,6 +200,15 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
         );
         await editInIpPackagerCommand(vscode.Uri.file(componentXmlPath));
       },
+      editInPlatformDesigner: async () => {
+        const ipName = path.basename(document.uri.fsPath).replace(/\.ip\.ya?ml$/, '');
+        const hwTclPath = path.join(
+          path.dirname(document.uri.fsPath),
+          'altera',
+          `${ipName}_hw.tcl`
+        );
+        await editInPlatformDesignerCommand(vscode.Uri.file(hwTclPath));
+      },
     };
 
     webviewPanel.webview.onDidReceiveMessage(async (message: IpcMessage) => {
@@ -230,10 +240,18 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
         baseDir
       );
 
-      const hasComponentXml = await fs
-        .access(path.join(baseDir, 'xilinx', 'component.xml'))
-        .then(() => true)
-        .catch(() => false);
+      const ipName = path.basename(document.uri.fsPath).replace(/\.ip\.ya?ml$/, '');
+
+      const [hasComponentXml, hasHwTcl] = await Promise.all([
+        fs
+          .access(path.join(baseDir, 'xilinx', 'component.xml'))
+          .then(() => true)
+          .catch(() => false),
+        fs
+          .access(path.join(baseDir, 'altera', `${ipName}_hw.tcl`))
+          .then(() => true)
+          .catch(() => false),
+      ]);
 
       if (isDisposed()) {
         this.logger.debug('Webview disposed during import resolution, skipping update');
@@ -246,6 +264,7 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
         fileName: path.basename(document.uri.fsPath),
         imports,
         hasComponentXml,
+        hasHwTcl,
       });
     } catch (error) {
       this.logger.error('Failed to update webview', error as Error);

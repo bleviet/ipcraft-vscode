@@ -232,6 +232,11 @@
           "command": "fpga-ip-core.parseComponentXml",
           "when": "resourceFilename == component.xml",
           "group": "navigation"
+        },
+        {
+          "command": "fpga-ip-core.editInIpPackager",
+          "when": "resourceFilename == component.xml",
+          "group": "navigation"
         }
       ]
     },
