@@ -153,6 +153,18 @@
         "command": "fpga-ip-core.openInQuartus",
         "title": "Open in Quartus",
         "category": "IPCraft"
+      },
+      {
+        "command": "fpga-ip-core.openAsText",
+        "title": "Open as Text Editor",
+        "category": "IPCraft",
+        "icon": "$(file-code)"
+      },
+      {
+        "command": "fpga-ip-core.openAsVisual",
+        "title": "Open as Visual Editor",
+        "category": "IPCraft",
+        "icon": "$(layout)"
       }
     ],
     "submenus": [
@@ -330,6 +342,16 @@
         {
           "command": "fpga-ip-core.openInQuartus",
           "when": "resourceExtname == .qpf",
+          "group": "navigation"
+        },
+        {
+          "command": "fpga-ip-core.openAsText",
+          "when": "activeCustomEditorId == 'fpgaIpCore.editor' || activeCustomEditorId == 'fpgaMemoryMap.editor'",
+          "group": "navigation"
+        },
+        {
+          "command": "fpga-ip-core.openAsVisual",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/ && !activeCustomEditorId || resourceFilename =~ /\\.mm\\.yml$/ && !activeCustomEditorId",
           "group": "navigation"
         }
       ]

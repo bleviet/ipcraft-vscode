@@ -15,6 +15,7 @@ import { editInPlatformDesignerCommand } from './commands/editInPlatformDesigner
 import { openInVivadoCommand } from './commands/openInVivado';
 import { openInQuartusCommand } from './commands/openInQuartus';
 import { scanVivadoCatalogCommand } from './commands/scanVivadoCatalog';
+import { openAsTextCommand, openAsVisualCommand } from './commands/toggleEditorMode';
 import { safeRegisterCommand } from './utils/vscodeHelpers';
 
 const SHARED_EDITOR_OPTIONS = {
@@ -83,6 +84,8 @@ export function activate(context: vscode.ExtensionContext): void {
   safeRegisterCommand(context, 'fpga-ip-core.openInVivado', openInVivadoCommand);
   safeRegisterCommand(context, 'fpga-ip-core.openInQuartus', openInQuartusCommand);
   safeRegisterCommand(context, 'fpga-ip-core.scanVivadoCatalog', scanVivadoCatalogCommand);
+  safeRegisterCommand(context, 'fpga-ip-core.openAsText', openAsTextCommand);
+  safeRegisterCommand(context, 'fpga-ip-core.openAsVisual', openAsVisualCommand);
 
   // Register VHDL Generator Commands
   registerGeneratorCommands(context);
