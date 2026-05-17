@@ -17,6 +17,7 @@ import { openInQuartusCommand } from './commands/openInQuartus';
 import { scanVivadoCatalogCommand } from './commands/scanVivadoCatalog';
 import { openAsTextCommand, openAsVisualCommand } from './commands/toggleEditorMode';
 import { IpCoreSourcePreviewProvider } from './providers/IpCoreSourcePreviewProvider';
+import { TemplateEditorProvider } from './providers/TemplateEditorProvider';
 import { safeRegisterCommand } from './utils/vscodeHelpers';
 
 const SHARED_EDITOR_OPTIONS = {
@@ -102,6 +103,11 @@ export function activate(context: vscode.ExtensionContext): void {
     }
     await vscode.commands.executeCommand('vscode.openWith', targetUri, 'fpgaIpCore.sourcePreview');
   });
+
+  const templateEditorProvider = new TemplateEditorProvider(context);
+  safeRegisterCommand(context, 'fpga-ip-core.openTemplateEditor', (uri?: vscode.Uri) =>
+    templateEditorProvider.open(uri)
+  );
 
   // Register VHDL Generator Commands
   registerGeneratorCommands(context);

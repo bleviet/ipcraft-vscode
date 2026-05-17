@@ -103,6 +103,7 @@ const webviewConfig = {
   entry: {
     webview: path.resolve(projectRoot, "src/webview/index.tsx"),
     ipcore: path.resolve(projectRoot, "src/webview/ipcore/IpCoreApp.tsx"),
+    templateEditor: path.resolve(projectRoot, "src/webview/templateEditor/index.tsx"),
   },
   output: {
     path: path.resolve(projectRoot, "dist"),

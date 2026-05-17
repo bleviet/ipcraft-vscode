@@ -171,6 +171,12 @@
         "title": "Preview in IPCraft",
         "category": "IPCraft",
         "icon": "$(eye)"
+      },
+      {
+        "command": "fpga-ip-core.openTemplateEditor",
+        "title": "Open Template Editor",
+        "category": "IPCraft",
+        "icon": "$(file-code)"
       }
     ],
     "submenus": [

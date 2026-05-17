@@ -35,6 +35,16 @@ export class HtmlGenerator {
     });
   }
 
+  generateTemplateEditorHtml(webview: vscode.Webview): string {
+    return this.generateHtmlForEditor(webview, {
+      scriptName: 'templateEditor.js',
+      styleName: 'templateEditor.css',
+      rootId: 'template-editor-root',
+      title: 'Template Editor',
+      logMessage: 'Generating Template Editor HTML for webview',
+    });
+  }
+
   private generateHtmlForEditor(
     webview: vscode.Webview,
     options: {
