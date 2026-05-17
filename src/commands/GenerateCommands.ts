@@ -166,6 +166,7 @@ async function generateVHDL(context: vscode.ExtensionContext): Promise<void> {
       vendor: 'none',
       includeVhdl: true,
       includeRegs: true,
+      includeTestbench: false,
       updateYaml: true,
       silent: true,
     },
@@ -254,6 +255,7 @@ async function exportAltera(context: vscode.ExtensionContext): Promise<void> {
       vendor: 'altera',
       includeVhdl: false,
       includeRegs: false,
+      includeTestbench: false,
       silent: true,
     },
     'Exporting Altera Platform Designer component...'
@@ -274,6 +276,7 @@ async function exportXilinx(context: vscode.ExtensionContext): Promise<void> {
       vendor: 'xilinx',
       includeVhdl: false,
       includeRegs: false,
+      includeTestbench: false,
       silent: true,
     },
     'Exporting Xilinx Vivado component...'
