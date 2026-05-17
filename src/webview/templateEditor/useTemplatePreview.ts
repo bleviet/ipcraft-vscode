@@ -1,27 +1,38 @@
 import { useState, useEffect } from 'react';
-import * as nunjucks from 'nunjucks';
+import { vscode } from '../vscode';
+import type { HostMessage } from './types';
 
-export function useTemplatePreview(
-  source: string,
-  context: Record<string, unknown>
-): { preview: string; error: string | null } {
+// Sends template source to the extension host for rendering (avoids unsafe-eval in webview CSP).
+// The host renders via TemplateLoader.renderString() and posts back a previewResult message.
+export function useTemplatePreview(source: string): { preview: string; error: string | null } {
   const [preview, setPreview] = useState('');
   const [error, setError] = useState<string | null>(null);
 
+  // Debounced send
   useEffect(() => {
+    if (!source) {
+      setPreview('');
+      setError(null);
+      return;
+    }
     const timer = setTimeout(() => {
-      try {
-        const result = nunjucks.renderString(source, context);
-        setPreview(result);
-        setError(null);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : String(e));
-        setPreview('');
-      }
-    }, 200);
-
+      vscode?.postMessage({ type: 'renderPreview', source });
+    }, 250);
     return () => clearTimeout(timer);
-  }, [source, context]);
+  }, [source]);
+
+  // Receive result
+  useEffect(() => {
+    const handler = (event: MessageEvent<HostMessage>): void => {
+      const msg = event.data;
+      if (msg?.type === 'previewResult') {
+        setPreview(msg.preview ?? '');
+        setError(msg.error ?? null);
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, []);
 
   return { preview, error };
 }

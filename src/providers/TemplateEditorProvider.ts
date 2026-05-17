@@ -5,6 +5,7 @@ import * as yaml from 'js-yaml';
 import { Logger } from '../utils/Logger';
 import { HtmlGenerator } from '../services/HtmlGenerator';
 import { ManifestLoader } from '../generator/ManifestLoader';
+import { TemplateLoader } from '../generator/TemplateLoader';
 import type { ManifestOutput, WebviewMessage } from '../webview/templateEditor/types';
 import type { TemplateManifest } from '../generator/templateManifest';
 
@@ -115,6 +116,8 @@ export class TemplateEditorProvider {
   private readonly logger = new Logger('TemplateEditorProvider');
   private readonly htmlGenerator: HtmlGenerator;
   private readonly builtinTemplatesPath: string;
+  private previewContext: Record<string, unknown> = {};
+  private previewLoader: TemplateLoader | null = null;
 
   constructor(private readonly context: vscode.ExtensionContext) {
     this.htmlGenerator = new HtmlGenerator(context);
@@ -150,6 +153,9 @@ export class TemplateEditorProvider {
         case 'initManifest':
           await this.handleInitManifest(panel, ipCorePath);
           break;
+        case 'renderPreview':
+          this.handleRenderPreview(panel, message.source);
+          break;
         case 'copyBuiltin':
           await this.handleCopyBuiltin(panel, message.templateName, ipCorePath);
           break;
@@ -183,15 +189,33 @@ export class TemplateEditorProvider {
       }
     }
 
+    this.previewContext = this.buildSampleContext(ipCorePath);
+    this.previewLoader = new TemplateLoader(this.logger, this.builtinTemplatesPath);
+
     void panel.webview.postMessage({
       type: 'init',
       builtinTemplates,
       customTemplates,
       manifest,
-      context: this.buildSampleContext(ipCorePath),
+      context: this.previewContext,
       manifestPath,
       customTemplateDir,
     });
+  }
+
+  private handleRenderPreview(panel: vscode.WebviewPanel, source: string): void {
+    try {
+      const preview = this.previewLoader
+        ? this.previewLoader.renderString(source, this.previewContext)
+        : '';
+      void panel.webview.postMessage({ type: 'previewResult', preview, error: null });
+    } catch (e) {
+      void panel.webview.postMessage({
+        type: 'previewResult',
+        preview: '',
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
   }
 
   private async handleInitManifest(panel: vscode.WebviewPanel, ipCorePath?: string): Promise<void> {

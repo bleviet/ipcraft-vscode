@@ -1,26 +1,27 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import * as nunjucks from 'nunjucks';
 import { vscode } from '../vscode';
 import { useTemplatePreview } from './useTemplatePreview';
 import type { HostMessage, ManifestData, ManifestOutput } from './types';
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Helpers — simple regex substitution (no eval, CSP-safe)
 // ---------------------------------------------------------------------------
 
+// Resolves {{ varName }} and {{ varName | filter... }} by substituting the variable
+// value and discarding filter expressions. Safe for CSP: no eval() involved.
 function renderExpr(expr: string, context: Record<string, unknown>): string {
-  try {
-    return nunjucks.renderString(expr, context).trim();
-  } catch {
-    return expr;
-  }
+  return expr.replace(/\{\{([^}]+)\}\}/g, (match: string, inner: string): string => {
+    const varName = (inner.trim().split('|')[0] ?? '').trim();
+    const val: unknown = context[varName];
+    return val !== undefined ? String(val) : match;
+  });
 }
 
 function isWhenTrue(when: string | undefined, context: Record<string, unknown>): boolean {
   if (!when) {
     return true;
   }
-  const v = renderExpr(when, context).toLowerCase();
+  const v = renderExpr(when, context).trim().toLowerCase();
   return v !== '' && v !== 'false' && v !== '0' && v !== 'none';
 }
 
@@ -393,7 +394,7 @@ export const TemplateEditorApp: React.FC = () => {
   const isComponentXml = selectedOutputEntry?.generator === 'component-xml';
   const isReadOnly = selectedTemplate !== null && !isCustom && !isComponentXml;
 
-  const { preview, error: previewError } = useTemplatePreview(editContent, context);
+  const { preview, error: previewError } = useTemplatePreview(editContent);
 
   const flash = useCallback((msg: string) => {
     setStatusMsg(msg);

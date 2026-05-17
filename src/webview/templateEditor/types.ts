@@ -23,11 +23,13 @@ export type HostMessage =
       customTemplateDir: string | null;
     }
   | { type: 'copiedBuiltin'; templateName: string; content: string }
+  | { type: 'previewResult'; preview: string; error: string | null }
   | { type: 'error'; message: string };
 
 export type WebviewMessage =
   | { type: 'ready' }
   | { type: 'initManifest' }
+  | { type: 'renderPreview'; source: string }
   | { type: 'copyBuiltin'; templateName: string }
   | { type: 'saveTemplate'; templateName: string; content: string }
   | {
