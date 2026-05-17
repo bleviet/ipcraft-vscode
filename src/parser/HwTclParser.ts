@@ -336,6 +336,7 @@ export function parseHwTclContent(
     const files = fsData.files.map((f) => ({
       path: path.relative(outputDir, path.resolve(tclDir, f.filePath)),
       type: FILE_TYPE_MAP[f.lang] ?? 'unknown',
+      managed: false,
     }));
 
     if (files.length > 0) {

@@ -113,7 +113,7 @@ export async function parseVerilogFile(
     {
       name: 'RTL_Sources',
       description: 'RTL source files',
-      files: [{ path: relPath, type: fileType }],
+      files: [{ path: relPath, type: fileType, managed: false }],
     },
   ];
 

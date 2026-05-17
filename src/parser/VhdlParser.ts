@@ -133,7 +133,7 @@ export async function parseVhdlFile(
     {
       name: 'RTL_Sources',
       description: 'RTL source files',
-      files: [{ path: relativeVhdlPath, type: 'vhdl' }],
+      files: [{ path: relativeVhdlPath, type: 'vhdl', managed: false }],
     },
   ];
 

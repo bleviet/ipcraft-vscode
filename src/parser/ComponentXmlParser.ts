@@ -676,6 +676,7 @@ export function parseComponentXmlText(
     interface FileEntry {
       path: string;
       type: string;
+      managed: boolean;
       logicalName?: string;
       isIncludeFile?: boolean;
     }
@@ -723,7 +724,11 @@ export function parseComponentXmlText(
         }
         bucket.seenPaths.add(filePath);
 
-        const entry: FileEntry = { path: filePath, type: mapFileType(text(fileEl, 'fileType')) };
+        const entry: FileEntry = {
+          path: filePath,
+          type: mapFileType(text(fileEl, 'fileType')),
+          managed: false,
+        };
 
         const logicalName = text(fileEl, 'logicalName');
         if (logicalName) {
