@@ -92,7 +92,7 @@ export async function pickVivadoPart(
   if (trimmed) {
     await context.globalState.update(LAST_VIVADO_KEY, trimmed);
   }
-  return trimmed.length > 0 ? trimmed : undefined;
+  return trimmed ?? undefined;
 }
 
 export async function pickQuartusDevice(
@@ -163,5 +163,5 @@ export async function pickQuartusDevice(
   if (trimmed) {
     await context.globalState.update(LAST_QUARTUS_KEY, trimmed);
   }
-  return trimmed.length > 0 ? trimmed : undefined;
+  return trimmed ?? undefined;
 }
