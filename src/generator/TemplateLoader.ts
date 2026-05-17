@@ -8,18 +8,20 @@ export class TemplateLoader {
   private readonly env: nunjucks.Environment;
   private readonly templatesPath: string;
 
-  constructor(logger: Logger, templatesPath?: string) {
+  constructor(logger: Logger, templatesPath?: string | string[]) {
     this.logger = logger;
-    this.templatesPath = templatesPath ?? TemplateLoader.resolveTemplatesPath();
 
-    this.env = new nunjucks.Environment(
-      new nunjucks.FileSystemLoader(this.templatesPath, { noCache: true }),
-      {
-        autoescape: false,
-        trimBlocks: true,
-        lstripBlocks: true,
-      }
-    );
+    const paths = Array.isArray(templatesPath)
+      ? templatesPath
+      : [templatesPath ?? TemplateLoader.resolveTemplatesPath()];
+    this.templatesPath = paths[0];
+
+    const loaders = paths.map((p) => new nunjucks.FileSystemLoader(p, { noCache: true }));
+    this.env = new nunjucks.Environment(loaders, {
+      autoescape: false,
+      trimBlocks: true,
+      lstripBlocks: true,
+    });
 
     this.env.addFilter('format', (format: string, value: unknown) => {
       if (typeof format !== 'string') {
@@ -99,5 +101,9 @@ export class TemplateLoader {
 
   render(templateName: string, context: Record<string, unknown>): string {
     return this.env.render(templateName, context);
+  }
+
+  renderString(source: string, context: Record<string, unknown>): string {
+    return this.env.renderString(source, context);
   }
 }

@@ -16,6 +16,8 @@ import {
   resolveMemoryMaps,
 } from './registerProcessor';
 import { generateComponentXml, generateCustomBusDefs } from './VivadoComponentXmlGenerator';
+import { ManifestLoader } from './ManifestLoader';
+import { ManifestDrivenScaffolder } from './ManifestDrivenScaffolder';
 import type {
   BusDefinitions,
   BusPortDefinition,
@@ -61,6 +63,27 @@ export class IpCoreScaffolder {
       if (memmapRelpath !== undefined) {
         context.memmap_relpath = memmapRelpath;
       }
+      const protectedPaths = collectProtectedPaths(ipCoreData);
+
+      const manifest = await ManifestLoader.find(inputPath, this.templates.getTemplatesPath());
+      if (manifest) {
+        const manifestLoader = new TemplateLoader(this.logger, manifest.templateDirs);
+        const manifestScaffolder = new ManifestDrivenScaffolder(
+          this.logger,
+          manifestLoader,
+          manifest,
+          this.busDefinitions ?? {}
+        );
+        return manifestScaffolder.generate(
+          ipCoreData,
+          context,
+          options,
+          outputDir,
+          inputPath,
+          protectedPaths
+        );
+      }
+
       const includeRegs = options.includeRegs !== false && hasMmSlave;
       const includeTestbench = options.includeTestbench !== false;
       const vendor = options.vendor ?? 'none';
@@ -166,20 +189,6 @@ export class IpCoreScaffolder {
       }
 
       const written: Record<string, string> = {};
-
-      // Collect paths marked managed: false — these are user-owned and must not be overwritten
-      type FileSetEntry = { files?: Array<{ path?: string; managed?: boolean }> };
-      const rawFileSets = (ipCoreData as Record<string, unknown>).fileSets as
-        | FileSetEntry[]
-        | undefined;
-      const protectedPaths = new Set<string>();
-      for (const fset of rawFileSets ?? []) {
-        for (const f of fset.files ?? []) {
-          if (f.managed === false && f.path) {
-            protectedPaths.add(f.path);
-          }
-        }
-      }
 
       await Promise.all(
         Object.entries(files).map(async ([relativePath, content]) => {
@@ -486,6 +495,22 @@ export class IpCoreScaffolder {
     }
     return String(value);
   }
+}
+
+function collectProtectedPaths(ipCoreData: IpCoreData): Set<string> {
+  type FileSetEntry = { files?: Array<{ path?: string; managed?: boolean }> };
+  const rawFileSets = (ipCoreData as Record<string, unknown>).fileSets as
+    | FileSetEntry[]
+    | undefined;
+  const protected_ = new Set<string>();
+  for (const fset of rawFileSets ?? []) {
+    for (const f of fset.files ?? []) {
+      if (f.managed === false && f.path) {
+        protected_.add(f.path);
+      }
+    }
+  }
+  return protected_;
 }
 
 function resolveMemmapRelpath(
