@@ -124,13 +124,33 @@ export class TemplateEditorProvider {
     this.builtinTemplatesPath = path.join(context.extensionPath, 'dist', 'templates');
   }
 
+  // Returns the .ip.yml path from an explicit URI, the active text editor,
+  // or the active custom-editor tab (IP Core editor is a webview, so activeTextEditor is undefined).
+  private resolveIpCorePath(uri?: vscode.Uri): string | undefined {
+    if (uri) {
+      return uri.fsPath;
+    }
+
+    const textPath = vscode.window.activeTextEditor?.document.uri.fsPath;
+    if (textPath && (textPath.endsWith('.ip.yml') || textPath.endsWith('.ip.yaml'))) {
+      return textPath;
+    }
+
+    // When a .ip.yml is open in the custom IP Core editor (a webview panel),
+    // activeTextEditor is undefined. The active tab's input carries the URI.
+    const activeTab = vscode.window.tabGroups.activeTabGroup.activeTab;
+    if (activeTab?.input instanceof vscode.TabInputCustom) {
+      const fsPath = activeTab.input.uri.fsPath;
+      if (fsPath.endsWith('.ip.yml') || fsPath.endsWith('.ip.yaml')) {
+        return fsPath;
+      }
+    }
+
+    return undefined;
+  }
+
   async open(uri?: vscode.Uri): Promise<void> {
-    const ipCorePath =
-      uri?.fsPath ??
-      (vscode.window.activeTextEditor?.document.uri.fsPath.endsWith('.ip.yml') ||
-      vscode.window.activeTextEditor?.document.uri.fsPath.endsWith('.ip.yaml')
-        ? vscode.window.activeTextEditor?.document.uri.fsPath
-        : undefined);
+    const ipCorePath = this.resolveIpCorePath(uri);
 
     const panel = vscode.window.createWebviewPanel(
       'ipcraft.templateEditor',
