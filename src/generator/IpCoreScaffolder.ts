@@ -119,7 +119,7 @@ export class IpCoreScaffolder {
 
       if (options.includeVivadoProject) {
         const targetPart = options.targetPart ?? 'xc7z020clg484-1';
-        const rtlFiles = collectRtlFiles(files, ipCoreData);
+        const rtlFiles = collectRtlFiles(files, ipCoreData, inputPath, outputDir);
         const xdcRelPath = `${name}_ooc.xdc`;
         const vivadoContext = {
           ...context,
@@ -145,7 +145,7 @@ export class IpCoreScaffolder {
       if (options.includeQuartusProject) {
         const targetDevice = options.quartusDevice ?? '5CSEBA6U23I7';
         const deviceFamily = quartusDeviceFamily(targetDevice);
-        const rtlFiles = collectRtlFiles(files, ipCoreData);
+        const rtlFiles = collectRtlFiles(files, ipCoreData, inputPath, outputDir);
         const sdcRelPath = `${name}.sdc`;
         const quartusContext = {
           ...context,
@@ -484,19 +484,30 @@ export class IpCoreScaffolder {
   }
 }
 
-function collectRtlFiles(files: Record<string, string>, ipCoreData: IpCoreData): string[] {
+function collectRtlFiles(
+  files: Record<string, string>,
+  ipCoreData: IpCoreData,
+  inputPath: string,
+  outputDir: string
+): string[] {
   const fromFiles = Object.keys(files)
     .filter((f) => f.startsWith('rtl/'))
     .map((f) => `../${f}`);
   if (fromFiles.length > 0) {
     return fromFiles;
   }
+  // Paths in fileSets are relative to the .ip.yml directory. The generated TCL lives one
+  // level inside outputDir (e.g. altera/ or xilinx/), so we compute the path from that
+  // subdirectory to each absolute RTL file path to handle cases where inputPath and
+  // outputDir are not in the same directory.
+  const ipCoreDir = path.dirname(inputPath);
+  const tclSubDir = path.join(outputDir, '_sub');
   type FileSetEntry = { files?: Array<{ path?: string; type?: string }> };
   const fileSets = (ipCoreData as Record<string, unknown>).fileSets as FileSetEntry[] | undefined;
   return (fileSets ?? [])
     .flatMap((fs) => fs.files ?? [])
-    .filter((f) => f.type === 'vhdl' && f.path?.startsWith('rtl/'))
-    .map((f) => `../${f.path}`);
+    .filter((f) => f.type === 'vhdl' && f.path)
+    .map((f) => path.relative(tclSubDir, path.resolve(ipCoreDir, f.path!)));
 }
 
 function parseClockPeriodNs(frequency: string | null | undefined): string | null {
