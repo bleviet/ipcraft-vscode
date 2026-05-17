@@ -565,6 +565,26 @@
         ],
         "priority": "option"
       }
+    ],
+    "keybindings": [
+      {
+        "command": "fpga-ip-core.previewInIpcraft",
+        "key": "ctrl+shift+v",
+        "mac": "cmd+shift+v",
+        "when": "resourceExtname == .vhd && activeCustomEditorId != 'fpgaIpCore.sourcePreview' || resourceExtname == .vhdl && activeCustomEditorId != 'fpgaIpCore.sourcePreview' || resourceFilename =~ /_hw\\.tcl$/ && activeCustomEditorId != 'fpgaIpCore.sourcePreview' || resourceFilename == component.xml && activeCustomEditorId != 'fpgaIpCore.sourcePreview'"
+      },
+      {
+        "command": "fpga-ip-core.openAsVisual",
+        "key": "ctrl+shift+v",
+        "mac": "cmd+shift+v",
+        "when": "resourceFilename =~ /\\.ip\\.yml$/ && !activeCustomEditorId || resourceFilename =~ /\\.mm\\.yml$/ && !activeCustomEditorId"
+      },
+      {
+        "command": "fpga-ip-core.openAsText",
+        "key": "ctrl+shift+v",
+        "mac": "cmd+shift+v",
+        "when": "activeCustomEditorId == 'fpgaIpCore.editor' || activeCustomEditorId == 'fpgaMemoryMap.editor' || activeCustomEditorId == 'fpgaIpCore.sourcePreview'"
+      }
     ]
   },
   "scripts": {
