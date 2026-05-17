@@ -323,8 +323,8 @@ async function generateVivadoProject(context: vscode.ExtensionContext): Promise<
     outputDir,
     {
       vendor: 'none',
-      includeVhdl: true,
-      includeRegs: true,
+      includeVhdl: false,
+      includeRegs: false,
       includeVivadoProject: true,
       targetPart,
       silent: true,
@@ -355,8 +355,8 @@ async function generateQuartusProject(context: vscode.ExtensionContext): Promise
     outputDir,
     {
       vendor: 'none',
-      includeVhdl: true,
-      includeRegs: true,
+      includeVhdl: false,
+      includeRegs: false,
       includeQuartusProject: true,
       quartusDevice,
       silent: true,
