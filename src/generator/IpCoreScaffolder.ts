@@ -57,6 +57,10 @@ export class IpCoreScaffolder {
       const hasMmSlave = hasMemoryMappedSlaveInterface(ipCoreData);
       const context = await this.buildTemplateContext(ipCoreData, busType, inputPath);
       context.has_memory_mapped_slave = hasMmSlave;
+      const memmapRelpath = resolveMemmapRelpath(ipCoreData, inputPath, outputDir);
+      if (memmapRelpath !== undefined) {
+        context.memmap_relpath = memmapRelpath;
+      }
       const includeRegs = options.includeRegs !== false && hasMmSlave;
       const includeTestbench = options.includeTestbench !== false;
       const vendor = options.vendor ?? 'none';
@@ -482,6 +486,22 @@ export class IpCoreScaffolder {
     }
     return String(value);
   }
+}
+
+function resolveMemmapRelpath(
+  ipCore: IpCoreData,
+  inputPath: string,
+  outputDir: string
+): string | undefined {
+  const memoryMaps = ipCore.memory_maps as unknown;
+  if (memoryMaps && !Array.isArray(memoryMaps) && typeof memoryMaps === 'object') {
+    const importVal = (memoryMaps as Record<string, unknown>).import;
+    if (typeof importVal === 'string') {
+      const absPath = path.resolve(path.dirname(inputPath), importVal);
+      return path.relative(path.join(outputDir, 'tb'), absPath);
+    }
+  }
+  return undefined;
 }
 
 function collectRtlFiles(
