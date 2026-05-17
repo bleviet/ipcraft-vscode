@@ -119,9 +119,7 @@ export class IpCoreScaffolder {
 
       if (options.includeVivadoProject) {
         const targetPart = options.targetPart ?? 'xc7z020clg484-1';
-        const rtlFiles = Object.keys(files)
-          .filter((f) => f.startsWith('rtl/'))
-          .map((f) => `../${f}`);
+        const rtlFiles = collectRtlFiles(files, ipCoreData);
         const xdcRelPath = `${name}_ooc.xdc`;
         const vivadoContext = {
           ...context,
@@ -147,9 +145,7 @@ export class IpCoreScaffolder {
       if (options.includeQuartusProject) {
         const targetDevice = options.quartusDevice ?? '5CSEBA6U23I7';
         const deviceFamily = quartusDeviceFamily(targetDevice);
-        const rtlFiles = Object.keys(files)
-          .filter((f) => f.startsWith('rtl/'))
-          .map((f) => `../${f}`);
+        const rtlFiles = collectRtlFiles(files, ipCoreData);
         const sdcRelPath = `${name}.sdc`;
         const quartusContext = {
           ...context,
@@ -486,6 +482,21 @@ export class IpCoreScaffolder {
     }
     return String(value);
   }
+}
+
+function collectRtlFiles(files: Record<string, string>, ipCoreData: IpCoreData): string[] {
+  const fromFiles = Object.keys(files)
+    .filter((f) => f.startsWith('rtl/'))
+    .map((f) => `../${f}`);
+  if (fromFiles.length > 0) {
+    return fromFiles;
+  }
+  type FileSetEntry = { files?: Array<{ path?: string; type?: string }> };
+  const fileSets = (ipCoreData as Record<string, unknown>).fileSets as FileSetEntry[] | undefined;
+  return (fileSets ?? [])
+    .flatMap((fs) => fs.files ?? [])
+    .filter((f) => f.type === 'vhdl' && f.path?.startsWith('rtl/'))
+    .map((f) => `../${f.path}`);
 }
 
 function parseClockPeriodNs(frequency: string | null | undefined): string | null {
