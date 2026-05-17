@@ -7,12 +7,13 @@ import { HtmlGenerator } from '../services/HtmlGenerator';
 import { parseHwTclFile } from '../parser/HwTclParser';
 import { parseComponentXmlFile } from '../parser/ComponentXmlParser';
 import { parseVhdlFile } from '../parser/VhdlParser';
+import { parseVerilogFile } from '../parser/VerilogParser';
 import { IpCoreScaffolder } from '../generator/IpCoreScaffolder';
 import { TemplateLoader } from '../generator/TemplateLoader';
 import { resolveVendor } from '../utils/resolveVendor';
 import type { GenerateOptionsMessage } from './IpCoreGenerateHandler';
 
-type SourceKind = 'hwTcl' | 'componentXml' | 'vhdl';
+type SourceKind = 'hwTcl' | 'componentXml' | 'vhdl' | 'verilog';
 
 interface ParsedSource {
   yamlText: string;
@@ -32,6 +33,9 @@ function detectKind(fsPath: string): SourceKind | null {
   }
   if (fsPath.endsWith('.vhd') || fsPath.endsWith('.vhdl')) {
     return 'vhdl';
+  }
+  if (fsPath.endsWith('.v') || fsPath.endsWith('.sv')) {
+    return 'verilog';
   }
   return null;
 }
@@ -61,6 +65,15 @@ async function parseSource(fsPath: string, kind: SourceKind): Promise<ParsedSour
       });
       const baseName = path.basename(fsPath, path.extname(fsPath));
       return { yamlText: result.yamlText, name: result.entityName ?? baseName };
+    }
+    case 'verilog': {
+      const result = await parseVerilogFile(fsPath, {
+        detectBus: true,
+        vendor: resolveVendor(cfg.get<string>('vendor')),
+        library: cfg.get<string>('library'),
+        version: cfg.get<string>('version'),
+      });
+      return { yamlText: result.yamlText, name: result.moduleName };
     }
   }
 }

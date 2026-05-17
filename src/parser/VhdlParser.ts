@@ -255,7 +255,7 @@ function extractWidthFromType(type: string): number | string | undefined {
   return undefined;
 }
 
-function portToDict(port: ParsedPort): Record<string, unknown> {
+export function portToDict(port: ParsedPort): Record<string, unknown> {
   const upper = port.name.toUpperCase();
   let logicalName = upper;
   for (const prefix of ['IO_', 'I_', 'O_']) {
@@ -287,7 +287,7 @@ function portToDict(port: ParsedPort): Record<string, unknown> {
   return result;
 }
 
-function parseParameterValue(value?: string): unknown {
+export function parseParameterValue(value?: string): unknown {
   if (value === undefined) {
     return undefined;
   }
@@ -302,7 +302,7 @@ function parseParameterValue(value?: string): unknown {
   return trimmed;
 }
 
-function classifyClocksResets(ports: ParsedPort[]): {
+export function classifyClocksResets(ports: ParsedPort[]): {
   clocks: Array<{ name: string }>;
   resets: Array<{ name: string; polarity: string }>;
 } {
@@ -462,7 +462,7 @@ const BUS_DEFINITIONS: readonly BusDef[] = [
   },
 ];
 
-function detectBusInterfaces(
+export function detectBusInterfaces(
   ports: ParsedPort[],
   clockReset: { clocks: Array<{ name: string }>; resets: Array<{ name: string; polarity: string }> }
 ): {

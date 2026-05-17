@@ -337,7 +337,7 @@
         },
         {
           "command": "fpga-ip-core.previewInIpcraft",
-          "when": "resourceExtname == .vhd && activeCustomEditorId != 'fpgaIpCore.sourcePreview' || resourceExtname == .vhdl && activeCustomEditorId != 'fpgaIpCore.sourcePreview'",
+          "when": "resourceExtname == .vhd && activeCustomEditorId != 'fpgaIpCore.sourcePreview' || resourceExtname == .vhdl && activeCustomEditorId != 'fpgaIpCore.sourcePreview' || resourceExtname == .v && activeCustomEditorId != 'fpgaIpCore.sourcePreview' || resourceExtname == .sv && activeCustomEditorId != 'fpgaIpCore.sourcePreview'",
           "group": "navigation"
         },
         {
@@ -561,7 +561,9 @@
           { "filenamePattern": "*_hw.tcl" },
           { "filenamePattern": "component.xml" },
           { "filenamePattern": "*.vhd" },
-          { "filenamePattern": "*.vhdl" }
+          { "filenamePattern": "*.vhdl" },
+          { "filenamePattern": "*.v" },
+          { "filenamePattern": "*.sv" }
         ],
         "priority": "option"
       }
@@ -571,7 +573,7 @@
         "command": "fpga-ip-core.previewInIpcraft",
         "key": "ctrl+shift+v",
         "mac": "cmd+shift+v",
-        "when": "resourceExtname == .vhd && activeCustomEditorId != 'fpgaIpCore.sourcePreview' || resourceExtname == .vhdl && activeCustomEditorId != 'fpgaIpCore.sourcePreview' || resourceFilename =~ /_hw\\.tcl$/ && activeCustomEditorId != 'fpgaIpCore.sourcePreview' || resourceFilename == component.xml && activeCustomEditorId != 'fpgaIpCore.sourcePreview'"
+        "when": "resourceExtname == .vhd && activeCustomEditorId != 'fpgaIpCore.sourcePreview' || resourceExtname == .vhdl && activeCustomEditorId != 'fpgaIpCore.sourcePreview' || resourceExtname == .v && activeCustomEditorId != 'fpgaIpCore.sourcePreview' || resourceExtname == .sv && activeCustomEditorId != 'fpgaIpCore.sourcePreview' || resourceFilename =~ /_hw\\.tcl$/ && activeCustomEditorId != 'fpgaIpCore.sourcePreview' || resourceFilename == component.xml && activeCustomEditorId != 'fpgaIpCore.sourcePreview'"
       },
       {
         "command": "fpga-ip-core.openAsVisual",
