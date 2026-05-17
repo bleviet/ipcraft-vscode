@@ -122,6 +122,8 @@ const IpCoreApp: React.FC = () => {
   const [hasHwTcl, setHasHwTcl] = useState(false);
   const [hasXpr, setHasXpr] = useState(false);
   const [hasQpf, setHasQpf] = useState(false);
+  // True when opened via IpCoreSourcePreviewProvider (source file, not a .ip.yml)
+  const [isPreview, setIsPreview] = useState(false);
 
   // Canvas element selection (Phase 2)
   const {
@@ -340,6 +342,7 @@ const IpCoreApp: React.FC = () => {
         hasHwTcl?: boolean;
         hasXpr?: boolean;
         hasQpf?: boolean;
+        isPreview?: boolean;
       };
 
       switch (message.type) {
@@ -349,6 +352,7 @@ const IpCoreApp: React.FC = () => {
           setHasHwTcl(message.hasHwTcl ?? false);
           setHasXpr(message.hasXpr ?? false);
           setHasQpf(message.hasQpf ?? false);
+          setIsPreview(message.isPreview ?? false);
           break;
       }
     };
@@ -551,6 +555,35 @@ const IpCoreApp: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Preview banner */}
+      {isPreview && (
+        <div
+          className="flex items-center gap-2 px-4"
+          style={{
+            minHeight: '28px',
+            background: 'var(--vscode-inputValidation-infoBackground)',
+            borderBottom: '1px solid var(--vscode-inputValidation-infoBorder)',
+            color: 'var(--vscode-foreground)',
+            fontSize: '12px',
+          }}
+        >
+          <span className="codicon codicon-eye" style={{ flexShrink: 0 }} />
+          <span style={{ opacity: 0.85 }}>
+            Preview — edits are in-memory and not saved to source
+          </span>
+          <button
+            type="button"
+            className="canvas-view-toggle"
+            style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '4px' }}
+            onClick={() => vscode?.postMessage({ type: 'saveAsIpYml' })}
+            title="Write parsed result to .ip.yml and open in the full editor"
+          >
+            <span className="codicon codicon-save" />
+            <span>Save as .ip.yml</span>
+          </button>
+        </div>
+      )}
 
       {/* Main content */}
       <div className="flex-1 flex overflow-hidden">

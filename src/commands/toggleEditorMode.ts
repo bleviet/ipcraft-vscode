@@ -5,7 +5,12 @@ export async function openAsTextCommand(): Promise<void> {
   if (!(activeTab?.input instanceof vscode.TabInputCustom)) {
     return;
   }
-  await vscode.commands.executeCommand('vscode.openWith', activeTab.input.uri, 'default');
+  if (activeTab.input.viewType === 'fpgaIpCore.sourcePreview') {
+    // Source previews (.vhd, _hw.tcl, component.xml) have no paired text tab — just close.
+    await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
+  } else {
+    await vscode.commands.executeCommand('vscode.openWith', activeTab.input.uri, 'default');
+  }
 }
 
 export async function openAsVisualCommand(uri?: vscode.Uri): Promise<void> {

@@ -16,6 +16,7 @@ import { openInVivadoCommand } from './commands/openInVivado';
 import { openInQuartusCommand } from './commands/openInQuartus';
 import { scanVivadoCatalogCommand } from './commands/scanVivadoCatalog';
 import { openAsTextCommand, openAsVisualCommand } from './commands/toggleEditorMode';
+import { IpCoreSourcePreviewProvider } from './providers/IpCoreSourcePreviewProvider';
 import { safeRegisterCommand } from './utils/vscodeHelpers';
 
 const SHARED_EDITOR_OPTIONS = {
@@ -67,6 +68,14 @@ export function activate(context: vscode.ExtensionContext): void {
     'IP Core'
   );
 
+  registerCustomProvider(
+    context,
+    logger,
+    'fpgaIpCore.sourcePreview',
+    new IpCoreSourcePreviewProvider(context),
+    'IP Core Source Preview'
+  );
+
   // Register File Creation Commands
   safeRegisterCommand(context, 'fpga-ip-core.createIpCore', createIpCoreCommand);
   safeRegisterCommand(context, 'fpga-ip-core.createMemoryMap', createMemoryMapCommand);
@@ -86,6 +95,13 @@ export function activate(context: vscode.ExtensionContext): void {
   safeRegisterCommand(context, 'fpga-ip-core.scanVivadoCatalog', scanVivadoCatalogCommand);
   safeRegisterCommand(context, 'fpga-ip-core.openAsText', openAsTextCommand);
   safeRegisterCommand(context, 'fpga-ip-core.openAsVisual', openAsVisualCommand);
+  safeRegisterCommand(context, 'fpga-ip-core.previewInIpcraft', async (uri?: vscode.Uri) => {
+    const targetUri = uri ?? vscode.window.activeTextEditor?.document.uri;
+    if (!targetUri) {
+      return;
+    }
+    await vscode.commands.executeCommand('vscode.openWith', targetUri, 'fpgaIpCore.sourcePreview');
+  });
 
   // Register VHDL Generator Commands
   registerGeneratorCommands(context);

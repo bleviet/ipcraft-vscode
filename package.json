@@ -158,13 +158,19 @@
         "command": "fpga-ip-core.openAsText",
         "title": "Open as Text Editor",
         "category": "IPCraft",
-        "icon": "$(file-code)"
+        "icon": "$(eye-closed)"
       },
       {
         "command": "fpga-ip-core.openAsVisual",
         "title": "Open as Visual Editor",
         "category": "IPCraft",
-        "icon": "$(layout)"
+        "icon": "$(eye)"
+      },
+      {
+        "command": "fpga-ip-core.previewInIpcraft",
+        "title": "Preview in IPCraft",
+        "category": "IPCraft",
+        "icon": "$(eye)"
       }
     ],
     "submenus": [
@@ -238,29 +244,14 @@
           "group": "4_build@4"
         },
         {
-          "command": "fpga-ip-core.parseVHDL",
-          "when": "resourceExtname == .vhd || resourceExtname == .vhdl",
-          "group": "5_import@1"
-        },
-        {
-          "command": "fpga-ip-core.parseHwTcl",
-          "when": "resourceFilename =~ /_hw\\.tcl$/",
-          "group": "5_import@2"
-        },
-        {
           "command": "fpga-ip-core.editInPlatformDesigner",
           "when": "resourceFilename =~ /_hw\\.tcl$/",
-          "group": "5_import@3"
-        },
-        {
-          "command": "fpga-ip-core.parseComponentXml",
-          "when": "resourceFilename == component.xml",
-          "group": "5_import@4"
+          "group": "5_import@1"
         },
         {
           "command": "fpga-ip-core.editInIpPackager",
           "when": "resourceFilename == component.xml",
-          "group": "5_import@5"
+          "group": "5_import@2"
         },
         {
           "command": "fpga-ip-core.openInVivado",
@@ -310,23 +301,8 @@
           "group": "ipcraft@6"
         },
         {
-          "command": "fpga-ip-core.parseVHDL",
-          "when": "resourceExtname == .vhd || resourceExtname == .vhdl",
-          "group": "navigation"
-        },
-        {
-          "command": "fpga-ip-core.parseHwTcl",
-          "when": "resourceFilename =~ /_hw\\.tcl$/",
-          "group": "navigation"
-        },
-        {
           "command": "fpga-ip-core.editInPlatformDesigner",
           "when": "resourceFilename =~ /_hw\\.tcl$/",
-          "group": "navigation"
-        },
-        {
-          "command": "fpga-ip-core.parseComponentXml",
-          "when": "resourceFilename == component.xml",
           "group": "navigation"
         },
         {
@@ -346,7 +322,22 @@
         },
         {
           "command": "fpga-ip-core.openAsText",
-          "when": "activeCustomEditorId == 'fpgaIpCore.editor' || activeCustomEditorId == 'fpgaMemoryMap.editor'",
+          "when": "activeCustomEditorId == 'fpgaIpCore.editor' || activeCustomEditorId == 'fpgaMemoryMap.editor' || activeCustomEditorId == 'fpgaIpCore.sourcePreview'",
+          "group": "navigation"
+        },
+        {
+          "command": "fpga-ip-core.previewInIpcraft",
+          "when": "resourceFilename =~ /_hw\\.tcl$/ && activeCustomEditorId != 'fpgaIpCore.sourcePreview'",
+          "group": "navigation"
+        },
+        {
+          "command": "fpga-ip-core.previewInIpcraft",
+          "when": "resourceFilename == component.xml && activeCustomEditorId != 'fpgaIpCore.sourcePreview'",
+          "group": "navigation"
+        },
+        {
+          "command": "fpga-ip-core.previewInIpcraft",
+          "when": "resourceExtname == .vhd && activeCustomEditorId != 'fpgaIpCore.sourcePreview' || resourceExtname == .vhdl && activeCustomEditorId != 'fpgaIpCore.sourcePreview'",
           "group": "navigation"
         },
         {
@@ -562,6 +553,17 @@
           }
         ],
         "priority": "default"
+      },
+      {
+        "viewType": "fpgaIpCore.sourcePreview",
+        "displayName": "IPCraft Source Preview",
+        "selector": [
+          { "filenamePattern": "*_hw.tcl" },
+          { "filenamePattern": "component.xml" },
+          { "filenamePattern": "*.vhd" },
+          { "filenamePattern": "*.vhdl" }
+        ],
+        "priority": "option"
       }
     ]
   },
