@@ -10,6 +10,7 @@
  */
 
 import * as path from 'path';
+import * as fs from 'fs';
 import { spawnSync } from 'child_process';
 import { generateFixtures, alteraFixtures, hwTclFiles, Fixture, FIXTURE_BASE } from './generator';
 
@@ -97,4 +98,66 @@ it('all Altera _hw.tcl files pass Platform Designer stub validation', () => {
 
   // eslint-disable-next-line no-console
   console.log(`  PASS: ${hwTclEntries.length} hw.tcl file(s) validated`);
+});
+
+it('all Altera Quartus project creation scripts run successfully', () => {
+  if (SKIP) {
+    // eslint-disable-next-line no-console
+    console.log('Skipping Quartus project validation (SKIP_QUARTUS=1)');
+    return;
+  }
+
+  if (alteras.length === 0) {
+    throw new Error('No Altera fixtures were generated — check generator output');
+  }
+
+  for (const fixture of alteras) {
+    const alteraDir = path.join(fixture.outputDir, 'altera');
+    if (!fs.existsSync(alteraDir)) {
+      continue;
+    }
+    const files = fs.readdirSync(alteraDir);
+    const projectTclFile = files.find((f) => f.endsWith('_project.tcl'));
+    if (!projectTclFile) {
+      continue;
+    }
+    const projectTcl = path.join(alteraDir, projectTclFile);
+
+    const tclInContainer = projectTcl.replace(REPO_ROOT, '/work');
+    // quartus_sh needs a writable home directory for its cache/init; run as
+    // root (no --user) so the image's default HOME works. The container is
+    // --rm so nothing persists after the run.
+    const result = spawnSync(
+      'docker',
+      [
+        'run',
+        '--rm',
+        '-v',
+        `${REPO_ROOT}:/work`,
+        '-v',
+        `${FIXTURE_BASE}:${FIXTURE_BASE}`,
+        DOCKER_IMAGE,
+        '/opt/intelFPGA/quartus/bin/quartus_sh',
+        '-t',
+        tclInContainer,
+      ],
+      { encoding: 'utf8', timeout: 30_000, cwd: alteraDir }
+    );
+
+    if (result.error) {
+      throw new Error(`Failed to spawn Docker for ${fixture.name} — ${result.error.message}`);
+    }
+
+    if (result.status !== 0) {
+      throw new Error(
+        [
+          `Quartus project creation FAILED for ${fixture.name} (exit ${result.status})`,
+          `stdout:\n${result.stdout}`,
+          `stderr:\n${result.stderr}`,
+        ].join('\n')
+      );
+    }
+    // eslint-disable-next-line no-console
+    console.log(`  PASS: Quartus project for ${fixture.name}`);
+  }
 });

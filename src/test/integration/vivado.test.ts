@@ -12,6 +12,7 @@
  */
 
 import * as path from 'path';
+import * as fs from 'fs';
 import { spawnSync } from 'child_process';
 import { generateFixtures, xilinxFixtures, Fixture } from './generator';
 
@@ -79,6 +80,161 @@ it('all Xilinx fixtures pass Vivado ipx::check_integrity', () => {
   if (failures.length > 0) {
     throw new Error(
       `Vivado validation failed for ${failures.length} of ${xilinxes.length} fixture(s):\n\n` +
+        failures.join('\n\n---\n\n')
+    );
+  }
+});
+
+it('all fixtures have correct testbench and HDL files generated', () => {
+  if (xilinxes.length === 0) {
+    throw new Error('No Xilinx fixtures were generated — check generator output');
+  }
+
+  for (const fixture of xilinxes) {
+    const isSv = fixture.name.endsWith('_sv');
+    const files = Object.keys(fixture.files);
+
+    // Check top HDL file. Two-pass: prefer a file without _core suffix; fall
+    // back to accepting _core for IPs whose VLNV name itself ends with _core.
+    const ext = isSv ? 'sv' : 'vhd';
+    const baseFilter = (f: string) =>
+      f.startsWith('rtl/') &&
+      f.endsWith(`.${ext}`) &&
+      !f.endsWith(`_pkg.${ext}`) &&
+      !f.endsWith(`_regs.${ext}`) &&
+      !f.includes('_axil') &&
+      !f.includes('_avmm');
+    const topHdl =
+      files.find((f) => baseFilter(f) && !f.endsWith(`_core.${ext}`)) ??
+      files.find((f) => baseFilter(f));
+    expect(topHdl).toBeDefined();
+
+    // Check testbench files
+    expect(files.includes('tb/mm_loader.py')).toBe(true);
+    expect(files.some((f) => f.startsWith('tb/') && f.endsWith('_test.py'))).toBe(true);
+    expect(files.includes('tb/conftest.py')).toBe(true);
+    expect(files.some((f) => f.startsWith('tb/test_') && f.endsWith('_sim.py'))).toBe(true);
+    expect(files.includes('tb/Makefile')).toBe(true);
+  }
+});
+
+it('all Xilinx Vivado project creation scripts run successfully', () => {
+  if (SKIP) {
+    // eslint-disable-next-line no-console
+    console.log('Skipping Vivado project creation validation (SKIP_VIVADO=1)');
+    return;
+  }
+
+  if (xilinxes.length === 0) {
+    throw new Error('No Xilinx fixtures were generated — check generator output');
+  }
+
+  const failures: string[] = [];
+
+  for (const fixture of xilinxes) {
+    const xilinxDir = path.join(fixture.outputDir, 'xilinx');
+    if (!fs.existsSync(xilinxDir)) {
+      continue;
+    }
+    const files = fs.readdirSync(xilinxDir);
+    const projectTclFile = files.find((f) => f.endsWith('_project.tcl'));
+    if (!projectTclFile) {
+      continue;
+    }
+    const projectTcl = path.join(xilinxDir, projectTclFile);
+
+    const result = spawnSync(VIVADO_BIN, ['-mode', 'batch', '-source', projectTcl], {
+      encoding: 'utf8',
+      timeout: 120_000,
+      cwd: xilinxDir,
+    });
+
+    if (result.error) {
+      failures.push(`${fixture.name}: failed to spawn Vivado — ${result.error.message}`);
+      continue;
+    }
+
+    if (result.status !== 0) {
+      failures.push(
+        [
+          `${fixture.name}: project creation FAIL (exit ${result.status})`,
+          `stdout:\n${result.stdout}`,
+          `stderr:\n${result.stderr}`,
+        ].join('\n')
+      );
+    } else {
+      // eslint-disable-next-line no-console
+      console.log(`  PASS: Vivado project created for ${fixture.name}`);
+    }
+  }
+
+  if (failures.length > 0) {
+    throw new Error(
+      `Vivado project creation failed for ${failures.length} of ${xilinxes.length} fixture(s):\n\n` +
+        failures.join('\n\n---\n\n')
+    );
+  }
+});
+
+it('representative Vivado projects compile and synthesize successfully in Out-Of-Context mode', () => {
+  if (SKIP) {
+    // eslint-disable-next-line no-console
+    console.log('Skipping Vivado OOC synthesis validation (SKIP_VIVADO=1)');
+    return;
+  }
+
+  // We choose representative fixtures to compile:
+  // e.g. minimal_vhdl (VHDL) and minimal_sv (SystemVerilog)
+  const targets = xilinxes.filter((f) => f.name === 'minimal_vhdl' || f.name === 'minimal_sv');
+  if (targets.length === 0) {
+    throw new Error('Could not find minimal_vhdl or minimal_sv fixtures');
+  }
+
+  const failures: string[] = [];
+
+  for (const fixture of targets) {
+    const xilinxDir = path.join(fixture.outputDir, 'xilinx');
+    if (!fs.existsSync(xilinxDir)) {
+      failures.push(`${fixture.name}: xilinx directory not found`);
+      continue;
+    }
+    const files = fs.readdirSync(xilinxDir);
+    const runOocTclFile = files.find((f) => f.endsWith('_run_ooc.tcl'));
+    if (!runOocTclFile) {
+      failures.push(`${fixture.name}: run_ooc.tcl not found`);
+      continue;
+    }
+    const runOocTcl = path.join(xilinxDir, runOocTclFile);
+
+    // Run Vivado in batch mode on run_ooc.tcl
+    const result = spawnSync(
+      VIVADO_BIN,
+      ['-mode', 'batch', '-source', runOocTcl, '-nojournal', '-nolog', '-tclargs', '2'],
+      { encoding: 'utf8', timeout: 300_000, cwd: xilinxDir }
+    );
+
+    if (result.error) {
+      failures.push(`${fixture.name}: failed to spawn Vivado OOC — ${result.error.message}`);
+      continue;
+    }
+
+    if (result.status !== 0) {
+      failures.push(
+        [
+          `${fixture.name}: Vivado OOC synthesis FAIL (exit ${result.status})`,
+          `stdout:\n${result.stdout}`,
+          `stderr:\n${result.stderr}`,
+        ].join('\n')
+      );
+    } else {
+      // eslint-disable-next-line no-console
+      console.log(`  PASS: Vivado OOC synthesis for ${fixture.name}`);
+    }
+  }
+
+  if (failures.length > 0) {
+    throw new Error(
+      `Vivado OOC synthesis failed for ${failures.length} of ${targets.length} fixture(s):\n\n` +
         failures.join('\n\n---\n\n')
     );
   }
