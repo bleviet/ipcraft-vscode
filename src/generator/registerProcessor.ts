@@ -122,6 +122,7 @@ export function normalizeIpCoreData(raw: Record<string, unknown>): IpCoreData {
       name: getString(param.name),
       value: (param.value ?? undefined) as number | string | undefined,
       data_type: getString(param.data_type ?? param.dataType),
+      description: param.description ? getString(param.description) : undefined,
     })),
     ports: ports.map((port) => ({
       name: getString(port.name),
@@ -261,6 +262,22 @@ export function getVhdlPortType(width: number, logicalName: string): string {
   return `std_logic_vector(${width - 1} downto 0)`;
 }
 
+export function getSvPortType(width: number, logicalName: string): string {
+  if (['AWADDR', 'ARADDR', 'address'].includes(logicalName)) {
+    return 'logic [C_ADDR_WIDTH-1:0]';
+  }
+  if (['WDATA', 'RDATA', 'writedata', 'readdata'].includes(logicalName)) {
+    return 'logic [C_DATA_WIDTH-1:0]';
+  }
+  if (logicalName === 'WSTRB') {
+    return 'logic [(C_DATA_WIDTH/8)-1:0]';
+  }
+  if (width === 1) {
+    return 'logic';
+  }
+  return `logic [${width - 1}:0]`;
+}
+
 export function getActiveBusPortsFromDefinition(
   ports: Array<{ name: string; width?: number; direction?: string; presence?: string }>,
   useOptionalPorts: string[],
@@ -301,12 +318,14 @@ export function getActiveBusPortsFromDefinition(
     }
 
     let width: number | string = port.width ?? 1;
+    let widthExpr: string | null = null;
     if (portWidthOverrides?.[logicalName] !== undefined) {
       const override = portWidthOverrides[logicalName];
       if (typeof override === 'string') {
         // Resolve parameter reference: use its default value for type generation,
         // but preserve the parameter name for the template (generic reference)
         width = paramDefaults[override] ?? override;
+        widthExpr = override;
       } else {
         width = override;
       }
@@ -316,8 +335,12 @@ export function getActiveBusPortsFromDefinition(
       logical_name: logicalName,
       name: `${physicalPrefix}${logicalName.toLowerCase()}`,
       direction,
+      sv_direction: direction === 'in' ? 'input' : direction === 'out' ? 'output' : 'inout',
       width,
+      width_expr: widthExpr,
+      is_parameterized: widthExpr !== null,
       type: getVhdlPortType(Number(width), logicalName),
+      sv_type: getSvPortType(Number(width), logicalName),
     });
   });
 

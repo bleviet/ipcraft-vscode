@@ -21,6 +21,7 @@ import type {
   BusPortDefinition,
   GenerateOptions,
   GenerateResult,
+  HdlLanguage,
   IpCoreData,
 } from './types';
 
@@ -65,26 +66,47 @@ export class IpCoreScaffolder {
       const includeTestbench = options.includeTestbench !== false;
       const vendor = options.vendor ?? 'none';
       const includeVhdl = options.includeVhdl !== false;
+      const hdlLanguage: HdlLanguage = options.hdlLanguage ?? 'vhdl';
+      const isSv = hdlLanguage === 'systemverilog';
+      context.hdl_language = hdlLanguage;
+      context.is_systemverilog = isSv;
 
       const files: Record<string, string> = {};
       const name = String(ipCoreData?.vlnv?.name ?? 'ip_core').toLowerCase();
 
       if (includeVhdl) {
-        if (hasMmSlave) {
-          files[`rtl/${name}_pkg.vhd`] = this.templates.render('package.vhdl.j2', context);
-        }
-        files[`rtl/${name}.vhd`] = this.templates.render('top.vhdl.j2', context);
-        if (hasMmSlave) {
-          files[`rtl/${name}_core.vhd`] = this.templates.render('core.vhdl.j2', context);
-          files[`rtl/${name}_${busType}.vhd`] = this.templates.render(
-            `bus_${busType}.vhdl.j2`,
-            context
-          );
+        if (isSv) {
+          if (hasMmSlave) {
+            files[`rtl/${name}_pkg.sv`] = this.templates.render('pkg.sv.j2', context);
+          }
+          files[`rtl/${name}.sv`] = this.templates.render('top.sv.j2', context);
+          if (hasMmSlave) {
+            files[`rtl/${name}_core.sv`] = this.templates.render('core.sv.j2', context);
+            files[`rtl/${name}_${busType}.sv`] = this.templates.render(
+              `bus_${busType}.sv.j2`,
+              context
+            );
+          }
+        } else {
+          if (hasMmSlave) {
+            files[`rtl/${name}_pkg.vhd`] = this.templates.render('package.vhdl.j2', context);
+          }
+          files[`rtl/${name}.vhd`] = this.templates.render('top.vhdl.j2', context);
+          if (hasMmSlave) {
+            files[`rtl/${name}_core.vhd`] = this.templates.render('core.vhdl.j2', context);
+            files[`rtl/${name}_${busType}.vhd`] = this.templates.render(
+              `bus_${busType}.vhdl.j2`,
+              context
+            );
+          }
         }
       }
 
       if (includeRegs) {
-        files[`rtl/${name}_regs.vhd`] = this.templates.render('register_file.vhdl.j2', context);
+        files[`rtl/${name}_regs.${isSv ? 'sv' : 'vhd'}`] = this.templates.render(
+          isSv ? 'register_file.sv.j2' : 'register_file.vhdl.j2',
+          context
+        );
       }
 
       if (includeTestbench) {
@@ -92,7 +114,10 @@ export class IpCoreScaffolder {
         files[`tb/${name}_test.py`] = this.templates.render('cocotb_test.py.j2', context);
         files['tb/conftest.py'] = this.templates.render('cocotb_conftest.py.j2', context);
         files[`tb/test_${name}_sim.py`] = this.templates.render('cocotb_pytest.py.j2', context);
-        files['tb/Makefile'] = this.templates.render('cocotb_makefile.j2', context);
+        files['tb/Makefile'] = this.templates.render(
+          isSv ? 'cocotb_makefile.sv.j2' : 'cocotb_makefile.j2',
+          context
+        );
         files['.vscode/settings.json'] = this.templates.render('vscode_settings.json.j2', context);
       }
 
@@ -112,6 +137,7 @@ export class IpCoreScaffolder {
           {
             rtlFiles,
             xguiFile,
+            isSv,
           }
         );
         const customBusDefs = generateCustomBusDefs(ipCoreData, this.busDefinitions ?? {});
@@ -123,7 +149,7 @@ export class IpCoreScaffolder {
 
       if (options.includeVivadoProject) {
         const targetPart = options.targetPart ?? 'xc7z020clg484-1';
-        const rtlFiles = collectRtlFiles(files, ipCoreData, inputPath, outputDir);
+        const rtlFiles = collectRtlFiles(files, ipCoreData, inputPath, outputDir, hdlLanguage);
         const xdcRelPath = `${name}_ooc.xdc`;
         const vivadoContext = {
           ...context,
@@ -149,7 +175,7 @@ export class IpCoreScaffolder {
       if (options.includeQuartusProject) {
         const targetDevice = options.quartusDevice ?? '5CSEBA6U23I7';
         const deviceFamily = quartusDeviceFamily(targetDevice);
-        const rtlFiles = collectRtlFiles(files, ipCoreData, inputPath, outputDir);
+        const rtlFiles = collectRtlFiles(files, ipCoreData, inputPath, outputDir, hdlLanguage);
         const sdcRelPath = `${name}.sdc`;
         const quartusContext = {
           ...context,
@@ -194,9 +220,10 @@ export class IpCoreScaffolder {
         })
       );
 
-      this.logger.info('Generated VHDL files', {
+      this.logger.info('Generated HDL files', {
         count: Object.keys(written).length,
         busType,
+        hdlLanguage,
         outputDir,
       });
 
@@ -207,7 +234,7 @@ export class IpCoreScaffolder {
         busType,
       };
     } catch (error) {
-      this.logger.error('VHDL generation failed', error as Error);
+      this.logger.error('HDL generation failed', error as Error);
       return {
         success: false,
         error: error instanceof Error ? error.message : String(error),
@@ -285,6 +312,8 @@ export class IpCoreScaffolder {
       avst: 'avalon_streaming',
     };
 
+    const parameterNames = (ipCore?.parameters ?? []).map((p) => String(p.name));
+
     if (expandedBusInterfaces.length > 0) {
       const primary = expandedBusInterfaces[0];
       busPrefix = this.normalizePrefix(primary.physical_prefix ?? '');
@@ -301,8 +330,14 @@ export class IpCoreScaffolder {
           iface.use_optional_ports ?? [],
           iface.physical_prefix ?? '',
           iface.mode ?? '',
-          iface.port_width_overrides ?? {}
-        );
+          iface.port_width_overrides ?? {},
+          ipCore?.parameters as
+            | { name: string; value?: string | number; data_type?: string }[]
+            | undefined
+        ) as unknown as (TemplatePort & Record<string, unknown>)[];
+        activePorts.forEach((port) => {
+          port.tcl_width = toTclWidth(port.width, port.width_expr, parameterNames);
+        });
         iface.ports = activePorts;
         if (index === 0) {
           busPorts.push(...activePorts);
@@ -311,6 +346,11 @@ export class IpCoreScaffolder {
         }
       });
     }
+
+    const userPorts = this.prepareUserPorts(ipCore) as unknown as TemplatePort[];
+    userPorts.forEach((port) => {
+      port.tcl_width = toTclWidth(port.width, port.width_expr, parameterNames);
+    });
 
     const clocksWithPeriod = clocks.map((clock) => ({
       name: clock.name ?? '',
@@ -324,7 +364,7 @@ export class IpCoreScaffolder {
       sw_registers: swRegisters,
       hw_registers: hwRegisters,
       generics: this.prepareGenerics(ipCore),
-      user_ports: this.prepareUserPorts(ipCore),
+      user_ports: userPorts,
       interrupt_ports: this.prepareInterruptPorts(ipCore),
       bus_type: busType,
       bus_ports: busPorts,
@@ -358,7 +398,10 @@ export class IpCoreScaffolder {
       return {
         name: param.name,
         type,
+        sv_type: this.resolveSvGenericType(type),
         default_value: this.resolveGenericDefault(param.value, type),
+        sv_default: this.resolveSvGenericDefault(param.value, type),
+        description: param.description ? this.getString(param.description) : '',
       };
     });
   }
@@ -383,6 +426,40 @@ export class IpCoreScaffolder {
     return null;
   }
 
+  private resolveSvGenericType(vhdlType: string): string {
+    const t = vhdlType.toLowerCase().trim();
+    if (t === 'integer' || t === 'natural' || t === 'positive') {
+      return 'int';
+    }
+    if (t === 'boolean') {
+      return 'bit';
+    }
+    if (t === 'string') {
+      return 'string';
+    }
+    return 'int';
+  }
+
+  private resolveSvGenericDefault(
+    value: number | string | undefined,
+    type: string
+  ): number | string | null {
+    if (value !== undefined && value !== null) {
+      return value;
+    }
+    const t = type.toLowerCase().trim();
+    if (t === 'integer' || t === 'natural' || t === 'positive') {
+      return 0;
+    }
+    if (t === 'boolean') {
+      return "1'b0";
+    }
+    if (t === 'string') {
+      return '""';
+    }
+    return null;
+  }
+
   private prepareUserPorts(ipCore: IpCoreData): Array<Record<string, unknown>> {
     const params = ipCore?.parameters ?? [];
     const paramDefaults = new Map<string, number>();
@@ -395,6 +472,7 @@ export class IpCoreScaffolder {
     const ports = ipCore?.ports ?? [];
     return ports.map((port) => {
       const direction = this.getString(port.direction).toLowerCase();
+      const svDirection = direction === 'in' ? 'input' : direction === 'out' ? 'output' : 'inout';
       const widthValue = port.width ?? 1;
       const isParameterized = typeof widthValue === 'string';
 
@@ -403,7 +481,9 @@ export class IpCoreScaffolder {
         return {
           name: String(port.name).toLowerCase(),
           direction,
+          sv_direction: svDirection,
           type: `std_logic_vector(${widthValue}-1 downto 0)`,
+          sv_type: `logic [${widthValue}-1:0]`,
           width: null,
           width_expr: widthValue,
           is_parameterized: true,
@@ -416,7 +496,9 @@ export class IpCoreScaffolder {
         return {
           name: String(port.name).toLowerCase(),
           direction,
+          sv_direction: svDirection,
           type: 'std_logic',
+          sv_type: 'logic',
           width: 1,
           width_expr: null,
           is_parameterized: false,
@@ -427,7 +509,9 @@ export class IpCoreScaffolder {
       return {
         name: String(port.name).toLowerCase(),
         direction,
+        sv_direction: svDirection,
         type: `std_logic_vector(${width - 1} downto 0)`,
+        sv_type: `logic [${width - 1}:0]`,
         width,
         width_expr: null,
         is_parameterized: false,
@@ -508,7 +592,8 @@ function collectRtlFiles(
   files: Record<string, string>,
   ipCoreData: IpCoreData,
   inputPath: string,
-  outputDir: string
+  outputDir: string,
+  hdlLanguage: HdlLanguage = 'vhdl'
 ): string[] {
   const fromFiles = Object.keys(files)
     .filter((f) => f.startsWith('rtl/'))
@@ -522,11 +607,12 @@ function collectRtlFiles(
   // outputDir are not in the same directory.
   const ipCoreDir = path.dirname(inputPath);
   const tclSubDir = path.join(outputDir, '_sub');
+  const rtlType = hdlLanguage === 'systemverilog' ? 'systemverilog' : 'vhdl';
   type FileSetEntry = { files?: Array<{ path?: string; type?: string }> };
   const fileSets = (ipCoreData as Record<string, unknown>).fileSets as FileSetEntry[] | undefined;
   return (fileSets ?? [])
     .flatMap((fs) => fs.files ?? [])
-    .filter((f) => f.type === 'vhdl' && f.path)
+    .filter((f) => f.type === rtlType && f.path)
     .map((f) => path.relative(tclSubDir, path.resolve(ipCoreDir, f.path!)));
 }
 
@@ -597,4 +683,58 @@ function quartusDeviceFamily(device: string): string {
     return 'Stratix III';
   }
   return 'Cyclone V';
+}
+
+function toTclWidthExpression(exprStr: string, paramNames: string[]): string {
+  let converted = exprStr;
+  let hasParam = false;
+  const upperParamNames = paramNames.map((p) => p.toUpperCase());
+
+  converted = converted.replace(/\b([a-zA-Z_][a-zA-Z0-9_]*)\b/g, (match) => {
+    const upper = match.toUpperCase();
+    if (upperParamNames.includes(upper)) {
+      hasParam = true;
+      return `[get_parameter_value ${upper}]`;
+    }
+    return match;
+  });
+
+  if (!hasParam) {
+    return exprStr;
+  }
+
+  const isSimpleRef = /^\[get_parameter_value [a-zA-Z0-9_]+\]$/.test(converted.trim());
+  if (isSimpleRef) {
+    return converted;
+  } else {
+    return `[expr ${converted}]`;
+  }
+}
+
+interface TemplatePort extends Record<string, unknown> {
+  name: string;
+  direction: string;
+  width: number | string | null;
+  width_expr: string | null;
+  is_parameterized: boolean;
+  tcl_width?: string;
+  logical_name?: string;
+  sv_direction?: string;
+  type?: string;
+  sv_type?: string;
+  default_width?: number | null;
+}
+
+function toTclWidth(
+  width: number | string | null,
+  widthExpr: string | null,
+  paramNames: string[]
+): string {
+  if (widthExpr) {
+    return toTclWidthExpression(widthExpr, paramNames);
+  }
+  if (typeof width === 'string') {
+    return toTclWidthExpression(width, paramNames);
+  }
+  return String(width ?? 1);
 }

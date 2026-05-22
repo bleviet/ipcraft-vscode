@@ -24,6 +24,7 @@ namespace eval ::pd {
     variable module_version ""
     variable errors {}
     variable warnings {}
+    variable params [dict create]
 
     proc reset {} {
         set ::pd::interfaces {}
@@ -32,6 +33,7 @@ namespace eval ::pd {
         set ::pd::module_version ""
         set ::pd::errors {}
         set ::pd::warnings {}
+        set ::pd::params [dict create]
     }
 
     proc err {msg} {
@@ -114,6 +116,17 @@ proc set_module_property {key args} {
     }
 }
 
+proc add_parameter {name type {value ""} args} {
+    dict set ::pd::params $name $value
+}
+
+proc get_parameter_value {name} {
+    if {[info exists ::pd::params] && [dict exists $::pd::params $name]} {
+        return [dict get $::pd::params $name]
+    }
+    return 32
+}
+
 # Stubs that accept any arguments and do nothing
 foreach _cmd {
     set_interface_property
@@ -123,7 +136,6 @@ foreach _cmd {
     set_fileset_property
     add_fileset_file
     set_fileset_assignment
-    add_parameter
     set_parameter_property
     add_display_item
     set_display_item_property

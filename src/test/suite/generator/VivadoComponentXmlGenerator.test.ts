@@ -454,6 +454,18 @@ describe('generateComponentXml', () => {
         '<spirit:viewNameRef>xilinx_vhdlbehavioralsimulation</spirit:viewNameRef>'
       );
     });
+
+    it('emits ports with typeName wire and correct view refs when isSv is true', () => {
+      const xml = gen({}, { isSv: true });
+      const clkPort = extractPort(xml, 'clk');
+      expect(clkPort).toContain('<spirit:typeName>wire</spirit:typeName>');
+      expect(clkPort).toContain(
+        '<spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>'
+      );
+      expect(clkPort).toContain(
+        '<spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>'
+      );
+    });
   });
 
   describe('views', () => {
@@ -477,6 +489,18 @@ describe('generateComponentXml', () => {
     it('uses entity name as modelName', () => {
       const xml = gen();
       expect(xml).toContain('<spirit:modelName>my_core</spirit:modelName>');
+    });
+
+    it('emits SystemVerilog anylanguage views when isSv is true', () => {
+      const xml = gen({}, { isSv: true });
+      expect(xml).toContain('<spirit:name>xilinx_anylanguagesynthesis</spirit:name>');
+      expect(xml).toContain(
+        '<spirit:envIdentifier>:vivado.xilinx.com:synthesis</spirit:envIdentifier>'
+      );
+      expect(xml).toContain('<spirit:name>xilinx_anylanguagebehavioralsimulation</spirit:name>');
+      expect(xml).toContain(
+        '<spirit:envIdentifier>:vivado.xilinx.com:simulation</spirit:envIdentifier>'
+      );
     });
   });
 

@@ -382,6 +382,17 @@ describe('HwTclParser', () => {
       };
       expect(doc.parameters[0].value).toBe(16);
     });
+
+    it('parses DESCRIPTION property', () => {
+      const tcl = `
+        add_parameter C_WIDTH INTEGER 8
+        set_parameter_property C_WIDTH DESCRIPTION "The width of the data bus"
+      `;
+      const doc = parseYaml(parse(tcl).yamlText) as {
+        parameters: Array<Record<string, unknown>>;
+      };
+      expect(doc.parameters[0].description).toBe('The width of the data bus');
+    });
   });
 
   describe('full pio_core_axil example', () => {

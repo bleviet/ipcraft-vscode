@@ -44,6 +44,7 @@ interface TclParameter {
   name: string;
   type: string;
   defaultValue?: string;
+  description?: string;
 }
 
 const BUS_TYPE_MAP: Record<string, string> = {
@@ -151,14 +152,14 @@ export function parseHwTclContent(
       }
     } else if (cmd === 'add_parameter' && args.length >= 2) {
       parameters.push({ name: args[0], type: args[1], defaultValue: args[2] });
-    } else if (
-      cmd === 'set_parameter_property' &&
-      args.length >= 3 &&
-      args[1] === 'DEFAULT_VALUE'
-    ) {
+    } else if (cmd === 'set_parameter_property' && args.length >= 3) {
       const param = parameters.find((p) => p.name === args[0]);
       if (param) {
-        param.defaultValue = args[2];
+        if (args[1] === 'DEFAULT_VALUE') {
+          param.defaultValue = args[2];
+        } else if (args[1] === 'DESCRIPTION') {
+          param.description = args[2];
+        }
       }
     }
   }
@@ -316,6 +317,7 @@ export function parseHwTclContent(
       name: p.name,
       value: parseParamValue(p.defaultValue),
       dataType: p.type.toLowerCase(),
+      description: p.description ?? '',
     }));
   }
 

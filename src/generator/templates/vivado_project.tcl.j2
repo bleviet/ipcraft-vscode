@@ -37,8 +37,11 @@ create_project $project_name $project_dir -part $part
 add_files -norecurse [file normalize [file join $script_dir {{ file }}]]
 {% endfor %}
 
-# Use VHDL-2008 for all source files
-set_property file_type {VHDL 2008} [get_files *.vhd]
+# Use VHDL-2008 for VHDL source files (skipped when project contains only SystemVerilog)
+set vhd_files [get_files -quiet *.vhd]
+if {[llength $vhd_files] > 0} {
+    set_property file_type {VHDL 2008} $vhd_files
+}
 
 # ---- Constraints ---------------------------------------------------------
 add_files -fileset constrs_1 [file normalize [file join $script_dir {{ xdc_file }}]]

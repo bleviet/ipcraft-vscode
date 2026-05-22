@@ -118,28 +118,33 @@ export async function generateFixtures(): Promise<Fixture[]> {
   const fixtures: Fixture[] = [];
 
   for (const { name, yamlPath } of sources) {
-    const outputDir = path.join(FIXTURE_BASE, ...name.split('/'));
-    await nodefsp.mkdir(path.dirname(outputDir), { recursive: true });
+    for (const hdlLanguage of ['vhdl', 'systemverilog'] as const) {
+      const isSv = hdlLanguage === 'systemverilog';
+      const fixtureName = `${name}_${isSv ? 'sv' : 'vhdl'}`;
+      const outputDir = path.join(FIXTURE_BASE, ...fixtureName.split('/'));
+      await nodefsp.mkdir(path.dirname(outputDir), { recursive: true });
 
-    // Fresh generation — remove stale files first
-    await nodefsp.rm(outputDir, { recursive: true, force: true });
-    await nodefsp.mkdir(outputDir, { recursive: true });
+      // Fresh generation — remove stale files first
+      await nodefsp.rm(outputDir, { recursive: true, force: true });
+      await nodefsp.mkdir(outputDir, { recursive: true });
 
-    const result = await scaffolder.generateAll(yamlPath, outputDir, {
-      vendor: 'both',
-      includeRegs: true,
-    });
+      const result = await scaffolder.generateAll(yamlPath, outputDir, {
+        vendor: 'both',
+        includeRegs: true,
+        hdlLanguage,
+      });
 
-    fixtures.push({
-      name,
-      yamlPath,
-      outputDir,
-      success: result.success,
-      files: result.files ?? {},
-    });
+      fixtures.push({
+        name: fixtureName,
+        yamlPath,
+        outputDir,
+        success: result.success,
+        files: result.files ?? {},
+      });
 
-    if (!result.success) {
-      console.warn(`[integration] Generation failed for ${name}: ${result.error}`);
+      if (!result.success) {
+        console.warn(`[integration] Generation failed for ${fixtureName}: ${result.error}`);
+      }
     }
   }
 

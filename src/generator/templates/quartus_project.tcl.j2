@@ -30,12 +30,18 @@ project_new $project_name -revision $project_name -overwrite
 # ---- Device settings --------------------------------------------------------
 set_global_assignment -name FAMILY "{{ device_family }}"
 set_global_assignment -name DEVICE {{ target_device }}
+{% if not is_systemverilog %}
 set_global_assignment -name VHDL_INPUT_VERSION VHDL_2008
+{% endif %}
 set_global_assignment -name TOP_LEVEL_ENTITY {{ entity_name }}
 
 # ---- RTL source files -------------------------------------------------------
 {% for file in rtl_files %}
+{% if is_systemverilog %}
+set_global_assignment -name SYSTEMVERILOG_FILE [file normalize [file join $script_dir {{ file }}]]
+{% else %}
 set_global_assignment -name VHDL_FILE [file normalize [file join $script_dir {{ file }}]]
+{% endif %}
 {% endfor %}
 
 # ---- Timing constraints -----------------------------------------------------

@@ -54,7 +54,7 @@ export function updateFileSets(
   const fileSets = [...(existingFileSets ?? [])];
 
   const rtlFiles = yamlRelativeFiles.filter(
-    (file) => file.endsWith('.vhd') && !file.endsWith('_tb.vhd')
+    (file) => (file.endsWith('.vhd') || file.endsWith('.sv')) && !file.endsWith('_tb.vhd')
   );
   const simFiles = yamlRelativeFiles.filter(
     (file) => file.endsWith('.py') || file.endsWith('Makefile') || file.endsWith('_tb.vhd')
@@ -68,7 +68,7 @@ export function updateFileSets(
     ['RTL_Sources', 'rtl_sources', 'rtl', 'RTL'],
     'RTL Sources',
     rtlFiles,
-    () => 'vhdl'
+    (file: string) => (file.endsWith('.sv') ? 'systemverilog' : 'vhdl')
   );
   updateFileSet(
     fileSets,

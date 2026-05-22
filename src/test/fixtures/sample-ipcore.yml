@@ -29,3 +29,4 @@ parameters:
 - name: DATA_WIDTH
   value: 32
   dataType: integer
+  description: Width of the data bus

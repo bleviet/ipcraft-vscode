@@ -223,6 +223,7 @@ export interface ComponentXmlOptions {
   simFiles?: string[];
   xguiFile?: string;
   displayName?: string;
+  isSv?: boolean;
 }
 
 export function generateComponentXml(
@@ -230,7 +231,14 @@ export function generateComponentXml(
   busDefinitions: BusDefinitions,
   options: ComponentXmlOptions = {}
 ): string {
-  const { filePathPrefix = '../', rtlFiles, simFiles, xguiFile, displayName } = options;
+  const {
+    filePathPrefix = '../',
+    rtlFiles,
+    simFiles,
+    xguiFile,
+    displayName,
+    isSv = false,
+  } = options;
 
   const vendor = String(ipCore.vlnv?.vendor ?? 'user');
   const library = String(ipCore.vlnv?.library ?? 'ip');
@@ -320,14 +328,22 @@ export function generateComponentXml(
   // ── model ─────────────────────────────────────────────────────────────────
 
   lines.push('  <spirit:model>');
-  lines.push(...renderViews(name, ipCore.subcores ?? []));
-  lines.push(...renderPorts(clocks, resets, busInterfaces, userPorts, interrupts, busDefinitions));
+  lines.push(...renderViews(name, ipCore.subcores ?? [], isSv));
+  lines.push(
+    ...renderPorts(clocks, resets, busInterfaces, userPorts, interrupts, busDefinitions, isSv)
+  );
   lines.push('  </spirit:model>');
 
   // ── fileSets ──────────────────────────────────────────────────────────────
 
   lines.push(
-    ...renderFileSets(resolvedRtlFiles, resolvedSimFiles, derivedXguiFile, ipCore.subcores ?? [])
+    ...renderFileSets(
+      resolvedRtlFiles,
+      resolvedSimFiles,
+      derivedXguiFile,
+      ipCore.subcores ?? [],
+      isSv
+    )
   );
 
   // ── description ───────────────────────────────────────────────────────────
@@ -553,7 +569,7 @@ function renderInterruptInterface(intr: {
   return lines;
 }
 
-function renderViews(entityName: string, subcores: SubcoreRef[] = []): string[] {
+function renderViews(entityName: string, subcores: SubcoreRef[] = [], isSv = false): string[] {
   function view(
     viewName: string,
     displayName: string,
@@ -589,37 +605,65 @@ function renderViews(entityName: string, subcores: SubcoreRef[] = []): string[] 
     return out;
   }
 
+  const synthViewName = isSv ? 'xilinx_anylanguagesynthesis' : 'xilinx_vhdlsynthesis';
+  const simViewName = isSv
+    ? 'xilinx_anylanguagebehavioralsimulation'
+    : 'xilinx_vhdlbehavioralsimulation';
+
   const synthRefs = subcores.map((ref) => {
     const v = parseVlnv(ref.vlnv);
-    return `xilinx_vhdlsynthesis_${makeRefFileSetSuffix(v)}__ref_view_fileset`;
+    return `${synthViewName}_${makeRefFileSetSuffix(v)}__ref_view_fileset`;
   });
   const simRefs = subcores.map((ref) => {
     const v = parseVlnv(ref.vlnv);
-    return `xilinx_vhdlbehavioralsimulation_${makeRefFileSetSuffix(v)}__ref_view_fileset`;
+    return `${simViewName}_${makeRefFileSetSuffix(v)}__ref_view_fileset`;
   });
 
   const lines: string[] = [];
   lines.push('    <spirit:views>');
-  lines.push(
-    ...view(
-      'xilinx_vhdlsynthesis',
-      'VHDL Synthesis',
-      'vhdlSource:vivado.xilinx.com:synthesis',
-      'xilinx_vhdlsynthesis_view_fileset',
-      'vhdl',
-      synthRefs
-    )
-  );
-  lines.push(
-    ...view(
-      'xilinx_vhdlbehavioralsimulation',
-      'VHDL Simulation',
-      'vhdlSource:vivado.xilinx.com:simulation',
-      'xilinx_vhdlbehavioralsimulation_view_fileset',
-      'vhdl',
-      simRefs
-    )
-  );
+  if (isSv) {
+    lines.push(
+      ...view(
+        synthViewName,
+        'Synthesis',
+        ':vivado.xilinx.com:synthesis',
+        `${synthViewName}_view_fileset`,
+        'verilog',
+        synthRefs
+      )
+    );
+    lines.push(
+      ...view(
+        simViewName,
+        'Simulation',
+        ':vivado.xilinx.com:simulation',
+        `${simViewName}_view_fileset`,
+        'verilog',
+        simRefs
+      )
+    );
+  } else {
+    lines.push(
+      ...view(
+        synthViewName,
+        'VHDL Synthesis',
+        'vhdlSource:vivado.xilinx.com:synthesis',
+        `${synthViewName}_view_fileset`,
+        'vhdl',
+        synthRefs
+      )
+    );
+    lines.push(
+      ...view(
+        simViewName,
+        'VHDL Simulation',
+        'vhdlSource:vivado.xilinx.com:simulation',
+        `${simViewName}_view_fileset`,
+        'vhdl',
+        simRefs
+      )
+    );
+  }
   lines.push(
     ...view('xilinx_xpgui', 'UI Layout', ':vivado.xilinx.com:xgui.ui', 'xilinx_xpgui_view_fileset')
   );
@@ -633,7 +677,8 @@ function renderPorts(
   busInterfaces: BusInterfaceDef[],
   userPorts: Array<{ name?: string; direction?: string; width?: number | string }>,
   interrupts: Array<{ name: string; direction: string }>,
-  busDefinitions: BusDefinitions
+  busDefinitions: BusDefinitions,
+  isSv = false
 ): string[] {
   const portLines: string[] = [];
 
@@ -641,14 +686,14 @@ function renderPorts(
     if (!clock.name) {
       continue;
     }
-    portLines.push(...renderModelPort(clock.name, 'in', 1));
+    portLines.push(...renderModelPort(clock.name, 'in', 1, isSv));
   }
 
   for (const reset of resets) {
     if (!reset.name) {
       continue;
     }
-    portLines.push(...renderModelPort(reset.name, 'in', 1));
+    portLines.push(...renderModelPort(reset.name, 'in', 1, isSv));
   }
 
   for (const iface of busInterfaces) {
@@ -671,7 +716,7 @@ function renderPorts(
     );
     for (const port of activePorts) {
       portLines.push(
-        ...renderModelPort(String(port.name), String(port.direction), Number(port.width))
+        ...renderModelPort(String(port.name), String(port.direction), Number(port.width), isSv)
       );
     }
   }
@@ -681,14 +726,16 @@ function renderPorts(
       continue;
     }
     const width = typeof port.width === 'number' ? port.width : 1;
-    portLines.push(...renderModelPort(String(port.name), String(port.direction ?? 'in'), width));
+    portLines.push(
+      ...renderModelPort(String(port.name), String(port.direction ?? 'in'), width, isSv)
+    );
   }
 
   for (const intr of interrupts) {
     if (!intr.name) {
       continue;
     }
-    portLines.push(...renderModelPort(intr.name, intr.direction === 'in' ? 'in' : 'out', 1));
+    portLines.push(...renderModelPort(intr.name, intr.direction === 'in' ? 'in' : 'out', 1, isSv));
   }
 
   // Spirit XSD requires ports to be absent when empty
@@ -698,7 +745,7 @@ function renderPorts(
   return ['    <spirit:ports>', ...portLines, '    </spirit:ports>'];
 }
 
-function renderModelPort(name: string, direction: string, width: number): string[] {
+function renderModelPort(name: string, direction: string, width: number, isSv = false): string[] {
   const lines: string[] = [];
   lines.push('      <spirit:port>');
   lines.push(`        <spirit:name>${x(name)}</spirit:name>`);
@@ -712,13 +759,23 @@ function renderModelPort(name: string, direction: string, width: number): string
   }
   lines.push('          <spirit:wireTypeDefs>');
   lines.push('            <spirit:wireTypeDef>');
-  lines.push(
-    `              <spirit:typeName>${width > 1 ? 'std_logic_vector' : 'std_logic'}</spirit:typeName>`
-  );
-  lines.push('              <spirit:viewNameRef>xilinx_vhdlsynthesis</spirit:viewNameRef>');
-  lines.push(
-    '              <spirit:viewNameRef>xilinx_vhdlbehavioralsimulation</spirit:viewNameRef>'
-  );
+  if (isSv) {
+    lines.push(`              <spirit:typeName>${width > 1 ? 'wire' : 'wire'}</spirit:typeName>`);
+    lines.push(
+      '              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>'
+    );
+    lines.push(
+      '              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>'
+    );
+  } else {
+    lines.push(
+      `              <spirit:typeName>${width > 1 ? 'std_logic_vector' : 'std_logic'}</spirit:typeName>`
+    );
+    lines.push('              <spirit:viewNameRef>xilinx_vhdlsynthesis</spirit:viewNameRef>');
+    lines.push(
+      '              <spirit:viewNameRef>xilinx_vhdlbehavioralsimulation</spirit:viewNameRef>'
+    );
+  }
   lines.push('            </spirit:wireTypeDef>');
   lines.push('          </spirit:wireTypeDefs>');
   lines.push('        </spirit:wire>');
@@ -730,22 +787,29 @@ function renderFileSets(
   rtlFiles: string[],
   simFiles: string[],
   xguiFile: string,
-  subcores: SubcoreRef[] = []
+  subcores: SubcoreRef[] = [],
+  isSv = false
 ): string[] {
+  const synthViewName = isSv ? 'xilinx_anylanguagesynthesis' : 'xilinx_vhdlsynthesis';
+  const simViewName = isSv
+    ? 'xilinx_anylanguagebehavioralsimulation'
+    : 'xilinx_vhdlbehavioralsimulation';
+  const renderFile = isSv ? renderSvFile : renderVhdlFile;
+
   const lines: string[] = [];
   lines.push('  <spirit:fileSets>');
 
   lines.push('    <spirit:fileSet>');
-  lines.push('      <spirit:name>xilinx_vhdlsynthesis_view_fileset</spirit:name>');
+  lines.push(`      <spirit:name>${synthViewName}_view_fileset</spirit:name>`);
   for (const f of rtlFiles) {
-    lines.push(...renderVhdlFile(f));
+    lines.push(...renderFile(f));
   }
   lines.push('    </spirit:fileSet>');
 
   lines.push('    <spirit:fileSet>');
-  lines.push('      <spirit:name>xilinx_vhdlbehavioralsimulation_view_fileset</spirit:name>');
+  lines.push(`      <spirit:name>${simViewName}_view_fileset</spirit:name>`);
   for (const f of simFiles) {
-    lines.push(...renderVhdlFile(f));
+    lines.push(...renderFile(f));
   }
   lines.push('    </spirit:fileSet>');
 
@@ -761,7 +825,7 @@ function renderFileSets(
   for (const ref of subcores) {
     const v = parseVlnv(ref.vlnv);
     const suffix = makeRefFileSetSuffix(v);
-    for (const prefix of ['xilinx_vhdlsynthesis', 'xilinx_vhdlbehavioralsimulation']) {
+    for (const prefix of [synthViewName, simViewName]) {
       lines.push('    <spirit:fileSet>');
       lines.push(`      <spirit:name>${prefix}_${suffix}__ref_view_fileset</spirit:name>`);
       lines.push('      <spirit:vendorExtensions>');
@@ -787,6 +851,16 @@ function renderVhdlFile(filePath: string): string[] {
     `        <spirit:name>${x(filePath)}</spirit:name>`,
     '        <spirit:fileType>vhdlSource</spirit:fileType>',
     '        <spirit:userFileType>VHDL 2008</spirit:userFileType>',
+    '        <spirit:logicalName>xil_defaultlib</spirit:logicalName>',
+    '      </spirit:file>',
+  ];
+}
+
+function renderSvFile(filePath: string): string[] {
+  return [
+    '      <spirit:file>',
+    `        <spirit:name>${x(filePath)}</spirit:name>`,
+    '        <spirit:fileType>systemVerilogSource</spirit:fileType>',
     '        <spirit:logicalName>xil_defaultlib</spirit:logicalName>',
     '      </spirit:file>',
   ];
@@ -831,6 +905,9 @@ function renderParameters(entityName: string, parameters: ParameterDef[]): strin
     lines.push('    <spirit:parameter>');
     lines.push(`      <spirit:name>${x(pName)}</spirit:name>`);
     lines.push(`      <spirit:displayName>${x(pName.replace(/_/g, ' '))}</spirit:displayName>`);
+    if (param.description) {
+      lines.push(`      <spirit:description>${x(param.description)}</spirit:description>`);
+    }
     lines.push(
       `      <spirit:value spirit:format="${format}" spirit:resolve="user" spirit:id="${x(paramId)}">${x(value)}</spirit:value>`
     );

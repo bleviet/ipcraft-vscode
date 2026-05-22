@@ -154,7 +154,13 @@ async function generateVHDL(context: vscode.ExtensionContext): Promise<void> {
   if (!ipCoreUri) {
     return;
   }
-  const outputDir = await pickOutputDir(ipCoreUri, 'Select output directory for VHDL files');
+  const genCfg = vscode.workspace.getConfiguration('ipcraft.generate');
+  const hdlLanguage = genCfg.get<'vhdl' | 'systemverilog'>('hdlLanguage', 'vhdl');
+  const langLabel = hdlLanguage === 'systemverilog' ? 'SystemVerilog' : 'VHDL';
+  const outputDir = await pickOutputDir(
+    ipCoreUri,
+    `Select output directory for ${langLabel} files`
+  );
   if (!outputDir) {
     return;
   }
@@ -169,8 +175,9 @@ async function generateVHDL(context: vscode.ExtensionContext): Promise<void> {
       includeTestbench: false,
       updateYaml: true,
       silent: true,
+      hdlLanguage,
     },
-    'Generating VHDL...'
+    `Generating ${langLabel}...`
   );
 }
 
@@ -204,6 +211,7 @@ async function scaffoldProject(context: vscode.ExtensionContext): Promise<void> 
   const cfg = vscode.workspace.getConfiguration('ipcraft');
   const genCfg = vscode.workspace.getConfiguration('ipcraft.generate');
   const includeTestbench = genCfg.get<boolean>('includeTestbench', true);
+  const hdlLanguage = genCfg.get<'vhdl' | 'systemverilog'>('hdlLanguage', 'vhdl');
 
   const targetPart = await pickVivadoPart(
     context,
@@ -236,6 +244,7 @@ async function scaffoldProject(context: vscode.ExtensionContext): Promise<void> 
       quartusDevice,
       updateYaml: true,
       silent: true,
+      hdlLanguage,
     },
     'Scaffolding project...'
   );

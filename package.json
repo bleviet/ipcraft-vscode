@@ -393,6 +393,19 @@
             "type": "boolean",
             "default": true,
             "description": "Generate a cocotb testbench (tb/ folder) when scaffolding a project."
+          },
+          "ipcraft.generate.hdlLanguage": {
+            "type": "string",
+            "enum": [
+              "vhdl",
+              "systemverilog"
+            ],
+            "enumDescriptions": [
+              "VHDL — generates .vhd source files",
+              "SystemVerilog — generates .sv source files"
+            ],
+            "default": "vhdl",
+            "description": "HDL language for RTL file generation (VHDL or SystemVerilog)."
           }
         }
       },

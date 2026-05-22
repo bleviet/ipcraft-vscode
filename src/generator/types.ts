@@ -1,4 +1,5 @@
 export type VendorOption = 'none' | 'altera' | 'xilinx' | 'both';
+export type HdlLanguage = 'vhdl' | 'systemverilog';
 
 export interface GenerateOptions {
   vendor?: VendorOption;
@@ -10,6 +11,7 @@ export interface GenerateOptions {
   includeQuartusProject?: boolean;
   quartusDevice?: string;
   updateYaml?: boolean;
+  hdlLanguage?: HdlLanguage;
 }
 
 export interface GenerateResult {
@@ -72,6 +74,7 @@ export interface ParameterDef {
   name?: string;
   value?: number | string;
   data_type?: string;
+  description?: string;
 }
 
 export interface PortDef {

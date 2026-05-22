@@ -94,6 +94,15 @@ describe('IpCoreScaffolder', () => {
     )?.[1];
     expect(tclContent).toContain('add_interface S_AXI axi4lite');
     expect(tclContent).not.toContain('add_interface S_AXI unknown');
+    expect(tclContent).toContain(
+      'set_parameter_property DATA_WIDTH DESCRIPTION "Width of the data bus"'
+    );
+
+    // Verify Vivado component.xml contains parameter description
+    const xmlContent = (fs.writeFile as unknown as jest.Mock).mock.calls.find((call) =>
+      call[0].includes('xilinx/component.xml')
+    )?.[1];
+    expect(xmlContent).toContain('<spirit:description>Width of the data bus</spirit:description>');
   });
 
   it('handles generation failure gracefully', async () => {
