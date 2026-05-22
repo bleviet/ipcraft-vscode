@@ -12,8 +12,8 @@ Visual editor for FPGA IP Core and Memory Map specifications — design, generat
 - **Real-time Validation** — YAML cross-reference checks with click-to-navigate error list
 - **Bi-directional Sync** — changes in the visual editor are instantly reflected in the YAML source, and vice versa
 
-### VHDL Generation
-- **Full Project Scaffold** — one command generates VHDL package, top entity, user-logic skeleton, bus wrapper (AXI-Lite or Avalon-MM), register file with field decode, testbench, and vendor project files
+### HDL Generation
+- **Full Project Scaffold** — one command generates a package, top entity, user-logic skeleton, bus wrapper (AXI-Lite or Avalon-MM), register file with field decode, testbench, and vendor project files in either **VHDL** (`.vhd`) or **SystemVerilog** (`.sv`), controlled by the `ipcraft.generate.hdlLanguage` setting
 - **Vendor Integration** — generates Xilinx/AMD Vivado OOC synthesis project (`.tcl`, `.xdc`) and Intel/Altera Quartus project (`.tcl`, `.sdc`), both ready to open or run headlessly
 
 ### Headless Build (no GUI required)
@@ -26,7 +26,7 @@ Visual editor for FPGA IP Core and Memory Map specifications — design, generat
 
 ### Import
 - **Parse VHDL** — reverse-engineer an existing `.vhd` entity into an `.ip.yml` specification, with automatic clock/reset/bus-interface detection
-- **Parse Platform Designer** — import an Altera `_hw.tcl` component into an `.ip.yml` spec
+- **Parse Platform Designer** — import an Altera `_hw.tcl` component into an `.ip.yml` spec; `source` directives are followed recursively so multi-file IP core packages are imported in full
 - **Parse Vivado IP** — import a Xilinx `component.xml` (IP-XACT) into an `.ip.yml` spec
 
 ---
@@ -47,8 +47,8 @@ All commands are available in the Command Palette (`Ctrl+Shift+P`) under the **I
 
 | Command | Description |
 |---------|-------------|
-| `IPCraft: Scaffold VHDL Project` | Generate VHDL + testbench + Vivado and Quartus project files in one step |
-| `IPCraft: Generate VHDL` | Generate RTL source files only (package, top, core, bus wrapper, register file) |
+| `IPCraft: Scaffold VHDL Project` | Generate RTL sources (VHDL or SystemVerilog) + testbench + Vivado and Quartus project files in one step |
+| `IPCraft: Generate VHDL` | Generate RTL source files only (package, top, core, bus wrapper, register file) in the configured HDL language |
 | `IPCraft: Generate CocoTB Testbench` | Generate a cocotb Python test skeleton and GHDL Makefile |
 | `IPCraft: Generate Vivado Project` | Generate Vivado OOC synthesis project files for a chosen FPGA part |
 | `IPCraft: Generate Quartus Project` | Generate a Quartus project for a chosen device |
@@ -87,16 +87,17 @@ All commands are available in the Command Palette (`Ctrl+Shift+P`) under the **I
 
 ## Generated Project Layout
 
-`IPCraft: Scaffold VHDL Project` produces the following structure next to the `.ip.yml` file:
+`IPCraft: Scaffold VHDL Project` produces the following structure next to the `.ip.yml` file.
+File extensions are `.vhd` for VHDL (default) or `.sv` for SystemVerilog, depending on `ipcraft.generate.hdlLanguage`:
 
 ```text
 <ip_name>/
   rtl/
-    <ip_name>_pkg.vhd        # Package — register constants and types
-    <ip_name>.vhd             # Top entity — instantiates core + bus wrapper
-    <ip_name>_core.vhd        # User logic skeleton (edit this)
-    <ip_name>_axil.vhd        # AXI-Lite bus wrapper (or _avmm for Avalon-MM)
-    <ip_name>_regs.vhd        # Register file with field decode
+    <ip_name>_pkg.vhd/.sv    # Package — register constants and types
+    <ip_name>.vhd/.sv         # Top entity — instantiates core + bus wrapper
+    <ip_name>_core.vhd/.sv    # User logic skeleton (edit this)
+    <ip_name>_axil.vhd/.sv    # AXI-Lite bus wrapper (or _avmm for Avalon-MM)
+    <ip_name>_regs.vhd/.sv    # Register file with field decode
   tb/
     <ip_name>_test.py         # cocotb test skeleton
     Makefile                  # GHDL simulation Makefile
@@ -139,6 +140,7 @@ Configure IPCraft via **File → Preferences → Settings** (search for `IPCraft
 | `ipcraft.quartus.defaultDevice` | `5CSEBA6U23I7` | Default device for Quartus projects |
 | `ipcraft.build.jobs` | `4` | Parallel jobs for Vivado `launch_runs` |
 | `ipcraft.generate.vendor` | `none` | Vendor files to auto-include when scaffolding (`none`, `altera`, `xilinx`, `both`) |
+| `ipcraft.generate.hdlLanguage` | `vhdl` | RTL language for generated source files (`vhdl` or `systemverilog`) |
 | `ipcraft.generate.includeTestbench` | `true` | Include cocotb testbench when scaffolding |
 | `ipcraft.busLibraryPaths` | `[]` | Extra directories to search for custom bus definition YAML files |
 | `ipcraft.ipRepositoryPaths` | `[]` | Extra directories to scan for IP cores |
@@ -197,7 +199,7 @@ Press **F5** in VS Code to launch an Extension Development Host.
 
 ```bash
 npm run watch        # watch mode
-npm run test:unit    # unit tests (549 tests)
+npm run test:unit    # unit tests (579 tests)
 npm run lint         # ESLint (zero warnings)
 npm run type-check   # TypeScript check
 ```
