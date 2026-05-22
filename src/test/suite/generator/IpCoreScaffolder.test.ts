@@ -135,6 +135,8 @@ describe('IpCoreScaffolder', () => {
     expect(vivadoContent).not.toContain('verification/');
     expect(vivadoContent).toContain('rtl/import_core_pkg.vhd');
     expect(vivadoContent).toContain('rtl/import_core.vhd');
+    // SV file from the same RTL_Sources fileset must also be included
+    expect(vivadoContent).toContain('rtl/import_core.sv');
 
     const quartusProjectCall = writtenFiles.find((call) =>
       String(call[0]).includes('altera/import_core_project.tcl')
@@ -147,6 +149,8 @@ describe('IpCoreScaffolder', () => {
     expect(quartusContent).not.toContain('verification/');
     expect(quartusContent).toContain('rtl/import_core_pkg.vhd');
     expect(quartusContent).toContain('rtl/import_core.vhd');
+    // SV file from the same RTL_Sources fileset must also be included
+    expect(quartusContent).toContain('rtl/import_core.sv');
   });
 
   it('handles generation failure gracefully', async () => {

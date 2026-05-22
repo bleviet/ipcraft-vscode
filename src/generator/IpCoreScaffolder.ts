@@ -150,13 +150,7 @@ export class IpCoreScaffolder {
 
       if (options.includeVivadoProject) {
         const targetPart = options.targetPart ?? 'xc7z020clg484-1';
-        const rtlFiles = await collectRtlFiles(
-          files,
-          ipCoreData,
-          inputPath,
-          outputDir,
-          hdlLanguage
-        );
+        const rtlFiles = await collectRtlFiles(files, ipCoreData, inputPath, outputDir);
         const xdcRelPath = `${name}_ooc.xdc`;
         const vivadoContext = {
           ...context,
@@ -182,13 +176,7 @@ export class IpCoreScaffolder {
       if (options.includeQuartusProject) {
         const targetDevice = options.quartusDevice ?? '5CSEBA6U23I7';
         const deviceFamily = quartusDeviceFamily(targetDevice);
-        const rtlFiles = await collectRtlFiles(
-          files,
-          ipCoreData,
-          inputPath,
-          outputDir,
-          hdlLanguage
-        );
+        const rtlFiles = await collectRtlFiles(files, ipCoreData, inputPath, outputDir);
         const sdcRelPath = `${name}.sdc`;
         const quartusContext = {
           ...context,
@@ -610,8 +598,7 @@ async function collectRtlFiles(
   files: Record<string, string>,
   ipCoreData: IpCoreData,
   inputPath: string,
-  outputDir: string,
-  hdlLanguage: HdlLanguage = 'vhdl'
+  outputDir: string
 ): Promise<string[]> {
   const SIM_PREFIXES = ['tb/', 'sim/', 'simulation/', 'testbench/', 'test/'];
   const isSimPath = (p: string) => SIM_PREFIXES.some((prefix) => p.startsWith(prefix));
@@ -630,18 +617,24 @@ async function collectRtlFiles(
   // outputDir are not in the same directory.
   const ipCoreDir = path.dirname(inputPath);
   const tclSubDir = path.join(outputDir, '_sub');
-  const rtlType = hdlLanguage === 'systemverilog' ? 'systemverilog' : 'vhdl';
   type FileSetEntry = { name?: string; files?: Array<{ path?: string; type?: string }> };
   const fileSets = (ipCoreData as Record<string, unknown>).fileSets as FileSetEntry[] | undefined;
 
-  const absPaths = (fileSets ?? [])
+  // Imported IP cores can contain both VHDL and SV files (e.g. when a _hw.tcl sources
+  // subpackage TCLs that contribute files in different languages). Include all HDL files
+  // and pass the per-file language so the full cross-file dependency graph is built.
+  const HDL_TYPES = new Set(['vhdl', 'systemverilog']);
+  const fileItems = (fileSets ?? [])
     .filter((fs) => fs.name !== 'Simulation_Resources')
     .flatMap((fs) => fs.files ?? [])
-    .filter((f) => f.type === rtlType && f.path && !isSimPath(f.path))
-    .map((f) => path.resolve(ipCoreDir, f.path!));
+    .filter((f) => HDL_TYPES.has(f.type ?? '') && f.path && !isSimPath(f.path))
+    .map((f) => ({
+      absPath: path.resolve(ipCoreDir, f.path!),
+      language: f.type as 'vhdl' | 'systemverilog',
+    }));
 
   const sortedAbsPaths = await sortByCompilationOrder(
-    absPaths.map((absPath) => ({ path: absPath, language: rtlType })),
+    fileItems.map(({ absPath, language }) => ({ path: absPath, language })),
     async (p) => {
       try {
         return await fs.readFile(p, 'utf8');
