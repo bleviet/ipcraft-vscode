@@ -209,11 +209,16 @@ export class IpCoreScaffolder {
 
       await Promise.all(
         Object.entries(files).map(async ([relativePath, content]) => {
-          if (protectedPaths.has(relativePath)) {
-            this.logger.info(`Skipping managed:false file: ${relativePath}`);
-            return;
-          }
           const fullPath = path.join(outputDir, relativePath);
+          if (protectedPaths.has(relativePath)) {
+            try {
+              await fs.stat(fullPath);
+              this.logger.info(`Skipping managed:false file: ${relativePath}`);
+              return;
+            } catch {
+              // File does not exist, proceed to write it
+            }
+          }
           await fs.mkdir(path.dirname(fullPath), { recursive: true });
           await fs.writeFile(fullPath, content, 'utf8');
           written[relativePath] = fullPath;
@@ -595,6 +600,9 @@ function collectRtlFiles(
   outputDir: string,
   hdlLanguage: HdlLanguage = 'vhdl'
 ): string[] {
+  const SIM_PREFIXES = ['tb/', 'sim/', 'simulation/', 'testbench/', 'test/'];
+  const isSimPath = (p: string) => SIM_PREFIXES.some((prefix) => p.startsWith(prefix));
+
   const fromFiles = Object.keys(files)
     .filter((f) => f.startsWith('rtl/'))
     .map((f) => `../${f}`);
@@ -612,7 +620,7 @@ function collectRtlFiles(
   const fileSets = (ipCoreData as Record<string, unknown>).fileSets as FileSetEntry[] | undefined;
   return (fileSets ?? [])
     .flatMap((fs) => fs.files ?? [])
-    .filter((f) => f.type === rtlType && f.path)
+    .filter((f) => f.type === rtlType && f.path && !isSimPath(f.path))
     .map((f) => path.relative(tclSubDir, path.resolve(ipCoreDir, f.path!)));
 }
 

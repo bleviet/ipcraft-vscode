@@ -1,0 +1,47 @@
+apiVersion: '1.0'
+vlnv:
+  vendor: test.com
+  library: unit
+  name: import_core
+  version: 1.0.0
+description: IP core fixture for testing project generation with existing fileSets
+clocks:
+- name: clk
+  direction: in
+resets:
+- name: rst
+  direction: in
+  polarity: activeHigh
+busInterfaces:
+- name: S_AXI
+  type: AXI4L
+  mode: slave
+  physicalPrefix: s_axi_
+  associatedClock: clk
+  associatedReset: rst
+  memoryMapRef: MAP
+memoryMaps:
+  import: sample-memmap.yml
+fileSets:
+- name: RTL_Sources
+  files:
+  - path: rtl/import_core_pkg.vhd
+    type: vhdl
+    managed: false
+  - path: rtl/import_core.vhd
+    type: vhdl
+    managed: false
+  - path: rtl/import_core.sv
+    type: systemverilog
+    managed: false
+- name: Simulation_Resources
+  description: Simulation Files
+  files:
+  - path: tb/import_core_tb.vhd
+    type: vhdl
+  - path: tb/import_core_tb.sv
+    type: systemverilog
+  - path: tb/Makefile
+    type: unknown
+  - path: tb/conftest.py
+    type: python

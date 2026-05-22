@@ -105,6 +105,46 @@ describe('IpCoreScaffolder', () => {
     expect(xmlContent).toContain('<spirit:description>Width of the data bus</spirit:description>');
   });
 
+  it('does not add simulation sources to Vivado/Quartus project TCLs', async () => {
+    // When includeVhdl: false, collectRtlFiles falls back to reading fileSets.
+    // Simulation files (in tb/) must be excluded even when their type is vhdl/sv.
+    const inputPath = path.resolve(__dirname, '../../fixtures/import-ipcore.yml');
+    const outputDir = '/tmp/test-import-output';
+
+    const result = await scaffolder.generateAll(inputPath, outputDir, {
+      includeVhdl: false,
+      includeRegs: false,
+      includeTestbench: false,
+      includeVivadoProject: true,
+      includeQuartusProject: true,
+      vendor: 'both',
+    });
+
+    expect(result.success).toBe(true);
+
+    const writtenFiles = (fs.writeFile as unknown as jest.Mock).mock.calls;
+
+    const vivadoProjectCall = writtenFiles.find((call) =>
+      String(call[0]).includes('xilinx/import_core_project.tcl')
+    );
+    expect(vivadoProjectCall).toBeDefined();
+    const vivadoContent: string = vivadoProjectCall![1];
+    expect(vivadoContent).not.toContain('tb/');
+    expect(vivadoContent).not.toContain('import_core_tb');
+    expect(vivadoContent).toContain('rtl/import_core_pkg.vhd');
+    expect(vivadoContent).toContain('rtl/import_core.vhd');
+
+    const quartusProjectCall = writtenFiles.find((call) =>
+      String(call[0]).includes('altera/import_core_project.tcl')
+    );
+    expect(quartusProjectCall).toBeDefined();
+    const quartusContent: string = quartusProjectCall![1];
+    expect(quartusContent).not.toContain('tb/');
+    expect(quartusContent).not.toContain('import_core_tb');
+    expect(quartusContent).toContain('rtl/import_core_pkg.vhd');
+    expect(quartusContent).toContain('rtl/import_core.vhd');
+  });
+
   it('handles generation failure gracefully', async () => {
     // Force an error by passing a non-existent input path
     const result = await scaffolder.generateAll('/non/existent.yml', '/out');
