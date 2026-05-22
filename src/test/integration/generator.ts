@@ -131,6 +131,9 @@ export async function generateFixtures(): Promise<Fixture[]> {
       const result = await scaffolder.generateAll(yamlPath, outputDir, {
         vendor: 'both',
         includeRegs: true,
+        includeTestbench: true,
+        includeVivadoProject: true,
+        includeQuartusProject: true,
         hdlLanguage,
       });
 
