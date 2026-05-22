@@ -16,6 +16,7 @@ import {
   resolveMemoryMaps,
 } from './registerProcessor';
 import { generateComponentXml, generateCustomBusDefs } from './VivadoComponentXmlGenerator';
+import { sortByCompilationOrder } from '../utils/compilationOrder';
 import type {
   BusDefinitions,
   BusPortDefinition,
@@ -149,7 +150,13 @@ export class IpCoreScaffolder {
 
       if (options.includeVivadoProject) {
         const targetPart = options.targetPart ?? 'xc7z020clg484-1';
-        const rtlFiles = collectRtlFiles(files, ipCoreData, inputPath, outputDir, hdlLanguage);
+        const rtlFiles = await collectRtlFiles(
+          files,
+          ipCoreData,
+          inputPath,
+          outputDir,
+          hdlLanguage
+        );
         const xdcRelPath = `${name}_ooc.xdc`;
         const vivadoContext = {
           ...context,
@@ -175,7 +182,13 @@ export class IpCoreScaffolder {
       if (options.includeQuartusProject) {
         const targetDevice = options.quartusDevice ?? '5CSEBA6U23I7';
         const deviceFamily = quartusDeviceFamily(targetDevice);
-        const rtlFiles = collectRtlFiles(files, ipCoreData, inputPath, outputDir, hdlLanguage);
+        const rtlFiles = await collectRtlFiles(
+          files,
+          ipCoreData,
+          inputPath,
+          outputDir,
+          hdlLanguage
+        );
         const sdcRelPath = `${name}.sdc`;
         const quartusContext = {
           ...context,
@@ -593,22 +606,24 @@ function resolveMemmapRelpath(
   return undefined;
 }
 
-function collectRtlFiles(
+async function collectRtlFiles(
   files: Record<string, string>,
   ipCoreData: IpCoreData,
   inputPath: string,
   outputDir: string,
   hdlLanguage: HdlLanguage = 'vhdl'
-): string[] {
+): Promise<string[]> {
   const SIM_PREFIXES = ['tb/', 'sim/', 'simulation/', 'testbench/', 'test/'];
   const isSimPath = (p: string) => SIM_PREFIXES.some((prefix) => p.startsWith(prefix));
 
+  // Generated files are inserted in correct dependency order (pkg → top → core → bus → regs)
   const fromFiles = Object.keys(files)
     .filter((f) => f.startsWith('rtl/'))
     .map((f) => `../${f}`);
   if (fromFiles.length > 0) {
     return fromFiles;
   }
+
   // Paths in fileSets are relative to the .ip.yml directory. The generated TCL lives one
   // level inside outputDir (e.g. altera/ or xilinx/), so we compute the path from that
   // subdirectory to each absolute RTL file path to handle cases where inputPath and
@@ -618,11 +633,25 @@ function collectRtlFiles(
   const rtlType = hdlLanguage === 'systemverilog' ? 'systemverilog' : 'vhdl';
   type FileSetEntry = { name?: string; files?: Array<{ path?: string; type?: string }> };
   const fileSets = (ipCoreData as Record<string, unknown>).fileSets as FileSetEntry[] | undefined;
-  return (fileSets ?? [])
+
+  const absPaths = (fileSets ?? [])
     .filter((fs) => fs.name !== 'Simulation_Resources')
     .flatMap((fs) => fs.files ?? [])
     .filter((f) => f.type === rtlType && f.path && !isSimPath(f.path))
-    .map((f) => path.relative(tclSubDir, path.resolve(ipCoreDir, f.path!)));
+    .map((f) => path.resolve(ipCoreDir, f.path!));
+
+  const sortedAbsPaths = await sortByCompilationOrder(
+    absPaths.map((absPath) => ({ path: absPath, language: rtlType })),
+    async (p) => {
+      try {
+        return await fs.readFile(p, 'utf8');
+      } catch {
+        return null;
+      }
+    }
+  );
+
+  return sortedAbsPaths.map((absPath) => path.relative(tclSubDir, absPath));
 }
 
 function parseClockPeriodNs(frequency: string | null | undefined): string | null {
