@@ -131,6 +131,8 @@ describe('IpCoreScaffolder', () => {
     const vivadoContent: string = vivadoProjectCall![1];
     expect(vivadoContent).not.toContain('tb/');
     expect(vivadoContent).not.toContain('import_core_tb');
+    // verification/ path is in Simulation_Resources but not under a sim prefix — must be excluded by fileset name
+    expect(vivadoContent).not.toContain('verification/');
     expect(vivadoContent).toContain('rtl/import_core_pkg.vhd');
     expect(vivadoContent).toContain('rtl/import_core.vhd');
 
@@ -141,6 +143,8 @@ describe('IpCoreScaffolder', () => {
     const quartusContent: string = quartusProjectCall![1];
     expect(quartusContent).not.toContain('tb/');
     expect(quartusContent).not.toContain('import_core_tb');
+    // verification/ path is in Simulation_Resources but not under a sim prefix — must be excluded by fileset name
+    expect(quartusContent).not.toContain('verification/');
     expect(quartusContent).toContain('rtl/import_core_pkg.vhd');
     expect(quartusContent).toContain('rtl/import_core.vhd');
   });

@@ -616,9 +616,10 @@ function collectRtlFiles(
   const ipCoreDir = path.dirname(inputPath);
   const tclSubDir = path.join(outputDir, '_sub');
   const rtlType = hdlLanguage === 'systemverilog' ? 'systemverilog' : 'vhdl';
-  type FileSetEntry = { files?: Array<{ path?: string; type?: string }> };
+  type FileSetEntry = { name?: string; files?: Array<{ path?: string; type?: string }> };
   const fileSets = (ipCoreData as Record<string, unknown>).fileSets as FileSetEntry[] | undefined;
   return (fileSets ?? [])
+    .filter((fs) => fs.name !== 'Simulation_Resources')
     .flatMap((fs) => fs.files ?? [])
     .filter((f) => f.type === rtlType && f.path && !isSimPath(f.path))
     .map((f) => path.relative(tclSubDir, path.resolve(ipCoreDir, f.path!)));

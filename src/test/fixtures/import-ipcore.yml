@@ -45,3 +45,6 @@ fileSets:
     type: unknown
   - path: tb/conftest.py
     type: python
+  - path: verification/import_core_wave.vhd
+    type: vhdl
+    managed: false
