@@ -1,6 +1,14 @@
 import * as path from 'path';
 import * as yaml from 'js-yaml';
-import { parseHwTclContent } from '../../../parser/HwTclParser';
+import * as fsPromises from 'fs/promises';
+import { parseHwTclContent, parseHwTclFile, extractSourcePath } from '../../../parser/HwTclParser';
+
+jest.mock('fs/promises', () => {
+  const actual = jest.requireActual('fs/promises');
+  return { ...actual, readFile: jest.fn() };
+});
+
+const mockReadFile = fsPromises.readFile as jest.Mock;
 
 const FAKE_PATH = '/project/intel/my_core_hw.tcl';
 
@@ -455,5 +463,232 @@ describe('HwTclParser', () => {
       const fs = (doc.fileSets as Array<Record<string, unknown>>)[0];
       expect(fs.name).toBe('RTL_Sources');
     });
+  });
+});
+
+// ── extractSourcePath ─────────────────────────────────────────────────────────
+
+describe('extractSourcePath', () => {
+  it('returns null for non-source lines', () => {
+    expect(extractSourcePath('')).toBeNull();
+    expect(extractSourcePath('set_module_property NAME core')).toBeNull();
+    expect(extractSourcePath('add_fileset_file core.vhd VHDL PATH rtl/core.vhd')).toBeNull();
+  });
+
+  it('parses a double-quoted path', () => {
+    expect(extractSourcePath('source "sub.tcl"')).toBe('sub.tcl');
+    expect(extractSourcePath('  source "path/to/file.tcl"')).toBe('path/to/file.tcl');
+  });
+
+  it('parses a braced path', () => {
+    expect(extractSourcePath('source {sub.tcl}')).toBe('sub.tcl');
+    expect(extractSourcePath('source {path/to/sub.tcl}')).toBe('path/to/sub.tcl');
+  });
+
+  it('parses a plain unquoted path', () => {
+    expect(extractSourcePath('source sub.tcl')).toBe('sub.tcl');
+    expect(extractSourcePath('source ./sub.tcl')).toBe('./sub.tcl');
+    expect(extractSourcePath('source ../other/sub.tcl')).toBe('../other/sub.tcl');
+  });
+
+  it('parses [file join [file dirname [info script]] single-component]', () => {
+    expect(extractSourcePath('source [file join [file dirname [info script]] sub.tcl]')).toBe(
+      'sub.tcl'
+    );
+  });
+
+  it('parses [file join [file dirname [info script]] quoted-component]', () => {
+    expect(extractSourcePath('source [file join [file dirname [info script]] "sub.tcl"]')).toBe(
+      'sub.tcl'
+    );
+  });
+
+  it('parses [file join [file dirname [info script]] multi-component]', () => {
+    expect(
+      extractSourcePath('source [file join [file dirname [info script]] subdir file.tcl]')
+    ).toBe(path.join('subdir', 'file.tcl'));
+  });
+
+  it('returns null for variable substitutions', () => {
+    expect(extractSourcePath('source $script_dir/sub.tcl')).toBeNull();
+    expect(extractSourcePath('source ${MY_DIR}/sub.tcl')).toBeNull();
+  });
+
+  it('returns null for unresolvable command substitutions', () => {
+    expect(extractSourcePath('source [some_proc args]')).toBeNull();
+  });
+});
+
+// ── parseHwTclFile – source directive handling ────────────────────────────────
+
+describe('parseHwTclFile (source directive)', () => {
+  const MAIN_PATH = '/project/intel/my_core_hw.tcl';
+
+  beforeEach(() => {
+    mockReadFile.mockReset();
+  });
+
+  it('inlines fileset files declared in a sourced sibling file', async () => {
+    const mainTcl = `
+      set_module_property NAME my_core
+      source "sub.tcl"
+    `;
+    const subTcl = `
+      add_fileset QUARTUS_SYNTH QUARTUS_SYNTH "" ""
+      add_fileset_file core.vhd VHDL PATH ../rtl/core.vhd TOP_LEVEL_FILE
+    `;
+
+    mockReadFile.mockImplementation(async (p: string) => {
+      if (p === MAIN_PATH) {
+        return mainTcl;
+      }
+      if (p === '/project/intel/sub.tcl') {
+        return subTcl;
+      }
+      throw Object.assign(new Error(`ENOENT: ${p}`), { code: 'ENOENT' });
+    });
+
+    const { componentName, yamlText } = await parseHwTclFile(MAIN_PATH);
+    const doc = yaml.load(yamlText) as Record<string, unknown>;
+
+    expect(componentName).toBe('my_core');
+    const fileSets = doc.fileSets as Array<Record<string, unknown>>;
+    expect(fileSets).toHaveLength(1);
+    expect(fileSets[0].name).toBe('RTL_Sources');
+    const files = fileSets[0].files as Array<{ path: string }>;
+    expect(files[0].path).toBe(path.join('..', 'rtl', 'core.vhd'));
+  });
+
+  it('normalizes paths from a sourced file in a subdirectory', async () => {
+    // Sub file lives in /project/intel/sub/ — its ../rtl/ refers to /project/intel/rtl/
+    const subPath = '/project/intel/sub/interfaces.tcl';
+    const mainTcl = `
+      set_module_property NAME my_core
+      source "sub/interfaces.tcl"
+    `;
+    const subTcl = `
+      add_fileset QUARTUS_SYNTH QUARTUS_SYNTH "" ""
+      add_fileset_file core.vhd VHDL PATH ../rtl/core.vhd TOP_LEVEL_FILE
+    `;
+
+    mockReadFile.mockImplementation(async (p: string) => {
+      if (p === MAIN_PATH) {
+        return mainTcl;
+      }
+      if (p === subPath) {
+        return subTcl;
+      }
+      throw Object.assign(new Error(`ENOENT: ${p}`), { code: 'ENOENT' });
+    });
+
+    const { yamlText } = await parseHwTclFile(MAIN_PATH);
+    const doc = yaml.load(yamlText) as Record<string, unknown>;
+    const files = (doc.fileSets as Array<Record<string, unknown>>)[0].files as Array<{
+      path: string;
+    }>;
+
+    // ../rtl/core.vhd from /project/intel/sub/ → /project/intel/rtl/core.vhd
+    // relative to /project/intel/ (tclDir of main) → rtl/core.vhd
+    expect(files[0].path).toBe(path.join('rtl', 'core.vhd'));
+  });
+
+  it('handles nested sourced files (A sources B which sources C)', async () => {
+    const subPath = '/project/intel/sub.tcl';
+    const subSubPath = '/project/intel/subsub.tcl';
+
+    mockReadFile.mockImplementation(async (p: string) => {
+      if (p === MAIN_PATH) {
+        return 'source "sub.tcl"';
+      }
+      if (p === subPath) {
+        return 'source "subsub.tcl"';
+      }
+      if (p === subSubPath) {
+        return `
+          add_fileset QUARTUS_SYNTH QUARTUS_SYNTH "" ""
+          add_fileset_file deep.vhd VHDL PATH rtl/deep.vhd
+        `;
+      }
+      throw Object.assign(new Error(`ENOENT: ${p}`), { code: 'ENOENT' });
+    });
+
+    const { yamlText } = await parseHwTclFile(MAIN_PATH);
+    const doc = yaml.load(yamlText) as Record<string, unknown>;
+    const fileSets = doc.fileSets as Array<Record<string, unknown>>;
+    expect(fileSets).toHaveLength(1);
+    expect(fileSets[0].name).toBe('RTL_Sources');
+  });
+
+  it('does not hang or throw on circular source references', async () => {
+    // Main sources itself — cycle detection must prevent infinite recursion
+    const mainTcl = `
+      set_module_property NAME circ_core
+      source "my_core_hw.tcl"
+      add_fileset QUARTUS_SYNTH QUARTUS_SYNTH "" ""
+      add_fileset_file core.vhd VHDL PATH rtl/core.vhd
+    `;
+
+    mockReadFile.mockImplementation(async (p: string) => {
+      if (p === MAIN_PATH) {
+        return mainTcl;
+      }
+      throw Object.assign(new Error(`ENOENT: ${p}`), { code: 'ENOENT' });
+    });
+
+    const { yamlText } = await parseHwTclFile(MAIN_PATH);
+    const doc = yaml.load(yamlText) as Record<string, unknown>;
+    // The fileset from the root level must still be parsed
+    expect(doc.fileSets).toBeDefined();
+  });
+
+  it('silently skips inaccessible sourced files and continues parsing', async () => {
+    const mainTcl = `
+      set_module_property NAME my_core
+      source "nonexistent.tcl"
+      add_fileset QUARTUS_SYNTH QUARTUS_SYNTH "" ""
+      add_fileset_file core.vhd VHDL PATH rtl/core.vhd
+    `;
+
+    mockReadFile.mockImplementation(async (p: string) => {
+      if (p === MAIN_PATH) {
+        return mainTcl;
+      }
+      throw Object.assign(new Error(`ENOENT: ${p}`), { code: 'ENOENT' });
+    });
+
+    const { componentName, yamlText } = await parseHwTclFile(MAIN_PATH);
+    const doc = yaml.load(yamlText) as Record<string, unknown>;
+    expect(componentName).toBe('my_core');
+    const files = (doc.fileSets as Array<Record<string, unknown>>)[0].files as Array<{
+      path: string;
+    }>;
+    expect(files[0].path).toBe(path.join('rtl', 'core.vhd'));
+  });
+
+  it('merges module properties from main and sourced files', async () => {
+    const mainTcl = `
+      set_module_property NAME my_core
+      source "ifaces.tcl"
+    `;
+    const ifacesTcl = `
+      add_interface clk clock end
+      add_interface_port clk s_axi_aclk clk Input 1
+    `;
+
+    mockReadFile.mockImplementation(async (p: string) => {
+      if (p === MAIN_PATH) {
+        return mainTcl;
+      }
+      if (p === '/project/intel/ifaces.tcl') {
+        return ifacesTcl;
+      }
+      throw Object.assign(new Error(`ENOENT: ${p}`), { code: 'ENOENT' });
+    });
+
+    const { yamlText } = await parseHwTclFile(MAIN_PATH);
+    const doc = yaml.load(yamlText) as Record<string, unknown>;
+    const clocks = doc.clocks as Array<Record<string, unknown>>;
+    expect(clocks).toHaveLength(1);
+    expect(clocks[0].name).toBe('s_axi_aclk');
   });
 });

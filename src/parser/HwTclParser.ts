@@ -86,7 +86,149 @@ export async function parseHwTclFile(
   options: HwTclParseOptions = {}
 ): Promise<HwTclParseResult> {
   const content = await fs.readFile(tclPath, 'utf8');
-  return parseHwTclContent(content, tclPath, options);
+  const flattened = await flattenTclContent(content, tclPath, new Set(), false);
+  return parseHwTclContent(flattened, tclPath, options);
+}
+
+// ── Source-file flattening ────────────────────────────────────────────────────
+
+/**
+ * Extracts the path argument from a TCL `source` command line.
+ *
+ * Handles common forms used in Quartus _hw.tcl files:
+ *   source "file.tcl"
+ *   source {file.tcl}
+ *   source file.tcl
+ *   source [file join [file dirname [info script]] subdir file.tcl]
+ *
+ * Returns null for unresolvable forms (variable substitutions, unknown commands).
+ */
+export function extractSourcePath(line: string): string | null {
+  const trimmed = line.trim();
+  if (!/^source\s/.test(trimmed)) {
+    return null;
+  }
+
+  const rest = trimmed.slice('source'.length).trim();
+
+  // Double-quoted string: source "path.tcl"
+  const quotedMatch = /^"([^"]+)"/.exec(rest);
+  if (quotedMatch) {
+    return quotedMatch[1];
+  }
+
+  // Braced string: source {path.tcl}
+  const bracedMatch = /^\{([^}]+)\}/.exec(rest);
+  if (bracedMatch) {
+    return bracedMatch[1];
+  }
+
+  // [file join [file dirname [info script]] component...] — resolves to tclDir/<components>
+  const SCRIPT_DIR_PREFIX = '[file join [file dirname [info script]] ';
+  if (rest.startsWith(SCRIPT_DIR_PREFIX)) {
+    const inner = rest.slice(SCRIPT_DIR_PREFIX.length);
+    const lastBracket = inner.lastIndexOf(']');
+    if (lastBracket >= 0) {
+      const items = parseTclListItems(inner.slice(0, lastBracket).trim());
+      if (items.length > 0) {
+        return path.join(...items);
+      }
+    }
+  }
+
+  // Plain unquoted path (no $, [, { — skip variable/command substitutions)
+  const plainMatch = /^([^\s\[${"\\]+)/.exec(rest);
+  if (plainMatch && plainMatch[1].length > 0) {
+    return plainMatch[1];
+  }
+
+  return null;
+}
+
+function parseTclListItems(s: string): string[] {
+  const items: string[] = [];
+  let i = 0;
+  while (i < s.length) {
+    while (i < s.length && (s[i] === ' ' || s[i] === '\t')) {
+      i++;
+    }
+    if (i >= s.length) {
+      break;
+    }
+    if (s[i] === '"') {
+      i++;
+      let val = '';
+      while (i < s.length && s[i] !== '"') {
+        val += s[i++];
+      }
+      i++;
+      if (val) {
+        items.push(val);
+      }
+    } else {
+      let val = '';
+      while (i < s.length && s[i] !== ' ' && s[i] !== '\t') {
+        val += s[i++];
+      }
+      if (val) {
+        items.push(val);
+      }
+    }
+  }
+  return items;
+}
+
+function normalizeFilesetFilePath(line: string, baseDir: string): string {
+  if (!/^add_fileset_file\b/.test(line.trim())) {
+    return line;
+  }
+  const m = /\bPATH\s+("([^"]+)"|(\S+))/.exec(line);
+  if (!m) {
+    return line;
+  }
+  const filePath = m[2] ?? m[3];
+  if (path.isAbsolute(filePath)) {
+    return line;
+  }
+  return line.replace(m[0], `PATH ${path.resolve(baseDir, filePath)}`);
+}
+
+async function flattenTclContent(
+  content: string,
+  tclPath: string,
+  visited: Set<string>,
+  normalizeFilePaths: boolean
+): Promise<string> {
+  const resolvedPath = path.resolve(tclPath);
+  if (visited.has(resolvedPath)) {
+    return '';
+  }
+  visited.add(resolvedPath);
+
+  const tclDir = path.dirname(resolvedPath);
+  const resultLines: string[] = [];
+
+  for (const rawLine of content.split('\n')) {
+    const sourcePath = extractSourcePath(rawLine);
+    if (sourcePath !== null) {
+      const absSourcePath = path.isAbsolute(sourcePath)
+        ? sourcePath
+        : path.resolve(tclDir, sourcePath);
+      try {
+        const sourceContent = await fs.readFile(absSourcePath, 'utf8');
+        const inlined = await flattenTclContent(sourceContent, absSourcePath, visited, true);
+        resultLines.push(inlined);
+      } catch {
+        // File not accessible — skip (unresolved source commands are already ignored by parser)
+      }
+    } else if (normalizeFilePaths) {
+      resultLines.push(normalizeFilesetFilePath(rawLine, tclDir));
+    } else {
+      resultLines.push(rawLine);
+    }
+  }
+
+  return resultLines.join('\n');
 }
 
 export function parseHwTclContent(
