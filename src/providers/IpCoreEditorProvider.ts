@@ -165,6 +165,7 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
     const watchers = patterns.map((pattern) => {
       const w = vscode.workspace.createFileSystemWatcher(pattern);
       w.onDidCreate(() => void updateWebview());
+      w.onDidChange(() => void updateWebview());
       w.onDidDelete(() => void updateWebview());
       return w;
     });
@@ -214,6 +215,7 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
       command: async (message) => {
         if (message.command) {
           await vscode.commands.executeCommand(String(message.command));
+          void updateWebview();
         }
       },
       openFile: async (message) => {
