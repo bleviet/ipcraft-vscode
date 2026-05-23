@@ -151,15 +151,14 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
     updateWebview: () => Promise<void>
   ): vscode.Disposable {
     const baseDir = path.dirname(document.uri.fsPath);
-    const ipName = path.basename(document.uri.fsPath).replace(/\.ip\.ya?ml$/, '');
 
-    // Watch all artifacts whose presence controls the toolbar button states.
+    // Use name-agnostic globs: vlnv.name (used by the scaffolder) may differ from the filename.
     const patterns = [
       new vscode.RelativePattern(baseDir, 'xilinx/component.xml'),
-      new vscode.RelativePattern(baseDir, `altera/${ipName}_hw.tcl`),
-      new vscode.RelativePattern(baseDir, `xilinx/build/xpr/${ipName}.xpr`),
-      new vscode.RelativePattern(baseDir, `xilinx/build/ooc/${ipName}.xpr`),
-      new vscode.RelativePattern(baseDir, `altera/build/${ipName}.qpf`),
+      new vscode.RelativePattern(baseDir, 'altera/*_hw.tcl'),
+      new vscode.RelativePattern(baseDir, 'xilinx/build/xpr/*.xpr'),
+      new vscode.RelativePattern(baseDir, 'xilinx/build/ooc/*.xpr'),
+      new vscode.RelativePattern(baseDir, 'altera/build/*.qpf'),
     ];
 
     const watchers = patterns.map((pattern) => {
@@ -293,7 +292,14 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
         baseDir
       );
 
-      const ipName = path.basename(document.uri.fsPath).replace(/\.ip\.ya?ml$/, '');
+      // vlnv.name (lowercased) is the name the scaffolder uses for generated files,
+      // which can differ from the .ip.yml filename.
+      const parsedData = parsed as Record<string, unknown>;
+      const vlnv = parsedData?.vlnv as Record<string, unknown> | undefined;
+      const ipName =
+        typeof vlnv?.name === 'string'
+          ? vlnv.name.toLowerCase()
+          : path.basename(document.uri.fsPath).replace(/\.ip\.ya?ml$/, '');
 
       const accessOk = (p: string) =>
         fs
@@ -301,15 +307,24 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
           .then(() => true)
           .catch(() => false);
 
+      const existsAny = async (dir: string, pattern: RegExp): Promise<boolean> => {
+        try {
+          const entries = await fs.readdir(dir);
+          return entries.some((e) => pattern.test(e));
+        } catch {
+          return false;
+        }
+      };
+
       // _run_ooc.tcl sources _project.tcl which creates the project in build/ooc/;
       // _run_xpr.tcl creates a separate full project in build/xpr/.
       // Both are valid "open in Vivado" targets.
       const [hasComponentXml, hasHwTcl, hasXprFull, hasXprOoc, hasQpf] = await Promise.all([
         accessOk(path.join(baseDir, 'xilinx', 'component.xml')),
         accessOk(path.join(baseDir, 'altera', `${ipName}_hw.tcl`)),
-        accessOk(path.join(baseDir, 'xilinx', 'build', 'xpr', `${ipName}.xpr`)),
-        accessOk(path.join(baseDir, 'xilinx', 'build', 'ooc', `${ipName}.xpr`)),
-        accessOk(path.join(baseDir, 'altera', 'build', `${ipName}.qpf`)),
+        existsAny(path.join(baseDir, 'xilinx', 'build', 'xpr'), /\.xpr$/),
+        existsAny(path.join(baseDir, 'xilinx', 'build', 'ooc'), /\.xpr$/),
+        existsAny(path.join(baseDir, 'altera', 'build'), /\.qpf$/),
       ]);
       const hasXpr = hasXprFull || hasXprOoc;
 
