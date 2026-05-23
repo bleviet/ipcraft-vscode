@@ -39,7 +39,7 @@ const ToolbarButton: React.FC<ToolbarButtonProps> = ({
     disabled={disabled}
     onClick={onClick ?? (() => command && vscode?.postMessage({ type: 'command', command }))}
     aria-label={title}
-    style={disabled ? { opacity: 0.4, cursor: 'not-allowed', pointerEvents: 'none' } : undefined}
+    style={disabled ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}
   >
     <span className={`codicon codicon-${icon}`} />
   </button>
@@ -487,11 +487,6 @@ const IpCoreApp: React.FC = () => {
                   command="fpga-ip-core.exportAltera"
                 />
                 <ToolbarButton
-                  title="Generate Quartus Project"
-                  icon="circuit-board"
-                  command="fpga-ip-core.generateQuartusProject"
-                />
-                <ToolbarButton
                   title={
                     hasHwTcl
                       ? 'Edit in Platform Designer (Quartus)'
@@ -500,6 +495,11 @@ const IpCoreApp: React.FC = () => {
                   icon="edit"
                   disabled={!hasHwTcl}
                   onClick={() => vscode?.postMessage({ type: 'editInPlatformDesigner' })}
+                />
+                <ToolbarButton
+                  title="Generate Quartus Project"
+                  icon="circuit-board"
+                  command="fpga-ip-core.generateQuartusProject"
                 />
                 <ToolbarButton
                   title={hasQpf ? 'Open in Quartus' : 'Open in Quartus — generate project first'}
@@ -525,11 +525,6 @@ const IpCoreApp: React.FC = () => {
                   command="fpga-ip-core.exportXilinx"
                 />
                 <ToolbarButton
-                  title="Generate Vivado Project"
-                  icon="circuit-board"
-                  command="fpga-ip-core.generateVivadoProject"
-                />
-                <ToolbarButton
                   title={
                     hasComponentXml
                       ? 'Edit in IP Packager (Vivado)'
@@ -538,6 +533,11 @@ const IpCoreApp: React.FC = () => {
                   icon="edit"
                   disabled={!hasComponentXml}
                   onClick={() => vscode?.postMessage({ type: 'editInIpPackager' })}
+                />
+                <ToolbarButton
+                  title="Generate Vivado Project"
+                  icon="circuit-board"
+                  command="fpga-ip-core.generateVivadoProject"
                 />
                 <ToolbarButton
                   title={hasXpr ? 'Open in Vivado' : 'Open in Vivado — generate project first'}
