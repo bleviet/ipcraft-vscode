@@ -25,7 +25,8 @@ export interface VivadoLauncher {
  * Expected layouts (tried in order):
  *   Windows — <installDir>/bin/unwrapped/win64.o/vvgl.exe  +  <installDir>/bin/vivado.bat
  *             <installDir>/bin/vivado.bat                      (fallback, no wrapper)
- *   Linux   — <installDir>/bin/vivado
+ *   Linux   — <installDir>/bin/vivado           (user set the version-specific dir)
+ *             <installDir>/<version>/bin/vivado  (user set the Vivado family dir)
  *
  * Returns null if no matching executable is found.
  */
@@ -42,9 +43,27 @@ export function findVivadoInInstallDir(installDir: string): VivadoLauncher | nul
       return { exe: script, prefixArgs: [] };
     }
   } else {
+    // Direct: installDir is the version-specific directory.
     const binary = path.join(installDir, LINUX_BIN_SUBPATH);
     if (fs.existsSync(binary)) {
       return { exe: binary, prefixArgs: [] };
+    }
+
+    // Fallback: installDir is the Vivado family directory that contains versioned
+    // subdirectories (e.g. /tools/Xilinx/Vivado/2024.2/). Scan one level deep and
+    // pick the latest version (lexicographic descending — Xilinx uses YYYY.N).
+    try {
+      const entries = fs.readdirSync(installDir);
+      const candidates = entries
+        .map((e) => path.join(installDir, e, 'bin', 'vivado'))
+        .filter((p) => fs.existsSync(p))
+        .sort()
+        .reverse();
+      if (candidates.length > 0) {
+        return { exe: candidates[0], prefixArgs: [] };
+      }
+    } catch {
+      // installDir doesn't exist or isn't readable — fall through to null.
     }
   }
 
