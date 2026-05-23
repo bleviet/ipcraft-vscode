@@ -220,11 +220,13 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
           void updateWebview();
         }
       },
-      toggleHdlLanguage: async () => {
+      setHdlLanguage: async (message) => {
+        const lang = message.language as string;
+        if (lang !== 'vhdl' && lang !== 'systemverilog') {
+          return;
+        }
         const cfg = vscode.workspace.getConfiguration('ipcraft.generate');
-        const current = cfg.get<string>('hdlLanguage', 'vhdl');
-        const next = current === 'systemverilog' ? 'vhdl' : 'systemverilog';
-        await cfg.update('hdlLanguage', next, vscode.ConfigurationTarget.Global);
+        await cfg.update('hdlLanguage', lang, vscode.ConfigurationTarget.Global);
         // onDidChangeConfiguration fires updateWebview automatically
       },
       openFile: async (message) => {

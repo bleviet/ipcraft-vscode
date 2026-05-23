@@ -48,6 +48,67 @@ const ToolbarButton: React.FC<ToolbarButtonProps> = ({
   </button>
 );
 
+interface HdlLanguagePickerProps {
+  value: 'vhdl' | 'systemverilog';
+}
+
+const HdlLanguagePicker: React.FC<HdlLanguagePickerProps> = ({ value }) => {
+  const set = (lang: 'vhdl' | 'systemverilog') =>
+    vscode?.postMessage({ type: 'setHdlLanguage', language: lang });
+
+  const pillStyle = (lang: 'vhdl' | 'systemverilog'): React.CSSProperties => {
+    const active = value === lang;
+    return {
+      fontSize: '9px',
+      fontWeight: 600,
+      letterSpacing: '0.04em',
+      lineHeight: 1,
+      padding: '2px 4px',
+      borderRadius: 3,
+      border: 'none',
+      cursor: active ? 'default' : 'pointer',
+      userSelect: 'none',
+      background: active
+        ? lang === 'vhdl'
+          ? 'rgba(224, 150, 50, 0.20)'
+          : 'rgba(60, 150, 220, 0.20)'
+        : 'transparent',
+      color: active
+        ? lang === 'vhdl'
+          ? '#e09632'
+          : '#3c96dc'
+        : 'var(--vscode-descriptionForeground)',
+      opacity: active ? 1 : 0.5,
+    };
+  };
+
+  return (
+    <div
+      style={{ display: 'flex', flexDirection: 'column', gap: 2, justifyContent: 'center' }}
+      title={
+        value === 'vhdl' ? 'Click .SV to switch to SystemVerilog' : 'Click .VHD to switch to VHDL'
+      }
+    >
+      <button
+        style={pillStyle('vhdl')}
+        onClick={() => set('vhdl')}
+        type="button"
+        aria-label="Use VHDL"
+      >
+        .VHD
+      </button>
+      <button
+        style={pillStyle('systemverilog')}
+        onClick={() => set('systemverilog')}
+        type="button"
+        aria-label="Use SystemVerilog"
+      >
+        .SV
+      </button>
+    </div>
+  );
+};
+
 interface ToolbarGroupProps {
   label: string;
   children: React.ReactNode;
@@ -455,18 +516,11 @@ const IpCoreApp: React.FC = () => {
                   command="fpga-ip-core.createMemoryMap"
                 />
                 <ToolbarButton
-                  title={
-                    hdlLanguage === 'systemverilog'
-                      ? 'Generate SystemVerilog (right-click to switch to VHDL)'
-                      : 'Generate VHDL (right-click to switch to SystemVerilog)'
-                  }
+                  title={`Generate ${hdlLanguage === 'systemverilog' ? 'SystemVerilog' : 'VHDL'}`}
                   icon="code"
                   command="fpga-ip-core.generateHdl"
-                  onContextMenu={(e) => {
-                    e.preventDefault();
-                    vscode?.postMessage({ type: 'toggleHdlLanguage' });
-                  }}
                 />
+                <HdlLanguagePicker value={hdlLanguage} />
               </ToolbarGroup>
 
               <div
