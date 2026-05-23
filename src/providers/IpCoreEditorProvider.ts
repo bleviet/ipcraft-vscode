@@ -121,10 +121,12 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
         void updateWebview();
       }
     });
+    const fileWatcher = this.watchGeneratedFiles(document, updateWebview);
     this.registerDisposal(webviewPanel, () => {
       isDisposed = true;
       changeDocumentSubscription.dispose();
       configSubscription.dispose();
+      fileWatcher.dispose();
     });
     this.registerWebviewMessageHandlers(document, webviewPanel, updateWebview);
 
@@ -142,6 +144,31 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
         void updateWebview();
       }
     });
+  }
+
+  private watchGeneratedFiles(
+    document: vscode.TextDocument,
+    updateWebview: () => Promise<void>
+  ): vscode.Disposable {
+    const baseDir = path.dirname(document.uri.fsPath);
+    const ipName = path.basename(document.uri.fsPath).replace(/\.ip\.ya?ml$/, '');
+
+    // Watch all four artifacts whose presence controls the toolbar button states.
+    const patterns = [
+      new vscode.RelativePattern(baseDir, 'xilinx/component.xml'),
+      new vscode.RelativePattern(baseDir, `altera/${ipName}_hw.tcl`),
+      new vscode.RelativePattern(baseDir, `xilinx/build/xpr/${ipName}.xpr`),
+      new vscode.RelativePattern(baseDir, `altera/build/${ipName}.qpf`),
+    ];
+
+    const watchers = patterns.map((pattern) => {
+      const w = vscode.workspace.createFileSystemWatcher(pattern);
+      w.onDidCreate(() => void updateWebview());
+      w.onDidDelete(() => void updateWebview());
+      return w;
+    });
+
+    return { dispose: () => watchers.forEach((w) => w.dispose()) };
   }
 
   private registerDisposal(webviewPanel: vscode.WebviewPanel, onDispose: () => void): void {
