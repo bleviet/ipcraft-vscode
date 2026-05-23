@@ -95,7 +95,7 @@ async function detectTargets(name: string, ipDir: string): Promise<BuildTarget[]
 
   const cfg = vscode.workspace.getConfiguration('ipcraft');
   const vivadoExe = (cfg.get<string>('vivadoPath') ?? 'vivado') || 'vivado';
-  const quartusExe = getQuartusTool(cfg, 'quartus_sh', 'quartus.shellPath');
+  const quartusExe = getQuartusTool(cfg, 'quartus_sh');
   const jobs = cfg.get<number>('build.jobs') ?? 4;
 
   const vivadoDockerImage = (cfg.get<string>('vivado.dockerImage') ?? '').trim();

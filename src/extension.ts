@@ -18,6 +18,7 @@ import { scanVivadoCatalogCommand } from './commands/scanVivadoCatalog';
 import { openAsTextCommand, openAsVisualCommand } from './commands/toggleEditorMode';
 import { IpCoreSourcePreviewProvider } from './providers/IpCoreSourcePreviewProvider';
 import { safeRegisterCommand } from './utils/vscodeHelpers';
+import { detectAndSetToolContext } from './services/ToolDetector';
 
 const SHARED_EDITOR_OPTIONS = {
   webviewOptions: {
@@ -139,6 +140,19 @@ export function activate(context: vscode.ExtensionContext): void {
         logger.error(`Failed to install global bus definitions: ${err}`);
       });
   });
+
+  // Probe for vendor tools and set context keys (controls command greying)
+  detectAndSetToolContext();
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration((e) => {
+      if (
+        e.affectsConfiguration('ipcraft.vivadoPath') ||
+        e.affectsConfiguration('ipcraft.quartus.installDir')
+      ) {
+        detectAndSetToolContext();
+      }
+    })
+  );
 
   logger.info('Extension activated successfully');
 }

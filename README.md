@@ -134,12 +134,9 @@ Configure IPCraft via **File → Preferences → Settings** (search for `IPCraft
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `ipcraft.vivadoPath` | `vivado` | Path to the Vivado executable |
+| `ipcraft.vivadoPath` | _(empty)_ | Path to the Vivado executable (e.g. `/tools/Xilinx/Vivado/2024.2/bin/vivado`). Leave empty to use `vivado` from PATH. Vivado commands are greyed out when the executable cannot be found |
 | `ipcraft.vivado.defaultPart` | `xc7z020clg484-1` | Default FPGA part for Vivado projects |
-| `ipcraft.quartus.installDir` | _(empty)_ | Top-level Quartus install directory (e.g. `/opt/intelFPGA_pro/23.1`). Supersedes the individual tool paths below |
-| `ipcraft.quartus.shellPath` | `quartus_sh` | Path to `quartus_sh` (superseded by `installDir`) |
-| `ipcraft.quartus.guiPath` | `quartus` | Path to `quartus` GUI (superseded by `installDir`) |
-| `ipcraft.quartus.qsysEditPath` | `qsys-edit` | Path to `qsys-edit` (superseded by `installDir`) |
+| `ipcraft.quartus.installDir` | _(empty)_ | Top-level Quartus install directory (e.g. `/opt/intelFPGA_pro/23.1` or `C:\intelFPGA_pro\23.1`). IPCraft locates `quartus_sh`, `quartus`, and `qsys-edit` automatically. Commands that require Quartus are greyed out until a valid directory is set |
 | `ipcraft.quartus.defaultDevice` | `5CSEBA6U23I7` | Default device for Quartus projects |
 | `ipcraft.build.jobs` | `4` | Parallel jobs for Vivado `launch_runs` |
 | `ipcraft.generate.vendor` | `none` | Vendor files to auto-include when scaffolding (`none`, `altera`, `xilinx`, `both`) |

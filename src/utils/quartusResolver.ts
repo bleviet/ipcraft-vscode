@@ -16,9 +16,8 @@ const WIN_SUBDIRS = [
 const LINUX_SUBDIRS = ['quartus/bin', 'quartus/sopc_builder/bin', 'quartus/linux64', 'bin', ''];
 
 /**
- * Searches well-known subdirectories of `installDir` for `toolName` and
- * returns the absolute path of the first match.  Falls back to the bare tool
- * name (PATH lookup) when nothing is found.
+ * Searches well-known subdirectories of `installDir` for `toolName`.
+ * Returns the absolute path of the first match, or `null` if not found.
  *
  * Candidate layout (tried in order):
  *   Windows  — <installDir>/quartus/bin64/<tool>.exe        (quartus, quartus_sh)
@@ -33,7 +32,7 @@ const LINUX_SUBDIRS = ['quartus/bin', 'quartus/sopc_builder/bin', 'quartus/linux
  *              <installDir>/bin/<tool>
  *              <installDir>/<tool>
  */
-export function resolveQuartusTool(toolName: string, installDir: string): string {
+export function findInInstallDir(toolName: string, installDir: string): string | null {
   const isWindows = process.platform === 'win32';
   const exe = isWindows ? toolName + '.exe' : toolName;
   const subdirs = isWindows ? WIN_SUBDIRS : LINUX_SUBDIRS;
@@ -45,28 +44,18 @@ export function resolveQuartusTool(toolName: string, installDir: string): string
     }
   }
 
-  return toolName;
+  return null;
 }
 
 /**
- * Returns the resolved executable path for a Quartus tool.
- *
- * Priority:
- *   1. `ipcraft.quartus.installDir` — auto-resolves all three tool paths from
- *      a single top-level Quartus installation directory.
- *   2. `legacyKey` (e.g. `quartus.shellPath`) — individual path override kept
- *      for backward compatibility.
- *   3. Bare `toolName` — relies on the system PATH.
+ * Returns the executable path for a Quartus tool.
+ * Looks in `ipcraft.quartus.installDir` first; falls back to bare tool name
+ * (PATH lookup) when installDir is empty or the tool is not found within it.
  */
-export function getQuartusTool(
-  config: vscode.WorkspaceConfiguration,
-  toolName: string,
-  legacyKey: string
-): string {
+export function getQuartusTool(config: vscode.WorkspaceConfiguration, toolName: string): string {
   const installDir = config.get<string>('quartus.installDir', '').trim();
   if (installDir) {
-    return resolveQuartusTool(toolName, installDir);
+    return findInInstallDir(toolName, installDir) ?? toolName;
   }
-  const legacy = config.get<string>(legacyKey, '').trim();
-  return legacy || toolName;
+  return toolName;
 }

@@ -18,7 +18,7 @@ export async function editInPlatformDesignerCommand(uri?: vscode.Uri): Promise<v
   const hwTclDir = path.dirname(hwTclPath);
 
   const config = vscode.workspace.getConfiguration('ipcraft');
-  const qsysEditPath = getQuartusTool(config, 'qsys-edit', 'quartus.qsysEditPath');
+  const qsysEditPath = getQuartusTool(config, 'qsys-edit');
   const dockerImage = (config.get<string>('quartus.dockerImage') ?? '').trim();
 
   let spawnExe: string;

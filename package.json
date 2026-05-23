@@ -59,12 +59,14 @@
       {
         "command": "fpga-ip-core.editInIpPackager",
         "title": "Edit in IP Packager",
-        "category": "IPCraft"
+        "category": "IPCraft",
+        "enablement": "ipcraft.vivadoFound"
       },
       {
         "command": "fpga-ip-core.editInPlatformDesigner",
         "title": "Edit in Platform Designer",
-        "category": "IPCraft"
+        "category": "IPCraft",
+        "enablement": "ipcraft.qsysEditFound"
       },
       {
         "command": "fpga-ip-core.generateVHDL",
@@ -135,13 +137,15 @@
       {
         "command": "fpga-ip-core.scanVivadoCatalog",
         "title": "Scan Vivado IP Catalog",
-        "category": "IPCraft"
+        "category": "IPCraft",
+        "enablement": "ipcraft.vivadoFound"
       },
       {
         "command": "fpga-ip-core.build",
         "title": "Build",
         "category": "IPCraft",
-        "icon": "$(play)"
+        "icon": "$(play)",
+        "enablement": "ipcraft.vivadoFound || ipcraft.quartusFound"
       },
       {
         "command": "fpga-ip-core.showBuildOutput",
@@ -151,12 +155,14 @@
       {
         "command": "fpga-ip-core.openInVivado",
         "title": "Open in Vivado",
-        "category": "IPCraft"
+        "category": "IPCraft",
+        "enablement": "ipcraft.vivadoFound"
       },
       {
         "command": "fpga-ip-core.openInQuartus",
         "title": "Open in Quartus",
-        "category": "IPCraft"
+        "category": "IPCraft",
+        "enablement": "ipcraft.quartusFound"
       },
       {
         "command": "fpga-ip-core.openAsText",
@@ -484,21 +490,6 @@
             "type": "string",
             "default": "",
             "markdownDescription": "Top-level Quartus installation directory (e.g. `/opt/intelFPGA_pro/23.1` on Linux or `C:\\intelFPGA_pro\\23.1` on Windows). When set, IPCraft automatically locates `quartus_sh`, `quartus`, and `qsys-edit` inside the installation, searching `quartus/bin` (Linux) or `quartus/bin64` (Windows) first. Supersedes the individual `shellPath`, `guiPath`, and `qsysEditPath` settings."
-          },
-          "ipcraft.quartus.shellPath": {
-            "type": "string",
-            "default": "",
-            "markdownDescription": "Path to the Quartus Shell executable. Superseded by `ipcraft.quartus.installDir` when that setting is non-empty. Leave empty to use `quartus_sh` from your system PATH."
-          },
-          "ipcraft.quartus.guiPath": {
-            "type": "string",
-            "default": "",
-            "markdownDescription": "Path to the Quartus Prime GUI executable. Superseded by `ipcraft.quartus.installDir` when that setting is non-empty. Leave empty to use `quartus` from your system PATH."
-          },
-          "ipcraft.quartus.qsysEditPath": {
-            "type": "string",
-            "default": "",
-            "markdownDescription": "Path to the Platform Designer executable. Superseded by `ipcraft.quartus.installDir` when that setting is non-empty. Leave empty to use `qsys-edit` from your system PATH."
           },
           "ipcraft.quartus.dockerImage": {
             "type": "string",

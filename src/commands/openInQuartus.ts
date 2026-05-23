@@ -17,7 +17,7 @@ export async function openInQuartusCommand(uri?: vscode.Uri): Promise<void> {
   const qpfPath = targetUri.fsPath;
 
   const config = vscode.workspace.getConfiguration('ipcraft');
-  const quartusGuiPath = getQuartusTool(config, 'quartus', 'quartus.guiPath');
+  const quartusGuiPath = getQuartusTool(config, 'quartus');
   const dockerImage = (config.get<string>('quartus.dockerImage') ?? '').trim();
 
   const mountDir = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? path.dirname(qpfPath);
