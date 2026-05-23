@@ -1,7 +1,7 @@
 import React, { useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { MemoryMap, RegisterDef } from '../types/memoryMap';
 import { toHex } from '../utils/formatUtils';
-import { OutlineHeader } from './outline';
+import { OutlineHeader } from './outline/index';
 import {
   type BlockNode as BlockModel,
   type OutlineSelection,
