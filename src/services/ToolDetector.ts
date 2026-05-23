@@ -1,5 +1,3 @@
-import * as fs from 'fs';
-import * as path from 'path';
 import { spawnSync } from 'child_process';
 import * as vscode from 'vscode';
 import { findInInstallDir } from '../utils/quartusResolver';
@@ -10,33 +8,22 @@ function isOnPath(toolName: string): boolean {
   return spawnSync(cmd, [toolName], { stdio: 'pipe' }).status === 0;
 }
 
-function isAvailable(resolvedPath: string): boolean {
-  return path.isAbsolute(resolvedPath) ? fs.existsSync(resolvedPath) : isOnPath(resolvedPath);
-}
-
 /**
  * Probes the configured tool paths and writes three VS Code context keys:
  *   ipcraft.vivadoFound    — vivado executable reachable
  *   ipcraft.quartusFound   — quartus_sh reachable (build + GUI live in the same dir)
  *   ipcraft.qsysEditFound  — qsys-edit reachable
  *
- * Call on extension activation and whenever ipcraft.vivado.installDir,
- * ipcraft.vivadoPath, or ipcraft.quartus.installDir settings change.
+ * Call on extension activation and whenever ipcraft.vivado.installDir or
+ * ipcraft.quartus.installDir settings change.
  */
 export function detectAndSetToolContext(): void {
   const config = vscode.workspace.getConfiguration('ipcraft');
 
-  // Vivado: installDir takes precedence; vivadoPath is the legacy direct-path fallback
   const vivadoInstallDir = config.get<string>('vivado.installDir', '').trim();
-  const vivadoPath = config.get<string>('vivadoPath', '').trim();
-  let vivadoFound: boolean;
-  if (vivadoInstallDir) {
-    vivadoFound = findVivadoInInstallDir(vivadoInstallDir) !== null;
-  } else if (vivadoPath) {
-    vivadoFound = isAvailable(vivadoPath);
-  } else {
-    vivadoFound = isOnPath('vivado');
-  }
+  const vivadoFound = vivadoInstallDir
+    ? findVivadoInInstallDir(vivadoInstallDir) !== null
+    : isOnPath('vivado');
 
   // Quartus: installDir is the top-level directory; tools are resolved from it
   const installDir = config.get<string>('quartus.installDir', '').trim();

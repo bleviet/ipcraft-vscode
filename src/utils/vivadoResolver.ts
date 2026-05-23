@@ -56,8 +56,7 @@ export function findVivadoInInstallDir(installDir: string): VivadoLauncher | nul
  *
  * Resolution order:
  *  1. `ipcraft.vivado.installDir` — searches the installation directory for vivado
- *  2. `ipcraft.vivadoPath`        — legacy direct path to the executable
- *  3. `'vivado'`                  — relies on PATH
+ *  2. `'vivado'`                  — relies on PATH
  */
 export function getVivadoLauncher(config: vscode.WorkspaceConfiguration): VivadoLauncher {
   const installDir = config.get<string>('vivado.installDir', '').trim();
@@ -66,11 +65,6 @@ export function getVivadoLauncher(config: vscode.WorkspaceConfiguration): Vivado
     if (found) {
       return found;
     }
-  }
-
-  const vivadoPath = config.get<string>('vivadoPath', '').trim();
-  if (vivadoPath) {
-    return { exe: vivadoPath, prefixArgs: [] };
   }
 
   return { exe: 'vivado', prefixArgs: [] };
