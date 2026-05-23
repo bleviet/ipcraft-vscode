@@ -136,7 +136,10 @@ Configure IPCraft via **File → Preferences → Settings** (search for `IPCraft
 |---------|---------|-------------|
 | `ipcraft.vivadoPath` | `vivado` | Path to the Vivado executable |
 | `ipcraft.vivado.defaultPart` | `xc7z020clg484-1` | Default FPGA part for Vivado projects |
-| `ipcraft.quartus.shellPath` | `quartus_sh` | Path to the Quartus Shell executable |
+| `ipcraft.quartus.installDir` | _(empty)_ | Top-level Quartus install directory (e.g. `/opt/intelFPGA_pro/23.1`). Supersedes the individual tool paths below |
+| `ipcraft.quartus.shellPath` | `quartus_sh` | Path to `quartus_sh` (superseded by `installDir`) |
+| `ipcraft.quartus.guiPath` | `quartus` | Path to `quartus` GUI (superseded by `installDir`) |
+| `ipcraft.quartus.qsysEditPath` | `qsys-edit` | Path to `qsys-edit` (superseded by `installDir`) |
 | `ipcraft.quartus.defaultDevice` | `5CSEBA6U23I7` | Default device for Quartus projects |
 | `ipcraft.build.jobs` | `4` | Parallel jobs for Vivado `launch_runs` |
 | `ipcraft.generate.vendor` | `none` | Vendor files to auto-include when scaffolding (`none`, `altera`, `xilinx`, `both`) |

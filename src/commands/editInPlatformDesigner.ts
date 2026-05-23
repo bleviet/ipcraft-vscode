@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { spawn } from 'child_process';
 import { Logger } from '../utils/Logger';
+import { getQuartusTool } from '../utils/quartusResolver';
 
 const logger = new Logger('EditInPlatformDesigner');
 
@@ -17,7 +18,7 @@ export async function editInPlatformDesignerCommand(uri?: vscode.Uri): Promise<v
   const hwTclDir = path.dirname(hwTclPath);
 
   const config = vscode.workspace.getConfiguration('ipcraft');
-  const qsysEditPath = (config.get<string>('quartus.qsysEditPath') ?? 'qsys-edit') || 'qsys-edit';
+  const qsysEditPath = getQuartusTool(config, 'qsys-edit', 'quartus.qsysEditPath');
   const dockerImage = (config.get<string>('quartus.dockerImage') ?? '').trim();
 
   let spawnExe: string;
@@ -66,7 +67,7 @@ export async function editInPlatformDesignerCommand(uri?: vscode.Uri): Promise<v
       } else {
         vscode.window.showErrorMessage(
           `Could not find Platform Designer executable '${qsysEditPath}'. ` +
-            `Please check the 'ipcraft.quartus.qsysEditPath' setting.`
+            `Set 'ipcraft.quartus.installDir' or 'ipcraft.quartus.qsysEditPath'.`
         );
       }
     } else {

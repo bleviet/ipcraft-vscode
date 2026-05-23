@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { spawn } from 'child_process';
 import { Logger } from '../utils/Logger';
+import { getQuartusTool } from '../utils/quartusResolver';
 
 const logger = new Logger('OpenInQuartus');
 
@@ -16,7 +17,7 @@ export async function openInQuartusCommand(uri?: vscode.Uri): Promise<void> {
   const qpfPath = targetUri.fsPath;
 
   const config = vscode.workspace.getConfiguration('ipcraft');
-  const quartusGuiPath = (config.get<string>('quartus.guiPath') ?? 'quartus') || 'quartus';
+  const quartusGuiPath = getQuartusTool(config, 'quartus', 'quartus.guiPath');
   const dockerImage = (config.get<string>('quartus.dockerImage') ?? '').trim();
 
   const mountDir = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? path.dirname(qpfPath);
@@ -64,7 +65,8 @@ export async function openInQuartusCommand(uri?: vscode.Uri): Promise<void> {
         );
       } else {
         vscode.window.showErrorMessage(
-          `Could not find Quartus executable '${quartusGuiPath}'. Check the 'ipcraft.quartus.guiPath' setting.`
+          `Could not find Quartus executable '${quartusGuiPath}'. ` +
+            `Set 'ipcraft.quartus.installDir' or 'ipcraft.quartus.guiPath'.`
         );
       }
     } else {

@@ -10,6 +10,7 @@ import {
 } from '../services/ReportParser';
 import type { ReportsTreeProvider, BuildStatus } from '../providers/ReportsTreeProvider';
 import type { IpCoreData } from '../generator/types';
+import { getQuartusTool } from '../utils/quartusResolver';
 
 let outputChannel: vscode.OutputChannel | undefined;
 
@@ -94,7 +95,7 @@ async function detectTargets(name: string, ipDir: string): Promise<BuildTarget[]
 
   const cfg = vscode.workspace.getConfiguration('ipcraft');
   const vivadoExe = (cfg.get<string>('vivadoPath') ?? 'vivado') || 'vivado';
-  const quartusExe = (cfg.get<string>('quartus.shellPath') ?? 'quartus_sh') || 'quartus_sh';
+  const quartusExe = getQuartusTool(cfg, 'quartus_sh', 'quartus.shellPath');
   const jobs = cfg.get<number>('build.jobs') ?? 4;
 
   const vivadoDockerImage = (cfg.get<string>('vivado.dockerImage') ?? '').trim();
