@@ -6,12 +6,13 @@ async function openSettings(settingId: string): Promise<void> {
 
 export async function vivadoNotConfiguredCommand(): Promise<void> {
   const choice = await vscode.window.showWarningMessage(
-    "Vivado not found. Set 'ipcraft.vivadoPath' to the Vivado executable path " +
-      '(e.g. /tools/Xilinx/Vivado/2024.2/bin/vivado). Leave empty to use vivado from PATH.',
+    "Vivado not found. Set 'ipcraft.vivado.installDir' to your Vivado installation directory " +
+      '(e.g. /tools/Xilinx/Vivado/2024.2 or C:\\Xilinx\\2025.1\\Vivado). ' +
+      'IPCraft will locate the vivado executable automatically.',
     'Open Settings'
   );
   if (choice === 'Open Settings') {
-    await openSettings('ipcraft.vivadoPath');
+    await openSettings('ipcraft.vivado.installDir');
   }
 }
 
@@ -41,7 +42,7 @@ export async function qsysEditNotConfiguredCommand(): Promise<void> {
 export async function buildNotConfiguredCommand(): Promise<void> {
   const choice = await vscode.window.showWarningMessage(
     'No build tools found. Configure at least one vendor tool: ' +
-      "set 'ipcraft.vivadoPath' for Vivado or 'ipcraft.quartus.installDir' for Quartus.",
+      "set 'ipcraft.vivado.installDir' for Vivado or 'ipcraft.quartus.installDir' for Quartus.",
     'Open Settings'
   );
   if (choice === 'Open Settings') {

@@ -4,6 +4,7 @@ import * as os from 'os';
 import * as fs from 'fs/promises';
 import { spawn } from 'child_process';
 import { Logger } from '../utils/Logger';
+import { getVivadoLauncher } from '../utils/vivadoResolver';
 
 const logger = new Logger('EditInIpPackager');
 
@@ -17,9 +18,8 @@ export async function editInIpPackagerCommand(uri?: vscode.Uri): Promise<void> {
 
   const componentPath = targetUri.fsPath.replace(/\\/g, '/');
 
-  // Get Vivado config
   const config = vscode.workspace.getConfiguration('ipcraft');
-  const vivadoPath = config.get<string>('vivadoPath', 'vivado');
+  const launcher = getVivadoLauncher(config);
   const vivadoDockerImage = (config.get<string>('vivado.dockerImage') ?? '').trim();
 
   try {
@@ -61,15 +61,15 @@ export async function editInIpPackagerCommand(uri?: vscode.Uri): Promise<void> {
         '-w',
         tmpDir,
         vivadoDockerImage,
-        vivadoPath || 'vivado',
+        launcher.exe,
         '-mode',
         'gui',
         '-source',
         tclScriptPath,
       ];
     } else {
-      spawnExe = vivadoPath;
-      spawnArgs = ['-mode', 'gui', '-source', tclScriptPath];
+      spawnExe = launcher.exe;
+      spawnArgs = [...launcher.prefixArgs, '-mode', 'gui', '-source', tclScriptPath];
     }
 
     logger.info(`Launching vivado: ${spawnExe} ${spawnArgs.join(' ')}`);
@@ -90,7 +90,7 @@ export async function editInIpPackagerCommand(uri?: vscode.Uri): Promise<void> {
           );
         } else {
           vscode.window.showErrorMessage(
-            `Could not find Vivado executable '${vivadoPath}'. Please check the 'ipcraft.vivadoPath' setting.`
+            `Could not find Vivado executable '${launcher.exe}'. Please check the 'ipcraft.vivado.installDir' setting.`
           );
         }
       } else {

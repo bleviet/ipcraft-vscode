@@ -11,6 +11,7 @@ import {
 import type { ReportsTreeProvider, BuildStatus } from '../providers/ReportsTreeProvider';
 import type { IpCoreData } from '../generator/types';
 import { getQuartusTool } from '../utils/quartusResolver';
+import { getVivadoLauncher } from '../utils/vivadoResolver';
 
 let outputChannel: vscode.OutputChannel | undefined;
 
@@ -94,7 +95,7 @@ async function detectTargets(name: string, ipDir: string): Promise<BuildTarget[]
   const alteraDir = path.join(ipDir, 'altera');
 
   const cfg = vscode.workspace.getConfiguration('ipcraft');
-  const vivadoExe = (cfg.get<string>('vivadoPath') ?? 'vivado') || 'vivado';
+  const vivadoLauncher = getVivadoLauncher(cfg);
   const quartusExe = getQuartusTool(cfg, 'quartus_sh');
   const jobs = cfg.get<number>('build.jobs') ?? 4;
 
@@ -116,8 +117,9 @@ async function detectTargets(name: string, ipDir: string): Promise<BuildTarget[]
       run: async () => {
         const buildDir = path.join(xilinxDir, 'build', 'ooc');
         const result = await runProcess(
-          vivadoExe,
+          vivadoLauncher.exe,
           [
+            ...vivadoLauncher.prefixArgs,
             '-mode',
             'batch',
             '-source',
@@ -144,8 +146,9 @@ async function detectTargets(name: string, ipDir: string): Promise<BuildTarget[]
       run: async () => {
         const buildDir = path.join(xilinxDir, 'build', 'xpr');
         const result = await runProcess(
-          vivadoExe,
+          vivadoLauncher.exe,
           [
+            ...vivadoLauncher.prefixArgs,
             '-mode',
             'batch',
             '-source',

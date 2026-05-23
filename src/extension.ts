@@ -156,6 +156,7 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (
+        e.affectsConfiguration('ipcraft.vivado.installDir') ||
         e.affectsConfiguration('ipcraft.vivadoPath') ||
         e.affectsConfiguration('ipcraft.quartus.installDir')
       ) {

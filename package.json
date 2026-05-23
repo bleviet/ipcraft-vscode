@@ -517,10 +517,15 @@
       {
         "title": "Vivado (Xilinx/AMD)",
         "properties": {
+          "ipcraft.vivado.installDir": {
+            "type": "string",
+            "default": "",
+            "markdownDescription": "Path to your Vivado installation directory. IPCraft will locate the correct executable automatically.\n\n**Linux:** `/tools/Xilinx/Vivado/2024.2`\n\n**Windows:** `C:\\Xilinx\\2025.1\\Vivado`\n\nLeave empty to fall back to `ipcraft.vivadoPath` or `vivado` on your system PATH."
+          },
           "ipcraft.vivadoPath": {
             "type": "string",
             "default": "",
-            "markdownDescription": "Path to the Vivado executable. Leave empty to use `vivado` from your system PATH. Example: `/tools/Xilinx/Vivado/2024.2/bin/vivado`."
+            "markdownDescription": "Direct path to the Vivado executable. Ignored when `ipcraft.vivado.installDir` is set. Leave empty to use `vivado` from your system PATH."
           },
           "ipcraft.vivado.dockerImage": {
             "type": "string",

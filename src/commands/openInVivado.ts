@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { spawn } from 'child_process';
 import { Logger } from '../utils/Logger';
+import { getVivadoLauncher } from '../utils/vivadoResolver';
 
 const logger = new Logger('OpenInVivado');
 
@@ -16,7 +17,7 @@ export async function openInVivadoCommand(uri?: vscode.Uri): Promise<void> {
   const xprPath = targetUri.fsPath;
 
   const config = vscode.workspace.getConfiguration('ipcraft');
-  const vivadoPath = (config.get<string>('vivadoPath') ?? 'vivado') || 'vivado';
+  const launcher = getVivadoLauncher(config);
   const dockerImage = (config.get<string>('vivado.dockerImage') ?? '').trim();
 
   // Mount the workspace root so Vivado can resolve all source paths it stored
@@ -41,12 +42,12 @@ export async function openInVivadoCommand(uri?: vscode.Uri): Promise<void> {
       '-w',
       path.dirname(xprPath),
       dockerImage,
-      vivadoPath,
+      launcher.exe,
       xprPath,
     ];
   } else {
-    spawnExe = vivadoPath;
-    spawnArgs = [xprPath];
+    spawnExe = launcher.exe;
+    spawnArgs = [...launcher.prefixArgs, xprPath];
   }
 
   logger.info(`Opening Vivado project: ${spawnExe} ${spawnArgs.join(' ')}`);
@@ -66,7 +67,7 @@ export async function openInVivadoCommand(uri?: vscode.Uri): Promise<void> {
         );
       } else {
         vscode.window.showErrorMessage(
-          `Could not find Vivado executable '${vivadoPath}'. Check the 'ipcraft.vivadoPath' setting.`
+          `Could not find Vivado executable '${launcher.exe}'. Check the 'ipcraft.vivado.installDir' setting.`
         );
       }
     } else {
