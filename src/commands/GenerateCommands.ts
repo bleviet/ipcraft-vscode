@@ -26,8 +26,8 @@ const logger = new Logger('GenerateCommands');
  */
 
 export function registerGeneratorCommands(context: vscode.ExtensionContext): void {
-  safeRegisterCommand(context, 'fpga-ip-core.generateVHDL', async () => {
-    await generateVHDL(context);
+  safeRegisterCommand(context, 'fpga-ip-core.generateHdl', async () => {
+    await generateHdl(context);
   });
 
   safeRegisterCommand(context, 'fpga-ip-core.scaffoldProject', async () => {
@@ -149,7 +149,7 @@ function getActiveIpCoreFile(): vscode.Uri | undefined {
   return undefined;
 }
 
-async function generateVHDL(context: vscode.ExtensionContext): Promise<void> {
+async function generateHdl(context: vscode.ExtensionContext): Promise<void> {
   const ipCoreUri = getActiveIpCoreFile();
   if (!ipCoreUri) {
     return;

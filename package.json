@@ -69,7 +69,7 @@
         "enablement": "ipcraft.qsysEditFound"
       },
       {
-        "command": "fpga-ip-core.generateVHDL",
+        "command": "fpga-ip-core.generateHdl",
         "title": "Generate HDL",
         "category": "IPCraft",
         "icon": "$(code)"

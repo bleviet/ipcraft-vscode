@@ -23,6 +23,7 @@ interface ToolbarButtonProps {
   command?: string;
   disabled?: boolean;
   onClick?: () => void;
+  onContextMenu?: (e: React.MouseEvent) => void;
 }
 
 const ToolbarButton: React.FC<ToolbarButtonProps> = ({
@@ -31,6 +32,7 @@ const ToolbarButton: React.FC<ToolbarButtonProps> = ({
   command,
   disabled,
   onClick,
+  onContextMenu,
 }) => (
   <button
     className="canvas-view-toggle"
@@ -38,6 +40,7 @@ const ToolbarButton: React.FC<ToolbarButtonProps> = ({
     type="button"
     disabled={disabled}
     onClick={onClick ?? (() => command && vscode?.postMessage({ type: 'command', command }))}
+    onContextMenu={onContextMenu}
     aria-label={title}
     style={disabled ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}
   >
@@ -122,6 +125,8 @@ const IpCoreApp: React.FC = () => {
   const [hasHwTcl, setHasHwTcl] = useState(false);
   const [hasXpr, setHasXpr] = useState(false);
   const [hasQpf, setHasQpf] = useState(false);
+  // HDL language for source generation — mirrors ipcraft.generate.hdlLanguage
+  const [hdlLanguage, setHdlLanguage] = useState<'vhdl' | 'systemverilog'>('vhdl');
   // True when opened via IpCoreSourcePreviewProvider (source file, not a .ip.yml)
   const [isPreview, setIsPreview] = useState(false);
 
@@ -342,6 +347,7 @@ const IpCoreApp: React.FC = () => {
         hasHwTcl?: boolean;
         hasXpr?: boolean;
         hasQpf?: boolean;
+        hdlLanguage?: 'vhdl' | 'systemverilog';
         isPreview?: boolean;
       };
 
@@ -352,6 +358,7 @@ const IpCoreApp: React.FC = () => {
           setHasHwTcl(message.hasHwTcl ?? false);
           setHasXpr(message.hasXpr ?? false);
           setHasQpf(message.hasQpf ?? false);
+          setHdlLanguage(message.hdlLanguage ?? 'vhdl');
           setIsPreview(message.isPreview ?? false);
           break;
       }
@@ -448,9 +455,17 @@ const IpCoreApp: React.FC = () => {
                   command="fpga-ip-core.createMemoryMap"
                 />
                 <ToolbarButton
-                  title="Generate VHDL"
+                  title={
+                    hdlLanguage === 'systemverilog'
+                      ? 'Generate SystemVerilog (right-click to switch to VHDL)'
+                      : 'Generate VHDL (right-click to switch to SystemVerilog)'
+                  }
                   icon="code"
-                  command="fpga-ip-core.generateVHDL"
+                  command="fpga-ip-core.generateHdl"
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    vscode?.postMessage({ type: 'toggleHdlLanguage' });
+                  }}
                 />
               </ToolbarGroup>
 

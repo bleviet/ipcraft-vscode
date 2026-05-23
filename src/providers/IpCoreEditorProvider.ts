@@ -120,6 +120,9 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
         this.importResolver.clearCache();
         void updateWebview();
       }
+      if (e.affectsConfiguration('ipcraft.generate.hdlLanguage')) {
+        void updateWebview();
+      }
     });
     const fileWatcher = this.watchGeneratedFiles(document, updateWebview);
     this.registerDisposal(webviewPanel, () => {
@@ -216,6 +219,13 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
           await vscode.commands.executeCommand(String(message.command));
           void updateWebview();
         }
+      },
+      toggleHdlLanguage: async () => {
+        const cfg = vscode.workspace.getConfiguration('ipcraft.generate');
+        const current = cfg.get<string>('hdlLanguage', 'vhdl');
+        const next = current === 'systemverilog' ? 'vhdl' : 'systemverilog';
+        await cfg.update('hdlLanguage', next, vscode.ConfigurationTarget.Global);
+        // onDidChangeConfiguration fires updateWebview automatically
       },
       openFile: async (message) => {
         await this.handleOpenFileMessage(message, document);
@@ -333,6 +343,10 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
         return;
       }
 
+      const hdlLanguage = vscode.workspace
+        .getConfiguration('ipcraft.generate')
+        .get<string>('hdlLanguage', 'vhdl');
+
       void webviewPanel.webview.postMessage({
         type: 'update',
         text,
@@ -342,6 +356,7 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
         hasHwTcl,
         hasXpr,
         hasQpf,
+        hdlLanguage,
       });
     } catch (error) {
       this.logger.error('Failed to update webview', error as Error);
