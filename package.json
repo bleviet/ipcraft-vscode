@@ -165,6 +165,30 @@
         "enablement": "ipcraft.quartusFound"
       },
       {
+        "command": "fpga-ip-core.vivadoNotConfigured",
+        "title": "Vivado Not Found — Click to Configure",
+        "category": "IPCraft",
+        "icon": "$(warning)"
+      },
+      {
+        "command": "fpga-ip-core.quartusNotConfigured",
+        "title": "Quartus Not Found — Click to Configure",
+        "category": "IPCraft",
+        "icon": "$(warning)"
+      },
+      {
+        "command": "fpga-ip-core.qsysEditNotConfigured",
+        "title": "Platform Designer Not Found — Click to Configure",
+        "category": "IPCraft",
+        "icon": "$(warning)"
+      },
+      {
+        "command": "fpga-ip-core.buildNotConfigured",
+        "title": "No Build Tools Configured — Click to Configure",
+        "category": "IPCraft",
+        "icon": "$(warning)"
+      },
+      {
         "command": "fpga-ip-core.openAsText",
         "title": "Open as Text Editor",
         "category": "IPCraft",
@@ -245,7 +269,12 @@
         },
         {
           "command": "fpga-ip-core.build",
-          "when": "resourceFilename =~ /\\.ip\\.yml$/",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/ && (ipcraft.vivadoFound || ipcraft.quartusFound)",
+          "group": "4_build@3"
+        },
+        {
+          "command": "fpga-ip-core.buildNotConfigured",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/ && !ipcraft.vivadoFound && !ipcraft.quartusFound",
           "group": "4_build@3"
         },
         {
@@ -255,22 +284,42 @@
         },
         {
           "command": "fpga-ip-core.editInPlatformDesigner",
-          "when": "resourceFilename =~ /_hw\\.tcl$/",
+          "when": "resourceFilename =~ /_hw\\.tcl$/ && ipcraft.qsysEditFound",
+          "group": "5_import@1"
+        },
+        {
+          "command": "fpga-ip-core.qsysEditNotConfigured",
+          "when": "resourceFilename =~ /_hw\\.tcl$/ && !ipcraft.qsysEditFound",
           "group": "5_import@1"
         },
         {
           "command": "fpga-ip-core.editInIpPackager",
-          "when": "resourceFilename == component.xml",
+          "when": "resourceFilename == component.xml && ipcraft.vivadoFound",
+          "group": "5_import@2"
+        },
+        {
+          "command": "fpga-ip-core.vivadoNotConfigured",
+          "when": "resourceFilename == component.xml && !ipcraft.vivadoFound",
           "group": "5_import@2"
         },
         {
           "command": "fpga-ip-core.openInVivado",
-          "when": "resourceExtname == .xpr",
+          "when": "resourceExtname == .xpr && ipcraft.vivadoFound",
+          "group": "5_import@6"
+        },
+        {
+          "command": "fpga-ip-core.vivadoNotConfigured",
+          "when": "resourceExtname == .xpr && !ipcraft.vivadoFound",
           "group": "5_import@6"
         },
         {
           "command": "fpga-ip-core.openInQuartus",
-          "when": "resourceExtname == .qpf",
+          "when": "resourceExtname == .qpf && ipcraft.quartusFound",
+          "group": "5_import@7"
+        },
+        {
+          "command": "fpga-ip-core.quartusNotConfigured",
+          "when": "resourceExtname == .qpf && !ipcraft.quartusFound",
           "group": "5_import@7"
         }
       ],
@@ -307,27 +356,52 @@
         },
         {
           "command": "fpga-ip-core.build",
-          "when": "resourceFilename =~ /\\.ip\\.yml$/",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/ && (ipcraft.vivadoFound || ipcraft.quartusFound)",
+          "group": "ipcraft@6"
+        },
+        {
+          "command": "fpga-ip-core.buildNotConfigured",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/ && !ipcraft.vivadoFound && !ipcraft.quartusFound",
           "group": "ipcraft@6"
         },
         {
           "command": "fpga-ip-core.editInPlatformDesigner",
-          "when": "resourceFilename =~ /_hw\\.tcl$/",
+          "when": "resourceFilename =~ /_hw\\.tcl$/ && ipcraft.qsysEditFound",
+          "group": "navigation"
+        },
+        {
+          "command": "fpga-ip-core.qsysEditNotConfigured",
+          "when": "resourceFilename =~ /_hw\\.tcl$/ && !ipcraft.qsysEditFound",
           "group": "navigation"
         },
         {
           "command": "fpga-ip-core.editInIpPackager",
-          "when": "resourceFilename == component.xml",
+          "when": "resourceFilename == component.xml && ipcraft.vivadoFound",
+          "group": "navigation"
+        },
+        {
+          "command": "fpga-ip-core.vivadoNotConfigured",
+          "when": "resourceFilename == component.xml && !ipcraft.vivadoFound",
           "group": "navigation"
         },
         {
           "command": "fpga-ip-core.openInVivado",
-          "when": "resourceExtname == .xpr",
+          "when": "resourceExtname == .xpr && ipcraft.vivadoFound",
+          "group": "navigation"
+        },
+        {
+          "command": "fpga-ip-core.vivadoNotConfigured",
+          "when": "resourceExtname == .xpr && !ipcraft.vivadoFound",
           "group": "navigation"
         },
         {
           "command": "fpga-ip-core.openInQuartus",
-          "when": "resourceExtname == .qpf",
+          "when": "resourceExtname == .qpf && ipcraft.quartusFound",
+          "group": "navigation"
+        },
+        {
+          "command": "fpga-ip-core.quartusNotConfigured",
+          "when": "resourceExtname == .qpf && !ipcraft.quartusFound",
           "group": "navigation"
         },
         {

@@ -19,6 +19,12 @@ import { openAsTextCommand, openAsVisualCommand } from './commands/toggleEditorM
 import { IpCoreSourcePreviewProvider } from './providers/IpCoreSourcePreviewProvider';
 import { safeRegisterCommand } from './utils/vscodeHelpers';
 import { detectAndSetToolContext } from './services/ToolDetector';
+import {
+  vivadoNotConfiguredCommand,
+  quartusNotConfiguredCommand,
+  qsysEditNotConfiguredCommand,
+  buildNotConfiguredCommand,
+} from './commands/toolNotConfigured';
 
 const SHARED_EDITOR_OPTIONS = {
   webviewOptions: {
@@ -94,6 +100,10 @@ export function activate(context: vscode.ExtensionContext): void {
   safeRegisterCommand(context, 'fpga-ip-core.openInVivado', openInVivadoCommand);
   safeRegisterCommand(context, 'fpga-ip-core.openInQuartus', openInQuartusCommand);
   safeRegisterCommand(context, 'fpga-ip-core.scanVivadoCatalog', scanVivadoCatalogCommand);
+  safeRegisterCommand(context, 'fpga-ip-core.vivadoNotConfigured', vivadoNotConfiguredCommand);
+  safeRegisterCommand(context, 'fpga-ip-core.quartusNotConfigured', quartusNotConfiguredCommand);
+  safeRegisterCommand(context, 'fpga-ip-core.qsysEditNotConfigured', qsysEditNotConfiguredCommand);
+  safeRegisterCommand(context, 'fpga-ip-core.buildNotConfigured', buildNotConfiguredCommand);
   safeRegisterCommand(context, 'fpga-ip-core.openAsText', openAsTextCommand);
   safeRegisterCommand(context, 'fpga-ip-core.openAsVisual', openAsVisualCommand);
   safeRegisterCommand(context, 'fpga-ip-core.previewInIpcraft', async (uri?: vscode.Uri) => {
