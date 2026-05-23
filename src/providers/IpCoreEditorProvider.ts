@@ -153,11 +153,12 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
     const baseDir = path.dirname(document.uri.fsPath);
     const ipName = path.basename(document.uri.fsPath).replace(/\.ip\.ya?ml$/, '');
 
-    // Watch all four artifacts whose presence controls the toolbar button states.
+    // Watch all artifacts whose presence controls the toolbar button states.
     const patterns = [
       new vscode.RelativePattern(baseDir, 'xilinx/component.xml'),
       new vscode.RelativePattern(baseDir, `altera/${ipName}_hw.tcl`),
       new vscode.RelativePattern(baseDir, `xilinx/build/xpr/${ipName}.xpr`),
+      new vscode.RelativePattern(baseDir, `xilinx/build/ooc/${ipName}.xpr`),
       new vscode.RelativePattern(baseDir, `altera/build/${ipName}.qpf`),
     ];
 
@@ -240,13 +241,13 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
       },
       openInVivado: async () => {
         const ipName = path.basename(document.uri.fsPath).replace(/\.ip\.ya?ml$/, '');
-        const xprPath = path.join(
-          path.dirname(document.uri.fsPath),
-          'xilinx',
-          'build',
-          'xpr',
-          `${ipName}.xpr`
-        );
+        const baseDir = path.dirname(document.uri.fsPath);
+        const xprFull = path.join(baseDir, 'xilinx', 'build', 'xpr', `${ipName}.xpr`);
+        const xprOoc = path.join(baseDir, 'xilinx', 'build', 'ooc', `${ipName}.xpr`);
+        const xprPath = await fs
+          .access(xprFull)
+          .then(() => xprFull)
+          .catch(() => xprOoc);
         await openInVivadoCommand(vscode.Uri.file(xprPath));
       },
       openInQuartus: async () => {
@@ -292,24 +293,23 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
 
       const ipName = path.basename(document.uri.fsPath).replace(/\.ip\.ya?ml$/, '');
 
-      const [hasComponentXml, hasHwTcl, hasXpr, hasQpf] = await Promise.all([
+      const accessOk = (p: string) =>
         fs
-          .access(path.join(baseDir, 'xilinx', 'component.xml'))
+          .access(p)
           .then(() => true)
-          .catch(() => false),
-        fs
-          .access(path.join(baseDir, 'altera', `${ipName}_hw.tcl`))
-          .then(() => true)
-          .catch(() => false),
-        fs
-          .access(path.join(baseDir, 'xilinx', 'build', 'xpr', `${ipName}.xpr`))
-          .then(() => true)
-          .catch(() => false),
-        fs
-          .access(path.join(baseDir, 'altera', 'build', `${ipName}.qpf`))
-          .then(() => true)
-          .catch(() => false),
+          .catch(() => false);
+
+      // _run_ooc.tcl sources _project.tcl which creates the project in build/ooc/;
+      // _run_xpr.tcl creates a separate full project in build/xpr/.
+      // Both are valid "open in Vivado" targets.
+      const [hasComponentXml, hasHwTcl, hasXprFull, hasXprOoc, hasQpf] = await Promise.all([
+        accessOk(path.join(baseDir, 'xilinx', 'component.xml')),
+        accessOk(path.join(baseDir, 'altera', `${ipName}_hw.tcl`)),
+        accessOk(path.join(baseDir, 'xilinx', 'build', 'xpr', `${ipName}.xpr`)),
+        accessOk(path.join(baseDir, 'xilinx', 'build', 'ooc', `${ipName}.xpr`)),
+        accessOk(path.join(baseDir, 'altera', 'build', `${ipName}.qpf`)),
       ]);
+      const hasXpr = hasXprFull || hasXprOoc;
 
       if (isDisposed()) {
         this.logger.debug('Webview disposed during import resolution, skipping update');

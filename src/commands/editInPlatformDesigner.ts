@@ -42,11 +42,12 @@ export async function editInPlatformDesignerCommand(uri?: vscode.Uri): Promise<v
       hwTclDir,
       dockerImage,
       qsysEditPath,
+      hwTclPath,
       `--search-path=${hwTclDir}`,
     ];
   } else {
     spawnExe = qsysEditPath;
-    spawnArgs = [`--search-path=${hwTclDir}`];
+    spawnArgs = [hwTclPath, `--search-path=${hwTclDir}`];
   }
 
   logger.info(`Launching Platform Designer: ${spawnExe} ${spawnArgs.join(' ')}`);
