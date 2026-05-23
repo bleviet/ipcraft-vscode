@@ -2,8 +2,18 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type * as vscode from 'vscode';
 
-const WIN_SUBDIRS = ['quartus/bin64', 'quartus/bin', 'bin64', 'bin', ''];
-const LINUX_SUBDIRS = ['quartus/bin', 'bin', ''];
+// quartus_sh / quartus live in bin64 (Windows) or bin / linux64 (Linux).
+// qsys-edit lives in sopc_builder/bin on both platforms (verified against
+// native Windows installs and the cvsoc/quartus Docker image).
+const WIN_SUBDIRS = [
+  'quartus/bin64',
+  'quartus/sopc_builder/bin',
+  'quartus/bin',
+  'bin64',
+  'bin',
+  '',
+];
+const LINUX_SUBDIRS = ['quartus/bin', 'quartus/sopc_builder/bin', 'quartus/linux64', 'bin', ''];
 
 /**
  * Searches well-known subdirectories of `installDir` for `toolName` and
@@ -11,12 +21,15 @@ const LINUX_SUBDIRS = ['quartus/bin', 'bin', ''];
  * name (PATH lookup) when nothing is found.
  *
  * Candidate layout (tried in order):
- *   Windows  — <installDir>/quartus/bin64/<tool>.exe
+ *   Windows  — <installDir>/quartus/bin64/<tool>.exe        (quartus, quartus_sh)
+ *              <installDir>/quartus/sopc_builder/bin/<tool>.exe  (qsys-edit)
  *              <installDir>/quartus/bin/<tool>.exe
  *              <installDir>/bin64/<tool>.exe
  *              <installDir>/bin/<tool>.exe
  *              <installDir>/<tool>.exe
- *   Linux    — <installDir>/quartus/bin/<tool>
+ *   Linux    — <installDir>/quartus/bin/<tool>              (quartus, quartus_sh)
+ *              <installDir>/quartus/sopc_builder/bin/<tool> (qsys-edit)
+ *              <installDir>/quartus/linux64/<tool>          (cvsoc container)
  *              <installDir>/bin/<tool>
  *              <installDir>/<tool>
  */
