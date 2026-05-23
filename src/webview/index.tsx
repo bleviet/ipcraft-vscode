@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { ReactNode, ErrorInfo } from 'react';
 import { createRoot } from 'react-dom/client';
-import Outline, { type OutlineHandle } from './components/Outline';
+import Outline, { type OutlineHandle } from './components/OutlinePanel';
 import DetailsPanel, { type DetailsPanelHandle } from './components/DetailsPanel';
 import { vscode } from './vscode';
 import { useMemoryMapState } from './hooks/useMemoryMapState';
