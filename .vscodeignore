@@ -12,7 +12,9 @@ config/**
 tsconfig.json
 package-lock.json
 *.log
+*.jou
 *.map
+CMakeLists.txt
 .github/**
 .husky/**
 coverage/**

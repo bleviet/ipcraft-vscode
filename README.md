@@ -47,8 +47,8 @@ All commands are available in the Command Palette (`Ctrl+Shift+P`) under the **I
 
 | Command | Description |
 |---------|-------------|
-| `IPCraft: Scaffold VHDL Project` | Generate RTL sources (VHDL or SystemVerilog) + testbench + Vivado and Quartus project files in one step |
-| `IPCraft: Generate VHDL` | Generate RTL source files only (package, top, core, bus wrapper, register file) in the configured HDL language |
+| `IPCraft: Scaffold Project` | Generate RTL sources (VHDL or SystemVerilog) + testbench + Vivado and Quartus project files in one step |
+| `IPCraft: Generate HDL` | Generate RTL source files only (package, top, core, bus wrapper, register file) in the configured HDL language |
 | `IPCraft: Generate CocoTB Testbench` | Generate a cocotb Python test skeleton and GHDL Makefile |
 | `IPCraft: Generate Vivado Project` | Generate Vivado OOC synthesis project files for a chosen FPGA part |
 | `IPCraft: Generate Quartus Project` | Generate a Quartus project for a chosen device |
@@ -87,7 +87,7 @@ All commands are available in the Command Palette (`Ctrl+Shift+P`) under the **I
 
 ## Generated Project Layout
 
-`IPCraft: Scaffold VHDL Project` produces the following structure next to the `.ip.yml` file.
+`IPCraft: Scaffold Project` produces the following structure next to the `.ip.yml` file.
 File extensions are `.vhd` for VHDL (default) or `.sv` for SystemVerilog, depending on `ipcraft.generate.hdlLanguage`:
 
 ```text
