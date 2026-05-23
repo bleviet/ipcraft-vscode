@@ -439,7 +439,7 @@
         "properties": {
           "ipcraft.vivadoPath": {
             "type": "string",
-            "default": "vivado",
+            "default": "",
             "markdownDescription": "Path to the Vivado executable. Leave empty to use `vivado` from your system PATH. Example: `/tools/Xilinx/Vivado/2024.2/bin/vivado`."
           },
           "ipcraft.vivado.dockerImage": {
@@ -487,17 +487,17 @@
           },
           "ipcraft.quartus.shellPath": {
             "type": "string",
-            "default": "quartus_sh",
+            "default": "",
             "markdownDescription": "Path to the Quartus Shell executable. Superseded by `ipcraft.quartus.installDir` when that setting is non-empty. Leave empty to use `quartus_sh` from your system PATH."
           },
           "ipcraft.quartus.guiPath": {
             "type": "string",
-            "default": "quartus",
+            "default": "",
             "markdownDescription": "Path to the Quartus Prime GUI executable. Superseded by `ipcraft.quartus.installDir` when that setting is non-empty. Leave empty to use `quartus` from your system PATH."
           },
           "ipcraft.quartus.qsysEditPath": {
             "type": "string",
-            "default": "qsys-edit",
+            "default": "",
             "markdownDescription": "Path to the Platform Designer executable. Superseded by `ipcraft.quartus.installDir` when that setting is non-empty. Leave empty to use `qsys-edit` from your system PATH."
           },
           "ipcraft.quartus.dockerImage": {
