@@ -120,7 +120,7 @@ export function normalizeIpCoreData(raw: Record<string, unknown>): IpCoreData {
     description: getString(raw.description),
     parameters: parameters.map((param) => ({
       name: getString(param.name),
-      value: (param.value ?? undefined) as number | string | undefined,
+      value: (param.value ?? param.defaultValue ?? undefined) as number | string | undefined,
       data_type: getString(param.data_type ?? param.dataType),
       description: param.description ? getString(param.description) : undefined,
     })),
