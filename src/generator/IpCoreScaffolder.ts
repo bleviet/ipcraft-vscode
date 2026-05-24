@@ -131,9 +131,12 @@ export class IpCoreScaffolder {
       if (vendor === 'xilinx' || vendor === 'both') {
         const versionStr = String(ipCoreData?.vlnv?.version ?? '1.0').replace(/\./g, '_');
         const xguiFile = `xgui/${name}_v${versionStr}.tcl`;
-        const rtlFiles = Object.keys(files)
+        const rtlFilesFromGenerated = Object.keys(files)
           .filter((f) => f.startsWith('rtl/'))
           .map((f) => `../${f}`);
+        // Pass undefined when no RTL was generated so generateComponentXml falls
+        // back to fileSets declared in the .ip.yml (e.g. when includeVhdl: false).
+        const rtlFiles = rtlFilesFromGenerated.length > 0 ? rtlFilesFromGenerated : undefined;
         files['xilinx/component.xml'] = generateComponentXml(
           ipCoreData,
           this.busDefinitions ?? {},

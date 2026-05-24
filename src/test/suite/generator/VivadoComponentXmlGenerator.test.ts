@@ -449,9 +449,9 @@ describe('generateComponentXml', () => {
 
     it('includes ASSOCIATED_RESET and two view refs in wireTypeDef', () => {
       const xml = gen();
-      expect(xml).toContain('<spirit:viewNameRef>xilinx_vhdlsynthesis</spirit:viewNameRef>');
+      expect(xml).toContain('<spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>');
       expect(xml).toContain(
-        '<spirit:viewNameRef>xilinx_vhdlbehavioralsimulation</spirit:viewNameRef>'
+        '<spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>'
       );
     });
 
@@ -469,16 +469,16 @@ describe('generateComponentXml', () => {
   });
 
   describe('views', () => {
-    it('emits xilinx_vhdlsynthesis view', () => {
+    it('emits xilinx_anylanguagesynthesis view for VHDL', () => {
       const xml = gen();
-      expect(xml).toContain('<spirit:name>xilinx_vhdlsynthesis</spirit:name>');
-      expect(xml).toContain('vhdlSource:vivado.xilinx.com:synthesis');
+      expect(xml).toContain('<spirit:name>xilinx_anylanguagesynthesis</spirit:name>');
+      expect(xml).toContain(':vivado.xilinx.com:synthesis');
     });
 
-    it('emits xilinx_vhdlbehavioralsimulation view', () => {
+    it('emits xilinx_anylanguagebehavioralsimulation view for VHDL', () => {
       const xml = gen();
-      expect(xml).toContain('<spirit:name>xilinx_vhdlbehavioralsimulation</spirit:name>');
-      expect(xml).toContain('vhdlSource:vivado.xilinx.com:simulation');
+      expect(xml).toContain('<spirit:name>xilinx_anylanguagebehavioralsimulation</spirit:name>');
+      expect(xml).toContain(':vivado.xilinx.com:simulation');
     });
 
     it('emits xilinx_xpgui view', () => {
@@ -507,9 +507,9 @@ describe('generateComponentXml', () => {
   describe('file sets', () => {
     it('rtlFiles option populates synthesis and simulation filesets', () => {
       const xml = gen({}, { rtlFiles: ['../rtl/my_core.vhd', '../rtl/my_core_pkg.vhd'] });
-      expect(xml).toContain('<spirit:name>xilinx_vhdlsynthesis_view_fileset</spirit:name>');
+      expect(xml).toContain('<spirit:name>xilinx_anylanguagesynthesis_view_fileset</spirit:name>');
       expect(xml).toContain(
-        '<spirit:name>xilinx_vhdlbehavioralsimulation_view_fileset</spirit:name>'
+        '<spirit:name>xilinx_anylanguagebehavioralsimulation_view_fileset</spirit:name>'
       );
       expect(xml).toContain('<spirit:name>../rtl/my_core.vhd</spirit:name>');
       expect(xml).toContain('<spirit:fileType>vhdlSource</spirit:fileType>');
@@ -566,7 +566,7 @@ describe('generateComponentXml', () => {
       const xml = gen();
       expect(xml).toContain('<spirit:name>Component_Name</spirit:name>');
       expect(xml).toContain('PARAM_VALUE.Component_Name');
-      expect(xml).toContain('>my_core<');
+      expect(xml).toContain('>my_core_v2_0_0<');
     });
 
     it('emits integer parameter with format=long and resolve=user', () => {
@@ -736,10 +736,10 @@ describe('subcores in vendorExtensions', () => {
   it('adds fileSetRef for synthesis and simulation views', () => {
     const xml = gen({ subcores: [{ vlnv: 'xilinx.com:ip:fifo_generator:13.2' }] });
     expect(xml).toContain(
-      'xilinx_vhdlsynthesis_xilinx_com_ip_fifo_generator_13_2__ref_view_fileset'
+      'xilinx_anylanguagesynthesis_xilinx_com_ip_fifo_generator_13_2__ref_view_fileset'
     );
     expect(xml).toContain(
-      'xilinx_vhdlbehavioralsimulation_xilinx_com_ip_fifo_generator_13_2__ref_view_fileset'
+      'xilinx_anylanguagebehavioralsimulation_xilinx_com_ip_fifo_generator_13_2__ref_view_fileset'
     );
   });
 });

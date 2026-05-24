@@ -19,6 +19,11 @@ proc validate_PARAM_VALUE.{{ generic.name }} { PARAM_VALUE.{{ generic.name }} } 
 	# Procedure called to validate {{ generic.name }}
 	return true
 }
+
+proc update_MODELPARAM_VALUE.{{ generic.name }} { MODELPARAM_VALUE.{{ generic.name }} PARAM_VALUE.{{ generic.name }} } {
+	# Procedure called to set VHDL generic/Verilog parameter value(s) based on TCL parameter value
+	set_property value [get_property value ${PARAM_VALUE.{{ generic.name }}}] ${MODELPARAM_VALUE.{{ generic.name }}}
+}
 {% if not loop.last %}
 
 {% endif %}

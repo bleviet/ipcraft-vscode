@@ -330,9 +330,25 @@ export function generateComponentXml(
   lines.push('  <spirit:model>');
   lines.push(...renderViews(name, ipCore.subcores ?? [], isSv));
   lines.push(
-    ...renderPorts(clocks, resets, busInterfaces, userPorts, interrupts, busDefinitions, isSv)
+    ...renderPorts(
+      clocks,
+      resets,
+      busInterfaces,
+      userPorts,
+      interrupts,
+      busDefinitions,
+      isSv,
+      parameters
+    )
   );
+  lines.push(...renderModelParameters(parameters));
   lines.push('  </spirit:model>');
+
+  // ── choices ───────────────────────────────────────────────────────────────
+
+  if (resets.length > 0) {
+    lines.push(...renderChoices());
+  }
 
   // ── fileSets ──────────────────────────────────────────────────────────────
 
@@ -354,7 +370,7 @@ export function generateComponentXml(
 
   // ── parameters ────────────────────────────────────────────────────────────
 
-  lines.push(...renderParameters(name, parameters));
+  lines.push(...renderParameters(`${name}_v${versionStr}`, parameters));
 
   // ── vendorExtensions ──────────────────────────────────────────────────────
 
@@ -520,7 +536,7 @@ function renderResetInterface(resetPort: string, polarity: string): string[] {
   lines.push('        <spirit:parameter>');
   lines.push('          <spirit:name>POLARITY</spirit:name>');
   lines.push(
-    `          <spirit:value spirit:id="BUSIFPARAM_VALUE.${x(rstUpper)}.POLARITY">${polarityValue}</spirit:value>`
+    `          <spirit:value spirit:id="BUSIFPARAM_VALUE.${x(rstUpper)}.POLARITY" spirit:choiceRef="choice_list_9d8b0d81">${polarityValue}</spirit:value>`
   );
   lines.push('        </spirit:parameter>');
   lines.push('      </spirit:parameters>');
@@ -605,10 +621,9 @@ function renderViews(entityName: string, subcores: SubcoreRef[] = [], isSv = fal
     return out;
   }
 
-  const synthViewName = isSv ? 'xilinx_anylanguagesynthesis' : 'xilinx_vhdlsynthesis';
-  const simViewName = isSv
-    ? 'xilinx_anylanguagebehavioralsimulation'
-    : 'xilinx_vhdlbehavioralsimulation';
+  const synthViewName = 'xilinx_anylanguagesynthesis';
+  const simViewName = 'xilinx_anylanguagebehavioralsimulation';
+  const language = isSv ? 'verilog' : 'VHDL';
 
   const synthRefs = subcores.map((ref) => {
     const v = parseVlnv(ref.vlnv);
@@ -621,54 +636,56 @@ function renderViews(entityName: string, subcores: SubcoreRef[] = [], isSv = fal
 
   const lines: string[] = [];
   lines.push('    <spirit:views>');
-  if (isSv) {
-    lines.push(
-      ...view(
-        synthViewName,
-        'Synthesis',
-        ':vivado.xilinx.com:synthesis',
-        `${synthViewName}_view_fileset`,
-        'verilog',
-        synthRefs
-      )
-    );
-    lines.push(
-      ...view(
-        simViewName,
-        'Simulation',
-        ':vivado.xilinx.com:simulation',
-        `${simViewName}_view_fileset`,
-        'verilog',
-        simRefs
-      )
-    );
-  } else {
-    lines.push(
-      ...view(
-        synthViewName,
-        'VHDL Synthesis',
-        'vhdlSource:vivado.xilinx.com:synthesis',
-        `${synthViewName}_view_fileset`,
-        'vhdl',
-        synthRefs
-      )
-    );
-    lines.push(
-      ...view(
-        simViewName,
-        'VHDL Simulation',
-        'vhdlSource:vivado.xilinx.com:simulation',
-        `${simViewName}_view_fileset`,
-        'vhdl',
-        simRefs
-      )
-    );
-  }
+  lines.push(
+    ...view(
+      synthViewName,
+      'Synthesis',
+      ':vivado.xilinx.com:synthesis',
+      `${synthViewName}_view_fileset`,
+      language,
+      synthRefs
+    )
+  );
+  lines.push(
+    ...view(
+      simViewName,
+      'Simulation',
+      ':vivado.xilinx.com:simulation',
+      `${simViewName}_view_fileset`,
+      language,
+      simRefs
+    )
+  );
   lines.push(
     ...view('xilinx_xpgui', 'UI Layout', ':vivado.xilinx.com:xgui.ui', 'xilinx_xpgui_view_fileset')
   );
   lines.push('    </spirit:views>');
   return lines;
+}
+
+/**
+ * Resolves a port width that may be a literal number or a parameter name
+ * (e.g. "DEPTH") to a concrete integer using the IP's parameter default values.
+ */
+function resolveWidth(
+  width: number | string | undefined,
+  parameters: Array<{ name?: string; value?: unknown; defaultValue?: unknown }>
+): number {
+  if (typeof width === 'number') {
+    return width;
+  }
+  if (typeof width === 'string') {
+    const match = parameters.find(
+      (p) => String(p.name ?? '').toUpperCase() === width.toUpperCase()
+    );
+    if (match !== undefined) {
+      const n = Number(match.value ?? match.defaultValue);
+      if (!isNaN(n) && n > 0) {
+        return n;
+      }
+    }
+  }
+  return 1;
 }
 
 function renderPorts(
@@ -678,7 +695,8 @@ function renderPorts(
   userPorts: Array<{ name?: string; direction?: string; width?: number | string }>,
   interrupts: Array<{ name: string; direction: string }>,
   busDefinitions: BusDefinitions,
-  isSv = false
+  isSv = false,
+  parameters: Array<{ name?: string; value?: unknown; defaultValue?: unknown }> = []
 ): string[] {
   const portLines: string[] = [];
 
@@ -725,9 +743,17 @@ function renderPorts(
     if (!port.name) {
       continue;
     }
-    const width = typeof port.width === 'number' ? port.width : 1;
+    const rawWidth = port.width;
+    const resolvedWidth = resolveWidth(rawWidth, parameters);
+    const widthParamName = typeof rawWidth === 'string' ? rawWidth : undefined;
     portLines.push(
-      ...renderModelPort(String(port.name), String(port.direction ?? 'in'), width, isSv)
+      ...renderModelPort(
+        String(port.name),
+        String(port.direction ?? 'in'),
+        resolvedWidth,
+        isSv,
+        widthParamName
+      )
     );
   }
 
@@ -745,41 +771,84 @@ function renderPorts(
   return ['    <spirit:ports>', ...portLines, '    </spirit:ports>'];
 }
 
-function renderModelPort(name: string, direction: string, width: number, isSv = false): string[] {
+function renderModelPort(
+  name: string,
+  direction: string,
+  width: number,
+  isSv = false,
+  widthParamName?: string
+): string[] {
+  const isVector = widthParamName !== undefined || width > 1;
   const lines: string[] = [];
   lines.push('      <spirit:port>');
   lines.push(`        <spirit:name>${x(name)}</spirit:name>`);
   lines.push('        <spirit:wire>');
   lines.push(`          <spirit:direction>${x(direction)}</spirit:direction>`);
-  if (width > 1) {
+  if (isVector) {
     lines.push('          <spirit:vector>');
-    lines.push(`            <spirit:left spirit:format="long">${width - 1}</spirit:left>`);
+    if (widthParamName) {
+      const paramUpper = widthParamName.toUpperCase();
+      lines.push(
+        `            <spirit:left spirit:format="long" spirit:resolve="dependent" spirit:dependency="(spirit:decode(id(&apos;MODELPARAM_VALUE.${paramUpper}&apos;)) - 1)">${width - 1}</spirit:left>`
+      );
+    } else {
+      lines.push(`            <spirit:left spirit:format="long">${width - 1}</spirit:left>`);
+    }
     lines.push('            <spirit:right spirit:format="long">0</spirit:right>');
     lines.push('          </spirit:vector>');
   }
   lines.push('          <spirit:wireTypeDefs>');
   lines.push('            <spirit:wireTypeDef>');
-  if (isSv) {
-    lines.push(`              <spirit:typeName>${width > 1 ? 'wire' : 'wire'}</spirit:typeName>`);
-    lines.push(
-      '              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>'
-    );
-    lines.push(
-      '              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>'
-    );
-  } else {
-    lines.push(
-      `              <spirit:typeName>${width > 1 ? 'std_logic_vector' : 'std_logic'}</spirit:typeName>`
-    );
-    lines.push('              <spirit:viewNameRef>xilinx_vhdlsynthesis</spirit:viewNameRef>');
-    lines.push(
-      '              <spirit:viewNameRef>xilinx_vhdlbehavioralsimulation</spirit:viewNameRef>'
-    );
-  }
+  const typeName = isSv ? 'wire' : isVector ? 'std_logic_vector' : 'std_logic';
+  lines.push(`              <spirit:typeName>${typeName}</spirit:typeName>`);
+  lines.push('              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>');
+  lines.push(
+    '              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>'
+  );
   lines.push('            </spirit:wireTypeDef>');
   lines.push('          </spirit:wireTypeDefs>');
   lines.push('        </spirit:wire>');
   lines.push('      </spirit:port>');
+  return lines;
+}
+
+function renderModelParameters(parameters: ParameterDef[]): string[] {
+  if (parameters.length === 0) {
+    return [];
+  }
+  const lines: string[] = [];
+  lines.push('    <spirit:modelParameters>');
+  for (const param of parameters) {
+    if (!param.name) {
+      continue;
+    }
+    const pName = String(param.name);
+    const pType = String(param.data_type ?? 'integer').toLowerCase();
+    const { format, defaultValue } = paramSpiritFormat(pType);
+    const value =
+      param.value !== undefined && param.value !== null ? String(param.value) : defaultValue;
+    const isInteger = format === 'long';
+    const displayName = pName
+      .split('_')
+      .map((w) => w[0].toUpperCase() + w.slice(1).toLowerCase())
+      .join(' ');
+    lines.push(
+      `      <spirit:modelParameter xsi:type="spirit:nameValueTypeType" spirit:dataType="${x(pType)}">`
+    );
+    lines.push(`        <spirit:name>${x(pName)}</spirit:name>`);
+    lines.push(`        <spirit:displayName>${x(displayName)}</spirit:displayName>`);
+    if (isInteger) {
+      lines.push(
+        `        <spirit:value spirit:format="${format}" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.${x(pName.toUpperCase())}" spirit:minimum="0" spirit:rangeType="long">${x(value)}</spirit:value>`
+      );
+    } else {
+      lines.push(
+        `        <spirit:value spirit:format="${format}" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.${x(pName.toUpperCase())}">${x(value)}</spirit:value>`
+      );
+    }
+    lines.push('      </spirit:modelParameter>');
+  }
+  lines.push('    </spirit:modelParameters>');
   return lines;
 }
 
@@ -790,10 +859,8 @@ function renderFileSets(
   subcores: SubcoreRef[] = [],
   isSv = false
 ): string[] {
-  const synthViewName = isSv ? 'xilinx_anylanguagesynthesis' : 'xilinx_vhdlsynthesis';
-  const simViewName = isSv
-    ? 'xilinx_anylanguagebehavioralsimulation'
-    : 'xilinx_vhdlbehavioralsimulation';
+  const synthViewName = 'xilinx_anylanguagesynthesis';
+  const simViewName = 'xilinx_anylanguagebehavioralsimulation';
   const renderFile = isSv ? renderSvFile : renderVhdlFile;
 
   const lines: string[] = [];
@@ -850,8 +917,6 @@ function renderVhdlFile(filePath: string): string[] {
     '      <spirit:file>',
     `        <spirit:name>${x(filePath)}</spirit:name>`,
     '        <spirit:fileType>vhdlSource</spirit:fileType>',
-    '        <spirit:userFileType>VHDL 2008</spirit:userFileType>',
-    '        <spirit:logicalName>xil_defaultlib</spirit:logicalName>',
     '      </spirit:file>',
   ];
 }
@@ -861,7 +926,6 @@ function renderSvFile(filePath: string): string[] {
     '      <spirit:file>',
     `        <spirit:name>${x(filePath)}</spirit:name>`,
     '        <spirit:fileType>systemVerilogSource</spirit:fileType>',
-    '        <spirit:logicalName>xil_defaultlib</spirit:logicalName>',
     '      </spirit:file>',
   ];
 }
@@ -885,13 +949,6 @@ function renderParameters(entityName: string, parameters: ParameterDef[]): strin
   const lines: string[] = [];
   lines.push('  <spirit:parameters>');
 
-  lines.push('    <spirit:parameter>');
-  lines.push('      <spirit:name>Component_Name</spirit:name>');
-  lines.push(
-    `      <spirit:value spirit:id="PARAM_VALUE.Component_Name">${x(entityName)}</spirit:value>`
-  );
-  lines.push('    </spirit:parameter>');
-
   for (const param of parameters) {
     if (!param.name) {
       continue;
@@ -902,20 +959,50 @@ function renderParameters(entityName: string, parameters: ParameterDef[]): strin
     const value =
       param.value !== undefined && param.value !== null ? String(param.value) : defaultValue;
     const paramId = `PARAM_VALUE.${pName.toUpperCase()}`;
+    const isInteger = format === 'long';
+    const displayName = pName
+      .split('_')
+      .map((w) => w[0].toUpperCase() + w.slice(1).toLowerCase())
+      .join(' ');
     lines.push('    <spirit:parameter>');
     lines.push(`      <spirit:name>${x(pName)}</spirit:name>`);
-    lines.push(`      <spirit:displayName>${x(pName.replace(/_/g, ' '))}</spirit:displayName>`);
+    lines.push(`      <spirit:displayName>${x(displayName)}</spirit:displayName>`);
     if (param.description) {
       lines.push(`      <spirit:description>${x(param.description)}</spirit:description>`);
     }
-    lines.push(
-      `      <spirit:value spirit:format="${format}" spirit:resolve="user" spirit:id="${x(paramId)}">${x(value)}</spirit:value>`
-    );
+    if (isInteger) {
+      lines.push(
+        `      <spirit:value spirit:format="${format}" spirit:resolve="user" spirit:id="${x(paramId)}" spirit:minimum="0" spirit:rangeType="long">${x(value)}</spirit:value>`
+      );
+    } else {
+      lines.push(
+        `      <spirit:value spirit:format="${format}" spirit:resolve="user" spirit:id="${x(paramId)}">${x(value)}</spirit:value>`
+      );
+    }
     lines.push('    </spirit:parameter>');
   }
 
+  lines.push('    <spirit:parameter>');
+  lines.push('      <spirit:name>Component_Name</spirit:name>');
+  lines.push(
+    `      <spirit:value spirit:resolve="user" spirit:id="PARAM_VALUE.Component_Name" spirit:order="1">${x(entityName)}</spirit:value>`
+  );
+  lines.push('    </spirit:parameter>');
+
   lines.push('  </spirit:parameters>');
   return lines;
+}
+
+function renderChoices(): string[] {
+  return [
+    '  <spirit:choices>',
+    '    <spirit:choice>',
+    '      <spirit:name>choice_list_9d8b0d81</spirit:name>',
+    '      <spirit:enumeration>ACTIVE_HIGH</spirit:enumeration>',
+    '      <spirit:enumeration>ACTIVE_LOW</spirit:enumeration>',
+    '    </spirit:choice>',
+    '  </spirit:choices>',
+  ];
 }
 
 function renderVendorExtensions(displayName: string, xilinxVersion: string): string[] {
