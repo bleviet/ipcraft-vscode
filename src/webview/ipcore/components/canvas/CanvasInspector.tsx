@@ -975,7 +975,12 @@ const BusPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, onUpda
   const mapOpts = allMapNames.map((m) => ({ value: m, label: m }));
 
   // Only single, slave memory-mapped interfaces (AXI4-Lite/Full, Avalon-MM) may have a memory map
-  const isArray = ((bus.array as { count?: number } | undefined | null)?.count ?? 0) > 1;
+  const arrayDef = bus.array as
+    | { count?: number; physicalPrefixPattern?: string }
+    | undefined
+    | null;
+  const isArray = (arrayDef?.count ?? 0) > 1;
+  const hasPrefixPattern = isArray && !!arrayDef?.physicalPrefixPattern;
   const canHaveMemoryMap = !isArray && supportsMemoryMap(bus.type, bus.mode);
 
   return (
@@ -1005,14 +1010,22 @@ const BusPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, onUpda
           options={BUS_MODE_OPTS}
           onSave={(v) => onUpdate(['busInterfaces', index, 'mode'], v)}
         />
-        <PropField
-          label="Physical Prefix"
-          value={bus.physicalPrefix ?? ''}
-          onSave={(v) => onUpdate(['busInterfaces', index, 'physicalPrefix'], v || null)}
-          hint={!bus.physicalPrefix && !isArray ? 'Defaults to s_axi_ at generation' : undefined}
-          mono
-        />
-        {hasDuplicatePrefix && (
+        {!hasPrefixPattern && (
+          <PropField
+            label="Physical Prefix"
+            value={bus.physicalPrefix ?? ''}
+            onSave={(v) => onUpdate(['busInterfaces', index, 'physicalPrefix'], v || null)}
+            hint={
+              !bus.physicalPrefix && !isArray
+                ? 'Defaults to s_axi_ at generation'
+                : isArray
+                  ? `Auto-pattern: ${bus.physicalPrefix ?? 's_axi_'}{index}_`
+                  : undefined
+            }
+            mono
+          />
+        )}
+        {hasDuplicatePrefix && !hasPrefixPattern && (
           <div
             className="flex items-start gap-1.5 px-2 py-1.5 rounded text-xs"
             role="alert"
