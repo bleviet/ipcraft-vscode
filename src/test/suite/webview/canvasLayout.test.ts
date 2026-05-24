@@ -189,7 +189,7 @@ describe('computeLayout', () => {
     expect(noWidth!.widthLabel).toBe(''); // undefined -> no label
   });
 
-  it('handles sink/source bus modes correctly', () => {
+  it('handles sink/source bus modes correctly (mapped to slave/master)', () => {
     const ip = makeIpCore({
       busInterfaces: [
         {
@@ -212,8 +212,8 @@ describe('computeLayout', () => {
     const sourceBus = layout.ports.find((p) => p.label === 'axis_out');
     expect(sinkBus!.side).toBe('left');
     expect(sourceBus!.side).toBe('right');
-    expect(sinkBus!.mode).toBe('Sink');
-    expect(sourceBus!.mode).toBe('Src');
+    expect(sinkBus!.mode).toBe('S');
+    expect(sourceBus!.mode).toBe('M');
     expect(sinkBus!.protocol).toBe('AXI-Stream');
   });
 

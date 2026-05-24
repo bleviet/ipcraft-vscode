@@ -170,7 +170,7 @@ describe('HwTclParser', () => {
       expect(doc.busInterfaces[0].associatedReset).toBe('s_axi_aresetn');
     });
 
-    it('uses sink/source mode for streaming interfaces', () => {
+    it('uses slave/master mode for streaming interfaces', () => {
       const tcl = `
         add_interface axis_in axi4stream end
         add_interface_port axis_in in_tdata tdata Input 8
@@ -180,8 +180,8 @@ describe('HwTclParser', () => {
       const doc = parseYaml(parse(tcl).yamlText) as {
         busInterfaces: Array<Record<string, unknown>>;
       };
-      expect(doc.busInterfaces[0].mode).toBe('sink');
-      expect(doc.busInterfaces[1].mode).toBe('source');
+      expect(doc.busInterfaces[0].mode).toBe('slave');
+      expect(doc.busInterfaces[1].mode).toBe('master');
     });
 
     it('emits useOptionalPorts for optional ports present in hw.tcl', () => {

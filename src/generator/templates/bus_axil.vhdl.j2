@@ -47,9 +47,10 @@ architecture rtl of {{ entity_name }}_axil is
   constant C_RESP_OKAY   : std_logic_vector(1 downto 0) := "00";
   constant C_RESP_SLVERR : std_logic_vector(1 downto 0) := "10";
 
-  -- AXI internal signals
+  -- AXI internal signals (output registers + address latches only; input ports used directly)
 {% for port in bus_ports %}
 {% if port.logical_name != 'AWPROT' and port.logical_name != 'ARPROT' %}
+{% if port.direction == 'out' or port.logical_name == 'AWADDR' or port.logical_name == 'ARADDR' %}
 {% if port.logical_name == 'BRESP' or port.logical_name == 'RRESP' %}
 {% set sig_init = 'C_RESP_OKAY' %}
 {% elif port.type == 'std_logic' %}
@@ -58,6 +59,7 @@ architecture rtl of {{ entity_name }}_axil is
 {% set sig_init = "(others => '0')" %}
 {% endif %}
   signal {{ "%-8s"|format(port.logical_name | lower) }} : {{ "%-48s"|format(port.type) }} := {{ sig_init }};
+{% endif %}
 {% endif %}
 {% endfor %}
 
@@ -105,35 +107,24 @@ begin
 {% endif %}
     );
 
-  -- Connect internal AXI signals to ports
-{% set awaddr_port  = (bus_ports | selectattr('logical_name', 'equalto', 'AWADDR')  | list) %}
-{% set awvalid_port = (bus_ports | selectattr('logical_name', 'equalto', 'AWVALID') | list) %}
+  -- Connect internal output registers to AXI-Lite ports
 {% set awready_port = (bus_ports | selectattr('logical_name', 'equalto', 'AWREADY') | list) %}
-{% set wdata_port   = (bus_ports | selectattr('logical_name', 'equalto', 'WDATA')   | list) %}
-{% set wstrb_port   = (bus_ports | selectattr('logical_name', 'equalto', 'WSTRB')   | list) %}
-{% set wvalid_port  = (bus_ports | selectattr('logical_name', 'equalto', 'WVALID')  | list) %}
 {% set wready_port  = (bus_ports | selectattr('logical_name', 'equalto', 'WREADY')  | list) %}
 {% set bresp_port   = (bus_ports | selectattr('logical_name', 'equalto', 'BRESP')   | list) %}
 {% set bvalid_port  = (bus_ports | selectattr('logical_name', 'equalto', 'BVALID')  | list) %}
-{% set bready_port  = (bus_ports | selectattr('logical_name', 'equalto', 'BREADY')  | list) %}
-{% set araddr_port  = (bus_ports | selectattr('logical_name', 'equalto', 'ARADDR')  | list) %}
-{% set arvalid_port = (bus_ports | selectattr('logical_name', 'equalto', 'ARVALID') | list) %}
 {% set arready_port = (bus_ports | selectattr('logical_name', 'equalto', 'ARREADY') | list) %}
 {% set rdata_port   = (bus_ports | selectattr('logical_name', 'equalto', 'RDATA')   | list) %}
 {% set rresp_port   = (bus_ports | selectattr('logical_name', 'equalto', 'RRESP')   | list) %}
 {% set rvalid_port  = (bus_ports | selectattr('logical_name', 'equalto', 'RVALID')  | list) %}
+{% set awaddr_port  = (bus_ports | selectattr('logical_name', 'equalto', 'AWADDR')  | list) %}
+{% set awvalid_port = (bus_ports | selectattr('logical_name', 'equalto', 'AWVALID') | list) %}
+{% set wdata_port   = (bus_ports | selectattr('logical_name', 'equalto', 'WDATA')   | list) %}
+{% set wstrb_port   = (bus_ports | selectattr('logical_name', 'equalto', 'WSTRB')   | list) %}
+{% set wvalid_port  = (bus_ports | selectattr('logical_name', 'equalto', 'WVALID')  | list) %}
+{% set bready_port  = (bus_ports | selectattr('logical_name', 'equalto', 'BREADY')  | list) %}
+{% set araddr_port  = (bus_ports | selectattr('logical_name', 'equalto', 'ARADDR')  | list) %}
+{% set arvalid_port = (bus_ports | selectattr('logical_name', 'equalto', 'ARVALID') | list) %}
 {% set rready_port  = (bus_ports | selectattr('logical_name', 'equalto', 'RREADY')  | list) %}
-  -- Inputs (master → slave)
-  awaddr  <= {{ awaddr_port[0].name  if awaddr_port  | length > 0 else "(others => '0')" }};
-  awvalid <= {{ awvalid_port[0].name if awvalid_port | length > 0 else "'0'" }};
-  wdata   <= {{ wdata_port[0].name   if wdata_port   | length > 0 else "(others => '0')" }};
-  wstrb   <= {{ wstrb_port[0].name   if wstrb_port   | length > 0 else "(others => '1')" }};
-  wvalid  <= {{ wvalid_port[0].name  if wvalid_port  | length > 0 else "'0'" }};
-  bready  <= {{ bready_port[0].name  if bready_port  | length > 0 else "'1'" }};
-  araddr  <= {{ araddr_port[0].name  if araddr_port  | length > 0 else "(others => '0')" }};
-  arvalid <= {{ arvalid_port[0].name if arvalid_port | length > 0 else "'0'" }};
-  rready  <= {{ rready_port[0].name  if rready_port  | length > 0 else "'1'" }};
-  -- Outputs (slave → master)
 {% if awready_port | length > 0 %}
   {{ awready_port[0].name }} <= awready;
 {% endif %}
@@ -172,13 +163,13 @@ begin
         awaddr              <= (others => '0');
         write_txn.addr_received <= '0';
       else
-        if (awready = '0' and awvalid = '1' and write_txn.aw_en = '1') then
-          -- Ready to accept write address
+        if (awready = '0' and {{ awvalid_port[0].name if awvalid_port | length > 0 else "'0'" }} = '1' and write_txn.aw_en = '1') then
+          -- Ready to accept write address; latch address from port
           awready             <= '1';
           write_txn.aw_en     <= '0';
-          awaddr              <= awaddr;
+          awaddr              <= {{ awaddr_port[0].name if awaddr_port | length > 0 else "(others => '0')" }};
           write_txn.addr_received <= '1';
-        elsif (bvalid = '1' and bready = '1') then
+        elsif (bvalid = '1' and {{ bready_port[0].name if bready_port | length > 0 else "'1'" }} = '1') then
           -- Write response completed, ready for next transaction
           write_txn.aw_en         <= '1';
           write_txn.addr_received <= '0';
@@ -201,11 +192,11 @@ begin
         wready              <= '0';
         write_txn.data_received <= '0';
       else
-        if (wready = '0' and wvalid = '1') then
+        if (wready = '0' and {{ wvalid_port[0].name if wvalid_port | length > 0 else "'0'" }} = '1') then
           -- Ready to accept write data
           wready              <= '1';
           write_txn.data_received <= '1';
-        elsif (bvalid = '1' and bready = '1') then
+        elsif (bvalid = '1' and {{ bready_port[0].name if bready_port | length > 0 else "'1'" }} = '1') then
           -- Write response completed, ready for next transaction
           write_txn.data_received <= '0';
           wready              <= '0';
@@ -222,8 +213,8 @@ begin
   ----------------------------------------------------------------------------
   wr_en   <= write_txn.addr_received and write_txn.data_received;
   wr_addr <= awaddr;
-  wr_data <= wdata;
-  wr_strb <= wstrb;
+  wr_data <= {{ wdata_port[0].name if wdata_port | length > 0 else "(others => '0')" }};
+  wr_strb <= {{ wstrb_port[0].name if wstrb_port | length > 0 else "(others => '1')" }};
 
   ----------------------------------------------------------------------------
   -- Write Response Logic
@@ -239,7 +230,7 @@ begin
           -- Both address and data received, assert write response
           bvalid <= '1';
           bresp  <= C_RESP_OKAY;
-        elsif (bready = '1' and bvalid = '1') then
+        elsif ({{ bready_port[0].name if bready_port | length > 0 else "'1'" }} = '1' and bvalid = '1') then
           -- Write response accepted by master
           bvalid <= '0';
         end if;
@@ -257,9 +248,9 @@ begin
         arready <= '0';
         araddr  <= (others => '0');
       else
-        if (arready = '0' and arvalid = '1') then
+        if (arready = '0' and {{ arvalid_port[0].name if arvalid_port | length > 0 else "'0'" }} = '1') then
           arready <= '1';
-          araddr  <= araddr;
+          araddr  <= {{ araddr_port[0].name if araddr_port | length > 0 else "(others => '0')" }};  -- latch address from port
         else
           arready <= '0';
         end if;
@@ -271,7 +262,7 @@ begin
   -- Register Read Control
   -- Trigger read from register bank when address is accepted
   ----------------------------------------------------------------------------
-  rd_en   <= arready and arvalid and not rvalid;
+  rd_en   <= arready and {{ arvalid_port[0].name if arvalid_port | length > 0 else "'0'" }} and not rvalid;
   rd_addr <= araddr;
 
   ----------------------------------------------------------------------------
@@ -291,7 +282,7 @@ begin
           rvalid <= '1';
           rresp  <= C_RESP_OKAY;
           rdata  <= rd_data;
-        elsif (rvalid = '1' and rready = '1') then
+        elsif (rvalid = '1' and {{ rready_port[0].name if rready_port | length > 0 else "'1'" }} = '1') then
           -- Master accepted read data
           rvalid <= '0';
         end if;
