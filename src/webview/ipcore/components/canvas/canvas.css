@@ -1521,14 +1521,14 @@
 }
 
 .canvas-bus-bundle__warn-badge {
-  fill: color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 18%, var(--vscode-editor-background));
-  stroke: var(--vscode-editorWarning-foreground, #cca700);
+  fill: color-mix(in srgb, #e5c000 18%, var(--vscode-editor-background));
+  stroke: #e5c000;
   stroke-width: 1;
   opacity: 0.9;
 }
 
 .canvas-bus-bundle__warn-text {
-  fill: var(--vscode-editorWarning-foreground, #cca700);
+  fill: #e5c000;
   font-family: var(--vscode-editor-font-family, monospace);
   font-size: 7px;
   font-weight: 600;
