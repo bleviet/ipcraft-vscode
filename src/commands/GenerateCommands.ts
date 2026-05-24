@@ -55,15 +55,15 @@ export function registerGeneratorCommands(context: vscode.ExtensionContext): voi
   });
 
   safeRegisterCommand(context, 'fpga-ip-core.parseVHDL', async (uri?: vscode.Uri) => {
-    await parseVHDL(uri);
+    await parseVHDL(context, uri);
   });
 
   safeRegisterCommand(context, 'fpga-ip-core.parseHwTcl', async (uri?: vscode.Uri) => {
-    await parseHwTcl(uri);
+    await parseHwTcl(context, uri);
   });
 
   safeRegisterCommand(context, 'fpga-ip-core.parseComponentXml', async (uri?: vscode.Uri) => {
-    await parseComponentXml(uri);
+    await parseComponentXml(context, uri);
   });
 
   safeRegisterCommand(context, 'fpga-ip-core.viewBusDefinitions', async () => {
@@ -426,10 +426,70 @@ async function runGenerator(
   );
 }
 
+const HIDE_EXPERIMENTAL_IMPORT_WARNING = 'ipcraft.hideExperimentalImportWarning';
+
+/**
+ * Show a one-time dismissable warning before experimental parse/import operations.
+ * Returns true when the caller should proceed, false when the user cancelled.
+ */
+async function showExperimentalParseWarning(context: vscode.ExtensionContext): Promise<boolean> {
+  if (context.globalState.get<boolean>(HIDE_EXPERIMENTAL_IMPORT_WARNING)) {
+    return true;
+  }
+  const choice = await vscode.window.showWarningMessage(
+    '⚠️ This import feature is experimental. Results may be incomplete or require manual ' +
+      'adjustments for complex files. Review the generated .ip.yml before using it for code generation.',
+    'Continue',
+    "Don't show again",
+    'Cancel'
+  );
+  if (!choice || choice === 'Cancel') {
+    return false;
+  }
+  if (choice === "Don't show again") {
+    void context.globalState.update(HIDE_EXPERIMENTAL_IMPORT_WARNING, true);
+  }
+  return true;
+}
+
+/**
+ * Build a human-readable summary of what was detected in a parsed .ip.yml YAML string.
+ */
+function buildParseSummary(yamlText: string): string {
+  try {
+    const data = YAML.parse(yamlText) as Record<string, unknown>;
+    const name = String((data.name as string | undefined) ?? '');
+    const ports = Array.isArray(data.ports) ? data.ports.length : 0;
+    const params = Array.isArray(data.parameters) ? data.parameters.length : 0;
+    const buses = Array.isArray(data.busInterfaces) ? data.busInterfaces.length : 0;
+    const parts: string[] = [];
+    if (ports > 0) {
+      parts.push(`${ports} port${ports !== 1 ? 's' : ''}`);
+    }
+    if (params > 0) {
+      parts.push(`${params} parameter${params !== 1 ? 's' : ''}`);
+    }
+    if (buses > 0) {
+      parts.push(`${buses} bus interface${buses !== 1 ? 's' : ''}`);
+    }
+    const detail = parts.length > 0 ? parts.join(', ') : 'no items detected';
+    return name ? `${name}: ${detail}` : detail;
+  } catch {
+    return '';
+  }
+}
+
 /**
  * Parse VHDL file and generate IP core YAML
  */
-async function parseVHDL(resourceUri?: vscode.Uri): Promise<void> {
+async function parseVHDL(
+  context: vscode.ExtensionContext,
+  resourceUri?: vscode.Uri
+): Promise<void> {
+  if (!(await showExperimentalParseWarning(context))) {
+    return;
+  }
+
   // Get VHDL file URI from context menu or active editor
   let vhdlUri = resourceUri;
 
@@ -486,6 +546,13 @@ async function parseVHDL(resourceUri?: vscode.Uri): Promise<void> {
           encoder.encode(result.yamlText)
         );
 
+        const summary = buildParseSummary(result.yamlText);
+        if (summary) {
+          void vscode.window.showInformationMessage(
+            `Imported (experimental) — ${summary}. Review the .ip.yml carefully before generating code.`
+          );
+        }
+
         await vscode.commands.executeCommand(
           'vscode.openWith',
           vscode.Uri.file(defaultOutput),
@@ -502,7 +569,14 @@ async function parseVHDL(resourceUri?: vscode.Uri): Promise<void> {
 /**
  * Parse Platform Designer _hw.tcl file and generate IP core YAML
  */
-async function parseHwTcl(resourceUri?: vscode.Uri): Promise<void> {
+async function parseHwTcl(
+  context: vscode.ExtensionContext,
+  resourceUri?: vscode.Uri
+): Promise<void> {
+  if (!(await showExperimentalParseWarning(context))) {
+    return;
+  }
+
   let tclUri = resourceUri;
 
   if (!tclUri) {
@@ -554,6 +628,13 @@ async function parseHwTcl(resourceUri?: vscode.Uri): Promise<void> {
           encoder.encode(result.yamlText)
         );
 
+        const summary = buildParseSummary(result.yamlText);
+        if (summary) {
+          void vscode.window.showInformationMessage(
+            `Imported (experimental) — ${summary}. Review the .ip.yml carefully before generating code.`
+          );
+        }
+
         await vscode.commands.executeCommand(
           'vscode.openWith',
           vscode.Uri.file(outputPath),
@@ -567,7 +648,14 @@ async function parseHwTcl(resourceUri?: vscode.Uri): Promise<void> {
   );
 }
 
-async function parseComponentXml(resourceUri?: vscode.Uri): Promise<void> {
+async function parseComponentXml(
+  context: vscode.ExtensionContext,
+  resourceUri?: vscode.Uri
+): Promise<void> {
+  if (!(await showExperimentalParseWarning(context))) {
+    return;
+  }
+
   let xmlUri = resourceUri;
 
   if (!xmlUri) {
@@ -614,6 +702,8 @@ async function parseComponentXml(resourceUri?: vscode.Uri): Promise<void> {
           encoder.encode(result.ipYamlText)
         );
 
+        const ipSummary = buildParseSummary(result.ipYamlText);
+
         // Write memory map file if register data was found
         if (result.mmYamlText && result.mmFileName) {
           const mmOutputPath = path.join(outputDir, result.mmFileName);
@@ -622,7 +712,11 @@ async function parseComponentXml(resourceUri?: vscode.Uri): Promise<void> {
             encoder.encode(result.mmYamlText)
           );
           void vscode.window.showInformationMessage(
-            `Generated ${result.componentName}.ip.yml and ${result.mmFileName}`
+            `Imported (experimental) — ${ipSummary ? `${ipSummary}; ` : ''}memory map saved to ${result.mmFileName}. Review carefully before generating code.`
+          );
+        } else if (ipSummary) {
+          void vscode.window.showInformationMessage(
+            `Imported (experimental) — ${ipSummary}. Review the .ip.yml carefully before generating code.`
           );
         }
 

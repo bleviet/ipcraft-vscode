@@ -106,6 +106,8 @@ export class IpCoreSourcePreviewProvider implements vscode.CustomTextEditorProvi
     webviewPanel.webview.options = { enableScripts: true };
     webviewPanel.webview.html = this.htmlGenerator.generateIpCoreHtml(webviewPanel.webview);
 
+    this.showExperimentalPreviewNotice();
+
     let isDisposed = false;
     // Track the latest YAML — seeded from the parsed source, updated by webview edits
     let currentYaml = '';
@@ -250,5 +252,18 @@ export class IpCoreSourcePreviewProvider implements vscode.CustomTextEditorProvi
     const outputUri = vscode.Uri.file(outputPath);
     await vscode.workspace.fs.writeFile(outputUri, Buffer.from(currentYaml, 'utf-8'));
     await vscode.commands.executeCommand('vscode.openWith', outputUri, 'fpgaIpCore.editor');
+  }
+
+  private showExperimentalPreviewNotice(): void {
+    const KEY = 'ipcraft.hideExperimentalPreviewNotice';
+    if (this.context.globalState.get<boolean>(KEY)) {
+      return;
+    }
+    void this.context.globalState.update(KEY, true);
+    void vscode.window.showInformationMessage(
+      '⚠️ IPCraft source preview is experimental. The detected IP core structure may be ' +
+        'incomplete for complex files. Use "Save as .ip.yml" to persist and refine the result.',
+      'Got it'
+    );
   }
 }

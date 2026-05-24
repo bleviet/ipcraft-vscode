@@ -112,19 +112,19 @@
       },
       {
         "command": "fpga-ip-core.parseVHDL",
-        "title": "Parse VHDL to .ip.yml",
+        "title": "Import from VHDL (Experimental)",
         "category": "IPCraft",
         "icon": "$(file-code)"
       },
       {
         "command": "fpga-ip-core.parseHwTcl",
-        "title": "Parse Altera Platform Designer Component (_hw.tcl) to .ip.yml",
+        "title": "Import from Altera Platform Designer (Experimental)",
         "category": "IPCraft",
         "icon": "$(file-code)"
       },
       {
         "command": "fpga-ip-core.parseComponentXml",
-        "title": "Parse Xilinx component.xml to .ip.yml",
+        "title": "Import from Xilinx Component XML (Experimental)",
         "category": "IPCraft",
         "icon": "$(file-code)"
       },
@@ -202,7 +202,7 @@
       },
       {
         "command": "fpga-ip-core.previewInIpcraft",
-        "title": "Preview in IPCraft",
+        "title": "Preview in IPCraft (Experimental)",
         "category": "IPCraft",
         "icon": "$(eye)"
       }
