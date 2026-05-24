@@ -80,4 +80,81 @@ describe('YamlValidator', () => {
       expect(extensionError.message).toContain('Failed to serialize YAML: dump failed');
     }
   });
+
+  describe('findDuplicatePhysicalPrefixes', () => {
+    it('returns empty array for null input', () => {
+      expect(validator.findDuplicatePhysicalPrefixes(null)).toEqual([]);
+    });
+
+    it('returns empty array for non-object input', () => {
+      expect(validator.findDuplicatePhysicalPrefixes('string')).toEqual([]);
+      expect(validator.findDuplicatePhysicalPrefixes(42)).toEqual([]);
+    });
+
+    it('returns empty array when there are no bus interfaces', () => {
+      expect(validator.findDuplicatePhysicalPrefixes({ name: 'my_core' })).toEqual([]);
+    });
+
+    it('returns empty array when busInterfaces is empty', () => {
+      expect(validator.findDuplicatePhysicalPrefixes({ busInterfaces: [] })).toEqual([]);
+    });
+
+    it('returns empty array when all prefixes are unique', () => {
+      const data = {
+        busInterfaces: [
+          { name: 'axi_a', physicalPrefix: 'a_' },
+          { name: 'axi_b', physicalPrefix: 'b_' },
+        ],
+      };
+      expect(validator.findDuplicatePhysicalPrefixes(data)).toEqual([]);
+    });
+
+    it('returns one entry when two interfaces share the same physicalPrefix', () => {
+      const data = {
+        busInterfaces: [
+          { name: 'axi_a', physicalPrefix: 's_axi_' },
+          { name: 'axi_b', physicalPrefix: 's_axi_' },
+        ],
+      };
+      const result = validator.findDuplicatePhysicalPrefixes(data);
+      expect(result).toHaveLength(1);
+      expect(result[0].prefix).toBe('s_axi_');
+      expect(result[0].interfaces).toContain('axi_a');
+      expect(result[0].interfaces).toContain('axi_b');
+    });
+
+    it('returns multiple entries when several prefix groups are duplicated', () => {
+      const data = {
+        busInterfaces: [
+          { name: 'a1', physicalPrefix: 'x_' },
+          { name: 'a2', physicalPrefix: 'x_' },
+          { name: 'b1', physicalPrefix: 'y_' },
+          { name: 'b2', physicalPrefix: 'y_' },
+        ],
+      };
+      const result = validator.findDuplicatePhysicalPrefixes(data);
+      expect(result).toHaveLength(2);
+      const prefixes = result.map((r) => r.prefix).sort();
+      expect(prefixes).toEqual(['x_', 'y_']);
+    });
+
+    it('supports snake_case bus_interfaces key', () => {
+      const data = {
+        bus_interfaces: [
+          { name: 'axi_a', physical_prefix: 's_axi_' },
+          { name: 'axi_b', physical_prefix: 's_axi_' },
+        ],
+      };
+      const result = validator.findDuplicatePhysicalPrefixes(data);
+      expect(result).toHaveLength(1);
+      expect(result[0].prefix).toBe('s_axi_');
+    });
+
+    it('skips interfaces without a physicalPrefix', () => {
+      const data = {
+        busInterfaces: [{ name: 'no_prefix' }, { name: 'has_prefix', physicalPrefix: 'p_' }],
+      };
+      expect(validator.findDuplicatePhysicalPrefixes(data)).toEqual([]);
+    });
+  });
 });

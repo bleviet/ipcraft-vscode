@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
 import { EditorPanel } from './components/layout/EditorPanel';
 import { CanvasInspector } from './components/canvas/CanvasInspector';
@@ -431,6 +431,21 @@ const IpCoreApp: React.FC = () => {
 
   const typedIpCore = ipCore as unknown as Parameters<typeof EditorPanel>[0]['ipCore'];
 
+  // Detect duplicate physicalPrefix values across all bus interfaces
+  const duplicatePrefixes = useMemo((): string[] => {
+    const buses = (ipCore as unknown as IpCore)?.busInterfaces ?? [];
+    const prefixCount = new Map<string, number>();
+    for (const bus of buses as BusInterface[]) {
+      const p = bus.physicalPrefix ?? '';
+      if (p) {
+        prefixCount.set(p, (prefixCount.get(p) ?? 0) + 1);
+      }
+    }
+    return Array.from(prefixCount.entries())
+      .filter(([, count]) => count > 1)
+      .map(([prefix]) => prefix);
+  }, [ipCore]);
+
   return (
     <div
       className="h-screen flex flex-col"
@@ -651,6 +666,29 @@ const IpCoreApp: React.FC = () => {
             <span className="codicon codicon-save" />
             <span>Save as .ip.yml</span>
           </button>
+        </div>
+      )}
+
+      {/* Duplicate physicalPrefix warning banner */}
+      {duplicatePrefixes.length > 0 && (
+        <div
+          className="flex items-start gap-2 px-4 py-2"
+          role="alert"
+          style={{
+            background: 'var(--vscode-inputValidation-warningBackground)',
+            borderBottom: '1px solid var(--vscode-inputValidation-warningBorder)',
+            color:
+              'var(--vscode-inputValidation-warningForeground, var(--vscode-editor-foreground))',
+            fontSize: '12px',
+          }}
+        >
+          <span className="codicon codicon-warning" style={{ flexShrink: 0, marginTop: '1px' }} />
+          <span>
+            <strong>Duplicate physicalPrefix detected:</strong>{' '}
+            {duplicatePrefixes.map((p) => `"${p}"`).join(', ')} — multiple bus interfaces share this
+            prefix, which will produce conflicting port names in generated HDL. Click an affected
+            interface to correct its prefix.
+          </span>
         </div>
       )}
 

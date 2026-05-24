@@ -5,6 +5,7 @@ import {
   normalizeBusType,
   getBusTypeForTemplate,
   expandBusInterfaces,
+  checkDuplicatePhysicalPrefixes,
   getVhdlPortType,
   getActiveBusPortsFromDefinition,
   prepareRegisters,
@@ -245,6 +246,76 @@ describe('registerProcessor', () => {
       const raw = { vlnv: { name: 'test' } };
       const result = normalizeIpCoreData(raw);
       expect(result.subcores).toEqual([]);
+    });
+  });
+
+  describe('checkDuplicatePhysicalPrefixes', () => {
+    it('returns null when there are no bus interfaces', () => {
+      const ipCore = normalizeIpCoreData({});
+      expect(checkDuplicatePhysicalPrefixes(ipCore)).toBeNull();
+    });
+
+    it('returns null when all prefixes are unique', () => {
+      const ipCore = normalizeIpCoreData({
+        busInterfaces: [
+          { name: 'bus_a', type: 'AXI4-Lite', mode: 'slave', physicalPrefix: 'a_' },
+          { name: 'bus_b', type: 'AXI4-Lite', mode: 'slave', physicalPrefix: 'b_' },
+        ],
+      });
+      expect(checkDuplicatePhysicalPrefixes(ipCore)).toBeNull();
+    });
+
+    it('returns error string when two interfaces share the same physicalPrefix', () => {
+      const ipCore = normalizeIpCoreData({
+        busInterfaces: [
+          { name: 'bus_a', type: 'AXI4-Lite', mode: 'slave', physicalPrefix: 's_axi_' },
+          { name: 'bus_b', type: 'AXI4-Lite', mode: 'slave', physicalPrefix: 's_axi_' },
+        ],
+      });
+      const result = checkDuplicatePhysicalPrefixes(ipCore);
+      expect(result).not.toBeNull();
+      expect(result).toContain('s_axi_');
+    });
+
+    it('returns null when a single interface has no duplicates', () => {
+      const ipCore = normalizeIpCoreData({
+        busInterfaces: [
+          { name: 'solo', type: 'AXI4-Lite', mode: 'slave', physicalPrefix: 'solo_' },
+        ],
+      });
+      expect(checkDuplicatePhysicalPrefixes(ipCore)).toBeNull();
+    });
+
+    it('returns error string when array expansion produces duplicate prefixes (missing {index})', () => {
+      const ipCore = normalizeIpCoreData({
+        busInterfaces: [
+          {
+            name: 'bus_arr',
+            type: 'AXI4-Lite',
+            mode: 'slave',
+            physicalPrefix: 's_axi_',
+            array: { count: 2, physicalPrefixPattern: 's_axi_' },
+          },
+        ],
+      });
+      const result = checkDuplicatePhysicalPrefixes(ipCore);
+      expect(result).not.toBeNull();
+      expect(result).toContain('s_axi_');
+    });
+
+    it('returns null when array expansion with {index} produces unique prefixes', () => {
+      const ipCore = normalizeIpCoreData({
+        busInterfaces: [
+          {
+            name: 'bus_arr',
+            type: 'AXI4-Lite',
+            mode: 'slave',
+            physicalPrefix: 's_axi_0_',
+            array: { count: 2, physicalPrefixPattern: 's_axi_{index}_' },
+          },
+        ],
+      });
+      expect(checkDuplicatePhysicalPrefixes(ipCore)).toBeNull();
     });
   });
 });

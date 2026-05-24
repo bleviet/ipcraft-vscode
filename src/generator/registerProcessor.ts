@@ -202,6 +202,37 @@ export function hasMemoryMappedSlaveInterface(ipCore: IpCoreData): boolean {
   return false;
 }
 
+/**
+ * Checks whether any two expanded bus interfaces share the same physical_prefix,
+ * which would produce duplicate port names in generated HDL.
+ * Returns a descriptive error string on collision, or null when all prefixes are unique.
+ */
+export function checkDuplicatePhysicalPrefixes(ipCore: IpCoreData): string | null {
+  const expanded = expandBusInterfaces(ipCore);
+  const seen = new Map<string, string>(); // prefix → first interface name
+  const duplicates: string[] = [];
+
+  for (const iface of expanded) {
+    const prefix = iface.physical_prefix ?? '';
+    if (!prefix) {
+      continue;
+    }
+    if (seen.has(prefix)) {
+      duplicates.push(`'${prefix}' (shared by '${seen.get(prefix)}' and '${iface.name ?? ''}')`);
+    } else {
+      seen.set(prefix, iface.name ?? '');
+    }
+  }
+
+  if (duplicates.length > 0) {
+    return (
+      `Duplicate physicalPrefix values would produce conflicting port names: ` +
+      duplicates.join(', ')
+    );
+  }
+  return null;
+}
+
 export function expandBusInterfaces(ipCore: IpCoreData): BusInterfaceDef[] {
   const busInterfaces = ipCore.bus_interfaces ?? [];
   const expanded: BusInterfaceDef[] = [];

@@ -955,6 +955,12 @@ const BusPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, onUpda
   const resets = (ipCore.resets ?? []) as Reset[];
   const existingNames = buses.map((b) => b.name).filter((_, i) => i !== index);
 
+  // Detect if this interface's physicalPrefix collides with any sibling
+  const currentPrefix = bus.physicalPrefix ?? '';
+  const hasDuplicatePrefix =
+    currentPrefix.length > 0 &&
+    buses.some((b, i) => i !== index && (b.physicalPrefix ?? '') === currentPrefix);
+
   const clockOpts = clocks.map((c) => ({ value: c.name, label: c.name }));
   const resetOpts = resets.map((r) => ({ value: r.name, label: r.name }));
 
@@ -1006,6 +1012,24 @@ const BusPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, onUpda
           placeholder="s_axi_"
           mono
         />
+        {hasDuplicatePrefix && (
+          <div
+            className="flex items-start gap-1.5 px-2 py-1.5 rounded text-xs"
+            role="alert"
+            style={{
+              background: 'var(--vscode-inputValidation-warningBackground)',
+              border: '1px solid var(--vscode-inputValidation-warningBorder)',
+              color:
+                'var(--vscode-inputValidation-warningForeground, var(--vscode-editor-foreground))',
+            }}
+          >
+            <span className="codicon codicon-warning" style={{ flexShrink: 0, marginTop: '1px' }} />
+            <span>
+              Duplicate prefix — another interface uses <code>{currentPrefix}</code>. Generated port
+              names will conflict.
+            </span>
+          </div>
+        )}
       </Section>
       <Section title="Associations">
         <PropSelect
@@ -1090,6 +1114,12 @@ const ConduitPanel: React.FC<Omit<BusPanelProps, 'imports'>> = ({
     (p) => p.name
   );
 
+  // Detect if this interface's physicalPrefix collides with any sibling
+  const currentConduitPrefix = bus.physicalPrefix ?? '';
+  const hasConduitDuplicatePrefix =
+    currentConduitPrefix.length > 0 &&
+    buses.some((b, i) => i !== index && (b.physicalPrefix ?? '') === currentConduitPrefix);
+
   const clockOpts = clocks.map((c) => ({ value: c.name, label: c.name }));
   const resetOpts = resets.map((r) => ({ value: r.name, label: r.name }));
 
@@ -1165,6 +1195,24 @@ const ConduitPanel: React.FC<Omit<BusPanelProps, 'imports'>> = ({
           placeholder="custom_if_"
           mono
         />
+        {hasConduitDuplicatePrefix && (
+          <div
+            className="flex items-start gap-1.5 px-2 py-1.5 rounded text-xs"
+            role="alert"
+            style={{
+              background: 'var(--vscode-inputValidation-warningBackground)',
+              border: '1px solid var(--vscode-inputValidation-warningBorder)',
+              color:
+                'var(--vscode-inputValidation-warningForeground, var(--vscode-editor-foreground))',
+            }}
+          >
+            <span className="codicon codicon-warning" style={{ flexShrink: 0, marginTop: '1px' }} />
+            <span>
+              Duplicate prefix — another interface uses <code>{currentConduitPrefix}</code>.
+              Generated port names will conflict.
+            </span>
+          </div>
+        )}
       </Section>
       <Section title="Associations">
         <PropSelect

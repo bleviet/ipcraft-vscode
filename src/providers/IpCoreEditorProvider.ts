@@ -5,6 +5,7 @@ import * as jsyaml from 'js-yaml';
 import { Logger } from '../utils/Logger';
 import { HtmlGenerator } from '../services/HtmlGenerator';
 import { MessageHandler } from '../services/MessageHandler';
+import { YamlValidator } from '../services/YamlValidator';
 import { DocumentManager } from '../services/DocumentManager';
 import { ImportResolver } from '../services/ImportResolver';
 import { SubcoreResolver } from '../services/SubcoreResolver';
@@ -42,6 +43,7 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
   private readonly documentManager: DocumentManager;
   private readonly importResolver: ImportResolver;
   private readonly subcoreResolver: SubcoreResolver;
+  private readonly yamlValidator = new YamlValidator();
 
   constructor(private readonly context: vscode.ExtensionContext) {
     const services = createSharedProviderServices(context);
@@ -349,6 +351,8 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
         .getConfiguration('ipcraft.generate')
         .get<string>('hdlLanguage', 'vhdl');
 
+      const duplicatePrefixes = this.yamlValidator.findDuplicatePhysicalPrefixes(parsed);
+
       void webviewPanel.webview.postMessage({
         type: 'update',
         text,
@@ -359,6 +363,7 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
         hasXpr,
         hasQpf,
         hdlLanguage,
+        duplicatePrefixes,
       });
     } catch (error) {
       this.logger.error('Failed to update webview', error as Error);

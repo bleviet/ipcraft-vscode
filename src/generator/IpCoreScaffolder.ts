@@ -6,6 +6,7 @@ import { Logger } from '../utils/Logger';
 import { BusLibraryService } from '../services/BusLibraryService';
 import { TemplateLoader } from './TemplateLoader';
 import {
+  checkDuplicatePhysicalPrefixes,
   expandBusInterfaces,
   getActiveBusPortsFromDefinition,
   getBusTypeForTemplate,
@@ -318,6 +319,10 @@ export class IpCoreScaffolder {
     const resetActiveHigh = resetPolarity.toLowerCase().includes('high');
 
     const expandedBusInterfaces = expandBusInterfaces(ipCore);
+    const prefixError = checkDuplicatePhysicalPrefixes(ipCore);
+    if (prefixError) {
+      throw new Error(prefixError);
+    }
     const busPorts: Array<Record<string, unknown>> = [];
     const secondaryBusPorts: Array<Record<string, unknown>> = [];
     let busPrefix = 's_axi';

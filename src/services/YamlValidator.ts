@@ -18,6 +18,50 @@ export class YamlValidator {
   private readonly logger = new Logger('YamlValidator');
 
   /**
+   * Finds bus interfaces in an IP core document that share the same physicalPrefix.
+   * Duplicate prefixes cause conflicting port names in generated HDL.
+   *
+   * @param data Parsed YAML object (result of validate/parse)
+   * @returns Array of `{ prefix, interfaces }` objects, one per duplicated prefix.
+   *          Empty when all prefixes are unique or when the data has no bus interfaces.
+   */
+  findDuplicatePhysicalPrefixes(data: unknown): Array<{ prefix: string; interfaces: string[] }> {
+    if (!data || typeof data !== 'object') {
+      return [];
+    }
+    const raw = data as Record<string, unknown>;
+    const busInterfaces = (raw.busInterfaces ?? raw.bus_interfaces) as unknown[] | undefined;
+    if (!Array.isArray(busInterfaces) || busInterfaces.length === 0) {
+      return [];
+    }
+
+    const prefixMap = new Map<string, string[]>();
+    for (const bus of busInterfaces) {
+      if (!bus || typeof bus !== 'object') {
+        continue;
+      }
+      const b = bus as Record<string, unknown>;
+      const name = String(b.name ?? '');
+      const prefix = String(b.physicalPrefix ?? b.physical_prefix ?? '');
+      if (!prefix) {
+        continue;
+      }
+      if (!prefixMap.has(prefix)) {
+        prefixMap.set(prefix, []);
+      }
+      prefixMap.get(prefix)!.push(name);
+    }
+
+    const duplicates: Array<{ prefix: string; interfaces: string[] }> = [];
+    for (const [prefix, names] of prefixMap) {
+      if (names.length > 1) {
+        duplicates.push({ prefix, interfaces: names });
+      }
+    }
+    return duplicates;
+  }
+
+  /**
    * Validate YAML text
    * @param text The YAML text to validate
    * @returns Validation result with parsed data if valid
