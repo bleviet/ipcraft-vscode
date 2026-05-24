@@ -1,0 +1,12 @@
+// Waveform dump module for Icarus Verilog simulation.
+// Included automatically when WAVES=1; produces {{ entity_name }}.vcd
+// in the tb/ directory.  Open with:  make view_waves
+`timescale 1ns / 1ps
+
+module dump;
+  initial begin
+    $dumpfile("{{ entity_name }}.vcd");
+    $dumpvars(0, {{ entity_name }});
+    #1;
+  end
+endmodule

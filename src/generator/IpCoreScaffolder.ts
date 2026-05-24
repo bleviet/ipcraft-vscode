@@ -126,6 +126,9 @@ export class IpCoreScaffolder {
           isSv ? 'cocotb_makefile.sv.j2' : 'cocotb_makefile.j2',
           context
         );
+        if (isSv) {
+          files['tb/dump.v'] = this.templates.render('cocotb_dump.v.j2', context);
+        }
         files['.vscode/settings.json'] = this.templates.render('vscode_settings.json.j2', context);
       }
 

@@ -45,7 +45,8 @@ ifeq ($(SIM),icarus)
     # Generate waveforms by default; suppress with WAVES=0
     WAVES ?= 1
     ifeq ($(WAVES),1)
-        COMPILE_ARGS += -DCOCOTB_SIM
+        # dump.v instantiates $dumpfile/$dumpvars to produce a VCD trace
+        VERILOG_SOURCES += $(CURDIR)/dump.v
     endif
 endif
 
@@ -70,11 +71,17 @@ include $(shell cocotb-config --makefiles)/Makefile.sim
 # Additional targets
 .PHONY: clean_all view_waves lint
 
+ifeq ($(SIM),icarus)
+    WAVE_FILE = {{ entity_name }}.vcd
+else
+    WAVE_FILE = {{ entity_name }}.fst
+endif
+
 clean_all: clean
 	rm -rf sim_build __pycache__ results.xml *.fst *.vcd *.vzt
 
 view_waves:
-	gtkwave {{ entity_name }}.fst &
+	gtkwave $(WAVE_FILE) &
 
 lint:
 	@echo "Checking SystemVerilog syntax..."
