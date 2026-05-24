@@ -611,12 +611,6 @@ function renderViews(entityName: string, subcores: SubcoreRef[] = [], isSv = fal
     out.push('        <spirit:fileSetRef>');
     out.push(`          <spirit:localName>${x(mainFileSetRef)}</spirit:localName>`);
     out.push('        </spirit:fileSetRef>');
-    out.push('        <spirit:parameters>');
-    out.push('          <spirit:parameter>');
-    out.push('            <spirit:name>viewChecksum</spirit:name>');
-    out.push('            <spirit:value>00000000</spirit:value>');
-    out.push('          </spirit:parameter>');
-    out.push('        </spirit:parameters>');
     out.push('      </spirit:view>');
     return out;
   }
