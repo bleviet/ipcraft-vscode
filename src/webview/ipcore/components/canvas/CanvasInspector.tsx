@@ -1009,7 +1009,7 @@ const BusPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, onUpda
           label="Physical Prefix"
           value={bus.physicalPrefix ?? ''}
           onSave={(v) => onUpdate(['busInterfaces', index, 'physicalPrefix'], v || null)}
-          placeholder="s_axi_"
+          hint={bus.physicalPrefix ? undefined : 'Defaults to s_axi_ at generation'}
           mono
         />
         {hasDuplicatePrefix && (
