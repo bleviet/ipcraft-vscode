@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import type {
   IpCore,
   Clock,
@@ -29,6 +29,11 @@ interface CanvasInspectorProps {
   onDelete?: () => void;
 }
 
+const INSPECTOR_WIDTH_KEY = 'ipcraft.inspectorWidth';
+const INSPECTOR_MIN_WIDTH = 240;
+const INSPECTOR_MAX_WIDTH = 640;
+const INSPECTOR_DEFAULT_WIDTH = 288;
+
 export const CanvasInspector: React.FC<CanvasInspectorProps> = ({
   selected,
   ipCore,
@@ -37,6 +42,57 @@ export const CanvasInspector: React.FC<CanvasInspectorProps> = ({
   onClose,
   onDelete,
 }) => {
+  // Resize state — hooks must come before any early return
+  const [panelWidth, setPanelWidth] = useState<number>(() => {
+    try {
+      const stored = sessionStorage.getItem(INSPECTOR_WIDTH_KEY);
+      if (stored) {
+        const w = parseInt(stored, 10);
+        if (w >= INSPECTOR_MIN_WIDTH && w <= INSPECTOR_MAX_WIDTH) {
+          return w;
+        }
+      }
+    } catch {
+      // sessionStorage may be unavailable in some webview contexts
+    }
+    return INSPECTOR_DEFAULT_WIDTH;
+  });
+  const panelWidthRef = useRef(panelWidth);
+
+  const handleResizeMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = panelWidthRef.current;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    const onMouseMove = (ev: MouseEvent) => {
+      // dragging left (smaller clientX) widens the right-anchored panel
+      const delta = startX - ev.clientX;
+      const newWidth = Math.max(
+        INSPECTOR_MIN_WIDTH,
+        Math.min(INSPECTOR_MAX_WIDTH, startWidth + delta)
+      );
+      panelWidthRef.current = newWidth;
+      setPanelWidth(newWidth);
+    };
+
+    const onMouseUp = () => {
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      try {
+        sessionStorage.setItem(INSPECTOR_WIDTH_KEY, String(panelWidthRef.current));
+      } catch {
+        // ignore
+      }
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  }, []);
+
   if (!selected) {
     return null;
   }
@@ -52,7 +108,10 @@ export const CanvasInspector: React.FC<CanvasInspectorProps> = ({
           : selected.kind;
 
   return (
-    <div className="canvas-inspector">
+    <div className="canvas-inspector" style={{ width: panelWidth }}>
+      {/* ── Resize handle (drag left edge to widen / narrow) ── */}
+      <div className="ci-resize-handle" onMouseDown={handleResizeMouseDown} />
+
       {/* ── Header ── */}
       <div className="ci-header">
         <div className="ci-header__info">
