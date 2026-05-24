@@ -21,18 +21,27 @@ export function detectAndSetToolContext(): void {
   const config = vscode.workspace.getConfiguration('ipcraft');
 
   const vivadoInstallDir = config.get<string>('vivado.installDir', '').trim();
+  const vivadoDockerImage = config.get<string>('vivado.dockerImage', '').trim();
   const vivadoFound = vivadoInstallDir
     ? findVivadoInInstallDir(vivadoInstallDir) !== null
-    : isOnPath('vivado');
+    : vivadoDockerImage
+      ? true
+      : isOnPath('vivado');
 
-  // Quartus: installDir is the top-level directory; tools are resolved from it
+  // Quartus: installDir is the top-level directory; tools are resolved from it.
+  // A configured Docker image also counts as "found" — the tools live inside
+  // the container so there is nothing to probe on the host.
   const installDir = config.get<string>('quartus.installDir', '').trim();
+  const quartusDockerImage = config.get<string>('quartus.dockerImage', '').trim();
   let quartusFound: boolean;
   let qsysEditFound: boolean;
 
   if (installDir) {
     quartusFound = findInInstallDir('quartus_sh', installDir) !== null;
     qsysEditFound = findInInstallDir('qsys-edit', installDir) !== null;
+  } else if (quartusDockerImage) {
+    quartusFound = true;
+    qsysEditFound = true;
   } else {
     quartusFound = isOnPath('quartus_sh');
     qsysEditFound = isOnPath('qsys-edit');
