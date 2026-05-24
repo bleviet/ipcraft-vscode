@@ -382,7 +382,7 @@ export function computeLayout(
   // Resets -> left
   resets.forEach((r, i) => leftItems.push({ kind: 'reset', index: i, data: r }));
 
-  // Bus interfaces -> left (slave/sink) or right (master/source/conduit on right)
+  // Bus interfaces -> left (slave/sink/conduit) or right (master/source)
   buses.forEach((b, i) => {
     if (isLeftSide(b)) {
       leftItems.push({ kind: 'bus', index: i, data: b });
