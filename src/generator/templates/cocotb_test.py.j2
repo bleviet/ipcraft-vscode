@@ -63,7 +63,7 @@ regmap = load_regmap(_MM_YML)
 async def _reset_dut(dut) -> None:
     """Apply and release reset for {{ entity_name }}."""
     dut.{{ reset_port }}.value = {{ reset_assert }}
-    await Timer(100, units="ns")
+    await Timer(100, unit="ns")
     dut.{{ reset_port }}.value = {{ reset_deassert }}
     await RisingEdge(dut.{{ clock_port }})
     await RisingEdge(dut.{{ clock_port }})
@@ -73,7 +73,7 @@ async def _reset_dut(dut) -> None:
 @cocotb.test()
 async def test_register_access(dut):
     """Test register read/write access for {{ entity_name }}."""
-    cocotb.start_soon(Clock(dut.{{ clock_port }}, 10, units="ns").start())
+    cocotb.start_soon(Clock(dut.{{ clock_port }}, 10, unit="ns").start())
     await _reset_dut(dut)
 {% if bus_type in ['axil', 'axi4'] %}
 {% if bus_type == 'axil' %}
@@ -105,7 +105,7 @@ from cocotb.triggers import RisingEdge, Timer
 async def reset_dut(dut):
     """Apply reset sequence to {{ entity_name }}."""
     dut.{{ reset_port }}.value = {{ reset_assert }}
-    await Timer(100, units="ns")
+    await Timer(100, unit="ns")
     dut.{{ reset_port }}.value = {{ reset_deassert }}
     await RisingEdge(dut.{{ clock_port }})
     await RisingEdge(dut.{{ clock_port }})
@@ -118,7 +118,7 @@ async def test_basic_smoke(dut):
     Basic smoke test: verify clock and reset behaviour for {{ entity_name }}.
     Extend this test with stimulus specific to your design.
     """
-    cocotb.start_soon(Clock(dut.{{ clock_port }}, 10, units="ns").start())
+    cocotb.start_soon(Clock(dut.{{ clock_port }}, 10, unit="ns").start())
     await reset_dut(dut)
 
     for i in range(20):

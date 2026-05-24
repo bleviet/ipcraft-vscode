@@ -111,7 +111,9 @@ export class IpCoreScaffolder {
       }
 
       if (includeTestbench) {
-        files['tb/mm_loader.py'] = this.templates.render('mm_loader.py.j2', context);
+        if (hasMmSlave) {
+          files['tb/mm_loader.py'] = this.templates.render('mm_loader.py.j2', context);
+        }
         files[`tb/${name}_test.py`] = this.templates.render('cocotb_test.py.j2', context);
         files['tb/conftest.py'] = this.templates.render('cocotb_conftest.py.j2', context);
         files[`tb/test_${name}_sim.py`] = this.templates.render('cocotb_pytest.py.j2', context);
