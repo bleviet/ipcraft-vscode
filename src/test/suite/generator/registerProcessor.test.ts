@@ -163,6 +163,68 @@ describe('registerProcessor', () => {
       expect(byName['valid']).toBe('in');
       expect(byName['ready']).toBe('out');
     });
+
+    it('resolves parameter-name widths in bus definition using IP core defaults', () => {
+      const defPorts = [
+        { name: 'tx_data', direction: 'out', presence: 'required', width: 'XCVR_DW' },
+        { name: 'tx_k', direction: 'out', presence: 'required', width: 'XCVR_KW' },
+      ];
+      const parameters = [
+        { name: 'XCVR_DW', value: 16, data_type: 'natural' },
+        { name: 'XCVR_KW', value: 2, data_type: 'natural' },
+      ];
+      const result = getActiveBusPortsFromDefinition(
+        defPorts,
+        [],
+        'xcvr_',
+        'master',
+        {},
+        parameters
+      );
+      const byName = Object.fromEntries(result.map((p) => [p.logical_name as string, p]));
+
+      expect(byName['tx_data'].width).toBe(16);
+      expect(byName['tx_data'].width_expr).toBe('XCVR_DW');
+      expect(byName['tx_data'].is_parameterized).toBe(true);
+      expect(byName['tx_data'].default_width).toBe(15);
+      expect(byName['tx_data'].type).toBe('std_logic_vector(XCVR_DW-1 downto 0)');
+      expect(byName['tx_data'].sv_type).toBe('logic [XCVR_DW-1:0]');
+
+      expect(byName['tx_k'].width).toBe(2);
+      expect(byName['tx_k'].width_expr).toBe('XCVR_KW');
+      expect(byName['tx_k'].is_parameterized).toBe(true);
+      expect(byName['tx_k'].type).toBe('std_logic_vector(XCVR_KW-1 downto 0)');
+    });
+
+    it('allows portWidthOverrides to override parameter-name widths from bus definition', () => {
+      const defPorts = [
+        { name: 'tx_data', direction: 'out', presence: 'required', width: 'XCVR_DW' },
+      ];
+      const parameters = [{ name: 'XCVR_DW', value: 16, data_type: 'natural' }];
+      // Override with a fixed number
+      const result = getActiveBusPortsFromDefinition(
+        defPorts,
+        [],
+        'xcvr_',
+        'master',
+        { tx_data: 8 },
+        parameters
+      );
+      expect(result[0].width).toBe(8);
+      expect(result[0].width_expr).toBeNull();
+      expect(result[0].is_parameterized).toBe(false);
+      expect(result[0].type).toBe('std_logic_vector(7 downto 0)');
+    });
+
+    it('falls back to width 1 when parameter name not found in defaults', () => {
+      const defPorts = [
+        { name: 'data', direction: 'out', presence: 'required', width: 'UNKNOWN_PARAM' },
+      ];
+      const result = getActiveBusPortsFromDefinition(defPorts, [], 'p_', 'master', {}, []);
+      expect(result[0].width).toBe(1);
+      expect(result[0].width_expr).toBe('UNKNOWN_PARAM');
+      expect(result[0].is_parameterized).toBe(true);
+    });
   });
 
   describe('prepareRegisters (Integrative)', () => {

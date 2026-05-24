@@ -310,7 +310,7 @@ export function getSvPortType(width: number, logicalName: string): string {
 }
 
 export function getActiveBusPortsFromDefinition(
-  ports: Array<{ name: string; width?: number; direction?: string; presence?: string }>,
+  ports: Array<{ name: string; width?: number | string; direction?: string; presence?: string }>,
   useOptionalPorts: string[],
   physicalPrefix: string,
   mode: string,
@@ -355,11 +355,41 @@ export function getActiveBusPortsFromDefinition(
       if (typeof override === 'string') {
         // Resolve parameter reference: use its default value for type generation,
         // but preserve the parameter name for the template (generic reference)
-        width = paramDefaults[override] ?? override;
+        width = paramDefaults[override] ?? 1;
         widthExpr = override;
       } else {
         width = override;
       }
+    } else if (typeof width === 'string') {
+      // Bus definition port uses a parameter name as its width (e.g. XCVR_DW).
+      // Resolve to the default numeric value from the IP core parameters so HDL
+      // types are generated correctly; keep the name as widthExpr for generics.
+      widthExpr = width;
+      width = paramDefaults[width] ?? 1;
+    }
+
+    const numWidth = Number(width);
+
+    // Compute HDL type strings — use the generic expression when parameterized
+    let vhdlType: string;
+    let svType: string;
+    if (widthExpr !== null) {
+      if (['AWADDR', 'ARADDR', 'address'].includes(logicalName)) {
+        vhdlType = 'std_logic_vector(C_ADDR_WIDTH-1 downto 0)';
+        svType = 'logic [C_ADDR_WIDTH-1:0]';
+      } else if (['WDATA', 'RDATA', 'writedata', 'readdata'].includes(logicalName)) {
+        vhdlType = 'std_logic_vector(C_DATA_WIDTH-1 downto 0)';
+        svType = 'logic [C_DATA_WIDTH-1:0]';
+      } else if (logicalName === 'WSTRB') {
+        vhdlType = 'std_logic_vector((C_DATA_WIDTH/8)-1 downto 0)';
+        svType = 'logic [(C_DATA_WIDTH/8)-1:0]';
+      } else {
+        vhdlType = `std_logic_vector(${widthExpr}-1 downto 0)`;
+        svType = `logic [${widthExpr}-1:0]`;
+      }
+    } else {
+      vhdlType = getVhdlPortType(numWidth, logicalName);
+      svType = getSvPortType(numWidth, logicalName);
     }
 
     activePorts.push({
@@ -367,11 +397,12 @@ export function getActiveBusPortsFromDefinition(
       name: `${physicalPrefix}${logicalName.toLowerCase()}`,
       direction,
       sv_direction: direction === 'in' ? 'input' : direction === 'out' ? 'output' : 'inout',
-      width,
+      width: numWidth,
       width_expr: widthExpr,
       is_parameterized: widthExpr !== null,
-      type: getVhdlPortType(Number(width), logicalName),
-      sv_type: getSvPortType(Number(width), logicalName),
+      default_width: widthExpr !== null ? numWidth - 1 : null,
+      type: vhdlType,
+      sv_type: svType,
     });
   });
 

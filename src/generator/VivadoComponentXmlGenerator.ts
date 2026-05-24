@@ -154,6 +154,14 @@ export function generateCustomBusDefs(
   const files: Record<string, string> = {};
   const seen = new Set<string>();
 
+  // Build parameter defaults map so string port widths can be resolved to numbers
+  const paramDefaults: Record<string, number> = {};
+  for (const p of ipCore.parameters ?? []) {
+    if (p.name && typeof p.value === 'number') {
+      paramDefaults[String(p.name)] = p.value;
+    }
+  }
+
   for (const iface of ipCore.bus_interfaces ?? []) {
     const ifaceType = String(iface.type ?? '');
     if (seen.has(ifaceType)) {
@@ -164,8 +172,17 @@ export function generateCustomBusDefs(
       continue;
     }
     seen.add(ifaceType);
-    files[`busdef/${custom.name}.xml`] = renderBusDefinitionXml(custom);
-    files[`busdef/${custom.name}_rtl.xml`] = renderAbstractionDefinitionXml(custom);
+
+    // Resolve any parameter-name widths to their numeric defaults so the
+    // generated Vivado XML contains concrete numbers, not raw parameter strings.
+    const resolvedPorts = custom.ports.map((p) => ({
+      ...p,
+      width: typeof p.width === 'string' ? (paramDefaults[p.width] ?? 1) : (p.width ?? 1),
+    }));
+    const customResolved: CustomBusInfo = { ...custom, ports: resolvedPorts };
+
+    files[`busdef/${custom.name}.xml`] = renderBusDefinitionXml(customResolved);
+    files[`busdef/${custom.name}_rtl.xml`] = renderAbstractionDefinitionXml(customResolved);
   }
 
   return files;

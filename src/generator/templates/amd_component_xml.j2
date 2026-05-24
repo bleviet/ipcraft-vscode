@@ -256,16 +256,22 @@
         <spirit:name>{{ port.name }}</spirit:name>
         <spirit:wire>
           <spirit:direction>{{ port.direction }}</spirit:direction>
-          {% if port.width > 1 %}
+          {% if port.is_parameterized or port.width > 1 %}
           <spirit:vector>
+            {% if port.is_parameterized %}
+            <spirit:left spirit:format="long" spirit:resolve="dependent"
+              spirit:dependency="(spirit:decode(id('PARAM_VALUE.{{ port.width_expr }}')) - 1)">{{ port.default_width }}
+            </spirit:left>
+            {% else %}
             <spirit:left spirit:format="long">{{ port.width - 1 }}</spirit:left>
+            {% endif %}
             <spirit:right spirit:format="long">0</spirit:right>
           </spirit:vector>
           {% endif %}
           <spirit:wireTypeDefs>
             <spirit:wireTypeDef>
-              <spirit:typeName>{{ port.type | replace(port.width ~ ' downto 0', '') | replace((port.width - 1) ~ '
-                downto 0', '') | replace('(', '') | replace(')', '') | trim }}</spirit:typeName>
+              <spirit:typeName>{% if port.is_parameterized %}std_logic_vector{% else %}{{ port.type | replace(port.width ~ ' downto 0', '') | replace((port.width - 1) ~ '
+                downto 0', '') | replace('(', '') | replace(')', '') | trim }}{% endif %}</spirit:typeName>
               <spirit:viewNameRef>amd_vhdlsynthesis</spirit:viewNameRef>
               <spirit:viewNameRef>amd_vhdlbehavioralsimulation</spirit:viewNameRef>
             </spirit:wireTypeDef>

@@ -24,7 +24,8 @@ export interface GenerateResult {
 
 export type BusPortDefinition = {
   name: string;
-  width?: number;
+  /** Numeric width, or a parameter name string (e.g. "XCVR_DW") resolved at generation time */
+  width?: number | string;
   direction?: string;
   presence?: string;
 };
