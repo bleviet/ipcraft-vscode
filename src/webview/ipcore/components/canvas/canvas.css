@@ -1520,6 +1520,21 @@
   pointer-events: none;
 }
 
+.canvas-bus-bundle__warn-badge {
+  fill: color-mix(in srgb, var(--vscode-editorWarning-foreground, #cca700) 18%, var(--vscode-editor-background));
+  stroke: var(--vscode-editorWarning-foreground, #cca700);
+  stroke-width: 1;
+  opacity: 0.9;
+}
+
+.canvas-bus-bundle__warn-text {
+  fill: var(--vscode-editorWarning-foreground, #cca700);
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 7px;
+  font-weight: 600;
+  pointer-events: none;
+}
+
 .canvas-bus-bundle--expanded .canvas-bus-bundle__connector {
   fill: var(--vscode-focusBorder);
 }

@@ -34,9 +34,18 @@ export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
   const isLeft = port.side === 'left';
 
   const hasError = annotations?.some((a) => a.severity === 'error');
+  const hasWarning = annotations?.some((a) => a.severity === 'warning') ?? false;
+  const warningMessages =
+    annotations?.filter((a) => a.severity === 'warning').map((a) => a.message) ?? [];
   const tooltipText = annotations
     ?.map((a) => `[${a.severity.toUpperCase()}] ${a.message}`)
     .join('\n');
+
+  // Sub-badge rows below the name: mmap ref and/or warning badge
+  const subBadgeCount = (port.memoryMapRef ? 1 : 0) + (hasWarning ? 1 : 0);
+  const nameYOffset = subBadgeCount >= 1 ? -5 : 0;
+  // Warning badge sits in the second slot when mmap is present, first slot otherwise
+  const warnBadgeY = port.y + (port.memoryMapRef ? 19 : 7);
 
   // Bundle stub geometry (thicker "bus" line)
   const stubDir = isLeft ? -1 : 1;
@@ -176,7 +185,7 @@ export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
       {/* Name label (INSIDE the block) */}
       <text
         x={port.x + (isLeft ? 12 : -12)}
-        y={port.y + (port.memoryMapRef ? -5 : 0)}
+        y={port.y + nameYOffset}
         textAnchor={isLeft ? 'start' : 'end'}
         dominantBaseline="central"
         className="canvas-bus-bundle__name"
@@ -217,6 +226,30 @@ export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
               ? port.memoryMapRef.slice(0, 9) + '…'
               : port.memoryMapRef}
           </text>
+        </g>
+      )}
+
+      {/* Warning badge (INSIDE the block, below the name / mmap badge) */}
+      {hasWarning && (
+        <g transform={`translate(${port.x + (isLeft ? 14 : -14)}, ${warnBadgeY})`}>
+          <rect
+            x={isLeft ? 0 : -60}
+            y={-6}
+            width={60}
+            height={12}
+            rx={3}
+            className="canvas-bus-bundle__warn-badge"
+          />
+          <text
+            x={isLeft ? 30 : -30}
+            y={0}
+            textAnchor="middle"
+            dominantBaseline="central"
+            className="canvas-bus-bundle__warn-text"
+          >
+            ⚠ {warningMessages[0]?.includes('physicalPrefix') ? 'dup. prefix' : 'warning'}
+          </text>
+          <title>{warningMessages.join('\n')}</title>
         </g>
       )}
 
@@ -264,13 +297,13 @@ export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
         />
       )}
 
-      {/* Validation Indicator */}
-      {annotations && annotations.length > 0 && (
+      {/* Error indicator dot — shown only for errors (warnings use the inline badge above) */}
+      {hasError && (
         <circle
           cx={port.x + stubDir * (STUB_LENGTH / 2)}
           cy={port.y - 20}
           r={5}
-          className={`ip-canvas-annotation-dot ${hasError ? 'ip-canvas-annotation-dot--error' : 'ip-canvas-annotation-dot--warning'}`}
+          className="ip-canvas-annotation-dot ip-canvas-annotation-dot--error"
         >
           <title>{tooltipText}</title>
         </circle>
