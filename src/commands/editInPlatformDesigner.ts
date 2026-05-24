@@ -3,6 +3,7 @@ import * as path from 'path';
 import { spawn } from 'child_process';
 import { Logger } from '../utils/Logger';
 import { getQuartusTool } from '../utils/quartusResolver';
+import { sourceDirsFromHwTcl, buildMountArgs } from '../utils/sourceFileMounts';
 
 const logger = new Logger('EditInPlatformDesigner');
 
@@ -25,11 +26,14 @@ export async function editInPlatformDesignerCommand(uri?: vscode.Uri): Promise<v
   let spawnArgs: string[];
 
   if (dockerImage) {
-    // Mount the _hw.tcl directory at its exact host path so no path translation
-    // is needed for the --search-path argument.
+    // Mount the _hw.tcl directory and any source file directories referenced
+    // inside the _hw.tcl at their exact host paths so no path translation is
+    // needed for the --search-path argument.
     const x11Args: string[] = process.env.DISPLAY
       ? ['-e', `DISPLAY=${process.env.DISPLAY}`, '-v', '/tmp/.X11-unix:/tmp/.X11-unix']
       : [];
+    const extraDirs = await sourceDirsFromHwTcl(hwTclPath);
+    const extraMounts = buildMountArgs(extraDirs.filter((d) => d !== hwTclDir));
 
     spawnExe = 'docker';
     spawnArgs = [
@@ -38,6 +42,7 @@ export async function editInPlatformDesignerCommand(uri?: vscode.Uri): Promise<v
       ...x11Args,
       '-v',
       `${hwTclDir}:${hwTclDir}`,
+      ...extraMounts,
       '-w',
       hwTclDir,
       dockerImage,

@@ -5,6 +5,7 @@ import * as fs from 'fs/promises';
 import { spawn } from 'child_process';
 import { Logger } from '../utils/Logger';
 import { getVivadoLauncher } from '../utils/vivadoResolver';
+import { sourceDirsFromComponentXml, buildMountArgs } from '../utils/sourceFileMounts';
 
 const logger = new Logger('EditInIpPackager');
 
@@ -42,12 +43,15 @@ export async function editInIpPackagerCommand(uri?: vscode.Uri): Promise<void> {
     let spawnArgs: string[];
 
     if (vivadoDockerImage) {
-      // Mount tmpDir and the component.xml directory at their exact host paths so
-      // the pre-written TCL script (which contains absolute paths) works unchanged.
+      // Mount tmpDir, the component.xml directory, and any source file
+      // directories referenced inside component.xml at their exact host paths
+      // so the pre-written TCL script (which contains absolute paths) works unchanged.
       const componentDir = path.dirname(componentPath);
       const x11Args: string[] = process.env.DISPLAY
         ? ['-e', `DISPLAY=${process.env.DISPLAY}`, '-v', '/tmp/.X11-unix:/tmp/.X11-unix']
         : [];
+      const extraDirs = await sourceDirsFromComponentXml(componentPath);
+      const extraMounts = buildMountArgs(extraDirs.filter((d) => d !== componentDir));
 
       spawnExe = 'docker';
       spawnArgs = [
@@ -58,6 +62,7 @@ export async function editInIpPackagerCommand(uri?: vscode.Uri): Promise<void> {
         `${tmpDir}:${tmpDir}`,
         '-v',
         `${componentDir}:${componentDir}`,
+        ...extraMounts,
         '-w',
         tmpDir,
         vivadoDockerImage,

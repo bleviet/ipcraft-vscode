@@ -20,7 +20,14 @@ export async function openInQuartusCommand(uri?: vscode.Uri): Promise<void> {
   const quartusGuiPath = getQuartusTool(config, 'quartus');
   const dockerImage = (config.get<string>('quartus.dockerImage') ?? '').trim();
 
-  const mountDir = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? path.dirname(qpfPath);
+  // BuildRunner mounts ipDir as /work when compiling, so generated .qsf files
+  // contain absolute paths like /work/rtl/...  The .qpf is always written to
+  // {ipDir}/altera/build/, so ipDir is two levels up from the .qpf.  Use that
+  // same mount convention here so Quartus GUI can resolve those paths.
+  const mountBase = path.resolve(path.dirname(qpfPath), '../..');
+  const CONTAINER_MOUNT = '/work';
+  const toContainer = (hostPath: string) =>
+    CONTAINER_MOUNT + '/' + path.relative(mountBase, hostPath).replace(/\\/g, '/');
 
   let spawnExe: string;
   let spawnArgs: string[];
@@ -36,12 +43,12 @@ export async function openInQuartusCommand(uri?: vscode.Uri): Promise<void> {
       '--rm',
       ...x11Args,
       '-v',
-      `${mountDir}:${mountDir}`,
+      `${mountBase}:${CONTAINER_MOUNT}`,
       '-w',
-      path.dirname(qpfPath),
+      toContainer(path.dirname(qpfPath)),
       dockerImage,
       quartusGuiPath,
-      qpfPath,
+      toContainer(qpfPath),
     ];
   } else {
     spawnExe = quartusGuiPath;
