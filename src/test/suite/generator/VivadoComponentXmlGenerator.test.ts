@@ -728,6 +728,59 @@ describe('generateComponentXml', () => {
 
 // ── generateCustomBusDefs ────────────────────────────────────────────────────
 
+describe('array bus interface expansion', () => {
+  const AXIS_IP: IpCoreData = {
+    vlnv: { vendor: 'acme', library: 'ip', name: 'axis_core', version: '1.0.0' },
+    description: '',
+    clocks: [{ name: 'clk' }],
+    resets: [{ name: 'rst_n', polarity: 'activeLow' }],
+    bus_interfaces: [
+      {
+        name: 'S_AXIS',
+        type: 'ipcraft.busif.axi_stream.1.0',
+        mode: 'slave',
+        physical_prefix: 's_axis_',
+        associated_clock: 'clk',
+        associated_reset: 'rst_n',
+        use_optional_ports: [],
+        port_width_overrides: {},
+        array: {
+          count: 3,
+          index_start: 0,
+          naming_pattern: 'S_AXIS_{index}',
+          physical_prefix_pattern: 's_axis_{index}_',
+        },
+      },
+    ],
+    ports: [],
+    parameters: [],
+  };
+
+  it('expands array interface into N individual bus interface entries', () => {
+    const xml = generateComponentXml(AXIS_IP, BUS_DEFS);
+    expect(xml).toContain('<spirit:name>S_AXIS_0</spirit:name>');
+    expect(xml).toContain('<spirit:name>S_AXIS_1</spirit:name>');
+    expect(xml).toContain('<spirit:name>S_AXIS_2</spirit:name>');
+    expect(xml).not.toContain('<spirit:name>S_AXIS</spirit:name>');
+  });
+
+  it('emits physical ports for all expanded array instances', () => {
+    const xml = generateComponentXml(AXIS_IP, BUS_DEFS);
+    // Each expanded instance has its own prefixed physical port (physical names are lowercased)
+    expect(xml).toContain('s_axis_0_tdata');
+    expect(xml).toContain('s_axis_1_tdata');
+    expect(xml).toContain('s_axis_2_tdata');
+  });
+
+  it('ASSOCIATED_BUSIF clock parameter lists all expanded instance names', () => {
+    const xml = generateComponentXml(AXIS_IP, BUS_DEFS);
+    // Clock must associate with all expanded instances
+    expect(xml).toContain('S_AXIS_0');
+    expect(xml).toContain('S_AXIS_1');
+    expect(xml).toContain('S_AXIS_2');
+  });
+});
+
 describe('subcores in vendorExtensions', () => {
   it('emits no subCoreRef elements when subcores is empty', () => {
     const xml = gen({ subcores: [] });

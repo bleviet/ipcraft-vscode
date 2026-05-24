@@ -1,4 +1,4 @@
-import { getActiveBusPortsFromDefinition } from './registerProcessor';
+import { getActiveBusPortsFromDefinition, expandBusInterfaces } from './registerProcessor';
 import { detectVivadoVersion } from '../utils/detectVivadoVersion';
 import { parseVlnv } from '../utils/vlnv';
 import type {
@@ -265,7 +265,8 @@ export function generateComponentXml(
   const description = String(ipCore.description ?? '');
   const clocks = ipCore.clocks ?? [];
   const resets = ipCore.resets ?? [];
-  const busInterfaces = ipCore.bus_interfaces ?? [];
+  // Use expanded bus interfaces so array-type entries produce one entry per instance.
+  const busInterfaces = expandBusInterfaces(ipCore);
   const userPorts = ipCore.ports ?? [];
   const parameters = ipCore.parameters ?? [];
   const interrupts =
