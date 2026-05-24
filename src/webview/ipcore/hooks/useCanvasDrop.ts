@@ -148,9 +148,9 @@ function addBusInterface(
   // If dropped on the "wrong" side, flip the mode
   let mode = payload.mode ?? 'slave';
   if (isLeftHalf && (mode === 'master' || mode === 'source')) {
-    mode = mode === 'master' ? 'slave' : 'sink';
+    mode = 'slave';
   } else if (!isLeftHalf && (mode === 'slave' || mode === 'sink')) {
-    mode = mode === 'slave' ? 'master' : 'source';
+    mode = 'master';
   }
 
   const name = uniqueName(payload.nameHint, existingNames);

@@ -4,7 +4,7 @@ import * as fsPromises from 'fs/promises';
 import { parseHwTclContent, parseHwTclFile, extractSourcePath } from '../../../parser/HwTclParser';
 
 jest.mock('fs/promises', () => {
-  const actual = jest.requireActual('fs/promises');
+  const actual = jest.requireActual<typeof fsPromises>('fs/promises');
   return { ...actual, readFile: jest.fn() };
 });
 

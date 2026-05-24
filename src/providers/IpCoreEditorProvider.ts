@@ -174,7 +174,13 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
       return w;
     });
 
-    return { dispose: () => watchers.forEach((w) => w.dispose()) };
+    return {
+      dispose: () => {
+        watchers.forEach((w) => {
+          w.dispose();
+        });
+      },
+    };
   }
 
   private registerDisposal(webviewPanel: vscode.WebviewPanel, onDispose: () => void): void {

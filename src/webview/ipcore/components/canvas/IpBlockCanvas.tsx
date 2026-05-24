@@ -881,9 +881,7 @@ function getDragHintLabels(
     case 'interrupt':
       return { left: '▶  IRQ IN', right: 'IRQ OUT  ▶' };
     case 'bus': {
-      const mode = payload.mode ?? 'slave';
-      const streaming = mode === 'sink' || mode === 'source';
-      return { left: streaming ? 'SINK' : 'SLAVE', right: streaming ? 'SOURCE' : 'MASTER' };
+      return { left: 'SLAVE', right: 'MASTER' };
     }
     default:
       return null;

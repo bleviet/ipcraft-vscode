@@ -5,7 +5,7 @@ export interface LibraryDragPayload {
   kind: 'bus' | 'clock' | 'reset' | 'port' | 'parameter' | 'interrupt';
   /** Bus type VLNV (only for kind=bus) */
   type?: string;
-  /** Bus mode: slave/master/sink/source (only for kind=bus) */
+  /** Bus mode: slave/master (only for kind=bus) */
   mode?: string;
   /** Port/interrupt direction (only for kind=port or kind=interrupt) */
   direction?: 'in' | 'out' | 'inout';
@@ -70,7 +70,7 @@ const PALETTE: PaletteCategory[] = [
       {
         kind: 'bus',
         type: 'ipcraft.busif.axi_stream.1.0',
-        mode: 'sink',
+        mode: 'slave',
         nameHint: 'axis',
         label: 'AXI-Stream',
       },
@@ -84,7 +84,7 @@ const PALETTE: PaletteCategory[] = [
       {
         kind: 'bus',
         type: 'ipcraft.busif.avalon_st.1.0',
-        mode: 'sink',
+        mode: 'slave',
         nameHint: 'avl_st',
         label: 'Avalon-ST',
       },
@@ -144,9 +144,7 @@ function buildUserBusItems(busLibrary: Record<string, unknown>): LibraryDragPayl
       label = key;
     }
 
-    // Determine default mode
-    const nameLower = name.toLowerCase();
-    const mode = nameLower.includes('stream') || nameLower.includes('_st') ? 'sink' : 'slave';
+    const mode = 'slave';
 
     items.push({
       kind: 'bus',

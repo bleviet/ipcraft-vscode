@@ -1006,7 +1006,7 @@ const BusPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, onUpda
       <Section title="Configuration">
         <PropSelect
           label="Mode"
-          value={bus.mode}
+          value={normalizeBusMode(bus.mode)}
           options={BUS_MODE_OPTS}
           onSave={(v) => onUpdate(['busInterfaces', index, 'mode'], v)}
         />
@@ -2261,6 +2261,15 @@ const POLARITY_OPTS = [
 const BUS_MODE_OPTS = [
   { value: 'slave', label: 'slave' },
   { value: 'master', label: 'master' },
-  { value: 'sink', label: 'sink' },
-  { value: 'source', label: 'source' },
 ];
+
+/** Normalize legacy sink/source modes to slave/master for display and persistence. */
+function normalizeBusMode(mode: string): string {
+  if (mode === 'sink') {
+    return 'slave';
+  }
+  if (mode === 'source') {
+    return 'master';
+  }
+  return mode;
+}

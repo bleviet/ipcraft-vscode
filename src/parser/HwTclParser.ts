@@ -57,8 +57,6 @@ const BUS_TYPE_MAP: Record<string, string> = {
   axis: 'ipcraft.busif.axi_stream.1.0',
 };
 
-const STREAMING_TYPES = new Set(['avalon_streaming', 'avalonst', 'axi4stream', 'axis']);
-
 const FILE_TYPE_MAP: Record<string, string> = {
   VHDL: 'vhdl',
   VERILOG: 'verilog',
@@ -408,9 +406,7 @@ export function parseHwTclContent(
   // ── Bus interfaces ──────────────────────────────────────────────────────────
 
   const busEntries = busIfaces.map((bi) => {
-    const isStreaming = STREAMING_TYPES.has(bi.type);
-    const mode =
-      bi.mode === 'start' ? (isStreaming ? 'source' : 'master') : isStreaming ? 'sink' : 'slave';
+    const mode = bi.mode === 'start' ? 'master' : 'slave';
 
     const portNames = bi.ports.map((p) => p.portName);
     const physicalPrefix = computePhysicalPrefix(portNames);

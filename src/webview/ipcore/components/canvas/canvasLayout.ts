@@ -215,13 +215,11 @@ export function supportsMemoryMap(busType: string, mode: string): boolean {
 function modeLabel(mode: string): string {
   switch (mode) {
     case 'slave':
+    case 'sink':
       return 'S';
     case 'master':
-      return 'M';
-    case 'sink':
-      return 'Sink';
     case 'source':
-      return 'Src';
+      return 'M';
     case 'conduit':
       return '';
     default:
@@ -289,8 +287,8 @@ function itemSlots(
  * Compute spatial positions for every port/bus around the IP core block.
  *
  * Placement rules:
- *  Left edge (top to bottom): clocks, resets, slave/sink buses, input ports
- *  Right edge (top to bottom): master/source buses, output ports
+ *  Left edge (top to bottom): clocks, resets, slave buses, input ports
+ *  Right edge (top to bottom): master buses, output ports
  *  Bottom edge: bidirectional ports
  */
 export function computeLayout(
@@ -384,7 +382,7 @@ export function computeLayout(
   // Resets -> left
   resets.forEach((r, i) => leftItems.push({ kind: 'reset', index: i, data: r }));
 
-  // Bus interfaces -> left (slave/sink) or right (master/source)
+  // Bus interfaces -> left (slave/sink) or right (master/source/conduit on right)
   buses.forEach((b, i) => {
     if (isLeftSide(b)) {
       leftItems.push({ kind: 'bus', index: i, data: b });
