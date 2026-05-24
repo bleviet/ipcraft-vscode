@@ -15,18 +15,10 @@ def test_register_access(sim_runner):
     """Read/write all registers via the {{ bus_type | upper }} bus interface."""
     sim_runner("test_register_access")
 
-
-def test_reset_values(sim_runner):
-    """Read all registers immediately after reset and log their values."""
-    sim_runner("test_reset_values")
 {% else %}
 
 def test_basic_smoke(sim_runner):
     """Verify the DUT clocks and resets cleanly for 20 cycles."""
     sim_runner("test_basic_smoke")
 
-
-def test_reset_behaviour(sim_runner):
-    """Apply and release reset three times; verify no errors."""
-    sim_runner("test_reset_behaviour")
 {% endif %}

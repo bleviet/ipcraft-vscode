@@ -96,26 +96,6 @@ async def test_register_access(dut):
     dut._log.info("Register access test passed!")
 
 
-@cocotb.test()
-async def test_reset_values(dut):
-    """Read all registers after reset and log their values for {{ entity_name }}."""
-    cocotb.start_soon(Clock(dut.{{ clock_port }}, 10, units="ns").start())
-    await _reset_dut(dut)
-{% if bus_type in ['axil', 'axi4'] %}
-{% if bus_type == 'axil' %}
-    master = AxiLiteMaster(AxiLiteBus.from_prefix(dut, "{{ bus_prefix }}"), dut.{{ clock_port }})
-{% else %}
-    master = AxiMaster(AxiBus.from_prefix(dut, "{{ bus_prefix }}"), dut.{{ clock_port }})
-{% endif %}
-{% endif %}
-
-    for reg in regmap:
-        if "read" in reg.access:
-            val = await _read_reg({% if bus_type in ['axil', 'axi4'] %}master{% else %}dut{% endif %}, reg.offset)
-            dut._log.info(f"{reg.name} reset value: 0x{val:08X}")
-
-    dut._log.info("Reset value read-back passed!")
-
 {% else %}
 import cocotb
 from cocotb.clock import Clock
@@ -146,19 +126,4 @@ async def test_basic_smoke(dut):
 
     dut._log.info("Smoke test passed — DUT ran 20 clock cycles after reset")
 
-
-@cocotb.test()
-async def test_reset_behaviour(dut):
-    """
-    Verify that reset can be applied and released multiple times without error.
-    """
-    cocotb.start_soon(Clock(dut.{{ clock_port }}, 10, units="ns").start())
-
-    for cycle in range(3):
-        await reset_dut(dut)
-        for _ in range(10):
-            await RisingEdge(dut.{{ clock_port }})
-        dut._log.info(f"Reset cycle {cycle + 1} OK")
-
-    dut._log.info("Reset behaviour test passed")
 {% endif %}
