@@ -222,8 +222,25 @@ export interface ComponentXmlOptions {
   rtlFiles?: string[];
   simFiles?: string[];
   xguiFile?: string;
+  xguiChecksum?: string;
   displayName?: string;
   isSv?: boolean;
+}
+
+/**
+ * Standard CRC32 (IEEE 802.3 / zlib) matching Vivado's checksum algorithm.
+ * Returns the 8-character lowercase hex string Vivado embeds in CHECKSUM_ tags.
+ */
+export function crc32Hex(content: string): string {
+  const buf = Buffer.from(content, 'utf8');
+  let crc = 0xffffffff;
+  for (let i = 0; i < buf.length; i++) {
+    crc ^= buf[i];
+    for (let j = 0; j < 8; j++) {
+      crc = crc & 1 ? (crc >>> 1) ^ 0xedb88320 : crc >>> 1;
+    }
+  }
+  return (~crc >>> 0).toString(16).padStart(8, '0');
 }
 
 export function generateComponentXml(
@@ -236,6 +253,7 @@ export function generateComponentXml(
     rtlFiles,
     simFiles,
     xguiFile,
+    xguiChecksum,
     displayName,
     isSv = false,
   } = options;
@@ -328,7 +346,7 @@ export function generateComponentXml(
   // ── model ─────────────────────────────────────────────────────────────────
 
   lines.push('  <spirit:model>');
-  lines.push(...renderViews(name, ipCore.subcores ?? [], isSv));
+  lines.push(...renderViews(name, ipCore.subcores ?? [], isSv, xguiChecksum));
   lines.push(
     ...renderPorts(
       clocks,
@@ -358,7 +376,8 @@ export function generateComponentXml(
       resolvedSimFiles,
       derivedXguiFile,
       ipCore.subcores ?? [],
-      isSv
+      isSv,
+      xguiChecksum
     )
   );
 
@@ -585,14 +604,20 @@ function renderInterruptInterface(intr: {
   return lines;
 }
 
-function renderViews(entityName: string, subcores: SubcoreRef[] = [], isSv = false): string[] {
+function renderViews(
+  entityName: string,
+  subcores: SubcoreRef[] = [],
+  isSv = false,
+  xguiChecksum?: string
+): string[] {
   function view(
     viewName: string,
     displayName: string,
     envId: string,
     mainFileSetRef: string,
     language?: string,
-    extraFileSetRefs: string[] = []
+    extraFileSetRefs: string[] = [],
+    viewChecksum?: string
   ): string[] {
     const out: string[] = [];
     out.push('      <spirit:view>');
@@ -611,6 +636,14 @@ function renderViews(entityName: string, subcores: SubcoreRef[] = [], isSv = fal
     out.push('        <spirit:fileSetRef>');
     out.push(`          <spirit:localName>${x(mainFileSetRef)}</spirit:localName>`);
     out.push('        </spirit:fileSetRef>');
+    if (viewChecksum) {
+      out.push('        <spirit:parameters>');
+      out.push('          <spirit:parameter>');
+      out.push('            <spirit:name>viewChecksum</spirit:name>');
+      out.push(`            <spirit:value>${x(viewChecksum)}</spirit:value>`);
+      out.push('          </spirit:parameter>');
+      out.push('        </spirit:parameters>');
+    }
     out.push('      </spirit:view>');
     return out;
   }
@@ -651,7 +684,15 @@ function renderViews(entityName: string, subcores: SubcoreRef[] = [], isSv = fal
     )
   );
   lines.push(
-    ...view('xilinx_xpgui', 'UI Layout', ':vivado.xilinx.com:xgui.ui', 'xilinx_xpgui_view_fileset')
+    ...view(
+      'xilinx_xpgui',
+      'UI Layout',
+      ':vivado.xilinx.com:xgui.ui',
+      'xilinx_xpgui_view_fileset',
+      undefined,
+      [],
+      xguiChecksum
+    )
   );
   lines.push('    </spirit:views>');
   return lines;
@@ -862,7 +903,8 @@ function renderFileSets(
   simFiles: string[],
   xguiFile: string,
   subcores: SubcoreRef[] = [],
-  isSv = false
+  isSv = false,
+  xguiChecksum?: string
 ): string[] {
   const synthViewName = 'xilinx_anylanguagesynthesis';
   const simViewName = 'xilinx_anylanguagebehavioralsimulation';
@@ -890,6 +932,9 @@ function renderFileSets(
   lines.push('      <spirit:file>');
   lines.push(`        <spirit:name>${x(xguiFile)}</spirit:name>`);
   lines.push('        <spirit:fileType>tclSource</spirit:fileType>');
+  if (xguiChecksum) {
+    lines.push(`        <spirit:userFileType>CHECKSUM_${xguiChecksum}</spirit:userFileType>`);
+  }
   lines.push('        <spirit:userFileType>XGUI_VERSION_2</spirit:userFileType>');
   lines.push('      </spirit:file>');
   lines.push('    </spirit:fileSet>');

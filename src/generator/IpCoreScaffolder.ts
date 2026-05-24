@@ -15,7 +15,11 @@ import {
   prepareRegisters,
   resolveMemoryMaps,
 } from './registerProcessor';
-import { generateComponentXml, generateCustomBusDefs } from './VivadoComponentXmlGenerator';
+import {
+  crc32Hex,
+  generateComponentXml,
+  generateCustomBusDefs,
+} from './VivadoComponentXmlGenerator';
 import { sortByCompilationOrder } from '../utils/compilationOrder';
 import type {
   BusDefinitions,
@@ -137,12 +141,15 @@ export class IpCoreScaffolder {
         // Pass undefined when no RTL was generated so generateComponentXml falls
         // back to fileSets declared in the .ip.yml (e.g. when includeVhdl: false).
         const rtlFiles = rtlFilesFromGenerated.length > 0 ? rtlFilesFromGenerated : undefined;
+        const xguiContent = this.templates.render('amd_xgui.j2', context);
+        const xguiChecksum = crc32Hex(xguiContent);
         files['xilinx/component.xml'] = generateComponentXml(
           ipCoreData,
           this.busDefinitions ?? {},
           {
             rtlFiles,
             xguiFile,
+            xguiChecksum,
             isSv,
           }
         );
@@ -150,7 +157,7 @@ export class IpCoreScaffolder {
         for (const [relPath, content] of Object.entries(customBusDefs)) {
           files[`xilinx/${relPath}`] = content;
         }
-        files[`xilinx/${xguiFile}`] = this.templates.render('amd_xgui.j2', context);
+        files[`xilinx/${xguiFile}`] = xguiContent;
       }
 
       if (options.includeVivadoProject) {

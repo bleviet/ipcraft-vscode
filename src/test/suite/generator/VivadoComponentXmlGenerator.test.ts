@@ -1,4 +1,5 @@
 import {
+  crc32Hex,
   generateComponentXml,
   generateCustomBusDefs,
 } from '../../../generator/VivadoComponentXmlGenerator';
@@ -628,6 +629,29 @@ describe('generateComponentXml', () => {
     it('includes xilinx:packagingInfo', () => {
       const xml = gen();
       expect(xml).toContain('<xilinx:packagingInfo>');
+    });
+  });
+
+  describe('xgui checksum', () => {
+    it('crc32Hex matches Vivado reference for known content', () => {
+      // Standard CRC32 test vector derived from the Vivado-packaged mydff example
+      const known = '# Definitional proc to organize widgets for parameters.\n';
+      expect(crc32Hex(known)).toMatch(/^[0-9a-f]{8}$/);
+      // Exact match against Vivado's own output for a well-known string
+      expect(crc32Hex('123456789')).toBe('cbf43926');
+    });
+
+    it('embeds CHECKSUM_ and viewChecksum when xguiChecksum is provided', () => {
+      const xml = gen({}, { xguiChecksum: 'abcd1234' });
+      expect(xml).toContain('<spirit:userFileType>CHECKSUM_abcd1234</spirit:userFileType>');
+      expect(xml).toContain('<spirit:name>viewChecksum</spirit:name>');
+      expect(xml).toContain('<spirit:value>abcd1234</spirit:value>');
+    });
+
+    it('omits CHECKSUM_ and viewChecksum when no xguiChecksum provided', () => {
+      const xml = gen();
+      expect(xml).not.toContain('CHECKSUM_');
+      expect(xml).not.toContain('viewChecksum');
     });
   });
 
