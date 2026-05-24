@@ -52,6 +52,20 @@ export const useCanvasValidation = (ipCore: IpCore): CanvasAnnotations => {
     }
   });
 
+  // Collect duplicate physicalPrefix values across all bus interfaces
+  const prefixCount = new Map<string, number>();
+  ipCore.busInterfaces?.forEach((bus: BusInterface) => {
+    const p = bus.physicalPrefix ?? '';
+    if (p) {
+      prefixCount.set(p, (prefixCount.get(p) ?? 0) + 1);
+    }
+  });
+  const duplicatePrefixSet = new Set(
+    Array.from(prefixCount.entries())
+      .filter(([, count]) => count > 1)
+      .map(([prefix]) => prefix)
+  );
+
   // Check bus interfaces
   ipCore.busInterfaces?.forEach((bus: BusInterface, idx: number) => {
     const id = `bus:${idx}`;
@@ -83,6 +97,16 @@ export const useCanvasValidation = (ipCore: IpCore): CanvasAnnotations => {
       if (!resetExists) {
         addAnnotation(id, 'error', `Referenced reset '${bus.associatedReset}' does not exist`);
       }
+    }
+
+    // Warn when this interface's physicalPrefix collides with another interface
+    const prefix = bus.physicalPrefix ?? '';
+    if (prefix && duplicatePrefixSet.has(prefix)) {
+      addAnnotation(
+        id,
+        'warning',
+        `Duplicate physicalPrefix "${prefix}" — will produce conflicting port names in generated HDL`
+      );
     }
   });
 
