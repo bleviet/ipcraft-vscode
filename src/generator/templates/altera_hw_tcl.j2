@@ -13,6 +13,22 @@
 package require qsys
 
 # -----------------------------------------------------------------------------
+# Module Properties
+# -----------------------------------------------------------------------------
+set_module_property DESCRIPTION "{{ description | default('') }}"
+set_module_property NAME {{ entity_name }}
+set_module_property VERSION {{ version | default('1.0') }}
+set_module_property INTERNAL false
+set_module_property OPAQUE_ADDRESS_MAP true
+set_module_property AUTHOR "{{ author | default('ipcore_lib') }}"
+set_module_property DISPLAY_NAME "{{ display_name | default(entity_name | replace('_', ' ') | title) }}"
+set_module_property INSTANTIATE_IN_SYSTEM_MODULE true
+set_module_property EDITABLE true
+set_module_property REPORT_TO_TALKBACK false
+set_module_property ALLOW_GREYBOX_GENERATION false
+set_module_property REPORT_HIERARCHY false
+
+# -----------------------------------------------------------------------------
 # Parameters
 # -----------------------------------------------------------------------------
 {% for generic in generics %}
@@ -29,17 +45,6 @@ set_parameter_property {{ generic.name | upper }} AFFECTS_GENERATION false
 set_parameter_property {{ generic.name | upper }} AFFECTS_ELABORATION true
 
 {% endfor %}
-# -----------------------------------------------------------------------------
-# Validation Callback
-# -----------------------------------------------------------------------------
-proc validate {} {
-# Add parameter validation here if needed
-}
-
-# -----------------------------------------------------------------------------
-# Elaboration Callback
-# -----------------------------------------------------------------------------
-proc elaborate {} {
 # -----------------------------------------------------------------------------
 # Clock Interface
 # -----------------------------------------------------------------------------
@@ -127,25 +132,6 @@ add_interface_port {{ intr.name }} {{ intr.name }} irq {{ 'Input' if intr.direct
 
 {% endfor %}
 {% endif %}
-}
-
-# -----------------------------------------------------------------------------
-# Module Properties
-# -----------------------------------------------------------------------------
-set_module_property DESCRIPTION "{{ description | default('') }}"
-set_module_property NAME {{ entity_name }}
-set_module_property VERSION {{ version | default('1.0') }}
-set_module_property INTERNAL false
-set_module_property OPAQUE_ADDRESS_MAP true
-set_module_property AUTHOR "{{ author | default('ipcore_lib') }}"
-set_module_property DISPLAY_NAME "{{ display_name | default(entity_name | replace('_', ' ') | title) }}"
-set_module_property INSTANTIATE_IN_SYSTEM_MODULE true
-set_module_property EDITABLE true
-set_module_property REPORT_TO_TALKBACK false
-set_module_property ALLOW_GREYBOX_GENERATION false
-set_module_property REPORT_HIERARCHY false
-set_module_property VALIDATION_CALLBACK validate
-set_module_property ELABORATION_CALLBACK elaborate
 
 # -----------------------------------------------------------------------------
 # File Sets
