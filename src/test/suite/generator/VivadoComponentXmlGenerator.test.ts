@@ -586,6 +586,14 @@ describe('generateComponentXml', () => {
       expect(xml).toContain('spirit:format="string"');
       expect(xml).toContain('>AXI4<');
     });
+
+    it('normalizes natural/positive to integer in modelParameter dataType', () => {
+      const xml = gen({
+        parameters: [{ name: 'DEPTH', value: 8, data_type: 'natural' }],
+      });
+      expect(xml).toContain('spirit:dataType="integer"');
+      expect(xml).not.toContain('spirit:dataType="natural"');
+    });
   });
 
   describe('vendorExtensions', () => {
@@ -600,6 +608,11 @@ describe('generateComponentXml', () => {
       const xml = gen();
       expect(xml).toContain('versal');
       expect(xml).toContain('zynquplus');
+      expect(xml).toContain('virtex7');
+      expect(xml).toContain('kintex7');
+      expect(xml).toContain('artix7');
+      expect(xml).toContain('spartan7');
+      expect(xml).toContain('kintexu');
     });
 
     it('includes display name derived from entity name', () => {

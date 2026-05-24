@@ -806,6 +806,16 @@ function renderModelPort(
   return lines;
 }
 
+function toIpXactDataType(pType: string): string {
+  switch (pType) {
+    case 'natural':
+    case 'positive':
+      return 'integer';
+    default:
+      return pType;
+  }
+}
+
 function renderModelParameters(parameters: ParameterDef[]): string[] {
   if (parameters.length === 0) {
     return [];
@@ -818,6 +828,7 @@ function renderModelParameters(parameters: ParameterDef[]): string[] {
     }
     const pName = String(param.name);
     const pType = String(param.data_type ?? 'integer').toLowerCase();
+    const ipXactType = toIpXactDataType(pType);
     const { format, defaultValue } = paramSpiritFormat(pType);
     const value =
       param.value !== undefined && param.value !== null ? String(param.value) : defaultValue;
@@ -827,7 +838,7 @@ function renderModelParameters(parameters: ParameterDef[]): string[] {
       .map((w) => w[0].toUpperCase() + w.slice(1).toLowerCase())
       .join(' ');
     lines.push(
-      `      <spirit:modelParameter xsi:type="spirit:nameValueTypeType" spirit:dataType="${x(pType)}">`
+      `      <spirit:modelParameter xsi:type="spirit:nameValueTypeType" spirit:dataType="${x(ipXactType)}">`
     );
     lines.push(`        <spirit:name>${x(pName)}</spirit:name>`);
     lines.push(`        <spirit:displayName>${x(displayName)}</spirit:displayName>`);
@@ -1000,7 +1011,33 @@ function renderChoices(): string[] {
 }
 
 function renderVendorExtensions(displayName: string, xilinxVersion: string): string[] {
-  const families = ['versal', 'qzynq', 'zynquplus', 'azynq', 'zynq'];
+  const families = [
+    'virtex7',
+    'qvirtex7',
+    'versal',
+    'kintex7',
+    'kintex7l',
+    'qkintex7',
+    'qkintex7l',
+    'akintex7',
+    'artix7',
+    'artix7l',
+    'aartix7',
+    'qartix7',
+    'zynq',
+    'qzynq',
+    'azynq',
+    'spartan7',
+    'aspartan7',
+    'virtexu',
+    'zynquplus',
+    'virtexuplus',
+    'virtexuplusHBM',
+    'virtexuplus58g',
+    'kintexuplus',
+    'artixuplus',
+    'kintexu',
+  ];
 
   const lines: string[] = [];
   lines.push('  <spirit:vendorExtensions>');
