@@ -586,7 +586,7 @@ const IpCoreApp: React.FC = () => {
             >
               <ToolbarGroup label="Scaffold">
                 <ToolbarButton
-                  title="Scaffold VHDL Project"
+                  title="Scaffold Project"
                   icon="package"
                   command="fpga-ip-core.scaffoldProject"
                 />
@@ -644,7 +644,7 @@ const IpCoreApp: React.FC = () => {
                   />
                   <ToolbarGroup label="Altera">
                     <ToolbarButton
-                      title="Export Altera Platform Designer"
+                      title="Generate Altera Platform Designer"
                       icon="layers"
                       command="fpga-ip-core.exportAltera"
                     />
@@ -652,7 +652,7 @@ const IpCoreApp: React.FC = () => {
                       title={
                         hasHwTcl
                           ? 'Edit in Platform Designer (Quartus)'
-                          : 'Edit in Platform Designer — run Export Altera first'
+                          : 'Edit in Platform Designer — run Generate Altera first'
                       }
                       icon="edit"
                       disabled={!hasHwTcl}
@@ -710,7 +710,7 @@ const IpCoreApp: React.FC = () => {
                   />
                   <ToolbarGroup label="Xilinx">
                     <ToolbarButton
-                      title="Export Vivado Component XML"
+                      title="Generate Vivado Component XML"
                       icon="layers"
                       command="fpga-ip-core.exportXilinx"
                     />
@@ -718,7 +718,7 @@ const IpCoreApp: React.FC = () => {
                       title={
                         hasComponentXml
                           ? 'Edit in IP Packager (Vivado)'
-                          : 'Edit in IP Packager — run Export Component XML first'
+                          : 'Edit in IP Packager — run Generate Component XML first'
                       }
                       icon="edit"
                       disabled={!hasComponentXml}
