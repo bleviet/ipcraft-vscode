@@ -18,6 +18,8 @@ import { safeRegisterCommand } from '../utils/vscodeHelpers';
 import { updateFileSets } from '../services/FileSetUpdater';
 import { resolveVendor } from '../utils/resolveVendor';
 import type { GenerateOptions } from '../generator/types';
+import { createVivadoProject, createQuartusProject } from './projectCreator';
+import { getBuildOutputChannel } from './BuildCommands';
 
 const logger = new Logger('GenerateCommands');
 
@@ -48,6 +50,14 @@ export function registerGeneratorCommands(context: vscode.ExtensionContext): voi
 
   safeRegisterCommand(context, 'fpga-ip-core.generateQuartusProject', async () => {
     await generateQuartusProject(context);
+  });
+
+  safeRegisterCommand(context, 'fpga-ip-core.generateAndBuildVivado', async () => {
+    await generateAndBuildVivado(context);
+  });
+
+  safeRegisterCommand(context, 'fpga-ip-core.generateAndBuildQuartus', async () => {
+    await generateAndBuildQuartus(context);
   });
 
   safeRegisterCommand(context, 'fpga-ip-core.generateTestbench', async () => {
@@ -229,7 +239,7 @@ async function scaffoldProject(context: vscode.ExtensionContext): Promise<void> 
     return;
   }
 
-  await runGenerator(
+  const ok = await runGenerator(
     context,
     ipCoreUri,
     outputDir,
@@ -248,6 +258,17 @@ async function scaffoldProject(context: vscode.ExtensionContext): Promise<void> 
     },
     'Scaffolding project...'
   );
+
+  if (ok) {
+    const name = path
+      .basename(ipCoreUri.fsPath)
+      .replace(/\.ip\.ya?ml$/, '')
+      .toLowerCase();
+    await Promise.all([
+      runCreateVivadoProjectStep(name, outputDir),
+      runCreateQuartusProjectStep(name, outputDir),
+    ]);
+  }
 }
 
 async function exportAltera(context: vscode.ExtensionContext): Promise<void> {
@@ -329,7 +350,12 @@ async function generateVivadoProject(context: vscode.ExtensionContext): Promise<
   }
 
   const outputDir = path.dirname(ipCoreUri.fsPath);
-  await runGenerator(
+  const name = path
+    .basename(ipCoreUri.fsPath)
+    .replace(/\.ip\.ya?ml$/, '')
+    .toLowerCase();
+
+  const ok = await runGenerator(
     context,
     ipCoreUri,
     outputDir,
@@ -344,6 +370,10 @@ async function generateVivadoProject(context: vscode.ExtensionContext): Promise<
     },
     'Generating Vivado project...'
   );
+
+  if (ok) {
+    await runCreateVivadoProjectStep(name, outputDir);
+  }
 }
 
 async function generateQuartusProject(context: vscode.ExtensionContext): Promise<void> {
@@ -362,7 +392,12 @@ async function generateQuartusProject(context: vscode.ExtensionContext): Promise
   }
 
   const outputDir = path.dirname(ipCoreUri.fsPath);
-  await runGenerator(
+  const name = path
+    .basename(ipCoreUri.fsPath)
+    .replace(/\.ip\.ya?ml$/, '')
+    .toLowerCase();
+
+  const ok = await runGenerator(
     context,
     ipCoreUri,
     outputDir,
@@ -377,9 +412,139 @@ async function generateQuartusProject(context: vscode.ExtensionContext): Promise
     },
     'Generating Quartus project...'
   );
+
+  if (ok) {
+    await runCreateQuartusProjectStep(name, outputDir);
+  }
 }
 
-async function pickOutputDir(ipCoreUri: vscode.Uri, title: string): Promise<string | undefined> {
+async function generateAndBuildVivado(context: vscode.ExtensionContext): Promise<void> {
+  const ipCoreUri = getActiveIpCoreFile();
+  if (!ipCoreUri) {
+    return;
+  }
+
+  const cfg = vscode.workspace.getConfiguration('ipcraft');
+  const targetPart = await pickVivadoPart(
+    context,
+    cfg.get<string>('vivado.defaultPart', 'xc7z020clg484-1')
+  );
+  if (!targetPart) {
+    return;
+  }
+
+  const outputDir = path.dirname(ipCoreUri.fsPath);
+  const ok = await runGenerator(
+    context,
+    ipCoreUri,
+    outputDir,
+    {
+      vendor: 'none',
+      includeVhdl: false,
+      includeRegs: false,
+      includeTestbench: false,
+      includeVivadoProject: true,
+      targetPart,
+      silent: true,
+    },
+    'Generating Vivado project...'
+  );
+
+  if (ok) {
+    await vscode.commands.executeCommand('fpga-ip-core.buildVivadoOoc');
+  }
+}
+
+async function generateAndBuildQuartus(context: vscode.ExtensionContext): Promise<void> {
+  const ipCoreUri = getActiveIpCoreFile();
+  if (!ipCoreUri) {
+    return;
+  }
+
+  const cfg = vscode.workspace.getConfiguration('ipcraft');
+  const quartusDevice = await pickQuartusDevice(
+    context,
+    cfg.get<string>('quartus.defaultDevice', '5CSEBA6U23I7')
+  );
+  if (!quartusDevice) {
+    return;
+  }
+
+  const outputDir = path.dirname(ipCoreUri.fsPath);
+  const ok = await runGenerator(
+    context,
+    ipCoreUri,
+    outputDir,
+    {
+      vendor: 'none',
+      includeVhdl: false,
+      includeRegs: false,
+      includeTestbench: false,
+      includeQuartusProject: true,
+      quartusDevice,
+      silent: true,
+    },
+    'Generating Quartus project...'
+  );
+
+  if (ok) {
+    await vscode.commands.executeCommand('fpga-ip-core.buildQuartusCompile');
+  }
+}
+
+/**
+ * Run the Vivado project-creation step after Generate, showing a progress notification.
+ * If Vivado is not found, shows an info message with manual instructions.
+ */
+async function runCreateVivadoProjectStep(name: string, ipDir: string): Promise<void> {
+  const ch = getBuildOutputChannel();
+  let success = false;
+  await vscode.window.withProgress(
+    {
+      location: vscode.ProgressLocation.Notification,
+      title: 'Creating Vivado project (.xpr)…',
+      cancellable: false,
+    },
+    async () => {
+      success = await createVivadoProject(name, ipDir, ch);
+    }
+  );
+  if (!success) {
+    void vscode.window.showInformationMessage(
+      `Vivado project TCL written. Run manually to create the .xpr:\n` +
+        `  vivado -mode batch -source ${name}_project.tcl -nojournal -nolog\n` +
+        `(from the xilinx/ directory)`
+    );
+  }
+}
+
+/**
+ * Run the Quartus project-creation step after Generate, showing a progress notification.
+ * If Quartus is not found, shows an info message with manual instructions.
+ */
+async function runCreateQuartusProjectStep(name: string, ipDir: string): Promise<void> {
+  const ch = getBuildOutputChannel();
+  let success = false;
+  await vscode.window.withProgress(
+    {
+      location: vscode.ProgressLocation.Notification,
+      title: 'Creating Quartus project (.qpf)…',
+      cancellable: false,
+    },
+    async () => {
+      success = await createQuartusProject(name, ipDir, ch);
+    }
+  );
+  if (!success) {
+    void vscode.window.showInformationMessage(
+      `Quartus project TCL written. Run manually to create the .qpf:\n` +
+        `  quartus_sh -t ${name}_project.tcl\n` +
+        `(from the altera/build/ directory)`
+    );
+  }
+}
+
+async function pickOutputDir(ipCoreUri: vscode.Uri, title: string): Promise<string> {
   const defaultDir = path.dirname(ipCoreUri.fsPath);
   const picked = await vscode.window.showOpenDialog({
     defaultUri: vscode.Uri.file(defaultDir),
@@ -398,7 +563,8 @@ async function runGenerator(
   outputDir: string,
   options: GenerateOptions & { updateYaml?: boolean; silent?: boolean },
   progressTitle: string
-): Promise<void> {
+): Promise<boolean> {
+  let succeeded = false;
   await vscode.window.withProgress(
     { location: vscode.ProgressLocation.Notification, title: progressTitle, cancellable: false },
     async () => {
@@ -406,6 +572,7 @@ async function runGenerator(
       const result = await generator.generateAll(ipCoreUri.fsPath, outputDir, options);
 
       if (result.success) {
+        succeeded = true;
         if (options.updateYaml && result.files) {
           await updateFileSetsInYaml(ipCoreUri, outputDir, Object.keys(result.files));
         }
@@ -424,6 +591,7 @@ async function runGenerator(
       }
     }
   );
+  return succeeded;
 }
 
 const HIDE_EXPERIMENTAL_IMPORT_WARNING = 'ipcraft.hideExperimentalImportWarning';

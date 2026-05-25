@@ -20,6 +20,11 @@ function getOutputChannel(): vscode.OutputChannel {
   return outputChannel;
 }
 
+/** Shared output channel used by both Build and Generate & Build commands. */
+export function getBuildOutputChannel(): vscode.OutputChannel {
+  return getOutputChannel();
+}
+
 function isIpCoreFile(fsPath: string): boolean {
   return fsPath.endsWith('.ip.yml') || fsPath.endsWith('.ip.yaml');
 }
@@ -259,7 +264,7 @@ export function registerBuildCommands(
     updateStatusBar(statusBarItem, status, reports);
   };
 
-  const doRun = async () => {
+  const doRun = async (autoTargetLabel?: string) => {
     const ip = await resolveIpCore();
     if (!ip) {
       return;
@@ -275,7 +280,9 @@ export function registerBuildCommands(
     }
 
     let picked: BuildTarget | undefined;
-    if (targets.length === 1) {
+    if (autoTargetLabel) {
+      picked = targets.find((t) => t.label === autoTargetLabel) ?? targets[0];
+    } else if (targets.length === 1) {
       picked = targets[0];
     } else {
       const sel = await vscode.window.showQuickPick(
@@ -310,6 +317,14 @@ export function registerBuildCommands(
 
   context.subscriptions.push(
     vscode.commands.registerCommand('fpga-ip-core.build', () => void doRun()),
+    vscode.commands.registerCommand(
+      'fpga-ip-core.buildVivadoOoc',
+      () => void doRun('Vivado OOC Synthesis')
+    ),
+    vscode.commands.registerCommand(
+      'fpga-ip-core.buildQuartusCompile',
+      () => void doRun('Quartus Compile')
+    ),
     vscode.commands.registerCommand('fpga-ip-core.showBuildOutput', () => getOutputChannel().show())
   );
 }

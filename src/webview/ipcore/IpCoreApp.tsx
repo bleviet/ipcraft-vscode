@@ -581,9 +581,14 @@ const IpCoreApp: React.FC = () => {
                   onClick={() => vscode?.postMessage({ type: 'editInPlatformDesigner' })}
                 />
                 <ToolbarButton
-                  title="Generate Quartus Project"
+                  title="Generate Quartus Project (creates .qpf)"
                   icon="circuit-board"
                   command="fpga-ip-core.generateQuartusProject"
+                />
+                <ToolbarButton
+                  title="Generate & Build (Quartus full compile)"
+                  icon="zap"
+                  command="fpga-ip-core.generateAndBuildQuartus"
                 />
                 <ToolbarButton
                   title={hasQpf ? 'Open in Quartus' : 'Open in Quartus — generate project first'}
@@ -619,9 +624,14 @@ const IpCoreApp: React.FC = () => {
                   onClick={() => vscode?.postMessage({ type: 'editInIpPackager' })}
                 />
                 <ToolbarButton
-                  title="Generate Vivado Project"
+                  title="Generate Vivado Project (creates .xpr)"
                   icon="circuit-board"
                   command="fpga-ip-core.generateVivadoProject"
+                />
+                <ToolbarButton
+                  title="Generate & Build (Vivado OOC synthesis)"
+                  icon="zap"
+                  command="fpga-ip-core.generateAndBuildVivado"
                 />
                 <ToolbarButton
                   title={hasXpr ? 'Open in Vivado' : 'Open in Vivado — generate project first'}

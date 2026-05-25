@@ -111,6 +111,34 @@
         "icon": "$(circuit-board)"
       },
       {
+        "command": "fpga-ip-core.generateAndBuildVivado",
+        "title": "Generate & Build (Vivado OOC)",
+        "category": "IPCraft",
+        "icon": "$(zap)",
+        "enablement": "ipcraft.vivadoFound"
+      },
+      {
+        "command": "fpga-ip-core.generateAndBuildQuartus",
+        "title": "Generate & Build (Quartus)",
+        "category": "IPCraft",
+        "icon": "$(zap)",
+        "enablement": "ipcraft.quartusFound"
+      },
+      {
+        "command": "fpga-ip-core.buildVivadoOoc",
+        "title": "Build: Vivado OOC Synthesis",
+        "category": "IPCraft",
+        "icon": "$(play)",
+        "enablement": "ipcraft.vivadoFound"
+      },
+      {
+        "command": "fpga-ip-core.buildQuartusCompile",
+        "title": "Build: Quartus Compile",
+        "category": "IPCraft",
+        "icon": "$(play)",
+        "enablement": "ipcraft.quartusFound"
+      },
+      {
         "command": "fpga-ip-core.parseVHDL",
         "title": "Import from VHDL (Experimental)",
         "category": "IPCraft",
