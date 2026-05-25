@@ -15,6 +15,6 @@ export class QuestaEngine implements Engine {
   }
 
   waveArgs(entityName: string): string[] {
-    return [`-wlf ${entityName}.wlf`];
+    return ['-wlf', `${entityName}.wlf`];
   }
 }

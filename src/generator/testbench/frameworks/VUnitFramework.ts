@@ -7,11 +7,16 @@ export class VUnitFramework implements Framework {
 
   generate(ctx: TestbenchContext, engine: Engine): Record<string, string> {
     const { name, templateContext, templates, hasMmSlave } = ctx;
+    const extraCompileArgs = ctx.extraCompileArgs ?? [];
+    const extraSimArgs = ctx.extraSimArgs ?? [];
+    const extraEnv = ctx.extraEnv ?? {};
 
     const vunitCtx = {
       ...templateContext,
       engine_sim_var: engine.simVar,
-      engine_compile_args: engine.compileArgs,
+      engine_compile_args: [...engine.compileArgs, ...extraCompileArgs],
+      engine_extra_sim_args: extraSimArgs,
+      engine_extra_env: Object.entries(extraEnv).map(([k, v]) => ({ key: k, value: v })),
       engine_vunit_sim_option_key: engine.vunitSimOptionKey,
       engine_vunit_compile_option_key: engine.vunitCompileOptionKey,
       has_memory_mapped_slave: hasMmSlave,

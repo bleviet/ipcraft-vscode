@@ -130,6 +130,9 @@ export class IpCoreScaffolder {
           templates: this.templates,
           isSv,
           hasMmSlave,
+          extraCompileArgs: simCfg?.compileArgs,
+          extraSimArgs: simCfg?.simArgs,
+          extraEnv: simCfg?.env,
         });
         Object.assign(files, tbFiles);
       }
@@ -313,14 +316,6 @@ export class IpCoreScaffolder {
     const secondaryBusPorts: Array<Record<string, unknown>> = [];
     let busPrefix = 's_axi';
 
-    const TEMPLATE_TYPE_TO_ALTERA: Record<string, string> = {
-      axil: 'axi4lite',
-      axi4: 'axi4',
-      axis: 'axi4stream',
-      avmm: 'avalon',
-      avst: 'avalon_streaming',
-    };
-
     const parameterNames = (ipCore?.parameters ?? []).map((p) => String(p.name));
 
     if (expandedBusInterfaces.length > 0) {
@@ -329,7 +324,6 @@ export class IpCoreScaffolder {
 
       expandedBusInterfaces.forEach((iface, index) => {
         const busTypeInfo = normalizeBusType(this.getString(iface.type));
-        iface.altera_type = TEMPLATE_TYPE_TO_ALTERA[busTypeInfo.templateType] ?? 'conduit';
         const busPortsForType = this.resolvePortsForInterface(
           busTypeInfo.libraryKey,
           this.getString(iface.type)

@@ -125,7 +125,7 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
       if (e.affectsConfiguration('ipcraft.generate.hdlLanguage')) {
         void updateWebview();
       }
-      if (e.affectsConfiguration('ipcraft.toolbar.targetVendor')) {
+      if (e.affectsConfiguration('ipcraft.toolbar.targets')) {
         void updateWebview();
       }
     });
@@ -240,13 +240,13 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
         await cfg.update('hdlLanguage', lang, vscode.ConfigurationTarget.Global);
         // onDidChangeConfiguration fires updateWebview automatically
       },
-      setTargetVendor: async (message) => {
-        const vendor = message.vendor as string;
-        if (vendor !== 'altera' && vendor !== 'xilinx' && vendor !== 'both') {
+      setToolbarTargets: async (message) => {
+        const raw = message.targets;
+        if (!Array.isArray(raw) || !raw.every((t) => typeof t === 'string')) {
           return;
         }
         const cfg = vscode.workspace.getConfiguration('ipcraft.toolbar');
-        await cfg.update('targetVendor', vendor, vscode.ConfigurationTarget.Global);
+        await cfg.update('targets', raw, vscode.ConfigurationTarget.Global);
         // onDidChangeConfiguration fires updateWebview automatically
       },
       openFile: async (message) => {
@@ -369,9 +369,9 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
         .getConfiguration('ipcraft.generate')
         .get<string>('hdlLanguage', 'vhdl');
 
-      const targetVendor = vscode.workspace
+      const toolbarTargets = vscode.workspace
         .getConfiguration('ipcraft.toolbar')
-        .get<string>('targetVendor', 'both');
+        .get<string[]>('targets', ['vivado', 'quartus']);
 
       const duplicatePrefixes = this.yamlValidator.findDuplicatePhysicalPrefixes(parsed);
 
@@ -385,7 +385,7 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
         hasXpr,
         hasQpf,
         hdlLanguage,
-        targetVendor,
+        toolbarTargets,
         duplicatePrefixes,
       });
     } catch (error) {

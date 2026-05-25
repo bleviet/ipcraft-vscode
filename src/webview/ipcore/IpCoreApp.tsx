@@ -109,24 +109,37 @@ const HdlLanguagePicker: React.FC<HdlLanguagePickerProps> = ({ value }) => {
   );
 };
 
-type TargetVendor = 'altera' | 'xilinx' | 'both';
-
-interface TargetVendorPickerProps {
-  value: TargetVendor;
+/**
+ * Multi-select toolbar target picker. Each pill toggles a toolchain id in/out
+ * of the active set. The set is persisted to ipcraft.toolbar.targets.
+ */
+interface ToolbarTarget {
+  id: string;
+  label: string;
+  bg: string;
+  fg: string;
 }
 
-const VENDOR_COLORS: Record<TargetVendor, { bg: string; fg: string }> = {
-  altera: { bg: 'rgba(0, 113, 197, 0.20)', fg: '#0071c5' },
-  xilinx: { bg: 'rgba(230, 0, 0, 0.20)', fg: '#e60000' },
-  both: { bg: 'rgba(120, 120, 120, 0.20)', fg: 'var(--vscode-foreground)' },
-};
+const TOOLBAR_TARGETS: ToolbarTarget[] = [
+  { id: 'quartus', label: 'ALTERA', bg: 'rgba(0, 113, 197, 0.20)', fg: '#0071c5' },
+  { id: 'vivado', label: 'XILINX', bg: 'rgba(230, 0, 0, 0.20)', fg: '#e60000' },
+];
+
+interface TargetVendorPickerProps {
+  value: string[];
+}
 
 const TargetVendorPicker: React.FC<TargetVendorPickerProps> = ({ value }) => {
-  const set = (v: TargetVendor) => vscode?.postMessage({ type: 'setTargetVendor', vendor: v });
+  const setTargets = (next: string[]) =>
+    vscode?.postMessage({ type: 'setToolbarTargets', targets: next });
 
-  const pillStyle = (v: TargetVendor): React.CSSProperties => {
-    const active = value === v;
-    const { bg, fg } = VENDOR_COLORS[v];
+  const toggle = (id: string) => {
+    const next = value.includes(id) ? value.filter((v) => v !== id) : [...value, id];
+    setTargets(next);
+  };
+
+  const pillStyle = (t: ToolbarTarget): React.CSSProperties => {
+    const active = value.includes(t.id);
     return {
       fontSize: '9px',
       fontWeight: 600,
@@ -135,49 +148,30 @@ const TargetVendorPicker: React.FC<TargetVendorPickerProps> = ({ value }) => {
       padding: '2px 4px',
       borderRadius: 3,
       border: 'none',
-      cursor: active ? 'default' : 'pointer',
+      cursor: 'pointer',
       userSelect: 'none',
-      background: active ? bg : 'transparent',
-      color: active ? fg : 'var(--vscode-descriptionForeground)',
+      background: active ? t.bg : 'transparent',
+      color: active ? t.fg : 'var(--vscode-descriptionForeground)',
       opacity: active ? 1 : 0.5,
     };
-  };
-
-  const titleMap: Record<TargetVendor, string> = {
-    altera: 'Altera/Intel active — click XILINX to switch to Xilinx/AMD, BOTH to show both',
-    xilinx: 'Xilinx/AMD active — click ALTERA to switch to Altera/Intel, BOTH to show both',
-    both: 'Both vendors shown — click ALTERA or XILINX to focus on one ecosystem',
   };
 
   return (
     <div
       style={{ display: 'flex', flexDirection: 'column', gap: 2, justifyContent: 'center' }}
-      title={titleMap[value]}
+      title="Toggle which vendor toolchain sections show in the toolbar"
     >
-      <button
-        style={pillStyle('altera')}
-        onClick={() => set('altera')}
-        type="button"
-        aria-label="Show Altera/Intel tools"
-      >
-        ALTERA
-      </button>
-      <button
-        style={pillStyle('xilinx')}
-        onClick={() => set('xilinx')}
-        type="button"
-        aria-label="Show Xilinx/AMD tools"
-      >
-        XILINX
-      </button>
-      <button
-        style={pillStyle('both')}
-        onClick={() => set('both')}
-        type="button"
-        aria-label="Show both vendor tools"
-      >
-        BOTH
-      </button>
+      {TOOLBAR_TARGETS.map((t) => (
+        <button
+          key={t.id}
+          style={pillStyle(t)}
+          onClick={() => toggle(t.id)}
+          type="button"
+          aria-label={`Toggle ${t.label} tools`}
+        >
+          {t.label}
+        </button>
+      ))}
     </div>
   );
 };
@@ -261,8 +255,8 @@ const IpCoreApp: React.FC = () => {
   const [hasQpf, setHasQpf] = useState(false);
   // HDL language for source generation — mirrors ipcraft.generate.hdlLanguage
   const [hdlLanguage, setHdlLanguage] = useState<'vhdl' | 'systemverilog'>('vhdl');
-  // Active vendor toolchain shown in toolbar — mirrors ipcraft.toolbar.targetVendor
-  const [targetVendor, setTargetVendor] = useState<TargetVendor>('both');
+  // Active vendor toolchain section(s) shown in toolbar — mirrors ipcraft.toolbar.targets
+  const [toolbarTargets, setToolbarTargets] = useState<string[]>(['vivado', 'quartus']);
   // True when opened via IpCoreSourcePreviewProvider (source file, not a .ip.yml)
   const [isPreview, setIsPreview] = useState(false);
 
@@ -484,7 +478,7 @@ const IpCoreApp: React.FC = () => {
         hasXpr?: boolean;
         hasQpf?: boolean;
         hdlLanguage?: 'vhdl' | 'systemverilog';
-        targetVendor?: TargetVendor;
+        toolbarTargets?: string[];
         isPreview?: boolean;
       };
 
@@ -496,7 +490,7 @@ const IpCoreApp: React.FC = () => {
           setHasXpr(message.hasXpr ?? false);
           setHasQpf(message.hasQpf ?? false);
           setHdlLanguage(message.hdlLanguage ?? 'vhdl');
-          setTargetVendor(message.targetVendor ?? 'both');
+          setToolbarTargets(message.toolbarTargets ?? ['vivado', 'quartus']);
           setIsPreview(message.isPreview ?? false);
           break;
       }
@@ -632,7 +626,7 @@ const IpCoreApp: React.FC = () => {
                 />
               </ToolbarGroup>
 
-              {(targetVendor === 'altera' || targetVendor === 'both') && (
+              {toolbarTargets.includes('quartus') && (
                 <>
                   <div
                     style={{
@@ -698,7 +692,7 @@ const IpCoreApp: React.FC = () => {
                 </>
               )}
 
-              {(targetVendor === 'xilinx' || targetVendor === 'both') && (
+              {toolbarTargets.includes('vivado') && (
                 <>
                   <div
                     style={{
@@ -771,7 +765,7 @@ const IpCoreApp: React.FC = () => {
                 }}
               />
 
-              <TargetVendorPicker value={targetVendor} />
+              <TargetVendorPicker value={toolbarTargets} />
             </div>
             {validationErrors.length > 0 && (
               <div className="text-sm" style={{ color: 'var(--vscode-errorForeground)' }}>

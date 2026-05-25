@@ -77,4 +77,7 @@ describe('QuestaEngine', () => {
     expect(e.vunitSimOptionKey).toMatch(/^modelsim\./);
     expect(e.vunitCompileOptionKey).toMatch(/^modelsim\./);
   });
+  it('waveArgs split flag and value into separate elements', () => {
+    expect(e.waveArgs('my_core')).toEqual(['-wlf', 'my_core.wlf']);
+  });
 });

@@ -59,9 +59,22 @@ ifeq ($(SIM),verilator)
         COMPILE_ARGS += --trace-fst
     endif
 endif
+{% if engine_extra_compile_args %}
+
+# Extra compile flags from simulation.compileArgs in the .ip.yml
+COMPILE_ARGS += {{ engine_extra_compile_args }}
+{% endif %}
+{% if engine_extra_sim_args %}
+
+# Extra sim flags from simulation.simArgs in the .ip.yml
+SIM_ARGS += {{ engine_extra_sim_args }}
+{% endif %}
 
 # Cocotb settings
 export COCOTB_REDUCED_LOG_FMT=1
+{% for kv in engine_extra_env %}
+export {{ kv.key }}={{ kv.value }}
+{% endfor %}
 
 
 

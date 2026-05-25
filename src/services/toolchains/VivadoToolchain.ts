@@ -1,4 +1,3 @@
-import * as fsAsync from 'fs/promises';
 import * as path from 'path';
 import { spawnSync } from 'child_process';
 import type * as vscode from 'vscode';
@@ -10,6 +9,7 @@ import {
 import { parseVivadoReports } from '../ReportParser';
 import { runProcess } from '../BuildRunner';
 import { findVivadoInInstallDir, getVivadoLauncher } from '../../utils/vivadoResolver';
+import { fileExists } from '../../utils/fsHelpers';
 import type { DockerConfig, LaunchEnv } from './LaunchableTool';
 import type {
   SynthesisToolchain,
@@ -17,15 +17,6 @@ import type {
   ScaffoldOptions,
   BuildMode,
 } from './SynthesisToolchain';
-
-async function fileExists(p: string): Promise<boolean> {
-  try {
-    await fsAsync.access(p);
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 export class VivadoToolchain implements SynthesisToolchain {
   readonly id = 'vivado';
@@ -103,6 +94,34 @@ export class VivadoToolchain implements SynthesisToolchain {
     }
 
     return files;
+  }
+
+  async createProject(
+    name: string,
+    ipDir: string,
+    cfg: vscode.WorkspaceConfiguration,
+    outputChannel: vscode.OutputChannel
+  ): Promise<boolean> {
+    const vendorDir = path.join(ipDir, this.outputSubdir);
+    const projectTcl = `${name}_project.tcl`;
+    if (!(await fileExists(path.join(vendorDir, projectTcl)))) {
+      return false;
+    }
+
+    const launcher = this.resolve('vivado', cfg);
+    if (!launcher) {
+      return false;
+    }
+
+    const docker = this.getDocker(cfg, ipDir);
+    const { env, extraMounts } = this.getLaunchEnv(cfg);
+
+    const result = await runProcess(
+      launcher.exe,
+      [...launcher.prefixArgs, '-mode', 'batch', '-source', projectTcl, '-nojournal', '-nolog'],
+      { cwd: vendorDir, outputChannel, docker, env, extraMounts }
+    );
+    return result.success;
   }
 
   async detectBuildModes(

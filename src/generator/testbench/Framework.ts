@@ -12,6 +12,12 @@ export interface TestbenchContext {
   isSv: boolean;
   /** True when the IP core has a memory-mapped slave bus interface. */
   hasMmSlave: boolean;
+  /** Extra compile-time flags from simulation.compileArgs. */
+  extraCompileArgs?: string[];
+  /** Extra simulation-time flags from simulation.simArgs. */
+  extraSimArgs?: string[];
+  /** Extra environment variables from simulation.env. */
+  extraEnv?: Record<string, string>;
 }
 
 /** Testbench framework abstraction — decides which files to emit. */

@@ -1,15 +1,25 @@
 import {
   QuartusToolchain,
   quartusDeviceFamily,
+  mapBusTypeToAltera,
 } from '../../../../services/toolchains/QuartusToolchain';
 import * as quartusResolver from '../../../../utils/quartusResolver';
+import * as fsHelpers from '../../../../utils/fsHelpers';
+import * as buildRunner from '../../../../services/BuildRunner';
+import * as fsPromises from 'fs/promises';
 import * as childProcess from 'child_process';
 
 jest.mock('../../../../utils/quartusResolver');
+jest.mock('../../../../utils/fsHelpers');
+jest.mock('../../../../services/BuildRunner');
+jest.mock('fs/promises');
 jest.mock('child_process');
 
 const mockFindInInstallDir = quartusResolver.findInInstallDir as jest.Mock;
 const mockGetQuartusTool = quartusResolver.getQuartusTool as jest.Mock;
+const mockFileExists = fsHelpers.fileExists as jest.Mock;
+const mockRunProcess = buildRunner.runProcess as jest.Mock;
+const mockMkdir = fsPromises.mkdir as jest.Mock;
 const mockSpawnSync = childProcess.spawnSync as jest.Mock;
 
 function makeCfg(overrides: Record<string, unknown> = {}) {
@@ -17,6 +27,24 @@ function makeCfg(overrides: Record<string, unknown> = {}) {
     get: jest.fn((key: string, def?: unknown) => overrides[key] ?? def),
   } as unknown as import('vscode').WorkspaceConfiguration;
 }
+
+describe('mapBusTypeToAltera', () => {
+  const cases: [string, string][] = [
+    ['AXI4L', 'axi4lite'],
+    ['axi4lite', 'axi4lite'],
+    ['axi4', 'axi4'],
+    ['axis', 'axi4stream'],
+    ['avmm', 'avalon'],
+    ['avst', 'avalon_streaming'],
+    ['custom_bus', 'conduit'],
+  ];
+  it.each(cases)('maps %s → %s', (input, expected) => {
+    expect(mapBusTypeToAltera(input)).toBe(expected);
+  });
+  it('returns conduit for undefined input', () => {
+    expect(mapBusTypeToAltera(undefined)).toBe('conduit');
+  });
+});
 
 describe('quartusDeviceFamily', () => {
   const cases: [string, string][] = [
@@ -124,5 +152,48 @@ describe('QuartusToolchain', () => {
     const env = tc.getLaunchEnv(cfg);
     expect(env.env).toEqual({});
     expect(env.extraMounts).toEqual([]);
+  });
+
+  describe('createProject()', () => {
+    const outputChannel = { appendLine: jest.fn() } as unknown as import('vscode').OutputChannel;
+
+    beforeEach(() => {
+      mockFileExists.mockReset();
+      mockRunProcess.mockReset();
+      mockGetQuartusTool.mockReset();
+      mockMkdir.mockReset();
+      mockMkdir.mockResolvedValue(undefined);
+    });
+
+    it('returns false when project TCL is missing', async () => {
+      mockFileExists.mockResolvedValue(false);
+      const ok = await tc.createProject('my_ip', '/ip', makeCfg(), outputChannel);
+      expect(ok).toBe(false);
+      expect(mockRunProcess).not.toHaveBeenCalled();
+    });
+
+    it('returns false when quartus_sh cannot be resolved', async () => {
+      mockFileExists.mockResolvedValue(true);
+      mockGetQuartusTool.mockReturnValue('');
+      const ok = await tc.createProject('my_ip', '/ip', makeCfg(), outputChannel);
+      expect(ok).toBe(false);
+      expect(mockRunProcess).not.toHaveBeenCalled();
+    });
+
+    it('invokes quartus_sh -t <project_tcl> in altera/build on success', async () => {
+      mockFileExists.mockResolvedValue(true);
+      mockGetQuartusTool.mockReturnValue('/opt/quartus/bin/quartus_sh');
+      mockRunProcess.mockResolvedValue({ success: true });
+      const ok = await tc.createProject('my_ip', '/ip', makeCfg(), outputChannel);
+      expect(ok).toBe(true);
+      expect(mockMkdir).toHaveBeenCalledWith(expect.stringContaining('altera/build'), {
+        recursive: true,
+      });
+      expect(mockRunProcess).toHaveBeenCalledWith(
+        '/opt/quartus/bin/quartus_sh',
+        ['-t', expect.stringContaining('my_ip_project.tcl')],
+        expect.objectContaining({ cwd: expect.stringContaining('altera/build') })
+      );
+    });
   });
 });

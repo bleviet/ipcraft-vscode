@@ -111,4 +111,16 @@ describe('VUnitFramework', () => {
     expect(tb).toContain('entity my_core_tb is');
     expect(tb).toContain('entity work.my_core');
   });
+
+  it('appends extraCompileArgs to engine flags and exports extraEnv in run.py', () => {
+    const runPy = framework.generate(
+      makeCtx({
+        extraCompileArgs: ['-fexplicit'],
+        extraEnv: { MY_LIC: '/tmp/lic.dat' },
+      }),
+      new GhdlEngine()
+    )['tb/run.py'];
+    expect(runPy).toContain('-fexplicit');
+    expect(runPy).toContain('os.environ.setdefault("MY_LIC", "/tmp/lic.dat")');
+  });
 });

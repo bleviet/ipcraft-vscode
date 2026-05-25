@@ -123,4 +123,20 @@ describe('CocotbFramework', () => {
     );
     expect(files['tb/Makefile']).toContain('icarus');
   });
+
+  it('forwards extraCompileArgs, extraSimArgs and extraEnv into Makefile', () => {
+    const files = framework.generate(
+      makeCtx({
+        extraCompileArgs: ['-fsynopsys', '-Wno-hide'],
+        extraSimArgs: ['--stop-time=1us'],
+        extraEnv: { MY_FLAG: 'on', LM_LICENSE_FILE: '/opt/licenses/x.dat' },
+      }),
+      new GhdlEngine()
+    );
+    const mk = files['tb/Makefile'];
+    expect(mk).toContain('COMPILE_ARGS += -fsynopsys -Wno-hide');
+    expect(mk).toContain('SIM_ARGS += --stop-time=1us');
+    expect(mk).toContain('export MY_FLAG=on');
+    expect(mk).toContain('export LM_LICENSE_FILE=/opt/licenses/x.dat');
+  });
 });

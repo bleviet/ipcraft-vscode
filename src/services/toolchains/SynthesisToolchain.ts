@@ -71,4 +71,18 @@ export interface SynthesisToolchain extends LaunchableTool {
     cfg: vscode.WorkspaceConfiguration,
     outputChannel: vscode.OutputChannel
   ): Promise<BuildMode[]>;
+
+  /**
+   * Run only the project-setup TCL (no synthesis/compile) so the resulting
+   * vendor project file (.xpr / .qpf) is available for opening in the IDE GUI.
+   *
+   * Returns true on success, false when the TCL script is missing, the tool
+   * cannot be resolved, or the launch itself fails.
+   */
+  createProject(
+    name: string,
+    ipDir: string,
+    cfg: vscode.WorkspaceConfiguration,
+    outputChannel: vscode.OutputChannel
+  ): Promise<boolean>;
 }

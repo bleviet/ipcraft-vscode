@@ -5,6 +5,8 @@ import type * as vscode from 'vscode';
 import { parseQuartusReports } from '../ReportParser';
 import { runProcess } from '../BuildRunner';
 import { findInInstallDir, getQuartusTool } from '../../utils/quartusResolver';
+import { fileExists } from '../../utils/fsHelpers';
+import { normalizeBusType } from '../../generator/registerProcessor';
 import type { DockerConfig, LaunchEnv } from './LaunchableTool';
 import type {
   SynthesisToolchain,
@@ -13,13 +15,25 @@ import type {
   BuildMode,
 } from './SynthesisToolchain';
 
-async function fileExists(p: string): Promise<boolean> {
-  try {
-    await fsAsync.access(p);
-    return true;
-  } catch {
-    return false;
+/**
+ * Map a normalized bus template type (axil, axi4, axis, avmm, avst) to the
+ * string Platform Designer's `add_interface` command expects. Anything else
+ * falls back to 'conduit', the generic Avalon point-to-point interface.
+ */
+const TEMPLATE_TYPE_TO_ALTERA: Record<string, string> = {
+  axil: 'axi4lite',
+  axi4: 'axi4',
+  axis: 'axi4stream',
+  avmm: 'avalon',
+  avst: 'avalon_streaming',
+};
+
+export function mapBusTypeToAltera(typeName: string | undefined): string {
+  if (!typeName) {
+    return 'conduit';
   }
+  const info = normalizeBusType(typeName);
+  return TEMPLATE_TYPE_TO_ALTERA[info.templateType] ?? 'conduit';
 }
 
 /**
@@ -112,6 +126,19 @@ export class QuartusToolchain implements SynthesisToolchain {
     const { name, templateContext, templates } = ctx;
     const files: Record<string, string> = {};
 
+    // Inject altera_type onto each expanded bus interface so the _hw.tcl
+    // template can call `add_interface <name> <altera_type>` directly.
+    const expanded = templateContext.expanded_bus_interfaces as
+      | Array<Record<string, unknown>>
+      | undefined;
+    if (Array.isArray(expanded)) {
+      for (const iface of expanded) {
+        iface.altera_type = mapBusTypeToAltera(
+          typeof iface.type === 'string' ? iface.type : undefined
+        );
+      }
+    }
+
     files[`altera/${name}_hw.tcl`] = templates.render('altera_hw_tcl.j2', templateContext);
 
     if (opts.includeProject) {
@@ -130,6 +157,39 @@ export class QuartusToolchain implements SynthesisToolchain {
     }
 
     return files;
+  }
+
+  async createProject(
+    name: string,
+    ipDir: string,
+    cfg: vscode.WorkspaceConfiguration,
+    outputChannel: vscode.OutputChannel
+  ): Promise<boolean> {
+    const vendorDir = path.join(ipDir, this.outputSubdir);
+    const projectTcl = path.join(vendorDir, `${name}_project.tcl`);
+    if (!(await fileExists(projectTcl))) {
+      return false;
+    }
+
+    const buildDir = path.join(vendorDir, 'build');
+    await fsAsync.mkdir(buildDir, { recursive: true });
+
+    const launcher = this.resolve('quartus_sh', cfg);
+    if (!launcher?.exe) {
+      return false;
+    }
+
+    const docker = this.getDocker(cfg, ipDir);
+    const { env, extraMounts } = this.getLaunchEnv(cfg);
+
+    const result = await runProcess(launcher.exe, ['-t', projectTcl], {
+      cwd: buildDir,
+      outputChannel,
+      docker,
+      env,
+      extraMounts,
+    });
+    return result.success;
   }
 
   async detectBuildModes(

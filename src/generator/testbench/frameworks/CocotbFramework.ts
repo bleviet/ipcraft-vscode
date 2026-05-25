@@ -7,6 +7,9 @@ export class CocotbFramework implements Framework {
 
   generate(ctx: TestbenchContext, engine: Engine): Record<string, string> {
     const { name, templateContext, templates, isSv, hasMmSlave } = ctx;
+    const extraCompileArgs = ctx.extraCompileArgs ?? [];
+    const extraSimArgs = ctx.extraSimArgs ?? [];
+    const extraEnv = ctx.extraEnv ?? {};
     const files: Record<string, string> = {};
 
     // Extend the template context with engine-specific values so templates can
@@ -17,6 +20,9 @@ export class CocotbFramework implements Framework {
       engine_compile_args: engine.compileArgs.join(' '),
       engine_wave_ext: engine.waveExt,
       engine_top_level_lang: engine.topLevelLang,
+      engine_extra_compile_args: extraCompileArgs.join(' '),
+      engine_extra_sim_args: extraSimArgs.join(' '),
+      engine_extra_env: Object.entries(extraEnv).map(([k, v]) => ({ key: k, value: v })),
     };
 
     if (hasMmSlave) {

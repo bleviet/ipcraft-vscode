@@ -19,6 +19,9 @@ TB_DIR = Path(__file__).parent
 
 SIM = os.environ.get("SIM", "{{ engine_sim_var }}")
 os.environ["VUNIT_SIMULATOR"] = SIM
+{% for kv in engine_extra_env %}
+os.environ.setdefault("{{ kv.key }}", "{{ kv.value }}")
+{% endfor %}
 
 vu = VUnit.from_argv()
 vu.add_vhdl_builtins()
@@ -51,7 +54,10 @@ vu.set_sim_option("{{ engine_vunit_sim_option_key }}", {{ engine_compile_args | 
 {% elif engine_sim_var in ['questa', 'modelsim'] %}
 # Questa / ModelSim compile flags
 lib.add_compile_option("{{ engine_vunit_compile_option_key }}", {{ engine_compile_args | dump }})
-vu.set_sim_option("{{ engine_vunit_sim_option_key }}", ["-nolog"])
+vu.set_sim_option("{{ engine_vunit_sim_option_key }}", ["-nolog"] + {{ engine_extra_sim_args | dump }})
+{% endif %}
+{% if engine_extra_sim_args and engine_sim_var not in ['questa', 'modelsim'] %}
+vu.set_sim_option("{{ engine_vunit_sim_option_key }}", {{ engine_extra_sim_args | dump }})
 {% endif %}
 
 vu.main()

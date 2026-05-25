@@ -1,12 +1,18 @@
 import { VivadoToolchain } from '../../../../services/toolchains/VivadoToolchain';
 import * as vivadoResolver from '../../../../utils/vivadoResolver';
+import * as fsHelpers from '../../../../utils/fsHelpers';
+import * as buildRunner from '../../../../services/BuildRunner';
 import * as childProcess from 'child_process';
 
 jest.mock('../../../../utils/vivadoResolver');
+jest.mock('../../../../utils/fsHelpers');
+jest.mock('../../../../services/BuildRunner');
 jest.mock('child_process');
 
 const mockFindVivado = vivadoResolver.findVivadoInInstallDir as jest.Mock;
 const mockGetLauncher = vivadoResolver.getVivadoLauncher as jest.Mock;
+const mockFileExists = fsHelpers.fileExists as jest.Mock;
+const mockRunProcess = buildRunner.runProcess as jest.Mock;
 const mockSpawnSync = childProcess.spawnSync as jest.Mock;
 
 function makeCfg(overrides: Record<string, unknown> = {}) {
@@ -88,5 +94,43 @@ describe('VivadoToolchain', () => {
     const env = tc.getLaunchEnv(cfg);
     expect(env.env).toEqual({});
     expect(env.extraMounts).toEqual([]);
+  });
+
+  describe('createProject()', () => {
+    const outputChannel = { appendLine: jest.fn() } as unknown as import('vscode').OutputChannel;
+
+    beforeEach(() => {
+      mockFileExists.mockReset();
+      mockRunProcess.mockReset();
+      mockGetLauncher.mockReset();
+    });
+
+    it('returns false when project TCL is missing', async () => {
+      mockFileExists.mockResolvedValue(false);
+      const ok = await tc.createProject('my_ip', '/ip', makeCfg(), outputChannel);
+      expect(ok).toBe(false);
+      expect(mockRunProcess).not.toHaveBeenCalled();
+    });
+
+    it('returns false when launcher cannot be resolved', async () => {
+      mockFileExists.mockResolvedValue(true);
+      mockGetLauncher.mockReturnValue(null);
+      const ok = await tc.createProject('my_ip', '/ip', makeCfg(), outputChannel);
+      expect(ok).toBe(false);
+      expect(mockRunProcess).not.toHaveBeenCalled();
+    });
+
+    it('invokes vivado -mode batch -source <project_tcl> in xilinx/ on success', async () => {
+      mockFileExists.mockResolvedValue(true);
+      mockGetLauncher.mockReturnValue({ exe: '/usr/bin/vivado', prefixArgs: [] });
+      mockRunProcess.mockResolvedValue({ success: true });
+      const ok = await tc.createProject('my_ip', '/ip', makeCfg(), outputChannel);
+      expect(ok).toBe(true);
+      expect(mockRunProcess).toHaveBeenCalledWith(
+        '/usr/bin/vivado',
+        expect.arrayContaining(['-mode', 'batch', '-source', 'my_ip_project.tcl']),
+        expect.objectContaining({ cwd: expect.stringContaining('xilinx') })
+      );
+    });
   });
 });
