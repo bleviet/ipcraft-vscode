@@ -7,19 +7,24 @@
 # Adjust the -period values (in nanoseconds) if the target implementation
 # frequency differs from the specification.
 
+# Automatically derive PLL clocks to ensure internal system clocks are constrained
+derive_pll_clocks -create_base_clocks
+
+# Automatically calculate clock uncertainty (jitter, skew) for accurate STA
+derive_clock_uncertainty
+
 {% if clocks_with_period %}
 {% for clock in clocks_with_period %}
 {% if clock.period_ns %}
 # {{ clock.name }}{% if clock.frequency %} — {{ clock.frequency }}{% endif %}
-
-create_clock -period {{ clock.period_ns }} -name {{ clock.name }} [get_ports {{ clock.name }}]
+create_clock -period {{ clock.period_ns }} -name {{ clock.name }} [get_ports { {{ clock.name }} }]
 {% else %}
 # {{ clock.name }} — frequency not defined; update the period below (ns)
-# create_clock -period 10.000 -name {{ clock.name }} [get_ports {{ clock.name }}]
+# create_clock -period 10.000 -name {{ clock.name }} [get_ports { {{ clock.name }} }]
 {% endif %}
 {% endfor %}
 {% else %}
 # No clock ports found in the IP core definition.
 # Add clock constraints here, for example:
-# create_clock -period 10.000 -name clk [get_ports clk]
+# create_clock -period 10.000 -name clk [get_ports { clk }]
 {% endif %}
