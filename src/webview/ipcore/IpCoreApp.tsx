@@ -183,7 +183,10 @@ interface ToolbarGroupProps {
 
 const ToolbarGroup: React.FC<ToolbarGroupProps> = ({ label, children }) => (
   <div className="flex flex-col items-center gap-0.5">
-    <div className="flex items-center gap-0.5">{children}</div>
+    {/* Fixed-height icon row so every group's label lands on the same baseline */}
+    <div className="flex items-center gap-0.5" style={{ height: 28 }}>
+      {children}
+    </div>
     <span
       style={{
         fontSize: '9px',
