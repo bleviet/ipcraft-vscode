@@ -196,34 +196,33 @@ describe('IpCoreScaffolder', () => {
 
     expect(tclContent).toBeDefined();
 
-    // Bug 1 fix: global-scope add_interface_port must use numeric widths, not get_parameter_value
-    expect(tclContent).toContain(
-      'add_interface_port xcvr_if_in xcvr_if_in_tx_data tx_data Input 16'
-    );
-    expect(tclContent).toContain(
-      'add_interface_port xcvr_if_out xcvr_if_out_tx_data tx_data Output 16'
-    );
-    expect(tclContent).not.toMatch(/add_interface_port.*\[get_parameter_value/);
+    // ELABORATION_CALLBACK must be registered at module level when parameterized ports exist
+    expect(tclContent).toContain('set_module_property ELABORATION_CALLBACK elaborate');
+
+    // Parameterized ports must NOT appear at global scope (only non-parameterized ports do)
+    expect(tclContent).not.toMatch(/^add_interface_port xcvr_if_in xcvr_if_in_tx_data/m);
+    expect(tclContent).not.toMatch(/^add_interface_port xcvr_if_out xcvr_if_out_tx_data/m);
+    expect(tclContent).not.toMatch(/^add_interface_port o_data/m);
 
     // Bug 2 fix: conduit interfaces always use 'end', never 'start'
     expect(tclContent).toContain('add_interface xcvr_if_in conduit end');
     expect(tclContent).toContain('add_interface xcvr_if_out conduit end');
     expect(tclContent).not.toContain('conduit start');
 
-    // elaborate proc must contain set_port_property calls for all parameterized ports
+    // elaborate proc uses add_interface_port (not deprecated set_port_property WIDTH)
     expect(tclContent).toContain('proc elaborate {');
+    expect(tclContent).not.toContain('set_port_property');
     expect(tclContent).toContain(
-      'set_port_property xcvr_if_in_tx_data WIDTH [get_parameter_value XCVR_DW]'
+      'add_interface_port xcvr_if_in xcvr_if_in_tx_data tx_data Input [get_parameter_value XCVR_DW]'
     );
     expect(tclContent).toContain(
-      'set_port_property xcvr_if_out_tx_data WIDTH [get_parameter_value XCVR_DW]'
+      'add_interface_port xcvr_if_out xcvr_if_out_tx_data tx_data Output [get_parameter_value XCVR_DW]'
     );
     expect(tclContent).toContain(
-      'set_port_property xcvr_if_out_tx_k WIDTH [get_parameter_value XCVR_KW]'
+      'add_interface_port xcvr_if_out xcvr_if_out_tx_k tx_k Output [get_parameter_value XCVR_KW]'
     );
-
-    // Bug fix: parameterized user ports must have numeric width at global scope
-    expect(tclContent).toContain('add_interface_port o_data o_data o_data Output 32');
-    expect(tclContent).toContain('set_port_property o_data WIDTH [get_parameter_value DATA_WIDTH]');
+    expect(tclContent).toContain(
+      'add_interface_port o_data o_data o_data Output [get_parameter_value DATA_WIDTH]'
+    );
   });
 });

@@ -379,21 +379,41 @@ export class IpCoreScaffolder {
     });
 
     // Collect all parameterized ports for the elaborate proc.
-    // get_parameter_value is only valid inside an elaborate callback, not at global scope.
-    const elaboratePortWidths: Array<{ name: string; tcl_width: string }> = [];
+    // add_interface_port with get_parameter_value widths must be inside an elaborate callback,
+    // not at global scope. set_port_property WIDTH is deprecated since SOPC 11.0.
+    const elaboratePortWidths: Array<{
+      iface_name: string;
+      port_name: string;
+      logical_name: string;
+      direction: string;
+      tcl_width: string;
+    }> = [];
     for (const iface of expandedBusInterfaces) {
+      const ifaceName = String((iface as Record<string, unknown>).name ?? '');
       const ifacePorts = (iface as Record<string, unknown>).ports as TemplatePort[] | undefined;
       if (ifacePorts) {
         for (const port of ifacePorts) {
           if (port.is_parameterized && port.tcl_width) {
-            elaboratePortWidths.push({ name: port.name, tcl_width: port.tcl_width });
+            elaboratePortWidths.push({
+              iface_name: ifaceName,
+              port_name: port.name,
+              logical_name: String(port.logical_name ?? port.name),
+              direction: port.direction,
+              tcl_width: port.tcl_width,
+            });
           }
         }
       }
     }
     for (const port of userPorts) {
       if (port.is_parameterized && port.tcl_width) {
-        elaboratePortWidths.push({ name: port.name, tcl_width: port.tcl_width });
+        elaboratePortWidths.push({
+          iface_name: port.name,
+          port_name: port.name,
+          logical_name: port.name,
+          direction: port.direction,
+          tcl_width: port.tcl_width,
+        });
       }
     }
 
