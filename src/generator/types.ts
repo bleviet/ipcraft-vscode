@@ -120,7 +120,24 @@ export interface IpCoreData {
   resets?: ResetDef[];
   memory_maps?: Record<string, unknown> | Record<string, unknown>[];
   subcores?: SubcoreRef[];
+  targets?: string[];
+  simulation?: SimulationConfig;
   [key: string]: unknown;
+}
+
+export interface SimulationConfig {
+  /** Framework override: 'cocotb' | 'vunit'. */
+  framework?: string;
+  /** Engine override: 'ghdl' | 'icarus' | 'verilator' | 'questa'. */
+  engine?: string;
+  /** Extra compile-time arguments forwarded to the engine. */
+  compileArgs?: string[];
+  /** Extra simulation-time arguments forwarded to the engine. */
+  simArgs?: string[];
+  /** Environment variables forwarded to the simulation process. */
+  env?: Record<string, string>;
+  /** Engine-specific free-form options. */
+  vendorOptions?: Record<string, unknown>;
 }
 
 export interface BusTypeInfo {

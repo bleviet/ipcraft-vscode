@@ -1,14 +1,19 @@
+import * as fs from 'fs';
+import Ajv, { type ErrorObject } from 'ajv';
 import yaml from 'js-yaml';
 import { Logger } from '../utils/Logger';
 import { ExtensionError } from '../utils/ErrorHandler';
 
-/**
- * Result of YAML validation
- */
 export interface ValidationResult {
   valid: boolean;
   error?: string;
   data?: unknown;
+}
+
+export interface SchemaValidationResult {
+  valid: boolean;
+  /** Human-readable ajv error path string, e.g. "simulation.engine: must be equal to one of the allowed values" */
+  error?: string;
 }
 
 /**
@@ -16,6 +21,40 @@ export interface ValidationResult {
  */
 export class YamlValidator {
   private readonly logger = new Logger('YamlValidator');
+  private readonly ajv = new Ajv({ allErrors: true, strict: false });
+
+  /**
+   * Validate a parsed data object against a JSON schema file.
+   * Returns a typed error path string so callers can surface actionable messages.
+   */
+  validateAgainstSchema(data: unknown, schemaPath: string): SchemaValidationResult {
+    try {
+      const schemaText = fs.readFileSync(schemaPath, 'utf-8');
+      const schema = JSON.parse(schemaText) as Record<string, unknown>;
+
+      const validate = this.ajv.compile(schema);
+      const valid = validate(data);
+
+      if (valid) {
+        return { valid: true };
+      }
+
+      const errors: ErrorObject[] = validate.errors ?? [];
+      const message = errors
+        .map((e) => {
+          const instancePath = e.instancePath.replace(/^\//, '').replace(/\//g, '.');
+          const location = instancePath || '(root)';
+          return `${location}: ${e.message}`;
+        })
+        .join('; ');
+
+      return { valid: false, error: message };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn('Schema validation error', msg);
+      return { valid: false, error: `Schema validation failed: ${msg}` };
+    }
+  }
 
   /**
    * Finds bus interfaces in an IP core document that share the same physicalPrefix.

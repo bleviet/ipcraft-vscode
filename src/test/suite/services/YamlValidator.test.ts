@@ -1,6 +1,12 @@
+import * as path from 'path';
 import yaml from 'js-yaml';
 import { YamlValidator } from '../../../services/YamlValidator';
 import { ExtensionError } from '../../../utils/ErrorHandler';
+
+const IP_CORE_SCHEMA_PATH = path.resolve(
+  __dirname,
+  '../../../../ipcraft-spec/schemas/ip_core.schema.json'
+);
 
 describe('YamlValidator', () => {
   let validator: YamlValidator;
@@ -155,6 +161,71 @@ describe('YamlValidator', () => {
         busInterfaces: [{ name: 'no_prefix' }, { name: 'has_prefix', physicalPrefix: 'p_' }],
       };
       expect(validator.findDuplicatePhysicalPrefixes(data)).toEqual([]);
+    });
+  });
+
+  describe('validateAgainstSchema', () => {
+    it('returns valid: true for a minimal conforming IP core', () => {
+      const data = { vlnv: { vendor: 'test', library: 'lib', name: 'core', version: '1.0' } };
+      const result = validator.validateAgainstSchema(data, IP_CORE_SCHEMA_PATH);
+      expect(result.valid).toBe(true);
+      expect(result.error).toBeUndefined();
+    });
+
+    it('returns valid: true when simulation block is present and correct', () => {
+      const data = {
+        vlnv: { vendor: 'test', library: 'lib', name: 'core', version: '1.0' },
+        simulation: { framework: 'vunit', engine: 'ghdl' },
+      };
+      const result = validator.validateAgainstSchema(data, IP_CORE_SCHEMA_PATH);
+      expect(result.valid).toBe(true);
+    });
+
+    it('rejects unknown simulation.engine with a path-aware error message', () => {
+      const data = {
+        vlnv: { vendor: 'test', library: 'lib', name: 'core', version: '1.0' },
+        simulation: { engine: 'typo' },
+      };
+      const result = validator.validateAgainstSchema(data, IP_CORE_SCHEMA_PATH);
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain('simulation.engine');
+    });
+
+    it('rejects unknown simulation.framework', () => {
+      const data = {
+        vlnv: { vendor: 'test', library: 'lib', name: 'core', version: '1.0' },
+        simulation: { framework: 'makefile' },
+      };
+      const result = validator.validateAgainstSchema(data, IP_CORE_SCHEMA_PATH);
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain('simulation.framework');
+    });
+
+    it('accepts simulation.vendorOptions with free-form content', () => {
+      const data = {
+        vlnv: { vendor: 'test', library: 'lib', name: 'core', version: '1.0' },
+        simulation: {
+          engine: 'questa',
+          vendorOptions: { questa: { vsim_flags: ['-O2'], optimize: true } },
+        },
+      };
+      const result = validator.validateAgainstSchema(data, IP_CORE_SCHEMA_PATH);
+      expect(result.valid).toBe(true);
+    });
+
+    it('returns valid: false with error for unknown schema path', () => {
+      const result = validator.validateAgainstSchema({}, '/non/existent/schema.json');
+      expect(result.valid).toBe(false);
+      expect(result.error).toBeDefined();
+    });
+
+    it('rejects data missing the required vlnv field', () => {
+      const result = validator.validateAgainstSchema(
+        { description: 'no vlnv' },
+        IP_CORE_SCHEMA_PATH
+      );
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain('vlnv');
     });
   });
 });

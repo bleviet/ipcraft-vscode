@@ -531,7 +531,10 @@
         "properties": {
           "ipcraft.testbench.framework": {
             "type": "string",
-            "enum": ["cocotb", "vunit"],
+            "enum": [
+              "cocotb",
+              "vunit"
+            ],
             "enumDescriptions": [
               "Generate a CocoTB testbench (Makefile + Python test)",
               "Generate a VUnit testbench (run.py + VHDL testbench entity)"
@@ -541,7 +544,12 @@
           },
           "ipcraft.testbench.engine": {
             "type": "string",
-            "enum": ["ghdl", "icarus", "verilator", "questa"],
+            "enum": [
+              "ghdl",
+              "icarus",
+              "verilator",
+              "questa"
+            ],
             "enumDescriptions": [
               "GHDL — open-source VHDL simulator (--std=08)",
               "Icarus Verilog — open-source Verilog/SV simulator",
@@ -599,7 +607,10 @@
         "properties": {
           "ipcraft.vivado.runner": {
             "type": "string",
-            "enum": ["local", "docker"],
+            "enum": [
+              "local",
+              "docker"
+            ],
             "enumDescriptions": [
               "Use a locally installed Vivado. Configure ipcraft.vivado.installDir.",
               "Run Vivado inside a Docker container. Configure ipcraft.vivado.dockerImage."
@@ -652,7 +663,10 @@
         "properties": {
           "ipcraft.quartus.runner": {
             "type": "string",
-            "enum": ["local", "docker"],
+            "enum": [
+              "local",
+              "docker"
+            ],
             "enumDescriptions": [
               "Use a locally installed Quartus. Configure ipcraft.quartus.installDir.",
               "Run Quartus inside a Docker container. Configure ipcraft.quartus.dockerImage."
@@ -745,12 +759,24 @@
         "viewType": "fpgaIpCore.sourcePreview",
         "displayName": "IPCraft Source Preview",
         "selector": [
-          { "filenamePattern": "*_hw.tcl" },
-          { "filenamePattern": "component.xml" },
-          { "filenamePattern": "*.vhd" },
-          { "filenamePattern": "*.vhdl" },
-          { "filenamePattern": "*.v" },
-          { "filenamePattern": "*.sv" }
+          {
+            "filenamePattern": "*_hw.tcl"
+          },
+          {
+            "filenamePattern": "component.xml"
+          },
+          {
+            "filenamePattern": "*.vhd"
+          },
+          {
+            "filenamePattern": "*.vhdl"
+          },
+          {
+            "filenamePattern": "*.v"
+          },
+          {
+            "filenamePattern": "*.sv"
+          }
         ],
         "priority": "option"
       }
@@ -850,6 +876,7 @@
     "@vscode/codicons": "^0.0.33",
     "@vscode/webview-ui-toolkit": "^1.2.2",
     "@xmldom/xmldom": "^0.9.10",
+    "ajv": "^8.20.0",
     "js-yaml": "^4.1.0",
     "nunjucks": "^3.2.4",
     "react": "^18.2.0",

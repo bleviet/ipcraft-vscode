@@ -162,6 +162,34 @@ describe('IpCoreScaffolder', () => {
     expect(logger.error).toHaveBeenCalled();
   });
 
+  it('surfaces ajv schema error when simulation.engine is invalid', async () => {
+    // Write a temp fixture with an invalid simulation.engine value
+    const tmpPath = require('path').join(
+      require('os').tmpdir(),
+      `ipcraft_schema_test_${Date.now()}.ip.yml`
+    );
+    const badYaml = [
+      'vlnv:',
+      '  vendor: test',
+      '  library: lib',
+      '  name: bad_core',
+      '  version: 1.0.0',
+      'simulation:',
+      '  engine: typo',
+    ].join('\n');
+
+    const realFs = jest.requireActual('fs/promises') as typeof import('fs/promises');
+    await realFs.writeFile(tmpPath, badYaml, 'utf-8');
+
+    try {
+      const result = await scaffolder.generateAll(tmpPath, '/tmp/bad-out');
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('simulation.engine');
+    } finally {
+      await realFs.unlink(tmpPath).catch(() => {});
+    }
+  });
+
   it('generates _hw.tcl with parameterized conduit interfaces correctly', async () => {
     // BusLibraryService mock returns xcvr bus definition with string-width ports
     (BusLibraryService as jest.Mock).mockImplementation(() => ({

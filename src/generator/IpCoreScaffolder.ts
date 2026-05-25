@@ -19,6 +19,12 @@ import {
 import { sortByCompilationOrder } from '../utils/compilationOrder';
 import { getToolchain } from '../services/toolchains/registry';
 import { generateTestbenchFiles, DEFAULT_FRAMEWORK, DEFAULT_ENGINE } from './testbench';
+import { YamlValidator } from '../services/YamlValidator';
+
+const IP_CORE_SCHEMA_PATH = path.resolve(
+  __dirname,
+  '../../ipcraft-spec/schemas/ip_core.schema.json'
+);
 import type {
   BusDefinitions,
   BusPortDefinition,
@@ -32,6 +38,7 @@ export class IpCoreScaffolder {
   private readonly logger: Logger;
   private readonly templates: TemplateLoader;
   private readonly busLibraryService: BusLibraryService;
+  private readonly validator = new YamlValidator();
   private busDefinitions: BusDefinitions | null = null;
 
   constructor(logger: Logger, templates: TemplateLoader, context: vscode.ExtensionContext) {
@@ -68,6 +75,10 @@ export class IpCoreScaffolder {
       const includeRegs = options.includeRegs !== false && hasMmSlave;
       const includeTestbench = options.includeTestbench !== false;
       const targets = options.targets ?? [];
+      // simulation.* in the YAML overrides the workspace-setting defaults
+      const simCfg = ipCoreData.simulation;
+      const framework = simCfg?.framework ?? options.framework ?? DEFAULT_FRAMEWORK;
+      const engine = simCfg?.engine ?? options.engine ?? DEFAULT_ENGINE;
       const includeVhdl = options.includeVhdl !== false;
       const hdlLanguage: HdlLanguage = options.hdlLanguage ?? 'vhdl';
       const isSv = hdlLanguage === 'systemverilog';
@@ -113,11 +124,13 @@ export class IpCoreScaffolder {
       }
 
       if (includeTestbench) {
-        const tbFiles = generateTestbenchFiles(
-          options.framework ?? DEFAULT_FRAMEWORK,
-          options.engine ?? DEFAULT_ENGINE,
-          { name, templateContext: context, templates: this.templates, isSv, hasMmSlave }
-        );
+        const tbFiles = generateTestbenchFiles(framework, engine, {
+          name,
+          templateContext: context,
+          templates: this.templates,
+          isSv,
+          hasMmSlave,
+        });
         Object.assign(files, tbFiles);
       }
 
@@ -256,6 +269,10 @@ export class IpCoreScaffolder {
     const parsed = yaml.load(content);
     if (!parsed || typeof parsed !== 'object') {
       throw new Error('Invalid IP core YAML');
+    }
+    const schemaResult = this.validator.validateAgainstSchema(parsed, IP_CORE_SCHEMA_PATH);
+    if (!schemaResult.valid) {
+      throw new Error(`IP core YAML schema validation failed: ${schemaResult.error}`);
     }
     return normalizeIpCoreData(parsed as Record<string, unknown>);
   }
