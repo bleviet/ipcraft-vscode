@@ -1044,8 +1044,24 @@ interface BusPanelProps {
   onUpdate: YamlUpdateHandler;
 }
 
+/** Returns true if the bus interface is a custom (user-defined) interface that should
+ *  be edited via the ConduitPanel rather than the standard BusPanel. This covers:
+ *  - Mode explicitly set to 'conduit'
+ *  - Type name includes 'conduit'
+ *  - Inline conduit ports are defined
+ *  - Bus type is not a built-in protocol (e.g. user.busif.xcvr.1.0)
+ */
+function isCustomBusInterface(bus: BusInterface): boolean {
+  return (
+    bus.mode === 'conduit' ||
+    isConduitType(bus.type) ||
+    (bus.conduitPorts?.length ?? 0) > 0 ||
+    lookupBusDef(bus.type) === null
+  );
+}
+
 const BusPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, onUpdate }) => {
-  if (isConduitType(bus.type) || bus.mode === 'conduit') {
+  if (isCustomBusInterface(bus)) {
     return <ConduitPanel bus={bus} index={index} ipCore={ipCore} onUpdate={onUpdate} />;
   }
 
@@ -1300,6 +1316,12 @@ const ConduitPanel: React.FC<Omit<BusPanelProps, 'imports'>> = ({
         />
       </Section>
       <Section title="Configuration">
+        <PropSelect
+          label="Mode"
+          value={bus.mode ?? 'conduit'}
+          options={CONDUIT_MODE_OPTS}
+          onSave={(v) => onUpdate(['busInterfaces', index, 'mode'], v)}
+        />
         <PropField
           label="Physical Prefix"
           value={bus.physicalPrefix ?? ''}
@@ -2367,6 +2389,12 @@ const POLARITY_OPTS = [
 const BUS_MODE_OPTS = [
   { value: 'slave', label: 'slave' },
   { value: 'master', label: 'master' },
+];
+
+const CONDUIT_MODE_OPTS = [
+  { value: 'conduit', label: 'conduit (signal group / neutral)' },
+  { value: 'master', label: 'master (initiator)' },
+  { value: 'slave', label: 'slave (target)' },
 ];
 
 /** Normalize legacy sink/source modes to slave/master for display and persistence. */

@@ -378,6 +378,25 @@ export class IpCoreScaffolder {
       port.tcl_width = toTclWidth(port.width, port.width_expr, parameterNames);
     });
 
+    // Collect all parameterized ports for the elaborate proc.
+    // get_parameter_value is only valid inside an elaborate callback, not at global scope.
+    const elaboratePortWidths: Array<{ name: string; tcl_width: string }> = [];
+    for (const iface of expandedBusInterfaces) {
+      const ifacePorts = (iface as Record<string, unknown>).ports as TemplatePort[] | undefined;
+      if (ifacePorts) {
+        for (const port of ifacePorts) {
+          if (port.is_parameterized && port.tcl_width) {
+            elaboratePortWidths.push({ name: port.name, tcl_width: port.tcl_width });
+          }
+        }
+      }
+    }
+    for (const port of userPorts) {
+      if (port.is_parameterized && port.tcl_width) {
+        elaboratePortWidths.push({ name: port.name, tcl_width: port.tcl_width });
+      }
+    }
+
     const clocksWithPeriod = clocks.map((clock) => ({
       name: clock.name ?? '',
       frequency: clock.frequency ?? null,
@@ -396,6 +415,7 @@ export class IpCoreScaffolder {
       bus_ports: busPorts,
       secondary_bus_ports: secondaryBusPorts,
       expanded_bus_interfaces: expandedBusInterfaces,
+      elaborate_port_widths: elaboratePortWidths,
       bus_prefix: expandedBusInterfaces.length > 0 ? busPrefix : 's_axi',
       data_width: 32,
       addr_width: 8,
@@ -503,14 +523,15 @@ export class IpCoreScaffolder {
       const isParameterized = typeof widthValue === 'string';
 
       if (isParameterized) {
-        const defaultWidth = (paramDefaults.get(widthValue) ?? 32) - 1;
+        const numericDefault = paramDefaults.get(widthValue) ?? 32;
+        const defaultWidth = numericDefault - 1;
         return {
           name: String(port.name).toLowerCase(),
           direction,
           sv_direction: svDirection,
           type: `std_logic_vector(${widthValue}-1 downto 0)`,
           sv_type: `logic [${widthValue}-1:0]`,
-          width: null,
+          width: numericDefault,
           width_expr: widthValue,
           is_parameterized: true,
           default_width: defaultWidth,

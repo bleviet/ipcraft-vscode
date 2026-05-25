@@ -753,6 +753,19 @@ function renderPorts(
 ): string[] {
   const portLines: string[] = [];
 
+  // Aggregate portWidthOverrides across all interfaces of the same bus type.
+  // An interface with no overrides inherits from siblings of the same type, so
+  // e.g. a master and slave of xcvr both get parameterised port widths when only
+  // the slave carries explicit portWidthOverrides.
+  const typeOverrides: Record<string, Record<string, number | string>> = {};
+  for (const iface of busInterfaces) {
+    const overrides = iface.port_width_overrides ?? {};
+    if (Object.keys(overrides).length > 0) {
+      const t = String(iface.type ?? '');
+      typeOverrides[t] = { ...(typeOverrides[t] ?? {}), ...overrides };
+    }
+  }
+
   for (const clock of clocks) {
     if (!clock.name) {
       continue;
@@ -778,16 +791,37 @@ function renderPorts(
     if (!sourcePorts) {
       continue;
     }
+    const typedParams = parameters
+      .filter((p): p is { name: string; value?: number | string } => typeof p.name === 'string')
+      .map((p) => {
+        const v = p.value ?? (p as Record<string, unknown>).defaultValue;
+        return {
+          name: p.name,
+          value: typeof v === 'number' || typeof v === 'string' ? v : undefined,
+        };
+      });
+    // Effective overrides: bus-type inherited overrides as base, interface-specific as override
+    const effectiveOverrides: Record<string, number | string> = {
+      ...(typeOverrides[ifaceType] ?? {}),
+      ...(iface.port_width_overrides ?? {}),
+    };
     const activePorts = getActiveBusPortsFromDefinition(
       sourcePorts as Array<{ name: string; width?: number; direction?: string; presence?: string }>,
       iface.use_optional_ports ?? [],
       String(iface.physical_prefix ?? ''),
       mode,
-      iface.port_width_overrides ?? {}
+      effectiveOverrides,
+      typedParams
     );
     for (const port of activePorts) {
       portLines.push(
-        ...renderModelPort(String(port.name), String(port.direction), Number(port.width), isSv)
+        ...renderModelPort(
+          String(port.name),
+          String(port.direction),
+          Number(port.width),
+          isSv,
+          port.width_expr ? String(port.width_expr) : undefined
+        )
       );
     }
   }

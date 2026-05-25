@@ -1,0 +1,40 @@
+vlnv:
+  vendor: test
+  library: lib
+  name: xcvr_core
+  version: 1.0.0
+description: Test core with parameterized conduit interfaces
+parameters:
+  - name: XCVR_DW
+    dataType: natural
+    defaultValue: 16
+  - name: XCVR_KW
+    dataType: natural
+    defaultValue: 2
+  - name: DATA_WIDTH
+    dataType: integer
+    value: 32
+clocks:
+  - name: clk
+    direction: in
+resets:
+  - name: rst
+    direction: in
+    polarity: activeHigh
+ports:
+  - name: o_data
+    direction: out
+    width: DATA_WIDTH
+busInterfaces:
+  - name: xcvr_if_in
+    type: user.busif.xcvr.1.0
+    mode: slave
+    physicalPrefix: xcvr_if_in_
+    portWidthOverrides:
+      tx_data: XCVR_DW
+      tx_k: XCVR_KW
+  - name: xcvr_if_out
+    type: user.busif.xcvr.1.0
+    mode: master
+    physicalPrefix: xcvr_if_out_
+useBusLibrary: ./custom_bus_definitions

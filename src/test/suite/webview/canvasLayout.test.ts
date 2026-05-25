@@ -217,6 +217,48 @@ describe('computeLayout', () => {
     expect(sinkBus!.protocol).toBe('AXI-Stream');
   });
 
+  it('places custom interface with master mode on the right, slave/conduit on the left', () => {
+    const ip = makeIpCore({
+      busInterfaces: [
+        {
+          name: 'xcvr_slave',
+          type: 'user.busif.xcvr.1.0',
+          mode: 'slave' as const,
+          physicalPrefix: 'xcvr_s_',
+          conduitPorts: [{ name: 'tx_data', direction: 'out' as const, width: 16 }],
+        },
+        {
+          name: 'xcvr_master',
+          type: 'user.busif.xcvr.1.0',
+          mode: 'master' as const,
+          physicalPrefix: 'xcvr_m_',
+          conduitPorts: [{ name: 'tx_data', direction: 'out' as const, width: 16 }],
+        },
+        {
+          name: 'xcvr_conduit',
+          type: 'user.busif.xcvr.1.0',
+          mode: 'conduit' as const,
+          physicalPrefix: 'xcvr_c_',
+          conduitPorts: [{ name: 'tx_data', direction: 'out' as const, width: 16 }],
+        },
+      ],
+    });
+    const layout = computeLayout(ip);
+
+    const slaveIf = layout.ports.find((p) => p.label === 'xcvr_slave');
+    const masterIf = layout.ports.find((p) => p.label === 'xcvr_master');
+    const conduitIf = layout.ports.find((p) => p.label === 'xcvr_conduit');
+
+    expect(slaveIf!.side).toBe('left');
+    expect(slaveIf!.mode).toBe('S');
+
+    expect(masterIf!.side).toBe('right');
+    expect(masterIf!.mode).toBe('M');
+
+    expect(conduitIf!.side).toBe('left');
+    expect(conduitIf!.mode).toBe('');
+  });
+
   describe('subcores / Dependencies section', () => {
     it('produces empty subcoreDeps when no subcores are defined', () => {
       const ip = makeIpCore();

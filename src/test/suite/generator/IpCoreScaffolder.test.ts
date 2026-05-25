@@ -161,4 +161,69 @@ describe('IpCoreScaffolder', () => {
     expect(result.error).toBeDefined();
     expect(logger.error).toHaveBeenCalled();
   });
+
+  it('generates _hw.tcl with parameterized conduit interfaces correctly', async () => {
+    // BusLibraryService mock returns xcvr bus definition with string-width ports
+    (BusLibraryService as jest.Mock).mockImplementation(() => ({
+      loadDefaultLibrary: jest.fn().mockResolvedValue({}),
+      loadFromDirectories: jest.fn().mockResolvedValue({
+        Xcvr: {
+          busType: { vendor: 'user', library: 'busif', name: 'xcvr', version: '1.0' },
+          ports: [
+            { name: 'tx_data', presence: 'required', direction: 'out', width: 'XCVR_DW' },
+            { name: 'tx_k', presence: 'required', direction: 'out', width: 'XCVR_KW' },
+          ],
+        },
+      }),
+      clearCache: jest.fn(),
+    }));
+    scaffolder = new IpCoreScaffolder(logger, loader, context);
+
+    const inputPath = path.resolve(__dirname, '../../fixtures/xcvr-ipcore.yml');
+
+    const result = await scaffolder.generateAll(inputPath, '/tmp/xcvr-gen', {
+      vendor: 'altera',
+      includeVhdl: false,
+      includeRegs: false,
+      includeTestbench: false,
+    });
+
+    expect(result.success).toBe(true);
+
+    const tclContent = (fs.writeFile as unknown as jest.Mock).mock.calls.find((call) =>
+      String(call[0]).includes('xcvr_core_hw.tcl')
+    )?.[1] as string | undefined;
+
+    expect(tclContent).toBeDefined();
+
+    // Bug 1 fix: global-scope add_interface_port must use numeric widths, not get_parameter_value
+    expect(tclContent).toContain(
+      'add_interface_port xcvr_if_in xcvr_if_in_tx_data tx_data Input 16'
+    );
+    expect(tclContent).toContain(
+      'add_interface_port xcvr_if_out xcvr_if_out_tx_data tx_data Output 16'
+    );
+    expect(tclContent).not.toMatch(/add_interface_port.*\[get_parameter_value/);
+
+    // Bug 2 fix: conduit interfaces always use 'end', never 'start'
+    expect(tclContent).toContain('add_interface xcvr_if_in conduit end');
+    expect(tclContent).toContain('add_interface xcvr_if_out conduit end');
+    expect(tclContent).not.toContain('conduit start');
+
+    // elaborate proc must contain set_port_property calls for all parameterized ports
+    expect(tclContent).toContain('proc elaborate {');
+    expect(tclContent).toContain(
+      'set_port_property xcvr_if_in_tx_data WIDTH [get_parameter_value XCVR_DW]'
+    );
+    expect(tclContent).toContain(
+      'set_port_property xcvr_if_out_tx_data WIDTH [get_parameter_value XCVR_DW]'
+    );
+    expect(tclContent).toContain(
+      'set_port_property xcvr_if_out_tx_k WIDTH [get_parameter_value XCVR_KW]'
+    );
+
+    // Bug fix: parameterized user ports must have numeric width at global scope
+    expect(tclContent).toContain('add_interface_port o_data o_data o_data Output 32');
+    expect(tclContent).toContain('set_port_property o_data WIDTH [get_parameter_value DATA_WIDTH]');
+  });
 });
