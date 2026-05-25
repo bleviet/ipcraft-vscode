@@ -18,6 +18,7 @@ import {
 } from './registerProcessor';
 import { sortByCompilationOrder } from '../utils/compilationOrder';
 import { getToolchain } from '../services/toolchains/registry';
+import { generateTestbenchFiles, DEFAULT_FRAMEWORK, DEFAULT_ENGINE } from './testbench';
 import type {
   BusDefinitions,
   BusPortDefinition,
@@ -112,20 +113,12 @@ export class IpCoreScaffolder {
       }
 
       if (includeTestbench) {
-        if (hasMmSlave) {
-          files['tb/mm_loader.py'] = this.templates.render('mm_loader.py.j2', context);
-        }
-        files[`tb/${name}_test.py`] = this.templates.render('cocotb_test.py.j2', context);
-        files['tb/conftest.py'] = this.templates.render('cocotb_conftest.py.j2', context);
-        files[`tb/test_${name}_sim.py`] = this.templates.render('cocotb_pytest.py.j2', context);
-        files['tb/Makefile'] = this.templates.render(
-          isSv ? 'cocotb_makefile.sv.j2' : 'cocotb_makefile.j2',
-          context
+        const tbFiles = generateTestbenchFiles(
+          options.framework ?? DEFAULT_FRAMEWORK,
+          options.engine ?? DEFAULT_ENGINE,
+          { name, templateContext: context, templates: this.templates, isSv, hasMmSlave }
         );
-        if (isSv) {
-          files['tb/dump.v'] = this.templates.render('cocotb_dump.v.j2', context);
-        }
-        files['.vscode/settings.json'] = this.templates.render('vscode_settings.json.j2', context);
+        Object.assign(files, tbFiles);
       }
 
       // Vendor packaging + optional project files — delegated to toolchain strategies.

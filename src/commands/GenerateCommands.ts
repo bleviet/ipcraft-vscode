@@ -318,6 +318,9 @@ async function generateTestbench(context: vscode.ExtensionContext): Promise<void
   if (!ipCoreUri) {
     return;
   }
+  const cfg = vscode.workspace.getConfiguration('ipcraft');
+  const framework = cfg.get<string>('testbench.framework', 'cocotb');
+  const engine = cfg.get<string>('testbench.engine', 'ghdl');
   const outputDir = path.dirname(ipCoreUri.fsPath);
   await runGenerator(
     context,
@@ -328,9 +331,11 @@ async function generateTestbench(context: vscode.ExtensionContext): Promise<void
       includeVhdl: false,
       includeRegs: false,
       includeTestbench: true,
+      framework,
+      engine,
       silent: true,
     },
-    'Generating CocoTB testbench...'
+    `Generating ${framework} testbench...`
   );
 }
 

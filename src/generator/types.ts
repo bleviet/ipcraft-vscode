@@ -16,6 +16,10 @@ export interface GenerateOptions {
   quartusDevice?: string;
   updateYaml?: boolean;
   hdlLanguage?: HdlLanguage;
+  /** Testbench framework: 'cocotb' (default) or 'vunit'. */
+  framework?: string;
+  /** Simulation engine: 'ghdl' (default), 'icarus', 'verilator', 'questa'. */
+  engine?: string;
 }
 
 export interface GenerateResult {

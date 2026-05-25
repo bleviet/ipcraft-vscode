@@ -1,0 +1,57 @@
+"""VUnit runner for {{ entity_name }} testbench.
+
+Usage:
+    python tb/run.py                     # Run all tests with {{ engine_sim_var }}
+    python tb/run.py -v                  # Verbose output
+    python tb/run.py lib.{{ entity_name }}_tb.test_basic_smoke  # Single test
+    SIM=questa python tb/run.py          # Override simulator
+
+Prerequisites:
+    pip install vunit-hdl
+"""
+
+import os
+from pathlib import Path
+from vunit import VUnit
+
+RTL_DIR = Path(__file__).parent.parent / "rtl"
+TB_DIR = Path(__file__).parent
+
+SIM = os.environ.get("SIM", "{{ engine_sim_var }}")
+os.environ["VUNIT_SIMULATOR"] = SIM
+
+vu = VUnit.from_argv()
+vu.add_vhdl_builtins()
+
+lib = vu.add_library("lib")
+
+# RTL sources — packages first, then the top-level entity
+{% if has_memory_mapped_slave %}
+lib.add_source_files(RTL_DIR / "{{ entity_name }}_pkg.vhd")
+lib.add_source_files(RTL_DIR / "{{ entity_name }}_regs.vhd")
+lib.add_source_files(RTL_DIR / "{{ entity_name }}_core.vhd")
+{% if bus_type in ['axil', 'avmm'] %}
+lib.add_source_files(RTL_DIR / "{{ entity_name }}_{{ bus_type }}.vhd")
+{% endif %}
+{% endif %}
+lib.add_source_files(RTL_DIR / "{{ entity_name }}.vhd")
+
+# Testbench
+lib.add_source_files(TB_DIR / "{{ entity_name }}_tb.vhd")
+
+{% if engine_sim_var == 'ghdl' %}
+# GHDL compile + elab flags — must be set after sources are added
+# -frelaxed: suppress spurious VHDL-2008 strict-mode errors
+# Add compile option per-library (not at vu level) to avoid order sensitivity
+lib.add_compile_option("{{ engine_vunit_compile_option_key }}", {{ engine_compile_args | dump }})
+
+# Elaboration flags mirror compile flags so GHDL resolves cross-library refs correctly
+# Must be called after all test bench source files are added
+vu.set_sim_option("{{ engine_vunit_sim_option_key }}", {{ engine_compile_args | dump }})
+{% elif engine_sim_var in ['questa', 'modelsim'] %}
+# Questa / ModelSim compile flags
+lib.add_compile_option("{{ engine_vunit_compile_option_key }}", {{ engine_compile_args | dump }})
+vu.set_sim_option("{{ engine_vunit_sim_option_key }}", ["-nolog"])
+{% endif %}
+
+vu.main()

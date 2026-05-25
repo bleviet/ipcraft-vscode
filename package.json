@@ -527,6 +527,33 @@
         }
       },
       {
+        "title": "Testbench",
+        "properties": {
+          "ipcraft.testbench.framework": {
+            "type": "string",
+            "enum": ["cocotb", "vunit"],
+            "enumDescriptions": [
+              "Generate a CocoTB testbench (Makefile + Python test)",
+              "Generate a VUnit testbench (run.py + VHDL testbench entity)"
+            ],
+            "default": "cocotb",
+            "description": "Testbench framework used by 'Generate CocoTB Testbench'."
+          },
+          "ipcraft.testbench.engine": {
+            "type": "string",
+            "enum": ["ghdl", "icarus", "verilator", "questa"],
+            "enumDescriptions": [
+              "GHDL — open-source VHDL simulator (--std=08)",
+              "Icarus Verilog — open-source Verilog/SV simulator",
+              "Verilator — high-performance SV simulator",
+              "Questa / ModelSim — commercial VHDL/SV simulator"
+            ],
+            "default": "ghdl",
+            "description": "Simulation engine used by the generated testbench."
+          }
+        }
+      },
+      {
         "title": "Toolbar",
         "properties": {
           "ipcraft.toolbar.targetVendor": {
