@@ -26,8 +26,8 @@ wait_on_run synth_1
 
 set synth_status [get_property STATUS [get_runs synth_1]]
 puts "Synthesis status: $synth_status"
-if {[string match "*error*" [string tolower $synth_status]]} {
-    puts "ERROR: Synthesis failed."
+if {[string match "*error*" [string tolower $synth_status]] || [get_property PROGRESS [get_runs synth_1]] ne "100%"} {
+    puts "ERROR: Synthesis failed or did not complete successfully."
     exit 1
 }
 

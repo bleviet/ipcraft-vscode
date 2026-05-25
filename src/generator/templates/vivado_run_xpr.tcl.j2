@@ -19,18 +19,34 @@ puts "Part      : $part"
 puts "Build dir : $project_dir"
 puts "Jobs      : $jobs"
 
+# Gracefully handle already open projects to avoid locking errors
+if {[current_project -quiet] ne ""} {
+    puts "Closing currently open project: [current_project]"
+    close_project
+}
+
 if {[file exists $project_dir]} {
     puts "Removing existing build: $project_dir"
     file delete -force $project_dir
 }
 
+{% if target_board %}
+create_project $project_name $project_dir -part $part -board_part {{ target_board }}
+{% else %}
 create_project $project_name $project_dir -part $part
+{% endif %}
 
 # ---- RTL sources --------------------------------------------------------
 {% for file in rtl_files %}
-add_files -norecurse [file normalize [file join $script_dir {{ file }}]]
+add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir {{ file }}]]
 {% endfor %}
-set_property file_type {VHDL 2008} [get_files *.vhd]
+
+# Use VHDL-2008 for VHDL source files (skipped when project contains only SystemVerilog)
+# Uses FILE_TYPE filter to capture both .vhd and .vhdl safely
+set vhd_files [get_files -quiet -filter {FILE_TYPE =~ "VHDL*"}]
+if {[llength $vhd_files] > 0} {
+    set_property file_type {VHDL 2008} $vhd_files
+}
 
 # ---- Constraints ---------------------------------------------------------
 # Standard (non-OOC) XDC — same clock constraints, used for implementation
@@ -47,8 +63,8 @@ wait_on_run synth_1
 
 set synth_status [get_property STATUS [get_runs synth_1]]
 puts "Synthesis status: $synth_status"
-if {[string match "*error*" [string tolower $synth_status]]} {
-    puts "ERROR: Synthesis failed."
+if {[string match "*error*" [string tolower $synth_status]] || [get_property PROGRESS [get_runs synth_1]] ne "100%"} {
+    puts "ERROR: Synthesis failed or did not complete successfully."
     exit 1
 }
 
@@ -59,8 +75,8 @@ wait_on_run impl_1
 
 set impl_status [get_property STATUS [get_runs impl_1]]
 puts "Implementation status: $impl_status"
-if {[string match "*error*" [string tolower $impl_status]]} {
-    puts "ERROR: Implementation failed."
+if {[string match "*error*" [string tolower $impl_status]] || [get_property PROGRESS [get_runs impl_1]] ne "100%"} {
+    puts "ERROR: Implementation failed or did not complete successfully."
     exit 1
 }
 

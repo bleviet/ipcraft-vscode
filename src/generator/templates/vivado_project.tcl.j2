@@ -20,6 +20,12 @@ set project_name {{ entity_name }}
 set project_dir  [file join $script_dir build ooc]
 set part         {{ target_part }}
 
+# Gracefully handle already open projects to avoid locking errors
+if {[current_project -quiet] ne ""} {
+    puts "Closing currently open project: [current_project]"
+    close_project
+}
+
 if {[file exists $project_dir]} {
     puts "Removing existing project directory: $project_dir"
     file delete -force $project_dir
@@ -30,15 +36,20 @@ puts "Project : $project_name"
 puts "Part    : $part"
 puts "Dir     : $project_dir"
 
+{% if target_board %}
+create_project $project_name $project_dir -part $part -board_part {{ target_board }}
+{% else %}
 create_project $project_name $project_dir -part $part
+{% endif %}
 
 # ---- RTL sources --------------------------------------------------------
 {% for file in rtl_files %}
-add_files -norecurse [file normalize [file join $script_dir {{ file }}]]
+add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir {{ file }}]]
 {% endfor %}
 
 # Use VHDL-2008 for VHDL source files (skipped when project contains only SystemVerilog)
-set vhd_files [get_files -quiet *.vhd]
+# Uses FILE_TYPE filter to capture both .vhd and .vhdl safely
+set vhd_files [get_files -quiet -filter {FILE_TYPE =~ "VHDL*"}]
 if {[llength $vhd_files] > 0} {
     set_property file_type {VHDL 2008} $vhd_files
 }
@@ -47,8 +58,14 @@ if {[llength $vhd_files] > 0} {
 add_files -fileset constrs_1 [file normalize [file join $script_dir {{ xdc_file }}]]
 
 # Mark constraints as out-of-context so they apply during OOC synthesis
-set_property USED_IN {out_of_context synthesis} \
-    [get_files [file normalize [file join $script_dir {{ xdc_file }}]]]
+# Uses file tail for robust database matching
+set xdc_filename [file tail {{ xdc_file }}]
+set xdc_obj [get_files -quiet -of_objects [get_filesets constrs_1] $xdc_filename]
+if {$xdc_obj ne ""} {
+    set_property USED_IN {out_of_context synthesis} $xdc_obj
+} else {
+    send_msg_id "IPCraft-002" "WARNING" "Could not locate constraint file $xdc_filename in project."
+}
 
 # ---- Synthesis run -------------------------------------------------------
 # Configure synth_1 for out-of-context mode
