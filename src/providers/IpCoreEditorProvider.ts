@@ -125,6 +125,9 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
       if (e.affectsConfiguration('ipcraft.generate.hdlLanguage')) {
         void updateWebview();
       }
+      if (e.affectsConfiguration('ipcraft.toolbar.targetVendor')) {
+        void updateWebview();
+      }
     });
     const fileWatcher = this.watchGeneratedFiles(document, updateWebview);
     this.registerDisposal(webviewPanel, () => {
