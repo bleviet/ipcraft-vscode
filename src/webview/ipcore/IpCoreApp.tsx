@@ -580,6 +580,15 @@ const IpCoreApp: React.FC = () => {
                   disabled={!hasHwTcl}
                   onClick={() => vscode?.postMessage({ type: 'editInPlatformDesigner' })}
                 />
+                <div
+                  style={{
+                    width: '1px',
+                    height: '16px',
+                    background: 'var(--vscode-panel-border)',
+                    opacity: 0.5,
+                    alignSelf: 'center',
+                  }}
+                />
                 <ToolbarButton
                   title="Generate Quartus Project (creates .qpf)"
                   icon="circuit-board"
@@ -589,6 +598,15 @@ const IpCoreApp: React.FC = () => {
                   title="Generate & Build (Quartus full compile)"
                   icon="zap"
                   command="fpga-ip-core.generateAndBuildQuartus"
+                />
+                <div
+                  style={{
+                    width: '1px',
+                    height: '16px',
+                    background: 'var(--vscode-panel-border)',
+                    opacity: 0.5,
+                    alignSelf: 'center',
+                  }}
                 />
                 <ToolbarButton
                   title={hasQpf ? 'Open in Quartus' : 'Open in Quartus — generate project first'}
@@ -623,6 +641,15 @@ const IpCoreApp: React.FC = () => {
                   disabled={!hasComponentXml}
                   onClick={() => vscode?.postMessage({ type: 'editInIpPackager' })}
                 />
+                <div
+                  style={{
+                    width: '1px',
+                    height: '16px',
+                    background: 'var(--vscode-panel-border)',
+                    opacity: 0.5,
+                    alignSelf: 'center',
+                  }}
+                />
                 <ToolbarButton
                   title="Generate Vivado Project (creates .xpr)"
                   icon="circuit-board"
@@ -632,6 +659,15 @@ const IpCoreApp: React.FC = () => {
                   title="Generate & Build (Vivado OOC synthesis)"
                   icon="zap"
                   command="fpga-ip-core.generateAndBuildVivado"
+                />
+                <div
+                  style={{
+                    width: '1px',
+                    height: '16px',
+                    background: 'var(--vscode-panel-border)',
+                    opacity: 0.5,
+                    alignSelf: 'center',
+                  }}
                 />
                 <ToolbarButton
                   title={hasXpr ? 'Open in Vivado' : 'Open in Vivado — generate project first'}
