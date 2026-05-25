@@ -632,17 +632,6 @@ const IpCoreApp: React.FC = () => {
                 />
               </ToolbarGroup>
 
-              <div
-                style={{
-                  width: '1px',
-                  height: '28px',
-                  background: 'var(--vscode-panel-border)',
-                  opacity: 0.6,
-                }}
-              />
-
-              <TargetVendorPicker value={targetVendor} />
-
               {(targetVendor === 'altera' || targetVendor === 'both') && (
                 <>
                   <div
@@ -772,6 +761,17 @@ const IpCoreApp: React.FC = () => {
                   </ToolbarGroup>
                 </>
               )}
+
+              <div
+                style={{
+                  width: '1px',
+                  height: '28px',
+                  background: 'var(--vscode-panel-border)',
+                  opacity: 0.6,
+                }}
+              />
+
+              <TargetVendorPicker value={targetVendor} />
             </div>
             {validationErrors.length > 0 && (
               <div className="text-sm" style={{ color: 'var(--vscode-errorForeground)' }}>
