@@ -144,9 +144,9 @@ const TargetVendorPicker: React.FC<TargetVendorPickerProps> = ({ value }) => {
   };
 
   const titleMap: Record<TargetVendor, string> = {
-    altera: 'Altera/Intel active — click XIL to switch to Xilinx/AMD, BTH to show both',
-    xilinx: 'Xilinx/AMD active — click ALT to switch to Altera/Intel, BTH to show both',
-    both: 'Both vendors shown — click ALT or XIL to focus on one ecosystem',
+    altera: 'Altera/Intel active — click XILINX to switch to Xilinx/AMD, BOTH to show both',
+    xilinx: 'Xilinx/AMD active — click ALTERA to switch to Altera/Intel, BOTH to show both',
+    both: 'Both vendors shown — click ALTERA or XILINX to focus on one ecosystem',
   };
 
   return (
@@ -160,15 +160,7 @@ const TargetVendorPicker: React.FC<TargetVendorPickerProps> = ({ value }) => {
         type="button"
         aria-label="Show Altera/Intel tools"
       >
-        ALT
-      </button>
-      <button
-        style={pillStyle('both')}
-        onClick={() => set('both')}
-        type="button"
-        aria-label="Show both vendor tools"
-      >
-        BTH
+        ALTERA
       </button>
       <button
         style={pillStyle('xilinx')}
@@ -176,7 +168,15 @@ const TargetVendorPicker: React.FC<TargetVendorPickerProps> = ({ value }) => {
         type="button"
         aria-label="Show Xilinx/AMD tools"
       >
-        XIL
+        XILINX
+      </button>
+      <button
+        style={pillStyle('both')}
+        onClick={() => set('both')}
+        type="button"
+        aria-label="Show both vendor tools"
+      >
+        BOTH
       </button>
     </div>
   );
