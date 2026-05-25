@@ -613,7 +613,6 @@ const IpCoreApp: React.FC = () => {
                   command="fpga-ip-core.generateHdl"
                 />
                 <HdlLanguagePicker value={hdlLanguage} />
-                <TargetVendorPicker value={targetVendor} />
               </ToolbarGroup>
 
               <div
@@ -632,6 +631,17 @@ const IpCoreApp: React.FC = () => {
                   command="fpga-ip-core.generateTestbench"
                 />
               </ToolbarGroup>
+
+              <div
+                style={{
+                  width: '1px',
+                  height: '28px',
+                  background: 'var(--vscode-panel-border)',
+                  opacity: 0.6,
+                }}
+              />
+
+              <TargetVendorPicker value={targetVendor} />
 
               {(targetVendor === 'altera' || targetVendor === 'both') && (
                 <>
