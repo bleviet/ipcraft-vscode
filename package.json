@@ -522,6 +522,26 @@
         }
       },
       {
+        "title": "Toolbar",
+        "properties": {
+          "ipcraft.toolbar.targetVendor": {
+            "type": "string",
+            "enum": [
+              "altera",
+              "xilinx",
+              "both"
+            ],
+            "enumDescriptions": [
+              "Show only Altera/Intel (Quartus) tools in the toolbar",
+              "Show only Xilinx/AMD (Vivado) tools in the toolbar",
+              "Show both Altera and Xilinx tool sections in the toolbar"
+            ],
+            "default": "both",
+            "description": "Which vendor toolchain section to display in the IP Core editor toolbar."
+          }
+        }
+      },
+      {
         "title": "Import",
         "properties": {
           "ipcraft.import.vendor": {

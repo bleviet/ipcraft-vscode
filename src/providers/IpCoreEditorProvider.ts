@@ -237,6 +237,15 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
         await cfg.update('hdlLanguage', lang, vscode.ConfigurationTarget.Global);
         // onDidChangeConfiguration fires updateWebview automatically
       },
+      setTargetVendor: async (message) => {
+        const vendor = message.vendor as string;
+        if (vendor !== 'altera' && vendor !== 'xilinx' && vendor !== 'both') {
+          return;
+        }
+        const cfg = vscode.workspace.getConfiguration('ipcraft.toolbar');
+        await cfg.update('targetVendor', vendor, vscode.ConfigurationTarget.Global);
+        // onDidChangeConfiguration fires updateWebview automatically
+      },
       openFile: async (message) => {
         await this.handleOpenFileMessage(message, document);
       },
@@ -357,6 +366,10 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
         .getConfiguration('ipcraft.generate')
         .get<string>('hdlLanguage', 'vhdl');
 
+      const targetVendor = vscode.workspace
+        .getConfiguration('ipcraft.toolbar')
+        .get<string>('targetVendor', 'both');
+
       const duplicatePrefixes = this.yamlValidator.findDuplicatePhysicalPrefixes(parsed);
 
       void webviewPanel.webview.postMessage({
@@ -369,6 +382,7 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
         hasXpr,
         hasQpf,
         hdlLanguage,
+        targetVendor,
         duplicatePrefixes,
       });
     } catch (error) {

@@ -109,6 +109,79 @@ const HdlLanguagePicker: React.FC<HdlLanguagePickerProps> = ({ value }) => {
   );
 };
 
+type TargetVendor = 'altera' | 'xilinx' | 'both';
+
+interface TargetVendorPickerProps {
+  value: TargetVendor;
+}
+
+const VENDOR_COLORS: Record<TargetVendor, { bg: string; fg: string }> = {
+  altera: { bg: 'rgba(0, 113, 197, 0.20)', fg: '#0071c5' },
+  xilinx: { bg: 'rgba(230, 0, 0, 0.20)', fg: '#e60000' },
+  both: { bg: 'rgba(120, 120, 120, 0.20)', fg: 'var(--vscode-foreground)' },
+};
+
+const TargetVendorPicker: React.FC<TargetVendorPickerProps> = ({ value }) => {
+  const set = (v: TargetVendor) => vscode?.postMessage({ type: 'setTargetVendor', vendor: v });
+
+  const pillStyle = (v: TargetVendor): React.CSSProperties => {
+    const active = value === v;
+    const { bg, fg } = VENDOR_COLORS[v];
+    return {
+      fontSize: '9px',
+      fontWeight: 600,
+      letterSpacing: '0.04em',
+      lineHeight: 1,
+      padding: '2px 4px',
+      borderRadius: 3,
+      border: 'none',
+      cursor: active ? 'default' : 'pointer',
+      userSelect: 'none',
+      background: active ? bg : 'transparent',
+      color: active ? fg : 'var(--vscode-descriptionForeground)',
+      opacity: active ? 1 : 0.5,
+    };
+  };
+
+  const titleMap: Record<TargetVendor, string> = {
+    altera: 'Altera/Intel active — click XIL to switch to Xilinx/AMD, BTH to show both',
+    xilinx: 'Xilinx/AMD active — click ALT to switch to Altera/Intel, BTH to show both',
+    both: 'Both vendors shown — click ALT or XIL to focus on one ecosystem',
+  };
+
+  return (
+    <div
+      style={{ display: 'flex', flexDirection: 'column', gap: 2, justifyContent: 'center' }}
+      title={titleMap[value]}
+    >
+      <button
+        style={pillStyle('altera')}
+        onClick={() => set('altera')}
+        type="button"
+        aria-label="Show Altera/Intel tools"
+      >
+        ALT
+      </button>
+      <button
+        style={pillStyle('both')}
+        onClick={() => set('both')}
+        type="button"
+        aria-label="Show both vendor tools"
+      >
+        BTH
+      </button>
+      <button
+        style={pillStyle('xilinx')}
+        onClick={() => set('xilinx')}
+        type="button"
+        aria-label="Show Xilinx/AMD tools"
+      >
+        XIL
+      </button>
+    </div>
+  );
+};
+
 interface ToolbarGroupProps {
   label: string;
   children: React.ReactNode;
@@ -188,6 +261,8 @@ const IpCoreApp: React.FC = () => {
   const [hasQpf, setHasQpf] = useState(false);
   // HDL language for source generation — mirrors ipcraft.generate.hdlLanguage
   const [hdlLanguage, setHdlLanguage] = useState<'vhdl' | 'systemverilog'>('vhdl');
+  // Active vendor toolchain shown in toolbar — mirrors ipcraft.toolbar.targetVendor
+  const [targetVendor, setTargetVendor] = useState<TargetVendor>('both');
   // True when opened via IpCoreSourcePreviewProvider (source file, not a .ip.yml)
   const [isPreview, setIsPreview] = useState(false);
 
@@ -409,6 +484,7 @@ const IpCoreApp: React.FC = () => {
         hasXpr?: boolean;
         hasQpf?: boolean;
         hdlLanguage?: 'vhdl' | 'systemverilog';
+        targetVendor?: TargetVendor;
         isPreview?: boolean;
       };
 
@@ -420,6 +496,7 @@ const IpCoreApp: React.FC = () => {
           setHasXpr(message.hasXpr ?? false);
           setHasQpf(message.hasQpf ?? false);
           setHdlLanguage(message.hdlLanguage ?? 'vhdl');
+          setTargetVendor(message.targetVendor ?? 'both');
           setIsPreview(message.isPreview ?? false);
           break;
       }
@@ -536,6 +613,7 @@ const IpCoreApp: React.FC = () => {
                   command="fpga-ip-core.generateHdl"
                 />
                 <HdlLanguagePicker value={hdlLanguage} />
+                <TargetVendorPicker value={targetVendor} />
               </ToolbarGroup>
 
               <div
@@ -555,127 +633,135 @@ const IpCoreApp: React.FC = () => {
                 />
               </ToolbarGroup>
 
-              <div
-                style={{
-                  width: '1px',
-                  height: '28px',
-                  background: 'var(--vscode-panel-border)',
-                  opacity: 0.6,
-                }}
-              />
+              {(targetVendor === 'altera' || targetVendor === 'both') && (
+                <>
+                  <div
+                    style={{
+                      width: '1px',
+                      height: '28px',
+                      background: 'var(--vscode-panel-border)',
+                      opacity: 0.6,
+                    }}
+                  />
+                  <ToolbarGroup label="Altera">
+                    <ToolbarButton
+                      title="Export Altera Platform Designer"
+                      icon="layers"
+                      command="fpga-ip-core.exportAltera"
+                    />
+                    <ToolbarButton
+                      title={
+                        hasHwTcl
+                          ? 'Edit in Platform Designer (Quartus)'
+                          : 'Edit in Platform Designer — run Export Altera first'
+                      }
+                      icon="edit"
+                      disabled={!hasHwTcl}
+                      onClick={() => vscode?.postMessage({ type: 'editInPlatformDesigner' })}
+                    />
+                    <div
+                      style={{
+                        width: '1px',
+                        height: '16px',
+                        background: 'var(--vscode-panel-border)',
+                        opacity: 0.5,
+                        alignSelf: 'center',
+                      }}
+                    />
+                    <ToolbarButton
+                      title="Generate Quartus Project (creates .qpf)"
+                      icon="circuit-board"
+                      command="fpga-ip-core.generateQuartusProject"
+                    />
+                    <ToolbarButton
+                      title="Generate & Build (Quartus full compile)"
+                      icon="zap"
+                      command="fpga-ip-core.generateAndBuildQuartus"
+                    />
+                    <div
+                      style={{
+                        width: '1px',
+                        height: '16px',
+                        background: 'var(--vscode-panel-border)',
+                        opacity: 0.5,
+                        alignSelf: 'center',
+                      }}
+                    />
+                    <ToolbarButton
+                      title={
+                        hasQpf ? 'Open in Quartus' : 'Open in Quartus — generate project first'
+                      }
+                      icon="folder-opened"
+                      disabled={!hasQpf}
+                      onClick={() => vscode?.postMessage({ type: 'openInQuartus' })}
+                    />
+                  </ToolbarGroup>
+                </>
+              )}
 
-              <ToolbarGroup label="Altera">
-                <ToolbarButton
-                  title="Export Altera Platform Designer"
-                  icon="layers"
-                  command="fpga-ip-core.exportAltera"
-                />
-                <ToolbarButton
-                  title={
-                    hasHwTcl
-                      ? 'Edit in Platform Designer (Quartus)'
-                      : 'Edit in Platform Designer — run Export Altera first'
-                  }
-                  icon="edit"
-                  disabled={!hasHwTcl}
-                  onClick={() => vscode?.postMessage({ type: 'editInPlatformDesigner' })}
-                />
-                <div
-                  style={{
-                    width: '1px',
-                    height: '16px',
-                    background: 'var(--vscode-panel-border)',
-                    opacity: 0.5,
-                    alignSelf: 'center',
-                  }}
-                />
-                <ToolbarButton
-                  title="Generate Quartus Project (creates .qpf)"
-                  icon="circuit-board"
-                  command="fpga-ip-core.generateQuartusProject"
-                />
-                <ToolbarButton
-                  title="Generate & Build (Quartus full compile)"
-                  icon="zap"
-                  command="fpga-ip-core.generateAndBuildQuartus"
-                />
-                <div
-                  style={{
-                    width: '1px',
-                    height: '16px',
-                    background: 'var(--vscode-panel-border)',
-                    opacity: 0.5,
-                    alignSelf: 'center',
-                  }}
-                />
-                <ToolbarButton
-                  title={hasQpf ? 'Open in Quartus' : 'Open in Quartus — generate project first'}
-                  icon="folder-opened"
-                  disabled={!hasQpf}
-                  onClick={() => vscode?.postMessage({ type: 'openInQuartus' })}
-                />
-              </ToolbarGroup>
-
-              <div
-                style={{
-                  width: '1px',
-                  height: '28px',
-                  background: 'var(--vscode-panel-border)',
-                  opacity: 0.6,
-                }}
-              />
-
-              <ToolbarGroup label="Xilinx">
-                <ToolbarButton
-                  title="Export Vivado Component XML"
-                  icon="layers"
-                  command="fpga-ip-core.exportXilinx"
-                />
-                <ToolbarButton
-                  title={
-                    hasComponentXml
-                      ? 'Edit in IP Packager (Vivado)'
-                      : 'Edit in IP Packager — run Export Component XML first'
-                  }
-                  icon="edit"
-                  disabled={!hasComponentXml}
-                  onClick={() => vscode?.postMessage({ type: 'editInIpPackager' })}
-                />
-                <div
-                  style={{
-                    width: '1px',
-                    height: '16px',
-                    background: 'var(--vscode-panel-border)',
-                    opacity: 0.5,
-                    alignSelf: 'center',
-                  }}
-                />
-                <ToolbarButton
-                  title="Generate Vivado Project (creates .xpr)"
-                  icon="circuit-board"
-                  command="fpga-ip-core.generateVivadoProject"
-                />
-                <ToolbarButton
-                  title="Generate & Build (Vivado OOC synthesis)"
-                  icon="zap"
-                  command="fpga-ip-core.generateAndBuildVivado"
-                />
-                <div
-                  style={{
-                    width: '1px',
-                    height: '16px',
-                    background: 'var(--vscode-panel-border)',
-                    opacity: 0.5,
-                    alignSelf: 'center',
-                  }}
-                />
-                <ToolbarButton
-                  title={hasXpr ? 'Open in Vivado' : 'Open in Vivado — generate project first'}
-                  icon="folder-opened"
-                  disabled={!hasXpr}
-                  onClick={() => vscode?.postMessage({ type: 'openInVivado' })}
-                />
-              </ToolbarGroup>
+              {(targetVendor === 'xilinx' || targetVendor === 'both') && (
+                <>
+                  <div
+                    style={{
+                      width: '1px',
+                      height: '28px',
+                      background: 'var(--vscode-panel-border)',
+                      opacity: 0.6,
+                    }}
+                  />
+                  <ToolbarGroup label="Xilinx">
+                    <ToolbarButton
+                      title="Export Vivado Component XML"
+                      icon="layers"
+                      command="fpga-ip-core.exportXilinx"
+                    />
+                    <ToolbarButton
+                      title={
+                        hasComponentXml
+                          ? 'Edit in IP Packager (Vivado)'
+                          : 'Edit in IP Packager — run Export Component XML first'
+                      }
+                      icon="edit"
+                      disabled={!hasComponentXml}
+                      onClick={() => vscode?.postMessage({ type: 'editInIpPackager' })}
+                    />
+                    <div
+                      style={{
+                        width: '1px',
+                        height: '16px',
+                        background: 'var(--vscode-panel-border)',
+                        opacity: 0.5,
+                        alignSelf: 'center',
+                      }}
+                    />
+                    <ToolbarButton
+                      title="Generate Vivado Project (creates .xpr)"
+                      icon="circuit-board"
+                      command="fpga-ip-core.generateVivadoProject"
+                    />
+                    <ToolbarButton
+                      title="Generate & Build (Vivado OOC synthesis)"
+                      icon="zap"
+                      command="fpga-ip-core.generateAndBuildVivado"
+                    />
+                    <div
+                      style={{
+                        width: '1px',
+                        height: '16px',
+                        background: 'var(--vscode-panel-border)',
+                        opacity: 0.5,
+                        alignSelf: 'center',
+                      }}
+                    />
+                    <ToolbarButton
+                      title={hasXpr ? 'Open in Vivado' : 'Open in Vivado — generate project first'}
+                      icon="folder-opened"
+                      disabled={!hasXpr}
+                      onClick={() => vscode?.postMessage({ type: 'openInVivado' })}
+                    />
+                  </ToolbarGroup>
+                </>
+              )}
             </div>
             {validationErrors.length > 0 && (
               <div className="text-sm" style={{ color: 'var(--vscode-errorForeground)' }}>
