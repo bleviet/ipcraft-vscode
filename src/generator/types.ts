@@ -1,8 +1,12 @@
-export type VendorOption = 'none' | 'altera' | 'xilinx' | 'both';
 export type HdlLanguage = 'vhdl' | 'systemverilog';
 
 export interface GenerateOptions {
-  vendor?: VendorOption;
+  /**
+   * Synthesis vendor targets to generate packaging files for.
+   * Each string must match a registered toolchain id ('vivado', 'quartus', …).
+   * An empty array generates HDL and testbench only.
+   */
+  targets?: string[];
   includeTestbench?: boolean;
   includeRegs?: boolean;
   includeVhdl?: boolean;

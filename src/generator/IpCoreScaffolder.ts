@@ -16,12 +16,8 @@ import {
   prepareRegisters,
   resolveMemoryMaps,
 } from './registerProcessor';
-import {
-  crc32Hex,
-  generateComponentXml,
-  generateCustomBusDefs,
-} from './VivadoComponentXmlGenerator';
 import { sortByCompilationOrder } from '../utils/compilationOrder';
+import { getToolchain } from '../services/toolchains/registry';
 import type {
   BusDefinitions,
   BusPortDefinition,
@@ -70,7 +66,7 @@ export class IpCoreScaffolder {
       }
       const includeRegs = options.includeRegs !== false && hasMmSlave;
       const includeTestbench = options.includeTestbench !== false;
-      const vendor = options.vendor ?? 'none';
+      const targets = options.targets ?? [];
       const includeVhdl = options.includeVhdl !== false;
       const hdlLanguage: HdlLanguage = options.hdlLanguage ?? 'vhdl';
       const isSv = hdlLanguage === 'systemverilog';
@@ -132,80 +128,57 @@ export class IpCoreScaffolder {
         files['.vscode/settings.json'] = this.templates.render('vscode_settings.json.j2', context);
       }
 
-      if (vendor === 'altera' || vendor === 'both') {
-        files[`altera/${name}_hw.tcl`] = this.templates.render('altera_hw_tcl.j2', context);
-      }
+      // Vendor packaging + optional project files — delegated to toolchain strategies.
+      // rtlFiles are shared across targets so we compute them once lazily.
+      let cachedRtlFiles: string[] | undefined;
+      const getRtlFiles = async (): Promise<string[]> => {
+        cachedRtlFiles ??= await collectRtlFiles(files, ipCoreData, inputPath, outputDir);
+        return cachedRtlFiles;
+      };
 
-      if (vendor === 'xilinx' || vendor === 'both') {
-        const versionStr = String(ipCoreData?.vlnv?.version ?? '1.0').replace(/\./g, '_');
-        const xguiFile = `xgui/${name}_v${versionStr}.tcl`;
+      for (const targetId of targets) {
+        const toolchain = getToolchain(targetId);
+        if (!toolchain) {
+          this.logger.warn(`Unknown target '${targetId}' — skipping`);
+          continue;
+        }
+        const isVivado = targetId === 'vivado';
+        const isQuartus = targetId === 'quartus';
+        const includeProject =
+          (isVivado && (options.includeVivadoProject ?? false)) ||
+          (isQuartus && (options.includeQuartusProject ?? false));
+
+        // For Vivado, pass generated RTL paths from this run (or undefined when
+        // includeVhdl: false so generateComponentXml falls back to fileSets).
         const rtlFilesFromGenerated = Object.keys(files)
           .filter((f) => f.startsWith('rtl/'))
           .map((f) => `../${f}`);
-        // Pass undefined when no RTL was generated so generateComponentXml falls
-        // back to fileSets declared in the .ip.yml (e.g. when includeVhdl: false).
-        const rtlFiles = rtlFilesFromGenerated.length > 0 ? rtlFilesFromGenerated : undefined;
-        const xguiContent = this.templates.render('amd_xgui.j2', context);
-        const xguiChecksum = crc32Hex(xguiContent);
-        files['xilinx/component.xml'] = generateComponentXml(
-          ipCoreData,
-          this.busDefinitions ?? {},
+        const scaffoldRtlFiles = includeProject
+          ? await getRtlFiles()
+          : rtlFilesFromGenerated.length > 0
+            ? rtlFilesFromGenerated
+            : undefined;
+
+        const vendorFiles = toolchain.scaffold(
           {
-            rtlFiles,
-            xguiFile,
-            xguiChecksum,
+            name,
+            templateContext: context,
+            templates: this.templates,
+            ipCoreData,
+            busDefinitions: this.busDefinitions ?? {},
             isSv,
+          },
+          {
+            includeProject,
+            rtlFiles: scaffoldRtlFiles ?? undefined,
+            targetPart: options.targetPart,
+            quartusDevice: options.quartusDevice,
           }
         );
-        const customBusDefs = generateCustomBusDefs(ipCoreData, this.busDefinitions ?? {});
-        for (const [relPath, content] of Object.entries(customBusDefs)) {
-          files[`xilinx/${relPath}`] = content;
+
+        for (const [relPath, content] of Object.entries(vendorFiles)) {
+          files[relPath] = content;
         }
-        files[`xilinx/${xguiFile}`] = xguiContent;
-      }
-
-      if (options.includeVivadoProject) {
-        const targetPart = options.targetPart ?? 'xc7z020clg484-1';
-        const rtlFiles = await collectRtlFiles(files, ipCoreData, inputPath, outputDir);
-        const xdcRelPath = `${name}_ooc.xdc`;
-        const vivadoContext = {
-          ...context,
-          target_part: targetPart,
-          rtl_files: rtlFiles,
-          xdc_file: xdcRelPath,
-        };
-        files[`xilinx/${name}_project.tcl`] = this.templates.render(
-          'vivado_project.tcl.j2',
-          vivadoContext
-        );
-        files[`xilinx/${xdcRelPath}`] = this.templates.render('vivado_ooc.xdc.j2', vivadoContext);
-        files[`xilinx/${name}_run_ooc.tcl`] = this.templates.render(
-          'vivado_run_ooc.tcl.j2',
-          vivadoContext
-        );
-        files[`xilinx/${name}_run_xpr.tcl`] = this.templates.render(
-          'vivado_run_xpr.tcl.j2',
-          vivadoContext
-        );
-      }
-
-      if (options.includeQuartusProject) {
-        const targetDevice = options.quartusDevice ?? '5CSEBA6U23I7';
-        const deviceFamily = quartusDeviceFamily(targetDevice);
-        const rtlFiles = await collectRtlFiles(files, ipCoreData, inputPath, outputDir);
-        const sdcRelPath = `${name}.sdc`;
-        const quartusContext = {
-          ...context,
-          target_device: targetDevice,
-          device_family: deviceFamily,
-          rtl_files: rtlFiles,
-          sdc_file: sdcRelPath,
-        };
-        files[`altera/${name}_project.tcl`] = this.templates.render(
-          'quartus_project.tcl.j2',
-          quartusContext
-        );
-        files[`altera/${sdcRelPath}`] = this.templates.render('quartus_sdc.j2', quartusContext);
       }
 
       const written: Record<string, string> = {};
@@ -730,51 +703,6 @@ function parseClockPeriodNs(frequency: string | null | undefined): string | null
   }
   const periodNs = 1e9 / hz;
   return periodNs.toFixed(3);
-}
-
-/**
- * Derive Quartus device family string from a part number.
- * Handles the most common Intel/Altera Cyclone, Arria, Stratix and MAX families.
- */
-function quartusDeviceFamily(device: string): string {
-  const d = device.toUpperCase();
-  if (d.startsWith('5C')) {
-    return 'Cyclone V';
-  }
-  if (d.startsWith('10CX')) {
-    return 'Cyclone 10 LP';
-  }
-  if (d.startsWith('10M')) {
-    return 'MAX 10';
-  }
-  if (d.startsWith('EP4CGX')) {
-    return 'Cyclone IV GX';
-  }
-  if (d.startsWith('EP4C')) {
-    return 'Cyclone IV E';
-  }
-  if (d.startsWith('EP3C')) {
-    return 'Cyclone III';
-  }
-  if (d.startsWith('EP2C')) {
-    return 'Cyclone II';
-  }
-  if (d.startsWith('5AGZ')) {
-    return 'Arria V GZ';
-  }
-  if (d.startsWith('5A')) {
-    return 'Arria V';
-  }
-  if (d.startsWith('EP5S')) {
-    return 'Stratix V';
-  }
-  if (d.startsWith('EP4S')) {
-    return 'Stratix IV';
-  }
-  if (d.startsWith('EP3S')) {
-    return 'Stratix III';
-  }
-  return 'Cyclone V';
 }
 
 function toTclWidthExpression(exprStr: string, paramNames: string[]): string {

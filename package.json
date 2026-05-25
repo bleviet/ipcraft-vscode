@@ -233,6 +233,11 @@
         "title": "Preview in IPCraft (Experimental)",
         "category": "IPCraft",
         "icon": "$(eye)"
+      },
+      {
+        "command": "fpga-ip-core.migrateLegacy",
+        "title": "Migrate Legacy IP Cores (vendor: → targets:)",
+        "category": "IPCraft"
       }
     ],
     "submenus": [

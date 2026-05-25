@@ -179,7 +179,7 @@ async function generateHdl(context: vscode.ExtensionContext): Promise<void> {
     ipCoreUri,
     outputDir,
     {
-      vendor: 'none',
+      targets: [],
       includeVhdl: true,
       includeRegs: true,
       includeTestbench: false,
@@ -244,7 +244,7 @@ async function scaffoldProject(context: vscode.ExtensionContext): Promise<void> 
     ipCoreUri,
     outputDir,
     {
-      vendor: 'both',
+      targets: ['vivado', 'quartus'],
       includeVhdl: true,
       includeRegs: true,
       includeTestbench,
@@ -282,7 +282,7 @@ async function exportAltera(context: vscode.ExtensionContext): Promise<void> {
     ipCoreUri,
     outputDir,
     {
-      vendor: 'altera',
+      targets: ['quartus'],
       includeVhdl: false,
       includeRegs: false,
       includeTestbench: false,
@@ -303,7 +303,7 @@ async function exportXilinx(context: vscode.ExtensionContext): Promise<void> {
     ipCoreUri,
     outputDir,
     {
-      vendor: 'xilinx',
+      targets: ['vivado'],
       includeVhdl: false,
       includeRegs: false,
       includeTestbench: false,
@@ -324,7 +324,7 @@ async function generateTestbench(context: vscode.ExtensionContext): Promise<void
     ipCoreUri,
     outputDir,
     {
-      vendor: 'none',
+      targets: [],
       includeVhdl: false,
       includeRegs: false,
       includeTestbench: true,
@@ -360,7 +360,7 @@ async function generateVivadoProject(context: vscode.ExtensionContext): Promise<
     ipCoreUri,
     outputDir,
     {
-      vendor: 'none',
+      targets: [],
       includeVhdl: false,
       includeRegs: false,
       includeTestbench: false,
@@ -402,7 +402,7 @@ async function generateQuartusProject(context: vscode.ExtensionContext): Promise
     ipCoreUri,
     outputDir,
     {
-      vendor: 'none',
+      targets: [],
       includeVhdl: false,
       includeRegs: false,
       includeTestbench: false,
@@ -439,7 +439,7 @@ async function generateAndBuildVivado(context: vscode.ExtensionContext): Promise
     ipCoreUri,
     outputDir,
     {
-      vendor: 'none',
+      targets: [],
       includeVhdl: false,
       includeRegs: false,
       includeTestbench: false,
@@ -476,7 +476,7 @@ async function generateAndBuildQuartus(context: vscode.ExtensionContext): Promis
     ipCoreUri,
     outputDir,
     {
-      vendor: 'none',
+      targets: [],
       includeVhdl: false,
       includeRegs: false,
       includeTestbench: false,

@@ -129,7 +129,7 @@ export async function generateFixtures(): Promise<Fixture[]> {
       await nodefsp.mkdir(outputDir, { recursive: true });
 
       const result = await scaffolder.generateAll(yamlPath, outputDir, {
-        vendor: 'both',
+        targets: ['vivado', 'quartus'],
         includeRegs: true,
         includeTestbench: true,
         includeVivadoProject: true,

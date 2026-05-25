@@ -68,7 +68,7 @@ describe('IpCoreScaffolder', () => {
     const result = await scaffolder.generateAll(inputPath, outputDir, {
       includeRegs: true,
       includeTestbench: true,
-      vendor: 'both',
+      targets: ['vivado', 'quartus'],
     });
 
     expect(result.success).toBe(true);
@@ -117,7 +117,7 @@ describe('IpCoreScaffolder', () => {
       includeTestbench: false,
       includeVivadoProject: true,
       includeQuartusProject: true,
-      vendor: 'both',
+      targets: ['vivado', 'quartus'],
     });
 
     expect(result.success).toBe(true);
@@ -182,7 +182,7 @@ describe('IpCoreScaffolder', () => {
     const inputPath = path.resolve(__dirname, '../../fixtures/xcvr-ipcore.yml');
 
     const result = await scaffolder.generateAll(inputPath, '/tmp/xcvr-gen', {
-      vendor: 'altera',
+      targets: ['quartus'],
       includeVhdl: false,
       includeRegs: false,
       includeTestbench: false,

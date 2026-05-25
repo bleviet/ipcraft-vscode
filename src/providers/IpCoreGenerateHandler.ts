@@ -6,6 +6,7 @@ import { TemplateLoader } from '../generator/TemplateLoader';
 import { IpCoreScaffolder } from '../generator/IpCoreScaffolder';
 import { Logger } from '../utils/Logger';
 import { DocumentManager } from '../services/DocumentManager';
+import { legacyVendorToTargets } from '../utils/migrateIpCore';
 
 export interface GenerateOptionsMessage {
   vendorFiles?: 'none' | 'altera' | 'xilinx' | 'both';
@@ -69,7 +70,7 @@ export async function handleGenerateRequest({
 
   const generator = new IpCoreScaffolder(logger, new TemplateLoader(logger), context);
   const result = await generator.generateAll(document.uri.fsPath, outputBaseDir, {
-    vendor: message.options?.vendorFiles ?? 'none',
+    targets: legacyVendorToTargets(message.options?.vendorFiles ?? 'none'),
     includeTestbench: message.options?.includeTestbench !== false,
     includeRegs: message.options?.includeRegfile !== false,
     includeVhdl: message.options?.includeVhdl !== false,

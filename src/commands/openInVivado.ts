@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { spawn } from 'child_process';
 import { Logger } from '../utils/Logger';
-import { getVivadoLauncher } from '../utils/vivadoResolver';
+import { spawnGui } from '../services/BuildRunner';
+import { getToolchain } from '../services/toolchains/registry';
 
 const logger = new Logger('OpenInVivado');
 
@@ -10,72 +10,34 @@ export async function openInVivadoCommand(uri?: vscode.Uri): Promise<void> {
   const targetUri = uri ?? vscode.window.activeTextEditor?.document.uri;
 
   if (!targetUri?.fsPath.endsWith('.xpr')) {
-    vscode.window.showErrorMessage('No Vivado project file (.xpr) selected.');
+    void vscode.window.showErrorMessage('No Vivado project file (.xpr) selected.');
     return;
   }
 
   const xprPath = targetUri.fsPath;
-
-  const config = vscode.workspace.getConfiguration('ipcraft');
-  const launcher = getVivadoLauncher(config);
-  const vivadoRunner = config.get<string>('vivado.runner', 'local');
-  const dockerImage = (config.get<string>('vivado.dockerImage') ?? '').trim();
-  const useDocker = vivadoRunner === 'docker';
-
-  // Mount the workspace root so Vivado can resolve all source paths it stored
-  // as absolute references inside the .xpr file.
-  const mountDir = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? path.dirname(xprPath);
-
-  let spawnExe: string;
-  let spawnArgs: string[];
-
-  if (useDocker) {
-    const x11Args = process.env.DISPLAY
-      ? ['-e', `DISPLAY=${process.env.DISPLAY}`, '-v', '/tmp/.X11-unix:/tmp/.X11-unix']
-      : [];
-
-    spawnExe = 'docker';
-    spawnArgs = [
-      'run',
-      '--rm',
-      ...x11Args,
-      '-v',
-      `${mountDir}:${mountDir}`,
-      '-w',
-      path.dirname(xprPath),
-      dockerImage,
-      launcher.exe,
-      xprPath,
-    ];
-  } else {
-    spawnExe = launcher.exe;
-    spawnArgs = [...launcher.prefixArgs, xprPath];
+  const cfg = vscode.workspace.getConfiguration('ipcraft');
+  const toolchain = getToolchain('vivado');
+  if (!toolchain) {
+    return;
   }
 
-  logger.info(`Opening Vivado project: ${spawnExe} ${spawnArgs.join(' ')}`);
+  const launcher = toolchain.resolve('vivado', cfg);
+  if (!launcher) {
+    return;
+  }
 
-  const child = spawn(spawnExe, spawnArgs, {
-    cwd: path.dirname(xprPath),
-    detached: true,
-    stdio: 'ignore',
-  });
+  // Mount the workspace root so Vivado can resolve all source paths stored as
+  // absolute references inside the .xpr.
+  const mountDir = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? path.dirname(xprPath);
+  const docker = toolchain.getDocker(cfg, mountDir);
+  const { env, extraMounts } = toolchain.getLaunchEnv(cfg);
 
-  child.on('error', (err: Error & { code?: string }) => {
-    logger.error(`Failed to open Vivado: ${err.message}`);
-    if (err.code === 'ENOENT') {
-      if (useDocker) {
-        vscode.window.showErrorMessage(
-          `Could not find 'docker'. Is Docker installed and in your PATH?`
-        );
-      } else {
-        vscode.window.showErrorMessage(
-          `Could not find Vivado executable '${launcher.exe}'. Check the 'ipcraft.vivado.installDir' setting.`
-        );
-      }
-    } else {
-      vscode.window.showErrorMessage(`Failed to open Vivado: ${err.message}`);
-    }
-  });
+  logger.info(`Opening Vivado project: ${xprPath}`);
 
-  child.unref();
+  spawnGui(
+    launcher.exe,
+    [...launcher.prefixArgs, xprPath],
+    { cwd: path.dirname(xprPath), docker, env, extraMounts },
+    toolchain.displayName
+  );
 }

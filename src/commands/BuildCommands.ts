@@ -1,17 +1,11 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import * as fs from 'fs/promises';
 import * as yaml from 'js-yaml';
-import { runProcess } from '../services/BuildRunner';
-import {
-  parseVivadoReports,
-  parseQuartusReports,
-  type BuildReports,
-} from '../services/ReportParser';
+import type { BuildReports } from '../services/ReportParser';
 import type { ReportsTreeProvider, BuildStatus } from '../providers/ReportsTreeProvider';
 import type { IpCoreData } from '../generator/types';
-import { getQuartusTool } from '../utils/quartusResolver';
-import { getVivadoLauncher } from '../utils/vivadoResolver';
+import { listAll } from '../services/toolchains/registry';
+import type { BuildMode } from '../services/toolchains/SynthesisToolchain';
 
 let outputChannel: vscode.OutputChannel | undefined;
 
@@ -80,15 +74,6 @@ async function resolveIpCore(): Promise<
   }
 }
 
-async function fileExists(p: string): Promise<boolean> {
-  try {
-    await fs.access(p);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 type BuildTarget = {
   label: string;
   description: string;
@@ -96,117 +81,15 @@ type BuildTarget = {
 };
 
 async function detectTargets(name: string, ipDir: string): Promise<BuildTarget[]> {
-  const xilinxDir = path.join(ipDir, 'xilinx');
-  const alteraDir = path.join(ipDir, 'altera');
-
   const cfg = vscode.workspace.getConfiguration('ipcraft');
-  const vivadoLauncher = getVivadoLauncher(cfg);
-  const quartusExe = getQuartusTool(cfg, 'quartus_sh');
-  const jobs = cfg.get<number>('build.jobs') ?? 4;
-
-  const vivadoDockerImage = (cfg.get<string>('vivado.dockerImage') ?? '').trim();
-  const quartusDockerImage = (cfg.get<string>('quartus.dockerImage') ?? '').trim();
-  const vivadoRunner = cfg.get<string>('vivado.runner', 'local');
-  const quartusRunner = cfg.get<string>('quartus.runner', 'local');
-  const vivadoDocker =
-    vivadoRunner === 'docker' && vivadoDockerImage
-      ? { image: vivadoDockerImage, mountBase: ipDir }
-      : undefined;
-  const quartusDocker =
-    quartusRunner === 'docker' && quartusDockerImage
-      ? { image: quartusDockerImage, mountBase: ipDir }
-      : undefined;
-
+  const ch = getOutputChannel();
   const targets: BuildTarget[] = [];
 
-  if (await fileExists(path.join(xilinxDir, `${name}_run_ooc.tcl`))) {
-    targets.push({
-      label: 'Vivado OOC Synthesis',
-      description: 'Out-of-context synthesis — fast, reports in xilinx/build/ooc/',
-      run: async () => {
-        const buildDir = path.join(xilinxDir, 'build', 'ooc');
-        const result = await runProcess(
-          vivadoLauncher.exe,
-          [
-            ...vivadoLauncher.prefixArgs,
-            '-mode',
-            'batch',
-            '-source',
-            `${name}_run_ooc.tcl`,
-            '-nojournal',
-            '-nolog',
-            '-tclargs',
-            String(jobs),
-          ],
-          { cwd: xilinxDir, outputChannel: getOutputChannel(), docker: vivadoDocker }
-        );
-        if (!result.success) {
-          return undefined;
-        }
-        return parseVivadoReports(buildDir, 'ooc');
-      },
-    });
-  }
-
-  if (await fileExists(path.join(xilinxDir, `${name}_run_xpr.tcl`))) {
-    targets.push({
-      label: 'Vivado Full Implementation (XPR)',
-      description: 'Synthesis + place + route — reports in xilinx/build/xpr/',
-      run: async () => {
-        const buildDir = path.join(xilinxDir, 'build', 'xpr');
-        const result = await runProcess(
-          vivadoLauncher.exe,
-          [
-            ...vivadoLauncher.prefixArgs,
-            '-mode',
-            'batch',
-            '-source',
-            `${name}_run_xpr.tcl`,
-            '-nojournal',
-            '-nolog',
-            '-tclargs',
-            String(jobs),
-          ],
-          { cwd: xilinxDir, outputChannel: getOutputChannel(), docker: vivadoDocker }
-        );
-        if (!result.success) {
-          return undefined;
-        }
-        return parseVivadoReports(buildDir, 'xpr');
-      },
-    });
-  }
-
-  if (await fileExists(path.join(alteraDir, `${name}_project.tcl`))) {
-    targets.push({
-      label: 'Quartus Compile',
-      description: 'Full synthesis + fitter + timing — reports in altera/build/output_files/',
-      run: async () => {
-        const buildDir = path.join(alteraDir, 'build');
-        await fs.mkdir(buildDir, { recursive: true });
-
-        const projectTcl = path.join(alteraDir, `${name}_project.tcl`);
-        const step1 = await runProcess(quartusExe, ['-t', projectTcl], {
-          cwd: buildDir,
-          outputChannel: getOutputChannel(),
-          docker: quartusDocker,
-        });
-        if (!step1.success) {
-          return undefined;
-        }
-
-        const step2 = await runProcess(quartusExe, ['--flow', 'compile', name], {
-          cwd: buildDir,
-          outputChannel: getOutputChannel(),
-          docker: quartusDocker,
-        });
-        if (!step2.success) {
-          return undefined;
-        }
-
-        return parseQuartusReports(buildDir, name);
-      },
-    });
+  for (const toolchain of listAll()) {
+    const modes: BuildMode[] = await toolchain.detectBuildModes(name, ipDir, cfg, ch);
+    for (const mode of modes) {
+      targets.push({ label: mode.label, description: mode.description, run: mode.run });
+    }
   }
 
   return targets;

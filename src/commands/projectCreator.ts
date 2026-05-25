@@ -9,8 +9,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import { runProcess } from '../services/BuildRunner';
-import { getVivadoLauncher } from '../utils/vivadoResolver';
-import { getQuartusTool } from '../utils/quartusResolver';
+import { getToolchain } from '../services/toolchains/registry';
 
 async function fileExists(p: string): Promise<boolean> {
   try {
@@ -22,76 +21,89 @@ async function fileExists(p: string): Promise<boolean> {
 }
 
 /**
- * Run `vivado -mode batch -source <name>_project.tcl` to create the Vivado
- * OOC project (build/ooc/<name>.xpr) without launching synthesis.
+ * Run the vendor-specific project-creation TCL to create the project file
+ * (e.g. .xpr / .qpf) without launching synthesis.
  *
  * Returns `true` on success, `false` if the tool is not found or the TCL
  * script does not exist yet.
  */
+export async function createVendorProject(
+  toolchainId: 'vivado' | 'quartus',
+  name: string,
+  ipDir: string,
+  outputChannel: vscode.OutputChannel
+): Promise<boolean> {
+  const toolchain = getToolchain(toolchainId);
+  if (!toolchain) {
+    return false;
+  }
+
+  const cfg = vscode.workspace.getConfiguration('ipcraft');
+  const { env, extraMounts } = toolchain.getLaunchEnv(cfg);
+  const vendorDir = path.join(ipDir, toolchain.outputSubdir);
+
+  if (toolchainId === 'vivado') {
+    const projectTcl = `${name}_project.tcl`;
+    if (!(await fileExists(path.join(vendorDir, projectTcl)))) {
+      return false;
+    }
+
+    const launcher = toolchain.resolve('vivado', cfg);
+    if (!launcher) {
+      return false;
+    }
+    const docker = toolchain.getDocker(cfg, ipDir);
+
+    const result = await runProcess(
+      launcher.exe,
+      [...launcher.prefixArgs, '-mode', 'batch', '-source', projectTcl, '-nojournal', '-nolog'],
+      { cwd: vendorDir, outputChannel, docker, env, extraMounts }
+    );
+    return result.success;
+  }
+
+  if (toolchainId === 'quartus') {
+    const projectTcl = path.join(vendorDir, `${name}_project.tcl`);
+    if (!(await fileExists(projectTcl))) {
+      return false;
+    }
+
+    const buildDir = path.join(vendorDir, 'build');
+    await fs.mkdir(buildDir, { recursive: true });
+
+    const launcher = toolchain.resolve('quartus_sh', cfg);
+    if (!launcher) {
+      return false;
+    }
+    const docker = toolchain.getDocker(cfg, ipDir);
+
+    const result = await runProcess(launcher.exe, ['-t', projectTcl], {
+      cwd: buildDir,
+      outputChannel,
+      docker,
+      env,
+      extraMounts,
+    });
+    return result.success;
+  }
+
+  return false;
+}
+
+/** Convenience wrapper — kept for backward compat with GenerateCommands callers. */
 export async function createVivadoProject(
   name: string,
   ipDir: string,
   outputChannel: vscode.OutputChannel
 ): Promise<boolean> {
-  const xilinxDir = path.join(ipDir, 'xilinx');
-  const projectTcl = `${name}_project.tcl`;
-
-  if (!(await fileExists(path.join(xilinxDir, projectTcl)))) {
-    return false;
-  }
-
-  const cfg = vscode.workspace.getConfiguration('ipcraft');
-  const vivadoLauncher = getVivadoLauncher(cfg);
-  const vivadoDockerImage = (cfg.get<string>('vivado.dockerImage') ?? '').trim();
-  const vivadoRunner = cfg.get<string>('vivado.runner', 'local');
-  const vivadoDocker =
-    vivadoRunner === 'docker' && vivadoDockerImage
-      ? { image: vivadoDockerImage, mountBase: ipDir }
-      : undefined;
-
-  const result = await runProcess(
-    vivadoLauncher.exe,
-    [...vivadoLauncher.prefixArgs, '-mode', 'batch', '-source', projectTcl, '-nojournal', '-nolog'],
-    { cwd: xilinxDir, outputChannel, docker: vivadoDocker }
-  );
-  return result.success;
+  return createVendorProject('vivado', name, ipDir, outputChannel);
 }
 
-/**
- * Run `quartus_sh -t <name>_project.tcl` to create the Quartus project
- * (.qpf / .qsf) without running compilation.
- *
- * Returns `true` on success, `false` if the tool is not found or the TCL
- * script does not exist yet.
- */
+/** Convenience wrapper — kept for backward compat with GenerateCommands callers. */
 export async function createQuartusProject(
   name: string,
   ipDir: string,
   outputChannel: vscode.OutputChannel
 ): Promise<boolean> {
-  const alteraDir = path.join(ipDir, 'altera');
-  const projectTcl = path.join(alteraDir, `${name}_project.tcl`);
-
-  if (!(await fileExists(projectTcl))) {
-    return false;
-  }
-
-  const buildDir = path.join(alteraDir, 'build');
-  await fs.mkdir(buildDir, { recursive: true });
-
-  const cfg = vscode.workspace.getConfiguration('ipcraft');
-  const quartusExe = getQuartusTool(cfg, 'quartus_sh');
-  const quartusDockerImage = (cfg.get<string>('quartus.dockerImage') ?? '').trim();
-  const quartusRunner = cfg.get<string>('quartus.runner', 'local');
-  const quartusDocker =
-    quartusRunner === 'docker' && quartusDockerImage
-      ? { image: quartusDockerImage, mountBase: ipDir }
-      : undefined;
-
-  const result = await runProcess(quartusExe, ['-t', projectTcl], {
-    cwd: buildDir,
-    outputChannel,
-    docker: quartusDocker,
-  });
-  return result.success;
+  return createVendorProject('quartus', name, ipDir, outputChannel);
 }

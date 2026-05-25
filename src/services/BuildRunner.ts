@@ -1,6 +1,7 @@
 import { spawn } from 'child_process';
 import * as path from 'path';
 import * as vscode from 'vscode';
+import type { ExtraMountSpec } from './toolchains/LaunchableTool';
 
 export interface DockerOptions {
   /** Docker image to run the tool inside (e.g. `cvsoc/quartus:23.1`). */
@@ -17,6 +18,14 @@ export interface BuildRunOptions {
   cwd: string;
   outputChannel: vscode.OutputChannel;
   docker?: DockerOptions;
+  /** Extra environment variables forwarded to the child process (local) or as
+   *  `-e KEY=VALUE` flags (Docker). Merged on top of the inherited process env. */
+  env?: Record<string, string>;
+  /** Additional Docker bind-mounts beyond the primary `mountBase:/work` one.
+   *  Ignored when running locally. */
+  extraMounts?: ExtraMountSpec[];
+  /** Hard-kill timeout in milliseconds. Undefined = no timeout. */
+  timeoutMs?: number;
 }
 
 export interface BuildResult {
@@ -30,7 +39,9 @@ function applyDocker(
   executable: string,
   args: string[],
   cwd: string,
-  docker: DockerOptions
+  docker: DockerOptions,
+  env: Record<string, string>,
+  extraMounts: ExtraMountSpec[]
 ): { executable: string; args: string[]; cwd: string } {
   const base = path.normalize(docker.mountBase);
   const relCwd = path.relative(base, cwd).replace(/\\/g, '/');
@@ -44,6 +55,12 @@ function applyDocker(
     return arg;
   });
 
+  const envFlags = Object.entries(env).flatMap(([k, v]) => ['-e', `${k}=${v}`]);
+  const mountFlags = extraMounts.flatMap(({ host, container, ro }) => [
+    '-v',
+    `${host}:${container}${ro ? ':ro' : ''}`,
+  ]);
+
   return {
     executable: 'docker',
     args: [
@@ -51,6 +68,8 @@ function applyDocker(
       '--rm',
       '-v',
       `${base}:${CONTAINER_MOUNT}`,
+      ...mountFlags,
+      ...envFlags,
       '-w',
       containerCwd,
       docker.image,
@@ -66,14 +85,14 @@ export function runProcess(
   args: string[],
   options: BuildRunOptions
 ): Promise<BuildResult> {
-  const { cwd, outputChannel, docker } = options;
+  const { cwd, outputChannel, docker, env = {}, extraMounts = [], timeoutMs } = options;
 
   let spawnExe = executable;
   let spawnArgs = args;
   let spawnCwd = cwd;
 
   if (docker?.image) {
-    const dockerized = applyDocker(executable, args, cwd, docker);
+    const dockerized = applyDocker(executable, args, cwd, docker, env, extraMounts);
     spawnExe = dockerized.executable;
     spawnArgs = dockerized.args;
     spawnCwd = dockerized.cwd;
@@ -85,12 +104,21 @@ export function runProcess(
   return new Promise((resolve) => {
     let proc: ReturnType<typeof spawn>;
     try {
-      proc = spawn(spawnExe, spawnArgs, { cwd: spawnCwd, stdio: 'pipe' });
+      const spawnEnv = docker?.image ? undefined : { ...process.env, ...env };
+      proc = spawn(spawnExe, spawnArgs, { cwd: spawnCwd, env: spawnEnv, stdio: 'pipe' });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       outputChannel.appendLine(`[ERROR] Failed to start process: ${msg}`);
       resolve({ success: false, exitCode: -1 });
       return;
+    }
+
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    if (timeoutMs !== undefined) {
+      timer = setTimeout(() => {
+        outputChannel.appendLine(`\n[TIMEOUT] Process killed after ${timeoutMs}ms`);
+        proc.kill();
+      }, timeoutMs);
     }
 
     proc.stdout?.on('data', (chunk: Buffer) => {
@@ -110,6 +138,7 @@ export function runProcess(
     });
 
     proc.on('error', (err) => {
+      clearTimeout(timer);
       outputChannel.appendLine(`[ERROR] ${err.message}`);
       if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
         if (docker?.image) {
@@ -127,9 +156,92 @@ export function runProcess(
     });
 
     proc.on('close', (code) => {
+      clearTimeout(timer);
       const exitCode = code ?? -1;
       outputChannel.appendLine(`\n[exit ${exitCode}]`);
       resolve({ success: exitCode === 0, exitCode });
     });
   });
+}
+
+export interface GuiLaunchOptions {
+  cwd: string;
+  docker?: DockerOptions;
+  env?: Record<string, string>;
+  extraMounts?: ExtraMountSpec[];
+  /** X11 forwarding: pass the host DISPLAY socket through. Default: true. */
+  x11?: boolean;
+}
+
+/**
+ * Spawn a detached GUI process (Vivado GUI, Quartus GUI, Platform Designer).
+ * Returns immediately — the spawned process outlives VS Code.
+ * On ENOENT or other errors, shows a VS Code error notification.
+ */
+export function spawnGui(
+  executable: string,
+  args: string[],
+  options: GuiLaunchOptions,
+  toolDisplayName: string
+): void {
+  const { cwd, docker, env = {}, extraMounts = [], x11 = true } = options;
+
+  let spawnExe = executable;
+  let spawnArgs = args;
+
+  if (docker?.image) {
+    const x11Flags: string[] =
+      x11 && process.env.DISPLAY
+        ? ['-e', `DISPLAY=${process.env.DISPLAY}`, '-v', '/tmp/.X11-unix:/tmp/.X11-unix']
+        : [];
+    const envFlags = Object.entries(env).flatMap(([k, v]) => ['-e', `${k}=${v}`]);
+    const mountFlags = extraMounts.flatMap(({ host, container, ro }) => [
+      '-v',
+      `${host}:${container}${ro ? ':ro' : ''}`,
+    ]);
+    const base = path.normalize(docker.mountBase);
+    const toContainer = (p: string) =>
+      CONTAINER_MOUNT + '/' + path.relative(base, p).replace(/\\/g, '/');
+
+    spawnExe = 'docker';
+    spawnArgs = [
+      'run',
+      '--rm',
+      ...x11Flags,
+      '-v',
+      `${base}:${CONTAINER_MOUNT}`,
+      ...mountFlags,
+      ...envFlags,
+      '-w',
+      toContainer(cwd),
+      docker.image,
+      executable,
+      ...args,
+    ];
+  }
+
+  const child = spawn(spawnExe, spawnArgs, {
+    cwd,
+    detached: true,
+    stdio: 'ignore',
+  });
+
+  child.on('error', (err: Error & { code?: string }) => {
+    if (err.code === 'ENOENT') {
+      if (docker?.image) {
+        void vscode.window.showErrorMessage(
+          `Could not find 'docker'. Is Docker installed and in your PATH?`
+        );
+      } else {
+        void vscode.window.showErrorMessage(
+          `Could not find ${toolDisplayName} executable '${executable}'. ` +
+            `Check the IPCraft settings for ${toolDisplayName}.`
+        );
+      }
+    } else {
+      void vscode.window.showErrorMessage(`Failed to start ${toolDisplayName}: ${err.message}`);
+    }
+  });
+
+  child.unref();
 }

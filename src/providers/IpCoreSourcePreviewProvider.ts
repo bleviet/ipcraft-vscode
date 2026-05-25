@@ -11,6 +11,7 @@ import { parseVerilogFile } from '../parser/VerilogParser';
 import { IpCoreScaffolder } from '../generator/IpCoreScaffolder';
 import { TemplateLoader } from '../generator/TemplateLoader';
 import { resolveVendor } from '../utils/resolveVendor';
+import { legacyVendorToTargets } from '../utils/migrateIpCore';
 import type { GenerateOptionsMessage } from './IpCoreGenerateHandler';
 
 type SourceKind = 'hwTcl' | 'componentXml' | 'vhdl' | 'verilog';
@@ -211,7 +212,7 @@ export class IpCoreSourcePreviewProvider implements vscode.CustomTextEditorProvi
         this.context
       );
       const result = await generator.generateAll(tmpFile, outputDir, {
-        vendor: message.options?.vendorFiles ?? 'none',
+        targets: legacyVendorToTargets(message.options?.vendorFiles ?? 'none'),
         includeTestbench: message.options?.includeTestbench !== false,
         includeRegs: message.options?.includeRegfile !== false,
         includeVhdl: message.options?.includeVhdl !== false,

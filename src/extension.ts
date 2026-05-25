@@ -20,6 +20,10 @@ import { IpCoreSourcePreviewProvider } from './providers/IpCoreSourcePreviewProv
 import { safeRegisterCommand } from './utils/vscodeHelpers';
 import { detectAndSetToolContext } from './services/ToolDetector';
 import {
+  migrateLegacyIpCoreCommand,
+  checkForLegacyIpYmlFiles,
+} from './commands/migrateLegacyIpCore';
+import {
   vivadoNotConfiguredCommand,
   quartusNotConfiguredCommand,
   qsysEditNotConfiguredCommand,
@@ -106,6 +110,7 @@ export function activate(context: vscode.ExtensionContext): void {
   safeRegisterCommand(context, 'fpga-ip-core.buildNotConfigured', buildNotConfiguredCommand);
   safeRegisterCommand(context, 'fpga-ip-core.openAsText', openAsTextCommand);
   safeRegisterCommand(context, 'fpga-ip-core.openAsVisual', openAsVisualCommand);
+  safeRegisterCommand(context, 'fpga-ip-core.migrateLegacy', migrateLegacyIpCoreCommand);
   safeRegisterCommand(context, 'fpga-ip-core.previewInIpcraft', async (uri?: vscode.Uri) => {
     const targetUri = uri ?? vscode.window.activeTextEditor?.document.uri;
     if (!targetUri) {
@@ -167,6 +172,9 @@ export function activate(context: vscode.ExtensionContext): void {
       }
     })
   );
+
+  // One-time notification if workspace contains legacy vendor: fields
+  void checkForLegacyIpYmlFiles(context);
 
   logger.info('Extension activated successfully');
 }
