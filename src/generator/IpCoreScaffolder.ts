@@ -608,7 +608,7 @@ function resolveMemmapRelpath(
     const importVal = (memoryMaps as Record<string, unknown>).import;
     if (typeof importVal === 'string') {
       const absPath = path.resolve(path.dirname(inputPath), importVal);
-      return path.relative(path.join(outputDir, 'tb'), absPath);
+      return path.relative(path.join(outputDir, 'tb'), absPath).replace(/\\/g, '/');
     }
   }
   return undefined;
@@ -664,7 +664,7 @@ async function collectRtlFiles(
     }
   );
 
-  return sortedAbsPaths.map((absPath) => path.relative(tclSubDir, absPath));
+  return sortedAbsPaths.map((absPath) => path.relative(tclSubDir, absPath).replace(/\\/g, '/'));
 }
 
 function parseClockPeriodNs(frequency: string | null | undefined): string | null {
