@@ -365,7 +365,7 @@ async function generateVivadoProject(context: vscode.ExtensionContext): Promise<
     ipCoreUri,
     outputDir,
     {
-      targets: [],
+      targets: ['vivado'],
       includeVhdl: false,
       includeRegs: false,
       includeTestbench: false,
@@ -407,7 +407,7 @@ async function generateQuartusProject(context: vscode.ExtensionContext): Promise
     ipCoreUri,
     outputDir,
     {
-      targets: [],
+      targets: ['quartus'],
       includeVhdl: false,
       includeRegs: false,
       includeTestbench: false,
@@ -444,7 +444,7 @@ async function generateAndBuildVivado(context: vscode.ExtensionContext): Promise
     ipCoreUri,
     outputDir,
     {
-      targets: [],
+      targets: ['vivado'],
       includeVhdl: false,
       includeRegs: false,
       includeTestbench: false,
@@ -481,7 +481,7 @@ async function generateAndBuildQuartus(context: vscode.ExtensionContext): Promis
     ipCoreUri,
     outputDir,
     {
-      targets: [],
+      targets: ['quartus'],
       includeVhdl: false,
       includeRegs: false,
       includeTestbench: false,
