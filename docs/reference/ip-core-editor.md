@@ -82,7 +82,10 @@ Sub-editor within Bus Interfaces for mapping physical port names to logical sign
 | `useIpCoreState` | `ipcore/hooks/useIpCoreState.ts` | Parsed IP Core state, update methods, validation |
 | `useIpCoreSync` | `ipcore/hooks/useIpCoreSync.ts` | Sends YAML updates to extension host |
 | `useNavigation` | `ipcore/hooks/useNavigation.ts` | Section navigation state |
-| `useBusInterfaceEditing` | `ipcore/hooks/useBusInterfaceEditing.ts` | Bus interface editing state and actions |
+| `useCanvasDrop` | `ipcore/hooks/useCanvasDrop.ts` | Resolves drag-and-drop payloads into IP Core updates |
+| `useCanvasUndo` | `ipcore/hooks/useCanvasUndo.ts` | Undo/redo stack for canvas changes |
+| `useCanvasSelection` | `ipcore/hooks/useCanvasSelection.ts` | Canvas element selection state |
+| `useCanvasValidation` | `ipcore/hooks/useCanvasValidation.ts` | Real-time canvas constraint checks |
 
 ### Layout Components
 
@@ -108,7 +111,7 @@ Validation errors appear in a panel at the bottom of the editor. Clicking an err
 | `src/webview/ipcore/IpCoreApp.tsx` | App shell, message handling, keyboard shortcuts, view-mode toggle |
 | `src/webview/ipcore/components/layout/` | NavigationSidebar, EditorPanel |
 | `src/webview/ipcore/components/sections/` | All section editors (12 files) |
-| `src/webview/ipcore/hooks/` | State management hooks (4 files) |
+| `src/webview/ipcore/hooks/` | State management hooks (7 files) |
 
 ---
 

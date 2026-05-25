@@ -30,19 +30,21 @@ These commands are available on `.ip.yml` files.
 
 | Command | Palette | IPCraft Menu | Editor Title |
 |---------|:-------:|:------------:|:------------:|
-| `IPCraft: Scaffold VHDL Project` | ✓ | ✓ | ✓ |
-| `IPCraft: Generate VHDL` | ✓ | | |
+| `IPCraft: Scaffold Project` | ✓ | ✓ | ✓ |
+| `IPCraft: Generate HDL` | ✓ | | |
 | `IPCraft: Generate CocoTB Testbench` | ✓ | ✓ | ✓ |
 | `IPCraft: Generate Vivado Project` | ✓ | ✓ | ✓ |
 | `IPCraft: Generate Quartus Project` | ✓ | ✓ | ✓ |
 | `IPCraft: Generate Altera Platform Designer Component (_hw.tcl)` | ✓ | ✓ | ✓ |
 | `IPCraft: Generate Xilinx Vivado Component (component.xml)` | ✓ | ✓ | ✓ |
+| `IPCraft: Generate & Build (Vivado OOC)` | ✓ | ✓ | ✓ |
+| `IPCraft: Generate & Build (Quartus)` | ✓ | ✓ | ✓ |
 
-**Scaffold VHDL Project** — The all-in-one command. Generates VHDL RTL files, a cocotb testbench, and Vivado/Quartus project files in a single step. Part number and device are read from settings (`ipcraft.vivado.defaultPart`, `ipcraft.quartus.defaultDevice`). The output is written next to the `.ip.yml` file.
+**Scaffold Project** — The all-in-one command. Generates RTL files (VHDL or SystemVerilog, controlled by `ipcraft.generate.hdlLanguage`), a testbench, and vendor project files in a single step. Part number and device are read from settings (`ipcraft.vivado.defaultPart`, `ipcraft.quartus.defaultDevice`). The output is written next to the `.ip.yml` file.
 
-**Generate VHDL** — Generates RTL source files only (package, top entity, core skeleton, bus wrapper, register file). Prompts for an output directory.
+**Generate HDL** — Generates RTL source files only (package, top entity, core skeleton, bus wrapper, register file). Prompts for an output directory. Respects `ipcraft.generate.hdlLanguage`.
 
-**Generate CocoTB Testbench** — Generates `<ip_name>_test.py` and `Makefile` (GHDL) in the `tb/` directory.
+**Generate CocoTB Testbench** — Generates the testbench scaffold in the `tb/` directory. The framework and simulator engine are controlled by `ipcraft.testbench.framework` and `ipcraft.testbench.engine`. See [Run cocotb Simulations](../how-to/run-cocotb-simulation.md) for details.
 
 **Generate Vivado Project** — Prompts for an FPGA part number, then generates `xilinx/<ip_name>_project.tcl` (OOC project creator), `xilinx/<ip_name>_run_ooc.tcl` (OOC synthesis runner), `xilinx/<ip_name>_run_xpr.tcl` (full implementation runner), and `xilinx/<ip_name>_ooc.xdc` (timing constraints).
 
@@ -61,9 +63,15 @@ These commands are available on `.ip.yml` files and require vendor tools install
 | Command | Palette | IPCraft Menu | Editor Title | Status Bar |
 |---------|:-------:|:------------:|:------------:|:----------:|
 | `IPCraft: Build` | ✓ | ✓ | ✓ | |
+| `IPCraft: Build: Vivado OOC Synthesis` | ✓ | ✓ | | |
+| `IPCraft: Build: Quartus Compile` | ✓ | ✓ | | |
 | `IPCraft: Show Build Output` | ✓ | ✓ | | ✓ (click) |
 
 **Build** — Detects available build targets by checking for `xilinx/<ip_name>_run_ooc.tcl`, `xilinx/<ip_name>_run_xpr.tcl`, and `altera/<ip_name>_project.tcl`. When multiple targets exist, a QuickPick is shown. The selected tool runs in batch mode; output streams live to the *IPCraft Build* Output Channel. On completion, the *IPCraft Build* sidebar panel updates with parsed timing and utilization metrics.
+
+**Build: Vivado OOC Synthesis** — Directly runs the Vivado OOC synthesis target without a QuickPick prompt.
+
+**Build: Quartus Compile** — Directly runs the Quartus compile target without a QuickPick prompt.
 
 Available build targets:
 
@@ -81,15 +89,17 @@ Available build targets:
 
 | Command | Palette | IPCraft Menu | Editor Title |
 |---------|:-------:|:------------:|:------------:|
-| `IPCraft: Parse VHDL to .ip.yml` | ✓ | ✓ | ✓ (`.vhd`, `.vhdl`) |
-| `IPCraft: Parse Altera Platform Designer Component (_hw.tcl) to .ip.yml` | ✓ | ✓ | ✓ (`_hw.tcl`) |
-| `IPCraft: Parse Xilinx component.xml to .ip.yml` | ✓ | ✓ | ✓ (`component.xml`) |
+| `IPCraft: Import from VHDL (Experimental)` | ✓ | ✓ | ✓ (`.vhd`, `.vhdl`) |
+| `IPCraft: Import from Altera Platform Designer (Experimental)` | ✓ | ✓ | ✓ (`_hw.tcl`) |
+| `IPCraft: Import from Xilinx Component XML (Experimental)` | ✓ | ✓ | ✓ (`component.xml`) |
 
-**Parse VHDL to .ip.yml** — Parses a `.vhd` or `.vhdl` file and extracts entity name, generics, clock/reset/port signals, and bus interfaces (AXI4-Full, AXI4-Lite, AXI-Stream, Avalon-MM, Avalon-ST). Creates `<entity_name>.ip.yml` in the same directory.
+**Import from VHDL** — Parses a `.vhd` or `.vhdl` file and extracts entity name, generics, clock/reset/port signals, and bus interfaces (AXI4-Full, AXI4-Lite, AXI-Stream, Avalon-MM, Avalon-ST). Creates `<entity_name>.ip.yml` in the same directory.
 
-**Parse Altera Platform Designer Component** — Parses a `_hw.tcl` file (Altera IP specification language) and creates an `.ip.yml` spec.
+**Import from Altera Platform Designer** — Parses a `_hw.tcl` file (Altera IP specification language) and creates an `.ip.yml` spec.
 
-**Parse Xilinx component.xml** — Parses a Vivado IP-XACT `component.xml` and creates `.ip.yml`. If register data is present (memory maps), a `.mm.yml` is also created.
+**Import from Xilinx Component XML** — Parses a Vivado IP-XACT `component.xml` and creates `.ip.yml`. If register data is present (memory maps), a `.mm.yml` is also created.
+
+> **Note:** Import commands are experimental. Complex or non-standard files may not parse correctly.
 
 ---
 
@@ -98,11 +108,20 @@ Available build targets:
 | Command | Palette | IPCraft Menu | Editor Title |
 |---------|:-------:|:------------:|:------------:|
 | `IPCraft: Edit in IP Packager` | | ✓ | ✓ (`component.xml`) |
+| `IPCraft: Edit in Platform Designer` | | ✓ | ✓ (`_hw.tcl`) |
 | `IPCraft: Scan Vivado IP Catalog` | ✓ | | |
+| `IPCraft: Open in Vivado` | ✓ | ✓ | ✓ (`.ip.yml`) |
+| `IPCraft: Open in Quartus` | ✓ | ✓ | ✓ (`.ip.yml`) |
 
-**Edit in IP Packager** — Launches Vivado in GUI mode with the selected `component.xml`, opening it directly in the IP Packager. Requires `ipcraft.vivadoPath` to be set correctly.
+**Edit in IP Packager** — Launches Vivado in GUI mode with the selected `component.xml`, opening it directly in the IP Packager. Requires Vivado to be configured (see `ipcraft.vivado.runner` and `ipcraft.vivado.installDir`).
+
+**Edit in Platform Designer** — Launches Quartus Platform Designer (qsys-edit) with the selected `_hw.tcl` component. Requires Quartus to be configured (see `ipcraft.quartus.runner` and `ipcraft.quartus.installDir`).
 
 **Scan Vivado IP Catalog** — Invokes Vivado in batch mode to enumerate the installed IP catalog and caches the result in the IPCraft config directory. Used for bus-library suggestions.
+
+**Open in Vivado** — Generates the Vivado project if it does not yet exist, then launches Vivado GUI pointing at the project. Prompts for a board/part if no default is configured.
+
+**Open in Quartus** — Generates the Quartus project if it does not yet exist, then launches Quartus GUI pointing at the project. Prompts for a device if no default is configured.
 
 ---
 
@@ -116,6 +135,32 @@ Available build targets:
 
 ---
 
+### Editor Mode
+
+| Command | Palette | Editor Title |
+|---------|:-------:|:------------:|
+| `IPCraft: Open as Text Editor` | ✓ | ✓ (`.ip.yml`, `.mm.yml`) |
+| `IPCraft: Open as Visual Editor` | ✓ | ✓ (`.ip.yml`, `.mm.yml`) |
+| `IPCraft: Preview in IPCraft (Experimental)` | ✓ | |
+
+**Open as Text Editor** — Reopens the current `.ip.yml` or `.mm.yml` file in the default VS Code text editor.
+
+**Open as Visual Editor** — Reopens the current file in the IPCraft visual editor. Useful after opening a file with the text editor.
+
+**Preview in IPCraft** — Opens a read-only IPCraft preview panel for any YAML file. Experimental.
+
+---
+
+### Migrate
+
+| Command | Palette |
+|---------|:-------:|
+| `IPCraft: Migrate Legacy IP Cores (vendor: → targets:)` | ✓ |
+
+**Migrate Legacy IP Cores** — Scans the workspace for `.ip.yml` files that use the old `vendor:` field and rewrites them to the new `targets:` array format used by `ipcraft.generate.targets`.
+
+---
+
 ## Settings
 
 Configure via **File → Preferences → Settings** and search for `IPCraft`, or edit `settings.json` directly.
@@ -124,28 +169,48 @@ Configure via **File → Preferences → Settings** and search for `IPCraft`, or
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
-| `ipcraft.vivadoPath` | string | `"vivado"` | Path to the Vivado executable. Set to the full path if not in `PATH` (e.g., `/tools/Xilinx/Vivado/2024.2/bin/vivado`). |
-| `ipcraft.vivado.defaultPart` | string | `"xc7z020clg484-1"` | Default FPGA part used when generating a Vivado project. |
+| `ipcraft.vivado.runner` | `"local"` \| `"docker"` | `"local"` | How IPCraft executes Vivado. `local` uses a native install; `docker` runs every command in a container. |
+| `ipcraft.vivado.installDir` | string | `""` | *(local)* Path to your Vivado installation directory (e.g. `/tools/Xilinx/Vivado/2024.2`). Leave empty to rely on `vivado` being in `PATH`. |
+| `ipcraft.vivado.dockerImage` | string | `""` | *(docker)* Docker image used to run Vivado (e.g. `cvsoc/vivado:2024.2`). |
+| `ipcraft.vivado.defaultPart` | string | `"xc7z020clg484-1"` | Fallback FPGA part when no board has been selected. |
+| `ipcraft.customBoards.vivado` | object[] | `[]` | Custom Vivado boards shown under **My Boards** in the board picker. Each entry requires `label` (string) and `part` (Xilinx part number). |
 
 ### Quartus
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
-| `ipcraft.quartus.shellPath` | string | `"quartus_sh"` | Path to the Quartus Shell executable (`quartus_sh`). Set to the full path if not in `PATH`. |
-| `ipcraft.quartus.defaultDevice` | string | `"5CSEBA6U23I7"` | Default device part used when generating a Quartus project (e.g., DE10-Nano Cyclone V SoC). |
+| `ipcraft.quartus.runner` | `"local"` \| `"docker"` | `"local"` | How IPCraft executes Quartus. `local` uses a native install; `docker` runs every command in a container. |
+| `ipcraft.quartus.installDir` | string | `""` | *(local)* Top-level Quartus installation directory (e.g. `/opt/intelFPGA_pro/23.1`). IPCraft automatically locates `quartus_sh` and `qsys-edit` inside it. |
+| `ipcraft.quartus.dockerImage` | string | `""` | *(docker)* Docker image used to run Quartus (e.g. `cvsoc/quartus:23.1`). |
+| `ipcraft.quartus.defaultDevice` | string | `"5CSEBA6U23I7"` | Fallback device part when no board has been selected. |
+| `ipcraft.customBoards.quartus` | object[] | `[]` | Custom Quartus boards shown under **My Boards** in the board picker. Each entry requires `label` (string) and `device` (Intel/Altera part number). |
 
 ### Build
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
-| `ipcraft.build.jobs` | number | `4` | Number of parallel jobs passed to `launch_runs` in Vivado. |
+| `ipcraft.build.jobs` | number | `4` | Number of parallel jobs passed to Vivado `launch_runs` and Quartus compilation. |
 
 ### Generation
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
-| `ipcraft.generate.vendor` | enum | `"none"` | Vendor integration files to include when scaffolding: `none`, `altera`, `xilinx`, `both`. |
-| `ipcraft.generate.includeTestbench` | boolean | `true` | Include a cocotb testbench when scaffolding a project. |
+| `ipcraft.generate.targets` | string[] | `[]` | Synthesis vendor targets to include when scaffolding (e.g. `["vivado"]`, `["vivado","quartus"]`). Empty array generates HDL and testbench only. |
+| `ipcraft.generate.hdlLanguage` | `"vhdl"` \| `"systemverilog"` | `"vhdl"` | HDL language for RTL file generation. |
+| `ipcraft.generate.includeTestbench` | boolean | `true` | Include a testbench when scaffolding a project. |
+
+### Testbench
+
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| `ipcraft.testbench.framework` | `"cocotb"` \| `"vunit"` | `"cocotb"` | Testbench framework. `cocotb` generates a Python/pytest test + Makefile; `vunit` generates a `run.py` + VHDL testbench entity. |
+| `ipcraft.testbench.engine` | `"ghdl"` \| `"icarus"` \| `"verilator"` \| `"questa"` | `"ghdl"` | Simulation engine used by the generated testbench. |
+
+### Toolbar
+
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| `ipcraft.toolbar.targets` | string[] | `["vivado","quartus"]` | Which vendor toolchain sections to display in the IP Core editor toolbar. |
 
 ### Import
 
@@ -159,7 +224,7 @@ Configure via **File → Preferences → Settings** and search for `IPCraft`, or
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
-| `ipcraft.busLibraryPaths` | string[] | `[]` | Additional directories to search recursively for custom bus definition YAML files (`.busdef.yml`). |
+| `ipcraft.busLibraryPaths` | string[] | `[]` | Additional directories to search recursively for custom bus definition YAML files (`.yml`/`.yaml`). |
 | `ipcraft.ipRepositoryPaths` | string[] | `[]` | Additional directories to scan for IP cores (directories containing `.ip.yml` or `component.xml` files). |
 
 ---

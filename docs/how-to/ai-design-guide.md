@@ -42,8 +42,6 @@ If the AI generates a layout that feels "cramped," you can use the **IPCore Edit
 ---
 
 ## Built-in AI Skills
-If you are using a workspace-aware AI like Antigravity, you can use the following specialized skills:
-- `@/ip-architect`: For IP and memory map design.
+If you are using a workspace-aware AI like GitHub Copilot, you can use the following specialized skills:
+- `@/ip-architect`: For IP and memory map design (VLNV, bus interfaces, register layout).
 - `@/cocotb-test-gen`: For verification and testbench scaffolding.
-- `@/new-ip-foundry`: A workflow for starting new projects.
-- `@/legacy-vhdl-importer`: A workflow for migrating old code.

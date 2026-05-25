@@ -1,6 +1,8 @@
-# How to Run cocotb Simulations
+# How to Run Simulations
 
-How to simulate a scaffolded IP core using cocotb, pytest, and the VS Code Testing panel.
+How to simulate a scaffolded IP core using a testbench framework (cocotb or VUnit) and the VS Code Testing panel.
+
+> **Framework selection:** IPCraft supports two testbench frameworks: **cocotb** (default) and **VUnit**. The active framework is controlled by the `ipcraft.testbench.framework` setting. This guide covers the cocotb workflow; the generated file structure and helper scripts differ slightly for VUnit but the general principles are identical.
 
 ---
 
@@ -42,7 +44,7 @@ ghdl --version
 
 ## Generated file structure
 
-After running **IPCraft: Scaffold VHDL Project** with the `ipcraft.generate.includeTestbench` setting enabled (the default), the following simulation files are placed next to the `.ip.yml` source:
+After running **IPCraft: Scaffold Project** with the `ipcraft.generate.includeTestbench` setting enabled (the default), the following simulation files are placed next to the `.ip.yml` source:
 
 ```
 <ip_name>/
@@ -274,7 +276,7 @@ FileNotFoundError: RTL sources not found — run the IPCraft scaffolder first:
   /path/to/myip/rtl/myip_pkg.vhd
 ```
 
-The `conftest.py` checks that all source files listed in `VHDL_SOURCES` exist before attempting compilation. Run **IPCraft: Scaffold VHDL Project** (or **IPCraft: Generate VHDL**) to create them, then run pytest again.
+The `conftest.py` checks that all source files listed in `VHDL_SOURCES` exist before attempting compilation. Run **IPCraft: Scaffold Project** (or **IPCraft: Generate HDL**) to create them, then run pytest again.
 
 ### Simulator not found
 

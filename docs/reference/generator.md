@@ -1,10 +1,10 @@
 # Generator Reference
 
-The generator scaffolds complete RTL projects from IP Core specifications. It produces VHDL source files, vendor integration files, vendor build scripts, and optional testbenches.
+The generator scaffolds complete RTL projects from IP Core specifications. It produces VHDL or SystemVerilog source files, vendor integration files, vendor build scripts, and optional testbenches.
 
 ## Overview
 
-Generation is triggered by `IPCraft: Scaffold VHDL Project` or the individual generate commands. The entry point is `IpCoreScaffolder.generateAll()`.
+Generation is triggered by `IPCraft: Scaffold Project` or the individual generate commands. The entry point is `IpCoreScaffolder.generateAll()`.
 
 ```mermaid
 graph LR
@@ -18,7 +18,9 @@ graph LR
 
 ## Generated Output
 
-The scaffolder produces files organized by category next to the `.ip.yml` file:
+The scaffolder produces files organized by category next to the `.ip.yml` file.
+
+**VHDL layout** (`ipcraft.generate.hdlLanguage: "vhdl"`):
 
 ```text
 <ip_name>/
@@ -29,8 +31,11 @@ The scaffolder produces files organized by category next to the `.ip.yml` file:
     <ip_name>_<bus>.vhd       # Bus wrapper (axil or avmm)
     <ip_name>_regs.vhd        # Register file with field decode
   tb/
-    <ip_name>_test.py         # cocotb test skeleton
-    Makefile                  # GHDL simulation Makefile
+    mm_loader.py               # Generic .mm.yml reader
+    <ip_name>_test.py          # cocotb test skeleton
+    conftest.py                # pytest session fixture
+    test_<ip_name>_sim.py      # pytest wrapper functions
+    Makefile                   # GNU Make entry point
   xilinx/
     component.xml             # Vivado IP-XACT descriptor
     xgui/<ip_name>_v*.tcl    # Vivado XGUI customization
@@ -38,57 +43,62 @@ The scaffolder produces files organized by category next to the `.ip.yml` file:
     <ip_name>_run_ooc.tcl    # Batch OOC synthesis runner
     <ip_name>_run_xpr.tcl    # Batch full synthesis + implementation runner
     <ip_name>_ooc.xdc        # OOC timing constraints (create_clock entries)
-    build/ooc/               # Created by IPCraft: Build (OOC target)
-      timing.rpt
-      utilization.rpt
-      cdc.rpt
-    build/xpr/               # Created by IPCraft: Build (XPR target)
-      timing.rpt
-      utilization.rpt
-      cdc.rpt
   altera/
     <ip_name>_hw.tcl          # Platform Designer component
     <ip_name>_project.tcl    # Creates Quartus project in altera/build/
     <ip_name>.sdc             # SDC timing constraints (virtual pins + clocks)
-    build/                   # Created by IPCraft: Build
-      output_files/
-        <ip_name>.sta.summary
-        <ip_name>.fit.summary
+```
+
+**SystemVerilog layout** (`ipcraft.generate.hdlLanguage: "systemverilog"`):
+
+```text
+<ip_name>/
+  rtl/
+    <ip_name>_pkg.sv
+    <ip_name>.sv
+    <ip_name>_core.sv
+    <ip_name>_<bus>.sv
+    <ip_name>_regs.sv
+  tb/
+    (same as VHDL layout)
 ```
 
 ## Generation Options
 
 | Option | Type | Default | Purpose |
 |--------|------|---------|---------|
-| `vendor` | `'none' \| 'altera' \| 'xilinx' \| 'both'` | `'none'` | Which vendor integration files to generate |
-| `includeVhdl` | `boolean` | `true` | Generate RTL VHDL files |
+| `targets` | `string[]` | `[]` | Vendor toolchain IDs to generate packaging files for (e.g. `['vivado']`, `['vivado','quartus']`). Empty = HDL + testbench only. |
+| `hdlLanguage` | `'vhdl' \| 'systemverilog'` | `'vhdl'` | RTL language for generated source files |
+| `includeHdl` | `boolean` | `true` | Generate RTL source files |
 | `includeRegs` | `boolean` | `true` | Generate register file |
-| `includeTestbench` | `boolean` | `true` | Generate cocotb test + Makefile |
+| `includeTestbench` | `boolean` | `true` | Generate testbench scaffold |
 | `includeVivadoProject` | `boolean` | `false` | Generate Vivado project and build scripts |
 | `targetPart` | `string` | from settings | FPGA part for Vivado project |
 | `includeQuartusProject` | `boolean` | `false` | Generate Quartus project files |
 | `quartusDevice` | `string` | from settings | Device part for Quartus project |
 | `updateYaml` | `boolean` | — | Update `fileSets` in the IP Core YAML after generation |
 
-## Vendor Options
+## Vendor Targets
 
-| Value | Files Produced |
+The `targets` array controls which vendor packaging files are generated:
+
+| Entry | Files Produced |
 |-------|----------------|
-| `none` | No vendor files |
-| `altera` | `altera/<ip_name>_hw.tcl` |
-| `xilinx` | `xilinx/component.xml` + `xilinx/xgui/<ip_name>_v*.tcl` |
-| `both` | All vendor files (Altera + Xilinx) |
+| *(empty)* | No vendor files |
+| `"quartus"` | `altera/<ip_name>_hw.tcl` |
+| `"vivado"` | `xilinx/component.xml` + `xilinx/xgui/<ip_name>_v*.tcl` |
+| `["vivado","quartus"]` | All vendor files |
 
-Vendor project files (project TCL, build scripts, constraints) are generated separately by `includeVivadoProject` and `includeQuartusProject`, independent of the `vendor` option.
+Vendor project files (project TCL, build scripts, constraints) are generated separately by `includeVivadoProject` and `includeQuartusProject`, independent of `targets`.
 
 ## Bus Type Detection
 
 The generator reads the IP Core's bus interfaces to determine the bus protocol. It looks for an interface with a `memory_map_ref` and maps its type:
 
-| Bus Interface Type | Generator Bus Type | Template |
-|--------------------|-------------------|----------|
-| `AXI4L`, `axi4lite`, `axi*` | `axil` | `bus_axil.vhdl.j2` |
-| `Avalon-MM`, `avmm`, `avalon*` | `avmm` | `bus_avmm.vhdl.j2` |
+| Bus Interface Type | Generator Bus Type | VHDL Template | SV Template |
+|--------------------|-------------------|---------------|-------------|
+| `AXI4L`, `axi4lite`, `axi*` | `axil` | `bus_axil.vhdl.j2` | `bus_axil.sv.j2` |
+| `Avalon-MM`, `avmm`, `avalon*` | `avmm` | `bus_avmm.vhdl.j2` | `bus_avmm.sv.j2` |
 
 If no bus interface with a `memory_map_ref` is found, the generator defaults to AXI-Lite.
 
@@ -106,6 +116,17 @@ Templates use [Nunjucks](https://mozilla.github.io/nunjucks/) (Jinja2-compatible
 | `bus_axil.vhdl.j2` | AXI-Lite bus wrapper |
 | `bus_avmm.vhdl.j2` | Avalon-MM bus wrapper |
 | `register_file.vhdl.j2` | Register file with decode |
+
+### SystemVerilog templates
+
+| Template | Output |
+|----------|--------|
+| `pkg.sv.j2` | SV package with register constants |
+| `top.sv.j2` | Top-level module |
+| `core.sv.j2` | User logic skeleton |
+| `bus_axil.sv.j2` | AXI-Lite bus wrapper |
+| `bus_avmm.sv.j2` | Avalon-MM bus wrapper |
+| `register_file.sv.j2` | Register file with decode |
 
 ### Vivado templates
 
@@ -126,14 +147,41 @@ Templates use [Nunjucks](https://mozilla.github.io/nunjucks/) (Jinja2-compatible
 | `quartus_project.tcl.j2` | `altera/<ip_name>_project.tcl` |
 | `quartus_sdc.j2` | `altera/<ip_name>.sdc` |
 
-### Testbench templates
+### CocoTB testbench templates
 
 | Template | Output |
 |----------|--------|
-| `cocotb_test.py.j2` | `tb/<ip_name>_test.py` |
-| `cocotb_makefile.j2` | `tb/Makefile` |
+| `cocotb_test.py.j2` | `tb/<ip_name>_test.py` — cocotb test skeleton |
+| `cocotb_pytest.py.j2` | `tb/test_<ip_name>_sim.py` — pytest wrapper functions |
+| `cocotb_conftest.py.j2` | `tb/conftest.py` — pytest session fixture |
+| `cocotb_makefile.j2` | `tb/Makefile` — VHDL simulation Makefile |
+| `cocotb_makefile.sv.j2` | `tb/Makefile` — SystemVerilog simulation Makefile |
+| `cocotb_dump.v.j2` | `tb/dump.v` — VCD dump module for Icarus/Verilator |
+| `mm_loader.py.j2` | `tb/mm_loader.py` — runtime `.mm.yml` reader |
+| `vscode_settings.json.j2` | `.vscode/settings.json` — configures pytest test discovery |
 
-## Vivado Build Scripts
+### VUnit testbench templates
+
+| Template | Output |
+|----------|--------|
+| `vunit_run.py.j2` | `tb/run.py` — VUnit test runner script |
+| `vunit_tb.vhd.j2` | `tb/<ip_name>_tb.vhd` — VHDL testbench entity |
+
+## Testbench Framework
+
+The testbench framework and simulation engine are controlled by `ipcraft.testbench.framework` and `ipcraft.testbench.engine`:
+
+| Framework | Engine | Generated files |
+|-----------|--------|----------------|
+| `cocotb` | `ghdl` | `Makefile` (GHDL flags), `conftest.py`, `<ip_name>_test.py`, `test_<ip_name>_sim.py`, `mm_loader.py` |
+| `cocotb` | `icarus` | Same, with Icarus-specific `Makefile` and `dump.v` |
+| `cocotb` | `verilator` | Same, with Verilator Makefile |
+| `cocotb` | `questa` | Same, with Questa Makefile |
+| `vunit` | `ghdl` | `run.py`, `<ip_name>_tb.vhd` |
+
+See [Run cocotb Simulations](../how-to/run-cocotb-simulation.md) for the full simulation workflow.
+
+
 
 The two run-script templates (`vivado_run_ooc.tcl.j2`, `vivado_run_xpr.tcl.j2`) are generated whenever `includeVivadoProject: true`. They accept an optional job count via `-tclargs`:
 
@@ -176,9 +224,25 @@ Reports are written to `altera/build/output_files/`.
 | `src/generator/IpCoreScaffolder.ts` | Orchestrates generation, builds template context |
 | `src/generator/registerProcessor.ts` | Register + bus interface processing |
 | `src/generator/TemplateLoader.ts` | Loads and renders Nunjucks templates |
-| `src/generator/types.ts` | Type definitions (`VendorOption`, `GenerateOptions`, `IpCoreData`) |
+| `src/generator/types.ts` | Type definitions (`GenerateOptions`, `IpCoreData`, bus types) |
+| `src/generator/VivadoBusDefInstaller.ts` | Installs IP core bus definitions into the Vivado catalog |
+| `src/generator/VivadoComponentXmlGenerator.ts` | Generates Vivado IP-XACT `component.xml` |
+| `src/generator/testbench/` | Testbench framework/engine abstraction (see below) |
 | `src/generator/templates/` | All template files |
 | `src/services/BuildRunner.ts` | Spawns vendor tools with stdout/stderr streaming |
 | `src/services/ReportParser.ts` | Parses Vivado and Quartus report files |
 | `src/providers/ReportsTreeProvider.ts` | Explorer sidebar tree view for build results |
 | `src/commands/BuildCommands.ts` | Build command handlers and status bar integration |
+
+### Testbench abstraction (`src/generator/testbench/`)
+
+| File | Purpose |
+|------|---------|
+| `Framework.ts` | `TestbenchFramework` interface |
+| `Engine.ts` | `SimulationEngine` interface |
+| `frameworks/CocotbFramework.ts` | CocoTB framework implementation |
+| `frameworks/VUnitFramework.ts` | VUnit framework implementation |
+| `engines/GhdlEngine.ts` | GHDL engine settings |
+| `engines/IcarusEngine.ts` | Icarus Verilog engine settings |
+| `engines/VerilatorEngine.ts` | Verilator engine settings |
+| `engines/QuestaEngine.ts` | Questa / ModelSim engine settings |

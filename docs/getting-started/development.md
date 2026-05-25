@@ -37,7 +37,7 @@ src/
   generator/                # VHDL scaffolding + Nunjucks templates
   utils/                    # logging, error handling, helpers
   webview/                  # React apps (Memory Map & IP Core)
-  test/suite/               # Jest unit tests (39 suites, 309 tests)
+  test/suite/               # Jest unit tests
 config/                     # Tool configurations (Jest, Webpack, Playwright, etc.)
 resources/                  # Icons and static assets
 docs/                       # this documentation
@@ -151,7 +151,7 @@ See [Building a VSIX Package](../how-to/build-vsix.md) for the full workflow inc
 ### Add generator behavior
 
 1. Update `src/generator/*` and templates in `src/generator/templates/*`
-2. Vendor templates follow naming convention: `altera_*.j2`, `amd_*.j2`
+2. VHDL templates use `*.vhdl.j2` suffix; SystemVerilog templates use `*.sv.j2`; vendor templates follow `altera_*.j2` and `amd_*.j2` naming
 3. Register new templates in `TemplateLoader` if needed
 4. Validate with sample specs in `ipcraft-spec/examples/*`
 5. Update the [Generator Reference](../reference/generator.md)

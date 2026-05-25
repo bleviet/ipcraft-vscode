@@ -13,8 +13,8 @@ Visual editor for FPGA IP Core and Memory Map specifications, built as a VS Code
 - **Real-time Validation** — YAML cross-reference checks with a click-to-navigate error list
 - **Bi-directional Sync** — visual editor changes are instantly reflected in the YAML source, and vice versa
 
-### VHDL Generation
-- **Full Project Scaffold** — one command generates VHDL package, top entity, user-logic skeleton, bus wrapper (AXI-Lite or Avalon-MM), register file, testbench, and vendor project files
+### HDL Generation
+- **Full Project Scaffold** — one command generates RTL files (VHDL or SystemVerilog), package, top entity, user-logic skeleton, bus wrapper (AXI-Lite or Avalon-MM), register file, testbench, and vendor project files
 - **Vendor Integration** — generates Xilinx/AMD Vivado OOC synthesis project (`.tcl`, `.xdc`, run scripts) and Intel/Altera Quartus project (`.tcl`, `.sdc`), ready to open in the GUI or run headlessly
 
 ### Headless Build

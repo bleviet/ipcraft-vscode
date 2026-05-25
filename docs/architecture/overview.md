@@ -16,9 +16,10 @@ graph TB
     subgraph "Extension Host"
         EXT["extension.ts"]
         PROV["Providers\nMemoryMapEditorProvider\nIpCoreEditorProvider\nIpCoreGenerateHandler\nproviderServices"]
-        SVC["Services\nMessageHandler\nDocumentManager\nYamlValidator\nHtmlGenerator\nImportResolver\nBusLibraryService\nFileSetUpdater"]
-        CMD["Commands\nFileCreation\nGenerate"]
-        GEN["Generator\nIpCoreScaffolder\nregisterProcessor\nTemplateLoader"]
+        SVC["Services\nMessageHandler\nDocumentManager\nYamlValidator\nHtmlGenerator\nImportResolver\nBusLibraryService\nFileSetUpdater\nSubcoreResolver\nVivadoCatalogScanner\nToolDetector"]
+        CMD["Commands\nFileCreation\nGenerate\nBuild\nVivado/Quartus\nMigrate"]
+        GEN["Generator\nIpCoreScaffolder\nregisterProcessor\nTemplateLoader\ntestbench/"]
+        TC["Toolchains\nVivadoToolchain\nQuartusToolchain\nregistry"]
         PAR["Parser\nVhdlParser"]
     end
     subgraph "Webview"
@@ -26,8 +27,8 @@ graph TB
         IP["IP Core App\nIpCoreApp.tsx"]
         MMCOMP["MM Components\nOutline, DetailsPanel\nRegisterEditor\nBlockEditor, etc."]
         IPCOMP["IP Core Components\nNavigationSidebar, EditorPanel\nMetadataEditor, ClocksTable\nBusInterfacesEditor\nIpBlockCanvas, LibraryPalette\nCanvasInspector, CanvasBusBundle"]
-        HOOK["MM Hooks\nuseMemoryMapState\nuseFieldEditor\nuseYamlSync"]
-        IPHOOK["IP Core Hooks\nuseIpCoreState\nuseIpCoreSync\nuseBusInterfaceEditing\nuseCanvasUndo, useCanvasValidation"]
+        HOOK["MM Hooks\nuseMemoryMapState\nuseYamlSync\nuseSelection"]
+        IPHOOK["IP Core Hooks\nuseIpCoreState\nuseIpCoreSync\nuseCanvasDrop\nuseCanvasUndo\nuseCanvasSelection\nuseCanvasValidation"]
         WSVC["Services\nDataNormalizer\nYamlPathResolver\nSpatialInsertionService\nFieldOperationService"]
         ALG["Algorithms\nBitFieldRepacker\nRegisterRepacker\nAddressBlockRepacker"]
         SHARED["Shared\nEditableTable, FormField\nvalidation, formatters\ncolors, constants"]
@@ -39,6 +40,8 @@ graph TB
     PROV --> SVC
     CMD --> GEN
     CMD --> PAR
+    CMD --> TC
+    GEN --> TC
     MM --> MMCOMP --> HOOK --> WSVC --> ALG
     IP --> IPCOMP --> IPHOOK
     MMCOMP --> SHARED
@@ -76,9 +79,9 @@ Webview can post `type: 'command'` (`save`, `validate`, `openFile`). Host execut
 
 Canvas keyboard shortcuts (Delete, Ctrl+D, Ctrl+Z/Y) follow the same update path through `updateIpCore`.
 
-### VHDL generation
+### HDL generation
 
-1. User configures options in the Generator Panel (bus type, vendor files, testbench)
+1. User configures options in the Generator Panel (bus type, targets, testbench)
 2. Webview posts `type: 'generate'` with options
 3. Host `IpCoreGenerateHandler` invokes `IpCoreScaffolder.generateAll()`
 4. Scaffolder loads templates, builds context from IP Core data, renders files

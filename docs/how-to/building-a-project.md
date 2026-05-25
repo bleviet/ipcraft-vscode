@@ -4,10 +4,10 @@ How to compile an IP core headlessly — without opening Vivado or Quartus — a
 
 ## Prerequisites
 
-- An IP Core file (`.ip.yml`) with vendor project files already generated (run `IPCraft: Scaffold VHDL Project` or `IPCraft: Generate Vivado Project` / `IPCraft: Generate Quartus Project` first)
+- An IP Core file (`.ip.yml`) with vendor project files already generated (run `IPCraft: Scaffold Project` or `IPCraft: Generate Vivado Project` / `IPCraft: Generate Quartus Project` first)
 - The vendor tool reachable from VS Code:
-    - **Vivado**: `vivado` in your system `PATH`, or the path configured in `ipcraft.vivadoPath`
-    - **Quartus**: `quartus_sh` in your system `PATH`, or the path configured in `ipcraft.quartus.shellPath`
+    - **Vivado**: configured via `ipcraft.vivado.runner` + `ipcraft.vivado.installDir` (local) or `ipcraft.vivado.dockerImage` (docker)
+    - **Quartus**: configured via `ipcraft.quartus.runner` + `ipcraft.quartus.installDir` (local) or `ipcraft.quartus.dockerImage` (docker)
 
 ## Run a Build
 
@@ -84,17 +84,21 @@ Click the status bar item at any time to open the *IPCraft Build* Output Channel
 
 ## Configuring the Build
 
+### Local installation
+
 | Setting | Default | Purpose |
 |---------|---------|---------|
-| `ipcraft.vivadoPath` | `vivado` | Path to the Vivado executable |
-| `ipcraft.quartus.shellPath` | `quartus_sh` | Path to `quartus_sh` |
-| `ipcraft.build.jobs` | `4` | Parallel jobs for Vivado `launch_runs` |
+| `ipcraft.vivado.runner` | `"local"` | Set to `"local"` to use a native Vivado install |
+| `ipcraft.vivado.installDir` | `""` | Path to Vivado installation directory (e.g. `/tools/Xilinx/Vivado/2024.2`). Leave empty to use `vivado` from PATH. |
+| `ipcraft.quartus.runner` | `"local"` | Set to `"local"` to use a native Quartus install |
+| `ipcraft.quartus.installDir` | `""` | Top-level Quartus installation directory (e.g. `/opt/intelFPGA_pro/23.1`). |
+| `ipcraft.build.jobs` | `4` | Parallel jobs for Vivado `launch_runs` and Quartus compilation |
 
 Example for a non-default Vivado installation on Linux:
 
 ```json
 {
-  "ipcraft.vivadoPath": "/tools/Xilinx/Vivado/2024.2/bin/vivado"
+  "ipcraft.vivado.installDir": "/tools/Xilinx/Vivado/2024.2"
 }
 ```
 
@@ -102,7 +106,25 @@ On Windows:
 
 ```json
 {
-  "ipcraft.vivadoPath": "C:\\Xilinx\\Vivado\\2024.2\\bin\\vivado.bat"
+  "ipcraft.vivado.installDir": "C:\\Xilinx\\Vivado\\2024.2"
+}
+```
+
+### Docker
+
+To run Vivado or Quartus inside a Docker container:
+
+```json
+{
+  "ipcraft.vivado.runner": "docker",
+  "ipcraft.vivado.dockerImage": "cvsoc/vivado:2024.2"
+}
+```
+
+```json
+{
+  "ipcraft.quartus.runner": "docker",
+  "ipcraft.quartus.dockerImage": "cvsoc/quartus:23.1"
 }
 ```
 
@@ -139,9 +161,9 @@ quartus_sh --flow compile <ip_name>     # compile
 
 | Problem | Solution |
 |---------|----------|
-| *No build targets found* | Run `IPCraft: Scaffold VHDL Project` or `IPCraft: Generate Vivado Project` / `IPCraft: Generate Quartus Project` first |
-| *'vivado' not found* | Set `ipcraft.vivadoPath` to the full path of the Vivado executable |
-| *'quartus_sh' not found* | Set `ipcraft.quartus.shellPath` to the full path of `quartus_sh` |
+| *No build targets found* | Run `IPCraft: Scaffold Project` or `IPCraft: Generate Vivado Project` / `IPCraft: Generate Quartus Project` first |
+| *Vivado not found* | Set `ipcraft.vivado.installDir` to your Vivado installation directory, or ensure `vivado` is in PATH |
+| *Quartus not found* | Set `ipcraft.quartus.installDir` to your Quartus installation directory, or ensure `quartus_sh` is in PATH |
 | Build exits with non-zero code | Check the *IPCraft Build* Output Channel for error messages from the tool |
 | Reports panel shows no data | The tool ran but the expected report files were not written; check the Output Channel for synthesis/implementation errors |
 | Timing violations (negative WNS) | Tighten the OOC constraints in `<ip_name>_ooc.xdc`, or review the critical paths in `timing.rpt` |

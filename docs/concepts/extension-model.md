@@ -92,9 +92,23 @@ Commands are registered in `package.json` and implemented in `src/commands/`:
 | `fpga-ip-core.createIpCore` | New IP Core |
 | `fpga-ip-core.createMemoryMap` | New Memory Map |
 | `fpga-ip-core.createIpCoreWithMemoryMap` | New IP Core + Memory Map |
-| `fpga-ip-core.generateVHDL` | Generate VHDL |
-| `fpga-ip-core.parseVHDL` | Import from VHDL |
+| `fpga-ip-core.generateHdl` | Generate HDL |
+| `fpga-ip-core.scaffoldProject` | Scaffold Project |
+| `fpga-ip-core.generateTestbench` | Generate CocoTB Testbench |
+| `fpga-ip-core.generateAndBuildVivado` | Generate & Build (Vivado OOC) |
+| `fpga-ip-core.generateAndBuildQuartus` | Generate & Build (Quartus) |
+| `fpga-ip-core.buildVivadoOoc` | Build: Vivado OOC Synthesis |
+| `fpga-ip-core.buildQuartusCompile` | Build: Quartus Compile |
+| `fpga-ip-core.parseVHDL` | Import from VHDL (Experimental) |
+| `fpga-ip-core.parseHwTcl` | Import from Altera Platform Designer (Experimental) |
+| `fpga-ip-core.parseComponentXml` | Import from Xilinx Component XML (Experimental) |
 | `fpga-ip-core.viewBusDefinitions` | View Bus Definitions |
+| `fpga-ip-core.scanVivadoCatalog` | Scan Vivado IP Catalog |
+| `fpga-ip-core.openInVivado` | Open in Vivado |
+| `fpga-ip-core.openInQuartus` | Open in Quartus |
+| `fpga-ip-core.openAsText` | Open as Text Editor |
+| `fpga-ip-core.openAsVisual` | Open as Visual Editor |
+| `fpga-ip-core.migrateLegacy` | Migrate Legacy IP Cores (vendor: → targets:) |
 
 ## Security
 
