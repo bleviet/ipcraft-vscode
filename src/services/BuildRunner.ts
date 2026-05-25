@@ -203,6 +203,11 @@ export function spawnGui(
     const toContainer = (p: string) =>
       CONTAINER_MOUNT + '/' + path.relative(base, p).replace(/\\/g, '/');
 
+    const translatedArgs = args.map((a) => {
+      const norm = path.normalize(a);
+      return path.isAbsolute(norm) && norm.startsWith(base + path.sep) ? toContainer(norm) : a;
+    });
+
     spawnExe = 'docker';
     spawnArgs = [
       'run',
@@ -216,7 +221,7 @@ export function spawnGui(
       toContainer(cwd),
       docker.image,
       executable,
-      ...args,
+      ...translatedArgs,
     ];
   }
 

@@ -22,7 +22,7 @@ export async function openInQuartusCommand(uri?: vscode.Uri): Promise<void> {
   }
 
   const guiExe = toolchain.resolve('quartus', cfg);
-  if (!guiExe) {
+  if (!guiExe?.exe) {
     return;
   }
 

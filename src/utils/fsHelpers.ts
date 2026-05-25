@@ -1,6 +1,8 @@
 import * as fs from 'fs/promises';
 
-/** Returns true when the path is readable, false on any access error. */
+/**
+ * Check if a file or directory exists at the given path.
+ */
 export async function fileExists(p: string): Promise<boolean> {
   try {
     await fs.access(p);

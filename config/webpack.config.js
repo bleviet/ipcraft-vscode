@@ -89,6 +89,10 @@ const extensionConfig = {
           from: path.resolve(projectRoot, "ipcraft-spec", "bus_definitions"),
           to: "resources/bus_definitions",
         },
+        {
+          from: path.resolve(projectRoot, "ipcraft-spec", "schemas", "ip_core.schema.json"),
+          to: "resources/schemas/ip_core.schema.json",
+        },
       ],
     }),
   ],
