@@ -16,7 +16,12 @@ import {
   validateRequired,
   validateVersion,
 } from '../../../shared/utils/validation';
-import { lookupBusDef, isConduitType } from '../../data/busDefinitions';
+import {
+  lookupBusDef,
+  lookupBusDefFromLibrary,
+  isConduitType,
+  type BusPortDef,
+} from '../../data/busDefinitions';
 import { supportsMemoryMap } from './canvasLayout';
 import { vscode } from '../../../vscode';
 
@@ -1062,7 +1067,9 @@ function isCustomBusInterface(bus: BusInterface): boolean {
 
 const BusPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, onUpdate }) => {
   if (isCustomBusInterface(bus)) {
-    return <ConduitPanel bus={bus} index={index} ipCore={ipCore} onUpdate={onUpdate} />;
+    return (
+      <ConduitPanel bus={bus} index={index} ipCore={ipCore} imports={imports} onUpdate={onUpdate} />
+    );
   }
 
   const buses = (ipCore.busInterfaces ?? []) as BusInterface[];
@@ -1228,12 +1235,7 @@ function buildConduitType(name: string): string {
   return `user.busif.${safe}.1.0`;
 }
 
-const ConduitPanel: React.FC<Omit<BusPanelProps, 'imports'>> = ({
-  bus,
-  index,
-  ipCore,
-  onUpdate,
-}) => {
+const ConduitPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, onUpdate }) => {
   const buses = (ipCore.busInterfaces ?? []) as BusInterface[];
   const clocks = (ipCore.clocks ?? []) as Clock[];
   const resets = (ipCore.resets ?? []) as Reset[];
@@ -1253,6 +1255,11 @@ const ConduitPanel: React.FC<Omit<BusPanelProps, 'imports'>> = ({
 
   const typeName = conduitTypeName(bus.type);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
+
+  // If the bus type is already present in the loaded bus library, this interface
+  // has a saved definition — show Port Widths instead of the conduit signals editor.
+  const busLibrary = imports?.busLibrary as Record<string, unknown> | undefined;
+  const libraryPortDefs = busLibrary ? lookupBusDefFromLibrary(bus.type, busLibrary) : null;
 
   const handleSaveBusDef = useCallback(() => {
     const conduitPorts = bus.conduitPorts ?? [];
@@ -1389,31 +1396,43 @@ const ConduitPanel: React.FC<Omit<BusPanelProps, 'imports'>> = ({
           emptyOption="— None —"
         />
       </Section>
-      <ConduitSignalsSection
-        bus={bus}
-        busIndex={index}
-        paramNames={paramNames}
-        onUpdate={onUpdate}
-      />
-      <div className="ci-conduit-footer">
-        <button
-          className={`ci-conduit-save-btn${saveState === 'saved' ? ' ci-conduit-save-btn--saved' : ''}`}
-          onClick={handleSaveBusDef}
-          disabled={saveState === 'saving'}
-          title="Save interface definition as a reusable YAML file"
-          type="button"
-        >
-          {saveState === 'saved' ? (
-            <>
-              <span className="codicon codicon-check" aria-hidden="true" /> Saved
-            </>
-          ) : (
-            <>
-              <span className="codicon codicon-save" aria-hidden="true" /> Save Bus Definition
-            </>
-          )}
-        </button>
-      </div>
+      {libraryPortDefs ? (
+        <PortWidthOverridesSection
+          bus={bus}
+          busIndex={index}
+          paramNames={paramNames}
+          libraryPortDefs={libraryPortDefs}
+          onUpdate={onUpdate}
+        />
+      ) : (
+        <>
+          <ConduitSignalsSection
+            bus={bus}
+            busIndex={index}
+            paramNames={paramNames}
+            onUpdate={onUpdate}
+          />
+          <div className="ci-conduit-footer">
+            <button
+              className={`ci-conduit-save-btn${saveState === 'saved' ? ' ci-conduit-save-btn--saved' : ''}`}
+              onClick={handleSaveBusDef}
+              disabled={saveState === 'saving'}
+              title="Save interface definition as a reusable YAML file"
+              type="button"
+            >
+              {saveState === 'saved' ? (
+                <>
+                  <span className="codicon codicon-check" aria-hidden="true" /> Saved
+                </>
+              ) : (
+                <>
+                  <span className="codicon codicon-save" aria-hidden="true" /> Save Bus Definition
+                </>
+              )}
+            </button>
+          </div>
+        </>
+      )}
     </>
   );
 };
@@ -1756,6 +1775,8 @@ interface PortWidthOverridesSectionProps {
   bus: BusInterface;
   busIndex: number;
   paramNames: string[];
+  /** Port definitions from the loaded custom bus library, used as fallback for user-defined bus types. */
+  libraryPortDefs?: BusPortDef[];
   onUpdate: YamlUpdateHandler;
 }
 
@@ -1763,9 +1784,10 @@ const PortWidthOverridesSection: React.FC<PortWidthOverridesSectionProps> = ({
   bus,
   busIndex,
   paramNames,
+  libraryPortDefs,
   onUpdate,
 }) => {
-  const portDefs = lookupBusDef(bus.type);
+  const portDefs = lookupBusDef(bus.type) ?? libraryPortDefs ?? null;
   const overrides = (bus.portWidthOverrides ?? {}) as Record<string, number | string>;
 
   if (!portDefs) {
