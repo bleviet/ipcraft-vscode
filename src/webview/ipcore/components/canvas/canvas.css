@@ -888,6 +888,9 @@
 }
 
 .ci-section__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.1em;
@@ -895,6 +898,35 @@
   color: var(--vscode-descriptionForeground);
   margin-bottom: 9px;
   opacity: 0.75;
+}
+
+.ci-section__actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 400;
+}
+
+.ci-section__action-btn {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--vscode-descriptionForeground);
+  opacity: 0.9;
+  white-space: nowrap;
+}
+.ci-section__action-btn:hover {
+  background: var(--vscode-toolbar-hoverBackground);
+  opacity: 1;
 }
 
 /* Fields */

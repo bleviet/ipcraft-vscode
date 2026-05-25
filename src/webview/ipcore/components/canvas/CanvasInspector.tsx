@@ -376,8 +376,48 @@ const FileSetsSection: React.FC<{ ipCore: IpCore; onUpdate: YamlUpdateHandler }>
     onUpdate(['fileSets', setIdx, 'files'], updatedFiles);
   };
 
+  const allFiles = fileSets.flatMap((fs) => fs.files ?? []);
+  const allLocked = allFiles.length > 0 && allFiles.every((f) => f.managed === false);
+
+  const handleLockAll = () => {
+    const updated = fileSets.map((fs) => ({
+      ...fs,
+      files: (fs.files ?? []).map((f) => ({ ...f, managed: false as const })),
+    }));
+    onUpdate(['fileSets'], updated);
+  };
+
+  const handleUnlockAll = () => {
+    const updated = fileSets.map((fs) => ({
+      ...fs,
+      files: (fs.files ?? []).map((f) => {
+        const { managed: _managed, ...rest } = f;
+        return rest;
+      }),
+    }));
+    onUpdate(['fileSets'], updated);
+  };
+
+  const sectionActions =
+    allFiles.length > 0 ? (
+      <button
+        className="ci-section__action-btn"
+        onClick={allLocked ? handleUnlockAll : handleLockAll}
+        title={
+          allLocked
+            ? 'Unlock all files — allow IPCraft to overwrite on regeneration'
+            : 'Lock all files — protect all from overwrite'
+        }
+        type="button"
+        style={{ color: allLocked ? 'var(--vscode-statusBarItem-warningForeground)' : undefined }}
+      >
+        <span className={`codicon ${allLocked ? 'codicon-unlock' : 'codicon-lock'}`} />
+        <span>{allLocked ? 'Unlock All' : 'Lock All'}</span>
+      </button>
+    ) : undefined;
+
   return (
-    <Section title="Source Files">
+    <Section title="Source Files" actions={sectionActions}>
       {fileSets.map((fs, setIdx) => (
         <div key={setIdx} className="ci-fileset">
           {fileSets.length > 1 && <div className="ci-fileset__group">{fs.name}</div>}
@@ -2204,9 +2244,16 @@ const PropTextArea: React.FC<PropTextAreaProps> = ({ label, value, onSave, place
   );
 };
 
-const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
+const Section: React.FC<{
+  title: string;
+  children: React.ReactNode;
+  actions?: React.ReactNode;
+}> = ({ title, children, actions }) => (
   <div className="ci-section">
-    <div className="ci-section__title">{title}</div>
+    <div className="ci-section__title">
+      <span>{title}</span>
+      {actions && <div className="ci-section__actions">{actions}</div>}
+    </div>
     {children}
   </div>
 );
