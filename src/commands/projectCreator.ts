@@ -43,9 +43,11 @@ export async function createVivadoProject(
   const cfg = vscode.workspace.getConfiguration('ipcraft');
   const vivadoLauncher = getVivadoLauncher(cfg);
   const vivadoDockerImage = (cfg.get<string>('vivado.dockerImage') ?? '').trim();
-  const vivadoDocker = vivadoDockerImage
-    ? { image: vivadoDockerImage, mountBase: ipDir }
-    : undefined;
+  const vivadoRunner = cfg.get<string>('vivado.runner', 'local');
+  const vivadoDocker =
+    vivadoRunner === 'docker' && vivadoDockerImage
+      ? { image: vivadoDockerImage, mountBase: ipDir }
+      : undefined;
 
   const result = await runProcess(
     vivadoLauncher.exe,
@@ -80,9 +82,11 @@ export async function createQuartusProject(
   const cfg = vscode.workspace.getConfiguration('ipcraft');
   const quartusExe = getQuartusTool(cfg, 'quartus_sh');
   const quartusDockerImage = (cfg.get<string>('quartus.dockerImage') ?? '').trim();
-  const quartusDocker = quartusDockerImage
-    ? { image: quartusDockerImage, mountBase: ipDir }
-    : undefined;
+  const quartusRunner = cfg.get<string>('quartus.runner', 'local');
+  const quartusDocker =
+    quartusRunner === 'docker' && quartusDockerImage
+      ? { image: quartusDockerImage, mountBase: ipDir }
+      : undefined;
 
   const result = await runProcess(quartusExe, ['-t', projectTcl], {
     cwd: buildDir,

@@ -20,13 +20,14 @@ export async function editInPlatformDesignerCommand(uri?: vscode.Uri): Promise<v
 
   const config = vscode.workspace.getConfiguration('ipcraft');
   const qsysEditPath = getQuartusTool(config, 'qsys-edit');
+  const quartusRunner = config.get<string>('quartus.runner', 'local');
   const dockerImage = (config.get<string>('quartus.dockerImage') ?? '').trim();
+  const useDocker = quartusRunner === 'docker';
 
   let spawnExe: string;
   let spawnArgs: string[];
 
-  if (dockerImage) {
-    // Mount the _hw.tcl directory and any source file directories referenced
+  if (useDocker) {
     // inside the _hw.tcl at their exact host paths so no path translation is
     // needed for the --search-path argument.
     const x11Args: string[] = process.env.DISPLAY
@@ -66,7 +67,7 @@ export async function editInPlatformDesignerCommand(uri?: vscode.Uri): Promise<v
   child.on('error', (err: Error & { code?: string }) => {
     logger.error(`Failed to start Platform Designer: ${err.message}`);
     if (err.code === 'ENOENT') {
-      if (dockerImage) {
+      if (useDocker) {
         vscode.window.showErrorMessage(
           `Could not find 'docker'. Is Docker installed and in your PATH?`
         );

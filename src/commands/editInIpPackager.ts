@@ -21,7 +21,9 @@ export async function editInIpPackagerCommand(uri?: vscode.Uri): Promise<void> {
 
   const config = vscode.workspace.getConfiguration('ipcraft');
   const launcher = getVivadoLauncher(config);
+  const vivadoRunner = config.get<string>('vivado.runner', 'local');
   const vivadoDockerImage = (config.get<string>('vivado.dockerImage') ?? '').trim();
+  const useDocker = vivadoRunner === 'docker';
 
   try {
     // Create a temporary directory in the system tmp folder
@@ -42,7 +44,7 @@ export async function editInIpPackagerCommand(uri?: vscode.Uri): Promise<void> {
     let spawnExe: string;
     let spawnArgs: string[];
 
-    if (vivadoDockerImage) {
+    if (useDocker) {
       // Mount tmpDir, the component.xml directory, and any source file
       // directories referenced inside component.xml at their exact host paths
       // so the pre-written TCL script (which contains absolute paths) works unchanged.
@@ -89,7 +91,7 @@ export async function editInIpPackagerCommand(uri?: vscode.Uri): Promise<void> {
     child.on('error', (err: Error & { code?: string }) => {
       logger.error(`Failed to start Vivado: ${err.message}`);
       if (err.code === 'ENOENT') {
-        if (vivadoDockerImage) {
+        if (useDocker) {
           vscode.window.showErrorMessage(
             `Could not find 'docker'. Is Docker installed and in your PATH?`
           );

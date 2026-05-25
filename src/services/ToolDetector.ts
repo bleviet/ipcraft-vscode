@@ -20,23 +20,29 @@ function isOnPath(toolName: string): boolean {
 export function detectAndSetToolContext(): void {
   const config = vscode.workspace.getConfiguration('ipcraft');
 
+  const vivadoRunner = config.get<string>('vivado.runner', 'local');
   const vivadoInstallDir = config.get<string>('vivado.installDir', '').trim();
   const vivadoDockerImage = config.get<string>('vivado.dockerImage', '').trim();
-  const vivadoFound = vivadoInstallDir
-    ? findVivadoInInstallDir(vivadoInstallDir) !== null
-    : vivadoDockerImage
-      ? true
-      : isOnPath('vivado');
+  const vivadoFound =
+    vivadoRunner === 'docker'
+      ? vivadoDockerImage.length > 0
+      : vivadoInstallDir
+        ? findVivadoInInstallDir(vivadoInstallDir) !== null
+        : isOnPath('vivado');
 
   // Quartus: installDir is the top-level directory; tools are resolved from it.
   // A configured Docker image also counts as "found" — the tools live inside
   // the container so there is nothing to probe on the host.
+  const quartusRunner = config.get<string>('quartus.runner', 'local');
   const installDir = config.get<string>('quartus.installDir', '').trim();
   const quartusDockerImage = config.get<string>('quartus.dockerImage', '').trim();
   let quartusFound: boolean;
   let qsysEditFound: boolean;
 
-  if (installDir) {
+  if (quartusRunner === 'docker') {
+    quartusFound = quartusDockerImage.length > 0;
+    qsysEditFound = quartusDockerImage.length > 0;
+  } else if (installDir) {
     quartusFound = findInInstallDir('quartus_sh', installDir) !== null;
     qsysEditFound = findInInstallDir('qsys-edit', installDir) !== null;
   } else if (quartusDockerImage) {

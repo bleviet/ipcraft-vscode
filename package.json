@@ -565,15 +565,25 @@
       {
         "title": "Vivado (Xilinx/AMD)",
         "properties": {
+          "ipcraft.vivado.runner": {
+            "type": "string",
+            "enum": ["local", "docker"],
+            "enumDescriptions": [
+              "Use a locally installed Vivado. Configure ipcraft.vivado.installDir.",
+              "Run Vivado inside a Docker container. Configure ipcraft.vivado.dockerImage."
+            ],
+            "default": "local",
+            "description": "How IPCraft executes Vivado commands. 'local' uses a native install; 'docker' runs every command inside a container."
+          },
           "ipcraft.vivado.installDir": {
             "type": "string",
             "default": "",
-            "markdownDescription": "Path to your Vivado installation directory. IPCraft will locate the correct executable automatically.\n\n**Linux:** `/tools/Xilinx/Vivado/2024.2`\n\n**Windows:** `C:\\Xilinx\\2025.1\\Vivado`\n\nLeave empty to use `vivado` from your system PATH."
+            "markdownDescription": "_(Used when `runner` is `local`)_ Path to your Vivado installation directory. IPCraft will locate the correct executable automatically.\n\n**Linux:** `/tools/Xilinx/Vivado/2024.2`\n\n**Windows:** `C:\\Xilinx\\2025.1\\Vivado`\n\nLeave empty to use `vivado` from your system PATH."
           },
           "ipcraft.vivado.dockerImage": {
             "type": "string",
             "default": "",
-            "markdownDescription": "Docker image used to run Vivado (e.g. `cvsoc/vivado:2024.2`). When set, every Vivado build command is executed inside this container via `docker run --rm`, with the IP core directory mounted as `/work`. Leave empty to use a locally installed Vivado."
+            "markdownDescription": "_(Used when `runner` is `docker`)_ Docker image used to run Vivado (e.g. `cvsoc/vivado:2024.2`). Every Vivado command is executed inside this container via `docker run --rm`, with the IP core directory mounted as `/work`."
           },
           "ipcraft.vivado.defaultPart": {
             "type": "string",
@@ -608,15 +618,25 @@
       {
         "title": "Quartus (Intel/Altera)",
         "properties": {
+          "ipcraft.quartus.runner": {
+            "type": "string",
+            "enum": ["local", "docker"],
+            "enumDescriptions": [
+              "Use a locally installed Quartus. Configure ipcraft.quartus.installDir.",
+              "Run Quartus inside a Docker container. Configure ipcraft.quartus.dockerImage."
+            ],
+            "default": "local",
+            "description": "How IPCraft executes Quartus commands. 'local' uses a native install; 'docker' runs every command inside a container."
+          },
           "ipcraft.quartus.installDir": {
             "type": "string",
             "default": "",
-            "markdownDescription": "Top-level Quartus installation directory (e.g. `/opt/intelFPGA_pro/23.1` on Linux or `C:\\intelFPGA_pro\\23.1` on Windows). When set, IPCraft automatically locates `quartus_sh`, `quartus`, and `qsys-edit` inside the installation, searching `quartus/bin` (Linux) or `quartus/bin64` (Windows) first. Supersedes the individual `shellPath`, `guiPath`, and `qsysEditPath` settings."
+            "markdownDescription": "_(Used when `runner` is `local`)_ Top-level Quartus installation directory (e.g. `/opt/intelFPGA_pro/23.1` on Linux or `C:\\intelFPGA_pro\\23.1` on Windows). When set, IPCraft automatically locates `quartus_sh`, `quartus`, and `qsys-edit` inside the installation, searching `quartus/bin` (Linux) or `quartus/bin64` (Windows) first. Supersedes the individual `shellPath`, `guiPath`, and `qsysEditPath` settings."
           },
           "ipcraft.quartus.dockerImage": {
             "type": "string",
             "default": "",
-            "markdownDescription": "Docker image used to run Quartus (e.g. `cvsoc/quartus:23.1`). When set, every Quartus build command is executed inside this container via `docker run --rm`, with the IP core directory mounted as `/work`. Leave empty to use a locally installed Quartus."
+            "markdownDescription": "_(Used when `runner` is `docker`)_ Docker image used to run Quartus (e.g. `cvsoc/quartus:23.1`). Every Quartus command is executed inside this container via `docker run --rm`, with the IP core directory mounted as `/work`."
           },
           "ipcraft.quartus.defaultDevice": {
             "type": "string",

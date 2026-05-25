@@ -18,7 +18,9 @@ export async function openInQuartusCommand(uri?: vscode.Uri): Promise<void> {
 
   const config = vscode.workspace.getConfiguration('ipcraft');
   const quartusGuiPath = getQuartusTool(config, 'quartus');
+  const quartusRunner = config.get<string>('quartus.runner', 'local');
   const dockerImage = (config.get<string>('quartus.dockerImage') ?? '').trim();
+  const useDocker = quartusRunner === 'docker';
 
   // BuildRunner mounts ipDir as /work when compiling, so generated .qsf files
   // contain absolute paths like /work/rtl/...  The .qpf is always written to
@@ -32,7 +34,7 @@ export async function openInQuartusCommand(uri?: vscode.Uri): Promise<void> {
   let spawnExe: string;
   let spawnArgs: string[];
 
-  if (dockerImage) {
+  if (useDocker) {
     const x11Args = process.env.DISPLAY
       ? ['-e', `DISPLAY=${process.env.DISPLAY}`, '-v', '/tmp/.X11-unix:/tmp/.X11-unix']
       : [];
@@ -66,7 +68,7 @@ export async function openInQuartusCommand(uri?: vscode.Uri): Promise<void> {
   child.on('error', (err: Error & { code?: string }) => {
     logger.error(`Failed to open Quartus: ${err.message}`);
     if (err.code === 'ENOENT') {
-      if (dockerImage) {
+      if (useDocker) {
         vscode.window.showErrorMessage(
           `Could not find 'docker'. Is Docker installed and in your PATH?`
         );

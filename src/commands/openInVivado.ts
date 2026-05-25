@@ -18,7 +18,9 @@ export async function openInVivadoCommand(uri?: vscode.Uri): Promise<void> {
 
   const config = vscode.workspace.getConfiguration('ipcraft');
   const launcher = getVivadoLauncher(config);
+  const vivadoRunner = config.get<string>('vivado.runner', 'local');
   const dockerImage = (config.get<string>('vivado.dockerImage') ?? '').trim();
+  const useDocker = vivadoRunner === 'docker';
 
   // Mount the workspace root so Vivado can resolve all source paths it stored
   // as absolute references inside the .xpr file.
@@ -27,7 +29,7 @@ export async function openInVivadoCommand(uri?: vscode.Uri): Promise<void> {
   let spawnExe: string;
   let spawnArgs: string[];
 
-  if (dockerImage) {
+  if (useDocker) {
     const x11Args = process.env.DISPLAY
       ? ['-e', `DISPLAY=${process.env.DISPLAY}`, '-v', '/tmp/.X11-unix:/tmp/.X11-unix']
       : [];
@@ -61,7 +63,7 @@ export async function openInVivadoCommand(uri?: vscode.Uri): Promise<void> {
   child.on('error', (err: Error & { code?: string }) => {
     logger.error(`Failed to open Vivado: ${err.message}`);
     if (err.code === 'ENOENT') {
-      if (dockerImage) {
+      if (useDocker) {
         vscode.window.showErrorMessage(
           `Could not find 'docker'. Is Docker installed and in your PATH?`
         );

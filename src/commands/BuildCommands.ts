@@ -106,12 +106,16 @@ async function detectTargets(name: string, ipDir: string): Promise<BuildTarget[]
 
   const vivadoDockerImage = (cfg.get<string>('vivado.dockerImage') ?? '').trim();
   const quartusDockerImage = (cfg.get<string>('quartus.dockerImage') ?? '').trim();
-  const vivadoDocker = vivadoDockerImage
-    ? { image: vivadoDockerImage, mountBase: ipDir }
-    : undefined;
-  const quartusDocker = quartusDockerImage
-    ? { image: quartusDockerImage, mountBase: ipDir }
-    : undefined;
+  const vivadoRunner = cfg.get<string>('vivado.runner', 'local');
+  const quartusRunner = cfg.get<string>('quartus.runner', 'local');
+  const vivadoDocker =
+    vivadoRunner === 'docker' && vivadoDockerImage
+      ? { image: vivadoDockerImage, mountBase: ipDir }
+      : undefined;
+  const quartusDocker =
+    quartusRunner === 'docker' && quartusDockerImage
+      ? { image: quartusDockerImage, mountBase: ipDir }
+      : undefined;
 
   const targets: BuildTarget[] = [];
 
