@@ -1259,35 +1259,60 @@ const ConduitPanel: React.FC<Omit<BusPanelProps, 'imports'>> = ({
     const tName = typeName || 'custom';
     const displayName = tName.charAt(0).toUpperCase() + tName.slice(1);
 
+    // Build a parameter-name → default-value lookup so the extension can write
+    // literal widths in the bus definition YAML instead of parameter references.
+    const params = (ipCore.parameters ?? []) as unknown as Array<{
+      name: string;
+      value?: unknown;
+      defaultValue?: unknown;
+    }>;
+    const paramDefaults = Object.fromEntries(
+      params.map((p) => [p.name, p.defaultValue ?? p.value ?? 1])
+    );
+
     setSaveState('saving');
     vscode?.postMessage({
       type: 'saveCustomBusDefinition',
       typeName: tName,
       displayName,
-      ports: conduitPorts.map((p) => ({
-        name: p.name,
-        direction: p.direction,
-        width: p.width,
-        presence: p.presence ?? 'required',
-      })),
+      ports: conduitPorts.map((p) => {
+        const isParamRef = typeof p.width === 'string' && isNaN(Number(p.width));
+        return {
+          name: p.name,
+          direction: p.direction,
+          // defaultWidth is the resolved literal to use in the bus definition file
+          defaultWidth: isParamRef ? (paramDefaults[p.width as string] ?? 1) : p.width,
+          // width carries the original value (param name or literal)
+          width: p.width,
+          presence: p.presence ?? 'required',
+        };
+      }),
     });
 
     const handler = (event: MessageEvent) => {
-      const msg = event.data as { type?: string; customBusLibraryDir?: string };
+      const msg = event.data as {
+        type?: string;
+        customBusLibraryDir?: string;
+        portWidthOverrides?: Record<string, unknown>;
+      };
       if (msg.type === 'customBusDefinitionSaved') {
         window.removeEventListener('message', handler);
         setSaveState('saved');
-        if (msg.customBusLibraryDir) {
-          const ipCoreData = ipCore as unknown as Record<string, unknown>;
-          if (!ipCoreData.useBusLibrary) {
-            onUpdate(['useBusLibrary'], `./${msg.customBusLibraryDir}`);
-          }
+        const ipCoreData = ipCore as unknown as Record<string, unknown>;
+        if (msg.customBusLibraryDir && !ipCoreData.useBusLibrary) {
+          onUpdate(['useBusLibrary'], `./${msg.customBusLibraryDir}`);
         }
+        // Apply portWidthOverrides and clear the now-redundant conduitPorts so
+        // the bus interface relies on the saved bus definition file.
+        if (msg.portWidthOverrides && Object.keys(msg.portWidthOverrides).length > 0) {
+          onUpdate(['busInterfaces', index, 'portWidthOverrides'], msg.portWidthOverrides);
+        }
+        onUpdate(['busInterfaces', index, 'conduitPorts'], null);
         setTimeout(() => setSaveState('idle'), 2500);
       }
     };
     window.addEventListener('message', handler);
-  }, [bus, typeName, ipCore, onUpdate]);
+  }, [bus, index, typeName, ipCore, onUpdate]);
 
   return (
     <>

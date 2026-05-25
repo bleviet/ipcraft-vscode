@@ -447,7 +447,13 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
       // Directory already exists — ignore
     }
 
-    // Build the YAML content matching the existing bus_definitions format
+    // Build the YAML content matching the existing bus_definitions format.
+    // Widths in the bus definition must be constant literals so the file can be
+    // reused across IP cores without depending on any particular parameter name.
+    // When the user configured a port width as a parameter reference (e.g. XCVR_DW),
+    // the webview resolves its default value and sends it as `defaultWidth`.
+    const portWidthOverrides: Record<string, unknown> = {};
+
     const portEntries = ports.map((p) => {
       const entry: Record<string, unknown> = {
         name: p.name,
@@ -456,7 +462,15 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
       if (p.direction) {
         entry.direction = p.direction;
       }
-      if (p.width !== undefined && p.width !== null && p.width !== '') {
+      const isParamRef =
+        typeof p.width === 'string' && isNaN(Number(p.width)) && String(p.width).trim() !== '';
+      if (isParamRef) {
+        // Use the resolved default literal for the bus definition file …
+        const literalWidth = p.defaultWidth !== undefined ? p.defaultWidth : 1;
+        entry.width = literalWidth;
+        // … and record the parameter override so the ip.yml is updated.
+        portWidthOverrides[String(p.name)] = p.width;
+      } else if (p.width !== undefined && p.width !== null && p.width !== '') {
         entry.width = p.width;
       }
       return entry;
@@ -482,12 +496,14 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
     await vscode.workspace.fs.writeFile(fileUri, Buffer.from(yamlContent, 'utf8'));
     this.logger.info(`Saved custom bus definition: ${filePath}`);
 
-    // Notify webview — it will add useBusLibrary to the IP core if not already set
+    // Notify webview — it will add useBusLibrary and portWidthOverrides to the IP core
     void webviewPanel.webview.postMessage({
       type: 'customBusDefinitionSaved',
       typeName,
       filePath: path.relative(baseDir, filePath),
       customBusLibraryDir: 'custom_bus_definitions',
+      portWidthOverrides:
+        Object.keys(portWidthOverrides).length > 0 ? portWidthOverrides : undefined,
     });
 
     // Invalidate bus library cache so the new file is picked up on next reload
