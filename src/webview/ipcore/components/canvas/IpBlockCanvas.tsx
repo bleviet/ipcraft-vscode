@@ -303,6 +303,8 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
       } else if ((e.ctrlKey || e.metaKey) && e.key === '0') {
         e.preventDefault();
         setZoom(1.0);
+        setPan({ x: 0, y: 0 });
+        currentPanRef.current = { x: 0, y: 0 };
         triggerZoomIndicator();
       }
     };
@@ -395,6 +397,13 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
         .filter(Boolean)
         .join(' ')}
       onDragEnd={() => setDragOutActive(false)}
+      onDoubleClick={(e) => {
+        // When the SVG has been panned off-screen the event target is the
+        // container div itself (nothing else to click). Center the view.
+        if (e.target === e.currentTarget) {
+          handleBackgroundDoubleClick();
+        }
+      }}
     >
       <RemoveZone visible={dragOutActive} />
       <svg
