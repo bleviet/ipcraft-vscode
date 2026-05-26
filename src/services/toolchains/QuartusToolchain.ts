@@ -7,6 +7,7 @@ import { runProcess } from '../BuildRunner';
 import { findInInstallDir, getQuartusTool } from '../../utils/quartusResolver';
 import { fileExists } from '../../utils/fsHelpers';
 import { normalizeBusType } from '../../generator/registerProcessor';
+import type { IpCoreData } from '../../generator/types';
 import type { DockerConfig, LaunchEnv } from './LaunchableTool';
 import type {
   SynthesisToolchain,
@@ -14,6 +15,74 @@ import type {
   ScaffoldOptions,
   BuildMode,
 } from './SynthesisToolchain';
+
+export interface RtlFileEntry {
+  path: string;
+  name: string;
+  hdl_type: string;
+  is_top: boolean;
+}
+
+/** Infer Quartus HDL type string from a file path extension. */
+function hdlTypeFromPath(filePath: string): string {
+  const ext = path.extname(filePath).toLowerCase();
+  if (ext === '.sv' || ext === '.svh') {
+    return 'SYSTEM_VERILOG';
+  }
+  return 'VHDL';
+}
+
+/** Map an ip.yml fileset `type` field to the Quartus HDL type string. */
+function hdlTypeFromFileType(type: string | undefined, isSv: boolean): string {
+  if (type === 'systemverilog') {
+    return 'SYSTEM_VERILOG';
+  }
+  if (type === 'vhdl') {
+    return 'VHDL';
+  }
+  return isSv ? 'SYSTEM_VERILOG' : 'VHDL';
+}
+
+/**
+ * Resolve the list of RTL file entries for the hw.tcl file-set section.
+ * Priority:
+ *   1. `rtlFiles` — paths provided by the scaffolder (generated this run or from collectRtlFiles).
+ *   2. ip.yml `fileSets[RTL_Sources]` — fallback for import/no-generate mode.
+ */
+export function resolveHwTclRtlFiles(
+  rtlFiles: string[] | undefined,
+  ipCoreData: IpCoreData,
+  isSv: boolean,
+  entityName: string
+): RtlFileEntry[] {
+  // Only the file whose name AND extension matches the primary HDL type is the top-level.
+  // This prevents mixed-language projects from marking multiple files as TOP_LEVEL_FILE.
+  const topLevelExts = isSv ? ['.sv'] : ['.vhd', '.vhdl'];
+  const toEntry = (filePath: string, fileHdlType: string): RtlFileEntry => {
+    const name = path.basename(filePath);
+    const ext = path.extname(name).toLowerCase();
+    const nameNoExt = path.basename(name, path.extname(name));
+    const is_top = nameNoExt === entityName && topLevelExts.includes(ext);
+    return { path: filePath, name, hdl_type: fileHdlType, is_top };
+  };
+
+  if (rtlFiles && rtlFiles.length > 0) {
+    return rtlFiles.map((f) => toEntry(f, hdlTypeFromPath(f)));
+  }
+
+  type FSEntry = { name?: string; files?: Array<{ path?: string; type?: string }> };
+  const fileSets = (ipCoreData as Record<string, unknown>).fileSets as FSEntry[] | undefined;
+  if (!Array.isArray(fileSets)) {
+    return [];
+  }
+  const rtlSources = fileSets.find((fs) => fs.name === 'RTL_Sources');
+  if (!rtlSources?.files) {
+    return [];
+  }
+  return rtlSources.files
+    .filter((f) => f.path)
+    .map((f) => toEntry(`../${f.path!}`, hdlTypeFromFileType(f.type, isSv)));
+}
 
 /**
  * Map a normalized bus template type (axil, axi4, axis, avmm, avst) to the
@@ -123,7 +192,7 @@ export class QuartusToolchain implements SynthesisToolchain {
   }
 
   scaffold(ctx: ScaffoldContext, opts: ScaffoldOptions): Record<string, string> {
-    const { name, templateContext, templates } = ctx;
+    const { name, templateContext, templates, ipCoreData, isSv } = ctx;
     const files: Record<string, string> = {};
 
     // Inject altera_type onto each expanded bus interface so the _hw.tcl
@@ -139,7 +208,11 @@ export class QuartusToolchain implements SynthesisToolchain {
       }
     }
 
-    files[`altera/${name}_hw.tcl`] = templates.render('altera_hw_tcl.j2', templateContext);
+    const rtlFileEntries = resolveHwTclRtlFiles(opts.rtlFiles, ipCoreData, isSv, name);
+    files[`altera/${name}_hw.tcl`] = templates.render('altera_hw_tcl.j2', {
+      ...templateContext,
+      rtl_files: rtlFileEntries,
+    });
 
     if (opts.includeProject) {
       const targetDevice = opts.quartusDevice ?? '5CSEBA6U23I7';

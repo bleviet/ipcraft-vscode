@@ -169,22 +169,16 @@ add_fileset QUARTUS_SYNTH QUARTUS_SYNTH "" ""
 set_fileset_property QUARTUS_SYNTH TOP_LEVEL {{ entity_name }}
 set_fileset_property QUARTUS_SYNTH ENABLE_RELATIVE_INCLUDE_PATHS false
 set_fileset_property QUARTUS_SYNTH ENABLE_FILE_OVERWRITE_MODE false
-{% if has_memory_mapped_slave %}
-add_fileset_file {{ entity_name }}_pkg.{{ hdl_ext }} {{ hdl_type }} PATH ../rtl/{{ entity_name }}_pkg.{{ hdl_ext }}
-add_fileset_file {{ entity_name }}_regs.{{ hdl_ext }} {{ hdl_type }} PATH ../rtl/{{ entity_name }}_regs.{{ hdl_ext }}
-add_fileset_file {{ entity_name }}_core.{{ hdl_ext }} {{ hdl_type }} PATH ../rtl/{{ entity_name }}_core.{{ hdl_ext }}
-add_fileset_file {{ entity_name }}_{{ bus_type }}.{{ hdl_ext }} {{ hdl_type }} PATH ../rtl/{{ entity_name }}_{{ bus_type }}.{{ hdl_ext }}
-{% endif %}
-add_fileset_file {{ entity_name }}.{{ hdl_ext }} {{ hdl_type }} PATH ../rtl/{{ entity_name }}.{{ hdl_ext }} TOP_LEVEL_FILE
+{% for f in rtl_files %}
+{% set top_marker = " TOP_LEVEL_FILE" if f.is_top else "" %}
+add_fileset_file {{ f.name }} {{ f.hdl_type }} PATH {{ f.path }}{{ top_marker }}
+{% endfor %}
 
 add_fileset {{ sim_fileset }} {{ sim_fileset }} "" ""
 set_fileset_property {{ sim_fileset }} TOP_LEVEL {{ entity_name }}
 set_fileset_property {{ sim_fileset }} ENABLE_RELATIVE_INCLUDE_PATHS false
 set_fileset_property {{ sim_fileset }} ENABLE_FILE_OVERWRITE_MODE false
-{% if has_memory_mapped_slave %}
-add_fileset_file {{ entity_name }}_pkg.{{ hdl_ext }} {{ hdl_type }} PATH ../rtl/{{ entity_name }}_pkg.{{ hdl_ext }}
-add_fileset_file {{ entity_name }}_regs.{{ hdl_ext }} {{ hdl_type }} PATH ../rtl/{{ entity_name }}_regs.{{ hdl_ext }}
-add_fileset_file {{ entity_name }}_core.{{ hdl_ext }} {{ hdl_type }} PATH ../rtl/{{ entity_name }}_core.{{ hdl_ext }}
-add_fileset_file {{ entity_name }}_{{ bus_type }}.{{ hdl_ext }} {{ hdl_type }} PATH ../rtl/{{ entity_name }}_{{ bus_type }}.{{ hdl_ext }}
-{% endif %}
-add_fileset_file {{ entity_name }}.{{ hdl_ext }} {{ hdl_type }} PATH ../rtl/{{ entity_name }}.{{ hdl_ext }} TOP_LEVEL_FILE
+{% for f in rtl_files %}
+{% set top_marker = " TOP_LEVEL_FILE" if f.is_top else "" %}
+add_fileset_file {{ f.name }} {{ f.hdl_type }} PATH {{ f.path }}{{ top_marker }}
+{% endfor %}

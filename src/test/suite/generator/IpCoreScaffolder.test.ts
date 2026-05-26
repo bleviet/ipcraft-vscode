@@ -151,6 +151,33 @@ describe('IpCoreScaffolder', () => {
     expect(quartusContent).toContain('rtl/import_core.vhd');
     // SV file from the same RTL_Sources fileset must also be included
     expect(quartusContent).toContain('rtl/import_core.sv');
+
+    // hw.tcl file-set section must also read from ip.yml RTL_Sources (not hardcode entity_name pattern)
+    const hwTclCall = writtenFiles.find((call) =>
+      String(call[0]).includes('altera/import_core_hw.tcl')
+    );
+    expect(hwTclCall).toBeDefined();
+    const hwTclContent: string = hwTclCall![1];
+    // Simulation sources must not appear in the hw.tcl fileset
+    expect(hwTclContent).not.toContain('tb/');
+    expect(hwTclContent).not.toContain('import_core_tb');
+    expect(hwTclContent).not.toContain('verification/');
+    // All three RTL_Sources files must appear in the hw.tcl fileset
+    const hwLines = hwTclContent.split('\n');
+    const pkgLine = hwLines.find((l) =>
+      l.includes('add_fileset_file import_core_pkg.vhd VHDL PATH')
+    );
+    const vhdLine = hwLines.find((l) => l.includes('add_fileset_file import_core.vhd VHDL PATH'));
+    const svLine = hwLines.find((l) =>
+      l.includes('add_fileset_file import_core.sv SYSTEM_VERILOG PATH')
+    );
+    expect(pkgLine).toBeDefined();
+    expect(vhdLine).toBeDefined();
+    expect(svLine).toBeDefined();
+    // Only import_core.vhd (the VHDL entity file) should be marked as TOP_LEVEL_FILE
+    expect(pkgLine).not.toContain('TOP_LEVEL_FILE');
+    expect(vhdLine).toContain('TOP_LEVEL_FILE');
+    expect(svLine).not.toContain('TOP_LEVEL_FILE');
   });
 
   it('handles generation failure gracefully', async () => {
