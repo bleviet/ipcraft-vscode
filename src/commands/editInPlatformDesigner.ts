@@ -45,9 +45,13 @@ export async function editInPlatformDesignerCommand(uri?: vscode.Uri): Promise<v
   const qsysPath = qsysFile ? path.join(alteraDir, qsysFile) : undefined;
 
   // Open Platform Designer (not the Component Editor).
-  // --search-path makes the generated _hw.tcl component discoverable in the IP catalog.
+  // Append ,$ to include the standard Platform Designer IP catalog alongside the
+  // custom altera/ directory. Without $, all built-in Altera/Intel IPs are omitted.
   // If a .qsys project exists it is opened directly; otherwise a blank new project starts.
-  const args = qsysPath ? [qsysPath, `--search-path=${alteraDir}`] : [`--search-path=${alteraDir}`];
+  const searchPath = `${alteraDir},$`;
+  const args = qsysPath
+    ? [qsysPath, `--search-path=${searchPath}`]
+    : [`--search-path=${searchPath}`];
 
   logger.info(
     `Opening Platform Designer: ${qsysPath ?? '(new project)'} [search-path: ${alteraDir}]`
