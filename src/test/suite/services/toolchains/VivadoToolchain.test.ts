@@ -134,3 +134,19 @@ describe('VivadoToolchain', () => {
     });
   });
 });
+
+describe('VivadoToolchain subTools', () => {
+  let tc: VivadoToolchain;
+  beforeEach(() => {
+    tc = new VivadoToolchain();
+  });
+
+  it('declares no sub-tools', () => {
+    expect(tc.subTools).toHaveLength(0);
+  });
+
+  it('isSubToolAvailable always returns false', () => {
+    const cfg = makeCfg();
+    expect(tc.isSubToolAvailable('any-tool', cfg)).toBe(false);
+  });
+});

@@ -21,6 +21,7 @@ import { editInIpPackagerCommand } from '../commands/editInIpPackager';
 import { editInPlatformDesignerCommand } from '../commands/editInPlatformDesigner';
 import { openInVivadoCommand } from '../commands/openInVivado';
 import { openInQuartusCommand } from '../commands/openInQuartus';
+import { listAll } from '../services/toolchains/registry';
 
 interface IpcMessage {
   type: string;
@@ -373,6 +374,8 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
         .getConfiguration('ipcraft.toolbar')
         .get<string[]>('targets', ['vivado', 'quartus']);
 
+      const allToolchains = listAll().map((t) => ({ id: t.id, displayName: t.displayName }));
+
       const duplicatePrefixes = this.yamlValidator.findDuplicatePhysicalPrefixes(parsed);
 
       void webviewPanel.webview.postMessage({
@@ -386,6 +389,7 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
         hasQpf,
         hdlLanguage,
         toolbarTargets,
+        allToolchains,
         duplicatePrefixes,
       });
     } catch (error) {

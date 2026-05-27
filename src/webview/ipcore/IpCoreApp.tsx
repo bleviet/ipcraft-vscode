@@ -113,23 +113,26 @@ const HdlLanguagePicker: React.FC<HdlLanguagePickerProps> = ({ value }) => {
  * Multi-select toolbar target picker. Each pill toggles a toolchain id in/out
  * of the active set. The set is persisted to ipcraft.toolbar.targets.
  */
-interface ToolbarTarget {
-  id: string;
-  label: string;
-  bg: string;
-  fg: string;
-}
 
-const TOOLBAR_TARGETS: ToolbarTarget[] = [
-  { id: 'quartus', label: 'ALTERA', bg: 'rgba(0, 113, 197, 0.20)', fg: '#0071c5' },
-  { id: 'vivado', label: 'XILINX', bg: 'rgba(230, 0, 0, 0.20)', fg: '#e60000' },
-];
+/** Well-known per-vendor display metadata. Unknown vendors fall back to defaults. */
+const VENDOR_STYLE: Record<string, { label: string; bg: string; fg: string }> = {
+  quartus: { label: 'ALTERA', bg: 'rgba(0, 113, 197, 0.20)', fg: '#0071c5' },
+  vivado: { label: 'XILINX', bg: 'rgba(230, 0, 0, 0.20)', fg: '#e60000' },
+};
+
+const FALLBACK_STYLE = { bg: 'rgba(80, 200, 120, 0.20)', fg: '#3aaa5c' };
+
+interface RegisteredToolchain {
+  id: string;
+  displayName: string;
+}
 
 interface TargetVendorPickerProps {
   value: string[];
+  availableToolchains: RegisteredToolchain[];
 }
 
-const TargetVendorPicker: React.FC<TargetVendorPickerProps> = ({ value }) => {
+const TargetVendorPicker: React.FC<TargetVendorPickerProps> = ({ value, availableToolchains }) => {
   const setTargets = (next: string[]) =>
     vscode?.postMessage({ type: 'setToolbarTargets', targets: next });
 
@@ -138,8 +141,9 @@ const TargetVendorPicker: React.FC<TargetVendorPickerProps> = ({ value }) => {
     setTargets(next);
   };
 
-  const pillStyle = (t: ToolbarTarget): React.CSSProperties => {
-    const active = value.includes(t.id);
+  const pillStyle = (id: string): React.CSSProperties => {
+    const active = value.includes(id);
+    const style = VENDOR_STYLE[id] ?? FALLBACK_STYLE;
     return {
       fontSize: '9px',
       fontWeight: 600,
@@ -150,10 +154,18 @@ const TargetVendorPicker: React.FC<TargetVendorPickerProps> = ({ value }) => {
       border: 'none',
       cursor: 'pointer',
       userSelect: 'none',
-      background: active ? t.bg : 'transparent',
-      color: active ? t.fg : 'var(--vscode-descriptionForeground)',
+      background: active ? style.bg : 'transparent',
+      color: active ? style.fg : 'var(--vscode-descriptionForeground)',
       opacity: active ? 1 : 0.5,
     };
+  };
+
+  const labelFor = (tc: RegisteredToolchain): string => {
+    const known = VENDOR_STYLE[tc.id];
+    if (known) {
+      return known.label;
+    }
+    return tc.displayName.split(/[\s(]/)[0].toUpperCase();
   };
 
   return (
@@ -161,15 +173,15 @@ const TargetVendorPicker: React.FC<TargetVendorPickerProps> = ({ value }) => {
       style={{ display: 'flex', flexDirection: 'column', gap: 2, justifyContent: 'center' }}
       title="Toggle which vendor toolchain sections show in the toolbar"
     >
-      {TOOLBAR_TARGETS.map((t) => (
+      {availableToolchains.map((tc) => (
         <button
-          key={t.id}
-          style={pillStyle(t)}
-          onClick={() => toggle(t.id)}
+          key={tc.id}
+          style={pillStyle(tc.id)}
+          onClick={() => toggle(tc.id)}
           type="button"
-          aria-label={`Toggle ${t.label} tools`}
+          aria-label={`Toggle ${labelFor(tc)} tools`}
         >
-          {t.label}
+          {labelFor(tc)}
         </button>
       ))}
     </div>
@@ -260,6 +272,11 @@ const IpCoreApp: React.FC = () => {
   const [hdlLanguage, setHdlLanguage] = useState<'vhdl' | 'systemverilog'>('vhdl');
   // Active vendor toolchain section(s) shown in toolbar — mirrors ipcraft.toolbar.targets
   const [toolbarTargets, setToolbarTargets] = useState<string[]>(['vivado', 'quartus']);
+  // All registered toolchains from the extension — drives the TargetVendorPicker pill list
+  const [allToolchains, setAllToolchains] = useState<RegisteredToolchain[]>([
+    { id: 'vivado', displayName: 'Vivado (Xilinx/AMD)' },
+    { id: 'quartus', displayName: 'Quartus (Intel/Altera)' },
+  ]);
   // True when opened via IpCoreSourcePreviewProvider (source file, not a .ip.yml)
   const [isPreview, setIsPreview] = useState(false);
 
@@ -482,6 +499,7 @@ const IpCoreApp: React.FC = () => {
         hasQpf?: boolean;
         hdlLanguage?: 'vhdl' | 'systemverilog';
         toolbarTargets?: string[];
+        allToolchains?: RegisteredToolchain[];
         isPreview?: boolean;
       };
 
@@ -494,6 +512,9 @@ const IpCoreApp: React.FC = () => {
           setHasQpf(message.hasQpf ?? false);
           setHdlLanguage(message.hdlLanguage ?? 'vhdl');
           setToolbarTargets(message.toolbarTargets ?? ['vivado', 'quartus']);
+          if (message.allToolchains && message.allToolchains.length > 0) {
+            setAllToolchains(message.allToolchains);
+          }
           setIsPreview(message.isPreview ?? false);
           break;
       }
@@ -768,7 +789,7 @@ const IpCoreApp: React.FC = () => {
                 }}
               />
 
-              <TargetVendorPicker value={toolbarTargets} />
+              <TargetVendorPicker value={toolbarTargets} availableToolchains={allToolchains} />
             </div>
             {validationErrors.length > 0 && (
               <div className="text-sm" style={{ color: 'var(--vscode-errorForeground)' }}>

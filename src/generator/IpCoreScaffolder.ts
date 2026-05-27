@@ -155,6 +155,9 @@ export class IpCoreScaffolder {
           extraCompileArgs: simCfg?.compileArgs,
           extraSimArgs: simCfg?.simArgs,
           extraEnv: simCfg?.env,
+          fileSets: (ipCoreData as Record<string, unknown>).fileSets as
+            | import('./testbench/Framework').FileSetEntry[]
+            | undefined,
         });
         Object.assign(files, tbFiles);
       }

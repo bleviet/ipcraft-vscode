@@ -197,3 +197,81 @@ describe('QuartusToolchain', () => {
     });
   });
 });
+
+describe('QuartusToolchain subTools', () => {
+  let tc: QuartusToolchain;
+  beforeEach(() => {
+    tc = new QuartusToolchain();
+  });
+
+  it('declares qsys-edit as the only sub-tool with ipcraft.qsysEditFound context key', () => {
+    expect(tc.subTools).toHaveLength(1);
+    expect(tc.subTools[0].name).toBe('qsys-edit');
+    expect(tc.subTools[0].contextKey).toBe('ipcraft.qsysEditFound');
+  });
+
+  it('isSubToolAvailable returns false for unknown sub-tool names', () => {
+    const cfg = makeCfg({ 'quartus.runner': 'local', 'quartus.installDir': '' });
+    mockSpawnSync.mockReturnValue({ status: 0 });
+    expect(tc.isSubToolAvailable('unknown-tool', cfg)).toBe(false);
+    expect(mockSpawnSync).not.toHaveBeenCalled();
+  });
+
+  it('isSubToolAvailable returns true when docker runner is configured', () => {
+    const cfg = makeCfg({
+      'quartus.runner': 'docker',
+      'quartus.dockerImage': 'cvsoc/quartus:latest',
+    });
+    expect(tc.isSubToolAvailable('qsys-edit', cfg)).toBe(true);
+  });
+
+  it('isSubToolAvailable returns false when docker runner has no image', () => {
+    const cfg = makeCfg({ 'quartus.runner': 'docker', 'quartus.dockerImage': '' });
+    expect(tc.isSubToolAvailable('qsys-edit', cfg)).toBe(false);
+  });
+
+  it('isSubToolAvailable uses findInInstallDir when installDir is set', () => {
+    mockFindInInstallDir.mockReturnValue('/opt/intelFPGA/quartus/sopc_builder/bin/qsys-edit');
+    const cfg = makeCfg({ 'quartus.runner': 'local', 'quartus.installDir': '/opt/intelFPGA' });
+    expect(tc.isSubToolAvailable('qsys-edit', cfg)).toBe(true);
+    expect(mockFindInInstallDir).toHaveBeenCalledWith('qsys-edit', '/opt/intelFPGA');
+  });
+
+  it('isSubToolAvailable returns false when installDir is set but tool not found', () => {
+    mockFindInInstallDir.mockReturnValue(null);
+    const cfg = makeCfg({ 'quartus.runner': 'local', 'quartus.installDir': '/opt/intelFPGA' });
+    expect(tc.isSubToolAvailable('qsys-edit', cfg)).toBe(false);
+  });
+
+  it('isSubToolAvailable falls back to PATH check when no installDir or dockerImage', () => {
+    mockSpawnSync.mockReturnValue({ status: 0 });
+    const cfg = makeCfg({
+      'quartus.runner': 'local',
+      'quartus.installDir': '',
+      'quartus.dockerImage': '',
+    });
+    expect(tc.isSubToolAvailable('qsys-edit', cfg)).toBe(true);
+    expect(mockSpawnSync).toHaveBeenCalledWith(expect.any(String), ['qsys-edit'], {
+      stdio: 'pipe',
+    });
+  });
+
+  it('isSubToolAvailable returns false when not on PATH', () => {
+    mockSpawnSync.mockReturnValue({ status: 1 });
+    const cfg = makeCfg({
+      'quartus.runner': 'local',
+      'quartus.installDir': '',
+      'quartus.dockerImage': '',
+    });
+    expect(tc.isSubToolAvailable('qsys-edit', cfg)).toBe(false);
+  });
+
+  it('isSubToolAvailable returns true when dockerImage is set even without docker runner', () => {
+    const cfg = makeCfg({
+      'quartus.runner': 'local',
+      'quartus.installDir': '',
+      'quartus.dockerImage': 'cvsoc/quartus:latest',
+    });
+    expect(tc.isSubToolAvailable('qsys-edit', cfg)).toBe(true);
+  });
+});

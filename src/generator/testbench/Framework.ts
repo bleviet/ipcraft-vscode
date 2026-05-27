@@ -1,6 +1,17 @@
 import type { TemplateLoader } from '../TemplateLoader';
 import type { Engine } from './Engine';
 
+export interface FileSetFileEntry {
+  path: string;
+  type: string;
+  isIncludeFile?: boolean;
+}
+
+export interface FileSetEntry {
+  name: string;
+  files?: FileSetFileEntry[];
+}
+
 export interface TestbenchContext {
   /** Entity / module name (lowercase). */
   name: string;
@@ -18,6 +29,8 @@ export interface TestbenchContext {
   extraSimArgs?: string[];
   /** Extra environment variables from simulation.env. */
   extraEnv?: Record<string, string>;
+  /** File sets from the .ip.yml, used to enumerate RTL source files. */
+  fileSets?: FileSetEntry[];
 }
 
 /** Testbench framework abstraction — decides which files to emit. */

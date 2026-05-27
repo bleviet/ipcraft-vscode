@@ -8,7 +8,7 @@ import { findInInstallDir, getQuartusTool } from '../../utils/quartusResolver';
 import { fileExists } from '../../utils/fsHelpers';
 import { normalizeBusType } from '../../generator/registerProcessor';
 import type { IpCoreData } from '../../generator/types';
-import type { DockerConfig, LaunchEnv } from './LaunchableTool';
+import type { DockerConfig, LaunchEnv, SubToolDeclaration } from './LaunchableTool';
 import type {
   SynthesisToolchain,
   ScaffoldContext,
@@ -155,6 +155,29 @@ export class QuartusToolchain implements SynthesisToolchain {
   readonly displayName = 'Quartus (Intel/Altera)';
   readonly outputSubdir = 'altera';
   readonly contextKey = 'ipcraft.quartusFound';
+  readonly subTools: ReadonlyArray<SubToolDeclaration> = [
+    { name: 'qsys-edit', contextKey: 'ipcraft.qsysEditFound' },
+  ];
+
+  isSubToolAvailable(toolName: string, cfg: vscode.WorkspaceConfiguration): boolean {
+    if (toolName !== 'qsys-edit') {
+      return false;
+    }
+    const runner = cfg.get<string>('quartus.runner', 'local');
+    const dockerImage = (cfg.get<string>('quartus.dockerImage') ?? '').trim();
+    if (runner === 'docker') {
+      return dockerImage.length > 0;
+    }
+    const installDir = cfg.get<string>('quartus.installDir', '').trim();
+    if (installDir) {
+      return findInInstallDir(toolName, installDir) !== null;
+    }
+    if (dockerImage) {
+      return true;
+    }
+    const cmd = process.platform === 'win32' ? 'where' : 'which';
+    return spawnSync(cmd, [toolName], { stdio: 'pipe' }).status === 0;
+  }
 
   resolve(subTool: string, cfg: vscode.WorkspaceConfiguration) {
     const exe = getQuartusTool(cfg, subTool);

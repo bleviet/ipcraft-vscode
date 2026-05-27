@@ -10,7 +10,7 @@ import { parseVivadoReports } from '../ReportParser';
 import { runProcess } from '../BuildRunner';
 import { findVivadoInInstallDir, getVivadoLauncher } from '../../utils/vivadoResolver';
 import { fileExists } from '../../utils/fsHelpers';
-import type { DockerConfig, LaunchEnv } from './LaunchableTool';
+import type { DockerConfig, LaunchEnv, SubToolDeclaration } from './LaunchableTool';
 import type {
   SynthesisToolchain,
   ScaffoldContext,
@@ -23,6 +23,11 @@ export class VivadoToolchain implements SynthesisToolchain {
   readonly displayName = 'Vivado (Xilinx/AMD)';
   readonly outputSubdir = 'xilinx';
   readonly contextKey = 'ipcraft.vivadoFound';
+  readonly subTools: ReadonlyArray<SubToolDeclaration> = [];
+
+  isSubToolAvailable(_toolName: string, _cfg: import('vscode').WorkspaceConfiguration): boolean {
+    return false;
+  }
 
   resolve(subTool: string, cfg: vscode.WorkspaceConfiguration) {
     // subTool is ignored — Vivado exposes a single launcher for all operations.

@@ -14,7 +14,7 @@ import os
 from pathlib import Path
 from vunit import VUnit
 
-RTL_DIR = Path(__file__).parent.parent / "rtl"
+BASE_DIR = Path(__file__).parent.parent
 TB_DIR = Path(__file__).parent
 
 SIM = os.environ.get("SIM", "{{ engine_sim_var }}")
@@ -24,23 +24,54 @@ os.environ.setdefault("{{ kv.key }}", "{{ kv.value }}")
 {% endfor %}
 
 vu = VUnit.from_argv()
+{% if rtl_include_dirs | length > 0 %}
+{% for inc_dir in rtl_include_dirs %}
+vu.add_verilog_include_dir(str(BASE_DIR / "{{ inc_dir }}"))
+{% endfor %}
+{% elif is_sv %}
+vu.add_verilog_include_dir(str(BASE_DIR / "rtl"))
+{% else %}
 vu.add_vhdl_builtins()
+{% endif %}
 
 lib = vu.add_library("lib")
 
+{% if rtl_source_files | length > 0 %}
+# RTL sources — from ip.yml fileSets
+{% for src in rtl_source_files %}
+lib.add_source_files(BASE_DIR / "{{ src }}")
+{% endfor %}
+{% else %}
 # RTL sources — packages first, then the top-level entity
+{% if is_sv %}
 {% if has_memory_mapped_slave %}
-lib.add_source_files(RTL_DIR / "{{ entity_name }}_pkg.vhd")
-lib.add_source_files(RTL_DIR / "{{ entity_name }}_regs.vhd")
-lib.add_source_files(RTL_DIR / "{{ entity_name }}_core.vhd")
+lib.add_source_files(BASE_DIR / "rtl/{{ entity_name }}_pkg.sv")
+lib.add_source_files(BASE_DIR / "rtl/{{ entity_name }}_regs.sv")
+lib.add_source_files(BASE_DIR / "rtl/{{ entity_name }}_core.sv")
 {% if bus_type in ['axil', 'avmm'] %}
-lib.add_source_files(RTL_DIR / "{{ entity_name }}_{{ bus_type }}.vhd")
+lib.add_source_files(BASE_DIR / "rtl/{{ entity_name }}_{{ bus_type }}.sv")
 {% endif %}
 {% endif %}
-lib.add_source_files(RTL_DIR / "{{ entity_name }}.vhd")
+lib.add_source_files(BASE_DIR / "rtl/{{ entity_name }}.sv")
+{% else %}
+{% if has_memory_mapped_slave %}
+lib.add_source_files(BASE_DIR / "rtl/{{ entity_name }}_pkg.vhd")
+lib.add_source_files(BASE_DIR / "rtl/{{ entity_name }}_regs.vhd")
+lib.add_source_files(BASE_DIR / "rtl/{{ entity_name }}_core.vhd")
+{% if bus_type in ['axil', 'avmm'] %}
+lib.add_source_files(BASE_DIR / "rtl/{{ entity_name }}_{{ bus_type }}.vhd")
+{% endif %}
+{% endif %}
+lib.add_source_files(BASE_DIR / "rtl/{{ entity_name }}.vhd")
+{% endif %}
+{% endif %}
 
 # Testbench
+{% if is_sv %}
+lib.add_source_files(TB_DIR / "{{ entity_name }}_tb.sv")
+{% else %}
 lib.add_source_files(TB_DIR / "{{ entity_name }}_tb.vhd")
+{% endif %}
 
 {% if engine_sim_var == 'ghdl' %}
 # GHDL compile + elab flags — must be set after sources are added
