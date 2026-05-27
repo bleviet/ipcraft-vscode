@@ -42,6 +42,12 @@ create_project $project_name $project_dir -part $part -board_part {{ target_boar
 create_project $project_name $project_dir -part $part
 {% endif %}
 
+# ---- IP Repository -------------------------------------------------------
+# Register this directory as an IP repository so block designs can discover
+# the generated component.xml when this IP is instantiated.
+set_property IP_REPO_PATHS [list $script_dir] [current_project]
+update_ip_catalog -rebuild -quiet
+
 # ---- RTL sources --------------------------------------------------------
 {% for file in rtl_files %}
 add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir {{ file }}]]
