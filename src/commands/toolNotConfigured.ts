@@ -31,7 +31,8 @@ export async function quartusNotConfiguredCommand(): Promise<void> {
 export async function qsysEditNotConfiguredCommand(): Promise<void> {
   const choice = await vscode.window.showWarningMessage(
     "Platform Designer (qsys-edit) not found. Set 'ipcraft.quartus.installDir' to your " +
-      'Quartus installation directory. IPCraft searches quartus/sopc_builder/bin for qsys-edit.',
+      'Quartus installation directory. IPCraft searches quartus/sopc_builder/bin for qsys-edit. ' +
+      'Platform Designer opens with your generated component available in the IP catalog.',
     'Open Settings'
   );
   if (choice === 'Open Settings') {

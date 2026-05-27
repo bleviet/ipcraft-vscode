@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import * as fs from 'fs/promises';
 import { Logger } from '../utils/Logger';
 import { spawnGui } from '../services/BuildRunner';
 import { getToolchain } from '../services/toolchains/registry';
@@ -16,7 +17,7 @@ export async function editInPlatformDesignerCommand(uri?: vscode.Uri): Promise<v
   }
 
   const hwTclPath = targetUri.fsPath;
-  const hwTclDir = path.dirname(hwTclPath);
+  const alteraDir = path.dirname(hwTclPath);
   const cfg = vscode.workspace.getConfiguration('ipcraft');
   const toolchain = getToolchain('quartus');
   if (!toolchain) {
@@ -28,23 +29,35 @@ export async function editInPlatformDesignerCommand(uri?: vscode.Uri): Promise<v
     return;
   }
 
-  const docker = toolchain.getDocker(cfg, hwTclDir);
+  const docker = toolchain.getDocker(cfg, alteraDir);
   const { env, extraMounts } = toolchain.getLaunchEnv(cfg);
 
-  // Mount extra source directories referenced inside the _hw.tcl at their exact
-  // host paths so no path translation is needed for --search-path.
+  // Mount source directories referenced in the _hw.tcl so Platform Designer
+  // can locate RTL files when analysing the component.
   const sourceDirs = await sourceDirsFromHwTcl(hwTclPath);
   const extraSourceMounts = sourceDirs
-    .filter((d) => d !== hwTclDir)
+    .filter((d) => d !== alteraDir)
     .map((d) => ({ host: d, container: d }));
 
-  logger.info(`Launching Platform Designer: ${hwTclPath}`);
+  // Find an existing Platform Designer project (.qsys) in the altera directory.
+  const entries = await fs.readdir(alteraDir).catch(() => [] as string[]);
+  const qsysFile = entries.find((e) => e.endsWith('.qsys'));
+  const qsysPath = qsysFile ? path.join(alteraDir, qsysFile) : undefined;
+
+  // Open Platform Designer (not the Component Editor).
+  // --search-path makes the generated _hw.tcl component discoverable in the IP catalog.
+  // If a .qsys project exists it is opened directly; otherwise a blank new project starts.
+  const args = qsysPath ? [qsysPath, `--search-path=${alteraDir}`] : [`--search-path=${alteraDir}`];
+
+  logger.info(
+    `Opening Platform Designer: ${qsysPath ?? '(new project)'} [search-path: ${alteraDir}]`
+  );
 
   spawnGui(
     qsysEdit.exe,
-    [hwTclPath, `--search-path=${hwTclDir}`],
+    args,
     {
-      cwd: hwTclDir,
+      cwd: alteraDir,
       docker,
       env,
       extraMounts: [...extraMounts, ...extraSourceMounts],

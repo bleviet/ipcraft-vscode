@@ -669,8 +669,8 @@ const IpCoreApp: React.FC = () => {
                     <ToolbarButton
                       title={
                         hasHwTcl
-                          ? 'Edit in Platform Designer (Quartus)'
-                          : 'Edit in Platform Designer — run Generate Altera first'
+                          ? 'Open in Platform Designer (Quartus)'
+                          : 'Open in Platform Designer — run Generate Altera first'
                       }
                       icon="edit"
                       disabled={!hasHwTcl}

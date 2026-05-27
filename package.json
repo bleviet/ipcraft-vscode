@@ -64,7 +64,7 @@
       },
       {
         "command": "fpga-ip-core.editInPlatformDesigner",
-        "title": "Edit in Platform Designer",
+        "title": "Open in Platform Designer",
         "category": "IPCraft",
         "enablement": "ipcraft.qsysEditFound"
       },
