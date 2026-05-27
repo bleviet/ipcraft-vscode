@@ -140,3 +140,111 @@ describe('CocotbFramework', () => {
     expect(mk).toContain('export LM_LICENSE_FILE=/opt/licenses/x.dat');
   });
 });
+
+describe('CocotbFramework — fileset-driven sources', () => {
+  const framework = new CocotbFramework();
+
+  const VHDL_FILESETS = [
+    {
+      name: 'RTL_Sources',
+      files: [
+        { path: 'rtl/test_core_pkg.vhd', type: 'vhdl' },
+        { path: 'rtl/test_core.vhd', type: 'vhdl' },
+      ],
+    },
+    {
+      name: 'Simulation_Resources',
+      files: [
+        { path: 'tb/test_core_tb.vhd', type: 'vhdl' },
+        { path: 'tb/Makefile', type: 'unknown' },
+      ],
+    },
+  ];
+
+  const SV_FILESETS = [
+    {
+      name: 'RTL_Sources',
+      files: [
+        { path: 'include/test_core_defs.svh', type: 'systemverilog', isIncludeFile: true },
+        { path: 'rtl/test_core.sv', type: 'systemverilog' },
+      ],
+    },
+  ];
+
+  it('Makefile lists fileset VHDL sources via BASE_DIR', () => {
+    const files = framework.generate(makeCtx({ fileSets: VHDL_FILESETS }), new GhdlEngine());
+    const mk = files['tb/Makefile'];
+    expect(mk).toContain('BASE_DIR = $(CURDIR)/..');
+    expect(mk).toContain('VHDL_SOURCES += $(BASE_DIR)/rtl/test_core_pkg.vhd');
+    expect(mk).toContain('VHDL_SOURCES += $(BASE_DIR)/rtl/test_core.vhd');
+    expect(mk).not.toContain('RTL_DIR');
+  });
+
+  it('Makefile does not add tb/ files from fileSets as VHDL sources', () => {
+    const files = framework.generate(makeCtx({ fileSets: VHDL_FILESETS }), new GhdlEngine());
+    expect(files['tb/Makefile']).not.toContain('test_core_tb.vhd');
+  });
+
+  it('SV Makefile lists fileset SV sources and adds include dir', () => {
+    const ctx = makeCtx({
+      isSv: true,
+      fileSets: SV_FILESETS,
+      templateContext: {
+        entity_name: 'test_core',
+        clock_port: 'clk',
+        reset_port: 'rst_n',
+        reset_active_high: false,
+        bus_type: 'none',
+        has_memory_mapped_slave: false,
+        ports: [],
+        parameters: [],
+      },
+    });
+    const mk = framework.generate(ctx, new IcarusEngine())['tb/Makefile'];
+    expect(mk).toContain('VERILOG_SOURCES += $(BASE_DIR)/rtl/test_core.sv');
+    expect(mk).toContain('COMPILE_ARGS += -I$(BASE_DIR)/include');
+    expect(mk).not.toContain('RTL_DIR');
+  });
+
+  it('conftest.py lists fileset sources as RTL_SOURCES via BASE_DIR', () => {
+    const files = framework.generate(makeCtx({ fileSets: VHDL_FILESETS }), new GhdlEngine());
+    const conf = files['tb/conftest.py'];
+    expect(conf).toContain('BASE_DIR = TB_DIR.parent');
+    expect(conf).toContain('BASE_DIR / "rtl/test_core_pkg.vhd"');
+    expect(conf).toContain('BASE_DIR / "rtl/test_core.vhd"');
+    expect(conf).toContain('RTL_SOURCES');
+    expect(conf).not.toContain('RTL_DIR');
+  });
+
+  it('conftest.py does not add tb/ simulation files as RTL_SOURCES', () => {
+    const conf = framework.generate(makeCtx({ fileSets: VHDL_FILESETS }), new GhdlEngine())[
+      'tb/conftest.py'
+    ];
+    expect(conf).not.toContain('BASE_DIR / "tb/');
+  });
+
+  it('falls back to entity-name VHDL logic when fileSets is empty', () => {
+    const mk = framework.generate(makeCtx({ fileSets: [] }), new GhdlEngine())['tb/Makefile'];
+    expect(mk).toContain('VHDL_SOURCES += $(BASE_DIR)/rtl/test_core.vhd');
+  });
+
+  it('conftest.py falls back to entity-name SV logic for SV project with no fileSets', () => {
+    const ctx = makeCtx({
+      isSv: true,
+      fileSets: [],
+      templateContext: {
+        entity_name: 'test_core',
+        clock_port: 'clk',
+        reset_port: 'rst_n',
+        reset_active_high: false,
+        bus_type: 'none',
+        has_memory_mapped_slave: false,
+        ports: [],
+        parameters: [],
+      },
+    });
+    const conf = framework.generate(ctx, new IcarusEngine())['tb/conftest.py'];
+    expect(conf).toContain('BASE_DIR / "rtl/test_core.sv"');
+    expect(conf).not.toContain('BASE_DIR / "rtl/test_core.vhd"');
+  });
+});

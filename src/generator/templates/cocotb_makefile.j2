@@ -19,16 +19,24 @@ SIM ?= ghdl
 TOPLEVEL_LANG ?= vhdl
 
 # VHDL source files (relative to tb/ directory)
-RTL_DIR = $(CURDIR)/../rtl
+BASE_DIR = $(CURDIR)/..
+{% if rtl_source_files | length > 0 %}
+# From ip.yml fileSets
+{% for src in rtl_source_files %}
+VHDL_SOURCES += $(BASE_DIR)/{{ src }}
+{% endfor %}
+{% else %}
+# Derived from entity structure
 {% if has_memory_mapped_slave %}
-VHDL_SOURCES += $(RTL_DIR)/{{ entity_name }}_pkg.vhd
-VHDL_SOURCES += $(RTL_DIR)/{{ entity_name }}_regs.vhd
-VHDL_SOURCES += $(RTL_DIR)/{{ entity_name }}_core.vhd
+VHDL_SOURCES += $(BASE_DIR)/rtl/{{ entity_name }}_pkg.vhd
+VHDL_SOURCES += $(BASE_DIR)/rtl/{{ entity_name }}_regs.vhd
+VHDL_SOURCES += $(BASE_DIR)/rtl/{{ entity_name }}_core.vhd
 {% if bus_type == 'axil' or bus_type == 'avmm' %}
-VHDL_SOURCES += $(RTL_DIR)/{{ entity_name }}_{{ bus_type }}.vhd
+VHDL_SOURCES += $(BASE_DIR)/rtl/{{ entity_name }}_{{ bus_type }}.vhd
 {% endif %}
 {% endif %}
-VHDL_SOURCES += $(RTL_DIR)/{{ entity_name }}.vhd
+VHDL_SOURCES += $(BASE_DIR)/rtl/{{ entity_name }}.vhd
+{% endif %}
 
 # Top-level module
 TOPLEVEL = {{ entity_name }}

@@ -17,22 +17,44 @@ import subprocess
 import pytest
 
 TB_DIR = pathlib.Path(__file__).parent
-RTL_DIR = TB_DIR.parent / "rtl"
+BASE_DIR = TB_DIR.parent
 
 SIM = os.environ.get("SIM", "ghdl")
 
-# VHDL sources in compilation order (packages before entities that use them)
-VHDL_SOURCES = [
-{% if has_memory_mapped_slave %}
-    RTL_DIR / "{{ entity_name }}_pkg.vhd",
-    RTL_DIR / "{{ entity_name }}_regs.vhd",
-    RTL_DIR / "{{ entity_name }}_core.vhd",
-{% if bus_type in ['axil', 'avmm'] %}
-    RTL_DIR / "{{ entity_name }}_{{ bus_type }}.vhd",
-{% endif %}
-{% endif %}
-    RTL_DIR / "{{ entity_name }}.vhd",
+{% if rtl_source_files | length > 0 %}
+# RTL sources — from ip.yml fileSets
+RTL_SOURCES = [
+{% for src in rtl_source_files %}
+    BASE_DIR / "{{ src }}",
+{% endfor %}
 ]
+{% elif is_sv %}
+# RTL sources — derived from entity structure (SystemVerilog)
+RTL_SOURCES = [
+{% if has_memory_mapped_slave %}
+    BASE_DIR / "rtl/{{ entity_name }}_pkg.sv",
+    BASE_DIR / "rtl/{{ entity_name }}_regs.sv",
+    BASE_DIR / "rtl/{{ entity_name }}_core.sv",
+{% if bus_type in ['axil', 'avmm'] %}
+    BASE_DIR / "rtl/{{ entity_name }}_{{ bus_type }}.sv",
+{% endif %}
+{% endif %}
+    BASE_DIR / "rtl/{{ entity_name }}.sv",
+]
+{% else %}
+# RTL sources — derived from entity structure (VHDL, compilation order)
+RTL_SOURCES = [
+{% if has_memory_mapped_slave %}
+    BASE_DIR / "rtl/{{ entity_name }}_pkg.vhd",
+    BASE_DIR / "rtl/{{ entity_name }}_regs.vhd",
+    BASE_DIR / "rtl/{{ entity_name }}_core.vhd",
+{% if bus_type in ['axil', 'avmm'] %}
+    BASE_DIR / "rtl/{{ entity_name }}_{{ bus_type }}.vhd",
+{% endif %}
+{% endif %}
+    BASE_DIR / "rtl/{{ entity_name }}.vhd",
+]
+{% endif %}
 
 
 @pytest.fixture(scope="session")
@@ -49,7 +71,7 @@ def sim_runner():
         def test_my_case(sim_runner):
             sim_runner("test_my_case")
     """
-    missing = [str(s) for s in VHDL_SOURCES if not s.exists()]
+    missing = [str(s) for s in RTL_SOURCES if not s.exists()]
     if missing:
         raise FileNotFoundError(
             "RTL sources not found — run the IPCraft scaffolder first:\n"

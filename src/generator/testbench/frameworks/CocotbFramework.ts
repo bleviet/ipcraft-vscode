@@ -1,6 +1,13 @@
 import type { Engine } from '../Engine';
 import type { Framework, TestbenchContext } from '../Framework';
 
+const RTL_HDL_TYPES = new Set(['vhdl', 'systemverilog', 'verilog']);
+const SIM_PREFIXES = ['tb/', 'sim/', 'simulation/', 'testbench/', 'test/'];
+
+function isSimPath(p: string): boolean {
+  return SIM_PREFIXES.some((prefix) => p.startsWith(prefix));
+}
+
 export class CocotbFramework implements Framework {
   readonly id = 'cocotb';
   readonly displayName = 'CocoTB';
@@ -12,10 +19,31 @@ export class CocotbFramework implements Framework {
     const extraEnv = ctx.extraEnv ?? {};
     const files: Record<string, string> = {};
 
+    // Derive RTL source file list from ip.yml fileSets when available.
+    const hdlFiles = (ctx.fileSets ?? [])
+      .flatMap((fs) => fs.files ?? [])
+      .filter((f) => RTL_HDL_TYPES.has(f.type) && !isSimPath(f.path));
+
+    const rtlSourceFiles = hdlFiles.filter((f) => !f.isIncludeFile).map((f) => f.path);
+    const includeDirSet = new Set(
+      hdlFiles
+        .filter((f) => f.isIncludeFile)
+        .map((f) => (f.path.includes('/') ? f.path.substring(0, f.path.lastIndexOf('/')) : '.'))
+    );
+    const rtlIncludeDirs = [...includeDirSet];
+
+    // Base context shared across all cocotb templates (conftest, test, Makefile).
+    const cocotbCtx = {
+      ...templateContext,
+      is_sv: isSv,
+      rtl_source_files: rtlSourceFiles,
+      rtl_include_dirs: rtlIncludeDirs,
+    };
+
     // Extend the template context with engine-specific values so templates can
     // consume them directly instead of relying solely on ifeq blocks.
     const makeCtx = {
-      ...templateContext,
+      ...cocotbCtx,
       engine_sim_var: engine.simVar,
       engine_compile_args: engine.compileArgs.join(' '),
       engine_wave_ext: engine.waveExt,
@@ -29,7 +57,7 @@ export class CocotbFramework implements Framework {
       files['tb/mm_loader.py'] = templates.render('mm_loader.py.j2', templateContext);
     }
     files[`tb/${name}_test.py`] = templates.render('cocotb_test.py.j2', templateContext);
-    files['tb/conftest.py'] = templates.render('cocotb_conftest.py.j2', templateContext);
+    files['tb/conftest.py'] = templates.render('cocotb_conftest.py.j2', cocotbCtx);
     files[`tb/test_${name}_sim.py`] = templates.render('cocotb_pytest.py.j2', templateContext);
     files['tb/Makefile'] = templates.render(
       isSv ? 'cocotb_makefile.sv.j2' : 'cocotb_makefile.j2',

@@ -20,16 +20,29 @@ SIM ?= icarus
 TOPLEVEL_LANG ?= verilog
 
 # SystemVerilog source files (relative to tb/ directory)
-RTL_DIR = $(CURDIR)/../rtl
+BASE_DIR = $(CURDIR)/..
+{% if rtl_source_files | length > 0 %}
+# From ip.yml fileSets
+{% for src in rtl_source_files %}
+VERILOG_SOURCES += $(BASE_DIR)/{{ src }}
+{% endfor %}
+{% if rtl_include_dirs | length > 0 %}
+{% for inc_dir in rtl_include_dirs %}
+COMPILE_ARGS += -I$(BASE_DIR)/{{ inc_dir }}
+{% endfor %}
+{% endif %}
+{% else %}
+# Derived from entity structure
 {% if has_memory_mapped_slave %}
-VERILOG_SOURCES += $(RTL_DIR)/{{ entity_name }}_pkg.sv
-VERILOG_SOURCES += $(RTL_DIR)/{{ entity_name }}_regs.sv
-VERILOG_SOURCES += $(RTL_DIR)/{{ entity_name }}_core.sv
+VERILOG_SOURCES += $(BASE_DIR)/rtl/{{ entity_name }}_pkg.sv
+VERILOG_SOURCES += $(BASE_DIR)/rtl/{{ entity_name }}_regs.sv
+VERILOG_SOURCES += $(BASE_DIR)/rtl/{{ entity_name }}_core.sv
 {% if bus_type == 'axil' or bus_type == 'avmm' %}
-VERILOG_SOURCES += $(RTL_DIR)/{{ entity_name }}_{{ bus_type }}.sv
+VERILOG_SOURCES += $(BASE_DIR)/rtl/{{ entity_name }}_{{ bus_type }}.sv
 {% endif %}
 {% endif %}
-VERILOG_SOURCES += $(RTL_DIR)/{{ entity_name }}.sv
+VERILOG_SOURCES += $(BASE_DIR)/rtl/{{ entity_name }}.sv
+{% endif %}
 
 # Top-level module
 TOPLEVEL = {{ entity_name }}
