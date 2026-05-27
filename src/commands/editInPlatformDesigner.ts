@@ -18,6 +18,9 @@ export async function editInPlatformDesignerCommand(uri?: vscode.Uri): Promise<v
 
   const hwTclPath = targetUri.fsPath;
   const alteraDir = path.dirname(hwTclPath);
+  // Mount the IP root (parent of altera/) so relative paths like ../rtl/... in
+  // the _hw.tcl resolve correctly inside Docker (/work/altera/../rtl → /work/rtl).
+  const ipRootDir = path.dirname(alteraDir);
   const cfg = vscode.workspace.getConfiguration('ipcraft');
   const toolchain = getToolchain('quartus');
   if (!toolchain) {
@@ -29,7 +32,7 @@ export async function editInPlatformDesignerCommand(uri?: vscode.Uri): Promise<v
     return;
   }
 
-  const docker = toolchain.getDocker(cfg, alteraDir);
+  const docker = toolchain.getDocker(cfg, ipRootDir);
   const { env, extraMounts } = toolchain.getLaunchEnv(cfg);
 
   // Mount source directories referenced in the _hw.tcl so Platform Designer
@@ -45,13 +48,11 @@ export async function editInPlatformDesignerCommand(uri?: vscode.Uri): Promise<v
   const qsysPath = qsysFile ? path.join(alteraDir, qsysFile) : undefined;
 
   // Open Platform Designer (not the Component Editor).
-  // Append ,$ to include the standard Platform Designer IP catalog alongside the
-  // custom altera/ directory. Without $, all built-in Altera/Intel IPs are omitted.
-  // If a .qsys project exists it is opened directly; otherwise a blank new project starts.
-  const searchPath = `${alteraDir},$`;
-  const args = qsysPath
-    ? [qsysPath, `--search-path=${searchPath}`]
-    : [`--search-path=${searchPath}`];
+  // "." resolves to the cwd (alteraDir) in both local and Docker contexts —
+  // spawnGui only translates pure absolute path args, not embedded paths inside
+  // flag values, so "." is the only safe portable form here.
+  // ,$ appends the standard Platform Designer IP catalog.
+  const args = qsysPath ? [qsysPath, '--search-path=.,$'] : ['--search-path=.,$'];
 
   logger.info(
     `Opening Platform Designer: ${qsysPath ?? '(new project)'} [search-path: ${alteraDir}]`
