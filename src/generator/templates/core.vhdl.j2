@@ -13,7 +13,7 @@ use ieee.numeric_std.all;
 use work.{{ entity_name }}_pkg.all;
 
 entity {{ entity_name }}_core is
-{% if generics %}
+{% if generics | length %}
   generic (
 {% for generic in generics %}
     {{ generic.name }} : {{ generic.type }}{{ " := " ~ generic.default_value if generic.default_value is not none else "" }}{{ ";" if not loop.last else "" }}

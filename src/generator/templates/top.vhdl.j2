@@ -86,7 +86,7 @@ begin
     -- Core Logic Instance
     ----------------------------------------------------------------------------
     u_core : entity work.{{ entity_name }}_core
-{% if generics %}
+{% if generics | length %}
     generic map (
 {% for generic in generics %}
       {{ generic.name }} => {{ generic.name }}{{ "," if not loop.last else "" }}

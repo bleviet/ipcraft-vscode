@@ -72,13 +72,21 @@ package {{ entity_name }}_pkg is
   -- SW -> HW: Registers written by software, read by hardware
   type t_regs_sw2hw is record
 {% for reg in sw_registers %}
+{% if reg.fields | length %}
     {{ reg.name | lower }} : t_reg_{{ reg.name | lower }};
+{% else %}
+    {{ reg.name | lower }} : std_logic_vector(C_DATA_WIDTH-1 downto 0);
+{% endif %}
 {% endfor %}
   end record;
 
   constant C_REGS_SW2HW_RESET : t_regs_sw2hw := (
 {% for reg in sw_registers %}
+{% if reg.fields | length %}
     {{ reg.name | lower }} => C_REG_{{ reg.name | upper }}_RESET{{ "," if not loop.last else "" }}
+{% else %}
+    {{ reg.name | lower }} => (others => '0'){{ "," if not loop.last else "" }}
+{% endif %}
 {% endfor %}
   );
 {% endif %}
@@ -87,13 +95,21 @@ package {{ entity_name }}_pkg is
   -- HW -> SW: Registers written by hardware, read by software
   type t_regs_hw2sw is record
 {% for reg in hw_registers %}
+{% if reg.fields | length %}
     {{ reg.name | lower }} : t_reg_{{ reg.name | lower }};
+{% else %}
+    {{ reg.name | lower }} : std_logic_vector(C_DATA_WIDTH-1 downto 0);
+{% endif %}
 {% endfor %}
   end record;
 
   constant C_REGS_HW2SW_RESET : t_regs_hw2sw := (
 {% for reg in hw_registers %}
+{% if reg.fields | length %}
     {{ reg.name | lower }} => C_REG_{{ reg.name | upper }}_RESET{{ "," if not loop.last else "" }}
+{% else %}
+    {{ reg.name | lower }} => (others => '0'){{ "," if not loop.last else "" }}
+{% endif %}
 {% endfor %}
   );
 {% endif %}

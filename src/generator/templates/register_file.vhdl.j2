@@ -107,8 +107,12 @@ begin
 {% for reg in registers %}
 {% if reg.access in ['read-write', 'write-only', 'rw', 'wo', 'read_write', 'write_only'] %}
           when t_reg_id'pos(REG_{{ reg.name | upper }}) =>
+{% if reg.fields | length %}
             v_wdata := apply_wstrb(to_slv(regs.{{ reg.name | lower }}), wr_data, wr_strb);
             regs.{{ reg.name | lower }} <= to_{{ reg.name | lower }}(v_wdata);
+{% else %}
+            regs.{{ reg.name | lower }} <= apply_wstrb(regs.{{ reg.name | lower }}, wr_data, wr_strb);
+{% endif %}
 {% endif %}
 {% endfor %}
           when others =>
@@ -137,10 +141,18 @@ begin
 {% for reg in registers %}
 {% if reg.access in ['read-only', 'ro', 'read_only'] %}
           when t_reg_id'pos(REG_{{ reg.name | upper }}) =>
+{% if reg.fields | length %}
             rd_data_int <= to_slv(regs_in.{{ reg.name | lower }});
+{% else %}
+            rd_data_int <= regs_in.{{ reg.name | lower }};
+{% endif %}
 {% elif reg.access in ['read-write', 'rw', 'read_write'] %}
           when t_reg_id'pos(REG_{{ reg.name | upper }}) =>
+{% if reg.fields | length %}
             rd_data_int <= to_slv(regs.{{ reg.name | lower }});
+{% else %}
+            rd_data_int <= regs.{{ reg.name | lower }};
+{% endif %}
 {% endif %}
 {% endfor %}
           when others =>

@@ -5,7 +5,7 @@ use ieee.numeric_std.all;
 {%- endif %}
 
 entity {{ entity_name }} is
-{%- if generics %}
+{%- if generics | length %}
     generic (
 {%- for generic in generics %}
 {%- if loop.last %}
