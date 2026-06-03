@@ -277,32 +277,14 @@ export function expandBusInterfaces(ipCore: IpCoreData): BusInterfaceDef[] {
   return expanded;
 }
 
-export function getVhdlPortType(width: number, logicalName: string): string {
-  if (['AWADDR', 'ARADDR', 'address'].includes(logicalName)) {
-    return 'std_logic_vector(C_ADDR_WIDTH-1 downto 0)';
-  }
-  if (['WDATA', 'RDATA', 'writedata', 'readdata'].includes(logicalName)) {
-    return 'std_logic_vector(C_DATA_WIDTH-1 downto 0)';
-  }
-  if (logicalName === 'WSTRB') {
-    return 'std_logic_vector((C_DATA_WIDTH/8)-1 downto 0)';
-  }
+export function getVhdlPortType(width: number, _logicalName: string): string {
   if (width === 1) {
     return 'std_logic';
   }
   return `std_logic_vector(${width - 1} downto 0)`;
 }
 
-export function getSvPortType(width: number, logicalName: string): string {
-  if (['AWADDR', 'ARADDR', 'address'].includes(logicalName)) {
-    return 'logic [C_ADDR_WIDTH-1:0]';
-  }
-  if (['WDATA', 'RDATA', 'writedata', 'readdata'].includes(logicalName)) {
-    return 'logic [C_DATA_WIDTH-1:0]';
-  }
-  if (logicalName === 'WSTRB') {
-    return 'logic [(C_DATA_WIDTH/8)-1:0]';
-  }
+export function getSvPortType(width: number, _logicalName: string): string {
   if (width === 1) {
     return 'logic';
   }
@@ -370,19 +352,15 @@ export function getActiveBusPortsFromDefinition(
 
     const numWidth = Number(width);
 
-    // Compute HDL type strings — use the generic expression when parameterized
+    // Compute HDL type strings — use the parameter expression when parameterized,
+    // otherwise use the concrete numeric width from the bus definition.
     let vhdlType: string;
     let svType: string;
     if (widthExpr !== null) {
-      if (['AWADDR', 'ARADDR', 'address'].includes(logicalName)) {
-        vhdlType = 'std_logic_vector(C_ADDR_WIDTH-1 downto 0)';
-        svType = 'logic [C_ADDR_WIDTH-1:0]';
-      } else if (['WDATA', 'RDATA', 'writedata', 'readdata'].includes(logicalName)) {
-        vhdlType = 'std_logic_vector(C_DATA_WIDTH-1 downto 0)';
-        svType = 'logic [C_DATA_WIDTH-1:0]';
-      } else if (logicalName === 'WSTRB') {
-        vhdlType = 'std_logic_vector((C_DATA_WIDTH/8)-1 downto 0)';
-        svType = 'logic [(C_DATA_WIDTH/8)-1:0]';
+      if (logicalName === 'WSTRB') {
+        // WSTRB width is DATA_WIDTH/8; widthExpr holds the data-width parameter name
+        vhdlType = `std_logic_vector((${widthExpr}/8)-1 downto 0)`;
+        svType = `logic [(${widthExpr}/8)-1:0]`;
       } else {
         vhdlType = `std_logic_vector(${widthExpr}-1 downto 0)`;
         svType = `logic [${widthExpr}-1:0]`;

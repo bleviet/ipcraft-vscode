@@ -132,8 +132,10 @@ describe('registerProcessor', () => {
       expect(getVhdlPortType(8, 'SIG')).toBe('std_logic_vector(7 downto 0)');
     });
 
-    it('handles special names', () => {
-      expect(getVhdlPortType(32, 'AWADDR')).toBe('std_logic_vector(C_ADDR_WIDTH-1 downto 0)');
+    it('returns concrete vector for wide ports without parameterization', () => {
+      expect(getVhdlPortType(32, 'AWADDR')).toBe('std_logic_vector(31 downto 0)');
+      expect(getVhdlPortType(32, 'WDATA')).toBe('std_logic_vector(31 downto 0)');
+      expect(getVhdlPortType(4, 'WSTRB')).toBe('std_logic_vector(3 downto 0)');
     });
   });
 
@@ -224,6 +226,52 @@ describe('registerProcessor', () => {
       expect(result[0].width).toBe(1);
       expect(result[0].width_expr).toBe('UNKNOWN_PARAM');
       expect(result[0].is_parameterized).toBe(true);
+    });
+
+    it('emits concrete numeric widths for AXI ports with no portWidthOverrides', () => {
+      // Simulates the axi4_lite bus definition ports: AWADDR=32, WDATA=32, WSTRB=4
+      const defPorts = [
+        { name: 'AWADDR', direction: 'out', presence: 'required', width: 32 },
+        { name: 'WDATA', direction: 'out', presence: 'required', width: 32 },
+        { name: 'WSTRB', direction: 'out', presence: 'required', width: 4 },
+        { name: 'RDATA', direction: 'in', presence: 'required', width: 32 },
+      ];
+      const result = getActiveBusPortsFromDefinition(defPorts, [], 's_axi_', 'slave', {});
+      const byName = Object.fromEntries(result.map((p) => [p.logical_name as string, p]));
+
+      expect(byName['AWADDR'].type).toBe('std_logic_vector(31 downto 0)');
+      expect(byName['WDATA'].type).toBe('std_logic_vector(31 downto 0)');
+      expect(byName['WSTRB'].type).toBe('std_logic_vector(3 downto 0)');
+      expect(byName['RDATA'].type).toBe('std_logic_vector(31 downto 0)');
+      expect(byName['AWADDR'].is_parameterized).toBe(false);
+    });
+
+    it('uses the override expression for parameterized AXI port widths', () => {
+      const defPorts = [
+        { name: 'AWADDR', direction: 'out', presence: 'required', width: 32 },
+        { name: 'WDATA', direction: 'out', presence: 'required', width: 32 },
+        { name: 'WSTRB', direction: 'out', presence: 'required', width: 4 },
+      ];
+      const params = [
+        { name: 'C_ADDR_WIDTH', value: 32 },
+        { name: 'C_DATA_WIDTH', value: 32 },
+      ];
+      const overrides = { AWADDR: 'C_ADDR_WIDTH', WDATA: 'C_DATA_WIDTH', WSTRB: 'C_DATA_WIDTH' };
+      const result = getActiveBusPortsFromDefinition(
+        defPorts,
+        [],
+        's_',
+        'slave',
+        overrides,
+        params
+      );
+      const byName = Object.fromEntries(result.map((p) => [p.logical_name as string, p]));
+
+      expect(byName['AWADDR'].type).toBe('std_logic_vector(C_ADDR_WIDTH-1 downto 0)');
+      expect(byName['WDATA'].type).toBe('std_logic_vector(C_DATA_WIDTH-1 downto 0)');
+      expect(byName['WSTRB'].type).toBe('std_logic_vector((C_DATA_WIDTH/8)-1 downto 0)');
+      expect(byName['AWADDR'].is_parameterized).toBe(true);
+      expect(byName['AWADDR'].width_expr).toBe('C_ADDR_WIDTH');
     });
   });
 
