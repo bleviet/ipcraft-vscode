@@ -514,6 +514,11 @@
             ],
             "default": "vhdl",
             "description": "HDL language for RTL file generation (VHDL or SystemVerilog)."
+          },
+          "ipcraft.generate.bahonaviMethodology": {
+            "type": "boolean",
+            "default": false,
+            "markdownDescription": "Enable the **bahonavi methodology**: generates the full multi-file HDL structure (top, core, bus wrapper, package, register file). When disabled (default), only a single minimal top-level stub is generated — ideal for beginners and for manually-structured designs."
           }
         }
       },

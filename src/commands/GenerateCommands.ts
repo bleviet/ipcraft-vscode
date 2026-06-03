@@ -166,6 +166,7 @@ async function generateHdl(context: vscode.ExtensionContext): Promise<void> {
   }
   const genCfg = vscode.workspace.getConfiguration('ipcraft.generate');
   const hdlLanguage = genCfg.get<'vhdl' | 'systemverilog'>('hdlLanguage', 'vhdl');
+  const bahonaviMethodology = genCfg.get<boolean>('bahonaviMethodology', false);
   const langLabel = hdlLanguage === 'systemverilog' ? 'SystemVerilog' : 'VHDL';
   const outputDir = await pickOutputDir(
     ipCoreUri,
@@ -186,6 +187,7 @@ async function generateHdl(context: vscode.ExtensionContext): Promise<void> {
       updateYaml: true,
       silent: true,
       hdlLanguage,
+      bahonaviMethodology,
     },
     `Generating ${langLabel}...`
   );
@@ -222,6 +224,7 @@ async function scaffoldProject(context: vscode.ExtensionContext): Promise<void> 
   const genCfg = vscode.workspace.getConfiguration('ipcraft.generate');
   const includeTestbench = genCfg.get<boolean>('includeTestbench', true);
   const hdlLanguage = genCfg.get<'vhdl' | 'systemverilog'>('hdlLanguage', 'vhdl');
+  const bahonaviMethodology = genCfg.get<boolean>('bahonaviMethodology', false);
 
   const targetPart = await pickVivadoPart(
     context,
@@ -255,6 +258,7 @@ async function scaffoldProject(context: vscode.ExtensionContext): Promise<void> 
       updateYaml: true,
       silent: true,
       hdlLanguage,
+      bahonaviMethodology,
     },
     'Scaffolding project...'
   );

@@ -61,7 +61,7 @@ describe('IpCoreScaffolder', () => {
     jest.clearAllMocks();
   });
 
-  it('generates a full project structure', async () => {
+  it('generates a full project structure (bahonaviMethodology)', async () => {
     const inputPath = path.resolve(__dirname, '../../fixtures/sample-ipcore.yml');
     const outputDir = '/tmp/test-output';
 
@@ -69,6 +69,7 @@ describe('IpCoreScaffolder', () => {
       includeRegs: true,
       includeTestbench: true,
       targets: ['vivado', 'quartus'],
+      bahonaviMethodology: true,
     });
 
     expect(result.success).toBe(true);
@@ -103,6 +104,44 @@ describe('IpCoreScaffolder', () => {
       call[0].includes('xilinx/component.xml')
     )?.[1];
     expect(xmlContent).toContain('<spirit:description>Width of the data bus</spirit:description>');
+  });
+
+  it('generates a single minimal stub by default (no bahonaviMethodology)', async () => {
+    const inputPath = path.resolve(__dirname, '../../fixtures/sample-ipcore.yml');
+    const outputDir = '/tmp/test-minimal-output';
+
+    const result = await scaffolder.generateAll(inputPath, outputDir, {
+      includeRegs: true,
+      includeTestbench: true,
+      targets: ['vivado', 'quartus'],
+      // bahonaviMethodology: false is the default
+    });
+
+    expect(result.success).toBe(true);
+
+    const writtenFiles = (fs.writeFile as unknown as jest.Mock).mock.calls.map((call) => call[0]);
+
+    // Only the single top-level stub should be present — no sub-module files
+    expect(writtenFiles.some((f: string) => f.includes('rtl/sample_core.vhd'))).toBe(true);
+    expect(writtenFiles.some((f: string) => f.includes('rtl/sample_core_pkg.vhd'))).toBe(false);
+    expect(writtenFiles.some((f: string) => f.includes('rtl/sample_core_regs.vhd'))).toBe(false);
+    expect(writtenFiles.some((f: string) => f.includes('rtl/sample_core_core.vhd'))).toBe(false);
+
+    // Testbench is still generated (basic smoke test, no mm_loader)
+    expect(writtenFiles.some((f: string) => f.includes('tb/Makefile'))).toBe(true);
+    expect(writtenFiles.some((f: string) => f.includes('tb/mm_loader.py'))).toBe(false);
+
+    // EDA packaging still generated, referencing the single stub file
+    expect(writtenFiles.some((f: string) => f.includes('altera/sample_core_hw.tcl'))).toBe(true);
+    expect(writtenFiles.some((f: string) => f.includes('xilinx/component.xml'))).toBe(true);
+
+    // The stub has an empty architecture (no submodule instantiations)
+    const vhdlContent = (fs.writeFile as unknown as jest.Mock).mock.calls.find((call: string[]) =>
+      call[0].includes('rtl/sample_core.vhd')
+    )?.[1] as string;
+    expect(vhdlContent).toContain('entity sample_core is');
+    expect(vhdlContent).not.toContain('u_core');
+    expect(vhdlContent).not.toContain('use work.sample_core_pkg.all');
   });
 
   it('does not add simulation sources to Vivado/Quartus project TCLs', async () => {

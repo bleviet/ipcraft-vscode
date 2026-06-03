@@ -20,6 +20,12 @@ export interface GenerateOptions {
   framework?: string;
   /** Simulation engine: 'ghdl' (default), 'icarus', 'verilator', 'questa'. */
   engine?: string;
+  /**
+   * Enable the bahonavi methodology: full multi-file generation (top, core, bus wrapper,
+   * package, register file). When false (default), only a single minimal top-level stub
+   * is generated with an empty architecture/module body.
+   */
+  bahonaviMethodology?: boolean;
 }
 
 export interface GenerateResult {

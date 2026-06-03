@@ -94,7 +94,8 @@ export class IpCoreScaffolder {
       if (memmapRelpath !== undefined) {
         context.memmap_relpath = memmapRelpath;
       }
-      const includeRegs = options.includeRegs !== false && hasMmSlave;
+      const bahonaviMethodology = options.bahonaviMethodology ?? false;
+      const includeRegs = options.includeRegs !== false && hasMmSlave && bahonaviMethodology;
       const includeTestbench = options.includeTestbench !== false;
       const targets = options.targets ?? [];
       // simulation.* in the YAML overrides the workspace-setting defaults
@@ -107,34 +108,49 @@ export class IpCoreScaffolder {
       context.hdl_language = hdlLanguage;
       context.is_systemverilog = isSv;
 
+      // In minimal mode, suppress pkg imports and submodule instantiations in the top-level
+      // template by clearing has_memory_mapped_slave. The EDA packaging context keeps the
+      // real value so bus interface metadata remains correct in hw.tcl / component.xml.
+      const hdlCtx = bahonaviMethodology ? context : { ...context, has_memory_mapped_slave: false };
+
       const files: Record<string, string> = {};
       const name = String(ipCoreData?.vlnv?.name ?? 'ip_core').toLowerCase();
 
       if (includeVhdl) {
-        if (isSv) {
-          if (hasMmSlave) {
-            files[`rtl/${name}_pkg.sv`] = this.templates.render('pkg.sv.j2', context);
-          }
-          files[`rtl/${name}.sv`] = this.templates.render('top.sv.j2', context);
-          if (hasMmSlave) {
-            files[`rtl/${name}_core.sv`] = this.templates.render('core.sv.j2', context);
-            files[`rtl/${name}_${busType}.sv`] = this.templates.render(
-              `bus_${busType}.sv.j2`,
-              context
-            );
+        if (bahonaviMethodology) {
+          if (isSv) {
+            if (hasMmSlave) {
+              files[`rtl/${name}_pkg.sv`] = this.templates.render('pkg.sv.j2', context);
+            }
+            files[`rtl/${name}.sv`] = this.templates.render('top.sv.j2', context);
+            if (hasMmSlave) {
+              files[`rtl/${name}_core.sv`] = this.templates.render('core.sv.j2', context);
+              files[`rtl/${name}_${busType}.sv`] = this.templates.render(
+                `bus_${busType}.sv.j2`,
+                context
+              );
+            }
+          } else {
+            if (hasMmSlave) {
+              files[`rtl/${name}_pkg.vhd`] = this.templates.render('package.vhdl.j2', context);
+            }
+            files[`rtl/${name}.vhd`] = this.templates.render('top.vhdl.j2', context);
+            if (hasMmSlave) {
+              files[`rtl/${name}_core.vhd`] = this.templates.render('core.vhdl.j2', context);
+              files[`rtl/${name}_${busType}.vhd`] = this.templates.render(
+                `bus_${busType}.vhdl.j2`,
+                context
+              );
+            }
           }
         } else {
-          if (hasMmSlave) {
-            files[`rtl/${name}_pkg.vhd`] = this.templates.render('package.vhdl.j2', context);
-          }
-          files[`rtl/${name}.vhd`] = this.templates.render('top.vhdl.j2', context);
-          if (hasMmSlave) {
-            files[`rtl/${name}_core.vhd`] = this.templates.render('core.vhdl.j2', context);
-            files[`rtl/${name}_${busType}.vhd`] = this.templates.render(
-              `bus_${busType}.vhdl.j2`,
-              context
-            );
-          }
+          // Minimal mode: single top-level stub with empty architecture/module body.
+          // Reuses the existing top template — clearing has_memory_mapped_slave removes
+          // the pkg import, register signals, and submodule instantiations.
+          files[`rtl/${name}.${isSv ? 'sv' : 'vhd'}`] = this.templates.render(
+            isSv ? 'top.sv.j2' : 'top.vhdl.j2',
+            hdlCtx
+          );
         }
       }
 
@@ -148,10 +164,10 @@ export class IpCoreScaffolder {
       if (includeTestbench) {
         const tbFiles = generateTestbenchFiles(framework, engine, {
           name,
-          templateContext: context,
+          templateContext: hdlCtx,
           templates: this.templates,
           isSv,
-          hasMmSlave,
+          hasMmSlave: bahonaviMethodology ? hasMmSlave : false,
           extraCompileArgs: simCfg?.compileArgs,
           extraSimArgs: simCfg?.simArgs,
           extraEnv: simCfg?.env,
