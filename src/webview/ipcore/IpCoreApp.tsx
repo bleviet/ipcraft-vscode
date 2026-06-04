@@ -621,7 +621,7 @@ const IpCoreApp: React.FC = () => {
 
               <ToolbarGroup label="Design">
                 <ToolbarButton
-                  title="Create Memory Map"
+                  title="Create Register Map"
                   icon="map"
                   command="fpga-ip-core.createMemoryMap"
                 />
