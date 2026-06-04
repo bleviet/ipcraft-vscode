@@ -226,20 +226,30 @@ async function scaffoldProject(context: vscode.ExtensionContext): Promise<void> 
   const hdlLanguage = genCfg.get<'vhdl' | 'systemverilog'>('hdlLanguage', 'vhdl');
   const bahonaviMethodology = genCfg.get<boolean>('bahonaviMethodology', false);
 
-  const targetPart = await pickVivadoPart(
-    context,
-    cfg.get<string>('vivado.defaultPart', 'xc7z020clg484-1')
-  );
-  if (!targetPart) {
-    return;
+  const targets = vscode.workspace
+    .getConfiguration('ipcraft.toolbar')
+    .get<string[]>('targets', ['vivado', 'quartus']);
+
+  let targetPart: string | undefined;
+  if (targets.includes('vivado')) {
+    targetPart = await pickVivadoPart(
+      context,
+      cfg.get<string>('vivado.defaultPart', 'xc7z020clg484-1')
+    );
+    if (!targetPart) {
+      return;
+    }
   }
 
-  const quartusDevice = await pickQuartusDevice(
-    context,
-    cfg.get<string>('quartus.defaultDevice', '5CSEBA6U23I7')
-  );
-  if (!quartusDevice) {
-    return;
+  let quartusDevice: string | undefined;
+  if (targets.includes('quartus')) {
+    quartusDevice = await pickQuartusDevice(
+      context,
+      cfg.get<string>('quartus.defaultDevice', '5CSEBA6U23I7')
+    );
+    if (!quartusDevice) {
+      return;
+    }
   }
 
   const ok = await runGenerator(
@@ -247,13 +257,13 @@ async function scaffoldProject(context: vscode.ExtensionContext): Promise<void> 
     ipCoreUri,
     outputDir,
     {
-      targets: ['vivado', 'quartus'],
+      targets,
       includeVhdl: true,
       includeRegs: true,
       includeTestbench,
-      includeVivadoProject: true,
+      includeVivadoProject: targets.includes('vivado'),
       targetPart,
-      includeQuartusProject: true,
+      includeQuartusProject: targets.includes('quartus'),
       quartusDevice,
       updateYaml: true,
       silent: true,
@@ -269,8 +279,10 @@ async function scaffoldProject(context: vscode.ExtensionContext): Promise<void> 
       .replace(/\.ip\.ya?ml$/, '')
       .toLowerCase();
     await Promise.all([
-      runCreateVivadoProjectStep(name, outputDir),
-      runCreateQuartusProjectStep(name, outputDir),
+      targets.includes('vivado') ? runCreateVivadoProjectStep(name, outputDir) : Promise.resolve(),
+      targets.includes('quartus')
+        ? runCreateQuartusProjectStep(name, outputDir)
+        : Promise.resolve(),
     ]);
   }
 }
