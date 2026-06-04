@@ -270,7 +270,9 @@ body{
 </div>
 <div class="content">${noApplyBanner}${sections}</div>
 <div class="footer">
-  <button class="btn-apply" onclick="apply()">${hasApplicableFiles ? '✓ Confirm &amp; Apply' : 'Close'}</button>
+  <button class="btn-apply" onclick="${hasApplicableFiles ? 'apply()' : 'cancel()'}">
+    ${hasApplicableFiles ? '✓ Confirm &amp; Apply' : 'Close'}
+  </button>
   ${hasApplicableFiles ? '<button class="btn-cancel" onclick="cancel()">✕ Cancel</button>' : ''}
 </div>
 <script>
