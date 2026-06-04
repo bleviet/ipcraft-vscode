@@ -28,6 +28,16 @@ import { WebviewStagingBridge } from '../providers/WebviewStagingBridge';
 const logger = new Logger('GenerateCommands');
 
 /**
+ * Read the active scaffold pack name from settings, falling back to the legacy
+ * bahonaviMethodology boolean. Returns undefined when the YAML's own scaffold_pack
+ * field should take precedence (i.e. when the setting is empty).
+ */
+function readScaffoldPackSetting(genCfg: vscode.WorkspaceConfiguration): string | undefined {
+  const explicit = genCfg.get<string>('scaffoldPack', '');
+  return explicit || undefined;
+}
+
+/**
  * Register all generator commands with VS Code
  */
 
@@ -181,6 +191,7 @@ async function generateHdl(
   const genCfg = vscode.workspace.getConfiguration('ipcraft.generate');
   const hdlLanguage = genCfg.get<'vhdl' | 'systemverilog'>('hdlLanguage', 'vhdl');
   const bahonaviMethodology = genCfg.get<boolean>('bahonaviMethodology', false);
+  const scaffoldPack = readScaffoldPackSetting(genCfg);
   const langLabel = hdlLanguage === 'systemverilog' ? 'SystemVerilog' : 'VHDL';
   const outputDir = path.dirname(ipCoreUri.fsPath);
   await runGenerator(
@@ -196,6 +207,7 @@ async function generateHdl(
       silent: true,
       hdlLanguage,
       bahonaviMethodology,
+      scaffoldPack,
     },
     `Generating ${langLabel}...`
   );
@@ -217,6 +229,7 @@ async function scaffoldProject(
   const includeTestbench = genCfg.get<boolean>('includeTestbench', true);
   const hdlLanguage = genCfg.get<'vhdl' | 'systemverilog'>('hdlLanguage', 'vhdl');
   const bahonaviMethodology = genCfg.get<boolean>('bahonaviMethodology', false);
+  const scaffoldPack = readScaffoldPackSetting(genCfg);
 
   const targets = vscode.workspace
     .getConfiguration('ipcraft.toolbar')
@@ -261,6 +274,7 @@ async function scaffoldProject(
       silent: true,
       hdlLanguage,
       bahonaviMethodology,
+      scaffoldPack,
     },
     'Scaffolding project...'
   );

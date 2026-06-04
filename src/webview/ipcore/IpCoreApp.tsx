@@ -110,19 +110,35 @@ const HdlLanguagePicker: React.FC<HdlLanguagePickerProps> = ({ value }) => {
   );
 };
 
-interface GenerationModePickerProps {
-  value: boolean; // true = bahonavi methodology, false = minimal
+interface PackSummary {
+  /** Directory name — used as the value in scaffold_pack: */
+  id: string;
+  /** Human-readable label derived from the id */
+  label: string;
+  /** Short description from scaffold.yml */
+  description: string;
+  /** 'builtin' | 'example' | 'workspace' */
+  category: string;
 }
 
-const GenerationModePicker: React.FC<GenerationModePickerProps> = ({ value }) => {
-  const set = (bahonavi: boolean) =>
-    vscode?.postMessage({ type: 'setBahonaviMethodology', enabled: bahonavi });
+interface ScaffoldPackPickerProps {
+  selected: string; // pack id, e.g. "builtin-minimal"
+  packs: PackSummary[];
+}
+
+const ScaffoldPackPicker: React.FC<ScaffoldPackPickerProps> = ({ selected, packs }) => {
+  const groups: Record<string, PackSummary[]> = {};
+  for (const p of packs) {
+    const g = p.category || 'other';
+    (groups[g] ??= []).push(p);
+  }
+  const groupOrder = ['builtin', 'example', 'workspace', 'other'];
 
   return (
     <select
-      value={value ? 'bahonavi' : 'minimal'}
-      onChange={(e) => set(e.target.value === 'bahonavi')}
-      aria-label="Generation methodology"
+      value={selected}
+      onChange={(e) => vscode?.postMessage({ type: 'setScaffoldPack', packName: e.target.value })}
+      aria-label="Scaffold pack"
       style={{
         background: 'var(--vscode-dropdown-background)',
         color: 'var(--vscode-dropdown-foreground)',
@@ -132,10 +148,20 @@ const GenerationModePicker: React.FC<GenerationModePickerProps> = ({ value }) =>
         padding: '2px 4px',
         cursor: 'pointer',
         outline: 'none',
+        maxWidth: 180,
       }}
     >
-      <option value="minimal">Minimal</option>
-      <option value="bahonavi">bahonavi Methodology</option>
+      {groupOrder
+        .filter((g) => groups[g]?.length)
+        .map((g) => (
+          <optgroup key={g} label={g.charAt(0).toUpperCase() + g.slice(1)}>
+            {groups[g].map((p) => (
+              <option key={p.id} value={p.id} title={p.description}>
+                {p.label}
+              </option>
+            ))}
+          </optgroup>
+        ))}
     </select>
   );
 };
@@ -307,8 +333,12 @@ const IpCoreApp: React.FC = () => {
   const [hasQpf, setHasQpf] = useState(false);
   // HDL language for source generation — mirrors ipcraft.generate.hdlLanguage
   const [hdlLanguage, setHdlLanguage] = useState<'vhdl' | 'systemverilog'>('vhdl');
-  // Generation mode — mirrors ipcraft.generate.bahonaviMethodology
-  const [bahonaviMethodology, setBahonaviMethodology] = useState(false);
+  // Scaffold pack — mirrors ipcraft.generate.scaffoldPack
+  const [scaffoldPack, setScaffoldPack] = useState('builtin-minimal');
+  const [availableScaffoldPacks, setAvailableScaffoldPacks] = useState<PackSummary[]>([
+    { id: 'builtin-minimal', label: 'Minimal', description: '', category: 'builtin' },
+    { id: 'builtin-bahonavi', label: 'Bahonavi', description: '', category: 'builtin' },
+  ]);
   // Active vendor toolchain section(s) shown in toolbar — mirrors ipcraft.toolbar.targets
   const [toolbarTargets, setToolbarTargets] = useState<string[]>(['vivado', 'quartus']);
   // All registered toolchains from the extension — drives the TargetVendorPicker pill list
@@ -537,7 +567,8 @@ const IpCoreApp: React.FC = () => {
         hasXpr?: boolean;
         hasQpf?: boolean;
         hdlLanguage?: 'vhdl' | 'systemverilog';
-        bahonaviMethodology?: boolean;
+        scaffoldPack?: string;
+        availableScaffoldPacks?: PackSummary[];
         toolbarTargets?: string[];
         allToolchains?: RegisteredToolchain[];
         isPreview?: boolean;
@@ -553,7 +584,12 @@ const IpCoreApp: React.FC = () => {
           setHasXpr(message.hasXpr ?? false);
           setHasQpf(message.hasQpf ?? false);
           setHdlLanguage(message.hdlLanguage ?? 'vhdl');
-          setBahonaviMethodology(message.bahonaviMethodology ?? false);
+          if (message.scaffoldPack !== undefined) {
+            setScaffoldPack(message.scaffoldPack);
+          }
+          if (message.availableScaffoldPacks?.length) {
+            setAvailableScaffoldPacks(message.availableScaffoldPacks);
+          }
           setToolbarTargets(message.toolbarTargets ?? ['vivado', 'quartus']);
           if (message.allToolchains && message.allToolchains.length > 0) {
             setAllToolchains(message.allToolchains);
@@ -651,7 +687,7 @@ const IpCoreApp: React.FC = () => {
               style={{ borderLeft: '1px solid var(--vscode-panel-border)', paddingLeft: '10px' }}
             >
               <ToolbarGroup label="Code Generation Methodology">
-                <GenerationModePicker value={bahonaviMethodology} />
+                <ScaffoldPackPicker selected={scaffoldPack} packs={availableScaffoldPacks} />
               </ToolbarGroup>
 
               <div

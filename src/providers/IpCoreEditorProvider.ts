@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs/promises';
+import * as fsSync from 'fs';
 import * as jsyaml from 'js-yaml';
 import { Logger } from '../utils/Logger';
 import { HtmlGenerator } from '../services/HtmlGenerator';
@@ -24,6 +25,7 @@ import { editInPlatformDesignerCommand } from '../commands/editInPlatformDesigne
 import { openInVivadoCommand } from '../commands/openInVivado';
 import { openInQuartusCommand } from '../commands/openInQuartus';
 import { listAll } from '../services/toolchains/registry';
+import { ScaffoldPackLoader } from '../generator/ScaffoldPackLoader';
 
 interface IpcMessage {
   type: string;
@@ -131,7 +133,7 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
       if (e.affectsConfiguration('ipcraft.toolbar.targets')) {
         void updateWebview();
       }
-      if (e.affectsConfiguration('ipcraft.generate.bahonaviMethodology')) {
+      if (e.affectsConfiguration('ipcraft.generate.scaffoldPack')) {
         void updateWebview();
       }
     });
@@ -260,13 +262,13 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
         await cfg.update('targets', raw, vscode.ConfigurationTarget.Global);
         // onDidChangeConfiguration fires updateWebview automatically
       },
-      setBahonaviMethodology: async (message) => {
-        const enabled = message.enabled;
-        if (typeof enabled !== 'boolean') {
+      setScaffoldPack: async (message) => {
+        const packName = message.packName;
+        if (typeof packName !== 'string') {
           return;
         }
         const cfg = vscode.workspace.getConfiguration('ipcraft.generate');
-        await cfg.update('bahonaviMethodology', enabled, vscode.ConfigurationTarget.Global);
+        await cfg.update('scaffoldPack', packName, vscode.ConfigurationTarget.Global);
         // onDidChangeConfiguration fires updateWebview automatically
       },
       openFile: async (message) => {
@@ -436,7 +438,12 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
 
       const generateCfg = vscode.workspace.getConfiguration('ipcraft.generate');
       const hdlLanguage = generateCfg.get<string>('hdlLanguage', 'vhdl');
-      const bahonaviMethodology = generateCfg.get<boolean>('bahonaviMethodology', false);
+      // Derive default scaffold pack from legacy bahonaviMethodology when scaffoldPack unset
+      const legacyBahonavi = generateCfg.get<boolean>('bahonaviMethodology', false);
+      const scaffoldPack =
+        generateCfg.get<string>('scaffoldPack', '') ||
+        (legacyBahonavi ? 'builtin-bahonavi' : 'builtin-minimal');
+      const availableScaffoldPacks = collectAvailableScaffoldPacks();
 
       const toolbarTargets = vscode.workspace
         .getConfiguration('ipcraft.toolbar')
@@ -456,7 +463,8 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
         hasXpr,
         hasQpf,
         hdlLanguage,
-        bahonaviMethodology,
+        scaffoldPack,
+        availableScaffoldPacks,
         toolbarTargets,
         allToolchains,
         duplicatePrefixes,
@@ -688,4 +696,71 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
     });
     this.logger.debug(`Checked ${filePaths.length} file(s) for existence`);
   }
+}
+
+// ---------------------------------------------------------------------------
+// Scaffold pack discovery — module-level helper (no class state needed)
+// ---------------------------------------------------------------------------
+
+interface PackSummaryForWebview {
+  id: string;
+  label: string;
+  description: string;
+  category: string;
+}
+
+/** Derive a short human-readable label from a pack directory name. */
+function packLabel(id: string): string {
+  return id
+    .replace(/^(builtin|example)-/, '')
+    .split('-')
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+}
+
+/**
+ * Collect all scaffold packs visible to the current workspace:
+ *  1. Built-in packs from the extension bundle
+ *  2. Workspace packs from .vscode/ipcraft/packs/
+ */
+function collectAvailableScaffoldPacks(): PackSummaryForWebview[] {
+  const result: PackSummaryForWebview[] = [];
+
+  const loadDir = (dir: string, defaultCategory: string) => {
+    if (!fsSync.existsSync(dir)) {
+      return;
+    }
+    let entries: string[];
+    try {
+      entries = fsSync.readdirSync(dir);
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      const manifestPath = path.join(dir, entry, 'scaffold.yml');
+      if (!fsSync.existsSync(manifestPath)) {
+        continue;
+      }
+      try {
+        const pack = ScaffoldPackLoader.load(path.join(dir, entry));
+        result.push({
+          id: entry,
+          label: packLabel(entry),
+          description: pack.description?.split('\n')[0].trim() ?? '',
+          category: pack.category ?? defaultCategory,
+        });
+      } catch {
+        // malformed pack — skip
+      }
+    }
+  };
+
+  loadDir(ScaffoldPackLoader.builtinPacksDir, 'builtin');
+
+  const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+  if (workspaceRoot) {
+    loadDir(path.join(workspaceRoot, '.vscode', 'ipcraft', 'packs'), 'workspace');
+  }
+
+  return result;
 }
