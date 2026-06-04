@@ -4,15 +4,25 @@ How to change the file layout, naming, and structure of generated RTL code by cr
 
 A **scaffold pack** is a folder containing a `scaffold.yml` manifest and optional Nunjucks (`.j2`) template overrides.
 It tells the generator which files to produce, from which templates, under which conditions.
-Two built-in packs ship with IPCraft:
+Five packs ship with IPCraft — two production-ready and three annotated examples:
 
-| Pack name | What it generates |
-|-----------|-------------------|
-| `builtin-minimal` | One top-level stub per IP core (entity/module, empty body) |
-| `builtin-bahonavi` | Full layered set: package, top, core, bus wrapper, register file |
+| Pack | Category | What it generates |
+|------|----------|-------------------|
+| `builtin-minimal` | Built-in | One top-level stub per IP core (entity/module, empty body) |
+| `builtin-bahonavi` | Built-in | Full layered set: package, top, core, bus wrapper, register file |
+| `example-register-only` | Example | Only the register file decoder — for IPs with existing RTL |
+| `example-no-regfile` | Example | Full layered set without the register file — write your own decode |
+| `example-with-docs` | Example | Full layered set plus a Markdown register reference document |
+
+The example packs have extensively commented `scaffold.yml` files that explain every
+field, making them useful learning material even if you do not use them directly.
 
 The generator selects `builtin-minimal` or `builtin-bahonavi` automatically based on the
 `ipcraft.generate.bahonaviMethodology` setting unless you override it.
+
+!!! tip "Interactive walkthrough"
+    Open the VS Code **Get Started** tab and search for **Get Started with Scaffold Packs**
+    for a step-by-step interactive guide through the full workflow.
 
 ---
 
@@ -67,8 +77,9 @@ You can change the pinned file at any time with **IPCraft: Pin Preview IP Core**
 The quickest way to create a custom pack is to start from a built-in one.
 
 1. Open the Command Palette and run **IPCraft: Export Built-in Scaffold Pack**.
-2. Select the pack to export (`builtin-minimal` or `builtin-bahonavi`).
-3. Enter a name for your copy (e.g. `aurora-rtl`). The `builtin-` prefix is stripped automatically.
+2. A grouped list shows **Built-in** packs and **Examples** with their descriptions.
+   Select the one closest to your goal.
+3. Enter a name for your copy (e.g. `aurora-rtl`). The `builtin-` / `example-` prefix is stripped automatically.
 4. IPCraft copies the pack to `.vscode/ipcraft/packs/<name>/` in your workspace,
    **including all `.j2` template files** referenced by the pack so you can edit
    them immediately.

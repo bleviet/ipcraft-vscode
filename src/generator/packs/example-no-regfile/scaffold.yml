@@ -1,0 +1,79 @@
+name: "example-no-regfile"
+category: "example"
+description: >
+  Full layered architecture (package, top, core, bus wrapper) without the
+  register file. Use this when your team writes its own register decode logic
+  by hand, or when you use a separate register generator tool and only need
+  IPCraft to scaffold the surrounding structure.
+
+# fullGeneration: true exposes register and bus context to the testbench so it
+# can instantiate a full DUT. Even though no register file is generated here,
+# the testbench may still drive the bus interface signals directly.
+fullGeneration: true
+
+files:
+  # ── What this pack does ────────────────────────────────────────────────────
+  #
+  # Generated files (VHDL example):
+  #   rtl/<name>_pkg.vhd       shared types package
+  #   rtl/<name>.vhd           top-level entity
+  #   rtl/<name>_core.vhd      user logic stub        ← managed:false
+  #   rtl/<name>_axil.vhd      bus wrapper (AXI-Lite or other bus type)
+  #
+  # The register file (rtl/<name>_regs.vhd) is intentionally absent.
+  #
+  # ── Key concepts demonstrated ──────────────────────────────────────────────
+  #
+  # managed: false
+  #   The core file is the user's implementation territory. Once generated it
+  #   is never overwritten, even if you run "Generate HDL" again.
+  #   Tip: remove "managed: false" from any rule to make that file always
+  #   regenerated (useful when the template drives the entire content).
+  #
+  # bus_type variable:
+  #   Expands to the bus protocol short-name detected from the IP core's bus
+  #   interface: "axil" for AXI-Lite, "avmm" for Avalon-MM, "axi4" for AXI4.
+  #   Using "{{ bus_type }}" in both source and target means this single rule
+  #   handles all supported bus protocols automatically.
+  #
+  # Selective omission:
+  #   Simply removing a rule from this file is enough to stop a file from being
+  #   generated. You do not need to set any option or flag elsewhere.
+
+  # ── VHDL ────────────────────────────────────────────────────────────────────
+
+  - source: "package.vhdl.j2"
+    target: "rtl/{{ name }}_pkg.vhd"
+    condition: "not is_systemverilog and has_memory_mapped_slave"
+
+  - source: "top.vhdl.j2"
+    target: "rtl/{{ name }}.vhd"
+    condition: "not is_systemverilog"
+
+  - source: "core.vhdl.j2"
+    target: "rtl/{{ name }}_core.vhd"
+    condition: "not is_systemverilog and has_memory_mapped_slave"
+    managed: false  # ← user writes their own register decode inside this file
+
+  - source: "bus_{{ bus_type }}.vhdl.j2"
+    target: "rtl/{{ name }}_{{ bus_type }}.vhd"
+    condition: "not is_systemverilog and has_memory_mapped_slave"
+
+  # ── SystemVerilog ────────────────────────────────────────────────────────────
+
+  - source: "pkg.sv.j2"
+    target: "rtl/{{ name }}_pkg.sv"
+    condition: "is_systemverilog and has_memory_mapped_slave"
+
+  - source: "top.sv.j2"
+    target: "rtl/{{ name }}.sv"
+    condition: "is_systemverilog"
+
+  - source: "core.sv.j2"
+    target: "rtl/{{ name }}_core.sv"
+    condition: "is_systemverilog and has_memory_mapped_slave"
+    managed: false
+
+  - source: "bus_{{ bus_type }}.sv.j2"
+    target: "rtl/{{ name }}_{{ bus_type }}.sv"
+    condition: "is_systemverilog and has_memory_mapped_slave"

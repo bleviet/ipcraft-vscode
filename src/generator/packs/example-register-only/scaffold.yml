@@ -1,0 +1,52 @@
+name: "example-register-only"
+category: "example"
+description: >
+  Generates only the register file decoder. Use this when your RTL top-level,
+  bus wrapper, and core already exist and you only need the register file
+  regenerated whenever the memory map changes.
+
+# fullGeneration: false tells the testbench generator to use a minimal context
+# (no register/bus signals). Set to true if you also run the testbench against
+# a full design that includes the register file.
+fullGeneration: false
+
+files:
+  # ── What this pack does ────────────────────────────────────────────────────
+  #
+  # It generates exactly one file per HDL language variant:
+  #   rtl/<name>_regs.vhd   (VHDL)
+  #   rtl/<name>_regs.sv    (SystemVerilog)
+  #
+  # The file is NOT marked managed:false because its entire content is derived
+  # from the memory map YAML — there is no user logic to protect. Every time the
+  # memory map changes, regenerating this file is the correct action.
+  #
+  # ── Key concepts demonstrated ──────────────────────────────────────────────
+  #
+  # condition:
+  #   Each rule runs only when its condition evaluates to true.
+  #   "has_memory_mapped_slave" is false when the IP core has no bus interface
+  #   with a memory map reference, so the register file is silently skipped for
+  #   IP cores that don't need one.
+  #
+  # is_systemverilog:
+  #   True when ipcraft.generate.hdlLanguage is set to "systemverilog".
+  #   Use "not is_systemverilog" and "is_systemverilog" to emit the right file
+  #   for whichever language the user has selected.
+  #
+  # source:
+  #   A template filename resolved from (1) this pack directory, then (2) the
+  #   extension's built-in template library. Because this pack has no .j2 files
+  #   of its own, both rules resolve to built-in templates.
+  #
+  # target:
+  #   The output path relative to the generation output directory.
+  #   "{{ name }}" expands to the IP core's VLNV name in lowercase.
+
+  - source: "register_file.vhdl.j2"
+    target: "rtl/{{ name }}_regs.vhd"
+    condition: "not is_systemverilog and has_memory_mapped_slave"
+
+  - source: "register_file.sv.j2"
+    target: "rtl/{{ name }}_regs.sv"
+    condition: "is_systemverilog and has_memory_mapped_slave"

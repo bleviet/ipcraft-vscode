@@ -854,6 +854,65 @@
         "mac": "cmd+shift+v",
         "when": "!terminalFocus && (activeCustomEditorId == 'fpgaIpCore.editor' || activeCustomEditorId == 'fpgaMemoryMap.editor' || activeCustomEditorId == 'fpgaIpCore.sourcePreview')"
       }
+    ],
+    "walkthroughs": [
+      {
+        "id": "scaffold-packs-getting-started",
+        "title": "Get Started with Scaffold Packs",
+        "description": "Learn how to customise what IPCraft generates for your IP cores — file layout, naming conventions, and non-HDL artifacts.",
+        "steps": [
+          {
+            "id": "pick-pack",
+            "title": "Pick your starting point",
+            "description": "Export a built-in pack to your workspace. IPCraft includes five packs — two production-ready and three annotated examples.\n\n[Export a Scaffold Pack](command:fpga-ip-core.exportScaffoldPack)",
+            "media": {
+              "markdown": "media/walkthrough/scaffold-packs/step1-pick.md"
+            },
+            "completionEvents": [
+              "onCommand:fpga-ip-core.exportScaffoldPack"
+            ]
+          },
+          {
+            "id": "read-manifest",
+            "title": "Open scaffold.yml",
+            "description": "The manifest lists every file the pack generates. The Scaffold Pack Preview panel updates as you edit it.",
+            "media": {
+              "markdown": "media/walkthrough/scaffold-packs/step2-manifest.md"
+            }
+          },
+          {
+            "id": "preview-template",
+            "title": "Preview a template side by side",
+            "description": "Open any .j2 file and click the preview icon to see rendered output against a real IP core context.\n\n[Preview Template Output](command:fpga-ip-core.previewTemplateOutput)",
+            "media": {
+              "markdown": "media/walkthrough/scaffold-packs/step3-preview.md"
+            },
+            "completionEvents": [
+              "onCommand:fpga-ip-core.previewTemplateOutput"
+            ]
+          },
+          {
+            "id": "customise",
+            "title": "Customise the templates",
+            "description": "Edit .j2 files to add company headers, change coding style, or generate entirely new file types.",
+            "media": {
+              "markdown": "media/walkthrough/scaffold-packs/step4-customise.md"
+            }
+          },
+          {
+            "id": "wire-up",
+            "title": "Wire the pack to an IP core",
+            "description": "Add scaffold_pack: to .ip.yml, then run Generate HDL to see your customised output.\n\n[Generate HDL](command:fpga-ip-core.generateHdl)",
+            "media": {
+              "markdown": "media/walkthrough/scaffold-packs/step5-wire-up.md"
+            },
+            "completionEvents": [
+              "onCommand:fpga-ip-core.generateHdl",
+              "onCommand:fpga-ip-core.scaffoldProject"
+            ]
+          }
+        ]
+      }
     ]
   },
   "scripts": {

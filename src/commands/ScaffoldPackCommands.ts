@@ -111,17 +111,49 @@ async function refreshTemplatePreview(
 // ---------------------------------------------------------------------------
 
 async function exportScaffoldPack(context: vscode.ExtensionContext): Promise<void> {
-  const builtinPacks = ScaffoldPackLoader.listBuiltinPacks();
-  if (builtinPacks.length === 0) {
+  const packNames = ScaffoldPackLoader.listBuiltinPacks();
+  if (packNames.length === 0) {
     void vscode.window.showErrorMessage('No built-in scaffold packs found.');
     return;
   }
 
-  const selected = await vscode.window.showQuickPick(
-    builtinPacks.map((name) => ({ label: name, description: 'Built-in pack' })),
-    { placeHolder: 'Select a built-in scaffold pack to export', title: 'Export Scaffold Pack' }
-  );
-  if (!selected) {
+  // Load metadata for each pack so we can show descriptions and group by category
+  const packs = packNames.map((name) => {
+    try {
+      return ScaffoldPackLoader.load(path.join(ScaffoldPackLoader.builtinPacksDir, name));
+    } catch {
+      return { name, description: undefined, category: undefined };
+    }
+  });
+
+  // Group into sections: Built-in first, then Examples
+  type PickItem = vscode.QuickPickItem & { packName: string };
+  const items: PickItem[] = [];
+
+  const addGroup = (label: string, filter: (c?: string) => boolean) => {
+    const group = packs.filter((p) => filter(p.category));
+    if (group.length === 0) {
+      return;
+    }
+    items.push({ label, kind: vscode.QuickPickItemKind.Separator, packName: '' });
+    for (const p of group) {
+      items.push({
+        label: p.name,
+        description: p.description?.split('\n')[0].trim() ?? '',
+        packName: p.name,
+      });
+    }
+  };
+
+  addGroup('Built-in', (c) => !c || c === 'builtin');
+  addGroup('Examples', (c) => c === 'example');
+
+  const selected = await vscode.window.showQuickPick(items, {
+    placeHolder: 'Select a scaffold pack to export to your workspace',
+    title: 'Export Scaffold Pack',
+    matchOnDescription: true,
+  });
+  if (!selected?.packName) {
     return;
   }
 
@@ -131,8 +163,8 @@ async function exportScaffoldPack(context: vscode.ExtensionContext): Promise<voi
     return;
   }
 
-  // Default export name: strip the 'builtin-' prefix so users start fresh
-  const defaultName = selected.label.replace(/^builtin-/, '');
+  // Strip well-known prefixes so the exported name is clean
+  const defaultName = selected.packName.replace(/^(builtin|example)-/, '');
   const newName = await vscode.window.showInputBox({
     prompt: 'Name for your scaffold pack',
     value: defaultName,
@@ -146,7 +178,7 @@ async function exportScaffoldPack(context: vscode.ExtensionContext): Promise<voi
   }
 
   const destDir = path.join(workspaceRoot, '.vscode', 'ipcraft', 'packs', newName.trim());
-  const srcDir = path.join(ScaffoldPackLoader.builtinPacksDir, selected.label);
+  const srcDir = path.join(ScaffoldPackLoader.builtinPacksDir, selected.packName);
 
   try {
     // Step 1: copy the pack directory (scaffold.yml + any pack-local templates)

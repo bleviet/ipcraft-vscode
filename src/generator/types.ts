@@ -26,6 +26,11 @@ export interface ScaffoldFileRule {
 export interface ScaffoldPack {
   name: string;
   description?: string;
+  /**
+   * Grouping label shown in the export QuickPick.
+   * Read from scaffold.yml `category` field; workspace packs are assigned `"workspace"` at load time.
+   */
+  category?: string;
   /** Absolute path to the directory containing scaffold.yml and pack-local templates. */
   packDir: string;
   files: ScaffoldFileRule[];

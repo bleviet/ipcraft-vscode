@@ -27,7 +27,12 @@ export class ScaffoldPackLoader {
     for (const dir of searchDirs) {
       const candidate = path.join(dir, packName);
       if (fs.existsSync(path.join(candidate, 'scaffold.yml'))) {
-        return ScaffoldPackLoader.load(candidate);
+        const pack = ScaffoldPackLoader.load(candidate);
+        // Workspace packs that don't declare a category get labelled "workspace"
+        if (!pack.category && workspacePackDirs.includes(dir)) {
+          pack.category = 'workspace';
+        }
+        return pack;
       }
     }
 
@@ -69,6 +74,7 @@ export class ScaffoldPackLoader {
     return {
       name: String(parsed.name ?? path.basename(packDir)),
       description: parsed.description !== undefined ? String(parsed.description) : undefined,
+      category: parsed.category !== undefined ? String(parsed.category) : undefined,
       packDir,
       files,
       fullGeneration: Boolean(parsed.fullGeneration ?? false),

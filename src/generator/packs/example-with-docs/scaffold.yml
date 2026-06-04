@@ -1,0 +1,92 @@
+name: "example-with-docs"
+category: "example"
+description: >
+  Full layered architecture plus a Markdown register documentation file.
+  Demonstrates generating non-HDL artifacts from the same IP core spec, and
+  shows how to include a pack-local custom template that has no equivalent
+  in the built-in library.
+
+fullGeneration: true
+
+files:
+  # ── What this pack does ────────────────────────────────────────────────────
+  #
+  # This pack produces everything that builtin-bahonavi produces PLUS:
+  #   docs/<name>_registers.md   ← human-readable register reference table
+  #
+  # The documentation file is marked managed:false because engineers often
+  # annotate it with extra notes after generation. Setting managed:false
+  # means it is written on first run but never overwritten after that.
+  #
+  # ── Key concepts demonstrated ──────────────────────────────────────────────
+  #
+  # Pack-local templates:
+  #   The "memmap_doc.md.j2" template does not exist in IPCraft's built-in
+  #   library. When you export this pack the file is included so you can
+  #   edit it. The generator searches the pack directory first, then falls
+  #   back to built-in templates — so any built-in template can be shadowed
+  #   by placing a file of the same name in this directory.
+  #
+  # Non-HDL output:
+  #   The target path does not need to be under rtl/. Any subdirectory or
+  #   file extension is valid. Here "docs/" groups documentation together.
+  #
+  # Overriding a built-in template:
+  #   To change how the top-level entity looks, export this pack (IPCraft
+  #   copies all referenced built-in templates alongside the manifest) and
+  #   edit top.vhdl.j2 or top.sv.j2 directly. Your edited copy shadows the
+  #   built-in automatically.
+
+  # ── VHDL ────────────────────────────────────────────────────────────────────
+
+  - source: "package.vhdl.j2"
+    target: "rtl/{{ name }}_pkg.vhd"
+    condition: "not is_systemverilog and has_memory_mapped_slave"
+
+  - source: "top.vhdl.j2"
+    target: "rtl/{{ name }}.vhd"
+    condition: "not is_systemverilog"
+
+  - source: "core.vhdl.j2"
+    target: "rtl/{{ name }}_core.vhd"
+    condition: "not is_systemverilog and has_memory_mapped_slave"
+    managed: false
+
+  - source: "bus_{{ bus_type }}.vhdl.j2"
+    target: "rtl/{{ name }}_{{ bus_type }}.vhd"
+    condition: "not is_systemverilog and has_memory_mapped_slave"
+
+  - source: "register_file.vhdl.j2"
+    target: "rtl/{{ name }}_regs.vhd"
+    condition: "not is_systemverilog and includeRegs and has_memory_mapped_slave"
+
+  # ── SystemVerilog ────────────────────────────────────────────────────────────
+
+  - source: "pkg.sv.j2"
+    target: "rtl/{{ name }}_pkg.sv"
+    condition: "is_systemverilog and has_memory_mapped_slave"
+
+  - source: "top.sv.j2"
+    target: "rtl/{{ name }}.sv"
+    condition: "is_systemverilog"
+
+  - source: "core.sv.j2"
+    target: "rtl/{{ name }}_core.sv"
+    condition: "is_systemverilog and has_memory_mapped_slave"
+    managed: false
+
+  - source: "bus_{{ bus_type }}.sv.j2"
+    target: "rtl/{{ name }}_{{ bus_type }}.sv"
+    condition: "is_systemverilog and has_memory_mapped_slave"
+
+  - source: "register_file.sv.j2"
+    target: "rtl/{{ name }}_regs.sv"
+    condition: "is_systemverilog and includeRegs and has_memory_mapped_slave"
+
+  # ── Documentation ────────────────────────────────────────────────────────────
+  # Pack-local template — not in the built-in library, lives in this directory.
+
+  - source: "memmap_doc.md.j2"
+    target: "docs/{{ name }}_registers.md"
+    condition: "has_memory_mapped_slave"
+    managed: false  # preserve manual annotations added after first generation
