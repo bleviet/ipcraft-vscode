@@ -1,15 +1,22 @@
-## Wire the pack to an IP core
+## Activate the pack
 
-Add one line to any `.ip.yml` file to activate your pack:
+The active scaffold pack is a **workspace setting**, not something stored in the `.ip.yml`
+spec. This keeps IP core definitions independent of tooling preferences.
 
-```yaml
-vlnv:
-  vendor: acme
-  name: spi_controller
-  version: "1.0"
+**Option A — Canvas dropdown (fastest)**
 
-scaffold_pack: "my-pack-name"   # ← matches the folder name under .vscode/ipcraft/packs/
+Open any `.ip.yml` in the visual editor and pick your pack from the
+**Code Generation Methodology** dropdown in the toolbar. The setting is saved immediately.
+
+**Option B — settings.json**
+
+```json
+{
+  "ipcraft.generate.scaffoldPack": "my-pack-name"
+}
 ```
+
+The pack name matches the folder under `.vscode/ipcraft/packs/`.
 
 Then run **IPCraft: Generate HDL** or **IPCraft: Scaffold Project** as usual.
 The staging panel shows exactly which files will be written before anything
@@ -19,13 +26,8 @@ touches disk.
 
 Commit `.vscode/ipcraft/packs/` to your repository.
 Every engineer who clones the repo gets the same generation layout and
-templates automatically — no configuration required.
-
-**Using a pack without modifying the YAML**
-
-Set `ipcraft.generate.scaffoldPack` in workspace settings to apply a pack to
-all IP cores in the workspace without adding `scaffold_pack:` to individual
-files.
+templates automatically — no configuration required beyond setting
+`ipcraft.generate.scaffoldPack` in their workspace settings.
 
 ---
 

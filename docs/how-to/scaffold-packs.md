@@ -26,24 +26,35 @@ The generator selects `builtin-minimal` or `builtin-bahonavi` automatically base
 
 ---
 
-## Using a Scaffold Pack in an IP Core
+## Selecting a Scaffold Pack
 
-Add a `scaffold_pack` field to the `.ip.yml` file:
+The active pack is a workspace setting — it applies to all IP cores in the workspace
+and is independent of the `.ip.yml` spec file.
 
-```yaml
-vlnv:
-  vendor: acme
-  name: spi_controller
-  version: "1.0"
+**Option A — Canvas dropdown (recommended)**
 
-scaffold_pack: "my-aurora-layout"
+Open any `.ip.yml` in the visual editor. The **Code Generation Methodology** dropdown
+in the toolbar lists every detected pack, grouped by category. Selecting a pack saves
+it to `ipcraft.generate.scaffoldPack` immediately.
+
+**Option B — VS Code settings**
+
+Set `ipcraft.generate.scaffoldPack` in your workspace `settings.json`:
+
+```json
+{
+  "ipcraft.generate.scaffoldPack": "my-aurora-layout"
+}
 ```
 
-When `scaffold_pack` is set it takes priority over the `ipcraft.generate.bahonaviMethodology`
-workspace setting. The generator looks for the pack in this order:
+The generator looks for the pack in this order:
 
 1. `.vscode/ipcraft/packs/<name>/scaffold.yml` (workspace-local pack)
 2. Built-in packs shipped with the extension (`builtin-minimal`, `builtin-bahonavi`)
+
+When `ipcraft.generate.scaffoldPack` is empty the value of
+`ipcraft.generate.bahonaviMethodology` is used as a fallback to keep existing
+projects working without any migration.
 
 ---
 
@@ -114,7 +125,8 @@ From here:
 - Delete template files you do not need to customise — the generator falls back
   to the built-in version for any template not found in the pack directory.
 
-Reference the pack in any `.ip.yml` using `scaffold_pack: "aurora-rtl"`.
+Activate the pack by selecting it in the canvas **Code Generation Methodology** dropdown,
+or by setting `ipcraft.generate.scaffoldPack: "aurora-rtl"` in workspace settings.
 
 ---
 
@@ -314,8 +326,10 @@ files:
     condition: "is_systemverilog"
 ```
 
-```yaml title="any .ip.yml"
-scaffold_pack: "acme-minimal"
+```json title=".vscode/settings.json"
+{
+  "ipcraft.generate.scaffoldPack": "acme-minimal"
+}
 ```
 
 ---
@@ -369,7 +383,7 @@ built-in equivalent so it must be provided by the pack.
 
 | Problem | Solution |
 |---------|----------|
-| *Scaffold pack '…' not found* | Check the pack folder name matches `scaffold_pack:` exactly; workspace packs must be under `.vscode/ipcraft/packs/` |
+| *Scaffold pack '…' not found* | Check the pack folder name matches `ipcraft.generate.scaffoldPack` exactly; workspace packs must be under `.vscode/ipcraft/packs/` |
 | *template not found: …* | The `source` expression resolved to a template name that exists in neither the pack directory nor the built-in library; check spelling |
 | Condition never passes | Use the **Scaffold Pack Preview** panel to see which conditions evaluate to true/false for your IP core |
 | Preview shows "No .ip.yml found" | There is no IP core file in the workspace; create one or use **IPCraft: Pin Preview IP Core** to point to one elsewhere |

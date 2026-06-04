@@ -111,11 +111,9 @@ export class IpCoreScaffolder {
       context.includeRegs = includeRegs;
 
       // ── Resolve scaffold pack ──────────────────────────────────────────────
-      // Priority: options.scaffoldPack → scaffold_pack in YAML → legacy bahonaviMethodology flag
-      const yamlPackName = (ipCoreData as Record<string, unknown>).scaffold_pack as
-        | string
-        | undefined;
-      const packName = options.scaffoldPack ?? yamlPackName;
+      // Pack is always determined by options (workspace setting / canvas picker).
+      // The .ip.yml spec does not carry generation preferences.
+      const packName = options.scaffoldPack;
       const workspacePackDirs = this.resolveWorkspacePackDirs();
       const pack = packName
         ? ScaffoldPackLoader.resolve(packName, workspacePackDirs)
