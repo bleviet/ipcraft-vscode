@@ -665,6 +665,19 @@ const IpCoreApp: React.FC = () => {
               className="flex items-center gap-2"
               style={{ borderLeft: '1px solid var(--vscode-panel-border)', paddingLeft: '10px' }}
             >
+              <ToolbarGroup label="Generation Mode">
+                <GenerationModePicker value={bahonaviMethodology} />
+              </ToolbarGroup>
+
+              <div
+                style={{
+                  width: '1px',
+                  height: '28px',
+                  background: 'var(--vscode-panel-border)',
+                  opacity: 0.6,
+                }}
+              />
+
               <ToolbarGroup label="Scaffold">
                 <ToolbarButton
                   title="Scaffold Project (RTL + EDA packaging + Testbench)"
@@ -694,7 +707,6 @@ const IpCoreApp: React.FC = () => {
                   command="fpga-ip-core.generateHdl"
                 />
                 <HdlLanguagePicker value={hdlLanguage} />
-                <GenerationModePicker value={bahonaviMethodology} />
               </ToolbarGroup>
 
               <div
