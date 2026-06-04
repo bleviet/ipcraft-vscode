@@ -762,7 +762,7 @@ const IpCoreApp: React.FC = () => {
                           ? 'Build: Quartus full compile'
                           : 'Build: Quartus full compile — generate project first'
                       }
-                      icon="zap"
+                      icon="tools"
                       disabled={!hasQpf}
                       command="fpga-ip-core.buildQuartusCompile"
                     />
@@ -835,7 +835,7 @@ const IpCoreApp: React.FC = () => {
                           ? 'Build: Vivado OOC synthesis'
                           : 'Build: Vivado OOC synthesis — generate project first'
                       }
-                      icon="zap"
+                      icon="tools"
                       disabled={!hasXpr}
                       command="fpga-ip-core.buildVivadoOoc"
                     />
