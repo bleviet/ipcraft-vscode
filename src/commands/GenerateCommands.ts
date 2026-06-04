@@ -181,13 +181,7 @@ async function generateHdl(
   const hdlLanguage = genCfg.get<'vhdl' | 'systemverilog'>('hdlLanguage', 'vhdl');
   const bahonaviMethodology = genCfg.get<boolean>('bahonaviMethodology', false);
   const langLabel = hdlLanguage === 'systemverilog' ? 'SystemVerilog' : 'VHDL';
-  const outputDir = await pickOutputDir(
-    ipCoreUri,
-    `Select output directory for ${langLabel} files`
-  );
-  if (!outputDir) {
-    return;
-  }
+  const outputDir = path.dirname(ipCoreUri.fsPath);
   await runGenerator(
     context,
     ipCoreUri,
@@ -581,19 +575,6 @@ async function runCreateQuartusProjectStep(name: string, ipDir: string): Promise
         `(from the altera/build/ directory)`
     );
   }
-}
-
-async function pickOutputDir(ipCoreUri: vscode.Uri, title: string): Promise<string> {
-  const defaultDir = path.dirname(ipCoreUri.fsPath);
-  const picked = await vscode.window.showOpenDialog({
-    defaultUri: vscode.Uri.file(defaultDir),
-    canSelectFiles: false,
-    canSelectFolders: true,
-    canSelectMany: false,
-    openLabel: 'Select Directory',
-    title,
-  });
-  return picked?.[0]?.fsPath ?? defaultDir;
 }
 
 async function categorizeFiles(

@@ -102,8 +102,8 @@ export class StagingPanel {
     const unchanged = files.filter((f) => f.status === 'unchanged');
     const protectedFiles = files.filter((f) => f.protected);
 
-    const allUnchanged =
-      modified.length === 0 && newFiles.length === 0 && protectedFiles.length === 0;
+    // True when at least one file will actually be written on Apply.
+    const hasApplicableFiles = modified.length > 0 || newFiles.length > 0;
 
     const fileRow = (f: StagedFile, showDiff: boolean) => `
       <div class="file-row">
@@ -135,9 +135,17 @@ export class StagingPanel {
       summaryParts.push(`${protectedFiles.length} protected`);
     }
 
-    const upToDateBanner = allUnchanged
-      ? `<div class="up-to-date">✓ All files are up to date — nothing to apply.</div>`
-      : '';
+    // Informational banner shown when nothing will be written.
+    let noApplyBanner = '';
+    if (!hasApplicableFiles) {
+      if (protectedFiles.length > 0 && unchanged.length === 0) {
+        noApplyBanner = `<div class="up-to-date">All modified files are user-managed (managed: false) and will not be overwritten.</div>`;
+      } else if (protectedFiles.length > 0) {
+        noApplyBanner = `<div class="up-to-date">✓ All files are either unchanged or user-managed — nothing to apply.</div>`;
+      } else {
+        noApplyBanner = `<div class="up-to-date">✓ All files are up to date — nothing to apply.</div>`;
+      }
+    }
 
     const sections = [
       modified.length
@@ -169,7 +177,7 @@ export class StagingPanel {
             'dot-unchanged',
             `Unchanged (${unchanged.length})`,
             unchanged.map((f) => fileRow(f, false)).join(''),
-            !allUnchanged // expand automatically when it is the only section
+            hasApplicableFiles // collapsed when actionable files are present; expanded when not
           )
         : '',
     ].join('');
@@ -260,10 +268,10 @@ body{
   <h1>IPCraft — Preview Generated Files</h1>
   <div class="summary">${StagingPanel.esc(summaryParts.join(' · '))}</div>
 </div>
-<div class="content">${upToDateBanner}${sections}</div>
+<div class="content">${noApplyBanner}${sections}</div>
 <div class="footer">
-  <button class="btn-apply" onclick="apply()">${allUnchanged ? 'Close' : '✓ Confirm &amp; Apply'}</button>
-  ${allUnchanged ? '' : '<button class="btn-cancel" onclick="cancel()">✕ Cancel</button>'}
+  <button class="btn-apply" onclick="apply()">${hasApplicableFiles ? '✓ Confirm &amp; Apply' : 'Close'}</button>
+  ${hasApplicableFiles ? '<button class="btn-cancel" onclick="cancel()">✕ Cancel</button>' : ''}
 </div>
 <script>
 const vscode = acquireVsCodeApi();
