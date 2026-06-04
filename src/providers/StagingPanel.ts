@@ -66,11 +66,11 @@ export class StagingPanel {
               { preview: true }
             );
           } else if (message.type === 'apply') {
-            panel.dispose();
             resolveOnce(true);
-          } else if (message.type === 'cancel') {
             panel.dispose();
+          } else if (message.type === 'cancel') {
             resolveOnce(false);
+            panel.dispose();
           }
         },
         undefined,
