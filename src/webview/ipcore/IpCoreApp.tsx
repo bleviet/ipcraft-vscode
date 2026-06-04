@@ -662,7 +662,7 @@ const IpCoreApp: React.FC = () => {
                   />
                   <ToolbarGroup label="Altera">
                     <ToolbarButton
-                      title="Generate Altera Platform Designer"
+                      title="Generate Platform Designer _hw.tcl component"
                       icon="layers"
                       command="fpga-ip-core.exportAltera"
                     />
@@ -706,7 +706,9 @@ const IpCoreApp: React.FC = () => {
                     />
                     <ToolbarButton
                       title={
-                        hasQpf ? 'Open in Quartus' : 'Open in Quartus — generate project first'
+                        hasQpf
+                          ? 'Open Project in Quartus'
+                          : 'Open Project in Quartus — generate project first'
                       }
                       icon="folder-opened"
                       disabled={!hasQpf}
@@ -771,7 +773,11 @@ const IpCoreApp: React.FC = () => {
                       }}
                     />
                     <ToolbarButton
-                      title={hasXpr ? 'Open in Vivado' : 'Open in Vivado — generate project first'}
+                      title={
+                        hasXpr
+                          ? 'Open Project in Vivado'
+                          : 'Open Project in Vivado — generate project first'
+                      }
                       icon="folder-opened"
                       disabled={!hasXpr}
                       onClick={() => vscode?.postMessage({ type: 'openInVivado' })}
