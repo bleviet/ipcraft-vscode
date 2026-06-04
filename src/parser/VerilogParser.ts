@@ -123,6 +123,19 @@ export async function parseVerilogFile(
   };
 }
 
+export function extractVerilogInterface(content: string): {
+  moduleName: string | null;
+  parameters: ParsedParameter[];
+  ports: ParsedPort[];
+} {
+  const cleaned = stripComments(content);
+  return {
+    moduleName: extractModuleName(cleaned),
+    parameters: extractParameters(cleaned),
+    ports: extractPorts(cleaned),
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Comment stripping
 // ---------------------------------------------------------------------------

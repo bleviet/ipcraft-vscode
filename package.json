@@ -237,6 +237,18 @@
         "icon": "$(eye)"
       },
       {
+        "command": "fpga-ip-core.copyComponentInstance",
+        "title": "Copy Component Instance",
+        "category": "IPCraft",
+        "icon": "$(copy)"
+      },
+      {
+        "command": "fpga-ip-core.copyComponentInstanceDone",
+        "title": "Copied to clipboard!",
+        "category": "IPCraft",
+        "icon": "$(check)"
+      },
+      {
         "command": "fpga-ip-core.migrateLegacy",
         "title": "Migrate Legacy IP Cores (vendor: → targets:)",
         "category": "IPCraft"
@@ -457,6 +469,16 @@
         {
           "command": "fpga-ip-core.previewInIpcraft",
           "when": "resourceExtname == .vhd && activeCustomEditorId != 'fpgaIpCore.sourcePreview' || resourceExtname == .vhdl && activeCustomEditorId != 'fpgaIpCore.sourcePreview' || resourceExtname == .v && activeCustomEditorId != 'fpgaIpCore.sourcePreview' || resourceExtname == .sv && activeCustomEditorId != 'fpgaIpCore.sourcePreview'",
+          "group": "navigation"
+        },
+        {
+          "command": "fpga-ip-core.copyComponentInstance",
+          "when": "(resourceExtname == .vhd || resourceExtname == .vhdl || resourceExtname == .sv || resourceExtname == .v) && !ipcraft.instanceJustCopied",
+          "group": "navigation"
+        },
+        {
+          "command": "fpga-ip-core.copyComponentInstanceDone",
+          "when": "(resourceExtname == .vhd || resourceExtname == .vhdl || resourceExtname == .sv || resourceExtname == .v) && ipcraft.instanceJustCopied",
           "group": "navigation"
         },
         {

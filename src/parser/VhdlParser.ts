@@ -255,6 +255,19 @@ function extractWidthFromType(type: string): number | string | undefined {
   return undefined;
 }
 
+export function extractVhdlInterface(content: string): {
+  entityName: string | null;
+  parameters: ParsedParameter[];
+  ports: ParsedPort[];
+} {
+  const cleaned = stripComments(content);
+  return {
+    entityName: extractEntityName(cleaned),
+    parameters: extractParameters(cleaned),
+    ports: extractPorts(cleaned),
+  };
+}
+
 export function portToDict(port: ParsedPort): Record<string, unknown> {
   const upper = port.name.toUpperCase();
   let logicalName = upper;

@@ -24,6 +24,10 @@ import {
   checkForLegacyIpYmlFiles,
 } from './commands/migrateLegacyIpCore';
 import {
+  copyComponentInstanceCommand,
+  copyComponentInstanceDoneCommand,
+} from './commands/copyComponentInstance';
+import {
   vivadoNotConfiguredCommand,
   quartusNotConfiguredCommand,
   qsysEditNotConfiguredCommand,
@@ -118,6 +122,12 @@ export function activate(context: vscode.ExtensionContext): void {
     }
     await vscode.commands.executeCommand('vscode.openWith', targetUri, 'fpgaIpCore.sourcePreview');
   });
+  safeRegisterCommand(context, 'fpga-ip-core.copyComponentInstance', copyComponentInstanceCommand);
+  safeRegisterCommand(
+    context,
+    'fpga-ip-core.copyComponentInstanceDone',
+    copyComponentInstanceDoneCommand
+  );
 
   // Register VHDL Generator Commands
   registerGeneratorCommands(context);
