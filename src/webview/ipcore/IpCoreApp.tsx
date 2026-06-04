@@ -687,6 +687,15 @@ const IpCoreApp: React.FC = () => {
               style={{ borderLeft: '1px solid var(--vscode-panel-border)', paddingLeft: '10px' }}
             >
               <ToolbarGroup label="Code Generation Methodology">
+                <button
+                  className="canvas-view-toggle"
+                  title="Get Started with Scaffold Packs"
+                  aria-label="Open scaffold packs walkthrough"
+                  type="button"
+                  onClick={() => vscode?.postMessage({ type: 'openScaffoldPacksWalkthrough' })}
+                >
+                  <span className="codicon codicon-mortar-board" />
+                </button>
                 <ScaffoldPackPicker selected={scaffoldPack} packs={availableScaffoldPacks} />
               </ToolbarGroup>
 

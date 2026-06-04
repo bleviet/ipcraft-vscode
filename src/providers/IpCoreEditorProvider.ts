@@ -271,6 +271,13 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
         await cfg.update('scaffoldPack', packName, vscode.ConfigurationTarget.Global);
         // onDidChangeConfiguration fires updateWebview automatically
       },
+      openScaffoldPacksWalkthrough: async () => {
+        await vscode.commands.executeCommand(
+          'workbench.action.openWalkthrough',
+          'bleviet.ipcraft-vscode#scaffold-packs-getting-started',
+          false
+        );
+      },
       openFile: async (message) => {
         await this.handleOpenFileMessage(message, document);
       },
