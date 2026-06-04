@@ -301,7 +301,7 @@ body{font-family:var(--vscode-font-family);font-size:var(--vscode-font-size);col
 .chevron{display:flex;align-items:center;justify-content:center;width:14px;height:14px;flex-shrink:0;color:var(--vscode-descriptionForeground);transition:transform 0.15s}
 .chevron svg{stroke:currentColor;stroke-width:1.5;fill:none}
 .chevron.collapsed{transform:rotate(-90deg)}
-.dir-name{font-family:var(--vscode-editor-font-family,monospace);font-size:12px;color:var(--vscode-descriptionForeground)}
+.dir-name{font-family:var(--vscode-editor-font-family,monospace);font-size:12px;color:var(--vscode-charts-purple,#b180d7)}
 .file-name{font-family:var(--vscode-editor-font-family,monospace);font-size:12px;color:var(--vscode-foreground);flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 .dot-included{background:#4ea44e}

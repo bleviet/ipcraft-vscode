@@ -359,7 +359,7 @@ body{
 /* dir / file labels */
 .dir-name{
   font-family:var(--vscode-editor-font-family,monospace);font-size:12px;
-  color:var(--vscode-descriptionForeground);
+  color:var(--vscode-charts-purple,#b180d7);
 }
 .file-name{
   font-family:var(--vscode-editor-font-family,monospace);font-size:12px;
