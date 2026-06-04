@@ -636,7 +636,7 @@ const IpCoreApp: React.FC = () => {
               className="flex items-center gap-2"
               style={{ borderLeft: '1px solid var(--vscode-panel-border)', paddingLeft: '10px' }}
             >
-              <ToolbarGroup label="Generation Methodology">
+              <ToolbarGroup label="Code Generation Methodology">
                 <GenerationModePicker value={bahonaviMethodology} />
               </ToolbarGroup>
 
