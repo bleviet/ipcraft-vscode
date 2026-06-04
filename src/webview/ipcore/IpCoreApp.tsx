@@ -117,54 +117,25 @@ const GenerationModePicker: React.FC<GenerationModePickerProps> = ({ value }) =>
   const set = (bahonavi: boolean) =>
     vscode?.postMessage({ type: 'setBahonaviMethodology', enabled: bahonavi });
 
-  const pillStyle = (forBahonavi: boolean): React.CSSProperties => {
-    const active = value === forBahonavi;
-    return {
-      fontSize: '9px',
-      fontWeight: 600,
-      letterSpacing: '0.04em',
-      lineHeight: 1,
-      padding: '2px 4px',
-      borderRadius: 3,
-      border: 'none',
-      cursor: active ? 'default' : 'pointer',
-      userSelect: 'none',
-      background: active
-        ? forBahonavi
-          ? 'rgba(140, 80, 210, 0.20)'
-          : 'rgba(60, 180, 120, 0.20)'
-        : 'transparent',
-      color: active ? (forBahonavi ? '#8c50d2' : '#3cb478') : 'var(--vscode-descriptionForeground)',
-      opacity: active ? 1 : 0.5,
-    };
-  };
-
   return (
-    <div
-      style={{ display: 'flex', flexDirection: 'column', gap: 2, justifyContent: 'center' }}
-      title={
-        value
-          ? 'bahonavi Methodology active — click MINIMAL to switch to single-stub mode'
-          : 'Minimal Mode active — click BAHONAVI to switch to full multi-file methodology'
-      }
+    <select
+      value={value ? 'bahonavi' : 'minimal'}
+      onChange={(e) => set(e.target.value === 'bahonavi')}
+      aria-label="Generation methodology"
+      style={{
+        background: 'var(--vscode-dropdown-background)',
+        color: 'var(--vscode-dropdown-foreground)',
+        border: '1px solid var(--vscode-dropdown-border)',
+        borderRadius: 2,
+        fontSize: '11px',
+        padding: '2px 4px',
+        cursor: 'pointer',
+        outline: 'none',
+      }}
     >
-      <button
-        style={pillStyle(false)}
-        onClick={() => set(false)}
-        type="button"
-        aria-label="Use Minimal Mode"
-      >
-        MINIMAL
-      </button>
-      <button
-        style={pillStyle(true)}
-        onClick={() => set(true)}
-        type="button"
-        aria-label="Use bahonavi Methodology"
-      >
-        BAHONAVI
-      </button>
-    </div>
+      <option value="minimal">Minimal</option>
+      <option value="bahonavi">bahonavi Methodology</option>
+    </select>
   );
 };
 
@@ -665,7 +636,7 @@ const IpCoreApp: React.FC = () => {
               className="flex items-center gap-2"
               style={{ borderLeft: '1px solid var(--vscode-panel-border)', paddingLeft: '10px' }}
             >
-              <ToolbarGroup label="Generation Mode">
+              <ToolbarGroup label="Generation Methodology">
                 <GenerationModePicker value={bahonaviMethodology} />
               </ToolbarGroup>
 
