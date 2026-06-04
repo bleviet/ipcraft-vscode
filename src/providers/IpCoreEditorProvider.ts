@@ -17,6 +17,8 @@ import {
   type GenerateRequestMessage,
   type GenerateOptionsMessage,
 } from './IpCoreGenerateHandler';
+import { WebviewStagingBridge } from './WebviewStagingBridge';
+import { STAGING_SCHEME } from './StagingContentProvider';
 import { editInIpPackagerCommand } from '../commands/editInIpPackager';
 import { editInPlatformDesignerCommand } from '../commands/editInPlatformDesigner';
 import { openInVivadoCommand } from '../commands/openInVivado';
@@ -141,6 +143,7 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
       fileWatcher.dispose();
     });
     this.registerWebviewMessageHandlers(document, webviewPanel, updateWebview);
+    WebviewStagingBridge.getInstance().register(document.uri.fsPath, webviewPanel);
 
     setTimeout(() => {
       void updateWebview();
@@ -203,6 +206,10 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
     updateWebview: () => Promise<void>
   ): void {
     type MessageHandlerFn = (message: IpcMessage) => Promise<void>;
+
+    // Shared column for staging diff/preview actions. Pinned after the first open so
+    // every subsequent View Diff / Preview reuses the same tab instead of opening new ones.
+    let stagingSideColumn: vscode.ViewColumn | undefined;
 
     const messageHandlers: Record<string, MessageHandlerFn> = {
       ready: async () => {
@@ -305,6 +312,55 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
           `${ipName}.qpf`
         );
         await openInQuartusCommand(vscode.Uri.file(qpfPath));
+      },
+      stagingResult: async (message) => {
+        stagingSideColumn = undefined;
+        WebviewStagingBridge.getInstance().resolveStaging(
+          document.uri.fsPath,
+          message.confirmed as boolean
+        );
+      },
+      stagingAction: async (message) => {
+        const files = WebviewStagingBridge.getInstance().getFiles(document.uri.fsPath);
+        if (!files) {
+          return;
+        }
+        const relativePath = String(message.relativePath ?? '');
+        const file = files.find((f) => f.relativePath === relativePath);
+        if (!file) {
+          return;
+        }
+        if (message.action === 'viewDiff') {
+          const diskUri = vscode.Uri.file(file.diskPath);
+          const generatedUri = vscode.Uri.from({
+            scheme: STAGING_SCHEME,
+            path: `/${file.relativePath}`,
+          });
+          const filename = generatedUri.path.split('/').pop() ?? file.relativePath;
+          const diffEditor = await vscode.commands.executeCommand<vscode.TextEditor | undefined>(
+            'vscode.diff',
+            diskUri,
+            generatedUri,
+            `${filename}: Current ↔ Generated`,
+            { preview: true, viewColumn: stagingSideColumn ?? vscode.ViewColumn.Beside }
+          );
+          if (diffEditor?.viewColumn !== undefined) {
+            stagingSideColumn = diffEditor.viewColumn;
+          }
+        } else if (message.action === 'viewPreview') {
+          const generatedUri = vscode.Uri.from({
+            scheme: STAGING_SCHEME,
+            path: `/${file.relativePath}`,
+          });
+          const doc = await vscode.workspace.openTextDocument(generatedUri);
+          const editor = await vscode.window.showTextDocument(doc, {
+            preview: true,
+            viewColumn: stagingSideColumn ?? vscode.ViewColumn.Beside,
+          });
+          if (editor.viewColumn !== undefined) {
+            stagingSideColumn = editor.viewColumn;
+          }
+        }
       },
     };
 

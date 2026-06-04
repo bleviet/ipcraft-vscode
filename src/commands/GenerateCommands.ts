@@ -23,6 +23,7 @@ import { createVivadoProject, createQuartusProject } from './projectCreator';
 import { getBuildOutputChannel } from './BuildCommands';
 import { StagingPanel } from '../providers/StagingPanel';
 import type { StagedFile } from '../providers/StagingPanel';
+import { WebviewStagingBridge } from '../providers/WebviewStagingBridge';
 
 const logger = new Logger('GenerateCommands');
 
@@ -635,11 +636,13 @@ async function runGenerator(
     dryResult.protectedPaths ?? []
   );
 
-  // Phase 3: Always show the staging panel when generation produced any files.
-  // Skipping it when everything is 'unchanged' caused the panel to never appear in
-  // Minimal mode (fewer generated files → all match what is already on disk on re-runs).
+  // Phase 3: Show the staging overlay in the canvas webview when possible; fall back to
+  // a separate StagingPanel when the canvas webview is not registered (e.g. command run
+  // while the editor is not open, or from the Source Control / Explorer view).
   if (staged.length > 0) {
-    const confirmed = await StagingPanel.show(staged);
+    const bridge = WebviewStagingBridge.getInstance();
+    const bridgeResult = await bridge.showInWebview(ipCoreUri.fsPath, staged);
+    const confirmed = bridgeResult !== null ? bridgeResult : await StagingPanel.show(staged);
     if (!confirmed) {
       return false;
     }

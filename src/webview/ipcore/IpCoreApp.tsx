@@ -8,6 +8,7 @@ import { useCanvasSelection } from './hooks/useCanvasSelection';
 import { useCanvasDrop } from './hooks/useCanvasDrop';
 import { useCanvasUndo } from './hooks/useCanvasUndo';
 import { LibraryPalette } from './components/canvas/LibraryPalette';
+import { StagingOverlay, type StagedFileView } from './components/canvas/StagingOverlay';
 import { vscode } from '../vscode';
 import type { IpCore, BusInterface } from '../types/ipCore';
 import '@vscode/codicons/dist/codicon.css';
@@ -282,6 +283,9 @@ const IpCoreApp: React.FC = () => {
     [baseUpdateIpCore, pushUndo]
   );
 
+  // Staging overlay — replaces inspector slot during code-generation confirmation
+  const [stagingData, setStagingData] = useState<StagedFileView[] | null>(null);
+
   // Transient toast notification
   const [toast, setToast] = useState<string | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -534,6 +538,7 @@ const IpCoreApp: React.FC = () => {
         toolbarTargets?: string[];
         allToolchains?: RegisteredToolchain[];
         isPreview?: boolean;
+        files?: StagedFileView[];
       };
 
       switch (message.type) {
@@ -550,6 +555,9 @@ const IpCoreApp: React.FC = () => {
             setAllToolchains(message.allToolchains);
           }
           setIsPreview(message.isPreview ?? false);
+          break;
+        case 'stagingStart':
+          setStagingData(message.files ?? null);
           break;
       }
     };
@@ -976,7 +984,19 @@ const IpCoreApp: React.FC = () => {
               onCanvasDrop={onCanvasDrop}
               onCanvasRemove={handleCanvasRemove}
             />
-            {canvasSelected && typedIpCore && (
+            {stagingData ? (
+              <StagingOverlay
+                files={stagingData}
+                onConfirm={() => {
+                  vscode?.postMessage({ type: 'stagingResult', confirmed: true });
+                  setStagingData(null);
+                }}
+                onCancel={() => {
+                  vscode?.postMessage({ type: 'stagingResult', confirmed: false });
+                  setStagingData(null);
+                }}
+              />
+            ) : canvasSelected && typedIpCore ? (
               <CanvasInspector
                 selected={canvasSelected}
                 ipCore={typedIpCore}
@@ -985,7 +1005,7 @@ const IpCoreApp: React.FC = () => {
                 onClose={canvasDeselect}
                 onDelete={handleInspectorDelete}
               />
-            )}
+            ) : null}
           </>
         )}
       </div>

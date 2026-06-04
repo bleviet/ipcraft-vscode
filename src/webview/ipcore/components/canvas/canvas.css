@@ -1683,3 +1683,176 @@
   fill: var(--vscode-charts-green, #4ec9b0);
 }
 
+/* ========================================
+   STAGING OVERLAY (Canvas Inspector Slot)
+   ======================================== */
+
+.staging-header-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--vscode-foreground);
+}
+
+.staging-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.staging-summary-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.staging-summary-sep {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  opacity: 0.4;
+  padding: 0 2px;
+}
+
+.staging-tree-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 3px;
+  padding-top: 2px;
+  padding-bottom: 2px;
+  padding-right: 8px;
+  min-height: 22px;
+}
+
+.staging-tree-dir {
+  cursor: pointer;
+  user-select: none;
+}
+
+.staging-tree-dir:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.staging-tree-file:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.staging-tree-file--muted {
+  opacity: 0.55;
+}
+
+.staging-tree-children {
+  position: relative;
+}
+
+.staging-tree-children::before {
+  content: '';
+  position: absolute;
+  left: var(--guide-x, 12px);
+  top: 0;
+  bottom: 4px;
+  width: 1px;
+  background: var(--vscode-tree-indentGuidesStroke, rgba(128, 128, 128, 0.18));
+  pointer-events: none;
+}
+
+.staging-chevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: var(--vscode-descriptionForeground);
+  transition: transform 0.15s;
+}
+
+.staging-chevron--collapsed {
+  transform: rotate(-90deg);
+}
+
+.staging-dir-name {
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.staging-file-name {
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 11px;
+  color: var(--vscode-foreground);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.staging-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.staging-dot--new { background: #4ea44e; }
+.staging-dot--modified { background: #d4a83a; }
+.staging-dot--unchanged { background: #888; }
+
+.staging-status-lock {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  color: var(--vscode-foreground);
+}
+
+.staging-btn-action {
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.12s;
+  font-family: var(--vscode-font-family);
+}
+
+.staging-tree-row:hover .staging-btn-action {
+  opacity: 1;
+}
+
+.staging-btn-diff {
+  font-size: 11px;
+  padding: 2px 8px;
+  background: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+}
+
+.staging-btn-diff:hover {
+  background: var(--vscode-button-secondaryHoverBackground);
+}
+
+.staging-btn-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 5px;
+  background: transparent;
+  color: var(--vscode-descriptionForeground);
+}
+
+.staging-btn-preview:hover {
+  background: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+}
+
+.staging-banner {
+  padding: 8px 10px;
+  border-radius: 4px;
+  background: var(--vscode-diffEditor-unchangedRegionBackground, rgba(128, 128, 128, 0.1));
+  color: var(--vscode-descriptionForeground);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
