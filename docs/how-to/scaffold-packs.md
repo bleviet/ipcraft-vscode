@@ -69,17 +69,39 @@ The quickest way to create a custom pack is to start from a built-in one.
 1. Open the Command Palette and run **IPCraft: Export Built-in Scaffold Pack**.
 2. Select the pack to export (`builtin-minimal` or `builtin-bahonavi`).
 3. Enter a name for your copy (e.g. `aurora-rtl`). The `builtin-` prefix is stripped automatically.
-4. IPCraft copies the pack to `.vscode/ipcraft/packs/<name>/` in your workspace.
+4. IPCraft copies the pack to `.vscode/ipcraft/packs/<name>/` in your workspace,
+   **including all `.j2` template files** referenced by the pack so you can edit
+   them immediately.
 5. Click **Open scaffold.yml** in the confirmation notification.
 
 The scaffold.yml opens in the editor and the **Scaffold Pack Preview** panel appears
 beside it showing which files would be generated.
 
+The exported directory contains everything you need:
+
+```text
+.vscode/ipcraft/packs/aurora-rtl/
+  scaffold.yml
+  top.vhdl.j2
+  top.sv.j2
+  package.vhdl.j2
+  pkg.sv.j2
+  core.vhdl.j2          ← edit this to change the logic skeleton
+  core.sv.j2
+  bus_axil.vhdl.j2      ← edit this to change the AXI-Lite wrapper
+  bus_axil.sv.j2
+  bus_avmm.vhdl.j2
+  bus_avmm.sv.j2
+  register_file.vhdl.j2
+  register_file.sv.j2
+```
+
 From here:
 
+- Edit any `.j2` file directly — the side-by-side preview updates on save.
 - Edit `scaffold.yml` to add, remove, or rename output files.
-- Edit or add `.j2` template files in the same folder to override specific templates.
-- Save either file — the preview panel refreshes immediately.
+- Delete template files you do not need to customise — the generator falls back
+  to the built-in version for any template not found in the pack directory.
 
 Reference the pack in any `.ip.yml` using `scaffold_pack: "aurora-rtl"`.
 

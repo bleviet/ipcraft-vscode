@@ -1,10 +1,12 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs/promises';
+import { sync as globSync } from 'glob';
 import { Logger } from '../utils/Logger';
 import { TemplatePreviewProvider } from '../providers/TemplatePreviewProvider';
 import { ScaffoldPackPanel } from '../providers/ScaffoldPackPanel';
 import { ScaffoldPackLoader } from '../generator/ScaffoldPackLoader';
+import { TemplateLoader } from '../generator/TemplateLoader';
 import { safeRegisterCommand } from '../utils/vscodeHelpers';
 
 const logger = new Logger('ScaffoldPackCommands');
@@ -147,10 +149,25 @@ async function exportScaffoldPack(context: vscode.ExtensionContext): Promise<voi
   const srcDir = path.join(ScaffoldPackLoader.builtinPacksDir, selected.label);
 
   try {
+    // Step 1: copy the pack directory (scaffold.yml + any pack-local templates)
     await copyDir(srcDir, destDir);
+
+    // Step 2: copy all .j2 templates referenced by the pack into the pack directory
+    // so the user can edit them immediately without hunting for them elsewhere.
+    const pack = ScaffoldPackLoader.load(destDir);
+    const copied = await copyReferencedTemplates(
+      pack.files.map((r) => r.source),
+      destDir
+    );
+
+    const templateNote =
+      copied.length > 0
+        ? ` Copied ${copied.length} template${copied.length !== 1 ? 's' : ''} for editing.`
+        : '';
+
     void vscode.window
       .showInformationMessage(
-        `Scaffold pack exported to .vscode/ipcraft/packs/${newName}/`,
+        `Scaffold pack exported to .vscode/ipcraft/packs/${newName}/.${templateNote}`,
         'Open scaffold.yml'
       )
       .then(async (action) => {
@@ -158,7 +175,6 @@ async function exportScaffoldPack(context: vscode.ExtensionContext): Promise<voi
           const manifestUri = vscode.Uri.file(path.join(destDir, 'scaffold.yml'));
           const doc = await vscode.workspace.openTextDocument(manifestUri);
           await vscode.window.showTextDocument(doc);
-          // Show the scaffold pack panel for this manifest
           const panel = ScaffoldPackPanel.show(logger, context);
           await panel.refresh(manifestUri.fsPath);
         }
@@ -269,4 +285,63 @@ async function copyDir(src: string, dest: string): Promise<void> {
       }
     })
   );
+}
+
+/**
+ * Copy every built-in .j2 template referenced by the exported pack into `destDir`
+ * so the user can edit them immediately without digging into the extension bundle.
+ *
+ * Source expressions may be static (`"top.vhdl.j2"`) or Nunjucks strings
+ * (`"bus_{{ bus_type }}.vhdl.j2"`). Dynamic parts are replaced with `*` and
+ * resolved against the built-in templates directory using glob.
+ *
+ * Files that already exist in `destDir` (e.g. copied from the pack's own srcDir)
+ * are skipped so user overrides are never clobbered.
+ *
+ * Returns the basenames of all files actually written.
+ */
+async function copyReferencedTemplates(
+  sourceExpressions: string[],
+  destDir: string
+): Promise<string[]> {
+  const templatesDir = TemplateLoader.resolveTemplatesPath();
+  const copied: string[] = [];
+
+  // Deduplicate expressions — many packs list the same source for VHDL and SV variants
+  const seen = new Set<string>();
+  const patterns = sourceExpressions
+    .filter((expr) => expr.endsWith('.j2') || expr.includes('.j2'))
+    .map((expr) => {
+      // Convert Nunjucks placeholders to glob wildcards: {{ anything }} → *
+      return expr.replace(/\{\{[^}]+\}\}/g, '*');
+    })
+    .filter((p) => {
+      if (seen.has(p)) {
+        return false;
+      }
+      seen.add(p);
+      return true;
+    });
+
+  await Promise.all(
+    patterns.map(async (pattern) => {
+      const matches = globSync(pattern, { cwd: templatesDir, nodir: true });
+      await Promise.all(
+        matches.map(async (filename) => {
+          const destPath = path.join(destDir, filename);
+          // Skip if already present (pack's own copy takes priority)
+          try {
+            await fs.stat(destPath);
+            return; // already exists
+          } catch {
+            // does not exist — safe to copy
+          }
+          await fs.copyFile(path.join(templatesDir, filename), destPath);
+          copied.push(filename);
+        })
+      );
+    })
+  );
+
+  return copied;
 }
