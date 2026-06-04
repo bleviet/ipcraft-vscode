@@ -692,7 +692,7 @@ const IpCoreApp: React.FC = () => {
                   title="Get Started with Scaffold Packs"
                   aria-label="Open scaffold packs walkthrough"
                   type="button"
-                  onClick={() => vscode?.postMessage({ type: 'openScaffoldPacksWalkthrough' })}
+                  onClick={() => vscode?.postMessage({ type: 'openWalkthroughMenu' })}
                 >
                   <span className="codicon codicon-mortar-board" />
                 </button>

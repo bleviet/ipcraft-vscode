@@ -42,6 +42,78 @@ export function registerScaffoldPackCommands(
     );
   });
 
+  // ── Commands: Individual walkthroughs ─────────────────────────────────
+  const openWalkthrough = (id: string) =>
+    vscode.commands.executeCommand(
+      'workbench.action.openWalkthrough',
+      `bleviet.ipcraft-vscode#${id}`,
+      false
+    );
+
+  safeRegisterCommand(context, 'fpga-ip-core.openFreshIpCoreWalkthrough', async () => {
+    await openWalkthrough('fresh-ip-core');
+  });
+  safeRegisterCommand(context, 'fpga-ip-core.openIpCoreWithRegistersWalkthrough', async () => {
+    await openWalkthrough('ip-core-with-registers');
+  });
+  safeRegisterCommand(context, 'fpga-ip-core.openImportFromVhdlWalkthrough', async () => {
+    await openWalkthrough('import-from-vhdl');
+  });
+  safeRegisterCommand(context, 'fpga-ip-core.openImportFromVendorWalkthrough', async () => {
+    await openWalkthrough('import-from-vendor-tools');
+  });
+  safeRegisterCommand(context, 'fpga-ip-core.openBuildAndVerifyWalkthrough', async () => {
+    await openWalkthrough('build-and-verify');
+  });
+
+  // ── Command: Walkthrough picker menu ──────────────────────────────────
+  safeRegisterCommand(context, 'fpga-ip-core.openWalkthroughMenu', async () => {
+    type WalkthroughItem = vscode.QuickPickItem & { id: string };
+    const items: WalkthroughItem[] = [
+      {
+        label: '$(mortar-board) Design Your First IP Core',
+        description: 'Start from scratch — canvas, bus interfaces, ports, and your first scaffold',
+        id: 'fresh-ip-core',
+      },
+      {
+        label: '$(circuit-board) IP Core with a Register Map',
+        description: 'Memory-mapped registers with AXI-Lite or Avalon-MM bus decode',
+        id: 'ip-core-with-registers',
+      },
+      {
+        label: '$(file-code) Bring Your VHDL into IPCraft',
+        description: 'Import an existing .vhd entity and generate vendor packaging',
+        id: 'import-from-vhdl',
+      },
+      {
+        label: '$(extensions) Import from Xilinx or Intel Tools',
+        description: 'Convert hw.tcl or component.xml to a portable .ip.yml spec',
+        id: 'import-from-vendor-tools',
+      },
+      {
+        label: '$(pulse) Synthesize and Check Timing',
+        description: 'Run OOC synthesis and read WNS / Fmax in the Build Reports panel',
+        id: 'build-and-verify',
+      },
+      {
+        label: '$(tools) Get Started with Scaffold Packs',
+        description: 'Customise what IPCraft generates — file layout, naming, and templates',
+        id: 'scaffold-packs-getting-started',
+      },
+    ];
+
+    const picked = await vscode.window.showQuickPick(items, {
+      placeHolder: 'Which guide would you like to follow?',
+      title: 'IPCraft Walkthroughs',
+      matchOnDescription: true,
+    });
+    if (!picked) {
+      return;
+    }
+
+    await openWalkthrough(picked.id);
+  });
+
   // ── File watcher: refresh preview when a .j2 template is saved ────────
   const j2Watcher = vscode.workspace.createFileSystemWatcher('**/*.j2');
   j2Watcher.onDidChange(async (uri) => {

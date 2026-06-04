@@ -278,6 +278,9 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
           false
         );
       },
+      openWalkthroughMenu: async () => {
+        await vscode.commands.executeCommand('fpga-ip-core.openWalkthroughMenu');
+      },
       openFile: async (message) => {
         await this.handleOpenFileMessage(message, document);
       },
