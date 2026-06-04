@@ -129,6 +129,9 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
       if (e.affectsConfiguration('ipcraft.toolbar.targets')) {
         void updateWebview();
       }
+      if (e.affectsConfiguration('ipcraft.generate.bahonaviMethodology')) {
+        void updateWebview();
+      }
     });
     const fileWatcher = this.watchGeneratedFiles(document, updateWebview);
     this.registerDisposal(webviewPanel, () => {
@@ -250,6 +253,15 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
         await cfg.update('targets', raw, vscode.ConfigurationTarget.Global);
         // onDidChangeConfiguration fires updateWebview automatically
       },
+      setBahonaviMethodology: async (message) => {
+        const enabled = message.enabled;
+        if (typeof enabled !== 'boolean') {
+          return;
+        }
+        const cfg = vscode.workspace.getConfiguration('ipcraft.generate');
+        await cfg.update('bahonaviMethodology', enabled, vscode.ConfigurationTarget.Global);
+        // onDidChangeConfiguration fires updateWebview automatically
+      },
       openFile: async (message) => {
         await this.handleOpenFileMessage(message, document);
       },
@@ -366,9 +378,9 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
         return;
       }
 
-      const hdlLanguage = vscode.workspace
-        .getConfiguration('ipcraft.generate')
-        .get<string>('hdlLanguage', 'vhdl');
+      const generateCfg = vscode.workspace.getConfiguration('ipcraft.generate');
+      const hdlLanguage = generateCfg.get<string>('hdlLanguage', 'vhdl');
+      const bahonaviMethodology = generateCfg.get<boolean>('bahonaviMethodology', false);
 
       const toolbarTargets = vscode.workspace
         .getConfiguration('ipcraft.toolbar')
@@ -388,6 +400,7 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
         hasXpr,
         hasQpf,
         hdlLanguage,
+        bahonaviMethodology,
         toolbarTargets,
         allToolchains,
         duplicatePrefixes,

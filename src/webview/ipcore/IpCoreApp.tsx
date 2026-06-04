@@ -109,6 +109,65 @@ const HdlLanguagePicker: React.FC<HdlLanguagePickerProps> = ({ value }) => {
   );
 };
 
+interface GenerationModePickerProps {
+  value: boolean; // true = bahonavi methodology, false = minimal
+}
+
+const GenerationModePicker: React.FC<GenerationModePickerProps> = ({ value }) => {
+  const set = (bahonavi: boolean) =>
+    vscode?.postMessage({ type: 'setBahonaviMethodology', enabled: bahonavi });
+
+  const pillStyle = (forBahonavi: boolean): React.CSSProperties => {
+    const active = value === forBahonavi;
+    return {
+      fontSize: '9px',
+      fontWeight: 600,
+      letterSpacing: '0.04em',
+      lineHeight: 1,
+      padding: '2px 4px',
+      borderRadius: 3,
+      border: 'none',
+      cursor: active ? 'default' : 'pointer',
+      userSelect: 'none',
+      background: active
+        ? forBahonavi
+          ? 'rgba(140, 80, 210, 0.20)'
+          : 'rgba(60, 180, 120, 0.20)'
+        : 'transparent',
+      color: active ? (forBahonavi ? '#8c50d2' : '#3cb478') : 'var(--vscode-descriptionForeground)',
+      opacity: active ? 1 : 0.5,
+    };
+  };
+
+  return (
+    <div
+      style={{ display: 'flex', flexDirection: 'column', gap: 2, justifyContent: 'center' }}
+      title={
+        value
+          ? 'bahonavi Methodology active — click MINIMAL to switch to single-stub mode'
+          : 'Minimal Mode active — click BAHONAVI to switch to full multi-file methodology'
+      }
+    >
+      <button
+        style={pillStyle(false)}
+        onClick={() => set(false)}
+        type="button"
+        aria-label="Use Minimal Mode"
+      >
+        MINIMAL
+      </button>
+      <button
+        style={pillStyle(true)}
+        onClick={() => set(true)}
+        type="button"
+        aria-label="Use bahonavi Methodology"
+      >
+        BAHONAVI
+      </button>
+    </div>
+  );
+};
+
 /**
  * Multi-select toolbar target picker. Each pill toggles a toolchain id in/out
  * of the active set. The set is persisted to ipcraft.toolbar.targets.
@@ -270,6 +329,8 @@ const IpCoreApp: React.FC = () => {
   const [hasQpf, setHasQpf] = useState(false);
   // HDL language for source generation — mirrors ipcraft.generate.hdlLanguage
   const [hdlLanguage, setHdlLanguage] = useState<'vhdl' | 'systemverilog'>('vhdl');
+  // Generation mode — mirrors ipcraft.generate.bahonaviMethodology
+  const [bahonaviMethodology, setBahonaviMethodology] = useState(false);
   // Active vendor toolchain section(s) shown in toolbar — mirrors ipcraft.toolbar.targets
   const [toolbarTargets, setToolbarTargets] = useState<string[]>(['vivado', 'quartus']);
   // All registered toolchains from the extension — drives the TargetVendorPicker pill list
@@ -498,6 +559,7 @@ const IpCoreApp: React.FC = () => {
         hasXpr?: boolean;
         hasQpf?: boolean;
         hdlLanguage?: 'vhdl' | 'systemverilog';
+        bahonaviMethodology?: boolean;
         toolbarTargets?: string[];
         allToolchains?: RegisteredToolchain[];
         isPreview?: boolean;
@@ -511,6 +573,7 @@ const IpCoreApp: React.FC = () => {
           setHasXpr(message.hasXpr ?? false);
           setHasQpf(message.hasQpf ?? false);
           setHdlLanguage(message.hdlLanguage ?? 'vhdl');
+          setBahonaviMethodology(message.bahonaviMethodology ?? false);
           setToolbarTargets(message.toolbarTargets ?? ['vivado', 'quartus']);
           if (message.allToolchains && message.allToolchains.length > 0) {
             setAllToolchains(message.allToolchains);
@@ -631,6 +694,7 @@ const IpCoreApp: React.FC = () => {
                   command="fpga-ip-core.generateHdl"
                 />
                 <HdlLanguagePicker value={hdlLanguage} />
+                <GenerationModePicker value={bahonaviMethodology} />
               </ToolbarGroup>
 
               <div
