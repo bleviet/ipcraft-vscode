@@ -691,9 +691,14 @@ const IpCoreApp: React.FC = () => {
                       command="fpga-ip-core.generateQuartusProject"
                     />
                     <ToolbarButton
-                      title="Generate & Build (Quartus full compile)"
+                      title={
+                        hasQpf
+                          ? 'Build: Quartus full compile'
+                          : 'Build: Quartus full compile — generate project first'
+                      }
                       icon="zap"
-                      command="fpga-ip-core.generateAndBuildQuartus"
+                      disabled={!hasQpf}
+                      command="fpga-ip-core.buildQuartusCompile"
                     />
                     <div
                       style={{
@@ -759,9 +764,14 @@ const IpCoreApp: React.FC = () => {
                       command="fpga-ip-core.generateVivadoProject"
                     />
                     <ToolbarButton
-                      title="Generate & Build (Vivado OOC synthesis)"
+                      title={
+                        hasXpr
+                          ? 'Build: Vivado OOC synthesis'
+                          : 'Build: Vivado OOC synthesis — generate project first'
+                      }
                       icon="zap"
-                      command="fpga-ip-core.generateAndBuildVivado"
+                      disabled={!hasXpr}
+                      command="fpga-ip-core.buildVivadoOoc"
                     />
                     <div
                       style={{
