@@ -196,25 +196,25 @@
       },
       {
         "command": "fpga-ip-core.vivadoNotConfigured",
-        "title": "Vivado Not Found — Click to Configure",
+        "title": "Vivado Not Found \u2014 Click to Configure",
         "category": "IPCraft",
         "icon": "$(warning)"
       },
       {
         "command": "fpga-ip-core.quartusNotConfigured",
-        "title": "Quartus Not Found — Click to Configure",
+        "title": "Quartus Not Found \u2014 Click to Configure",
         "category": "IPCraft",
         "icon": "$(warning)"
       },
       {
         "command": "fpga-ip-core.qsysEditNotConfigured",
-        "title": "Platform Designer Not Found — Click to Configure",
+        "title": "Platform Designer Not Found \u2014 Click to Configure",
         "category": "IPCraft",
         "icon": "$(warning)"
       },
       {
         "command": "fpga-ip-core.buildNotConfigured",
-        "title": "No Build Tools Configured — Click to Configure",
+        "title": "No Build Tools Configured \u2014 Click to Configure",
         "category": "IPCraft",
         "icon": "$(warning)"
       },
@@ -250,8 +250,13 @@
       },
       {
         "command": "fpga-ip-core.migrateLegacy",
-        "title": "Migrate Legacy IP Cores (vendor: → targets:)",
+        "title": "Migrate Legacy IP Cores (vendor: \u2192 targets:)",
         "category": "IPCraft"
+      },
+      {
+        "command": "fpga-ip-core.openSettings",
+        "title": "IPCraft: Open Extension Settings",
+        "icon": "$(gear)"
       }
     ],
     "submenus": [
@@ -533,8 +538,8 @@
               "systemverilog"
             ],
             "enumDescriptions": [
-              "VHDL — generates .vhd source files",
-              "SystemVerilog — generates .sv source files"
+              "VHDL \u2014 generates .vhd source files",
+              "SystemVerilog \u2014 generates .sv source files"
             ],
             "default": "vhdl",
             "description": "HDL language for RTL file generation (VHDL or SystemVerilog)."
@@ -542,7 +547,7 @@
           "ipcraft.generate.bahonaviMethodology": {
             "type": "boolean",
             "default": false,
-            "markdownDescription": "Enable the **bahonavi methodology**: generates the full multi-file HDL structure (top, core, bus wrapper, package, register file). When disabled (default), only a single minimal top-level stub is generated — ideal for beginners and for manually-structured designs."
+            "markdownDescription": "Enable the **bahonavi methodology**: generates the full multi-file HDL structure (top, core, bus wrapper, package, register file). When disabled (default), only a single minimal top-level stub is generated \u2014 ideal for beginners and for manually-structured designs."
           }
         }
       },
@@ -571,10 +576,10 @@
               "questa"
             ],
             "enumDescriptions": [
-              "GHDL — open-source VHDL simulator (--std=08)",
-              "Icarus Verilog — open-source Verilog/SV simulator",
-              "Verilator — high-performance SV simulator",
-              "Questa / ModelSim — commercial VHDL/SV simulator"
+              "GHDL \u2014 open-source VHDL simulator (--std=08)",
+              "Icarus Verilog \u2014 open-source Verilog/SV simulator",
+              "Verilator \u2014 high-performance SV simulator",
+              "Questa / ModelSim \u2014 commercial VHDL/SV simulator"
             ],
             "default": "ghdl",
             "description": "Simulation engine used by the generated testbench."
@@ -603,8 +608,8 @@
           "ipcraft.import.vendor": {
             "type": "string",
             "default": "user",
-            "description": "Vendor name used when importing IP cores (VHDL, hw.tcl, component.xml). Leave blank or 'user' to auto-detect from git user.email (e.g. user@company.com → company.com), falling back to 'ipcraft'.",
-            "markdownDescription": "Vendor name used when importing IP cores (VHDL, `_hw.tcl`, `component.xml`). Leave blank or `user` to auto-detect from git `user.email` (e.g. `user@company.com` → `company.com`), falling back to `ipcraft`."
+            "description": "Vendor name used when importing IP cores (VHDL, hw.tcl, component.xml). Leave blank or 'user' to auto-detect from git user.email (e.g. user@company.com \u2192 company.com), falling back to 'ipcraft'.",
+            "markdownDescription": "Vendor name used when importing IP cores (VHDL, `_hw.tcl`, `component.xml`). Leave blank or `user` to auto-detect from git `user.email` (e.g. `user@company.com` \u2192 `company.com`), falling back to `ipcraft`."
           },
           "ipcraft.import.library": {
             "type": "string",
@@ -671,6 +676,12 @@
                 }
               }
             }
+          },
+          "ipcraft.vivado.pinnedPart": {
+            "type": "string",
+            "default": "",
+            "scope": "resource",
+            "markdownDescription": "Pinned Vivado target part number. When set, the board picker is skipped and this value is used directly. Leave empty to always be prompted. Supports **User** and **Workspace** scope so each project can target a different device."
           }
         }
       },
@@ -727,6 +738,12 @@
                 }
               }
             }
+          },
+          "ipcraft.quartus.pinnedDevice": {
+            "type": "string",
+            "default": "",
+            "scope": "resource",
+            "markdownDescription": "Pinned Quartus target device. When set, the board picker is skipped and this value is used directly. Leave empty to always be prompted. Supports **User** and **Workspace** scope so each project can target a different device."
           }
         }
       },

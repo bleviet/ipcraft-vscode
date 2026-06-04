@@ -853,6 +853,21 @@ const IpCoreApp: React.FC = () => {
               />
 
               <TargetVendorPicker value={toolbarTargets} availableToolchains={allToolchains} />
+
+              <div
+                style={{
+                  width: '1px',
+                  height: '28px',
+                  background: 'var(--vscode-panel-border)',
+                  opacity: 0.6,
+                }}
+              />
+
+              <ToolbarButton
+                title="IPCraft Settings"
+                icon="gear"
+                command="fpga-ip-core.openSettings"
+              />
             </div>
             {validationErrors.length > 0 && (
               <div className="text-sm" style={{ color: 'var(--vscode-errorForeground)' }}>

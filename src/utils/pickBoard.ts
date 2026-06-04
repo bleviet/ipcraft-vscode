@@ -29,6 +29,10 @@ export async function pickVivadoPart(
   fallbackDefault?: string
 ): Promise<string | undefined> {
   const cfg = vscode.workspace.getConfiguration('ipcraft');
+  const pinnedPart = cfg.get<string>('vivado.pinnedPart', '').trim();
+  if (pinnedPart) {
+    return pinnedPart;
+  }
   const lastPart =
     context.globalState.get<string>(LAST_VIVADO_KEY) ?? fallbackDefault ?? 'xc7z020clg484-1';
   const customBoards = cfg.get<Array<{ label: string; part: string }>>('customBoards.vivado') ?? [];
@@ -76,6 +80,7 @@ export async function pickVivadoPart(
 
   if (picked.part) {
     await context.globalState.update(LAST_VIVADO_KEY, picked.part);
+    offerPinVivado(picked.part);
     return picked.part;
   }
 
@@ -91,8 +96,27 @@ export async function pickVivadoPart(
   const trimmed = manual?.trim();
   if (trimmed) {
     await context.globalState.update(LAST_VIVADO_KEY, trimmed);
+    offerPinVivado(trimmed);
   }
   return trimmed ?? undefined;
+}
+
+function offerPinVivado(part: string): void {
+  void (async () => {
+    const choice = await vscode.window.showInformationMessage(
+      `Always use ${part} for Vivado? Set it as default to skip this picker.`,
+      'Save to User Settings',
+      'Save to Workspace'
+    );
+    if (!choice) {
+      return;
+    }
+    const target =
+      choice === 'Save to Workspace'
+        ? vscode.ConfigurationTarget.Workspace
+        : vscode.ConfigurationTarget.Global;
+    await vscode.workspace.getConfiguration('ipcraft').update('vivado.pinnedPart', part, target);
+  })();
 }
 
 export async function pickQuartusDevice(
@@ -100,6 +124,10 @@ export async function pickQuartusDevice(
   fallbackDefault?: string
 ): Promise<string | undefined> {
   const cfg = vscode.workspace.getConfiguration('ipcraft');
+  const pinnedDevice = cfg.get<string>('quartus.pinnedDevice', '').trim();
+  if (pinnedDevice) {
+    return pinnedDevice;
+  }
   const lastDevice =
     context.globalState.get<string>(LAST_QUARTUS_KEY) ?? fallbackDefault ?? '5CSEBA6U23I7';
   const customBoards =
@@ -147,6 +175,7 @@ export async function pickQuartusDevice(
 
   if (picked.device) {
     await context.globalState.update(LAST_QUARTUS_KEY, picked.device);
+    offerPinQuartus(picked.device);
     return picked.device;
   }
 
@@ -162,6 +191,27 @@ export async function pickQuartusDevice(
   const trimmed = manual?.trim();
   if (trimmed) {
     await context.globalState.update(LAST_QUARTUS_KEY, trimmed);
+    offerPinQuartus(trimmed);
   }
   return trimmed ?? undefined;
+}
+
+function offerPinQuartus(device: string): void {
+  void (async () => {
+    const choice = await vscode.window.showInformationMessage(
+      `Always use ${device} for Quartus? Set it as default to skip this picker.`,
+      'Save to User Settings',
+      'Save to Workspace'
+    );
+    if (!choice) {
+      return;
+    }
+    const target =
+      choice === 'Save to Workspace'
+        ? vscode.ConfigurationTarget.Workspace
+        : vscode.ConfigurationTarget.Global;
+    await vscode.workspace
+      .getConfiguration('ipcraft')
+      .update('quartus.pinnedDevice', device, target);
+  })();
 }

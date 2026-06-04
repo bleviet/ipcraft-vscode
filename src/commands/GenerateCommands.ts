@@ -64,6 +64,13 @@ export function registerGeneratorCommands(context: vscode.ExtensionContext): voi
     await generateTestbench(context);
   });
 
+  safeRegisterCommand(context, 'fpga-ip-core.openSettings', async () => {
+    await vscode.commands.executeCommand(
+      'workbench.action.openSettings',
+      '@ext:bleviet.ipcraft-vscode'
+    );
+  });
+
   safeRegisterCommand(context, 'fpga-ip-core.parseVHDL', async (uri?: vscode.Uri) => {
     await parseVHDL(context, uri);
   });
