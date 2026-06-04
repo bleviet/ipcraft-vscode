@@ -1,4 +1,3 @@
-import * as path from 'path';
 import * as vscode from 'vscode';
 import { STAGING_SCHEME, setStagingContent, clearStagingContent } from './StagingContentProvider';
 
@@ -33,9 +32,7 @@ export class StagingPanel {
         { enableScripts: true, retainContextWhenHidden: true }
       );
 
-      // Populate the virtual document store so diffs can be opened immediately.
-      // Keys use plain relative paths because vscode.Uri.from encodes internally and
-      // uri.path is already decoded when the provider is called.
+      // Populate the virtual document store so diffs and previews can be opened immediately.
       clearStagingContent();
       for (const f of files) {
         setStagingContent(`/${f.relativePath}`, f.content);
@@ -44,6 +41,9 @@ export class StagingPanel {
       panel.webview.html = StagingPanel.buildHtml(files);
 
       const disposables: vscode.Disposable[] = [];
+      // Tracks the column where the first preview was opened so all subsequent
+      // previews reuse the same tab (preview:true replaces within the same column).
+      let previewColumn: vscode.ViewColumn | undefined;
 
       panel.webview.onDidReceiveMessage(
         async (message: { type: string; relativePath?: string }) => {
@@ -57,7 +57,7 @@ export class StagingPanel {
               scheme: STAGING_SCHEME,
               path: `/${file.relativePath}`,
             });
-            const filename = path.basename(file.relativePath);
+            const filename = generatedUri.path.split('/').pop() ?? file.relativePath;
             await vscode.commands.executeCommand(
               'vscode.diff',
               diskUri,
@@ -65,6 +65,23 @@ export class StagingPanel {
               `${filename}: Current ↔ Generated`,
               { preview: true }
             );
+          } else if (message.type === 'viewPreview' && message.relativePath) {
+            const file = files.find((f) => f.relativePath === message.relativePath);
+            if (!file) {
+              return;
+            }
+            const generatedUri = vscode.Uri.from({
+              scheme: STAGING_SCHEME,
+              path: `/${file.relativePath}`,
+            });
+            const doc = await vscode.workspace.openTextDocument(generatedUri);
+            const editor = await vscode.window.showTextDocument(doc, {
+              preview: true,
+              viewColumn: previewColumn ?? vscode.ViewColumn.Beside,
+            });
+            if (editor.viewColumn !== undefined) {
+              previewColumn = editor.viewColumn;
+            }
           } else if (message.type === 'apply') {
             resolveOnce(true);
             panel.dispose();
@@ -96,20 +113,48 @@ export class StagingPanel {
       .replace(/"/g, '&quot;');
   }
 
+  private static splitPath(relativePath: string): { dir: string; filename: string } {
+    const lastSlash = relativePath.lastIndexOf('/');
+    if (lastSlash === -1) {
+      return { dir: '', filename: relativePath };
+    }
+    return {
+      dir: relativePath.slice(0, lastSlash + 1),
+      filename: relativePath.slice(lastSlash + 1),
+    };
+  }
+
   private static buildHtml(files: StagedFile[]): string {
     const modified = files.filter((f) => f.status === 'modified' && !f.protected);
     const newFiles = files.filter((f) => f.status === 'new');
     const unchanged = files.filter((f) => f.status === 'unchanged');
     const protectedFiles = files.filter((f) => f.protected);
 
-    // True when at least one file will actually be written on Apply.
     const hasApplicableFiles = modified.length > 0 || newFiles.length > 0;
+    const allNewOnly = modified.length === 0 && newFiles.length > 0;
 
-    const fileRow = (f: StagedFile, showDiff: boolean) => `
+    const applyLabel = hasApplicableFiles
+      ? allNewOnly
+        ? '&#10003; Create Files'
+        : '&#10003; Confirm &amp; Apply'
+      : 'Close';
+
+    // SVG eye icon used in preview buttons.
+    const eyeSvg = `<svg width="14" height="10" viewBox="0 0 16 12" fill="currentColor" aria-hidden="true"><path d="M8 0C4.5 0 1.5 2.2 0 6c1.5 3.8 4.5 6 8 6s6.5-2.2 8-6C14.5 2.2 11.5 0 8 0zm0 10a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm0-1.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/></svg>`;
+
+    const fileRow = (f: StagedFile, showDiff: boolean, showPreview = false) => {
+      const { dir, filename } = StagingPanel.splitPath(f.relativePath);
+      const pathHtml = dir
+        ? `<span class="path-dir">${StagingPanel.esc(dir)}</span><span class="path-file">${StagingPanel.esc(filename)}</span>`
+        : `<span class="path-file">${StagingPanel.esc(filename)}</span>`;
+      const escapedPath = StagingPanel.esc(JSON.stringify(f.relativePath));
+      return `
       <div class="file-row">
-        <span class="file-path">${StagingPanel.esc(f.relativePath)}</span>
-        ${showDiff ? `<button class="btn-diff" onclick="viewDiff(${StagingPanel.esc(JSON.stringify(f.relativePath))})">View Diff</button>` : ''}
+        <span class="file-path">${pathHtml}</span>
+        ${showDiff ? `<button class="btn-diff" onclick="viewDiff(${escapedPath})">View Diff</button>` : ''}
+        ${showPreview ? `<button class="btn-preview" onclick="viewPreview(${escapedPath})" title="Preview generated file">${eyeSvg}</button>` : ''}
       </div>`;
+    };
 
     const section = (dotClass: string, label: string, rows: string, collapsed = true) => `
       <div class="section">
@@ -135,15 +180,14 @@ export class StagingPanel {
       summaryParts.push(`${protectedFiles.length} protected`);
     }
 
-    // Informational banner shown when nothing will be written.
     let noApplyBanner = '';
     if (!hasApplicableFiles) {
       if (protectedFiles.length > 0 && unchanged.length === 0) {
         noApplyBanner = `<div class="up-to-date">All modified files are user-managed (managed: false) and will not be overwritten.</div>`;
       } else if (protectedFiles.length > 0) {
-        noApplyBanner = `<div class="up-to-date">✓ All files are either unchanged or user-managed — nothing to apply.</div>`;
+        noApplyBanner = `<div class="up-to-date">&#10003; All files are either unchanged or user-managed — nothing to apply.</div>`;
       } else {
-        noApplyBanner = `<div class="up-to-date">✓ All files are up to date — nothing to apply.</div>`;
+        noApplyBanner = `<div class="up-to-date">&#10003; All files are up to date — nothing to apply.</div>`;
       }
     }
 
@@ -160,7 +204,7 @@ export class StagingPanel {
         ? section(
             'dot-new',
             `New (${newFiles.length})`,
-            newFiles.map((f) => fileRow(f, false)).join(''),
+            newFiles.map((f) => fileRow(f, false, true)).join(''),
             false
           )
         : '',
@@ -177,7 +221,7 @@ export class StagingPanel {
             'dot-unchanged',
             `Unchanged (${unchanged.length})`,
             unchanged.map((f) => fileRow(f, false)).join(''),
-            hasApplicableFiles // collapsed when actionable files are present; expanded when not
+            hasApplicableFiles
           )
         : '',
     ].join('');
@@ -230,6 +274,8 @@ body{
   font-family:var(--vscode-editor-font-family,monospace);font-size:12px;
   flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
+.path-dir{color:var(--vscode-descriptionForeground)}
+.path-file{color:var(--vscode-foreground)}
 .btn-diff{
   font-family:var(--vscode-font-family);font-size:11px;
   padding:2px 8px;
@@ -238,6 +284,19 @@ body{
   border:none;border-radius:3px;cursor:pointer;white-space:nowrap;flex-shrink:0;
 }
 .btn-diff:hover{background:var(--vscode-button-secondaryHoverBackground)}
+.btn-preview{
+  display:flex;align-items:center;justify-content:center;
+  padding:3px 5px;
+  background:transparent;
+  color:var(--vscode-descriptionForeground);
+  border:none;border-radius:3px;cursor:pointer;flex-shrink:0;
+  opacity:0;transition:opacity 0.12s,color 0.12s;
+}
+.file-row:hover .btn-preview{opacity:1}
+.btn-preview:hover{
+  background:var(--vscode-button-secondaryBackground);
+  color:var(--vscode-button-secondaryForeground);
+}
 .footer{
   padding:10px 20px;border-top:1px solid var(--vscode-panel-border);
   display:flex;gap:8px;flex-shrink:0;
@@ -271,13 +330,14 @@ body{
 <div class="content">${noApplyBanner}${sections}</div>
 <div class="footer">
   <button class="btn-apply" onclick="${hasApplicableFiles ? 'apply()' : 'cancel()'}">
-    ${hasApplicableFiles ? '✓ Confirm &amp; Apply' : 'Close'}
+    ${applyLabel}
   </button>
-  ${hasApplicableFiles ? '<button class="btn-cancel" onclick="cancel()">✕ Cancel</button>' : ''}
+  ${hasApplicableFiles ? '<button class="btn-cancel" onclick="cancel()">&#10005; Cancel</button>' : ''}
 </div>
 <script>
 const vscode = acquireVsCodeApi();
 function viewDiff(p){vscode.postMessage({type:'viewDiff',relativePath:p});}
+function viewPreview(p){vscode.postMessage({type:'viewPreview',relativePath:p});}
 function apply(){vscode.postMessage({type:'apply'});}
 function cancel(){vscode.postMessage({type:'cancel'});}
 function toggleSection(id){
