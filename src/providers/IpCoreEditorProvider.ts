@@ -231,7 +231,7 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
       },
       command: async (message) => {
         if (message.command) {
-          await vscode.commands.executeCommand(String(message.command));
+          await vscode.commands.executeCommand(String(message.command), document.uri);
           void updateWebview();
         }
       },

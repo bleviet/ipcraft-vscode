@@ -28,40 +28,40 @@ const logger = new Logger('GenerateCommands');
  */
 
 export function registerGeneratorCommands(context: vscode.ExtensionContext): void {
-  safeRegisterCommand(context, 'fpga-ip-core.generateHdl', async () => {
-    await generateHdl(context);
+  safeRegisterCommand(context, 'fpga-ip-core.generateHdl', async (uri?: vscode.Uri) => {
+    await generateHdl(context, uri);
   });
 
-  safeRegisterCommand(context, 'fpga-ip-core.scaffoldProject', async () => {
-    await scaffoldProject(context);
+  safeRegisterCommand(context, 'fpga-ip-core.scaffoldProject', async (uri?: vscode.Uri) => {
+    await scaffoldProject(context, uri);
   });
 
-  safeRegisterCommand(context, 'fpga-ip-core.exportAltera', async () => {
-    await exportAltera(context);
+  safeRegisterCommand(context, 'fpga-ip-core.exportAltera', async (uri?: vscode.Uri) => {
+    await exportAltera(context, uri);
   });
 
-  safeRegisterCommand(context, 'fpga-ip-core.exportXilinx', async () => {
-    await exportXilinx(context);
+  safeRegisterCommand(context, 'fpga-ip-core.exportXilinx', async (uri?: vscode.Uri) => {
+    await exportXilinx(context, uri);
   });
 
-  safeRegisterCommand(context, 'fpga-ip-core.generateVivadoProject', async () => {
-    await generateVivadoProject(context);
+  safeRegisterCommand(context, 'fpga-ip-core.generateVivadoProject', async (uri?: vscode.Uri) => {
+    await generateVivadoProject(context, uri);
   });
 
-  safeRegisterCommand(context, 'fpga-ip-core.generateQuartusProject', async () => {
-    await generateQuartusProject(context);
+  safeRegisterCommand(context, 'fpga-ip-core.generateQuartusProject', async (uri?: vscode.Uri) => {
+    await generateQuartusProject(context, uri);
   });
 
-  safeRegisterCommand(context, 'fpga-ip-core.generateAndBuildVivado', async () => {
-    await generateAndBuildVivado(context);
+  safeRegisterCommand(context, 'fpga-ip-core.generateAndBuildVivado', async (uri?: vscode.Uri) => {
+    await generateAndBuildVivado(context, uri);
   });
 
-  safeRegisterCommand(context, 'fpga-ip-core.generateAndBuildQuartus', async () => {
-    await generateAndBuildQuartus(context);
+  safeRegisterCommand(context, 'fpga-ip-core.generateAndBuildQuartus', async (uri?: vscode.Uri) => {
+    await generateAndBuildQuartus(context, uri);
   });
 
-  safeRegisterCommand(context, 'fpga-ip-core.generateTestbench', async () => {
-    await generateTestbench(context);
+  safeRegisterCommand(context, 'fpga-ip-core.generateTestbench', async (uri?: vscode.Uri) => {
+    await generateTestbench(context, uri);
   });
 
   safeRegisterCommand(context, 'fpga-ip-core.openSettings', async () => {
@@ -166,8 +166,11 @@ function getActiveIpCoreFile(): vscode.Uri | undefined {
   return undefined;
 }
 
-async function generateHdl(context: vscode.ExtensionContext): Promise<void> {
-  const ipCoreUri = getActiveIpCoreFile();
+async function generateHdl(
+  context: vscode.ExtensionContext,
+  resourceUri?: vscode.Uri
+): Promise<void> {
+  const ipCoreUri = resourceUri ?? getActiveIpCoreFile();
   if (!ipCoreUri) {
     return;
   }
@@ -200,8 +203,11 @@ async function generateHdl(context: vscode.ExtensionContext): Promise<void> {
   );
 }
 
-async function scaffoldProject(context: vscode.ExtensionContext): Promise<void> {
-  const ipCoreUri = getActiveIpCoreFile();
+async function scaffoldProject(
+  context: vscode.ExtensionContext,
+  resourceUri?: vscode.Uri
+): Promise<void> {
+  const ipCoreUri = resourceUri ?? getActiveIpCoreFile();
   if (!ipCoreUri) {
     return;
   }
@@ -294,8 +300,11 @@ async function scaffoldProject(context: vscode.ExtensionContext): Promise<void> 
   }
 }
 
-async function exportAltera(context: vscode.ExtensionContext): Promise<void> {
-  const ipCoreUri = getActiveIpCoreFile();
+async function exportAltera(
+  context: vscode.ExtensionContext,
+  resourceUri?: vscode.Uri
+): Promise<void> {
+  const ipCoreUri = resourceUri ?? getActiveIpCoreFile();
   if (!ipCoreUri) {
     return;
   }
@@ -315,8 +324,11 @@ async function exportAltera(context: vscode.ExtensionContext): Promise<void> {
   );
 }
 
-async function exportXilinx(context: vscode.ExtensionContext): Promise<void> {
-  const ipCoreUri = getActiveIpCoreFile();
+async function exportXilinx(
+  context: vscode.ExtensionContext,
+  resourceUri?: vscode.Uri
+): Promise<void> {
+  const ipCoreUri = resourceUri ?? getActiveIpCoreFile();
   if (!ipCoreUri) {
     return;
   }
@@ -336,8 +348,11 @@ async function exportXilinx(context: vscode.ExtensionContext): Promise<void> {
   );
 }
 
-async function generateTestbench(context: vscode.ExtensionContext): Promise<void> {
-  const ipCoreUri = getActiveIpCoreFile();
+async function generateTestbench(
+  context: vscode.ExtensionContext,
+  resourceUri?: vscode.Uri
+): Promise<void> {
+  const ipCoreUri = resourceUri ?? getActiveIpCoreFile();
   if (!ipCoreUri) {
     return;
   }
@@ -362,8 +377,11 @@ async function generateTestbench(context: vscode.ExtensionContext): Promise<void
   );
 }
 
-async function generateVivadoProject(context: vscode.ExtensionContext): Promise<void> {
-  const ipCoreUri = getActiveIpCoreFile();
+async function generateVivadoProject(
+  context: vscode.ExtensionContext,
+  resourceUri?: vscode.Uri
+): Promise<void> {
+  const ipCoreUri = resourceUri ?? getActiveIpCoreFile();
   if (!ipCoreUri) {
     return;
   }
@@ -404,8 +422,11 @@ async function generateVivadoProject(context: vscode.ExtensionContext): Promise<
   }
 }
 
-async function generateQuartusProject(context: vscode.ExtensionContext): Promise<void> {
-  const ipCoreUri = getActiveIpCoreFile();
+async function generateQuartusProject(
+  context: vscode.ExtensionContext,
+  resourceUri?: vscode.Uri
+): Promise<void> {
+  const ipCoreUri = resourceUri ?? getActiveIpCoreFile();
   if (!ipCoreUri) {
     return;
   }
@@ -446,8 +467,11 @@ async function generateQuartusProject(context: vscode.ExtensionContext): Promise
   }
 }
 
-async function generateAndBuildVivado(context: vscode.ExtensionContext): Promise<void> {
-  const ipCoreUri = getActiveIpCoreFile();
+async function generateAndBuildVivado(
+  context: vscode.ExtensionContext,
+  resourceUri?: vscode.Uri
+): Promise<void> {
+  const ipCoreUri = resourceUri ?? getActiveIpCoreFile();
   if (!ipCoreUri) {
     return;
   }
@@ -479,12 +503,15 @@ async function generateAndBuildVivado(context: vscode.ExtensionContext): Promise
   );
 
   if (ok) {
-    await vscode.commands.executeCommand('fpga-ip-core.buildVivadoOoc');
+    await vscode.commands.executeCommand('fpga-ip-core.buildVivadoOoc', ipCoreUri);
   }
 }
 
-async function generateAndBuildQuartus(context: vscode.ExtensionContext): Promise<void> {
-  const ipCoreUri = getActiveIpCoreFile();
+async function generateAndBuildQuartus(
+  context: vscode.ExtensionContext,
+  resourceUri?: vscode.Uri
+): Promise<void> {
+  const ipCoreUri = resourceUri ?? getActiveIpCoreFile();
   if (!ipCoreUri) {
     return;
   }
@@ -516,7 +543,7 @@ async function generateAndBuildQuartus(context: vscode.ExtensionContext): Promis
   );
 
   if (ok) {
-    await vscode.commands.executeCommand('fpga-ip-core.buildQuartusCompile');
+    await vscode.commands.executeCommand('fpga-ip-core.buildQuartusCompile', ipCoreUri);
   }
 }
 

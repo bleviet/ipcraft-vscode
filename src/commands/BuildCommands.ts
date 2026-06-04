@@ -38,10 +38,10 @@ function getActiveIpCoreFile(): vscode.Uri | undefined {
   return undefined;
 }
 
-async function resolveIpCore(): Promise<
-  { uri: vscode.Uri; name: string; dir: string } | undefined
-> {
-  let ipUri = getActiveIpCoreFile();
+async function resolveIpCore(
+  resourceUri?: vscode.Uri
+): Promise<{ uri: vscode.Uri; name: string; dir: string } | undefined> {
+  let ipUri = resourceUri ?? getActiveIpCoreFile();
 
   if (!ipUri) {
     const files = await vscode.window.showOpenDialog({
@@ -151,8 +151,8 @@ export function registerBuildCommands(
     updateStatusBar(statusBarItem, status, reports);
   };
 
-  const doRun = async (autoTargetLabel?: string) => {
-    const ip = await resolveIpCore();
+  const doRun = async (autoTargetLabel?: string, resourceUri?: vscode.Uri) => {
+    const ip = await resolveIpCore(resourceUri);
     if (!ip) {
       return;
     }
@@ -206,11 +206,11 @@ export function registerBuildCommands(
     vscode.commands.registerCommand('fpga-ip-core.build', () => void doRun()),
     vscode.commands.registerCommand(
       'fpga-ip-core.buildVivadoOoc',
-      () => void doRun('Vivado OOC Synthesis')
+      (uri?: vscode.Uri) => void doRun('Vivado OOC Synthesis', uri)
     ),
     vscode.commands.registerCommand(
       'fpga-ip-core.buildQuartusCompile',
-      () => void doRun('Quartus Compile')
+      (uri?: vscode.Uri) => void doRun('Quartus Compile', uri)
     ),
     vscode.commands.registerCommand('fpga-ip-core.showBuildOutput', () => getOutputChannel().show())
   );
