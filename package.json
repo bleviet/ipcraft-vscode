@@ -48,12 +48,12 @@
       },
       {
         "command": "fpga-ip-core.createMemoryMap",
-        "title": "New Memory Map",
+        "title": "New Register Map",
         "category": "IPCraft"
       },
       {
         "command": "fpga-ip-core.createIpCoreWithMemoryMap",
-        "title": "New IP Core + Memory Map",
+        "title": "New IP Core + Register Map",
         "category": "IPCraft"
       },
       {
@@ -70,7 +70,7 @@
       },
       {
         "command": "fpga-ip-core.generateHdl",
-        "title": "Generate Top-Level HDL (VHDL or SystemVerilog per setting; stub or full structure per bahonavi setting)",
+        "title": "Generate Top-Level HDL",
         "shortTitle": "Generate Top-Level HDL",
         "category": "IPCraft",
         "icon": "$(code)"

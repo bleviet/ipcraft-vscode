@@ -604,7 +604,7 @@ const IpCoreApp: React.FC = () => {
             >
               <ToolbarGroup label="Scaffold">
                 <ToolbarButton
-                  title="Scaffold Project"
+                  title="Scaffold Project (RTL + EDA packaging + Testbench)"
                   icon="package"
                   command="fpga-ip-core.scaffoldProject"
                 />
@@ -626,7 +626,7 @@ const IpCoreApp: React.FC = () => {
                   command="fpga-ip-core.createMemoryMap"
                 />
                 <ToolbarButton
-                  title={`Generate ${hdlLanguage === 'systemverilog' ? 'SystemVerilog' : 'VHDL'}`}
+                  title={`Generate Top-Level ${hdlLanguage === 'systemverilog' ? 'SystemVerilog' : 'VHDL'}`}
                   icon="code"
                   command="fpga-ip-core.generateHdl"
                 />
