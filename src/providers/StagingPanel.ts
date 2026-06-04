@@ -180,6 +180,13 @@ export class StagingPanel {
     `<path d="M8 0C4.5 0 1.5 2.2 0 6c1.5 3.8 4.5 6 8 6s6.5-2.2 8-6C14.5 2.2 11.5 0 8 0z` +
     `m0 10a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm0-1.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/></svg>`;
 
+  // Closed padlock — used for protected (user-managed) files.
+  private static readonly lockSvg =
+    `<svg width="8" height="10" viewBox="0 0 8 10" fill="none" aria-hidden="true">` +
+    `<rect x="0.5" y="4.5" width="7" height="5" rx="1" fill="currentColor"/>` +
+    `<path d="M2 4.5V3a2 2 0 0 1 4 0v1.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>` +
+    `</svg>`;
+
   // Chevron-down SVG — rotated via CSS when collapsed.
   private static readonly chevronSvg =
     `<svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" aria-hidden="true">` +
@@ -213,9 +220,12 @@ export class StagingPanel {
     }
 
     const file = node.file!;
-    const dotClass = file.protected ? 'dot-protected' : `dot-${file.status}`;
     const isMuted = file.status === 'unchanged' || file.protected;
     const escapedPath = StagingPanel.esc(JSON.stringify(file.relativePath));
+
+    const statusIndicator = file.protected
+      ? `<span class="status-lock">${StagingPanel.lockSvg}</span>`
+      : `<span class="dot dot-${file.status}"></span>`;
 
     const diffBtn =
       file.status === 'modified' || file.protected
@@ -229,7 +239,7 @@ export class StagingPanel {
     // padding-left matches the dir-header at this depth — dot aligns with parent dir-name.
     return (
       `<div class="tree-row tree-file-row${isMuted ? ' muted' : ''}" style="padding-left:${px(base + depth * step)}">` +
-      `<span class="dot ${dotClass}"></span>` +
+      statusIndicator +
       `<span class="file-name">${StagingPanel.esc(node.name)}</span>` +
       diffBtn +
       previewBtn +
@@ -256,19 +266,28 @@ export class StagingPanel {
         : '&#10003; Confirm &amp; Apply'
       : 'Close';
 
-    const summaryParts: string[] = [];
+    const dot = (cls: string) => `<span class="dot ${cls}"></span>`;
+    const si = (indicator: string, label: string) =>
+      `<span class="summary-item">${indicator}${label}</span>`;
+    const summaryItems: string[] = [];
     if (modified.length) {
-      summaryParts.push(`${modified.length} modified`);
+      summaryItems.push(si(dot('dot-modified'), `${modified.length} modified`));
     }
     if (newFiles.length) {
-      summaryParts.push(`${newFiles.length} new`);
+      summaryItems.push(si(dot('dot-new'), `${newFiles.length} new`));
     }
     if (unchanged.length) {
-      summaryParts.push(`${unchanged.length} unchanged`);
+      summaryItems.push(si(dot('dot-unchanged'), `${unchanged.length} unchanged`));
     }
     if (protectedFiles.length) {
-      summaryParts.push(`${protectedFiles.length} protected`);
+      summaryItems.push(
+        si(
+          `<span class="status-lock">${StagingPanel.lockSvg}</span>`,
+          `${protectedFiles.length} protected`
+        )
+      );
     }
+    const summaryHtml = summaryItems.join('<span class="summary-sep">·</span>');
 
     let noApplyBanner = '';
     if (!hasApplicableFiles) {
@@ -305,7 +324,9 @@ body{
   flex-shrink:0;
 }
 .header h1{font-size:14px;font-weight:600;margin-bottom:4px}
-.summary{font-size:12px;color:var(--vscode-descriptionForeground)}
+.summary{display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-top:4px}
+.summary-item{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--vscode-descriptionForeground)}
+.summary-sep{font-size:11px;color:var(--vscode-descriptionForeground);opacity:.4;padding:0 2px}
 .content{flex:1;overflow-y:auto;padding:10px 16px}
 /* ── tree ─────────────────────────────────────────────────────────────── */
 .tree-row{
@@ -350,7 +371,7 @@ body{
 .dot-new{background:#4ea44e}
 .dot-modified{background:#d4a83a}
 .dot-unchanged{background:#888}
-.dot-protected{background:#888;opacity:.5}
+.status-lock{display:inline-flex;align-items:center;flex-shrink:0;color:var(--vscode-foreground)}
 /* action buttons — revealed on row hover */
 .btn-action{
   font-family:var(--vscode-font-family);
@@ -403,7 +424,7 @@ body{
 <body>
 <div class="header">
   <h1>IPCraft — Preview Generated Files</h1>
-  <div class="summary">${StagingPanel.esc(summaryParts.join(' · '))}</div>
+  <div class="summary">${summaryHtml}</div>
 </div>
 <div class="content">${noApplyBanner}<div class="tree">${treeHtml}</div></div>
 <div class="footer">
