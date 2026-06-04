@@ -605,12 +605,13 @@ async function runGenerator(
   options: GenerateOptions & { updateYaml?: boolean; silent?: boolean },
   progressTitle: string
 ): Promise<boolean> {
-  // Phase 1: Generate all file content in memory (no disk writes)
+  // Phase 1: Generate all file content in memory (no disk writes).
+  // Use a neutral label — the operation title is reserved for Phase 4 when files are written.
   let dryResult:
     | Awaited<ReturnType<InstanceType<typeof IpCoreScaffolder>['generateAll']>>
     | undefined;
   await vscode.window.withProgress(
-    { location: vscode.ProgressLocation.Notification, title: progressTitle, cancellable: false },
+    { location: vscode.ProgressLocation.Notification, title: 'Analyzing…', cancellable: false },
     async () => {
       const generator = new IpCoreScaffolder(logger, new TemplateLoader(logger), context);
       dryResult = await generator.generateAll(ipCoreUri.fsPath, outputDir, {
@@ -637,8 +638,6 @@ async function runGenerator(
   // Phase 3: Always show the staging panel when generation produced any files.
   // Skipping it when everything is 'unchanged' caused the panel to never appear in
   // Minimal mode (fewer generated files → all match what is already on disk on re-runs).
-  const hasModifications = staged.some((f) => f.status === 'modified' && !f.protected);
-
   if (staged.length > 0) {
     const confirmed = await StagingPanel.show(staged);
     if (!confirmed) {
@@ -646,36 +645,34 @@ async function runGenerator(
     }
   }
 
-  // Phase 4: Write new + modified files; skip unchanged and protected-existing files
+  // Phase 4: Write new + modified files; skip unchanged and protected-existing files.
+  // Pre-compute the write list so we only show the progress notification when there
+  // is real disk work to do — avoiding a misleading "Generating…" flash otherwise.
   const protectedExisting = new Set(dryResult.protectedPaths ?? []);
+  const filesToWrite = staged.filter(
+    (f) => f.status !== 'unchanged' && !(f.protected && protectedExisting.has(f.relativePath))
+  );
   const writtenRelPaths: string[] = [];
   let writeError: string | undefined;
 
-  await vscode.window.withProgress(
-    {
-      location: vscode.ProgressLocation.Notification,
-      title: hasModifications ? 'Applying staged changes…' : progressTitle,
-      cancellable: false,
-    },
-    async () => {
-      try {
-        await Promise.all(
-          staged
-            .filter((f) => f.status !== 'unchanged')
-            .map(async (f) => {
-              if (f.protected && protectedExisting.has(f.relativePath)) {
-                return; // managed:false file that already exists — skip
-              }
+  if (filesToWrite.length > 0) {
+    await vscode.window.withProgress(
+      { location: vscode.ProgressLocation.Notification, title: progressTitle, cancellable: false },
+      async () => {
+        try {
+          await Promise.all(
+            filesToWrite.map(async (f) => {
               await mkdir(path.dirname(f.diskPath), { recursive: true });
               await writeFile(f.diskPath, f.content, 'utf8');
               writtenRelPaths.push(f.relativePath);
             })
-        );
-      } catch (err) {
-        writeError = err instanceof Error ? err.message : String(err);
+          );
+        } catch (err) {
+          writeError = err instanceof Error ? err.message : String(err);
+        }
       }
-    }
-  );
+    );
+  }
 
   if (writeError) {
     void vscode.window.showErrorMessage(`Failed to write files: ${writeError}`);
