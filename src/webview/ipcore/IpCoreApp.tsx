@@ -737,16 +737,6 @@ const IpCoreApp: React.FC = () => {
                       icon="circuit-board"
                       command="fpga-ip-core.generateQuartusProject"
                     />
-                    <ToolbarButton
-                      title={
-                        hasQpf
-                          ? 'Build: Quartus full compile'
-                          : 'Build: Quartus full compile — generate project first'
-                      }
-                      icon="zap"
-                      disabled={!hasQpf}
-                      command="fpga-ip-core.buildQuartusCompile"
-                    />
                     <div
                       style={{
                         width: '1px',
@@ -765,6 +755,16 @@ const IpCoreApp: React.FC = () => {
                       icon="folder-opened"
                       disabled={!hasQpf}
                       onClick={() => vscode?.postMessage({ type: 'openInQuartus' })}
+                    />
+                    <ToolbarButton
+                      title={
+                        hasQpf
+                          ? 'Build: Quartus full compile'
+                          : 'Build: Quartus full compile — generate project first'
+                      }
+                      icon="zap"
+                      disabled={!hasQpf}
+                      command="fpga-ip-core.buildQuartusCompile"
                     />
                   </ToolbarGroup>
                 </>
@@ -810,16 +810,6 @@ const IpCoreApp: React.FC = () => {
                       icon="circuit-board"
                       command="fpga-ip-core.generateVivadoProject"
                     />
-                    <ToolbarButton
-                      title={
-                        hasXpr
-                          ? 'Build: Vivado OOC synthesis'
-                          : 'Build: Vivado OOC synthesis — generate project first'
-                      }
-                      icon="zap"
-                      disabled={!hasXpr}
-                      command="fpga-ip-core.buildVivadoOoc"
-                    />
                     <div
                       style={{
                         width: '1px',
@@ -838,6 +828,16 @@ const IpCoreApp: React.FC = () => {
                       icon="folder-opened"
                       disabled={!hasXpr}
                       onClick={() => vscode?.postMessage({ type: 'openInVivado' })}
+                    />
+                    <ToolbarButton
+                      title={
+                        hasXpr
+                          ? 'Build: Vivado OOC synthesis'
+                          : 'Build: Vivado OOC synthesis — generate project first'
+                      }
+                      icon="zap"
+                      disabled={!hasXpr}
+                      command="fpga-ip-core.buildVivadoOoc"
                     />
                   </ToolbarGroup>
                 </>
