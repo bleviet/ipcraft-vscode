@@ -1,5 +1,41 @@
 export type HdlLanguage = 'vhdl' | 'systemverilog';
 
+// ---------------------------------------------------------------------------
+// Scaffold Pack — manifest-driven code generation layout
+// ---------------------------------------------------------------------------
+
+/** One file entry in a scaffold pack manifest. */
+export interface ScaffoldFileRule {
+  /** Nunjucks-rendered path to the source template (relative to packDir or built-in templates). */
+  source: string;
+  /** Nunjucks-rendered output path relative to the output directory. */
+  target: string;
+  /** Nunjucks boolean expression evaluated against the template context. Absent = always included. */
+  condition?: string;
+  /**
+   * When false, the file is user-owned: written only on first generation, never overwritten.
+   * Defaults to true (managed by IPCraft, always regenerated).
+   */
+  managed?: boolean;
+}
+
+/**
+ * A resolved scaffold pack — the in-memory representation of a scaffold.yml manifest.
+ * Built-in packs live in dist/packs/; user packs live in .vscode/ipcraft/packs/<name>/.
+ */
+export interface ScaffoldPack {
+  name: string;
+  description?: string;
+  /** Absolute path to the directory containing scaffold.yml and pack-local templates. */
+  packDir: string;
+  files: ScaffoldFileRule[];
+  /**
+   * When true, testbench generation gets the full register/bus context (bahonavi-style).
+   * When false, testbench sees a minimal stub without register signals.
+   */
+  fullGeneration?: boolean;
+}
+
 export interface GenerateOptions {
   /**
    * Synthesis vendor targets to generate packaging files for.
@@ -24,8 +60,15 @@ export interface GenerateOptions {
    * Enable the bahonavi methodology: full multi-file generation (top, core, bus wrapper,
    * package, register file). When false (default), only a single minimal top-level stub
    * is generated with an empty architecture/module body.
+   * Ignored when scaffold_pack is set explicitly.
    */
   bahonaviMethodology?: boolean;
+  /**
+   * Name of the scaffold pack to use for RTL file generation.
+   * Overrides bahonaviMethodology when present.
+   * Resolves workspace pack first (.vscode/ipcraft/packs/<name>/), then built-in packs.
+   */
+  scaffoldPack?: string;
   /** When true, generate content in memory only — do not write files to disk. */
   dryRun?: boolean;
 }

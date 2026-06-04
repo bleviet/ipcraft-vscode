@@ -257,6 +257,22 @@
         "command": "fpga-ip-core.openSettings",
         "title": "IPCraft: Open Extension Settings",
         "icon": "$(gear)"
+      },
+      {
+        "command": "fpga-ip-core.previewTemplateOutput",
+        "title": "Preview Template Output",
+        "category": "IPCraft",
+        "icon": "$(open-preview)"
+      },
+      {
+        "command": "fpga-ip-core.exportScaffoldPack",
+        "title": "Export Built-in Scaffold Pack",
+        "category": "IPCraft"
+      },
+      {
+        "command": "fpga-ip-core.pinPreviewIpCore",
+        "title": "Pin Preview IP Core",
+        "category": "IPCraft"
       }
     ],
     "submenus": [
@@ -376,6 +392,11 @@
         }
       ],
       "editor/title": [
+        {
+          "command": "fpga-ip-core.previewTemplateOutput",
+          "when": "resourceExtname == .j2",
+          "group": "navigation"
+        },
         {
           "command": "fpga-ip-core.scaffoldProject",
           "when": "resourceFilename =~ /\\.ip\\.yml$/",

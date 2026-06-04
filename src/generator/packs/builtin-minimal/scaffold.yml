@@ -1,0 +1,15 @@
+name: "builtin-minimal"
+description: >
+  Minimal single-file HDL stub — entity/module declaration with an empty
+  architecture/module body. Use this as a starting point when you want to
+  write your own RTL from scratch.
+fullGeneration: false
+
+files:
+  - source: "top.vhdl.j2"
+    target: "rtl/{{ name }}.vhd"
+    condition: "not is_systemverilog"
+
+  - source: "top.sv.j2"
+    target: "rtl/{{ name }}.sv"
+    condition: "is_systemverilog"

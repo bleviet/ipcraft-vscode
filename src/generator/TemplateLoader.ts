@@ -8,18 +8,26 @@ export class TemplateLoader {
   private readonly env: nunjucks.Environment;
   private readonly templatesPath: string;
 
-  constructor(logger: Logger, templatesPath?: string) {
+  /**
+   * @param templatesPath  Single path or ordered list of search paths.
+   *   When a list is given, each path is searched in order — first match wins.
+   *   This allows a scaffold pack directory to shadow built-in templates.
+   */
+  constructor(logger: Logger, templatesPath?: string | string[]) {
     this.logger = logger;
-    this.templatesPath = templatesPath ?? TemplateLoader.resolveTemplatesPath();
 
-    this.env = new nunjucks.Environment(
-      new nunjucks.FileSystemLoader(this.templatesPath, { noCache: true }),
-      {
-        autoescape: false,
-        trimBlocks: true,
-        lstripBlocks: true,
-      }
-    );
+    const paths: string[] = Array.isArray(templatesPath)
+      ? templatesPath
+      : [templatesPath ?? TemplateLoader.resolveTemplatesPath()];
+
+    // Canonical path used for logging; multi-root shows all paths joined.
+    this.templatesPath = paths.join(path.delimiter);
+
+    this.env = new nunjucks.Environment(new nunjucks.FileSystemLoader(paths, { noCache: true }), {
+      autoescape: false,
+      trimBlocks: true,
+      lstripBlocks: true,
+    });
 
     this.env.addFilter('format', (format: string, value: unknown) => {
       if (typeof format !== 'string') {
@@ -99,5 +107,35 @@ export class TemplateLoader {
 
   render(templateName: string, context: Record<string, unknown>): string {
     return this.env.render(templateName, context);
+  }
+
+  /**
+   * Render an inline Nunjucks template string against `context`.
+   * Used to evaluate scaffold.yml `source` and `target` expressions such as
+   * `"rtl/{{ name }}_{{ bus_type }}.vhd"`.
+   */
+  renderString(template: string, context: Record<string, unknown>): string {
+    return this.env.renderString(template, context);
+  }
+
+  /**
+   * Evaluate a Nunjucks boolean expression string against `context`.
+   * Returns true when the expression is absent or renders to `"true"`.
+   * Safe: uses the Nunjucks sandbox, not eval().
+   *
+   * Example: `evaluateCondition("has_memory_mapped_slave and not is_systemverilog", ctx)`
+   */
+  evaluateCondition(condition: string | undefined, context: Record<string, unknown>): boolean {
+    if (!condition) {
+      return true;
+    }
+    try {
+      const result = this.env
+        .renderString(`{% if ${condition} %}true{% else %}false{% endif %}`, context)
+        .trim();
+      return result === 'true';
+    } catch {
+      return false;
+    }
   }
 }

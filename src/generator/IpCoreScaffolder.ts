@@ -6,6 +6,7 @@ import * as vscode from 'vscode';
 import { Logger } from '../utils/Logger';
 import { BusLibraryService } from '../services/BusLibraryService';
 import { TemplateLoader } from './TemplateLoader';
+import { ScaffoldPackLoader } from './ScaffoldPackLoader';
 import {
   checkDuplicatePhysicalPrefixes,
   expandBusInterfaces,
@@ -95,7 +96,7 @@ export class IpCoreScaffolder {
         context.memmap_relpath = memmapRelpath;
       }
       const bahonaviMethodology = options.bahonaviMethodology ?? false;
-      const includeRegs = options.includeRegs !== false && hasMmSlave && bahonaviMethodology;
+      const includeRegs = options.includeRegs !== false && hasMmSlave;
       const includeTestbench = options.includeTestbench !== false;
       const targets = options.targets ?? [];
       // simulation.* in the YAML overrides the workspace-setting defaults
@@ -107,67 +108,56 @@ export class IpCoreScaffolder {
       const isSv = hdlLanguage === 'systemverilog';
       context.hdl_language = hdlLanguage;
       context.is_systemverilog = isSv;
+      context.includeRegs = includeRegs;
 
-      // In minimal mode, suppress pkg imports and submodule instantiations in the top-level
-      // template by clearing has_memory_mapped_slave. The EDA packaging context keeps the
-      // real value so bus interface metadata remains correct in hw.tcl / component.xml.
-      const hdlCtx = bahonaviMethodology ? context : { ...context, has_memory_mapped_slave: false };
+      // ── Resolve scaffold pack ──────────────────────────────────────────────
+      // Priority: options.scaffoldPack → scaffold_pack in YAML → legacy bahonaviMethodology flag
+      const yamlPackName = (ipCoreData as Record<string, unknown>).scaffold_pack as
+        | string
+        | undefined;
+      const packName = options.scaffoldPack ?? yamlPackName;
+      const workspacePackDirs = this.resolveWorkspacePackDirs();
+      const pack = packName
+        ? ScaffoldPackLoader.resolve(packName, workspacePackDirs)
+        : ScaffoldPackLoader.resolveDefault(bahonaviMethodology);
+
+      // Pack-level template loader: searches pack dir first (user overrides), then built-in templates.
+      const packLoader = new TemplateLoader(this.logger, [
+        pack.packDir,
+        TemplateLoader.resolveTemplatesPath(),
+      ]);
 
       const files: Record<string, string> = {};
+      const packManagedFalse = new Set<string>();
       const name = String(ipCoreData?.vlnv?.name ?? 'ip_core').toLowerCase();
 
+      // ── RTL files — data-driven from scaffold pack ─────────────────────────
       if (includeVhdl) {
-        if (bahonaviMethodology) {
-          if (isSv) {
-            if (hasMmSlave) {
-              files[`rtl/${name}_pkg.sv`] = this.templates.render('pkg.sv.j2', context);
-            }
-            files[`rtl/${name}.sv`] = this.templates.render('top.sv.j2', context);
-            if (hasMmSlave) {
-              files[`rtl/${name}_core.sv`] = this.templates.render('core.sv.j2', context);
-              files[`rtl/${name}_${busType}.sv`] = this.templates.render(
-                `bus_${busType}.sv.j2`,
-                context
-              );
-            }
-          } else {
-            if (hasMmSlave) {
-              files[`rtl/${name}_pkg.vhd`] = this.templates.render('package.vhdl.j2', context);
-            }
-            files[`rtl/${name}.vhd`] = this.templates.render('top.vhdl.j2', context);
-            if (hasMmSlave) {
-              files[`rtl/${name}_core.vhd`] = this.templates.render('core.vhdl.j2', context);
-              files[`rtl/${name}_${busType}.vhd`] = this.templates.render(
-                `bus_${busType}.vhdl.j2`,
-                context
-              );
-            }
+        for (const rule of pack.files) {
+          if (!packLoader.evaluateCondition(rule.condition, context)) {
+            continue;
           }
-        } else {
-          // Minimal mode: single top-level stub with empty architecture/module body.
-          // Reuses the existing top template — clearing has_memory_mapped_slave removes
-          // the pkg import, register signals, and submodule instantiations.
-          files[`rtl/${name}.${isSv ? 'sv' : 'vhd'}`] = this.templates.render(
-            isSv ? 'top.sv.j2' : 'top.vhdl.j2',
-            hdlCtx
-          );
+          const sourceName = packLoader.renderString(rule.source, context);
+          const relativePath = packLoader.renderString(rule.target, context);
+          files[relativePath] = packLoader.render(sourceName, context);
+          if (rule.managed === false) {
+            packManagedFalse.add(relativePath);
+          }
         }
       }
 
-      if (includeRegs) {
-        files[`rtl/${name}_regs.${isSv ? 'sv' : 'vhd'}`] = this.templates.render(
-          isSv ? 'register_file.sv.j2' : 'register_file.vhdl.j2',
-          context
-        );
-      }
+      // ── Testbench ──────────────────────────────────────────────────────────
+      // Minimal packs (fullGeneration: false) suppress bus/register context in testbench
+      // so the TB doesn't import a package that wasn't generated.
+      const tbCtx = pack.fullGeneration ? context : { ...context, has_memory_mapped_slave: false };
 
       if (includeTestbench) {
         const tbFiles = generateTestbenchFiles(framework, engine, {
           name,
-          templateContext: hdlCtx,
+          templateContext: tbCtx,
           templates: this.templates,
           isSv,
-          hasMmSlave: bahonaviMethodology ? hasMmSlave : false,
+          hasMmSlave: pack.fullGeneration ? hasMmSlave : false,
           extraCompileArgs: simCfg?.compileArgs,
           extraSimArgs: simCfg?.simArgs,
           extraEnv: simCfg?.env,
@@ -231,12 +221,13 @@ export class IpCoreScaffolder {
         }
       }
 
-      // Collect paths marked managed: false — these are user-owned and must not be overwritten
+      // Collect paths marked managed: false — these are user-owned and must not be overwritten.
+      // Sources: (1) fileSets entries in the YAML, (2) scaffold pack managed:false rules.
       type FileSetEntry = { files?: Array<{ path?: string; managed?: boolean }> };
       const rawFileSets = (ipCoreData as Record<string, unknown>).fileSets as
         | FileSetEntry[]
         | undefined;
-      const protectedSet = new Set<string>();
+      const protectedSet = new Set<string>(packManagedFalse);
       for (const fset of rawFileSets ?? []) {
         for (const f of fset.files ?? []) {
           if (f.managed === false && f.path) {
@@ -312,6 +303,18 @@ export class IpCoreScaffolder {
     }
   }
 
+  private resolveWorkspacePackDirs(): string[] {
+    try {
+      const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+      if (!workspaceRoot) {
+        return [];
+      }
+      return [path.join(workspaceRoot, '.vscode', 'ipcraft', 'packs')];
+    } catch {
+      return [];
+    }
+  }
+
   private async ensureBusDefinitions(): Promise<void> {
     if (this.busDefinitions) {
       return;
@@ -344,6 +347,20 @@ export class IpCoreScaffolder {
       throw new Error(`IP core YAML schema validation failed: ${schemaResult.error}`);
     }
     return normalizeIpCoreData(parsed as Record<string, unknown>);
+  }
+
+  /**
+   * Public entry point for building a template context from an IP core YAML path.
+   * Used by TemplatePreviewProvider to render .j2 previews without writing files.
+   */
+  async buildTemplateContextPublic(inputPath: string): Promise<Record<string, unknown>> {
+    await this.ensureBusDefinitions();
+    const ipCore = await this.loadIpCore(inputPath);
+    const busType = getBusTypeForTemplate(ipCore);
+    const hasMmSlave = hasMemoryMappedSlaveInterface(ipCore);
+    const context = await this.buildTemplateContext(ipCore, busType, inputPath);
+    context.has_memory_mapped_slave = hasMmSlave;
+    return context;
   }
 
   private async buildTemplateContext(

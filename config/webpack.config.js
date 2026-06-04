@@ -86,6 +86,10 @@ const extensionConfig = {
           to: "templates",
         },
         {
+          from: path.resolve(projectRoot, "src", "generator", "packs"),
+          to: "packs",
+        },
+        {
           from: path.resolve(projectRoot, "ipcraft-spec", "bus_definitions"),
           to: "resources/bus_definitions",
         },

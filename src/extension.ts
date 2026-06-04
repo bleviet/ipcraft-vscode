@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
 import { Logger, LogLevel } from './utils/Logger';
 import { MemoryMapEditorProvider } from './providers/MemoryMapEditorProvider';
 import { IpCoreEditorProvider } from './providers/IpCoreEditorProvider';
@@ -34,6 +35,12 @@ import {
   buildNotConfiguredCommand,
 } from './commands/toolNotConfigured';
 import { STAGING_SCHEME, stagingContentProvider } from './providers/StagingContentProvider';
+import {
+  TemplatePreviewProvider,
+  TEMPLATE_PREVIEW_SCHEME,
+} from './providers/TemplatePreviewProvider';
+import { ScaffoldPackPanel } from './providers/ScaffoldPackPanel';
+import { registerScaffoldPackCommands } from './commands/ScaffoldPackCommands';
 
 const SHARED_EDITOR_OPTIONS = {
   webviewOptions: {
@@ -134,6 +141,28 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.workspace.registerTextDocumentContentProvider(STAGING_SCHEME, stagingContentProvider)
   );
+
+  // Register virtual document provider for .j2 template live preview
+  const templatePreviewProvider = new TemplatePreviewProvider(logger, context);
+  context.subscriptions.push(
+    vscode.workspace.registerTextDocumentContentProvider(
+      TEMPLATE_PREVIEW_SCHEME,
+      templatePreviewProvider
+    )
+  );
+
+  // Scaffold.yml file-open handler — show the scaffold pack panel automatically
+  context.subscriptions.push(
+    vscode.window.onDidChangeActiveTextEditor(async (editor) => {
+      if (editor && path.basename(editor.document.fileName) === 'scaffold.yml') {
+        const panel = ScaffoldPackPanel.show(logger, context);
+        await panel.refresh(editor.document.fileName);
+      }
+    })
+  );
+
+  // Register Scaffold Pack Commands (preview + export + watchers)
+  registerScaffoldPackCommands(context, templatePreviewProvider);
 
   // Register VHDL Generator Commands
   registerGeneratorCommands(context);
