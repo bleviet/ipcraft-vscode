@@ -70,13 +70,15 @@
       },
       {
         "command": "fpga-ip-core.generateHdl",
-        "title": "Generate HDL",
+        "title": "Generate Top-Level HDL (VHDL or SystemVerilog per setting; stub or full structure per bahonavi setting)",
+        "shortTitle": "Generate Top-Level HDL",
         "category": "IPCraft",
         "icon": "$(code)"
       },
       {
         "command": "fpga-ip-core.scaffoldProject",
-        "title": "Scaffold Project",
+        "title": "Scaffold Project (RTL + EDA packaging + Testbench)",
+        "shortTitle": "Scaffold Project",
         "category": "IPCraft",
         "icon": "$(package)"
       },
