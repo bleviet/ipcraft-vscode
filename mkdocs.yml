@@ -53,6 +53,7 @@ nav:
   - How-to Guides:
       - Importing from Existing Files: how-to/vhdl-import.md
       - Generating a Project: how-to/generating-a-project.md
+      - Customising Code Generation (Scaffold Packs): how-to/scaffold-packs.md
       - Building a Project (Headless): how-to/building-a-project.md
       - Building a VSIX Package: how-to/build-vsix.md
       - AI Design Guide: how-to/ai-design-guide.md
