@@ -284,7 +284,10 @@ const IpCoreApp: React.FC = () => {
   );
 
   // Staging overlay — replaces inspector slot during code-generation confirmation
-  const [stagingData, setStagingData] = useState<StagedFileView[] | null>(null);
+  const [stagingData, setStagingData] = useState<{
+    files: StagedFileView[];
+    rootLabel?: string;
+  } | null>(null);
 
   // Transient toast notification
   const [toast, setToast] = useState<string | null>(null);
@@ -539,6 +542,7 @@ const IpCoreApp: React.FC = () => {
         allToolchains?: RegisteredToolchain[];
         isPreview?: boolean;
         files?: StagedFileView[];
+        rootLabel?: string;
       };
 
       switch (message.type) {
@@ -557,7 +561,9 @@ const IpCoreApp: React.FC = () => {
           setIsPreview(message.isPreview ?? false);
           break;
         case 'stagingStart':
-          setStagingData(message.files ?? null);
+          setStagingData(
+            message.files ? { files: message.files, rootLabel: message.rootLabel } : null
+          );
           break;
       }
     };
@@ -986,7 +992,8 @@ const IpCoreApp: React.FC = () => {
             />
             {stagingData ? (
               <StagingOverlay
-                files={stagingData}
+                files={stagingData.files}
+                rootLabel={stagingData.rootLabel}
                 onConfirm={() => {
                   vscode?.postMessage({ type: 'stagingResult', confirmed: true });
                   setStagingData(null);

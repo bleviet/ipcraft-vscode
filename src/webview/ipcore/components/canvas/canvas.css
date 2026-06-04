@@ -1847,6 +1847,22 @@
   color: var(--vscode-button-secondaryForeground);
 }
 
+.staging-cwd-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: color-mix(in srgb, var(--vscode-descriptionForeground) 10%, transparent);
+  color: var(--vscode-descriptionForeground);
+  border: 1px solid color-mix(in srgb, var(--vscode-descriptionForeground) 22%, transparent);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
 .staging-banner {
   padding: 8px 10px;
   border-radius: 4px;

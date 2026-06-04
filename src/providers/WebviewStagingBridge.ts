@@ -36,7 +36,11 @@ export class WebviewStagingBridge {
    * Returns null if no registered webview exists for `fsPath` — caller should
    * fall back to the standalone StagingPanel.
    */
-  async showInWebview(fsPath: string, files: StagedFile[]): Promise<boolean | null> {
+  async showInWebview(
+    fsPath: string,
+    files: StagedFile[],
+    rootLabel?: string
+  ): Promise<boolean | null> {
     const panel = this.panels.get(fsPath);
     if (!panel) {
       return null;
@@ -58,7 +62,7 @@ export class WebviewStagingBridge {
 
     return new Promise<boolean>((resolve) => {
       this.resolvers.set(fsPath, resolve);
-      void panel.webview.postMessage({ type: 'stagingStart', files: fileViews });
+      void panel.webview.postMessage({ type: 'stagingStart', files: fileViews, rootLabel });
     });
   }
 

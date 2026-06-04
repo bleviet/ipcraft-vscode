@@ -641,7 +641,11 @@ async function runGenerator(
   // while the editor is not open, or from the Source Control / Explorer view).
   if (staged.length > 0) {
     const bridge = WebviewStagingBridge.getInstance();
-    const bridgeResult = await bridge.showInWebview(ipCoreUri.fsPath, staged);
+    const bridgeResult = await bridge.showInWebview(
+      ipCoreUri.fsPath,
+      staged,
+      path.basename(outputDir)
+    );
     const confirmed = bridgeResult !== null ? bridgeResult : await StagingPanel.show(staged);
     if (!confirmed) {
       return false;

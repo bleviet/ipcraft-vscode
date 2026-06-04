@@ -9,6 +9,7 @@ export interface StagedFileView {
 
 interface StagingOverlayProps {
   files: StagedFileView[];
+  rootLabel?: string;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -65,6 +66,64 @@ function buildTree(files: StagedFileView[]): TreeNode {
   return root;
 }
 
+type AggStatus = 'new' | 'modified' | 'protected' | 'unchanged';
+
+function aggregateStatus(node: TreeNode): AggStatus | null {
+  if (!node.isDir) {
+    if (!node.file) {
+      return null;
+    }
+    return node.file.protected ? 'protected' : node.file.status;
+  }
+  let hasModified = false;
+  let hasNew = false;
+  let hasProtected = false;
+  let hasFiles = false;
+  const traverse = (n: TreeNode) => {
+    if (!n.isDir && n.file) {
+      hasFiles = true;
+      if (n.file.status === 'modified') {
+        hasModified = true;
+      }
+      if (n.file.status === 'new') {
+        hasNew = true;
+      }
+      if (n.file.protected) {
+        hasProtected = true;
+      }
+    }
+    n.children.forEach(traverse);
+  };
+  traverse(node);
+  if (!hasFiles) {
+    return null;
+  }
+  if (hasModified) {
+    return 'modified';
+  }
+  if (hasNew) {
+    return 'new';
+  }
+  if (hasProtected) {
+    return 'protected';
+  }
+  return 'unchanged';
+}
+
+const DirStatusDot: React.FC<{ status: AggStatus | null }> = ({ status }) => {
+  if (!status || status === 'unchanged') {
+    return null;
+  }
+  if (status === 'protected') {
+    return (
+      <span className="staging-status-lock">
+        <LockSvg />
+      </span>
+    );
+  }
+  return <span className={`staging-dot staging-dot--${status}`} />;
+};
+
 const ChevronSvg: React.FC = () => (
   <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
     <path d="M1.5 3.5l3.5 3.5 3.5-3.5" stroke="currentColor" strokeWidth="1.5" fill="none" />
@@ -120,6 +179,7 @@ const TreeNodeView: React.FC<{
 
   if (node.isDir) {
     const isCollapsed = collapsed.has(node.fullPath);
+    const dirStatus = aggregateStatus(node);
     return (
       <div>
         <div
@@ -130,6 +190,7 @@ const TreeNodeView: React.FC<{
           <span className={`staging-chevron${isCollapsed ? ' staging-chevron--collapsed' : ''}`}>
             <ChevronSvg />
           </span>
+          <DirStatusDot status={dirStatus} />
           <span className="staging-dir-name">{node.name}/</span>
         </div>
         {!isCollapsed && (
@@ -195,7 +256,12 @@ const TreeNodeView: React.FC<{
   );
 };
 
-export const StagingOverlay: React.FC<StagingOverlayProps> = ({ files, onConfirm, onCancel }) => {
+export const StagingOverlay: React.FC<StagingOverlayProps> = ({
+  files,
+  rootLabel,
+  onConfirm,
+  onCancel,
+}) => {
   const [panelWidth, setPanelWidth] = useState<number>(() => {
     try {
       const stored = sessionStorage.getItem(INSPECTOR_WIDTH_KEY);
@@ -362,14 +428,44 @@ export const StagingOverlay: React.FC<StagingOverlayProps> = ({ files, onConfirm
       {/* Body */}
       <div className="ci-body" style={{ padding: '8px 0' }}>
         {banner && <div style={{ padding: '0 10px 8px' }}>{banner}</div>}
-        <TreeNodeView
-          node={tree}
-          depth={0}
-          collapsed={collapsed}
-          onToggle={toggleDir}
-          onViewDiff={handleViewDiff}
-          onViewPreview={handleViewPreview}
-        />
+        {rootLabel ? (
+          <>
+            {/* Root folder row — always expanded, non-collapsible */}
+            <div
+              className="staging-tree-row staging-tree-dir"
+              style={{ paddingLeft: 6, cursor: 'default' }}
+            >
+              <span className="staging-chevron">
+                <ChevronSvg />
+              </span>
+              <span className="staging-dir-name">{rootLabel}/</span>
+              <span className="staging-cwd-badge">current folder</span>
+            </div>
+            {/* Children indented under root with a guide line */}
+            <div
+              className="staging-tree-children"
+              style={{ '--guide-x': '13px' } as React.CSSProperties}
+            >
+              <TreeNodeView
+                node={tree}
+                depth={1}
+                collapsed={collapsed}
+                onToggle={toggleDir}
+                onViewDiff={handleViewDiff}
+                onViewPreview={handleViewPreview}
+              />
+            </div>
+          </>
+        ) : (
+          <TreeNodeView
+            node={tree}
+            depth={0}
+            collapsed={collapsed}
+            onToggle={toggleDir}
+            onViewDiff={handleViewDiff}
+            onViewPreview={handleViewPreview}
+          />
+        )}
       </div>
 
       {/* Footer */}
