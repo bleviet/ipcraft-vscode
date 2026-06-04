@@ -1776,7 +1776,7 @@
 .staging-dir-name {
   font-family: var(--vscode-editor-font-family, monospace);
   font-size: 11px;
-  color: var(--vscode-descriptionForeground);
+  color: var(--vscode-charts-purple, #b180d7);
 }
 
 .staging-file-name {
