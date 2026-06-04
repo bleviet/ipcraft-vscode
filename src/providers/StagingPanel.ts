@@ -10,6 +10,14 @@ export interface StagedFile {
   diskPath: string;
 }
 
+interface TreeNode {
+  name: string;
+  fullPath: string;
+  isDir: boolean;
+  children: TreeNode[];
+  file?: StagedFile;
+}
+
 export class StagingPanel {
   /**
    * Show the staging dashboard and return true if the user confirmed, false if cancelled.
@@ -41,9 +49,10 @@ export class StagingPanel {
       panel.webview.html = StagingPanel.buildHtml(files);
 
       const disposables: vscode.Disposable[] = [];
-      // Tracks the column where the first preview was opened so all subsequent
-      // previews reuse the same tab (preview:true replaces within the same column).
-      let previewColumn: vscode.ViewColumn | undefined;
+      // Shared column for all side-panel actions (diff and preview). Whichever
+      // fires first pins the column; subsequent calls reuse it so VS Code's
+      // preview: true can replace the existing tab instead of opening a new one.
+      let sideColumn: vscode.ViewColumn | undefined;
 
       panel.webview.onDidReceiveMessage(
         async (message: { type: string; relativePath?: string }) => {
@@ -58,13 +67,16 @@ export class StagingPanel {
               path: `/${file.relativePath}`,
             });
             const filename = generatedUri.path.split('/').pop() ?? file.relativePath;
-            await vscode.commands.executeCommand(
+            const diffEditor = await vscode.commands.executeCommand<vscode.TextEditor | undefined>(
               'vscode.diff',
               diskUri,
               generatedUri,
               `${filename}: Current ↔ Generated`,
-              { preview: true }
+              { preview: true, viewColumn: sideColumn ?? vscode.ViewColumn.Beside }
             );
+            if (diffEditor?.viewColumn !== undefined) {
+              sideColumn = diffEditor.viewColumn;
+            }
           } else if (message.type === 'viewPreview' && message.relativePath) {
             const file = files.find((f) => f.relativePath === message.relativePath);
             if (!file) {
@@ -77,10 +89,10 @@ export class StagingPanel {
             const doc = await vscode.workspace.openTextDocument(generatedUri);
             const editor = await vscode.window.showTextDocument(doc, {
               preview: true,
-              viewColumn: previewColumn ?? vscode.ViewColumn.Beside,
+              viewColumn: sideColumn ?? vscode.ViewColumn.Beside,
             });
             if (editor.viewColumn !== undefined) {
-              previewColumn = editor.viewColumn;
+              sideColumn = editor.viewColumn;
             }
           } else if (message.type === 'apply') {
             resolveOnce(true);
@@ -113,16 +125,121 @@ export class StagingPanel {
       .replace(/"/g, '&quot;');
   }
 
-  private static splitPath(relativePath: string): { dir: string; filename: string } {
-    const lastSlash = relativePath.lastIndexOf('/');
-    if (lastSlash === -1) {
-      return { dir: '', filename: relativePath };
+  // ---------------------------------------------------------------------------
+  // Tree construction
+  // ---------------------------------------------------------------------------
+
+  private static buildTree(files: StagedFile[]): TreeNode {
+    const root: TreeNode = { name: '', fullPath: '', isDir: true, children: [] };
+
+    for (const file of files) {
+      const parts = file.relativePath.split('/');
+      let node = root;
+      for (let i = 0; i < parts.length; i++) {
+        const part = parts[i];
+        if (i === parts.length - 1) {
+          node.children.push({
+            name: part,
+            fullPath: file.relativePath,
+            isDir: false,
+            children: [],
+            file,
+          });
+        } else {
+          const dirPath = parts.slice(0, i + 1).join('/');
+          let dir = node.children.find((c) => c.isDir && c.name === part);
+          if (!dir) {
+            dir = { name: part, fullPath: dirPath, isDir: true, children: [] };
+            node.children.push(dir);
+          }
+          node = dir;
+        }
+      }
     }
-    return {
-      dir: relativePath.slice(0, lastSlash + 1),
-      filename: relativePath.slice(lastSlash + 1),
+
+    const sort = (n: TreeNode) => {
+      n.children.sort((a, b) => {
+        if (a.isDir !== b.isDir) {
+          return a.isDir ? -1 : 1;
+        }
+        return a.name.localeCompare(b.name);
+      });
+      n.children.forEach(sort);
     };
+    sort(root);
+
+    return root;
   }
+
+  // ---------------------------------------------------------------------------
+  // Tree rendering
+  // ---------------------------------------------------------------------------
+
+  private static readonly eyeSvg =
+    `<svg width="14" height="10" viewBox="0 0 16 12" fill="currentColor" aria-hidden="true">` +
+    `<path d="M8 0C4.5 0 1.5 2.2 0 6c1.5 3.8 4.5 6 8 6s6.5-2.2 8-6C14.5 2.2 11.5 0 8 0z` +
+    `m0 10a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm0-1.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/></svg>`;
+
+  // Chevron-down SVG — rotated via CSS when collapsed.
+  private static readonly chevronSvg =
+    `<svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" aria-hidden="true">` +
+    `<path d="M1.5 3.5l3.5 3.5 3.5-3.5"/></svg>`;
+
+  private static renderNode(node: TreeNode, depth: number): string {
+    if (node.isDir && !node.name) {
+      return node.children.map((c) => StagingPanel.renderNode(c, depth)).join('');
+    }
+
+    const px = (n: number) => `${n}px`;
+    const base = 6;
+    // step = chevron-box (14 px) + flex gap (6 px) so that file dots land
+    // directly under the first letter of the parent directory name.
+    const step = 20;
+
+    if (node.isDir) {
+      const id = `d-${node.fullPath.replace(/[^a-z0-9]/gi, '-')}`;
+      const children = node.children.map((c) => StagingPanel.renderNode(c, depth + 1)).join('');
+      // --guide-x: horizontal centre of this node's chevron icon.
+      const guideX = px(base + depth * step + 7);
+      return (
+        `<div class="tree-dir">` +
+        `<div class="tree-row tree-dir-header" style="padding-left:${px(base + depth * step)}" onclick="toggleDir('${id}')">` +
+        `<span class="chevron" id="${id}-ch">${StagingPanel.chevronSvg}</span>` +
+        `<span class="dir-name">${StagingPanel.esc(node.name)}/</span>` +
+        `</div>` +
+        `<div class="tree-children" id="${id}" style="--guide-x:${guideX}">${children}</div>` +
+        `</div>`
+      );
+    }
+
+    const file = node.file!;
+    const dotClass = file.protected ? 'dot-protected' : `dot-${file.status}`;
+    const isMuted = file.status === 'unchanged' || file.protected;
+    const escapedPath = StagingPanel.esc(JSON.stringify(file.relativePath));
+
+    const diffBtn =
+      file.status === 'modified' || file.protected
+        ? `<button class="btn-action btn-diff" onclick="viewDiff(${escapedPath})">View Diff</button>`
+        : '';
+    const previewBtn =
+      file.status === 'new'
+        ? `<button class="btn-action btn-preview" onclick="viewPreview(${escapedPath})" title="Preview generated file">${StagingPanel.eyeSvg}</button>`
+        : '';
+
+    // padding-left matches the dir-header at this depth — dot aligns with parent dir-name.
+    return (
+      `<div class="tree-row tree-file-row${isMuted ? ' muted' : ''}" style="padding-left:${px(base + depth * step)}">` +
+      `<span class="dot ${dotClass}"></span>` +
+      `<span class="file-name">${StagingPanel.esc(node.name)}</span>` +
+      diffBtn +
+      previewBtn +
+      `</div>`
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // HTML shell
+  // ---------------------------------------------------------------------------
 
   private static buildHtml(files: StagedFile[]): string {
     const modified = files.filter((f) => f.status === 'modified' && !f.protected);
@@ -138,33 +255,6 @@ export class StagingPanel {
         ? '&#10003; Create Files'
         : '&#10003; Confirm &amp; Apply'
       : 'Close';
-
-    // SVG eye icon used in preview buttons.
-    const eyeSvg = `<svg width="14" height="10" viewBox="0 0 16 12" fill="currentColor" aria-hidden="true"><path d="M8 0C4.5 0 1.5 2.2 0 6c1.5 3.8 4.5 6 8 6s6.5-2.2 8-6C14.5 2.2 11.5 0 8 0zm0 10a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm0-1.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/></svg>`;
-
-    const fileRow = (f: StagedFile, showDiff: boolean, showPreview = false) => {
-      const { dir, filename } = StagingPanel.splitPath(f.relativePath);
-      const pathHtml = dir
-        ? `<span class="path-dir">${StagingPanel.esc(dir)}</span><span class="path-file">${StagingPanel.esc(filename)}</span>`
-        : `<span class="path-file">${StagingPanel.esc(filename)}</span>`;
-      const escapedPath = StagingPanel.esc(JSON.stringify(f.relativePath));
-      return `
-      <div class="file-row">
-        <span class="file-path">${pathHtml}</span>
-        ${showDiff ? `<button class="btn-diff" onclick="viewDiff(${escapedPath})">View Diff</button>` : ''}
-        ${showPreview ? `<button class="btn-preview" onclick="viewPreview(${escapedPath})" title="Preview generated file">${eyeSvg}</button>` : ''}
-      </div>`;
-    };
-
-    const section = (dotClass: string, label: string, rows: string, collapsed = true) => `
-      <div class="section">
-        <div class="section-header ${collapsed ? 'collapsible' : ''}" ${collapsed ? `onclick="toggleSection('${dotClass}-list')"` : ''}>
-          <span class="dot ${dotClass}"></span>
-          <span>${label}</span>
-          ${collapsed ? `<span class="toggle-hint" id="${dotClass}-list-hint">show</span>` : ''}
-        </div>
-        <div class="file-list" ${collapsed ? `id="${dotClass}-list" style="display:none"` : ''}>${rows}</div>
-      </div>`;
 
     const summaryParts: string[] = [];
     if (modified.length) {
@@ -183,48 +273,16 @@ export class StagingPanel {
     let noApplyBanner = '';
     if (!hasApplicableFiles) {
       if (protectedFiles.length > 0 && unchanged.length === 0) {
-        noApplyBanner = `<div class="up-to-date">All modified files are user-managed (managed: false) and will not be overwritten.</div>`;
+        noApplyBanner = `<div class="banner">All modified files are user-managed (managed: false) and will not be overwritten.</div>`;
       } else if (protectedFiles.length > 0) {
-        noApplyBanner = `<div class="up-to-date">&#10003; All files are either unchanged or user-managed — nothing to apply.</div>`;
+        noApplyBanner = `<div class="banner">&#10003; All files are either unchanged or user-managed — nothing to apply.</div>`;
       } else {
-        noApplyBanner = `<div class="up-to-date">&#10003; All files are up to date — nothing to apply.</div>`;
+        noApplyBanner = `<div class="banner">&#10003; All files are up to date — nothing to apply.</div>`;
       }
     }
 
-    const sections = [
-      modified.length
-        ? section(
-            'dot-modified',
-            `Modified (${modified.length})`,
-            modified.map((f) => fileRow(f, true)).join(''),
-            false
-          )
-        : '',
-      newFiles.length
-        ? section(
-            'dot-new',
-            `New (${newFiles.length})`,
-            newFiles.map((f) => fileRow(f, false, true)).join(''),
-            false
-          )
-        : '',
-      protectedFiles.length
-        ? section(
-            'dot-protected',
-            `Protected — user-managed, will not be overwritten (${protectedFiles.length})`,
-            protectedFiles.map((f) => fileRow(f, true)).join(''),
-            false
-          )
-        : '',
-      unchanged.length
-        ? section(
-            'dot-unchanged',
-            `Unchanged (${unchanged.length})`,
-            unchanged.map((f) => fileRow(f, false)).join(''),
-            hasApplicableFiles
-          )
-        : '',
-    ].join('');
+    const tree = StagingPanel.buildTree(files);
+    const treeHtml = StagingPanel.renderNode(tree, 0);
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -248,40 +306,62 @@ body{
 }
 .header h1{font-size:14px;font-weight:600;margin-bottom:4px}
 .summary{font-size:12px;color:var(--vscode-descriptionForeground)}
-.content{flex:1;overflow-y:auto;padding:12px 20px}
-.section{margin-bottom:14px}
-.section-header{
+.content{flex:1;overflow-y:auto;padding:10px 16px}
+/* ── tree ─────────────────────────────────────────────────────────────── */
+.tree-row{
   display:flex;align-items:center;gap:6px;
-  font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
-  padding:4px 0;margin-bottom:4px;user-select:none;
+  border-radius:3px;padding-top:3px;padding-bottom:3px;padding-right:8px;
+  min-height:22px;
 }
-.collapsible{cursor:pointer;opacity:.8}
-.collapsible:hover{opacity:1}
-.toggle-hint{font-weight:400;text-transform:none;letter-spacing:0;margin-left:4px;color:var(--vscode-descriptionForeground)}
+.tree-dir-header{cursor:pointer;user-select:none}
+.tree-dir-header:hover{background:var(--vscode-list-hoverBackground)}
+.tree-file-row:hover{background:var(--vscode-list-activeSelectionBackground)}
+.tree-file-row.muted{opacity:0.55}
+.tree-children{position:relative}
+.tree-children::before{
+  content:'';position:absolute;
+  left:var(--guide-x,12px);top:0;bottom:4px;
+  width:1px;
+  background:var(--vscode-tree-indentGuidesStroke,rgba(128,128,128,.18));
+  pointer-events:none;
+}
+.tree-children.collapsed{display:none}
+/* chevron */
+.chevron{
+  display:flex;align-items:center;justify-content:center;
+  width:14px;height:14px;flex-shrink:0;
+  color:var(--vscode-descriptionForeground);
+  transition:transform 0.15s;
+}
+.chevron svg{stroke:currentColor;stroke-width:1.5;fill:none}
+.chevron.collapsed{transform:rotate(-90deg)}
+/* dir / file labels */
+.dir-name{
+  font-family:var(--vscode-editor-font-family,monospace);font-size:12px;
+  color:var(--vscode-descriptionForeground);
+}
+.file-name{
+  font-family:var(--vscode-editor-font-family,monospace);font-size:12px;
+  color:var(--vscode-foreground);
+  flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+/* status dot */
 .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.dot-modified{background:#d4a83a}
 .dot-new{background:#4ea44e}
+.dot-modified{background:#d4a83a}
 .dot-unchanged{background:#888}
 .dot-protected{background:#888;opacity:.5}
-.file-list{display:flex;flex-direction:column;gap:1px}
-.file-row{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:3px 8px;border-radius:3px;gap:12px;
-  background:var(--vscode-list-hoverBackground);
+/* action buttons — revealed on row hover */
+.btn-action{
+  font-family:var(--vscode-font-family);
+  border:none;border-radius:3px;cursor:pointer;flex-shrink:0;
+  opacity:0;transition:opacity 0.12s;
 }
-.file-row:hover{background:var(--vscode-list-activeSelectionBackground)}
-.file-path{
-  font-family:var(--vscode-editor-font-family,monospace);font-size:12px;
-  flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-}
-.path-dir{color:var(--vscode-descriptionForeground)}
-.path-file{color:var(--vscode-foreground)}
+.tree-row:hover .btn-action{opacity:1}
 .btn-diff{
-  font-family:var(--vscode-font-family);font-size:11px;
-  padding:2px 8px;
+  font-size:11px;padding:2px 8px;
   background:var(--vscode-button-secondaryBackground);
   color:var(--vscode-button-secondaryForeground);
-  border:none;border-radius:3px;cursor:pointer;white-space:nowrap;flex-shrink:0;
 }
 .btn-diff:hover{background:var(--vscode-button-secondaryHoverBackground)}
 .btn-preview{
@@ -289,14 +369,12 @@ body{
   padding:3px 5px;
   background:transparent;
   color:var(--vscode-descriptionForeground);
-  border:none;border-radius:3px;cursor:pointer;flex-shrink:0;
-  opacity:0;transition:opacity 0.12s,color 0.12s;
 }
-.file-row:hover .btn-preview{opacity:1}
 .btn-preview:hover{
   background:var(--vscode-button-secondaryBackground);
   color:var(--vscode-button-secondaryForeground);
 }
+/* ── footer / banner ──────────────────────────────────────────────────── */
 .footer{
   padding:10px 20px;border-top:1px solid var(--vscode-panel-border);
   display:flex;gap:8px;flex-shrink:0;
@@ -315,8 +393,8 @@ body{
   border:none;border-radius:3px;cursor:pointer;
 }
 .btn-cancel:hover{background:var(--vscode-button-secondaryHoverBackground)}
-.up-to-date{
-  padding:10px 12px;margin-bottom:14px;border-radius:4px;
+.banner{
+  padding:10px 12px;margin-bottom:12px;border-radius:4px;
   background:var(--vscode-diffEditor-unchangedRegionBackground,rgba(128,128,128,.1));
   color:var(--vscode-descriptionForeground);font-size:12px;
 }
@@ -327,7 +405,7 @@ body{
   <h1>IPCraft — Preview Generated Files</h1>
   <div class="summary">${StagingPanel.esc(summaryParts.join(' · '))}</div>
 </div>
-<div class="content">${noApplyBanner}${sections}</div>
+<div class="content">${noApplyBanner}<div class="tree">${treeHtml}</div></div>
 <div class="footer">
   <button class="btn-apply" onclick="${hasApplicableFiles ? 'apply()' : 'cancel()'}">
     ${applyLabel}
@@ -340,13 +418,13 @@ function viewDiff(p){vscode.postMessage({type:'viewDiff',relativePath:p});}
 function viewPreview(p){vscode.postMessage({type:'viewPreview',relativePath:p});}
 function apply(){vscode.postMessage({type:'apply'});}
 function cancel(){vscode.postMessage({type:'cancel'});}
-function toggleSection(id){
-  const list=document.getElementById(id);
-  const hint=document.getElementById(id+'-hint');
-  if(!list)return;
-  const shown=list.style.display!=='none';
-  list.style.display=shown?'none':'flex';
-  if(hint)hint.textContent=shown?'show':'hide';
+function toggleDir(id){
+  const el = document.getElementById(id);
+  const ch = document.getElementById(id + '-ch');
+  if (!el) return;
+  const closing = !el.classList.contains('collapsed');
+  el.classList.toggle('collapsed', closing);
+  if (ch) ch.classList.toggle('collapsed', closing);
 }
 </script>
 </body>
