@@ -273,6 +273,11 @@
         "command": "fpga-ip-core.pinPreviewIpCore",
         "title": "Pin Preview IP Core",
         "category": "IPCraft"
+      },
+      {
+        "command": "fpga-ip-core.openScaffoldPacksWalkthrough",
+        "title": "Get Started with Scaffold Packs",
+        "category": "IPCraft"
       }
     ],
     "submenus": [

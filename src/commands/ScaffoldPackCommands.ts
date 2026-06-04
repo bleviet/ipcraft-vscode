@@ -33,6 +33,15 @@ export function registerScaffoldPackCommands(
     await pinPreviewIpCore(context);
   });
 
+  // ── Command: Open Scaffold Packs walkthrough ──────────────────────────
+  safeRegisterCommand(context, 'fpga-ip-core.openScaffoldPacksWalkthrough', async () => {
+    await vscode.commands.executeCommand(
+      'workbench.action.openWalkthrough',
+      'bleviet.ipcraft-vscode#scaffold-packs-getting-started',
+      false
+    );
+  });
+
   // ── File watcher: refresh preview when a .j2 template is saved ────────
   const j2Watcher = vscode.workspace.createFileSystemWatcher('**/*.j2');
   j2Watcher.onDidChange(async (uri) => {
