@@ -33,6 +33,7 @@ import {
   qsysEditNotConfiguredCommand,
   buildNotConfiguredCommand,
 } from './commands/toolNotConfigured';
+import { STAGING_SCHEME, stagingContentProvider } from './providers/StagingContentProvider';
 
 const SHARED_EDITOR_OPTIONS = {
   webviewOptions: {
@@ -127,6 +128,11 @@ export function activate(context: vscode.ExtensionContext): void {
     context,
     'fpga-ip-core.copyComponentInstanceDone',
     copyComponentInstanceDoneCommand
+  );
+
+  // Register virtual document provider for staging diff previews
+  context.subscriptions.push(
+    vscode.workspace.registerTextDocumentContentProvider(STAGING_SCHEME, stagingContentProvider)
   );
 
   // Register VHDL Generator Commands

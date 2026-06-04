@@ -231,26 +231,50 @@ export class IpCoreScaffolder {
         }
       }
 
-      const written: Record<string, string> = {};
-
       // Collect paths marked managed: false — these are user-owned and must not be overwritten
       type FileSetEntry = { files?: Array<{ path?: string; managed?: boolean }> };
       const rawFileSets = (ipCoreData as Record<string, unknown>).fileSets as
         | FileSetEntry[]
         | undefined;
-      const protectedPaths = new Set<string>();
+      const protectedSet = new Set<string>();
       for (const fset of rawFileSets ?? []) {
         for (const f of fset.files ?? []) {
           if (f.managed === false && f.path) {
-            protectedPaths.add(f.path);
+            protectedSet.add(f.path);
           }
         }
       }
 
+      // Dry-run: return generated content without writing to disk.
+      // Identify which protected paths already exist so the caller can skip them.
+      if (options.dryRun) {
+        const protectedOnDisk: string[] = [];
+        await Promise.all(
+          [...protectedSet]
+            .filter((p) => p in files)
+            .map(async (relPath) => {
+              try {
+                await fs.stat(path.join(outputDir, relPath));
+                protectedOnDisk.push(relPath);
+              } catch {
+                // not present on disk — not blocking
+              }
+            })
+        );
+        return {
+          success: true,
+          generatedContents: { ...files },
+          protectedPaths: protectedOnDisk,
+          count: Object.keys(files).length,
+          busType,
+        };
+      }
+
+      const written: Record<string, string> = {};
       await Promise.all(
         Object.entries(files).map(async ([relativePath, content]) => {
           const fullPath = path.join(outputDir, relativePath);
-          if (protectedPaths.has(relativePath)) {
+          if (protectedSet.has(relativePath)) {
             try {
               await fs.stat(fullPath);
               this.logger.info(`Skipping managed:false file: ${relativePath}`);
@@ -275,6 +299,7 @@ export class IpCoreScaffolder {
       return {
         success: true,
         files: written,
+        generatedContents: { ...files },
         count: Object.keys(written).length,
         busType,
       };

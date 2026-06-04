@@ -26,11 +26,18 @@ export interface GenerateOptions {
    * is generated with an empty architecture/module body.
    */
   bahonaviMethodology?: boolean;
+  /** When true, generate content in memory only — do not write files to disk. */
+  dryRun?: boolean;
 }
 
 export interface GenerateResult {
   success: boolean;
+  /** relativePath → fullPath for files actually written to disk (absent in dry-run mode). */
   files?: Record<string, string>;
+  /** relativePath → file content for all generated files (always present on success). */
+  generatedContents?: Record<string, string>;
+  /** Relative paths of managed:false files that already exist on disk (skip on write). */
+  protectedPaths?: string[];
   count?: number;
   busType?: string;
   error?: string;

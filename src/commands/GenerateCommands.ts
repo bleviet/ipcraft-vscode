@@ -7,6 +7,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as YAML from 'yaml';
+import { mkdir, writeFile, readFile } from 'fs/promises';
 import { Logger } from '../utils/Logger';
 import { TemplateLoader } from '../generator/TemplateLoader';
 import { IpCoreScaffolder } from '../generator/IpCoreScaffolder';
@@ -20,6 +21,8 @@ import { resolveVendor } from '../utils/resolveVendor';
 import type { GenerateOptions } from '../generator/types';
 import { createVivadoProject, createQuartusProject } from './projectCreator';
 import { getBuildOutputChannel } from './BuildCommands';
+import { StagingPanel } from '../providers/StagingPanel';
+import type { StagedFile } from '../providers/StagingPanel';
 
 const logger = new Logger('GenerateCommands');
 
@@ -213,25 +216,6 @@ async function scaffoldProject(
   }
 
   const outputDir = path.dirname(ipCoreUri.fsPath);
-
-  let dirExists = false;
-  try {
-    await vscode.workspace.fs.stat(vscode.Uri.file(outputDir));
-    dirExists = true;
-  } catch {
-    // directory does not exist yet — will be created by the generator
-  }
-
-  if (dirExists) {
-    const answer = await vscode.window.showWarningMessage(
-      `Output directory already exists. Overwrite contents?`,
-      { modal: true },
-      'Overwrite'
-    );
-    if (answer !== 'Overwrite') {
-      return;
-    }
-  }
 
   const cfg = vscode.workspace.getConfiguration('ipcraft');
   const genCfg = vscode.workspace.getConfiguration('ipcraft.generate');
@@ -612,6 +596,27 @@ async function pickOutputDir(ipCoreUri: vscode.Uri, title: string): Promise<stri
   return picked?.[0]?.fsPath ?? defaultDir;
 }
 
+async function categorizeFiles(
+  generatedContents: Record<string, string>,
+  outputDir: string,
+  protectedPaths: string[]
+): Promise<StagedFile[]> {
+  const protectedSet = new Set(protectedPaths);
+  return Promise.all(
+    Object.entries(generatedContents).map(async ([relativePath, content]) => {
+      const diskPath = path.join(outputDir, relativePath);
+      const isProtected = protectedSet.has(relativePath);
+      try {
+        const existing = await readFile(diskPath, 'utf8');
+        const status = existing === content ? 'unchanged' : 'modified';
+        return { relativePath, status, content, diskPath, protected: isProtected } as StagedFile;
+      } catch {
+        return { relativePath, status: 'new', content, diskPath, protected: false } as StagedFile;
+      }
+    })
+  );
+}
+
 async function runGenerator(
   context: vscode.ExtensionContext,
   ipCoreUri: vscode.Uri,
@@ -619,34 +624,98 @@ async function runGenerator(
   options: GenerateOptions & { updateYaml?: boolean; silent?: boolean },
   progressTitle: string
 ): Promise<boolean> {
-  let succeeded = false;
+  // Phase 1: Generate all file content in memory (no disk writes)
+  let dryResult:
+    | Awaited<ReturnType<InstanceType<typeof IpCoreScaffolder>['generateAll']>>
+    | undefined;
   await vscode.window.withProgress(
     { location: vscode.ProgressLocation.Notification, title: progressTitle, cancellable: false },
     async () => {
       const generator = new IpCoreScaffolder(logger, new TemplateLoader(logger), context);
-      const result = await generator.generateAll(ipCoreUri.fsPath, outputDir, options);
+      dryResult = await generator.generateAll(ipCoreUri.fsPath, outputDir, {
+        ...options,
+        dryRun: true,
+      });
+    }
+  );
 
-      if (result.success) {
-        succeeded = true;
-        if (options.updateYaml && result.files) {
-          await updateFileSetsInYaml(ipCoreUri, outputDir, Object.keys(result.files));
-        }
-        if (options.silent) {
-          return;
-        }
-        const action = await vscode.window.showInformationMessage(
-          `✓ Generated ${String(result.count)} files`,
-          'Open Folder'
+  if (!dryResult?.success || !dryResult.generatedContents) {
+    void vscode.window.showErrorMessage(
+      `Generation failed: ${dryResult?.error ?? 'Unknown error'}`
+    );
+    return false;
+  }
+
+  // Phase 2: Categorise generated files against what is currently on disk
+  const staged = await categorizeFiles(
+    dryResult.generatedContents,
+    outputDir,
+    dryResult.protectedPaths ?? []
+  );
+
+  // Phase 3: Always show the staging panel when generation produced any files.
+  // Skipping it when everything is 'unchanged' caused the panel to never appear in
+  // Minimal mode (fewer generated files → all match what is already on disk on re-runs).
+  const hasModifications = staged.some((f) => f.status === 'modified' && !f.protected);
+
+  if (staged.length > 0) {
+    const confirmed = await StagingPanel.show(staged);
+    if (!confirmed) {
+      return false;
+    }
+  }
+
+  // Phase 4: Write new + modified files; skip unchanged and protected-existing files
+  const protectedExisting = new Set(dryResult.protectedPaths ?? []);
+  const writtenRelPaths: string[] = [];
+  let writeError: string | undefined;
+
+  await vscode.window.withProgress(
+    {
+      location: vscode.ProgressLocation.Notification,
+      title: hasModifications ? 'Applying staged changes…' : progressTitle,
+      cancellable: false,
+    },
+    async () => {
+      try {
+        await Promise.all(
+          staged
+            .filter((f) => f.status !== 'unchanged')
+            .map(async (f) => {
+              if (f.protected && protectedExisting.has(f.relativePath)) {
+                return; // managed:false file that already exists — skip
+              }
+              await mkdir(path.dirname(f.diskPath), { recursive: true });
+              await writeFile(f.diskPath, f.content, 'utf8');
+              writtenRelPaths.push(f.relativePath);
+            })
         );
-        if (action === 'Open Folder') {
-          await vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(outputDir));
-        }
-      } else {
-        void vscode.window.showErrorMessage(`Generation failed: ${String(result.error)}`);
+      } catch (err) {
+        writeError = err instanceof Error ? err.message : String(err);
       }
     }
   );
-  return succeeded;
+
+  if (writeError) {
+    void vscode.window.showErrorMessage(`Failed to write files: ${writeError}`);
+    return false;
+  }
+
+  if (options.updateYaml) {
+    await updateFileSetsInYaml(ipCoreUri, outputDir, writtenRelPaths);
+  }
+
+  if (!options.silent) {
+    const action = await vscode.window.showInformationMessage(
+      `✓ Generated ${writtenRelPaths.length} file(s)`,
+      'Open Folder'
+    );
+    if (action === 'Open Folder') {
+      await vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(outputDir));
+    }
+  }
+
+  return true;
 }
 
 const HIDE_EXPERIMENTAL_IMPORT_WARNING = 'ipcraft.hideExperimentalImportWarning';
