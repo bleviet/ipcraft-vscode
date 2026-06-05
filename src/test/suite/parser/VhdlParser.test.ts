@@ -52,6 +52,67 @@ describe('VhdlParser', () => {
     expect((parsed.busInterfaces as unknown[] | undefined)?.length ?? 0).toBeGreaterThan(0);
   });
 
+  it('parses generic default values', async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ipcraft-vhdl-'));
+    const filePath = path.join(tempDir, 'generics.vhd');
+    const vhdl = `
+      entity generics is
+        generic (
+          AxiAddrWidth_g    : positive := 8;
+          AxiDataWidth_g    : positive := 32;
+          ReadTimeoutClks_g : positive := 100
+        );
+        port (
+          Clk : in std_logic
+        );
+      end entity;
+    `;
+
+    await fs.writeFile(filePath, vhdl, 'utf8');
+    const result = await parseVhdlFile(filePath);
+    const parsed = yaml.load(result.yamlText) as Record<string, unknown>;
+    const params = parsed.parameters as Array<Record<string, unknown>>;
+
+    expect(params).toHaveLength(3);
+    expect(params[0]).toMatchObject({ name: 'AxiAddrWidth_g', value: 8, dataType: 'positive' });
+    expect(params[1]).toMatchObject({ name: 'AxiDataWidth_g', value: 32, dataType: 'positive' });
+    expect(params[2]).toMatchObject({
+      name: 'ReadTimeoutClks_g',
+      value: 100,
+      dataType: 'positive',
+    });
+  });
+
+  it('detects width for ports with computed MSB expressions', async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ipcraft-vhdl-'));
+    const filePath = path.join(tempDir, 'computed_width.vhd');
+    const vhdl = `
+      entity computed_width is
+        generic (
+          AxiDataWidth_g : positive := 32
+        );
+        port (
+          Clk        : in  std_logic;
+          Rb_ByteEna : out std_logic_vector((AxiDataWidth_g/8) - 1 downto 0);
+          Rb_WrData  : out std_logic_vector(AxiDataWidth_g - 1 downto 0)
+        );
+      end entity;
+    `;
+
+    await fs.writeFile(filePath, vhdl, 'utf8');
+    const result = await parseVhdlFile(filePath);
+    const parsed = yaml.load(result.yamlText) as Record<string, unknown>;
+    const ports = (parsed.ports as Array<Record<string, unknown>>) ?? [];
+
+    const byteEna = ports.find((p) => p.name === 'Rb_ByteEna');
+    expect(byteEna).toBeDefined();
+    expect(byteEna!.width).toBeDefined();
+
+    const wrData = ports.find((p) => p.name === 'Rb_WrData');
+    expect(wrData).toBeDefined();
+    expect(wrData!.width).toBe('AxiDataWidth_g');
+  });
+
   it('strips IO_ prefix only once for logical port names', async () => {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ipcraft-vhdl-'));
     const filePath = path.join(tempDir, 'io_prefix.vhd');

@@ -173,10 +173,12 @@ function extractParameters(content: string): ParsedParameter[] {
 
   for (const entry of entries) {
     const cleaned = entry.replace(/\s+/g, ' ').trim();
-    if (!cleaned?.includes(':')) {
+    const colonIdx = cleaned.indexOf(':');
+    if (colonIdx === -1) {
       continue;
     }
-    const [namesPart, typePart] = cleaned.split(':');
+    const namesPart = cleaned.slice(0, colonIdx);
+    const typePart = cleaned.slice(colonIdx + 1);
     const names = namesPart
       .split(',')
       .map((name) => name.trim())
@@ -228,13 +230,31 @@ function extractPorts(content: string): ParsedPort[] {
   return ports;
 }
 
+function extractFirstParenContent(s: string): string | null {
+  const start = s.indexOf('(');
+  if (start === -1) {
+    return null;
+  }
+  let depth = 0;
+  for (let i = start; i < s.length; i++) {
+    if (s[i] === '(') {
+      depth++;
+    } else if (s[i] === ')') {
+      depth--;
+      if (depth === 0) {
+        return s.slice(start + 1, i).trim();
+      }
+    }
+  }
+  return null;
+}
+
 function extractWidthFromType(type: string): number | string | undefined {
   if (/std_logic_vector/i.test(type)) {
-    const rangeMatch = type.match(/\(([^)]+)\)/);
-    if (!rangeMatch) {
+    const range = extractFirstParenContent(type);
+    if (!range) {
       return undefined;
     }
-    const range = rangeMatch[1];
     const paramMatch = range.match(/(\w+)\s*-\s*1\s+downto\s+0/i);
     if (paramMatch) {
       return paramMatch[1];
@@ -245,7 +265,8 @@ function extractWidthFromType(type: string): number | string | undefined {
       const low = Number(numericMatch[2]);
       return Math.abs(high - low) + 1;
     }
-    return undefined;
+    // Complex expression (e.g. "(AxiDataWidth_g/8) - 1 downto 0") — preserve as-is
+    return range || undefined;
   }
 
   if (/\bstd_logic\b/i.test(type)) {
