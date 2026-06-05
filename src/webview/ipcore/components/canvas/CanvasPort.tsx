@@ -104,11 +104,6 @@ export const CanvasPort: React.FC<CanvasPortProps> = ({
   return (
     <g
       className={`canvas-port canvas-port--${port.kind} ${selected ? 'canvas-port--selected' : ''} ${inMultiSelection ? 'canvas-port--multi-selected' : ''} ${multiSelectMode ? 'canvas-port--selectable' : ''}`}
-      onMouseDown={(e) => {
-        if (e.shiftKey) {
-          e.preventDefault();
-        }
-      }}
       onClick={(e) => {
         e.stopPropagation();
         if (e.shiftKey && onShiftSelect) {
@@ -215,8 +210,8 @@ export const CanvasPort: React.FC<CanvasPortProps> = ({
         <circle cx={port.x} cy={port.y} r={10} className="canvas-port__selection-ring" />
       )}
 
-      {/* Multi-selection dashed ring */}
-      {inMultiSelection && !selected && (
+      {/* Multi-selection ring — shown whenever the port is in the selection group */}
+      {inMultiSelection && (
         <circle cx={port.x} cy={port.y} r={10} className="canvas-port__multi-selection-ring" />
       )}
 

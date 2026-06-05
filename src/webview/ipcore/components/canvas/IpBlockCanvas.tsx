@@ -993,7 +993,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
       {/* HUD layer — sits outside the SVG transform, pinned to container viewport */}
       <div className="ip-canvas-hud">
         {/* Multi-select toolbar */}
-        {multiSelectedIds && multiSelectedIds.size >= 2 && batchUpdate && onDismissSelection && (
+        {multiSelectedIds && multiSelectedIds.size >= 1 && batchUpdate && onDismissSelection && (
           <CanvasSelectionActions
             multiSelection={{ all: buildMultiSelectionMap(multiSelectedIds), isMulti: true }}
             ipCore={ipCore}

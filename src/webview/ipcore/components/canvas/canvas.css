@@ -55,13 +55,13 @@
   cursor: pointer;
 }
 
-.ip-canvas-container--selecting .canvas-port--port .canvas-port__dot,
-.ip-canvas-container--selecting .canvas-port--interrupt .canvas-port__dot {
+.ip-canvas-container--selecting .canvas-port--port:not(.canvas-port--multi-selected) .canvas-port__dot,
+.ip-canvas-container--selecting .canvas-port--interrupt:not(.canvas-port--multi-selected) .canvas-port__dot {
   opacity: 0.6;
 }
 
-.ip-canvas-container--selecting .canvas-port--port:hover .canvas-port__dot,
-.ip-canvas-container--selecting .canvas-port--interrupt:hover .canvas-port__dot {
+.ip-canvas-container--selecting .canvas-port--port:not(.canvas-port--multi-selected):hover .canvas-port__dot,
+.ip-canvas-container--selecting .canvas-port--interrupt:not(.canvas-port--multi-selected):hover .canvas-port__dot {
   opacity: 1;
 }
 
@@ -1962,12 +1962,17 @@
 }
 
 /* Multi-select dashed ring on canvas ports */
+/* Amber ring distinguishes multi-selected ports from single-selected (blue) */
 .canvas-port__multi-selection-ring {
   fill: none;
-  stroke: var(--vscode-focusBorder);
-  stroke-width: 1.5;
-  stroke-dasharray: 3 3;
-  opacity: 0.85;
+  stroke: var(--vscode-charts-yellow, #e5a96a);
+  stroke-width: 2;
+  opacity: 0.9;
+}
+
+/* Dot takes on the amber tint when the port is in the multi-selection group */
+.canvas-port--multi-selected .canvas-port__dot {
+  fill: var(--vscode-charts-yellow, #e5a96a);
 }
 
 /* Protocol suggestion chips */
