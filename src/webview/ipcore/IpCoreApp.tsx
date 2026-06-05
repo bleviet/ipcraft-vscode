@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useCallback, useEffect, useState, useRef, useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
 import { EditorPanel } from './components/layout/EditorPanel';
 import { CanvasInspector } from './components/canvas/CanvasInspector';
@@ -7,10 +7,12 @@ import { useIpCoreSync } from './hooks/useIpCoreSync';
 import { useCanvasSelection } from './hooks/useCanvasSelection';
 import { useCanvasDrop } from './hooks/useCanvasDrop';
 import { useCanvasUndo } from './hooks/useCanvasUndo';
+import { useProtocolSuggestions } from './hooks/useProtocolSuggestions';
 import { LibraryPalette } from './components/canvas/LibraryPalette';
 import { StagingOverlay, type StagedFileView } from './components/canvas/StagingOverlay';
 import { vscode } from '../vscode';
 import type { IpCore, BusInterface } from '../types/ipCore';
+import type { BatchUpdate } from './hooks/useGroupPorts';
 import '@vscode/codicons/dist/codicon.css';
 import '../index.css';
 
@@ -309,6 +311,17 @@ const IpCoreApp: React.FC = () => {
     [baseUpdateIpCore, pushUndo]
   );
 
+  // Atomic batch update — single undo entry for multi-mutation operations (e.g., grouping)
+  const batchUpdateIpCore: BatchUpdate = useCallback(
+    (mutations) => {
+      pushUndo();
+      for (const [path, value] of mutations) {
+        baseUpdateIpCore(path, value);
+      }
+    },
+    [baseUpdateIpCore, pushUndo]
+  );
+
   // Staging overlay — replaces inspector slot during code-generation confirmation
   const [stagingData, setStagingData] = useState<{
     files: StagedFileView[];
@@ -349,13 +362,35 @@ const IpCoreApp: React.FC = () => {
   // True when opened via IpCoreSourcePreviewProvider (source file, not a .ip.yml)
   const [isPreview, setIsPreview] = useState(false);
 
-  // Canvas element selection (Phase 2)
+  // Canvas element selection — single + multi-select
   const {
     selected: canvasSelected,
     selectedId: canvasSelectedId,
     select: canvasSelect,
+    shiftSelect: canvasShiftSelect,
     deselect: canvasDeselect,
+    deselectAll: canvasDeselectAll,
+    multiSelection,
   } = useCanvasSelection();
+
+  // Multi-selection IDs as a Set<string> for prop threading
+  const multiSelectedIds = useMemo(() => new Set(multiSelection.all.keys()), [multiSelection.all]);
+
+  // Dismissed suggestion chip IDs (ephemeral — not persisted to YAML)
+  const [dismissedChipIds, setDismissedChipIds] = useState<Set<string>>(new Set());
+
+  const handleDismissSuggestion = useCallback((chipId: string) => {
+    setDismissedChipIds((prev) => new Set([...prev, chipId]));
+  }, []);
+
+  // Protocol suggestions for unassigned ports
+  const allSuggestions = useProtocolSuggestions(
+    (ipCore as unknown as IpCore | null) ?? ({} as IpCore)
+  );
+  const activeSuggestions = useMemo(
+    () => allSuggestions.filter((c) => !dismissedChipIds.has(c.id)),
+    [allSuggestions, dismissedChipIds]
+  );
 
   // Canvas drop handling (Phase 3)
   const { handleDragOver: onCanvasDragOver, handleDrop: onCanvasDrop } = useCanvasDrop({
@@ -1034,6 +1069,12 @@ const IpCoreApp: React.FC = () => {
               onCanvasDragOver={onCanvasDragOver}
               onCanvasDrop={onCanvasDrop}
               onCanvasRemove={handleCanvasRemove}
+              multiSelectedIds={multiSelectedIds}
+              onShiftSelect={canvasShiftSelect}
+              batchUpdate={batchUpdateIpCore}
+              suggestionChips={activeSuggestions}
+              onDismissSelection={canvasDeselectAll}
+              onDismissSuggestion={handleDismissSuggestion}
             />
             {stagingData ? (
               <StagingOverlay

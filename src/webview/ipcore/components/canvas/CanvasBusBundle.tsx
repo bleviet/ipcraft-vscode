@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { LayoutPort } from './canvasLayout';
 import { STUB_LENGTH } from './canvasLayout';
 
@@ -13,6 +13,8 @@ interface CanvasBusBundleProps {
   onToggleExpand?: () => void;
   domainColor?: string;
   onMemoryMapClick?: () => void;
+  /** Called when a port stub is dragged and dropped onto this bus bundle */
+  onPortDrop?: (portIndex: number) => void;
 }
 
 /**
@@ -21,6 +23,8 @@ interface CanvasBusBundleProps {
  * Visually distinct from regular ports: thicker stub, protocol badge, mode indicator.
  * Supports expand/collapse to show individual bus port signals.
  */
+const PORT_MOVE_MIME = 'application/x-ipcraft-port-move';
+
 export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
   port,
   selected,
@@ -30,7 +34,9 @@ export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
   onToggleExpand,
   domainColor,
   onMemoryMapClick,
+  onPortDrop,
 }) => {
+  const [isDragTarget, setIsDragTarget] = useState(false);
   const isLeft = port.side === 'left';
 
   const hasError = annotations?.some((a) => a.severity === 'error');
@@ -65,7 +71,7 @@ export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
 
   return (
     <g
-      className={`canvas-bus-bundle ${selected ? 'canvas-bus-bundle--selected' : ''} ${isExpanded ? 'canvas-bus-bundle--expanded' : ''}`}
+      className={`canvas-bus-bundle ${selected ? 'canvas-bus-bundle--selected' : ''} ${isExpanded ? 'canvas-bus-bundle--expanded' : ''} ${isDragTarget ? 'canvas-bus-bundle--drop-target' : ''}`}
       onClick={(e) => {
         e.stopPropagation();
         onSelect(port.id);
@@ -86,6 +92,43 @@ export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
       onDragEnd={(e) => {
         const target = e.currentTarget as SVGGElement;
         target.style.opacity = '1';
+        setIsDragTarget(false);
+      }}
+      onDragEnter={(e) => {
+        if (onPortDrop && e.dataTransfer.types.includes(PORT_MOVE_MIME)) {
+          e.preventDefault();
+          setIsDragTarget(true);
+        }
+      }}
+      onDragLeave={() => {
+        setIsDragTarget(false);
+      }}
+      onDragOver={(e) => {
+        if (onPortDrop && e.dataTransfer.types.includes(PORT_MOVE_MIME)) {
+          e.preventDefault();
+          e.stopPropagation();
+          e.dataTransfer.dropEffect = 'move';
+        }
+      }}
+      onDrop={(e) => {
+        setIsDragTarget(false);
+        if (!onPortDrop) {
+          return;
+        }
+        const raw = e.dataTransfer.getData(PORT_MOVE_MIME);
+        if (!raw) {
+          return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        try {
+          const payload = JSON.parse(raw) as { portIndex: number };
+          if (typeof payload.portIndex === 'number') {
+            onPortDrop(payload.portIndex);
+          }
+        } catch {
+          // ignore malformed payload
+        }
       }}
     >
       {/* Hit area */}
@@ -97,6 +140,22 @@ export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
         fill="transparent"
         style={{ cursor: 'pointer' }}
       />
+
+      {/* Drop-target highlight (shown when a port is dragged over this bundle) */}
+      {isDragTarget && (
+        <rect
+          x={isLeft ? stubEndX - 4 : port.x - 4}
+          y={port.y - 14}
+          width={STUB_LENGTH + 8}
+          height={28}
+          rx={4}
+          fill="none"
+          stroke="var(--vscode-focusBorder)"
+          strokeWidth={2}
+          strokeDasharray="4 3"
+          style={{ pointerEvents: 'none' }}
+        />
+      )}
 
       {/* Bus stub (thick line) */}
       <line

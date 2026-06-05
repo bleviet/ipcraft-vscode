@@ -2,6 +2,8 @@ import React from 'react';
 import type { YamlUpdateHandler } from '../../../types/editor';
 import type { IpCore } from '../../../types/ipCore';
 import { IpBlockCanvas } from '../canvas/IpBlockCanvas';
+import type { BatchUpdate } from '../../hooks/useGroupPorts';
+import type { SuggestionChip } from '../../hooks/useProtocolSuggestions';
 
 interface EditorPanelProps {
   ipCore: IpCore | null;
@@ -15,6 +17,12 @@ interface EditorPanelProps {
   onCanvasDragOver?: (e: React.DragEvent) => void;
   onCanvasDrop?: (e: React.DragEvent) => void;
   onCanvasRemove?: (kind: string, id: string) => void;
+  multiSelectedIds?: Set<string>;
+  onShiftSelect?: (id: string) => void;
+  batchUpdate?: BatchUpdate;
+  suggestionChips?: SuggestionChip[];
+  onDismissSelection?: () => void;
+  onDismissSuggestion?: (chipId: string) => void;
 }
 
 export const EditorPanel: React.FC<EditorPanelProps> = ({
@@ -29,6 +37,12 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
   onCanvasDragOver,
   onCanvasDrop,
   onCanvasRemove,
+  multiSelectedIds,
+  onShiftSelect,
+  batchUpdate,
+  suggestionChips,
+  onDismissSelection,
+  onDismissSuggestion,
 }) => {
   if (!ipCore) {
     return (
@@ -60,6 +74,12 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
         onDrop={onCanvasDrop}
         onRemove={onCanvasRemove}
         busLibrary={imports.busLibrary as Record<string, unknown> | undefined}
+        multiSelectedIds={multiSelectedIds}
+        onShiftSelect={onShiftSelect}
+        batchUpdate={batchUpdate}
+        suggestionChips={suggestionChips}
+        onDismissSelection={onDismissSelection}
+        onDismissSuggestion={onDismissSuggestion}
       />
     </div>
   );

@@ -4,11 +4,15 @@ import { STUB_LENGTH } from './canvasLayout';
 
 import { ValidationAnnotation } from '../../hooks/useCanvasValidation';
 
+const PORT_MOVE_MIME = 'application/x-ipcraft-port-move';
+
 interface CanvasPortProps {
   port: LayoutPort;
   selected: boolean;
+  inMultiSelection?: boolean;
   annotations?: ValidationAnnotation[];
   onSelect: (id: string) => void;
+  onShiftSelect?: (id: string) => void;
   domainColor?: string;
 }
 
@@ -22,8 +26,10 @@ interface CanvasPortProps {
 export const CanvasPort: React.FC<CanvasPortProps> = ({
   port,
   selected,
+  inMultiSelection = false,
   annotations,
   onSelect,
+  onShiftSelect,
   domainColor,
 }) => {
   const isLeft = port.side === 'left';
@@ -94,18 +100,25 @@ export const CanvasPort: React.FC<CanvasPortProps> = ({
 
   return (
     <g
-      className={`canvas-port canvas-port--${port.kind} ${selected ? 'canvas-port--selected' : ''}`}
+      className={`canvas-port canvas-port--${port.kind} ${selected ? 'canvas-port--selected' : ''} ${inMultiSelection ? 'canvas-port--multi-selected' : ''}`}
       onClick={(e) => {
         e.stopPropagation();
-        onSelect(port.id);
+        if (e.shiftKey && onShiftSelect) {
+          onShiftSelect(port.id);
+        } else {
+          onSelect(port.id);
+        }
       }}
       data-port-id={port.id}
       style={{ cursor: 'grab' }}
       onDragStart={(e) => {
         // Need to stop propagation so parent drag isn't triggered
         e.stopPropagation();
-        const payload = { action: 'remove', kind: port.kind, id: port.id };
-        e.dataTransfer.setData('application/x-ipcraft-remove', JSON.stringify(payload));
+        const portIndex = parseInt(port.id.split(':')[1] ?? '-1', 10);
+        const movePayload = { portIndex };
+        e.dataTransfer.setData(PORT_MOVE_MIME, JSON.stringify(movePayload));
+        const removePayload = { action: 'remove', kind: port.kind, id: port.id };
+        e.dataTransfer.setData('application/x-ipcraft-remove', JSON.stringify(removePayload));
         e.dataTransfer.effectAllowed = 'move';
 
         // Visual feedback during drag
@@ -192,6 +205,11 @@ export const CanvasPort: React.FC<CanvasPortProps> = ({
       {/* Selection ring */}
       {selected && (
         <circle cx={port.x} cy={port.y} r={10} className="canvas-port__selection-ring" />
+      )}
+
+      {/* Multi-selection dashed ring */}
+      {inMultiSelection && !selected && (
+        <circle cx={port.x} cy={port.y} r={10} className="canvas-port__multi-selection-ring" />
       )}
 
       {/* Validation Indicator */}

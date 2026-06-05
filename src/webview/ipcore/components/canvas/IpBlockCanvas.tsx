@@ -6,11 +6,16 @@ import { CanvasBusBundle } from './CanvasBusBundle';
 import { CanvasBusSubPort } from './CanvasBusSubPort';
 import { RemoveZone } from './RemoveZone';
 import { useCanvasValidation } from '../../hooks/useCanvasValidation';
-import { lookupBusDef, lookupBusDefFromLibrary } from '../../data/busDefinitions';
+import { lookupBusDef, lookupBusDefFromLibrary, isConduitType } from '../../data/busDefinitions';
 import type { BusPortDef } from '../../data/busDefinitions';
 import type { YamlUpdateHandler } from '../../../types/editor';
 import { DRAG_MIME, getActiveDragPayload, type LibraryDragPayload } from './LibraryPalette';
 import { vscode } from '../../../vscode';
+import { CanvasSelectionActions } from './CanvasSelectionActions';
+import { PortMappingDialog } from './PortMappingDialog';
+import type { BatchUpdate } from '../../hooks/useGroupPorts';
+import { useGroupPorts } from '../../hooks/useGroupPorts';
+import type { SuggestionChip } from '../../hooks/useProtocolSuggestions';
 import './canvas.css';
 
 /** Distinct colours for clock domains when multiple clocks are defined */
@@ -36,6 +41,18 @@ interface IpBlockCanvasProps {
   onRemove?: (kind: string, id: string) => void;
   /** Runtime bus library from imports (includes custom bus definitions) */
   busLibrary?: Record<string, unknown>;
+  /** IDs currently in the multi-selection set (for dashed ring rendering) */
+  multiSelectedIds?: Set<string>;
+  /** Shift+Click handler — toggles membership in multi-selection */
+  onShiftSelect?: (id: string) => void;
+  /** Atomic batch update for grouping operations (single undo entry) */
+  batchUpdate?: BatchUpdate;
+  /** Protocol suggestion chips from useProtocolSuggestions */
+  suggestionChips?: SuggestionChip[];
+  /** Called when the multi-selection toolbar is dismissed */
+  onDismissSelection?: () => void;
+  /** Called when a suggestion chip is dismissed */
+  onDismissSuggestion?: (chipId: string) => void;
 }
 
 /**
@@ -54,7 +71,18 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
   onDrop,
   onRemove,
   busLibrary,
+  multiSelectedIds,
+  onShiftSelect,
+  batchUpdate,
+  suggestionChips,
+  onDismissSelection,
+  onDismissSuggestion,
 }) => {
+  // Pending port-drop-on-standard-bus confirmation state
+  const [pendingPortDrop, setPendingPortDrop] = useState<{
+    portIndex: number;
+    busIndex: number;
+  } | null>(null);
   const [expandedBusIds, setExpandedBusIds] = useState<Set<string>>(new Set());
 
   const busDefs = useMemo((): ((type: string) => BusPortDef[] | null) => {
@@ -220,6 +248,30 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
 
   const annotations = useCanvasValidation(ipCore);
 
+  // Group ports hook — only instantiated when batchUpdate is available
+  const noopBatch: BatchUpdate = useCallback(() => {}, []);
+  const groupPorts = useGroupPorts(ipCore, batchUpdate ?? noopBatch);
+
+  const handlePortDropOnBus = useCallback(
+    (portIndex: number, busIndex: number) => {
+      if (!batchUpdate) {
+        return;
+      }
+      const bus = ipCore.busInterfaces?.[busIndex];
+      if (!bus) {
+        return;
+      }
+      if (isConduitType(bus.type) || bus.conduitPorts) {
+        // Conduit: add immediately without confirmation
+        groupPorts.addPortToConduit(portIndex, busIndex);
+      } else {
+        // Standard protocol: show confirmation dialog
+        setPendingPortDrop({ portIndex, busIndex });
+      }
+    },
+    [batchUpdate, groupPorts, ipCore]
+  );
+
   const handleBackgroundClick = useCallback(() => {
     // If the mousedown turned into a pan-drag, suppress the deselect
     if (hasDraggedRef.current) {
@@ -227,7 +279,8 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
       return;
     }
     onSelect(null);
-  }, [onSelect]);
+    onDismissSelection?.();
+  }, [onSelect, onDismissSelection]);
 
   const handleBackgroundDoubleClick = useCallback(() => {
     setZoom(1.0);
@@ -300,6 +353,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
 
       if (e.key === 'Escape') {
         onSelect(null);
+        onDismissSelection?.();
       } else if ((e.ctrlKey || e.metaKey) && e.key === '0') {
         e.preventDefault();
         setZoom(1.0);
@@ -311,7 +365,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedId, onSelect, onRemove, triggerZoomIndicator]);
+  }, [selectedId, onSelect, onRemove, onDismissSelection, triggerZoomIndicator]);
 
   const handleDragOver = useCallback(
     (e: React.DragEvent) => {
@@ -797,6 +851,12 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
                     port={p}
                     selected={isSelected}
                     annotations={annotations[p.id]}
+                    onPortDrop={
+                      batchUpdate
+                        ? (portIndex) =>
+                            handlePortDropOnBus(portIndex, parseInt(p.id.split(':')[1] ?? '0', 10))
+                        : undefined
+                    }
                     onSelect={onSelect}
                     isExpanded={busExpanded}
                     onToggleExpand={hasBusDef ? () => toggleBusExpand(p.id) : undefined}
@@ -826,8 +886,10 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
                 <CanvasPort
                   port={p}
                   selected={isSelected}
+                  inMultiSelection={multiSelectedIds?.has(p.id) ?? false}
                   annotations={annotations[p.id]}
                   onSelect={onSelect}
+                  onShiftSelect={onShiftSelect}
                   domainColor={getDomainColor(p.clockDomainIdx)}
                 />
               </g>
@@ -872,6 +934,67 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
       {showZoomIndicator && (
         <div className="ip-canvas-zoom-indicator">{Math.round(zoom * 100)}%</div>
       )}
+
+      {/* HUD layer — sits outside the SVG transform, pinned to container viewport */}
+      <div className="ip-canvas-hud">
+        {/* Multi-select toolbar */}
+        {multiSelectedIds && multiSelectedIds.size >= 2 && batchUpdate && onDismissSelection && (
+          <CanvasSelectionActions
+            multiSelection={{ all: buildMultiSelectionMap(multiSelectedIds), isMulti: true }}
+            ipCore={ipCore}
+            batchUpdate={batchUpdate}
+            onDismiss={onDismissSelection}
+          />
+        )}
+
+        {/* Protocol suggestion chips */}
+        {suggestionChips && suggestionChips.length > 0 && (
+          <div className="ip-canvas-suggestion-chips">
+            {suggestionChips.map((chip) => (
+              <div key={chip.id} className="ip-canvas-suggestion-chip">
+                <span>
+                  ⚡ {chip.label} detected ({Math.round(chip.score * 100)}%)
+                </span>
+                <button
+                  className="ip-canvas-suggestion-chip__group-btn"
+                  onClick={() => {
+                    if (!batchUpdate || !onDismissSuggestion) {
+                      return;
+                    }
+                    // Accept suggestion — dismisses chip; user can also use multi-select
+                    onDismissSuggestion(chip.id);
+                  }}
+                >
+                  Group ▸
+                </button>
+                <button
+                  className="ip-canvas-suggestion-chip__dismiss-btn"
+                  onClick={() => onDismissSuggestion?.(chip.id)}
+                  title="Dismiss"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Port-on-standard-bus confirmation dialog */}
+        {pendingPortDrop && (
+          <PortMappingDialog
+            ipCore={ipCore}
+            portIndex={pendingPortDrop.portIndex}
+            busIndex={pendingPortDrop.busIndex}
+            onConfirm={() => {
+              if (batchUpdate) {
+                groupPorts.addPortToConduit(pendingPortDrop.portIndex, pendingPortDrop.busIndex);
+              }
+              setPendingPortDrop(null);
+            }}
+            onCancel={() => setPendingPortDrop(null)}
+          />
+        )}
+      </div>
     </div>
   );
 };
@@ -895,6 +1018,27 @@ function getDragHintLabels(
     default:
       return null;
   }
+}
+
+function buildMultiSelectionMap(
+  ids: Set<string>
+): Map<string, { kind: 'port' | 'interrupt'; index: number; id: string }> {
+  const map = new Map<string, { kind: 'port' | 'interrupt'; index: number; id: string }>();
+  for (const id of ids) {
+    const parts = id.split(':');
+    if (parts.length !== 2) {
+      continue;
+    }
+    const [kindRaw, indexStr] = parts;
+    const index = parseInt(indexStr, 10);
+    if (isNaN(index)) {
+      continue;
+    }
+    if (kindRaw === 'port' || kindRaw === 'interrupt') {
+      map.set(id, { kind: kindRaw, index, id });
+    }
+  }
+  return map;
 }
 
 function renderEdgeBadge(

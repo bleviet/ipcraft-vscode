@@ -1872,3 +1872,82 @@
   line-height: 1.4;
 }
 
+/* ========================================
+   HUD LAYER — sits outside SVG transform
+   ======================================== */
+
+.ip-canvas-hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.ip-canvas-hud > * {
+  pointer-events: auto;
+}
+
+/* Multi-select dashed ring on canvas ports */
+.canvas-port__multi-selection-ring {
+  fill: none;
+  stroke: var(--vscode-focusBorder);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 3;
+  opacity: 0.85;
+}
+
+/* Protocol suggestion chips */
+.ip-canvas-suggestion-chips {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  max-width: 90%;
+}
+
+.ip-canvas-suggestion-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--vscode-badge-background);
+  color: var(--vscode-badge-foreground);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 11px;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.ip-canvas-suggestion-chip__group-btn {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  border: none;
+  border-radius: 2px;
+  padding: 2px 6px;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.ip-canvas-suggestion-chip__group-btn:hover {
+  background: var(--vscode-button-hoverBackground);
+}
+
+.ip-canvas-suggestion-chip__dismiss-btn {
+  background: transparent;
+  color: inherit;
+  border: none;
+  cursor: pointer;
+  font-size: 10px;
+  opacity: 0.7;
+  padding: 0 2px;
+  line-height: 1;
+}
+
+.ip-canvas-suggestion-chip__dismiss-btn:hover {
+  opacity: 1;
+}
+

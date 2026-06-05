@@ -554,6 +554,9 @@ export interface BusInterface {
   memoryMapRef?: Memorymapref;
   useOptionalPorts?: Useoptionalports;
   portWidthOverrides?: Portwidthoverrides;
+  /** Logical-signal-name → physical suffix overrides, used when physical port names
+   *  deviate from the physicalPrefix + logicalName.toLowerCase() convention. */
+  portNameOverrides?: Record<string, string>;
   /**
    * Array configuration for multiple instances
    */
