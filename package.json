@@ -547,6 +547,128 @@
           "when": "resourceFilename =~ /\\.ip\\.yml$/ && !activeCustomEditorId || resourceFilename =~ /\\.mm\\.yml$/ && !activeCustomEditorId",
           "group": "navigation"
         }
+      ],
+      "commandPalette": [
+        {
+          "command": "fpga-ip-core.copyComponentInstanceDone",
+          "when": "false"
+        },
+        {
+          "command": "fpga-ip-core.vivadoNotConfigured",
+          "when": "false"
+        },
+        {
+          "command": "fpga-ip-core.quartusNotConfigured",
+          "when": "false"
+        },
+        {
+          "command": "fpga-ip-core.qsysEditNotConfigured",
+          "when": "false"
+        },
+        {
+          "command": "fpga-ip-core.buildNotConfigured",
+          "when": "false"
+        },
+        {
+          "command": "fpga-ip-core.pinPreviewIpCore",
+          "when": "false"
+        },
+        {
+          "command": "fpga-ip-core.generateHdl",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/"
+        },
+        {
+          "command": "fpga-ip-core.scaffoldProject",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/"
+        },
+        {
+          "command": "fpga-ip-core.exportAltera",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/"
+        },
+        {
+          "command": "fpga-ip-core.exportXilinx",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/"
+        },
+        {
+          "command": "fpga-ip-core.generateTestbench",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/"
+        },
+        {
+          "command": "fpga-ip-core.generateVivadoProject",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/"
+        },
+        {
+          "command": "fpga-ip-core.generateQuartusProject",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/"
+        },
+        {
+          "command": "fpga-ip-core.generateAndBuildVivado",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/ && ipcraft.vivadoFound"
+        },
+        {
+          "command": "fpga-ip-core.generateAndBuildQuartus",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/ && ipcraft.quartusFound"
+        },
+        {
+          "command": "fpga-ip-core.buildVivadoOoc",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/ && ipcraft.vivadoFound"
+        },
+        {
+          "command": "fpga-ip-core.buildQuartusCompile",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/ && ipcraft.quartusFound"
+        },
+        {
+          "command": "fpga-ip-core.build",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/ && (ipcraft.vivadoFound || ipcraft.quartusFound)"
+        },
+        {
+          "command": "fpga-ip-core.editInIpPackager",
+          "when": "resourceFilename == component.xml && ipcraft.vivadoFound"
+        },
+        {
+          "command": "fpga-ip-core.editInPlatformDesigner",
+          "when": "resourceFilename =~ /_hw\\.tcl$/ && ipcraft.qsysEditFound"
+        },
+        {
+          "command": "fpga-ip-core.openInVivado",
+          "when": "resourceExtname == .xpr && ipcraft.vivadoFound"
+        },
+        {
+          "command": "fpga-ip-core.openInQuartus",
+          "when": "resourceExtname == .qpf && ipcraft.quartusFound"
+        },
+        {
+          "command": "fpga-ip-core.parseVHDL",
+          "when": "resourceExtname == .vhd || resourceExtname == .vhdl || resourceExtname == .v || resourceExtname == .sv"
+        },
+        {
+          "command": "fpga-ip-core.parseHwTcl",
+          "when": "resourceFilename =~ /_hw\\.tcl$/"
+        },
+        {
+          "command": "fpga-ip-core.parseComponentXml",
+          "when": "resourceFilename == component.xml"
+        },
+        {
+          "command": "fpga-ip-core.previewInIpcraft",
+          "when": "resourceExtname == .vhd || resourceExtname == .vhdl || resourceExtname == .v || resourceExtname == .sv || resourceFilename =~ /_hw\\.tcl$/ || resourceFilename == component.xml"
+        },
+        {
+          "command": "fpga-ip-core.previewTemplateOutput",
+          "when": "resourceExtname == .j2"
+        },
+        {
+          "command": "fpga-ip-core.copyComponentInstance",
+          "when": "resourceExtname == .vhd || resourceExtname == .vhdl || resourceExtname == .sv || resourceExtname == .v"
+        },
+        {
+          "command": "fpga-ip-core.openAsText",
+          "when": "activeCustomEditorId == 'fpgaIpCore.editor' || activeCustomEditorId == 'fpgaMemoryMap.editor' || activeCustomEditorId == 'fpgaIpCore.sourcePreview'"
+        },
+        {
+          "command": "fpga-ip-core.openAsVisual",
+          "when": "(resourceFilename =~ /\\.ip\\.yml$/ || resourceFilename =~ /\\.mm\\.yml$/) && !activeCustomEditorId"
+        }
       ]
     },
     "configuration": [
