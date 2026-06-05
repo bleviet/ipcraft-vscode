@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import type {
   IpCore,
   Clock,
@@ -20,6 +20,8 @@ import {
   lookupBusDef,
   lookupBusDefFromLibrary,
   isConduitType,
+  BUILTIN_BUS_TYPES,
+  listLibraryBusTypes,
   type BusPortDef,
 } from '../../data/busDefinitions';
 import { supportsMemoryMap } from './canvasLayout';
@@ -1132,13 +1134,10 @@ const BusPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, onUpda
           placeholder="s_axi_lite"
           mono
         />
-        <PropField
-          label="Bus Type"
+        <BusTypeField
           value={bus.type}
+          busLibrary={imports?.busLibrary}
           onSave={(v) => onUpdate(['busInterfaces', index, 'type'], v)}
-          placeholder="ipcraft.busif.axi4_lite.1.0"
-          hint="Vendor.library.name.version"
-          mono
         />
       </Section>
       <Section title="Configuration">
@@ -2081,6 +2080,119 @@ const MemoryMapField: React.FC<MemoryMapFieldProps> = ({ importPath, onSave }) =
 // ─────────────────────────────────────────────────────
 //  Shared field primitives
 // ─────────────────────────────────────────────────────
+
+// ─────────────────────────────────────────────────────
+//  BusTypeField — preset select / manual VLNV text toggle
+// ─────────────────────────────────────────────────────
+
+interface BusTypeFieldProps {
+  value: string;
+  busLibrary?: unknown;
+  onSave: (vlnv: string) => void;
+}
+
+const BusTypeField: React.FC<BusTypeFieldProps> = ({ value, busLibrary, onSave }) => {
+  const libraryOpts = useMemo(
+    () => (busLibrary ? listLibraryBusTypes(busLibrary as Record<string, unknown>) : []),
+    [busLibrary]
+  );
+  const allOpts = useMemo(() => [...BUILTIN_BUS_TYPES, ...libraryOpts], [libraryOpts]);
+  const isPreset = allOpts.some((o) => o.vlnv === value);
+
+  const [mode, setMode] = useState<'preset' | 'manual'>(() => (isPreset ? 'preset' : 'manual'));
+  const [draft, setDraft] = useState(value);
+  const [focused, setFocused] = useState(false);
+
+  useEffect(() => {
+    if (!focused) {
+      setDraft(value);
+    }
+  }, [value, focused]);
+
+  const commitManual = () => {
+    setFocused(false);
+    const trimmed = draft.trim();
+    if (trimmed && trimmed !== value) {
+      onSave(trimmed);
+    } else {
+      setDraft(value);
+    }
+  };
+
+  const toggleMode = () => {
+    if (mode === 'preset') {
+      setMode('manual');
+      setDraft(value);
+    } else {
+      setMode('preset');
+      if (!allOpts.some((o) => o.vlnv === value)) {
+        onSave(BUILTIN_BUS_TYPES[0].vlnv);
+      }
+    }
+  };
+
+  const valueInList = allOpts.some((o) => o.vlnv === value);
+
+  return (
+    <div className="ci-field">
+      <label className="ci-field__label">Bus Type</label>
+      <div className="ci-field__input-row">
+        {mode === 'preset' ? (
+          <select
+            className="ci-field__select"
+            value={valueInList ? value : ''}
+            onChange={(e) => onSave(e.target.value)}
+          >
+            {!valueInList && (
+              <option value="" disabled>
+                — select a type —
+              </option>
+            )}
+            {allOpts.map(({ vlnv, label }) => (
+              <option key={vlnv} value={vlnv}>
+                {label}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <input
+            className="ci-field__input"
+            value={focused ? draft : value}
+            placeholder="ipcraft.busif.axi4_lite.1.0"
+            style={{ fontFamily: 'var(--vscode-editor-font-family, monospace)' }}
+            onChange={(e) => setDraft(e.target.value)}
+            onFocus={() => {
+              setFocused(true);
+              setDraft(value);
+            }}
+            onBlur={commitManual}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.currentTarget.blur();
+              } else if (e.key === 'Escape') {
+                setDraft(value);
+                setFocused(false);
+                e.currentTarget.blur();
+              }
+            }}
+          />
+        )}
+        <button
+          className="ci-pw-mode-toggle ci-field__mode-toggle"
+          onClick={toggleMode}
+          title={mode === 'preset' ? 'Enter VLNV manually' : 'Choose from preset types'}
+        >
+          {mode === 'preset' ? (
+            <span className="codicon codicon-edit" aria-label="manual" />
+          ) : (
+            <span className="codicon codicon-list-unordered" aria-label="preset" />
+          )}
+        </button>
+      </div>
+      {mode === 'manual' && <div className="ci-field__hint">Vendor.library.name.version</div>}
+    </div>
+  );
+};
 
 // ─────────────────────────────────────────────────────
 //  PropWidthField — labeled width field with number/parameter toggle

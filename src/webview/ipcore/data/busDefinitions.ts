@@ -159,6 +159,35 @@ export function isConduitType(busType: string): boolean {
   return busType.toLowerCase().includes('conduit');
 }
 
+/** All built-in bus types in display order, mirroring the Library Palette. */
+export const BUILTIN_BUS_TYPES: { vlnv: string; label: string }[] = [
+  { vlnv: 'ipcraft.busif.axi4_lite.1.0', label: 'AXI4-Lite' },
+  { vlnv: 'ipcraft.busif.axi4_full.1.0', label: 'AXI4-Full' },
+  { vlnv: 'ipcraft.busif.axi_stream.1.0', label: 'AXI-Stream' },
+  { vlnv: 'ipcraft.busif.avalon_mm.1.0', label: 'Avalon-MM' },
+  { vlnv: 'ipcraft.busif.avalon_st.1.0', label: 'Avalon-ST' },
+  { vlnv: 'ipcraft.busif.conduit.1.0', label: 'Custom Interface' },
+];
+
+/** Enumerates all VLNVs present in the runtime bus library for use in a selector. */
+export function listLibraryBusTypes(
+  library: Record<string, unknown>
+): { vlnv: string; label: string }[] {
+  const result: { vlnv: string; label: string }[] = [];
+  for (const key of Object.keys(library)) {
+    const entry = library[key] as Record<string, unknown>;
+    const bt = entry.busType as Record<string, string> | undefined;
+    if (!bt) {
+      continue;
+    }
+    const vlnv = [bt.vendor, bt.library, bt.name, bt.version].filter(Boolean).join('.');
+    if (vlnv) {
+      result.push({ vlnv, label: `${bt.name ?? vlnv} (${bt.vendor ?? 'lib'})` });
+    }
+  }
+  return result;
+}
+
 /**
  * Looks up a bus definition from the runtime bus library (loaded from YAML files).
  * The library entries follow the format: { [DisplayKey]: { busType: {vendor,library,name,version}, ports: [...] } }
