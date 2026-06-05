@@ -159,14 +159,15 @@ export function isConduitType(busType: string): boolean {
   return busType.toLowerCase().includes('conduit');
 }
 
-/** All built-in bus types in display order, mirroring the Library Palette. */
+/** All built-in standard bus types in display order, mirroring the Library Palette.
+ *  Custom Interface (conduit) is intentionally excluded — switching to it is a
+ *  destructive mode change that should be done deliberately via the Library Palette. */
 export const BUILTIN_BUS_TYPES: { vlnv: string; label: string }[] = [
   { vlnv: 'ipcraft.busif.axi4_lite.1.0', label: 'AXI4-Lite' },
   { vlnv: 'ipcraft.busif.axi4_full.1.0', label: 'AXI4-Full' },
   { vlnv: 'ipcraft.busif.axi_stream.1.0', label: 'AXI-Stream' },
   { vlnv: 'ipcraft.busif.avalon_mm.1.0', label: 'Avalon-MM' },
   { vlnv: 'ipcraft.busif.avalon_st.1.0', label: 'Avalon-ST' },
-  { vlnv: 'ipcraft.busif.conduit.1.0', label: 'Custom Interface' },
 ];
 
 /** Enumerates all VLNVs present in the runtime bus library for use in a selector. */
