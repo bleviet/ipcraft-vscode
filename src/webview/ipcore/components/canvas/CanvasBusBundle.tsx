@@ -297,43 +297,6 @@ export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
         </text>
       )}
 
-      {/* Inline rename input */}
-      {isRenaming &&
-        (() => {
-          const nameX = port.x + (isLeft ? 12 : -12);
-          const nameY = port.y + nameYOffset;
-          const foX = isLeft ? nameX : nameX - RENAME_INPUT_W;
-          return (
-            <foreignObject
-              x={foX}
-              y={nameY - RENAME_INPUT_H / 2}
-              width={RENAME_INPUT_W}
-              height={RENAME_INPUT_H}
-              style={{ overflow: 'visible' }}
-            >
-              <input
-                className="canvas-bus-subport__rename-input"
-                style={{ textAlign: isLeft ? 'left' : 'right' }}
-                autoFocus
-                value={renameValue}
-                onChange={(e) => setRenameValue(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    commitRename();
-                  } else if (e.key === 'Escape') {
-                    abortRef.current = true;
-                    setIsRenaming(false);
-                  }
-                }}
-                onBlur={commitRename}
-                onClick={(e) => e.stopPropagation()}
-                onMouseDown={(e) => e.stopPropagation()}
-              />
-            </foreignObject>
-          );
-        })()}
-
       {/* Memory map ref badge (INSIDE the block, below the name) */}
       {port.memoryMapRef && (
         <g
@@ -449,6 +412,42 @@ export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
           <title>{tooltipText}</title>
         </circle>
       )}
+
+      {/* Inline rename input — rendered last so it paints above badges */}
+      {isRenaming &&
+        (() => {
+          const nameX = port.x + (isLeft ? 12 : -12);
+          const nameY = port.y + nameYOffset;
+          const foX = isLeft ? nameX : nameX - RENAME_INPUT_W;
+          return (
+            <foreignObject
+              x={foX}
+              y={nameY - RENAME_INPUT_H / 2}
+              width={RENAME_INPUT_W}
+              height={RENAME_INPUT_H}
+            >
+              <input
+                className="canvas-bus-subport__rename-input"
+                style={{ textAlign: isLeft ? 'left' : 'right' }}
+                autoFocus
+                value={renameValue}
+                onChange={(e) => setRenameValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    commitRename();
+                  } else if (e.key === 'Escape') {
+                    abortRef.current = true;
+                    setIsRenaming(false);
+                  }
+                }}
+                onBlur={commitRename}
+                onClick={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+              />
+            </foreignObject>
+          );
+        })()}
     </g>
   );
 };

@@ -2074,6 +2074,8 @@
   outline: none;
   font-family: var(--vscode-editor-font-family, monospace);
   font-size: 9px;
+  line-height: 1;
   box-sizing: border-box;
+  vertical-align: top;
 }
 
