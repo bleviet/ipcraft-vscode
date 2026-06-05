@@ -1505,8 +1505,30 @@
   border-top: 1px solid var(--vscode-panel-border);
   background: var(--vscode-editorWidget-background);
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
   flex-shrink: 0;
+}
+
+.ci-ungroup-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 3px;
+  border: 1px solid color-mix(in srgb, var(--vscode-foreground) 25%, transparent);
+  background: transparent;
+  color: var(--vscode-foreground);
+  font-size: 11px;
+  font-family: var(--vscode-font-family);
+  cursor: pointer;
+  opacity: 0.75;
+  transition: opacity 0.15s, background 0.15s;
+}
+.ci-ungroup-btn:hover {
+  opacity: 1;
+  background: color-mix(in srgb, var(--vscode-foreground) 8%, transparent);
 }
 
 .ci-delete-btn {

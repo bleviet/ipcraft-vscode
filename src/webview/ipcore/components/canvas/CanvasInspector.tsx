@@ -32,6 +32,8 @@ interface CanvasInspectorProps {
   onUpdate: YamlUpdateHandler;
   onClose: () => void;
   onDelete?: () => void;
+  /** Dissolve a bus interface and restore its signals to the standalone ports list */
+  onUngroup?: () => void;
 }
 
 const INSPECTOR_WIDTH_KEY = 'ipcraft.inspectorWidth';
@@ -46,6 +48,7 @@ export const CanvasInspector: React.FC<CanvasInspectorProps> = ({
   onUpdate,
   onClose,
   onDelete,
+  onUngroup,
 }) => {
   // Resize state — hooks must come before any early return
   const [panelWidth, setPanelWidth] = useState<number>(() => {
@@ -134,16 +137,29 @@ export const CanvasInspector: React.FC<CanvasInspectorProps> = ({
       <div className="ci-body">{renderPanel(selected, ipCore, onUpdate, imports)}</div>
 
       {/* ── Footer ── */}
-      {onDelete && selected.kind !== 'body' && (
+      {selected.kind !== 'body' && (onDelete ?? onUngroup) && (
         <div className="ci-footer">
-          <button
-            className="ci-delete-btn"
-            onClick={onDelete}
-            title={`Delete this ${kindLabel(selected.kind).toLowerCase()}`}
-          >
-            <span className="codicon codicon-trash" />
-            Delete
-          </button>
+          {onUngroup && selected.kind === 'busInterface' && (
+            <button
+              className="ci-ungroup-btn"
+              onClick={onUngroup}
+              title="Remove this interface and restore its signals as standalone ports"
+              type="button"
+            >
+              <span className="codicon codicon-ungroup-by-ref-type" />
+              Ungroup signals
+            </button>
+          )}
+          {onDelete && (
+            <button
+              className="ci-delete-btn"
+              onClick={onDelete}
+              title={`Delete this ${kindLabel(selected.kind).toLowerCase()} and discard its signals`}
+            >
+              <span className="codicon codicon-trash" />
+              Delete
+            </button>
+          )}
         </div>
       )}
     </div>

@@ -12,6 +12,7 @@ import { LibraryPalette } from './components/canvas/LibraryPalette';
 import { StagingOverlay, type StagedFileView } from './components/canvas/StagingOverlay';
 import { vscode } from '../vscode';
 import type { IpCore, BusInterface } from '../types/ipCore';
+import { useGroupPorts } from './hooks/useGroupPorts';
 import type { BatchUpdate } from './hooks/useGroupPorts';
 import '@vscode/codicons/dist/codicon.css';
 import '../index.css';
@@ -552,6 +553,17 @@ const IpCoreApp: React.FC = () => {
     updateIpCore([key], updated);
     canvasDeselect();
   }, [canvasSelected, ipCore, updateIpCore, canvasDeselect]);
+
+  // Ungroup a bus interface: restore its signals to ports[], remove the interface
+  const { ungroupBusInterface } = useGroupPorts(ipCore as unknown as IpCore, batchUpdateIpCore);
+
+  const handleInspectorUngroup = React.useCallback(() => {
+    if (canvasSelected?.kind !== 'busInterface') {
+      return;
+    }
+    ungroupBusInterface(canvasSelected.index);
+    canvasDeselect();
+  }, [canvasSelected, ungroupBusInterface, canvasDeselect]);
 
   const validationErrors = getValidationErrors();
 
@@ -1097,6 +1109,7 @@ const IpCoreApp: React.FC = () => {
                 onUpdate={updateIpCore}
                 onClose={canvasDeselect}
                 onDelete={handleInspectorDelete}
+                onUngroup={handleInspectorUngroup}
               />
             ) : null}
           </>
