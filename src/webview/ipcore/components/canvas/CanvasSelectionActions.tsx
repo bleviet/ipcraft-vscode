@@ -3,7 +3,7 @@ import type { IpCore } from '../../../types/ipCore';
 import type { CanvasMultiSelection } from '../../hooks/useCanvasSelection';
 import type { BatchUpdate } from '../../hooks/useGroupPorts';
 import { useGroupPorts } from '../../hooks/useGroupPorts';
-import { matchPorts, type ProtocolMatch } from '../../utils/protocolMatcher';
+import { matchPorts, getAllProtocols, type ProtocolMatch } from '../../utils/protocolMatcher';
 import { GroupingMappingStep } from './GroupingMappingStep';
 
 interface CanvasSelectionActionsProps {
@@ -61,6 +61,15 @@ const STYLE = {
     background: 'var(--vscode-panel-border)',
     flexShrink: 0,
   },
+  select: {
+    background: 'var(--vscode-dropdown-background)',
+    color: 'var(--vscode-dropdown-foreground)',
+    border: '1px solid var(--vscode-dropdown-border, var(--vscode-panel-border))',
+    borderRadius: 2,
+    padding: '3px 4px',
+    fontSize: 11,
+    cursor: 'pointer',
+  },
 };
 
 export const CanvasSelectionActions: React.FC<CanvasSelectionActionsProps> = ({
@@ -101,6 +110,10 @@ export const CanvasSelectionActions: React.FC<CanvasSelectionActionsProps> = ({
     }
     return matchPorts(selectedPorts).filter((m) => m.score >= SCORE_THRESHOLD);
   }, [selectedPorts]);
+
+  const allProtocols = useMemo(() => getAllProtocols(), []);
+
+  const suggestedTypes = useMemo(() => new Set(suggestions.map((m) => m.busType)), [suggestions]);
 
   const handleGroupAsConduit = () => {
     const existingNames = (ipCore.busInterfaces ?? []).map((b) => b.name);
@@ -159,6 +172,32 @@ export const CanvasSelectionActions: React.FC<CanvasSelectionActionsProps> = ({
           Group as {m.label}
         </button>
       ))}
+      <select
+        style={STYLE.select}
+        defaultValue=""
+        onChange={(e) => {
+          const chosen = allProtocols.find((p) => p.busType === e.target.value);
+          if (chosen && !suggestedTypes.has(chosen.busType)) {
+            setMappingStep({ busType: chosen.busType, busLabel: chosen.label });
+          } else if (chosen) {
+            const suggestion = suggestions.find((s) => s.busType === chosen.busType);
+            if (suggestion) {
+              handleGroupAsProtocol(suggestion);
+            }
+          }
+          e.target.value = '';
+        }}
+      >
+        <option value="" disabled>
+          Group as Standard…
+        </option>
+        {allProtocols.map((p) => (
+          <option key={p.busType} value={p.busType}>
+            {p.label}
+            {suggestedTypes.has(p.busType) ? ' ✓' : ''}
+          </option>
+        ))}
+      </select>
       <div style={STYLE.sep} />
       <button style={STYLE.btnSecondary} onClick={onDismiss} title="Dismiss (Escape)">
         ✕

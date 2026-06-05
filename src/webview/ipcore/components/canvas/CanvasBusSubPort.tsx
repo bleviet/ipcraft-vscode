@@ -39,7 +39,7 @@ export const CanvasBusSubPort: React.FC<CanvasBusSubPortProps> = ({
   const logicalLabel = subPort.widthLabel ? `${subPort.name}${subPort.widthLabel}` : subPort.name;
 
   // Physical label shown outside on the stub (actual HDL port name)
-  const physicalName = `${subPort.physicalPrefix}${subPort.name.toLowerCase()}`;
+  const physicalName = `${subPort.physicalPrefix}${subPort.physicalSuffix ?? subPort.name.toLowerCase()}`;
   const physicalLabel = subPort.widthLabel ? `${physicalName}${subPort.widthLabel}` : physicalName;
 
   const handleClick = (e: React.MouseEvent) => {

@@ -266,6 +266,11 @@ export function inferPortAssignments(
   });
 }
 
+/** Returns all known standard protocol types, in display order. */
+export function getAllProtocols(): ReadonlyArray<{ busType: string; label: string }> {
+  return PROTOCOL_SPECS.map(({ busType, label }) => ({ busType, label }));
+}
+
 /**
  * Returns the suffix of a port name relative to a prefix, used to detect
  * whether a portNameOverride is needed.

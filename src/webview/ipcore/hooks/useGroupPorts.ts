@@ -12,6 +12,7 @@ export interface GroupAsStandardOptions {
   physicalPrefix: string;
   interfaceName: string;
   portNameOverrides?: Record<string, string>;
+  useOptionalPorts?: string[];
   associatedClock?: string | null;
   associatedReset?: string | null;
 }
@@ -45,6 +46,9 @@ export function useGroupPorts(ipCore: IpCore, batchUpdate: BatchUpdate) {
       }
       if (opts.portNameOverrides && Object.keys(opts.portNameOverrides).length > 0) {
         newBus.portNameOverrides = opts.portNameOverrides;
+      }
+      if (opts.useOptionalPorts && opts.useOptionalPorts.length > 0) {
+        newBus.useOptionalPorts = opts.useOptionalPorts;
       }
 
       const existingBuses: BusInterface[] = [...(ipCore.busInterfaces ?? [])];

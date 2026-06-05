@@ -101,6 +101,11 @@ export const CanvasPort: React.FC<CanvasPortProps> = ({
   return (
     <g
       className={`canvas-port canvas-port--${port.kind} ${selected ? 'canvas-port--selected' : ''} ${inMultiSelection ? 'canvas-port--multi-selected' : ''}`}
+      onMouseDown={(e) => {
+        if (e.shiftKey) {
+          e.preventDefault();
+        }
+      }}
       onClick={(e) => {
         e.stopPropagation();
         if (e.shiftKey && onShiftSelect) {

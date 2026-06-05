@@ -222,6 +222,7 @@ export const GroupingMappingStep: React.FC<GroupingMappingStepProps> = ({
 
   const handleConfirm = () => {
     const portNameOverrides: Record<string, string> = {};
+    const useOptionalPorts: string[] = [];
     const assignedPortIndices: number[] = [];
 
     for (const a of assignments) {
@@ -235,6 +236,9 @@ export const GroupingMappingStep: React.FC<GroupingMappingStepProps> = ({
       if (a.hasSuffixMismatch) {
         portNameOverrides[a.logicalName] = portSuffix(a.assignedPort.name, prefix);
       }
+      if (a.presence === 'optional') {
+        useOptionalPorts.push(a.logicalName);
+      }
     }
 
     onConfirm({
@@ -244,6 +248,7 @@ export const GroupingMappingStep: React.FC<GroupingMappingStepProps> = ({
       physicalPrefix: prefix,
       interfaceName,
       portNameOverrides: Object.keys(portNameOverrides).length > 0 ? portNameOverrides : undefined,
+      useOptionalPorts: useOptionalPorts.length > 0 ? useOptionalPorts : undefined,
       associatedClock: associatedClock || null,
       associatedReset: associatedReset || null,
     });

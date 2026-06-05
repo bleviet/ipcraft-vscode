@@ -90,6 +90,8 @@ export interface LayoutSubPort {
   active: boolean;
   /** Physical port prefix from the bus interface (e.g. `s_axi_`) */
   physicalPrefix: string;
+  /** Overridden physical suffix when portNameOverrides applies; falls back to name.toLowerCase() */
+  physicalSuffix?: string;
   /** Index into ipCore.clocks for this signal's clock domain, or -1 */
   clockDomainIdx: number;
 }
@@ -542,8 +544,10 @@ export function computeLayout(
       if (item.kind === 'bus' && expandedBusIds.has(id)) {
         const busData = item.data as {
           type?: string;
+          mode?: string;
           useOptionalPorts?: string[];
           portWidthOverrides?: Record<string, number | string>;
+          portNameOverrides?: Record<string, string>;
           physicalPrefix?: string;
           associatedClock?: string | null;
           associatedReset?: string | null;
@@ -585,8 +589,13 @@ export function computeLayout(
           const allPortDefs = busPortLookup(busData.type ?? '') ?? [];
           const useOptional = busData.useOptionalPorts ?? [];
           const overrides = busData.portWidthOverrides ?? {};
+          const nameOverrides = busData.portNameOverrides ?? {};
           const hasClock = !!busData.associatedClock;
           const hasReset = !!busData.associatedReset;
+          // Directions in bus definitions are from the master perspective; flip for slave/sink.
+          const isMaster = busData.mode === 'master' || busData.mode === 'source';
+          const flipDir = (d: 'in' | 'out' | undefined): 'in' | 'out' | undefined =>
+            d === 'in' ? 'out' : d === 'out' ? 'in' : undefined;
 
           // Filter out clock/reset signals that are covered by explicit associations
           const visibleDefs = allPortDefs.filter((portDef) => {
@@ -612,6 +621,8 @@ export function computeLayout(
                 ? busData.array.physicalPrefixPattern
                 : (busData.physicalPrefix ?? '');
 
+            const physicalSuffix = nameOverrides[portDef.name];
+            const subPortDir = isMaster ? portDef.direction : flipDir(portDef.direction);
             layoutSubPorts.push({
               id: `bus:${item.index}:${portDef.name}`,
               parentBusId: id,
@@ -620,10 +631,11 @@ export function computeLayout(
               side,
               name: portDef.name,
               widthLabel: widthLbl,
-              direction: portDef.direction,
+              direction: subPortDir,
               presence: portDef.presence,
               active,
               physicalPrefix: subPhysicalPrefix,
+              ...(physicalSuffix !== undefined ? { physicalSuffix } : {}),
               clockDomainIdx: domainIdx,
             });
           });
