@@ -650,7 +650,13 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
       return;
     }
     const baseDir = path.dirname(document.uri.fsPath);
-    const absolutePath = path.isAbsolute(filePath) ? filePath : path.join(baseDir, filePath);
+    const absolutePath = path.normalize(
+      path.isAbsolute(filePath) ? filePath : path.join(baseDir, filePath)
+    );
+    if (!isWithinWorkspace(absolutePath)) {
+      this.logger.warn(`Blocked webview open request outside workspace: ${absolutePath}`);
+      return;
+    }
     try {
       await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(absolutePath));
     } catch (error) {
@@ -731,8 +737,15 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
     const results: Record<string, boolean> = {};
 
     for (const filePath of filePaths) {
+      const fullPath = path.normalize(
+        path.isAbsolute(filePath) ? filePath : path.join(baseDir, filePath)
+      );
+      if (!isWithinWorkspace(fullPath)) {
+        this.logger.warn(`Blocked webview stat request outside workspace: ${fullPath}`);
+        results[filePath] = false;
+        continue;
+      }
       try {
-        const fullPath = path.isAbsolute(filePath) ? filePath : path.join(baseDir, filePath);
         await vscode.workspace.fs.stat(vscode.Uri.file(fullPath));
         results[filePath] = true;
       } catch {
@@ -746,6 +759,27 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
     });
     this.logger.debug(`Checked ${filePaths.length} file(s) for existence`);
   }
+}
+
+// ---------------------------------------------------------------------------
+// Path-safety helper
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns true only when `absolutePath` is under at least one workspace folder
+ * (after `path.normalize`, so `../` traversal is already collapsed before the
+ * check). An empty workspace (no open folder) rejects every path.
+ */
+function isWithinWorkspace(absolutePath: string): boolean {
+  const folders = vscode.workspace.workspaceFolders;
+  if (!folders || folders.length === 0) {
+    return false;
+  }
+  const normalized = absolutePath.endsWith(path.sep) ? absolutePath : absolutePath + path.sep;
+  return folders.some((f) => {
+    const root = f.uri.fsPath.endsWith(path.sep) ? f.uri.fsPath : f.uri.fsPath + path.sep;
+    return normalized.startsWith(root);
+  });
 }
 
 // ---------------------------------------------------------------------------

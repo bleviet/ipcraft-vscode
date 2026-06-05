@@ -178,8 +178,31 @@ export function activate(context: vscode.ExtensionContext): void {
   statusBarItem.text = '$(circuit-board) IPCraft';
   statusBarItem.command = 'fpga-ip-core.showBuildOutput';
   statusBarItem.tooltip = 'IPCraft: Click to show build output';
-  statusBarItem.show();
   context.subscriptions.push(statusBarItem);
+
+  const FPGA_EXTENSIONS = new Set(['.v', '.sv', '.vhd', '.vhdl', '.ip.yml', '.mm.yml']);
+  const isFpgaFile = (uri: vscode.Uri | undefined): boolean => {
+    if (!uri) {
+      return false;
+    }
+    const base = path.basename(uri.fsPath);
+    // Match compound extensions (.ip.yml, .mm.yml) first, then simple ones.
+    if (base.endsWith('.ip.yml') || base.endsWith('.mm.yml')) {
+      return true;
+    }
+    return FPGA_EXTENSIONS.has(path.extname(base));
+  };
+  const refreshStatusBar = (uri: vscode.Uri | undefined) => {
+    if (isFpgaFile(uri)) {
+      statusBarItem.show();
+    } else {
+      statusBarItem.hide();
+    }
+  };
+  refreshStatusBar(vscode.window.activeTextEditor?.document.uri);
+  context.subscriptions.push(
+    vscode.window.onDidChangeActiveTextEditor((editor) => refreshStatusBar(editor?.document.uri))
+  );
 
   registerBuildCommands(context, reportsProvider, statusBarItem);
   logger.info('Build commands registered');
@@ -189,12 +212,6 @@ export function activate(context: vscode.ExtensionContext): void {
     installGlobalBusDefinitions(context.extensionPath)
       .then((busDefsDir) => {
         logger.info(`Installed global bus definitions to: ${busDefsDir}`);
-
-        // Show a one-time message if it's the first time we install, or let the user know.
-        // We'll just log it to avoid spamming the user on every startup, but we could add a VS Code setting later
-        // to track if the message has been shown.
-        // For now, let's just show an info message that auto-dismisses or requires user to check output.
-        // Actually, let's just log it. The user requested they be stored there.
       })
       .catch((err) => {
         logger.error(`Failed to install global bus definitions: ${err}`);

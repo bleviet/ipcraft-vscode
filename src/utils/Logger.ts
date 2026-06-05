@@ -28,10 +28,14 @@ export class Logger {
   }
 
   /**
-   * Get the output channel (create if doesn't exist)
+   * Get the output channel. If initialize() was never called, reuse the channel
+   * created by initialize() once it exists. A lazy fallback would create a
+   * second, differently-named channel; instead we create it once under the same
+   * name that initialize() would have used, so there is always exactly one
+   * output channel regardless of call order.
    */
   private static getChannel(): vscode.OutputChannel {
-    this.outputChannel ??= vscode.window.createOutputChannel('FPGA Memory Map Editor');
+    this.outputChannel ??= vscode.window.createOutputChannel('FPGA Memory Map & IP Core Editor');
     return this.outputChannel;
   }
 
