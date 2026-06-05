@@ -19,18 +19,18 @@
 .ip-canvas-help {
   position: absolute;
   bottom: 44px;
-  left: 12px;
+  right: 12px;
   pointer-events: auto;
 }
 
 .ip-canvas-help__btn {
-  width: 22px;
-  height: 22px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   border: 1px solid var(--vscode-panel-border);
   background: var(--vscode-editor-background);
   color: var(--vscode-foreground);
-  font-size: 12px;
+  font-size: 16px;
   font-weight: 600;
   cursor: pointer;
   opacity: 0.65;
@@ -48,8 +48,8 @@
 
 .ip-canvas-help__popover {
   position: absolute;
-  bottom: 28px;
-  left: 0;
+  bottom: 38px;
+  right: 0;
   min-width: 260px;
   background: var(--vscode-editor-background);
   border: 1px solid var(--vscode-panel-border);
