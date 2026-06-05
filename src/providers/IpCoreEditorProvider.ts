@@ -37,6 +37,28 @@ interface IpcMessage {
 }
 
 /**
+ * Commands the IP Core webview may invoke through the generic `command` message
+ * bridge. The bundle is our own code, but a string-keyed dispatch to *any*
+ * command is a capability we don't need — an explicit allow-list bounds the
+ * blast radius if the bundle is ever compromised or a future message is
+ * mishandled. Keep in sync with the `command="fpga-ip-core.*"` toolbar buttons
+ * in `src/webview/ipcore/IpCoreApp.tsx`.
+ */
+const WEBVIEW_COMMAND_ALLOWLIST = new Set<string>([
+  'fpga-ip-core.scaffoldProject',
+  'fpga-ip-core.createMemoryMap',
+  'fpga-ip-core.generateHdl',
+  'fpga-ip-core.generateTestbench',
+  'fpga-ip-core.exportAltera',
+  'fpga-ip-core.exportXilinx',
+  'fpga-ip-core.generateVivadoProject',
+  'fpga-ip-core.generateQuartusProject',
+  'fpga-ip-core.buildVivadoOoc',
+  'fpga-ip-core.buildQuartusCompile',
+  'fpga-ip-core.openSettings',
+]);
+
+/**
  * Custom editor provider for FPGA IP core YAML files.
  *
  * Detects IP core files by checking for required keys: vlnv
@@ -87,6 +109,17 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
   }
 
   /**
+   * Restrict webview resource loading to the bundle output and codicons only,
+   * instead of the default that grants read access to every workspace folder.
+   */
+  private getLocalResourceRoots(): vscode.Uri[] {
+    return [
+      vscode.Uri.joinPath(this.context.extensionUri, 'dist'),
+      vscode.Uri.joinPath(this.context.extensionUri, 'node_modules', '@vscode', 'codicons'),
+    ];
+  }
+
+  /**
    * Resolve the custom text editor for a document.
    */
   public resolveCustomTextEditor(
@@ -100,7 +133,10 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
     const isIpCore = this.isIpCoreDocument(document);
     if (!isIpCore) {
       this.logger.info('Document is not an IP core file, showing error in webview');
-      webviewPanel.webview.options = { enableScripts: false };
+      webviewPanel.webview.options = {
+        enableScripts: false,
+        localResourceRoots: this.getLocalResourceRoots(),
+      };
       webviewPanel.webview.html = createNotIpCoreHtml();
       return;
     }
@@ -110,6 +146,7 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
     // Configure webview
     webviewPanel.webview.options = {
       enableScripts: true,
+      localResourceRoots: this.getLocalResourceRoots(),
     };
 
     // Set HTML content - use ipcore-specific HTML
@@ -239,10 +276,13 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
         await this.handleSaveCustomBusDefinition(message, document, webviewPanel);
       },
       command: async (message) => {
-        if (message.command) {
-          await vscode.commands.executeCommand(String(message.command), document.uri);
-          void updateWebview();
+        const cmd = String(message.command ?? '');
+        if (!WEBVIEW_COMMAND_ALLOWLIST.has(cmd)) {
+          this.logger.warn(`Blocked non-allowlisted webview command: ${cmd}`);
+          return;
         }
+        await vscode.commands.executeCommand(cmd, document.uri);
+        void updateWebview();
       },
       setHdlLanguage: async (message) => {
         const lang = message.language as string;

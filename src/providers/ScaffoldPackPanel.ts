@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import { randomBytes } from 'crypto';
 import { Logger } from '../utils/Logger';
 import { ScaffoldPackLoader } from '../generator/ScaffoldPackLoader';
 import { TemplateLoader } from '../generator/TemplateLoader';
@@ -41,7 +42,16 @@ export class ScaffoldPackPanel {
       'ipcraft-scaffold-preview',
       'IPCraft — Scaffold Pack Preview',
       vscode.ViewColumn.Beside,
-      { enableScripts: true, retainContextWhenHidden: true }
+      {
+        enableScripts: true,
+        retainContextWhenHidden: true,
+        // Scope resource loading to the bundle + codicons instead of defaulting
+        // to every workspace folder.
+        localResourceRoots: [
+          vscode.Uri.joinPath(context.extensionUri, 'dist'),
+          vscode.Uri.joinPath(context.extensionUri, 'node_modules', '@vscode', 'codicons'),
+        ],
+      }
     );
 
     this.panel.onDidDispose(
@@ -204,7 +214,7 @@ export class ScaffoldPackPanel {
       const guideX = px(base + depth * step + 7);
       return (
         `<div class="tree-dir">` +
-        `<div class="tree-row tree-dir-header" style="padding-left:${px(base + depth * step)}" onclick="toggleDir('${id}')">` +
+        `<div class="tree-row tree-dir-header" style="padding-left:${px(base + depth * step)}" data-toggle="${id}">` +
         `<span class="chevron" id="${id}-ch">${ScaffoldPackPanel.chevronSvg}</span>` +
         `<span class="dir-name">${ScaffoldPackPanel.esc(node.name)}/</span>` +
         `</div>` +
@@ -273,11 +283,14 @@ export class ScaffoldPackPanel {
     const tree = ScaffoldPackPanel.buildTree(files);
     const treeHtml = ScaffoldPackPanel.renderNode(tree, 0);
 
+    // Per-render nonce so the inline <script> runs while the CSP stays fail-closed.
+    const nonce = randomBytes(16).toString('base64');
+
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';">
 <title>IPCraft — Scaffold Pack Preview</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -325,7 +338,7 @@ body{font-family:var(--vscode-font-family);font-size:var(--vscode-font-size);col
   ${errorHtml}
   <div class="tree">${treeHtml}</div>
 </div>
-<script>
+<script nonce="${nonce}">
 function toggleDir(id){
   const el=document.getElementById(id);
   const ch=document.getElementById(id+'-ch');
@@ -334,6 +347,11 @@ function toggleDir(id){
   el.classList.toggle('collapsed',closing);
   if(ch)ch.classList.toggle('collapsed',closing);
 }
+// Single delegated, nonce-gated click handler — no inline JS in the markup.
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('[data-toggle]');
+  if (t) toggleDir(t.dataset.toggle);
+});
 </script>
 </body>
 </html>`;

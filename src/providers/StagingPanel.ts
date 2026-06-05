@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { randomBytes } from 'crypto';
 import { STAGING_SCHEME, setStagingContent, clearStagingContent } from './StagingContentProvider';
 
 export interface StagedFile {
@@ -37,7 +38,11 @@ export class StagingPanel {
         'ipcraft-staging',
         'IPCraft — Preview Generated Files',
         vscode.ViewColumn.Beside,
-        { enableScripts: true, retainContextWhenHidden: true }
+        // This panel's HTML is fully self-contained (inline styles + a single
+        // nonce'd inline script); it loads zero local resources, so the tightest
+        // correct lockdown is an empty resource-root list rather than the
+        // default (which would grant read access to every workspace folder).
+        { enableScripts: true, retainContextWhenHidden: true, localResourceRoots: [] }
       );
 
       // Populate the virtual document store so diffs and previews can be opened immediately.
@@ -210,7 +215,7 @@ export class StagingPanel {
       const guideX = px(base + depth * step + 7);
       return (
         `<div class="tree-dir">` +
-        `<div class="tree-row tree-dir-header" style="padding-left:${px(base + depth * step)}" onclick="toggleDir('${id}')">` +
+        `<div class="tree-row tree-dir-header" style="padding-left:${px(base + depth * step)}" data-toggle="${id}">` +
         `<span class="chevron" id="${id}-ch">${StagingPanel.chevronSvg}</span>` +
         `<span class="dir-name">${StagingPanel.esc(node.name)}/</span>` +
         `</div>` +
@@ -221,7 +226,8 @@ export class StagingPanel {
 
     const file = node.file!;
     const isMuted = file.status === 'unchanged' || file.protected;
-    const escapedPath = StagingPanel.esc(JSON.stringify(file.relativePath));
+    // HTML-escaped relative path carried in a data-* attribute (no inline JS).
+    const dataPath = StagingPanel.esc(file.relativePath);
 
     const statusIndicator = file.protected
       ? `<span class="status-lock">${StagingPanel.lockSvg}</span>`
@@ -229,11 +235,11 @@ export class StagingPanel {
 
     const diffBtn =
       file.status === 'modified' || file.protected
-        ? `<button class="btn-action btn-diff" onclick="viewDiff(${escapedPath})">View Diff</button>`
+        ? `<button class="btn-action btn-diff" data-diff="${dataPath}">View Diff</button>`
         : '';
     const previewBtn =
       file.status === 'new'
-        ? `<button class="btn-action btn-preview" onclick="viewPreview(${escapedPath})" title="Preview generated file">${StagingPanel.eyeSvg}</button>`
+        ? `<button class="btn-action btn-preview" data-preview="${dataPath}" title="Preview generated file">${StagingPanel.eyeSvg}</button>`
         : '';
 
     // padding-left matches the dir-header at this depth — dot aligns with parent dir-name.
@@ -303,11 +309,15 @@ export class StagingPanel {
     const tree = StagingPanel.buildTree(files);
     const treeHtml = StagingPanel.renderNode(tree, 0);
 
+    // Per-render nonce so the inline <script> can run while the CSP stays
+    // fail-closed: an accidentally-unescaped value can no longer execute.
+    const nonce = randomBytes(16).toString('base64');
+
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';">
 <title>IPCraft — Preview Generated Files</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -428,17 +438,13 @@ body{
 </div>
 <div class="content">${noApplyBanner}<div class="tree">${treeHtml}</div></div>
 <div class="footer">
-  <button class="btn-apply" onclick="${hasApplicableFiles ? 'apply()' : 'cancel()'}">
+  <button class="btn-apply" data-action="${hasApplicableFiles ? 'apply' : 'cancel'}">
     ${applyLabel}
   </button>
-  ${hasApplicableFiles ? '<button class="btn-cancel" onclick="cancel()">&#10005; Cancel</button>' : ''}
+  ${hasApplicableFiles ? '<button class="btn-cancel" data-action="cancel">&#10005; Cancel</button>' : ''}
 </div>
-<script>
+<script nonce="${nonce}">
 const vscode = acquireVsCodeApi();
-function viewDiff(p){vscode.postMessage({type:'viewDiff',relativePath:p});}
-function viewPreview(p){vscode.postMessage({type:'viewPreview',relativePath:p});}
-function apply(){vscode.postMessage({type:'apply'});}
-function cancel(){vscode.postMessage({type:'cancel'});}
 function toggleDir(id){
   const el = document.getElementById(id);
   const ch = document.getElementById(id + '-ch');
@@ -447,6 +453,15 @@ function toggleDir(id){
   el.classList.toggle('collapsed', closing);
   if (ch) ch.classList.toggle('collapsed', closing);
 }
+// Single delegated, nonce-gated click handler — no inline JS anywhere in markup.
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('[data-toggle],[data-diff],[data-preview],[data-action]');
+  if (!t) return;
+  if (t.dataset.toggle !== undefined) { toggleDir(t.dataset.toggle); return; }
+  if (t.dataset.diff !== undefined) { vscode.postMessage({ type: 'viewDiff', relativePath: t.dataset.diff }); return; }
+  if (t.dataset.preview !== undefined) { vscode.postMessage({ type: 'viewPreview', relativePath: t.dataset.preview }); return; }
+  if (t.dataset.action) { vscode.postMessage({ type: t.dataset.action }); }
+});
 </script>
 </body>
 </html>`;
