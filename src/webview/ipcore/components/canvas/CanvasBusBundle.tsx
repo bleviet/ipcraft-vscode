@@ -80,6 +80,7 @@ export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
         onSelect(port.id);
       }}
       data-port-id={port.id}
+      ref={(el) => el?.setAttribute('draggable', 'true')}
       style={{ cursor: 'grab' }}
       onDragStart={(e) => {
         e.stopPropagation();

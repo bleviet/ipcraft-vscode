@@ -110,6 +110,7 @@ export const CanvasPort: React.FC<CanvasPortProps> = ({
         }
       }}
       data-port-id={port.id}
+      ref={(el) => el?.setAttribute('draggable', 'true')}
       style={{ cursor: 'grab' }}
       onDragStart={(e) => {
         // Need to stop propagation so parent drag isn't triggered
