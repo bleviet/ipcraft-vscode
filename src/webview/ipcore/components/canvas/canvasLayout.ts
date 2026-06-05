@@ -15,6 +15,13 @@ const DESC_PADDING_BOTTOM = 12;
 /** Padding above the first port and below the last */
 export const EDGE_PADDING = 24;
 
+/**
+ * Minimum Y-offset (relative to blockY) at which the first port may be placed.
+ * The block header contains the core name (y+15) and VLNV subtitle (y+42, 9 px font,
+ * bottom ≈ y+47).  56 keeps a comfortable gap below that text.
+ */
+const BLOCK_HEADER_HEIGHT = 56;
+
 /** Minimum block height (even with zero ports) */
 export const MIN_BLOCK_HEIGHT = 120;
 
@@ -426,11 +433,14 @@ export function computeLayout(
   const maxSideSlots = Math.max(leftSlots, rightSlots, 1);
 
   // Block height must fit the params section AND the ports that follow it.
+  // When there are no params/subcores the port area starts at BLOCK_HEADER_HEIGHT, so we
+  // size the block from that offset: first port at BLOCK_HEADER_HEIGHT, last port at
+  // BLOCK_HEADER_HEIGHT + (N-1)*PORT_PITCH, block bottom EDGE_PADDING below last-port edge.
   const portsBlockHeight = Math.max(
     MIN_BLOCK_HEIGHT,
     portsAreaTopRelative !== null
       ? portsAreaTopRelative + maxSideSlots * PORT_PITCH + EDGE_PADDING
-      : maxSideSlots * PORT_PITCH + EDGE_PADDING * 2
+      : BLOCK_HEADER_HEIGHT + maxSideSlots * PORT_PITCH - PORT_PITCH / 2 + EDGE_PADDING
   );
 
   // Description section appended below the ports
@@ -459,11 +469,13 @@ export function computeLayout(
       // Force ports to start below the generics section
       currentY = blockY + portsAreaTopRelative + PORT_PITCH / 2;
     } else {
-      // No params — center ports vertically within the ports area only (not total block height).
-      // Using blockHeight here incorrectly shifts ports down by descSectionHeight/2 when a
-      // description is present, because blockHeight includes the description section.
+      // No params — start ports at BLOCK_HEADER_HEIGHT so the first port label never
+      // overlaps the VLNV subtitle rendered at blockY+42.  The centeredY formula is kept
+      // as a fallback: when MIN_BLOCK_HEIGHT makes the block taller than needed it centres
+      // the ports, but the clamp ensures we never go above BLOCK_HEADER_HEIGHT.
       const totalHeight = maxSideSlots * PORT_PITCH;
-      currentY = blockY + (portsBlockHeight - totalHeight) / 2 + PORT_PITCH / 2;
+      const centeredY = blockY + (portsBlockHeight - totalHeight) / 2 + PORT_PITCH / 2;
+      currentY = Math.max(centeredY, blockY + BLOCK_HEADER_HEIGHT);
     }
 
     items.forEach((item) => {

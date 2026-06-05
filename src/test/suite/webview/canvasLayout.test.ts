@@ -143,6 +143,25 @@ describe('computeLayout', () => {
     expect(layout.blockRect.height).toBeGreaterThanOrEqual(expectedHeight);
   });
 
+  it('first port Y is below the block VLNV header text (no label overlap)', () => {
+    // The VLNV subtitle is rendered at blockRect.y + 42. Before this fix the first port
+    // was also at blockY + 42, causing direct text overlap on the right-side interface label.
+    const VLNV_Y_OFFSET = 42; // matches IpBlockCanvas.tsx <text y={blockRect.y + 42}>
+    const ip = makeIpCore({
+      busInterfaces: [
+        {
+          name: 'm_axis',
+          type: 'ipcraft.busif.axi_stream.1.0',
+          mode: 'master' as const,
+          physicalPrefix: 'm_axis_',
+        },
+      ],
+    });
+    const layout = computeLayout(ip);
+    const firstPort = layout.ports[0];
+    expect(firstPort.y).toBeGreaterThan(layout.blockRect.y + VLNV_Y_OFFSET);
+  });
+
   it('conduit sub-port IDs are unique even when port names are duplicated', () => {
     // Duplicate conduit port names must not produce duplicate React keys, which
     // would prevent stale sub-port elements from unmounting on accordion collapse.
