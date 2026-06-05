@@ -153,6 +153,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
   } | null>(null);
   const [portDragActive, setPortDragActive] = useState(false);
   const [portDragActivePIdx, setPortDragActivePIdx] = useState<number | null>(null);
+
   const portDragHoveredBusRef = useRef<number | null>(null);
   const [portDragHoveredBus, setPortDragHoveredBus] = useState<number | null>(null);
   // Keep a stable ref so the effect closure can call the latest handler.
@@ -445,6 +446,33 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
       onUpdate?.(
         ['busInterfaces', busIndex, 'useOptionalPorts'],
         updated.length > 0 ? updated : undefined
+      );
+    },
+    [ipCore, onUpdate]
+  );
+
+  const handleSubPortRename = useCallback(
+    (subPortId: string, newSuffix: string) => {
+      const parts = subPortId.split(':');
+      if (parts.length < 3) {
+        return;
+      }
+      const busIndex = parseInt(parts[1], 10);
+      const portName = parts.slice(2).join(':');
+      const bus = (ipCore.busInterfaces ?? [])[busIndex] as
+        | { portNameOverrides?: Record<string, string> }
+        | undefined;
+      const current = bus?.portNameOverrides ?? {};
+      const trimmed = newSuffix.trim();
+      const updated = { ...current };
+      if (!trimmed || trimmed === portName.toLowerCase()) {
+        delete updated[portName];
+      } else {
+        updated[portName] = trimmed;
+      }
+      onUpdate?.(
+        ['busInterfaces', busIndex, 'portNameOverrides'],
+        Object.keys(updated).length > 0 ? updated : undefined
       );
     },
     [ipCore, onUpdate]
@@ -1027,6 +1055,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
             onDeactivate={handleSubPortDeactivate}
             onSelect={onSelect}
             domainColor={getDomainColor(sp.clockDomainIdx)}
+            onRename={handleSubPortRename}
           />
         ))}
 
@@ -1145,6 +1174,10 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
                   <tr>
                     <td className="ip-canvas-help__key">Double-click canvas</td>
                     <td>Reset zoom &amp; position</td>
+                  </tr>
+                  <tr>
+                    <td className="ip-canvas-help__key">Right-click bus signal</td>
+                    <td>Rename physical port suffix</td>
                   </tr>
                 </tbody>
               </table>

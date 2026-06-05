@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import type { LayoutSubPort } from './canvasLayout';
 import { STUB_LENGTH } from './canvasLayout';
 import { DirectionArrow } from './CanvasPort';
@@ -9,7 +9,11 @@ interface CanvasBusSubPortProps {
   onDeactivate: (subPortId: string) => void;
   onSelect: (busId: string) => void;
   domainColor?: string;
+  onRename?: (subPortId: string, newSuffix: string) => void;
 }
+
+const RENAME_INPUT_W = 120;
+const RENAME_INPUT_H = 14;
 
 /**
  * Renders a single signal stub for an expanded bus interface.
@@ -20,6 +24,7 @@ interface CanvasBusSubPortProps {
  * Required and active-optional ports show a solid stub.
  * Inactive optional ports show a dashed stub and are clickable to activate.
  * Clicking any signal selects the parent bus interface in the inspector.
+ * Right-clicking an active port starts inline renaming of its physical suffix.
  */
 export const CanvasBusSubPort: React.FC<CanvasBusSubPortProps> = ({
   subPort,
@@ -27,6 +32,7 @@ export const CanvasBusSubPort: React.FC<CanvasBusSubPortProps> = ({
   onDeactivate,
   onSelect,
   domainColor,
+  onRename,
 }) => {
   const isLeft = subPort.side === 'left';
   const stubDir = isLeft ? -1 : 1;
@@ -35,14 +41,30 @@ export const CanvasBusSubPort: React.FC<CanvasBusSubPortProps> = ({
   const isOptional = subPort.presence === 'optional';
   const isInactive = isOptional && !subPort.active;
 
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [renameValue, setRenameValue] = useState('');
+  const abortRef = useRef(false);
+
   // Logical label shown inside the block (signal role within the bus protocol)
   const logicalLabel = subPort.widthLabel ? `${subPort.name}${subPort.widthLabel}` : subPort.name;
 
   // Physical label shown outside on the stub (actual HDL port name)
-  const physicalName = `${subPort.physicalPrefix}${subPort.physicalSuffix ?? subPort.name.toLowerCase()}`;
+  const currentSuffix = subPort.physicalSuffix ?? subPort.name.toLowerCase();
+  const physicalName = `${subPort.physicalPrefix}${currentSuffix}`;
   const physicalLabel = subPort.widthLabel ? `${physicalName}${subPort.widthLabel}` : physicalName;
 
+  const commitRename = useCallback(() => {
+    if (abortRef.current) {
+      return;
+    }
+    onRename?.(subPort.id, renameValue);
+    setIsRenaming(false);
+  }, [onRename, subPort.id, renameValue]);
+
   const handleClick = (e: React.MouseEvent) => {
+    if (isRenaming) {
+      return;
+    }
     e.stopPropagation();
     onSelect(subPort.parentBusId);
     if (isInactive) {
@@ -52,11 +74,27 @@ export const CanvasBusSubPort: React.FC<CanvasBusSubPortProps> = ({
     }
   };
 
+  const handleContextMenu = (e: React.MouseEvent) => {
+    if (!onRename || isInactive) {
+      return;
+    }
+    e.preventDefault();
+    e.stopPropagation();
+    abortRef.current = false;
+    setRenameValue(currentSuffix);
+    setIsRenaming(true);
+  };
+
+  // foreignObject x position: right-aligned for left ports, left-aligned for right ports
+  const foX = isLeft ? stubEndX - 5 - RENAME_INPUT_W : stubEndX + 5;
+  const foY = subPort.y - RENAME_INPUT_H / 2;
+
   return (
     <g
       className={`canvas-bus-subport ${isInactive ? 'canvas-bus-subport--inactive' : 'canvas-bus-subport--active'} ${isOptional ? 'canvas-bus-subport--optional' : ''}`}
       onClick={handleClick}
-      style={{ cursor: 'pointer' }}
+      onContextMenu={handleContextMenu}
+      style={{ cursor: isRenaming ? 'default' : 'pointer' }}
       role="button"
     >
       {/* Stub line */}
@@ -102,16 +140,49 @@ export const CanvasBusSubPort: React.FC<CanvasBusSubPortProps> = ({
         {logicalLabel}
       </text>
 
-      {/* Physical port name — outside on the stub */}
-      <text
-        x={stubEndX + stubDir * 5}
-        y={subPort.y}
-        textAnchor={isLeft ? 'end' : 'start'}
-        dominantBaseline="central"
-        className="canvas-bus-subport__label"
-      >
-        {physicalLabel}
-      </text>
+      {/* Physical port name — outside on the stub; hidden while renaming */}
+      {!isRenaming && (
+        <text
+          x={stubEndX + stubDir * 5}
+          y={subPort.y}
+          textAnchor={isLeft ? 'end' : 'start'}
+          dominantBaseline="central"
+          className="canvas-bus-subport__label"
+        >
+          {physicalLabel}
+        </text>
+      )}
+
+      {/* Inline rename input — replaces the physical label while editing */}
+      {isRenaming && (
+        <foreignObject
+          x={foX}
+          y={foY}
+          width={RENAME_INPUT_W}
+          height={RENAME_INPUT_H}
+          style={{ overflow: 'visible' }}
+        >
+          <input
+            className="canvas-bus-subport__rename-input"
+            style={{ textAlign: isLeft ? 'right' : 'left' }}
+            autoFocus
+            value={renameValue}
+            onChange={(e) => setRenameValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                commitRename();
+              } else if (e.key === 'Escape') {
+                abortRef.current = true;
+                setIsRenaming(false);
+              }
+            }}
+            onBlur={commitRename}
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+          />
+        </foreignObject>
+      )}
 
       {/* "+" badge for inactive optional ports — hint to activate */}
       {isInactive && (
