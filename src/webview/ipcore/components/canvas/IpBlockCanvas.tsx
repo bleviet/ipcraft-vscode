@@ -472,11 +472,49 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
         return;
       }
       const trimmed = newName.trim();
-      if (trimmed) {
+      if (!trimmed) {
+        return;
+      }
+
+      type Named = { name?: string };
+      type WithAssocClock = { associatedClock?: string | null };
+      type WithAssocReset = { associatedReset?: string | null };
+
+      if (kind === 'clock') {
+        const oldName = ((ipCore.clocks ?? []) as Named[])[index]?.name;
+        onUpdate?.([arrayName, index, 'name'], trimmed);
+        if (oldName) {
+          ((ipCore.resets ?? []) as WithAssocClock[]).forEach((r, i) => {
+            if (r.associatedClock === oldName) {
+              onUpdate?.(['resets', i, 'associatedClock'], trimmed);
+            }
+          });
+          ((ipCore.busInterfaces ?? []) as WithAssocClock[]).forEach((b, i) => {
+            if (b.associatedClock === oldName) {
+              onUpdate?.(['busInterfaces', i, 'associatedClock'], trimmed);
+            }
+          });
+        }
+      } else if (kind === 'reset') {
+        const oldName = ((ipCore.resets ?? []) as Named[])[index]?.name;
+        onUpdate?.([arrayName, index, 'name'], trimmed);
+        if (oldName) {
+          ((ipCore.clocks ?? []) as WithAssocReset[]).forEach((c, i) => {
+            if (c.associatedReset === oldName) {
+              onUpdate?.(['clocks', i, 'associatedReset'], trimmed);
+            }
+          });
+          ((ipCore.busInterfaces ?? []) as WithAssocReset[]).forEach((b, i) => {
+            if (b.associatedReset === oldName) {
+              onUpdate?.(['busInterfaces', i, 'associatedReset'], trimmed);
+            }
+          });
+        }
+      } else {
         onUpdate?.([arrayName, index, 'name'], trimmed);
       }
     },
-    [onUpdate]
+    [ipCore, onUpdate]
   );
 
   const handleSubPortRename = useCallback(
