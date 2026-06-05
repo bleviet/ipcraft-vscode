@@ -581,6 +581,7 @@ export function computeLayout(
               presence: cp.presence ?? 'required',
               active: true,
               physicalPrefix: busData.physicalPrefix ?? '',
+              physicalSuffix: cp.name,
               clockDomainIdx: domainIdx,
             });
           });

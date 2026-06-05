@@ -525,13 +525,29 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
       }
       const busIndex = parseInt(parts[1], 10);
       const portName = parts.slice(2).join(':');
-      const bus = (ipCore.busInterfaces ?? [])[busIndex] as
-        | { portNameOverrides?: Record<string, string> }
-        | undefined;
-      const current = bus?.portNameOverrides ?? {};
       const trimmed = newSuffix.trim();
+      if (!trimmed) {
+        return;
+      }
+
+      const bus = (ipCore.busInterfaces ?? [])[busIndex] as
+        | { portNameOverrides?: Record<string, string>; conduitPorts?: Array<{ name: string }> }
+        | undefined;
+
+      // Conduit ports: update the name in-place inside conduitPorts
+      const conduitPorts = bus?.conduitPorts;
+      if (conduitPorts) {
+        const portIndex = conduitPorts.findIndex((p) => p.name === portName);
+        if (portIndex >= 0 && trimmed !== portName) {
+          onUpdate?.(['busInterfaces', busIndex, 'conduitPorts', portIndex, 'name'], trimmed);
+        }
+        return;
+      }
+
+      // Standard bus ports: update the physical suffix via portNameOverrides
+      const current = bus?.portNameOverrides ?? {};
       const updated = { ...current };
-      if (!trimmed || trimmed === portName.toLowerCase()) {
+      if (trimmed === portName.toLowerCase()) {
         delete updated[portName];
       } else {
         updated[portName] = trimmed;
