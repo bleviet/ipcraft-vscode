@@ -131,6 +131,51 @@ describe('useCanvasValidation', () => {
     ).toBe('warning');
   });
 
+  it('should detect duplicate conduit port names within the same bus interface', () => {
+    const ipCore: IpCore = {
+      vlnv: { vendor: 'test', library: 'lib', name: 'TestCore', version: '1.0' },
+      busInterfaces: [
+        {
+          name: 'custom_if',
+          type: 'conduit',
+          mode: 'master',
+          conduitPorts: [
+            { name: 'port_0', direction: 'in', width: 1 },
+            { name: 'port_0', direction: 'out', width: 1 },
+          ],
+        } as any,
+      ],
+    };
+
+    const annotations = useCanvasValidation(ipCore);
+    expect(annotations['bus:0:port_0']).toBeDefined();
+    expect(annotations['bus:0:port_0'][0].severity).toBe('error');
+    expect(annotations['bus:0:port_0'][0].message).toContain('Duplicate port name');
+  });
+
+  it('should not flag unique conduit port names', () => {
+    const ipCore: IpCore = {
+      vlnv: { vendor: 'test', library: 'lib', name: 'TestCore', version: '1.0' },
+      clocks: [{ name: 'clk' }],
+      busInterfaces: [
+        {
+          name: 'custom_if',
+          type: 'conduit',
+          mode: 'master',
+          associatedClock: 'clk',
+          conduitPorts: [
+            { name: 'port_0', direction: 'in', width: 1 },
+            { name: 'port_1', direction: 'out', width: 1 },
+          ],
+        } as any,
+      ],
+    };
+
+    const annotations = useCanvasValidation(ipCore);
+    expect(annotations['bus:0:port_0']).toBeUndefined();
+    expect(annotations['bus:0:port_1']).toBeUndefined();
+  });
+
   it('should not flag unique physicalPrefix values', () => {
     const ipCore: IpCore = {
       vlnv: { vendor: 'test', library: 'lib', name: 'TestCore', version: '1.0' },

@@ -459,9 +459,11 @@ export function computeLayout(
       // Force ports to start below the generics section
       currentY = blockY + portsAreaTopRelative + PORT_PITCH / 2;
     } else {
-      // No params — center ports vertically (original behaviour)
+      // No params — center ports vertically within the ports area only (not total block height).
+      // Using blockHeight here incorrectly shifts ports down by descSectionHeight/2 when a
+      // description is present, because blockHeight includes the description section.
       const totalHeight = maxSideSlots * PORT_PITCH;
-      currentY = blockY + (blockHeight - totalHeight) / 2 + PORT_PITCH / 2;
+      currentY = blockY + (portsBlockHeight - totalHeight) / 2 + PORT_PITCH / 2;
     }
 
     items.forEach((item) => {
@@ -570,7 +572,9 @@ export function computeLayout(
           conduitPorts.forEach((cp, pi) => {
             const subY = y + PORT_PITCH * (pi + 1);
             layoutSubPorts.push({
-              id: `bus:${item.index}:${cp.name}`,
+              // Use index-based ID (`cp:N`) so duplicate port names never produce
+              // duplicate React keys, which would leave stale elements mounted after collapse.
+              id: `bus:${item.index}:cp:${pi}`,
               parentBusId: id,
               x: baseX,
               y: subY,

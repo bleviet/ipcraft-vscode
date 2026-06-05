@@ -143,6 +143,59 @@ describe('computeLayout', () => {
     expect(layout.blockRect.height).toBeGreaterThanOrEqual(expectedHeight);
   });
 
+  it('conduit sub-port IDs are unique even when port names are duplicated', () => {
+    // Duplicate conduit port names must not produce duplicate React keys, which
+    // would prevent stale sub-port elements from unmounting on accordion collapse.
+    const ip = makeIpCore({
+      busInterfaces: [
+        {
+          name: 'custom_if',
+          type: 'ipcraft.busif.conduit.1.0',
+          mode: 'conduit' as const,
+          physicalPrefix: 'if_',
+          conduitPorts: [
+            { name: 'sig', direction: 'in' as const, width: 1 },
+            { name: 'sig', direction: 'out' as const, width: 1 }, // duplicate name
+          ],
+        },
+      ],
+    } as Parameters<typeof makeIpCore>[0]);
+    const layout = computeLayout(ip, new Set(['bus:0']));
+
+    const subIds = layout.subPorts.map((sp) => sp.id);
+    const unique = new Set(subIds);
+    expect(unique.size).toBe(subIds.length);
+    // IDs are index-based so they survive name collisions
+    expect(subIds).toContain('bus:0:cp:0');
+    expect(subIds).toContain('bus:0:cp:1');
+  });
+
+  it('port Y positions are not shifted by a description section', () => {
+    // A description appends extra height below the ports area. The centering formula
+    // must use portsBlockHeight (ports area only), not total blockHeight, otherwise
+    // ports are incorrectly shifted down by descSectionHeight/2 — causing the last
+    // port to sit on top of or past the description separator line.
+    const ip = makeIpCore({
+      ports: [
+        { name: 'a', direction: 'in' as const },
+        { name: 'b', direction: 'in' as const },
+        { name: 'c', direction: 'out' as const },
+      ],
+    });
+    const layoutNoDesc = computeLayout(ip);
+    const layoutWithDesc = computeLayout(
+      ip,
+      new Set(),
+      () => null,
+      'A description that should not affect port vertical positions.'
+    );
+
+    // Port Y coordinates must be identical regardless of description presence
+    layoutNoDesc.ports.forEach((p, i) => {
+      expect(layoutWithDesc.ports[i].y).toBe(p.y);
+    });
+  });
+
   it('generates unique IDs for all ports', () => {
     const ip = makeIpCore({
       clocks: [{ name: 'clk' }],
