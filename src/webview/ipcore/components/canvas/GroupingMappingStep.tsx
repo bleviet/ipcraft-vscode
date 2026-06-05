@@ -222,6 +222,7 @@ export const GroupingMappingStep: React.FC<GroupingMappingStepProps> = ({
 
   const handleConfirm = () => {
     const portNameOverrides: Record<string, string> = {};
+    const portWidthOverrides: Record<string, number | string> = {};
     const useOptionalPorts: string[] = [];
     const assignedPortIndices: number[] = [];
 
@@ -239,6 +240,11 @@ export const GroupingMappingStep: React.FC<GroupingMappingStepProps> = ({
       if (a.presence === 'optional') {
         useOptionalPorts.push(a.logicalName);
       }
+      // Preserve the physical port's actual width instead of the bus default
+      const physicalPort = selectedPorts.find((p) => p.name === a.assignedPort!.name);
+      if (physicalPort?.width !== undefined) {
+        portWidthOverrides[a.logicalName] = physicalPort.width;
+      }
     }
 
     onConfirm({
@@ -248,6 +254,8 @@ export const GroupingMappingStep: React.FC<GroupingMappingStepProps> = ({
       physicalPrefix: prefix,
       interfaceName,
       portNameOverrides: Object.keys(portNameOverrides).length > 0 ? portNameOverrides : undefined,
+      portWidthOverrides:
+        Object.keys(portWidthOverrides).length > 0 ? portWidthOverrides : undefined,
       useOptionalPorts: useOptionalPorts.length > 0 ? useOptionalPorts : undefined,
       associatedClock: associatedClock || null,
       associatedReset: associatedReset || null,
