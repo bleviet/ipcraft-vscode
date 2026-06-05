@@ -180,6 +180,9 @@ export function listLibraryBusTypes(
     if (!bt) {
       continue;
     }
+    if (bt.vendor === 'ipcraft') {
+      continue;
+    }
     const vlnv = [bt.vendor, bt.library, bt.name, bt.version].filter(Boolean).join('.');
     if (vlnv) {
       result.push({ vlnv, label: `${bt.name ?? vlnv} (${bt.vendor ?? 'lib'})` });
