@@ -282,15 +282,22 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
     [batchUpdate, groupPorts, ipCore]
   );
 
-  const handleBackgroundClick = useCallback(() => {
-    // If the mousedown turned into a pan-drag, suppress the deselect
-    if (hasDraggedRef.current) {
-      hasDraggedRef.current = false;
-      return;
-    }
-    onSelect(null);
-    onDismissSelection?.();
-  }, [onSelect, onDismissSelection]);
+  const handleBackgroundClick = useCallback(
+    (e: React.MouseEvent) => {
+      // Shift+click on the background should do nothing — don't disturb multi-selection
+      if (e.shiftKey) {
+        return;
+      }
+      // If the mousedown turned into a pan-drag, suppress the deselect
+      if (hasDraggedRef.current) {
+        hasDraggedRef.current = false;
+        return;
+      }
+      onSelect(null);
+      onDismissSelection?.();
+    },
+    [onSelect, onDismissSelection]
+  );
 
   const handleBackgroundDoubleClick = useCallback(() => {
     setZoom(1.0);
