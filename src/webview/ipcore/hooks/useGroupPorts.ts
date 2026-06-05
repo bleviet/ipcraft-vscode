@@ -228,5 +228,24 @@ export function useGroupPorts(ipCore: IpCore, batchUpdate: BatchUpdate) {
     [ipCore, batchUpdate]
   );
 
-  return { groupAsStandard, groupAsConduit, addPortToConduit, ungroupBusInterface };
+  /** Remove a port from `ports[]` without touching any bus interface.
+   *  Used when a port is dragged onto a standard-protocol bus — the port's
+   *  physical name already matches the bus prefix so it is implicitly covered;
+   *  we just de-duplicate the standalone entry. */
+  const removeStandalonePort = useCallback(
+    (portIndex: number) => {
+      const ports: Port[] = [...(ipCore.ports ?? [])];
+      const filteredPorts = ports.filter((_, i) => i !== portIndex);
+      batchUpdate([[['ports'], filteredPorts]]);
+    },
+    [ipCore, batchUpdate]
+  );
+
+  return {
+    groupAsStandard,
+    groupAsConduit,
+    addPortToConduit,
+    ungroupBusInterface,
+    removeStandalonePort,
+  };
 }

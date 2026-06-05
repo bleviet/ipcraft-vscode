@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import type { LayoutPort } from './canvasLayout';
 import { STUB_LENGTH } from './canvasLayout';
 
@@ -37,6 +37,9 @@ export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
   onPortDrop,
 }) => {
   const [isDragTarget, setIsDragTarget] = useState(false);
+  // Counter tracks nested dragenter/dragleave pairs so crossing child-element
+  // boundaries doesn't toggle the highlight off prematurely.
+  const dragEnterCountRef = useRef(0);
   const isLeft = port.side === 'left';
 
   const hasError = annotations?.some((a) => a.severity === 'error');
@@ -92,16 +95,21 @@ export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
       onDragEnd={(e) => {
         const target = e.currentTarget as SVGGElement;
         target.style.opacity = '1';
+        dragEnterCountRef.current = 0;
         setIsDragTarget(false);
       }}
       onDragEnter={(e) => {
         if (onPortDrop && e.dataTransfer.types.includes(PORT_MOVE_MIME)) {
           e.preventDefault();
+          dragEnterCountRef.current++;
           setIsDragTarget(true);
         }
       }}
       onDragLeave={() => {
-        setIsDragTarget(false);
+        dragEnterCountRef.current = Math.max(0, dragEnterCountRef.current - 1);
+        if (dragEnterCountRef.current === 0) {
+          setIsDragTarget(false);
+        }
       }}
       onDragOver={(e) => {
         if (onPortDrop && e.dataTransfer.types.includes(PORT_MOVE_MIME)) {
@@ -111,6 +119,7 @@ export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
         }
       }}
       onDrop={(e) => {
+        dragEnterCountRef.current = 0;
         setIsDragTarget(false);
         if (!onPortDrop) {
           return;

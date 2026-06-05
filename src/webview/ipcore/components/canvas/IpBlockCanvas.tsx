@@ -261,11 +261,19 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
       if (!bus) {
         return;
       }
-      if (isConduitType(bus.type) || bus.conduitPorts) {
-        // Conduit: add immediately without confirmation
+      // Mirror isCustomBusInterface logic: conduit mode, conduit type, inline
+      // conduitPorts, or any type not in the built-in protocol catalog.
+      const isCustom =
+        bus.mode === 'conduit' ||
+        isConduitType(bus.type) ||
+        (bus.conduitPorts?.length ?? 0) > 0 ||
+        lookupBusDef(bus.type) === null;
+
+      if (isCustom) {
+        // Custom / conduit interface: append to conduitPorts immediately
         groupPorts.addPortToConduit(portIndex, busIndex);
       } else {
-        // Standard protocol: show confirmation dialog
+        // Standard known protocol: confirm before removing from standalone list
         setPendingPortDrop({ portIndex, busIndex });
       }
     },
@@ -369,9 +377,13 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
 
   const handleDragOver = useCallback(
     (e: React.DragEvent) => {
+      // When dragging a port-to-bus (PORT_MOVE_MIME present), don't show the
+      // RemoveZone — the user is targeting a bus bundle, not deleting the port.
       if (e.dataTransfer.types.includes('application/x-ipcraft-remove')) {
-        e.preventDefault();
-        setDragOutActive(true);
+        if (!e.dataTransfer.types.includes('application/x-ipcraft-port-move')) {
+          e.preventDefault();
+          setDragOutActive(true);
+        }
         return;
       }
 
@@ -986,8 +998,10 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
             portIndex={pendingPortDrop.portIndex}
             busIndex={pendingPortDrop.busIndex}
             onConfirm={() => {
+              // Standard-protocol bus: the port's physical name already matches
+              // physicalPrefix, so just remove it from the standalone ports list.
               if (batchUpdate) {
-                groupPorts.addPortToConduit(pendingPortDrop.portIndex, pendingPortDrop.busIndex);
+                groupPorts.removeStandalonePort(pendingPortDrop.portIndex);
               }
               setPendingPortDrop(null);
             }}
