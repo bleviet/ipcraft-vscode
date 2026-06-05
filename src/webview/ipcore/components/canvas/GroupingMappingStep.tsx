@@ -359,70 +359,82 @@ export const GroupingMappingStep: React.FC<GroupingMappingStepProps> = ({
               </tr>
             </thead>
             <tbody>
-              {assignments.map((a) => {
-                const isError = a.presence === 'required' && !a.assignedPort;
-                const isMismatch = a.hasSuffixMismatch;
-                return (
-                  <tr
-                    key={a.logicalName}
-                    style={{
-                      background: isError
-                        ? 'color-mix(in srgb, var(--vscode-inputValidation-errorBackground, #5a1d1d) 30%, transparent)'
-                        : 'transparent',
-                    }}
-                  >
-                    <td
+              {(() => {
+                const assignedElsewhere = new Set(
+                  assignments.map((a) => a.assignedPort?.name).filter(Boolean) as string[]
+                );
+                return assignments.map((a) => {
+                  const isError = a.presence === 'required' && !a.assignedPort;
+                  const isMismatch = a.hasSuffixMismatch;
+                  return (
+                    <tr
+                      key={a.logicalName}
                       style={{
-                        ...STYLE.tdCell,
-                        fontFamily: 'var(--vscode-editor-font-family, monospace)',
+                        background: isError
+                          ? 'color-mix(in srgb, var(--vscode-inputValidation-errorBackground, #5a1d1d) 30%, transparent)'
+                          : 'transparent',
                       }}
                     >
-                      {a.logicalName}
-                    </td>
-                    <td style={STYLE.tdCell}>
-                      <select
+                      <td
                         style={{
-                          ...STYLE.select,
-                          flex: undefined,
-                          width: '100%',
-                          color: isMismatch ? 'var(--vscode-charts-yellow)' : undefined,
+                          ...STYLE.tdCell,
+                          fontFamily: 'var(--vscode-editor-font-family, monospace)',
                         }}
-                        value={a.assignedPort?.name ?? ''}
-                        onChange={(e) =>
-                          handleAssignmentChange(a.logicalName, e.target.value || null)
-                        }
                       >
-                        <option value="">— unassigned —</option>
-                        {selectedPorts
-                          .filter((p) => {
-                            if (!a.expectedDir) {
-                              return true;
-                            }
-                            // Direction guard: exclude direction-mismatched ports entirely
-                            return p.direction === 'inout' || p.direction === a.expectedDir;
-                          })
-                          .map((p) => (
-                            <option key={p.name} value={p.name}>
-                              {p.name}
-                            </option>
-                          ))}
-                      </select>
-                      {isMismatch && (
-                        <span
-                          style={{ marginLeft: 4, opacity: 0.7 }}
-                          title="Suffix mismatch — portNameOverride will be generated"
+                        {a.logicalName}
+                      </td>
+                      <td style={STYLE.tdCell}>
+                        <select
+                          style={{
+                            ...STYLE.select,
+                            flex: undefined,
+                            width: '100%',
+                            color: isMismatch ? 'var(--vscode-charts-yellow)' : undefined,
+                          }}
+                          value={a.assignedPort?.name ?? ''}
+                          onChange={(e) =>
+                            handleAssignmentChange(a.logicalName, e.target.value || null)
+                          }
                         >
-                          ⚠
-                        </span>
-                      )}
-                    </td>
-                    <td style={{ ...STYLE.tdCell, opacity: 0.7 }}>{a.expectedDir ?? '—'}</td>
-                    <td style={{ ...STYLE.tdCell, opacity: 0.7 }}>
-                      {a.presence === 'required' ? '✓' : ''}
-                    </td>
-                  </tr>
-                );
-              })}
+                          <option value="">— unassigned —</option>
+                          {selectedPorts
+                            .filter((p) => {
+                              // Exclude ports already claimed by another logical signal
+                              if (
+                                p.name !== a.assignedPort?.name &&
+                                assignedElsewhere.has(p.name)
+                              ) {
+                                return false;
+                              }
+                              if (!a.expectedDir) {
+                                return true;
+                              }
+                              // Direction guard: exclude direction-mismatched ports entirely
+                              return p.direction === 'inout' || p.direction === a.expectedDir;
+                            })
+                            .map((p) => (
+                              <option key={p.name} value={p.name}>
+                                {p.name}
+                              </option>
+                            ))}
+                        </select>
+                        {isMismatch && (
+                          <span
+                            style={{ marginLeft: 4, opacity: 0.7 }}
+                            title="Suffix mismatch — portNameOverride will be generated"
+                          >
+                            ⚠
+                          </span>
+                        )}
+                      </td>
+                      <td style={{ ...STYLE.tdCell, opacity: 0.7 }}>{a.expectedDir ?? '—'}</td>
+                      <td style={{ ...STYLE.tdCell, opacity: 0.7 }}>
+                        {a.presence === 'required' ? '✓' : ''}
+                      </td>
+                    </tr>
+                  );
+                });
+              })()}
             </tbody>
           </table>
         </div>
