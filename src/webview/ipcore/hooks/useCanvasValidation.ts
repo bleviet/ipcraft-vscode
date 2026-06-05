@@ -123,6 +123,26 @@ export const useCanvasValidation = (ipCore: IpCore): CanvasAnnotations => {
         }
       });
     }
+
+    // Check standard bus portNameOverrides for duplicate physical suffixes within the same interface
+    if (bus.portNameOverrides) {
+      const suffixToLogicals = new Map<string, string[]>();
+      for (const [logicalName, suffix] of Object.entries(bus.portNameOverrides)) {
+        const existing = suffixToLogicals.get(suffix);
+        if (existing) {
+          existing.push(logicalName);
+        } else {
+          suffixToLogicals.set(suffix, [logicalName]);
+        }
+      }
+      for (const [suffix, logicalNames] of suffixToLogicals) {
+        if (logicalNames.length > 1) {
+          for (const logicalName of logicalNames) {
+            addAnnotation(`bus:${idx}:${logicalName}`, 'error', `Duplicate port name: ${suffix}`);
+          }
+        }
+      }
+    }
   });
 
   // Check interrupts

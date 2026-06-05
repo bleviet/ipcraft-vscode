@@ -178,6 +178,58 @@ describe('useCanvasValidation', () => {
     expect(annotations['bus:0:port_1']).toBeUndefined();
   });
 
+  it('should detect duplicate portNameOverrides suffixes within the same standard bus interface', () => {
+    const ipCore: IpCore = {
+      vlnv: { vendor: 'test', library: 'lib', name: 'TestCore', version: '1.0' },
+      clocks: [{ name: 'clk' }],
+      busInterfaces: [
+        {
+          name: 'axi_bus',
+          type: 'axi4',
+          mode: 'slave',
+          physicalPrefix: 's_axi_',
+          associatedClock: 'clk',
+          portNameOverrides: {
+            ARADDR: 'addr',
+            AWADDR: 'addr',
+          },
+        },
+      ],
+    };
+
+    const annotations = useCanvasValidation(ipCore);
+    expect(annotations['bus:0:ARADDR']).toBeDefined();
+    expect(annotations['bus:0:ARADDR'][0].severity).toBe('error');
+    expect(annotations['bus:0:ARADDR'][0].message).toContain('Duplicate port name');
+    expect(annotations['bus:0:AWADDR']).toBeDefined();
+    expect(annotations['bus:0:AWADDR'][0].severity).toBe('error');
+    expect(annotations['bus:0:AWADDR'][0].message).toContain('Duplicate port name');
+  });
+
+  it('should not flag unique portNameOverrides suffixes', () => {
+    const ipCore: IpCore = {
+      vlnv: { vendor: 'test', library: 'lib', name: 'TestCore', version: '1.0' },
+      clocks: [{ name: 'clk' }],
+      busInterfaces: [
+        {
+          name: 'axi_bus',
+          type: 'axi4',
+          mode: 'slave',
+          physicalPrefix: 's_axi_',
+          associatedClock: 'clk',
+          portNameOverrides: {
+            ARADDR: 'read_addr',
+            AWADDR: 'write_addr',
+          },
+        },
+      ],
+    };
+
+    const annotations = useCanvasValidation(ipCore);
+    expect(annotations['bus:0:ARADDR']).toBeUndefined();
+    expect(annotations['bus:0:AWADDR']).toBeUndefined();
+  });
+
   it('should not flag unique physicalPrefix values', () => {
     const ipCore: IpCore = {
       vlnv: { vendor: 'test', library: 'lib', name: 'TestCore', version: '1.0' },
