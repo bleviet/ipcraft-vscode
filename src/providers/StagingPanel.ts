@@ -1,6 +1,13 @@
 import * as vscode from 'vscode';
 import { randomBytes } from 'crypto';
 import { STAGING_SCHEME, setStagingContent, clearStagingContent } from './StagingContentProvider';
+import {
+  renderFileTree,
+  escHtml,
+  TREE_CSS,
+  LOCK_SVG,
+  type TreeRenderHooks,
+} from './webview/FileTreeRenderer';
 
 export interface StagedFile {
   relativePath: string;
@@ -9,14 +16,6 @@ export interface StagedFile {
   protected: boolean;
   content: string;
   diskPath: string;
-}
-
-interface TreeNode {
-  name: string;
-  fullPath: string;
-  isDir: boolean;
-  children: TreeNode[];
-  file?: StagedFile;
 }
 
 export class StagingPanel {
@@ -122,136 +121,36 @@ export class StagingPanel {
     });
   }
 
-  private static esc(s: string): string {
-    return s
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  }
-
-  // ---------------------------------------------------------------------------
-  // Tree construction
-  // ---------------------------------------------------------------------------
-
-  private static buildTree(files: StagedFile[]): TreeNode {
-    const root: TreeNode = { name: '', fullPath: '', isDir: true, children: [] };
-
-    for (const file of files) {
-      const parts = file.relativePath.split('/');
-      let node = root;
-      for (let i = 0; i < parts.length; i++) {
-        const part = parts[i];
-        if (i === parts.length - 1) {
-          node.children.push({
-            name: part,
-            fullPath: file.relativePath,
-            isDir: false,
-            children: [],
-            file,
-          });
-        } else {
-          const dirPath = parts.slice(0, i + 1).join('/');
-          let dir = node.children.find((c) => c.isDir && c.name === part);
-          if (!dir) {
-            dir = { name: part, fullPath: dirPath, isDir: true, children: [] };
-            node.children.push(dir);
-          }
-          node = dir;
-        }
-      }
-    }
-
-    const sort = (n: TreeNode) => {
-      n.children.sort((a, b) => {
-        if (a.isDir !== b.isDir) {
-          return a.isDir ? -1 : 1;
-        }
-        return a.name.localeCompare(b.name);
-      });
-      n.children.forEach(sort);
-    };
-    sort(root);
-
-    return root;
-  }
-
-  // ---------------------------------------------------------------------------
-  // Tree rendering
-  // ---------------------------------------------------------------------------
-
+  // Eye SVG for the "preview generated file" action button (staging-only).
   private static readonly eyeSvg =
     `<svg width="14" height="10" viewBox="0 0 16 12" fill="currentColor" aria-hidden="true">` +
     `<path d="M8 0C4.5 0 1.5 2.2 0 6c1.5 3.8 4.5 6 8 6s6.5-2.2 8-6C14.5 2.2 11.5 0 8 0z` +
     `m0 10a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm0-1.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/></svg>`;
 
-  // Closed padlock — used for protected (user-managed) files.
-  private static readonly lockSvg =
-    `<svg width="8" height="10" viewBox="0 0 8 10" fill="none" aria-hidden="true">` +
-    `<rect x="0.5" y="4.5" width="7" height="5" rx="1" fill="currentColor"/>` +
-    `<path d="M2 4.5V3a2 2 0 0 1 4 0v1.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>` +
-    `</svg>`;
+  // ---------------------------------------------------------------------------
+  // Per-row rendering hooks injected into the shared FileTreeRenderer.
+  // ---------------------------------------------------------------------------
 
-  // Chevron-down SVG — rotated via CSS when collapsed.
-  private static readonly chevronSvg =
-    `<svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" aria-hidden="true">` +
-    `<path d="M1.5 3.5l3.5 3.5 3.5-3.5"/></svg>`;
-
-  private static renderNode(node: TreeNode, depth: number): string {
-    if (node.isDir && !node.name) {
-      return node.children.map((c) => StagingPanel.renderNode(c, depth)).join('');
-    }
-
-    const px = (n: number) => `${n}px`;
-    const base = 6;
-    // step = chevron-box (14 px) + flex gap (6 px) so that file dots land
-    // directly under the first letter of the parent directory name.
-    const step = 20;
-
-    if (node.isDir) {
-      const id = `d-${node.fullPath.replace(/[^a-z0-9]/gi, '-')}`;
-      const children = node.children.map((c) => StagingPanel.renderNode(c, depth + 1)).join('');
-      // --guide-x: horizontal centre of this node's chevron icon.
-      const guideX = px(base + depth * step + 7);
-      return (
-        `<div class="tree-dir">` +
-        `<div class="tree-row tree-dir-header" style="padding-left:${px(base + depth * step)}" data-toggle="${id}">` +
-        `<span class="chevron" id="${id}-ch">${StagingPanel.chevronSvg}</span>` +
-        `<span class="dir-name">${StagingPanel.esc(node.name)}/</span>` +
-        `</div>` +
-        `<div class="tree-children" id="${id}" style="--guide-x:${guideX}">${children}</div>` +
-        `</div>`
-      );
-    }
-
-    const file = node.file!;
-    const isMuted = file.status === 'unchanged' || file.protected;
-    // HTML-escaped relative path carried in a data-* attribute (no inline JS).
-    const dataPath = StagingPanel.esc(file.relativePath);
-
-    const statusIndicator = file.protected
-      ? `<span class="status-lock">${StagingPanel.lockSvg}</span>`
-      : `<span class="dot dot-${file.status}"></span>`;
-
-    const diffBtn =
-      file.status === 'modified' || file.protected
-        ? `<button class="btn-action btn-diff" data-diff="${dataPath}">View Diff</button>`
-        : '';
-    const previewBtn =
-      file.status === 'new'
-        ? `<button class="btn-action btn-preview" data-preview="${dataPath}" title="Preview generated file">${StagingPanel.eyeSvg}</button>`
-        : '';
-
-    // padding-left matches the dir-header at this depth — dot aligns with parent dir-name.
-    return (
-      `<div class="tree-row tree-file-row${isMuted ? ' muted' : ''}" style="padding-left:${px(base + depth * step)}">` +
-      statusIndicator +
-      `<span class="file-name">${StagingPanel.esc(node.name)}</span>` +
-      diffBtn +
-      previewBtn +
-      `</div>`
-    );
-  }
+  private static readonly treeHooks: TreeRenderHooks<StagedFile> = {
+    muted: (f) => f.status === 'unchanged' || f.protected,
+    indicator: (f) =>
+      f.protected
+        ? `<span class="status-lock">${LOCK_SVG}</span>`
+        : `<span class="dot dot-${f.status}"></span>`,
+    trailing: (f) => {
+      // HTML-escaped relative path carried in a data-* attribute (no inline JS).
+      const dataPath = escHtml(f.relativePath);
+      const diffBtn =
+        f.status === 'modified' || f.protected
+          ? `<button class="btn-action btn-diff" data-diff="${dataPath}">View Diff</button>`
+          : '';
+      const previewBtn =
+        f.status === 'new'
+          ? `<button class="btn-action btn-preview" data-preview="${dataPath}" title="Preview generated file">${StagingPanel.eyeSvg}</button>`
+          : '';
+      return diffBtn + previewBtn;
+    },
+  };
 
   // ---------------------------------------------------------------------------
   // HTML shell
@@ -287,10 +186,7 @@ export class StagingPanel {
     }
     if (protectedFiles.length) {
       summaryItems.push(
-        si(
-          `<span class="status-lock">${StagingPanel.lockSvg}</span>`,
-          `${protectedFiles.length} protected`
-        )
+        si(`<span class="status-lock">${LOCK_SVG}</span>`, `${protectedFiles.length} protected`)
       );
     }
     const summaryHtml = summaryItems.join('<span class="summary-sep">·</span>');
@@ -306,8 +202,7 @@ export class StagingPanel {
       }
     }
 
-    const tree = StagingPanel.buildTree(files);
-    const treeHtml = StagingPanel.renderNode(tree, 0);
+    const treeHtml = renderFileTree(files, StagingPanel.treeHooks);
 
     // Per-render nonce so the inline <script> can run while the CSP stays
     // fail-closed: an accidentally-unescaped value can no longer execute.
@@ -320,115 +215,28 @@ export class StagingPanel {
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';">
 <title>IPCraft — Preview Generated Files</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{
-  font-family:var(--vscode-font-family);
-  font-size:var(--vscode-font-size);
-  color:var(--vscode-foreground);
-  background:var(--vscode-editor-background);
-  display:flex;flex-direction:column;height:100vh;
-}
-.header{
-  padding:14px 20px 10px;
-  border-bottom:1px solid var(--vscode-panel-border);
-  flex-shrink:0;
-}
+${TREE_CSS}
 .header h1{font-size:14px;font-weight:600;margin-bottom:4px}
-.summary{display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-top:4px}
-.summary-item{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--vscode-descriptionForeground)}
-.summary-sep{font-size:11px;color:var(--vscode-descriptionForeground);opacity:.4;padding:0 2px}
-.content{flex:1;overflow-y:auto;padding:10px 16px}
-/* ── tree ─────────────────────────────────────────────────────────────── */
-.tree-row{
-  display:flex;align-items:center;gap:6px;
-  border-radius:3px;padding-top:3px;padding-bottom:3px;padding-right:8px;
-  min-height:22px;
-}
-.tree-dir-header{cursor:pointer;user-select:none}
-.tree-dir-header:hover{background:var(--vscode-list-hoverBackground)}
+.summary{margin-top:4px}
 .tree-file-row:hover{background:var(--vscode-list-activeSelectionBackground)}
 .tree-file-row.muted{opacity:0.55}
-.tree-children{position:relative}
-.tree-children::before{
-  content:'';position:absolute;
-  left:var(--guide-x,12px);top:0;bottom:4px;
-  width:1px;
-  background:var(--vscode-tree-indentGuidesStroke,rgba(128,128,128,.18));
-  pointer-events:none;
-}
-.tree-children.collapsed{display:none}
-/* chevron */
-.chevron{
-  display:flex;align-items:center;justify-content:center;
-  width:14px;height:14px;flex-shrink:0;
-  color:var(--vscode-descriptionForeground);
-  transition:transform 0.15s;
-}
-.chevron svg{stroke:currentColor;stroke-width:1.5;fill:none}
-.chevron.collapsed{transform:rotate(-90deg)}
-/* dir / file labels */
-.dir-name{
-  font-family:var(--vscode-editor-font-family,monospace);font-size:12px;
-  color:var(--vscode-charts-purple,#b180d7);
-}
-.file-name{
-  font-family:var(--vscode-editor-font-family,monospace);font-size:12px;
-  color:var(--vscode-foreground);
-  flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-}
-/* status dot */
-.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 .dot-new{background:#4ea44e}
 .dot-modified{background:#d4a83a}
 .dot-unchanged{background:#888}
-.status-lock{display:inline-flex;align-items:center;flex-shrink:0;color:var(--vscode-foreground)}
 /* action buttons — revealed on row hover */
-.btn-action{
-  font-family:var(--vscode-font-family);
-  border:none;border-radius:3px;cursor:pointer;flex-shrink:0;
-  opacity:0;transition:opacity 0.12s;
-}
+.btn-action{font-family:var(--vscode-font-family);border:none;border-radius:3px;cursor:pointer;flex-shrink:0;opacity:0;transition:opacity 0.12s}
 .tree-row:hover .btn-action{opacity:1}
-.btn-diff{
-  font-size:11px;padding:2px 8px;
-  background:var(--vscode-button-secondaryBackground);
-  color:var(--vscode-button-secondaryForeground);
-}
+.btn-diff{font-size:11px;padding:2px 8px;background:var(--vscode-button-secondaryBackground);color:var(--vscode-button-secondaryForeground)}
 .btn-diff:hover{background:var(--vscode-button-secondaryHoverBackground)}
-.btn-preview{
-  display:flex;align-items:center;justify-content:center;
-  padding:3px 5px;
-  background:transparent;
-  color:var(--vscode-descriptionForeground);
-}
-.btn-preview:hover{
-  background:var(--vscode-button-secondaryBackground);
-  color:var(--vscode-button-secondaryForeground);
-}
-/* ── footer / banner ──────────────────────────────────────────────────── */
-.footer{
-  padding:10px 20px;border-top:1px solid var(--vscode-panel-border);
-  display:flex;gap:8px;flex-shrink:0;
-}
-.btn-apply{
-  font-family:var(--vscode-font-family);font-size:13px;font-weight:500;
-  padding:5px 16px;
-  background:var(--vscode-button-background);color:var(--vscode-button-foreground);
-  border:none;border-radius:3px;cursor:pointer;
-}
+.btn-preview{display:flex;align-items:center;justify-content:center;padding:3px 5px;background:transparent;color:var(--vscode-descriptionForeground)}
+.btn-preview:hover{background:var(--vscode-button-secondaryBackground);color:var(--vscode-button-secondaryForeground)}
+/* footer / banner */
+.footer{padding:10px 20px;border-top:1px solid var(--vscode-panel-border);display:flex;gap:8px;flex-shrink:0}
+.btn-apply{font-family:var(--vscode-font-family);font-size:13px;font-weight:500;padding:5px 16px;background:var(--vscode-button-background);color:var(--vscode-button-foreground);border:none;border-radius:3px;cursor:pointer}
 .btn-apply:hover{background:var(--vscode-button-hoverBackground)}
-.btn-cancel{
-  font-family:var(--vscode-font-family);font-size:13px;
-  padding:5px 16px;
-  background:var(--vscode-button-secondaryBackground);color:var(--vscode-button-secondaryForeground);
-  border:none;border-radius:3px;cursor:pointer;
-}
+.btn-cancel{font-family:var(--vscode-font-family);font-size:13px;padding:5px 16px;background:var(--vscode-button-secondaryBackground);color:var(--vscode-button-secondaryForeground);border:none;border-radius:3px;cursor:pointer}
 .btn-cancel:hover{background:var(--vscode-button-secondaryHoverBackground)}
-.banner{
-  padding:10px 12px;margin-bottom:12px;border-radius:4px;
-  background:var(--vscode-diffEditor-unchangedRegionBackground,rgba(128,128,128,.1));
-  color:var(--vscode-descriptionForeground);font-size:12px;
-}
+.banner{padding:10px 12px;margin-bottom:12px;border-radius:4px;background:var(--vscode-diffEditor-unchangedRegionBackground,rgba(128,128,128,.1));color:var(--vscode-descriptionForeground);font-size:12px}
 </style>
 </head>
 <body>

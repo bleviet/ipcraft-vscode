@@ -5,19 +5,18 @@ import { Logger } from '../utils/Logger';
 import { ScaffoldPackLoader } from '../generator/ScaffoldPackLoader';
 import { TemplateLoader } from '../generator/TemplateLoader';
 import { IpCoreScaffolder } from '../generator/IpCoreScaffolder';
+import {
+  renderFileTree,
+  escHtml,
+  TREE_CSS,
+  LOCK_SVG,
+  type TreeRenderHooks,
+} from './webview/FileTreeRenderer';
 
 interface PreviewFile {
   relativePath: string;
   conditionPassed: boolean;
   managed: boolean;
-}
-
-interface TreeNode {
-  name: string;
-  fullPath: string;
-  isDir: boolean;
-  children: TreeNode[];
-  file?: PreviewFile;
 }
 
 /**
@@ -146,100 +145,21 @@ export class ScaffoldPackPanel {
   }
 
   // ---------------------------------------------------------------------------
-  // Tree rendering (same visual language as StagingPanel)
+  // Per-row rendering hooks injected into the shared FileTreeRenderer.
   // ---------------------------------------------------------------------------
 
-  private static readonly lockSvg =
-    `<svg width="8" height="10" viewBox="0 0 8 10" fill="none" aria-hidden="true">` +
-    `<rect x="0.5" y="4.5" width="7" height="5" rx="1" fill="currentColor"/>` +
-    `<path d="M2 4.5V3a2 2 0 0 1 4 0v1.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>` +
-    `</svg>`;
-
-  private static readonly chevronSvg =
-    `<svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" aria-hidden="true">` +
-    `<path d="M1.5 3.5l3.5 3.5 3.5-3.5"/></svg>`;
-
-  private static esc(s: string): string {
-    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  }
-
-  private static buildTree(files: PreviewFile[]): TreeNode {
-    const root: TreeNode = { name: '', fullPath: '', isDir: true, children: [] };
-    for (const file of files) {
-      const parts = file.relativePath.split('/');
-      let node = root;
-      for (let i = 0; i < parts.length; i++) {
-        const part = parts[i];
-        if (i === parts.length - 1) {
-          node.children.push({
-            name: part,
-            fullPath: file.relativePath,
-            isDir: false,
-            children: [],
-            file,
-          });
-        } else {
-          const dirPath = parts.slice(0, i + 1).join('/');
-          let dir = node.children.find((c) => c.isDir && c.name === part);
-          if (!dir) {
-            dir = { name: part, fullPath: dirPath, isDir: true, children: [] };
-            node.children.push(dir);
-          }
-          node = dir;
-        }
-      }
-    }
-    const sort = (n: TreeNode) => {
-      n.children.sort((a, b) =>
-        a.isDir !== b.isDir ? (a.isDir ? -1 : 1) : a.name.localeCompare(b.name)
-      );
-      n.children.forEach(sort);
-    };
-    sort(root);
-    return root;
-  }
-
-  private static renderNode(node: TreeNode, depth: number): string {
-    if (node.isDir && !node.name) {
-      return node.children.map((c) => ScaffoldPackPanel.renderNode(c, depth)).join('');
-    }
-    const px = (n: number) => `${n}px`;
-    const base = 6;
-    const step = 20;
-    if (node.isDir) {
-      const id = `d-${node.fullPath.replace(/[^a-z0-9]/gi, '-')}`;
-      const children = node.children
-        .map((c) => ScaffoldPackPanel.renderNode(c, depth + 1))
-        .join('');
-      const guideX = px(base + depth * step + 7);
-      return (
-        `<div class="tree-dir">` +
-        `<div class="tree-row tree-dir-header" style="padding-left:${px(base + depth * step)}" data-toggle="${id}">` +
-        `<span class="chevron" id="${id}-ch">${ScaffoldPackPanel.chevronSvg}</span>` +
-        `<span class="dir-name">${ScaffoldPackPanel.esc(node.name)}/</span>` +
-        `</div>` +
-        `<div class="tree-children" id="${id}" style="--guide-x:${guideX}">${children}</div>` +
-        `</div>`
-      );
-    }
-    const file = node.file!;
-    const isMuted = !file.conditionPassed;
-    const indicator = !file.managed
-      ? `<span class="status-lock">${ScaffoldPackPanel.lockSvg}</span>`
-      : file.conditionPassed
-        ? `<span class="dot dot-included"></span>`
-        : `<span class="dot dot-skipped"></span>`;
-    const badge = !file.conditionPassed ? `<span class="badge-skip">condition false</span>` : '';
-    const lockBadge = !file.managed ? `<span class="badge-lock">user-owned</span>` : '';
-    return (
-      `<div class="tree-row tree-file-row${isMuted ? ' muted' : ''}" style="padding-left:${px(base + depth * step)}">` +
-      indicator +
-      `<span class="file-name">${ScaffoldPackPanel.esc(node.name)}</span>` +
-      badge +
-      lockBadge +
-      `</div>`
-    );
-  }
+  private static readonly treeHooks: TreeRenderHooks<PreviewFile> = {
+    muted: (f) => !f.conditionPassed,
+    indicator: (f) =>
+      !f.managed
+        ? `<span class="status-lock">${LOCK_SVG}</span>`
+        : f.conditionPassed
+          ? `<span class="dot dot-included"></span>`
+          : `<span class="dot dot-skipped"></span>`,
+    trailing: (f) =>
+      (!f.conditionPassed ? `<span class="badge-skip">condition false</span>` : '') +
+      (!f.managed ? `<span class="badge-lock">user-owned</span>` : ''),
+  };
 
   private static buildHtml(
     packName: string,
@@ -264,24 +184,18 @@ export class ScaffoldPackPanel {
     }
     if (userOwned.length) {
       parts.push(
-        si(
-          `<span class="status-lock">${ScaffoldPackPanel.lockSvg}</span>`,
-          `${userOwned.length} user-owned`
-        )
+        si(`<span class="status-lock">${LOCK_SVG}</span>`, `${userOwned.length} user-owned`)
       );
     }
     const summaryHtml = parts.join(sep);
 
     const contextLine = ipCoreLabel
-      ? `<div class="context-label">Preview context: <code>${ScaffoldPackPanel.esc(ipCoreLabel)}</code></div>`
+      ? `<div class="context-label">Preview context: <code>${escHtml(ipCoreLabel)}</code></div>`
       : '';
 
-    const errorHtml = errorMsg
-      ? `<div class="banner banner-warn">${ScaffoldPackPanel.esc(errorMsg)}</div>`
-      : '';
+    const errorHtml = errorMsg ? `<div class="banner banner-warn">${escHtml(errorMsg)}</div>` : '';
 
-    const tree = ScaffoldPackPanel.buildTree(files);
-    const treeHtml = ScaffoldPackPanel.renderNode(tree, 0);
+    const treeHtml = renderFileTree(files, ScaffoldPackPanel.treeHooks);
 
     // Per-render nonce so the inline <script> runs while the CSP stays fail-closed.
     const nonce = randomBytes(16).toString('base64');
@@ -293,33 +207,15 @@ export class ScaffoldPackPanel {
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';">
 <title>IPCraft — Scaffold Pack Preview</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:var(--vscode-font-family);font-size:var(--vscode-font-size);color:var(--vscode-foreground);background:var(--vscode-editor-background);display:flex;flex-direction:column;height:100vh}
-.header{padding:14px 20px 10px;border-bottom:1px solid var(--vscode-panel-border);flex-shrink:0}
+${TREE_CSS}
 .header h1{font-size:14px;font-weight:600;margin-bottom:2px}
 .pack-dir{font-size:11px;color:var(--vscode-descriptionForeground);font-family:var(--vscode-editor-font-family,monospace);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .context-label{font-size:11px;color:var(--vscode-descriptionForeground);margin-top:4px}
 .context-label code{font-family:var(--vscode-editor-font-family,monospace)}
-.summary{display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-top:6px}
-.summary-item{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--vscode-descriptionForeground)}
-.summary-sep{font-size:11px;color:var(--vscode-descriptionForeground);opacity:.4;padding:0 2px}
-.content{flex:1;overflow-y:auto;padding:10px 16px}
-.tree-row{display:flex;align-items:center;gap:6px;border-radius:3px;padding-top:3px;padding-bottom:3px;padding-right:8px;min-height:22px}
-.tree-dir-header{cursor:pointer;user-select:none}
-.tree-dir-header:hover{background:var(--vscode-list-hoverBackground)}
+.summary{margin-top:6px}
 .tree-file-row.muted{opacity:0.45}
-.tree-children{position:relative}
-.tree-children::before{content:'';position:absolute;left:var(--guide-x,12px);top:0;bottom:4px;width:1px;background:var(--vscode-tree-indentGuidesStroke,rgba(128,128,128,.18));pointer-events:none}
-.tree-children.collapsed{display:none}
-.chevron{display:flex;align-items:center;justify-content:center;width:14px;height:14px;flex-shrink:0;color:var(--vscode-descriptionForeground);transition:transform 0.15s}
-.chevron svg{stroke:currentColor;stroke-width:1.5;fill:none}
-.chevron.collapsed{transform:rotate(-90deg)}
-.dir-name{font-family:var(--vscode-editor-font-family,monospace);font-size:12px;color:var(--vscode-charts-purple,#b180d7)}
-.file-name{font-family:var(--vscode-editor-font-family,monospace);font-size:12px;color:var(--vscode-foreground);flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 .dot-included{background:#4ea44e}
 .dot-skipped{background:#888}
-.status-lock{display:inline-flex;align-items:center;flex-shrink:0;color:var(--vscode-foreground)}
 .badge-skip,.badge-lock{font-size:10px;padding:1px 5px;border-radius:3px;flex-shrink:0}
 .badge-skip{background:rgba(128,128,128,.18);color:var(--vscode-descriptionForeground)}
 .badge-lock{background:rgba(200,150,0,.15);color:var(--vscode-descriptionForeground)}
@@ -329,8 +225,8 @@ body{font-family:var(--vscode-font-family);font-size:var(--vscode-font-size);col
 </head>
 <body>
 <div class="header">
-  <h1>Scaffold Pack: ${ScaffoldPackPanel.esc(packName)}</h1>
-  <div class="pack-dir">${ScaffoldPackPanel.esc(packDir)}</div>
+  <h1>Scaffold Pack: ${escHtml(packName)}</h1>
+  <div class="pack-dir">${escHtml(packDir)}</div>
   ${contextLine}
   <div class="summary">${summaryHtml}</div>
 </div>
