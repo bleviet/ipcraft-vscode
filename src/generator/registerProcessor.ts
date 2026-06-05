@@ -3,6 +3,49 @@ import * as path from 'path';
 import * as yaml from 'js-yaml';
 import type { BusInterfaceDef, BusTypeInfo, IpCoreData } from './types';
 
+/**
+ * Evaluate an arithmetic width expression that may reference parameter names.
+ * Returns the computed integer or undefined when any identifier remains unresolved.
+ *
+ * Examples:
+ *   evalWidthExpr("AxiDataWidth_g",     { AxiDataWidth_g: 32 }) → 32
+ *   evalWidthExpr("AxiDataWidth_g/8",   { AxiDataWidth_g: 32 }) → 4
+ *   evalWidthExpr("AxiDataWidth_g * 2", { AxiDataWidth_g: 32 }) → 64
+ */
+export function evalWidthExpr(
+  expr: string,
+  paramDefaults: Map<string, number> | Record<string, number>
+): number | undefined {
+  const trimmed = expr.trim();
+
+  const asNum = Number(trimmed);
+  if (Number.isFinite(asNum)) {
+    return asNum;
+  }
+
+  const defaults: Record<string, number> =
+    paramDefaults instanceof Map ? Object.fromEntries(paramDefaults) : paramDefaults;
+
+  // Substitute known param names, longest first to avoid partial-name collisions
+  let resolved = trimmed;
+  for (const name of Object.keys(defaults).sort((a, b) => b.length - a.length)) {
+    resolved = resolved.replace(new RegExp(`\\b${name}\\b`, 'g'), String(defaults[name]));
+  }
+
+  // After substitution only arithmetic tokens should remain
+  if (!/^[0-9\s+\-*/().]+$/.test(resolved)) {
+    return undefined;
+  }
+
+  try {
+    const result = new Function(`return (${resolved})`)() as unknown;
+    const num = Number(result);
+    return Number.isFinite(num) ? Math.trunc(num) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 // Maps the bus name segment of an ipcraft VLNV string to BusTypeInfo.
 // The libraryKey must match the top-level key in the bundled bus_definitions YAML files.
 const VLNV_BUS_NAME_MAP: Record<string, BusTypeInfo> = {
@@ -335,19 +378,18 @@ export function getActiveBusPortsFromDefinition(
     if (portWidthOverrides?.[logicalName] !== undefined) {
       const override = portWidthOverrides[logicalName];
       if (typeof override === 'string') {
-        // Resolve parameter reference: use its default value for type generation,
-        // but preserve the parameter name for the template (generic reference)
-        width = paramDefaults[override] ?? 1;
+        // Resolve parameter reference or expression; preserve as widthExpr for templates
+        width = evalWidthExpr(override, paramDefaults) ?? 1;
         widthExpr = override;
       } else {
         width = override;
       }
     } else if (typeof width === 'string') {
-      // Bus definition port uses a parameter name as its width (e.g. XCVR_DW).
-      // Resolve to the default numeric value from the IP core parameters so HDL
-      // types are generated correctly; keep the name as widthExpr for generics.
+      // Port width is a parameter name or arithmetic expression (e.g. "XCVR_DW" or
+      // "AxiDataWidth_g/8"). Evaluate to a numeric default for type generation and
+      // keep the original expression as widthExpr for generic references in templates.
       widthExpr = width;
-      width = paramDefaults[width] ?? 1;
+      width = evalWidthExpr(width, paramDefaults) ?? 1;
     }
 
     const numWidth = Number(width);

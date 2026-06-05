@@ -6,6 +6,7 @@ import {
   getBusTypeForTemplate,
   expandBusInterfaces,
   checkDuplicatePhysicalPrefixes,
+  evalWidthExpr,
   getVhdlPortType,
   getActiveBusPortsFromDefinition,
   prepareRegisters,
@@ -426,6 +427,38 @@ describe('registerProcessor', () => {
         ],
       });
       expect(checkDuplicatePhysicalPrefixes(ipCore)).toBeNull();
+    });
+  });
+
+  describe('evalWidthExpr', () => {
+    it('resolves a plain parameter name', () => {
+      expect(evalWidthExpr('AxiDataWidth_g', { AxiDataWidth_g: 32 })).toBe(32);
+    });
+
+    it('evaluates division expression', () => {
+      expect(evalWidthExpr('AxiDataWidth_g/8', { AxiDataWidth_g: 32 })).toBe(4);
+    });
+
+    it('evaluates multiplication expression', () => {
+      expect(evalWidthExpr('AxiDataWidth_g*2', { AxiDataWidth_g: 16 })).toBe(32);
+    });
+
+    it('returns undefined when a parameter is not in defaults', () => {
+      expect(evalWidthExpr('UnknownParam/8', {})).toBeUndefined();
+    });
+
+    it('handles a plain numeric string', () => {
+      expect(evalWidthExpr('32', {})).toBe(32);
+    });
+
+    it('accepts a Map as paramDefaults', () => {
+      const m = new Map([['AxiDataWidth_g', 64]]);
+      expect(evalWidthExpr('AxiDataWidth_g/8', m)).toBe(8);
+    });
+
+    it('re-evaluates correctly when generic value changes', () => {
+      expect(evalWidthExpr('AxiDataWidth_g/8', { AxiDataWidth_g: 32 })).toBe(4);
+      expect(evalWidthExpr('AxiDataWidth_g/8', { AxiDataWidth_g: 64 })).toBe(8);
     });
   });
 });

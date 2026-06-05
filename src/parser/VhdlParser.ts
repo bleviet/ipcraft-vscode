@@ -255,18 +255,25 @@ function extractWidthFromType(type: string): number | string | undefined {
     if (!range) {
       return undefined;
     }
-    const paramMatch = range.match(/(\w+)\s*-\s*1\s+downto\s+0/i);
+    // All patterns are anchored (^...$) to match the full range unambiguously.
+    // Simple parameter: AxiDataWidth_g - 1 downto 0 → "AxiDataWidth_g"
+    const paramMatch = range.match(/^(\w+)\s*-\s*1\s+downto\s+0$/i);
     if (paramMatch) {
       return paramMatch[1];
     }
-    const numericMatch = range.match(/(\d+)\s+downto\s+(\d+)/i);
+    // Paren-wrapped expression: (AxiDataWidth_g/8) - 1 downto 0 → "AxiDataWidth_g/8"
+    const parenExprMatch = range.match(/^\((.+)\)\s*-\s*1\s+downto\s+0$/i);
+    if (parenExprMatch) {
+      return parenExprMatch[1].trim();
+    }
+    // Numeric range: 31 downto 0 → 32
+    const numericMatch = range.match(/^(\d+)\s+downto\s+(\d+)$/i);
     if (numericMatch) {
       const high = Number(numericMatch[1]);
       const low = Number(numericMatch[2]);
       return Math.abs(high - low) + 1;
     }
-    // Complex expression (e.g. "(AxiDataWidth_g/8) - 1 downto 0") — preserve as-is
-    return range || undefined;
+    return undefined;
   }
 
   if (/\bstd_logic\b/i.test(type)) {

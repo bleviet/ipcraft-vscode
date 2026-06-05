@@ -9,6 +9,7 @@ import { TemplateLoader } from './TemplateLoader';
 import { ScaffoldPackLoader } from './ScaffoldPackLoader';
 import {
   checkDuplicatePhysicalPrefixes,
+  evalWidthExpr,
   expandBusInterfaces,
   getActiveBusPortsFromDefinition,
   getBusTypeForTemplate,
@@ -602,7 +603,7 @@ export class IpCoreScaffolder {
       const isParameterized = typeof widthValue === 'string';
 
       if (isParameterized) {
-        const numericDefault = paramDefaults.get(widthValue) ?? 32;
+        const numericDefault = evalWidthExpr(widthValue, paramDefaults) ?? 32;
         const defaultWidth = numericDefault - 1;
         return {
           name: String(port.name).toLowerCase(),

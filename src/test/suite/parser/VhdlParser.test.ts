@@ -106,7 +106,8 @@ describe('VhdlParser', () => {
 
     const byteEna = ports.find((p) => p.name === 'Rb_ByteEna');
     expect(byteEna).toBeDefined();
-    expect(byteEna!.width).toBeDefined();
+    // Width is stored as the expression "AxiDataWidth_g/8" so it re-evaluates when the generic changes
+    expect(byteEna!.width).toBe('AxiDataWidth_g/8');
 
     const wrData = ports.find((p) => p.name === 'Rb_WrData');
     expect(wrData).toBeDefined();
