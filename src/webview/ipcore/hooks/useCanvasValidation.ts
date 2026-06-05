@@ -112,12 +112,12 @@ export const useCanvasValidation = (ipCore: IpCore): CanvasAnnotations => {
     // Check conduit ports for duplicate names within the same bus interface
     if (Array.isArray(bus.conduitPorts)) {
       const conduitPortNames = new Set<string>();
-      bus.conduitPorts.forEach((cp) => {
+      bus.conduitPorts.forEach((cp, portIdx) => {
         if (!cp.name) {
           return;
         }
         if (conduitPortNames.has(cp.name)) {
-          addAnnotation(`bus:${idx}:${cp.name}`, 'error', `Duplicate port name: ${cp.name}`);
+          addAnnotation(`bus:${idx}:cp:${portIdx}`, 'error', `Duplicate port name: ${cp.name}`);
         } else {
           conduitPortNames.add(cp.name);
         }

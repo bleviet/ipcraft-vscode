@@ -2,6 +2,7 @@ import React, { useState, useRef, useCallback } from 'react';
 import type { LayoutSubPort } from './canvasLayout';
 import { STUB_LENGTH } from './canvasLayout';
 import { DirectionArrow } from './CanvasPort';
+import type { ValidationAnnotation } from '../../hooks/useCanvasValidation';
 
 interface CanvasBusSubPortProps {
   subPort: LayoutSubPort;
@@ -10,6 +11,7 @@ interface CanvasBusSubPortProps {
   onSelect: (busId: string) => void;
   domainColor?: string;
   onRename?: (subPortId: string, newSuffix: string) => void;
+  annotations?: ValidationAnnotation[];
 }
 
 const RENAME_INPUT_W = 120;
@@ -33,10 +35,16 @@ export const CanvasBusSubPort: React.FC<CanvasBusSubPortProps> = ({
   onSelect,
   domainColor,
   onRename,
+  annotations,
 }) => {
   const isLeft = subPort.side === 'left';
   const stubDir = isLeft ? -1 : 1;
   const stubEndX = subPort.x + stubDir * STUB_LENGTH;
+
+  const hasError = annotations?.some((a) => a.severity === 'error') ?? false;
+  const tooltipText = annotations
+    ?.map((a) => `[${a.severity.toUpperCase()}] ${a.message}`)
+    .join('\n');
 
   const isOptional = subPort.presence === 'optional';
   const isInactive = isOptional && !subPort.active;
@@ -208,6 +216,19 @@ export const CanvasBusSubPort: React.FC<CanvasBusSubPortProps> = ({
         >
           ×
         </text>
+      )}
+
+      {/* Validation error dot — mirrors CanvasPort behaviour */}
+      {hasError && (
+        <circle
+          cx={stubEndX + stubDir * 5}
+          cy={subPort.y - 8}
+          r={4}
+          className="ip-canvas-annotation-dot ip-canvas-annotation-dot--error"
+          style={{ pointerEvents: 'none' }}
+        >
+          <title>{tooltipText}</title>
+        </circle>
       )}
     </g>
   );

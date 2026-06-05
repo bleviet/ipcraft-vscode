@@ -148,9 +148,11 @@ describe('useCanvasValidation', () => {
     };
 
     const annotations = useCanvasValidation(ipCore);
-    expect(annotations['bus:0:port_0']).toBeDefined();
-    expect(annotations['bus:0:port_0'][0].severity).toBe('error');
-    expect(annotations['bus:0:port_0'][0].message).toContain('Duplicate port name');
+    // Annotation key uses the array index (cp:1 = second occurrence) to match
+    // the index-based sub-port ID produced by canvasLayout for React key stability.
+    expect(annotations['bus:0:cp:1']).toBeDefined();
+    expect(annotations['bus:0:cp:1'][0].severity).toBe('error');
+    expect(annotations['bus:0:cp:1'][0].message).toContain('Duplicate port name');
   });
 
   it('should not flag unique conduit port names', () => {

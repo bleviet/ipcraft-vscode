@@ -1147,6 +1147,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
             onSelect={onSelect}
             domainColor={getDomainColor(sp.clockDomainIdx)}
             onRename={handleSubPortRename}
+            annotations={annotations[sp.id]}
           />
         ))}
 
