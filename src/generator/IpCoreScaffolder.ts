@@ -482,6 +482,7 @@ export class IpCoreScaffolder {
     }));
 
     return {
+      name,
       entity_name: name,
       registers,
       sw_registers: swRegisters,
