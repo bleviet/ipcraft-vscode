@@ -11,6 +11,58 @@
   overflow: hidden;
   background: var(--vscode-editor-background);
   cursor: grab;
+  /* Prevent browser text selection — canvas labels are decorative, not selectable text */
+  user-select: none;
+}
+
+/* Inset accent ring while multi-select mode is active */
+.ip-canvas-container--selecting {
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--vscode-focusBorder) 45%, transparent);
+}
+
+/* Multi-select mode toggle button */
+.ip-canvas-multiselect-btn {
+  position: absolute;
+  bottom: 44px;
+  left: 12px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-family: var(--vscode-font-family, sans-serif);
+  background: var(--vscode-editor-background);
+  color: var(--vscode-foreground);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 4px;
+  cursor: pointer;
+  opacity: 0.75;
+  transition: opacity 0.1s;
+  pointer-events: auto;
+}
+
+.ip-canvas-multiselect-btn:hover {
+  opacity: 1;
+}
+
+.ip-canvas-multiselect-btn--active {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  border-color: var(--vscode-button-background);
+  opacity: 1;
+}
+
+/* Ports show pointer cursor and a subtle ring when selection mode is active */
+.ip-canvas-container--selecting .canvas-port--port,
+.ip-canvas-container--selecting .canvas-port--interrupt {
+  cursor: pointer;
+}
+
+.ip-canvas-container--selecting .canvas-port--port .canvas-port__dot,
+.ip-canvas-container--selecting .canvas-port--interrupt .canvas-port__dot {
+  opacity: 0.6;
+}
+
+.ip-canvas-container--selecting .canvas-port--port:hover .canvas-port__dot,
+.ip-canvas-container--selecting .canvas-port--interrupt:hover .canvas-port__dot {
+  opacity: 1;
 }
 
 .ip-canvas-container--panning {

@@ -84,6 +84,8 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
     busIndex: number;
   } | null>(null);
   const [expandedBusIds, setExpandedBusIds] = useState<Set<string>>(new Set());
+  // Multi-select mode: when on, port clicks act as shift-clicks without holding Shift
+  const [multiSelectMode, setMultiSelectMode] = useState(false);
 
   const busDefs = useMemo((): ((type: string) => BusPortDef[] | null) => {
     if (!busLibrary) {
@@ -297,6 +299,39 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
     triggerZoomIndicator();
   }, [triggerZoomIndicator]);
 
+  // In multi-select mode, port/interrupt clicks become shift-selects without Shift key.
+  // Non-groupable ports (clock, reset, bus) still single-select normally.
+  const effectiveOnSelect = useCallback(
+    (id: string | null) => {
+      if (id !== null && multiSelectMode && onShiftSelect) {
+        const kind = id.split(':')[0];
+        if (kind === 'port' || kind === 'interrupt') {
+          onShiftSelect(id);
+          return;
+        }
+      }
+      onSelect(id);
+    },
+    [multiSelectMode, onShiftSelect, onSelect]
+  );
+
+  // Exits multi-select mode AND dismisses any active selection.
+  const exitSelectMode = useCallback(() => {
+    setMultiSelectMode(false);
+    onSelect(null);
+    onDismissSelection?.();
+  }, [onSelect, onDismissSelection]);
+
+  const toggleMultiSelectMode = useCallback(() => {
+    setMultiSelectMode((prev) => {
+      if (prev) {
+        onSelect(null);
+        onDismissSelection?.();
+      }
+      return !prev;
+    });
+  }, [onSelect, onDismissSelection]);
+
   const toggleBusExpand = useCallback((busId: string) => {
     setExpandedBusIds((prev) => {
       const next = new Set(prev);
@@ -360,8 +395,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
       }
 
       if (e.key === 'Escape') {
-        onSelect(null);
-        onDismissSelection?.();
+        exitSelectMode();
       } else if ((e.ctrlKey || e.metaKey) && e.key === '0') {
         e.preventDefault();
         setZoom(1.0);
@@ -373,7 +407,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedId, onSelect, onRemove, onDismissSelection, triggerZoomIndicator]);
+  }, [selectedId, onSelect, onRemove, onDismissSelection, triggerZoomIndicator, exitSelectMode]);
 
   const handleDragOver = useCallback(
     (e: React.DragEvent) => {
@@ -459,6 +493,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
         'ip-canvas-container',
         dragActive ? 'ip-canvas-container--drag-active' : '',
         isPanning ? 'ip-canvas-container--panning' : '',
+        multiSelectMode ? 'ip-canvas-container--selecting' : '',
       ]
         .filter(Boolean)
         .join(' ')}
@@ -900,8 +935,9 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
                   selected={isSelected}
                   inMultiSelection={multiSelectedIds?.has(p.id) ?? false}
                   annotations={annotations[p.id]}
-                  onSelect={onSelect}
+                  onSelect={effectiveOnSelect}
                   onShiftSelect={onShiftSelect}
+                  multiSelectMode={multiSelectMode && (p.kind === 'port' || p.kind === 'interrupt')}
                   domainColor={getDomainColor(p.clockDomainIdx)}
                 />
               </g>
@@ -955,7 +991,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
             multiSelection={{ all: buildMultiSelectionMap(multiSelectedIds), isMulti: true }}
             ipCore={ipCore}
             batchUpdate={batchUpdate}
-            onDismiss={onDismissSelection}
+            onDismiss={exitSelectMode}
           />
         )}
 
@@ -989,6 +1025,21 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
               </div>
             ))}
           </div>
+        )}
+
+        {/* Multi-select mode toggle — always visible when grouping is available */}
+        {onShiftSelect && (
+          <button
+            className={`ip-canvas-multiselect-btn${multiSelectMode ? ' ip-canvas-multiselect-btn--active' : ''}`}
+            onClick={toggleMultiSelectMode}
+            title={
+              multiSelectMode
+                ? 'Exit selection mode (Escape)'
+                : 'Select multiple ports (click ports to add, Escape to cancel)'
+            }
+          >
+            {multiSelectMode ? '✓ Selecting…' : '⊕ Select ports'}
+          </button>
         )}
 
         {/* Port-on-standard-bus confirmation dialog */}
