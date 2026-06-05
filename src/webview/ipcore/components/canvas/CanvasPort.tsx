@@ -13,8 +13,6 @@ interface CanvasPortProps {
   annotations?: ValidationAnnotation[];
   onSelect: (id: string) => void;
   onShiftSelect?: (id: string) => void;
-  /** When true the port is in multi-select mode — show selectable affordance */
-  multiSelectMode?: boolean;
   domainColor?: string;
 }
 
@@ -32,7 +30,6 @@ export const CanvasPort: React.FC<CanvasPortProps> = ({
   annotations,
   onSelect,
   onShiftSelect,
-  multiSelectMode = false,
   domainColor,
 }) => {
   const isLeft = port.side === 'left';
@@ -103,7 +100,7 @@ export const CanvasPort: React.FC<CanvasPortProps> = ({
 
   return (
     <g
-      className={`canvas-port canvas-port--${port.kind} ${selected ? 'canvas-port--selected' : ''} ${inMultiSelection ? 'canvas-port--multi-selected' : ''} ${multiSelectMode ? 'canvas-port--selectable' : ''}`}
+      className={`canvas-port canvas-port--${port.kind} ${selected ? 'canvas-port--selected' : ''} ${inMultiSelection ? 'canvas-port--multi-selected' : ''}`}
       onClick={(e) => {
         e.stopPropagation();
         if (e.shiftKey && onShiftSelect) {
@@ -113,7 +110,7 @@ export const CanvasPort: React.FC<CanvasPortProps> = ({
         }
       }}
       data-port-id={port.id}
-      style={{ cursor: multiSelectMode ? 'pointer' : 'grab' }}
+      style={{ cursor: 'grab' }}
       onDragStart={(e) => {
         // Need to stop propagation so parent drag isn't triggered
         e.stopPropagation();

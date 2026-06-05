@@ -15,54 +15,81 @@
   user-select: none;
 }
 
-/* Inset accent ring while multi-select mode is active */
-.ip-canvas-container--selecting {
-  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--vscode-focusBorder) 45%, transparent);
-}
-
-/* Multi-select mode toggle button */
-.ip-canvas-multiselect-btn {
+/* Help button & shortcut popover */
+.ip-canvas-help {
   position: absolute;
   bottom: 44px;
   left: 12px;
-  padding: 3px 10px;
-  font-size: 11px;
-  font-family: var(--vscode-font-family, sans-serif);
-  background: var(--vscode-editor-background);
-  color: var(--vscode-foreground);
-  border: 1px solid var(--vscode-panel-border);
-  border-radius: 4px;
-  cursor: pointer;
-  opacity: 0.75;
-  transition: opacity 0.1s;
   pointer-events: auto;
 }
 
-.ip-canvas-multiselect-btn:hover {
-  opacity: 1;
-}
-
-.ip-canvas-multiselect-btn--active {
-  background: var(--vscode-button-background);
-  color: var(--vscode-button-foreground);
-  border-color: var(--vscode-button-background);
-  opacity: 1;
-}
-
-/* Ports show pointer cursor and a subtle ring when selection mode is active */
-.ip-canvas-container--selecting .canvas-port--port,
-.ip-canvas-container--selecting .canvas-port--interrupt {
+.ip-canvas-help__btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--vscode-panel-border);
+  background: var(--vscode-editor-background);
+  color: var(--vscode-foreground);
+  font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
+  opacity: 0.65;
+  transition: opacity 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
 }
 
-.ip-canvas-container--selecting .canvas-port--port:not(.canvas-port--multi-selected) .canvas-port__dot,
-.ip-canvas-container--selecting .canvas-port--interrupt:not(.canvas-port--multi-selected) .canvas-port__dot {
-  opacity: 0.6;
-}
-
-.ip-canvas-container--selecting .canvas-port--port:not(.canvas-port--multi-selected):hover .canvas-port__dot,
-.ip-canvas-container--selecting .canvas-port--interrupt:not(.canvas-port--multi-selected):hover .canvas-port__dot {
+.ip-canvas-help__btn:hover {
   opacity: 1;
+}
+
+.ip-canvas-help__popover {
+  position: absolute;
+  bottom: 28px;
+  left: 0;
+  min-width: 260px;
+  background: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  padding: 8px 0 6px;
+  font-size: 11px;
+  font-family: var(--vscode-font-family, sans-serif);
+  z-index: 30;
+}
+
+.ip-canvas-help__title {
+  padding: 0 10px 6px;
+  font-weight: 600;
+  opacity: 0.7;
+  border-bottom: 1px solid var(--vscode-panel-border);
+  margin-bottom: 4px;
+}
+
+.ip-canvas-help__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.ip-canvas-help__table tr:hover {
+  background: color-mix(in srgb, var(--vscode-list-hoverBackground, #ffffff12) 100%, transparent);
+}
+
+.ip-canvas-help__table td {
+  padding: 3px 10px;
+  vertical-align: middle;
+}
+
+.ip-canvas-help__key {
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 10px;
+  color: var(--vscode-foreground);
+  opacity: 0.85;
+  white-space: nowrap;
+  padding-right: 12px !important;
 }
 
 .ip-canvas-container--panning {

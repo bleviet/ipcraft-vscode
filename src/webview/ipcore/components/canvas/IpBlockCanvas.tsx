@@ -84,8 +84,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
     busIndex: number;
   } | null>(null);
   const [expandedBusIds, setExpandedBusIds] = useState<Set<string>>(new Set());
-  // Multi-select mode: when on, port clicks act as shift-clicks without holding Shift
-  const [multiSelectMode, setMultiSelectMode] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
 
   const busDefs = useMemo((): ((type: string) => BusPortDef[] | null) => {
     if (!busLibrary) {
@@ -306,37 +305,9 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
     triggerZoomIndicator();
   }, [triggerZoomIndicator]);
 
-  // In multi-select mode, port/interrupt clicks become shift-selects without Shift key.
-  // Non-groupable ports (clock, reset, bus) still single-select normally.
-  const effectiveOnSelect = useCallback(
-    (id: string | null) => {
-      if (id !== null && multiSelectMode && onShiftSelect) {
-        const kind = id.split(':')[0];
-        if (kind === 'port' || kind === 'interrupt') {
-          onShiftSelect(id);
-          return;
-        }
-      }
-      onSelect(id);
-    },
-    [multiSelectMode, onShiftSelect, onSelect]
-  );
-
-  // Exits multi-select mode AND dismisses any active selection.
   const exitSelectMode = useCallback(() => {
-    setMultiSelectMode(false);
     onSelect(null);
     onDismissSelection?.();
-  }, [onSelect, onDismissSelection]);
-
-  const toggleMultiSelectMode = useCallback(() => {
-    setMultiSelectMode((prev) => {
-      if (prev) {
-        onSelect(null);
-        onDismissSelection?.();
-      }
-      return !prev;
-    });
   }, [onSelect, onDismissSelection]);
 
   const toggleBusExpand = useCallback((busId: string) => {
@@ -500,7 +471,6 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
         'ip-canvas-container',
         dragActive ? 'ip-canvas-container--drag-active' : '',
         isPanning ? 'ip-canvas-container--panning' : '',
-        multiSelectMode ? 'ip-canvas-container--selecting' : '',
       ]
         .filter(Boolean)
         .join(' ')}
@@ -942,9 +912,8 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
                   selected={isSelected}
                   inMultiSelection={multiSelectedIds?.has(p.id) ?? false}
                   annotations={annotations[p.id]}
-                  onSelect={effectiveOnSelect}
+                  onSelect={onSelect}
                   onShiftSelect={onShiftSelect}
-                  multiSelectMode={multiSelectMode && (p.kind === 'port' || p.kind === 'interrupt')}
                   domainColor={getDomainColor(p.clockDomainIdx)}
                 />
               </g>
@@ -1034,20 +1003,57 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
           </div>
         )}
 
-        {/* Multi-select mode toggle — always visible when grouping is available */}
-        {onShiftSelect && (
+        {/* Help button + shortcut popover */}
+        <div className="ip-canvas-help">
           <button
-            className={`ip-canvas-multiselect-btn${multiSelectMode ? ' ip-canvas-multiselect-btn--active' : ''}`}
-            onClick={toggleMultiSelectMode}
-            title={
-              multiSelectMode
-                ? 'Exit selection mode (Escape)'
-                : 'Select multiple ports (click ports to add, Escape to cancel)'
-            }
+            className="ip-canvas-help__btn"
+            onClick={() => setShowHelp((v) => !v)}
+            title="Keyboard shortcuts & tips"
           >
-            {multiSelectMode ? '✓ Selecting…' : '⊕ Select ports'}
+            ?
           </button>
-        )}
+          {showHelp && (
+            <div className="ip-canvas-help__popover">
+              <div className="ip-canvas-help__title">Canvas shortcuts</div>
+              <table className="ip-canvas-help__table">
+                <tbody>
+                  <tr>
+                    <td className="ip-canvas-help__key">Shift + Click port</td>
+                    <td>Add port to multi-selection</td>
+                  </tr>
+                  <tr>
+                    <td className="ip-canvas-help__key">Shift + Click again</td>
+                    <td>Remove port from selection</td>
+                  </tr>
+                  <tr>
+                    <td className="ip-canvas-help__key">Escape</td>
+                    <td>Clear selection</td>
+                  </tr>
+                  <tr>
+                    <td className="ip-canvas-help__key">Ctrl + Wheel</td>
+                    <td>Zoom in / out</td>
+                  </tr>
+                  <tr>
+                    <td className="ip-canvas-help__key">Wheel</td>
+                    <td>Pan view</td>
+                  </tr>
+                  <tr>
+                    <td className="ip-canvas-help__key">Middle drag</td>
+                    <td>Pan view</td>
+                  </tr>
+                  <tr>
+                    <td className="ip-canvas-help__key">Ctrl + 0</td>
+                    <td>Reset zoom &amp; position</td>
+                  </tr>
+                  <tr>
+                    <td className="ip-canvas-help__key">Double-click canvas</td>
+                    <td>Reset zoom &amp; position</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
 
         {/* Port-on-standard-bus confirmation dialog */}
         {pendingPortDrop && (
