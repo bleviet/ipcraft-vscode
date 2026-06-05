@@ -1361,30 +1361,6 @@ const ConduitPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, on
           hint={typeName ? `VLNV: user.busif.${typeName}.1.0` : 'Give this interface a name'}
           mono
         />
-        <div className="ci-field">
-          <label className="ci-field__label">Switch Protocol</label>
-          <select
-            className="ci-field__select"
-            value=""
-            onChange={(e) => {
-              if (e.target.value) {
-                onUpdate(['busInterfaces', index, 'type'], e.target.value);
-              }
-            }}
-          >
-            <option value="" disabled>
-              — convert to standard type —
-            </option>
-            {[...BUILTIN_BUS_TYPES, ...(busLibrary ? listLibraryBusTypes(busLibrary) : [])].map(
-              ({ vlnv, label }) => (
-                <option key={vlnv} value={vlnv}>
-                  {label}
-                </option>
-              )
-            )}
-          </select>
-          <div className="ci-field__hint">Switches this interface to a predefined protocol</div>
-        </div>
       </Section>
       <Section title="Configuration">
         <PropSelect
