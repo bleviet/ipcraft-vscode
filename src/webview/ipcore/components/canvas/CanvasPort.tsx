@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import type { LayoutPort, PortSide } from './canvasLayout';
 import { STUB_LENGTH } from './canvasLayout';
 
@@ -16,7 +16,11 @@ interface CanvasPortProps {
   onPortDragStart?: (portIndex: number, clientX: number, clientY: number) => void;
   /** True while this specific port is being dragged */
   isDragging?: boolean;
+  onRename?: (portId: string, newName: string) => void;
 }
+
+const RENAME_INPUT_W = 100;
+const RENAME_INPUT_H = 14;
 
 /**
  * Renders a single port stub on the IP block edge.
@@ -35,6 +39,7 @@ export const CanvasPort: React.FC<CanvasPortProps> = ({
   domainColor,
   onPortDragStart,
   isDragging = false,
+  onRename,
 }) => {
   const isLeft = port.side === 'left';
   const isRight = port.side === 'right';
@@ -102,10 +107,53 @@ export const CanvasPort: React.FC<CanvasPortProps> = ({
   // Connector dot radius
   const dotR = port.kind === 'bus' ? 5 : 3;
 
+  // Inline rename state
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [renameValue, setRenameValue] = useState('');
+  const abortRef = useRef(false);
+
+  const commitRename = useCallback(() => {
+    if (abortRef.current) {
+      return;
+    }
+    onRename?.(port.id, renameValue);
+    setIsRenaming(false);
+  }, [onRename, port.id, renameValue]);
+
+  const handleContextMenu = (e: React.MouseEvent) => {
+    if (!onRename) {
+      return;
+    }
+    e.preventDefault();
+    e.stopPropagation();
+    abortRef.current = false;
+    setRenameValue(port.label);
+    setIsRenaming(true);
+  };
+
+  // foreignObject position — sits where the label text is
+  let foX: number, foY: number, foTextAlign: 'left' | 'right' | 'center';
+  if (isLeft) {
+    foX = labelX - RENAME_INPUT_W;
+    foY = labelY - RENAME_INPUT_H / 2;
+    foTextAlign = 'right';
+  } else if (isRight) {
+    foX = labelX;
+    foY = labelY - RENAME_INPUT_H / 2;
+    foTextAlign = 'left';
+  } else {
+    foX = labelX - RENAME_INPUT_W / 2;
+    foY = labelY - RENAME_INPUT_H / 2;
+    foTextAlign = 'center';
+  }
+
   return (
     <g
       className={`canvas-port canvas-port--${port.kind} ${selected ? 'canvas-port--selected' : ''} ${inMultiSelection ? 'canvas-port--multi-selected' : ''}`}
       onClick={(e) => {
+        if (isRenaming) {
+          return;
+        }
         e.stopPropagation();
         if (e.shiftKey && onShiftSelect) {
           onShiftSelect(port.id);
@@ -114,7 +162,8 @@ export const CanvasPort: React.FC<CanvasPortProps> = ({
         }
       }}
       data-port-id={port.id}
-      style={{ cursor: 'grab', opacity: isDragging ? 0.4 : undefined }}
+      style={{ cursor: isRenaming ? 'default' : 'grab', opacity: isDragging ? 0.4 : undefined }}
+      onContextMenu={handleContextMenu}
       onPointerDown={(e) => {
         if (e.button !== 0 || !onPortDragStart) {
           return;
@@ -178,16 +227,49 @@ export const CanvasPort: React.FC<CanvasPortProps> = ({
         />
       )}
 
-      {/* Port label */}
-      <text
-        x={labelX}
-        y={labelY}
-        textAnchor={textAnchor}
-        dominantBaseline="central"
-        className="canvas-port__label"
-      >
-        {port.label}
-      </text>
+      {/* Port label — hidden while renaming */}
+      {!isRenaming && (
+        <text
+          x={labelX}
+          y={labelY}
+          textAnchor={textAnchor}
+          dominantBaseline="central"
+          className="canvas-port__label"
+        >
+          {port.label}
+        </text>
+      )}
+
+      {/* Inline rename input */}
+      {isRenaming && (
+        <foreignObject
+          x={foX}
+          y={foY}
+          width={RENAME_INPUT_W}
+          height={RENAME_INPUT_H}
+          style={{ overflow: 'visible' }}
+        >
+          <input
+            className="canvas-bus-subport__rename-input"
+            style={{ textAlign: foTextAlign }}
+            autoFocus
+            value={renameValue}
+            onChange={(e) => setRenameValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                commitRename();
+              } else if (e.key === 'Escape') {
+                abortRef.current = true;
+                setIsRenaming(false);
+              }
+            }}
+            onBlur={commitRename}
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+          />
+        </foreignObject>
+      )}
 
       {/* Width annotation */}
       {port.widthLabel && (

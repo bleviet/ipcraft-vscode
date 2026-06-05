@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import type { LayoutPort } from './canvasLayout';
 import { STUB_LENGTH } from './canvasLayout';
 
@@ -17,7 +17,11 @@ interface CanvasBusBundleProps {
   onPortDrop?: (portIndex: number) => void;
   /** True while a port is being pointer-dragged and the cursor is over this bundle */
   isPortDropTarget?: boolean;
+  onRename?: (busId: string, newName: string) => void;
 }
+
+const RENAME_INPUT_W = 100;
+const RENAME_INPUT_H = 14;
 
 /**
  * Renders a bus interface as a wide "bundle" connector on the block edge.
@@ -38,12 +42,25 @@ export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
   onMemoryMapClick,
   onPortDrop,
   isPortDropTarget = false,
+  onRename,
 }) => {
   const [isDragTarget, setIsDragTarget] = useState(false);
   // Counter tracks nested dragenter/dragleave pairs so crossing child-element
   // boundaries doesn't toggle the highlight off prematurely.
   const dragEnterCountRef = useRef(0);
   const isLeft = port.side === 'left';
+
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [renameValue, setRenameValue] = useState('');
+  const abortRef = useRef(false);
+
+  const commitRename = useCallback(() => {
+    if (abortRef.current) {
+      return;
+    }
+    onRename?.(port.id, renameValue);
+    setIsRenaming(false);
+  }, [onRename, port.id, renameValue]);
 
   const hasError = annotations?.some((a) => a.severity === 'error');
   const hasWarning = annotations?.some((a) => a.severity === 'warning') ?? false;
@@ -79,12 +96,25 @@ export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
     <g
       className={`canvas-bus-bundle ${selected ? 'canvas-bus-bundle--selected' : ''} ${isExpanded ? 'canvas-bus-bundle--expanded' : ''} ${isDragTarget || isPortDropTarget ? 'canvas-bus-bundle--drop-target' : ''}`}
       onClick={(e) => {
+        if (isRenaming) {
+          return;
+        }
         e.stopPropagation();
         onSelect(port.id);
       }}
+      onContextMenu={(e) => {
+        if (!onRename) {
+          return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        abortRef.current = false;
+        setRenameValue(port.label);
+        setIsRenaming(true);
+      }}
       data-port-id={port.id}
       ref={(el) => el?.setAttribute('draggable', 'true')}
-      style={{ cursor: 'grab' }}
+      style={{ cursor: isRenaming ? 'default' : 'grab' }}
       onDragStart={(e) => {
         e.stopPropagation();
         const payload = { action: 'remove', kind: port.kind, id: port.id };
@@ -254,16 +284,55 @@ export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
         </g>
       )}
 
-      {/* Name label (INSIDE the block) */}
-      <text
-        x={port.x + (isLeft ? 12 : -12)}
-        y={port.y + nameYOffset}
-        textAnchor={isLeft ? 'start' : 'end'}
-        dominantBaseline="central"
-        className="canvas-bus-bundle__name"
-      >
-        {port.label}
-      </text>
+      {/* Name label (INSIDE the block) — hidden while renaming */}
+      {!isRenaming && (
+        <text
+          x={port.x + (isLeft ? 12 : -12)}
+          y={port.y + nameYOffset}
+          textAnchor={isLeft ? 'start' : 'end'}
+          dominantBaseline="central"
+          className="canvas-bus-bundle__name"
+        >
+          {port.label}
+        </text>
+      )}
+
+      {/* Inline rename input */}
+      {isRenaming &&
+        (() => {
+          const nameX = port.x + (isLeft ? 12 : -12);
+          const nameY = port.y + nameYOffset;
+          const foX = isLeft ? nameX : nameX - RENAME_INPUT_W;
+          return (
+            <foreignObject
+              x={foX}
+              y={nameY - RENAME_INPUT_H / 2}
+              width={RENAME_INPUT_W}
+              height={RENAME_INPUT_H}
+              style={{ overflow: 'visible' }}
+            >
+              <input
+                className="canvas-bus-subport__rename-input"
+                style={{ textAlign: isLeft ? 'left' : 'right' }}
+                autoFocus
+                value={renameValue}
+                onChange={(e) => setRenameValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    commitRename();
+                  } else if (e.key === 'Escape') {
+                    abortRef.current = true;
+                    setIsRenaming(false);
+                  }
+                }}
+                onBlur={commitRename}
+                onClick={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+              />
+            </foreignObject>
+          );
+        })()}
 
       {/* Memory map ref badge (INSIDE the block, below the name) */}
       {port.memoryMapRef && (

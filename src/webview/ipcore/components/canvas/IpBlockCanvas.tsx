@@ -451,6 +451,34 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
     [ipCore, onUpdate]
   );
 
+  const KIND_TO_ARRAY: Record<string, string> = {
+    port: 'ports',
+    clock: 'clocks',
+    reset: 'resets',
+    interrupt: 'interrupts',
+    bus: 'busInterfaces',
+  };
+
+  const handleElementRename = useCallback(
+    (id: string, newName: string) => {
+      const colonIdx = id.indexOf(':');
+      if (colonIdx < 0) {
+        return;
+      }
+      const kind = id.slice(0, colonIdx);
+      const index = parseInt(id.slice(colonIdx + 1), 10);
+      const arrayName = KIND_TO_ARRAY[kind];
+      if (!arrayName || isNaN(index)) {
+        return;
+      }
+      const trimmed = newName.trim();
+      if (trimmed) {
+        onUpdate?.([arrayName, index, 'name'], trimmed);
+      }
+    },
+    [onUpdate]
+  );
+
   const handleSubPortRename = useCallback(
     (subPortId: string, newSuffix: string) => {
       const parts = subPortId.split(':');
@@ -1015,6 +1043,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
                             })
                         : undefined
                     }
+                    onRename={handleElementRename}
                   />
                 </g>
               );
@@ -1040,6 +1069,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
                     portDragActivePIdx !== null &&
                     portDragActivePIdx === parseInt(p.id.split(':')[1] ?? '-1', 10)
                   }
+                  onRename={handleElementRename}
                 />
               </g>
             );
@@ -1176,8 +1206,8 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
                     <td>Reset zoom &amp; position</td>
                   </tr>
                   <tr>
-                    <td className="ip-canvas-help__key">Right-click bus signal</td>
-                    <td>Rename physical port suffix</td>
+                    <td className="ip-canvas-help__key">Right-click port / bus</td>
+                    <td>Rename</td>
                   </tr>
                 </tbody>
               </table>
