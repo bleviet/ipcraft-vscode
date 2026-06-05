@@ -4,8 +4,6 @@ import { STUB_LENGTH } from './canvasLayout';
 
 import { ValidationAnnotation } from '../../hooks/useCanvasValidation';
 
-const PORT_MOVE_MIME = 'application/x-ipcraft-port-move';
-
 interface CanvasPortProps {
   port: LayoutPort;
   selected: boolean;
@@ -14,6 +12,10 @@ interface CanvasPortProps {
   onSelect: (id: string) => void;
   onShiftSelect?: (id: string) => void;
   domainColor?: string;
+  /** Called when the user begins dragging this port toward a bus bundle */
+  onPortDragStart?: (portIndex: number, clientX: number, clientY: number) => void;
+  /** True while this specific port is being dragged */
+  isDragging?: boolean;
 }
 
 /**
@@ -31,6 +33,8 @@ export const CanvasPort: React.FC<CanvasPortProps> = ({
   onSelect,
   onShiftSelect,
   domainColor,
+  onPortDragStart,
+  isDragging = false,
 }) => {
   const isLeft = port.side === 'left';
   const isRight = port.side === 'right';
@@ -110,27 +114,16 @@ export const CanvasPort: React.FC<CanvasPortProps> = ({
         }
       }}
       data-port-id={port.id}
-      ref={(el) => el?.setAttribute('draggable', 'true')}
-      style={{ cursor: 'grab' }}
-      onDragStart={(e) => {
-        // Need to stop propagation so parent drag isn't triggered
+      style={{ cursor: 'grab', opacity: isDragging ? 0.4 : undefined }}
+      onPointerDown={(e) => {
+        if (e.button !== 0 || !onPortDragStart) {
+          return;
+        }
         e.stopPropagation();
         const portIndex = parseInt(port.id.split(':')[1] ?? '-1', 10);
-        const movePayload = { portIndex };
-        e.dataTransfer.setData(PORT_MOVE_MIME, JSON.stringify(movePayload));
-        const removePayload = { action: 'remove', kind: port.kind, id: port.id };
-        e.dataTransfer.setData('application/x-ipcraft-remove', JSON.stringify(removePayload));
-        e.dataTransfer.effectAllowed = 'move';
-
-        // Visual feedback during drag
-        const target = e.currentTarget as SVGGElement;
-        setTimeout(() => {
-          target.style.opacity = '0.4';
-        }, 0);
-      }}
-      onDragEnd={(e) => {
-        const target = e.currentTarget as SVGGElement;
-        target.style.opacity = '1';
+        if (portIndex >= 0) {
+          onPortDragStart(portIndex, e.clientX, e.clientY);
+        }
       }}
     >
       {/* Hit area (invisible, wider for easier clicking) */}

@@ -12,7 +12,7 @@ import type { YamlUpdateHandler } from '../../../types/editor';
 import { DRAG_MIME, getActiveDragPayload, type LibraryDragPayload } from './LibraryPalette';
 import { vscode } from '../../../vscode';
 import { CanvasSelectionActions } from './CanvasSelectionActions';
-import { PortMappingDialog } from './PortMappingDialog';
+import { GroupingMappingStep } from './GroupingMappingStep';
 import type { BatchUpdate } from '../../hooks/useGroupPorts';
 import { useGroupPorts } from '../../hooks/useGroupPorts';
 import type { SuggestionChip } from '../../hooks/useProtocolSuggestions';
@@ -78,7 +78,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
   onDismissSelection,
   onDismissSuggestion,
 }) => {
-  // Pending port-drop-on-standard-bus confirmation state
+  // Pending port-drop onto a standard (protocol-defined) bus interface
   const [pendingPortDrop, setPendingPortDrop] = useState<{
     portIndex: number;
     busIndex: number;
@@ -141,6 +141,22 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
   } | null>(null);
   /** True when the last mousedown turned into a drag; prevents onClick from deselecting */
   const hasDraggedRef = useRef(false);
+
+  // ── Port pointer-drag state ──────────────────────────────────────────────
+  // HTML5 DnD on SVG <g> elements is unreliable in VS Code webviews, so
+  // port-to-bus movement uses pointer events instead.
+  const portDragRef = useRef<{
+    portIndex: number;
+    startX: number;
+    startY: number;
+    moved: boolean;
+  } | null>(null);
+  const [portDragActive, setPortDragActive] = useState(false);
+  const [portDragActivePIdx, setPortDragActivePIdx] = useState<number | null>(null);
+  const portDragHoveredBusRef = useRef<number | null>(null);
+  const [portDragHoveredBus, setPortDragHoveredBus] = useState<number | null>(null);
+  // Keep a stable ref so the effect closure can call the latest handler.
+  const portDropHandlerRef = useRef<(portIndex: number, busIndex: number) => void>(() => {});
 
   const triggerZoomIndicator = useCallback(() => {
     setShowZoomIndicator(true);
@@ -247,6 +263,71 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
     };
   }, []);
 
+  // ── Pointer-event drag: port → bus bundle ───────────────────────────────
+  const handlePortPointerDragStart = useCallback(
+    (portIndex: number, clientX: number, clientY: number) => {
+      portDragRef.current = { portIndex, startX: clientX, startY: clientY, moved: false };
+      setPortDragActivePIdx(portIndex);
+    },
+    []
+  );
+
+  useEffect(() => {
+    const DRAG_THRESHOLD = 5;
+
+    const onPointerMove = (e: PointerEvent) => {
+      const drag = portDragRef.current;
+      if (!drag) {
+        return;
+      }
+
+      const dx = e.clientX - drag.startX;
+      const dy = e.clientY - drag.startY;
+      if (!drag.moved && Math.sqrt(dx * dx + dy * dy) > DRAG_THRESHOLD) {
+        drag.moved = true;
+        setPortDragActive(true);
+      }
+
+      if (drag.moved) {
+        const el = document.elementFromPoint(e.clientX, e.clientY);
+        const bundleEl = el?.closest('[data-port-id^="bus:"]');
+        const busIndex = bundleEl
+          ? parseInt(bundleEl.getAttribute('data-port-id')?.split(':')[1] ?? '-1', 10)
+          : -1;
+        const next = busIndex >= 0 ? busIndex : null;
+        if (next !== portDragHoveredBusRef.current) {
+          portDragHoveredBusRef.current = next;
+          setPortDragHoveredBus(next);
+        }
+      }
+    };
+
+    const onPointerUp = (_e: PointerEvent) => {
+      const drag = portDragRef.current;
+      if (!drag) {
+        return;
+      }
+      portDragRef.current = null;
+      setPortDragActive(false);
+      setPortDragActivePIdx(null);
+
+      const busIndex = portDragHoveredBusRef.current;
+      portDragHoveredBusRef.current = null;
+      setPortDragHoveredBus(null);
+
+      if (drag.moved && busIndex !== null) {
+        portDropHandlerRef.current(drag.portIndex, busIndex);
+      }
+    };
+
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+    return () => {
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+    };
+  }, []);
+
   const annotations = useCanvasValidation(ipCore);
 
   // Group ports hook — only instantiated when batchUpdate is available
@@ -271,15 +352,21 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
         lookupBusDef(bus.type) === null;
 
       if (isCustom) {
-        // Custom / conduit interface: append to conduitPorts immediately
+        // Conduit / custom interface: add immediately, no dialog needed.
         groupPorts.addPortToConduit(portIndex, busIndex);
+        // Expand so the user sees the newly added conduit signal.
+        const busId = `bus:${busIndex}`;
+        setExpandedBusIds((prev) => new Set([...prev, busId]));
       } else {
-        // Standard known protocol: confirm before removing from standalone list
+        // Standard protocol: open GroupingMappingStep to let the user pick assignments.
         setPendingPortDrop({ portIndex, busIndex });
       }
     },
     [batchUpdate, groupPorts, ipCore]
   );
+
+  // Keep the stable ref up to date so the pointer-event effect can call it.
+  portDropHandlerRef.current = handlePortDropOnBus;
 
   const handleBackgroundClick = useCallback(
     (e: React.MouseEvent) => {
@@ -471,6 +558,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
         'ip-canvas-container',
         dragActive ? 'ip-canvas-container--drag-active' : '',
         isPanning ? 'ip-canvas-container--panning' : '',
+        portDragActive ? 'ip-canvas-container--port-dragging' : '',
       ]
         .filter(Boolean)
         .join(' ')}
@@ -881,6 +969,10 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
                             handlePortDropOnBus(portIndex, parseInt(p.id.split(':')[1] ?? '0', 10))
                         : undefined
                     }
+                    isPortDropTarget={
+                      portDragActive &&
+                      portDragHoveredBus === parseInt(p.id.split(':')[1] ?? '-1', 10)
+                    }
                     onSelect={onSelect}
                     isExpanded={busExpanded}
                     onToggleExpand={hasBusDef ? () => toggleBusExpand(p.id) : undefined}
@@ -915,6 +1007,11 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
                   onSelect={onSelect}
                   onShiftSelect={onShiftSelect}
                   domainColor={getDomainColor(p.clockDomainIdx)}
+                  onPortDragStart={batchUpdate ? handlePortPointerDragStart : undefined}
+                  isDragging={
+                    portDragActivePIdx !== null &&
+                    portDragActivePIdx === parseInt(p.id.split(':')[1] ?? '-1', 10)
+                  }
                 />
               </g>
             );
@@ -1055,23 +1152,64 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
           )}
         </div>
 
-        {/* Port-on-standard-bus confirmation dialog */}
-        {pendingPortDrop && (
-          <PortMappingDialog
-            ipCore={ipCore}
-            portIndex={pendingPortDrop.portIndex}
-            busIndex={pendingPortDrop.busIndex}
-            onConfirm={() => {
-              // Standard-protocol bus: the port's physical name already matches
-              // physicalPrefix, so just remove it from the standalone ports list.
-              if (batchUpdate) {
-                groupPorts.removeStandalonePort(pendingPortDrop.portIndex);
+        {/* Port-to-standard-bus: reuse the GroupingMappingStep panel */}
+        {pendingPortDrop &&
+          (() => {
+            const pendingBus = ipCore.busInterfaces?.[pendingPortDrop.busIndex];
+            if (!pendingBus) {
+              return null;
+            }
+            const busType = (pendingBus as { type?: string }).type ?? '';
+            const busLabel = (pendingBus as { name?: string }).name ?? busType;
+            const existingPrefix = (pendingBus as { physicalPrefix?: string }).physicalPrefix;
+            const existingMode =
+              (pendingBus as { mode?: string }).mode === 'master' ||
+              (pendingBus as { mode?: string }).mode === 'source'
+                ? ('master' as const)
+                : ('slave' as const);
+
+            // Reconstruct signal → physicalName for every signal the bus already owns,
+            // so GroupingMappingStep can show those rows as locked (read-only).
+            const rawSignals = busDefs(busType) ?? [];
+            const existingNameOverrides =
+              (pendingBus as { portNameOverrides?: Record<string, string> }).portNameOverrides ??
+              {};
+            const useOptional = new Set(
+              ((pendingBus as { useOptionalPorts?: string[] }).useOptionalPorts ?? []).map((s) =>
+                s.toUpperCase()
+              )
+            );
+            const existingPortAssignments: Record<string, string> = {};
+            for (const sig of rawSignals) {
+              if (sig.role) {
+                continue;
               }
-              setPendingPortDrop(null);
-            }}
-            onCancel={() => setPendingPortDrop(null)}
-          />
-        )}
+              if (sig.presence === 'optional' && !useOptional.has(sig.name.toUpperCase())) {
+                continue;
+              }
+              const suffix = existingNameOverrides[sig.name] ?? sig.name.toLowerCase();
+              existingPortAssignments[sig.name] = `${existingPrefix ?? ''}${suffix}`;
+            }
+
+            return (
+              <GroupingMappingStep
+                ipCore={ipCore}
+                busType={busType}
+                busLabel={busLabel}
+                selectedPortIndices={[pendingPortDrop.portIndex]}
+                initialPrefix={existingPrefix}
+                initialMode={existingMode}
+                existingPortAssignments={existingPortAssignments}
+                onConfirm={(opts) => {
+                  groupPorts.mergePortsIntoStandardBus(opts, pendingPortDrop.busIndex);
+                  const busId = `bus:${pendingPortDrop.busIndex}`;
+                  setExpandedBusIds((prev) => new Set([...prev, busId]));
+                  setPendingPortDrop(null);
+                }}
+                onCancel={() => setPendingPortDrop(null)}
+              />
+            );
+          })()}
       </div>
     </div>
   );

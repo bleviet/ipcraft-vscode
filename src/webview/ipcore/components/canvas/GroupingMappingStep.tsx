@@ -16,7 +16,21 @@ interface GroupingMappingStepProps {
   selectedPortIndices: number[];
   onConfirm: (opts: GroupAsStandardOptions) => void;
   onCancel: () => void;
+  /** Seed the prefix field from an existing bus interface instead of auto-inferring */
+  initialPrefix?: string;
+  /** Seed the mode field from an existing bus interface instead of auto-inferring */
+  initialMode?: 'slave' | 'master';
+  /**
+   * Signals already assigned inside an existing bus interface.
+   * Keys are logical signal names (e.g. "TDATA"); values are the current physical
+   * port names.  These rows are rendered as read-only so the user cannot accidentally
+   * unassign a signal that the bus already owns.
+   */
+  existingPortAssignments?: Record<string, string>;
 }
+
+/** SignalAssignment extended with a lock flag for the "add to existing bus" flow. */
+type AssignmentRow = SignalAssignment & { isLocked: boolean };
 
 const STYLE = {
   panel: {
@@ -124,6 +138,9 @@ export const GroupingMappingStep: React.FC<GroupingMappingStepProps> = ({
   selectedPortIndices,
   onConfirm,
   onCancel,
+  initialPrefix,
+  initialMode,
+  existingPortAssignments,
 }) => {
   const selectedPorts: Port[] = useMemo(
     () => selectedPortIndices.map((i) => ipCore.ports?.[i]).filter(Boolean) as Port[],
@@ -144,9 +161,9 @@ export const GroupingMappingStep: React.FC<GroupingMappingStepProps> = ({
     const lower = busType.split('.')[2] ?? 'interface';
     return lower.replace(/_/g, '_').toLowerCase();
   });
-  const [prefix, setPrefix] = useState(inferred?.prefix ?? '');
-  const [mode, setMode] = useState<'slave' | 'master'>(inferred?.mode ?? 'slave');
-  const [assignments, setAssignments] = useState<SignalAssignment[]>([]);
+  const [prefix, setPrefix] = useState(initialPrefix ?? inferred?.prefix ?? '');
+  const [mode, setMode] = useState<'slave' | 'master'>(initialMode ?? inferred?.mode ?? 'slave');
+  const [assignments, setAssignments] = useState<AssignmentRow[]>([]);
   const [staleWarning, setStaleWarning] = useState(false);
 
   const [associatedClock, setAssociatedClock] = useState<string>(ipCore.clocks?.[0]?.name ?? '');
@@ -160,16 +177,32 @@ export const GroupingMappingStep: React.FC<GroupingMappingStepProps> = ({
         setStaleWarning(true);
       }
 
+      const inferred = inferPortAssignments(
+        current.map((p) => ({ name: p.name, direction: p.direction })),
+        busType,
+        currentMode,
+        currentPrefix
+      );
+
+      // Overlay locked rows from the existing bus interface: any signal that is
+      // already owned by the bus is shown as read-only so the user cannot
+      // accidentally unassign it.
       setAssignments(
-        inferPortAssignments(
-          current.map((p) => ({ name: p.name, direction: p.direction })),
-          busType,
-          currentMode,
-          currentPrefix
-        )
+        inferred.map((a): AssignmentRow => {
+          const existingPhysical = existingPortAssignments?.[a.logicalName];
+          if (existingPhysical) {
+            return {
+              ...a,
+              assignedPort: { name: existingPhysical, direction: a.expectedDir ?? 'in' },
+              hasSuffixMismatch: false,
+              isLocked: true,
+            };
+          }
+          return { ...a, isLocked: false };
+        })
       );
     },
-    [busType, selectedPortIndices, ipCore.ports]
+    [busType, selectedPortIndices, ipCore.ports, existingPortAssignments]
   );
 
   // Initial compute — intentionally runs only on mount
@@ -204,7 +237,7 @@ export const GroupingMappingStep: React.FC<GroupingMappingStepProps> = ({
   const handleAssignmentChange = (logicalName: string, portName: string | null) => {
     setAssignments((prev) =>
       prev.map((a) => {
-        if (a.logicalName !== logicalName) {
+        if (a.logicalName !== logicalName || a.isLocked) {
           return a;
         }
         const port = portName ? (selectedPorts.find((p) => p.name === portName) ?? null) : null;
@@ -215,7 +248,10 @@ export const GroupingMappingStep: React.FC<GroupingMappingStepProps> = ({
     );
   };
 
-  const requiredUnassigned = assignments.some((a) => a.presence === 'required' && !a.assignedPort);
+  // Locked rows are already managed by the existing bus — only free rows matter here.
+  const requiredUnassigned = assignments.some(
+    (a) => !a.isLocked && a.presence === 'required' && !a.assignedPort
+  );
 
   const portDefs = lookupBusDef(busType);
   const hasAnyAssignableSignals = (portDefs?.filter((d) => !d.role).length ?? 0) > 0;
@@ -227,7 +263,8 @@ export const GroupingMappingStep: React.FC<GroupingMappingStepProps> = ({
     const assignedPortIndices: number[] = [];
 
     for (const a of assignments) {
-      if (!a.assignedPort) {
+      // Locked rows are already part of the existing bus — skip them entirely.
+      if (a.isLocked || !a.assignedPort) {
         continue;
       }
       const idx = (ipCore.ports ?? []).findIndex((p) => p.name === a.assignedPort!.name);
@@ -392,47 +429,61 @@ export const GroupingMappingStep: React.FC<GroupingMappingStepProps> = ({
                         {a.logicalName}
                       </td>
                       <td style={STYLE.tdCell}>
-                        <select
-                          style={{
-                            ...STYLE.select,
-                            flex: undefined,
-                            width: '100%',
-                            color: isMismatch ? 'var(--vscode-charts-yellow)' : undefined,
-                          }}
-                          value={a.assignedPort?.name ?? ''}
-                          onChange={(e) =>
-                            handleAssignmentChange(a.logicalName, e.target.value || null)
-                          }
-                        >
-                          <option value="">— unassigned —</option>
-                          {selectedPorts
-                            .filter((p) => {
-                              // Exclude ports already claimed by another logical signal
-                              if (
-                                p.name !== a.assignedPort?.name &&
-                                assignedElsewhere.has(p.name)
-                              ) {
-                                return false;
-                              }
-                              if (!a.expectedDir) {
-                                return true;
-                              }
-                              // Direction guard: exclude direction-mismatched ports entirely
-                              return p.direction === 'inout' || p.direction === a.expectedDir;
-                            })
-                            .map((p) => (
-                              <option key={p.name} value={p.name}>
-                                {p.name}
-                              </option>
-                            ))}
-                        </select>
-                        {isMismatch && (
+                        {a.isLocked ? (
+                          // Already assigned inside the existing bus — show read-only
                           <span
-                            style={{ marginLeft: 4, opacity: 0.7 }}
-                            title="Suffix mismatch — portNameOverride will be generated"
+                            style={{
+                              opacity: 0.55,
+                              fontFamily: 'var(--vscode-editor-font-family, monospace)',
+                              fontSize: 11,
+                            }}
+                            title="Already assigned in this bus interface"
                           >
-                            ⚠
+                            {a.assignedPort?.name ?? '—'}
                           </span>
+                        ) : (
+                          <>
+                            <select
+                              style={{
+                                ...STYLE.select,
+                                flex: undefined,
+                                width: '100%',
+                                color: isMismatch ? 'var(--vscode-charts-yellow)' : undefined,
+                              }}
+                              value={a.assignedPort?.name ?? ''}
+                              onChange={(e) =>
+                                handleAssignmentChange(a.logicalName, e.target.value || null)
+                              }
+                            >
+                              <option value="">— unassigned —</option>
+                              {selectedPorts
+                                .filter((p) => {
+                                  if (
+                                    p.name !== a.assignedPort?.name &&
+                                    assignedElsewhere.has(p.name)
+                                  ) {
+                                    return false;
+                                  }
+                                  if (!a.expectedDir) {
+                                    return true;
+                                  }
+                                  return p.direction === 'inout' || p.direction === a.expectedDir;
+                                })
+                                .map((p) => (
+                                  <option key={p.name} value={p.name}>
+                                    {p.name}
+                                  </option>
+                                ))}
+                            </select>
+                            {isMismatch && (
+                              <span
+                                style={{ marginLeft: 4, opacity: 0.7 }}
+                                title="Suffix mismatch — portNameOverride will be generated"
+                              >
+                                ⚠
+                              </span>
+                            )}
+                          </>
                         )}
                       </td>
                       <td style={{ ...STYLE.tdCell, opacity: 0.7 }}>{a.expectedDir ?? '—'}</td>

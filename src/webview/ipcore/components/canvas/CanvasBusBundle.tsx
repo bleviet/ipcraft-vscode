@@ -15,6 +15,8 @@ interface CanvasBusBundleProps {
   onMemoryMapClick?: () => void;
   /** Called when a port stub is dragged and dropped onto this bus bundle */
   onPortDrop?: (portIndex: number) => void;
+  /** True while a port is being pointer-dragged and the cursor is over this bundle */
+  isPortDropTarget?: boolean;
 }
 
 /**
@@ -35,6 +37,7 @@ export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
   domainColor,
   onMemoryMapClick,
   onPortDrop,
+  isPortDropTarget = false,
 }) => {
   const [isDragTarget, setIsDragTarget] = useState(false);
   // Counter tracks nested dragenter/dragleave pairs so crossing child-element
@@ -74,7 +77,7 @@ export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
 
   return (
     <g
-      className={`canvas-bus-bundle ${selected ? 'canvas-bus-bundle--selected' : ''} ${isExpanded ? 'canvas-bus-bundle--expanded' : ''} ${isDragTarget ? 'canvas-bus-bundle--drop-target' : ''}`}
+      className={`canvas-bus-bundle ${selected ? 'canvas-bus-bundle--selected' : ''} ${isExpanded ? 'canvas-bus-bundle--expanded' : ''} ${isDragTarget || isPortDropTarget ? 'canvas-bus-bundle--drop-target' : ''}`}
       onClick={(e) => {
         e.stopPropagation();
         onSelect(port.id);

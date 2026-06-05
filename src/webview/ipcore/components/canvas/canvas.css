@@ -96,6 +96,10 @@
   cursor: grabbing;
 }
 
+.ip-canvas-container--port-dragging {
+  cursor: grabbing;
+}
+
 /* The grab cursor only shows on the background, not over interactive elements */
 .ip-canvas-background {
   cursor: grab;

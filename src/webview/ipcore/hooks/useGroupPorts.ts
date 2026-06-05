@@ -236,10 +236,101 @@ export function useGroupPorts(ipCore: IpCore, batchUpdate: BatchUpdate) {
     [ipCore, batchUpdate]
   );
 
-  /** Remove a port from `ports[]` without touching any bus interface.
-   *  Used when a port is dragged onto a standard-protocol bus — the port's
-   *  physical name already matches the bus prefix so it is implicitly covered;
-   *  we just de-duplicate the standalone entry. */
+  /**
+   * Merge a set of port assignments (produced by GroupingMappingStep) into an
+   * existing standard-protocol bus interface instead of creating a new one.
+   * Removes the assigned ports from `ports[]` and merges portName/widthOverrides
+   * into the existing bus entry.
+   */
+  const mergePortsIntoStandardBus = useCallback(
+    (opts: GroupAsStandardOptions, busIndex: number) => {
+      const ports: Port[] = [...(ipCore.ports ?? [])];
+      const buses: BusInterface[] = [...(ipCore.busInterfaces ?? [])];
+      const bus = buses[busIndex];
+
+      if (!bus) {
+        return;
+      }
+
+      const indexSet = new Set(opts.portIndices);
+      const filteredPorts = ports.filter((_, i) => !indexSet.has(i));
+
+      type BusWithOverrides = BusInterface & {
+        portNameOverrides?: Record<string, string>;
+        portWidthOverrides?: Record<string, number | string>;
+        useOptionalPorts?: string[];
+      };
+
+      const existing = bus as BusWithOverrides;
+      const updatedBus: BusWithOverrides = {
+        ...existing,
+        portNameOverrides: opts.portNameOverrides
+          ? { ...(existing.portNameOverrides ?? {}), ...opts.portNameOverrides }
+          : existing.portNameOverrides,
+        portWidthOverrides: opts.portWidthOverrides
+          ? { ...(existing.portWidthOverrides ?? {}), ...opts.portWidthOverrides }
+          : existing.portWidthOverrides,
+        useOptionalPorts:
+          opts.useOptionalPorts && opts.useOptionalPorts.length > 0
+            ? [...new Set([...(existing.useOptionalPorts ?? []), ...opts.useOptionalPorts])]
+            : existing.useOptionalPorts,
+      };
+
+      const updatedBuses = buses.map((b, i) => (i === busIndex ? updatedBus : b));
+
+      batchUpdate([
+        [['ports'], filteredPorts],
+        [['busInterfaces'], updatedBuses],
+      ]);
+    },
+    [ipCore, batchUpdate]
+  );
+
+  /**
+   * Assign a standalone port to a named signal in a standard-protocol bus interface.
+   *
+   * Stores a portNameOverride so the bus explicitly tracks which physical port covers
+   * `signalName`. The stored suffix is the part after the bus physicalPrefix (or the
+   * full port name when no common prefix exists). The port is then removed from `ports[]`.
+   */
+  const addPortToStandardBus = useCallback(
+    (portIndex: number, busIndex: number, signalName: string) => {
+      const ports: Port[] = [...(ipCore.ports ?? [])];
+      const buses: BusInterface[] = [...(ipCore.busInterfaces ?? [])];
+      const port = ports[portIndex];
+      const bus = buses[busIndex];
+
+      if (!port || !bus || !signalName) {
+        return;
+      }
+
+      const prefix = (bus as BusInterface & { physicalPrefix?: string }).physicalPrefix ?? '';
+      const suffix =
+        prefix.length > 0 && port.name.startsWith(prefix)
+          ? port.name.slice(prefix.length)
+          : port.name;
+
+      const existingOverrides =
+        (bus as BusInterface & { portNameOverrides?: Record<string, string> }).portNameOverrides ??
+        {};
+
+      const updatedBus: BusInterface & { portNameOverrides?: Record<string, string> } = {
+        ...bus,
+        portNameOverrides: { ...existingOverrides, [signalName]: suffix },
+      };
+
+      const filteredPorts = ports.filter((_, i) => i !== portIndex);
+      const updatedBuses = buses.map((b, i) => (i === busIndex ? updatedBus : b));
+
+      batchUpdate([
+        [['ports'], filteredPorts],
+        [['busInterfaces'], updatedBuses],
+      ]);
+    },
+    [ipCore, batchUpdate]
+  );
+
+  /** Remove a port from `ports[]` without touching any bus interface. */
   const removeStandalonePort = useCallback(
     (portIndex: number) => {
       const ports: Port[] = [...(ipCore.ports ?? [])];
@@ -253,6 +344,8 @@ export function useGroupPorts(ipCore: IpCore, batchUpdate: BatchUpdate) {
     groupAsStandard,
     groupAsConduit,
     addPortToConduit,
+    addPortToStandardBus,
+    mergePortsIntoStandardBus,
     ungroupBusInterface,
     removeStandalonePort,
   };
