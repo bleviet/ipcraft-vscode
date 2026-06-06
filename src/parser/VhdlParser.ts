@@ -115,6 +115,9 @@ export async function parseVhdlFile(
       if (bus.associatedReset) {
         entry.associatedReset = bus.associatedReset;
       }
+      if (bus.portWidthOverrides && Object.keys(bus.portWidthOverrides).length > 0) {
+        entry.portWidthOverrides = bus.portWidthOverrides;
+      }
       return entry;
     });
   }
@@ -545,6 +548,7 @@ export function detectBusInterfaces(
     physicalPrefix: string;
     associatedClock?: string;
     associatedReset?: string;
+    portWidthOverrides?: Record<string, string | number>;
   }>;
   busPortNames: Set<string>;
 } {
@@ -664,6 +668,7 @@ export function detectBusInterfaces(
     physicalPrefix: string;
     associatedClock?: string;
     associatedReset?: string;
+    portWidthOverrides?: Record<string, string | number>;
   }> = [];
   const busPortNames = new Set<string>();
 
@@ -696,6 +701,25 @@ export function detectBusInterfaces(
       clockReset.resets.find((r) => r.name.toLowerCase().startsWith(prefix))?.name ??
       (clockReset.resets.length === 1 ? clockReset.resets[0].name : undefined);
 
+    const portWidthOverrides: Record<string, string | number> = {};
+    for (const sig of busDef.signals) {
+      const port = portMap.get(prefix + sig.name);
+      if (!port || typeof port.width !== 'string') {
+        continue;
+      }
+      const logicalName = sig.name.toUpperCase();
+      let overrideExpr = port.width;
+      if (logicalName === 'WSTRB') {
+        // Generator applies /8 automatically for WSTRB; strip the trailing /N from
+        // the extracted VHDL expression so the override stores the data-width param.
+        overrideExpr = overrideExpr.replace(/\s*\/\s*\d+\s*$/, '').trim();
+        if (!overrideExpr) {
+          continue;
+        }
+      }
+      portWidthOverrides[logicalName] = overrideExpr;
+    }
+
     busInterfaces.push({
       name: busName,
       type: busDef.id,
@@ -703,6 +727,8 @@ export function detectBusInterfaces(
       physicalPrefix: prefix,
       associatedClock,
       associatedReset,
+      portWidthOverrides:
+        Object.keys(portWidthOverrides).length > 0 ? portWidthOverrides : undefined,
     });
   }
 

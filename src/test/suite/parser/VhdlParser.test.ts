@@ -198,4 +198,56 @@ describe('VhdlParser', () => {
     expect(ports[0].name).toBe('IO_I_DATA');
     expect(ports[0].logicalName).toBe('I_DATA');
   });
+
+  it('emits portWidthOverrides for parametric AXI-Lite bus ports', async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ipcraft-vhdl-'));
+    const filePath = path.join(tempDir, 'axil_slave.vhd');
+    const vhdl = `
+      entity axil_slave is
+        generic (
+          AddrWidth_g : positive := 8;
+          DataWidth_g : positive := 32
+        );
+        port (
+          Clk              : in  std_logic;
+          Rst              : in  std_logic;
+          s_axil_awaddr    : in  std_logic_vector(AddrWidth_g - 1 downto 0);
+          s_axil_awprot    : in  std_logic_vector(2 downto 0);
+          s_axil_awvalid   : in  std_logic;
+          s_axil_awready   : out std_logic;
+          s_axil_wdata     : in  std_logic_vector(DataWidth_g - 1 downto 0);
+          s_axil_wstrb     : in  std_logic_vector((DataWidth_g/8) - 1 downto 0);
+          s_axil_wvalid    : in  std_logic;
+          s_axil_wready    : out std_logic;
+          s_axil_bresp     : out std_logic_vector(1 downto 0);
+          s_axil_bvalid    : out std_logic;
+          s_axil_bready    : in  std_logic;
+          s_axil_araddr    : in  std_logic_vector(AddrWidth_g - 1 downto 0);
+          s_axil_arprot    : in  std_logic_vector(2 downto 0);
+          s_axil_arvalid   : in  std_logic;
+          s_axil_arready   : out std_logic;
+          s_axil_rdata     : out std_logic_vector(DataWidth_g - 1 downto 0);
+          s_axil_rresp     : out std_logic_vector(1 downto 0);
+          s_axil_rvalid    : out std_logic;
+          s_axil_rready    : in  std_logic
+        );
+      end entity axil_slave;
+    `;
+
+    await fs.writeFile(filePath, vhdl, 'utf8');
+    const result = await parseVhdlFile(filePath, { detectBus: true });
+    const parsed = yaml.load(result.yamlText) as Record<string, unknown>;
+
+    const ifaces = parsed.busInterfaces as Array<Record<string, unknown>>;
+    expect(ifaces).toHaveLength(1);
+
+    const overrides = ifaces[0].portWidthOverrides as Record<string, string>;
+    expect(overrides).toBeDefined();
+    expect(overrides.AWADDR).toBe('AddrWidth_g');
+    expect(overrides.ARADDR).toBe('AddrWidth_g');
+    expect(overrides.WDATA).toBe('DataWidth_g');
+    expect(overrides.RDATA).toBe('DataWidth_g');
+    // WSTRB: generator applies /8 automatically, so override must be data-width param
+    expect(overrides.WSTRB).toBe('DataWidth_g');
+  });
 });
