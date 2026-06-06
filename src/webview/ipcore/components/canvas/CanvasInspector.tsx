@@ -782,6 +782,37 @@ const PARAM_TYPE_OPTS = [
 ];
 
 // ─────────────────────────────────────────────────────
+//  Width expression evaluator (webview-side)
+// ─────────────────────────────────────────────────────
+
+/**
+ * Evaluate a VHDL width expression (e.g. "AxiDataWidth_g/8") using the
+ * supplied parameter defaults.  Returns the integer result, or undefined
+ * if any identifier cannot be resolved.
+ */
+function evalWidthExpr(expr: string, paramDefaults: Record<string, number>): number | undefined {
+  const trimmed = expr.trim();
+  const asNum = Number(trimmed);
+  if (Number.isFinite(asNum)) {
+    return asNum;
+  }
+  let resolved = trimmed;
+  for (const name of Object.keys(paramDefaults).sort((a, b) => b.length - a.length)) {
+    resolved = resolved.replace(new RegExp(`\\b${name}\\b`, 'g'), String(paramDefaults[name]));
+  }
+  if (!/^[0-9\s+\-*/().]+$/.test(resolved)) {
+    return undefined;
+  }
+  try {
+    const result = new Function(`return (${resolved})`)() as unknown;
+    const num = Number(result);
+    return Number.isFinite(num) ? Math.trunc(num) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+// ─────────────────────────────────────────────────────
 //  Kind-specific panels
 // ─────────────────────────────────────────────────────
 
@@ -955,6 +986,33 @@ const PortPanel: React.FC<PortPanelProps> = ({ port, index, ipCore, onUpdate }) 
   const currentWidth: number | string =
     port.width === undefined || port.width === null ? 1 : (port.width as number | string);
 
+  // Build param name→value lookup for expression evaluation
+  const paramValues = useMemo(
+    () =>
+      ((ipCore.parameters ?? []) as unknown as Array<{ name: string; value?: unknown }>).reduce<
+        Record<string, number>
+      >((acc, p) => {
+        const n = Number(p.value);
+        if (p.name && Number.isFinite(n)) {
+          acc[p.name] = n;
+        }
+        return acc;
+      }, {}),
+    [ipCore.parameters]
+  );
+
+  // Expression widths (e.g. "AxiDataWidth_g/8") are not bare param names — evaluate
+  // them to a number for display.  Pure param names are left as-is so PropWidthField
+  // can show its parameter-select mode.
+  const isExprWidth = typeof currentWidth === 'string' && !paramNames.includes(currentWidth);
+  const resolvedWidth: number | string = useMemo(() => {
+    if (!isExprWidth) {
+      return currentWidth;
+    }
+    const evaluated = evalWidthExpr(currentWidth, paramValues);
+    return evaluated !== undefined ? evaluated : 1;
+  }, [isExprWidth, currentWidth, paramValues]);
+
   return (
     <>
       <Section title="Identity">
@@ -976,9 +1034,16 @@ const PortPanel: React.FC<PortPanelProps> = ({ port, index, ipCore, onUpdate }) 
         />
         <PropWidthField
           label="Width (bits)"
-          value={currentWidth}
+          value={resolvedWidth}
           paramNames={paramNames}
-          onSave={(v) => onUpdate(['ports', index, 'width'], v)}
+          onSave={(v) => {
+            // Don't overwrite an expression width when the user just focused/blurred
+            // without changing the value — save only if they actually edited.
+            if (isExprWidth && v === resolvedWidth) {
+              return;
+            }
+            onUpdate(['ports', index, 'width'], v);
+          }}
         />
       </Section>
     </>
