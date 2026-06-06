@@ -123,7 +123,7 @@ export async function parseVhdlFile(
     yamlData.parameters = parameters.map((param) => ({
       name: param.name,
       value: parseParameterValue(param.value),
-      dataType: param.type.toLowerCase(),
+      dataType: normalizeParamDataType(param.type),
     }));
   }
 
@@ -344,6 +344,19 @@ export function portToDict(port: ParsedPort): Record<string, unknown> {
   }
 
   return result;
+}
+
+/**
+ * Normalises a VHDL generic type string to one of the allowed ParameterType
+ * values in the schema.  VHDL allows constrained subtypes such as
+ * `natural range 12 to 64`; we strip the range clause and keep only the
+ * base type name so schema validation passes.
+ */
+export function normalizeParamDataType(rawType: string): string {
+  return rawType
+    .replace(/\s+range\s+.*/i, '')
+    .trim()
+    .toLowerCase();
 }
 
 export function parseParameterValue(value?: string): unknown {

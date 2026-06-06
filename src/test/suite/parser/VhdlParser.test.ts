@@ -83,6 +83,36 @@ describe('VhdlParser', () => {
     });
   });
 
+  it('strips range constraints from generic dataType', async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ipcraft-vhdl-'));
+    const filePath = path.join(tempDir, 'ranged.vhd');
+    const vhdl = `
+      entity ranged is
+        generic (
+          AddrWidth_g : natural range 12 to 64  := 32;
+          DataWidth_g : natural range 8 to 1024 := 32;
+          MaxBeats_g  : natural range 1 to 256  := 256;
+          Plain_g     : natural                 := 8
+        );
+        port (
+          Clk : in std_logic
+        );
+      end entity;
+    `;
+
+    await fs.writeFile(filePath, vhdl, 'utf8');
+    const result = await parseVhdlFile(filePath);
+    const parsed = yaml.load(result.yamlText) as Record<string, unknown>;
+    const params = parsed.parameters as Array<Record<string, unknown>>;
+
+    expect(params).toHaveLength(4);
+    // Range constraints must be stripped — only the base type survives
+    expect(params[0]).toMatchObject({ name: 'AddrWidth_g', value: 32, dataType: 'natural' });
+    expect(params[1]).toMatchObject({ name: 'DataWidth_g', value: 32, dataType: 'natural' });
+    expect(params[2]).toMatchObject({ name: 'MaxBeats_g', value: 256, dataType: 'natural' });
+    expect(params[3]).toMatchObject({ name: 'Plain_g', value: 8, dataType: 'natural' });
+  });
+
   it('detects width for ports with computed MSB expressions', async () => {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ipcraft-vhdl-'));
     const filePath = path.join(tempDir, 'computed_width.vhd');
