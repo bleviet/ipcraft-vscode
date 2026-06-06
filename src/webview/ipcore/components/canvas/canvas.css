@@ -1097,6 +1097,20 @@
   font-size: 10px;
 }
 
+/* Resolved-value preview shown below an expression width input */
+.ci-field__expr-preview {
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 10px;
+  color: var(--vscode-descriptionForeground);
+  margin-top: 3px;
+  opacity: 0.75;
+}
+.ci-field__expr-preview--invalid {
+  color: var(--vscode-errorForeground);
+  opacity: 0.5;
+  font-style: italic;
+}
+
 /* Memory map field — row with select/path + icon buttons */
 .ci-mmap-row {
   display: flex;
@@ -1307,6 +1321,30 @@
 }
 .ci-pw-mode-toggle:hover {
   opacity: 1;
+}
+
+/* Expression mode input — left-aligned, flexible width for expressions */
+.ci-pw-input--expr {
+  text-align: left;
+  min-width: 60px;
+  width: auto;
+  flex: 1 1 60px;
+  max-width: 130px;
+}
+
+/* Inline resolved-value badge next to toggle button in compact rows */
+.ci-pw-expr-preview {
+  font-size: 9px;
+  font-family: var(--vscode-editor-font-family, monospace);
+  color: var(--vscode-descriptionForeground);
+  opacity: 0.65;
+  white-space: nowrap;
+  flex-shrink: 0;
+  padding: 0 1px;
+}
+.ci-pw-expr-preview--invalid {
+  color: var(--vscode-errorForeground);
+  opacity: 0.4;
 }
 
 .ci-pw-reset {

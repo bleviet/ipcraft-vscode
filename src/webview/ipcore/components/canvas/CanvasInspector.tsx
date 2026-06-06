@@ -26,6 +26,7 @@ import {
 } from '../../data/busDefinitions';
 import { supportsMemoryMap } from './canvasLayout';
 import { vscode } from '../../../vscode';
+import { evalWidthExpr } from '../../../shared/utils/evalWidthExpr';
 
 interface CanvasInspectorProps {
   selected: CanvasElement | null;
@@ -782,36 +783,6 @@ const PARAM_TYPE_OPTS = [
 ];
 
 // ─────────────────────────────────────────────────────
-//  Width expression evaluator (webview-side)
-// ─────────────────────────────────────────────────────
-
-/**
- * Evaluate a VHDL width expression (e.g. "AxiDataWidth_g/8") using the
- * supplied parameter defaults.  Returns the integer result, or undefined
- * if any identifier cannot be resolved.
- */
-function evalWidthExpr(expr: string, paramDefaults: Record<string, number>): number | undefined {
-  const trimmed = expr.trim();
-  const asNum = Number(trimmed);
-  if (Number.isFinite(asNum)) {
-    return asNum;
-  }
-  let resolved = trimmed;
-  for (const name of Object.keys(paramDefaults).sort((a, b) => b.length - a.length)) {
-    resolved = resolved.replace(new RegExp(`\\b${name}\\b`, 'g'), String(paramDefaults[name]));
-  }
-  if (!/^[0-9\s+\-*/().]+$/.test(resolved)) {
-    return undefined;
-  }
-  try {
-    const result = new Function(`return (${resolved})`)() as unknown;
-    const num = Number(result);
-    return Number.isFinite(num) ? Math.trunc(num) : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
 // ─────────────────────────────────────────────────────
 //  Kind-specific panels
 // ─────────────────────────────────────────────────────
@@ -1008,18 +979,6 @@ const PortPanel: React.FC<PortPanelProps> = ({ port, index, ipCore, onUpdate }) 
     [ipCore.parameters]
   );
 
-  // Expression widths (e.g. "AxiDataWidth_g/8") are not bare param names — evaluate
-  // them to a number for display.  Pure param names are left as-is so PropWidthField
-  // can show its parameter-select mode.
-  const isExprWidth = typeof currentWidth === 'string' && !paramNames.includes(currentWidth);
-  const resolvedWidth: number | string = useMemo(() => {
-    if (!isExprWidth) {
-      return currentWidth;
-    }
-    const evaluated = evalWidthExpr(currentWidth, paramValues);
-    return evaluated !== undefined ? evaluated : 1;
-  }, [isExprWidth, currentWidth, paramValues]);
-
   return (
     <>
       <Section title="Identity">
@@ -1041,16 +1000,10 @@ const PortPanel: React.FC<PortPanelProps> = ({ port, index, ipCore, onUpdate }) 
         />
         <PropWidthField
           label="Width (bits)"
-          value={resolvedWidth}
+          value={currentWidth}
           paramNames={paramNames}
-          onSave={(v) => {
-            // Don't overwrite an expression width when the user just focused/blurred
-            // without changing the value — save only if they actually edited.
-            if (isExprWidth && v === resolvedWidth) {
-              return;
-            }
-            onUpdate(['ports', index, 'width'], v);
-          }}
+          paramValues={paramValues}
+          onSave={(v) => onUpdate(['ports', index, 'width'], v)}
         />
       </Section>
     </>
@@ -1088,6 +1041,25 @@ const InterruptPanel: React.FC<InterruptPanelProps> = ({ interrupt, index, ipCor
       ? 1
       : (interrupt.width as number | string);
 
+  const paramValues = useMemo(
+    () =>
+      (
+        (ipCore.parameters ?? []) as unknown as Array<{
+          name: string;
+          defaultValue?: unknown;
+          value?: unknown;
+        }>
+      ).reduce<Record<string, number>>((acc, p) => {
+        const raw = p.defaultValue ?? p.value;
+        const n = Number(raw);
+        if (p.name && Number.isFinite(n)) {
+          acc[p.name] = n;
+        }
+        return acc;
+      }, {}),
+    [ipCore.parameters]
+  );
+
   return (
     <>
       <Section title="Identity">
@@ -1118,6 +1090,7 @@ const InterruptPanel: React.FC<InterruptPanelProps> = ({ interrupt, index, ipCor
           label="Width (bits)"
           value={currentWidth}
           paramNames={paramNames}
+          paramValues={paramValues}
           onSave={(v) => onUpdate(['interrupts', index, 'width'], v)}
         />
         <PropSelect
@@ -1293,6 +1266,20 @@ const BusPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, onUpda
         paramNames={((ipCore.parameters ?? []) as unknown as Array<{ name: string }>).map(
           (p) => p.name
         )}
+        paramValues={(
+          (ipCore.parameters ?? []) as unknown as Array<{
+            name: string;
+            defaultValue?: unknown;
+            value?: unknown;
+          }>
+        ).reduce<Record<string, number>>((acc, p) => {
+          const raw = p.defaultValue ?? p.value;
+          const n = Number(raw);
+          if (p.name && Number.isFinite(n)) {
+            acc[p.name] = n;
+          }
+          return acc;
+        }, {})}
         onUpdate={onUpdate}
       />
     </>
@@ -1329,6 +1316,24 @@ const ConduitPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, on
   const existingNames = buses.map((b) => b.name).filter((_, i) => i !== index);
   const paramNames = ((ipCore.parameters ?? []) as unknown as Array<{ name: string }>).map(
     (p) => p.name
+  );
+  const paramValues = useMemo(
+    () =>
+      (
+        (ipCore.parameters ?? []) as unknown as Array<{
+          name: string;
+          defaultValue?: unknown;
+          value?: unknown;
+        }>
+      ).reduce<Record<string, number>>((acc, p) => {
+        const raw = p.defaultValue ?? p.value;
+        const n = Number(raw);
+        if (p.name && Number.isFinite(n)) {
+          acc[p.name] = n;
+        }
+        return acc;
+      }, {}),
+    [ipCore.parameters]
   );
 
   // Detect if this interface's physicalPrefix collides with any sibling
@@ -1488,6 +1493,7 @@ const ConduitPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, on
           bus={bus}
           busIndex={index}
           paramNames={paramNames}
+          paramValues={paramValues}
           libraryPortDefs={libraryPortDefs}
           onUpdate={onUpdate}
         />
@@ -1497,6 +1503,7 @@ const ConduitPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, on
             bus={bus}
             busIndex={index}
             paramNames={paramNames}
+            paramValues={paramValues}
             onUpdate={onUpdate}
           />
           <div className="ci-conduit-footer">
@@ -1528,6 +1535,7 @@ interface ConduitSignalsSectionProps {
   bus: BusInterface;
   busIndex: number;
   paramNames: string[];
+  paramValues?: Record<string, number>;
   onUpdate: YamlUpdateHandler;
 }
 
@@ -1535,6 +1543,7 @@ const ConduitSignalsSection: React.FC<ConduitSignalsSectionProps> = ({
   bus,
   busIndex,
   paramNames,
+  paramValues = {},
   onUpdate,
 }) => {
   const conduitPorts = bus.conduitPorts ?? [];
@@ -1574,6 +1583,7 @@ const ConduitSignalsSection: React.FC<ConduitSignalsSectionProps> = ({
               key={i}
               port={cp}
               paramNames={paramNames}
+              paramValues={paramValues}
               onChange={(updates) => updateSignal(i, updates)}
               onRemove={() => removeSignal(i)}
             />
@@ -1590,6 +1600,7 @@ const ConduitSignalsSection: React.FC<ConduitSignalsSectionProps> = ({
 interface ConduitSignalRowProps {
   port: ConduitPort;
   paramNames: string[];
+  paramValues?: Record<string, number>;
   onChange: (updates: Partial<ConduitPort>) => void;
   onRemove: () => void;
 }
@@ -1599,6 +1610,7 @@ const PRESENCE_LABELS: Record<string, string> = { required: 'REQ', optional: 'OP
 const ConduitSignalRow: React.FC<ConduitSignalRowProps> = ({
   port,
   paramNames,
+  paramValues = {},
   onChange,
   onRemove,
 }) => {
@@ -1612,43 +1624,75 @@ const ConduitSignalRow: React.FC<ConduitSignalRowProps> = ({
   }, [port.name, nameFocused]);
 
   const currentWidth: number | string = port.width ?? 1;
-  const isCurrentlyParam = typeof currentWidth === 'string' && paramNames.includes(currentWidth);
-  const [widthMode, setWidthMode] = useState<'number' | 'param'>(
-    isCurrentlyParam ? 'param' : 'number'
+  const [widthMode, setWidthMode] = useState<'number' | 'expr'>(() =>
+    typeof currentWidth === 'string' ? 'expr' : 'number'
   );
-  const [widthDraft, setWidthDraft] = useState(
-    typeof currentWidth === 'number' ? String(currentWidth) : '1'
+  const [widthDraft, setWidthDraft] = useState<string>(() =>
+    typeof currentWidth === 'string' ? currentWidth : String(currentWidth)
   );
   const [widthFocused, setWidthFocused] = useState(false);
 
   useEffect(() => {
-    const nextMode =
-      typeof currentWidth === 'string' && paramNames.includes(currentWidth) ? 'param' : 'number';
-    setWidthMode(nextMode);
-    if (nextMode === 'number' && !widthFocused) {
-      setWidthDraft(typeof currentWidth === 'number' ? String(currentWidth) : '1');
+    if (typeof currentWidth === 'string') {
+      setWidthMode('expr');
+      if (!widthFocused) {
+        setWidthDraft(currentWidth);
+      }
+    } else {
+      setWidthMode('number');
+      if (!widthFocused) {
+        setWidthDraft(String(currentWidth));
+      }
     }
-  }, [currentWidth, widthFocused, paramNames]);
+  }, [currentWidth, widthFocused]);
 
-  const commitWidth = (raw: string) => {
-    const n = parseInt(raw, 10);
-    onChange({ width: !isNaN(n) && n > 0 ? n : 1 });
+  const coerceWidthExpr = (raw: string): number | string => {
+    const trimmed = raw.trim();
+    if (!trimmed) {
+      return 1;
+    }
+    const asInt = parseInt(trimmed, 10);
+    if (!isNaN(asInt) && asInt > 0 && String(asInt) === trimmed) {
+      return asInt;
+    }
+    return trimmed;
   };
 
-  const toggleWidthMode = () => {
-    if (widthMode === 'param') {
-      setWidthMode('number');
-      const fallback = typeof currentWidth === 'number' ? currentWidth : 1;
-      setWidthDraft(String(fallback));
-      onChange({ width: fallback });
+  const commitWidth = (raw: string) => {
+    if (widthMode === 'expr') {
+      onChange({ width: coerceWidthExpr(raw) });
     } else {
-      setWidthMode('param');
-      onChange({ width: paramNames[0] });
+      const n = parseInt(raw.trim(), 10);
+      onChange({ width: !isNaN(n) && n > 0 ? n : 1 });
     }
   };
 
   const hasParams = paramNames.length > 0;
   const presence = port.presence ?? 'required';
+  const widthDisplay = widthFocused
+    ? widthDraft
+    : typeof currentWidth === 'string'
+      ? currentWidth
+      : String(currentWidth);
+  const resolved =
+    widthMode === 'expr' && widthDisplay.trim()
+      ? evalWidthExpr(widthDisplay, paramValues)
+      : undefined;
+
+  const toggleWidthMode = () => {
+    if (widthMode === 'expr') {
+      const fallback =
+        resolved !== undefined ? resolved : typeof currentWidth === 'number' ? currentWidth : 1;
+      setWidthMode('number');
+      setWidthDraft(String(fallback));
+      onChange({ width: fallback });
+    } else {
+      const initial = paramNames.length > 0 ? paramNames[0] : '';
+      setWidthMode('expr');
+      setWidthDraft(initial);
+      onChange({ width: initial || 1 });
+    }
+  };
 
   return (
     <div className="ci-conduit-row">
@@ -1688,60 +1732,53 @@ const ConduitSignalRow: React.FC<ConduitSignalRowProps> = ({
         <option value="inout">inout</option>
       </select>
       <div className="ci-pw-field">
-        {widthMode === 'param' ? (
-          <select
-            className="ci-pw-select"
-            value={typeof currentWidth === 'string' ? currentWidth : (paramNames[0] ?? '')}
-            onChange={(e) => onChange({ width: e.target.value })}
-          >
-            {paramNames.map((p) => (
-              <option key={p} value={p}>
-                {p}
-              </option>
-            ))}
-          </select>
-        ) : (
-          <input
-            className="ci-pw-input"
-            value={
-              widthFocused
-                ? widthDraft
-                : typeof currentWidth === 'number'
-                  ? String(currentWidth)
-                  : '1'
-            }
-            onChange={(e) => setWidthDraft(e.target.value)}
-            onFocus={() => {
-              setWidthFocused(true);
-              setWidthDraft(typeof currentWidth === 'number' ? String(currentWidth) : '1');
-            }}
-            onBlur={() => {
+        <input
+          className={`ci-pw-input${widthMode === 'expr' ? ' ci-pw-input--expr' : ''}`}
+          value={widthDisplay}
+          placeholder={widthMode === 'expr' ? (hasParams ? paramNames[0] : 'expr…') : '1'}
+          onChange={(e) => setWidthDraft(e.target.value)}
+          onFocus={() => {
+            setWidthFocused(true);
+            setWidthDraft(typeof currentWidth === 'string' ? currentWidth : String(currentWidth));
+          }}
+          onBlur={() => {
+            setWidthFocused(false);
+            commitWidth(widthDraft);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.currentTarget.blur();
+            } else if (e.key === 'Escape') {
+              setWidthDraft(typeof currentWidth === 'string' ? currentWidth : String(currentWidth));
               setWidthFocused(false);
-              commitWidth(widthDraft);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.currentTarget.blur();
-              } else if (e.key === 'Escape') {
-                setWidthDraft(typeof currentWidth === 'number' ? String(currentWidth) : '1');
-                setWidthFocused(false);
-                e.currentTarget.blur();
-              }
-            }}
-          />
-        )}
-        {hasParams && (
-          <button
-            className="ci-pw-mode-toggle"
-            onClick={toggleWidthMode}
-            title={widthMode === 'param' ? 'Use a literal number' : 'Use a generic parameter'}
+              e.currentTarget.blur();
+            }
+          }}
+          title={
+            widthMode === 'expr' && resolved !== undefined
+              ? `= ${resolved}`
+              : widthMode === 'expr' && widthDisplay.trim()
+                ? '= ? (unresolved)'
+                : undefined
+          }
+        />
+        <button
+          className="ci-pw-mode-toggle"
+          onClick={toggleWidthMode}
+          title={widthMode === 'expr' ? 'Use a literal number' : 'Use a parameter or expression'}
+        >
+          {widthMode === 'expr' ? (
+            '123'
+          ) : (
+            <span style={{ fontFamily: 'var(--vscode-editor-font-family, monospace)' }}>ƒ(x)</span>
+          )}
+        </button>
+        {widthMode === 'expr' && widthDisplay.trim() && (
+          <span
+            className={`ci-pw-expr-preview${resolved === undefined ? ' ci-pw-expr-preview--invalid' : ''}`}
           >
-            {widthMode === 'param' ? (
-              '123'
-            ) : (
-              <span className="codicon codicon-symbol-constant" aria-label="Use generic" />
-            )}
-          </button>
+            ={resolved !== undefined ? resolved : '?'}
+          </span>
         )}
       </div>
       <button
@@ -1862,6 +1899,7 @@ interface PortWidthOverridesSectionProps {
   bus: BusInterface;
   busIndex: number;
   paramNames: string[];
+  paramValues?: Record<string, number>;
   /** Port definitions from the loaded custom bus library, used as fallback for user-defined bus types. */
   libraryPortDefs?: BusPortDef[];
   onUpdate: YamlUpdateHandler;
@@ -1871,6 +1909,7 @@ const PortWidthOverridesSection: React.FC<PortWidthOverridesSectionProps> = ({
   bus,
   busIndex,
   paramNames,
+  paramValues = {},
   libraryPortDefs,
   onUpdate,
 }) => {
@@ -1946,6 +1985,7 @@ const PortWidthOverridesSection: React.FC<PortWidthOverridesSectionProps> = ({
             defaultWidth={defaultWidth}
             hasOverride={hasOverride}
             paramNames={paramNames}
+            paramValues={paramValues}
             onSave={(value) => saveWidth(portDef.name, value, defaultWidth)}
             onReset={() => resetWidth(portDef.name)}
           />
@@ -1962,6 +2002,7 @@ interface PortWidthRowProps {
   defaultWidth: number;
   hasOverride: boolean;
   paramNames: string[];
+  paramValues?: Record<string, number>;
   onSave: (value: number | string) => void;
   onReset: () => void;
 }
@@ -1973,41 +2014,75 @@ const PortWidthRow: React.FC<PortWidthRowProps> = ({
   defaultWidth,
   hasOverride,
   paramNames,
+  paramValues = {},
   onSave,
   onReset,
 }) => {
-  const isCurrentlyParam = typeof currentValue === 'string' && paramNames.includes(currentValue);
-  const [mode, setMode] = useState<'number' | 'param'>(isCurrentlyParam ? 'param' : 'number');
-  const [draft, setDraft] = useState(
-    typeof currentValue === 'number' ? String(currentValue) : String(defaultWidth)
+  const [mode, setMode] = useState<'number' | 'expr'>(() =>
+    typeof currentValue === 'string' ? 'expr' : 'number'
+  );
+  const [draft, setDraft] = useState<string>(() =>
+    typeof currentValue === 'string' ? currentValue : String(currentValue)
   );
   const [focused, setFocused] = useState(false);
 
   useEffect(() => {
-    const nextMode =
-      typeof currentValue === 'string' && paramNames.includes(currentValue) ? 'param' : 'number';
-    setMode(nextMode);
-    if (nextMode === 'number' && !focused) {
-      setDraft(typeof currentValue === 'number' ? String(currentValue) : String(defaultWidth));
+    if (typeof currentValue === 'string') {
+      setMode('expr');
+      if (!focused) {
+        setDraft(currentValue);
+      }
+    } else {
+      setMode('number');
+      if (!focused) {
+        setDraft(String(currentValue));
+      }
     }
-  }, [currentValue, focused, paramNames, defaultWidth]);
+  }, [currentValue, focused]);
 
   const dirSymbol = direction === 'out' ? '›' : direction === 'in' ? '‹' : ' ';
   const hasParams = paramNames.length > 0;
 
-  const commitNumber = (raw: string) => {
-    const n = parseInt(raw, 10);
-    onSave(!isNaN(n) && n > 0 ? n : defaultWidth);
+  const coerceExpr = (raw: string): number | string => {
+    const trimmed = raw.trim();
+    if (!trimmed) {
+      return defaultWidth;
+    }
+    const asInt = parseInt(trimmed, 10);
+    if (!isNaN(asInt) && asInt > 0 && String(asInt) === trimmed) {
+      return asInt;
+    }
+    return trimmed;
+  };
+
+  const valueDisplay = focused
+    ? draft
+    : typeof currentValue === 'string'
+      ? currentValue
+      : String(currentValue);
+  const resolved =
+    mode === 'expr' && valueDisplay.trim() ? evalWidthExpr(valueDisplay, paramValues) : undefined;
+
+  const commit = (raw: string) => {
+    if (mode === 'expr') {
+      onSave(coerceExpr(raw));
+    } else {
+      const n = parseInt(raw.trim(), 10);
+      onSave(!isNaN(n) && n > 0 ? n : defaultWidth);
+    }
   };
 
   const toggleMode = () => {
-    if (mode === 'param') {
+    if (mode === 'expr') {
+      const fallback = resolved !== undefined ? resolved : defaultWidth;
       setMode('number');
-      setDraft(String(defaultWidth));
-      onSave(defaultWidth);
+      setDraft(String(fallback));
+      onSave(fallback);
     } else {
-      setMode('param');
-      onSave(paramNames[0]);
+      const initial = hasParams ? paramNames[0] : '';
+      setMode('expr');
+      setDraft(initial);
+      onSave(initial || defaultWidth);
     }
   };
 
@@ -2020,64 +2095,55 @@ const PortWidthRow: React.FC<PortWidthRowProps> = ({
         {signal}
       </span>
       <div className="ci-pw-field">
-        {mode === 'param' ? (
-          <select
-            className="ci-pw-select"
-            value={typeof currentValue === 'string' ? currentValue : (paramNames[0] ?? '')}
-            onChange={(e) => onSave(e.target.value)}
-          >
-            {paramNames.map((p) => (
-              <option key={p} value={p}>
-                {p}
-              </option>
-            ))}
-          </select>
-        ) : (
-          <input
-            className="ci-pw-input"
-            value={
-              focused
-                ? draft
-                : typeof currentValue === 'number'
-                  ? String(currentValue)
-                  : String(defaultWidth)
-            }
-            onChange={(e) => setDraft(e.target.value)}
-            onFocus={() => {
-              setFocused(true);
-              setDraft(
-                typeof currentValue === 'number' ? String(currentValue) : String(defaultWidth)
-              );
-            }}
-            onBlur={() => {
+        <input
+          className={`ci-pw-input${mode === 'expr' ? ' ci-pw-input--expr' : ''}`}
+          value={valueDisplay}
+          placeholder={
+            mode === 'expr' ? (hasParams ? paramNames[0] : 'expr…') : String(defaultWidth)
+          }
+          onChange={(e) => setDraft(e.target.value)}
+          onFocus={() => {
+            setFocused(true);
+            setDraft(typeof currentValue === 'string' ? currentValue : String(currentValue));
+          }}
+          onBlur={() => {
+            setFocused(false);
+            commit(draft);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.currentTarget.blur();
+            } else if (e.key === 'Escape') {
+              setDraft(typeof currentValue === 'string' ? currentValue : String(currentValue));
               setFocused(false);
-              commitNumber(draft);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.currentTarget.blur();
-              } else if (e.key === 'Escape') {
-                setDraft(
-                  typeof currentValue === 'number' ? String(currentValue) : String(defaultWidth)
-                );
-                setFocused(false);
-                e.currentTarget.blur();
-              }
-            }}
-          />
-        )}
-        {hasParams && (
-          <button
-            className="ci-pw-mode-toggle"
-            onClick={toggleMode}
-            title={mode === 'param' ? 'Use a literal number' : 'Use a generic parameter'}
+              e.currentTarget.blur();
+            }
+          }}
+          title={
+            mode === 'expr' && resolved !== undefined
+              ? `= ${resolved}`
+              : mode === 'expr' && valueDisplay.trim()
+                ? '= ? (unresolved)'
+                : undefined
+          }
+        />
+        <button
+          className="ci-pw-mode-toggle"
+          onClick={toggleMode}
+          title={mode === 'expr' ? 'Use a literal number' : 'Use a parameter or expression'}
+        >
+          {mode === 'expr' ? (
+            '123'
+          ) : (
+            <span style={{ fontFamily: 'var(--vscode-editor-font-family, monospace)' }}>ƒ(x)</span>
+          )}
+        </button>
+        {mode === 'expr' && valueDisplay.trim() && (
+          <span
+            className={`ci-pw-expr-preview${resolved === undefined ? ' ci-pw-expr-preview--invalid' : ''}`}
           >
-            {mode === 'param' ? (
-              '123'
-            ) : (
-              <span className="codicon codicon-symbol-constant" aria-label="Use generic" />
-            )}
-          </button>
+            ={resolved !== undefined ? resolved : '?'}
+          </span>
         )}
       </div>
       {hasOverride ? (
@@ -2274,22 +2340,37 @@ interface PropWidthFieldProps {
   label: string;
   value: number | string;
   paramNames: string[];
+  paramValues?: Record<string, number>;
   onSave: (value: number | string) => void;
 }
 
-const PropWidthField: React.FC<PropWidthFieldProps> = ({ label, value, paramNames, onSave }) => {
-  const isCurrentlyParam = typeof value === 'string' && paramNames.includes(value);
-  const [mode, setMode] = useState<'number' | 'param'>(isCurrentlyParam ? 'param' : 'number');
-  const [draft, setDraft] = useState(typeof value === 'number' ? String(value) : '1');
+const PropWidthField: React.FC<PropWidthFieldProps> = ({
+  label,
+  value,
+  paramNames,
+  paramValues = {},
+  onSave,
+}) => {
+  const [mode, setMode] = useState<'number' | 'expr'>(() =>
+    typeof value === 'string' ? 'expr' : 'number'
+  );
+  const [numDraft, setNumDraft] = useState(typeof value === 'number' ? String(value) : '1');
+  const [exprDraft, setExprDraft] = useState(typeof value === 'string' ? value : '');
   const [focused, setFocused] = useState(false);
 
   useEffect(() => {
-    const nextMode = typeof value === 'string' && paramNames.includes(value) ? 'param' : 'number';
-    setMode(nextMode);
-    if (nextMode === 'number' && !focused) {
-      setDraft(typeof value === 'number' ? String(value) : '1');
+    if (typeof value === 'string') {
+      setMode('expr');
+      if (!focused) {
+        setExprDraft(value);
+      }
+    } else {
+      setMode('number');
+      if (!focused) {
+        setNumDraft(String(value));
+      }
     }
-  }, [value, focused, paramNames]);
+  }, [value, focused]);
 
   const hasParams = paramNames.length > 0;
 
@@ -2298,53 +2379,87 @@ const PropWidthField: React.FC<PropWidthFieldProps> = ({ label, value, paramName
     onSave(!isNaN(n) && n > 0 ? n : 1);
   };
 
-  const toggleMode = () => {
-    if (mode === 'param') {
-      setMode('number');
-      const fallback = typeof value === 'number' ? value : 1;
-      setDraft(String(fallback));
-      onSave(fallback);
+  const commitExpr = (raw: string) => {
+    const trimmed = raw.trim();
+    if (!trimmed) {
+      onSave(1);
+      return;
+    }
+    // Save as integer if the expression is a pure positive integer literal
+    const asInt = parseInt(trimmed, 10);
+    if (!isNaN(asInt) && asInt > 0 && String(asInt) === trimmed) {
+      onSave(asInt);
     } else {
-      setMode('param');
-      onSave(paramNames[0]);
+      onSave(trimmed);
     }
   };
+
+  const toggleMode = () => {
+    if (mode === 'expr') {
+      // Use the resolved numeric value when available, so the field starts at a meaningful number
+      const fallback = resolved !== undefined ? resolved : typeof value === 'number' ? value : 1;
+      setMode('number');
+      setNumDraft(String(fallback));
+      onSave(fallback);
+    } else {
+      const initial = hasParams ? paramNames[0] : '';
+      setMode('expr');
+      setExprDraft(initial);
+      onSave(initial || 1);
+    }
+  };
+
+  const exprDisplay = focused ? exprDraft : typeof value === 'string' ? value : exprDraft;
+  const resolved = exprDisplay.trim() ? evalWidthExpr(exprDisplay, paramValues) : undefined;
 
   return (
     <div className="ci-field">
       <label className="ci-field__label">{label}</label>
       <div className="ci-field__input-row">
-        {mode === 'param' ? (
-          <select
-            className="ci-field__select"
-            value={typeof value === 'string' ? value : (paramNames[0] ?? '')}
-            onChange={(e) => onSave(e.target.value)}
-          >
-            {paramNames.map((p) => (
-              <option key={p} value={p}>
-                {p}
-              </option>
-            ))}
-          </select>
-        ) : (
+        {mode === 'expr' ? (
           <input
             className="ci-field__input"
-            value={focused ? draft : typeof value === 'number' ? String(value) : '1'}
-            placeholder="1"
-            onChange={(e) => setDraft(e.target.value)}
+            value={exprDisplay}
+            placeholder={hasParams ? paramNames[0] : 'expression…'}
+            onChange={(e) => setExprDraft(e.target.value)}
             onFocus={() => {
               setFocused(true);
-              setDraft(typeof value === 'number' ? String(value) : '1');
+              setExprDraft(typeof value === 'string' ? value : exprDraft);
             }}
             onBlur={() => {
               setFocused(false);
-              commitNumber(draft);
+              commitExpr(exprDraft);
             }}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 e.currentTarget.blur();
               } else if (e.key === 'Escape') {
-                setDraft(typeof value === 'number' ? String(value) : '1');
+                setExprDraft(typeof value === 'string' ? value : '');
+                setFocused(false);
+                e.currentTarget.blur();
+              }
+            }}
+            style={{ fontFamily: 'var(--vscode-editor-font-family, monospace)' }}
+          />
+        ) : (
+          <input
+            className="ci-field__input"
+            value={focused ? numDraft : typeof value === 'number' ? String(value) : '1'}
+            placeholder="1"
+            onChange={(e) => setNumDraft(e.target.value)}
+            onFocus={() => {
+              setFocused(true);
+              setNumDraft(typeof value === 'number' ? String(value) : '1');
+            }}
+            onBlur={() => {
+              setFocused(false);
+              commitNumber(numDraft);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.currentTarget.blur();
+              } else if (e.key === 'Escape') {
+                setNumDraft(typeof value === 'number' ? String(value) : '1');
                 setFocused(false);
                 e.currentTarget.blur();
               }
@@ -2352,20 +2467,25 @@ const PropWidthField: React.FC<PropWidthFieldProps> = ({ label, value, paramName
             style={{ fontFamily: 'var(--vscode-editor-font-family, monospace)' }}
           />
         )}
-        {hasParams && (
-          <button
-            className="ci-pw-mode-toggle ci-field__mode-toggle"
-            onClick={toggleMode}
-            title={mode === 'param' ? 'Use a literal number' : 'Use a generic parameter'}
-          >
-            {mode === 'param' ? (
-              '123'
-            ) : (
-              <span className="codicon codicon-symbol-constant" aria-label="Use generic" />
-            )}
-          </button>
-        )}
+        <button
+          className="ci-pw-mode-toggle ci-field__mode-toggle"
+          onClick={toggleMode}
+          title={mode === 'expr' ? 'Use a literal number' : 'Use a parameter or expression'}
+        >
+          {mode === 'expr' ? (
+            '123'
+          ) : (
+            <span style={{ fontFamily: 'var(--vscode-editor-font-family, monospace)' }}>ƒ(x)</span>
+          )}
+        </button>
       </div>
+      {mode === 'expr' && exprDisplay.trim() && (
+        <div
+          className={`ci-field__expr-preview${resolved === undefined ? ' ci-field__expr-preview--invalid' : ''}`}
+        >
+          = {resolved !== undefined ? resolved : '?'}
+        </div>
+      )}
     </div>
   );
 };

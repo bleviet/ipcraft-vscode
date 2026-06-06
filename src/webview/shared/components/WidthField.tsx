@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
-import { VSCodeTextField, VSCodeDropdown, VSCodeOption } from '@vscode/webview-ui-toolkit/react';
+import { VSCodeTextField } from '@vscode/webview-ui-toolkit/react';
+import { evalWidthExpr } from '../utils/evalWidthExpr';
 
 const NUMERIC_PARAM_TYPES = new Set(['integer', 'natural', 'positive']);
 
@@ -9,21 +10,22 @@ export interface WidthParameter {
 }
 
 export interface WidthFieldProps {
-  /** Current width — either a positive integer or a parameter name */
+  /** Current width — a positive integer, a parameter name, or an arithmetic expression */
   value: number | string;
   onChange: (value: number | string) => void;
   onSave?: () => void;
   onCancel?: () => void;
   /**
    * Called with the committed value directly — avoids stale-closure issues
-   * when the caller needs to act on the new value immediately (e.g. on
-   * dropdown selection or blur).  If provided it is called INSTEAD of
-   * `onSave`.
+   * when the caller needs to act on the new value immediately.  If provided it
+   * is called INSTEAD of `onSave`.
    */
   onSaveWithValue?: (value: number | string) => void;
   /** Available parameters to offer as width references */
   parameters?: WidthParameter[];
-  /** The library default width, used when reverting from param mode to number mode */
+  /** Parameter name→value map used for live expression preview */
+  paramValues?: Record<string, number>;
+  /** The library default width, used when reverting from expr mode to number mode */
   defaultWidth?: number;
   label?: string;
   disabled?: boolean;
@@ -32,17 +34,13 @@ export interface WidthFieldProps {
 }
 
 /**
- * Dual-mode width input — either a plain positive integer or a reference to an
- * integer/natural/positive parameter defined on the IP core.
+ * Two-mode width input:
+ *   - Number mode: plain positive integer
+ *   - Expression mode: free-text arithmetic expression or bare parameter name
+ *     (e.g. "AxiDataWidth_g/8"), with live resolved-value preview
  *
- * A small toggle button lets the user switch between the two modes.  When
- * switching from parameter mode back to number mode the field is initialised
- * to `defaultWidth ?? 1`.
- *
- * Saves are committed:
- * - On Enter key (number mode)
- * - On blur when focus leaves the whole component (number mode panel-switch)
- * - Immediately on dropdown selection (param mode — no pending draft)
+ * The toggle button switches between modes.  When switching back to number mode
+ * the field resets to `defaultWidth ?? 1`.
  */
 export const WidthField: React.FC<WidthFieldProps> = ({
   value,
@@ -51,6 +49,7 @@ export const WidthField: React.FC<WidthFieldProps> = ({
   onCancel,
   onSaveWithValue,
   parameters = [],
+  paramValues = {},
   defaultWidth = 1,
   label,
   disabled = false,
@@ -60,13 +59,15 @@ export const WidthField: React.FC<WidthFieldProps> = ({
     (p) => !p.dataType || NUMERIC_PARAM_TYPES.has(p.dataType.toLowerCase())
   );
 
-  const [isParamMode, setIsParamMode] = useState(() => typeof value === 'string');
+  const [mode, setMode] = useState<'number' | 'expr'>(() =>
+    typeof value === 'string' ? 'expr' : 'number'
+  );
 
-  // Track the latest text input value in a ref so onBlur can read it
-  // synchronously without relying on potentially-stale React state.
-  const textValueRef = useRef<string>(
+  // Ref for synchronous read on blur (VSCodeTextField shadow-DOM blur ordering)
+  const numericRef = useRef<string>(
     typeof value === 'number' ? String(value) : String(defaultWidth)
   );
+  const exprRef = useRef<string>(typeof value === 'string' ? value : '');
 
   const commit = (v: number | string) => {
     if (onSaveWithValue) {
@@ -76,128 +77,149 @@ export const WidthField: React.FC<WidthFieldProps> = ({
     }
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleKeyDown = (e: any) => {
-    const event = e as unknown as KeyboardEvent;
-    if (event.key === 'Enter') {
-      const num = parseInt(textValueRef.current, 10);
-      commit(!isNaN(num) && num > 0 ? num : defaultWidth);
-    } else if (event.key === 'Escape') {
-      onCancel?.();
+  // Resolved preview for current expr value
+  const exprDisplay = typeof value === 'string' ? value : exprRef.current;
+  const resolved = exprDisplay.trim() ? evalWidthExpr(exprDisplay, paramValues) : undefined;
+
+  /** Coerce an expression string to a number if it is a pure positive integer. */
+  const coerceExpr = (expr: string): number | string => {
+    const trimmed = expr.trim();
+    if (!trimmed) {
+      return defaultWidth;
     }
+    const asInt = parseInt(trimmed, 10);
+    if (!isNaN(asInt) && asInt > 0 && String(asInt) === trimmed) {
+      return asInt;
+    }
+    return trimmed;
   };
 
-  /** Save when focus leaves the entire WidthField (handles panel switches). */
+  /** Save when focus leaves the entire WidthField component. */
   const handleBlur = (e: React.FocusEvent<HTMLDivElement>) => {
     if (disabled) {
       return;
     }
     if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-      if (!isParamMode) {
-        const num = parseInt(textValueRef.current, 10);
+      if (mode === 'number') {
+        const num = parseInt(numericRef.current, 10);
         commit(!isNaN(num) && num > 0 ? num : defaultWidth);
+      } else {
+        commit(coerceExpr(exprRef.current));
       }
-      // Param mode is saved immediately on selection — no action needed here.
     }
   };
 
   const toggleMode = () => {
-    if (isParamMode) {
-      setIsParamMode(false);
-      onChange(defaultWidth);
+    if (mode === 'expr') {
+      // Use resolved value when available so the number starts at the meaningful value
+      const numericFallback = resolved !== undefined ? resolved : defaultWidth;
+      setMode('number');
+      numericRef.current = String(numericFallback);
+      onChange(numericFallback);
     } else {
-      setIsParamMode(true);
-      if (numericParams.length > 0) {
-        onChange(numericParams[0].name);
-      }
+      setMode('expr');
+      const initial = numericParams.length > 0 ? numericParams[0].name : '';
+      exprRef.current = initial;
+      onChange(initial || defaultWidth);
     }
   };
-
-  const modeTitle = isParamMode
-    ? 'Switch to literal number'
-    : numericParams.length === 0
-      ? 'No integer parameters defined'
-      : 'Use a parameter as width';
 
   return (
     <div className={`flex flex-col gap-1 ${className ?? ''}`} onBlur={handleBlur}>
       {label && <label className="text-sm font-semibold">{label}</label>}
 
       <div className="flex items-center gap-1">
-        {isParamMode ? (
-          numericParams.length === 0 ? (
-            <span
-              className="text-xs italic"
-              style={{ color: 'var(--vscode-descriptionForeground)' }}
-            >
-              No integer parameters defined
-            </span>
-          ) : (
-            <VSCodeDropdown
-              value={typeof value === 'string' ? value : (numericParams[0]?.name ?? '')}
-              disabled={disabled}
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              onChange={(e: any) => {
-                const ev = e as unknown as React.ChangeEvent<HTMLSelectElement>;
-                const selected = ev.target.value ?? '';
-                onChange(selected);
-                // Commit immediately — selecting from a dropdown is a definitive
-                // action and we must not rely on onBlur (shadow DOM uncertainty).
-                commit(selected);
-              }}
-              style={{ flexGrow: 1 }}
-            >
-              {numericParams.map((p) => (
-                <VSCodeOption key={p.name} value={p.name}>
-                  {p.name}
-                </VSCodeOption>
-              ))}
-            </VSCodeDropdown>
-          )
+        {mode === 'expr' ? (
+          <VSCodeTextField
+            value={typeof value === 'string' ? value : exprRef.current}
+            disabled={disabled}
+            placeholder={numericParams[0]?.name ?? 'expression…'}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            onInput={(e: any) => {
+              const raw: string = (e as React.ChangeEvent<HTMLInputElement>).target.value ?? '';
+              exprRef.current = raw;
+              onChange(coerceExpr(raw));
+            }}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            onKeyDown={(e: any) => {
+              const key = (e as KeyboardEvent).key;
+              if (key === 'Enter') {
+                commit(coerceExpr(exprRef.current));
+              } else if (key === 'Escape') {
+                onCancel?.();
+              }
+            }}
+            style={{ flexGrow: 1 }}
+          />
         ) : (
           <VSCodeTextField
             value={typeof value === 'number' ? String(value) : String(defaultWidth)}
             disabled={disabled}
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             onInput={(e: any) => {
-              const ev = e as unknown as React.ChangeEvent<HTMLInputElement>;
+              const ev = e as React.ChangeEvent<HTMLInputElement>;
               const raw = ev.target.value ?? '';
-              textValueRef.current = raw;
+              numericRef.current = raw;
               const num = parseInt(raw, 10);
               if (!isNaN(num) && num > 0) {
                 onChange(num);
               }
             }}
-            onKeyDown={handleKeyDown}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            onKeyDown={(e: any) => {
+              const key = (e as KeyboardEvent).key;
+              if (key === 'Enter') {
+                const num = parseInt(numericRef.current, 10);
+                commit(!isNaN(num) && num > 0 ? num : defaultWidth);
+              } else if (key === 'Escape') {
+                onCancel?.();
+              }
+            }}
             style={{ flexGrow: 1 }}
           />
         )}
 
         <button
           type="button"
-          title={modeTitle}
+          title={
+            mode === 'expr' ? 'Switch to literal number' : 'Use a parameter or expression as width'
+          }
           onClick={toggleMode}
-          // Prevent focus from leaving the text field when clicking this button.
-          // Without this, VSCodeTextField's shadow-DOM blur fires with relatedTarget=null,
-          // which looks like focus leaving the component and incorrectly triggers a commit.
+          // Prevent shadow-DOM blur from firing with relatedTarget=null when
+          // clicking this button while the text field is focused.
           onMouseDown={(e) => e.preventDefault()}
-          disabled={disabled || (!isParamMode && numericParams.length === 0)}
+          disabled={disabled}
           className="shrink-0 rounded px-1.5 py-0.5 text-xs font-mono transition-opacity"
           style={{
-            background: isParamMode
-              ? 'var(--vscode-button-background)'
-              : 'var(--vscode-button-secondaryBackground)',
-            color: isParamMode
-              ? 'var(--vscode-button-foreground)'
-              : 'var(--vscode-button-secondaryForeground)',
+            background:
+              mode === 'expr'
+                ? 'var(--vscode-button-background)'
+                : 'var(--vscode-button-secondaryBackground)',
+            color:
+              mode === 'expr'
+                ? 'var(--vscode-button-foreground)'
+                : 'var(--vscode-button-secondaryForeground)',
             border: '1px solid var(--vscode-button-border, transparent)',
-            cursor: !isParamMode && numericParams.length === 0 ? 'not-allowed' : 'pointer',
-            opacity: !isParamMode && numericParams.length === 0 ? 0.4 : 1,
           }}
         >
-          {isParamMode ? '123' : 'P'}
+          {mode === 'expr' ? '123' : 'ƒ(x)'}
         </button>
       </div>
+
+      {mode === 'expr' && exprDisplay.trim() && (
+        <div
+          className="text-xs font-mono"
+          style={{
+            color:
+              resolved !== undefined
+                ? 'var(--vscode-descriptionForeground)'
+                : 'var(--vscode-errorForeground)',
+            opacity: resolved !== undefined ? 0.8 : 0.55,
+          }}
+        >
+          = {resolved !== undefined ? resolved : '?'}
+        </div>
+      )}
     </div>
   );
 };
