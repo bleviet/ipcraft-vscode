@@ -131,14 +131,18 @@ export class IpCoreScaffolder {
       const name = String(ipCoreData?.vlnv?.name ?? 'ip_core').toLowerCase();
 
       // ── RTL files — data-driven from scaffold pack ─────────────────────────
+      // Minimal packs (fullGeneration: false) suppress bus/register context so the
+      // top-level template renders an empty architecture regardless of bus detection.
+      const rtlCtx = pack.fullGeneration ? context : { ...context, has_memory_mapped_slave: false };
+
       if (includeVhdl) {
         for (const rule of pack.files) {
-          if (!packLoader.evaluateCondition(rule.condition, context)) {
+          if (!packLoader.evaluateCondition(rule.condition, rtlCtx)) {
             continue;
           }
-          const sourceName = packLoader.renderString(rule.source, context);
-          const relativePath = packLoader.renderString(rule.target, context);
-          files[relativePath] = packLoader.render(sourceName, context);
+          const sourceName = packLoader.renderString(rule.source, rtlCtx);
+          const relativePath = packLoader.renderString(rule.target, rtlCtx);
+          files[relativePath] = packLoader.render(sourceName, rtlCtx);
           if (rule.managed === false) {
             packManagedFalse.add(relativePath);
           }
