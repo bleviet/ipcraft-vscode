@@ -125,6 +125,10 @@ function normalizeBusInterface(raw: Record<string, unknown>): BusInterfaceDef {
     (raw.port_width_overrides as Record<string, number | string> | undefined) ??
     (raw.portWidthOverrides as Record<string, number | string> | undefined) ??
     {};
+  const portNameOverrides =
+    (raw.port_name_overrides as Record<string, string> | undefined) ??
+    (raw.portNameOverrides as Record<string, string> | undefined) ??
+    undefined;
   return {
     name: getString(raw.name),
     type: getString(raw.type),
@@ -132,6 +136,7 @@ function normalizeBusInterface(raw: Record<string, unknown>): BusInterfaceDef {
     physical_prefix: getString(raw.physical_prefix ?? raw.physicalPrefix ?? 's_axi_'),
     use_optional_ports: useOptionalPorts,
     port_width_overrides: portWidthOverrides,
+    port_name_overrides: portNameOverrides,
     associated_clock: getString(raw.associated_clock ?? raw.associatedClock),
     associated_reset: getString(raw.associated_reset ?? raw.associatedReset),
     array: array
@@ -298,6 +303,7 @@ export function expandBusInterfaces(ipCore: IpCoreData): BusInterfaceDef[] {
           physical_prefix: String(prefixPattern).replace('{index}', String(idx)),
           use_optional_ports: iface.use_optional_ports ?? [],
           port_width_overrides: iface.port_width_overrides ?? {},
+          port_name_overrides: iface.port_name_overrides,
           associated_clock: iface.associated_clock,
           associated_reset: iface.associated_reset,
         });
@@ -312,6 +318,7 @@ export function expandBusInterfaces(ipCore: IpCoreData): BusInterfaceDef[] {
       physical_prefix: iface.physical_prefix ?? 's_axi_',
       use_optional_ports: iface.use_optional_ports ?? [],
       port_width_overrides: iface.port_width_overrides ?? {},
+      port_name_overrides: iface.port_name_overrides,
       associated_clock: iface.associated_clock,
       associated_reset: iface.associated_reset,
     });
@@ -340,7 +347,8 @@ export function getActiveBusPortsFromDefinition(
   physicalPrefix: string,
   mode: string,
   portWidthOverrides: Record<string, number | string>,
-  parameters?: Array<{ name: string; value?: number | string; data_type?: string }>
+  parameters?: Array<{ name: string; value?: number | string; data_type?: string }>,
+  portNameOverrides?: Record<string, string>
 ): Array<Record<string, unknown>> {
   const optionalSet = new Set(useOptionalPorts || []);
   const activePorts: Array<Record<string, unknown>> = [];
@@ -412,9 +420,10 @@ export function getActiveBusPortsFromDefinition(
       svType = getSvPortType(numWidth, logicalName);
     }
 
+    const physicalSuffix = portNameOverrides?.[logicalName] ?? logicalName.toLowerCase();
     activePorts.push({
       logical_name: logicalName,
-      name: `${physicalPrefix}${logicalName.toLowerCase()}`,
+      name: `${physicalPrefix}${physicalSuffix}`,
       direction,
       sv_direction: direction === 'in' ? 'input' : direction === 'out' ? 'output' : 'inout',
       width: numWidth,

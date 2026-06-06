@@ -274,6 +274,36 @@ describe('registerProcessor', () => {
       expect(byName['AWADDR'].is_parameterized).toBe(true);
       expect(byName['AWADDR'].width_expr).toBe('C_ADDR_WIDTH');
     });
+
+    it('uses portNameOverrides to preserve original-case port name suffix', () => {
+      const defPorts = [
+        { name: 'AWADDR', direction: 'out', presence: 'required', width: 32 },
+        { name: 'AWVALID', direction: 'out', presence: 'required', width: 1 },
+        { name: 'AWREADY', direction: 'in', presence: 'required', width: 1 },
+        { name: 'WDATA', direction: 'out', presence: 'required', width: 32 },
+      ];
+      const nameOverrides = {
+        AWADDR: 'AwAddr',
+        AWVALID: 'AwValid',
+        AWREADY: 'AwReady',
+        WDATA: 'WData',
+      };
+      const result = getActiveBusPortsFromDefinition(
+        defPorts,
+        [],
+        'S_AxiLite_',
+        'slave',
+        {},
+        undefined,
+        nameOverrides
+      );
+      const byLogical = Object.fromEntries(result.map((p) => [p.logical_name as string, p]));
+
+      expect(byLogical['AWADDR'].name).toBe('S_AxiLite_AwAddr');
+      expect(byLogical['AWVALID'].name).toBe('S_AxiLite_AwValid');
+      expect(byLogical['AWREADY'].name).toBe('S_AxiLite_AwReady');
+      expect(byLogical['WDATA'].name).toBe('S_AxiLite_WData');
+    });
   });
 
   describe('prepareRegisters (Integrative)', () => {

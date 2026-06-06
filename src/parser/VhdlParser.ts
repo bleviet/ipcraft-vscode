@@ -118,6 +118,9 @@ export async function parseVhdlFile(
       if (bus.portWidthOverrides && Object.keys(bus.portWidthOverrides).length > 0) {
         entry.portWidthOverrides = bus.portWidthOverrides;
       }
+      if (bus.portNameOverrides && Object.keys(bus.portNameOverrides).length > 0) {
+        entry.portNameOverrides = bus.portNameOverrides;
+      }
       return entry;
     });
   }
@@ -549,6 +552,7 @@ export function detectBusInterfaces(
     associatedClock?: string;
     associatedReset?: string;
     portWidthOverrides?: Record<string, string | number>;
+    portNameOverrides?: Record<string, string>;
   }>;
   busPortNames: Set<string>;
 } {
@@ -669,6 +673,7 @@ export function detectBusInterfaces(
     associatedClock?: string;
     associatedReset?: string;
     portWidthOverrides?: Record<string, string | number>;
+    portNameOverrides?: Record<string, string>;
   }> = [];
   const busPortNames = new Set<string>();
 
@@ -701,34 +706,57 @@ export function detectBusInterfaces(
       clockReset.resets.find((r) => r.name.toLowerCase().startsWith(prefix))?.name ??
       (clockReset.resets.length === 1 ? clockReset.resets[0].name : undefined);
 
-    const portWidthOverrides: Record<string, string | number> = {};
+    // Recover original-case prefix from the first matched port (port names are case-preserved
+    // in portMap values even though keys are lowercased for matching).
+    let originalPrefix = prefix;
     for (const sig of busDef.signals) {
       const port = portMap.get(prefix + sig.name);
-      if (!port || typeof port.width !== 'string') {
+      if (port && prefix.length > 0) {
+        originalPrefix = port.name.slice(0, prefix.length);
+        break;
+      }
+    }
+
+    const portWidthOverrides: Record<string, string | number> = {};
+    const portNameOverrides: Record<string, string> = {};
+    for (const sig of busDef.signals) {
+      const port = portMap.get(prefix + sig.name);
+      if (!port) {
         continue;
       }
       const logicalName = sig.name.toUpperCase();
-      let overrideExpr = port.width;
-      if (logicalName === 'WSTRB') {
-        // Generator applies /8 automatically for WSTRB; strip the trailing /N from
-        // the extracted VHDL expression so the override stores the data-width param.
-        overrideExpr = overrideExpr.replace(/\s*\/\s*\d+\s*$/, '').trim();
-        if (!overrideExpr) {
-          continue;
+
+      if (typeof port.width === 'string') {
+        let overrideExpr = port.width;
+        if (logicalName === 'WSTRB') {
+          // Generator applies /8 automatically for WSTRB; strip the trailing /N from
+          // the extracted VHDL expression so the override stores the data-width param.
+          overrideExpr = overrideExpr.replace(/\s*\/\s*\d+\s*$/, '').trim();
+          if (!overrideExpr) {
+            continue;
+          }
         }
+        portWidthOverrides[logicalName] = overrideExpr;
       }
-      portWidthOverrides[logicalName] = overrideExpr;
+
+      // Record a suffix override when the actual physical suffix differs from the
+      // conventional lowercase form (sig.name), preserving the original casing.
+      const actualSuffix = port.name.slice(prefix.length);
+      if (actualSuffix !== sig.name) {
+        portNameOverrides[logicalName] = actualSuffix;
+      }
     }
 
     busInterfaces.push({
       name: busName,
       type: busDef.id,
       mode,
-      physicalPrefix: prefix,
+      physicalPrefix: originalPrefix,
       associatedClock,
       associatedReset,
       portWidthOverrides:
         Object.keys(portWidthOverrides).length > 0 ? portWidthOverrides : undefined,
+      portNameOverrides: Object.keys(portNameOverrides).length > 0 ? portNameOverrides : undefined,
     });
   }
 

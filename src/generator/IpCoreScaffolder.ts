@@ -422,7 +422,8 @@ export class IpCoreScaffolder {
           iface.port_width_overrides ?? {},
           ipCore?.parameters as
             | { name: string; value?: string | number; data_type?: string }[]
-            | undefined
+            | undefined,
+          iface.port_name_overrides
         ) as unknown as (TemplatePort & Record<string, unknown>)[];
         activePorts.forEach((port) => {
           port.tcl_width = toTclWidth(port.width, port.width_expr, parameterNames);

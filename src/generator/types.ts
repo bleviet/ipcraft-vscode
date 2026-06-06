@@ -133,6 +133,7 @@ export interface BusInterfaceDef {
   physical_prefix?: string;
   use_optional_ports?: string[];
   port_width_overrides?: Record<string, number | string>;
+  port_name_overrides?: Record<string, string>;
   associated_clock?: string;
   associated_reset?: string;
   array?: BusInterfaceArrayDef;

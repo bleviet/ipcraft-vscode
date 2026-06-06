@@ -249,5 +249,66 @@ describe('VhdlParser', () => {
     expect(overrides.RDATA).toBe('DataWidth_g');
     // WSTRB: generator applies /8 automatically, so override must be data-width param
     expect(overrides.WSTRB).toBe('DataWidth_g');
+    // All-lowercase ports → no portNameOverrides needed
+    expect(ifaces[0].portNameOverrides).toBeUndefined();
+  });
+
+  it('emits portNameOverrides and preserves physicalPrefix casing for mixed-case bus ports', async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ipcraft-vhdl-'));
+    const filePath = path.join(tempDir, 'axil_mixed.vhd');
+    // Port names match the olo_axi_lite_slave pattern: PascalCase prefix + PascalCase suffix
+    const vhdl = `
+      entity axil_mixed is
+        generic (
+          AxiAddrWidth_g : positive := 8;
+          AxiDataWidth_g : positive := 32
+        );
+        port (
+          Clk                 : in  std_logic;
+          Rst                 : in  std_logic;
+          S_AxiLite_AwAddr    : in  std_logic_vector(AxiAddrWidth_g - 1 downto 0);
+          S_AxiLite_AwProt    : in  std_logic_vector(2 downto 0);
+          S_AxiLite_AwValid   : in  std_logic;
+          S_AxiLite_AwReady   : out std_logic;
+          S_AxiLite_WData     : in  std_logic_vector(AxiDataWidth_g - 1 downto 0);
+          S_AxiLite_WStrb     : in  std_logic_vector((AxiDataWidth_g/8) - 1 downto 0);
+          S_AxiLite_WValid    : in  std_logic;
+          S_AxiLite_WReady    : out std_logic;
+          S_AxiLite_BResp     : out std_logic_vector(1 downto 0);
+          S_AxiLite_BValid    : out std_logic;
+          S_AxiLite_BReady    : in  std_logic;
+          S_AxiLite_ArAddr    : in  std_logic_vector(AxiAddrWidth_g - 1 downto 0);
+          S_AxiLite_ArProt    : in  std_logic_vector(2 downto 0);
+          S_AxiLite_ArValid   : in  std_logic;
+          S_AxiLite_ArReady   : out std_logic;
+          S_AxiLite_RData     : out std_logic_vector(AxiDataWidth_g - 1 downto 0);
+          S_AxiLite_RResp     : out std_logic_vector(1 downto 0);
+          S_AxiLite_RValid    : out std_logic;
+          S_AxiLite_RReady    : in  std_logic
+        );
+      end entity axil_mixed;
+    `;
+
+    await fs.writeFile(filePath, vhdl, 'utf8');
+    const result = await parseVhdlFile(filePath, { detectBus: true });
+    const parsed = yaml.load(result.yamlText) as Record<string, unknown>;
+
+    const ifaces = parsed.busInterfaces as Array<Record<string, unknown>>;
+    expect(ifaces).toHaveLength(1);
+
+    // Original-case prefix must be preserved
+    expect(ifaces[0].physicalPrefix).toBe('S_AxiLite_');
+
+    // portNameOverrides maps uppercase logical name → actual physical suffix
+    const nameOverrides = ifaces[0].portNameOverrides as Record<string, string>;
+    expect(nameOverrides).toBeDefined();
+    expect(nameOverrides.AWADDR).toBe('AwAddr');
+    expect(nameOverrides.AWPROT).toBe('AwProt');
+    expect(nameOverrides.AWVALID).toBe('AwValid');
+    expect(nameOverrides.AWREADY).toBe('AwReady');
+    expect(nameOverrides.WDATA).toBe('WData');
+    expect(nameOverrides.WSTRB).toBe('WStrb');
+    expect(nameOverrides.ARADDR).toBe('ArAddr');
+    expect(nameOverrides.RDATA).toBe('RData');
   });
 });

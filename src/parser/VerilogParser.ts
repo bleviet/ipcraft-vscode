@@ -96,6 +96,12 @@ export async function parseVerilogFile(
       if (bus.associatedReset) {
         entry.associatedReset = bus.associatedReset;
       }
+      if (bus.portWidthOverrides && Object.keys(bus.portWidthOverrides).length > 0) {
+        entry.portWidthOverrides = bus.portWidthOverrides;
+      }
+      if (bus.portNameOverrides && Object.keys(bus.portNameOverrides).length > 0) {
+        entry.portNameOverrides = bus.portNameOverrides;
+      }
       return entry;
     });
   }
