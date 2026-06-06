@@ -610,7 +610,7 @@ export class IpCoreScaffolder {
         const numericDefault = evalWidthExpr(widthValue, paramDefaults) ?? 32;
         const defaultWidth = numericDefault - 1;
         return {
-          name: String(port.name).toLowerCase(),
+          name: String(port.name),
           direction,
           sv_direction: svDirection,
           type: `std_logic_vector(${widthValue}-1 downto 0)`,
@@ -625,7 +625,7 @@ export class IpCoreScaffolder {
       const width = Number(widthValue);
       if (width === 1) {
         return {
-          name: String(port.name).toLowerCase(),
+          name: String(port.name),
           direction,
           sv_direction: svDirection,
           type: 'std_logic',
@@ -638,7 +638,7 @@ export class IpCoreScaffolder {
       }
 
       return {
-        name: String(port.name).toLowerCase(),
+        name: String(port.name),
         direction,
         sv_direction: svDirection,
         type: `std_logic_vector(${width - 1} downto 0)`,
@@ -659,7 +659,7 @@ export class IpCoreScaffolder {
       return [];
     }
     return interrupts.map((intr) => ({
-      name: String(intr.name ?? '').toLowerCase(),
+      name: String(intr.name ?? ''),
       direction: String(intr.direction ?? 'out').toLowerCase(),
       sensitivity: String(intr.sensitivity ?? 'LEVEL_HIGH'),
     }));
