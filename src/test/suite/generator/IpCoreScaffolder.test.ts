@@ -319,4 +319,48 @@ describe('IpCoreScaffolder', () => {
       'add_interface_port o_data o_data o_data Output [get_parameter_value DATA_WIDTH]'
     );
   });
+
+  it('places arithmetic expression user ports in the elaborate proc (Rb_ByteEna pattern)', async () => {
+    // No custom bus library needed — this IP has no bus interfaces.
+    (BusLibraryService as jest.Mock).mockImplementation(() => ({
+      loadDefaultLibrary: jest.fn().mockResolvedValue({}),
+      loadFromDirectories: jest.fn().mockResolvedValue({}),
+      clearCache: jest.fn(),
+    }));
+    scaffolder = new IpCoreScaffolder(logger, loader, context);
+
+    const inputPath = path.resolve(__dirname, '../../fixtures/expr-ipcore.yml');
+
+    const result = await scaffolder.generateAll(inputPath, '/tmp/expr-gen', {
+      targets: ['quartus'],
+      includeVhdl: false,
+      includeRegs: false,
+      includeTestbench: false,
+    });
+
+    expect(result.success).toBe(true);
+
+    const tclContent = (fs.writeFile as unknown as jest.Mock).mock.calls.find((call) =>
+      String(call[0]).includes('expr_core_hw.tcl')
+    )?.[1] as string | undefined;
+
+    expect(tclContent).toBeDefined();
+
+    // ELABORATION_CALLBACK required because Rb_ByteEna width is parameterized
+    expect(tclContent).toContain('set_module_property ELABORATION_CALLBACK elaborate');
+
+    // Parameterized user port must NOT appear at global scope
+    expect(tclContent).not.toMatch(/^add_interface_port rb_byteena/m);
+
+    // elaborate proc must contain add_interface_port with the TCL expression for width = N/8
+    expect(tclContent).toContain('proc elaborate {');
+    expect(tclContent).toContain(
+      'add_interface_port rb_byteena rb_byteena rb_byteena Output [expr [get_parameter_value AXIDATAWIDTH_G]/8]'
+    );
+
+    // Simple param reference: Rb_WrData width = AxiDataWidth_g → [get_parameter_value AXIDATAWIDTH_G]
+    expect(tclContent).toContain(
+      'add_interface_port rb_wrdata rb_wrdata rb_wrdata Output [get_parameter_value AXIDATAWIDTH_G]'
+    );
+  });
 });

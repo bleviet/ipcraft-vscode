@@ -266,12 +266,30 @@ function extractWidthFromType(type: string): number | string | undefined {
     if (parenExprMatch) {
       return parenExprMatch[1].trim();
     }
-    // Numeric range: 31 downto 0 → 32
-    const numericMatch = range.match(/^(\d+)\s+downto\s+(\d+)$/i);
-    if (numericMatch) {
-      const high = Number(numericMatch[1]);
-      const low = Number(numericMatch[2]);
+    // Numeric downto range: 31 downto 0 → 32
+    const numericDowntoMatch = range.match(/^(\d+)\s+downto\s+(\d+)$/i);
+    if (numericDowntoMatch) {
+      const high = Number(numericDowntoMatch[1]);
+      const low = Number(numericDowntoMatch[2]);
       return Math.abs(high - low) + 1;
+    }
+    // Numeric to range: 0 to 31 → 32
+    const numericToMatch = range.match(/^(\d+)\s+to\s+(\d+)$/i);
+    if (numericToMatch) {
+      const a = Number(numericToMatch[1]);
+      const b = Number(numericToMatch[2]);
+      return Math.abs(a - b) + 1;
+    }
+    // General compound expression: N*2 - 1 downto 0 → "N*2", A + B - 1 downto 0 → "A + B"
+    // Uses lazy (.+?) so the match anchors to the last "- 1 downto 0" sequence.
+    const generalDowntoMatch = range.match(/^(.+?)\s*-\s*1\s+downto\s+0$/i);
+    if (generalDowntoMatch) {
+      return generalDowntoMatch[1].trim();
+    }
+    // General to direction: 0 to N*2 - 1 → "N*2"
+    const generalToMatch = range.match(/^0\s+to\s+(.+?)\s*-\s*1$/i);
+    if (generalToMatch) {
+      return generalToMatch[1].trim();
     }
     return undefined;
   }

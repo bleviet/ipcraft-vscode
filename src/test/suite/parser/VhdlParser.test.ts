@@ -114,6 +114,40 @@ describe('VhdlParser', () => {
     expect(wrData!.width).toBe('AxiDataWidth_g');
   });
 
+  it('extracts width from compound expressions and to-direction ranges', async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ipcraft-vhdl-'));
+    const filePath = path.join(tempDir, 'compound.vhd');
+    const vhdl = `
+      entity compound is
+        generic (
+          N_g : positive := 8
+        );
+        port (
+          a_doubled : out std_logic_vector(N_g*2 - 1 downto 0);
+          b_sum     : out std_logic_vector(N_g + N_g - 1 downto 0);
+          c_to      : out std_logic_vector(0 to N_g - 1)
+        );
+      end entity;
+    `;
+
+    await fs.writeFile(filePath, vhdl, 'utf8');
+    const result = await parseVhdlFile(filePath);
+    const parsed = yaml.load(result.yamlText) as Record<string, unknown>;
+    const ports = (parsed.ports as Array<Record<string, unknown>>) ?? [];
+
+    const doubled = ports.find((p) => p.name === 'a_doubled');
+    expect(doubled).toBeDefined();
+    expect(doubled!.width).toBe('N_g*2');
+
+    const sum = ports.find((p) => p.name === 'b_sum');
+    expect(sum).toBeDefined();
+    expect(sum!.width).toBe('N_g + N_g');
+
+    const toDir = ports.find((p) => p.name === 'c_to');
+    expect(toDir).toBeDefined();
+    expect(toDir!.width).toBe('N_g');
+  });
+
   it('strips IO_ prefix only once for logical port names', async () => {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ipcraft-vhdl-'));
     const filePath = path.join(tempDir, 'io_prefix.vhd');

@@ -1,0 +1,25 @@
+vlnv:
+  vendor: test
+  library: lib
+  name: expr_core
+  version: 1.0.0
+description: Test core with arithmetic-expression port widths (Rb_ByteEna pattern)
+parameters:
+  - name: AxiDataWidth_g
+    dataType: positive
+    value: 32
+clocks:
+  - name: Clk
+    direction: in
+resets:
+  - name: Rst_n
+    direction: in
+    polarity: activeLow
+ports:
+  - name: Rb_ByteEna
+    direction: out
+    width: AxiDataWidth_g/8
+  - name: Rb_WrData
+    direction: out
+    width: AxiDataWidth_g
+busInterfaces: []

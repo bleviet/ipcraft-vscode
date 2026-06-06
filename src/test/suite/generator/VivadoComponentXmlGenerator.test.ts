@@ -323,6 +323,43 @@ describe('generateComponentXml', () => {
       expect(dataPortXml).toContain('<spirit:left spirit:format="long">31</spirit:left>');
     });
 
+    it('builds spirit:dependency correctly for complex expression port widths (Rb_ByteEna pattern)', () => {
+      // Simulates: Rb_ByteEna : out std_logic_vector((AxiDataWidth_g/8) - 1 downto 0)
+      // where AxiDataWidth_g is a generic with default 32.
+      const ip = makeIp({
+        parameters: [{ name: 'AxiDataWidth_g', value: 32 }],
+        ports: [{ name: 'Rb_ByteEna', direction: 'out', width: 'AxiDataWidth_g/8' }],
+      });
+      const xml = generateComponentXml(ip, BUS_DEFS);
+      const portsSection = xml.slice(xml.indexOf('<spirit:ports>'), xml.indexOf('</spirit:ports>'));
+      const portIdx = portsSection.indexOf('<spirit:name>Rb_ByteEna</spirit:name>');
+      expect(portIdx).toBeGreaterThan(-1);
+      const portXml = portsSection.slice(portIdx, portIdx + 600);
+
+      // Must render as a vector (expression is parameterized)
+      expect(portXml).toContain('<spirit:vector>');
+      // spirit:dependency must contain the full expression with spirit:decode for the param
+      expect(portXml).toContain('spirit:resolve="dependent"');
+      expect(portXml).toContain('AXIDATAWIDTH_G');
+      expect(portXml).toContain('/8');
+      // Must NOT use the bare expression as a MODELPARAM_VALUE key (the old bug)
+      expect(portXml).not.toContain('MODELPARAM_VALUE.AXIDATAWIDTH_G/8');
+    });
+
+    it('resolves complex expression to correct numeric default width', () => {
+      // AxiDataWidth_g=32 → AxiDataWidth_g/8 = 4 bits → left = 3
+      const ip = makeIp({
+        parameters: [{ name: 'AxiDataWidth_g', value: 32 }],
+        ports: [{ name: 'Rb_ByteEna', direction: 'out', width: 'AxiDataWidth_g/8' }],
+      });
+      const xml = generateComponentXml(ip, BUS_DEFS);
+      const portsSection = xml.slice(xml.indexOf('<spirit:ports>'), xml.indexOf('</spirit:ports>'));
+      const portIdx = portsSection.indexOf('<spirit:name>Rb_ByteEna</spirit:name>');
+      const portXml = portsSection.slice(portIdx, portIdx + 600);
+      // Default text value should be 3 (= 4-1, where 4 = 32/8)
+      expect(portXml).toContain('>3<');
+    });
+
     it('master interface inherits portWidthOverrides from sibling slave of the same bus type', () => {
       const ipWithBoth = makeIp({
         parameters: [{ name: 'DATA_W', value: 32 }],

@@ -1,4 +1,8 @@
-import { getActiveBusPortsFromDefinition, expandBusInterfaces } from './registerProcessor';
+import {
+  evalWidthExpr,
+  getActiveBusPortsFromDefinition,
+  expandBusInterfaces,
+} from './registerProcessor';
 import { detectVivadoVersion } from '../utils/detectVivadoVersion';
 import { parseVlnv } from '../utils/vlnv';
 import type {
@@ -717,8 +721,9 @@ function renderViews(
 }
 
 /**
- * Resolves a port width that may be a literal number or a parameter name
- * (e.g. "DEPTH") to a concrete integer using the IP's parameter default values.
+ * Resolves a port width that may be a literal number, a parameter name,
+ * or an arithmetic expression (e.g. "AxiDataWidth_g/8") to a concrete integer
+ * using the IP's parameter default values.
  */
 function resolveWidth(
   width: number | string | undefined,
@@ -728,14 +733,18 @@ function resolveWidth(
     return width;
   }
   if (typeof width === 'string') {
-    const match = parameters.find(
-      (p) => String(p.name ?? '').toUpperCase() === width.toUpperCase()
-    );
-    if (match !== undefined) {
-      const n = Number(match.value ?? match.defaultValue);
-      if (!isNaN(n) && n > 0) {
-        return n;
+    const defaults: Record<string, number> = {};
+    for (const p of parameters) {
+      if (p.name) {
+        const v = Number(p.value ?? p.defaultValue);
+        if (!isNaN(v)) {
+          defaults[String(p.name)] = v;
+        }
       }
+    }
+    const result = evalWidthExpr(width, defaults);
+    if (result !== undefined && result > 0) {
+      return result;
     }
   }
   return 1;
@@ -752,6 +761,7 @@ function renderPorts(
   parameters: Array<{ name?: string; value?: unknown; defaultValue?: unknown }> = []
 ): string[] {
   const portLines: string[] = [];
+  const paramNames = parameters.map((p) => String(p.name ?? ''));
 
   // Aggregate portWidthOverrides across all interfaces of the same bus type.
   // An interface with no overrides inherits from siblings of the same type, so
@@ -820,7 +830,8 @@ function renderPorts(
           String(port.direction),
           Number(port.width),
           isSv,
-          port.width_expr ? String(port.width_expr) : undefined
+          port.width_expr ? String(port.width_expr) : undefined,
+          paramNames
         )
       );
     }
@@ -839,7 +850,8 @@ function renderPorts(
         String(port.direction ?? 'in'),
         resolvedWidth,
         isSv,
-        widthParamName
+        widthParamName,
+        paramNames
       )
     );
   }
@@ -863,7 +875,8 @@ function renderModelPort(
   direction: string,
   width: number,
   isSv = false,
-  widthParamName?: string
+  widthParamName?: string,
+  paramNames: string[] = []
 ): string[] {
   const isVector = widthParamName !== undefined || width > 1;
   const lines: string[] = [];
@@ -874,10 +887,26 @@ function renderModelPort(
   if (isVector) {
     lines.push('          <spirit:vector>');
     if (widthParamName) {
-      const paramUpper = widthParamName.toUpperCase();
-      lines.push(
-        `            <spirit:left spirit:format="long" spirit:resolve="dependent" spirit:dependency="(spirit:decode(id(&apos;MODELPARAM_VALUE.${paramUpper}&apos;)) - 1)">${width - 1}</spirit:left>`
-      );
+      if (/^\w+$/.test(widthParamName)) {
+        // Simple parameter name: reference via MODELPARAM_VALUE
+        const paramUpper = widthParamName.toUpperCase();
+        lines.push(
+          `            <spirit:left spirit:format="long" spirit:resolve="dependent" spirit:dependency="(spirit:decode(id(&apos;MODELPARAM_VALUE.${paramUpper}&apos;)) - 1)">${width - 1}</spirit:left>`
+        );
+      } else {
+        // Complex arithmetic expression (e.g. "AxiDataWidth_g/8"): substitute each
+        // known parameter name with its spirit:decode(id('MODELPARAM_VALUE.NAME')) form.
+        const upperParamNames = paramNames.map((p) => p.toUpperCase());
+        const dependency = widthParamName.replace(/\b([a-zA-Z_][a-zA-Z0-9_]*)\b/g, (match) => {
+          const upper = match.toUpperCase();
+          return upperParamNames.includes(upper)
+            ? `spirit:decode(id(&apos;MODELPARAM_VALUE.${upper}&apos;))`
+            : match;
+        });
+        lines.push(
+          `            <spirit:left spirit:format="long" spirit:resolve="dependent" spirit:dependency="(${dependency} - 1)">${width - 1}</spirit:left>`
+        );
+      }
     } else {
       lines.push(`            <spirit:left spirit:format="long">${width - 1}</spirit:left>`);
     }
