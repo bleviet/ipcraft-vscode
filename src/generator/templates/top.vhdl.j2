@@ -59,11 +59,22 @@ architecture rtl of {{ entity_name }} is
 
 begin
 {% if has_memory_mapped_slave %}
+{# When no register file exists but user ports do, route them through the bus wrapper.
+   This covers IPs like AXI-Lite slaves that expose a direct register-bank interface
+   (rb_addr/rb_wr/…) rather than a generated register file. #}
+{% set pass_user_via_bus = user_ports | length > 0 and sw_registers | length == 0 and hw_registers | length == 0 %}
 
     ----------------------------------------------------------------------------
     -- Bus Wrapper Instance
     ----------------------------------------------------------------------------
     u_{{ bus_type }} : entity work.{{ entity_name }}_{{ bus_type }}
+{% if pass_user_via_bus and generics | length %}
+    generic map (
+{% for generic in generics %}
+      {{ generic.name }} => {{ generic.name }}{{ "," if not loop.last else "" }}
+{% endfor %}
+    )
+{% endif %}
     port map (
       clk => {{ clock_port }},
       rst => {% if reset_active_high %}{{ reset_port }}{% else %}not {{ reset_port }}{% endif %},
@@ -71,7 +82,7 @@ begin
 {% set has_regs_ports = sw_registers | length > 0 or hw_registers | length > 0 %}
 {% if bus_ports %}
 {% for port in bus_ports %}
-      {{ "%-14s"|format(port.name) }} => {{ port.name }}{{ "," if not loop.last or has_regs_ports else "" }}
+      {{ "%-14s"|format(port.name) }} => {{ port.name }}{{ "," if not loop.last or has_regs_ports or pass_user_via_bus else "" }}
 {% endfor %}
 {% endif %}
 {% if sw_registers | length > 0 %}
@@ -80,8 +91,14 @@ begin
 {% if hw_registers | length > 0 %}
       regs_in  => regs_hw2sw
 {% endif %}
+{% if pass_user_via_bus %}
+{% for port in user_ports %}
+      {{ port.name }} => {{ port.name }}{{ "," if not loop.last else "" }}
+{% endfor %}
+{% endif %}
     );
 
+{% if not pass_user_via_bus %}
     ----------------------------------------------------------------------------
     -- Core Logic Instance
     ----------------------------------------------------------------------------
@@ -114,5 +131,6 @@ begin
 {% endif %}
     );
 
+{% endif %}
 {% endif %}
 end architecture rtl;
