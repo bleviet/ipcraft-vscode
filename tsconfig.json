@@ -12,22 +12,7 @@
         "strict": true,
         "jsx": "react",
         "esModuleInterop": true,
-        "skipLibCheck": true,
-        "baseUrl": ".",
-        "paths": {
-            "@/*": [
-                "src/*"
-            ],
-            "@webview/*": [
-                "src/webview/*"
-            ],
-            "@services/*": [
-                "src/services/*"
-            ],
-            "@utils/*": [
-                "src/utils/*"
-            ]
-        }
+        "skipLibCheck": true
     },
     "exclude": [
         "node_modules",
