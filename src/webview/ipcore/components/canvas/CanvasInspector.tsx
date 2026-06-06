@@ -986,13 +986,20 @@ const PortPanel: React.FC<PortPanelProps> = ({ port, index, ipCore, onUpdate }) 
   const currentWidth: number | string =
     port.width === undefined || port.width === null ? 1 : (port.width as number | string);
 
-  // Build param name→value lookup for expression evaluation
+  // Build param name→value lookup for expression evaluation.
+  // Parameters may use either "defaultValue" (standard schema / hand-authored files)
+  // or "value" (parser-generated files) — check both, preferring defaultValue.
   const paramValues = useMemo(
     () =>
-      ((ipCore.parameters ?? []) as unknown as Array<{ name: string; value?: unknown }>).reduce<
-        Record<string, number>
-      >((acc, p) => {
-        const n = Number(p.value);
+      (
+        (ipCore.parameters ?? []) as unknown as Array<{
+          name: string;
+          defaultValue?: unknown;
+          value?: unknown;
+        }>
+      ).reduce<Record<string, number>>((acc, p) => {
+        const raw = p.defaultValue ?? p.value;
+        const n = Number(raw);
         if (p.name && Number.isFinite(n)) {
           acc[p.name] = n;
         }
