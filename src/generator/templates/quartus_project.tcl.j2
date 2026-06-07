@@ -42,19 +42,20 @@ set_global_assignment -name VHDL_INPUT_VERSION VHDL_2008
 set_global_assignment -name TOP_LEVEL_ENTITY {{ entity_name }}
 
 # ---- RTL source files -------------------------------------------------------
-# Detects correct file type by extension to support mixed-language projects
+# Paths are relative to this QSF (in build/) so the project is portable across
+# host and Docker environments — no absolute paths are stored.
 {% for file in rtl_files %}
 {% if file.endsWith('.sv') %}
-set_global_assignment -name SYSTEMVERILOG_FILE [file normalize [file join $script_dir {{ file }}]]
+set_global_assignment -name SYSTEMVERILOG_FILE [file join .. {{ file }}]
 {% elif file.endsWith('.vhd') or file.endsWith('.vhdl') %}
-set_global_assignment -name VHDL_FILE [file normalize [file join $script_dir {{ file }}]]
+set_global_assignment -name VHDL_FILE [file join .. {{ file }}]
 {% else %}
-set_global_assignment -name VERILOG_FILE [file normalize [file join $script_dir {{ file }}]]
+set_global_assignment -name VERILOG_FILE [file join .. {{ file }}]
 {% endif %}
 {% endfor %}
 
 # ---- Timing constraints -----------------------------------------------------
-set_global_assignment -name SDC_FILE [file normalize [file join $script_dir {{ sdc_file }}]]
+set_global_assignment -name SDC_FILE [file join .. {{ sdc_file }}]
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus
