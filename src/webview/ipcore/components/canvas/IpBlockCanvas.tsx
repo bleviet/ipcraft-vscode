@@ -713,11 +713,62 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
     const q = searchQuery.toLowerCase();
     const portIds = new Set<string>();
     const subPortIds = new Set<string>();
+
     for (const p of ports) {
+      // Always match on the visible label (name)
       if (p.label.toLowerCase().includes(q)) {
         portIds.add(p.id);
+        continue;
+      }
+
+      // For bus interfaces: also search protocol type, physical prefix, and signal names
+      if (p.kind === 'bus') {
+        if (p.protocol?.toLowerCase().includes(q)) {
+          portIds.add(p.id);
+          continue;
+        }
+
+        const busData = p.data as {
+          type?: string;
+          physicalPrefix?: string;
+          portNameOverrides?: Record<string, string>;
+          conduitPorts?: Array<{ name: string }>;
+        };
+
+        if (busData.physicalPrefix?.toLowerCase().includes(q)) {
+          portIds.add(p.id);
+          continue;
+        }
+
+        // Conduit (custom) interface signals
+        if (Array.isArray(busData.conduitPorts)) {
+          if (busData.conduitPorts.some((cp) => cp.name.toLowerCase().includes(q))) {
+            portIds.add(p.id);
+            continue;
+          }
+        }
+
+        // Standard bus signals from the bus definition (covers collapsed buses)
+        const busPortDefs = busDefs(busData.type ?? '');
+        if (busPortDefs) {
+          const prefix = busData.physicalPrefix ?? '';
+          const overrides = busData.portNameOverrides ?? {};
+          const matched = busPortDefs.some((sig) => {
+            if (sig.role) {
+              return false;
+            }
+            const sigName = sig.name.toLowerCase();
+            const suffix = overrides[sig.name] ?? sigName;
+            return sigName.includes(q) || (prefix + suffix).toLowerCase().includes(q);
+          });
+          if (matched) {
+            portIds.add(p.id);
+          }
+        }
       }
     }
+
+    // Expanded sub-ports: match by logical name or full physical name
     for (const sp of subPorts) {
       const physical = sp.physicalPrefix + (sp.physicalSuffix ?? sp.name.toLowerCase());
       if (sp.name.toLowerCase().includes(q) || physical.toLowerCase().includes(q)) {
@@ -725,8 +776,9 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
         portIds.add(sp.parentBusId);
       }
     }
+
     return { portIds, subPortIds };
-  }, [showSearch, searchQuery, ports, subPorts]);
+  }, [showSearch, searchQuery, ports, subPorts, busDefs]);
 
   return (
     <div
@@ -1215,6 +1267,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
               !matchedIds.subPortIds.has(sp.id) &&
               !matchedIds.portIds.has(sp.parentBusId)
             }
+            highlighted={matchedIds !== null && matchedIds.subPortIds.has(sp.id)}
           />
         ))}
 

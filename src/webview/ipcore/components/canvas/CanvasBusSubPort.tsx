@@ -14,6 +14,8 @@ interface CanvasBusSubPortProps {
   annotations?: ValidationAnnotation[];
   /** True when a port search is active and this sub-port does not match */
   dimmed?: boolean;
+  /** True when a port search is active and this sub-port's signal name matched */
+  highlighted?: boolean;
 }
 
 const RENAME_INPUT_W = 120;
@@ -39,6 +41,7 @@ export const CanvasBusSubPort: React.FC<CanvasBusSubPortProps> = ({
   onRename,
   annotations,
   dimmed = false,
+  highlighted = false,
 }) => {
   const isLeft = subPort.side === 'left';
   const stubDir = isLeft ? -1 : 1;
@@ -102,7 +105,7 @@ export const CanvasBusSubPort: React.FC<CanvasBusSubPortProps> = ({
 
   return (
     <g
-      className={`canvas-bus-subport ${isInactive ? 'canvas-bus-subport--inactive' : 'canvas-bus-subport--active'} ${isOptional ? 'canvas-bus-subport--optional' : ''} ${dimmed ? 'canvas-bus-subport--dimmed' : ''}`}
+      className={`canvas-bus-subport ${isInactive ? 'canvas-bus-subport--inactive' : 'canvas-bus-subport--active'} ${isOptional ? 'canvas-bus-subport--optional' : ''} ${dimmed ? 'canvas-bus-subport--dimmed' : ''} ${highlighted ? 'canvas-bus-subport--highlighted' : ''}`}
       onClick={handleClick}
       onContextMenu={handleContextMenu}
       style={{ cursor: isRenaming ? 'default' : 'pointer' }}
