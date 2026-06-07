@@ -55,7 +55,9 @@ export class ScaffoldPackPanel {
 
     this.panel.onDidDispose(
       () => {
-        this.disposables.forEach((d) => d.dispose());
+        this.disposables.forEach((d) => {
+          d.dispose();
+        });
         ScaffoldPackPanel._instance = undefined;
       },
       undefined,

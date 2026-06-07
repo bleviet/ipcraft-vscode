@@ -20,7 +20,7 @@ export function evalWidthExpr(
     return undefined;
   }
   try {
-    const result = new Function(`return (${resolved})`)() as unknown;
+    const result = (new Function(`return (${resolved})`) as () => unknown)();
     const num = Number(result);
     return Number.isFinite(num) ? Math.trunc(num) : undefined;
   } catch {

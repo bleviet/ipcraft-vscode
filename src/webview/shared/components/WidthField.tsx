@@ -112,7 +112,7 @@ export const WidthField: React.FC<WidthFieldProps> = ({
   const toggleMode = () => {
     if (mode === 'expr') {
       // Use resolved value when available so the number starts at the meaningful value
-      const numericFallback = resolved !== undefined ? resolved : defaultWidth;
+      const numericFallback = resolved ?? defaultWidth;
       setMode('number');
       numericRef.current = String(numericFallback);
       onChange(numericFallback);
@@ -217,7 +217,7 @@ export const WidthField: React.FC<WidthFieldProps> = ({
             opacity: resolved !== undefined ? 0.8 : 0.55,
           }}
         >
-          = {resolved !== undefined ? resolved : '?'}
+          = {resolved ?? '?'}
         </div>
       )}
     </div>

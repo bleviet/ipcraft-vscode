@@ -1681,8 +1681,7 @@ const ConduitSignalRow: React.FC<ConduitSignalRowProps> = ({
 
   const toggleWidthMode = () => {
     if (widthMode === 'expr') {
-      const fallback =
-        resolved !== undefined ? resolved : typeof currentWidth === 'number' ? currentWidth : 1;
+      const fallback = resolved ?? (typeof currentWidth === 'number' ? currentWidth : 1);
       setWidthMode('number');
       setWidthDraft(String(fallback));
       onChange({ width: fallback });
@@ -1777,7 +1776,7 @@ const ConduitSignalRow: React.FC<ConduitSignalRowProps> = ({
           <span
             className={`ci-pw-expr-preview${resolved === undefined ? ' ci-pw-expr-preview--invalid' : ''}`}
           >
-            ={resolved !== undefined ? resolved : '?'}
+            ={resolved ?? '?'}
           </span>
         )}
       </div>
@@ -2074,7 +2073,7 @@ const PortWidthRow: React.FC<PortWidthRowProps> = ({
 
   const toggleMode = () => {
     if (mode === 'expr') {
-      const fallback = resolved !== undefined ? resolved : defaultWidth;
+      const fallback = resolved ?? defaultWidth;
       setMode('number');
       setDraft(String(fallback));
       onSave(fallback);
@@ -2142,7 +2141,7 @@ const PortWidthRow: React.FC<PortWidthRowProps> = ({
           <span
             className={`ci-pw-expr-preview${resolved === undefined ? ' ci-pw-expr-preview--invalid' : ''}`}
           >
-            ={resolved !== undefined ? resolved : '?'}
+            ={resolved ?? '?'}
           </span>
         )}
       </div>
@@ -2397,7 +2396,7 @@ const PropWidthField: React.FC<PropWidthFieldProps> = ({
   const toggleMode = () => {
     if (mode === 'expr') {
       // Use the resolved numeric value when available, so the field starts at a meaningful number
-      const fallback = resolved !== undefined ? resolved : typeof value === 'number' ? value : 1;
+      const fallback = resolved ?? (typeof value === 'number' ? value : 1);
       setMode('number');
       setNumDraft(String(fallback));
       onSave(fallback);
@@ -2483,7 +2482,7 @@ const PropWidthField: React.FC<PropWidthFieldProps> = ({
         <div
           className={`ci-field__expr-preview${resolved === undefined ? ' ci-field__expr-preview--invalid' : ''}`}
         >
-          = {resolved !== undefined ? resolved : '?'}
+          = {resolved ?? '?'}
         </div>
       )}
     </div>

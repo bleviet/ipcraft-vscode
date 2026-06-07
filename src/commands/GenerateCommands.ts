@@ -660,7 +660,7 @@ async function runGenerator(
       staged,
       path.basename(outputDir)
     );
-    const confirmed = bridgeResult !== null ? bridgeResult : await StagingPanel.show(staged);
+    const confirmed = bridgeResult ?? (await StagingPanel.show(staged));
     if (!confirmed) {
       return false;
     }

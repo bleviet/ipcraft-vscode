@@ -156,11 +156,15 @@ export function quartusDeviceFamily(device: string): string {
  * Used to determine the Docker mount base that covers all referenced files.
  */
 function commonAncestorDir(dirs: string[]): string {
-  if (dirs.length === 0) return path.sep;
+  if (dirs.length === 0) {
+    return path.sep;
+  }
   const parts = dirs.map((d) => path.normalize(d).split(path.sep));
   const first = parts[0];
   let i = 0;
-  while (i < first.length && parts.every((p) => p[i] === first[i])) i++;
+  while (i < first.length && parts.every((p) => p[i] === first[i])) {
+    i++;
+  }
   return first.slice(0, i).join(path.sep) || path.sep;
 }
 

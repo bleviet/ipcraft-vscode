@@ -112,7 +112,9 @@ export class StagingPanel {
 
       panel.onDidDispose(
         () => {
-          disposables.forEach((d) => d.dispose());
+          disposables.forEach((d) => {
+            d.dispose();
+          });
           resolveOnce(false);
         },
         undefined,

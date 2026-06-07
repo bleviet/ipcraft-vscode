@@ -1267,7 +1267,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
               !matchedIds.subPortIds.has(sp.id) &&
               !matchedIds.portIds.has(sp.parentBusId)
             }
-            highlighted={matchedIds !== null && matchedIds.subPortIds.has(sp.id)}
+            highlighted={matchedIds?.subPortIds.has(sp.id) ?? false}
           />
         ))}
 
