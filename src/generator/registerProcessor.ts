@@ -129,6 +129,10 @@ function normalizeBusInterface(raw: Record<string, unknown>): BusInterfaceDef {
     (raw.port_name_overrides as Record<string, string> | undefined) ??
     (raw.portNameOverrides as Record<string, string> | undefined) ??
     undefined;
+  const absentPorts =
+    (raw.absent_ports as string[] | undefined) ??
+    (raw.absentPorts as string[] | undefined) ??
+    undefined;
   return {
     name: getString(raw.name),
     type: getString(raw.type),
@@ -137,6 +141,7 @@ function normalizeBusInterface(raw: Record<string, unknown>): BusInterfaceDef {
     use_optional_ports: useOptionalPorts,
     port_width_overrides: portWidthOverrides,
     port_name_overrides: portNameOverrides,
+    absent_ports: absentPorts,
     associated_clock: getString(raw.associated_clock ?? raw.associatedClock),
     associated_reset: getString(raw.associated_reset ?? raw.associatedReset),
     array: array
@@ -304,6 +309,7 @@ export function expandBusInterfaces(ipCore: IpCoreData): BusInterfaceDef[] {
           use_optional_ports: iface.use_optional_ports ?? [],
           port_width_overrides: iface.port_width_overrides ?? {},
           port_name_overrides: iface.port_name_overrides,
+          absent_ports: iface.absent_ports,
           associated_clock: iface.associated_clock,
           associated_reset: iface.associated_reset,
         });
@@ -319,6 +325,7 @@ export function expandBusInterfaces(ipCore: IpCoreData): BusInterfaceDef[] {
       use_optional_ports: iface.use_optional_ports ?? [],
       port_width_overrides: iface.port_width_overrides ?? {},
       port_name_overrides: iface.port_name_overrides,
+      absent_ports: iface.absent_ports,
       associated_clock: iface.associated_clock,
       associated_reset: iface.associated_reset,
     });
@@ -348,9 +355,11 @@ export function getActiveBusPortsFromDefinition(
   mode: string,
   portWidthOverrides: Record<string, number | string>,
   parameters?: Array<{ name: string; value?: number | string; data_type?: string }>,
-  portNameOverrides?: Record<string, string>
+  portNameOverrides?: Record<string, string>,
+  absentPorts?: string[]
 ): Array<Record<string, unknown>> {
   const optionalSet = new Set(useOptionalPorts || []);
+  const absentSet = new Set((absentPorts ?? []).map((n) => n.toUpperCase()));
   const activePorts: Array<Record<string, unknown>> = [];
 
   // Build a lookup for resolving parameter references to their default values
@@ -366,6 +375,10 @@ export function getActiveBusPortsFromDefinition(
   ports.forEach((port) => {
     const logicalName = port.name;
     if (['ACLK', 'ARESETn', 'clk', 'reset'].includes(logicalName)) {
+      return;
+    }
+
+    if (absentSet.has(logicalName.toUpperCase())) {
       return;
     }
 
@@ -400,6 +413,15 @@ export function getActiveBusPortsFromDefinition(
       width = evalWidthExpr(width, paramDefaults) ?? 1;
     }
 
+    // WSTRB width is DATA_WIDTH/8. The YAML convention stores only the data-width
+    // parameter name (e.g. "AxiDataWidth_g") so the parser can strip "/8" without
+    // losing the parameter reference. Re-apply "/8" here so that widthExpr, width,
+    // tcl_width, and all generated outputs are all consistent and correct.
+    if (logicalName === 'WSTRB' && widthExpr !== null) {
+      widthExpr = `${widthExpr}/8`;
+      width = evalWidthExpr(widthExpr, paramDefaults) ?? 1;
+    }
+
     const numWidth = Number(width);
 
     // Compute HDL type strings — use the parameter expression when parameterized,
@@ -407,14 +429,12 @@ export function getActiveBusPortsFromDefinition(
     let vhdlType: string;
     let svType: string;
     if (widthExpr !== null) {
-      if (logicalName === 'WSTRB') {
-        // WSTRB width is DATA_WIDTH/8; widthExpr holds the data-width parameter name
-        vhdlType = `std_logic_vector((${widthExpr}/8)-1 downto 0)`;
-        svType = `logic [(${widthExpr}/8)-1:0]`;
-      } else {
-        vhdlType = `std_logic_vector(${widthExpr}-1 downto 0)`;
-        svType = `logic [${widthExpr}-1:0]`;
-      }
+      // Compound expressions (e.g. "AxiDataWidth_g/8") need outer parens so the
+      // subtraction binds to the whole expression, not just its last operand.
+      const isCompound = /[+\-*/]/.test(widthExpr);
+      const fmtExpr = isCompound ? `(${widthExpr})` : widthExpr;
+      vhdlType = `std_logic_vector(${fmtExpr}-1 downto 0)`;
+      svType = `logic [${fmtExpr}-1:0]`;
     } else {
       vhdlType = getVhdlPortType(numWidth, logicalName);
       svType = getSvPortType(numWidth, logicalName);

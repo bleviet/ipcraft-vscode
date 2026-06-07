@@ -1871,6 +1871,36 @@
   font-style: italic;
 }
 
+/* Absent required ports — required by bus spec but missing from the user's HDL source */
+.canvas-bus-subport--absent .canvas-bus-subport__line {
+  stroke: var(--vscode-charts-orange, #d7a73a);
+  opacity: 0.5;
+}
+
+.canvas-bus-subport--absent .canvas-bus-subport__dot {
+  fill: var(--vscode-charts-orange, #d7a73a);
+  opacity: 0.5;
+}
+
+.canvas-bus-subport--absent .canvas-bus-subport__label {
+  opacity: 0.3;
+  font-style: italic;
+}
+
+.canvas-bus-subport--absent .canvas-bus-subport__logical {
+  fill: var(--vscode-charts-orange, #d7a73a);
+  opacity: 0.5;
+  font-style: italic;
+}
+
+.canvas-bus-subport__absent-hint {
+  fill: var(--vscode-charts-orange, #d7a73a);
+  font-family: var(--vscode-font-family);
+  font-size: 9px;
+  font-weight: 700;
+  pointer-events: none;
+}
+
 /* Activate / deactivate hint badges */
 .canvas-bus-subport__activate-hint {
   fill: var(--vscode-charts-green, #4ec9b0);

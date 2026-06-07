@@ -134,6 +134,8 @@ export interface BusInterfaceDef {
   use_optional_ports?: string[];
   port_width_overrides?: Record<string, number | string>;
   port_name_overrides?: Record<string, string>;
+  /** Logical port names (uppercase) absent from the user's HDL source — skipped in generation. */
+  absent_ports?: string[];
   associated_clock?: string;
   associated_reset?: string;
   array?: BusInterfaceArrayDef;

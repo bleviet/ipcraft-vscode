@@ -558,6 +558,12 @@ export interface BusInterface {
    *  deviate from the physicalPrefix + logicalName.toLowerCase() convention. */
   portNameOverrides?: Record<string, string>;
   /**
+   * Logical port names (uppercase) that are required by the bus spec but absent from the
+   * user's HDL source. Populated automatically by the VHDL parser; prevents the generator
+   * from emitting ports not present in the entity.
+   */
+  absentPorts?: string[];
+  /**
    * Array configuration for multiple instances
    */
   array?: ArrayConfig | null;

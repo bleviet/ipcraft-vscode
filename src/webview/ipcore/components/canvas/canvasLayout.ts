@@ -95,6 +95,8 @@ export interface LayoutSubPort {
   presence: 'required' | 'optional';
   /** true = required port OR optional port in useOptionalPorts */
   active: boolean;
+  /** true = required port that is absent from the user's HDL source */
+  absent: boolean;
   /** Physical port prefix from the bus interface (e.g. `s_axi_`) */
   physicalPrefix: string;
   /** Overridden physical suffix when portNameOverrides applies; falls back to name.toLowerCase() */
@@ -562,6 +564,7 @@ export function computeLayout(
           useOptionalPorts?: string[];
           portWidthOverrides?: Record<string, number | string>;
           portNameOverrides?: Record<string, string>;
+          absentPorts?: string[];
           physicalPrefix?: string;
           associatedClock?: string | null;
           associatedReset?: string | null;
@@ -596,6 +599,7 @@ export function computeLayout(
               direction: cp.direction,
               presence: cp.presence ?? 'required',
               active: true,
+              absent: false,
               physicalPrefix: busData.physicalPrefix ?? '',
               physicalSuffix: cp.name,
               clockDomainIdx: domainIdx,
@@ -607,6 +611,7 @@ export function computeLayout(
           const useOptional = busData.useOptionalPorts ?? [];
           const overrides = busData.portWidthOverrides ?? {};
           const nameOverrides = busData.portNameOverrides ?? {};
+          const absentPortsSet = new Set((busData.absentPorts ?? []).map((n) => n.toUpperCase()));
           const hasClock = !!busData.associatedClock;
           const hasReset = !!busData.associatedReset;
           // Directions in bus definitions are from the master perspective; flip for slave/sink.
@@ -629,7 +634,10 @@ export function computeLayout(
             const subY = y + PORT_PITCH * (pi + 1);
             const rawWidth = overrides[portDef.name] ?? portDef.width;
             const widthLbl = formatWidth(rawWidth as number | string | undefined);
-            const active = portDef.presence === 'required' || useOptional.includes(portDef.name);
+            const isAbsent = absentPortsSet.has(portDef.name.toUpperCase());
+            const active =
+              !isAbsent &&
+              (portDef.presence === 'required' || useOptional.includes(portDef.name));
 
             // For array interfaces, use the physicalPrefixPattern so the sub-port
             // physical name reflects the replicated naming (e.g. m_axis_ch{index}_tdata)
@@ -651,6 +659,7 @@ export function computeLayout(
               direction: subPortDir,
               presence: portDef.presence,
               active,
+              absent: isAbsent && portDef.presence === 'required',
               physicalPrefix: subPhysicalPrefix,
               ...(physicalSuffix !== undefined ? { physicalSuffix } : {}),
               clockDomainIdx: domainIdx,

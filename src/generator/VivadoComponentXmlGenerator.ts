@@ -59,7 +59,10 @@ function busDefPortMaps(
     iface.use_optional_ports ?? [],
     String(iface.physical_prefix ?? ''),
     mode,
-    iface.port_width_overrides ?? {}
+    iface.port_width_overrides ?? {},
+    undefined,
+    undefined,
+    iface.absent_ports
   );
   if (activePorts.length === 0) {
     return [];
@@ -821,7 +824,9 @@ function renderPorts(
       String(iface.physical_prefix ?? ''),
       mode,
       effectiveOverrides,
-      typedParams
+      typedParams,
+      undefined,
+      iface.absent_ports
     );
     for (const port of activePorts) {
       portLines.push(

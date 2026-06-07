@@ -121,6 +121,9 @@ export async function parseVhdlFile(
       if (bus.portNameOverrides && Object.keys(bus.portNameOverrides).length > 0) {
         entry.portNameOverrides = bus.portNameOverrides;
       }
+      if (bus.absentPorts && bus.absentPorts.length > 0) {
+        entry.absentPorts = bus.absentPorts;
+      }
       return entry;
     });
   }
@@ -553,6 +556,7 @@ export function detectBusInterfaces(
     associatedReset?: string;
     portWidthOverrides?: Record<string, string | number>;
     portNameOverrides?: Record<string, string>;
+    absentPorts?: string[];
   }>;
   busPortNames: Set<string>;
 } {
@@ -674,6 +678,7 @@ export function detectBusInterfaces(
     associatedReset?: string;
     portWidthOverrides?: Record<string, string | number>;
     portNameOverrides?: Record<string, string>;
+    absentPorts?: string[];
   }> = [];
   const busPortNames = new Set<string>();
 
@@ -719,9 +724,13 @@ export function detectBusInterfaces(
 
     const portWidthOverrides: Record<string, string | number> = {};
     const portNameOverrides: Record<string, string> = {};
+    const absentPorts: string[] = [];
     for (const sig of busDef.signals) {
       const port = portMap.get(prefix + sig.name);
       if (!port) {
+        if (sig.presence === 'required') {
+          absentPorts.push(sig.name.toUpperCase());
+        }
         continue;
       }
       const logicalName = sig.name.toUpperCase();
@@ -757,6 +766,7 @@ export function detectBusInterfaces(
       portWidthOverrides:
         Object.keys(portWidthOverrides).length > 0 ? portWidthOverrides : undefined,
       portNameOverrides: Object.keys(portNameOverrides).length > 0 ? portNameOverrides : undefined,
+      absentPorts: absentPorts.length > 0 ? absentPorts : undefined,
     });
   }
 

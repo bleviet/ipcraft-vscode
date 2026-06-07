@@ -52,6 +52,7 @@ export const CanvasBusSubPort: React.FC<CanvasBusSubPortProps> = ({
     ?.map((a) => `[${a.severity.toUpperCase()}] ${a.message}`)
     .join('\n');
 
+  const isAbsent = subPort.absent === true;
   const isOptional = subPort.presence === 'optional';
   const isInactive = isOptional && !subPort.active;
 
@@ -81,6 +82,9 @@ export const CanvasBusSubPort: React.FC<CanvasBusSubPortProps> = ({
     }
     e.stopPropagation();
     onSelect(subPort.parentBusId);
+    if (isAbsent) {
+      return;
+    }
     if (isInactive) {
       onActivate(subPort.id);
     } else if (isOptional && subPort.active) {
@@ -89,7 +93,7 @@ export const CanvasBusSubPort: React.FC<CanvasBusSubPortProps> = ({
   };
 
   const handleContextMenu = (e: React.MouseEvent) => {
-    if (!onRename || isInactive) {
+    if (!onRename || isInactive || isAbsent) {
       return;
     }
     e.preventDefault();
@@ -105,7 +109,7 @@ export const CanvasBusSubPort: React.FC<CanvasBusSubPortProps> = ({
 
   return (
     <g
-      className={`canvas-bus-subport ${isInactive ? 'canvas-bus-subport--inactive' : 'canvas-bus-subport--active'} ${isOptional ? 'canvas-bus-subport--optional' : ''} ${dimmed ? 'canvas-bus-subport--dimmed' : ''} ${highlighted ? 'canvas-bus-subport--highlighted' : ''}`}
+      className={`canvas-bus-subport ${isAbsent ? 'canvas-bus-subport--absent' : isInactive ? 'canvas-bus-subport--inactive' : 'canvas-bus-subport--active'} ${isOptional ? 'canvas-bus-subport--optional' : ''} ${dimmed ? 'canvas-bus-subport--dimmed' : ''} ${highlighted ? 'canvas-bus-subport--highlighted' : ''}`}
       onClick={handleClick}
       onContextMenu={handleContextMenu}
       style={{ cursor: isRenaming ? 'default' : 'pointer' }}
@@ -118,8 +122,8 @@ export const CanvasBusSubPort: React.FC<CanvasBusSubPortProps> = ({
         x2={stubEndX}
         y2={subPort.y}
         className="canvas-bus-subport__line"
-        strokeDasharray={isInactive ? '4 3' : undefined}
-        style={domainColor ? { stroke: domainColor } : undefined}
+        strokeDasharray={isInactive || isAbsent ? '4 3' : undefined}
+        style={domainColor && !isAbsent ? { stroke: domainColor } : undefined}
       />
 
       {/* Tiny dot at block edge */}
@@ -196,6 +200,22 @@ export const CanvasBusSubPort: React.FC<CanvasBusSubPortProps> = ({
             onMouseDown={(e) => e.stopPropagation()}
           />
         </foreignObject>
+      )}
+
+      {/* "!" badge for absent required ports — required by spec but missing from source */}
+      {isAbsent && (
+        <g>
+          <text
+            x={subPort.x + stubDir * (STUB_LENGTH / 2)}
+            y={subPort.y - 9}
+            textAnchor="middle"
+            dominantBaseline="central"
+            className="canvas-bus-subport__absent-hint"
+          >
+            !
+          </text>
+          <title>Required by bus spec but absent from HDL source — not included in generated output</title>
+        </g>
       )}
 
       {/* "+" badge for inactive optional ports — hint to activate */}
