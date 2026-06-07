@@ -1,6 +1,7 @@
 import * as fsAsync from 'fs/promises';
 import * as path from 'path';
 import { spawnSync } from 'child_process';
+import * as yaml from 'js-yaml';
 import type * as vscode from 'vscode';
 import { parseQuartusReports } from '../ReportParser';
 import { runProcess } from '../BuildRunner';
@@ -150,6 +151,50 @@ export function quartusDeviceFamily(device: string): string {
   return 'Cyclone V';
 }
 
+/**
+ * Returns the longest common ancestor directory of all entries in `dirs`.
+ * Used to determine the Docker mount base that covers all referenced files.
+ */
+function commonAncestorDir(dirs: string[]): string {
+  if (dirs.length === 0) return path.sep;
+  const parts = dirs.map((d) => path.normalize(d).split(path.sep));
+  const first = parts[0];
+  let i = 0;
+  while (i < first.length && parts.every((p) => p[i] === first[i])) i++;
+  return first.slice(0, i).join(path.sep) || path.sep;
+}
+
+/**
+ * Reads the .ip.yml to find all referenced fileset directories and computes
+ * the common ancestor of ipDir and those directories.  This is the minimum
+ * host path that must be mounted as /work so Docker Quartus can reach every
+ * referenced RTL file, even when they live outside ipDir (e.g. shared libs).
+ * Falls back to ipDir when the YAML cannot be read.
+ */
+async function computeMountBase(name: string, ipDir: string): Promise<string> {
+  for (const ext of ['ip.yml', 'ip.yaml']) {
+    const yamlPath = path.join(ipDir, `${name}.${ext}`);
+    try {
+      const content = await fsAsync.readFile(yamlPath, 'utf8');
+      const data = yaml.load(content) as Record<string, unknown>;
+      type FileSetEntry = { files?: Array<{ path?: string; type?: string }> };
+      const fileSets = (data?.fileSets as FileSetEntry[] | undefined) ?? [];
+      const HDL_TYPES = new Set(['vhdl', 'systemverilog']);
+      const dirs = [
+        ipDir,
+        ...fileSets
+          .flatMap((fs) => fs.files ?? [])
+          .filter((f) => HDL_TYPES.has(f.type ?? '') && f.path)
+          .map((f) => path.dirname(path.resolve(ipDir, f.path!))),
+      ];
+      return commonAncestorDir(dirs);
+    } catch {
+      // try next extension or fall through to default
+    }
+  }
+  return ipDir;
+}
+
 export class QuartusToolchain implements SynthesisToolchain {
   readonly id = 'quartus';
   readonly displayName = 'Quartus (Intel/Altera)';
@@ -275,7 +320,8 @@ export class QuartusToolchain implements SynthesisToolchain {
       return false;
     }
 
-    const docker = this.getDocker(cfg, ipDir);
+    const mountBase = await computeMountBase(name, ipDir);
+    const docker = this.getDocker(cfg, mountBase);
     const { env, extraMounts } = this.getLaunchEnv(cfg);
 
     const result = await runProcess(launcher.exe, ['-t', projectTcl], {
@@ -301,7 +347,8 @@ export class QuartusToolchain implements SynthesisToolchain {
     }
 
     const quartusExe = getQuartusTool(cfg, 'quartus_sh');
-    const docker = this.getDocker(cfg, ipDir);
+    const mountBase = await computeMountBase(name, ipDir);
+    const docker = this.getDocker(cfg, mountBase);
     const { env, extraMounts } = this.getLaunchEnv(cfg);
     const buildDir = path.join(alteraDir, 'build');
 
