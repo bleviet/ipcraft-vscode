@@ -76,19 +76,37 @@ memoryMaps:
 `;
 }
 
+function ensureExtension(uri: vscode.Uri, ext: string): vscode.Uri {
+  const p = uri.fsPath;
+  if (p.endsWith(ext)) {
+    return uri;
+  }
+  // VS Code's YAML filter may auto-append .yml/.yaml — replace it with the compound ext
+  if (p.endsWith('.yml') || p.endsWith('.yaml')) {
+    return vscode.Uri.file(p.replace(/\.(yml|yaml)$/, ext));
+  }
+  return vscode.Uri.file(p + ext);
+}
+
+function stripCompoundExtension(filename: string, ext: string): string {
+  return filename.endsWith(ext) ? filename.slice(0, -ext.length) : filename;
+}
+
 export async function createIpCoreCommand(): Promise<void> {
   const workspaceFolders = vscode.workspace.workspaceFolders;
   let defaultUri: vscode.Uri | undefined;
   if (workspaceFolders && workspaceFolders.length > 0) {
-    defaultUri = vscode.Uri.joinPath(workspaceFolders[0].uri, 'new_ip_core.ip.yml');
+    defaultUri = vscode.Uri.joinPath(workspaceFolders[0].uri, 'new_ip_core');
   }
 
-  const uri = await vscode.window.showSaveDialog({
+  const rawUri = await vscode.window.showSaveDialog({
     defaultUri,
     saveLabel: 'Create File',
     title: 'Create new_ip_core.ip.yml',
     filters: { 'YAML Files': ['yml', 'yaml'] },
   });
+
+  const uri = rawUri ? ensureExtension(rawUri, '.ip.yml') : undefined;
 
   if (!uri) {
     return;
@@ -136,7 +154,8 @@ export async function createMemoryMapCommand(): Promise<void> {
   await createFileWithTemplate(
     defaultFileName,
     generateMemoryMapTemplate(memoryMapName),
-    defaultDir
+    defaultDir,
+    '.mm.yml'
   );
 }
 
@@ -145,10 +164,10 @@ export async function createIpCoreWithMemoryMapCommand(): Promise<void> {
   let defaultUri: vscode.Uri | undefined;
 
   if (workspaceFolders && workspaceFolders.length > 0) {
-    defaultUri = vscode.Uri.joinPath(workspaceFolders[0].uri, 'new_ip_core.ip.yml');
+    defaultUri = vscode.Uri.joinPath(workspaceFolders[0].uri, 'new_ip_core');
   }
 
-  const ipCoreUri = await vscode.window.showSaveDialog({
+  const rawIpCoreUri = await vscode.window.showSaveDialog({
     defaultUri,
     saveLabel: 'Create IP Core',
     title: 'Create IP Core with Memory Map',
@@ -156,6 +175,8 @@ export async function createIpCoreWithMemoryMapCommand(): Promise<void> {
       'YAML Files': ['yml', 'yaml'],
     },
   });
+
+  const ipCoreUri = rawIpCoreUri ? ensureExtension(rawIpCoreUri, '.ip.yml') : undefined;
 
   if (!ipCoreUri) {
     return;
@@ -200,20 +221,24 @@ export async function createIpCoreWithMemoryMapCommand(): Promise<void> {
 async function createFileWithTemplate(
   defaultFileName: string,
   template: string,
-  defaultDir?: vscode.Uri
+  defaultDir?: vscode.Uri,
+  compoundExt?: string
 ): Promise<void> {
   let defaultUri: vscode.Uri | undefined;
+  const dialogFileName = compoundExt
+    ? stripCompoundExtension(defaultFileName, compoundExt)
+    : defaultFileName;
 
   if (defaultDir) {
-    defaultUri = vscode.Uri.joinPath(defaultDir, defaultFileName);
+    defaultUri = vscode.Uri.joinPath(defaultDir, dialogFileName);
   } else {
     const workspaceFolders = vscode.workspace.workspaceFolders;
     if (workspaceFolders && workspaceFolders.length > 0) {
-      defaultUri = vscode.Uri.joinPath(workspaceFolders[0].uri, defaultFileName);
+      defaultUri = vscode.Uri.joinPath(workspaceFolders[0].uri, dialogFileName);
     }
   }
 
-  const uri = await vscode.window.showSaveDialog({
+  const rawUri = await vscode.window.showSaveDialog({
     defaultUri,
     saveLabel: 'Create File',
     title: `Create ${defaultFileName}`,
@@ -221,6 +246,8 @@ async function createFileWithTemplate(
       'YAML Files': ['yml', 'yaml'],
     },
   });
+
+  const uri = rawUri && compoundExt ? ensureExtension(rawUri, compoundExt) : rawUri;
 
   if (uri) {
     try {
