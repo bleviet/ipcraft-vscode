@@ -17,6 +17,8 @@ interface CanvasPortProps {
   /** True while this specific port is being dragged */
   isDragging?: boolean;
   onRename?: (portId: string, newName: string) => void;
+  /** True when a port search is active and this port does not match */
+  dimmed?: boolean;
 }
 
 const RENAME_INPUT_W = 100;
@@ -40,6 +42,7 @@ export const CanvasPort: React.FC<CanvasPortProps> = ({
   onPortDragStart,
   isDragging = false,
   onRename,
+  dimmed = false,
 }) => {
   const isLeft = port.side === 'left';
   const isRight = port.side === 'right';
@@ -149,7 +152,7 @@ export const CanvasPort: React.FC<CanvasPortProps> = ({
 
   return (
     <g
-      className={`canvas-port canvas-port--${port.kind} ${selected ? 'canvas-port--selected' : ''} ${inMultiSelection ? 'canvas-port--multi-selected' : ''}`}
+      className={`canvas-port canvas-port--${port.kind} ${selected ? 'canvas-port--selected' : ''} ${inMultiSelection ? 'canvas-port--multi-selected' : ''} ${dimmed ? 'canvas-port--dimmed' : ''}`}
       onClick={(e) => {
         if (isRenaming) {
           return;

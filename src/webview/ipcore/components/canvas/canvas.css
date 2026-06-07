@@ -15,6 +15,91 @@
   user-select: none;
 }
 
+/* --- Port search bar --- */
+
+.ip-canvas-search {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
+  border: 1px solid var(--vscode-focusBorder);
+  border-radius: 4px;
+  padding: 4px 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  pointer-events: auto;
+  z-index: 20;
+  min-width: 220px;
+}
+
+.ip-canvas-search__icon {
+  font-size: 14px;
+  color: var(--vscode-descriptionForeground);
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.ip-canvas-search__input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--vscode-foreground);
+  font-family: var(--vscode-font-family, sans-serif);
+  font-size: 12px;
+  min-width: 0;
+}
+
+.ip-canvas-search__input::placeholder {
+  color: var(--vscode-input-placeholderForeground);
+}
+
+.ip-canvas-search__count {
+  font-family: var(--vscode-font-family, sans-serif);
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.ip-canvas-search__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--vscode-descriptionForeground);
+  cursor: pointer;
+  padding: 0;
+  font-size: 11px;
+  line-height: 1;
+  flex-shrink: 0;
+  opacity: 0.7;
+  transition: opacity 0.12s;
+}
+
+.ip-canvas-search__close:hover {
+  opacity: 1;
+}
+
+/* Dimmed state when search is active and port doesn't match */
+.canvas-port--dimmed {
+  opacity: 0.15;
+  transition: opacity 0.15s;
+}
+
+.canvas-bus-bundle--dimmed {
+  opacity: 0.15;
+  transition: opacity 0.15s;
+}
+
+.canvas-bus-subport--dimmed {
+  opacity: 0.15;
+  transition: opacity 0.15s;
+}
+
 /* Help button & shortcut popover */
 .ip-canvas-help {
   position: absolute;

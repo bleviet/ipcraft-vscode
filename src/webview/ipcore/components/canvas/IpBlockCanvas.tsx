@@ -86,6 +86,10 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
   const [expandedBusIds, setExpandedBusIds] = useState<Set<string>>(new Set());
   const [showHelp, setShowHelp] = useState(false);
 
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
   const busDefs = useMemo((): ((type: string) => BusPortDef[] | null) => {
     if (!busLibrary) {
       return lookupBusDef;
@@ -570,14 +574,32 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger if user is typing in an input or textarea
+      // Ctrl/Cmd+F: open port search (allow even when an input is focused)
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault();
+        setShowSearch(true);
+        return;
+      }
+
+      // Don't trigger other shortcuts if user is typing in an input or textarea
       const activeTag = document.activeElement?.tagName.toLowerCase();
       if (activeTag === 'input' || activeTag === 'textarea') {
+        if (e.key === 'Escape') {
+          // Close search bar when Escape is pressed inside the search input
+          setShowSearch(false);
+          setSearchQuery('');
+          (document.activeElement as HTMLElement).blur();
+        }
         return;
       }
 
       if (e.key === 'Escape') {
-        exitSelectMode();
+        if (showSearch) {
+          setShowSearch(false);
+          setSearchQuery('');
+        } else {
+          exitSelectMode();
+        }
       } else if ((e.ctrlKey || e.metaKey) && e.key === '0') {
         e.preventDefault();
         setZoom(1.0);
@@ -589,7 +611,15 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedId, onSelect, onRemove, onDismissSelection, triggerZoomIndicator, exitSelectMode]);
+  }, [
+    selectedId,
+    onSelect,
+    onRemove,
+    onDismissSelection,
+    triggerZoomIndicator,
+    exitSelectMode,
+    showSearch,
+  ]);
 
   const handleDragOver = useCallback(
     (e: React.DragEvent) => {
@@ -667,6 +697,36 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
     subcoreDeps,
     depSeparatorY,
   } = layout;
+
+  // Auto-focus the search input when the bar opens
+  useEffect(() => {
+    if (showSearch) {
+      searchInputRef.current?.focus();
+    }
+  }, [showSearch]);
+
+  // Compute which ports/sub-ports match the current search query
+  const matchedIds = useMemo(() => {
+    if (!showSearch || !searchQuery.trim()) {
+      return null;
+    }
+    const q = searchQuery.toLowerCase();
+    const portIds = new Set<string>();
+    const subPortIds = new Set<string>();
+    for (const p of ports) {
+      if (p.label.toLowerCase().includes(q)) {
+        portIds.add(p.id);
+      }
+    }
+    for (const sp of subPorts) {
+      const physical = sp.physicalPrefix + (sp.physicalSuffix ?? sp.name.toLowerCase());
+      if (sp.name.toLowerCase().includes(q) || physical.toLowerCase().includes(q)) {
+        subPortIds.add(sp.id);
+        portIds.add(sp.parentBusId);
+      }
+    }
+    return { portIds, subPortIds };
+  }, [showSearch, searchQuery, ports, subPorts]);
 
   return (
     <div
@@ -1094,6 +1154,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
                     isExpanded={busExpanded}
                     onToggleExpand={hasBusDef ? () => toggleBusExpand(p.id) : undefined}
                     domainColor={getDomainColor(p.clockDomainIdx)}
+                    dimmed={matchedIds !== null && !matchedIds.portIds.has(p.id)}
                     onMemoryMapClick={
                       mmClickPath
                         ? () =>
@@ -1131,6 +1192,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
                     portDragActivePIdx === parseInt(p.id.split(':')[1] ?? '-1', 10)
                   }
                   onRename={handleElementRename}
+                  dimmed={matchedIds !== null && !matchedIds.portIds.has(p.id)}
                 />
               </g>
             );
@@ -1148,6 +1210,11 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
             domainColor={getDomainColor(sp.clockDomainIdx)}
             onRename={handleSubPortRename}
             annotations={annotations[sp.id]}
+            dimmed={
+              matchedIds !== null &&
+              !matchedIds.subPortIds.has(sp.id) &&
+              !matchedIds.portIds.has(sp.parentBusId)
+            }
           />
         ))}
 
@@ -1221,6 +1288,36 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
           </div>
         )}
 
+        {/* Port search bar */}
+        {showSearch && (
+          <div className="ip-canvas-search">
+            <span className="ip-canvas-search__icon">⌕</span>
+            <input
+              ref={searchInputRef}
+              className="ip-canvas-search__input"
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search ports..."
+            />
+            {matchedIds !== null && (
+              <span className="ip-canvas-search__count">
+                {matchedIds.portIds.size} match{matchedIds.portIds.size !== 1 ? 'es' : ''}
+              </span>
+            )}
+            <button
+              className="ip-canvas-search__close"
+              onClick={() => {
+                setShowSearch(false);
+                setSearchQuery('');
+              }}
+              title="Close search (Escape)"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
         {/* Help button + shortcut popover */}
         <div className="ip-canvas-help">
           <button
@@ -1270,6 +1367,10 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
                   <tr>
                     <td className="ip-canvas-help__key">Right-click port / bus</td>
                     <td>Rename</td>
+                  </tr>
+                  <tr>
+                    <td className="ip-canvas-help__key">Ctrl + F</td>
+                    <td>Search ports</td>
                   </tr>
                 </tbody>
               </table>

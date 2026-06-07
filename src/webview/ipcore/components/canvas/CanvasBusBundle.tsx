@@ -18,6 +18,8 @@ interface CanvasBusBundleProps {
   /** True while a port is being pointer-dragged and the cursor is over this bundle */
   isPortDropTarget?: boolean;
   onRename?: (busId: string, newName: string) => void;
+  /** True when a port search is active and this bundle does not match */
+  dimmed?: boolean;
 }
 
 const RENAME_INPUT_W = 100;
@@ -43,6 +45,7 @@ export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
   onPortDrop,
   isPortDropTarget = false,
   onRename,
+  dimmed = false,
 }) => {
   const [isDragTarget, setIsDragTarget] = useState(false);
   // Counter tracks nested dragenter/dragleave pairs so crossing child-element
@@ -94,7 +97,7 @@ export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
 
   return (
     <g
-      className={`canvas-bus-bundle ${selected ? 'canvas-bus-bundle--selected' : ''} ${isExpanded ? 'canvas-bus-bundle--expanded' : ''} ${isDragTarget || isPortDropTarget ? 'canvas-bus-bundle--drop-target' : ''}`}
+      className={`canvas-bus-bundle ${selected ? 'canvas-bus-bundle--selected' : ''} ${isExpanded ? 'canvas-bus-bundle--expanded' : ''} ${isDragTarget || isPortDropTarget ? 'canvas-bus-bundle--drop-target' : ''} ${dimmed ? 'canvas-bus-bundle--dimmed' : ''}`}
       onClick={(e) => {
         if (isRenaming) {
           return;
