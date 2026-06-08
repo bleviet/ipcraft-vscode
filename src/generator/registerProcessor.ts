@@ -239,9 +239,7 @@ export function getBusTypeForTemplate(ipCore: IpCoreData): string {
   for (const bus of ipCore.bus_interfaces ?? []) {
     if ((bus.mode ?? '').toLowerCase() === 'slave') {
       const templateType = normalizeBusType(getString(bus.type)).templateType;
-      if (firstSlave === undefined) {
-        firstSlave = templateType;
-      }
+      firstSlave ??= templateType;
       // Prefer the first memory-mapped slave — that's the bus for which a wrapper template exists.
       if (MEMORY_MAPPED_TEMPLATE_TYPES.has(templateType)) {
         return templateType;
