@@ -1,4 +1,5 @@
 ipcraft-spec/**
+demo/**
 resources/icon.svg
 .vscode/**
 .vscode-test/**
