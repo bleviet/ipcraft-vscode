@@ -405,8 +405,16 @@ export class IpCoreScaffolder {
     const parameterNames = (ipCore?.parameters ?? []).map((p) => String(p.name));
 
     if (expandedBusInterfaces.length > 0) {
-      const primary = expandedBusInterfaces[0];
-      busPrefix = this.normalizePrefix(primary.physical_prefix ?? '');
+      // Prefer the first memory-mapped slave as the primary interface (drives the bus wrapper).
+      // Non-MM interfaces (AVST, AXI-Stream, …) become secondary — wired to the core directly.
+      const MM_TYPES = new Set(['axil', 'axi4', 'avmm']);
+      const mmIdx = expandedBusInterfaces.findIndex(
+        (iface) =>
+          (iface.mode ?? '').toLowerCase() === 'slave' &&
+          MM_TYPES.has(normalizeBusType(this.getString(iface.type)).templateType)
+      );
+      const primaryIndex = mmIdx >= 0 ? mmIdx : 0;
+      busPrefix = this.normalizePrefix(expandedBusInterfaces[primaryIndex].physical_prefix ?? '');
 
       expandedBusInterfaces.forEach((iface, index) => {
         const busTypeInfo = normalizeBusType(this.getString(iface.type));
@@ -430,7 +438,7 @@ export class IpCoreScaffolder {
           port.tcl_width = toTclWidth(port.width, port.width_expr, parameterNames);
         });
         iface.ports = activePorts;
-        if (index === 0) {
+        if (index === primaryIndex) {
           busPorts.push(...activePorts);
         } else {
           secondaryBusPorts.push(...activePorts);
