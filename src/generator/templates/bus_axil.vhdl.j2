@@ -245,7 +245,7 @@ begin
   -- Generate write enable to register bank when both address and data received
   ----------------------------------------------------------------------------
   wr_en   <= write_txn.addr_received and write_txn.data_received;
-  wr_addr <= awaddr;
+  wr_addr <= awaddr(C_ADDR_WIDTH-1 downto 0);
   wr_data <= {{ wdata_port[0].name if wdata_port | length > 0 else "(others => '0')" }};
   wr_strb <= {{ wstrb_port[0].name if wstrb_port | length > 0 else "(others => '1')" }};
 
@@ -296,7 +296,7 @@ begin
   -- Trigger read from register bank when address is accepted
   ----------------------------------------------------------------------------
   rd_en   <= arready and {{ arvalid_port[0].name if arvalid_port | length > 0 else "'0'" }} and not rvalid;
-  rd_addr <= araddr;
+  rd_addr <= araddr(C_ADDR_WIDTH-1 downto 0);
 
   ----------------------------------------------------------------------------
   -- Read Valid Generation

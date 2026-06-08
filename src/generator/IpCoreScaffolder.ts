@@ -496,6 +496,17 @@ export class IpCoreScaffolder {
       period_ns: parseClockPeriodNs(clock.frequency),
     }));
 
+    // Auto-calculate the address width from the highest register byte address so
+    // the generated C_ADDR_WIDTH constant matches the actual register map size.
+    // Minimum 3 bits so that `wr_addr(C_ADDR_WIDTH-1 downto 2)` is always a
+    // valid non-null range in VHDL (requires high index >= low index, i.e. >= 2).
+    // The user can override this with `addrWidth` in the IP core YAML.
+    const lastReg = registers.length > 0 ? registers[registers.length - 1] : null;
+    const maxByteAddress = lastReg ? ((lastReg.offset as number) ?? 0) + 4 : 4;
+    const computedAddrWidth = Math.max(3, Math.ceil(Math.log2(Math.max(maxByteAddress, 2))));
+    const rawAddrWidth = (ipCore as Record<string, unknown>).addrWidth;
+    const addrWidth = typeof rawAddrWidth === 'number' ? rawAddrWidth : computedAddrWidth;
+
     return {
       name,
       entity_name: name,
@@ -512,7 +523,7 @@ export class IpCoreScaffolder {
       elaborate_port_widths: elaboratePortWidths,
       bus_prefix: expandedBusInterfaces.length > 0 ? busPrefix : 's_axi',
       data_width: 32,
-      addr_width: 8,
+      addr_width: addrWidth,
       reg_width: 4,
       memory_maps: (await resolveMemoryMaps(ipCore, inputPath)) ?? [],
       clock_port: clockPort,

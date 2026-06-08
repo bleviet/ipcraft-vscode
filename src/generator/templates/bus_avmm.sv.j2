@@ -58,7 +58,7 @@ module {{ entity_name }}_avmm (
 {% set waitrequest_port   = (bus_ports | selectattr('logical_name', 'equalto', 'waitrequest')   | list) %}
 
   always_comb begin
-    address    = {{ address_port[0].name   if address_port   | length > 0 else "'0" }};
+    address    = {{ address_port[0].name ~ "[C_ADDR_WIDTH-1:0]" if address_port | length > 0 else "'0" }};
     avmm_read  = {{ read_port[0].name      if read_port      | length > 0 else "1'b0" }};
     avmm_write = {{ write_port[0].name     if write_port     | length > 0 else "1'b0" }};
     writedata  = {{ writedata_port[0].name if writedata_port | length > 0 else "'0" }};

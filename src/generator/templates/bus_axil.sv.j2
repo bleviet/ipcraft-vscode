@@ -192,7 +192,7 @@ module {{ entity_name }}_axil (
   // Generate write enable to register bank when both address and data received
   ////////////////////////////////////////////////////////////////////////////
   assign wr_en   = addr_received & data_received;
-  assign wr_addr = awaddr;
+  assign wr_addr = awaddr[C_ADDR_WIDTH-1:0];
   assign wr_data = wdata;
   assign wr_strb = wstrb;
 
@@ -232,7 +232,7 @@ module {{ entity_name }}_axil (
   // Register Read Control
   ////////////////////////////////////////////////////////////////////////////
   assign rd_en   = arready & arvalid & ~rvalid;
-  assign rd_addr = araddr;
+  assign rd_addr = araddr[C_ADDR_WIDTH-1:0];
 
   ////////////////////////////////////////////////////////////////////////////
   // Read Valid Generation
