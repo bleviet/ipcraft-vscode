@@ -232,16 +232,24 @@ export function normalizeBusType(typeName: string): BusTypeInfo {
   return BUS_TYPE_ALIASES[normalized] ?? { libraryKey: '', templateType: 'custom' };
 }
 
+const MEMORY_MAPPED_TEMPLATE_TYPES = new Set(['axil', 'axi4', 'avmm']);
+
 export function getBusTypeForTemplate(ipCore: IpCoreData): string {
+  let firstSlave: string | undefined;
   for (const bus of ipCore.bus_interfaces ?? []) {
     if ((bus.mode ?? '').toLowerCase() === 'slave') {
-      return normalizeBusType(getString(bus.type)).templateType;
+      const templateType = normalizeBusType(getString(bus.type)).templateType;
+      if (firstSlave === undefined) {
+        firstSlave = templateType;
+      }
+      // Prefer the first memory-mapped slave — that's the bus for which a wrapper template exists.
+      if (MEMORY_MAPPED_TEMPLATE_TYPES.has(templateType)) {
+        return templateType;
+      }
     }
   }
-  return 'axil';
+  return firstSlave ?? 'axil';
 }
-
-const MEMORY_MAPPED_TEMPLATE_TYPES = new Set(['axil', 'axi4', 'avmm']);
 
 export function hasMemoryMappedSlaveInterface(ipCore: IpCoreData): boolean {
   for (const bus of ipCore.bus_interfaces ?? []) {
