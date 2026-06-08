@@ -29,11 +29,13 @@ module {{ entity_name }}_core{% if generics | length %} #(
   output regs_hw2sw_t regs_out{{ "," if secondary_bus_ports | length > 0 or user_ports | length > 0 else "" }}  // HW-writable registers (to bus wrapper)
 {% endif %}
 {% endif %}
-{% if secondary_bus_ports | length %}
+{% if secondary_bus_interfaces | length %}
+{% for iface in secondary_bus_interfaces %}{% set iface_loop = loop %}
 
-  // Secondary Bus Interfaces
-{% for port in secondary_bus_ports %}
-  {{ "%-6s"|format(port.sv_direction) }} {{ "%-34s"|format(port.sv_type) }} {{ port.name }}{{ "," if not loop.last or user_ports | length else "" }}
+  // {{ iface.name }} ({{ iface.mode | upper }})
+{% for port in iface.ports %}
+  {{ "%-6s"|format(port.sv_direction) }} {{ "%-34s"|format(port.sv_type) }} {{ port.name }}{{ "," if not loop.last or not iface_loop.last or user_ports | length else "" }}
+{% endfor %}
 {% endfor %}
 {% endif %}
 {% if user_ports | length %}

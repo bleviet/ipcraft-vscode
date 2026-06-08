@@ -119,9 +119,13 @@ begin
 {% if hw_registers | length > 0 %}
       regs_out => regs_hw2sw{{ "," if secondary_bus_ports | length > 0 or user_ports | length > 0 else "" }}
 {% endif %}
-{% if secondary_bus_ports | length %}
-{% for port in secondary_bus_ports %}
-      {{ "%-14s"|format(port.name) }} => {{ port.name }}{{ "," if not loop.last or user_ports | length else "" }}
+{% if secondary_bus_interfaces | length %}
+{% for iface in secondary_bus_interfaces %}{% set iface_loop = loop %}
+
+      -- {{ iface.name }}
+{% for port in iface.ports %}
+      {{ "%-14s"|format(port.name) }} => {{ port.name }}{{ "," if not loop.last or not iface_loop.last or user_ports | length else "" }}
+{% endfor %}
 {% endfor %}
 {% endif %}
 {% if user_ports | length %}

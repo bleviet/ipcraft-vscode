@@ -400,6 +400,7 @@ export class IpCoreScaffolder {
     }
     const busPorts: Array<Record<string, unknown>> = [];
     const secondaryBusPorts: Array<Record<string, unknown>> = [];
+    const secondaryBusInterfaces: Array<Record<string, unknown>> = [];
     let busPrefix = 's_axi';
 
     const parameterNames = (ipCore?.parameters ?? []).map((p) => String(p.name));
@@ -442,6 +443,11 @@ export class IpCoreScaffolder {
           busPorts.push(...activePorts);
         } else {
           secondaryBusPorts.push(...activePorts);
+          secondaryBusInterfaces.push({
+            name: iface.name ?? '',
+            mode: iface.mode ?? '',
+            ports: activePorts,
+          });
         }
       });
     }
@@ -519,6 +525,7 @@ export class IpCoreScaffolder {
       bus_type: busType,
       bus_ports: busPorts,
       secondary_bus_ports: secondaryBusPorts,
+      secondary_bus_interfaces: secondaryBusInterfaces,
       expanded_bus_interfaces: expandedBusInterfaces,
       elaborate_port_widths: elaboratePortWidths,
       bus_prefix: expandedBusInterfaces.length > 0 ? busPrefix : 's_axi',
