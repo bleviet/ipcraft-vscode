@@ -29,12 +29,10 @@ files:
   - source: "core.vhdl.j2"
     target: "rtl/{{ name }}_core.vhd"
     condition: "not is_systemverilog and has_memory_mapped_slave"
-    managed: false
 
   - source: "core.sv.j2"
     target: "rtl/{{ name }}_core.sv"
     condition: "is_systemverilog and has_memory_mapped_slave"
-    managed: false
 
   # ── Bus wrapper ─────────────────────────────────────────────────────────────
   - source: "bus_{{ bus_type }}.vhdl.j2"
