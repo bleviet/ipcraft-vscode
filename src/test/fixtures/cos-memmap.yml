@@ -1,0 +1,32 @@
+- name: SENSOR_MAP
+  description: Memory map for CoS (change-of-state) feature tests
+  addressBlocks:
+  - name: REGS
+    baseAddress: 0
+    usage: register
+    registers:
+    - name: CTRL
+      offset: 0
+      description: Control register
+      fields:
+      - name: ENABLE
+        bits: '[0:0]'
+        access: read-write
+    - name: SENSOR_STATUS
+      offset: 4
+      access: read-write-1-to-clear
+      description: Mixed-access sensor status (external W1C + CoS W1C + RO)
+      fields:
+      - name: FIFO_OVERFLOW
+        bits: '[0:0]'
+        access: write-1-to-clear
+        description: Set by external FIFO overflow pulse
+      - name: TEMP_VALUE
+        bits: '[15:4]'
+        access: read-only
+        description: Live 12-bit ADC temperature reading
+      - name: TEMP_UPDATED
+        bits: '[16:16]'
+        access: write-1-to-clear
+        monitorChangeOf: TEMP_VALUE
+        description: Auto-sets when TEMP_VALUE changes — no external pulse needed

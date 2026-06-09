@@ -540,6 +540,7 @@ export async function prepareRegisters(
         access: access.toLowerCase(),
         reset_value: resetValue,
         description: field.description ?? '',
+        monitorChangeOf: field.monitorChangeOf ?? field.monitor_change_of ?? null,
       };
     });
 
