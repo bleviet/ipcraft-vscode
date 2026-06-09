@@ -71,6 +71,9 @@ const FieldTableRow = ({
     setResetErrors,
   } = fieldEditor;
 
+  const W1C_ACCESS = new Set(['write-1-to-clear', 'read-write-1-to-clear']);
+  const isW1C = W1C_ACCESS.has(field.access ?? '');
+
   const bits = fieldToBitsString(field);
   const color = getFieldColor(field.name ?? `field${index}`);
   const resetDisplay =
@@ -121,10 +124,16 @@ const FieldTableRow = ({
           <div className="flex flex-col justify-center">
             <div className="flex items-center gap-2 h-10">
               <div
-                className="w-2.5 h-2.5 rounded-sm"
+                className={`w-2.5 h-2.5 ${field.monitorChangeOf ? 'rounded-full' : 'rounded-sm'} shrink-0`}
                 style={{
                   backgroundColor: color === 'gray' ? '#e5e7eb' : FIELD_COLORS?.[color] || color,
+                  boxShadow: field.monitorChangeOf
+                    ? '0 0 0 1.5px var(--vscode-focusBorder)'
+                    : undefined,
                 }}
+                title={
+                  field.monitorChangeOf ? `CoS W1C — monitors: ${field.monitorChangeOf}` : undefined
+                }
               />
               <VSCodeTextField
                 data-edit-key="name"
@@ -258,23 +267,54 @@ const FieldTableRow = ({
           style={{ overflow: 'visible', position: 'relative' }}
           onClick={onCellClick(index, 'access')}
         >
-          <div className="flex items-center h-10">
-            <VSCodeDropdown
-              data-edit-key="access"
-              value={field.access ?? 'read-write'}
-              className="w-full"
-              position="below"
-              onFocus={onCellFocus(index, 'access')}
-              onInput={(e: Event | React.FormEvent<HTMLElement>) =>
-                onUpdate(['fields', index, 'access'], (e.target as HTMLInputElement).value)
-              }
-            >
-              {ACCESS_OPTIONS.map((opt) => (
-                <VSCodeOption key={opt} value={opt}>
-                  {opt}
-                </VSCodeOption>
-              ))}
-            </VSCodeDropdown>
+          <div className="flex flex-col gap-1 py-0.5">
+            <div className="flex items-center h-10">
+              <VSCodeDropdown
+                data-edit-key="access"
+                value={field.access ?? 'read-write'}
+                className="w-full"
+                position="below"
+                onFocus={onCellFocus(index, 'access')}
+                onInput={(e: Event | React.FormEvent<HTMLElement>) => {
+                  const next = (e.target as HTMLInputElement).value;
+                  onUpdate(['fields', index, 'access'], next);
+                  if (!W1C_ACCESS.has(next)) {
+                    onUpdate(['fields', index, 'monitorChangeOf'], null);
+                  }
+                }}
+              >
+                {ACCESS_OPTIONS.map((opt) => (
+                  <VSCodeOption key={opt} value={opt}>
+                    {opt}
+                  </VSCodeOption>
+                ))}
+              </VSCodeDropdown>
+            </div>
+            {isW1C && (
+              <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                <span className="text-[10px] vscode-muted whitespace-nowrap shrink-0">
+                  Monitors:
+                </span>
+                <VSCodeDropdown
+                  value={String(field.monitorChangeOf ?? '')}
+                  className="flex-1"
+                  position="below"
+                  onInput={(e: Event | React.FormEvent<HTMLElement>) => {
+                    const val = (e.target as HTMLInputElement).value;
+                    onUpdate(['fields', index, 'monitorChangeOf'], val || null);
+                  }}
+                >
+                  <VSCodeOption value="">— none —</VSCodeOption>
+                  {fields
+                    .filter((f, i) => i !== index && f.name)
+                    .map((f) => (
+                      <VSCodeOption key={String(f.name)} value={String(f.name)}>
+                        {String(f.name)}
+                      </VSCodeOption>
+                    ))}
+                </VSCodeDropdown>
+              </div>
+            )}
           </div>
         </td>
 

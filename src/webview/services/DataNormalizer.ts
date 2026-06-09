@@ -11,6 +11,7 @@ export type NormalizedField = {
   reset_value?: number | null;
   description?: string;
   enumerated_values?: Record<string, string>;
+  monitorChangeOf?: string | null;
 };
 
 /**
@@ -106,6 +107,10 @@ export class DataNormalizer {
         | undefined,
       description: field.description as string | undefined,
       enumerated_values: field.enumerated_values as Record<string, string> | undefined,
+      monitorChangeOf: (field.monitorChangeOf ?? field.monitor_change_of ?? null) as
+        | string
+        | null
+        | undefined,
     };
   }
 

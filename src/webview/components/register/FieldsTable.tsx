@@ -13,6 +13,7 @@ export interface FieldDef {
   access?: string | null;
   reset_value?: number | null;
   description?: string | null;
+  monitorChangeOf?: string | null;
 }
 
 // ---------------------------------------------------------------------------

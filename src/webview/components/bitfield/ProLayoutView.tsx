@@ -435,6 +435,14 @@ const ProLayoutView = ({
                       ? Math.trunc(fieldReset).toString(10)
                       : `0x${Math.trunc(fieldReset).toString(16).toUpperCase()}`}
                   </div>
+                  {field?.monitorChangeOf && (
+                    <div
+                      className="text-[10px] mt-0.5"
+                      style={{ color: 'var(--vscode-focusBorder)' }}
+                    >
+                      ⟳ {field.monitorChangeOf}
+                    </div>
+                  )}
                 </div>
                 <div className="flex flex-row w-full">
                   {Array.from({ length: width }).map((_, i) => {

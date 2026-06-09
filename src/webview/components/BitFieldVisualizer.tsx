@@ -35,6 +35,7 @@ export interface FieldModel {
   access?: string;
   reset_value?: number | null;
   description?: string;
+  monitorChangeOf?: string | null;
 }
 
 interface BitFieldVisualizerProps {
