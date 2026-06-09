@@ -386,9 +386,17 @@ export class IpCoreScaffolder {
       'write-1-to-clear',
     ]);
     const hwAccess = new Set(['read-only', 'ro']);
+    const w1cAccess = new Set(['write-1-to-clear', 'read-write-1-to-clear']);
 
     const swRegisters = registers.filter((reg) => swAccess.has(this.getString(reg.access)));
     const hwRegisters = registers.filter((reg) => hwAccess.has(this.getString(reg.access)));
+    const w1cRegisters = registers.filter((reg) => {
+      if (w1cAccess.has(this.getString(reg.access))) {
+        return true;
+      }
+      const fields = (reg.fields as Array<Record<string, unknown>>) ?? [];
+      return fields.some((f) => w1cAccess.has(this.getString(f.access)));
+    });
 
     const clocks = ipCore?.clocks ?? [];
     const resets = ipCore?.resets ?? [];
@@ -523,6 +531,7 @@ export class IpCoreScaffolder {
       registers,
       sw_registers: swRegisters,
       hw_registers: hwRegisters,
+      w1c_registers: w1cRegisters,
       generics: this.prepareGenerics(ipCore),
       user_ports: userPorts,
       interrupt_ports: this.prepareInterruptPorts(ipCore),

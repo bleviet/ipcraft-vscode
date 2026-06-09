@@ -64,6 +64,37 @@ package {{ entity_name }}_pkg is
 {% endif %}
 {% endfor %}
 
+{% if w1c_registers | length %}
+  -- W1C event-pulse record types (hardware drives a 1-cycle strobe to set a sticky bit)
+{% for reg in w1c_registers %}
+{% if reg.fields | length %}
+{% set w1c_flds = reg.fields | selectattr('access', 'in', ['write-1-to-clear', 'read-write-1-to-clear']) %}
+{% if w1c_flds | length %}
+
+  type t_reg_{{ reg.name | lower }}_pulse is record
+{% for field in w1c_flds %}
+{% if field.width == 1 %}
+    {{ field.name | lower }}_pulse : std_logic;  -- event strobe → sets {{ reg.name }}.{{ field.name | lower }}
+{% else %}
+    {{ field.name | lower }}_pulse : std_logic_vector({{ field.width - 1 }} downto 0);  -- per-bit strobes → set {{ reg.name }}.{{ field.name | lower }}
+{% endif %}
+{% endfor %}
+  end record;
+
+  constant C_REG_{{ reg.name | upper }}_PULSE_RESET : t_reg_{{ reg.name | lower }}_pulse := (
+{% for field in w1c_flds %}
+{% if field.width == 1 %}
+    {{ field.name | lower }}_pulse => '0'{{ "," if not loop.last else "" }}
+{% else %}
+    {{ field.name | lower }}_pulse => (others => '0'){{ "," if not loop.last else "" }}
+{% endif %}
+{% endfor %}
+  );
+{% endif %}
+{% endif %}
+{% endfor %}
+
+{% endif %}
 {% if sw_registers | length %}
   ----------------------------------------------------------------------------
   -- Aggregate Register Records (for clean port interface)
@@ -90,9 +121,9 @@ package {{ entity_name }}_pkg is
 {% endfor %}
   );
 {% endif %}
-{% if hw_registers | length %}
+{% if hw_registers | length or w1c_registers | length %}
 
-  -- HW -> SW: Registers written by hardware, read by software
+  -- HW -> SW: Status registers (RO) + W1C event-pulse inputs
   type t_regs_hw2sw is record
 {% for reg in hw_registers %}
 {% if reg.fields | length %}
@@ -101,14 +132,24 @@ package {{ entity_name }}_pkg is
     {{ reg.name | lower }} : std_logic_vector(C_DATA_WIDTH-1 downto 0);
 {% endif %}
 {% endfor %}
+{% for reg in w1c_registers %}
+{% if reg.fields | length %}
+    {{ reg.name | lower }}_pulse : t_reg_{{ reg.name | lower }}_pulse;  -- W1C event pulses for {{ reg.name }}
+{% endif %}
+{% endfor %}
   end record;
 
   constant C_REGS_HW2SW_RESET : t_regs_hw2sw := (
 {% for reg in hw_registers %}
 {% if reg.fields | length %}
-    {{ reg.name | lower }} => C_REG_{{ reg.name | upper }}_RESET{{ "," if not loop.last else "" }}
+    {{ reg.name | lower }} => C_REG_{{ reg.name | upper }}_RESET{{ "," if not loop.last or w1c_registers | length else "" }}
 {% else %}
-    {{ reg.name | lower }} => (others => '0'){{ "," if not loop.last else "" }}
+    {{ reg.name | lower }} => (others => '0'){{ "," if not loop.last or w1c_registers | length else "" }}
+{% endif %}
+{% endfor %}
+{% for reg in w1c_registers %}
+{% if reg.fields | length %}
+    {{ reg.name | lower }}_pulse => C_REG_{{ reg.name | upper }}_PULSE_RESET{{ "," if not loop.last else "" }}
 {% endif %}
 {% endfor %}
   );
