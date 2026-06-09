@@ -82,7 +82,7 @@ set(PW_REPORT_DIR     "${CMAKE_SOURCE_DIR}/playwright-report")
 #  DEFAULT TARGET  (cmake --build build  with no --target)
 # =============================================================================
 
-add_custom_target(default_info ALL
+add_custom_target(default_info
     COMMAND ${CMAKE_COMMAND} -E echo ""
     COMMAND ${CMAKE_COMMAND} -E echo "  IPCraft for VS Code — build system ready."
     COMMAND ${CMAKE_COMMAND} -E echo "  Run:  cmake --build build --target usage"
@@ -137,7 +137,7 @@ add_custom_target(generate_types
 # =============================================================================
 
 # Fast development build — source maps on, no minification
-add_custom_target(compile
+add_custom_target(compile ALL
     COMMAND ${NPM_EXECUTABLE} run compile
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     COMMENT "Development build: webpack (source maps enabled) → dist/"
