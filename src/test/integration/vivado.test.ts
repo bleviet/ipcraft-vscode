@@ -8,7 +8,10 @@
  * Requires Vivado to be installed on the host. Set VIVADO_BIN to override the
  * default path (/home/balevision/tools/Xilinx/Vivado/2024.2/bin/vivado).
  *
- * Skip all tests by setting SKIP_VIVADO=1.
+ * The Vivado-dependent tests self-skip when VIVADO_BIN does not exist, so
+ * `npm run test:integration` works on machines without vendor tools. Set
+ * REQUIRE_VIVADO=1 to fail instead of skipping (for hosts that must have
+ * Vivado), or SKIP_VIVADO=1 to skip even when Vivado is installed.
  */
 
 import * as path from 'path';
@@ -21,7 +24,15 @@ const VIVADO_BIN =
 
 const VALIDATE_TCL = path.resolve(__dirname, '../../../scripts/integration/vivado/validate.tcl');
 
-const SKIP = process.env.SKIP_VIVADO === '1';
+const VIVADO_AVAILABLE = fs.existsSync(VIVADO_BIN);
+
+const SKIP =
+  process.env.SKIP_VIVADO === '1' || (!VIVADO_AVAILABLE && process.env.REQUIRE_VIVADO !== '1');
+
+const SKIP_REASON =
+  process.env.SKIP_VIVADO === '1'
+    ? 'SKIP_VIVADO=1'
+    : `Vivado not found at ${VIVADO_BIN} (set VIVADO_BIN or REQUIRE_VIVADO=1)`;
 
 let xilinxes: Fixture[] = [];
 
@@ -37,7 +48,7 @@ it('generates at least one Xilinx fixture with component.xml', () => {
 it('all Xilinx fixtures pass Vivado ipx::check_integrity', () => {
   if (SKIP) {
     // eslint-disable-next-line no-console
-    console.log('Skipping Vivado validation (SKIP_VIVADO=1)');
+    console.log(`Skipping Vivado validation (${SKIP_REASON})`);
     return;
   }
 
@@ -122,7 +133,7 @@ it('all fixtures have correct testbench and HDL files generated', () => {
 it('all Xilinx Vivado project creation scripts run successfully', () => {
   if (SKIP) {
     // eslint-disable-next-line no-console
-    console.log('Skipping Vivado project creation validation (SKIP_VIVADO=1)');
+    console.log(`Skipping Vivado project creation validation (${SKIP_REASON})`);
     return;
   }
 
@@ -180,7 +191,7 @@ it('all Xilinx Vivado project creation scripts run successfully', () => {
 it('representative Vivado projects compile and synthesize successfully in Out-Of-Context mode', () => {
   if (SKIP) {
     // eslint-disable-next-line no-console
-    console.log('Skipping Vivado OOC synthesis validation (SKIP_VIVADO=1)');
+    console.log(`Skipping Vivado OOC synthesis validation (${SKIP_REASON})`);
     return;
   }
 

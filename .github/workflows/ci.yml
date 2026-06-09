@@ -59,3 +59,30 @@ jobs:
             test-results/
             playwright-report/
           retention-days: 7
+
+  hdl-integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install open-source HDL tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ghdl iverilog verilator
+
+      - run: npm ci
+
+      # Webpack copies resources/bus_definitions into dist/, which the
+      # fixture generator loads at runtime.
+      - name: Build
+        run: npm run compile
+
+      - name: HDL integration tests (GHDL, Icarus, Verilator)
+        run: npm run test:integration:hdl

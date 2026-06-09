@@ -4,13 +4,15 @@
  * For every generated fixture:
  *   - VHDL: GHDL analyze + elaborate + synthesize (--synth) the top entity.
  *   - SystemVerilog: Icarus Verilog (iverilog -g2012) compile.
+ *   - SystemVerilog: Verilator --lint-only (catches width mismatches and port
+ *     issues that iverilog accepts; Verilator's default warnings are fatal).
  *
  * Unlike the Vivado/Quartus suites these run with freely available tools, so
  * they verify on any machine that the generated RTL compiles for simulation
  * and passes a synthesis elaboration.
  *
- * Skip with SKIP_GHDL=1 / SKIP_IVERILOG=1; suites also self-skip when the
- * tool is not on PATH.
+ * Skip with SKIP_GHDL=1 / SKIP_IVERILOG=1 / SKIP_VERILATOR=1; suites also
+ * self-skip when the tool is not on PATH.
  */
 
 import * as path from 'path';
@@ -21,6 +23,7 @@ import { generateFixtures, Fixture } from './generator';
 
 const SKIP_GHDL = process.env.SKIP_GHDL === '1' || !toolAvailable('ghdl');
 const SKIP_IVERILOG = process.env.SKIP_IVERILOG === '1' || !toolAvailable('iverilog');
+const SKIP_VERILATOR = process.env.SKIP_VERILATOR === '1' || !toolAvailable('verilator');
 
 function toolAvailable(tool: string): boolean {
   return spawnSync('which', [tool], { encoding: 'utf8' }).status === 0;
@@ -162,6 +165,50 @@ describe('Icarus Verilog: generated SystemVerilog compiles', () => {
 
     if (failures.length > 0) {
       throw new Error(`iverilog validation failed:\n\n${failures.join('\n\n')}`);
+    }
+  });
+});
+
+describe('Verilator: generated SystemVerilog passes lint', () => {
+  it('lints every SystemVerilog fixture with verilator --lint-only', () => {
+    if (SKIP_VERILATOR) {
+      // eslint-disable-next-line no-console
+      console.log('Skipping Verilator validation (SKIP_VERILATOR=1 or verilator not found)');
+      return;
+    }
+
+    const svFixtures = fixtures.filter((f) => f.success && f.name.endsWith('_sv'));
+    expect(svFixtures.length).toBeGreaterThan(0);
+
+    const failures: string[] = [];
+
+    for (const fixture of svFixtures) {
+      const ordered = orderRtlFiles(Object.keys(fixture.files), 'sv');
+      if (ordered.length === 0) {
+        continue;
+      }
+      const top = topUnit(ordered, 'sv');
+      if (!top) {
+        failures.push(`${fixture.name}: could not determine top module`);
+        continue;
+      }
+
+      // Verilator's default warning set (WIDTH*, PINMISSING, ...) is fatal by
+      // default — already stricter than iverilog. -Wall adds style warnings;
+      // enable it once the templates are clean against the defaults.
+      const result = spawnSync('verilator', ['--lint-only', '--top-module', top, ...ordered], {
+        cwd: fixture.outputDir,
+        encoding: 'utf8',
+        timeout: 120_000,
+      });
+
+      if (result.status !== 0) {
+        failures.push(`${fixture.name}: verilator lint failed\n${result.stderr || result.stdout}`);
+      }
+    }
+
+    if (failures.length > 0) {
+      throw new Error(`Verilator validation failed:\n\n${failures.join('\n\n')}`);
     }
   });
 });

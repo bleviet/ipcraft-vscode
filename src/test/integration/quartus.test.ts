@@ -5,8 +5,12 @@
  * Designer stub validator inside the cvsoc/quartus:23.1 Docker image, calling
  * tclsh on scripts/integration/quartus/validate.tcl.
  *
- * Requires Docker with the cvsoc/quartus:23.1 image pulled. Set
- * SKIP_QUARTUS=1 to skip all tests without failing.
+ * Requires Docker with the cvsoc/quartus:23.1 image pulled.
+ *
+ * The Quartus-dependent tests self-skip when Docker or the image is not
+ * available, so `npm run test:integration` works on machines without vendor
+ * tools. Set REQUIRE_QUARTUS=1 to fail instead of skipping (for hosts that
+ * must have the image), or SKIP_QUARTUS=1 to skip even when it is available.
  */
 
 import * as path from 'path';
@@ -19,7 +23,21 @@ const DOCKER_IMAGE = process.env.QUARTUS_DOCKER_IMAGE ?? 'cvsoc/quartus:23.1';
 const TCLSH = '/opt/intelFPGA/quartus/bin/tclsh';
 const VALIDATE_TCL = '/work/scripts/integration/quartus/validate.tcl';
 
-const SKIP = process.env.SKIP_QUARTUS === '1';
+function dockerImageAvailable(image: string): boolean {
+  const result = spawnSync('docker', ['image', 'inspect', image], { encoding: 'utf8' });
+  return !result.error && result.status === 0;
+}
+
+const QUARTUS_AVAILABLE =
+  process.env.REQUIRE_QUARTUS === '1' ||
+  (process.env.SKIP_QUARTUS !== '1' && dockerImageAvailable(DOCKER_IMAGE));
+
+const SKIP = process.env.SKIP_QUARTUS === '1' || !QUARTUS_AVAILABLE;
+
+const SKIP_REASON =
+  process.env.SKIP_QUARTUS === '1'
+    ? 'SKIP_QUARTUS=1'
+    : `Docker image ${DOCKER_IMAGE} not available (pull it or set REQUIRE_QUARTUS=1)`;
 
 let alteras: Fixture[] = [];
 
@@ -35,7 +53,7 @@ it('generates at least one Altera fixture with _hw.tcl', () => {
 it('all Altera _hw.tcl files pass Platform Designer stub validation', () => {
   if (SKIP) {
     // eslint-disable-next-line no-console
-    console.log('Skipping Quartus validation (SKIP_QUARTUS=1)');
+    console.log(`Skipping Quartus validation (${SKIP_REASON})`);
     return;
   }
 
@@ -103,7 +121,7 @@ it('all Altera _hw.tcl files pass Platform Designer stub validation', () => {
 it('all Altera Quartus project creation scripts run successfully', () => {
   if (SKIP) {
     // eslint-disable-next-line no-console
-    console.log('Skipping Quartus project validation (SKIP_QUARTUS=1)');
+    console.log(`Skipping Quartus project validation (${SKIP_REASON})`);
     return;
   }
 

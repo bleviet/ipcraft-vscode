@@ -1376,6 +1376,7 @@
     "test:e2e": "node ./out/test/e2e/runTests.js",
     "test:browser": "playwright test --config config/playwright.config.ts",
     "test:integration": "jest --config config/jest.integration.js",
+    "test:integration:hdl": "jest --config config/jest.integration.js --testPathPatterns=hdl",
     "test:integration:vivado": "jest --config config/jest.integration.js --testPathPatterns=vivado",
     "test:integration:quartus": "jest --config config/jest.integration.js --testPathPatterns=quartus",
     "test:all": "npm run test:unit && npm run test:e2e && npm run test:browser",
