@@ -398,6 +398,79 @@ export class IpCoreScaffolder {
       return fields.some((f) => w1cAccess.has(this.getString(f.access)));
     });
 
+    // CoS registers: any field has monitorChangeOf.
+    // Validate and build cos_fields/val_fields metadata for templates.
+    const cosRegisters = registers
+      .map((reg) => {
+        const fields = (reg.fields as Array<Record<string, unknown>>) ?? [];
+        const cosFields = fields
+          .filter((f) => {
+            const mco = this.getString(f['monitorChangeOf']);
+            return mco !== '';
+          })
+          .map((field) => {
+            const targetName = this.getString(field['monitorChangeOf']);
+            if (!w1cAccess.has(this.getString(field.access))) {
+              throw new Error(
+                `Field "${this.getString(field.name)}" in register "${this.getString(reg.name)}" uses monitorChangeOf but access type "${this.getString(field.access)}" is not write-1-to-clear or read-write-1-to-clear.`
+              );
+            }
+            const monitoredField =
+              fields.find((f) => this.getString(f.name as string) === targetName) ?? null;
+            if (!monitoredField) {
+              throw new Error(
+                `Field "${this.getString(field.name)}" in register "${this.getString(reg.name)}" references monitorChangeOf: "${targetName}" but no such field exists in the same register.`
+              );
+            }
+            return { ...field, monitored_field: monitoredField };
+          });
+
+        if (cosFields.length === 0) {
+          return null;
+        }
+
+        // Unique monitored fields (deduplicated by name) for the _val record type.
+        const seen = new Set<string>();
+        const valFields = cosFields
+          .map((cf) => cf.monitored_field)
+          .filter((mf) => {
+            if (!mf) {
+              return false;
+            }
+            const n = this.getString(mf.name);
+            if (seen.has(n)) {
+              return false;
+            }
+            seen.add(n);
+            return true;
+          });
+
+        return { ...reg, cos_fields: cosFields, val_fields: valFields };
+      })
+      .filter((r): r is NonNullable<typeof r> => r !== null);
+
+    // Annotate ALL w1cRegisters fields with is_cos flag so templates can filter CoS fields
+    // from external pulse records. Non-CoS registers get is_cos: false on every field.
+    const cosRegNames = new Set(
+      cosRegisters.map((r) => this.getString((r as Record<string, unknown>).name))
+    );
+    const annotatedW1cRegisters = w1cRegisters.map((reg) => {
+      const fields = (reg.fields as Array<Record<string, unknown>>) ?? [];
+      return {
+        ...reg,
+        fields: fields.map((field) => {
+          const mco = this.getString(field['monitorChangeOf']);
+          return { ...field, is_cos: mco !== '' };
+        }),
+      };
+    });
+
+    // Annotate all registers with has_cos_fields for template read/write path guards.
+    const annotatedRegisters = registers.map((reg) => ({
+      ...reg,
+      has_cos_fields: cosRegNames.has(this.getString(reg.name)),
+    }));
+
     const clocks = ipCore?.clocks ?? [];
     const resets = ipCore?.resets ?? [];
     const clockPort = clocks[0]?.name ?? 'clk';
@@ -528,10 +601,11 @@ export class IpCoreScaffolder {
     return {
       name,
       entity_name: name,
-      registers,
+      registers: annotatedRegisters,
       sw_registers: swRegisters,
       hw_registers: hwRegisters,
-      w1c_registers: w1cRegisters,
+      w1c_registers: annotatedW1cRegisters,
+      cos_registers: cosRegisters,
       generics: this.prepareGenerics(ipCore),
       user_ports: userPorts,
       interrupt_ports: this.prepareInterruptPorts(ipCore),

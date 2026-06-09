@@ -40,10 +40,10 @@ entity {{ entity_name }}_regs is
 
     -- Register interface to core logic
 {% if sw_registers | length > 0 %}
-    regs_out : out t_regs_sw2hw{{ ";" if hw_registers | length > 0 or w1c_registers | length > 0 else "" }}  -- SW-writable registers (to core)
+    regs_out : out t_regs_sw2hw{{ ";" if hw_registers | length > 0 or w1c_registers | length > 0 or cos_registers | length > 0 else "" }}  -- SW-writable registers (to core)
 {% endif %}
-{% if hw_registers | length > 0 or w1c_registers | length > 0 %}
-    regs_in  : in  t_regs_hw2sw   -- HW status registers + W1C event pulses (from core)
+{% if hw_registers | length > 0 or w1c_registers | length > 0 or cos_registers | length > 0 %}
+    regs_in  : in  t_regs_hw2sw   -- HW status registers + W1C event pulses + CoS values (from core)
 {% endif %}
   );
 end entity {{ entity_name }}_regs;
@@ -58,6 +58,20 @@ architecture rtl of {{ entity_name }}_regs is
   -- Read data pipeline
   signal rd_data_int  : std_logic_vector(C_DATA_WIDTH-1 downto 0);
   signal rd_valid_int : std_logic;
+{% if cos_registers | length %}
+
+  -- Shadow registers and CoS pulse signals for change-of-state detection
+{% for reg in cos_registers %}
+{% for cf in reg.cos_fields %}
+{% if cf.monitored_field.width == 1 %}
+  signal {{ reg.name | lower }}_{{ cf.monitored_field.name | lower }}_shadow : std_logic := '0';
+{% else %}
+  signal {{ reg.name | lower }}_{{ cf.monitored_field.name | lower }}_shadow : std_logic_vector({{ cf.monitored_field.width - 1 }} downto 0) := (others => '0');
+{% endif %}
+  signal {{ reg.name | lower }}_{{ cf.name | lower }}_cos : std_logic;
+{% endfor %}
+{% endfor %}
+{% endif %}
 
   -- Apply write strobe to data
   function apply_wstrb(
@@ -85,6 +99,15 @@ begin
 {% endif %}
   rd_data  <= rd_data_int;
   rd_valid <= rd_valid_int;
+{% if cos_registers | length %}
+
+  -- Combinatorial CoS pulse detection (current value vs shadow)
+{% for reg in cos_registers %}
+{% for cf in reg.cos_fields %}
+  {{ reg.name | lower }}_{{ cf.name | lower }}_cos <= '1' when regs_in.{{ reg.name | lower }}_val.{{ cf.monitored_field.name | lower }} /= {{ reg.name | lower }}_{{ cf.monitored_field.name | lower }}_shadow else '0';
+{% endfor %}
+{% endfor %}
+{% endif %}
 
   ----------------------------------------------------------------------------
   -- Write Process
@@ -103,12 +126,21 @@ begin
       else
         v_addr_index := to_integer(unsigned(wr_addr(C_ADDR_WIDTH-1 downto 2)));
 
+{% if cos_registers | length %}
+        -- Shadow register updates (capture monitored field values every clock)
+{% for reg in cos_registers %}
+{% for cf in reg.cos_fields %}
+        {{ reg.name | lower }}_{{ cf.monitored_field.name | lower }}_shadow <= regs_in.{{ reg.name | lower }}_val.{{ cf.monitored_field.name | lower }};
+{% endfor %}
+{% endfor %}
+
+{% endif %}
 {% if w1c_registers | length > 0 %}
         -- W1C arbitration: hardware event-set has priority over CPU Write-1-to-Clear.
         -- Runs every clock cycle so no pulse is missed even when the CPU is not writing.
 {% for reg in w1c_registers %}
-{% set w1c_flds = reg.fields | selectattr('access', 'in', ['write-1-to-clear', 'read-write-1-to-clear']) %}
-{% for field in w1c_flds %}
+{% set ext_flds = reg.fields | selectattr('access', 'in', ['write-1-to-clear', 'read-write-1-to-clear']) | selectattr('is_cos', 'equalto', false) %}
+{% for field in ext_flds %}
 {% if field.width == 1 %}
         if regs_in.{{ reg.name | lower }}_pulse.{{ field.name | lower }}_pulse = '1' then
           regs.{{ reg.name | lower }}.{{ field.name | lower }} <= '1';
@@ -130,18 +162,42 @@ begin
 {% endfor %}
 
 {% endif %}
+{% if cos_registers | length %}
+        -- CoS W1C arbitration (internally generated change-of-state pulse)
+{% for reg in cos_registers %}
+{% for cf in reg.cos_fields %}
+{% if cf.width == 1 %}
+        if {{ reg.name | lower }}_{{ cf.name | lower }}_cos = '1' then
+          regs.{{ reg.name | lower }}.{{ cf.name | lower }} <= '1';
+        elsif wr_en = '1' and v_addr_index = t_reg_id'pos(REG_{{ reg.name | upper }})
+              and wr_strb({{ (cf.offset / 8) | int }}) = '1' and wr_data({{ cf.offset }}) = '1' then
+          regs.{{ reg.name | lower }}.{{ cf.name | lower }} <= '0';
+        end if;
+{% else %}
+        for i in 0 to {{ cf.width - 1 }} loop
+          if {{ reg.name | lower }}_{{ cf.name | lower }}_cos = '1' then
+            regs.{{ reg.name | lower }}.{{ cf.name | lower }}(i) <= '1';
+          elsif wr_en = '1' and v_addr_index = t_reg_id'pos(REG_{{ reg.name | upper }})
+                and wr_strb(({{ cf.offset }} + i) / 8) = '1' and wr_data({{ cf.offset }} + i) = '1' then
+            regs.{{ reg.name | lower }}.{{ cf.name | lower }}(i) <= '0';
+          end if;
+        end loop;
+{% endif %}
+{% endfor %}
+{% endfor %}
+
+{% endif %}
         if wr_en = '1' then
           case v_addr_index is
 {% for reg in registers %}
 {% if reg.access in ['read-write', 'write-only', 'rw', 'wo', 'read_write', 'write_only'] %}
-{% set w1c_flds = reg.fields | selectattr('access', 'in', ['write-1-to-clear', 'read-write-1-to-clear']) %}
+{% set blocked_flds = reg.fields | selectattr('access', 'in', ['write-1-to-clear', 'read-write-1-to-clear', 'read-only', 'ro']) %}
           when t_reg_id'pos(REG_{{ reg.name | upper }}) =>
 {% if reg.fields | length %}
-{% if w1c_flds | length %}
+{% if blocked_flds | length %}
             v_wdata := apply_wstrb(to_slv(regs.{{ reg.name | lower }}), wr_data, wr_strb);
 {% for field in reg.fields %}
-{% if field.access in ['write-1-to-clear', 'read-write-1-to-clear'] %}
-{% else %}
+{% if field.access not in ['write-1-to-clear', 'read-write-1-to-clear', 'read-only', 'ro'] %}
             regs.{{ reg.name | lower }}.{{ field.name | lower }} <= to_{{ reg.name | lower }}(v_wdata).{{ field.name | lower }};
 {% endif %}
 {% endfor %}
@@ -167,6 +223,9 @@ begin
   ----------------------------------------------------------------------------
   p_read : process(clk)
     variable v_addr_index : natural;
+{% if cos_registers | length %}
+    variable v_rd_data    : std_logic_vector(C_DATA_WIDTH-1 downto 0);
+{% endif %}
   begin
     if rising_edge(clk) then
       rd_valid_int <= '0';
@@ -179,6 +238,7 @@ begin
 
         case v_addr_index is
 {% for reg in registers %}
+{% if not reg.has_cos_fields %}
 {% if reg.access in ['read-only', 'ro', 'read_only'] %}
           when t_reg_id'pos(REG_{{ reg.name | upper }}) =>
 {% if reg.fields | length %}
@@ -194,6 +254,33 @@ begin
             rd_data_int <= regs.{{ reg.name | lower }};
 {% endif %}
 {% endif %}
+{% endif %}
+{% endfor %}
+{% for reg in cos_registers %}
+          when t_reg_id'pos(REG_{{ reg.name | upper }}) =>
+            v_rd_data := (others => '0');
+{% for field in reg.fields %}
+{% if field.access in ['write-1-to-clear', 'read-write-1-to-clear'] %}
+{% if field.width == 1 %}
+            v_rd_data({{ field.offset }}) := regs.{{ reg.name | lower }}.{{ field.name | lower }};
+{% else %}
+            v_rd_data({{ field.offset + field.width - 1 }} downto {{ field.offset }}) := regs.{{ reg.name | lower }}.{{ field.name | lower }};
+{% endif %}
+{% elif field.access in ['read-only', 'ro'] %}
+{% if field.width == 1 %}
+            v_rd_data({{ field.offset }}) := regs_in.{{ reg.name | lower }}_val.{{ field.name | lower }};
+{% else %}
+            v_rd_data({{ field.offset + field.width - 1 }} downto {{ field.offset }}) := regs_in.{{ reg.name | lower }}_val.{{ field.name | lower }};
+{% endif %}
+{% elif field.access in ['read-write', 'rw'] %}
+{% if field.width == 1 %}
+            v_rd_data({{ field.offset }}) := regs.{{ reg.name | lower }}.{{ field.name | lower }};
+{% else %}
+            v_rd_data({{ field.offset + field.width - 1 }} downto {{ field.offset }}) := regs.{{ reg.name | lower }}.{{ field.name | lower }};
+{% endif %}
+{% endif %}
+{% endfor %}
+            rd_data_int <= v_rd_data;
 {% endfor %}
           when others =>
             rd_data_int <= (others => '0');

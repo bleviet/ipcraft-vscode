@@ -73,10 +73,10 @@ package {{ entity_name }}_pkg;
   // W1C event-pulse struct types (hardware drives a 1-cycle strobe to set a sticky bit)
 {% for reg in w1c_registers %}
 {% if reg.fields | length %}
-{% set w1c_flds = reg.fields | selectattr('access', 'in', ['write-1-to-clear', 'read-write-1-to-clear']) %}
+{% set w1c_flds = reg.fields | selectattr('access', 'in', ['write-1-to-clear', 'read-write-1-to-clear']) | selectattr('is_cos', 'equalto', false) %}
 {% if w1c_flds | length %}
 
-  // {{ reg.name }} W1C event-pulse fields
+  // {{ reg.name }} W1C event-pulse fields (external pulse only — CoS fields excluded)
   typedef struct packed {
 {% for field in w1c_flds %}
 {% if field.width == 1 %}
@@ -88,6 +88,25 @@ package {{ entity_name }}_pkg;
   } {{ reg.name | lower }}_pulse_t;
 
 {% endif %}
+{% endif %}
+{% endfor %}
+{% endif %}
+{% if cos_registers | length %}
+  // CoS value-port struct types (live hardware values for change-of-state monitoring)
+{% for reg in cos_registers %}
+{% if reg.val_fields | length %}
+
+  // {{ reg.name }} monitored field values
+  typedef struct packed {
+{% for field in reg.val_fields %}
+{% if field.width == 1 %}
+    logic        {{ field.name | lower }};  // monitored by CoS field in {{ reg.name }}
+{% else %}
+    logic [{{ field.width - 1 }}:0] {{ field.name | lower }};  // monitored by CoS field in {{ reg.name }}
+{% endif %}
+{% endfor %}
+  } {{ reg.name | lower }}_val_t;
+
 {% endif %}
 {% endfor %}
 {% endif %}
@@ -104,15 +123,27 @@ package {{ entity_name }}_pkg;
   } regs_sw2hw_t;
 
 {% endif %}
-{% if hw_registers | length or w1c_registers | length %}
-  // HW -> SW: Status registers (RO) + W1C event-pulse inputs
+{% set ext_w1c_regs_sv = [] %}
+{% for reg in w1c_registers %}
+{% set ext_flds = reg.fields | selectattr('access', 'in', ['write-1-to-clear', 'read-write-1-to-clear']) | selectattr('is_cos', 'equalto', false) %}
+{% if ext_flds | length %}
+{% set _ = ext_w1c_regs_sv.push(reg) %}
+{% endif %}
+{% endfor %}
+{% if hw_registers | length or ext_w1c_regs_sv | length or cos_registers | length %}
+  // HW -> SW: Status registers (RO) + W1C event-pulse inputs + CoS value ports
   typedef struct packed {
 {% for reg in hw_registers %}
     {{ reg.name | lower }}_t {{ reg.name | lower }};
 {% endfor %}
-{% for reg in w1c_registers %}
+{% for reg in ext_w1c_regs_sv %}
 {% if reg.fields | length %}
     {{ reg.name | lower }}_pulse_t {{ reg.name | lower }}_pulse;  // W1C event pulses for {{ reg.name }}
+{% endif %}
+{% endfor %}
+{% for reg in cos_registers %}
+{% if reg.val_fields | length %}
+    {{ reg.name | lower }}_val_t {{ reg.name | lower }}_val;  // live values monitored for CoS in {{ reg.name }}
 {% endif %}
 {% endfor %}
   } regs_hw2sw_t;

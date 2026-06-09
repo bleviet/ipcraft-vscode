@@ -31,14 +31,14 @@ module {{ entity_name }}_regs (
   input  logic                          rd_en,
   input  logic [C_ADDR_WIDTH-1:0]       rd_addr,
   output logic [C_DATA_WIDTH-1:0]       rd_data,
-  output logic                          rd_valid{% if sw_registers | length > 0 or hw_registers | length > 0 or w1c_registers | length > 0 %},{% endif %}
+  output logic                          rd_valid{% if sw_registers | length > 0 or hw_registers | length > 0 or w1c_registers | length > 0 or cos_registers | length > 0 %},{% endif %}
 
   // Register interface to core logic
 {% if sw_registers | length > 0 %}
-  output regs_sw2hw_t regs_out{{ "," if hw_registers | length > 0 or w1c_registers | length > 0 else "" }}  // SW-writable registers (to core)
+  output regs_sw2hw_t regs_out{{ "," if hw_registers | length > 0 or w1c_registers | length > 0 or cos_registers | length > 0 else "" }}  // SW-writable registers (to core)
 {% endif %}
-{% if hw_registers | length > 0 or w1c_registers | length > 0 %}
-  input  regs_hw2sw_t regs_in   // HW status registers + W1C event pulses (from core)
+{% if hw_registers | length > 0 or w1c_registers | length > 0 or cos_registers | length > 0 %}
+  input  regs_hw2sw_t regs_in   // HW status registers + W1C event pulses + CoS values (from core)
 {% endif %}
 );
 
@@ -50,6 +50,20 @@ module {{ entity_name }}_regs (
   // Read data pipeline
   logic [C_DATA_WIDTH-1:0] rd_data_int;
   logic                    rd_valid_int;
+{% if cos_registers | length %}
+
+  // Shadow registers and CoS pulse signals for change-of-state detection
+{% for reg in cos_registers %}
+{% for cf in reg.cos_fields %}
+{% if cf.monitored_field.width == 1 %}
+  logic        {{ reg.name | lower }}_{{ cf.monitored_field.name | lower }}_shadow;
+{% else %}
+  logic [{{ cf.monitored_field.width - 1 }}:0] {{ reg.name | lower }}_{{ cf.monitored_field.name | lower }}_shadow;
+{% endif %}
+  logic        {{ reg.name | lower }}_{{ cf.name | lower }}_cos;
+{% endfor %}
+{% endfor %}
+{% endif %}
 
   // Apply write strobe: merge new bytes from wr_data into existing word
   function automatic logic [C_DATA_WIDTH-1:0] apply_wstrb(
@@ -71,6 +85,15 @@ module {{ entity_name }}_regs (
 {% endif %}
   assign rd_data   = rd_data_int;
   assign rd_valid  = rd_valid_int;
+{% if cos_registers | length %}
+
+  // Combinatorial CoS pulse detection (current value vs shadow)
+{% for reg in cos_registers %}
+{% for cf in reg.cos_fields %}
+  assign {{ reg.name | lower }}_{{ cf.name | lower }}_cos = (regs_in.{{ reg.name | lower }}_val.{{ cf.monitored_field.name | lower }} !== {{ reg.name | lower }}_{{ cf.monitored_field.name | lower }}_shadow);
+{% endfor %}
+{% endfor %}
+{% endif %}
 
   ////////////////////////////////////////////////////////////////////////////
   // Write Process
@@ -81,12 +104,21 @@ module {{ entity_name }}_regs (
       regs <= '0;
 {% endif %}
     end else begin
+{% if cos_registers | length %}
+      // Shadow register updates (capture monitored field values every clock)
+{% for reg in cos_registers %}
+{% for cf in reg.cos_fields %}
+      {{ reg.name | lower }}_{{ cf.monitored_field.name | lower }}_shadow <= regs_in.{{ reg.name | lower }}_val.{{ cf.monitored_field.name | lower }};
+{% endfor %}
+{% endfor %}
+
+{% endif %}
 {% if w1c_registers | length > 0 %}
       // W1C arbitration: hardware event-set has priority over CPU Write-1-to-Clear.
       // Runs every clock cycle so no pulse is missed even when the CPU is not writing.
 {% for reg in w1c_registers %}
-{% set w1c_flds = reg.fields | selectattr('access', 'in', ['write-1-to-clear', 'read-write-1-to-clear']) %}
-{% for field in w1c_flds %}
+{% set ext_flds = reg.fields | selectattr('access', 'in', ['write-1-to-clear', 'read-write-1-to-clear']) | selectattr('is_cos', 'equalto', false) %}
+{% for field in ext_flds %}
 {% if field.width == 1 %}
       if (regs_in.{{ reg.name | lower }}_pulse.{{ field.name | lower }}_pulse) begin
         regs.{{ reg.name | lower }}.{{ field.name | lower }} <= 1'b1;
@@ -107,16 +139,39 @@ module {{ entity_name }}_regs (
 {% endfor %}
 {% endfor %}
 {% endif %}
+{% if cos_registers | length %}
+      // CoS W1C arbitration (internally generated change-of-state pulse)
+{% for reg in cos_registers %}
+{% for cf in reg.cos_fields %}
+{% if cf.width == 1 %}
+      if ({{ reg.name | lower }}_{{ cf.name | lower }}_cos) begin
+        regs.{{ reg.name | lower }}.{{ cf.name | lower }} <= 1'b1;
+      end else if (wr_en && wr_addr[C_ADDR_WIDTH-1:2] == REG_{{ reg.name | upper }}_ADDR
+                   && wr_strb[{{ (cf.offset / 8) | int }}] && wr_data[{{ cf.offset }}]) begin
+        regs.{{ reg.name | lower }}.{{ cf.name | lower }} <= 1'b0;
+      end
+{% else %}
+      for (int i = 0; i < {{ cf.width }}; i++) begin
+        if ({{ reg.name | lower }}_{{ cf.name | lower }}_cos) begin
+          regs.{{ reg.name | lower }}.{{ cf.name | lower }}[i] <= 1'b1;
+        end else if (wr_en && wr_addr[C_ADDR_WIDTH-1:2] == REG_{{ reg.name | upper }}_ADDR
+                     && wr_strb[({{ cf.offset }} + i) / 8] && wr_data[{{ cf.offset }} + i]) begin
+          regs.{{ reg.name | lower }}.{{ cf.name | lower }}[i] <= 1'b0;
+        end
+      end
+{% endif %}
+{% endfor %}
+{% endfor %}
+{% endif %}
       if (wr_en) begin
         unique case (wr_addr[C_ADDR_WIDTH-1:2])
 {% for reg in registers %}
 {% if reg.access in ['read-write', 'write-only', 'rw', 'wo', 'read_write', 'write_only'] %}
-{% set w1c_flds = reg.fields | selectattr('access', 'in', ['write-1-to-clear', 'read-write-1-to-clear']) %}
-{% if w1c_flds | length %}
+{% set blocked_flds = reg.fields | selectattr('access', 'in', ['write-1-to-clear', 'read-write-1-to-clear', 'read-only', 'ro']) %}
+{% if blocked_flds | length %}
           REG_{{ reg.name | upper }}_ADDR: begin
 {% for field in reg.fields %}
-{% if field.access in ['write-1-to-clear', 'read-write-1-to-clear'] %}
-{% else %}
+{% if field.access not in ['write-1-to-clear', 'read-write-1-to-clear', 'read-only', 'ro'] %}
             regs.{{ reg.name | lower }}.{{ field.name | lower }} <= unpack_{{ reg.name | lower }}(apply_wstrb(pack_{{ reg.name | lower }}(regs.{{ reg.name | lower }}), wr_data, wr_strb)).{{ field.name | lower }};
 {% endif %}
 {% endfor %}
@@ -144,11 +199,43 @@ module {{ entity_name }}_regs (
       rd_valid_int <= 1'b1;
       unique case (rd_addr[C_ADDR_WIDTH-1:2])
 {% for reg in registers %}
+{% if not reg.has_cos_fields %}
 {% if reg.access in ['read-only', 'ro', 'read_only'] %}
         REG_{{ reg.name | upper }}_ADDR: rd_data_int <= pack_{{ reg.name | lower }}(regs_in.{{ reg.name | lower }});
 {% elif reg.access in ['read-write', 'rw', 'read_write', 'read-write-1-to-clear'] %}
         REG_{{ reg.name | upper }}_ADDR: rd_data_int <= pack_{{ reg.name | lower }}(regs.{{ reg.name | lower }});
 {% endif %}
+{% endif %}
+{% endfor %}
+{% for reg in cos_registers %}
+        REG_{{ reg.name | upper }}_ADDR: begin
+          begin : blk_rd_{{ reg.name | lower }}
+            logic [C_DATA_WIDTH-1:0] v;
+            v = '0;
+{% for field in reg.fields %}
+{% if field.access in ['write-1-to-clear', 'read-write-1-to-clear'] %}
+{% if field.width == 1 %}
+            v[{{ field.offset }}] = regs.{{ reg.name | lower }}.{{ field.name | lower }};
+{% else %}
+            v[{{ field.offset + field.width - 1 }}:{{ field.offset }}] = regs.{{ reg.name | lower }}.{{ field.name | lower }};
+{% endif %}
+{% elif field.access in ['read-only', 'ro'] %}
+{% if field.width == 1 %}
+            v[{{ field.offset }}] = regs_in.{{ reg.name | lower }}_val.{{ field.name | lower }};
+{% else %}
+            v[{{ field.offset + field.width - 1 }}:{{ field.offset }}] = regs_in.{{ reg.name | lower }}_val.{{ field.name | lower }};
+{% endif %}
+{% elif field.access in ['read-write', 'rw'] %}
+{% if field.width == 1 %}
+            v[{{ field.offset }}] = regs.{{ reg.name | lower }}.{{ field.name | lower }};
+{% else %}
+            v[{{ field.offset + field.width - 1 }}:{{ field.offset }}] = regs.{{ reg.name | lower }}.{{ field.name | lower }};
+{% endif %}
+{% endif %}
+{% endfor %}
+            rd_data_int <= v;
+          end
+        end
 {% endfor %}
         default: rd_data_int <= '0;
       endcase

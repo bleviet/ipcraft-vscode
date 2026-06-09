@@ -68,7 +68,7 @@ package {{ entity_name }}_pkg is
   -- W1C event-pulse record types (hardware drives a 1-cycle strobe to set a sticky bit)
 {% for reg in w1c_registers %}
 {% if reg.fields | length %}
-{% set w1c_flds = reg.fields | selectattr('access', 'in', ['write-1-to-clear', 'read-write-1-to-clear']) %}
+{% set w1c_flds = reg.fields | selectattr('access', 'in', ['write-1-to-clear', 'read-write-1-to-clear']) | selectattr('is_cos', 'equalto', false) %}
 {% if w1c_flds | length %}
 
   type t_reg_{{ reg.name | lower }}_pulse is record
@@ -91,6 +91,34 @@ package {{ entity_name }}_pkg is
 {% endfor %}
   );
 {% endif %}
+{% endif %}
+{% endfor %}
+
+{% endif %}
+{% if cos_registers | length %}
+  -- CoS value-port record types (live hardware values for change-of-state monitoring)
+{% for reg in cos_registers %}
+{% if reg.val_fields | length %}
+
+  type t_reg_{{ reg.name | lower }}_val is record
+{% for field in reg.val_fields %}
+{% if field.width == 1 %}
+    {{ field.name | lower }} : std_logic;  -- monitored by CoS field in {{ reg.name }}
+{% else %}
+    {{ field.name | lower }} : std_logic_vector({{ field.width - 1 }} downto 0);  -- monitored by CoS field in {{ reg.name }}
+{% endif %}
+{% endfor %}
+  end record;
+
+  constant C_REG_{{ reg.name | upper }}_VAL_RESET : t_reg_{{ reg.name | lower }}_val := (
+{% for field in reg.val_fields %}
+{% if field.width == 1 %}
+    {{ field.name | lower }} => '0'{{ "," if not loop.last else "" }}
+{% else %}
+    {{ field.name | lower }} => (others => '0'){{ "," if not loop.last else "" }}
+{% endif %}
+{% endfor %}
+  );
 {% endif %}
 {% endfor %}
 
@@ -121,9 +149,16 @@ package {{ entity_name }}_pkg is
 {% endfor %}
   );
 {% endif %}
-{% if hw_registers | length or w1c_registers | length %}
+{% set ext_w1c_regs = [] %}
+{% for reg in w1c_registers %}
+{% set ext_flds = reg.fields | selectattr('access', 'in', ['write-1-to-clear', 'read-write-1-to-clear']) | selectattr('is_cos', 'equalto', false) %}
+{% if ext_flds | length %}
+{% set _ = ext_w1c_regs.push(reg) %}
+{% endif %}
+{% endfor %}
+{% if hw_registers | length or ext_w1c_regs | length or cos_registers | length %}
 
-  -- HW -> SW: Status registers (RO) + W1C event-pulse inputs
+  -- HW -> SW: Status registers (RO) + W1C event-pulse inputs + CoS value ports
   type t_regs_hw2sw is record
 {% for reg in hw_registers %}
 {% if reg.fields | length %}
@@ -132,24 +167,39 @@ package {{ entity_name }}_pkg is
     {{ reg.name | lower }} : std_logic_vector(C_DATA_WIDTH-1 downto 0);
 {% endif %}
 {% endfor %}
-{% for reg in w1c_registers %}
+{% for reg in ext_w1c_regs %}
 {% if reg.fields | length %}
     {{ reg.name | lower }}_pulse : t_reg_{{ reg.name | lower }}_pulse;  -- W1C event pulses for {{ reg.name }}
 {% endif %}
 {% endfor %}
-  end record;
-
-  constant C_REGS_HW2SW_RESET : t_regs_hw2sw := (
-{% for reg in hw_registers %}
-{% if reg.fields | length %}
-    {{ reg.name | lower }} => C_REG_{{ reg.name | upper }}_RESET{{ "," if not loop.last or w1c_registers | length else "" }}
-{% else %}
-    {{ reg.name | lower }} => (others => '0'){{ "," if not loop.last or w1c_registers | length else "" }}
+{% for reg in cos_registers %}
+{% if reg.val_fields | length %}
+    {{ reg.name | lower }}_val : t_reg_{{ reg.name | lower }}_val;  -- live values monitored for CoS in {{ reg.name }}
 {% endif %}
 {% endfor %}
-{% for reg in w1c_registers %}
+  end record;
+
+{% set has_hw = hw_registers | length > 0 %}
+{% set has_ext_w1c = ext_w1c_regs | length > 0 %}
+{% set has_cos = cos_registers | length > 0 %}
+  constant C_REGS_HW2SW_RESET : t_regs_hw2sw := (
+{% for reg in hw_registers %}
+{% set is_last = loop.last and not has_ext_w1c and not has_cos %}
 {% if reg.fields | length %}
-    {{ reg.name | lower }}_pulse => C_REG_{{ reg.name | upper }}_PULSE_RESET{{ "," if not loop.last else "" }}
+    {{ reg.name | lower }} => C_REG_{{ reg.name | upper }}_RESET{{ "" if is_last else "," }}
+{% else %}
+    {{ reg.name | lower }} => (others => '0'){{ "" if is_last else "," }}
+{% endif %}
+{% endfor %}
+{% for reg in ext_w1c_regs %}
+{% set is_last = loop.last and not has_cos %}
+{% if reg.fields | length %}
+    {{ reg.name | lower }}_pulse => C_REG_{{ reg.name | upper }}_PULSE_RESET{{ "" if is_last else "," }}
+{% endif %}
+{% endfor %}
+{% for reg in cos_registers %}
+{% if reg.val_fields | length %}
+    {{ reg.name | lower }}_val => C_REG_{{ reg.name | upper }}_VAL_RESET{{ "," if not loop.last else "" }}
 {% endif %}
 {% endfor %}
   );
