@@ -27,11 +27,12 @@ module {{ entity_name }}_axil (
 {% endif %}
 
   // Register interface
+{% set has_regs_in = hw_registers | length > 0 or w1c_registers | length > 0 or cos_registers | length > 0 %}
 {% if sw_registers | length > 0 %}
-  output regs_sw2hw_t regs_out{{ "," if hw_registers | length > 0 else "" }}  // To core (SW-writable)
+  output regs_sw2hw_t regs_out{{ "," if has_regs_in else "" }}  // To core (SW-writable)
 {% endif %}
-{% if hw_registers | length > 0 %}
-  input  regs_hw2sw_t regs_in   // From core (HW-writable)
+{% if has_regs_in %}
+  input  regs_hw2sw_t regs_in   // From core (HW-writable / W1C pulses / CoS values)
 {% endif %}
 );
 
@@ -74,12 +75,12 @@ module {{ entity_name }}_axil (
     .rd_en    (rd_en),
     .rd_addr  (rd_addr),
     .rd_data  (rd_data),
-    .rd_valid (rd_valid){% if sw_registers | length > 0 or hw_registers | length > 0 %},{% endif %}
+    .rd_valid (rd_valid){% if sw_registers | length > 0 or has_regs_in %},{% endif %}
 
 {% if sw_registers | length > 0 %}
-    .regs_out (regs_out){{ "," if hw_registers | length > 0 else "" }}
+    .regs_out (regs_out){{ "," if has_regs_in else "" }}
 {% endif %}
-{% if hw_registers | length > 0 %}
+{% if has_regs_in %}
     .regs_in  (regs_in)
 {% endif %}
   );

@@ -36,13 +36,14 @@ module {{ entity_name }}{% if generics | length %} #(
 {% endfor %}
 {% endif %}
 );
-{% if has_memory_mapped_slave and (sw_registers | length > 0 or hw_registers | length > 0) %}
+{% set has_regs_in = hw_registers | length > 0 or w1c_registers | length > 0 or cos_registers | length > 0 %}
+{% if has_memory_mapped_slave and (sw_registers | length > 0 or has_regs_in) %}
 
   // Internal register signals
 {% if sw_registers | length > 0 %}
   regs_sw2hw_t regs_sw2hw;
 {% endif %}
-{% if hw_registers | length > 0 %}
+{% if has_regs_in %}
   regs_hw2sw_t regs_hw2sw;
 {% endif %}
 {% endif %}
@@ -53,15 +54,15 @@ module {{ entity_name }}{% if generics | length %} #(
   ////////////////////////////////////////////////////////////////////////////
   {{ entity_name }}_{{ bus_type }} u_{{ bus_type }} (
     .clk ({{ clock_port }}),
-    .rst ({% if reset_active_high %}{{ reset_port }}{% else %}~{{ reset_port }}{% endif %}){% if bus_ports | length or sw_registers | length > 0 or hw_registers | length > 0 %},{% endif %}
+    .rst ({% if reset_active_high %}{{ reset_port }}{% else %}~{{ reset_port }}{% endif %}){% if bus_ports | length or sw_registers | length > 0 or has_regs_in %},{% endif %}
 
 {% for port in bus_ports %}
-    .{{ "%-14s"|format(port.name) }}({{ port.name }}){{ "," if not loop.last or sw_registers | length > 0 or hw_registers | length > 0 else "" }}
+    .{{ "%-14s"|format(port.name) }}({{ port.name }}){{ "," if not loop.last or sw_registers | length > 0 or has_regs_in else "" }}
 {% endfor %}
 {% if sw_registers | length > 0 %}
-    .regs_out (regs_sw2hw){{ "," if hw_registers | length > 0 else "" }}
+    .regs_out (regs_sw2hw){{ "," if has_regs_in else "" }}
 {% endif %}
-{% if hw_registers | length > 0 %}
+{% if has_regs_in %}
     .regs_in  (regs_hw2sw)
 {% endif %}
   );
@@ -75,11 +76,11 @@ module {{ entity_name }}{% if generics | length %} #(
 {% endfor %}
   ){% endif %} u_core (
     .clk ({{ clock_port }}),
-    .rst ({% if reset_active_high %}{{ reset_port }}{% else %}~{{ reset_port }}{% endif %}){{ "," if sw_registers | length > 0 or hw_registers | length > 0 or secondary_bus_ports | length > 0 or user_ports | length > 0 else "" }}
+    .rst ({% if reset_active_high %}{{ reset_port }}{% else %}~{{ reset_port }}{% endif %}){{ "," if sw_registers | length > 0 or has_regs_in or secondary_bus_ports | length > 0 or user_ports | length > 0 else "" }}
 {% if sw_registers | length > 0 %}
-    .regs_in  (regs_sw2hw){{ "," if hw_registers | length > 0 or secondary_bus_ports | length > 0 or user_ports | length > 0 else "" }}
+    .regs_in  (regs_sw2hw){{ "," if has_regs_in or secondary_bus_ports | length > 0 or user_ports | length > 0 else "" }}
 {% endif %}
-{% if hw_registers | length > 0 %}
+{% if has_regs_in %}
     .regs_out (regs_hw2sw){{ "," if secondary_bus_ports | length > 0 or user_ports | length > 0 else "" }}
 {% endif %}
 {% if secondary_bus_interfaces | length %}

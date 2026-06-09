@@ -32,11 +32,12 @@ entity {{ entity_name }}_avmm is
 {% endif %}
 
     -- Register interface
+{% set has_regs_in = hw_registers | length > 0 or w1c_registers | length > 0 or cos_registers | length > 0 %}
 {% if sw_registers | length > 0 %}
-    regs_out : out t_regs_sw2hw{{ ";" if hw_registers | length > 0 else "" }}  -- To core (SW-writable)
+    regs_out : out t_regs_sw2hw{{ ";" if has_regs_in else "" }}  -- To core (SW-writable)
 {% endif %}
-{% if hw_registers | length > 0 %}
-    regs_in  : in  t_regs_hw2sw   -- From core (HW-writable)
+{% if has_regs_in %}
+    regs_in  : in  t_regs_hw2sw   -- From core (HW-writable / W1C pulses / CoS values)
 {% endif %}
   );
 end entity {{ entity_name }}_avmm;
@@ -108,9 +109,9 @@ begin
       rd_data  => readdata,
       rd_valid => readdatavalid,
 {% if sw_registers | length > 0 %}
-      regs_out => regs_out{{ "," if hw_registers | length > 0 else "" }}
+      regs_out => regs_out{{ "," if has_regs_in else "" }}
 {% endif %}
-{% if hw_registers | length > 0 %}
+{% if has_regs_in %}
       regs_in  => regs_in
 {% endif %}
     );
