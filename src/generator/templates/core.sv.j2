@@ -18,15 +18,16 @@ module {{ entity_name }}_core{% if generics | length %} #(
 ){% endif %} (
   // Clock and reset
   input  logic clk,
-  input  logic rst{% if sw_registers | length > 0 or hw_registers | length > 0 or secondary_bus_ports | length > 0 or user_ports | length > 0 %},{% endif %}
-{% if sw_registers | length > 0 or hw_registers | length > 0 %}
+{% set has_regs_in = hw_registers | length > 0 or w1c_registers | length > 0 or cos_registers | length > 0 %}
+  input  logic rst{% if sw_registers | length > 0 or has_regs_in or secondary_bus_ports | length > 0 or user_ports | length > 0 %},{% endif %}
+{% if sw_registers | length > 0 or has_regs_in %}
 
   // Register interface (struct-based)
 {% if sw_registers | length > 0 %}
-  input  regs_sw2hw_t regs_in{{ "," if hw_registers | length > 0 or secondary_bus_ports | length > 0 or user_ports | length > 0 else "" }}  // SW-writable registers (from bus wrapper)
+  input  regs_sw2hw_t regs_in{{ "," if has_regs_in or secondary_bus_ports | length > 0 or user_ports | length > 0 else "" }}  // SW-writable registers (from bus wrapper)
 {% endif %}
-{% if hw_registers | length > 0 %}
-  output regs_hw2sw_t regs_out{{ "," if secondary_bus_ports | length > 0 or user_ports | length > 0 else "" }}  // HW-writable registers (to bus wrapper)
+{% if has_regs_in %}
+  output regs_hw2sw_t regs_out{{ "," if secondary_bus_ports | length > 0 or user_ports | length > 0 else "" }}  // HW-status / W1C pulses / CoS values (to bus wrapper)
 {% endif %}
 {% endif %}
 {% if secondary_bus_interfaces | length %}
@@ -58,10 +59,10 @@ module {{ entity_name }}_core{% if generics | length %} #(
   always_ff @(posedge clk) begin
     if (rst) begin
       // Reset logic
-{% if hw_registers | length > 0 %}
+{% if has_regs_in %}
       regs_out <= '0;
 {% else %}
-      // (no HW-writable registers)
+      // (no HW-status / W1C / CoS registers)
 {% endif %}
     end else begin
       // Example: Access SW-writable register fields

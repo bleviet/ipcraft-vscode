@@ -25,13 +25,14 @@ entity {{ entity_name }}_core is
     clk : in std_logic;
     rst : in std_logic;
 
-{% if sw_registers | length > 0 or hw_registers | length > 0 %}
+{% set has_regs_in = hw_registers | length > 0 or w1c_registers | length > 0 or cos_registers | length > 0 %}
+{% if sw_registers | length > 0 or has_regs_in %}
     -- Register interface (record-based)
 {% if sw_registers | length > 0 %}
-    regs_in : in t_regs_sw2hw{{ ";" if hw_registers | length > 0 or secondary_bus_ports | length > 0 or user_ports | length > 0 else "" }} -- SW-writable registers (from bus wrapper)
+    regs_in : in t_regs_sw2hw{{ ";" if has_regs_in or secondary_bus_ports | length > 0 or user_ports | length > 0 else "" }} -- SW-writable registers (from bus wrapper)
 {% endif %}
-{% if hw_registers | length > 0 %}
-    regs_out : out t_regs_hw2sw{{ ";" if secondary_bus_ports | length > 0 or user_ports | length > 0 else "" }} -- HW-writable registers (to bus wrapper)
+{% if has_regs_in %}
+    regs_out : out t_regs_hw2sw{{ ";" if secondary_bus_ports | length > 0 or user_ports | length > 0 else "" }} -- HW-status / W1C pulses / CoS values (to bus wrapper)
 {% endif %}
 {% endif %}
 {% if secondary_bus_interfaces | length %}
@@ -70,7 +71,7 @@ begin
     if rising_edge(clk) then
       if rst = '1' then
         -- Reset logic
-{% if hw_registers | length > 0 %}
+{% if has_regs_in %}
         regs_out <= C_REGS_HW2SW_RESET;
 {% else %}
         null;
