@@ -13,7 +13,7 @@ import {{ entity_name }}_pkg::*;
 
 module {{ entity_name }}_core{% if generics | length %} #(
 {% for generic in generics %}
-  parameter {{ generic.sv_type }} {{ generic.name }} = {{ generic.sv_default }}{{ "," if not loop.last else "" }}
+  parameter {{ generic.sv_type ~ " " if generic.sv_type }}{{ generic.name }} = {{ generic.sv_default }}{{ "," if not loop.last else "" }}
 {% endfor %}
 ){% endif %} (
   // Clock and reset

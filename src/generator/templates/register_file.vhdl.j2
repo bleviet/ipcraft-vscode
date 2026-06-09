@@ -144,7 +144,7 @@ begin
 {% if field.width == 1 %}
         if regs_in.{{ reg.name | lower }}_pulse.{{ field.name | lower }}_pulse = '1' then
           regs.{{ reg.name | lower }}.{{ field.name | lower }} <= '1';
-        elsif wr_en = '1' and v_addr_index = t_reg_id'pos(REG_{{ reg.name | upper }})
+        elsif wr_en = '1' and v_addr_index = t_reg_index'pos(REG_{{ reg.name | upper }})
               and wr_strb({{ (field.offset / 8) | int }}) = '1' and wr_data({{ field.offset }}) = '1' then
           regs.{{ reg.name | lower }}.{{ field.name | lower }} <= '0';
         end if;
@@ -152,7 +152,7 @@ begin
         for i in 0 to {{ field.width - 1 }} loop
           if regs_in.{{ reg.name | lower }}_pulse.{{ field.name | lower }}_pulse(i) = '1' then
             regs.{{ reg.name | lower }}.{{ field.name | lower }}(i) <= '1';
-          elsif wr_en = '1' and v_addr_index = t_reg_id'pos(REG_{{ reg.name | upper }})
+          elsif wr_en = '1' and v_addr_index = t_reg_index'pos(REG_{{ reg.name | upper }})
                 and wr_strb(({{ field.offset }} + i) / 8) = '1' and wr_data({{ field.offset }} + i) = '1' then
             regs.{{ reg.name | lower }}.{{ field.name | lower }}(i) <= '0';
           end if;
@@ -169,7 +169,7 @@ begin
 {% if cf.width == 1 %}
         if {{ reg.name | lower }}_{{ cf.name | lower }}_cos = '1' then
           regs.{{ reg.name | lower }}.{{ cf.name | lower }} <= '1';
-        elsif wr_en = '1' and v_addr_index = t_reg_id'pos(REG_{{ reg.name | upper }})
+        elsif wr_en = '1' and v_addr_index = t_reg_index'pos(REG_{{ reg.name | upper }})
               and wr_strb({{ (cf.offset / 8) | int }}) = '1' and wr_data({{ cf.offset }}) = '1' then
           regs.{{ reg.name | lower }}.{{ cf.name | lower }} <= '0';
         end if;
@@ -177,7 +177,7 @@ begin
         for i in 0 to {{ cf.width - 1 }} loop
           if {{ reg.name | lower }}_{{ cf.name | lower }}_cos = '1' then
             regs.{{ reg.name | lower }}.{{ cf.name | lower }}(i) <= '1';
-          elsif wr_en = '1' and v_addr_index = t_reg_id'pos(REG_{{ reg.name | upper }})
+          elsif wr_en = '1' and v_addr_index = t_reg_index'pos(REG_{{ reg.name | upper }})
                 and wr_strb(({{ cf.offset }} + i) / 8) = '1' and wr_data({{ cf.offset }} + i) = '1' then
             regs.{{ reg.name | lower }}.{{ cf.name | lower }}(i) <= '0';
           end if;
@@ -192,7 +192,7 @@ begin
 {% for reg in registers %}
 {% if reg.access in ['read-write', 'write-only', 'rw', 'wo', 'read_write', 'write_only'] %}
 {% set blocked_flds = reg.fields | selectattr('access', 'in', ['write-1-to-clear', 'read-write-1-to-clear', 'read-only', 'ro']) %}
-          when t_reg_id'pos(REG_{{ reg.name | upper }}) =>
+          when t_reg_index'pos(REG_{{ reg.name | upper }}) =>
 {% if reg.fields | length %}
 {% if blocked_flds | length %}
             v_wdata := apply_wstrb(to_slv(regs.{{ reg.name | lower }}), wr_data, wr_strb);
@@ -240,14 +240,14 @@ begin
 {% for reg in registers %}
 {% if not reg.has_cos_fields %}
 {% if reg.access in ['read-only', 'ro', 'read_only'] %}
-          when t_reg_id'pos(REG_{{ reg.name | upper }}) =>
+          when t_reg_index'pos(REG_{{ reg.name | upper }}) =>
 {% if reg.fields | length %}
             rd_data_int <= to_slv(regs_in.{{ reg.name | lower }});
 {% else %}
             rd_data_int <= regs_in.{{ reg.name | lower }};
 {% endif %}
 {% elif reg.access in ['read-write', 'rw', 'read_write', 'read-write-1-to-clear'] %}
-          when t_reg_id'pos(REG_{{ reg.name | upper }}) =>
+          when t_reg_index'pos(REG_{{ reg.name | upper }}) =>
 {% if reg.fields | length %}
             rd_data_int <= to_slv(regs.{{ reg.name | lower }});
 {% else %}
@@ -257,7 +257,7 @@ begin
 {% endif %}
 {% endfor %}
 {% for reg in cos_registers %}
-          when t_reg_id'pos(REG_{{ reg.name | upper }}) =>
+          when t_reg_index'pos(REG_{{ reg.name | upper }}) =>
             v_rd_data := (others => '0');
 {% for field in reg.fields %}
 {% if field.access in ['write-1-to-clear', 'read-write-1-to-clear'] %}

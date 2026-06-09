@@ -22,14 +22,14 @@ package {{ entity_name }}_pkg is
   ----------------------------------------------------------------------------
   -- Register Enumeration (Order defines address)
   ----------------------------------------------------------------------------
-  type t_reg_id is (
+  type t_reg_index is (
 {% for reg in registers %}
     REG_{{ reg.name | upper }}{{ "," if not loop.last else "" }}  -- addr {{ "0x%02X" | format(loop.index0 * reg_width | default(4)) }}
 {% endfor %}
   );
 
   -- Calculate register address from enumeration
-  function reg_addr(reg : t_reg_id) return natural;
+  function reg_addr(reg : t_reg_index) return natural;
 {% endif %}
 
   ----------------------------------------------------------------------------
@@ -214,9 +214,9 @@ package body {{ entity_name }}_pkg is
   ----------------------------------------------------------------------------
   -- Register Address Function
   ----------------------------------------------------------------------------
-  function reg_addr(reg : t_reg_id) return natural is
+  function reg_addr(reg : t_reg_index) return natural is
   begin
-    return t_reg_id'pos(reg) * C_REG_WIDTH;
+    return t_reg_index'pos(reg) * C_REG_WIDTH;
   end function;
 {% endif %}
 

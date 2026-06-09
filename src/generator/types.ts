@@ -141,6 +141,8 @@ export interface BusInterfaceDef {
   associated_clock?: string;
   associated_reset?: string;
   array?: BusInterfaceArrayDef;
+  /** User-defined signals for conduit (custom) interfaces. */
+  conduit_ports?: Array<Record<string, unknown>>;
   ports?: Array<Record<string, unknown>>;
   [key: string]: unknown;
 }

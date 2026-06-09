@@ -133,6 +133,10 @@ function normalizeBusInterface(raw: Record<string, unknown>): BusInterfaceDef {
     (raw.absent_ports as string[] | undefined) ??
     (raw.absentPorts as string[] | undefined) ??
     undefined;
+  const conduitPorts =
+    (raw.conduit_ports as Array<Record<string, unknown>> | undefined) ??
+    (raw.conduitPorts as Array<Record<string, unknown>> | undefined) ??
+    undefined;
   return {
     name: getString(raw.name),
     type: getString(raw.type),
@@ -142,6 +146,7 @@ function normalizeBusInterface(raw: Record<string, unknown>): BusInterfaceDef {
     port_width_overrides: portWidthOverrides,
     port_name_overrides: portNameOverrides,
     absent_ports: absentPorts,
+    conduit_ports: conduitPorts,
     associated_clock: getString(raw.associated_clock ?? raw.associatedClock),
     associated_reset: getString(raw.associated_reset ?? raw.associatedReset),
     array: array
@@ -316,6 +321,7 @@ export function expandBusInterfaces(ipCore: IpCoreData): BusInterfaceDef[] {
           port_width_overrides: iface.port_width_overrides ?? {},
           port_name_overrides: iface.port_name_overrides,
           absent_ports: iface.absent_ports,
+          conduit_ports: iface.conduit_ports,
           associated_clock: iface.associated_clock,
           associated_reset: iface.associated_reset,
         });
@@ -332,6 +338,7 @@ export function expandBusInterfaces(ipCore: IpCoreData): BusInterfaceDef[] {
       port_width_overrides: iface.port_width_overrides ?? {},
       port_name_overrides: iface.port_name_overrides,
       absent_ports: iface.absent_ports,
+      conduit_ports: iface.conduit_ports,
       associated_clock: iface.associated_clock,
       associated_reset: iface.associated_reset,
     });
@@ -516,9 +523,36 @@ export async function prepareRegisters(
       return;
     }
 
+    // Flat register array (count > 1 without child registers): replicate the
+    // register as <NAME>_<i> instances, mirroring the group-array expansion.
+    const flatCountValue = Number(reg.count ?? 1);
+    const flatCount =
+      Number.isFinite(flatCountValue) && flatCountValue > 0 ? Math.trunc(flatCountValue) : 1;
+    if (flatCount > 1 && !reg.__expanded_array_instance) {
+      const strideValue = Number(reg.stride ?? 0);
+      // Default stride: one 32-bit register slot (4 bytes).
+      const stride = Number.isFinite(strideValue) && strideValue > 0 ? strideValue : 4;
+      for (let i = 0; i < flatCount; i += 1) {
+        processRegister(
+          {
+            ...reg,
+            name: `${String(regName)}_${i}`,
+            offset:
+              parseNumber(reg.address_offset ?? reg.addressOffset ?? reg.offset ?? 0) + i * stride,
+            count: 1,
+            __expanded_array_instance: true,
+          },
+          baseOffset,
+          prefix
+        );
+      }
+      return;
+    }
+
     const fields = ((reg.fields as Array<Record<string, unknown>>) ?? []).map((field) => {
-      let bitOffset = field.bit_offset ?? field.bitOffset ?? field.bit_range;
-      let bitWidth = field.bit_width ?? field.bitWidth;
+      // Schema allows either a bits string ("[7:0]") or numeric offset/width.
+      let bitOffset = field.bit_offset ?? field.bitOffset ?? field.bit_range ?? field.offset;
+      let bitWidth = field.bit_width ?? field.bitWidth ?? field.width;
 
       if (bitOffset === undefined || bitWidth === undefined) {
         const parsedBits = parseBits(getString(field.bits));

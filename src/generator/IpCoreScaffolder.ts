@@ -504,10 +504,15 @@ export class IpCoreScaffolder {
 
       expandedBusInterfaces.forEach((iface, index) => {
         const busTypeInfo = normalizeBusType(this.getString(iface.type));
-        const busPortsForType = this.resolvePortsForInterface(
-          busTypeInfo.libraryKey,
-          this.getString(iface.type)
-        );
+        // Conduit (custom) interfaces carry their own user-defined port list
+        // instead of referencing a bus-library definition.
+        const conduitPorts = iface.conduit_ports as
+          | Array<{ name: string; width?: number | string; direction?: string; presence?: string }>
+          | undefined;
+        const busPortsForType =
+          conduitPorts && conduitPorts.length > 0
+            ? conduitPorts
+            : this.resolvePortsForInterface(busTypeInfo.libraryKey, this.getString(iface.type));
         const activePorts = getActiveBusPortsFromDefinition(
           busPortsForType,
           iface.use_optional_ports ?? [],
@@ -680,7 +685,9 @@ export class IpCoreScaffolder {
       return 'bit';
     }
     if (t === 'string') {
-      return 'string';
+      // Untyped parameter: a typed `parameter string` cannot be overridden
+      // through the hierarchy in some tools (e.g. Icarus Verilog).
+      return '';
     }
     return 'int';
   }
@@ -689,10 +696,15 @@ export class IpCoreScaffolder {
     value: number | string | undefined,
     type: string
   ): number | string | null {
+    const t = type.toLowerCase().trim();
     if (value !== undefined && value !== null) {
+      // VHDL boolean literals are not valid SystemVerilog; map to bit literals.
+      if (t === 'boolean') {
+        const v = String(value).toLowerCase().trim();
+        return v === 'true' || v === '1' ? "1'b1" : "1'b0";
+      }
       return value;
     }
-    const t = type.toLowerCase().trim();
     if (t === 'integer' || t === 'natural' || t === 'positive') {
       return 0;
     }
