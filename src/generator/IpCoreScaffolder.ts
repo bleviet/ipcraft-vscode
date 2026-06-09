@@ -112,13 +112,15 @@ export class IpCoreScaffolder {
       context.includeRegs = includeRegs;
 
       // ── Resolve scaffold pack ──────────────────────────────────────────────
-      // Pack is always determined by options (workspace setting / canvas picker).
-      // The .ip.yml spec does not carry generation preferences.
-      const packName = options.scaffoldPack;
+      // Cascade: explicit option (settings/picker) > scaffold_pack in .ip.yml > legacy flag.
+      const packName =
+        options.scaffoldPack ??
+        (typeof ipCoreData.scaffold_pack === 'string' ? ipCoreData.scaffold_pack : undefined);
       const workspacePackDirs = this.resolveWorkspacePackDirs();
       const pack = packName
         ? ScaffoldPackLoader.resolve(packName, workspacePackDirs)
         : ScaffoldPackLoader.resolveDefault(bahonaviMethodology);
+      const resolvedPackName = path.basename(pack.packDir);
 
       // Pack-level template loader: searches pack dir first (user overrides), then built-in templates.
       const packLoader = new TemplateLoader(this.logger, [
@@ -259,6 +261,7 @@ export class IpCoreScaffolder {
           success: true,
           generatedContents: { ...files },
           protectedPaths: protectedOnDisk,
+          resolvedPackName,
           count: Object.keys(files).length,
           busType,
         };
@@ -294,6 +297,7 @@ export class IpCoreScaffolder {
         success: true,
         files: written,
         generatedContents: { ...files },
+        resolvedPackName,
         count: Object.keys(written).length,
         busType,
       };

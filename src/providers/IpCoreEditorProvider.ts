@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as fs from 'fs/promises';
 import * as fsSync from 'fs';
 import * as jsyaml from 'js-yaml';
+import * as YAML from 'yaml';
 import { Logger } from '../utils/Logger';
 import { HtmlGenerator } from '../services/HtmlGenerator';
 import { MessageHandler } from '../services/MessageHandler';
@@ -307,6 +308,9 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
         if (typeof packName !== 'string') {
           return;
         }
+        // Write to .ip.yml (per-file) so the pack round-trips with the file
+        await this.writeScaffoldPackToDocument(document, packName);
+        // Keep global setting as default for new files that don't yet have scaffold_pack
         const cfg = vscode.workspace.getConfiguration('ipcraft.generate');
         await cfg.update('scaffoldPack', packName, vscode.ConfigurationTarget.Global);
         // onDidChangeConfiguration fires updateWebview automatically
@@ -488,11 +492,14 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
 
       const generateCfg = vscode.workspace.getConfiguration('ipcraft.generate');
       const hdlLanguage = generateCfg.get<string>('hdlLanguage', 'vhdl');
-      // Derive default scaffold pack from legacy bahonaviMethodology when scaffoldPack unset
+      // Cascade: .ip.yml scaffold_pack > workspace setting > legacy flag > default
       const legacyBahonavi = generateCfg.get<boolean>('bahonaviMethodology', false);
+      const yamlScaffoldPack =
+        typeof parsedData.scaffold_pack === 'string' ? parsedData.scaffold_pack : undefined;
       const scaffoldPack =
-        generateCfg.get<string>('scaffoldPack', '') ||
-        (legacyBahonavi ? 'builtin-bahonavi' : 'builtin-minimal');
+        yamlScaffoldPack ??
+        (generateCfg.get<string>('scaffoldPack', '') ||
+          (legacyBahonavi ? 'builtin-bahonavi' : 'builtin-minimal'));
       const availableScaffoldPacks = collectAvailableScaffoldPacks();
 
       const toolbarTargets = vscode.workspace
@@ -521,6 +528,28 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
       });
     } catch (error) {
       this.logger.error('Failed to update webview', error as Error);
+    }
+  }
+
+  private async writeScaffoldPackToDocument(
+    document: vscode.TextDocument,
+    packName: string
+  ): Promise<void> {
+    try {
+      const doc = YAML.parseDocument(document.getText());
+      doc.set('scaffold_pack', packName);
+      const newText = doc.toString();
+      const edit = new vscode.WorkspaceEdit();
+      const lastLine = document.lineAt(Math.max(0, document.lineCount - 1));
+      edit.replace(
+        document.uri,
+        new vscode.Range(0, 0, lastLine.lineNumber, lastLine.text.length),
+        newText
+      );
+      await vscode.workspace.applyEdit(edit);
+      await document.save();
+    } catch (error) {
+      this.logger.error('Failed to write scaffold_pack to document', error as Error);
     }
   }
 

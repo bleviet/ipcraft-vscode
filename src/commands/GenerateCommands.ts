@@ -702,6 +702,9 @@ async function runGenerator(
 
   if (options.updateYaml) {
     await updateFileSetsInYaml(ipCoreUri, outputDir, writtenRelPaths);
+    if (dryResult.resolvedPackName) {
+      await updateScaffoldPackInYaml(ipCoreUri, dryResult.resolvedPackName);
+    }
   }
 
   if (!options.silent) {
@@ -1068,5 +1071,25 @@ async function updateFileSetsInYaml(
     await document.save();
   } catch (error) {
     logger.error('Failed to update fileSets', error as Error);
+  }
+}
+
+async function updateScaffoldPackInYaml(ipCoreUri: vscode.Uri, packName: string): Promise<void> {
+  try {
+    const document = await vscode.workspace.openTextDocument(ipCoreUri);
+    const doc = YAML.parseDocument(document.getText());
+    doc.set('scaffold_pack', packName);
+    const newText = doc.toString();
+    const edit = new vscode.WorkspaceEdit();
+    const lastLine = document.lineAt(Math.max(0, document.lineCount - 1));
+    edit.replace(
+      document.uri,
+      new vscode.Range(0, 0, lastLine.lineNumber, lastLine.text.length),
+      newText
+    );
+    await vscode.workspace.applyEdit(edit);
+    await document.save();
+  } catch (error) {
+    logger.error('Failed to update scaffold_pack', error as Error);
   }
 }

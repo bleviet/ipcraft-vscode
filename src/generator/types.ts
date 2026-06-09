@@ -86,6 +86,8 @@ export interface GenerateResult {
   generatedContents?: Record<string, string>;
   /** Relative paths of managed:false files that already exist on disk (skip on write). */
   protectedPaths?: string[];
+  /** The scaffold pack id that was actually used (e.g. "builtin-bahonavi"). */
+  resolvedPackName?: string;
   count?: number;
   busType?: string;
   error?: string;
@@ -177,6 +179,7 @@ export interface SubcoreRef {
 export interface IpCoreData {
   vlnv?: VlnvDef;
   description?: string;
+  scaffold_pack?: string;
   parameters?: ParameterDef[];
   ports?: PortDef[];
   bus_interfaces?: BusInterfaceDef[];
