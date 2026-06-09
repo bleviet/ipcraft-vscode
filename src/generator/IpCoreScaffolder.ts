@@ -598,7 +598,11 @@ export class IpCoreScaffolder {
     // valid non-null range in VHDL (requires high index >= low index, i.e. >= 2).
     // The user can override this with `addrWidth` in the IP core YAML.
     const lastReg = registers.length > 0 ? registers[registers.length - 1] : null;
-    const maxByteAddress = lastReg ? ((lastReg.offset as number) ?? 0) + 4 : 4;
+    const lastOffsetEnd = lastReg ? ((lastReg.offset as number) ?? 0) + 4 : 4;
+    // The register-file decoder addresses registers densely by word index
+    // (declaration order), not by YAML offset, so the address space must also
+    // cover registers.length words even when the declared offsets are smaller.
+    const maxByteAddress = Math.max(lastOffsetEnd, registers.length * 4);
     const computedAddrWidth = Math.max(3, Math.ceil(Math.log2(Math.max(maxByteAddress, 2))));
     const rawAddrWidth = (ipCore as Record<string, unknown>).addrWidth;
     const addrWidth = typeof rawAddrWidth === 'number' ? rawAddrWidth : computedAddrWidth;
