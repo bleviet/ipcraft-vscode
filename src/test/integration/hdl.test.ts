@@ -1,0 +1,167 @@
+/**
+ * Open-source HDL toolchain integration tests.
+ *
+ * For every generated fixture:
+ *   - VHDL: GHDL analyze + elaborate + synthesize (--synth) the top entity.
+ *   - SystemVerilog: Icarus Verilog (iverilog -g2012) compile.
+ *
+ * Unlike the Vivado/Quartus suites these run with freely available tools, so
+ * they verify on any machine that the generated RTL compiles for simulation
+ * and passes a synthesis elaboration.
+ *
+ * Skip with SKIP_GHDL=1 / SKIP_IVERILOG=1; suites also self-skip when the
+ * tool is not on PATH.
+ */
+
+import * as path from 'path';
+import * as fs from 'fs';
+import * as os from 'os';
+import { spawnSync } from 'child_process';
+import { generateFixtures, Fixture } from './generator';
+
+const SKIP_GHDL = process.env.SKIP_GHDL === '1' || !toolAvailable('ghdl');
+const SKIP_IVERILOG = process.env.SKIP_IVERILOG === '1' || !toolAvailable('iverilog');
+
+function toolAvailable(tool: string): boolean {
+  return spawnSync('which', [tool], { encoding: 'utf8' }).status === 0;
+}
+
+let fixtures: Fixture[] = [];
+
+beforeAll(async () => {
+  fixtures = await generateFixtures();
+}, 300_000);
+
+/**
+ * Order RTL files for single-pass compilation:
+ * package -> register file -> core -> bus wrapper -> everything else -> top.
+ */
+function orderRtlFiles(files: string[], ext: string): string[] {
+  const rank = (f: string): number => {
+    if (f.endsWith(`_pkg.${ext}`)) {
+      return 0;
+    }
+    if (f.endsWith(`_regs.${ext}`)) {
+      return 1;
+    }
+    if (f.endsWith(`_core.${ext}`)) {
+      return 2;
+    }
+    if (/_(axil|avmm|axi4)\.(vhd|sv)$/.test(f)) {
+      return 3;
+    }
+    return 4; // top and anything else last
+  };
+  return files
+    .filter((f) => f.startsWith('rtl/') && f.endsWith(`.${ext}`))
+    .sort((a, b) => rank(a) - rank(b));
+}
+
+/**
+ * The top unit is the rtl file without a _pkg/_regs/_core/bus-wrapper suffix.
+ * Two-pass like vivado.test.ts: fall back to accepting a _core file for IPs
+ * whose VLNV name itself ends in _core (minimal-pack top-only fixtures).
+ */
+function topUnit(ordered: string[], ext: string): string | null {
+  const baseFilter = (f: string) =>
+    !f.endsWith(`_pkg.${ext}`) &&
+    !f.endsWith(`_regs.${ext}`) &&
+    !/_(axil|avmm|axi4)\.(vhd|sv)$/.test(f);
+  const top =
+    ordered.find((f) => baseFilter(f) && !f.endsWith(`_core.${ext}`)) ??
+    ordered.find((f) => baseFilter(f));
+  return top ? path.basename(top, `.${ext}`) : null;
+}
+
+describe('GHDL: generated VHDL compiles for simulation and synthesis', () => {
+  it('analyzes, elaborates and synthesizes every VHDL fixture', () => {
+    if (SKIP_GHDL) {
+      // eslint-disable-next-line no-console
+      console.log('Skipping GHDL validation (SKIP_GHDL=1 or ghdl not found)');
+      return;
+    }
+
+    const vhdlFixtures = fixtures.filter((f) => f.success && f.name.endsWith('_vhdl'));
+    expect(vhdlFixtures.length).toBeGreaterThan(0);
+
+    const failures: string[] = [];
+
+    for (const fixture of vhdlFixtures) {
+      const ordered = orderRtlFiles(Object.keys(fixture.files), 'vhd');
+      if (ordered.length === 0) {
+        continue;
+      }
+      const top = topUnit(ordered, 'vhd');
+      if (!top) {
+        failures.push(`${fixture.name}: could not determine top entity`);
+        continue;
+      }
+
+      const workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-ghdl-'));
+      try {
+        const steps: string[][] = [
+          ['-a', '--std=08', `--workdir=${workdir}`, ...ordered],
+          ['-e', '--std=08', `--workdir=${workdir}`, top],
+          ['--synth', '--std=08', `--workdir=${workdir}`, top],
+        ];
+        for (const args of steps) {
+          const result = spawnSync('ghdl', args, {
+            cwd: fixture.outputDir,
+            encoding: 'utf8',
+            timeout: 120_000,
+          });
+          if (result.status !== 0) {
+            failures.push(
+              `${fixture.name}: ghdl ${args[0]} failed\n${result.stderr || result.stdout}`
+            );
+            break;
+          }
+        }
+      } finally {
+        fs.rmSync(workdir, { recursive: true, force: true });
+      }
+    }
+
+    if (failures.length > 0) {
+      throw new Error(`GHDL validation failed:\n\n${failures.join('\n\n')}`);
+    }
+  });
+});
+
+describe('Icarus Verilog: generated SystemVerilog compiles', () => {
+  it('compiles every SystemVerilog fixture with iverilog -g2012', () => {
+    if (SKIP_IVERILOG) {
+      // eslint-disable-next-line no-console
+      console.log('Skipping iverilog validation (SKIP_IVERILOG=1 or iverilog not found)');
+      return;
+    }
+
+    const svFixtures = fixtures.filter((f) => f.success && f.name.endsWith('_sv'));
+    expect(svFixtures.length).toBeGreaterThan(0);
+
+    const failures: string[] = [];
+
+    for (const fixture of svFixtures) {
+      const ordered = orderRtlFiles(Object.keys(fixture.files), 'sv');
+      if (ordered.length === 0) {
+        continue;
+      }
+
+      const out = path.join(os.tmpdir(), `ipcraft-iverilog-${process.pid}.vvp`);
+      const result = spawnSync('iverilog', ['-g2012', '-o', out, ...ordered], {
+        cwd: fixture.outputDir,
+        encoding: 'utf8',
+        timeout: 120_000,
+      });
+      fs.rmSync(out, { force: true });
+
+      if (result.status !== 0) {
+        failures.push(`${fixture.name}: iverilog failed\n${result.stderr || result.stdout}`);
+      }
+    }
+
+    if (failures.length > 0) {
+      throw new Error(`iverilog validation failed:\n\n${failures.join('\n\n')}`);
+    }
+  });
+});

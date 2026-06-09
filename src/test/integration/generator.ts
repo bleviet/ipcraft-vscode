@@ -29,7 +29,10 @@ const REPO_ROOT = path.resolve(__dirname, '../../..');
 const TEMPLATES_DIR = path.join(REPO_ROOT, 'ipcraft-spec/templates');
 const EXAMPLES_DIR = path.join(REPO_ROOT, 'ipcraft-spec/examples');
 const GENERATOR_TEMPLATES = path.join(REPO_ROOT, 'src/generator/templates');
-export const FIXTURE_BASE = path.join(os.tmpdir(), 'ipcraft-integration-fixtures');
+// Per-process directory: Jest runs suites in parallel worker processes, each
+// regenerating fixtures (rm -rf + rewrite). A shared path would let one worker
+// delete files while another is feeding them to an external tool.
+export const FIXTURE_BASE = path.join(os.tmpdir(), `ipcraft-integration-fixtures-${process.pid}`);
 
 export interface Fixture {
   name: string;
