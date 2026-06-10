@@ -543,11 +543,14 @@ export class SpatialInsertionService {
     const newOffset = selectedOffset - 4;
 
     if (newOffset < 0) {
-      return {
-        items: registers,
-        newIndex: -1,
-        error: 'Cannot insert before: offset would be negative',
-      };
+      // No room behind — insert at offset 0 and push all existing registers forward.
+      let newRegisters: RegisterRuntimeDef[] = [this.defaultReg(name, 0), ...registers];
+      newRegisters = repackRegistersForward(newRegisters, 1).map((reg, index) =>
+        toRegisterRuntime(reg as Record<string, unknown>, index)
+      );
+      newRegisters = sortRegistersByOffset(newRegisters);
+      const newIndex = newRegisters.findIndex((r) => r.name === name);
+      return { items: newRegisters, newIndex };
     }
 
     let newRegisters: RegisterRuntimeDef[] = [
