@@ -17,7 +17,7 @@ import {
   formatBitsRange as formatBits,
   fieldToBitsString,
 } from '../utils/BitFieldUtils';
-import { repackRegistersForward, repackRegistersBackward } from '../algorithms/RegisterRepacker';
+import { repackRegistersForward } from '../algorithms/RegisterRepacker';
 import { repackBlocksForward, repackBlocksBackward } from '../algorithms/AddressBlockRepacker';
 import { calculateBlockSize } from '../utils/blockSize';
 
@@ -563,21 +563,12 @@ export class SpatialInsertionService {
       this.defaultReg(name, newOffset),
       ...registers.slice(selIdx),
     ];
-    newRegisters = repackRegistersBackward(newRegisters, selIdx - 1 >= 0 ? selIdx - 1 : 0).map(
-      (reg, index) => toRegisterRuntime(reg as Record<string, unknown>, index)
+    // Repack forward from the new register's position — shifts newReg and all
+    // subsequent registers up past any existing register at the same offset.
+    newRegisters = repackRegistersForward(newRegisters, selIdx).map((reg, index) =>
+      toRegisterRuntime(reg as Record<string, unknown>, index)
     );
     newRegisters = sortRegistersByOffset(newRegisters);
-
-    // Validate: no register should end up with a negative offset.
-    for (const reg of newRegisters) {
-      if ((reg.address_offset ?? reg.offset ?? 0) < 0) {
-        return {
-          items: registers,
-          newIndex: -1,
-          error: 'Cannot insert: not enough offset space for repacking',
-        };
-      }
-    }
 
     const newIndex = newRegisters.findIndex((r) => r.name === name);
     return { items: newRegisters, newIndex };

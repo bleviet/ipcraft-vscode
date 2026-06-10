@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode, ErrorInfo } from 'react';
 import { createRoot } from 'react-dom/client';
 import Outline, { type OutlineHandle } from './components/OutlinePanel';
@@ -16,6 +16,10 @@ import {
   SpatialInsertionService,
   type RegisterRuntimeDef,
 } from './services/SpatialInsertionService';
+import { YamlService } from './services/YamlService';
+import { YamlPathResolver } from './services/YamlPathResolver';
+import { repackBlocksForward } from './algorithms/AddressBlockRepacker';
+import type { AddressBlockRecord } from './types/editor';
 import '@vscode/codicons/dist/codicon.css';
 import './index.css';
 
@@ -82,6 +86,49 @@ const App = () => {
     updateRawText,
     sendUpdate,
   });
+
+  // After registers change in a block, repack all subsequent blocks so their
+  // base_address reflects the block's true size.
+  const repackSubsequentBlocks = useCallback(
+    (changedBlockIndex: number) => {
+      const rootObj = YamlService.safeParse(rawTextRef.current);
+      if (!rootObj) {
+        return;
+      }
+      const { root, selectionRootPath } = YamlPathResolver.getMapRootInfo(rootObj);
+      const mapObj = YamlPathResolver.getAtPath(root, selectionRootPath) as
+        | Record<string, unknown>
+        | undefined;
+      if (!mapObj) {
+        return;
+      }
+      const rawBlocks = (mapObj.addressBlocks ?? mapObj.address_blocks) as
+        | Record<string, unknown>[]
+        | undefined;
+      if (!Array.isArray(rawBlocks) || rawBlocks.length <= changedBlockIndex + 1) {
+        return;
+      }
+      const repacked = repackBlocksForward(
+        rawBlocks as AddressBlockRecord[],
+        changedBlockIndex + 1
+      );
+      let changed = false;
+      for (let i = changedBlockIndex + 1; i < repacked.length; i++) {
+        if (rawBlocks[i].base_address !== repacked[i].base_address) {
+          rawBlocks[i] = { ...rawBlocks[i], base_address: repacked[i].base_address };
+          changed = true;
+        }
+      }
+      if (!changed) {
+        return;
+      }
+      const newText = YamlService.dump(root);
+      updateRawText(newText);
+      sendUpdate(newText);
+    },
+    [rawTextRef, updateRawText, sendUpdate]
+  );
+
   const { navigateToRegister, navigateToBlock } = useDetailsNavigation({
     memoryMap,
     selectedObject,
@@ -152,6 +199,7 @@ const App = () => {
         ['addressBlocks', blockIndex, 'registers'],
         rawRegs.filter((_, i) => i !== regIndex)
       );
+      repackSubsequentBlocks(blockIndex);
       return;
     }
 
@@ -171,8 +219,24 @@ const App = () => {
     );
     if (!result.error) {
       handleUpdate(['addressBlocks', blockIndex, 'registers'], result.items);
+      repackSubsequentBlocks(blockIndex);
     }
   };
+
+  // Wraps handleUpdate to repack subsequent blocks whenever a block's whole
+  // register array is replaced (insert/delete from BlockEditor).
+  const handleUpdateWithRepack = useCallback(
+    (path: (string | number)[], value: unknown) => {
+      handleUpdate(path, value);
+      if (path[0] === 'registers' && path.length === 1) {
+        const sel = selectionRef.current;
+        if (sel?.type === 'block' && typeof sel.path[1] === 'number') {
+          repackSubsequentBlocks(sel.path[1]);
+        }
+      }
+    },
+    [handleUpdate, selectionRef, repackSubsequentBlocks]
+  );
 
   /**
    * Render error state
@@ -239,7 +303,7 @@ const App = () => {
           selectedType={selectedType}
           selectedObject={selectedObject}
           selectionMeta={selectionMeta}
-          onUpdate={handleUpdate}
+          onUpdate={handleUpdateWithRepack}
           onNavigateToRegister={navigateToRegister}
           onNavigateToBlock={navigateToBlock}
           registerLayout={registerLayout}
