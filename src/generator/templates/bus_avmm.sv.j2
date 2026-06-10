@@ -12,9 +12,11 @@
 ////////////////////////////////////////////////////////////////////////////////
 `timescale 1ns / 1ps
 
-import {{ entity_name }}_pkg::*;
-
-module {{ entity_name }}_avmm (
+{# Header import, not compilation-unit scope: iverilog 12 cannot resolve
+   functions imported into $unit, only types and parameters. #}
+module {{ entity_name }}_avmm
+  import {{ entity_name }}_pkg::*;
+(
   // Clock and reset
   input  logic clk,
   input  logic rst,

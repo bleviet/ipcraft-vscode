@@ -12,9 +12,11 @@
 ////////////////////////////////////////////////////////////////////////////////
 `timescale 1ns / 1ps
 
-import {{ entity_name }}_pkg::*;
-
-module {{ entity_name }}_axil (
+{# Header import, not compilation-unit scope: iverilog 12 cannot resolve
+   functions imported into $unit, only types and parameters. #}
+module {{ entity_name }}_axil
+  import {{ entity_name }}_pkg::*;
+(
   // Clock and reset
   input  logic clk,
   input  logic rst,
@@ -40,10 +42,13 @@ module {{ entity_name }}_axil (
   localparam logic [1:0] C_RESP_OKAY   = 2'b00;
   localparam logic [1:0] C_RESP_SLVERR = 2'b10;
 
-  // AXI internal signals
+  // AXI internal signals. Master-to-slave signals are driven from always_comb
+  // below, so they must not carry a declaration initializer (a second driver
+  // per IEEE 1800 9.2.2.2 — Verilator MULTIDRIVEN).
+{% set comb_driven = ['AWADDR', 'AWVALID', 'WDATA', 'WSTRB', 'WVALID', 'BREADY', 'ARADDR', 'ARVALID', 'RREADY'] %}
 {% for port in bus_ports %}
 {% if port.logical_name != 'AWPROT' and port.logical_name != 'ARPROT' %}
-  {{ "%-34s"|format(port.sv_type) }} {{ port.logical_name | lower }} = '0;
+  {{ "%-34s"|format(port.sv_type) }} {{ port.logical_name | lower }}{{ ";" if port.logical_name in comb_driven else " = '0;" }}
 {% endif %}
 {% endfor %}
 
