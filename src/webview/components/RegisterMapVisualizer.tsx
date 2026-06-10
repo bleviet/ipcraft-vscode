@@ -320,9 +320,9 @@ const RegisterMapVisualizerInner: React.FC<RegisterMapVisualizerProps> = ({
                   <span className="ml-2 opacity-60">[{group.size}B]</span>
                 </div>
               </div>
-              {/* Offset */}
+              {/* Absolute address */}
               <div className="text-[11px] vscode-muted font-mono shrink-0">
-                +{toHex(group.offset)}
+                @ {toHex(group.absoluteAddress)}
               </div>
             </div>
           );
@@ -493,7 +493,7 @@ const RegisterMapVisualizerInner: React.FC<RegisterMapVisualizerProps> = ({
                 </div>
                 <div className="flex w-full justify-center">
                   <div className="text-center text-[11px] vscode-muted font-mono mt-1">
-                    +{toHex(group.offset)}
+                    {toHex(group.absoluteAddress)}
                   </div>
                 </div>
               </div>

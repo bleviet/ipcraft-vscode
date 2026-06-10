@@ -67,7 +67,12 @@ export function BlockEditor({
   onNavigateToRegister,
 }: BlockEditorProps) {
   const registers = block?.registers ?? [];
-  const baseAddress = Number(block?.base_address ?? block?.offset ?? 0);
+  const baseAddress = Number(
+    block?.base_address ??
+      (block as Record<string, unknown> | undefined)?.baseAddress ??
+      block?.offset ??
+      0
+  );
 
   const [selectedRegIndex, setSelectedRegIndex] = useState<number>(-1);
   const [hoveredRegIndex, setHoveredRegIndex] = useState<number | null>(null);

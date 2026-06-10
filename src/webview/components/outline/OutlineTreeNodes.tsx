@@ -72,9 +72,7 @@ function renderLeafRegister(
       }}
       paddingLeft={paddingLeft}
       name={renderNameOrEdit(id, reg.name, path, 'flex-1')}
-      offsetLabel={toHex(
-        Number((reg as Record<string, unknown>).address_offset ?? reg.offset ?? 0)
-      )}
+      offsetLabel={`@ ${toHex(absolute)}`}
       onContextMenu={
         onRegisterContextMenu
           ? (e) => {
