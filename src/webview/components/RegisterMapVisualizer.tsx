@@ -148,18 +148,8 @@ const RegisterMapVisualizerInner: React.FC<RegisterMapVisualizerProps> = ({
         const [removed] = newRegs.splice(ctrlDrag.draggedRegIndex, 1);
         newRegs.splice(ctrlDrag.targetIndex, 0, removed);
 
-        // Recalculate offsets - account for arrays (count * stride)
-        let runningOffset = 0;
-        newRegs.forEach((r) => {
-          r.offset = runningOffset;
-          r.address_offset = runningOffset;
-          // Calculate size for this item
-          if (r.__kind === 'array') {
-            runningOffset += (r.count ?? 1) * (r.stride ?? 4);
-          } else {
-            runningOffset += 4; // Regular register = 4 bytes
-          }
-        });
+        // Offsets will be automatically recalculated by the global layout engine
+        // when the state update propagates.
 
         onReorderRegisters(newRegs);
       }
@@ -367,7 +357,7 @@ const RegisterMapVisualizerInner: React.FC<RegisterMapVisualizerProps> = ({
             />
           </div>
         )}
-        {contextMenu && (onInsertAtGap || onDeleteReg) && (
+        {contextMenu && (onInsertAtGap ?? onDeleteReg) && (
           <div
             ref={contextMenuRef}
             className="fixed z-[200] min-w-[160px] rounded-lg shadow-xl border vscode-border vscode-surface overflow-hidden text-sm"

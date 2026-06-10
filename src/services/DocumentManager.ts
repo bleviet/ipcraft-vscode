@@ -8,6 +8,9 @@ import { handleError } from '../utils/ErrorHandler';
 export class DocumentManager {
   private readonly logger = new Logger('DocumentManager');
 
+  /** Per-document chain of pending edits, keyed by document URI. */
+  private readonly updateQueues = new Map<string, Promise<unknown>>();
+
   /**
    * Get the text content of a document
    */
@@ -16,12 +19,32 @@ export class DocumentManager {
   }
 
   /**
-   * Update a text document with new content
+   * Update a text document with new content.
+   *
+   * Updates to the same document are serialized: the replace range must be
+   * computed against the document state at the time the edit is applied,
+   * otherwise an overlapping earlier edit would make the range stale and the
+   * replace would leave a tail of the previous content behind.
+   *
    * @param document The document to update
    * @param text The new content
    * @returns Promise that resolves when the edit is applied
    */
-  async updateDocument(document: vscode.TextDocument, text: string): Promise<boolean> {
+  updateDocument(document: vscode.TextDocument, text: string): Promise<boolean> {
+    const key = document.uri.toString();
+    const previous = this.updateQueues.get(key) ?? Promise.resolve();
+    const task = previous.then(() => this.performUpdate(document, text));
+    this.updateQueues.set(
+      key,
+      task.then(
+        () => undefined,
+        () => undefined
+      )
+    );
+    return task;
+  }
+
+  private async performUpdate(document: vscode.TextDocument, text: string): Promise<boolean> {
     if (document.getText() === text) {
       return true;
     }
@@ -45,7 +68,7 @@ export class DocumentManager {
 
       return success;
     } catch (error) {
-      handleError(error, 'DocumentManager.updateDocument');
+      handleError(error, 'DocumentManager.performUpdate');
       return false;
     }
   }

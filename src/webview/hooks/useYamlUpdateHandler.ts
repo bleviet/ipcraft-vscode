@@ -4,6 +4,8 @@ import { YamlPathResolver, type YamlPath } from '../services/YamlPathResolver';
 import { YamlService } from '../services/YamlService';
 import type { Selection } from './useSelection';
 import { applyFieldOperation } from '../services/FieldOperationService';
+import { recomputeBitfieldLayout, type LayoutField } from '../algorithms/LayoutEngine';
+import { sanitizeFieldForYaml } from '../services/YamlSanitizer';
 
 interface YamlUpdateHandlerOptions {
   selectionRef: MutableRefObject<Selection | null>;
@@ -41,6 +43,22 @@ export function useYamlUpdateHandler({
           selectionRootPath,
           selection,
         });
+        // For field-move, repack bitfields only within the affected register
+        // to maintain contiguous layout without disturbing other registers.
+        if (String(path[1] ?? '') === 'field-move') {
+          const registerPath = [...selectionRootPath, ...selection.path];
+          const reg = YamlPathResolver.getAtPath(root, registerPath) as
+            | Record<string, unknown>
+            | undefined;
+          if (reg && Array.isArray(reg.fields) && reg.fields.length > 0) {
+            const regWidth = typeof reg.size === 'number' && reg.size > 0 ? reg.size : 32;
+            const updatedFields = recomputeBitfieldLayout(
+              reg.fields as LayoutField[],
+              regWidth
+            ).map((f) => sanitizeFieldForYaml(f as Record<string, unknown>));
+            YamlPathResolver.setAtPath(root, [...registerPath, 'fields'], updatedFields);
+          }
+        }
         const newText = YamlService.dump(root);
         updateRawText(newText);
         sendUpdate(newText);

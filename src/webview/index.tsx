@@ -12,14 +12,12 @@ import { useSelectionLifecycle } from './hooks/useSelectionLifecycle';
 import { useOutlineRename } from './hooks/useOutlineRename';
 import { useDetailsNavigation } from './hooks/useDetailsNavigation';
 import { useYamlUpdateHandler } from './hooks/useYamlUpdateHandler';
-import {
-  SpatialInsertionService,
-  type RegisterRuntimeDef,
-} from './services/SpatialInsertionService';
+import { insertElement, deleteElement } from './algorithms/MutationService';
+import { recomputeAddressLayout } from './algorithms/LayoutEngine';
+import type { LayoutMemoryMap } from './algorithms/LayoutEngine';
 import { YamlService } from './services/YamlService';
 import { YamlPathResolver } from './services/YamlPathResolver';
-import { repackBlocksForward } from './algorithms/AddressBlockRepacker';
-import type { AddressBlockRecord } from './types/editor';
+import { sanitizeMemoryMapForYaml } from './services/YamlSanitizer';
 import '@vscode/codicons/dist/codicon.css';
 import './index.css';
 
@@ -87,48 +85,6 @@ const App = () => {
     sendUpdate,
   });
 
-  // After registers change in a block, repack all subsequent blocks so their
-  // base_address reflects the block's true size.
-  const repackSubsequentBlocks = useCallback(
-    (changedBlockIndex: number) => {
-      const rootObj = YamlService.safeParse(rawTextRef.current);
-      if (!rootObj) {
-        return;
-      }
-      const { root, selectionRootPath } = YamlPathResolver.getMapRootInfo(rootObj);
-      const mapObj = YamlPathResolver.getAtPath(root, selectionRootPath) as
-        | Record<string, unknown>
-        | undefined;
-      if (!mapObj) {
-        return;
-      }
-      const rawBlocks = (mapObj.addressBlocks ?? mapObj.address_blocks) as
-        | Record<string, unknown>[]
-        | undefined;
-      if (!Array.isArray(rawBlocks) || rawBlocks.length <= changedBlockIndex + 1) {
-        return;
-      }
-      const repacked = repackBlocksForward(
-        rawBlocks as AddressBlockRecord[],
-        changedBlockIndex + 1
-      );
-      let changed = false;
-      for (let i = changedBlockIndex + 1; i < repacked.length; i++) {
-        if (rawBlocks[i].base_address !== repacked[i].base_address) {
-          rawBlocks[i] = { ...rawBlocks[i], base_address: repacked[i].base_address };
-          changed = true;
-        }
-      }
-      if (!changed) {
-        return;
-      }
-      const newText = YamlService.dump(root);
-      updateRawText(newText);
-      sendUpdate(newText);
-    },
-    [rawTextRef, updateRawText, sendUpdate]
-  );
-
   const { navigateToRegister, navigateToBlock } = useDetailsNavigation({
     memoryMap,
     selectedObject,
@@ -186,56 +142,98 @@ const App = () => {
     regIndex: number,
     action: 'insertBefore' | 'insertAfter' | 'delete'
   ) => {
-    const block = memoryMap?.addressBlocks?.[blockIndex] as
-      | { registers?: Record<string, unknown>[] }
-      | undefined;
-    if (!block) {
+    const rootObj = YamlService.safeParse(rawTextRef.current);
+    if (!rootObj) {
       return;
     }
-    const rawRegs = block.registers ?? [];
+    const { root, selectionRootPath } = YamlPathResolver.getMapRootInfo(rootObj);
+    const mapObj =
+      selectionRootPath.length > 0
+        ? (YamlPathResolver.getAtPath(root, selectionRootPath) as LayoutMemoryMap)
+        : (root as LayoutMemoryMap);
 
+    let result;
     if (action === 'delete') {
-      handleUpdate(
-        ['addressBlocks', blockIndex, 'registers'],
-        rawRegs.filter((_, i) => i !== regIndex)
+      result = deleteElement(mapObj, 'register', regIndex, { blockIndex });
+    } else {
+      result = insertElement(
+        mapObj,
+        'register',
+        action === 'insertBefore' ? 'before' : 'after',
+        regIndex,
+        { blockIndex }
       );
-      repackSubsequentBlocks(blockIndex);
-      return;
     }
 
-    const runtimeRegs: RegisterRuntimeDef[] = rawRegs.map((r, i) => ({
-      ...r,
-      name: String(r.name ?? `reg${i}`),
-      address_offset: Number(r.address_offset ?? r.offset ?? i * 4),
-      offset: Number(r.address_offset ?? r.offset ?? i * 4),
-      access: String(r.access ?? 'read-write'),
-      description: String(r.description ?? ''),
-    }));
-
-    const result = SpatialInsertionService.insertRegister(
-      action === 'insertBefore' ? 'before' : 'after',
-      runtimeRegs,
-      regIndex
-    );
-    if (!result.error) {
-      handleUpdate(['addressBlocks', blockIndex, 'registers'], result.items);
-      repackSubsequentBlocks(blockIndex);
+    if (result.errors.length === 0) {
+      const clean = sanitizeMemoryMapForYaml(result.memoryMap as Record<string, unknown>);
+      let newText: string;
+      if (selectionRootPath.length === 0) {
+        newText = YamlService.dump(clean);
+      } else {
+        YamlPathResolver.setAtPath(root, selectionRootPath, clean);
+        newText = YamlService.dump(root);
+      }
+      updateRawText(newText);
+      sendUpdate(newText);
     }
   };
 
-  // Wraps handleUpdate to repack subsequent blocks whenever a block's whole
-  // register array is replaced (insert/delete from BlockEditor).
+  // Wraps handleUpdate for array-level structure changes (insert/delete/
+  // reorder from BlockEditor or MemoryMapEditor). The structural edit, the
+  // layout repack and schema sanitization are applied in a single pass
+  // producing exactly one document update: sending two updates back-to-back
+  // can corrupt the file when the second edit races the first one in the
+  // extension host.
   const handleUpdateWithRepack = useCallback(
     (path: (string | number)[], value: unknown) => {
-      handleUpdate(path, value);
-      if (path[0] === 'registers' && path.length === 1) {
-        const sel = selectionRef.current;
-        if (sel?.type === 'block' && typeof sel.path[1] === 'number') {
-          repackSubsequentBlocks(sel.path[1]);
-        }
+      const isRegistersWrite = path[0] === 'registers' && path.length === 1;
+      const isBlocksWrite = path[0] === 'addressBlocks' && path.length === 1;
+      if (!isRegistersWrite && !isBlocksWrite) {
+        handleUpdate(path, value);
+        return;
       }
+
+      const selection = selectionRef.current;
+      if (!selection) {
+        return;
+      }
+      const rootObj = YamlService.safeParse(rawTextRef.current);
+      if (!rootObj) {
+        return;
+      }
+      const { root, selectionRootPath } = YamlPathResolver.getMapRootInfo(rootObj);
+      try {
+        YamlPathResolver.setAtPath(root, [...selectionRootPath, ...selection.path, ...path], value);
+      } catch (err) {
+        console.warn('Failed to apply update:', err);
+        return;
+      }
+
+      const mapObj =
+        selectionRootPath.length > 0
+          ? (YamlPathResolver.getAtPath(root, selectionRootPath) as LayoutMemoryMap)
+          : (root as LayoutMemoryMap);
+      if (!mapObj) {
+        return;
+      }
+
+      // Register-level writes need a global repack; block-level writes carry
+      // base addresses already computed by the insertion service.
+      const laidOut = isRegistersWrite ? recomputeAddressLayout(mapObj).data : mapObj;
+      const clean = sanitizeMemoryMapForYaml(laidOut as Record<string, unknown>);
+
+      let newText: string;
+      if (selectionRootPath.length === 0) {
+        newText = YamlService.dump(clean);
+      } else {
+        YamlPathResolver.setAtPath(root, selectionRootPath, clean);
+        newText = YamlService.dump(root);
+      }
+      updateRawText(newText);
+      sendUpdate(newText);
     },
-    [handleUpdate, selectionRef, repackSubsequentBlocks]
+    [handleUpdate, selectionRef, rawTextRef, updateRawText, sendUpdate]
   );
 
   /**

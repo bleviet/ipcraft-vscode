@@ -106,7 +106,9 @@ export class DataNormalizer {
         | null
         | undefined,
       description: field.description as string | undefined,
-      enumerated_values: field.enumerated_values as Record<string, string> | undefined,
+      enumerated_values: (field.enumerated_values ?? field.enumeratedValues) as
+        | Record<string, string>
+        | undefined,
       monitorChangeOf: (field.monitorChangeOf ?? field.monitor_change_of ?? null) as
         | string
         | null
@@ -215,10 +217,20 @@ export class DataNormalizer {
           defaultRegBytes
         );
 
+        const rawRegWidth = block.defaultRegWidth ?? block.default_reg_width;
+
         return {
           name: String(block.name ?? ''),
           base_address: baseAddress,
-          range: (block.range as number) || 4096,
+          // Pass `range` and `defaultRegWidth` through only when present in the
+          // source — fabricating defaults here leaks them back into the YAML
+          // when normalized blocks are serialized.
+          ...(block.range !== undefined && block.range !== null
+            ? { range: block.range as number | string }
+            : {}),
+          ...(rawRegWidth !== undefined && rawRegWidth !== null
+            ? { defaultRegWidth: DataNormalizer.parseNumber(rawRegWidth, 32) }
+            : {}),
           usage: (block.usage as string) || 'register',
           access: block.access as string | undefined,
           description: block.description as string | undefined,

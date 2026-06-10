@@ -1,7 +1,7 @@
 import type { Selection } from '../hooks/useSelection';
 import type { YamlPath } from './YamlPathResolver';
 import { YamlPathResolver } from './YamlPathResolver';
-import { formatBitsLike, parseBitsLike } from '../utils/BitFieldUtils';
+import { parseBitsLike } from '../utils/BitFieldUtils';
 
 interface FieldOperationContext {
   path: YamlPath;
@@ -82,20 +82,7 @@ function moveField(fields: Record<string, unknown>[], payload: Record<string, un
   fields[index] = fields[next];
   fields[next] = temp;
 
-  let offset = 0;
-  for (let i = 0; i < fields.length; i++) {
-    const field = fields[i];
-    const width = normalizeFieldWidth(field);
-    fields[i] = {
-      name: field.name,
-      bits: formatBitsLike(offset, width),
-      access: field.access,
-      reset_value: field.reset_value,
-      description: field.description,
-      enumerated_values: field.enumerated_values,
-    };
-    offset += width;
-  }
+  // The global layout engine will recalculate correct bit offsets based on the new array order.
 }
 
 export function applyFieldOperation({

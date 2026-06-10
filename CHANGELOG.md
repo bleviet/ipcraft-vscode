@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] - 2026-06-10
+
+### Fixed
+- **Memory Map Structural Desync**: Fixed a critical bug where array-level operations (insert, delete, drag-and-drop relocate) on Address Blocks, Registers, and Bitfields would corrupt memory address offsets and bit range allocations.
+- **Memory map file corruption on rapid edits**: register insertions sent two document updates back-to-back (structural edit + layout repack); the second edit could race the first in the extension host, replacing only the older document extent and leaving a stale tail of duplicated YAML. The webview now applies the edit and the repack in a single pass (one update per gesture), and `DocumentManager` serializes document updates per URI so overlapping edits can never use a stale replace range.
+- **YAML schema pollution**: whole-map and array-level writes now pass through a `YamlSanitizer` that strips runtime-only keys (`address_offset`, `base_address`, `bit_offset`/`bit_width`/`bit_range`, `__kind`), canonicalizes aliases to the ipcraft-spec schema spelling (`baseAddress`, `resetValue`, `enumeratedValues`), and drops injected defaults (`size: 32`, `range: 4096`, `monitorChangeOf: null`). `DataNormalizer` no longer fabricates `range` and preserves `defaultRegWidth`, so those values survive round-trips through the editor.
+
+### Changed
+- **Stateless Layout Recomputation**: Replaced ad-hoc manual array shifting and incremental offset math in UI components with a centralized, pure functional `LayoutEngine` that strictly enforces invariants top-down.
+- **Mutation Service API**: Re-architected structural edits across the application (in `BlockEditor.tsx`, `RegisterMapVisualizer.tsx`, and `FieldOperationService.ts`) to use `MutationService` for array state manipulations, followed by a global `recomputeFullLayout` pass.
 ## [0.2.0] - 2026-05-23
 
 ### Added

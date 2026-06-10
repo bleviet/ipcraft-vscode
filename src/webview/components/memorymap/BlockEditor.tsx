@@ -10,8 +10,6 @@ import { KeyboardShortcutsButton } from '../../shared/components';
 import { ACCESS_OPTIONS } from '../../shared/constants';
 import RegisterMapVisualizer from '../RegisterMapVisualizer';
 import { FIELD_COLORS, FIELD_COLOR_KEYS } from '../../shared/colors';
-import { SpatialInsertionService } from '../../services/SpatialInsertionService';
-import type { RegisterRuntimeDef } from '../../services/SpatialInsertionService';
 import type { RegisterModel } from '../../types/registerModel';
 import { toHex } from '../../utils/formatUtils';
 import { useAutoFocus } from '../../hooks/useAutoFocus';
@@ -25,25 +23,6 @@ import { useTableNavigation } from '../../hooks/useTableNavigation';
 type RegEditKey = 'name' | 'offset' | 'access' | 'description';
 type RegActiveCell = { rowIndex: number; key: RegEditKey };
 const REG_COLUMN_ORDER: RegEditKey[] = ['name', 'offset', 'access', 'description'];
-
-function toRuntimeRegisters(registers: RegisterModel[]): RegisterRuntimeDef[] {
-  return registers.map((register, index) => {
-    const numericOffset =
-      typeof register.address_offset === 'number'
-        ? register.address_offset
-        : typeof register.offset === 'number'
-          ? register.offset
-          : index * 4;
-    return {
-      ...register,
-      name: String(register.name ?? `reg${index}`),
-      address_offset: numericOffset,
-      offset: numericOffset,
-      access: String(register.access ?? 'read-write'),
-      description: String(register.description ?? ''),
-    };
-  });
-}
 
 export interface AddressBlockModel {
   name?: string;
@@ -145,20 +124,27 @@ export function BlockEditor({
 
   const tryInsertReg = (after: boolean) => {
     setInsertError(null);
-    const runtimeRegisters = toRuntimeRegisters(liveRegisters);
-    const result = SpatialInsertionService.insertRegister(
-      after ? 'after' : 'before',
-      runtimeRegisters,
-      selectedRegIndex
-    );
+    const newRegs = [...liveRegisters];
+    const newIdx = after ? selectedRegIndex + 1 : Math.max(0, selectedRegIndex);
 
-    if (result.error) {
-      setInsertError(result.error);
-      return;
+    let maxN = 0;
+    for (const r of liveRegisters) {
+      const match = String(r.name ?? '').match(/^reg(\d+)$/i);
+      if (match) {
+        maxN = Math.max(maxN, parseInt(match[1], 10));
+      }
     }
+    const name = `reg${maxN + 1}`;
 
-    const newIdx = result.newIndex;
-    onUpdate(['registers'], result.items);
+    newRegs.splice(newIdx, 0, {
+      name,
+      access: 'read-write',
+      description: '',
+      offset: 0,
+      address_offset: 0,
+    });
+
+    onUpdate(['registers'], newRegs as unknown[]);
     setSelectedRegIndex(newIdx);
     setHoveredRegIndex(newIdx);
     setRegActiveCell({ rowIndex: newIdx, key: 'name' });
@@ -186,17 +172,27 @@ export function BlockEditor({
 
   const insertAtGap = (gapIndex: number) => {
     setInsertError(null);
-    const runtimeRegisters = toRuntimeRegisters(liveRegisters);
-    const result =
-      gapIndex === 0
-        ? SpatialInsertionService.insertRegister('before', runtimeRegisters, 0)
-        : SpatialInsertionService.insertRegister('after', runtimeRegisters, gapIndex - 1);
-    if (result.error) {
-      setInsertError(result.error);
-      return;
+    const newRegs = [...liveRegisters];
+    const newIdx = gapIndex;
+
+    let maxN = 0;
+    for (const r of liveRegisters) {
+      const match = String(r.name ?? '').match(/^reg(\d+)$/i);
+      if (match) {
+        maxN = Math.max(maxN, parseInt(match[1], 10));
+      }
     }
-    const newIdx = result.newIndex;
-    onUpdate(['registers'], result.items);
+    const name = `reg${maxN + 1}`;
+
+    newRegs.splice(newIdx, 0, {
+      name,
+      access: 'read-write',
+      description: '',
+      offset: 0,
+      address_offset: 0,
+    });
+
+    onUpdate(['registers'], newRegs as unknown[]);
     setSelectedRegIndex(newIdx);
     setHoveredRegIndex(newIdx);
     setRegActiveCell({ rowIndex: newIdx, key: 'name' });
@@ -298,10 +294,8 @@ export function BlockEditor({
       const temp = newRegs[fromIndex];
       newRegs[fromIndex] = newRegs[next];
       newRegs[next] = temp;
-      newRegs.forEach((r, i) => {
-        r.offset = i * 4;
-        r.address_offset = i * 4;
-      });
+
+      // Global layout engine will recalculate correct offsets after we save
       onUpdate(['registers'], newRegs as unknown[]);
       setSelectedRegIndex(next);
       setHoveredRegIndex(next);
@@ -359,7 +353,6 @@ export function BlockEditor({
       if (selected?.__kind === 'array') {
         selectedSize = (selected.count ?? 1) * (selected.stride ?? 4);
       }
-      const newArraySize = 8;
       const baseOffset = isInsertArrayAfter
         ? Number(selectedOffset) + Number(selectedSize)
         : selectedOffset;
@@ -392,15 +385,7 @@ export function BlockEditor({
         ];
         newIdx = selIdx + 1;
       } else {
-        newRegs = [
-          ...liveRegisters.slice(0, selIdx),
-          newArray,
-          ...liveRegisters.slice(selIdx).map((r: RegisterModel) => ({
-            ...r,
-            offset: Number(r.offset ?? r.address_offset ?? 0) + newArraySize,
-            address_offset: Number(r.address_offset ?? r.offset ?? 0) + newArraySize,
-          })),
-        ];
+        newRegs = [...liveRegisters.slice(0, selIdx), newArray, ...liveRegisters.slice(selIdx)];
         newIdx = selIdx;
       }
       onUpdate(['registers'], newRegs as unknown[]);

@@ -78,7 +78,7 @@ describe('DocumentManager', () => {
     const success = await manager.updateDocument(document, 'x');
 
     expect(success).toBe(false);
-    expect(errorSpy).toHaveBeenCalledWith(expect.any(Error), 'DocumentManager.updateDocument');
+    expect(errorSpy).toHaveBeenCalledWith(expect.any(Error), 'DocumentManager.performUpdate');
   });
 
   it('saves document and propagates save result', async () => {
