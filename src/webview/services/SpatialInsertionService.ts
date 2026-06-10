@@ -697,6 +697,10 @@ export class SpatialInsertionService {
       }
     }
 
+    // Push blocks after the new one forward to avoid overlap (critical when newBase = 0).
+    newBlocks = repackBlocksForward(newBlocks, selIdx + 1).map((block, index) =>
+      toBlockRuntime(block as Record<string, unknown>, index)
+    );
     newBlocks = repackBlocksBackward(newBlocks, selIdx - 1 >= 0 ? selIdx - 1 : 0).map(
       (block, index) => toBlockRuntime(block as Record<string, unknown>, index)
     );
