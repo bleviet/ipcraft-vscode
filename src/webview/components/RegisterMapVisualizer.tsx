@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { FIELD_COLORS, FIELD_COLOR_KEYS } from '../shared/colors';
 import { toHex } from '../utils/formatUtils';
 
@@ -20,6 +20,8 @@ interface RegisterMapVisualizerProps {
   baseAddress?: number;
   onReorderRegisters?: (newRegisters: VisualizerRegister[]) => void;
   onRegisterClick?: (regIndex: number) => void;
+  onInsertAtGap?: (gapIndex: number) => void;
+  onDeleteReg?: (regIndex: number) => void;
   layout?: 'horizontal' | 'vertical';
 }
 
@@ -47,9 +49,87 @@ const RegisterMapVisualizerInner: React.FC<RegisterMapVisualizerProps> = ({
   baseAddress = 0,
   onReorderRegisters,
   onRegisterClick,
+  onInsertAtGap,
+  onDeleteReg,
   layout = 'horizontal',
 }) => {
   const [ctrlDrag, setCtrlDrag] = useState<CtrlDragState>(CTRL_DRAG_INITIAL);
+  const [insertHoverGap, setInsertHoverGap] = useState<number | null>(null);
+  const [insertBarScrollY, setInsertBarScrollY] = useState<number | null>(null);
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    regIndex: number;
+  } | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const insertClearRef = useRef<number | null>(null);
+  const contextMenuRef = useRef<HTMLDivElement | null>(null);
+
+  const scheduleInsertClear = () => {
+    if (insertClearRef.current) {
+      clearTimeout(insertClearRef.current);
+    }
+    insertClearRef.current = window.setTimeout(() => {
+      setInsertHoverGap(null);
+      setInsertBarScrollY(null);
+    }, 150);
+  };
+
+  const cancelInsertClear = () => {
+    if (insertClearRef.current) {
+      clearTimeout(insertClearRef.current);
+      insertClearRef.current = null;
+    }
+  };
+
+  const handleContainerMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!onInsertAtGap || ctrlDrag.active) {
+      return;
+    }
+    cancelInsertClear();
+    const rows = Array.from(e.currentTarget.querySelectorAll<HTMLElement>('[data-viz-row]'));
+    if (rows.length === 0) {
+      return;
+    }
+    const THRESHOLD = 12;
+    const mouseY = e.clientY;
+    for (let i = 0; i <= rows.length; i++) {
+      const gapViewportY =
+        i === 0 ? rows[0].getBoundingClientRect().top : rows[i - 1].getBoundingClientRect().bottom;
+      if (Math.abs(mouseY - gapViewportY) < THRESHOLD) {
+        const containerEl = containerRef.current;
+        if (containerEl) {
+          const cRect = containerEl.getBoundingClientRect();
+          setInsertHoverGap(i);
+          setInsertBarScrollY(gapViewportY - cRect.top + containerEl.scrollTop);
+        }
+        return;
+      }
+    }
+    scheduleInsertClear();
+  };
+
+  useEffect(() => {
+    if (!contextMenu) {
+      return;
+    }
+    const handlePointerDown = (e: PointerEvent) => {
+      if (contextMenuRef.current && !contextMenuRef.current.contains(e.target as Node)) {
+        setContextMenu(null);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setContextMenu(null);
+      }
+    };
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [contextMenu]);
 
   // Ctrl-drag: cleanup on pointer up
   useEffect(() => {
@@ -174,7 +254,12 @@ const RegisterMapVisualizerInner: React.FC<RegisterMapVisualizerProps> = ({
 
   if (layout === 'vertical') {
     return (
-      <div className="flex flex-col w-full">
+      <div
+        ref={containerRef}
+        className="flex flex-col w-full relative"
+        onMouseMove={handleContainerMouseMove}
+        onMouseLeave={scheduleInsertClear}
+      >
         {displayGroups.map((group, displayIdx) => {
           const isHovered = hoveredRegIndex === group.idx;
           const isDragging = ctrlDrag.active && ctrlDrag.draggedRegIndex === group.idx;
@@ -186,6 +271,7 @@ const RegisterMapVisualizerInner: React.FC<RegisterMapVisualizerProps> = ({
           return (
             <div
               key={group.idx}
+              data-viz-row={group.idx}
               className={`flex items-center gap-3 px-3 py-2 border-b vscode-border select-none transition-colors ${
                 isHovered ? 'vscode-row-hover' : ''
               } ${isDragging ? 'opacity-50' : ''}`}
@@ -204,6 +290,13 @@ const RegisterMapVisualizerInner: React.FC<RegisterMapVisualizerProps> = ({
                   e.stopPropagation();
                   onRegisterClick(group.idx);
                 }
+              }}
+              onContextMenu={(e) => {
+                if (!onInsertAtGap && !onDeleteReg) {
+                  return;
+                }
+                e.preventDefault();
+                setContextMenu({ x: e.clientX, y: e.clientY, regIndex: group.idx });
               }}
               onPointerDown={(e) => handleCtrlPointerDown(group.idx, e)}
               onPointerMove={() => handlePointerMove(displayIdx)}
@@ -244,6 +337,85 @@ const RegisterMapVisualizerInner: React.FC<RegisterMapVisualizerProps> = ({
             </div>
           );
         })}
+        {onInsertAtGap && insertHoverGap !== null && insertBarScrollY !== null && (
+          <div
+            className="absolute left-0 right-0 z-20 flex items-center px-3 pointer-events-none"
+            style={{ top: insertBarScrollY, transform: 'translateY(-50%)' }}
+            onMouseEnter={cancelInsertClear}
+            onMouseLeave={scheduleInsertClear}
+          >
+            <div
+              className="flex-1 h-[2px] rounded-full"
+              style={{ background: 'linear-gradient(to right, #f97316, #f43f5e)' }}
+            />
+            <button
+              className="pointer-events-auto w-5 h-5 rounded-full text-white text-[11px] font-bold flex items-center justify-center hover:scale-110 transition-transform shadow mx-1 flex-shrink-0"
+              style={{ background: 'linear-gradient(135deg, #f97316, #f43f5e)' }}
+              title={`Insert register at position ${insertHoverGap}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onInsertAtGap(insertHoverGap);
+                setInsertHoverGap(null);
+                setInsertBarScrollY(null);
+              }}
+            >
+              +
+            </button>
+            <div
+              className="flex-1 h-[2px] rounded-full"
+              style={{ background: 'linear-gradient(to left, #f97316, #f43f5e)' }}
+            />
+          </div>
+        )}
+        {contextMenu && (onInsertAtGap || onDeleteReg) && (
+          <div
+            ref={contextMenuRef}
+            className="fixed z-[200] min-w-[160px] rounded-lg shadow-xl border vscode-border vscode-surface overflow-hidden text-sm"
+            style={{ left: contextMenu.x, top: contextMenu.y }}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            {onInsertAtGap && (
+              <button
+                className="w-full text-left px-4 py-2 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
+                onClick={() => {
+                  onInsertAtGap(contextMenu.regIndex);
+                  setContextMenu(null);
+                }}
+              >
+                <span className="codicon codicon-arrow-up text-xs" />
+                Insert Above
+              </button>
+            )}
+            {onInsertAtGap && (
+              <button
+                className="w-full text-left px-4 py-2 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
+                onClick={() => {
+                  onInsertAtGap(contextMenu.regIndex + 1);
+                  setContextMenu(null);
+                }}
+              >
+                <span className="codicon codicon-arrow-down text-xs" />
+                Insert Below
+              </button>
+            )}
+            {onDeleteReg && (
+              <>
+                <div className="border-t vscode-border my-0.5" />
+                <button
+                  className="w-full text-left px-4 py-2 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
+                  style={{ color: 'var(--vscode-errorForeground)' }}
+                  onClick={() => {
+                    onDeleteReg(contextMenu.regIndex);
+                    setContextMenu(null);
+                  }}
+                >
+                  <span className="codicon codicon-trash text-xs" />
+                  Delete
+                </button>
+              </>
+            )}
+          </div>
+        )}
       </div>
     );
   }
@@ -352,6 +524,8 @@ const RegisterMapVisualizer = React.memo(
     prev.baseAddress === next.baseAddress &&
     prev.onReorderRegisters === next.onReorderRegisters &&
     prev.onRegisterClick === next.onRegisterClick &&
+    prev.onInsertAtGap === next.onInsertAtGap &&
+    prev.onDeleteReg === next.onDeleteReg &&
     prev.layout === next.layout
 );
 

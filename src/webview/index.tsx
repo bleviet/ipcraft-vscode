@@ -12,6 +12,10 @@ import { useSelectionLifecycle } from './hooks/useSelectionLifecycle';
 import { useOutlineRename } from './hooks/useOutlineRename';
 import { useDetailsNavigation } from './hooks/useDetailsNavigation';
 import { useYamlUpdateHandler } from './hooks/useYamlUpdateHandler';
+import {
+  SpatialInsertionService,
+  type RegisterRuntimeDef,
+} from './services/SpatialInsertionService';
 import '@vscode/codicons/dist/codicon.css';
 import './index.css';
 
@@ -130,6 +134,46 @@ const App = () => {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
 
+  const handleRegisterAction = (
+    blockIndex: number,
+    regIndex: number,
+    action: 'insertBefore' | 'insertAfter' | 'delete'
+  ) => {
+    const block = memoryMap?.addressBlocks?.[blockIndex] as
+      | { registers?: Record<string, unknown>[] }
+      | undefined;
+    if (!block) {
+      return;
+    }
+    const rawRegs = block.registers ?? [];
+
+    if (action === 'delete') {
+      handleUpdate(
+        ['addressBlocks', blockIndex, 'registers'],
+        rawRegs.filter((_, i) => i !== regIndex)
+      );
+      return;
+    }
+
+    const runtimeRegs: RegisterRuntimeDef[] = rawRegs.map((r, i) => ({
+      ...r,
+      name: String(r.name ?? `reg${i}`),
+      address_offset: Number(r.address_offset ?? r.offset ?? i * 4),
+      offset: Number(r.address_offset ?? r.offset ?? i * 4),
+      access: String(r.access ?? 'read-write'),
+      description: String(r.description ?? ''),
+    }));
+
+    const result = SpatialInsertionService.insertRegister(
+      action === 'insertBefore' ? 'before' : 'after',
+      runtimeRegs,
+      regIndex
+    );
+    if (!result.error) {
+      handleUpdate(['addressBlocks', blockIndex, 'registers'], result.items);
+    }
+  };
+
   /**
    * Render error state
    */
@@ -186,6 +230,7 @@ const App = () => {
           selectedId={selectedId}
           onSelect={handleSelect}
           onRename={handleOutlineRename}
+          onRegisterAction={handleRegisterAction}
         />
       </aside>
       <section className="flex-1 overflow-hidden min-w-0">

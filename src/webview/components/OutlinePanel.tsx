@@ -1,4 +1,4 @@
-import React, { useImperativeHandle, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { MemoryMap, RegisterDef } from '../types/memoryMap';
 import { toHex } from '../utils/formatUtils';
 import { OutlineHeader } from './outline/index';
@@ -18,6 +18,11 @@ interface OutlineProps {
   selectedId: string | null;
   onSelect: (selection: OutlineSelection) => void;
   onRename?: (path: YamlPath, newName: string) => void;
+  onRegisterAction?: (
+    blockIndex: number,
+    regIndex: number,
+    action: 'insertBefore' | 'insertAfter' | 'delete'
+  ) => void;
 }
 
 export type OutlineHandle = {
@@ -25,7 +30,7 @@ export type OutlineHandle = {
 };
 
 const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
-  ({ memoryMap, selectedId, onSelect, onRename }, ref) => {
+  ({ memoryMap, selectedId, onSelect, onRename, onRegisterAction }, ref) => {
     const memoryMapName = memoryMap.name || 'Memory Map';
 
     const allIds = useMemo(() => {
@@ -53,6 +58,38 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editingValue, setEditingValue] = useState('');
     const editInputRef = useRef<HTMLInputElement | null>(null);
+    const outlineContextMenuRef = useRef<HTMLDivElement | null>(null);
+    const [outlineContextMenu, setOutlineContextMenu] = useState<{
+      x: number;
+      y: number;
+      blockIndex: number;
+      regIndex: number;
+    } | null>(null);
+
+    useEffect(() => {
+      if (!outlineContextMenu) {
+        return;
+      }
+      const handlePointerDown = (e: PointerEvent) => {
+        if (
+          outlineContextMenuRef.current &&
+          !outlineContextMenuRef.current.contains(e.target as Node)
+        ) {
+          setOutlineContextMenu(null);
+        }
+      };
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          setOutlineContextMenu(null);
+        }
+      };
+      document.addEventListener('pointerdown', handlePointerDown);
+      document.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.removeEventListener('pointerdown', handlePointerDown);
+        document.removeEventListener('keydown', handleKeyDown);
+      };
+    }, [outlineContextMenu]);
 
     useImperativeHandle(
       ref,
@@ -274,6 +311,12 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
                 onFocusTree={() => treeFocusRef.current?.focus()}
                 onSelect={onSelect}
                 renderNameOrEdit={renderNameOrEdit}
+                onRegisterContextMenu={
+                  onRegisterAction
+                    ? (bi, ri, x, y) =>
+                        setOutlineContextMenu({ x, y, blockIndex: bi, regIndex: ri })
+                    : undefined
+                }
               />
             )}
           </div>
@@ -282,6 +325,59 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
           <span>{filteredBlocks.length} Items</span>
           <span>Base: {toHex(memoryMap.addressBlocks?.[0]?.baseAddress ?? 0)}</span>
         </div>
+        {outlineContextMenu && onRegisterAction && (
+          <div
+            ref={outlineContextMenuRef}
+            className="fixed z-[200] min-w-[160px] rounded-lg shadow-xl border vscode-border vscode-surface overflow-hidden text-sm"
+            style={{ left: outlineContextMenu.x, top: outlineContextMenu.y }}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <button
+              className="w-full text-left px-4 py-2 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
+              onClick={() => {
+                onRegisterAction(
+                  outlineContextMenu.blockIndex,
+                  outlineContextMenu.regIndex,
+                  'insertBefore'
+                );
+                setOutlineContextMenu(null);
+              }}
+            >
+              <span className="codicon codicon-arrow-up text-xs" />
+              Insert Above
+            </button>
+            <button
+              className="w-full text-left px-4 py-2 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
+              onClick={() => {
+                onRegisterAction(
+                  outlineContextMenu.blockIndex,
+                  outlineContextMenu.regIndex,
+                  'insertAfter'
+                );
+                setOutlineContextMenu(null);
+              }}
+            >
+              <span className="codicon codicon-arrow-down text-xs" />
+              Insert Below
+            </button>
+            <div className="border-t vscode-border my-0.5" />
+            <button
+              className="w-full text-left px-4 py-2 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
+              style={{ color: 'var(--vscode-errorForeground)' }}
+              onClick={() => {
+                onRegisterAction(
+                  outlineContextMenu.blockIndex,
+                  outlineContextMenu.regIndex,
+                  'delete'
+                );
+                setOutlineContextMenu(null);
+              }}
+            >
+              <span className="codicon codicon-trash text-xs" />
+              Delete
+            </button>
+          </div>
+        )}
       </>
     );
   }

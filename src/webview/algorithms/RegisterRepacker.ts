@@ -35,13 +35,15 @@ export function repackRegistersForward(
   // Start from the register just before fromIndex to determine the starting position
   let nextOffset =
     fromIndex > 0
-      ? (newRegs[fromIndex - 1].offset ?? 0) + registerFootprint(newRegs[fromIndex - 1])
+      ? (newRegs[fromIndex - 1].address_offset ?? newRegs[fromIndex - 1].offset ?? 0) +
+        registerFootprint(newRegs[fromIndex - 1])
       : 0;
 
   for (let i = fromIndex; i < newRegs.length; i++) {
     newRegs[i] = {
       ...newRegs[i],
       offset: nextOffset,
+      address_offset: nextOffset,
     };
     nextOffset += registerFootprint(newRegs[i]);
   }
@@ -72,14 +74,17 @@ export function repackRegistersBackward(
   // `Infinity` means "preserve current offset" for the first processed element.
   let nextOffset: number =
     fromIndex < newRegs.length - 1
-      ? (newRegs[fromIndex + 1].offset ?? 0) - registerFootprint(newRegs[fromIndex])
+      ? (newRegs[fromIndex + 1].address_offset ?? newRegs[fromIndex + 1].offset ?? 0) -
+        registerFootprint(newRegs[fromIndex])
       : Infinity;
 
   for (let i = fromIndex; i >= 0; i--) {
-    const offset = nextOffset === Infinity ? (newRegs[i].offset ?? 0) : nextOffset;
+    const offset =
+      nextOffset === Infinity ? (newRegs[i].address_offset ?? newRegs[i].offset ?? 0) : nextOffset;
     newRegs[i] = {
       ...newRegs[i],
       offset: Math.max(0, offset),
+      address_offset: Math.max(0, offset),
     };
     nextOffset = offset - registerFootprint(newRegs[Math.max(0, i - 1)] ?? newRegs[i]);
   }

@@ -97,9 +97,19 @@ export function BlockEditor({
     key: 'name',
   });
   const [insertError, setInsertError] = useState<string | null>(null);
+  const [insertHoverGap, setInsertHoverGap] = useState<number | null>(null);
+  const [insertBarScrollY, setInsertBarScrollY] = useState<number | null>(null);
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    regIndex: number;
+  } | null>(null);
 
   const focusRef = useRef<HTMLDivElement | null>(null);
   const errorRef = useRef<HTMLDivElement | null>(null);
+  const tbodyRef = useRef<HTMLTableSectionElement | null>(null);
+  const contextMenuRef = useRef<HTMLDivElement | null>(null);
+  const insertClearRef = useRef<number | null>(null);
 
   const getRegColor = (idx: number) => FIELD_COLOR_KEYS[idx % FIELD_COLOR_KEYS.length];
 
@@ -155,6 +165,84 @@ export function BlockEditor({
     window.setTimeout(() => {
       document.querySelector(`tr[data-row-idx="${newIdx}"]`)?.scrollIntoView({ block: 'center' });
     }, 100);
+  };
+
+  const scheduleInsertClear = () => {
+    if (insertClearRef.current) {
+      clearTimeout(insertClearRef.current);
+    }
+    insertClearRef.current = window.setTimeout(() => {
+      setInsertHoverGap(null);
+      setInsertBarScrollY(null);
+    }, 150);
+  };
+
+  const cancelInsertClear = () => {
+    if (insertClearRef.current) {
+      clearTimeout(insertClearRef.current);
+      insertClearRef.current = null;
+    }
+  };
+
+  const insertAtGap = (gapIndex: number) => {
+    setInsertError(null);
+    const runtimeRegisters = toRuntimeRegisters(liveRegisters);
+    const result =
+      gapIndex === 0
+        ? SpatialInsertionService.insertRegister('before', runtimeRegisters, 0)
+        : SpatialInsertionService.insertRegister('after', runtimeRegisters, gapIndex - 1);
+    if (result.error) {
+      setInsertError(result.error);
+      return;
+    }
+    const newIdx = result.newIndex;
+    onUpdate(['registers'], result.items);
+    setSelectedRegIndex(newIdx);
+    setHoveredRegIndex(newIdx);
+    setRegActiveCell({ rowIndex: newIdx, key: 'name' });
+    setInsertHoverGap(null);
+    setInsertBarScrollY(null);
+    window.setTimeout(() => {
+      document.querySelector(`tr[data-row-idx="${newIdx}"]`)?.scrollIntoView({ block: 'center' });
+    }, 100);
+  };
+
+  const deleteReg = (idx: number) => {
+    if (idx < 0 || idx >= liveRegisters.length) {
+      return;
+    }
+    const newRegs = liveRegisters.filter((_: RegisterModel, i: number) => i !== idx);
+    onUpdate(['registers'], newRegs as unknown[]);
+    const nextRow = idx > 0 ? idx - 1 : newRegs.length > 0 ? 0 : -1;
+    setSelectedRegIndex(nextRow);
+    setHoveredRegIndex(nextRow);
+    setRegActiveCell({ rowIndex: nextRow, key: 'name' });
+  };
+
+  const closeContextMenu = () => setContextMenu(null);
+
+  const handleTbodyMouseMove = (e: React.MouseEvent<HTMLTableSectionElement>) => {
+    cancelInsertClear();
+    const rows = Array.from(e.currentTarget.querySelectorAll<HTMLElement>('tr[data-row-idx]'));
+    if (rows.length === 0) {
+      return;
+    }
+    const THRESHOLD = 12;
+    const mouseY = e.clientY;
+    for (let i = 0; i <= rows.length; i++) {
+      const gapViewportY =
+        i === 0 ? rows[0].getBoundingClientRect().top : rows[i - 1].getBoundingClientRect().bottom;
+      if (Math.abs(mouseY - gapViewportY) < THRESHOLD) {
+        const containerEl = focusRef.current;
+        if (containerEl) {
+          const cRect = containerEl.getBoundingClientRect();
+          setInsertHoverGap(i);
+          setInsertBarScrollY(gapViewportY - cRect.top + containerEl.scrollTop);
+        }
+        return;
+      }
+    }
+    scheduleInsertClear();
   };
 
   useTableNavigation<RegEditKey>({
@@ -325,6 +413,28 @@ export function BlockEditor({
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [liveRegisters, onUpdate, selectedRegIndex]);
 
+  useEffect(() => {
+    if (!contextMenu) {
+      return;
+    }
+    const handlePointerDown = (e: PointerEvent) => {
+      if (contextMenuRef.current && !contextMenuRef.current.contains(e.target as Node)) {
+        setContextMenu(null);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setContextMenu(null);
+      }
+    };
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [contextMenu]);
+
   const visualizer = (
     <RegisterMapVisualizer
       registers={registers}
@@ -333,6 +443,8 @@ export function BlockEditor({
       baseAddress={baseAddress}
       onReorderRegisters={(newRegs) => onUpdate(['registers'], newRegs as unknown[])}
       onRegisterClick={onNavigateToRegister}
+      onInsertAtGap={insertAtGap}
+      onDeleteReg={deleteReg}
       layout={blockLayout === 'side-by-side' ? 'vertical' : 'horizontal'}
     />
   );
@@ -342,7 +454,7 @@ export function BlockEditor({
       ref={focusRef}
       tabIndex={0}
       data-regs-table="true"
-      className="flex-1 overflow-auto min-h-0 outline-none focus:outline-none"
+      className="flex-1 overflow-auto min-h-0 outline-none focus:outline-none relative"
     >
       {insertError ? (
         <div ref={errorRef} className="vscode-error px-4 py-2 text-xs">
@@ -364,7 +476,12 @@ export function BlockEditor({
             <th className="px-6 py-3 border-b vscode-border align-middle">Description</th>
           </tr>
         </thead>
-        <tbody className="divide-y vscode-border text-sm">
+        <tbody
+          ref={tbodyRef}
+          className="text-sm"
+          onMouseMove={handleTbodyMouseMove}
+          onMouseLeave={scheduleInsertClear}
+        >
           {registers.map((reg: RegisterModel, idx: number) => {
             const color = getRegColor(idx);
             const offset = reg.address_offset ?? reg.offset ?? idx * 4;
@@ -374,7 +491,7 @@ export function BlockEditor({
                 key={`${String(reg.name ?? `reg-${idx}`)}-${String(reg.address_offset ?? reg.offset ?? idx * 4)}`}
                 data-row-idx={idx}
                 data-reg-idx={idx}
-                className={`group vscode-row-solid transition-colors border-l-4 border-transparent h-12 ${
+                className={`group vscode-row-solid transition-colors border-l-4 border-transparent border-b vscode-border h-12 ${
                   idx === selectedRegIndex
                     ? 'vscode-focus-border vscode-row-selected'
                     : idx === hoveredRegIndex
@@ -387,6 +504,10 @@ export function BlockEditor({
                   setSelectedRegIndex(idx);
                   setHoveredRegIndex(idx);
                   setRegActiveCell((prev) => ({ rowIndex: idx, key: prev.key }));
+                }}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  setContextMenu({ x: e.clientX, y: e.clientY, regIndex: idx });
                 }}
               >
                 {/* NAME */}
@@ -509,6 +630,34 @@ export function BlockEditor({
           })}
         </tbody>
       </table>
+      {insertHoverGap !== null && insertBarScrollY !== null && (
+        <div
+          className="absolute left-0 right-0 z-20 flex items-center px-4 pointer-events-none"
+          style={{ top: insertBarScrollY, transform: 'translateY(-50%)' }}
+          onMouseEnter={cancelInsertClear}
+          onMouseLeave={scheduleInsertClear}
+        >
+          <div
+            className="flex-1 h-[2px] rounded-full"
+            style={{ background: 'linear-gradient(to right, #f97316, #f43f5e)' }}
+          />
+          <button
+            className="pointer-events-auto w-5 h-5 rounded-full text-white text-[11px] font-bold flex items-center justify-center hover:scale-110 transition-transform shadow mx-1 flex-shrink-0"
+            style={{ background: 'linear-gradient(135deg, #f97316, #f43f5e)' }}
+            title={`Insert register at position ${insertHoverGap}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              insertAtGap(insertHoverGap);
+            }}
+          >
+            +
+          </button>
+          <div
+            className="flex-1 h-[2px] rounded-full"
+            style={{ background: 'linear-gradient(to left, #f97316, #f43f5e)' }}
+          />
+        </div>
+      )}
     </div>
   );
 
@@ -564,6 +713,47 @@ export function BlockEditor({
         </>
       )}
       <KeyboardShortcutsButton context="block" />
+      {contextMenu && (
+        <div
+          ref={contextMenuRef}
+          className="fixed z-[200] min-w-[160px] rounded-lg shadow-xl border vscode-border vscode-surface overflow-hidden text-sm"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <button
+            className="w-full text-left px-4 py-2 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
+            onClick={() => {
+              insertAtGap(contextMenu.regIndex);
+              closeContextMenu();
+            }}
+          >
+            <span className="codicon codicon-arrow-up text-xs" />
+            Insert Above
+          </button>
+          <button
+            className="w-full text-left px-4 py-2 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
+            onClick={() => {
+              insertAtGap(contextMenu.regIndex + 1);
+              closeContextMenu();
+            }}
+          >
+            <span className="codicon codicon-arrow-down text-xs" />
+            Insert Below
+          </button>
+          <div className="border-t vscode-border my-0.5" />
+          <button
+            className="w-full text-left px-4 py-2 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
+            style={{ color: 'var(--vscode-errorForeground)' }}
+            onClick={() => {
+              deleteReg(contextMenu.regIndex);
+              closeContextMenu();
+            }}
+          >
+            <span className="codicon codicon-trash text-xs" />
+            Delete
+          </button>
+        </div>
+      )}
     </div>
   );
 }

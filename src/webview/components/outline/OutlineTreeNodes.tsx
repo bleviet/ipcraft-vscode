@@ -21,6 +21,7 @@ interface OutlineTreeNodesProps {
   onFocusTree: () => void;
   onSelect: (selection: OutlineSelection) => void;
   renderNameOrEdit: RenderNameOrEdit;
+  onRegisterContextMenu?: (blockIndex: number, regIndex: number, x: number, y: number) => void;
 }
 
 function renderLeafRegister(
@@ -33,7 +34,8 @@ function renderLeafRegister(
   reg: RegisterDef,
   blockIndex: number,
   regIndex: number,
-  paddingLeft = '40px'
+  paddingLeft = '40px',
+  onRegisterContextMenu?: (blockIndex: number, regIndex: number, x: number, y: number) => void
 ) {
   const id = registerId(blockIndex, regIndex);
   const isSelected = selectedId === id;
@@ -73,6 +75,14 @@ function renderLeafRegister(
       offsetLabel={toHex(
         Number((reg as Record<string, unknown>).address_offset ?? reg.offset ?? 0)
       )}
+      onContextMenu={
+        onRegisterContextMenu
+          ? (e) => {
+              e.preventDefault();
+              onRegisterContextMenu(blockIndex, regIndex, e.clientX, e.clientY);
+            }
+          : undefined
+      }
     />
   );
 }
@@ -162,6 +172,7 @@ const OutlineTreeNodes = ({
   onFocusTree,
   onSelect,
   renderNameOrEdit,
+  onRegisterContextMenu,
 }: OutlineTreeNodesProps) => {
   return (
     <>
@@ -219,7 +230,9 @@ const OutlineTreeNodes = ({
                 renderNameOrEdit,
                 node,
                 blockIndex,
-                idx
+                idx,
+                '40px',
+                onRegisterContextMenu
               );
             })}
             {block.register_arrays?.map((arr: RegisterDef, idx: number) =>
