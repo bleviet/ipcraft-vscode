@@ -41,7 +41,12 @@ const RegisterArrayNode = ({
   const isSelected = selectedId === id;
   const isExpanded = expanded.has(id);
 
-  const start = (block.baseAddress ?? 0) + (arrayNode.offset ?? 0);
+  const blockBase =
+    (block as Record<string, unknown>).baseAddress ??
+    (block as Record<string, unknown>).base_address ??
+    0;
+  const arrOff = (arrayNode as Record<string, unknown>).address_offset ?? arrayNode.offset ?? 0;
+  const start = Number(blockBase) + Number(arrOff);
   const end = start + Math.max(1, arrayNode.count) * Math.max(1, arrayNode.stride) - 1;
 
   return (
@@ -117,7 +122,9 @@ const RegisterArrayNode = ({
                 {arrayNode.registers?.map((reg: RegisterDef, childIndex: number) => {
                   const childId = `${elementId}-reg-${childIndex}`;
                   const isChildSelected = selectedId === childId;
-                  const absolute = elementBase + (reg.offset ?? 0);
+                  const absolute =
+                    elementBase +
+                    Number((reg as Record<string, unknown>).address_offset ?? reg.offset ?? 0);
                   const path: YamlPath = [
                     'address_blocks',
                     blockIndex,
@@ -146,7 +153,9 @@ const RegisterArrayNode = ({
                           path,
                           meta: {
                             absoluteAddress: absolute,
-                            relativeOffset: reg.offset ?? 0,
+                            relativeOffset: Number(
+                              (reg as Record<string, unknown>).address_offset ?? reg.offset ?? 0
+                            ),
                           },
                         });
                       }}

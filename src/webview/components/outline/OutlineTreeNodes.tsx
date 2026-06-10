@@ -38,7 +38,13 @@ function renderLeafRegister(
   const id = registerId(blockIndex, regIndex);
   const isSelected = selectedId === id;
   const block = memoryMap.addressBlocks?.[blockIndex];
-  const absolute = Number(block?.baseAddress ?? 0) + Number(reg.offset ?? 0);
+  const blockBase = Number(
+    (block as Record<string, unknown>)?.baseAddress ??
+      (block as Record<string, unknown>)?.base_address ??
+      0
+  );
+  const regOff = Number((reg as Record<string, unknown>).address_offset ?? reg.offset ?? 0);
+  const absolute = blockBase + regOff;
   const path: YamlPath = ['addressBlocks', blockIndex, 'registers', regIndex];
 
   return (
@@ -56,13 +62,17 @@ function renderLeafRegister(
           path,
           meta: {
             absoluteAddress: absolute,
-            relativeOffset: reg.offset ?? 0,
+            relativeOffset: Number(
+              (reg as Record<string, unknown>).address_offset ?? reg.offset ?? 0
+            ),
           },
         });
       }}
       paddingLeft={paddingLeft}
       name={renderNameOrEdit(id, reg.name, path, 'flex-1')}
-      offsetLabel={toHex(Number(reg.offset ?? 0))}
+      offsetLabel={toHex(
+        Number((reg as Record<string, unknown>).address_offset ?? reg.offset ?? 0)
+      )}
     />
   );
 }
