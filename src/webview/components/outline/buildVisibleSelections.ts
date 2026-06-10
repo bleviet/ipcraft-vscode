@@ -68,7 +68,10 @@ export function buildVisibleSelections({
           return;
         }
 
-        const start = (block.baseAddress ?? 0) + (arr.offset ?? 0);
+        const start =
+          ((block.baseAddress ??
+            (block as unknown as Record<string, unknown>).base_address ??
+            0) as number) + (arr.offset ?? 0);
         Array.from({ length: arr.count }).forEach((_, elementIndex) => {
           const elementNodeId = arrayElementId(blockIndex, regIndex, elementIndex);
           const elementBase = start + elementIndex * arr.stride;
@@ -110,7 +113,10 @@ export function buildVisibleSelections({
 
       const reg = node as RegisterDef;
       const regNodeId = registerId(blockIndex, regIndex);
-      const absolute = (block.baseAddress ?? 0) + (reg.offset ?? 0);
+      const absolute =
+        ((block.baseAddress ??
+          (block as unknown as Record<string, unknown>).base_address ??
+          0) as number) + (reg.offset ?? 0);
       items.push({
         id: regNodeId,
         type: 'register',
@@ -140,7 +146,10 @@ export function buildVisibleSelections({
 
       arr.registers.forEach((reg: RegisterDef, regIndex: number) => {
         const regNodeId = registerId(blockIndex, regIndex);
-        const absolute = (block.baseAddress ?? 0) + (reg.offset ?? 0);
+        const absolute =
+          ((block.baseAddress ??
+            (block as unknown as Record<string, unknown>).base_address ??
+            0) as number) + (reg.offset ?? 0);
         items.push({
           id: regNodeId,
           type: 'register',

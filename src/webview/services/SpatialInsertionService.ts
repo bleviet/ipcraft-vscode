@@ -19,6 +19,7 @@ import {
 } from '../utils/BitFieldUtils';
 import { repackRegistersForward, repackRegistersBackward } from '../algorithms/RegisterRepacker';
 import { repackBlocksForward, repackBlocksBackward } from '../algorithms/AddressBlockRepacker';
+import { calculateBlockSize } from '../utils/blockSize';
 
 // ---------------------------------------------------------------------------
 // Public result type
@@ -168,17 +169,21 @@ function toBlockRuntime(block: Record<string, unknown>, index: number): AddressB
       : typeof block.offset === 'number'
         ? block.offset
         : index * 4;
+  // Strip runtime-only fields that don't belong in the YAML source:
+  //   • offset   — redundant alias for base_address
+  //   • size     — wrong default (4) for multi-register blocks; derived from registers anyway
+  //   • register_arrays — empty sentinel; preserve only when non-empty
+  const { offset: _o, size: _s, register_arrays, ...rest } = block;
   return {
-    ...block,
+    ...rest,
     name: String(block.name ?? `block${index}`),
     base_address: base,
-    offset: base,
-    size: typeof block.size === 'number' ? block.size : 4,
     registers: Array.isArray(block.registers)
       ? block.registers.map((reg, regIdx) =>
           toRegisterRuntime(reg as Record<string, unknown>, regIdx)
         )
       : [],
+    ...(Array.isArray(register_arrays) && register_arrays.length > 0 ? { register_arrays } : {}),
   };
 }
 
@@ -614,13 +619,9 @@ export class SpatialInsertionService {
     const selIdx = selectedIndex >= 0 ? selectedIndex : blocks.length - 1;
     const selected = blocks[selIdx];
     const selectedBase = selected.base_address ?? selected.offset ?? 0;
-    const selectedRegisters = selected.registers ?? [];
-    const selectedSize =
-      selectedRegisters.length > 0
-        ? selectedRegisters.length * 4
-        : (selected.size ?? selected.range ?? 4);
+    const selectedSize = calculateBlockSize(selected as Parameters<typeof calculateBlockSize>[0]);
 
-    const newBase = selectedBase + (typeof selectedSize === 'number' ? selectedSize : 4);
+    const newBase = selectedBase + selectedSize;
 
     let newBlocks: AddressBlockRuntimeDef[] = [
       ...blocks.slice(0, selIdx + 1),
@@ -679,12 +680,8 @@ export class SpatialInsertionService {
     if (selIdx > 0) {
       const prevBlock = newBlocks[selIdx - 1];
       const prevBase = prevBlock.base_address ?? prevBlock.offset ?? 0;
-      const prevRegisters = prevBlock.registers ?? [];
-      const prevSize =
-        prevRegisters.length > 0
-          ? prevRegisters.length * 4
-          : (prevBlock.size ?? prevBlock.range ?? 4);
-      const prevEnd = prevBase + (typeof prevSize === 'number' ? prevSize : 4) - 1;
+      const prevSize = calculateBlockSize(prevBlock as Parameters<typeof calculateBlockSize>[0]);
+      const prevEnd = prevBase + prevSize - 1;
 
       if (prevEnd >= newBase) {
         const newPrevSize = newBase - prevBase;

@@ -123,7 +123,7 @@ export function MemoryMapEditor({
     }
 
     const newIdx = result.newIndex;
-    onUpdate(['address_blocks'], result.items);
+    onUpdate(['addressBlocks'], result.items);
     setSelectedBlockIndex(newIdx);
     setHoveredBlockIndex(newIdx);
     setBlockActiveCell({ rowIndex: newIdx, key: 'name' });
@@ -165,7 +165,7 @@ export function MemoryMapEditor({
         ? blockActiveCell.key
         : 'name';
       const newBlocks = liveBlocks.filter((_: unknown, i: number) => i !== rowIndex);
-      onUpdate(['address_blocks'], newBlocks);
+      onUpdate(['addressBlocks'], newBlocks);
       const nextRow = rowIndex > 0 ? rowIndex - 1 : newBlocks.length > 0 ? 0 : -1;
       setSelectedBlockIndex(nextRow);
       setHoveredBlockIndex(nextRow);
@@ -265,7 +265,7 @@ export function MemoryMapEditor({
                       value={block.name || ''}
                       onBlur={(e: Event | React.FocusEvent<HTMLElement>) =>
                         onUpdate(
-                          ['address_blocks', idx, 'name'],
+                          ['addressBlocks', idx, 'name'],
                           (e.target as HTMLInputElement).value
                         )
                       }
@@ -293,7 +293,7 @@ export function MemoryMapEditor({
                     onInput={(e: Event | React.FormEvent<HTMLElement>) => {
                       const val = Number((e.target as HTMLInputElement).value);
                       if (!Number.isNaN(val)) {
-                        onUpdate(['address_blocks', idx, 'offset'], val);
+                        onUpdate(['addressBlocks', idx, 'base_address'], val);
                       }
                     }}
                   />
@@ -353,7 +353,7 @@ export function MemoryMapEditor({
                     value={block.description ?? ''}
                     onInput={(e: Event | React.FormEvent<HTMLElement>) =>
                       onUpdate(
-                        ['address_blocks', idx, 'description'],
+                        ['addressBlocks', idx, 'description'],
                         (e.target as HTMLInputElement).value
                       )
                     }

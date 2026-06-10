@@ -323,7 +323,15 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
         </div>
         <div className="outline-footer p-3 text-xs vscode-muted flex justify-between">
           <span>{filteredBlocks.length} Items</span>
-          <span>Base: {toHex(memoryMap.addressBlocks?.[0]?.baseAddress ?? 0)}</span>
+          <span>
+            Base:{' '}
+            {toHex(
+              (memoryMap.addressBlocks?.[0]?.baseAddress ??
+                (memoryMap.addressBlocks?.[0] as unknown as Record<string, unknown>)
+                  ?.base_address ??
+                0) as number
+            )}
+          </span>
         </div>
         {outlineContextMenu && onRegisterAction && (
           <div

@@ -199,7 +199,7 @@ export class DataNormalizer {
    */
   static normalizeMemoryMap(data: unknown): MemoryMap {
     const d = data as Record<string, unknown>;
-    const blocks = (d.addressBlocks ?? d.addressBlocks ?? []) as Record<string, unknown>[];
+    const blocks = (d.addressBlocks ?? d.address_blocks ?? []) as Record<string, unknown>[];
     return {
       name: String(d.name ?? ''),
       description: d.description as string | undefined,

@@ -40,7 +40,10 @@ const BlockNode = ({
         <span className="codicon codicon-package" style={{ marginRight: '6px' }}></span>
         {name}{' '}
         <span className="opacity-50">
-          @ 0x{(block.baseAddress ?? 0).toString(16).toUpperCase()}
+          @ 0x
+          {((block.baseAddress ?? (block as Record<string, unknown>).base_address ?? 0) as number)
+            .toString(16)
+            .toUpperCase()}
         </span>
       </div>
       {isExpanded && <div>{children}</div>}

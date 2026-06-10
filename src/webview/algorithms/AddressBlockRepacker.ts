@@ -39,7 +39,6 @@ export function repackBlocksForward(
     newBlocks[i] = {
       ...block,
       base_address: nextBase,
-      size: block.size ?? blockSize,
     };
     nextBase += blockSize;
   }
@@ -82,7 +81,6 @@ export function repackBlocksBackward(
     newBlocks[i] = {
       ...block,
       base_address: Math.max(0, base),
-      size,
     };
     nextEnd = base - 1;
   }

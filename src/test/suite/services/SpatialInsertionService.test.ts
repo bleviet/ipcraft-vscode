@@ -206,11 +206,15 @@ describe('SpatialInsertionService — registers', () => {
       expect(result.items).toHaveLength(1);
     });
 
-    it('returns error when selected register is at offset 0', () => {
+    it('inserts at offset 0 and pushes existing registers forward when no room behind', () => {
       const regs = [makeRegister('reg0', 0)];
       const result = SpatialInsertionService.insertRegisterBefore(regs, 0);
-      expect(result.error).toBeDefined();
-      expect(result.error).toMatch(/negative/);
+      expect(result.error).toBeUndefined();
+      expect(result.items).toHaveLength(2);
+      const newReg = result.items[result.newIndex];
+      expect(newReg.address_offset).toBe(0);
+      const pushed = result.items.find((r) => r.name === 'reg0');
+      expect(pushed?.address_offset).toBe(4);
     });
 
     it('inserts before the selected register', () => {
@@ -220,14 +224,6 @@ describe('SpatialInsertionService — registers', () => {
       expect(result.items).toHaveLength(2);
       const newReg = result.items[result.newIndex];
       expect(newReg.address_offset).toBe(0);
-    });
-
-    it('returns error when repacking produces a negative offset', () => {
-      // reg0 at offset 0, reg1 at 4 — insert before reg1 is fine
-      // but insert before reg0 is not (already tested above)
-      const regs = [makeRegister('reg0', 0)];
-      const result = SpatialInsertionService.insertRegisterBefore(regs, 0);
-      expect(result.error).toBeDefined();
     });
   });
 });
