@@ -1,21 +1,15 @@
 import React, { useRef, useState } from 'react';
 import type { YamlUpdateHandler } from '../../types/editor';
-import { VSCodeDropdown, VSCodeTextField } from '@vscode/webview-ui-toolkit/react';
+import { VSCodeTextField } from '@vscode/webview-ui-toolkit/react';
 import { KeyboardShortcutsButton } from '../../shared/components';
-import { BASIC_ACCESS_OPTIONS } from '../../shared/constants';
 import RegisterMapVisualizer from '../RegisterMapVisualizer';
 import type { RegisterModel } from '../../types/registerModel';
+import { FIELD_COLOR_KEYS } from '../../shared/colors';
 import { toHex } from '../../utils/formatUtils';
 import { useTableNavigation } from '../../hooks/useTableNavigation';
 import { useCellEditGuard } from '../../hooks/useCellEditGuard';
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-type RegEditKey = 'name' | 'offset' | 'access' | 'description';
-type RegActiveCell = { rowIndex: number; key: RegEditKey };
-const REG_COLUMN_ORDER: RegEditKey[] = ['name', 'offset', 'access', 'description'];
+import { RegisterTableRow, REG_COLUMN_ORDER } from './RegisterTableRow';
+import type { RegEditKey, RegActiveCell } from './RegisterTableRow';
 
 export interface RegisterArrayEditorProps {
   /** The register array definition object. */
@@ -53,12 +47,14 @@ export function RegisterArrayEditor({
   });
   const tableRef = useRef<HTMLDivElement | null>(null);
 
-  const { captureEditSnapshot } = useCellEditGuard({
+  const { cancelEditRef, captureEditSnapshot } = useCellEditGuard({
     rows: nestedRegisters,
     rowsPath: ['registers'],
     onUpdate,
     containerRef: tableRef as React.RefObject<HTMLElement>,
   });
+
+  const getRegColor = (i: number) => FIELD_COLOR_KEYS[i % FIELD_COLOR_KEYS.length];
 
   const scrollToCell = (rowIndex: number, key: string) => {
     window.setTimeout(() => {
@@ -193,144 +189,32 @@ export function RegisterArrayEditor({
           </tr>
         </thead>
         <tbody className="divide-y vscode-border text-sm">
-          {nestedRegisters.map((reg: RegisterModel, idx: number) => {
-            const regOffset = reg.address_offset ?? reg.offset ?? 0;
-            const isSelected = selectedRegIndex === idx;
-            const isHovered = hoveredRegIndex === idx;
-
-            return (
-              <tr
-                key={`${String(reg.name ?? `reg-${idx}`)}-${String(reg.address_offset ?? reg.offset ?? idx * 4)}`}
-                data-row-idx={idx}
-                data-reg-idx={idx}
-                className={`group vscode-row-solid transition-colors border-l-4 border-transparent h-12 ${
-                  isSelected
-                    ? 'vscode-focus-border vscode-row-selected'
-                    : isHovered
-                      ? 'vscode-focus-border vscode-row-hover'
-                      : ''
-                }`}
-                onMouseEnter={() => setHoveredRegIndex(idx)}
-                onMouseLeave={() => setHoveredRegIndex(null)}
-                onClick={() => {
-                  setSelectedRegIndex(idx);
-                  setHoveredRegIndex(idx);
-                  setRegActiveCell((prev) => ({ rowIndex: idx, key: prev.key }));
-                }}
-              >
-                {/* NAME */}
-                <td
-                  data-col-key="name"
-                  className={`px-6 py-2 font-medium align-middle ${
-                    regActiveCell.rowIndex === idx && regActiveCell.key === 'name'
-                      ? 'vscode-cell-active'
-                      : ''
-                  }`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedRegIndex(idx);
-                    setRegActiveCell({ rowIndex: idx, key: 'name' });
-                  }}
-                >
-                  <VSCodeTextField
-                    data-edit-key="name"
-                    value={reg.name ?? ''}
-                    onFocus={() => captureEditSnapshot()}
-                    onInput={(e: Event | React.FormEvent<HTMLElement>) =>
-                      onUpdate(['registers', idx, 'name'], (e.target as HTMLInputElement).value)
-                    }
-                    className="w-full font-mono"
-                  />
-                </td>
-
-                {/* OFFSET */}
-                <td
-                  data-col-key="offset"
-                  className={`px-4 py-2 font-mono text-xs align-middle ${
-                    regActiveCell.rowIndex === idx && regActiveCell.key === 'offset'
-                      ? 'vscode-cell-active'
-                      : ''
-                  }`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedRegIndex(idx);
-                    setRegActiveCell({ rowIndex: idx, key: 'offset' });
-                  }}
-                >
-                  <VSCodeTextField
-                    data-edit-key="offset"
-                    value={String(regOffset)}
-                    onFocus={() => captureEditSnapshot()}
-                    onInput={(e: Event | React.FormEvent<HTMLElement>) => {
-                      const val = parseInt((e.target as HTMLInputElement).value, 10);
-                      if (!isNaN(val) && val >= 0) {
-                        onUpdate(['registers', idx, 'address_offset'], val);
-                      }
-                    }}
-                    className="w-full font-mono text-xs"
-                  />
-                </td>
-
-                {/* ACCESS */}
-                <td
-                  data-col-key="access"
-                  className={`px-4 py-2 text-xs align-middle ${
-                    regActiveCell.rowIndex === idx && regActiveCell.key === 'access'
-                      ? 'vscode-cell-active'
-                      : ''
-                  }`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedRegIndex(idx);
-                    setRegActiveCell({ rowIndex: idx, key: 'access' });
-                  }}
-                >
-                  <VSCodeDropdown
-                    data-edit-key="access"
-                    value={reg.access ?? 'read-write'}
-                    onInput={(e: Event | React.FormEvent<HTMLElement>) =>
-                      onUpdate(['registers', idx, 'access'], (e.target as HTMLInputElement).value)
-                    }
-                    className="w-full"
-                  >
-                    {BASIC_ACCESS_OPTIONS.map((opt) => (
-                      <option key={opt} value={opt}>
-                        {opt}
-                      </option>
-                    ))}
-                  </VSCodeDropdown>
-                </td>
-
-                {/* DESCRIPTION */}
-                <td
-                  data-col-key="description"
-                  className={`px-6 py-2 align-middle ${
-                    regActiveCell.rowIndex === idx && regActiveCell.key === 'description'
-                      ? 'vscode-cell-active'
-                      : ''
-                  }`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedRegIndex(idx);
-                    setRegActiveCell({ rowIndex: idx, key: 'description' });
-                  }}
-                >
-                  <VSCodeTextField
-                    data-edit-key="description"
-                    value={reg.description ?? ''}
-                    onFocus={() => captureEditSnapshot()}
-                    onInput={(e: Event | React.FormEvent<HTMLElement>) =>
-                      onUpdate(
-                        ['registers', idx, 'description'],
-                        (e.target as HTMLInputElement).value
-                      )
-                    }
-                    className="w-full"
-                  />
-                </td>
-              </tr>
-            );
-          })}
+          {nestedRegisters.map((reg: RegisterModel, idx: number) => (
+            <RegisterTableRow
+              key={`${String(reg.name ?? `reg-${idx}`)}-${String(reg.address_offset ?? reg.offset ?? idx * 4)}`}
+              reg={reg}
+              idx={idx}
+              isSelected={selectedRegIndex === idx}
+              isHovered={hoveredRegIndex === idx}
+              regActiveCell={regActiveCell}
+              color={getRegColor(idx)}
+              cancelEditRef={cancelEditRef}
+              captureEditSnapshot={captureEditSnapshot}
+              onUpdate={onUpdate}
+              onRowClick={() => {
+                setSelectedRegIndex(idx);
+                setHoveredRegIndex(idx);
+                setRegActiveCell((prev) => ({ rowIndex: idx, key: prev.key }));
+              }}
+              onCellClick={(key) => {
+                setSelectedRegIndex(idx);
+                setHoveredRegIndex(idx);
+                setRegActiveCell({ rowIndex: idx, key });
+              }}
+              onMouseEnter={() => setHoveredRegIndex(idx)}
+              onMouseLeave={() => setHoveredRegIndex(null)}
+            />
+          ))}
           {nestedRegisters.length === 0 && (
             <tr>
               <td colSpan={4} className="px-4 py-8 text-center vscode-muted">
