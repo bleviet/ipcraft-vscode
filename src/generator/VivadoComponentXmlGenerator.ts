@@ -2,6 +2,7 @@ import {
   evalWidthExpr,
   getActiveBusPortsFromDefinition,
   expandBusInterfaces,
+  normalizeBusType,
 } from './registerProcessor';
 import { detectVivadoVersion } from '../utils/detectVivadoVersion';
 import { parseVlnv } from '../utils/vlnv';
@@ -26,7 +27,7 @@ export interface CustomBusInfo {
 }
 
 function findCustomBusDef(ifaceType: string, busDefinitions: BusDefinitions): CustomBusInfo | null {
-  if (IPCRAFT_TO_VIVADO[ifaceType]) {
+  if (resolveVivadoBusType(ifaceType)) {
     return null;
   }
   for (const def of Object.values(busDefinitions)) {
@@ -235,9 +236,27 @@ const IPCRAFT_TO_VIVADO: Record<string, VivadoBusTypeInfo> = {
     library: 'interface',
     name: 'avalon',
     abstraction: 'avalon_rtl',
-    libraryKey: 'AVALON_MM',
+    libraryKey: 'AVALON_MEMORY_MAPPED',
   },
 };
+
+/**
+ * Resolves an interface type string (short alias, VLNV, or full VLNV) to a
+ * VivadoBusTypeInfo entry. Falls back to normalizeBusType() alias resolution so
+ * that short tokens produced by the parser (e.g. 'AXI4L', 'AXI4F', 'AXI4S')
+ * map correctly even if not listed as explicit keys in IPCRAFT_TO_VIVADO.
+ */
+function resolveVivadoBusType(ifaceType: string): VivadoBusTypeInfo | undefined {
+  const direct = IPCRAFT_TO_VIVADO[ifaceType];
+  if (direct) {
+    return direct;
+  }
+  const { libraryKey } = normalizeBusType(ifaceType);
+  if (!libraryKey) {
+    return undefined;
+  }
+  return Object.values(IPCRAFT_TO_VIVADO).find((v) => v.libraryKey === libraryKey);
+}
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
@@ -433,7 +452,7 @@ function renderBusInterface(iface: BusInterfaceDef, busDefinitions: BusDefinitio
   const ifaceType = String(iface.type ?? '');
   const mode = String(iface.mode ?? 'slave').toLowerCase();
 
-  const vivadoType = IPCRAFT_TO_VIVADO[ifaceType];
+  const vivadoType = resolveVivadoBusType(ifaceType);
   const customBus = vivadoType ? null : findCustomBusDef(ifaceType, busDefinitions);
 
   const lines: string[] = [];
@@ -796,7 +815,7 @@ function renderPorts(
   for (const iface of busInterfaces) {
     const ifaceType = String(iface.type ?? '');
     const mode = String(iface.mode ?? 'slave').toLowerCase();
-    const vivadoType = IPCRAFT_TO_VIVADO[ifaceType];
+    const vivadoType = resolveVivadoBusType(ifaceType);
     const sourcePorts: BusPortDefinition[] | undefined = vivadoType
       ? busDefinitions[vivadoType.libraryKey]?.ports
       : findCustomBusDef(ifaceType, busDefinitions)?.ports;
