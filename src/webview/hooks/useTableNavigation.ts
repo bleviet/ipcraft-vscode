@@ -121,7 +121,7 @@ export function useTableNavigation<T extends ColumnKey>({
         normalizedKey === 'ArrowDown' ||
         normalizedKey === 'ArrowLeft' ||
         normalizedKey === 'ArrowRight';
-      const isEdit = normalizedKey === 'F2' || keyLower === 'e';
+      const isEdit = normalizedKey === 'F2' || normalizedKey === 'Enter' || keyLower === 'e';
       const isDelete = keyLower === 'd' || e.key === 'Delete';
       const isInsertAfter = keyLower === 'o' && !e.shiftKey;
       const isInsertBefore = keyLower === 'o' && e.shiftKey;
