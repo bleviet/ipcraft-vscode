@@ -8,6 +8,32 @@ function isSimPath(p: string): boolean {
   return SIM_PREFIXES.some((prefix) => p.startsWith(prefix));
 }
 
+/**
+ * Assigns a compile-order rank based on file-name suffix convention.
+ * Lower rank = must be compiled first.
+ *   0  _pkg.*      — shared-types package
+ *   1  _regs.*     — generated register file (uses package)
+ *   2  _core.*     — user logic stub (uses package + regs)
+ *   3  _<bus>.*    — bus wrapper (axil/avmm/axi4/…) instantiates core
+ *   4  everything else (top-level entity or unknown)
+ */
+function hdlCompileRank(filePath: string): number {
+  const base = filePath.split('/').pop()?.toLowerCase() ?? '';
+  if (/_pkg\.(vhd|sv|v)$/.test(base)) {
+    return 0;
+  }
+  if (/_regs\.(vhd|sv|v)$/.test(base)) {
+    return 1;
+  }
+  if (/_core\.(vhd|sv|v)$/.test(base)) {
+    return 2;
+  }
+  if (/_(?:axil|avmm|axi4|axi3|apb|wishbone|ahb)\.(vhd|sv|v)$/.test(base)) {
+    return 3;
+  }
+  return 4;
+}
+
 export class CocotbFramework implements Framework {
   readonly id = 'cocotb';
   readonly displayName = 'CocoTB';
@@ -24,7 +50,11 @@ export class CocotbFramework implements Framework {
       .flatMap((fs) => fs.files ?? [])
       .filter((f) => RTL_HDL_TYPES.has(f.type) && !isSimPath(f.path));
 
-    const rtlSourceFiles = hdlFiles.filter((f) => !f.isIncludeFile).map((f) => f.path);
+    const rtlSourceFiles = hdlFiles
+      .filter((f) => !f.isIncludeFile)
+      .slice()
+      .sort((a, b) => hdlCompileRank(a.path) - hdlCompileRank(b.path))
+      .map((f) => f.path);
     const includeDirSet = new Set(
       hdlFiles
         .filter((f) => f.isIncludeFile)

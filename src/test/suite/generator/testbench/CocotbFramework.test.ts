@@ -223,6 +223,31 @@ describe('CocotbFramework — fileset-driven sources', () => {
     expect(conf).not.toContain('BASE_DIR / "tb/');
   });
 
+  it('Makefile emits VHDL sources in compile order (pkg before regs before core before bus before top)', () => {
+    // Intentionally provide files in wrong order to verify the sort is applied
+    const wrongOrderFilesets = [
+      {
+        name: 'RTL_Sources',
+        files: [
+          { path: 'rtl/dut.vhd', type: 'vhdl' }, // top — rank 4
+          { path: 'rtl/dut_axil.vhd', type: 'vhdl' }, // bus wrapper — rank 3
+          { path: 'rtl/dut_core.vhd', type: 'vhdl' }, // core — rank 2
+          { path: 'rtl/dut_regs.vhd', type: 'vhdl' }, // reg file — rank 1
+          { path: 'rtl/dut_pkg.vhd', type: 'vhdl' }, // package — rank 0
+        ],
+      },
+    ];
+    const mk = framework.generate(makeCtx({ fileSets: wrongOrderFilesets }), new GhdlEngine())[
+      'tb/Makefile'
+    ];
+    const lines = mk.split('\n').filter((l) => l.includes('VHDL_SOURCES +='));
+    expect(lines[0]).toContain('dut_pkg.vhd');
+    expect(lines[1]).toContain('dut_regs.vhd');
+    expect(lines[2]).toContain('dut_core.vhd');
+    expect(lines[3]).toContain('dut_axil.vhd');
+    expect(lines[4]).toContain('dut.vhd');
+  });
+
   it('falls back to entity-name VHDL logic when fileSets is empty', () => {
     const mk = framework.generate(makeCtx({ fileSets: [] }), new GhdlEngine())['tb/Makefile'];
     expect(mk).toContain('VHDL_SOURCES += $(BASE_DIR)/rtl/test_core.vhd');

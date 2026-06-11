@@ -46,10 +46,6 @@ files:
     target: "rtl/{{ name }}_pkg.vhd"
     condition: "not is_systemverilog and has_memory_mapped_slave"
 
-  - source: "top.vhdl.j2"
-    target: "rtl/{{ name }}.vhd"
-    condition: "not is_systemverilog"
-
   - source: "core.vhdl.j2"
     target: "rtl/{{ name }}_core.vhd"
     condition: "not is_systemverilog and has_memory_mapped_slave"
@@ -59,15 +55,15 @@ files:
     target: "rtl/{{ name }}_{{ bus_type }}.vhd"
     condition: "not is_systemverilog and has_memory_mapped_slave"
 
+  - source: "top.vhdl.j2"
+    target: "rtl/{{ name }}.vhd"
+    condition: "not is_systemverilog"
+
   # ── SystemVerilog ────────────────────────────────────────────────────────────
 
   - source: "pkg.sv.j2"
     target: "rtl/{{ name }}_pkg.sv"
     condition: "is_systemverilog and has_memory_mapped_slave"
-
-  - source: "top.sv.j2"
-    target: "rtl/{{ name }}.sv"
-    condition: "is_systemverilog"
 
   - source: "core.sv.j2"
     target: "rtl/{{ name }}_core.sv"
@@ -77,3 +73,7 @@ files:
   - source: "bus_{{ bus_type }}.sv.j2"
     target: "rtl/{{ name }}_{{ bus_type }}.sv"
     condition: "is_systemverilog and has_memory_mapped_slave"
+
+  - source: "top.sv.j2"
+    target: "rtl/{{ name }}.sv"
+    condition: "is_systemverilog"
