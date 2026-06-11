@@ -1,4 +1,5 @@
 import { lookupBusDef, type BusPortDef } from '../data/busDefinitions';
+import { BUS_VLNV } from '../../../shared/busVlnv';
 
 export interface ProtocolMatch {
   busType: string;
@@ -22,28 +23,28 @@ const PROTOCOL_SPECS: readonly ProtocolSpec[] = [
   // AXI4-Full must come before AXI4-Lite because its exclusiveSignals filter
   // prevents Lite ports from being misclassified as Full.
   {
-    busType: 'ipcraft.busif.axi4_full.1.0',
+    busType: BUS_VLNV.AXI4_FULL,
     label: 'AXI4-Full',
     minRequired: 8,
     exclusiveSignals: ['awlen', 'awburst', 'wlast', 'rlast'],
   },
   {
-    busType: 'ipcraft.busif.axi4_lite.1.0',
+    busType: BUS_VLNV.AXI4_LITE,
     label: 'AXI4-Lite',
     minRequired: 4,
   },
   {
-    busType: 'ipcraft.busif.axi_stream.1.0',
+    busType: BUS_VLNV.AXI_STREAM,
     label: 'AXI-Stream',
     minRequired: 2,
   },
   {
-    busType: 'ipcraft.busif.avalon_mm.1.0',
+    busType: BUS_VLNV.AVALON_MM,
     label: 'Avalon-MM',
     minRequired: 3,
   },
   {
-    busType: 'ipcraft.busif.avalon_st.1.0',
+    busType: BUS_VLNV.AVALON_ST,
     label: 'Avalon-ST',
     minRequired: 2,
   },

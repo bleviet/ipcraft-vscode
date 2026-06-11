@@ -1,6 +1,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
+import { BUS_VLNV } from '../shared/busVlnv';
 
 export interface ParsedPort {
   name: string;
@@ -428,7 +429,7 @@ interface BusDef {
 // the disambiguation logic (exclusiveSignals + score comparison) resolves correctly.
 const BUS_DEFINITIONS: readonly BusDef[] = [
   {
-    id: 'ipcraft.busif.axi4_full.1.0',
+    id: BUS_VLNV.AXI4_FULL,
     minRequired: 8,
     exclusiveSignals: ['awlen', 'awburst', 'wlast', 'rlast'],
     signals: [
@@ -470,7 +471,7 @@ const BUS_DEFINITIONS: readonly BusDef[] = [
     ],
   },
   {
-    id: 'ipcraft.busif.axi4_lite.1.0',
+    id: BUS_VLNV.AXI4_LITE,
     minRequired: 4,
     signals: [
       { name: 'awaddr', presence: 'required', direction: 'out' },
@@ -495,7 +496,7 @@ const BUS_DEFINITIONS: readonly BusDef[] = [
     ],
   },
   {
-    id: 'ipcraft.busif.axi_stream.1.0',
+    id: BUS_VLNV.AXI_STREAM,
     minRequired: 2,
     signals: [
       { name: 'tdata', presence: 'required', direction: 'out' },
@@ -510,7 +511,7 @@ const BUS_DEFINITIONS: readonly BusDef[] = [
     ],
   },
   {
-    id: 'ipcraft.busif.avalon_mm.1.0',
+    id: BUS_VLNV.AVALON_MM,
     minRequired: 3,
     signals: [
       { name: 'address', presence: 'required', direction: 'out' },
@@ -528,7 +529,7 @@ const BUS_DEFINITIONS: readonly BusDef[] = [
     ],
   },
   {
-    id: 'ipcraft.busif.avalon_st.1.0',
+    id: BUS_VLNV.AVALON_ST,
     minRequired: 2,
     signals: [
       { name: 'data', presence: 'required', direction: 'out' },

@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as yaml from 'js-yaml';
 import { lookupBusDef } from '../webview/ipcore/data/busDefinitions';
 import { resolveVendor } from '../utils/resolveVendor';
+import { BUS_VLNV } from '../shared/busVlnv';
 
 export interface HwTclParseOptions {
   library?: string;
@@ -48,13 +49,13 @@ interface TclParameter {
 }
 
 const BUS_TYPE_MAP: Record<string, string> = {
-  axi4lite: 'ipcraft.busif.axi4_lite.1.0',
-  axi4: 'ipcraft.busif.axi4_full.1.0',
-  avalon: 'ipcraft.busif.avalon_mm.1.0',
-  avalon_streaming: 'ipcraft.busif.avalon_st.1.0',
-  avalonst: 'ipcraft.busif.avalon_st.1.0',
-  axi4stream: 'ipcraft.busif.axi_stream.1.0',
-  axis: 'ipcraft.busif.axi_stream.1.0',
+  axi4lite: BUS_VLNV.AXI4_LITE,
+  axi4: BUS_VLNV.AXI4_FULL,
+  avalon: BUS_VLNV.AVALON_MM,
+  avalon_streaming: BUS_VLNV.AVALON_ST,
+  avalonst: BUS_VLNV.AVALON_ST,
+  axi4stream: BUS_VLNV.AXI_STREAM,
+  axis: BUS_VLNV.AXI_STREAM,
 };
 
 const FILE_TYPE_MAP: Record<string, string> = {

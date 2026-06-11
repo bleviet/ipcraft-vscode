@@ -7,6 +7,8 @@ export interface BusPortDef {
   role?: 'clock' | 'reset';
 }
 
+import { BUS_VLNV } from '../../../shared/busVlnv';
+
 const AXI4_LITE: BusPortDef[] = [
   { name: 'ACLK', presence: 'required', role: 'clock' },
   { name: 'ARESETn', presence: 'required', role: 'reset' },
@@ -163,11 +165,11 @@ export function isConduitType(busType: string): boolean {
  *  Custom Interface (conduit) is intentionally excluded — switching to it is a
  *  destructive mode change that should be done deliberately via the Library Palette. */
 export const BUILTIN_BUS_TYPES: { vlnv: string; label: string }[] = [
-  { vlnv: 'ipcraft.busif.axi4_lite.1.0', label: 'AXI4-Lite' },
-  { vlnv: 'ipcraft.busif.axi4_full.1.0', label: 'AXI4-Full' },
-  { vlnv: 'ipcraft.busif.axi_stream.1.0', label: 'AXI-Stream' },
-  { vlnv: 'ipcraft.busif.avalon_mm.1.0', label: 'Avalon-MM' },
-  { vlnv: 'ipcraft.busif.avalon_st.1.0', label: 'Avalon-ST' },
+  { vlnv: BUS_VLNV.AXI4_LITE, label: 'AXI4-Lite' },
+  { vlnv: BUS_VLNV.AXI4_FULL, label: 'AXI4-Full' },
+  { vlnv: BUS_VLNV.AXI_STREAM, label: 'AXI-Stream' },
+  { vlnv: BUS_VLNV.AVALON_MM, label: 'Avalon-MM' },
+  { vlnv: BUS_VLNV.AVALON_ST, label: 'Avalon-ST' },
 ];
 
 /** Enumerates all VLNVs present in the runtime bus library for use in a selector. */

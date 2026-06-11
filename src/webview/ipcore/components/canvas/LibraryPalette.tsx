@@ -1,4 +1,5 @@
 import React, { useState, useCallback, type DragEvent } from 'react';
+import { BUS_VLNV } from '../../../../shared/busVlnv';
 
 /** Payload attached to drag events from the library palette */
 export interface LibraryDragPayload {
@@ -55,42 +56,42 @@ const PALETTE: PaletteCategory[] = [
     items: [
       {
         kind: 'bus',
-        type: 'ipcraft.busif.axi4_lite.1.0',
+        type: BUS_VLNV.AXI4_LITE,
         mode: 'slave',
         nameHint: 'axi_lite',
         label: 'AXI4-Lite',
       },
       {
         kind: 'bus',
-        type: 'ipcraft.busif.axi4_full.1.0',
+        type: BUS_VLNV.AXI4_FULL,
         mode: 'slave',
         nameHint: 'axi_full',
         label: 'AXI4-Full',
       },
       {
         kind: 'bus',
-        type: 'ipcraft.busif.axi_stream.1.0',
+        type: BUS_VLNV.AXI_STREAM,
         mode: 'slave',
         nameHint: 'axis',
         label: 'AXI-Stream',
       },
       {
         kind: 'bus',
-        type: 'ipcraft.busif.avalon_mm.1.0',
+        type: BUS_VLNV.AVALON_MM,
         mode: 'slave',
         nameHint: 'avl_mm',
         label: 'Avalon-MM',
       },
       {
         kind: 'bus',
-        type: 'ipcraft.busif.avalon_st.1.0',
+        type: BUS_VLNV.AVALON_ST,
         mode: 'slave',
         nameHint: 'avl_st',
         label: 'Avalon-ST',
       },
       {
         kind: 'bus',
-        type: 'ipcraft.busif.conduit.1.0',
+        type: BUS_VLNV.CONDUIT,
         mode: 'conduit',
         nameHint: 'custom_if',
         label: 'Custom Interface',

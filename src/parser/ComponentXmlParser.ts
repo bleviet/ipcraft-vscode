@@ -2,14 +2,15 @@ import * as fs from 'fs/promises';
 import * as yaml from 'js-yaml';
 import { DOMParser } from '@xmldom/xmldom';
 import { lookupBusDef } from '../webview/ipcore/data/busDefinitions';
+import { BUS_VLNV } from '../shared/busVlnv';
 
 // IP-XACT 1685-2009 namespace
 const SPIRIT_NS = 'http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009';
 
 // Canonical IPCraft VLNV bus type identifiers — match what the canvas drag-and-drop writes.
-const AXIMM_BUS_FULL = 'ipcraft.busif.axi4_full.1.0';
-const AXIMM_BUS_LITE = 'ipcraft.busif.axi4_lite.1.0';
-const AXIS_BUS = 'ipcraft.busif.axi_stream.1.0';
+const AXIMM_BUS_FULL = BUS_VLNV.AXI4_FULL;
+const AXIMM_BUS_LITE = BUS_VLNV.AXI4_LITE;
+const AXIS_BUS = BUS_VLNV.AXI_STREAM;
 
 export interface ComponentXmlParseOptions {
   library?: string;

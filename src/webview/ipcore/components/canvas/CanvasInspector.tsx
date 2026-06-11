@@ -27,6 +27,7 @@ import {
 import { supportsMemoryMap } from './canvasLayout';
 import { vscode } from '../../../vscode';
 import { evalWidthExpr } from '../../../shared/utils/evalWidthExpr';
+import { BUS_VLNV } from '../../../../shared/busVlnv';
 
 interface CanvasInspectorProps {
   selected: CanvasElement | null;
@@ -1431,7 +1432,7 @@ const ConduitPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, on
             const trimmed = v.trim();
             onUpdate(
               ['busInterfaces', index, 'type'],
-              trimmed ? buildConduitType(trimmed) : 'ipcraft.busif.conduit.1.0'
+              trimmed ? buildConduitType(trimmed) : BUS_VLNV.CONDUIT
             );
           }}
           placeholder="SPI, I2C, UART…"
@@ -2295,7 +2296,7 @@ const BusTypeField: React.FC<BusTypeFieldProps> = ({ value, busLibrary, onSave }
           <input
             className="ci-field__input"
             value={focused ? draft : value}
-            placeholder="ipcraft.busif.axi4_lite.1.0"
+            placeholder={BUS_VLNV.AXI4_LITE}
             style={{ fontFamily: 'var(--vscode-editor-font-family, monospace)' }}
             onChange={(e) => setDraft(e.target.value)}
             onFocus={() => {

@@ -6,6 +6,7 @@ import {
 } from './registerProcessor';
 import { detectVivadoVersion } from '../utils/detectVivadoVersion';
 import { parseVlnv } from '../utils/vlnv';
+import { BUS_VLNV } from '../shared/busVlnv';
 import type {
   BusDefinitions,
   BusInterfaceDef,
@@ -208,7 +209,7 @@ interface VivadoBusTypeInfo {
 }
 
 const IPCRAFT_TO_VIVADO: Record<string, VivadoBusTypeInfo> = {
-  'ipcraft.busif.axi4_lite.1.0': {
+  [BUS_VLNV.AXI4_LITE]: {
     vendor: 'xilinx.com',
     library: 'interface',
     name: 'aximm',
@@ -216,7 +217,7 @@ const IPCRAFT_TO_VIVADO: Record<string, VivadoBusTypeInfo> = {
     protocol: 'AXI4LITE',
     libraryKey: 'AXI4_LITE',
   },
-  'ipcraft.busif.axi4_full.1.0': {
+  [BUS_VLNV.AXI4_FULL]: {
     vendor: 'xilinx.com',
     library: 'interface',
     name: 'aximm',
@@ -224,14 +225,14 @@ const IPCRAFT_TO_VIVADO: Record<string, VivadoBusTypeInfo> = {
     protocol: 'AXI4',
     libraryKey: 'AXI4_FULL',
   },
-  'ipcraft.busif.axi_stream.1.0': {
+  [BUS_VLNV.AXI_STREAM]: {
     vendor: 'xilinx.com',
     library: 'interface',
     name: 'axis',
     abstraction: 'axis_rtl',
     libraryKey: 'AXI_STREAM',
   },
-  'ipcraft.busif.avalon_mm.1.0': {
+  [BUS_VLNV.AVALON_MM]: {
     vendor: 'xilinx.com',
     library: 'interface',
     name: 'avalon',

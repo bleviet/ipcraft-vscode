@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import type { IpCore, BusInterface, ConduitPort, Port } from '../../types/ipCore';
 import { lookupBusDef, isConduitType } from '../data/busDefinitions';
 import type { BusPortDef } from '../data/busDefinitions';
+import { BUS_VLNV } from '../../../shared/busVlnv';
 
 export type BatchUpdate = (mutations: Array<[Array<string | number>, unknown]>) => void;
 
@@ -81,7 +82,7 @@ export function useGroupPorts(ipCore: IpCore, batchUpdate: BatchUpdate) {
 
       const newBus: BusInterface = {
         name: opts.interfaceName,
-        type: 'ipcraft.busif.conduit.1.0',
+        type: BUS_VLNV.CONDUIT,
         mode: 'conduit',
         physicalPrefix: opts.physicalPrefix,
         conduitPorts,
