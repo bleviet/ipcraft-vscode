@@ -36,6 +36,7 @@ endif()
 find_program(NODE_EXECUTABLE  node  REQUIRED DOC "Node.js runtime (≥20)")
 find_program(NPM_EXECUTABLE   npm   REQUIRED DOC "npm package manager")
 find_program(NPX_EXECUTABLE   npx   REQUIRED DOC "npx package runner (ships with npm)")
+find_program(CODE_EXECUTABLE  code  DOC "VS Code CLI (required for install_extension / deploy)")
 
 find_program(PYTHON3_EXECUTABLE python3 DOC "Python 3 interpreter (required for docs targets)")
 
@@ -53,6 +54,22 @@ if(_NODE_MAJOR LESS 20)
 endif()
 message(STATUS "Node.js ${_NODE_VERSION_RAW}  →  ${NODE_EXECUTABLE}")
 message(STATUS "npm              →  ${NPM_EXECUTABLE}")
+
+# ─── Derive VSIX filename from package.json (name + version) ──────────────────
+execute_process(
+    COMMAND ${NODE_EXECUTABLE} -p "require('./package.json').name"
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    OUTPUT_VARIABLE _PKG_NAME
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+execute_process(
+    COMMAND ${NODE_EXECUTABLE} -p "require('./package.json').version"
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    OUTPUT_VARIABLE _PKG_VERSION
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+set(VSIX_FILE "${_PKG_NAME}-${_PKG_VERSION}.vsix")
+message(STATUS "VSIX target      →  ${VSIX_FILE}")
 
 if(PYTHON3_EXECUTABLE)
     execute_process(
@@ -163,9 +180,28 @@ add_custom_target(compile_tests
 # Package the extension as a distributable .vsix file.
 # Automatically triggers production build via vscode:prepublish.
 add_custom_target(vsix
-    COMMAND ${NPX_EXECUTABLE} vsce package
+    COMMAND ${NPX_EXECUTABLE} vsce package --no-dependencies -o "${CMAKE_SOURCE_DIR}/${VSIX_FILE}"
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-    COMMENT "Packaging extension → ipcraft-vscode-${PROJECT_VERSION}.vsix"
+    COMMENT "Packaging extension → ${VSIX_FILE}"
+    VERBATIM
+)
+
+# Install an already-built .vsix into VS Code.
+add_custom_target(install_extension
+    COMMAND ${CODE_EXECUTABLE} --install-extension "${CMAKE_SOURCE_DIR}/${VSIX_FILE}" --force
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    COMMENT "Installing ${VSIX_FILE} into VS Code"
+    VERBATIM
+)
+
+# deploy — single command: production build → package vsix → install into VS Code.
+# Run this after pulling the latest changes.
+add_custom_target(deploy
+    COMMAND ${NPM_EXECUTABLE} run package
+    COMMAND ${NPX_EXECUTABLE} vsce package --no-dependencies -o "${CMAKE_SOURCE_DIR}/${VSIX_FILE}"
+    COMMAND ${CODE_EXECUTABLE} --install-extension "${CMAKE_SOURCE_DIR}/${VSIX_FILE}" --force
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    COMMENT "deploy: compile → vsix (${VSIX_FILE}) → install into VS Code"
     VERBATIM
 )
 
@@ -523,6 +559,8 @@ add_custom_target(usage
     COMMAND ${CMAKE_COMMAND} -E echo "  compile_tests      Compile test TypeScript → out/"
     COMMAND ${CMAKE_COMMAND} -E echo "  vsix               Package extension as .vsix"
     COMMAND ${CMAKE_COMMAND} -E echo "  vsix_ls            List files that will be included in .vsix"
+    COMMAND ${CMAKE_COMMAND} -E echo "  install_extension  Install existing .vsix into VS Code"
+    COMMAND ${CMAKE_COMMAND} -E echo "  deploy             compile + vsix + install  (post-pull one-liner)"
     COMMAND ${CMAKE_COMMAND} -E echo "  watch              Webpack watch mode (Ctrl-C to stop)"
     COMMAND ${CMAKE_COMMAND} -E echo "  watch_tests        tsc watch mode for tests (Ctrl-C to stop)"
     COMMAND ${CMAKE_COMMAND} -E echo ""
