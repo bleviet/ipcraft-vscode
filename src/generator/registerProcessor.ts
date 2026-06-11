@@ -482,8 +482,10 @@ export async function resolveMemoryMaps(
     return [];
   }
 
+  const baseDir = path.dirname(inputPath);
+
+  // Legacy shortcut: memoryMaps: { import: "path.mm.yml" } — single global import.
   if (!Array.isArray(memoryMaps) && 'import' in memoryMaps) {
-    const baseDir = path.dirname(inputPath);
     const importPath = path.resolve(baseDir, memoryMaps.import as string);
     const content = await fs.readFile(importPath, 'utf8');
     const parsed = yaml.load(content);
@@ -493,7 +495,32 @@ export async function resolveMemoryMaps(
     return parsed ? [parsed as Record<string, unknown>] : [];
   }
 
-  return Array.isArray(memoryMaps) ? memoryMaps : [memoryMaps];
+  const entries: Array<Record<string, unknown>> = Array.isArray(memoryMaps)
+    ? memoryMaps
+    : [memoryMaps];
+
+  // For each entry, if it has an `import` field, load the file and merge
+  // so the entry's `name` overrides what's in the file.
+  const resolved: Array<Record<string, unknown>> = [];
+  for (const entry of entries) {
+    const importField = entry.import;
+    if (importField && typeof importField === 'string') {
+      const importPath = path.resolve(baseDir, importField);
+      const content = await fs.readFile(importPath, 'utf8');
+      const parsed = yaml.load(content);
+      // Loaded content may be a single map object or an array (take first item).
+      const loaded: Record<string, unknown> = Array.isArray(parsed)
+        ? ((parsed[0] as Record<string, unknown>) ?? {})
+        : ((parsed as Record<string, unknown>) ?? {});
+      // Merge: entry-level fields (including `name`) take precedence over the file.
+      const { import: _ignored, ...entryWithoutImport } = entry;
+      resolved.push({ ...loaded, ...entryWithoutImport });
+    } else {
+      resolved.push(entry);
+    }
+  }
+
+  return resolved;
 }
 
 export async function prepareRegisters(

@@ -1151,9 +1151,10 @@ const BusPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, onUpda
   const resetOpts = resets.map((r) => ({ value: r.name, label: r.name }));
 
   // Memory map options: inline maps + imported maps (deduplicated)
-  const inlineMapNames = Array.isArray(ipCore.memoryMaps)
-    ? (ipCore.memoryMaps as unknown as Array<{ name?: unknown }>).map((m) => String(m.name ?? ''))
+  const inlineMaps = Array.isArray(ipCore.memoryMaps)
+    ? (ipCore.memoryMaps as unknown as Array<{ name?: unknown; import?: unknown }>)
     : [];
+  const inlineMapNames = inlineMaps.map((m) => String(m.name ?? ''));
   const importedMapNames = Array.isArray(imports?.memoryMaps)
     ? (imports.memoryMaps as Array<Record<string, unknown>>).map((m) => String(m.name ?? ''))
     : [];
@@ -1168,6 +1169,78 @@ const BusPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, onUpda
   const isArray = (arrayDef?.count ?? 0) > 1;
   const hasPrefixPattern = isArray && !!arrayDef?.physicalPrefixPattern;
   const canHaveMemoryMap = !isArray && supportsMemoryMap(bus.type, bus.mode);
+
+  // The import path shown for this interface's map entry (per-interface, not global).
+  const currentMapImportPath: string | null = (() => {
+    if (!bus.memoryMapRef) {
+      return null;
+    }
+    const entry = inlineMaps.find((m) => String(m.name ?? '') === bus.memoryMapRef);
+    return entry?.import ? String(entry.import) : null;
+  })();
+
+  /**
+   * Called when the user browses and selects a .mm.yml file for THIS interface.
+   * Creates or updates a named entry in ipCore.memoryMaps, and sets memoryMapRef
+   * on this interface to that name — so two interfaces never share the same entry.
+   */
+  const handleMemoryMapFileChange = (filePath: string | null) => {
+    const currentMaps = Array.isArray(ipCore.memoryMaps)
+      ? ([...(ipCore.memoryMaps as unknown as Array<Record<string, unknown>>)] as Array<
+          Record<string, unknown>
+        >)
+      : [];
+
+    if (!filePath) {
+      // Clear: remove memoryMapRef from this interface.
+      // If the referenced map entry has an import and is not used by any other interface,
+      // remove it from the array to keep the YAML clean.
+      const refName = bus.memoryMapRef;
+      if (refName) {
+        const usedByOthers = buses.some(
+          (b, i) => i !== index && (b as { memoryMapRef?: string }).memoryMapRef === refName
+        );
+        if (!usedByOthers) {
+          const entry = inlineMaps.find((m) => String(m.name ?? '') === refName);
+          if (entry?.import) {
+            // This was a file-backed entry created by this UI — safe to remove.
+            const updated = currentMaps.filter((m) => String(m.name ?? '') !== refName);
+            onUpdate(['memoryMaps'], updated.length ? updated : undefined);
+          }
+        }
+      }
+      onUpdate(['busInterfaces', index, 'memoryMapRef'], null);
+      return;
+    }
+
+    // Derive a stable map name from the filename (without extension).
+    const baseName = filePath
+      .split(/[/\\]/)
+      .pop()!
+      .replace(/\.(mm\.yml|mm\.yaml|yml|yaml)$/i, '');
+
+    // Ensure uniqueness: if another interface already owns an entry with this name,
+    // append the interface's own logical name to disambiguate.
+    let mapName = baseName;
+    const takenByOther = buses.some(
+      (b, i) => i !== index && (b as { memoryMapRef?: string }).memoryMapRef === baseName
+    );
+    if (takenByOther) {
+      mapName = `${baseName}_${String(bus.name ?? index)}`;
+    }
+
+    // Add or update the entry in the memoryMaps array.
+    const existingIdx = currentMaps.findIndex((m) => String(m.name ?? '') === mapName);
+    const newEntry: Record<string, unknown> = { name: mapName, import: filePath };
+    if (existingIdx >= 0) {
+      currentMaps[existingIdx] = newEntry;
+    } else {
+      currentMaps.push(newEntry);
+    }
+
+    onUpdate(['memoryMaps'], currentMaps);
+    onUpdate(['busInterfaces', index, 'memoryMapRef'], mapName);
+  };
 
   return (
     <>
@@ -1243,12 +1316,7 @@ const BusPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, onUpda
           emptyOption="— None —"
         />
         {canHaveMemoryMap && (
-          <MemoryMapField
-            importPath={
-              ((ipCore.memoryMaps as unknown as Record<string, unknown>)?.import as string) ?? null
-            }
-            onSave={(path) => onUpdate(['memoryMaps'], path ? { import: path } : undefined)}
-          />
+          <MemoryMapField importPath={currentMapImportPath} onSave={handleMemoryMapFileChange} />
         )}
         {canHaveMemoryMap && mapOpts.length > 0 && (
           <PropSelect

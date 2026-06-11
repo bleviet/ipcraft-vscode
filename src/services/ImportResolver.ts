@@ -21,7 +21,9 @@ export interface ResolvedImports {
 
 export interface IpCoreDataNode {
   useBusLibrary?: string;
-  memoryMaps?: { import?: string; [key: string]: unknown };
+  memoryMaps?:
+    | { import?: string; [key: string]: unknown }
+    | Array<{ import?: string; name?: string; [key: string]: unknown }>;
   fileSets?: Array<{ import?: string; [key: string]: unknown }>;
   [key: string]: unknown;
 }
@@ -64,11 +66,34 @@ export class ImportResolver {
     }
 
     // Resolve memory map imports
-    if (ipCoreData.memoryMaps?.import) {
-      resolved.memoryMaps = await this.resolveMemoryMapImport(
-        ipCoreData.memoryMaps.import,
-        baseDir
-      );
+    if (ipCoreData.memoryMaps) {
+      const mm = ipCoreData.memoryMaps;
+      if (!Array.isArray(mm) && mm.import) {
+        // Legacy shortcut: memoryMaps: { import: "file.mm.yml" }
+        resolved.memoryMaps = await this.resolveMemoryMapImport(mm.import, baseDir);
+      } else if (Array.isArray(mm)) {
+        // New per-entry format: each entry may have its own `import` field.
+        const resolvedEntries: Record<string, unknown>[] = [];
+        for (const entry of mm) {
+          if (entry.import) {
+            try {
+              const loaded = await this.resolveMemoryMapImport(entry.import, baseDir);
+              // Merge: the loaded file provides addressBlocks etc.; entry-level `name` overrides.
+              const first = loaded[0] ?? {};
+              const { import: _ignored, ...rest } = entry;
+              resolvedEntries.push({ ...first, ...rest });
+            } catch (err) {
+              this.logger.warn(
+                `Could not resolve memory map import '${entry.import}': ${(err as Error).message}`
+              );
+              resolvedEntries.push(entry);
+            }
+          } else {
+            resolvedEntries.push(entry);
+          }
+        }
+        resolved.memoryMaps = resolvedEntries;
+      }
     }
 
     // Resolve file set imports

@@ -241,11 +241,9 @@ export function useIpCoreState() {
               field: 'memoryMapRef',
             });
           } else {
-            const isFilePath =
-              bus.memoryMapRef.toLowerCase().endsWith('.yml') ||
-              bus.memoryMapRef.toLowerCase().endsWith('.yaml');
+            // Check both inline array and imported library for the referenced map name.
+            // Entries created by the UI may have an `import` field, but they still have a `name`.
             const memMapExists =
-              isFilePath ||
               (Array.isArray(ipCore.memoryMaps) &&
                 ipCore.memoryMaps.some(
                   (m: Record<string, unknown>) => m.name === bus.memoryMapRef
