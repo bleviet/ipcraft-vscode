@@ -8,6 +8,7 @@ import { runProcess } from '../BuildRunner';
 import { findInInstallDir, getQuartusTool } from '../../utils/quartusResolver';
 import { fileExists } from '../../utils/fsHelpers';
 import { normalizeBusType } from '../../generator/registerProcessor';
+import { hdlCompileRank } from '../../utils/compilationOrder';
 import type { IpCoreData } from '../../generator/types';
 import type { DockerConfig, LaunchEnv, SubToolDeclaration } from './LaunchableTool';
 import type {
@@ -82,6 +83,8 @@ export function resolveHwTclRtlFiles(
   }
   return rtlSources.files
     .filter((f) => f.path)
+    .slice()
+    .sort((a, b) => hdlCompileRank(a.path!) - hdlCompileRank(b.path!))
     .map((f) => toEntry(`../${f.path!}`, hdlTypeFromFileType(f.type, isSv)));
 }
 

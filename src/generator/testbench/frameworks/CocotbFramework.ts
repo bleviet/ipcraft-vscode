@@ -1,37 +1,12 @@
 import type { Engine } from '../Engine';
 import type { Framework, TestbenchContext } from '../Framework';
+import { hdlCompileRank } from '../../../utils/compilationOrder';
 
 const RTL_HDL_TYPES = new Set(['vhdl', 'systemverilog', 'verilog']);
 const SIM_PREFIXES = ['tb/', 'sim/', 'simulation/', 'testbench/', 'test/'];
 
 function isSimPath(p: string): boolean {
   return SIM_PREFIXES.some((prefix) => p.startsWith(prefix));
-}
-
-/**
- * Assigns a compile-order rank based on file-name suffix convention.
- * Lower rank = must be compiled first.
- *   0  _pkg.*      — shared-types package
- *   1  _regs.*     — generated register file (uses package)
- *   2  _core.*     — user logic stub (uses package + regs)
- *   3  _<bus>.*    — bus wrapper (axil/avmm/axi4/…) instantiates core
- *   4  everything else (top-level entity or unknown)
- */
-function hdlCompileRank(filePath: string): number {
-  const base = filePath.split('/').pop()?.toLowerCase() ?? '';
-  if (/_pkg\.(vhd|sv|v)$/.test(base)) {
-    return 0;
-  }
-  if (/_regs\.(vhd|sv|v)$/.test(base)) {
-    return 1;
-  }
-  if (/_core\.(vhd|sv|v)$/.test(base)) {
-    return 2;
-  }
-  if (/_(?:axil|avmm|axi4|axi3|apb|wishbone|ahb)\.(vhd|sv|v)$/.test(base)) {
-    return 3;
-  }
-  return 4;
 }
 
 export class CocotbFramework implements Framework {

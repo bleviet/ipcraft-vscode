@@ -11,6 +11,37 @@
 
 export type HdlLanguage = 'vhdl' | 'systemverilog';
 
+// ── Name-based compile-order rank ─────────────────────────────────────────────
+
+/**
+ * Fast synchronous rank based on file-name suffix convention.
+ * Lower rank = must be compiled first.
+ *   0  _pkg.*      — shared-types package
+ *   1  _regs.*     — generated register file (uses package)
+ *   2  _core.*     — user logic stub (uses package + regs)
+ *   3  _<bus>.*    — bus wrapper (axil/avmm/axi4/…) instantiates core
+ *   4  everything else (top-level entity or unknown)
+ *
+ * Used as a quick sort when file content is unavailable for full dependency
+ * analysis.  Files at the same rank keep their original relative order.
+ */
+export function hdlCompileRank(filePath: string): number {
+  const base = filePath.split('/').pop()?.toLowerCase() ?? '';
+  if (/_pkg\.(vhd|sv|v)$/.test(base)) {
+    return 0;
+  }
+  if (/_regs\.(vhd|sv|v)$/.test(base)) {
+    return 1;
+  }
+  if (/_core\.(vhd|sv|v)$/.test(base)) {
+    return 2;
+  }
+  if (/_(?:axil|avmm|axi4|axi3|apb|wishbone|ahb)\.(vhd|sv|v)$/.test(base)) {
+    return 3;
+  }
+  return 4;
+}
+
 // ── Dependency extraction ─────────────────────────────────────────────────────
 
 export interface HdlDependencies {

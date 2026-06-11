@@ -859,7 +859,7 @@ async function collectRtlFiles(
   const SIM_PREFIXES = ['tb/', 'sim/', 'simulation/', 'testbench/', 'test/'];
   const isSimPath = (p: string) => SIM_PREFIXES.some((prefix) => p.startsWith(prefix));
 
-  // Generated files are inserted in correct dependency order (pkg → top → core → bus → regs)
+  // Scaffold pack generates files in compile order: pkg → regs → core → bus → top
   const fromFiles = Object.keys(files)
     .filter((f) => f.startsWith('rtl/'))
     .map((f) => `../${f}`);

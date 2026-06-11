@@ -2,6 +2,7 @@ import {
   QuartusToolchain,
   quartusDeviceFamily,
   mapBusTypeToAltera,
+  resolveHwTclRtlFiles,
 } from '../../../../services/toolchains/QuartusToolchain';
 import * as quartusResolver from '../../../../utils/quartusResolver';
 import * as fsHelpers from '../../../../utils/fsHelpers';
@@ -273,5 +274,47 @@ describe('QuartusToolchain subTools', () => {
       'quartus.dockerImage': 'cvsoc/quartus:latest',
     });
     expect(tc.isSubToolAvailable('qsys-edit', cfg)).toBe(true);
+  });
+});
+
+describe('resolveHwTclRtlFiles — compile order', () => {
+  const makeIpCore = (filePaths: string[]) => ({
+    fileSets: [
+      {
+        name: 'RTL_Sources',
+        files: filePaths.map((p) => ({ path: p, type: 'vhdl' })),
+      },
+    ],
+  });
+
+  it('sorts fileset fallback path into compile order (pkg→regs→core→bus→top)', () => {
+    const ipCore = makeIpCore([
+      'rtl/dut.vhd',
+      'rtl/dut_axil.vhd',
+      'rtl/dut_core.vhd',
+      'rtl/dut_regs.vhd',
+      'rtl/dut_pkg.vhd',
+    ]);
+    const entries = resolveHwTclRtlFiles(undefined, ipCore as never, false, 'dut');
+    const names = entries.map((e) => e.name);
+    expect(names[0]).toBe('dut_pkg.vhd');
+    expect(names[1]).toBe('dut_regs.vhd');
+    expect(names[2]).toBe('dut_core.vhd');
+    expect(names[3]).toBe('dut_axil.vhd');
+    expect(names[4]).toBe('dut.vhd');
+  });
+
+  it('marks only the top-level entity as is_top', () => {
+    const ipCore = makeIpCore(['rtl/dut_pkg.vhd', 'rtl/dut.vhd', 'rtl/dut_core.vhd']);
+    const entries = resolveHwTclRtlFiles(undefined, ipCore as never, false, 'dut');
+    expect(entries.find((e) => e.name === 'dut.vhd')?.is_top).toBe(true);
+    expect(entries.find((e) => e.name === 'dut_pkg.vhd')?.is_top).toBe(false);
+    expect(entries.find((e) => e.name === 'dut_core.vhd')?.is_top).toBe(false);
+  });
+
+  it('uses rtlFiles directly when provided (no sort override)', () => {
+    const provided = ['../rtl/dut.vhd', '../rtl/dut_pkg.vhd'];
+    const entries = resolveHwTclRtlFiles(provided, {} as never, false, 'dut');
+    expect(entries.map((e) => e.path)).toEqual(provided);
   });
 });
