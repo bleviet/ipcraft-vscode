@@ -9,6 +9,7 @@ export class IcarusEngine implements Engine {
   readonly waveExt = 'vcd';
   readonly vunitSimOptionKey = 'ghdl.elab_flags'; // not used for icarus in VUnit
   readonly vunitCompileOptionKey = 'ghdl.a_flags'; // not used for icarus in VUnit
+  readonly cocotbCompileVar = 'COMPILE_ARGS';
 
   simArgs(_entityName: string): string[] {
     return [];
@@ -16,5 +17,9 @@ export class IcarusEngine implements Engine {
 
   waveArgs(entityName: string): string[] {
     return [`-vcd ${entityName}.vcd`];
+  }
+
+  waveViewerCmd(entityName: string): string {
+    return `gtkwave ${entityName}.vcd &`;
   }
 }

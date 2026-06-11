@@ -46,12 +46,16 @@ export class CocotbFramework implements Framework {
     };
 
     // Extend the template context with engine-specific values so templates can
-    // consume them directly instead of relying solely on ifeq blocks.
+    // consume them directly without engine-name ifeq blocks.
     const makeCtx = {
       ...cocotbCtx,
       engine_sim_var: engine.simVar,
+      engine_display_name: engine.displayName,
       engine_compile_args: engine.compileArgs.join(' '),
+      engine_cocotb_compile_var: engine.cocotbCompileVar,
       engine_wave_ext: engine.waveExt,
+      engine_wave_args: engine.waveArgs(name),
+      engine_wave_viewer_cmd: engine.waveViewerCmd(name),
       engine_top_level_lang: engine.topLevelLang,
       engine_extra_compile_args: extraCompileArgs.join(' '),
       engine_extra_sim_args: extraSimArgs.join(' '),

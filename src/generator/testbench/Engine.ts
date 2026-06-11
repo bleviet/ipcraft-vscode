@@ -18,4 +18,11 @@ export interface Engine {
   readonly vunitSimOptionKey: string;
   /** VUnit compile option key for this engine (e.g. 'ghdl.a_flags'). */
   readonly vunitCompileOptionKey: string;
+  /**
+   * cocotb Makefile variable that receives compile-time flags.
+   * Most engines use COMPILE_ARGS; Questa uses VCOM_ARGS (VHDL) or VLOG_ARGS (SV).
+   */
+  readonly cocotbCompileVar: string;
+  /** Shell command to open the waveform file produced by this engine. */
+  waveViewerCmd(entityName: string): string;
 }

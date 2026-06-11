@@ -9,6 +9,8 @@ export class QuestaEngine implements Engine {
   readonly waveExt = 'wlf';
   readonly vunitSimOptionKey = 'modelsim.vsim_flags';
   readonly vunitCompileOptionKey = 'modelsim.vcom_flags';
+  /** Questa VHDL compilation uses vcom, which cocotb exposes via VCOM_ARGS. */
+  readonly cocotbCompileVar = 'VCOM_ARGS';
 
   simArgs(_entityName: string): string[] {
     return ['-do', 'run -all; quit'];
@@ -16,5 +18,9 @@ export class QuestaEngine implements Engine {
 
   waveArgs(entityName: string): string[] {
     return ['-wlf', `${entityName}.wlf`];
+  }
+
+  waveViewerCmd(entityName: string): string {
+    return `vsim -view ${entityName}.wlf &`;
   }
 }

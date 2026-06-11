@@ -2,6 +2,7 @@ import * as path from 'path';
 import { CocotbFramework } from '../../../../generator/testbench/frameworks/CocotbFramework';
 import { GhdlEngine } from '../../../../generator/testbench/engines/GhdlEngine';
 import { IcarusEngine } from '../../../../generator/testbench/engines/IcarusEngine';
+import { QuestaEngine } from '../../../../generator/testbench/engines/QuestaEngine';
 import { TemplateLoader } from '../../../../generator/TemplateLoader';
 import { Logger } from '../../../../utils/Logger';
 import type { TestbenchContext } from '../../../../generator/testbench/Framework';
@@ -100,8 +101,24 @@ describe('CocotbFramework', () => {
 
   it('injects engine_sim_var into the Makefile context (GHDL)', () => {
     const files = framework.generate(makeCtx(), new GhdlEngine());
-    // The VHDL makefile template uses SIM ?= ghdl
-    expect(files['tb/Makefile']).toContain('ghdl');
+    expect(files['tb/Makefile']).toContain('SIM ?= ghdl');
+    expect(files['tb/Makefile']).toContain('COMPILE_ARGS += --std=08 -frelaxed');
+  });
+
+  it('generates correct Makefile for Questa / ModelSim', () => {
+    const files = framework.generate(makeCtx(), new QuestaEngine());
+    const mk = files['tb/Makefile'];
+    expect(mk).toContain('SIM ?= questa');
+    // Questa uses VCOM_ARGS, not COMPILE_ARGS, for vcom flags
+    expect(mk).toContain('VCOM_ARGS += -2008');
+    expect(mk).not.toContain('COMPILE_ARGS += -2008');
+    // Wave output: vsim -wlf flag split into two SIM_ARGS lines
+    expect(mk).toContain('SIM_ARGS += -wlf');
+    expect(mk).toContain('SIM_ARGS += test_core.wlf');
+    // clean_all uses .wlf extension
+    expect(mk).toContain('*.wlf');
+    // view_waves uses vsim -view
+    expect(mk).toContain('vsim -view');
   });
 
   it('injects engine_sim_var for Icarus into SV Makefile', () => {

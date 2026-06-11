@@ -9,6 +9,7 @@ export class GhdlEngine implements Engine {
   readonly waveExt = 'ghw';
   readonly vunitSimOptionKey = 'ghdl.elab_flags';
   readonly vunitCompileOptionKey = 'ghdl.a_flags';
+  readonly cocotbCompileVar = 'COMPILE_ARGS';
 
   simArgs(entityName: string): string[] {
     return [`--wave=${entityName}.ghw`];
@@ -16,5 +17,9 @@ export class GhdlEngine implements Engine {
 
   waveArgs(entityName: string): string[] {
     return [`--wave=${entityName}.ghw`];
+  }
+
+  waveViewerCmd(entityName: string): string {
+    return `gtkwave ${entityName}.ghw &`;
   }
 }

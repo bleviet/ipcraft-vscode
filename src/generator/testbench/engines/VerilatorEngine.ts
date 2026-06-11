@@ -9,6 +9,7 @@ export class VerilatorEngine implements Engine {
   readonly waveExt = 'fst';
   readonly vunitSimOptionKey = 'ghdl.elab_flags'; // not applicable
   readonly vunitCompileOptionKey = 'ghdl.a_flags'; // not applicable
+  readonly cocotbCompileVar = 'COMPILE_ARGS';
 
   simArgs(_entityName: string): string[] {
     return [];
@@ -16,5 +17,9 @@ export class VerilatorEngine implements Engine {
 
   waveArgs(entityName: string): string[] {
     return [`--trace-fst`, `--trace-file ${entityName}.fst`];
+  }
+
+  waveViewerCmd(entityName: string): string {
+    return `gtkwave ${entityName}.fst &`;
   }
 }

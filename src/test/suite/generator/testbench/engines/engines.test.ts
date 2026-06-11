@@ -25,6 +25,13 @@ describe('GhdlEngine', () => {
     expect(e.vunitSimOptionKey).toMatch(/^ghdl\./);
     expect(e.vunitCompileOptionKey).toMatch(/^ghdl\./);
   });
+  it('cocotbCompileVar is COMPILE_ARGS', () => {
+    expect(e.cocotbCompileVar).toBe('COMPILE_ARGS');
+  });
+  it('waveViewerCmd uses gtkwave with .ghw extension', () => {
+    expect(e.waveViewerCmd('my_core')).toContain('gtkwave');
+    expect(e.waveViewerCmd('my_core')).toContain('my_core.ghw');
+  });
 });
 
 describe('IcarusEngine', () => {
@@ -41,6 +48,13 @@ describe('IcarusEngine', () => {
   it('simArgs returns empty array (Icarus handles waves via dump.v)', () => {
     expect(e.simArgs('core')).toEqual([]);
   });
+  it('cocotbCompileVar is COMPILE_ARGS', () => {
+    expect(e.cocotbCompileVar).toBe('COMPILE_ARGS');
+  });
+  it('waveViewerCmd uses gtkwave with .vcd extension', () => {
+    expect(e.waveViewerCmd('core')).toContain('gtkwave');
+    expect(e.waveViewerCmd('core')).toContain('core.vcd');
+  });
 });
 
 describe('VerilatorEngine', () => {
@@ -55,6 +69,13 @@ describe('VerilatorEngine', () => {
     expect(e.compileArgs).toContain('--sv');
     expect(e.compileArgs).toContain('--trace-fst');
     expect(e.compileArgs).toContain('-Wno-fatal');
+  });
+  it('cocotbCompileVar is COMPILE_ARGS', () => {
+    expect(e.cocotbCompileVar).toBe('COMPILE_ARGS');
+  });
+  it('waveViewerCmd uses gtkwave with .fst extension', () => {
+    expect(e.waveViewerCmd('core')).toContain('gtkwave');
+    expect(e.waveViewerCmd('core')).toContain('core.fst');
   });
 });
 
@@ -79,5 +100,12 @@ describe('QuestaEngine', () => {
   });
   it('waveArgs split flag and value into separate elements', () => {
     expect(e.waveArgs('my_core')).toEqual(['-wlf', 'my_core.wlf']);
+  });
+  it('cocotbCompileVar is VCOM_ARGS (questa uses vcom for VHDL)', () => {
+    expect(e.cocotbCompileVar).toBe('VCOM_ARGS');
+  });
+  it('waveViewerCmd uses vsim -view for WLF files', () => {
+    expect(e.waveViewerCmd('my_core')).toContain('vsim');
+    expect(e.waveViewerCmd('my_core')).toContain('my_core.wlf');
   });
 });
