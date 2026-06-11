@@ -11,8 +11,8 @@ import {
 import { calculateBlockSize } from '../../utils/blockSize';
 import { toHex } from '../../utils/formatUtils';
 import { useAutoFocus } from '../../hooks/useAutoFocus';
-import { useEscapeFocus } from '../../hooks/useEscapeFocus';
 import { useTableNavigation } from '../../hooks/useTableNavigation';
+import { useCellEditGuard } from '../../hooks/useCellEditGuard';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -115,9 +115,14 @@ export function MemoryMapEditor({
     });
   }, [memoryMap?.name, (memoryMap?.address_blocks ?? memoryMap?.addressBlocks ?? []).length]);
 
-  useEscapeFocus(focusRef);
-
   const liveBlocks = memoryMap?.address_blocks ?? memoryMap?.addressBlocks ?? [];
+
+  const { cancelEditRef, captureEditSnapshot } = useCellEditGuard({
+    rows: liveBlocks,
+    rowsPath: ['addressBlocks'],
+    onUpdate,
+    containerRef: focusRef as React.RefObject<HTMLElement>,
+  });
 
   const scheduleInsertClear = () => {
     if (insertClearRef.current) {
@@ -358,12 +363,16 @@ export function MemoryMapEditor({
                       data-edit-key="name"
                       className="flex-1"
                       value={block.name || ''}
-                      onBlur={(e: Event | React.FocusEvent<HTMLElement>) =>
+                      onFocus={() => captureEditSnapshot()}
+                      onBlur={(e: Event | React.FocusEvent<HTMLElement>) => {
+                        if (cancelEditRef.current) {
+                          return;
+                        }
                         onUpdate(
                           ['addressBlocks', idx, 'name'],
                           (e.target as HTMLInputElement).value
-                        )
-                      }
+                        );
+                      }}
                     />
                   </div>
                 </td>
@@ -385,6 +394,7 @@ export function MemoryMapEditor({
                     data-edit-key="base"
                     className="w-full font-mono"
                     value={toHex(base)}
+                    onFocus={() => captureEditSnapshot()}
                     onInput={(e: Event | React.FormEvent<HTMLElement>) => {
                       const val = Number((e.target as HTMLInputElement).value);
                       if (!Number.isNaN(val)) {
@@ -446,6 +456,7 @@ export function MemoryMapEditor({
                     className="w-full"
                     rows={1}
                     value={block.description ?? ''}
+                    onFocus={() => captureEditSnapshot()}
                     onInput={(e: Event | React.FormEvent<HTMLElement>) =>
                       onUpdate(
                         ['addressBlocks', idx, 'description'],

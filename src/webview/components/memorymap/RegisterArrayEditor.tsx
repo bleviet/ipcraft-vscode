@@ -6,8 +6,8 @@ import { BASIC_ACCESS_OPTIONS } from '../../shared/constants';
 import RegisterMapVisualizer from '../RegisterMapVisualizer';
 import type { RegisterModel } from '../../types/registerModel';
 import { toHex } from '../../utils/formatUtils';
-import { useEscapeFocus } from '../../hooks/useEscapeFocus';
 import { useTableNavigation } from '../../hooks/useTableNavigation';
+import { useCellEditGuard } from '../../hooks/useCellEditGuard';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -53,7 +53,12 @@ export function RegisterArrayEditor({
   });
   const tableRef = useRef<HTMLDivElement | null>(null);
 
-  useEscapeFocus(tableRef);
+  const { captureEditSnapshot } = useCellEditGuard({
+    rows: nestedRegisters,
+    rowsPath: ['registers'],
+    onUpdate,
+    containerRef: tableRef as React.RefObject<HTMLElement>,
+  });
 
   const scrollToCell = (rowIndex: number, key: string) => {
     window.setTimeout(() => {
@@ -230,6 +235,7 @@ export function RegisterArrayEditor({
                   <VSCodeTextField
                     data-edit-key="name"
                     value={reg.name ?? ''}
+                    onFocus={() => captureEditSnapshot()}
                     onInput={(e: Event | React.FormEvent<HTMLElement>) =>
                       onUpdate(['registers', idx, 'name'], (e.target as HTMLInputElement).value)
                     }
@@ -254,6 +260,7 @@ export function RegisterArrayEditor({
                   <VSCodeTextField
                     data-edit-key="offset"
                     value={String(regOffset)}
+                    onFocus={() => captureEditSnapshot()}
                     onInput={(e: Event | React.FormEvent<HTMLElement>) => {
                       const val = parseInt((e.target as HTMLInputElement).value, 10);
                       if (!isNaN(val) && val >= 0) {
@@ -311,6 +318,7 @@ export function RegisterArrayEditor({
                   <VSCodeTextField
                     data-edit-key="description"
                     value={reg.description ?? ''}
+                    onFocus={() => captureEditSnapshot()}
                     onInput={(e: Event | React.FormEvent<HTMLElement>) =>
                       onUpdate(
                         ['registers', idx, 'description'],

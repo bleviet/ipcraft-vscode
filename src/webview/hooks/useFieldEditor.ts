@@ -4,6 +4,7 @@ import type { BitFieldRuntimeDef } from '../services/SpatialInsertionService';
 import { fieldToBitsString, parseBitsRange } from '../utils/BitFieldUtils';
 import type { BitFieldRecord, YamlUpdateHandler } from '../types/editor';
 import { useTableNavigation } from './useTableNavigation';
+import { useCellEditGuard } from './useCellEditGuard';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -82,25 +83,8 @@ export function useFieldEditor(
   const errorRef = useRef<HTMLDivElement | null>(null);
   const previousOrderSignatureRef = useRef<string | null>(null);
 
-  // ---- edit-cancel refs (avoid stale closures in keydown handler) ----
-  /** Set to true while an ESC-cancel is in flight; onBlur handlers check this to skip commits. */
-  const cancelEditRef = useRef(false);
-  /** Snapshot of `fields` taken when an input gains focus — used to revert on ESC. */
-  const fieldsAtEditStartRef = useRef<typeof fields>([]);
-  /** Stable ref to the latest `fields` prop so the keydown closure stays current. */
-  const fieldsRef = useRef(fields);
-  /** Stable ref to the latest `onUpdate` so the keydown closure stays current. */
-  const onUpdateRef = useRef(onUpdate);
-  /** Stable ref to the latest `activeCell` so the keydown closure stays current. */
+  /** Stable ref to the latest `activeCell` so the onAfterRevert closure stays current. */
   const activeCellRef = useRef(activeCell);
-
-  // Keep refs in sync with the latest props/state (no stale closures in keydown effect)
-  useEffect(() => {
-    fieldsRef.current = fields;
-  }, [fields]);
-  useEffect(() => {
-    onUpdateRef.current = onUpdate;
-  }, [onUpdate]);
   useEffect(() => {
     activeCellRef.current = activeCell;
   }, [activeCell]);
@@ -128,17 +112,37 @@ export function useFieldEditor(
   }, []);
 
   // ---------------------------------------------------------------------------
-  // Public helpers returned to consumers
+  // Enter/ESC guard — snapshot + revert + cancel flag
   // ---------------------------------------------------------------------------
 
-  /**
-   * Snapshot the current committed field values.
-   * Call this when any editable input gains focus so that ESC can revert
-   * any changes made during that editing session.
-   */
-  const captureEditSnapshot = useCallback(() => {
-    fieldsAtEditStartRef.current = [...fieldsRef.current];
-  }, []);
+  const { cancelEditRef, captureEditSnapshot } = useCellEditGuard({
+    rows: fields,
+    rowsPath: ['fields'],
+    onUpdate,
+    containerRef: focusRef as React.RefObject<HTMLElement>,
+    isActive,
+    onAfterRevert: (snapshot) => {
+      const rowIndex = activeCellRef.current.rowIndex;
+      const snapshotField = snapshot[rowIndex];
+      if (!snapshotField) {
+        return;
+      }
+      const fieldKey = snapshotField.name ? String(snapshotField.name) : `idx-${rowIndex}`;
+      setNameDrafts((prev) => ({ ...prev, [fieldKey]: String(snapshotField.name ?? '') }));
+      setNameErrors((prev) => ({ ...prev, [fieldKey]: null }));
+      setBitsDrafts((prev) => ({ ...prev, [rowIndex]: fieldToBitsString(snapshotField) }));
+      setBitsErrors((prev) => ({ ...prev, [rowIndex]: null }));
+      const rv = snapshotField.reset_value;
+      const resetDisplay =
+        rv !== null && rv !== undefined ? `0x${Number(rv).toString(16).toUpperCase()}` : '0x0';
+      setResetDrafts((prev) => ({ ...prev, [rowIndex]: resetDisplay }));
+      setResetErrors((prev) => ({ ...prev, [rowIndex]: null }));
+    },
+  });
+
+  // ---------------------------------------------------------------------------
+  // Public helpers returned to consumers
+  // ---------------------------------------------------------------------------
 
   /** Initialises drafts for row `index` if they haven't been set yet. */
   const ensureDraftsInitialized = useCallback(
@@ -340,102 +344,6 @@ export function useFieldEditor(
       setSelectedEditKey(activeCell.key);
     }
   }, [activeCell, isActive, fields.length]);
-
-  // ---------------------------------------------------------------------------
-  // ESC / Enter while an inline editor input has focus
-  //   ESC  → revert drafts + any committed changes, skip onBlur commit, refocus table
-  //   Enter → commit (via onBlur), refocus table
-  //           (Enter is suppressed for vscode-text-area / textarea so newlines still work)
-  // ---------------------------------------------------------------------------
-  useEffect(() => {
-    if (!isActive) {
-      return;
-    }
-    const onKeyDown = (e: KeyboardEvent) => {
-      const isEsc = e.key === 'Escape';
-      const isEnter = e.key === 'Enter';
-      if (!isEsc && !isEnter) {
-        return;
-      }
-
-      const activeEl = document.activeElement as HTMLElement | null;
-      if (!activeEl) {
-        return;
-      }
-
-      // Only act when an input inside the table (not the table container itself) is focused
-      const inFields =
-        !!focusRef.current && focusRef.current.contains(activeEl) && activeEl !== focusRef.current;
-      if (!inFields) {
-        return;
-      }
-
-      // Let Enter insert newlines in multi-line text areas (description column)
-      const isTextareaTarget = !!(activeEl as Element).closest?.('vscode-text-area, textarea');
-      if (isEnter && isTextareaTarget) {
-        return;
-      }
-
-      // Let vscode-dropdown handle its own Enter (selects option)
-      const isDropdownTarget = !!(activeEl as Element).closest?.('vscode-dropdown');
-      if (isEnter && isDropdownTarget) {
-        return;
-      }
-
-      e.preventDefault();
-      e.stopPropagation();
-
-      if (isEsc) {
-        const cell = activeCellRef.current;
-        const rowIndex = cell.rowIndex;
-        const snapshot = fieldsAtEditStartRef.current;
-        const snapshotField = snapshot[rowIndex];
-
-        // Signal onBlur handlers to skip their commit
-        cancelEditRef.current = true;
-
-        // Revert any changes that were committed on-the-fly (bits, reset, description)
-        if (snapshot.length > 0) {
-          onUpdateRef.current(['fields'], snapshot);
-        }
-
-        // Reset drafts so inputs re-render with the original values after blur
-        if (snapshotField) {
-          const fieldKey = snapshotField.name ? String(snapshotField.name) : `idx-${rowIndex}`;
-          setNameDrafts((prev) => ({ ...prev, [fieldKey]: String(snapshotField.name ?? '') }));
-          setNameErrors((prev) => ({ ...prev, [fieldKey]: null }));
-          setBitsDrafts((prev) => ({ ...prev, [rowIndex]: fieldToBitsString(snapshotField) }));
-          setBitsErrors((prev) => ({ ...prev, [rowIndex]: null }));
-          const rv = snapshotField.reset_value;
-          const resetDisplay =
-            rv !== null && rv !== undefined ? `0x${Number(rv).toString(16).toUpperCase()}` : '0x0';
-          setResetDrafts((prev) => ({ ...prev, [rowIndex]: resetDisplay }));
-          setResetErrors((prev) => ({ ...prev, [rowIndex]: null }));
-        }
-
-        try {
-          activeEl.blur?.();
-        } catch {
-          // ignore
-        }
-        refocusTableSoon();
-        // Clear the cancel flag after blur has propagated
-        window.setTimeout(() => {
-          cancelEditRef.current = false;
-        }, 50);
-      } else {
-        // Enter: commit current value and return focus to table
-        try {
-          activeEl.blur?.();
-        } catch {
-          // ignore
-        }
-        refocusTableSoon();
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [isActive, refocusTableSoon]);
 
   // ---------------------------------------------------------------------------
   // Keep index-keyed drafts aligned with field order

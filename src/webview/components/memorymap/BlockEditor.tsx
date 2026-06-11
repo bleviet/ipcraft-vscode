@@ -13,8 +13,8 @@ import { FIELD_COLORS, FIELD_COLOR_KEYS } from '../../shared/colors';
 import type { RegisterModel } from '../../types/registerModel';
 import { toHex } from '../../utils/formatUtils';
 import { useAutoFocus } from '../../hooks/useAutoFocus';
-import { useEscapeFocus } from '../../hooks/useEscapeFocus';
 import { useTableNavigation } from '../../hooks/useTableNavigation';
+import { useCellEditGuard } from '../../hooks/useCellEditGuard';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -123,9 +123,14 @@ export function BlockEditor({
     });
   }, [block?.name, (block?.registers ?? []).length]);
 
-  useEscapeFocus(focusRef);
-
   const liveRegisters = block?.registers ?? [];
+
+  const { cancelEditRef, captureEditSnapshot } = useCellEditGuard({
+    rows: liveRegisters,
+    rowsPath: ['registers'],
+    onUpdate,
+    containerRef: focusRef as React.RefObject<HTMLElement>,
+  });
 
   const tryInsertReg = (after: boolean) => {
     setInsertError(null);
@@ -524,9 +529,13 @@ export function BlockEditor({
                       data-edit-key="name"
                       className="flex-1"
                       value={reg.name ?? ''}
-                      onBlur={(e: Event | React.FormEvent<HTMLElement>) =>
-                        onUpdate(['registers', idx, 'name'], (e.target as HTMLInputElement).value)
-                      }
+                      onFocus={() => captureEditSnapshot()}
+                      onBlur={(e: Event | React.FormEvent<HTMLElement>) => {
+                        if (cancelEditRef.current) {
+                          return;
+                        }
+                        onUpdate(['registers', idx, 'name'], (e.target as HTMLInputElement).value);
+                      }}
                     />
                   </div>
                 </td>
@@ -549,6 +558,7 @@ export function BlockEditor({
                     data-edit-key="offset"
                     className="w-full font-mono"
                     value={toHex(offset as number)}
+                    onFocus={() => captureEditSnapshot()}
                     onInput={(e: Event | React.FormEvent<HTMLElement>) => {
                       const val = Number((e.target as HTMLInputElement).value);
                       if (!Number.isNaN(val)) {
@@ -607,6 +617,7 @@ export function BlockEditor({
                     className="w-full"
                     rows={1}
                     value={reg.description ?? ''}
+                    onFocus={() => captureEditSnapshot()}
                     onInput={(e: Event | React.FormEvent<HTMLElement>) =>
                       onUpdate(
                         ['registers', idx, 'description'],
