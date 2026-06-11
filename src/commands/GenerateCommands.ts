@@ -18,6 +18,7 @@ import { pickVivadoPart, pickQuartusDevice } from '../utils/pickBoard';
 import { safeRegisterCommand } from '../utils/vscodeHelpers';
 import { updateFileSets } from '../services/FileSetUpdater';
 import { resolveVendor } from '../utils/resolveVendor';
+import { rebaseIpYamlPaths } from '../utils/rebaseYamlPaths';
 import type { GenerateOptions } from '../generator/types';
 import { createVivadoProject, createQuartusProject } from './projectCreator';
 import { getBuildOutputChannel } from './BuildCommands';
@@ -974,7 +975,15 @@ async function parseComponentXml(
   }
 
   const xmlPath = xmlUri.fsPath;
-  const outputDir = path.dirname(xmlPath);
+  const xmlDir = path.dirname(xmlPath);
+
+  // component.xml typically lives inside a vendor subdirectory (e.g. xilinx/).
+  // Save the ip.yml one level up so that subsequent generation places xilinx/
+  // and altera/ correctly relative to the project root.  Rebase fileset paths
+  // from xmlDir to the parent so they remain valid relative to ip.yml.
+  const VENDOR_SUBDIRS = new Set(['xilinx', 'altera']);
+  const isVendorSubdir = VENDOR_SUBDIRS.has(path.basename(xmlDir).toLowerCase());
+  const outputDir = isVendorSubdir ? path.dirname(xmlDir) : xmlDir;
 
   await vscode.window.withProgress(
     {
@@ -990,13 +999,17 @@ async function parseComponentXml(
         });
 
         const encoder = new TextEncoder();
+        const ipYamlText =
+          isVendorSubdir && outputDir !== xmlDir
+            ? rebaseIpYamlPaths(result.ipYamlText, xmlDir, outputDir)
+            : result.ipYamlText;
         const ipOutputPath = path.join(outputDir, `${result.componentName}.ip.yml`);
         await vscode.workspace.fs.writeFile(
           vscode.Uri.file(ipOutputPath),
-          encoder.encode(result.ipYamlText)
+          encoder.encode(ipYamlText)
         );
 
-        const ipSummary = buildParseSummary(result.ipYamlText);
+        const ipSummary = buildParseSummary(ipYamlText);
 
         // Write memory map file if register data was found
         if (result.mmYamlText && result.mmFileName) {
