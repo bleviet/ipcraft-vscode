@@ -588,8 +588,8 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
       if (relPath.endsWith('.mm.yml') || relPath.endsWith('.mm.yaml')) {
         try {
           const content = await fs.readFile(uri.fsPath, 'utf8');
-          const parsed = jsyaml.load(content);
-          const first = Array.isArray(parsed) ? parsed[0] : parsed;
+          const parsed: unknown = jsyaml.load(content);
+          const first: unknown = Array.isArray(parsed) ? parsed[0] : parsed;
           const mapName = (first as Record<string, unknown>)?.name;
           if (mapName && typeof mapName === 'string') {
             memoryMapNames[relPath] = mapName;
