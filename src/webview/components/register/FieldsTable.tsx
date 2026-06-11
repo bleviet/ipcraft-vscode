@@ -63,6 +63,7 @@ export function FieldsTable({ fields, registerSize, onUpdate, fieldEditor }: Fie
     focusRef,
     errorRef,
     ensureDraftsInitialized,
+    captureEditSnapshot,
     moveSelectedField,
   } = fieldEditor;
 
@@ -98,6 +99,7 @@ export function FieldsTable({ fields, registerSize, onUpdate, fieldEditor }: Fie
     options?: { initializeDrafts?: boolean }
   ) => {
     return () => {
+      captureEditSnapshot();
       setActiveEditorCell(index, key, options);
     };
   };

@@ -153,6 +153,9 @@ const FieldTableRow = ({
                   }));
                 }}
                 onBlur={(e: Event | React.FocusEvent<HTMLElement>) => {
+                  if (fieldEditor.cancelEditRef.current) {
+                    return;
+                  }
                   const next = String((e.target as HTMLInputElement).value ?? '');
                   const err = validateVhdlIdentifier(next);
                   if (!err) {
