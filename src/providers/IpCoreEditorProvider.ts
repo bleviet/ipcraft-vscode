@@ -579,9 +579,31 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
     }
 
     const relativePaths = fileUris.map((uri) => path.relative(baseDir, uri.fsPath));
+
+    // For .mm.yml files, also extract the first map's `name` field from the
+    // file content so the webview can use the canonical name instead of the filename.
+    const memoryMapNames: Record<string, string> = {};
+    for (const uri of fileUris) {
+      const relPath = path.relative(baseDir, uri.fsPath);
+      if (relPath.endsWith('.mm.yml') || relPath.endsWith('.mm.yaml')) {
+        try {
+          const content = await fs.readFile(uri.fsPath, 'utf8');
+          const parsed = jsyaml.load(content);
+          const first = Array.isArray(parsed) ? parsed[0] : parsed;
+          const mapName = (first as Record<string, unknown>)?.name;
+          if (mapName && typeof mapName === 'string') {
+            memoryMapNames[relPath] = mapName;
+          }
+        } catch {
+          // If the file can't be read/parsed, fall back to filename-derived name on the webview side
+        }
+      }
+    }
+
     void webviewPanel.webview.postMessage({
       type: 'filesSelected',
       files: relativePaths,
+      memoryMapNames,
     });
     this.logger.info(`Selected ${relativePaths.length} file(s)`);
   }

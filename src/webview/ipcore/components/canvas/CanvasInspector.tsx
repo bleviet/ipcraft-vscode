@@ -1183,8 +1183,9 @@ const BusPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, onUpda
    * Called when the user browses and selects a .mm.yml file for THIS interface.
    * Creates or updates a named entry in ipCore.memoryMaps, and sets memoryMapRef
    * on this interface to that name — so two interfaces never share the same entry.
+   * `canonicalName` is the map `name` field read from inside the file by the extension.
    */
-  const handleMemoryMapFileChange = (filePath: string | null) => {
+  const handleMemoryMapFileChange = (filePath: string | null, canonicalName?: string) => {
     const currentMaps = Array.isArray(ipCore.memoryMaps)
       ? ([...(ipCore.memoryMaps as unknown as Array<Record<string, unknown>>)] as Array<
           Record<string, unknown>
@@ -1213,11 +1214,14 @@ const BusPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, onUpda
       return;
     }
 
-    // Derive a stable map name from the filename (without extension).
-    const baseName = filePath
-      .split(/[/\\]/)
-      .pop()!
-      .replace(/\.(mm\.yml|mm\.yaml|yml|yaml)$/i, '');
+    // Prefer the canonical name from inside the file (sent by the extension host).
+    // Fall back to deriving a name from the filename only when the file couldn't be read.
+    const baseName =
+      canonicalName ??
+      filePath
+        .split(/[/\\]/)
+        .pop()!
+        .replace(/\.(mm\.yml|mm\.yaml|yml|yaml)$/i, '');
 
     // Ensure uniqueness: if another interface already owns an entry with this name,
     // append the interface's own logical name to disambiguate.
@@ -2230,13 +2234,14 @@ const PortWidthRow: React.FC<PortWidthRowProps> = ({
 // ─────────────────────────────────────────────────────
 
 interface MemoryMapFieldProps {
-  /** Current value of ipCore.memoryMaps.import (relative file path) */
+  /** Current value of the import path for this interface's map entry */
   importPath: string | null;
-  /** Save new import path, or null to clear the whole memoryMaps entry */
-  onSave: (path: string | null) => void;
+  /** Save a selected file. Receives both the relative path and the canonical
+   *  map name read from inside the file by the extension host. */
+  onSave: (path: string | null, mapName?: string) => void;
 }
 
-/** File-path row for the memory map import (ipCore.memoryMaps.import). */
+/** File-path row for a per-interface memory map import. */
 const MemoryMapField: React.FC<MemoryMapFieldProps> = ({ importPath, onSave }) => {
   const handleBrowse = () => {
     vscode?.postMessage({
@@ -2246,9 +2251,15 @@ const MemoryMapField: React.FC<MemoryMapFieldProps> = ({ importPath, onSave }) =
       startPath: importPath ?? undefined,
     });
     const handler = (event: MessageEvent) => {
-      const msg = event.data as { type?: string; files?: string[] };
+      const msg = event.data as {
+        type?: string;
+        files?: string[];
+        memoryMapNames?: Record<string, string>;
+      };
       if (msg.type === 'filesSelected' && msg.files && msg.files.length > 0) {
-        onSave(msg.files[0]);
+        const filePath = msg.files[0];
+        const mapName = msg.memoryMapNames?.[filePath];
+        onSave(filePath, mapName);
         window.removeEventListener('message', handler);
       }
     };
