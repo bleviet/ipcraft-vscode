@@ -119,6 +119,31 @@ describe('CocotbFramework', () => {
     expect(mk).toContain('*.wlf');
     // view_waves uses vsim -view
     expect(mk).toContain('vsim -view');
+    // COCOTB_TEST_MODULES must be exported so vsim picks it up at startup
+    expect(mk).toContain('export COCOTB_TEST_MODULES = $(MODULE)');
+  });
+
+  it('exports COCOTB_TEST_MODULES in VHDL Makefile (all engines)', () => {
+    const mk = framework.generate(makeCtx(), new GhdlEngine())['tb/Makefile'];
+    expect(mk).toContain('export COCOTB_TEST_MODULES = $(MODULE)');
+  });
+
+  it('exports COCOTB_TEST_MODULES in SV Makefile', () => {
+    const ctx = makeCtx({
+      isSv: true,
+      templateContext: {
+        entity_name: 'test_core',
+        clock_port: 'clk',
+        reset_port: 'rst_n',
+        reset_active_high: false,
+        bus_type: 'none',
+        has_memory_mapped_slave: false,
+        ports: [],
+        parameters: [],
+      },
+    });
+    const mk = framework.generate(ctx, new IcarusEngine())['tb/Makefile'];
+    expect(mk).toContain('export COCOTB_TEST_MODULES = $(MODULE)');
   });
 
   it('injects engine_sim_var for Icarus into SV Makefile', () => {

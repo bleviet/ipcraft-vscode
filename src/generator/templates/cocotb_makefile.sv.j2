@@ -50,6 +50,8 @@ TOPLEVEL = {{ entity_name }}
 
 # Test module (Python file without .py extension)
 MODULE = {{ entity_name }}_test
+# Required for Questa/ModelSim: cocotb reads this env var directly inside vsim
+export COCOTB_TEST_MODULES = $(MODULE)
 
 # Icarus Verilog options
 ifeq ($(SIM),icarus)
