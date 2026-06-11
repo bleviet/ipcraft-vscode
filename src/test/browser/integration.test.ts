@@ -127,7 +127,7 @@ addressBlocks:
 
     const lastMsg = await page.evaluate(() => (window as any).__last_message);
     expect(lastMsg.type).toBe('update');
-    expect(lastMsg.text).toContain("'[1:0]'");
+    expect(lastMsg.text).toContain('"[1:0]"');
   });
 });
 
