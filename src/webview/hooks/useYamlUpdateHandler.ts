@@ -36,6 +36,9 @@ export function useYamlUpdateHandler({
       const { root, selectionRootPath } = YamlPathResolver.getMapRootInfo(rootObj);
 
       if (path[0] === '__op' && selection.type === 'register') {
+        // Compute the resulting fields array on the plain object, then write
+        // only that array back so the rest of the document keeps its
+        // formatting and comments.
         applyFieldOperation({
           path,
           value,
@@ -43,36 +46,34 @@ export function useYamlUpdateHandler({
           selectionRootPath,
           selection,
         });
+        const registerPath = [...selectionRootPath, ...selection.path];
+        const reg = YamlPathResolver.getAtPath(root, registerPath) as
+          | Record<string, unknown>
+          | undefined;
+        let fields = Array.isArray(reg?.fields) ? (reg.fields as Record<string, unknown>[]) : [];
         // For field-move, repack bitfields only within the affected register
         // to maintain contiguous layout without disturbing other registers.
-        if (String(path[1] ?? '') === 'field-move') {
-          const registerPath = [...selectionRootPath, ...selection.path];
-          const reg = YamlPathResolver.getAtPath(root, registerPath) as
-            | Record<string, unknown>
-            | undefined;
-          if (reg && Array.isArray(reg.fields) && reg.fields.length > 0) {
-            const regWidth = typeof reg.size === 'number' && reg.size > 0 ? reg.size : 32;
-            const updatedFields = recomputeBitfieldLayout(
-              reg.fields as LayoutField[],
-              regWidth
-            ).map((f) => sanitizeFieldForYaml(f as Record<string, unknown>));
-            YamlPathResolver.setAtPath(root, [...registerPath, 'fields'], updatedFields);
-          }
+        if (String(path[1] ?? '') === 'field-move' && fields.length > 0) {
+          const regWidth = typeof reg?.size === 'number' && reg.size > 0 ? reg.size : 32;
+          fields = recomputeBitfieldLayout(fields as LayoutField[], regWidth).map((f) =>
+            sanitizeFieldForYaml(f as Record<string, unknown>)
+          );
         }
-        const newText = YamlService.dump(root);
-        updateRawText(newText);
-        sendUpdate(newText);
+        const newText = YamlService.applyPathEdits(rawTextRef.current, [
+          { path: [...registerPath, 'fields'], value: fields },
+        ]);
+        if (newText !== rawTextRef.current) {
+          updateRawText(newText);
+          sendUpdate(newText);
+        }
         return;
       }
 
       const fullPath: YamlPath = [...selectionRootPath, ...selection.path, ...path];
-      try {
-        YamlPathResolver.setAtPath(root, fullPath, value);
-        const newText = YamlService.dump(root);
+      const newText = YamlService.applyPathEdits(rawTextRef.current, [{ path: fullPath, value }]);
+      if (newText !== rawTextRef.current) {
         updateRawText(newText);
         sendUpdate(newText);
-      } catch (err) {
-        console.warn('Failed to apply update:', err);
       }
     },
     [rawTextRef, selectionRef, sendUpdate, updateRawText]

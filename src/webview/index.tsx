@@ -13,11 +13,17 @@ import { useOutlineRename } from './hooks/useOutlineRename';
 import { useDetailsNavigation } from './hooks/useDetailsNavigation';
 import { useYamlUpdateHandler } from './hooks/useYamlUpdateHandler';
 import { insertElement, deleteElement } from './algorithms/MutationService';
-import { recomputeAddressLayout } from './algorithms/LayoutEngine';
-import type { LayoutMemoryMap } from './algorithms/LayoutEngine';
+import { recomputeRegisterLayout } from './algorithms/LayoutEngine';
+import type { LayoutMemoryMap, LayoutRegister } from './algorithms/LayoutEngine';
 import { YamlService } from './services/YamlService';
 import { YamlPathResolver } from './services/YamlPathResolver';
-import { sanitizeMemoryMapForYaml } from './services/YamlSanitizer';
+import { sanitizeRegisterForYaml, sanitizeBlockForYaml } from './services/YamlSanitizer';
+
+/** Effective register width (bits) of a block-like object. */
+function blockRegWidth(block: Record<string, unknown> | undefined): number {
+  const raw = block?.defaultRegWidth ?? block?.default_reg_width;
+  return typeof raw === 'number' && raw > 0 ? raw : 32;
+}
 import '@vscode/codicons/dist/codicon.css';
 import './index.css';
 
@@ -166,16 +172,31 @@ const App = () => {
     }
 
     if (result.errors.length === 0) {
-      const clean = sanitizeMemoryMapForYaml(result.memoryMap as Record<string, unknown>);
-      let newText: string;
-      if (selectionRootPath.length === 0) {
-        newText = YamlService.dump(clean);
-      } else {
-        YamlPathResolver.setAtPath(root, selectionRootPath, clean);
-        newText = YamlService.dump(root);
+      // Write only the affected block's registers array so the rest of the
+      // document keeps its formatting and comments.
+      const blocks = (result.memoryMap.addressBlocks ??
+        result.memoryMap.address_blocks ??
+        []) as Record<string, unknown>[];
+      const block = blocks[blockIndex];
+      if (!block) {
+        return;
       }
-      updateRawText(newText);
-      sendUpdate(newText);
+      const width = blockRegWidth(block);
+      const regs = (Array.isArray(block.registers) ? block.registers : []) as Record<
+        string,
+        unknown
+      >[];
+      const sanitizedRegs = regs.map((r) => sanitizeRegisterForYaml(r, width));
+      const newText = YamlService.applyPathEdits(rawTextRef.current, [
+        {
+          path: [...selectionRootPath, 'addressBlocks', blockIndex, 'registers'],
+          value: sanitizedRegs,
+        },
+      ]);
+      if (newText !== rawTextRef.current) {
+        updateRawText(newText);
+        sendUpdate(newText);
+      }
     }
   };
 
@@ -203,35 +224,35 @@ const App = () => {
         return;
       }
       const { root, selectionRootPath } = YamlPathResolver.getMapRootInfo(rootObj);
-      try {
-        YamlPathResolver.setAtPath(root, [...selectionRootPath, ...selection.path, ...path], value);
-      } catch (err) {
-        console.warn('Failed to apply update:', err);
-        return;
-      }
+      const fullPath = [...selectionRootPath, ...selection.path, ...path];
 
-      const mapObj =
-        selectionRootPath.length > 0
-          ? (YamlPathResolver.getAtPath(root, selectionRootPath) as LayoutMemoryMap)
-          : (root as LayoutMemoryMap);
-      if (!mapObj) {
-        return;
-      }
-
-      // Register-level writes need a global repack; block-level writes carry
-      // base addresses already computed by the insertion service.
-      const laidOut = isRegistersWrite ? recomputeAddressLayout(mapObj).data : mapObj;
-      const clean = sanitizeMemoryMapForYaml(laidOut as Record<string, unknown>);
-
-      let newText: string;
-      if (selectionRootPath.length === 0) {
-        newText = YamlService.dump(clean);
+      let sanitizedValue: unknown;
+      if (isRegistersWrite) {
+        // Repack the edited container's registers and sanitize to schema keys.
+        const container = YamlPathResolver.getAtPath(root, [
+          ...selectionRootPath,
+          ...selection.path,
+        ]) as Record<string, unknown> | undefined;
+        const width = blockRegWidth(container);
+        const laidOut = recomputeRegisterLayout((value ?? []) as LayoutRegister[], width);
+        sanitizedValue = laidOut.map((r) =>
+          sanitizeRegisterForYaml(r as Record<string, unknown>, width)
+        );
       } else {
-        YamlPathResolver.setAtPath(root, selectionRootPath, clean);
-        newText = YamlService.dump(root);
+        // Block-level writes carry base addresses already computed by the
+        // insertion service; just sanitize to schema keys.
+        sanitizedValue = ((value ?? []) as Record<string, unknown>[]).map((b) =>
+          sanitizeBlockForYaml(b)
+        );
       }
-      updateRawText(newText);
-      sendUpdate(newText);
+
+      const newText = YamlService.applyPathEdits(rawTextRef.current, [
+        { path: fullPath, value: sanitizedValue },
+      ]);
+      if (newText !== rawTextRef.current) {
+        updateRawText(newText);
+        sendUpdate(newText);
+      }
     },
     [handleUpdate, selectionRef, rawTextRef, updateRawText, sendUpdate]
   );

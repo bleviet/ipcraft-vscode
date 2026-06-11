@@ -19,16 +19,13 @@ export function useOutlineRename({ rawTextRef, updateRawText, sendUpdate }: Outl
         return;
       }
 
-      const { root, selectionRootPath } = YamlPathResolver.getMapRootInfo(rootObj);
+      const { selectionRootPath } = YamlPathResolver.getMapRootInfo(rootObj);
       const fullPath: YamlPath = [...selectionRootPath, ...path];
 
-      try {
-        YamlPathResolver.setAtPath(root, fullPath, newName);
-        const newText = YamlService.dump(root);
+      const newText = YamlService.applyPathEdits(currentText, [{ path: fullPath, value: newName }]);
+      if (newText !== currentText) {
         updateRawText(newText);
         sendUpdate(newText);
-      } catch (err) {
-        console.warn('Failed to apply rename:', err);
       }
     },
     [rawTextRef, sendUpdate, updateRawText]
