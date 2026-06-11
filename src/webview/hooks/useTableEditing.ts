@@ -211,8 +211,12 @@ export const useTableEditing = <T, TColumnKey extends string>({
       'data-col-key': columnKey,
       onClick: (e: React.MouseEvent) => {
         e.stopPropagation();
-        setSelectedIndex(rowIndex);
-        setActiveColumn(columnKey);
+        if (selectedIndex === rowIndex && editingIndex === null && !isAdding) {
+          handleEdit(rowIndex);
+        } else {
+          setSelectedIndex(rowIndex);
+          setActiveColumn(columnKey);
+        }
       },
       style: {
         outline:
@@ -222,7 +226,7 @@ export const useTableEditing = <T, TColumnKey extends string>({
         outlineOffset: '-2px',
       } as React.CSSProperties,
     }),
-    [selectedIndex, activeColumn]
+    [selectedIndex, activeColumn, editingIndex, isAdding, handleEdit]
   );
 
   return {

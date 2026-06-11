@@ -127,6 +127,11 @@ export function RegisterArrayEditor({
       setSelectedRegIndex(rowIndex);
       setHoveredRegIndex(rowIndex);
       setRegActiveCell({ rowIndex, key });
+      window.setTimeout(() => {
+        const row = document.querySelector(`tr[data-reg-idx="${rowIndex}"]`);
+        const editor = row?.querySelector(`[data-edit-key="${key}"]`) as HTMLElement | null;
+        editor?.focus?.();
+      }, 0);
     },
     onDelete: (rowIndex) => {
       if (rowIndex < 0 || rowIndex >= nestedRegisters.length) {
@@ -222,18 +227,14 @@ export function RegisterArrayEditor({
                     setRegActiveCell({ rowIndex: idx, key: 'name' });
                   }}
                 >
-                  {regActiveCell.rowIndex === idx && regActiveCell.key === 'name' ? (
-                    <VSCodeTextField
-                      value={reg.name ?? ''}
-                      onInput={(e: Event | React.FormEvent<HTMLElement>) =>
-                        onUpdate(['registers', idx, 'name'], (e.target as HTMLInputElement).value)
-                      }
-                      className="w-full font-mono"
-                      autoFocus
-                    />
-                  ) : (
-                    <span className="font-mono">{reg.name}</span>
-                  )}
+                  <VSCodeTextField
+                    data-edit-key="name"
+                    value={reg.name ?? ''}
+                    onInput={(e: Event | React.FormEvent<HTMLElement>) =>
+                      onUpdate(['registers', idx, 'name'], (e.target as HTMLInputElement).value)
+                    }
+                    className="w-full font-mono"
+                  />
                 </td>
 
                 {/* OFFSET */}
@@ -250,21 +251,17 @@ export function RegisterArrayEditor({
                     setRegActiveCell({ rowIndex: idx, key: 'offset' });
                   }}
                 >
-                  {regActiveCell.rowIndex === idx && regActiveCell.key === 'offset' ? (
-                    <VSCodeTextField
-                      value={String(regOffset)}
-                      onInput={(e: Event | React.FormEvent<HTMLElement>) => {
-                        const val = parseInt((e.target as HTMLInputElement).value, 10);
-                        if (!isNaN(val) && val >= 0) {
-                          onUpdate(['registers', idx, 'address_offset'], val);
-                        }
-                      }}
-                      className="w-full font-mono text-xs"
-                      autoFocus
-                    />
-                  ) : (
-                    <span>{`0x${Number(regOffset).toString(16).toUpperCase()}`}</span>
-                  )}
+                  <VSCodeTextField
+                    data-edit-key="offset"
+                    value={String(regOffset)}
+                    onInput={(e: Event | React.FormEvent<HTMLElement>) => {
+                      const val = parseInt((e.target as HTMLInputElement).value, 10);
+                      if (!isNaN(val) && val >= 0) {
+                        onUpdate(['registers', idx, 'address_offset'], val);
+                      }
+                    }}
+                    className="w-full font-mono text-xs"
+                  />
                 </td>
 
                 {/* ACCESS */}
@@ -281,33 +278,20 @@ export function RegisterArrayEditor({
                     setRegActiveCell({ rowIndex: idx, key: 'access' });
                   }}
                 >
-                  {regActiveCell.rowIndex === idx && regActiveCell.key === 'access' ? (
-                    <VSCodeDropdown
-                      value={reg.access ?? 'read-write'}
-                      onInput={(e: Event | React.FormEvent<HTMLElement>) =>
-                        onUpdate(['registers', idx, 'access'], (e.target as HTMLInputElement).value)
-                      }
-                      className="w-full"
-                    >
-                      {BASIC_ACCESS_OPTIONS.map((opt) => (
-                        <option key={opt} value={opt}>
-                          {opt}
-                        </option>
-                      ))}
-                    </VSCodeDropdown>
-                  ) : (
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-[10px] uppercase font-semibold bg-opacity-20 ${
-                        reg.access === 'read-only'
-                          ? 'bg-blue-500 text-blue-500'
-                          : reg.access === 'write-only'
-                            ? 'bg-orange-500 text-orange-500'
-                            : 'bg-green-500 text-green-500'
-                      }`}
-                    >
-                      {reg.access ?? 'RW'}
-                    </span>
-                  )}
+                  <VSCodeDropdown
+                    data-edit-key="access"
+                    value={reg.access ?? 'read-write'}
+                    onInput={(e: Event | React.FormEvent<HTMLElement>) =>
+                      onUpdate(['registers', idx, 'access'], (e.target as HTMLInputElement).value)
+                    }
+                    className="w-full"
+                  >
+                    {BASIC_ACCESS_OPTIONS.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                  </VSCodeDropdown>
                 </td>
 
                 {/* DESCRIPTION */}
@@ -324,23 +308,17 @@ export function RegisterArrayEditor({
                     setRegActiveCell({ rowIndex: idx, key: 'description' });
                   }}
                 >
-                  {regActiveCell.rowIndex === idx && regActiveCell.key === 'description' ? (
-                    <VSCodeTextField
-                      value={reg.description ?? ''}
-                      onInput={(e: Event | React.FormEvent<HTMLElement>) =>
-                        onUpdate(
-                          ['registers', idx, 'description'],
-                          (e.target as HTMLInputElement).value
-                        )
-                      }
-                      className="w-full"
-                      autoFocus
-                    />
-                  ) : (
-                    <span className="truncate block max-w-[300px] opacity-70">
-                      {reg.description}
-                    </span>
-                  )}
+                  <VSCodeTextField
+                    data-edit-key="description"
+                    value={reg.description ?? ''}
+                    onInput={(e: Event | React.FormEvent<HTMLElement>) =>
+                      onUpdate(
+                        ['registers', idx, 'description'],
+                        (e.target as HTMLInputElement).value
+                      )
+                    }
+                    className="w-full"
+                  />
                 </td>
               </tr>
             );

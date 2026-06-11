@@ -200,7 +200,7 @@ export const ClocksTable: React.FC<ClocksTableProps> = ({
         const rowProps = getRowProps(index);
         const usedBy = getUsedByInterfaces(clock.name, busInterfaces);
         return (
-          <tr key={index} {...rowProps} onDoubleClick={() => handleEdit(index)}>
+          <tr key={index} {...rowProps}>
             <td className="px-4 py-3 text-sm font-mono" {...getCellProps(index, 'name')}>
               {clock.name}
             </td>

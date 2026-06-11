@@ -221,7 +221,7 @@ export const ResetsTable: React.FC<ResetsTableProps> = ({
         const rowProps = getRowProps(index);
         const usedBy = getUsedByInterfaces(reset.name, busInterfaces);
         return (
-          <tr key={index} {...rowProps} onDoubleClick={() => handleEdit(index)}>
+          <tr key={index} {...rowProps}>
             <td className="px-4 py-3 text-sm font-mono" {...getCellProps(index, 'name')}>
               {reset.name}
             </td>

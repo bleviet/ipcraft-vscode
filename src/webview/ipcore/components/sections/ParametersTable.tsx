@@ -262,7 +262,7 @@ export const ParametersTable: React.FC<ParametersTableProps> = ({
               }
               const rowProps = getRowProps(index);
               return (
-                <tr key={index} {...rowProps} onDoubleClick={() => handleEdit(index)}>
+                <tr key={index} {...rowProps}>
                   <td className="px-4 py-3 text-sm font-mono" {...getCellProps(index, 'name')}>
                     {param.name}
                   </td>
