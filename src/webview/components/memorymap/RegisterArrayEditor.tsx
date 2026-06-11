@@ -1,7 +1,11 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import type { YamlUpdateHandler } from '../../types/editor';
 import { VSCodeTextField } from '@vscode/webview-ui-toolkit/react';
-import { KeyboardShortcutsButton } from '../../shared/components';
+import {
+  KeyboardShortcutsButton,
+  EditorHeader,
+  TwoPanelEditorLayout,
+} from '../../shared/components';
 import RegisterMapVisualizer from '../RegisterMapVisualizer';
 import type { RegisterModel } from '../../types/registerModel';
 import { FIELD_COLOR_KEYS } from '../../shared/colors';
@@ -151,6 +155,28 @@ export function RegisterArrayEditor({
     rowSelectorAttr: 'data-reg-idx',
   });
 
+  useEffect(() => {
+    if (!Array.isArray(nestedRegisters) || nestedRegisters.length === 0) {
+      setSelectedRegIndex(-1);
+      setRegActiveCell({ rowIndex: -1, key: 'name' });
+      return;
+    }
+    setSelectedRegIndex((prev) => {
+      if (prev < 0) {
+        return 0;
+      }
+      if (prev >= nestedRegisters.length) {
+        return nestedRegisters.length - 1;
+      }
+      return prev;
+    });
+    setRegActiveCell((prev) => {
+      const rowIndex = prev.rowIndex < 0 ? 0 : Math.min(nestedRegisters.length - 1, prev.rowIndex);
+      const key = REG_COLUMN_ORDER.includes(prev.key) ? prev.key : 'name';
+      return { rowIndex, key };
+    });
+  }, [arr?.name, nestedRegisters.length]);
+
   const visualizer = (
     <RegisterMapVisualizer
       registers={nestedRegisters}
@@ -228,111 +254,76 @@ export function RegisterArrayEditor({
     </div>
   );
 
-  return (
-    <div className="flex flex-col w-full h-full min-h-0">
-      {/* Header */}
-      <div className="vscode-surface border-b vscode-border px-6 py-2 shrink-0">
-        <div className="flex justify-between items-start gap-4">
-          <div>
-            <h2 className="text-xl font-bold font-mono tracking-tight">
-              {arr?.name ?? 'Register Array'}
-            </h2>
-            <p className="vscode-muted text-xs mt-0.5 max-w-2xl">
-              {arr?.description ?? 'Register array'} • {arr?.count ?? 1} instances ×{' '}
-              {arr?.stride ?? 4} bytes
-            </p>
-          </div>
-          <button
-            className="p-2 rounded-md transition-colors vscode-icon-button"
-            onClick={toggleArrayLayout}
-            title={
-              arrayLayout === 'stacked'
-                ? 'Switch to side-by-side layout'
-                : 'Switch to stacked layout'
+  const headerChildren = (
+    <>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 vscode-surface-alt p-4 rounded-lg mt-3">
+        <div>
+          <label className="text-xs vscode-muted block mb-1">Name</label>
+          <VSCodeTextField
+            value={arr?.name ?? ''}
+            onInput={(e: Event | React.FormEvent<HTMLElement>) =>
+              onUpdate(['name'], (e.target as HTMLInputElement).value)
             }
-            aria-label="Toggle array layout"
-            type="button"
-          >
-            <span
-              className={`codicon ${
-                arrayLayout === 'stacked' ? 'codicon-split-horizontal' : 'codicon-split-vertical'
-              }`}
-            />
-          </button>
+            className="w-full"
+          />
         </div>
-        {/* Array Properties */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 vscode-surface-alt p-4 rounded-lg mt-3">
-          <div>
-            <label className="text-xs vscode-muted block mb-1">Name</label>
-            <VSCodeTextField
-              value={arr?.name ?? ''}
-              onInput={(e: Event | React.FormEvent<HTMLElement>) =>
-                onUpdate(['name'], (e.target as HTMLInputElement).value)
+        <div>
+          <label className="text-xs vscode-muted block mb-1">Base Offset</label>
+          <span className="font-mono text-sm">{toHex(Number(baseOffset))}</span>
+        </div>
+        <div>
+          <label className="text-xs vscode-muted block mb-1">Count</label>
+          <VSCodeTextField
+            value={String(arr?.count ?? 1)}
+            onInput={(e: Event | React.FormEvent<HTMLElement>) => {
+              const val = parseInt((e.target as HTMLInputElement).value, 10);
+              if (!isNaN(val) && val > 0) {
+                onUpdate(['count'], val);
               }
-              className="w-full"
-            />
-          </div>
-          <div>
-            <label className="text-xs vscode-muted block mb-1">Base Offset</label>
-            <span className="font-mono text-sm">{toHex(Number(baseOffset))}</span>
-          </div>
-          <div>
-            <label className="text-xs vscode-muted block mb-1">Count</label>
-            <VSCodeTextField
-              value={String(arr?.count ?? 1)}
-              onInput={(e: Event | React.FormEvent<HTMLElement>) => {
-                const val = parseInt((e.target as HTMLInputElement).value, 10);
-                if (!isNaN(val) && val > 0) {
-                  onUpdate(['count'], val);
-                }
-              }}
-              className="w-24"
-            />
-          </div>
-          <div>
-            <label className="text-xs vscode-muted block mb-1">Stride (bytes)</label>
-            <VSCodeTextField
-              value={String(arr?.stride ?? 4)}
-              onInput={(e: Event | React.FormEvent<HTMLElement>) => {
-                const val = parseInt((e.target as HTMLInputElement).value, 10);
-                if (!isNaN(val) && val > 0) {
-                  onUpdate(['stride'], val);
-                }
-              }}
-              className="w-24"
-            />
-          </div>
+            }}
+            className="w-24"
+          />
         </div>
-        {/* Address summary */}
-        <div className="text-sm vscode-muted mt-2 mb-1">
-          <span className="font-mono">
-            {toHex(Number(baseOffset))} →{' '}
-            {toHex(Number(baseOffset) + Number(arr?.count ?? 1) * Number(arr?.stride ?? 4) - 1)}
-          </span>
-          <span className="ml-2">({(arr?.count ?? 1) * (arr?.stride ?? 4)} bytes total)</span>
+        <div>
+          <label className="text-xs vscode-muted block mb-1">Stride (bytes)</label>
+          <VSCodeTextField
+            value={String(arr?.stride ?? 4)}
+            onInput={(e: Event | React.FormEvent<HTMLElement>) => {
+              const val = parseInt((e.target as HTMLInputElement).value, 10);
+              if (!isNaN(val) && val > 0) {
+                onUpdate(['stride'], val);
+              }
+            }}
+            className="w-24"
+          />
         </div>
       </div>
+      <div className="text-sm vscode-muted mt-2 mb-1">
+        <span className="font-mono">
+          {toHex(Number(baseOffset))} →{' '}
+          {toHex(Number(baseOffset) + Number(arr?.count ?? 1) * Number(arr?.stride ?? 4) - 1)}
+        </span>
+        <span className="ml-2">({(arr?.count ?? 1) * (arr?.stride ?? 4)} bytes total)</span>
+      </div>
+    </>
+  );
 
-      {arrayLayout === 'side-by-side' ? (
-        <div className="flex-1 flex overflow-hidden min-h-0">
-          <div className="register-visualizer-pane shrink-0 overflow-y-auto border-r vscode-border">
-            {visualizer}
-          </div>
-          <div className="flex-1 vscode-surface min-h-0 flex flex-col overflow-hidden">
-            {registersTable}
-          </div>
-        </div>
-      ) : (
-        <>
-          <div className="vscode-surface border-b vscode-border p-8 shrink-0 select-none">
-            {visualizer}
-          </div>
-          <div className="flex-1 flex overflow-hidden min-h-0">
-            <div className="flex-1 vscode-surface min-h-0 flex flex-col">{registersTable}</div>
-          </div>
-        </>
-      )}
-      <KeyboardShortcutsButton context="array" />
-    </div>
+  return (
+    <TwoPanelEditorLayout
+      header={
+        <EditorHeader
+          title={arr?.name ?? 'Register Array'}
+          description={`${arr?.description ?? 'Register array'} • ${arr?.count ?? 1} instances × ${arr?.stride ?? 4} bytes`}
+          layout={arrayLayout}
+          onToggleLayout={toggleArrayLayout}
+        >
+          {headerChildren}
+        </EditorHeader>
+      }
+      visualizer={visualizer}
+      table={registersTable}
+      footer={<KeyboardShortcutsButton context="array" />}
+      layout={arrayLayout}
+    />
   );
 }

@@ -1,7 +1,11 @@
 import React, { useEffect, useImperativeHandle, useMemo } from 'react';
 import type { YamlUpdateHandler, BitFieldRecord } from '../../types/editor';
 import BitFieldVisualizer from '../BitFieldVisualizer';
-import { KeyboardShortcutsButton } from '../../shared/components';
+import {
+  KeyboardShortcutsButton,
+  EditorHeader,
+  TwoPanelEditorLayout,
+} from '../../shared/components';
 import { FieldsTable } from './FieldsTable';
 import { useFieldEditor } from '../../hooks/useFieldEditor';
 import type { RegisterDef } from '../../types/memoryMap';
@@ -183,67 +187,32 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
     };
 
     return (
-      <div className="flex flex-col w-full h-full min-h-0">
-        <div className="vscode-surface border-b vscode-border px-6 py-2 shrink-0">
-          <div className="flex justify-between items-start gap-4">
-            <div>
-              <h2 className="text-xl font-bold font-mono tracking-tight">{register.name}</h2>
-              <p className="vscode-muted text-xs mt-0.5 max-w-2xl">{register.description}</p>
-            </div>
-            <button
-              className="p-2 rounded-md transition-colors vscode-icon-button"
-              onClick={toggleRegisterLayout}
-              title={
-                registerLayout === 'stacked'
-                  ? 'Switch to side-by-side layout'
-                  : 'Switch to stacked layout'
-              }
-              aria-label="Toggle register layout"
-              type="button"
-            >
-              <span
-                className={`codicon ${
-                  registerLayout === 'stacked'
-                    ? 'codicon-split-horizontal'
-                    : 'codicon-split-vertical'
-                }`}
-              />
-            </button>
-          </div>
-        </div>
-
-        {registerLayout === 'side-by-side' ? (
-          <div className="flex-1 flex overflow-hidden min-h-0">
-            <div className="register-visualizer-pane shrink-0 overflow-y-auto border-r vscode-border">
-              <BitFieldVisualizer {...visualizerProps} layout="vertical" />
-            </div>
-
-            <FieldsTable
-              fields={fields}
-              registerSize={registerSize}
-              onUpdate={onUpdate}
-              fieldEditor={fieldEditor}
-            />
-          </div>
-        ) : (
-          <>
-            <div className="vscode-surface border-b vscode-border p-8 flex flex-col gap-6 shrink-0 relative overflow-hidden">
-              <div className="w-full relative z-10 mt-2 select-none">
-                <BitFieldVisualizer {...visualizerProps} layout="pro" />
-              </div>
-            </div>
-
-            <FieldsTable
-              fields={fields}
-              registerSize={registerSize}
-              onUpdate={onUpdate}
-              fieldEditor={fieldEditor}
-            />
-          </>
-        )}
-
-        <KeyboardShortcutsButton context="register" />
-      </div>
+      <TwoPanelEditorLayout
+        header={
+          <EditorHeader
+            title={register.name ?? ''}
+            description={register.description}
+            layout={registerLayout}
+            onToggleLayout={toggleRegisterLayout}
+          />
+        }
+        visualizer={
+          <BitFieldVisualizer
+            {...visualizerProps}
+            layout={registerLayout === 'side-by-side' ? 'vertical' : 'pro'}
+          />
+        }
+        table={
+          <FieldsTable
+            fields={fields}
+            registerSize={registerSize}
+            onUpdate={onUpdate}
+            fieldEditor={fieldEditor}
+          />
+        }
+        footer={<KeyboardShortcutsButton context="register" />}
+        layout={registerLayout}
+      />
     );
   }
 );

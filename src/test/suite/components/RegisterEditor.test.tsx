@@ -19,6 +19,51 @@ jest.mock('../../../webview/components/register/FieldsTable', () => ({
 
 jest.mock('../../../webview/shared/components', () => ({
   KeyboardShortcutsButton: () => <div data-testid="mock-shortcuts-button">Shortcuts</div>,
+  EditorHeader: ({
+    title,
+    layout,
+    onToggleLayout,
+    children,
+  }: {
+    title: string;
+    layout: string;
+    onToggleLayout: () => void;
+    children?: React.ReactNode;
+  }) => (
+    <div data-testid="mock-editor-header">
+      {title}
+      <button
+        aria-label="Toggle register layout"
+        title={layout === 'stacked' ? 'Switch to side-by-side layout' : 'Switch to stacked layout'}
+        onClick={onToggleLayout}
+      />
+      {children}
+    </div>
+  ),
+  TwoPanelEditorLayout: ({
+    header,
+    visualizer,
+    table,
+    footer,
+    layout,
+  }: {
+    header: React.ReactNode;
+    visualizer: React.ReactNode;
+    table: React.ReactNode;
+    footer?: React.ReactNode;
+    layout: string;
+  }) => (
+    <div data-testid="mock-two-panel-layout">
+      {header}
+      {layout === 'side-by-side' ? (
+        <div className="register-visualizer-pane">{visualizer}</div>
+      ) : (
+        visualizer
+      )}
+      {table}
+      {footer}
+    </div>
+  ),
 }));
 
 jest.mock('../../../webview/hooks/useFieldEditor', () => ({
