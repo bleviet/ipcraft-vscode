@@ -307,7 +307,7 @@ describe('ComponentXmlParser', () => {
       };
       const iface = doc.busInterfaces.find((b) => b.name === 'S_AXI');
       expect(iface).toBeDefined();
-      expect(iface!.type).toBe('AXI4L');
+      expect(iface!.type).toBe('ipcraft.busif.axi4_lite.1.0');
       expect(iface!.mode).toBe('slave');
       expect(iface!.physicalPrefix).toBe('s_axi_');
     });
@@ -319,7 +319,7 @@ describe('ComponentXmlParser', () => {
       };
       const iface = doc.busInterfaces.find((b) => b.name === 'M_AXI');
       expect(iface).toBeDefined();
-      expect(iface!.type).toBe('AXI4F');
+      expect(iface!.type).toBe('ipcraft.busif.axi4_full.1.0');
       expect(iface!.mode).toBe('master');
     });
 
@@ -330,9 +330,9 @@ describe('ComponentXmlParser', () => {
       };
       const slave = doc.busInterfaces.find((b) => b.name === 'S_AXIS');
       const master = doc.busInterfaces.find((b) => b.name === 'M_AXIS');
-      expect(slave?.type).toBe('AXI4S');
+      expect(slave?.type).toBe('ipcraft.busif.axi_stream.1.0');
       expect(slave?.mode).toBe('slave');
-      expect(master?.type).toBe('AXI4S');
+      expect(master?.type).toBe('ipcraft.busif.axi_stream.1.0');
       expect(master?.mode).toBe('master');
     });
 
