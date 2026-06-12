@@ -95,7 +95,6 @@ const FieldTableRow = ({
 
   return (
     <tr
-      key={`${String(field.name ?? `field-${index}`)}-${String(field.bit_offset ?? bits ?? index)}`}
       data-row-idx={index}
       data-field-index={index}
       className={`group vscode-row-solid transition-colors border-l-4 border-transparent h-12 ${
@@ -391,6 +390,12 @@ const FieldTableRow = ({
               onInput={(e: Event | React.FormEvent<HTMLElement>) =>
                 onUpdate(['fields', index, 'description'], (e.target as HTMLInputElement).value)
               }
+              onBlur={(e: Event | React.FocusEvent<HTMLElement>) => {
+                if (fieldEditor.cancelEditRef.current) {
+                  return;
+                }
+                onUpdate(['fields', index, 'description'], (e.target as HTMLInputElement).value);
+              }}
             />
           </div>
         </td>

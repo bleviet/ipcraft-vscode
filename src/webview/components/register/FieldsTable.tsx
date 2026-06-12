@@ -179,7 +179,7 @@ export function FieldsTable({ fields, registerSize, onUpdate, fieldEditor }: Fie
                 <tbody className="divide-y vscode-border text-sm">
                   {fields.map((field, index) => (
                     <FieldTableRow
-                      key={`${String(field.name ?? `field-${index}`)}-${String(field.bit_offset ?? field.bits ?? index)}`}
+                      key={index}
                       field={field}
                       index={index}
                       fields={fields}
