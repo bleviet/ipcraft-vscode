@@ -13,6 +13,8 @@ export { EditorHeader } from './EditorHeader';
 export { TwoPanelEditorLayout } from './TwoPanelEditorLayout';
 export { HoverInsertBar } from './HoverInsertBar';
 export { TableContextMenu } from './TableContextMenu';
+export { EditableCell } from './EditableCell';
+export { CellInput } from './CellInput';
 
 export type { FormFieldProps } from './FormField';
 export type { SelectFieldProps } from './SelectField';
@@ -25,3 +27,5 @@ export type { EditorHeaderProps } from './EditorHeader';
 export type { TwoPanelEditorLayoutProps } from './TwoPanelEditorLayout';
 export type { HoverInsertBarProps } from './HoverInsertBar';
 export type { TableContextMenuProps } from './TableContextMenu';
+export type { EditableCellProps } from './EditableCell';
+export type { CellInputProps } from './CellInput';

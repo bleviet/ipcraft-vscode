@@ -65,18 +65,11 @@ function setBlocks(map: LayoutMemoryMap, blocks: LayoutBlock[]): void {
   }
 }
 
+import { generateUniqueName } from '../utils/naming';
+
 /** Compute the next sequential name of the form `<prefix><N+1>`. */
 function nextSequentialName(items: { name?: string }[], prefix: string): string {
-  let maxN = 0;
-  const escapedPrefix = prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const re = new RegExp(`^${escapedPrefix}(\\d+)$`);
-  for (const item of items) {
-    const m = String(item.name ?? '').match(re);
-    if (m) {
-      maxN = Math.max(maxN, parseInt(m[1], 10));
-    }
-  }
-  return `${prefix}${maxN + 1}`;
+  return generateUniqueName(items, prefix);
 }
 
 /** Create a default 1-bit field. */

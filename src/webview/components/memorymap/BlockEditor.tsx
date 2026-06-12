@@ -11,12 +11,11 @@ import RegisterMapVisualizer from '../RegisterMapVisualizer';
 import { FIELD_COLOR_KEYS } from '../../shared/colors';
 import type { RegisterModel } from '../../types/registerModel';
 import { toHex } from '../../utils/formatUtils';
+import { generateUniqueName } from '../../utils/naming';
 import { useAutoFocus } from '../../hooks/useAutoFocus';
-import { useTableNavigation } from '../../hooks/useTableNavigation';
-import { useCellEditGuard } from '../../hooks/useCellEditGuard';
-import { useHoverInsertBar } from '../../hooks/useHoverInsertBar';
+import { useTableEditorState } from '../../hooks/useTableEditorState';
 import { RegisterTableRow, REG_COLUMN_ORDER } from './RegisterTableRow';
-import type { RegEditKey, RegActiveCell } from './RegisterTableRow';
+import type { RegEditKey } from './RegisterTableRow';
 
 export interface AddressBlockModel {
   name?: string;
@@ -68,12 +67,6 @@ export function BlockEditor({
       0
   );
 
-  const [selectedRegIndex, setSelectedRegIndex] = useState<number>(-1);
-  const [hoveredRegIndex, setHoveredRegIndex] = useState<number | null>(null);
-  const [regActiveCell, setRegActiveCell] = useState<RegActiveCell>({
-    rowIndex: -1,
-    key: 'name',
-  });
   const [insertError, setInsertError] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<{
     x: number;
@@ -81,68 +74,15 @@ export function BlockEditor({
     regIndex: number;
   } | null>(null);
 
-  const focusRef = useRef<HTMLDivElement | null>(null);
   const tbodyRef = useRef<HTMLTableSectionElement | null>(null);
-
-  const getRegColor = (idx: number) => FIELD_COLOR_KEYS[idx % FIELD_COLOR_KEYS.length];
-
-  useAutoFocus(focusRef, !!selectionMeta?.focusDetails, [block?.name]);
-
-  // Clamp selection when block changes.
-  useEffect(() => {
-    const regs = block?.registers ?? [];
-    if (!Array.isArray(regs) || regs.length === 0) {
-      setSelectedRegIndex(-1);
-      setRegActiveCell({ rowIndex: -1, key: 'name' });
-      return;
-    }
-    setSelectedRegIndex((prev) => {
-      if (prev < 0) {
-        return 0;
-      }
-      if (prev >= regs.length) {
-        return regs.length - 1;
-      }
-      return prev;
-    });
-    setRegActiveCell((prev) => {
-      const rowIndex = prev.rowIndex < 0 ? 0 : Math.min(regs.length - 1, prev.rowIndex);
-      const key = REG_COLUMN_ORDER.includes(prev.key) ? prev.key : 'name';
-      return { rowIndex, key };
-    });
-  }, [block?.name, (block?.registers ?? []).length]);
 
   const liveRegisters = block?.registers ?? [];
 
-  const { cancelEditRef, captureEditSnapshot } = useCellEditGuard({
-    rows: liveRegisters,
-    rowsPath: ['registers'],
-    onUpdate,
-    containerRef: focusRef as React.RefObject<HTMLElement>,
-  });
-
-  const {
-    insertHoverGap,
-    insertBarScrollY,
-    tbodyProps: insertBarTbodyProps,
-    barProps: insertBarHoverProps,
-    clear: clearInsertBar,
-  } = useHoverInsertBar(focusRef as React.RefObject<HTMLElement>);
-
-  const tryInsertReg = (after: boolean) => {
+  // -- Shared table orchestration --
+  const insertNewReg = (newIdx: number) => {
     setInsertError(null);
     const newRegs = [...liveRegisters];
-    const newIdx = after ? selectedRegIndex + 1 : Math.max(0, selectedRegIndex);
-
-    let maxN = 0;
-    for (const r of liveRegisters) {
-      const match = String(r.name ?? '').match(/^reg(\d+)$/i);
-      if (match) {
-        maxN = Math.max(maxN, parseInt(match[1], 10));
-      }
-    }
-    const name = `reg${maxN + 1}`;
-
+    const name = generateUniqueName(liveRegisters, 'reg');
     newRegs.splice(newIdx, 0, {
       name,
       access: 'read-write',
@@ -150,43 +90,8 @@ export function BlockEditor({
       offset: 0,
       address_offset: 0,
     });
-
     onUpdate(['registers'], newRegs as unknown[]);
-    setSelectedRegIndex(newIdx);
-    setHoveredRegIndex(newIdx);
-    setRegActiveCell({ rowIndex: newIdx, key: 'name' });
-    window.setTimeout(() => {
-      document.querySelector(`tr[data-row-idx="${newIdx}"]`)?.scrollIntoView({ block: 'center' });
-    }, 100);
-  };
-
-  const insertAtGap = (gapIndex: number) => {
-    setInsertError(null);
-    const newRegs = [...liveRegisters];
-    const newIdx = gapIndex;
-
-    let maxN = 0;
-    for (const r of liveRegisters) {
-      const match = String(r.name ?? '').match(/^reg(\d+)$/i);
-      if (match) {
-        maxN = Math.max(maxN, parseInt(match[1], 10));
-      }
-    }
-    const name = `reg${maxN + 1}`;
-
-    newRegs.splice(newIdx, 0, {
-      name,
-      access: 'read-write',
-      description: '',
-      offset: 0,
-      address_offset: 0,
-    });
-
-    onUpdate(['registers'], newRegs as unknown[]);
-    setSelectedRegIndex(newIdx);
-    setHoveredRegIndex(newIdx);
-    setRegActiveCell({ rowIndex: newIdx, key: 'name' });
-    clearInsertBar();
+    editor.selectRow(newIdx, 'name');
     window.setTimeout(() => {
       document.querySelector(`tr[data-row-idx="${newIdx}"]`)?.scrollIntoView({ block: 'center' });
     }, 100);
@@ -199,52 +104,23 @@ export function BlockEditor({
     const newRegs = liveRegisters.filter((_: RegisterModel, i: number) => i !== idx);
     onUpdate(['registers'], newRegs as unknown[]);
     const nextRow = idx > 0 ? idx - 1 : newRegs.length > 0 ? 0 : -1;
-    setSelectedRegIndex(nextRow);
-    setHoveredRegIndex(nextRow);
-    setRegActiveCell({ rowIndex: nextRow, key: 'name' });
+    editor.selectRow(nextRow, editor.activeCell.key);
   };
 
-  const closeContextMenu = () => setContextMenu(null);
-
-  useTableNavigation<RegEditKey>({
-    activeCell: regActiveCell,
-    setActiveCell: (cell) => {
-      setRegActiveCell(cell);
-      if (cell.rowIndex >= 0 && cell.rowIndex < liveRegisters.length) {
-        setSelectedRegIndex(cell.rowIndex);
-        setHoveredRegIndex(cell.rowIndex);
-      }
-    },
-    rowCount: liveRegisters.length,
+  const editor = useTableEditorState<RegisterModel, RegEditKey>({
+    rows: liveRegisters,
+    rowsPath: ['registers'],
     columnOrder: REG_COLUMN_ORDER,
-    containerRef: focusRef as React.RefObject<HTMLElement>,
-    onEdit: (rowIndex, key) => {
-      if (rowIndex < 0 || rowIndex >= liveRegisters.length) {
-        return;
-      }
-      setSelectedRegIndex(rowIndex);
-      setHoveredRegIndex(rowIndex);
-      setRegActiveCell({ rowIndex, key });
-      window.setTimeout(() => {
-        const row = document.querySelector(`tr[data-row-idx="${rowIndex}"]`);
-        const editor = row?.querySelector(`[data-edit-key="${key}"]`) as HTMLElement | null;
-        editor?.focus?.();
-      }, 0);
+    onUpdate,
+    onInsertAfter: () => {
+      const newIdx = editor.selectedIndex + 1;
+      insertNewReg(newIdx);
     },
-    onDelete: (rowIndex) => {
-      if (rowIndex < 0 || rowIndex >= liveRegisters.length) {
-        return;
-      }
-      const currentKey: RegEditKey = REG_COLUMN_ORDER.includes(regActiveCell.key)
-        ? regActiveCell.key
-        : 'name';
-      const newRegs = liveRegisters.filter((_: RegisterModel, i: number) => i !== rowIndex);
-      onUpdate(['registers'], newRegs as unknown[]);
-      const nextRow = rowIndex > 0 ? rowIndex - 1 : newRegs.length > 0 ? 0 : -1;
-      setSelectedRegIndex(nextRow);
-      setHoveredRegIndex(nextRow);
-      setRegActiveCell({ rowIndex: nextRow, key: currentKey });
+    onInsertBefore: () => {
+      const newIdx = Math.max(0, editor.selectedIndex);
+      insertNewReg(newIdx);
     },
+    onDelete: deleteReg,
     onMove: (fromIndex, delta) => {
       const next = fromIndex + delta;
       if (
@@ -259,18 +135,29 @@ export function BlockEditor({
       const temp = newRegs[fromIndex];
       newRegs[fromIndex] = newRegs[next];
       newRegs[next] = temp;
-
-      // Global layout engine will recalculate correct offsets after we save
       onUpdate(['registers'], newRegs as unknown[]);
-      setSelectedRegIndex(next);
-      setHoveredRegIndex(next);
-      setRegActiveCell((prev) => ({ rowIndex: next, key: prev.key }));
+      editor.selectRow(next);
     },
-    onInsertAfter: () => tryInsertReg(true),
-    onInsertBefore: () => tryInsertReg(false),
-    isActive: true,
+    enableHoverInsert: true,
+    clampDeps: [block?.name],
   });
 
+  const getRegColor = (idx: number) => FIELD_COLOR_KEYS[idx % FIELD_COLOR_KEYS.length];
+
+  useAutoFocus(
+    editor.containerRef as React.RefObject<HTMLDivElement>,
+    !!selectionMeta?.focusDetails,
+    [block?.name]
+  );
+
+  const insertAtGap = (gapIndex: number) => {
+    insertNewReg(gapIndex);
+    editor.clearInsertBar();
+  };
+
+  const closeContextMenu = () => setContextMenu(null);
+
+  // Shift+A / Shift+I: insert register array
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       const keyLower = (e.key || '').toLowerCase();
@@ -284,10 +171,9 @@ export function BlockEditor({
       }
 
       const activeEl = document.activeElement as HTMLElement | null;
+      const container = editor.containerRef.current;
       const isInRegsArea =
-        !!focusRef.current &&
-        !!activeEl &&
-        (activeEl === focusRef.current || focusRef.current.contains(activeEl));
+        !!container && !!activeEl && (activeEl === container || container.contains(activeEl));
       if (!isInRegsArea) {
         return;
       }
@@ -303,15 +189,8 @@ export function BlockEditor({
       e.preventDefault();
       e.stopPropagation();
 
-      let maxN = 0;
-      for (const r of liveRegisters) {
-        const match = r.name?.match(/^ARRAY_(\d+)$/i);
-        if (match) {
-          maxN = Math.max(maxN, parseInt(match[1], 10));
-        }
-      }
-      const arrayName = `ARRAY_${maxN + 1}`;
-      const selIdx = selectedRegIndex >= 0 ? selectedRegIndex : liveRegisters.length - 1;
+      const arrayName = generateUniqueName(liveRegisters, 'ARRAY_');
+      const selIdx = editor.selectedIndex >= 0 ? editor.selectedIndex : liveRegisters.length - 1;
       const selected = liveRegisters[selIdx];
       const selectedOffset = selected?.address_offset ?? selected?.offset ?? 0;
       let selectedSize = 4;
@@ -354,20 +233,18 @@ export function BlockEditor({
         newIdx = selIdx;
       }
       onUpdate(['registers'], newRegs as unknown[]);
-      setSelectedRegIndex(newIdx);
-      setHoveredRegIndex(newIdx);
-      setRegActiveCell({ rowIndex: newIdx, key: 'name' });
+      editor.selectRow(newIdx, 'name');
     };
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [liveRegisters, onUpdate, selectedRegIndex]);
+  }, [liveRegisters, onUpdate, editor]);
 
   const visualizer = (
     <RegisterMapVisualizer
       registers={registers}
-      hoveredRegIndex={hoveredRegIndex}
-      setHoveredRegIndex={setHoveredRegIndex}
+      hoveredRegIndex={editor.hoveredIndex}
+      setHoveredRegIndex={editor.setHoveredIndex}
       baseAddress={baseAddress}
       onReorderRegisters={(newRegs) => onUpdate(['registers'], newRegs as unknown[])}
       onRegisterClick={onNavigateToRegister}
@@ -379,7 +256,7 @@ export function BlockEditor({
 
   const registersTable = (
     <div
-      ref={focusRef}
+      ref={editor.containerRef as React.RefObject<HTMLDivElement>}
       tabIndex={0}
       data-regs-table="true"
       className="flex-1 overflow-auto min-h-0 outline-none focus:outline-none relative"
@@ -400,31 +277,23 @@ export function BlockEditor({
             <th className="px-6 py-3 border-b vscode-border align-middle">Description</th>
           </tr>
         </thead>
-        <tbody ref={tbodyRef} className="text-sm" {...insertBarTbodyProps}>
+        <tbody ref={tbodyRef} className="text-sm" {...editor.insertBarTbodyProps}>
           {registers.map((reg: RegisterModel, idx: number) => (
             <RegisterTableRow
               key={idx}
               reg={reg}
               idx={idx}
-              isSelected={idx === selectedRegIndex}
-              isHovered={idx === hoveredRegIndex}
-              regActiveCell={regActiveCell}
+              isSelected={idx === editor.selectedIndex}
+              isHovered={idx === editor.hoveredIndex}
+              regActiveCell={editor.activeCell}
               color={getRegColor(idx)}
-              cancelEditRef={cancelEditRef}
-              captureEditSnapshot={captureEditSnapshot}
+              cancelEditRef={editor.cancelEditRef}
+              captureEditSnapshot={editor.captureEditSnapshot}
               onUpdate={onUpdate}
-              onRowClick={() => {
-                setSelectedRegIndex(idx);
-                setHoveredRegIndex(idx);
-                setRegActiveCell((prev) => ({ rowIndex: idx, key: prev.key }));
-              }}
-              onCellClick={(key) => {
-                setSelectedRegIndex(idx);
-                setHoveredRegIndex(idx);
-                setRegActiveCell({ rowIndex: idx, key });
-              }}
-              onMouseEnter={() => setHoveredRegIndex(idx)}
-              onMouseLeave={() => setHoveredRegIndex(null)}
+              onRowClick={() => editor.handleRowClick(idx)}
+              onCellClick={(key) => editor.handleCellClick(idx, key)}
+              onMouseEnter={() => editor.handleMouseEnter(idx)}
+              onMouseLeave={editor.handleMouseLeave}
               onContextMenu={(e) => {
                 e.preventDefault();
                 setContextMenu({ x: e.clientX, y: e.clientY, regIndex: idx });
@@ -434,11 +303,11 @@ export function BlockEditor({
         </tbody>
       </table>
       <HoverInsertBar
-        gapIndex={insertHoverGap}
-        positionY={insertBarScrollY}
+        gapIndex={editor.insertHoverGap}
+        positionY={editor.insertBarScrollY}
         itemLabel="register"
         onInsert={insertAtGap}
-        {...insertBarHoverProps}
+        {...editor.insertBarHoverProps}
       />
     </div>
   );

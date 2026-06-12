@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import type { ReactNode, ErrorInfo } from 'react';
 import { createRoot } from 'react-dom/client';
 import Outline, { type OutlineHandle } from './components/OutlinePanel';
@@ -12,6 +12,7 @@ import { useSelectionLifecycle } from './hooks/useSelectionLifecycle';
 import { useOutlineRename } from './hooks/useOutlineRename';
 import { useDetailsNavigation } from './hooks/useDetailsNavigation';
 import { useYamlUpdateHandler } from './hooks/useYamlUpdateHandler';
+import { useLayoutToggle } from './hooks/useLayoutToggle';
 import { insertElement, deleteElement } from './algorithms/MutationService';
 import { recomputeRegisterLayout } from './algorithms/LayoutEngine';
 import type { LayoutMemoryMap, LayoutRegister } from './algorithms/LayoutEngine';
@@ -31,12 +32,11 @@ import './index.css';
  * Main application component
  */
 const App = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  type RegisterLayout = 'stacked' | 'side-by-side';
-  const [registerLayout, setRegisterLayout] = useState<RegisterLayout>('side-by-side');
-  const [blockLayout, setBlockLayout] = useState<RegisterLayout>('side-by-side');
-  const [memoryMapLayout, setMemoryMapLayout] = useState<RegisterLayout>('side-by-side');
-  const [arrayLayout, setArrayLayout] = useState<RegisterLayout>('side-by-side');
+  const [sidebarOpen, setSidebarOpen] = React.useState(false);
+  const registerLayout = useLayoutToggle();
+  const blockLayout = useLayoutToggle();
+  const memoryMapLayout = useLayoutToggle();
+  const arrayLayout = useLayoutToggle();
 
   const { memoryMap, rawTextRef, parseError, updateFromYaml, updateRawText } = useMemoryMapState();
   const {
@@ -58,26 +58,6 @@ const App = () => {
     };
     vscode?.postMessage({ type: 'ready' });
   }, [updateFromYaml]);
-
-  const toggleRegisterLayout = () => {
-    const nextLayout: RegisterLayout = registerLayout === 'stacked' ? 'side-by-side' : 'stacked';
-    setRegisterLayout(nextLayout);
-  };
-
-  const toggleBlockLayout = () => {
-    const nextLayout: RegisterLayout = blockLayout === 'stacked' ? 'side-by-side' : 'stacked';
-    setBlockLayout(nextLayout);
-  };
-
-  const toggleMemoryMapLayout = () => {
-    const nextLayout: RegisterLayout = memoryMapLayout === 'stacked' ? 'side-by-side' : 'stacked';
-    setMemoryMapLayout(nextLayout);
-  };
-
-  const toggleArrayLayout = () => {
-    const nextLayout: RegisterLayout = arrayLayout === 'stacked' ? 'side-by-side' : 'stacked';
-    setArrayLayout(nextLayout);
-  };
 
   const outlineRef = useRef<OutlineHandle | null>(null);
   const detailsRef = useRef<DetailsPanelHandle | null>(null);
@@ -325,14 +305,14 @@ const App = () => {
           onUpdate={handleUpdateWithRepack}
           onNavigateToRegister={navigateToRegister}
           onNavigateToBlock={navigateToBlock}
-          registerLayout={registerLayout}
-          toggleRegisterLayout={toggleRegisterLayout}
-          blockLayout={blockLayout}
-          toggleBlockLayout={toggleBlockLayout}
-          memoryMapLayout={memoryMapLayout}
-          toggleMemoryMapLayout={toggleMemoryMapLayout}
-          arrayLayout={arrayLayout}
-          toggleArrayLayout={toggleArrayLayout}
+          registerLayout={registerLayout.layout}
+          toggleRegisterLayout={registerLayout.toggle}
+          blockLayout={blockLayout.layout}
+          toggleBlockLayout={blockLayout.toggle}
+          memoryMapLayout={memoryMapLayout.layout}
+          toggleMemoryMapLayout={memoryMapLayout.toggle}
+          arrayLayout={arrayLayout.layout}
+          toggleArrayLayout={arrayLayout.toggle}
         />
       </section>
     </main>

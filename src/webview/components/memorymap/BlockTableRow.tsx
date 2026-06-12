@@ -1,35 +1,35 @@
 import React from 'react';
 import { FIELD_COLORS } from '../../shared/colors';
-import { ACCESS_OPTIONS } from '../../shared/constants';
+import { calculateBlockSize } from '../../utils/blockSize';
 import { toHex } from '../../utils/formatUtils';
 import type { YamlUpdateHandler } from '../../types/editor';
-import type { RegisterModel } from '../../types/registerModel';
+import type { MemoryMapBlockDef } from './MemoryMapEditor';
 import { EditableCell, CellInput } from '../../shared/components';
 
 // ---------------------------------------------------------------------------
-// Types — exported so parent editors can import instead of re-declaring
+// Types -- exported so parent editors can import instead of re-declaring
 // ---------------------------------------------------------------------------
 
-export type RegEditKey = 'name' | 'offset' | 'access' | 'description';
-export type RegActiveCell = { rowIndex: number; key: RegEditKey };
-export const REG_COLUMN_ORDER: RegEditKey[] = ['name', 'offset', 'access', 'description'];
+export type BlockEditKey = 'name' | 'base' | 'size' | 'usage' | 'description';
+export type BlockActiveCell = { rowIndex: number; key: BlockEditKey };
+export const BLOCK_COLUMN_ORDER: BlockEditKey[] = ['name', 'base', 'size', 'usage', 'description'];
 
 // ---------------------------------------------------------------------------
 // Props
 // ---------------------------------------------------------------------------
 
-export interface RegisterTableRowProps {
-  reg: RegisterModel;
+export interface BlockTableRowProps {
+  block: MemoryMapBlockDef;
   idx: number;
   isSelected: boolean;
   isHovered: boolean;
-  regActiveCell: RegActiveCell;
+  blockActiveCell: BlockActiveCell;
   color: string;
   cancelEditRef: React.MutableRefObject<boolean>;
   captureEditSnapshot: () => void;
   onUpdate: YamlUpdateHandler;
   onRowClick: () => void;
-  onCellClick: (key: RegEditKey) => void;
+  onCellClick: (key: BlockEditKey) => void;
   onMouseEnter: () => void;
   onMouseLeave: () => void;
   onContextMenu?: (e: React.MouseEvent) => void;
@@ -40,20 +40,21 @@ export interface RegisterTableRowProps {
 // ---------------------------------------------------------------------------
 
 /**
- * Shared register row used by both BlockEditor and RegisterArrayEditor.
+ * Shared block row used by MemoryMapEditor.
  *
  * Behaviour:
- *   - name   : onInput live-commit; onBlur with cancelEditRef guard.
- *   - offset : onInput live-commit (hex display); onFocus captures snapshot.
- *   - access : VSCodeDropdown onInput live-commit.
+ *   - name        : onInput live-commit; onBlur with cancelEditRef guard.
+ *   - base        : onInput live-commit (hex display); onFocus captures snapshot.
+ *   - size        : read-only display.
+ *   - usage       : badge display (read-only for now).
  *   - description : VSCodeTextArea onInput live-commit; onFocus captures snapshot.
  */
-export function RegisterTableRow({
-  reg,
+export function BlockTableRow({
+  block,
   idx,
   isSelected,
   isHovered,
-  regActiveCell,
+  blockActiveCell,
   color,
   cancelEditRef,
   captureEditSnapshot,
@@ -63,17 +64,18 @@ export function RegisterTableRow({
   onMouseEnter,
   onMouseLeave,
   onContextMenu,
-}: RegisterTableRowProps) {
-  const offset = reg.address_offset ?? reg.offset ?? 0;
+}: BlockTableRowProps) {
+  const base = block.base_address ?? block.offset ?? 0;
+  const size = calculateBlockSize(block);
 
-  const isCellActive = (key: RegEditKey) =>
-    regActiveCell.rowIndex === idx && regActiveCell.key === key;
+  const isCellActive = (key: BlockEditKey) =>
+    blockActiveCell.rowIndex === idx && blockActiveCell.key === key;
 
   return (
     <tr
       data-row-idx={idx}
-      data-reg-idx={idx}
-      className={`group vscode-row-solid transition-colors border-l-4 border-transparent border-b vscode-border h-12 ${
+      data-block-idx={idx}
+      className={`group transition-colors border-l-4 border-transparent border-b vscode-border h-12 ${
         isSelected
           ? 'vscode-focus-border vscode-row-selected'
           : isHovered
@@ -100,53 +102,56 @@ export function RegisterTableRow({
           <CellInput
             editKey="name"
             className="flex-1"
-            value={reg.name ?? ''}
+            value={block.name || ''}
             onFocus={captureEditSnapshot}
             cancelEditRef={cancelEditRef}
-            onInput={(value) => onUpdate(['registers', idx, 'name'], value)}
-            onBlur={(value) => onUpdate(['registers', idx, 'name'], value)}
+            onInput={(value) => onUpdate(['addressBlocks', idx, 'name'], value)}
+            onBlur={(value) => onUpdate(['addressBlocks', idx, 'name'], value)}
           />
         </div>
       </EditableCell>
 
-      {/* OFFSET */}
+      {/* BASE ADDRESS */}
       <EditableCell
-        columnKey="offset"
-        isActive={isCellActive('offset')}
-        onCellClick={() => onCellClick('offset')}
+        columnKey="base"
+        isActive={isCellActive('base')}
+        onCellClick={() => onCellClick('base')}
         className="px-4 py-2 font-mono vscode-muted"
       >
         <CellInput
-          editKey="offset"
+          editKey="base"
           className="w-full font-mono"
-          value={toHex(offset as number)}
+          value={toHex(base)}
           onFocus={captureEditSnapshot}
           onInput={(value) => {
             const val = Number(value);
             if (!Number.isNaN(val)) {
-              onUpdate(['registers', idx, 'address_offset'], val);
+              onUpdate(['addressBlocks', idx, 'base_address'], val);
             }
           }}
         />
       </EditableCell>
 
-      {/* ACCESS */}
+      {/* SIZE */}
       <EditableCell
-        columnKey="access"
-        isActive={isCellActive('access')}
-        onCellClick={() => onCellClick('access')}
-        className="px-4 py-2"
-        style={{ overflow: 'visible', position: 'relative' }}
+        columnKey="size"
+        isActive={isCellActive('size')}
+        onCellClick={() => onCellClick('size')}
+        className="px-4 py-2 font-mono vscode-muted"
       >
-        <CellInput
-          editKey="access"
-          variant="dropdown"
-          className="w-full"
-          value={reg.access ?? 'read-write'}
-          options={ACCESS_OPTIONS}
-          onFocus={captureEditSnapshot}
-          onInput={(value) => onUpdate(['registers', idx, 'access'], value)}
-        />
+        {size < 1024 ? `${size}B` : `${(size / 1024).toFixed(1)}KB`}
+      </EditableCell>
+
+      {/* USAGE */}
+      <EditableCell
+        columnKey="usage"
+        isActive={isCellActive('usage')}
+        onCellClick={() => onCellClick('usage')}
+        className="px-4 py-2"
+      >
+        <span className="px-2 py-0.5 rounded text-xs font-medium vscode-badge whitespace-nowrap">
+          {block.usage ?? 'register'}
+        </span>
       </EditableCell>
 
       {/* DESCRIPTION */}
@@ -155,16 +160,14 @@ export function RegisterTableRow({
         isActive={isCellActive('description')}
         onCellClick={() => onCellClick('description')}
         className="px-6 py-2 vscode-muted"
-        style={{ width: '35%' }}
       >
         <CellInput
           editKey="description"
           variant="textarea"
           className="w-full"
-          style={{ height: '40px', minHeight: '40px', resize: 'none' }}
-          value={reg.description ?? ''}
+          value={block.description ?? ''}
           onFocus={captureEditSnapshot}
-          onInput={(value) => onUpdate(['registers', idx, 'description'], value)}
+          onInput={(value) => onUpdate(['addressBlocks', idx, 'description'], value)}
         />
       </EditableCell>
     </tr>

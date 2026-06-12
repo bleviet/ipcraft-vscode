@@ -1,11 +1,6 @@
 import React from 'react';
 import type { YamlUpdateHandler } from '../../types/editor';
-import {
-  VSCodeDropdown,
-  VSCodeOption,
-  VSCodeTextArea,
-  VSCodeTextField,
-} from '@vscode/webview-ui-toolkit/react';
+import { VSCodeDropdown, VSCodeOption } from '@vscode/webview-ui-toolkit/react';
 import { ACCESS_OPTIONS } from '../../shared/constants';
 import { FIELD_COLORS, getFieldColor } from '../../shared/colors';
 import { fieldToBitsString, formatBitsRange as formatBits } from '../../utils/BitFieldUtils';
@@ -19,6 +14,7 @@ import {
 } from '../../shared/utils/fieldValidation';
 import type { EditKey, FieldEditorState } from '../../hooks/useFieldEditor';
 import type { FieldDef } from './FieldsTable';
+import { EditableCell, CellInput } from '../../shared/components';
 
 interface FieldTableRowProps {
   field: FieldDef;
@@ -113,12 +109,11 @@ const FieldTableRow = ({
         .replace(/[^a-z0-9_]/g, '-')}`}
     >
       <>
-        <td
-          data-col-key="name"
-          className={`px-6 py-2 font-medium align-middle ${
-            activeCell.rowIndex === index && activeCell.key === 'name' ? 'vscode-cell-active' : ''
-          }`}
-          onClick={onCellClick(index, 'name')}
+        <EditableCell
+          columnKey="name"
+          isActive={activeCell.rowIndex === index && activeCell.key === 'name'}
+          onCellClick={onCellClick(index, 'name')}
+          className="px-6 py-2 font-medium"
         >
           <div className="flex flex-col justify-center">
             <div className="flex items-center gap-2 h-10">
@@ -134,28 +129,26 @@ const FieldTableRow = ({
                   field.monitorChangeOf ? `CoS W1C — monitors: ${field.monitorChangeOf}` : undefined
                 }
               />
-              <VSCodeTextField
-                data-edit-key="name"
+              <CellInput
+                editKey="name"
                 className="flex-1"
                 value={nameValue}
                 onFocus={onCellFocus(index, 'name')}
-                onInput={(e: Event | React.FormEvent<HTMLElement>) => {
-                  const next = String((e.target as HTMLInputElement).value ?? '');
-                  setNameDrafts((prev) => ({
+                cancelEditRef={fieldEditor.cancelEditRef}
+                onInput={(value) => {
+                  const next = value ?? '';
+                  setNameDrafts((prev: Record<string, string>) => ({
                     ...prev,
                     [fieldKey]: next,
                   }));
                   const err = validateVhdlIdentifier(next);
-                  setNameErrors((prev) => ({
+                  setNameErrors((prev: Record<string, string | null>) => ({
                     ...prev,
                     [fieldKey]: err,
                   }));
                 }}
-                onBlur={(e: Event | React.FocusEvent<HTMLElement>) => {
-                  if (fieldEditor.cancelEditRef.current) {
-                    return;
-                  }
-                  const next = String((e.target as HTMLInputElement).value ?? '');
+                onBlur={(value) => {
+                  const next = value ?? '';
                   const err = validateVhdlIdentifier(next);
                   if (!err) {
                     onUpdate(['fields', index, 'name'], next.trim());
@@ -165,25 +158,25 @@ const FieldTableRow = ({
             </div>
             {nameErr ? <div className="text-xs vscode-error mt-1">{nameErr}</div> : null}
           </div>
-        </td>
+        </EditableCell>
 
-        <td
-          data-col-key="bits"
-          className={`px-4 py-2 font-mono vscode-muted align-middle ${
-            activeCell.rowIndex === index && activeCell.key === 'bits' ? 'vscode-cell-active' : ''
-          }`}
-          onClick={onCellClick(index, 'bits')}
+        <EditableCell
+          columnKey="bits"
+          isActive={activeCell.rowIndex === index && activeCell.key === 'bits'}
+          onCellClick={onCellClick(index, 'bits')}
+          className="px-4 py-2 font-mono vscode-muted"
         >
           <div className="flex items-center h-10">
             <div className="flex flex-col w-full">
-              <VSCodeTextField
-                data-edit-key="bits"
+              <CellInput
+                editKey="bits"
                 className="w-full font-mono"
                 value={bitsValue}
                 onFocus={onCellFocus(index, 'bits')}
-                onInput={(e: Event | React.FormEvent<HTMLElement>) => {
-                  const next = String((e.target as HTMLInputElement).value ?? '');
-                  setBitsDrafts((prev) => ({
+                cancelEditRef={fieldEditor.cancelEditRef}
+                onInput={(value) => {
+                  const next = value ?? '';
+                  setBitsDrafts((prev: Record<number, string>) => ({
                     ...prev,
                     [index]: next,
                   }));
@@ -210,7 +203,7 @@ const FieldTableRow = ({
                     }
                   }
 
-                  setBitsErrors((prev) => ({
+                  setBitsErrors((prev: Record<number, string | null>) => ({
                     ...prev,
                     [index]: err,
                   }));
@@ -259,38 +252,33 @@ const FieldTableRow = ({
               {bitsErr ? <div className="text-xs vscode-error mt-1">{bitsErr}</div> : null}
             </div>
           </div>
-        </td>
+        </EditableCell>
 
-        <td
-          data-col-key="access"
-          className={`px-4 py-2 align-middle ${
-            activeCell.rowIndex === index && activeCell.key === 'access' ? 'vscode-cell-active' : ''
-          }`}
+        <EditableCell
+          columnKey="access"
+          isActive={activeCell.rowIndex === index && activeCell.key === 'access'}
+          onCellClick={onCellClick(index, 'access')}
+          className="px-4 py-2"
           style={{ overflow: 'visible', position: 'relative' }}
-          onClick={onCellClick(index, 'access')}
         >
           <div className="flex flex-col gap-1 py-0.5">
             <div className="flex items-center h-10">
-              <VSCodeDropdown
-                data-edit-key="access"
+              <CellInput
+                editKey="access"
+                variant="dropdown"
                 value={field.access ?? 'read-write'}
                 className="w-full"
-                position="below"
+                options={ACCESS_OPTIONS}
                 onFocus={onCellFocus(index, 'access')}
-                onInput={(e: Event | React.FormEvent<HTMLElement>) => {
-                  const next = (e.target as HTMLInputElement).value;
+                cancelEditRef={fieldEditor.cancelEditRef}
+                onInput={(value) => {
+                  const next = value;
                   onUpdate(['fields', index, 'access'], next);
                   if (!W1C_ACCESS.has(next)) {
                     onUpdate(['fields', index, 'monitorChangeOf'], null);
                   }
                 }}
-              >
-                {ACCESS_OPTIONS.map((opt) => (
-                  <VSCodeOption key={opt} value={opt}>
-                    {opt}
-                  </VSCodeOption>
-                ))}
-              </VSCodeDropdown>
+              />
             </div>
             {isW1C && (
               <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
@@ -318,31 +306,31 @@ const FieldTableRow = ({
               </div>
             )}
           </div>
-        </td>
+        </EditableCell>
 
-        <td
-          data-col-key="reset"
-          className={`px-4 py-2 font-mono vscode-muted align-middle ${
-            activeCell.rowIndex === index && activeCell.key === 'reset' ? 'vscode-cell-active' : ''
-          }`}
-          onClick={onCellClick(index, 'reset')}
+        <EditableCell
+          columnKey="reset"
+          isActive={activeCell.rowIndex === index && activeCell.key === 'reset'}
+          onCellClick={onCellClick(index, 'reset')}
+          className="px-4 py-2 font-mono vscode-muted"
         >
           <div className="flex flex-col justify-center h-10">
-            <VSCodeTextField
-              data-edit-key="reset"
+            <CellInput
+              editKey="reset"
               className="w-full font-mono"
               value={resetValue}
               onFocus={onCellFocus(index, 'reset')}
-              onInput={(e: Event | React.FormEvent<HTMLElement>) => {
-                const raw = String((e.target as HTMLInputElement).value ?? '');
-                setResetDrafts((prev) => ({
+              cancelEditRef={fieldEditor.cancelEditRef}
+              onInput={(value) => {
+                const raw = value ?? '';
+                setResetDrafts((prev: Record<number, string>) => ({
                   ...prev,
                   [index]: raw,
                 }));
 
                 const trimmed = raw.trim();
                 if (!trimmed) {
-                  setResetErrors((prev) => ({
+                  setResetErrors((prev: Record<number, string | null>) => ({
                     ...prev,
                     [index]: null,
                   }));
@@ -352,7 +340,7 @@ const FieldTableRow = ({
 
                 const parsed = parseReset(raw);
                 const err = validateResetForField(field, parsed);
-                setResetErrors((prev) => ({
+                setResetErrors((prev: Record<number, string | null>) => ({
                   ...prev,
                   [index]: err,
                 }));
@@ -363,42 +351,33 @@ const FieldTableRow = ({
             />
             {resetErr ? <div className="text-xs vscode-error mt-1">{resetErr}</div> : null}
           </div>
-        </td>
+        </EditableCell>
 
-        <td
-          data-col-key="description"
-          className={`px-6 py-2 vscode-muted align-middle ${
-            activeCell.rowIndex === index && activeCell.key === 'description'
-              ? 'vscode-cell-active'
-              : ''
-          }`}
+        <EditableCell
+          columnKey="description"
+          isActive={activeCell.rowIndex === index && activeCell.key === 'description'}
+          onCellClick={onCellClick(index, 'description')}
+          className="px-6 py-2 vscode-muted"
           style={{ width: '40%', minWidth: '240px' }}
-          onClick={onCellClick(index, 'description')}
         >
           <div className="flex items-center h-10">
-            <VSCodeTextArea
-              data-edit-key="description"
+            <CellInput
+              editKey="description"
+              variant="textarea"
               className="w-full"
               style={{
                 height: '40px',
                 minHeight: '40px',
                 resize: 'none',
               }}
-              rows={1}
               value={field.description ?? ''}
               onFocus={onCellFocus(index, 'description', { initializeDrafts: false })}
-              onInput={(e: Event | React.FormEvent<HTMLElement>) =>
-                onUpdate(['fields', index, 'description'], (e.target as HTMLInputElement).value)
-              }
-              onBlur={(e: Event | React.FocusEvent<HTMLElement>) => {
-                if (fieldEditor.cancelEditRef.current) {
-                  return;
-                }
-                onUpdate(['fields', index, 'description'], (e.target as HTMLInputElement).value);
-              }}
+              cancelEditRef={fieldEditor.cancelEditRef}
+              onInput={(value) => onUpdate(['fields', index, 'description'], value)}
+              onBlur={(value) => onUpdate(['fields', index, 'description'], value)}
             />
           </div>
-        </td>
+        </EditableCell>
       </>
     </tr>
   );

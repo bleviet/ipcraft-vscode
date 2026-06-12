@@ -9,6 +9,7 @@ import {
 import { FieldsTable } from './FieldsTable';
 import { useFieldEditor } from '../../hooks/useFieldEditor';
 import type { RegisterDef } from '../../types/memoryMap';
+import { generateUniqueName } from '../../utils/naming';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -148,14 +149,7 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
         onUpdate(['fields'], newFields);
       },
       onCreateField: (newField: { bit_range: [number, number]; name: string }) => {
-        let maxN = 0;
-        for (const f of fields) {
-          const m = String(f.name ?? '').match(/^field(\d+)$/);
-          if (m) {
-            maxN = Math.max(maxN, parseInt(m[1], 10));
-          }
-        }
-        const name = `field${maxN + 1}`;
+        const name = generateUniqueName(fields, 'field');
         const [hi, lo] = newField.bit_range;
         const field = {
           name,

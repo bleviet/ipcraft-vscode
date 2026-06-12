@@ -61,7 +61,6 @@ export function FieldsTable({ fields, registerSize, onUpdate, fieldEditor }: Fie
     setActiveCell,
     insertError,
     focusRef,
-    errorRef,
     ensureDraftsInitialized,
     captureEditSnapshot,
     moveSelectedField,
@@ -138,17 +137,13 @@ export function FieldsTable({ fields, registerSize, onUpdate, fieldEditor }: Fie
 
         {/* Scrollable table */}
         <div
-          ref={focusRef}
+          ref={focusRef as React.RefObject<HTMLDivElement>}
           tabIndex={0}
           data-fields-table="true"
           className="flex-1 overflow-auto min-h-0 outline-none focus:outline-none"
           style={{ overflowY: 'auto', overflowX: 'auto' }}
         >
-          {insertError ? (
-            <div ref={errorRef} className="vscode-error px-4 py-2 text-xs">
-              {insertError}
-            </div>
-          ) : null}
+          {insertError ? <div className="vscode-error px-4 py-2 text-xs">{insertError}</div> : null}
 
           <EditableTable
             rows={fields}
