@@ -114,7 +114,7 @@ export function BlockEditor({
 
   const liveRegisters = block?.registers ?? [];
 
-  const { cancelEditRef, captureEditSnapshot } = useCellEditGuard({
+  const { captureEditSnapshot } = useCellEditGuard({
     rows: liveRegisters,
     rowsPath: ['registers'],
     onUpdate,
@@ -403,14 +403,13 @@ export function BlockEditor({
         <tbody ref={tbodyRef} className="text-sm" {...insertBarTbodyProps}>
           {registers.map((reg: RegisterModel, idx: number) => (
             <RegisterTableRow
-              key={`${String(reg.name ?? `reg-${idx}`)}-${String(reg.address_offset ?? reg.offset ?? idx * 4)}`}
+              key={idx}
               reg={reg}
               idx={idx}
               isSelected={idx === selectedRegIndex}
               isHovered={idx === hoveredRegIndex}
               regActiveCell={regActiveCell}
               color={getRegColor(idx)}
-              cancelEditRef={cancelEditRef}
               captureEditSnapshot={captureEditSnapshot}
               onUpdate={onUpdate}
               onRowClick={() => {

@@ -30,7 +30,6 @@ export interface RegisterTableRowProps {
   isHovered: boolean;
   regActiveCell: RegActiveCell;
   color: string;
-  cancelEditRef: React.MutableRefObject<boolean>;
   captureEditSnapshot: () => void;
   onUpdate: YamlUpdateHandler;
   onRowClick: () => void;
@@ -48,7 +47,7 @@ export interface RegisterTableRowProps {
  * Shared register row used by both BlockEditor and RegisterArrayEditor.
  *
  * Behaviour:
- *   - name   : onBlur-commit with cancelEditRef guard; onFocus captures snapshot.
+ *   - name   : onInput live-commit; onFocus captures snapshot.
  *   - offset : onInput live-commit (hex display); onFocus captures snapshot.
  *   - access : VSCodeDropdown onInput live-commit.
  *   - description : VSCodeTextArea onInput live-commit; onFocus captures snapshot.
@@ -60,7 +59,6 @@ export function RegisterTableRow({
   isHovered,
   regActiveCell,
   color,
-  cancelEditRef,
   captureEditSnapshot,
   onUpdate,
   onRowClick,
@@ -76,7 +74,6 @@ export function RegisterTableRow({
 
   return (
     <tr
-      key={`${String(reg.name ?? `reg-${idx}`)}-${String(offset)}`}
       data-row-idx={idx}
       data-reg-idx={idx}
       className={`group vscode-row-solid transition-colors border-l-4 border-transparent border-b vscode-border h-12 ${
@@ -110,12 +107,9 @@ export function RegisterTableRow({
             className="flex-1"
             value={reg.name ?? ''}
             onFocus={() => captureEditSnapshot()}
-            onBlur={(e: Event | React.FormEvent<HTMLElement>) => {
-              if (cancelEditRef.current) {
-                return;
-              }
-              onUpdate(['registers', idx, 'name'], (e.target as HTMLInputElement).value);
-            }}
+            onInput={(e: Event | React.FormEvent<HTMLElement>) =>
+              onUpdate(['registers', idx, 'name'], (e.target as HTMLInputElement).value)
+            }
           />
         </div>
       </td>

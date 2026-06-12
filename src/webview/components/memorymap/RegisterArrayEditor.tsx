@@ -51,7 +51,7 @@ export function RegisterArrayEditor({
   });
   const tableRef = useRef<HTMLDivElement | null>(null);
 
-  const { cancelEditRef, captureEditSnapshot } = useCellEditGuard({
+  const { captureEditSnapshot } = useCellEditGuard({
     rows: nestedRegisters,
     rowsPath: ['registers'],
     onUpdate,
@@ -217,14 +217,13 @@ export function RegisterArrayEditor({
         <tbody className="divide-y vscode-border text-sm">
           {nestedRegisters.map((reg: RegisterModel, idx: number) => (
             <RegisterTableRow
-              key={`${String(reg.name ?? `reg-${idx}`)}-${String(reg.address_offset ?? reg.offset ?? idx * 4)}`}
+              key={idx}
               reg={reg}
               idx={idx}
               isSelected={selectedRegIndex === idx}
               isHovered={hoveredRegIndex === idx}
               regActiveCell={regActiveCell}
               color={getRegColor(idx)}
-              cancelEditRef={cancelEditRef}
               captureEditSnapshot={captureEditSnapshot}
               onUpdate={onUpdate}
               onRowClick={() => {

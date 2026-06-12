@@ -120,7 +120,7 @@ export function MemoryMapEditor({
 
   const liveBlocks = memoryMap?.address_blocks ?? memoryMap?.addressBlocks ?? [];
 
-  const { cancelEditRef, captureEditSnapshot } = useCellEditGuard({
+  const { captureEditSnapshot } = useCellEditGuard({
     rows: liveBlocks,
     rowsPath: ['addressBlocks'],
     onUpdate,
@@ -306,15 +306,12 @@ export function MemoryMapEditor({
                       className="flex-1"
                       value={block.name || ''}
                       onFocus={() => captureEditSnapshot()}
-                      onBlur={(e: Event | React.FocusEvent<HTMLElement>) => {
-                        if (cancelEditRef.current) {
-                          return;
-                        }
+                      onInput={(e: Event | React.FormEvent<HTMLElement>) =>
                         onUpdate(
                           ['addressBlocks', idx, 'name'],
                           (e.target as HTMLInputElement).value
-                        );
-                      }}
+                        )
+                      }
                     />
                   </div>
                 </td>
