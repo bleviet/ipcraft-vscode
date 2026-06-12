@@ -114,7 +114,7 @@ export function BlockEditor({
 
   const liveRegisters = block?.registers ?? [];
 
-  const { captureEditSnapshot } = useCellEditGuard({
+  const { cancelEditRef, captureEditSnapshot } = useCellEditGuard({
     rows: liveRegisters,
     rowsPath: ['registers'],
     onUpdate,
@@ -410,6 +410,7 @@ export function BlockEditor({
               isHovered={idx === hoveredRegIndex}
               regActiveCell={regActiveCell}
               color={getRegColor(idx)}
+              cancelEditRef={cancelEditRef}
               captureEditSnapshot={captureEditSnapshot}
               onUpdate={onUpdate}
               onRowClick={() => {

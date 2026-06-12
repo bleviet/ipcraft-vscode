@@ -51,7 +51,7 @@ export function RegisterArrayEditor({
   });
   const tableRef = useRef<HTMLDivElement | null>(null);
 
-  const { captureEditSnapshot } = useCellEditGuard({
+  const { cancelEditRef, captureEditSnapshot } = useCellEditGuard({
     rows: nestedRegisters,
     rowsPath: ['registers'],
     onUpdate,
@@ -224,6 +224,7 @@ export function RegisterArrayEditor({
               isHovered={hoveredRegIndex === idx}
               regActiveCell={regActiveCell}
               color={getRegColor(idx)}
+              cancelEditRef={cancelEditRef}
               captureEditSnapshot={captureEditSnapshot}
               onUpdate={onUpdate}
               onRowClick={() => {

@@ -30,6 +30,7 @@ export interface RegisterTableRowProps {
   isHovered: boolean;
   regActiveCell: RegActiveCell;
   color: string;
+  cancelEditRef: React.MutableRefObject<boolean>;
   captureEditSnapshot: () => void;
   onUpdate: YamlUpdateHandler;
   onRowClick: () => void;
@@ -59,6 +60,7 @@ export function RegisterTableRow({
   isHovered,
   regActiveCell,
   color,
+  cancelEditRef,
   captureEditSnapshot,
   onUpdate,
   onRowClick,
@@ -110,6 +112,12 @@ export function RegisterTableRow({
             onInput={(e: Event | React.FormEvent<HTMLElement>) =>
               onUpdate(['registers', idx, 'name'], (e.target as HTMLInputElement).value)
             }
+            onBlur={(e: Event | React.FocusEvent<HTMLElement>) => {
+              if (cancelEditRef.current) {
+                return;
+              }
+              onUpdate(['registers', idx, 'name'], (e.target as HTMLInputElement).value);
+            }}
           />
         </div>
       </td>
