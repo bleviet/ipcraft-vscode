@@ -346,6 +346,37 @@ export function useFieldEditor(
   }, [activeCell, isActive, fields.length]);
 
   // ---------------------------------------------------------------------------
+  // Prune name drafts whose keys no longer match any current field name.
+  // Needed after a rename: the old key becomes orphaned and must not be shown
+  // when a new field happens to reuse that name later.
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    const currentKeys = new Set(fields.map((f, i) => (f.name ? String(f.name) : `idx-${i}`)));
+    setNameDrafts((prev) => {
+      const stale = Object.keys(prev).filter((k) => !currentKeys.has(k));
+      if (stale.length === 0) {
+        return prev;
+      }
+      const next = { ...prev };
+      for (const k of stale) {
+        delete next[k];
+      }
+      return next;
+    });
+    setNameErrors((prev) => {
+      const stale = Object.keys(prev).filter((k) => !currentKeys.has(k));
+      if (stale.length === 0) {
+        return prev;
+      }
+      const next = { ...prev };
+      for (const k of stale) {
+        delete next[k];
+      }
+      return next;
+    });
+  }, [fields]);
+
+  // ---------------------------------------------------------------------------
   // Keep index-keyed drafts aligned with field order
   // ---------------------------------------------------------------------------
   useEffect(() => {

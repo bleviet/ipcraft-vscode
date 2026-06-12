@@ -158,8 +158,6 @@ const FieldTableRow = ({
                   const next = String((e.target as HTMLInputElement).value ?? '');
                   const err = validateVhdlIdentifier(next);
                   if (!err) {
-                    setNameDrafts({});
-                    setNameErrors({});
                     onUpdate(['fields', index, 'name'], next.trim());
                   }
                 }}
