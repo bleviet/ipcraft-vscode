@@ -682,11 +682,11 @@ graph TD
     MS -.-> GUN
     BE -.-> GUN
 
-    classDef hook fill:#f9d0c4,stroke:#333,stroke-width:2px;
-    classDef subhook fill:#ffe5d9,stroke:#333,stroke-dasharray: 5 5;
-    classDef editor fill:#d4e6f1,stroke:#333,stroke-width:2px;
-    classDef comp fill:#d5f5e3,stroke:#333,stroke-width:1px;
-    classDef util fill:#fcf3cf,stroke:#333,stroke-width:1px;
+    classDef hook fill:transparent,stroke:#4facfe,stroke-width:2px;
+    classDef subhook fill:transparent,stroke:#4facfe,stroke-width:2px,stroke-dasharray: 5 5;
+    classDef editor fill:transparent,stroke:#da22ff,stroke-width:2px;
+    classDef comp fill:transparent,stroke:#f5576c,stroke-width:2px;
+    classDef util fill:transparent,stroke:#00f2fe,stroke-width:2px;
 ```
 
 ### Key Improvements Achieved
