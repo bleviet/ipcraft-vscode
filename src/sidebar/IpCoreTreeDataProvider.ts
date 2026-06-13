@@ -91,13 +91,6 @@ export class IpCoreTreeDataProvider implements vscode.TreeDataProvider<FoundryNo
     const specsNodes = await this.scanWorkspaceForSpecs();
     if (specsNodes.length > 0) {
       nodes.push(...specsNodes);
-    } else {
-      nodes.push(
-        new FoundryNode({
-          label: 'No specifications found in workspace',
-          icon: 'info',
-        })
-      );
     }
 
     return nodes;
