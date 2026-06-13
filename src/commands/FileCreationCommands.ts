@@ -119,8 +119,7 @@ export async function createIpCoreCommand(): Promise<void> {
       uri,
       new Uint8Array(Buffer.from(generateIpCoreTemplate(vendor, name)))
     );
-    const document = await vscode.workspace.openTextDocument(uri);
-    await vscode.window.showTextDocument(document);
+    await vscode.commands.executeCommand('vscode.openWith', uri, 'fpgaIpCore.editor');
   } catch (error) {
     void vscode.window.showErrorMessage(
       `Failed to create file: ${error instanceof Error ? error.message : String(error)}`
@@ -207,8 +206,7 @@ export async function createIpCoreWithMemoryMapCommand(): Promise<void> {
     const ipCoreContent = generateIpCoreWithMemoryMapTemplate(vendor, name, memoryMapBaseName);
     await vscode.workspace.fs.writeFile(ipCoreUri, new Uint8Array(Buffer.from(ipCoreContent)));
 
-    const document = await vscode.workspace.openTextDocument(ipCoreUri);
-    await vscode.window.showTextDocument(document);
+    await vscode.commands.executeCommand('vscode.openWith', ipCoreUri, 'fpgaIpCore.editor');
 
     void vscode.window.showInformationMessage(`Created ${ipCoreBaseName} and ${memoryMapBaseName}`);
   } catch (error) {
@@ -252,8 +250,12 @@ async function createFileWithTemplate(
   if (uri) {
     try {
       await vscode.workspace.fs.writeFile(uri, new Uint8Array(Buffer.from(template)));
-      const document = await vscode.workspace.openTextDocument(uri);
-      await vscode.window.showTextDocument(document);
+      if (compoundExt === '.mm.yml') {
+        await vscode.commands.executeCommand('vscode.openWith', uri, 'fpgaMemoryMap.editor');
+      } else {
+        const document = await vscode.workspace.openTextDocument(uri);
+        await vscode.window.showTextDocument(document);
+      }
     } catch (error) {
       void vscode.window.showErrorMessage(
         `Failed to create file: ${error instanceof Error ? error.message : String(error)}`
