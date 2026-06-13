@@ -637,8 +637,8 @@ export class IpCoreScaffolder {
         description: param.description ? this.getString(param.description) : '',
         min: param.min !== undefined ? param.min : null,
         max: param.max !== undefined ? param.max : null,
-        allowed_values: param.allowedValues ?? param.allowed_values ?? null,
-        ui_group: param.uiGroup ?? param.ui_group ?? '',
+        allowed_values: param.allowedValues ?? null,
+        ui_group: param.uiGroup ?? '',
       };
     });
   }

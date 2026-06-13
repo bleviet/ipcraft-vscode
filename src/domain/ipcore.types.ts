@@ -386,10 +386,6 @@ export type ParameterType = 'integer' | 'boolean' | 'string';
  */
 export type Description11 = string;
 /**
- * Data type (snake_case alias for dataType).
- */
-export type ParameterType1 = 'integer' | 'boolean' | 'string';
-/**
  * Generics/parameters
  */
 export type Parameters = Parameter[];
@@ -748,7 +744,6 @@ export interface Parameter {
   defaultValue?: {
     [k: string]: unknown;
   };
-  data_type?: ParameterType1;
   /**
    * Minimum value constraint (for integer)
    */
@@ -762,17 +757,9 @@ export interface Parameter {
    */
   allowedValues?: (number | string)[];
   /**
-   * Allowed discrete choices constraint (snake_case alias)
-   */
-  allowed_values?: (number | string)[];
-  /**
    * UI grouping category
    */
   uiGroup?: string;
-  /**
-   * UI grouping category (snake_case alias)
-   */
-  ui_group?: string;
   [k: string]: unknown;
 }
 /**

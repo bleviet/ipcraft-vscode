@@ -12,7 +12,6 @@ interface Parameter {
   min?: number;
   max?: number;
   allowedValues?: (number | string)[];
-  allowed_values?: (number | string)[];
 }
 
 interface ParametersTableProps {
@@ -72,7 +71,6 @@ export const ParametersTable: React.FC<ParametersTableProps> = ({
     delete cleanDraft.min;
     delete cleanDraft.max;
     delete cleanDraft.allowedValues;
-    delete cleanDraft.allowed_values;
     setDraft(cleanDraft);
   };
 

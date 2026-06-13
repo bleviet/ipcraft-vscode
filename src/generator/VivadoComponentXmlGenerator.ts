@@ -411,9 +411,7 @@ export function generateComponentXml(
 
   const hasResets = resets.length > 0;
   const hasParamChoices = parameters.some(
-    (p) =>
-      Array.isArray(p.allowedValues ?? p.allowed_values) &&
-      (p.allowedValues ?? p.allowed_values)!.length > 0
+    (p) => Array.isArray(p.allowedValues) && p.allowedValues.length > 0
   );
   if (hasResets || hasParamChoices) {
     lines.push(...renderChoices(resets.length, parameters));
@@ -1137,7 +1135,7 @@ function renderParameters(entityName: string, parameters: ParameterDef[]): strin
     if (param.description) {
       lines.push(`      <spirit:description>${x(param.description)}</spirit:description>`);
     }
-    const choicesList = param.allowedValues ?? param.allowed_values;
+    const choicesList = param.allowedValues;
     const hasChoices = Array.isArray(choicesList) && choicesList.length > 0;
     const choiceRefAttr = hasChoices ? ` spirit:choiceRef="choice_${pName}"` : '';
 
@@ -1177,7 +1175,7 @@ function renderChoices(resetsCount: number, parameters: ParameterDef[] = []): st
     );
   }
   for (const param of parameters) {
-    const choicesList = param.allowedValues ?? param.allowed_values;
+    const choicesList = param.allowedValues;
     if (Array.isArray(choicesList) && choicesList.length > 0) {
       lines.push('    <spirit:choice>');
       lines.push(`      <spirit:name>choice_${param.name}</spirit:name>`);

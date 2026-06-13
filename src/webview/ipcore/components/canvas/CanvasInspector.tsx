@@ -745,27 +745,47 @@ const TagInput: React.FC<TagInputProps> = ({
   values = [],
   onChange,
   isNumeric = false,
-  placeholder = 'Type and hit Enter...',
+  placeholder,
 }) => {
   const [input, setInput] = useState('');
+  const [error, setError] = useState('');
+
+  const defaultPlaceholder = isNumeric ? 'e.g. 8, 16, 32' : 'e.g. fast, slow, normal';
+  const effectivePlaceholder = placeholder ?? defaultPlaceholder;
+
+  const commit = () => {
+    const val = input.trim();
+    if (!val) {
+      return;
+    }
+
+    if (isNumeric) {
+      const parsed = Number(val);
+      if (!Number.isFinite(parsed)) {
+        setError('Must be a number');
+        return;
+      }
+      if (!values.includes(parsed)) {
+        onChange([...values, parsed]);
+      }
+    } else {
+      if (!values.includes(val)) {
+        onChange([...values, val]);
+      }
+    }
+    setInput('');
+    setError('');
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      const val = input.trim();
-      if (!val) {
-        return;
-      }
-
-      const parsed = isNumeric ? Number(val) : val;
-      if (isNumeric && !Number.isFinite(parsed)) {
-        return;
-      }
-
-      if (!values.includes(parsed)) {
-        onChange([...values, parsed]);
-      }
+      commit();
+    } else if (e.key === 'Escape') {
       setInput('');
+      setError('');
+    } else {
+      setError('');
     }
   };
 
@@ -777,15 +797,42 @@ const TagInput: React.FC<TagInputProps> = ({
   return (
     <div className="ci-field">
       <label className="ci-field__label">{label}</label>
-      <input
-        className="ci-field__input"
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder={placeholder}
-      />
+      <div className="ci-field__input-row">
+        <input
+          className="ci-field__input"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder={effectivePlaceholder}
+        />
+        <button
+          className="ci-pw-mode-toggle"
+          style={{
+            width: 'auto',
+            padding: '0 6px',
+            fontSize: 11,
+            height: 'auto',
+            alignSelf: 'stretch',
+            opacity: input.trim() ? 1 : 0.4,
+          }}
+          onClick={commit}
+          title="Add value"
+        >
+          Add
+        </button>
+      </div>
+      {error && <div className="ci-field__error">{error}</div>}
+      {!error && (
+        <div className="ci-field__hint">
+          {values.length === 0
+            ? isNumeric
+              ? 'Type a number and click Add or press Enter'
+              : 'Type a value and click Add or press Enter'
+            : 'Click × on a chip to remove it'}
+        </div>
+      )}
       {values.length > 0 && (
-        <div className="ci-chips" style={{ marginTop: 6 }}>
+        <div className="ci-chips" style={{ marginTop: 4 }}>
           {values.map((val, i) => (
             <span
               key={i}
@@ -797,6 +844,7 @@ const TagInput: React.FC<TagInputProps> = ({
                 className="codicon codicon-close"
                 style={{ fontSize: 9, cursor: 'pointer', opacity: 0.6 }}
                 onClick={() => removeValue(val)}
+                title={`Remove ${val}`}
               />
             </span>
           ))}
@@ -818,7 +866,7 @@ const ParameterPanel: React.FC<ParameterPanelProps> = ({ param, index, ipCore, o
   const existingNames = params.map((p) => String(p.name ?? '')).filter((_, i) => i !== index);
 
   const dataType = String(param.dataType ?? 'integer');
-  const uiGroup = String(param.uiGroup ?? param.ui_group ?? '');
+  const uiGroup = String(param.uiGroup ?? '');
 
   const defVal =
     param.defaultValue !== undefined
@@ -840,13 +888,11 @@ const ParameterPanel: React.FC<ParameterPanelProps> = ({ param, index, ipCore, o
 
   const handleTypeChange = (newType: string) => {
     onUpdate(['parameters', index, 'dataType'], newType);
-    onUpdate(['parameters', index, 'data_type'], null); // clear legacy type if any
 
     // Clear constraints on type change
     onUpdate(['parameters', index, 'min'], null);
     onUpdate(['parameters', index, 'max'], null);
     onUpdate(['parameters', index, 'allowedValues'], null);
-    onUpdate(['parameters', index, 'allowed_values'], null);
 
     // Apply clean default values
     if (newType === 'integer') {
@@ -858,12 +904,17 @@ const ParameterPanel: React.FC<ParameterPanelProps> = ({ param, index, ipCore, o
     }
   };
 
-  // Determine current constraint mode
+  // Determine current constraint mode.
+  // onUpdate(..., null) leaves the key in YAML as `null` (mergeNode mutates
+  // the scalar in place rather than deleting it), so both null and undefined
+  // must be treated as absent.
   let constraintMode = 'unrestricted';
-  const hasAllowedValues = param.allowedValues !== undefined || param.allowed_values !== undefined;
-  if (param.min !== undefined || param.max !== undefined) {
+  if (
+    (param.min !== null && param.min !== undefined) ||
+    (param.max !== null && param.max !== undefined)
+  ) {
     constraintMode = 'range';
-  } else if (hasAllowedValues) {
+  } else if (param.allowedValues !== null && param.allowedValues !== undefined) {
     constraintMode = 'choices';
   }
 
@@ -872,26 +923,19 @@ const ParameterPanel: React.FC<ParameterPanelProps> = ({ param, index, ipCore, o
       onUpdate(['parameters', index, 'min'], null);
       onUpdate(['parameters', index, 'max'], null);
       onUpdate(['parameters', index, 'allowedValues'], null);
-      onUpdate(['parameters', index, 'allowed_values'], null);
     } else if (mode === 'range') {
       onUpdate(['parameters', index, 'allowedValues'], null);
-      onUpdate(['parameters', index, 'allowed_values'], null);
       onUpdate(['parameters', index, 'min'], 0);
       onUpdate(['parameters', index, 'max'], 255);
     } else if (mode === 'choices') {
       onUpdate(['parameters', index, 'min'], null);
       onUpdate(['parameters', index, 'max'], null);
       onUpdate(['parameters', index, 'allowedValues'], []);
-      onUpdate(['parameters', index, 'allowed_values'], null);
     }
   };
 
   const allowedValuesList = (
-    Array.isArray(param.allowedValues)
-      ? param.allowedValues
-      : Array.isArray(param.allowed_values)
-        ? param.allowed_values
-        : []
+    Array.isArray(param.allowedValues) ? param.allowedValues : []
   ) as Array<string | number>;
 
   const isDefaultInvalid =
@@ -986,11 +1030,6 @@ const ParameterPanel: React.FC<ParameterPanelProps> = ({ param, index, ipCore, o
                 values={allowedValuesList}
                 isNumeric={dataType === 'integer'}
                 onChange={(vals) => onUpdate(['parameters', index, 'allowedValues'], vals)}
-                placeholder={
-                  dataType === 'integer'
-                    ? 'Type number and hit Enter...'
-                    : 'Type text and hit Enter...'
-                }
               />
             </div>
           )}
@@ -1009,7 +1048,6 @@ const ParameterPanel: React.FC<ParameterPanelProps> = ({ param, index, ipCore, o
           value={uiGroup}
           onSave={(v) => {
             onUpdate(['parameters', index, 'uiGroup'], v || null);
-            onUpdate(['parameters', index, 'ui_group'], null);
           }}
           placeholder="e.g. Architecture"
         />
