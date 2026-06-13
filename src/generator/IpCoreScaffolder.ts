@@ -585,6 +585,7 @@ export class IpCoreScaffolder {
     const computedAddrWidth = Math.max(3, Math.ceil(Math.log2(Math.max(maxByteAddress, 2))));
     const rawAddrWidth = (ipCore as Record<string, unknown>).addrWidth;
     const addrWidth = typeof rawAddrWidth === 'number' ? rawAddrWidth : computedAddrWidth;
+    const _generics = this.prepareGenerics(ipCore);
 
     return {
       name,
@@ -594,7 +595,8 @@ export class IpCoreScaffolder {
       hw_registers: hwRegisters,
       w1c_registers: annotatedW1cRegisters,
       cos_registers: cosRegisters,
-      generics: this.prepareGenerics(ipCore),
+      generics: _generics,
+      xgui_pages: this.prepareXguiPages(_generics),
       user_ports: userPorts,
       interrupt_ports: this.prepareInterruptPorts(ipCore),
       bus_type: busType,
@@ -638,9 +640,65 @@ export class IpCoreScaffolder {
         min: param.min !== undefined ? param.min : null,
         max: param.max !== undefined ? param.max : null,
         allowed_values: param.allowedValues ?? null,
+        ui_page: param.uiPage ?? '',
         ui_group: param.uiGroup ?? '',
       };
     });
+  }
+
+  /**
+   * Pre-compute the page/group layout for XGUI templates so templates don't
+   * need to perform set operations (Nunjucks lacks Python's list.append).
+   * Returns ordered unique pages, each with ordered unique groups and their
+   * member generic names. Generics with no uiPage land on "Page 0".
+   */
+  prepareXguiPages(generics: Array<Record<string, unknown>>): Array<{
+    name: string;
+    tcl_var: string;
+    groups: Array<{ name: string; tcl_var: string; param_names: string[] }>;
+    ungrouped_param_names: string[];
+  }> {
+    const toTclVar = (s: string) => s.replace(/[\s\-.]/g, '_');
+
+    const pageOrder: string[] = [];
+    const groupOrder: Map<string, string[]> = new Map();
+    const groupParams: Map<string, Map<string, string[]>> = new Map();
+    const ungroupedParams: Map<string, string[]> = new Map();
+
+    for (const g of generics) {
+      const page = g.ui_page ? String(g.ui_page) : 'Page 0';
+      const group = g.ui_group ? String(g.ui_group) : '';
+      const name = String(g.name ?? '');
+
+      if (!pageOrder.includes(page)) {
+        pageOrder.push(page);
+        groupOrder.set(page, []);
+        groupParams.set(page, new Map());
+        ungroupedParams.set(page, []);
+      }
+
+      if (group) {
+        const groups = groupOrder.get(page)!;
+        if (!groups.includes(group)) {
+          groups.push(group);
+          groupParams.get(page)!.set(group, []);
+        }
+        groupParams.get(page)!.get(group)!.push(name);
+      } else {
+        ungroupedParams.get(page)!.push(name);
+      }
+    }
+
+    return pageOrder.map((page) => ({
+      name: page,
+      tcl_var: `Page_${toTclVar(page)}`,
+      groups: (groupOrder.get(page) ?? []).map((group) => ({
+        name: group,
+        tcl_var: `Group_${toTclVar(page)}_${toTclVar(group)}`,
+        param_names: groupParams.get(page)!.get(group) ?? [],
+      })),
+      ungrouped_param_names: ungroupedParams.get(page) ?? [],
+    }));
   }
 
   private resolveGenericDefault(

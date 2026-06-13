@@ -1,13 +1,21 @@
 # Definitional proc to organize widgets for parameters.
 proc init_gui { IPINST } {
   ipgui::add_param $IPINST -name "Component_Name"
+{% for page in xgui_pages %}
   #Adding Page
-  set Page_0 [ipgui::add_page $IPINST -name "Page 0"]
-{% for generic in generics %}
-  ipgui::add_param $IPINST -name "{{ generic.name }}" -parent ${Page_0}
+  set {{ page.tcl_var }} [ipgui::add_page $IPINST -name "{{ page.name }}"]
+{% for group in page.groups %}
+  set {{ group.tcl_var }} [ipgui::add_group $IPINST -name "{{ group.name }}" -parent ${{"{"}}{{ page.tcl_var }}{{"}"}}]
 {% endfor %}
-
-
+{% for param_name in page.ungrouped_param_names %}
+  ipgui::add_param $IPINST -name "{{ param_name }}" -parent ${{"{"}}{{ page.tcl_var }}{{"}"}}
+{% endfor %}
+{% for group in page.groups %}
+{% for param_name in group.param_names %}
+  ipgui::add_param $IPINST -name "{{ param_name }}" -parent ${{"{"}}{{ group.tcl_var }}{{"}"}}
+{% endfor %}
+{% endfor %}
+{% endfor %}
 }
 
 {% for generic in generics %}

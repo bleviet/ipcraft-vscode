@@ -998,9 +998,11 @@ function renderModelParameters(parameters: ParameterDef[]): string[] {
     );
     lines.push(`        <spirit:name>${x(pName)}</spirit:name>`);
     lines.push(`        <spirit:displayName>${x(displayName)}</spirit:displayName>`);
+    const hasChoices = Array.isArray(param.allowedValues) && param.allowedValues.length > 0;
     if (isInteger) {
+      const rangeTypeAttr = !hasChoices ? ' spirit:rangeType="long"' : '';
       lines.push(
-        `        <spirit:value spirit:format="${format}" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.${x(pName.toUpperCase())}" spirit:minimum="0" spirit:rangeType="long">${x(value)}</spirit:value>`
+        `        <spirit:value spirit:format="${format}" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.${x(pName.toUpperCase())}"${rangeTypeAttr}>${x(value)}</spirit:value>`
       );
     } else {
       lines.push(
@@ -1139,13 +1141,19 @@ function renderParameters(entityName: string, parameters: ParameterDef[]): strin
     const hasChoices = Array.isArray(choicesList) && choicesList.length > 0;
     const choiceRefAttr = hasChoices ? ` spirit:choiceRef="choice_${pName}"` : '';
     const minAttr =
-      param.min !== undefined && param.min !== null ? ` spirit:minimum="${param.min}"` : '';
+      !hasChoices && param.min !== undefined && param.min !== null
+        ? ` spirit:minimum="${param.min}"`
+        : '';
     const maxAttr =
-      param.max !== undefined && param.max !== null ? ` spirit:maximum="${param.max}"` : '';
+      !hasChoices && param.max !== undefined && param.max !== null
+        ? ` spirit:maximum="${param.max}"`
+        : '';
+    // spirit:rangeType and spirit:choiceRef are mutually exclusive in IP-XACT
+    const rangeTypeAttr = isInteger && !hasChoices ? ' spirit:rangeType="long"' : '';
 
     if (isInteger) {
       lines.push(
-        `      <spirit:value spirit:format="${format}" spirit:resolve="user" spirit:id="${x(paramId)}"${minAttr}${maxAttr} spirit:rangeType="long"${choiceRefAttr}>${x(value)}</spirit:value>`
+        `      <spirit:value spirit:format="${format}" spirit:resolve="user" spirit:id="${x(paramId)}"${minAttr}${maxAttr}${rangeTypeAttr}${choiceRefAttr}>${x(value)}</spirit:value>`
       );
     } else {
       lines.push(
@@ -1183,11 +1191,9 @@ function renderChoices(resetsCount: number, parameters: ParameterDef[] = []): st
     if (Array.isArray(choicesList) && choicesList.length > 0) {
       lines.push('    <spirit:choice>');
       lines.push(`      <spirit:name>choice_${param.name}</spirit:name>`);
-      lines.push('      <spirit:enumerations>');
       for (const val of choicesList) {
-        lines.push(`        <spirit:enumeration spirit:text="${val}">${val}</spirit:enumeration>`);
+        lines.push(`      <spirit:enumeration>${val}</spirit:enumeration>`);
       }
-      lines.push('      </spirit:enumerations>');
       lines.push('    </spirit:choice>');
     }
   }

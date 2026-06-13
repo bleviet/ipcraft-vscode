@@ -48,7 +48,8 @@ set_parameter_property {{ generic.name | upper }} ALLOWED_RANGES { {{ generic.al
 {% if generic.description %}
 set_parameter_property {{ generic.name | upper }} DESCRIPTION "{{ generic.description }}"
 {% endif %}
-set_parameter_property {{ generic.name | upper }} HDL_PARAMETER true
+{% if generic.ui_page %}set_parameter_property {{ generic.name | upper }} GROUP "{{ (generic.ui_page ~ '/' ~ generic.ui_group) if generic.ui_group else generic.ui_page }}"
+{% endif %}set_parameter_property {{ generic.name | upper }} HDL_PARAMETER true
 set_parameter_property {{ generic.name | upper }} AFFECTS_GENERATION false
 set_parameter_property {{ generic.name | upper }} AFFECTS_ELABORATION true
 

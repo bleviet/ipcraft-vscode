@@ -110,7 +110,7 @@ describe('IpCoreScaffolder', () => {
     expect(xmlContent).toContain('<spirit:description>Width of the data bus</spirit:description>');
     expect(xmlContent).toContain('spirit:choiceRef="choice_DATA_WIDTH"');
     expect(xmlContent).toContain('<spirit:name>choice_DATA_WIDTH</spirit:name>');
-    expect(xmlContent).toContain('<spirit:enumeration spirit:text="32">32</spirit:enumeration>');
+    expect(xmlContent).toContain('<spirit:enumeration>32</spirit:enumeration>');
   });
 
   it('generates a single minimal stub by default (no bahonaviMethodology)', async () => {

@@ -854,6 +854,264 @@ const TagInput: React.FC<TagInputProps> = ({
   );
 };
 
+// ─── GUI Placement tree widget ────────────────────────────────────────────────
+
+interface UiPlacementTreeProps {
+  uiPage: string;
+  uiGroup: string;
+  paramName: string;
+  allPages: string[];
+  allGroups: string[];
+  onPageChange: (v: string) => void;
+  onGroupChange: (v: string) => void;
+}
+
+const UiPlacementTree: React.FC<UiPlacementTreeProps> = ({
+  uiPage,
+  uiGroup,
+  paramName,
+  allPages,
+  allGroups,
+  onPageChange,
+  onGroupChange,
+}) => {
+  const [addingPage, setAddingPage] = useState(false);
+  const [addingGroup, setAddingGroup] = useState(false);
+  const [newPageDraft, setNewPageDraft] = useState('');
+  const [newGroupDraft, setNewGroupDraft] = useState('');
+
+  const commitNewPage = () => {
+    const v = newPageDraft.trim();
+    if (v) {
+      onPageChange(v);
+    }
+    setNewPageDraft('');
+    setAddingPage(false);
+  };
+
+  const commitNewGroup = () => {
+    const v = newGroupDraft.trim();
+    if (v) {
+      onGroupChange(v);
+    }
+    setNewGroupDraft('');
+    setAddingGroup(false);
+  };
+
+  const treeLineStyle: React.CSSProperties = {
+    color: 'var(--vscode-editorLineNumber-foreground)',
+    userSelect: 'none',
+  };
+
+  const leafStyle: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 5,
+    color: 'var(--vscode-foreground)',
+    fontFamily: 'var(--vscode-editor-font-family, monospace)',
+    fontSize: 11,
+  };
+
+  const rowStyle: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
+  };
+
+  const addBtnStyle: React.CSSProperties = {
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    padding: '0 2px',
+    color: 'var(--vscode-textLink-foreground)',
+    fontSize: 14,
+    lineHeight: 1,
+  };
+
+  const inlineInputStyle: React.CSSProperties = {
+    background: 'var(--vscode-input-background)',
+    color: 'var(--vscode-input-foreground)',
+    border: '1px solid var(--vscode-focusBorder)',
+    borderRadius: 2,
+    padding: '1px 4px',
+    fontSize: 11,
+    width: 120,
+    outline: 'none',
+  };
+
+  const pageOptions = allPages.map((p) => ({ value: p, label: p }));
+  const groupOptions = allGroups.map((g) => ({ value: g, label: g }));
+
+  return (
+    <div style={{ paddingLeft: 2 }}>
+      {/* Page row */}
+      <div style={rowStyle}>
+        <span style={{ ...treeLineStyle, minWidth: 40, fontSize: 11 }}>Page</span>
+        {addingPage ? (
+          <input
+            autoFocus
+            style={inlineInputStyle}
+            value={newPageDraft}
+            placeholder="New page name…"
+            onChange={(e) => setNewPageDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                commitNewPage();
+              }
+              if (e.key === 'Escape') {
+                setAddingPage(false);
+                setNewPageDraft('');
+              }
+            }}
+            onBlur={commitNewPage}
+          />
+        ) : (
+          <>
+            <select
+              className="ci-field__select"
+              style={{ flex: 1 }}
+              value={uiPage}
+              onChange={(e) => onPageChange(e.target.value)}
+            >
+              <option value="">— none —</option>
+              {pageOptions.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+            <button style={addBtnStyle} title="New page" onClick={() => setAddingPage(true)}>
+              ⊕
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* Tree connector + group row (only when page is set) */}
+      {uiPage && (
+        <>
+          <div style={{ display: 'flex' }}>
+            <div style={{ ...treeLineStyle, width: 40, fontSize: 11, paddingLeft: 8 }}>│</div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 0 }}>
+            <div
+              style={{
+                ...treeLineStyle,
+                width: 40,
+                fontSize: 11,
+                paddingLeft: 8,
+                paddingTop: 4,
+                flexShrink: 0,
+              }}
+            >
+              └─
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={rowStyle}>
+                <span style={{ ...treeLineStyle, minWidth: 36, fontSize: 11 }}>Group</span>
+                {addingGroup ? (
+                  <input
+                    autoFocus
+                    style={inlineInputStyle}
+                    value={newGroupDraft}
+                    placeholder="New group name…"
+                    onChange={(e) => setNewGroupDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        commitNewGroup();
+                      }
+                      if (e.key === 'Escape') {
+                        setAddingGroup(false);
+                        setNewGroupDraft('');
+                      }
+                    }}
+                    onBlur={commitNewGroup}
+                  />
+                ) : (
+                  <>
+                    <select
+                      className="ci-field__select"
+                      style={{ flex: 1 }}
+                      value={uiGroup}
+                      onChange={(e) => onGroupChange(e.target.value)}
+                    >
+                      <option value="">— none —</option>
+                      {groupOptions.map((o) => (
+                        <option key={o.value} value={o.value}>
+                          {o.label}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      style={addBtnStyle}
+                      title="New group"
+                      onClick={() => setAddingGroup(true)}
+                    >
+                      ⊕
+                    </button>
+                  </>
+                )}
+              </div>
+
+              {/* Parameter leaf */}
+              <div style={{ display: 'flex' }}>
+                {uiGroup && (
+                  <div
+                    style={{
+                      ...treeLineStyle,
+                      width: 6,
+                      fontSize: 11,
+                      paddingTop: 2,
+                      flexShrink: 0,
+                    }}
+                  >
+                    │
+                  </div>
+                )}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+                {uiGroup && (
+                  <div
+                    style={{
+                      ...treeLineStyle,
+                      width: 6,
+                      fontSize: 11,
+                      paddingTop: 2,
+                      flexShrink: 0,
+                      paddingRight: 4,
+                    }}
+                  >
+                    └─
+                  </div>
+                )}
+                <div style={leafStyle}>
+                  <span
+                    className="codicon codicon-symbol-variable"
+                    style={{ fontSize: 11, opacity: 0.7 }}
+                  />
+                  <span>{paramName}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Leaf without page (floats to default) */}
+      {!uiPage && (
+        <div style={{ ...leafStyle, marginTop: 4, opacity: 0.5, fontSize: 11 }}>
+          <span className="codicon codicon-symbol-variable" style={{ fontSize: 11 }} />
+          <span>{paramName}</span>
+          <span style={{ color: 'var(--vscode-descriptionForeground)' }}>(default page)</span>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ──────────────────────────────────────────────────────────────────────────────
+
 interface ParameterPanelProps {
   param: Record<string, unknown>;
   index: number;
@@ -866,7 +1124,29 @@ const ParameterPanel: React.FC<ParameterPanelProps> = ({ param, index, ipCore, o
   const existingNames = params.map((p) => String(p.name ?? '')).filter((_, i) => i !== index);
 
   const dataType = String(param.dataType ?? 'integer');
-  const uiGroup = String(param.uiGroup ?? '');
+  const uiPage = param.uiPage ? String(param.uiPage) : '';
+  const uiGroup = param.uiGroup ? String(param.uiGroup) : '';
+
+  // All unique page names already used by other parameters in this IP core
+  const allPages = useMemo(
+    () =>
+      [...new Set(params.map((p) => (p.uiPage ? String(p.uiPage) : '')).filter(Boolean))].sort(),
+    [params]
+  );
+
+  // All unique group names already used by other parameters on the same page
+  const allGroups = useMemo(
+    () =>
+      [
+        ...new Set(
+          params
+            .filter((p) => p.uiPage && String(p.uiPage) === uiPage)
+            .map((p) => (p.uiGroup ? String(p.uiGroup) : ''))
+            .filter(Boolean)
+        ),
+      ].sort(),
+    [params, uiPage]
+  );
 
   const defVal =
     param.defaultValue !== undefined
@@ -1036,20 +1316,35 @@ const ParameterPanel: React.FC<ParameterPanelProps> = ({ param, index, ipCore, o
         </Section>
       )}
 
-      <Section title="Documentation & Grouping">
+      <Section title="Documentation">
         <PropTextArea
           label="Description"
           value={param.description ? String(param.description) : ''}
           onSave={(v) => onUpdate(['parameters', index, 'description'], v || null)}
           placeholder="Optional parameter description..."
         />
-        <PropField
-          label="UI Group"
-          value={uiGroup}
-          onSave={(v) => {
-            onUpdate(['parameters', index, 'uiGroup'], v || null);
+      </Section>
+
+      <Section title="GUI Placement (Vendor XGUI)">
+        <div
+          style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)', marginBottom: 8 }}
+        >
+          Assign where this parameter appears in the Vivado / Platform Designer wizard.
+        </div>
+        <UiPlacementTree
+          uiPage={uiPage}
+          uiGroup={uiGroup}
+          paramName={String(param.name ?? '')}
+          allPages={allPages}
+          allGroups={allGroups}
+          onPageChange={(v) => {
+            onUpdate(['parameters', index, 'uiPage'], v || null);
+            // clear group when page is cleared
+            if (!v) {
+              onUpdate(['parameters', index, 'uiGroup'], null);
+            }
           }}
-          placeholder="e.g. Architecture"
+          onGroupChange={(v) => onUpdate(['parameters', index, 'uiGroup'], v || null)}
         />
       </Section>
     </>

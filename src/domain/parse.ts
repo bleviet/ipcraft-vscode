@@ -360,6 +360,7 @@ export function normalizeIpCore(rootObj: Record<string, unknown>): IpCore {
         min: param.min !== null && param.min !== undefined ? Number(param.min) : undefined,
         max: param.max !== null && param.max !== undefined ? Number(param.max) : undefined,
         allowedValues: Array.isArray(param.allowedValues) ? param.allowedValues : undefined,
+        uiPage: param.uiPage ? String(param.uiPage) : undefined,
         uiGroup: param.uiGroup ? String(param.uiGroup) : undefined,
       };
     }),

@@ -712,10 +712,38 @@ describe('generateComponentXml', () => {
       });
       expect(xml).toContain('<spirit:choices>');
       expect(xml).toContain('<spirit:name>choice_C_CHOICE_PARAM</spirit:name>');
-      expect(xml).toContain('<spirit:enumeration spirit:text="4">4</spirit:enumeration>');
-      expect(xml).toContain('<spirit:enumeration spirit:text="8">8</spirit:enumeration>');
-      expect(xml).toContain('<spirit:enumeration spirit:text="16">16</spirit:enumeration>');
+      expect(xml).toContain('<spirit:enumeration>4</spirit:enumeration>');
+      expect(xml).toContain('<spirit:enumeration>8</spirit:enumeration>');
+      expect(xml).toContain('<spirit:enumeration>16</spirit:enumeration>');
       expect(xml).toContain('spirit:choiceRef="choice_C_CHOICE_PARAM"');
+    });
+
+    it('does not emit spirit:rangeType when parameter has allowedValues', () => {
+      const xml = gen({
+        parameters: [
+          { name: 'C_CHOICE_PARAM', value: 8, dataType: 'integer', allowedValues: [4, 8, 16] },
+        ],
+      });
+      // rangeType and choiceRef are mutually exclusive in IP-XACT; only choiceRef must appear
+      // Match the user parameter line (PARAM_VALUE.*) but not the model parameter line (MODELPARAM_VALUE.*)
+      const paramValueLine = xml
+        .split('\n')
+        .find((l) => l.includes('"PARAM_VALUE.C_CHOICE_PARAM"'));
+      expect(paramValueLine).toBeDefined();
+      expect(paramValueLine).toContain('spirit:choiceRef');
+      expect(paramValueLine).not.toContain('spirit:rangeType');
+    });
+
+    it('emits spirit:rangeType for integer parameter with min/max but not allowedValues', () => {
+      const xml = gen({
+        parameters: [{ name: 'DATA_WIDTH', value: 32, dataType: 'integer', min: 8, max: 512 }],
+      });
+      const paramValueLine = xml.split('\n').find((l) => l.includes('"PARAM_VALUE.DATA_WIDTH"'));
+      expect(paramValueLine).toBeDefined();
+      expect(paramValueLine).toContain('spirit:rangeType="long"');
+      expect(paramValueLine).toContain('spirit:minimum="8"');
+      expect(paramValueLine).toContain('spirit:maximum="512"');
+      expect(paramValueLine).not.toContain('spirit:choiceRef');
     });
   });
 

@@ -155,6 +155,7 @@ export interface ParameterDef {
   min?: number | null;
   max?: number | null;
   allowedValues?: Array<number | string> | null;
+  uiPage?: string | null;
   uiGroup?: string | null;
 }
 

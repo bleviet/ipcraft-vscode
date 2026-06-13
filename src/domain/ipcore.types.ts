@@ -757,7 +757,11 @@ export interface Parameter {
    */
   allowedValues?: (number | string)[];
   /**
-   * UI grouping category
+   * Wizard tab / page name in Vivado IP Packager and Platform Designer.
+   */
+  uiPage?: string;
+  /**
+   * Sub-group within uiPage. Requires uiPage.
    */
   uiGroup?: string;
   [k: string]: unknown;
