@@ -117,7 +117,7 @@ export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
       }}
       data-port-id={port.id}
       ref={(el) => el?.setAttribute('draggable', 'true')}
-      style={{ cursor: isRenaming ? 'default' : 'grab' }}
+      style={{ cursor: isRenaming ? 'default' : 'pointer' }}
       onDragStart={(e) => {
         e.stopPropagation();
         const payload = { action: 'remove', kind: port.kind, id: port.id };

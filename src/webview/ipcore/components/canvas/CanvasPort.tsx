@@ -165,7 +165,7 @@ export const CanvasPort: React.FC<CanvasPortProps> = ({
         }
       }}
       data-port-id={port.id}
-      style={{ cursor: isRenaming ? 'default' : 'grab', opacity: isDragging ? 0.4 : undefined }}
+      style={{ cursor: isRenaming ? 'default' : 'pointer', opacity: isDragging ? 0.4 : undefined }}
       onContextMenu={handleContextMenu}
       onPointerDown={(e) => {
         if (e.button !== 0 || !onPortDragStart) {
