@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useCellEditGuard } from './useCellEditGuard';
 import { useHoverInsertBar } from './useHoverInsertBar';
 import { useTableNavigation, type ActiveCell, type ColumnKey } from './useTableNavigation';
@@ -8,42 +8,59 @@ import type { YamlUpdateHandler } from '../types/editor';
 // Types
 // ---------------------------------------------------------------------------
 
+export interface TableRowWrapper<TRow> {
+  rowId: string;
+  model: TRow;
+}
+
 export interface UseTableEditorStateOptions<TRow, TColumnKey extends ColumnKey> {
-  /** The live rows array from the parent's data model. */
-  rows: TRow[];
+  /** Reconciled wrapped rows with stable rowId */
+  rows: TableRowWrapper<TRow>[];
   /** Path fragment used in useCellEditGuard (e.g. ['registers']). */
   rowsPath: (string | number)[];
   /** Ordered column keys for navigation. */
   columnOrder: readonly TColumnKey[];
   /** Callback to commit changes to the YAML document. */
   onUpdate: YamlUpdateHandler;
-  /** Optional data-attribute name for row selector (default: 'data-row-idx'). */
+  /** Optional data-attribute name for row selector (default: 'data-row-id'). */
   rowSelectorAttr?: string;
   /** Optional callbacks for custom insert logic. */
   onInsertAfter?: () => void;
   onInsertBefore?: () => void;
   /** Optional callback for custom move logic (row swap). */
-  onMove?: (fromIndex: number, delta: number) => void;
+  onMove?: (rowId: string, delta: number) => void;
   /** Optional callback for custom delete logic. */
-  onDelete?: (rowIndex: number) => void;
+  onDelete?: (rowId: string) => void;
   /** Optional onAfterRevert callback forwarded to useCellEditGuard. */
   onAfterRevert?: (snapshot: TRow[]) => void;
   /** Whether to enable HoverInsertBar tracking. Default: true. */
   enableHoverInsert?: boolean;
   /** Extra dependency values that should trigger the selection clamp effect. */
   clampDeps?: unknown[];
-  /** When false the table holds no selection (index -1). Default: true. */
+  /** When false the table holds no selection. Default: true. */
   isActive?: boolean;
 }
 
 export interface UseTableEditorStateReturn<TColumnKey extends ColumnKey> {
   // Selection
-  selectedIndex: number;
-  setSelectedIndex: React.Dispatch<React.SetStateAction<number>>;
-  hoveredIndex: number | null;
-  setHoveredIndex: React.Dispatch<React.SetStateAction<number | null>>;
-  activeCell: ActiveCell<TColumnKey>;
+  selectedRowId: string | null;
+  setSelectedRowId: React.Dispatch<React.SetStateAction<string | null>>;
+  hoveredRowId: string | null;
+  setHoveredRowId: React.Dispatch<React.SetStateAction<string | null>>;
+  activeCell: {
+    rowId: string | null;
+    rowIndex: number;
+    key: TColumnKey;
+  };
   setActiveCell: React.Dispatch<React.SetStateAction<ActiveCell<TColumnKey>>>;
+
+  // Convenience index-based getters
+  selectedIndex: number;
+  hoveredIndex: number | null;
+
+  // Convenience index-based setters / wrappers
+  setSelectedFieldIndex: (idx: number | ((prev: number) => number)) => void;
+  setHoveredFieldIndex: (idx: number | null | ((prev: number | null) => number | null)) => void;
 
   // Cell edit guard
   cancelEditRef: React.MutableRefObject<boolean>;
@@ -75,7 +92,7 @@ export interface UseTableEditorStateReturn<TColumnKey extends ColumnKey> {
   selectRow: (idx: number, key?: TColumnKey) => void;
 
   // Focus the edit input in a specific cell after a short delay
-  focusCellEditor: (rowIndex: number, key: TColumnKey) => void;
+  focusCellEditor: (rowId: string, key: TColumnKey) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -85,18 +102,14 @@ export interface UseTableEditorStateReturn<TColumnKey extends ColumnKey> {
 /**
  * Consolidated table-editor orchestration hook.
  *
- * Composes `useCellEditGuard`, `useHoverInsertBar`, and `useTableNavigation`
- * together with shared selection / hover / active-cell state and the
- * clamp-on-change effect.  Replaces ~100 lines of identical boilerplate that
- * was previously duplicated in BlockEditor, MemoryMapEditor, and
- * RegisterArrayEditor.
+ * Uses rowId for stable row tracking.
  */
 export function useTableEditorState<TRow, TColumnKey extends ColumnKey>({
   rows,
   rowsPath,
   columnOrder,
   onUpdate,
-  rowSelectorAttr,
+  rowSelectorAttr = 'data-row-id',
   onInsertAfter,
   onInsertBefore,
   onMove,
@@ -108,20 +121,45 @@ export function useTableEditorState<TRow, TColumnKey extends ColumnKey>({
 }: UseTableEditorStateOptions<TRow, TColumnKey>): UseTableEditorStateReturn<TColumnKey> {
   const firstColumn = columnOrder[0];
 
-  // ---- Selection state ----
-  const [selectedIndex, setSelectedIndex] = useState<number>(-1);
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  const [activeCell, setActiveCell] = useState<ActiveCell<TColumnKey>>({
-    rowIndex: -1,
+  // ---- Selection state by rowId ----
+  const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
+  const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
+  const [activeCellState, setActiveCellState] = useState<ActiveCell<TColumnKey>>({
+    rowId: null,
     key: firstColumn,
   });
+
+  // ---- Derived index mappings ----
+  const selectedIndex = useMemo(() => {
+    return selectedRowId ? rows.findIndex((r) => r.rowId === selectedRowId) : -1;
+  }, [rows, selectedRowId]);
+
+  const hoveredIndex = useMemo(() => {
+    return hoveredRowId ? rows.findIndex((r) => r.rowId === hoveredRowId) : null;
+  }, [rows, hoveredRowId]);
+
+  const activeCellRowIndex = useMemo(() => {
+    return activeCellState.rowId ? rows.findIndex((r) => r.rowId === activeCellState.rowId) : -1;
+  }, [rows, activeCellState.rowId]);
+
+  const activeCell = useMemo(
+    () => ({
+      rowId: activeCellState.rowId,
+      rowIndex: activeCellRowIndex,
+      key: activeCellState.key,
+    }),
+    [activeCellState.rowId, activeCellRowIndex, activeCellState.key]
+  );
 
   // ---- Container ref ----
   const containerRef = useRef<HTMLDivElement | null>(null);
 
+  // ---- Unwrap rows for useCellEditGuard ----
+  const rawRows = useMemo(() => rows.map((r) => r.model), [rows]);
+
   // ---- Cell edit guard ----
   const { cancelEditRef, captureEditSnapshot } = useCellEditGuard({
-    rows,
+    rows: rawRows,
     rowsPath,
     onUpdate,
     containerRef: containerRef as React.RefObject<HTMLElement>,
@@ -134,46 +172,95 @@ export function useTableEditorState<TRow, TColumnKey extends ColumnKey>({
   // ---- Clamp selection when data changes ----
   const extraDeps = clampDeps ?? [];
   useEffect(() => {
-    // Inactive tables hold no selection so a collapsed/unfocused editor never
-    // paints a phantom row highlight.
     if (!isActive || rows.length === 0) {
-      setSelectedIndex(-1);
-      setActiveCell({ rowIndex: -1, key: firstColumn });
+      setSelectedRowId(null);
+      setActiveCellState({ rowId: null, key: firstColumn });
       return;
     }
-    setSelectedIndex((prev) => {
-      if (prev < 0) {
-        return 0;
-      }
-      if (prev >= rows.length) {
-        return rows.length - 1;
+
+    setSelectedRowId((prev) => {
+      if (!prev || !rows.some((r) => r.rowId === prev)) {
+        return rows[0].rowId;
       }
       return prev;
     });
-    setActiveCell((prev) => {
-      const rowIndex = prev.rowIndex < 0 ? 0 : Math.min(rows.length - 1, prev.rowIndex);
+
+    setActiveCellState((prev) => {
+      const exists = rows.some((r) => r.rowId === prev.rowId);
+      const rowId = exists ? prev.rowId : rows[0].rowId;
       const key = (columnOrder as readonly string[]).includes(prev.key) ? prev.key : firstColumn;
-      return { rowIndex, key: key };
+      if (prev.rowId === rowId && prev.key === key) {
+        return prev;
+      }
+      return { rowId, key };
     });
-  }, [rows.length, firstColumn, isActive, ...extraDeps]);
+  }, [rows, firstColumn, isActive, ...extraDeps]);
+
+  // ---- Convenience setters mapped from index to rowId ----
+  const setSelectedFieldIndex = useCallback(
+    (idx: number | ((prev: number) => number)) => {
+      if (typeof idx === 'function') {
+        setSelectedRowId((prevId) => {
+          const prevIdx = prevId ? rows.findIndex((r) => r.rowId === prevId) : -1;
+          const nextIdx = idx(prevIdx);
+          const row = rows[nextIdx];
+          return row ? row.rowId : null;
+        });
+      } else {
+        const row = rows[idx];
+        setSelectedRowId(row ? row.rowId : null);
+      }
+    },
+    [rows]
+  );
+
+  const setHoveredFieldIndex = useCallback(
+    (idx: number | null | ((prev: number | null) => number | null)) => {
+      if (typeof idx === 'function') {
+        setHoveredRowId((prevId) => {
+          const prevIdx = prevId ? rows.findIndex((r) => r.rowId === prevId) : null;
+          const nextIdx = idx(prevIdx);
+          if (nextIdx === null || nextIdx === undefined) {
+            return null;
+          }
+          const row = rows[nextIdx];
+          return row ? row.rowId : null;
+        });
+      } else {
+        if (idx === null || idx === undefined) {
+          setHoveredRowId(null);
+        } else {
+          const row = rows[idx];
+          setHoveredRowId(row ? row.rowId : null);
+        }
+      }
+    },
+    [rows]
+  );
 
   // ---- Convenience: select a row ----
-  const selectRow = useCallback((idx: number, key?: TColumnKey) => {
-    setSelectedIndex(idx);
-    setHoveredIndex(idx);
-    if (key) {
-      setActiveCell({ rowIndex: idx, key });
-    } else {
-      setActiveCell((prev) => ({ rowIndex: idx, key: prev.key }));
-    }
-  }, []);
+  const selectRow = useCallback(
+    (idx: number, key?: TColumnKey) => {
+      const row = rows[idx];
+      if (!row) {
+        return;
+      }
+      setSelectedRowId(row.rowId);
+      setHoveredRowId(row.rowId);
+      if (key) {
+        setActiveCellState({ rowId: row.rowId, key });
+      } else {
+        setActiveCellState((prev) => ({ rowId: row.rowId, key: prev.key }));
+      }
+    },
+    [rows]
+  );
 
   // ---- Focus a cell's editor input ----
   const focusCellEditor = useCallback(
-    (rowIndex: number, key: TColumnKey) => {
+    (rowId: string, key: TColumnKey) => {
       window.setTimeout(() => {
-        const attr = rowSelectorAttr ?? 'data-row-idx';
-        const row = document.querySelector(`tr[${attr}="${rowIndex}"]`);
+        const row = document.querySelector(`tr[${rowSelectorAttr}="${rowId}"]`);
         const editor = row?.querySelector(`[data-edit-key="${key}"]`) as HTMLElement | null;
         editor?.focus?.();
       }, 0);
@@ -182,31 +269,29 @@ export function useTableEditorState<TRow, TColumnKey extends ColumnKey>({
   );
 
   // ---- Table navigation ----
+  const rowIds = useMemo(() => rows.map((r) => r.rowId), [rows]);
+
   useTableNavigation<TColumnKey>({
-    activeCell,
+    activeCell: activeCellState,
     setActiveCell: (cell) => {
-      setActiveCell(cell);
-      if (cell.rowIndex >= 0 && cell.rowIndex < rows.length) {
-        setSelectedIndex(cell.rowIndex);
-        setHoveredIndex(cell.rowIndex);
+      setActiveCellState(cell);
+      if (cell.rowId) {
+        setSelectedRowId(cell.rowId);
+        setHoveredRowId(cell.rowId);
       }
     },
-    rowCount: rows.length,
+    rowIds,
     columnOrder: [...columnOrder],
     containerRef: containerRef as React.RefObject<HTMLElement>,
-    onEdit: (rowIndex, key) => {
-      if (rowIndex < 0 || rowIndex >= rows.length) {
-        return;
-      }
-      selectRow(rowIndex, key);
-      focusCellEditor(rowIndex, key);
+    onEdit: (rowId, key) => {
+      setSelectedRowId(rowId);
+      setHoveredRowId(rowId);
+      setActiveCellState({ rowId, key });
+      focusCellEditor(rowId, key);
     },
     onDelete: onDelete
-      ? (rowIndex) => {
-          if (rowIndex < 0 || rowIndex >= rows.length) {
-            return;
-          }
-          onDelete(rowIndex);
+      ? (rowId) => {
+          onDelete(rowId);
         }
       : undefined,
     onMove,
@@ -231,22 +316,36 @@ export function useTableEditorState<TRow, TColumnKey extends ColumnKey>({
     [selectRow]
   );
 
-  const handleMouseEnter = useCallback((idx: number) => {
-    setHoveredIndex(idx);
-  }, []);
+  const handleMouseEnter = useCallback(
+    (idx: number) => {
+      const row = rows[idx];
+      if (row) {
+        setHoveredRowId(row.rowId);
+      }
+    },
+    [rows]
+  );
 
   const handleMouseLeave = useCallback(() => {
-    setHoveredIndex(null);
+    setHoveredRowId(null);
   }, []);
 
   return {
-    // Selection
-    selectedIndex,
-    setSelectedIndex,
-    hoveredIndex,
-    setHoveredIndex,
+    // Selection by rowId
+    selectedRowId,
+    setSelectedRowId,
+    hoveredRowId,
+    setHoveredRowId,
     activeCell,
-    setActiveCell,
+    setActiveCell: setActiveCellState,
+
+    // Derived indices
+    selectedIndex,
+    hoveredIndex,
+
+    // Index-based wrappers
+    setSelectedFieldIndex,
+    setHoveredFieldIndex,
 
     // Cell edit guard
     cancelEditRef,

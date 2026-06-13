@@ -6,32 +6,31 @@ export function useFieldDrafts() {
   const [nameDrafts, setNameDrafts] = useState<Record<string, string>>({});
   const [nameErrors, setNameErrors] = useState<Record<string, string | null>>({});
 
-  const [bitsDrafts, setBitsDrafts] = useState<Record<number, string>>({});
-  const [bitsErrors, setBitsErrors] = useState<Record<number, string | null>>({});
+  const [bitsDrafts, setBitsDrafts] = useState<Record<string, string>>({});
+  const [bitsErrors, setBitsErrors] = useState<Record<string, string | null>>({});
 
-  const [resetDrafts, setResetDrafts] = useState<Record<number, string>>({});
-  const [resetErrors, setResetErrors] = useState<Record<number, string | null>>({});
+  const [resetDrafts, setResetDrafts] = useState<Record<string, string>>({});
+  const [resetErrors, setResetErrors] = useState<Record<string, string | null>>({});
 
-  const ensureDraftsInitialized = useCallback((index: number, field: BitFieldRecord) => {
+  const ensureDraftsInitialized = useCallback((rowId: string, field: BitFieldRecord) => {
     if (!field) {
       return;
     }
 
-    const key = field.name ? `${field.name}` : `idx-${index}`;
     setNameDrafts((prev) =>
-      prev[key] !== undefined ? prev : { ...prev, [key]: String(field.name ?? '') }
+      prev[rowId] !== undefined ? prev : { ...prev, [rowId]: String(field.name ?? '') }
     );
     setBitsDrafts((prev) =>
-      prev[index] !== undefined ? prev : { ...prev, [index]: fieldToBitsString(field) }
+      prev[rowId] !== undefined ? prev : { ...prev, [rowId]: fieldToBitsString(field) }
     );
     setResetDrafts((prev) => {
-      if (prev[index] !== undefined) {
+      if (prev[rowId] !== undefined) {
         return prev;
       }
       const v = field?.reset_value;
       const display =
         v !== null && v !== undefined ? `0x${Number(v).toString(16).toUpperCase()}` : '0x0';
-      return { ...prev, [index]: display };
+      return { ...prev, [rowId]: display };
     });
   }, []);
 

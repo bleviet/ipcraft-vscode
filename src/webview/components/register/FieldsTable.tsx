@@ -54,6 +54,7 @@ export interface FieldsTableProps {
  */
 export function FieldsTable({ fields, registerSize, onUpdate, fieldEditor }: FieldsTableProps) {
   const {
+    wrappedFields,
     selectedFieldIndex,
     setSelectedFieldIndex,
     setHoveredFieldIndex,
@@ -68,46 +69,49 @@ export function FieldsTable({ fields, registerSize, onUpdate, fieldEditor }: Fie
 
   const setActiveEditorCell = (
     index: number,
+    rowId: string,
     key: EditKey,
     options?: { initializeDrafts?: boolean }
   ) => {
     const shouldInitializeDrafts = options?.initializeDrafts ?? true;
     if (shouldInitializeDrafts) {
-      ensureDraftsInitialized(index);
+      ensureDraftsInitialized(rowId, index);
     }
     setSelectedFieldIndex(index);
     setHoveredFieldIndex(index);
     setSelectedEditKey(key);
-    setActiveCell({ rowIndex: index, key });
+    setActiveCell({ rowId, key });
   };
 
   const handleCellClick = (
     index: number,
+    rowId: string,
     key: EditKey,
     options?: { initializeDrafts?: boolean }
   ) => {
     return (e: React.MouseEvent<HTMLElement>) => {
       e.stopPropagation();
-      setActiveEditorCell(index, key, options);
+      setActiveEditorCell(index, rowId, key, options);
     };
   };
 
   const handleCellFocus = (
     index: number,
+    rowId: string,
     key: EditKey,
     options?: { initializeDrafts?: boolean }
   ) => {
     return () => {
       captureEditSnapshot();
-      setActiveEditorCell(index, key, options);
+      setActiveEditorCell(index, rowId, key, options);
     };
   };
 
-  const handleRowClick = (index: number) => {
+  const handleRowClick = (index: number, rowId: string) => {
     setSelectedFieldIndex(index);
     setHoveredFieldIndex(index);
-    setActiveCell((prev) => ({ rowIndex: index, key: prev.key }));
-    ensureDraftsInitialized(index);
+    setActiveCell((prev) => ({ rowId, key: prev.key }));
+    ensureDraftsInitialized(rowId, index);
   };
 
   return (
@@ -172,18 +176,19 @@ export function FieldsTable({ fields, registerSize, onUpdate, fieldEditor }: Fie
                   </tr>
                 </thead>
                 <tbody className="divide-y vscode-border text-sm">
-                  {fields.map((field, index) => (
+                  {wrappedFields.map((wrapped, index) => (
                     <FieldTableRow
-                      key={index}
-                      field={field}
+                      key={wrapped.rowId}
+                      field={wrapped.model}
+                      rowId={wrapped.rowId}
                       index={index}
                       fields={fields}
                       registerSize={registerSize}
                       onUpdate={onUpdate}
                       fieldEditor={fieldEditor}
-                      onRowClick={handleRowClick}
-                      onCellClick={handleCellClick}
-                      onCellFocus={handleCellFocus}
+                      onRowClick={(idx) => handleRowClick(idx, wrapped.rowId)}
+                      onCellClick={(idx, key, opt) => handleCellClick(idx, wrapped.rowId, key, opt)}
+                      onCellFocus={(idx, key, opt) => handleCellFocus(idx, wrapped.rowId, key, opt)}
                     />
                   ))}
                 </tbody>

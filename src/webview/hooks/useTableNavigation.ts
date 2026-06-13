@@ -5,11 +5,8 @@ import { useEffect, useCallback } from 'react';
  */
 export type ColumnKey = string;
 
-/**
- * Active cell in the table
- */
 export interface ActiveCell<T extends ColumnKey = ColumnKey> {
-  rowIndex: number;
+  rowId: string | null;
   key: T;
 }
 
@@ -21,25 +18,25 @@ export interface UseTableNavigationProps<T extends ColumnKey> {
   activeCell: ActiveCell<T>;
   /** Callback to set active cell */
   setActiveCell: (cell: ActiveCell<T>) => void;
-  /** Total number of rows */
-  rowCount: number;
+  /** List of stable row ids */
+  rowIds: string[];
   /** Ordered list of column keys */
   columnOrder: T[];
   /** Container ref for the table */
   containerRef: React.RefObject<HTMLElement>;
   /** Optional: callback when edit is triggered (F2 or 'e') */
-  onEdit?: (rowIndex: number, key: T) => void;
+  onEdit?: (rowId: string, key: T) => void;
   /** Optional: callback when delete is triggered ('d' or Delete) */
-  onDelete?: (rowIndex: number) => void;
+  onDelete?: (rowId: string) => void;
   /** Optional: callback when move is triggered (Alt+Arrow) */
-  onMove?: (fromIndex: number, delta: number) => void;
+  onMove?: (rowId: string, delta: number) => void;
   /** Optional: callback when insert after is triggered ('o') */
   onInsertAfter?: () => void;
   /** Optional: callback when insert before is triggered ('O') */
   onInsertBefore?: () => void;
   /** Whether the table is currently active/focused */
   isActive: boolean;
-  /** Optional row selector attribute name (default: data-row-idx) */
+  /** Optional row selector attribute name (default: data-row-id) */
   rowSelectorAttr?: string;
 }
 
@@ -56,7 +53,7 @@ export interface UseTableNavigationProps<T extends ColumnKey> {
 export function useTableNavigation<T extends ColumnKey>({
   activeCell,
   setActiveCell,
-  rowCount,
+  rowIds,
   columnOrder,
   containerRef,
   onEdit,
@@ -65,16 +62,16 @@ export function useTableNavigation<T extends ColumnKey>({
   onInsertAfter,
   onInsertBefore,
   isActive,
-  rowSelectorAttr = 'data-row-idx',
+  rowSelectorAttr = 'data-row-id',
 }: UseTableNavigationProps<T>) {
   /**
    * Scroll a cell into view
    */
   const scrollToCell = useCallback(
-    (rowIndex: number, key: T) => {
+    (rowId: string, key: T) => {
       window.setTimeout(() => {
-        const row = document.querySelector(`tr[${rowSelectorAttr}="${rowIndex}"]`);
-        row?.scrollIntoView({ block: rowIndex === 0 ? 'center' : 'nearest' });
+        const row = document.querySelector(`tr[${rowSelectorAttr}="${rowId}"]`);
+        row?.scrollIntoView({ block: 'nearest' });
         const cell = row?.querySelector(`td[data-col-key="${key}"]`) as HTMLElement | null;
         cell?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
       }, 0);
@@ -159,17 +156,21 @@ export function useTableNavigation<T extends ColumnKey>({
         return;
       }
 
-      const currentRow = activeCell.rowIndex >= 0 ? activeCell.rowIndex : 0;
+      const currentId = activeCell.rowId ?? (rowIds.length > 0 ? rowIds[0] : null);
+      if (!currentId) {
+        return;
+      }
+      const currentRow = rowIds.indexOf(currentId);
       const currentKey: T = activeCell.key || columnOrder[0];
 
       // Handle edit action
       if (isEdit && onEdit) {
-        if (currentRow < 0 || currentRow >= rowCount) {
+        if (currentRow < 0 || currentRow >= rowIds.length) {
           return;
         }
         e.preventDefault();
         e.stopPropagation();
-        onEdit(currentRow, currentKey);
+        onEdit(currentId, currentKey);
         return;
       }
 
@@ -190,12 +191,12 @@ export function useTableNavigation<T extends ColumnKey>({
 
       // Handle delete action
       if (isDelete && onDelete) {
-        if (currentRow < 0 || currentRow >= rowCount) {
+        if (currentRow < 0 || currentRow >= rowIds.length) {
           return;
         }
         e.preventDefault();
         e.stopPropagation();
-        onDelete(currentRow);
+        onDelete(currentId);
         return;
       }
 
@@ -205,28 +206,30 @@ export function useTableNavigation<T extends ColumnKey>({
 
       // Alt+Arrow moves rows
       if (e.altKey && isVertical && onMove) {
-        const next = currentRow + delta;
-        if (next < 0 || next >= rowCount) {
+        const nextIdx = currentRow + delta;
+        if (nextIdx < 0 || nextIdx >= rowIds.length) {
           return;
         }
         e.preventDefault();
         e.stopPropagation();
-        onMove(currentRow, delta);
-        setActiveCell({ rowIndex: next, key: currentKey });
-        scrollToCell(next, currentKey);
+        onMove(currentId, delta);
+        const nextId = rowIds[nextIdx];
+        setActiveCell({ rowId: nextId, key: currentKey });
+        scrollToCell(nextId, currentKey);
         return;
       }
 
       // Regular arrow navigation
       if (isVertical) {
-        const nextRow = currentRow + delta;
-        if (nextRow < 0 || nextRow >= rowCount) {
+        const nextIdx = currentRow + delta;
+        if (nextIdx < 0 || nextIdx >= rowIds.length) {
           return;
         }
         e.preventDefault();
         e.stopPropagation();
-        setActiveCell({ rowIndex: nextRow, key: currentKey });
-        scrollToCell(nextRow, currentKey);
+        const nextId = rowIds[nextIdx];
+        setActiveCell({ rowId: nextId, key: currentKey });
+        scrollToCell(nextId, currentKey);
       } else {
         // Horizontal navigation
         const currentIndex = columnOrder.indexOf(currentKey);
@@ -237,8 +240,8 @@ export function useTableNavigation<T extends ColumnKey>({
         e.preventDefault();
         e.stopPropagation();
         const nextKey = columnOrder[nextIndex];
-        setActiveCell({ rowIndex: currentRow, key: nextKey });
-        scrollToCell(currentRow, nextKey);
+        setActiveCell({ rowId: currentId, key: nextKey });
+        scrollToCell(currentId, nextKey);
       }
     };
 
@@ -247,7 +250,7 @@ export function useTableNavigation<T extends ColumnKey>({
   }, [
     isActive,
     activeCell,
-    rowCount,
+    rowIds,
     columnOrder,
     containerRef,
     onEdit,

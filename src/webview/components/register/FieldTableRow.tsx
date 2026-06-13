@@ -18,6 +18,7 @@ import { EditableCell, CellInput } from '../../shared/components';
 
 interface FieldTableRowProps {
   field: FieldDef;
+  rowId: string;
   index: number;
   fields: FieldDef[];
   registerSize: number;
@@ -38,6 +39,7 @@ interface FieldTableRowProps {
 
 const FieldTableRow = ({
   field,
+  rowId,
   index,
   fields,
   registerSize,
@@ -77,22 +79,20 @@ const FieldTableRow = ({
       ? `0x${Number(field.reset_value).toString(16).toUpperCase()}`
       : '';
 
-  const fieldKey = field?.name ? `${String(field.name)}` : `index-${index}`;
-  const nameValue = nameDrafts[fieldKey] ?? String(field.name ?? '');
-  const nameErr = nameErrors[fieldKey] ?? null;
+  const nameValue = nameDrafts[rowId] ?? String(field.name ?? '');
+  const nameErr = nameErrors[rowId] ?? null;
 
-  const previewRange = dragPreviewRanges[index];
+  const previewRange = dragPreviewRanges[rowId];
   const bitsValue = previewRange
     ? `[${previewRange[0]}:${previewRange[1]}]`
-    : (bitsDrafts[index] ?? bits);
-  const bitsErr = bitsErrors[index] ?? null;
-  const resetValue = resetDrafts[index] ?? (resetDisplay || '0x0');
-  const resetErr = resetErrors[index] ?? null;
+    : (bitsDrafts[rowId] ?? bits);
+  const bitsErr = bitsErrors[rowId] ?? null;
+  const resetValue = resetDrafts[rowId] ?? (resetDisplay || '0x0');
+  const resetErr = resetErrors[rowId] ?? null;
 
   return (
     <tr
-      data-row-idx={index}
-      data-field-index={index}
+      data-row-id={rowId}
       className={`group vscode-row-solid transition-colors border-l-4 border-transparent h-12 ${
         index === selectedFieldIndex
           ? 'vscode-focus-border vscode-row-selected'
@@ -111,7 +111,7 @@ const FieldTableRow = ({
       <>
         <EditableCell
           columnKey="name"
-          isActive={activeCell.rowIndex === index && activeCell.key === 'name'}
+          isActive={activeCell.rowId === rowId && activeCell.key === 'name'}
           onCellClick={onCellClick(index, 'name')}
           className="px-6 py-2 font-medium"
         >
@@ -139,12 +139,12 @@ const FieldTableRow = ({
                   const next = value ?? '';
                   setNameDrafts((prev: Record<string, string>) => ({
                     ...prev,
-                    [fieldKey]: next,
+                    [rowId]: next,
                   }));
                   const err = validateVhdlIdentifier(next);
                   setNameErrors((prev: Record<string, string | null>) => ({
                     ...prev,
-                    [fieldKey]: err,
+                    [rowId]: err,
                   }));
                 }}
                 onBlur={(value) => {
@@ -162,7 +162,7 @@ const FieldTableRow = ({
 
         <EditableCell
           columnKey="bits"
-          isActive={activeCell.rowIndex === index && activeCell.key === 'bits'}
+          isActive={activeCell.rowId === rowId && activeCell.key === 'bits'}
           onCellClick={onCellClick(index, 'bits')}
           className="px-4 py-2 font-mono vscode-muted"
         >
@@ -176,9 +176,9 @@ const FieldTableRow = ({
                 cancelEditRef={fieldEditor.cancelEditRef}
                 onInput={(value) => {
                   const next = value ?? '';
-                  setBitsDrafts((prev: Record<number, string>) => ({
+                  setBitsDrafts((prev: Record<string, string>) => ({
                     ...prev,
-                    [index]: next,
+                    [rowId]: next,
                   }));
 
                   let err = validateBitsString(next);
@@ -190,7 +190,10 @@ const FieldTableRow = ({
                         if (i === index) {
                           total += thisWidth;
                         } else {
-                          const b = bitsDrafts[i] ?? fieldToBitsString(fields[i]);
+                          const otherRowId = fieldEditor.wrappedFields[i]?.rowId;
+                          const b = otherRowId
+                            ? (bitsDrafts[otherRowId] ?? fieldToBitsString(fields[i]))
+                            : fieldToBitsString(fields[i]);
                           const w = parseBitsWidth(b);
                           if (w) {
                             total += w;
@@ -203,9 +206,9 @@ const FieldTableRow = ({
                     }
                   }
 
-                  setBitsErrors((prev: Record<number, string | null>) => ({
+                  setBitsErrors((prev: Record<string, string | null>) => ({
                     ...prev,
-                    [index]: err,
+                    [rowId]: err,
                   }));
 
                   if (!err) {
@@ -256,7 +259,7 @@ const FieldTableRow = ({
 
         <EditableCell
           columnKey="access"
-          isActive={activeCell.rowIndex === index && activeCell.key === 'access'}
+          isActive={activeCell.rowId === rowId && activeCell.key === 'access'}
           onCellClick={onCellClick(index, 'access')}
           className="px-4 py-2"
           style={{ overflow: 'visible', position: 'relative' }}
@@ -310,7 +313,7 @@ const FieldTableRow = ({
 
         <EditableCell
           columnKey="reset"
-          isActive={activeCell.rowIndex === index && activeCell.key === 'reset'}
+          isActive={activeCell.rowId === rowId && activeCell.key === 'reset'}
           onCellClick={onCellClick(index, 'reset')}
           className="px-4 py-2 font-mono vscode-muted"
         >
@@ -323,16 +326,16 @@ const FieldTableRow = ({
               cancelEditRef={fieldEditor.cancelEditRef}
               onInput={(value) => {
                 const raw = value ?? '';
-                setResetDrafts((prev: Record<number, string>) => ({
+                setResetDrafts((prev: Record<string, string>) => ({
                   ...prev,
-                  [index]: raw,
+                  [rowId]: raw,
                 }));
 
                 const trimmed = raw.trim();
                 if (!trimmed) {
-                  setResetErrors((prev: Record<number, string | null>) => ({
+                  setResetErrors((prev: Record<string, string | null>) => ({
                     ...prev,
-                    [index]: null,
+                    [rowId]: null,
                   }));
                   onUpdate(['fields', index, 'reset_value'], null);
                   return;
@@ -340,9 +343,9 @@ const FieldTableRow = ({
 
                 const parsed = parseReset(raw);
                 const err = validateResetForField(field, parsed);
-                setResetErrors((prev: Record<number, string | null>) => ({
+                setResetErrors((prev: Record<string, string | null>) => ({
                   ...prev,
-                  [index]: err,
+                  [rowId]: err,
                 }));
                 if (!err && parsed !== null) {
                   onUpdate(['fields', index, 'reset_value'], parsed);
@@ -355,7 +358,7 @@ const FieldTableRow = ({
 
         <EditableCell
           columnKey="description"
-          isActive={activeCell.rowIndex === index && activeCell.key === 'description'}
+          isActive={activeCell.rowId === rowId && activeCell.key === 'description'}
           onCellClick={onCellClick(index, 'description')}
           className="px-6 py-2 vscode-muted"
           style={{ width: '40%', minWidth: '240px' }}

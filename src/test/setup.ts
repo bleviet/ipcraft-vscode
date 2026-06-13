@@ -20,6 +20,17 @@ beforeAll(() => {
     ) {
       return;
     }
+    // Fail fast on render loops. "Maximum update depth exceeded" means a component
+    // is calling setState in an effect whose dependency changes every render
+    // (e.g. an unmemoised/`?? []` array fed into a reconcile effect). React merely
+    // warns and bails at 50 iterations, so without this guard a real infinite loop
+    // hides behind a green exit code.
+    if (typeof args[0] === 'string' && args[0].includes('Maximum update depth exceeded')) {
+      throw new Error(
+        'Render loop detected: "Maximum update depth exceeded". A component is ' +
+          'calling setState inside an effect whose dependency changes on every render.'
+      );
+    }
     originalError.call(console, ...args);
   };
 });

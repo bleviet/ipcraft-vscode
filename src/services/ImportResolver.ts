@@ -12,6 +12,7 @@ import * as path from 'path';
 import * as yaml from 'js-yaml';
 import { Logger } from '../utils/Logger';
 import { BusLibraryService } from './BusLibraryService';
+import { resolveMemoryMapImports } from './imports/resolveMemoryMapImports';
 
 export interface ResolvedImports {
   memoryMaps?: Record<string, unknown>[];
@@ -67,33 +68,22 @@ export class ImportResolver {
 
     // Resolve memory map imports
     if (ipCoreData.memoryMaps) {
-      const mm = ipCoreData.memoryMaps;
-      if (!Array.isArray(mm) && mm.import) {
-        // Legacy shortcut: memoryMaps: { import: "file.mm.yml" }
-        resolved.memoryMaps = await this.resolveMemoryMapImport(mm.import, baseDir);
-      } else if (Array.isArray(mm)) {
-        // New per-entry format: each entry may have its own `import` field.
-        const resolvedEntries: Record<string, unknown>[] = [];
-        for (const entry of mm) {
-          if (entry.import) {
-            try {
-              const loaded = await this.resolveMemoryMapImport(entry.import, baseDir);
-              // Merge: the loaded file provides addressBlocks etc.; entry-level `name` overrides.
-              const first = loaded[0] ?? {};
-              const { import: _ignored, ...rest } = entry;
-              resolvedEntries.push({ ...first, ...rest });
-            } catch (err) {
-              this.logger.warn(
-                `Could not resolve memory map import '${entry.import}': ${(err as Error).message}`
-              );
-              resolvedEntries.push(entry);
-            }
-          } else {
-            resolvedEntries.push(entry);
-          }
-        }
-        resolved.memoryMaps = resolvedEntries;
+      const reader = {
+        readText: async (absPath: string) => {
+          const uri = vscode.Uri.file(absPath);
+          const fileData = await vscode.workspace.fs.readFile(uri);
+          return Buffer.from(fileData).toString('utf8');
+        },
+      };
+      const { resolved: mmResolved, errors } = await resolveMemoryMapImports({
+        memoryMaps: ipCoreData.memoryMaps,
+        baseDir,
+        reader,
+      });
+      for (const err of errors) {
+        this.logger.warn(err);
       }
+      resolved.memoryMaps = mmResolved;
     }
 
     // Resolve file set imports
@@ -144,23 +134,22 @@ export class ImportResolver {
     importPath: string,
     baseDir: string
   ): Promise<Record<string, unknown>[]> {
-    const absolutePath = path.resolve(baseDir, importPath);
-    this.logger.info(`Resolving memory map import: ${absolutePath}`);
-
-    try {
-      const parsed = await this.readYamlFile(absolutePath);
-
-      // Memory map files are typically a list
-      if (Array.isArray(parsed)) {
-        return parsed as Record<string, unknown>[];
-      }
-
-      // Fallback: wrap single item in array
-      return [parsed as Record<string, unknown>];
-    } catch (error) {
-      this.logger.error(`Failed to resolve memory map import: ${importPath}`, error as Error);
-      throw new Error(`Failed to load memory map from ${importPath}: ${(error as Error).message}`);
+    const reader = {
+      readText: async (absPath: string) => {
+        const uri = vscode.Uri.file(absPath);
+        const fileData = await vscode.workspace.fs.readFile(uri);
+        return Buffer.from(fileData).toString('utf8');
+      },
+    };
+    const { resolved, errors } = await resolveMemoryMapImports({
+      memoryMaps: { import: importPath },
+      baseDir,
+      reader,
+    });
+    if (errors.length > 0) {
+      throw new Error(errors[0]);
     }
+    return resolved;
   }
 
   /**

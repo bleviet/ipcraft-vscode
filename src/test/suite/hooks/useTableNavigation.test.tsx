@@ -15,6 +15,8 @@ interface HarnessProps {
   onInsertBefore?: jest.Mock;
 }
 
+const DUMMY_ROW_IDS = ['row-0', 'row-1', 'row-2'];
+
 function Harness({
   activeCell,
   setActiveCell,
@@ -30,7 +32,7 @@ function Harness({
   useTableNavigation<Column>({
     activeCell,
     setActiveCell,
-    rowCount: 3,
+    rowIds: DUMMY_ROW_IDS,
     columnOrder: ['name', 'offset', 'desc'],
     containerRef,
     onEdit,
@@ -46,11 +48,11 @@ function Harness({
       <input data-testid="typing-input" />
       <table>
         <tbody>
-          {[0, 1, 2].map((row) => (
-            <tr key={row} data-row-idx={row}>
-              <td data-col-key="name">name-{row}</td>
-              <td data-col-key="offset">offset-{row}</td>
-              <td data-col-key="desc">desc-{row}</td>
+          {DUMMY_ROW_IDS.map((rowId, index) => (
+            <tr key={rowId} data-row-id={rowId}>
+              <td data-col-key="name">name-{index}</td>
+              <td data-col-key="offset">offset-{index}</td>
+              <td data-col-key="desc">desc-{index}</td>
             </tr>
           ))}
         </tbody>
@@ -73,7 +75,7 @@ describe('useTableNavigation', () => {
   it('navigates vertically and horizontally with arrow keys', () => {
     const setActiveCell = jest.fn();
     const { getByTestId } = render(
-      <Harness activeCell={{ rowIndex: 1, key: 'name' }} setActiveCell={setActiveCell} />
+      <Harness activeCell={{ rowId: 'row-1', key: 'name' }} setActiveCell={setActiveCell} />
     );
 
     const container = getByTestId('container');
@@ -82,8 +84,8 @@ describe('useTableNavigation', () => {
     fireEvent.keyDown(container, { key: 'ArrowDown' });
     fireEvent.keyDown(container, { key: 'ArrowRight' });
 
-    expect(setActiveCell).toHaveBeenCalledWith({ rowIndex: 2, key: 'name' });
-    expect(setActiveCell).toHaveBeenCalledWith({ rowIndex: 1, key: 'offset' });
+    expect(setActiveCell).toHaveBeenCalledWith({ rowId: 'row-2', key: 'name' });
+    expect(setActiveCell).toHaveBeenCalledWith({ rowId: 'row-1', key: 'offset' });
   });
 
   it('supports edit, delete, and insert shortcuts', () => {
@@ -95,7 +97,7 @@ describe('useTableNavigation', () => {
 
     const { getByTestId } = render(
       <Harness
-        activeCell={{ rowIndex: 1, key: 'offset' }}
+        activeCell={{ rowId: 'row-1', key: 'offset' }}
         setActiveCell={setActiveCell}
         onEdit={onEdit}
         onDelete={onDelete}
@@ -112,8 +114,8 @@ describe('useTableNavigation', () => {
     fireEvent.keyDown(container, { key: 'o' });
     fireEvent.keyDown(container, { key: 'O', shiftKey: true });
 
-    expect(onEdit).toHaveBeenCalledWith(1, 'offset');
-    expect(onDelete).toHaveBeenCalledWith(1);
+    expect(onEdit).toHaveBeenCalledWith('row-1', 'offset');
+    expect(onDelete).toHaveBeenCalledWith('row-1');
     expect(onInsertAfter).toHaveBeenCalledTimes(1);
     expect(onInsertBefore).toHaveBeenCalledTimes(1);
   });
@@ -123,7 +125,7 @@ describe('useTableNavigation', () => {
     const onMove = jest.fn();
     const { getByTestId } = render(
       <Harness
-        activeCell={{ rowIndex: 1, key: 'desc' }}
+        activeCell={{ rowId: 'row-1', key: 'desc' }}
         setActiveCell={setActiveCell}
         onMove={onMove}
       />
@@ -135,16 +137,16 @@ describe('useTableNavigation', () => {
     fireEvent.keyDown(container, { key: 'ArrowDown', altKey: true });
     fireEvent.keyDown(container, { key: 'k' });
 
-    expect(onMove).toHaveBeenCalledWith(1, 1);
-    expect(setActiveCell).toHaveBeenCalledWith({ rowIndex: 2, key: 'desc' });
-    expect(setActiveCell).toHaveBeenCalledWith({ rowIndex: 0, key: 'desc' });
+    expect(onMove).toHaveBeenCalledWith('row-1', 1);
+    expect(setActiveCell).toHaveBeenCalledWith({ rowId: 'row-2', key: 'desc' });
+    expect(setActiveCell).toHaveBeenCalledWith({ rowId: 'row-0', key: 'desc' });
   });
 
   it('ignores key handling when inactive or when typing', () => {
     const setActiveCell = jest.fn();
     const { getByTestId, rerender } = render(
       <Harness
-        activeCell={{ rowIndex: 1, key: 'name' }}
+        activeCell={{ rowId: 'row-1', key: 'name' }}
         setActiveCell={setActiveCell}
         isActive={false}
       />
@@ -155,7 +157,9 @@ describe('useTableNavigation', () => {
     fireEvent.keyDown(container, { key: 'ArrowDown' });
     expect(setActiveCell).not.toHaveBeenCalled();
 
-    rerender(<Harness activeCell={{ rowIndex: 1, key: 'name' }} setActiveCell={setActiveCell} />);
+    rerender(
+      <Harness activeCell={{ rowId: 'row-1', key: 'name' }} setActiveCell={setActiveCell} />
+    );
     const input = getByTestId('typing-input');
     input.focus();
     fireEvent.keyDown(input, { key: 'ArrowDown' });

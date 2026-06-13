@@ -1,38 +1,6 @@
 import { useState, useCallback } from 'react';
 import * as yaml from 'yaml';
-
-/**
- * Detects whether a YAML text uses indented sequences (indentSeq: true)
- * or compact/block sequences (indentSeq: false).
- *
- * Indented: key:\n  - item  (hyphen is indented relative to parent key)
- * Compact:  key:\n- item   (hyphen is at same indent as parent key)
- *
- * Preserving the original style prevents unnecessary reformatting on save.
- */
-function detectIndentSeq(text: string): boolean {
-  const lines = text.split('\n');
-  for (let i = 0; i + 1 < lines.length; i++) {
-    const line = lines[i];
-    const nextLine = lines[i + 1];
-    const keyMatch = line.match(/^(\s*)\S.*:\s*$/);
-    if (!keyMatch) {
-      continue;
-    }
-    const keyIndent = keyMatch[1].length;
-    const nextTrimmed = nextLine.trimStart();
-    if (!nextTrimmed.startsWith('-')) {
-      continue;
-    }
-    const nextIndent = nextLine.length - nextTrimmed.length;
-    // compact: sequence item at same or lower indent than parent key
-    if (nextIndent <= keyIndent) {
-      return false;
-    }
-    return true;
-  }
-  return true; // default: indented (matches yaml package default)
-}
+import { applyPathEdits, applyPathDeletes } from '../../../yamledit';
 
 export interface IpCoreState {
   ipCore: Record<string, unknown> | null;
@@ -145,22 +113,12 @@ export function useIpCoreState() {
       }
 
       try {
-        // Parse the existing YAML into a Document to preserve comments/structure
-        const doc = yaml.parseDocument(prev.rawYaml);
+        const newYaml =
+          value === undefined
+            ? applyPathDeletes(prev.rawYaml, [path])
+            : applyPathEdits(prev.rawYaml, [{ path, value }]);
 
-        // Update or delete the value at the specified path
-        if (value === undefined) {
-          doc.deleteIn(path);
-        } else {
-          doc.setIn(path, value);
-        }
-
-        // Preserve original sequence indentation style to avoid reformatting on save
-        const indentSeq = detectIndentSeq(prev.rawYaml);
-        const newYaml = doc.toString({ indent: 2, indentSeq });
-
-        // Get new JS object for the state
-        const newIpCore = doc.toJSON() as Record<string, unknown>;
+        const newIpCore = yaml.parse(newYaml) as Record<string, unknown>;
 
         return {
           ...prev,

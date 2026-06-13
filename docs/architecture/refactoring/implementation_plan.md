@@ -1,10 +1,13 @@
-# Sync Correctness Refactoring Plan (V-5, V-3, V-4)
+# Editing Robustness, Formatting Preservation, and Import Consolidation Refactoring Plan (V-8, V-2, V-7)
 
-Implement the second sequencing point (Sync correctness) from the refactoring recommended order: V-5 (Unified Message Dispatch), V-3 (Revisioned Sync Protocol), and V-4 (Debounced Push Data-Loss Window).
+Implement the sequencing points for editing robustness (V-8 stable row ids, V-2 shared serializer) and import resolution consolidation (V-7) from the architectural debt roadmap.
 
 ## User Review Required
 
-None. The proposed changes are architectural and protocol-level improvements to guarantee editing correctness. When a version mismatch is detected due to external changes, a standard VS Code warning notification is shown prompting the user that the editor has been reloaded, preventing silent data loss.
+The refactoring introduces structural changes to table editing hooks and YAML editing flows. Highlights:
+- Table selection hooks and components transition from index-keyed selection to unique `rowId` keys. Ids are assigned using position-stable reconciliation.
+- YAML modification in the IP Core editor moves from parse-modify-restringify to node-reuse merging. This preserves custom formatting, comments, and hex representations of untouched elements.
+- Generation fails loudly if any memory map imports are broken or unparseable.
 
 ## Open Questions
 
@@ -12,119 +15,109 @@ None.
 
 ## Proposed Changes
 
-### Shared Message Types (V-5)
+### Stable Row Identity for Table Editing (V-8)
 
-Define discriminated message union types for both editors to guarantee type safety at the message boundary.
+Introduce position-stable unique IDs for table rows to avoid desynchronization of editing drafts during reordering, renaming, insertion, and deletion.
 
-#### [NEW] [memoryMap.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/shared/messages/memoryMap.ts)
-- Define `MmWebviewMessage` union capturing all message types sent from the Memory Map editor webview: `ready`, `update`, `command`.
+#### [NEW] [rowIdentity.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/utils/rowIdentity.ts)
+- Implement `reconcileRowIds<T extends { name?: unknown }>(prev: Array<{ rowId: string; model: T }> | undefined, next: T[]): Array<{ rowId: string; model: T }>` using stable pairing rules:
+  1. Exact content match against an unconsumed previous row -> keep its id.
+  2. Same index + same name -> keep id.
+  3. Same name elsewhere (unconsumed) -> keep id.
+  4. Same index, otherwise unconsumed -> keep id (covers renames / in-place edits; see the same-index trade-off in [V-08](V-08-stable-row-ids.md#how)).
+  5. Otherwise -> generate a fresh monotonic `rowId`.
+- Return the previous array reference unchanged when every row reused its id and model, so the reconcile effect cannot loop on a fresh-but-equal `next` array.
 
-#### [NEW] [ipCore.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/shared/messages/ipCore.ts)
-- Define `IpCoreWebviewMessage` union capturing all message types sent from the IP Core editor webview (including `generate`, `selectFiles`, `checkFilesExist`, `stagingResult`, and toolchain actions).
+#### [MODIFY] [useTableNavigation.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/hooks/useTableNavigation.ts)
+- Transition `activeCell` to use `rowId: string | null` instead of `rowIndex: number`.
+- Modify scroll and keyboard navigation logic to query and locate elements using `tr[data-row-id]` and track active/selection focus by `rowId`.
+- Accept `rowIds: string[]` instead of `rowCount: number`.
 
----
+#### [MODIFY] [useTableEditorState.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/hooks/useTableEditorState.ts)
+- Accept reconciled wrappers `rows: Array<{ rowId: string; model: TRow }>` and raw model array `rawRows: TRow[]`.
+- Keep selection internal states (`selectedRowId: string | null`, `hoveredRowId: string | null`, `activeCell: { rowId: string | null; key: TColumnKey }`) keyed by `rowId`.
+- Expose helper indexes (`selectedIndex`, `hoveredIndex`, `activeCell.rowIndex`) derived dynamically on render from `rawRows` array matching.
+- Adjust `focusCellEditor` to query elements using `data-row-id`.
 
-### Unified Message Dispatch (V-5)
+#### [MODIFY] [useFieldEditor.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/hooks/useFieldEditor.ts)
+- Maintain `wrappedFields` via `reconcileRowIds` on incoming `fields`.
+- Replace the multiple parallel draft/error state maps in `useFieldDrafts` with single unified maps keyed by `rowId` or using the new scheme.
+- Remove signature-based automatic full wipes and stale-name prune effects. Drafts now naturally live and die with their stable `rowId` mappings.
 
-Introduce a centralized `WebviewRouter` that manages messaging lifecycle, ready-gating, and standard document actions.
+#### [MODIFY] [FieldsTable.tsx](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/components/register/FieldsTable.tsx) / [FieldTableRow.tsx](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/components/register/FieldTableRow.tsx)
+- Use `rowId` for key elements and row container data attributes (`data-row-id` instead of `data-field-index`).
+- Access drafts and errors using the field's `rowId`.
 
-#### [NEW] [WebviewRouter.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/services/WebviewRouter.ts)
-- Class `WebviewRouter` that wraps a `vscode.WebviewPanel` and its event registrations.
-- Queues outbound messages (`postUpdate`) until the `ready` handshake is received from the webview.
-- Implements standard document handlers (`update`, `command` for save, validate, openFile).
-- Handles revision tracking FIFO queues and handles version verification.
-- Exposes `popSourceEditId` for custom change dispatch pairing.
-- Implements disposal to clean up listener registrations.
+#### [MODIFY] [RegisterTableRow.tsx](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/components/memorymap/RegisterTableRow.tsx) / [BlockEditor.tsx](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/components/memorymap/BlockEditor.tsx)
+- Reconcile register list to wrapped elements with stable `rowId`s.
+- Bind selection and interaction handlers to register `rowId`s.
 
-#### [DELETE] [MessageHandler.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/services/MessageHandler.ts)
-- Remove `MessageHandler.ts` class. Standard document handlers are moved into `WebviewRouter.ts`.
-
-#### [MODIFY] [providerServices.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/providers/providerServices.ts)
-- Remove `messageHandler` instantiation. Expose `yamlValidator` and `documentManager` directly to providers.
-
----
-
-### Revisioned Sync Protocol (V-3) & Debounced Push Guard (V-4)
-
-Implement the monotonic `editId` on the webview, `docVersion` on the host, and check document versions before applying changes to prevent concurrent overwrite data loss.
-
-#### [MODIFY] [DocumentManager.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/services/DocumentManager.ts)
-- Update `updateDocument` to accept `baseDocVersion?: number`.
-- Change return type of `updateDocument` to a typed `UpdateResult` union:
-  - `{ type: 'applied' }`
-  - `{ type: 'noop' }`
-  - `{ type: 'rejected'; reason: 'stale-base' | 'error' }`
-- Reject updates if `baseDocVersion` is specified and the current `document.version` does not match.
-
-#### [MODIFY] [IpCoreGenerateHandler.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/providers/IpCoreGenerateHandler.ts)
-- Adapt `handleGenerateRequest` to check `updateResult.type === 'applied'` or `type !== 'rejected'`.
-
-#### [MODIFY] [MemoryMapEditorProvider.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/providers/MemoryMapEditorProvider.ts)
-- Instantiate `WebviewRouter` instead of using `MessageHandler`.
-- Delegate `onDidChangeTextDocument` events to `router.handleDocumentChange(e)`.
-
-#### [MODIFY] [IpCoreEditorProvider.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/providers/IpCoreEditorProvider.ts)
-- Remove manual `isReady` flags and inline message dispatch tables.
-- Instantiate `WebviewRouter` and register handlers using `router.on()`.
-- Thread `router.popSourceEditId()` into the document change listener to stamp `sourceEditId` when updating the webview.
-
-#### [MODIFY] [IpCoreSourcePreviewProvider.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/providers/IpCoreSourcePreviewProvider.ts)
-- Use `WebviewRouter` for consistent routing and ready-gating.
-
-#### [MODIFY] [useYamlSync.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/hooks/useYamlSync.ts)
-- Track monotonic `lastSentEditId` and `seenDocVersion`.
-- Include `editId` and `baseDocVersion` in `update` payloads.
-- Filter out stale updates (`docVersion <= seenDocVersion`) and own echos (`sourceEditId === lastSentEditId`).
-
-#### [MODIFY] [useIpCoreSync.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/ipcore/hooks/useIpCoreSync.ts)
-- Track `lastSentEditId` and `seenDocVersion`.
-- Intercept incoming window messages during the capture phase to drop stale/echoed events.
-- Implement flush-on-hide and flush-on-unmount to guarantee pending edits are sent when the tab is hidden/closed.
-- Tune debounce timeout from 500ms to 150ms for improved editing responsiveness.
+#### [MODIFY] [MemoryMapEditor.tsx](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/components/memorymap/MemoryMapEditor.tsx) / [RegisterArrayEditor.tsx](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/components/memorymap/RegisterArrayEditor.tsx)
+- Port address block and memory-mapped lists to wrap and reconcile `rowId`s.
 
 ---
 
-### Review follow-ups (post-implementation hardening)
+### Shared YAML Edit Module (V-2)
 
-Corrections from the correctness review of the changes above.
+Consolidate YAML path editing, node merging, literal preservation, and indent sequence detection under a single shared, framework-free module.
 
-#### [NEW] [revisionFilter.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/sync/revisionFilter.ts)
-- Pure webview-side protocol rules shared by both hooks: `shouldApplyUpdate` (drop stale/self-echo, honor `forceResync`) and `buildUpdateMessage` (monotonic `editId`; omit `baseDocVersion` until a real version is seen). Removes the duplicated logic previously maintained in `useYamlSync` and `useIpCoreSync` separately.
+#### [NEW] [index.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/yamledit/index.ts) / [applyPathEdits.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/yamledit/applyPathEdits.ts) / [mergeNode.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/yamledit/mergeNode.ts) / [detectIndentSeq.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/yamledit/detectIndentSeq.ts) / [restoreHexSpellings.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/yamledit/restoreHexSpellings.ts)
+- Pure module `src/yamledit/` depending solely on the `yaml` npm library.
+- Port regex-based sequence indentation detection as the canonical implementation.
+- Support `applyPathDeletes(text, paths)` helper to handle item and key deletions explicitly.
+- Re-use AST nodes recursively to preserve unchanged block indentation and comments.
 
-#### [MODIFY] WebviewRouter / IpCoreEditorProvider
-- `postUpdate(payload, docVersion?)` so async callers stamp the version captured **with** the text; `updateWebview` now captures `document.version` next to `getText()`.
-- Stale-base rejection resync carries `forceResync: true`, so a concurrent external edit cannot be visually dropped (FIFO mislabel + advanced `seenDocVersion`).
-- IP Core `command` handler no longer shadows standard `save`/`validate`/`openFile`; canvas/import open actions use the dedicated `openFile` message.
+#### [MODIFY] [YamlService.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/services/YamlService.ts)
+- Dissolve redundant edit/indentation helper logic and delegate call flows directly to the new `src/yamledit/` module.
 
-#### [NEW] Tests
-- `revisionFilter.test.ts` — unit tests for the shared filter (incl. the `baseDocVersion`-omission fix).
-- `integrationLike/syncProtocol.test.ts` — real host router + `DocumentManager` + webview filter harness covering self-echo suppression, external-edit apply, the stale-base reject → force-resync path, and first-edit-before-handshake.
+#### [MODIFY] [useIpCoreState.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/ipcore/hooks/useIpCoreState.ts)
+- Replace custom loop-based serialization and inline document mutator with shared `applyPathEdits` and `applyPathDeletes` from `src/yamledit/`.
+- Prevent formatting churn and preserve comments/hex formatting on `.ip.yml` modifications.
+
+---
+
+### Import Resolution Consolidation (V-7)
+
+Unify duplicate `.mm.yml` import following logic from extension host displaying and generation paths.
+
+#### [NEW] [resolveMemoryMapImports.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/services/imports/resolveMemoryMapImports.ts) / [types.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/services/imports/types.ts)
+- Define `FileReader` interface with dependency-injected filesystem reader `readText(absPath: string): Promise<string>`.
+- Core resolution logic: loading array/legacy-object imported map entries, overriding with entry-level attributes (name, base offset), resolving paths relative to parent file, and collecting failures into an optional `error` output string.
+
+#### [MODIFY] [ImportResolver.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/services/ImportResolver.ts)
+- Instantiate vscode-fs wrapper reader and delegate memory map resolving tasks to the shared `resolveMemoryMapImports` function.
+
+#### [MODIFY] [registerProcessor.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/generator/registerProcessor.ts)
+- Instantiate fs/promises file reader and delegate import task to the shared `resolveMemoryMapImports`.
+- Enforce strict generation errors when any import resolves with an error.
 
 ---
 
 ### Tests
 
-#### [NEW] [WebviewRouter.test.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/test/suite/services/WebviewRouter.test.ts)
-- Unit tests for `WebviewRouter` including message routing, ready-gating queue, standard commands, command allow-listing, and revision/version tracking logic.
+#### [NEW] [yamledit.test.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/test/suite/yamledit/yamledit.test.ts)
+- Exhaustive unit tests for path edits, deletes, node-merging comment retention, hex preserving, and resolved sequence indent checks.
 
-#### [DELETE] [MessageHandler.test.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/test/suite/services/MessageHandler.test.ts)
-- Remove obsolete message handler tests.
+#### [NEW] [rowIdentity.test.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/test/suite/webview/rowIdentity.test.ts)
+- Exhaustive table-driven tests for position-stable row-id reconciliation rules.
 
-#### [MODIFY] [DocumentManager.test.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/test/suite/services/DocumentManager.test.ts)
-- Adapt mock returns and assert against `UpdateResult` structures. Add tests for version check rejection.
+#### [NEW] [resolveMemoryMapImports.test.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/test/suite/services/resolveMemoryMapImports.test.ts)
+- Unit tests validating the mock reader, correct paths, legacy overrides, and error collection rules.
 
-#### [MODIFY] [DocumentManager.race.test.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/test/suite/services/DocumentManager.race.test.ts)
-- Update mock workspace edit resolution and expected return values.
+#### [MODIFY] [useFieldEditor.test.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/test/suite/hooks/useFieldEditor.test.ts)
+- Adapt assertions to check `rowId` behavior, selection preservation, and verify fix for draft-editor bugs.
 
 ## Verification Plan
 
 ### Automated Tests
-- Run `npm test` to verify unit and integration tests pass.
-- Run `npm run lint` to check for zero linter warnings.
-- Run `npm run compile` to confirm successful build.
+- Run `npm test` to verify unit and integration tests.
+- Run `npm run lint` and `npm run type-check`.
+- Run `npm run compile`.
 
 ### Manual Verification
-- Open the visual memory map and IP Core editors in Extension Development Host.
-- Edit registers/fields and check that they sync smoothly without flashes or duplicate re-renders.
-- Modify the document externally (or trigger a workspace edit) while editing in the webview, verifying that the visual editor receives the warning message and correctly resyncs without silently overriding the external change.
-- Close/hide a tab with a pending canvas edit and confirm the edit is flushed successfully.
+- Verify table editing in Extension Development Host for:
+  - Memory Map Address Blocks (BlockEditor).
+  - Register fields (RegisterEditor / FieldsTable).
+  - Reordering, inserts, deletions, edits preserve input focus and drafts accurately.
+- Verify single clock rename in `.ip.yml` produces exactly one changed line in Git diff.
+- Verify unreadable imports block the HDL generation command with a clear error prompt.

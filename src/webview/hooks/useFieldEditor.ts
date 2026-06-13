@@ -5,13 +5,14 @@ import { fieldToBitsString, parseBitsRange } from '../utils/BitFieldUtils';
 import type { BitFieldRecord, YamlUpdateHandler } from '../types/editor';
 import { useFieldDrafts } from './useFieldDrafts';
 import { useTableEditorState } from './useTableEditorState';
+import { reconcileRowIds, type TableRowWrapper } from '../utils/rowIdentity';
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
 export type EditKey = 'name' | 'bits' | 'access' | 'reset' | 'description';
-export type ActiveCell = { rowIndex: number; key: EditKey };
+export type ActiveCell = { rowId: string | null; key: EditKey };
 
 export const COLUMN_ORDER: EditKey[] = ['name', 'bits', 'access', 'reset', 'description'];
 
@@ -59,6 +60,21 @@ export function useFieldEditor(
 ) {
   const [insertError, setInsertError] = useState<string | null>(null);
 
+  // ---- wrapped rows for row identity ----
+  const [wrappedFields, setWrappedFields] = useState<Array<TableRowWrapper<BitFieldRecord>>>(() =>
+    reconcileRowIds(undefined, fields)
+  );
+
+  useEffect(() => {
+    setWrappedFields((prev) => reconcileRowIds(prev, fields));
+  }, [fields]);
+
+  // Always-current view of wrappedFields for deferred callbacks (setTimeout),
+  // where the captured closure value would be stale. Reads the real reconciled
+  // rowIds rather than recomputing them (which would burn the id counter).
+  const wrappedFieldsRef = useRef(wrappedFields);
+  wrappedFieldsRef.current = wrappedFields;
+
   // ---- drafts ----
   const drafts = useFieldDrafts();
   const {
@@ -78,46 +94,52 @@ export function useFieldEditor(
     clearAllDrafts,
   } = drafts;
 
-  const [dragPreviewRanges, setDragPreviewRanges] = useState<Record<number, [number, number]>>({});
-  const previousOrderSignatureRef = useRef<string | null>(null);
+  const [dragPreviewRanges, setDragPreviewRanges] = useState<Record<string, [number, number]>>({});
 
   // ---- orchestration state ----
   const editorState = useTableEditorState<BitFieldRecord, EditKey>({
-    rows: fields,
+    rows: wrappedFields,
     rowsPath: ['fields'],
     columnOrder: COLUMN_ORDER,
     onUpdate,
-    rowSelectorAttr: 'data-field-index',
+    rowSelectorAttr: 'data-row-id',
     enableHoverInsert: false, // fields don't use HoverInsertBar
     isActive,
     onAfterRevert: (snapshot: BitFieldRecord[]) => {
-      const rowIndex = editorState.activeCell.rowIndex;
+      const rowId = editorState.activeCell.rowId;
+      if (!rowId) {
+        return;
+      }
+      const rowIndex = wrappedFields.findIndex((w) => w.rowId === rowId);
       const snapshotField = snapshot[rowIndex];
       if (!snapshotField) {
         return;
       }
 
-      const fieldKey = snapshotField.name ? String(snapshotField.name) : `idx-${rowIndex}`;
       setNameDrafts((prev: Record<string, string>) => ({
         ...prev,
-        [fieldKey]: String(snapshotField.name ?? ''),
+        [rowId]: String(snapshotField.name ?? ''),
       }));
-      setNameErrors((prev: Record<string, string | null>) => ({ ...prev, [fieldKey]: null }));
-      setBitsDrafts((prev: Record<number, string>) => ({
+      setNameErrors((prev: Record<string, string | null>) => ({ ...prev, [rowId]: null }));
+      setBitsDrafts((prev: Record<string, string>) => ({
         ...prev,
-        [rowIndex]: fieldToBitsString(snapshotField),
+        [rowId]: fieldToBitsString(snapshotField),
       }));
-      setBitsErrors((prev: Record<number, string | null>) => ({ ...prev, [rowIndex]: null }));
+      setBitsErrors((prev: Record<string, string | null>) => ({ ...prev, [rowId]: null }));
 
       const rv = snapshotField.reset_value;
       const resetDisplay =
         rv !== null && rv !== undefined ? `0x${Number(rv).toString(16).toUpperCase()}` : '0x0';
-      setResetDrafts((prev: Record<number, string>) => ({ ...prev, [rowIndex]: resetDisplay }));
-      setResetErrors((prev: Record<number, string | null>) => ({ ...prev, [rowIndex]: null }));
+      setResetDrafts((prev: Record<string, string>) => ({ ...prev, [rowId]: resetDisplay }));
+      setResetErrors((prev: Record<string, string | null>) => ({ ...prev, [rowId]: null }));
     },
     onInsertAfter: () => tryInsertField(true),
     onInsertBefore: () => tryInsertField(false),
-    onDelete: (rowIndex) => {
+    onDelete: (rowId) => {
+      const rowIndex = wrappedFields.findIndex((w) => w.rowId === rowId);
+      if (rowIndex < 0) {
+        return;
+      }
       const currentKey = COLUMN_ORDER.includes(editorState.activeCell.key)
         ? editorState.activeCell.key
         : 'name';
@@ -125,13 +147,14 @@ export function useFieldEditor(
       onUpdate(['fields'], newFields);
 
       const nextRow = rowIndex > 0 ? rowIndex - 1 : newFields.length > 0 ? 0 : -1;
-      editorState.setSelectedIndex(nextRow);
-      editorState.setHoveredIndex(nextRow);
-      editorState.setActiveCell({ rowIndex: nextRow, key: currentKey });
+      window.setTimeout(() => {
+        editorState.selectRow(nextRow, currentKey);
+      }, 0);
 
       clearAllDrafts();
     },
-    onMove: (fromIndex, delta) => {
+    onMove: (rowId, delta) => {
+      const fromIndex = wrappedFields.findIndex((w) => w.rowId === rowId);
       const next = fromIndex + delta;
       if (fromIndex < 0 || fromIndex >= fields.length || next < 0 || next >= fields.length) {
         return;
@@ -139,8 +162,9 @@ export function useFieldEditor(
 
       onUpdate(['__op', 'field-move'], { index: fromIndex, delta });
       clearAllDrafts();
-      editorState.setSelectedIndex(next);
-      editorState.setHoveredIndex(next);
+      window.setTimeout(() => {
+        editorState.selectRow(next);
+      }, 0);
     },
   });
 
@@ -163,16 +187,18 @@ export function useFieldEditor(
 
       const newIndex = result.newIndex;
       onUpdate(['fields'], result.items);
-      editorState.setSelectedIndex(newIndex);
-      editorState.setHoveredIndex(newIndex);
-      editorState.setActiveCell({ rowIndex: newIndex, key: 'name' });
       clearAllDrafts();
 
       window.setTimeout(() => {
-        document
-          .querySelector(`tr[data-field-index="${newIndex}"]`)
-          ?.scrollIntoView({ block: 'center' });
-      }, 100);
+        editorState.selectRow(newIndex, 'name');
+        const newRowId = wrappedFieldsRef.current[newIndex]?.rowId;
+        if (newRowId) {
+          editorState.focusCellEditor(newRowId, 'name');
+          document
+            .querySelector(`tr[data-row-id="${newRowId}"]`)
+            ?.scrollIntoView({ block: 'center' });
+        }
+      }, 0);
     },
     [fields, editorState.selectedIndex, registerSize, onUpdate, editorState, clearAllDrafts]
   );
@@ -191,8 +217,9 @@ export function useFieldEditor(
 
       onUpdate(['__op', 'field-move'], { index, delta });
       clearAllDrafts();
-      editorState.setSelectedIndex(next);
-      editorState.setHoveredIndex(next);
+      window.setTimeout(() => {
+        editorState.selectRow(next);
+      }, 0);
     },
     [editorState.selectedIndex, fields.length, onUpdate, editorState, clearAllDrafts]
   );
@@ -203,67 +230,15 @@ export function useFieldEditor(
     }, 0);
   }, [editorState.containerRef]);
 
-  // ---------------------------------------------------------------------------
-  // Prune name drafts whose keys no longer match any current field name.
-  // ---------------------------------------------------------------------------
-  useEffect(() => {
-    const currentKeys = new Set(fields.map((f, i) => (f.name ? String(f.name) : `idx-${i}`)));
-    setNameDrafts((prev) => {
-      const stale = Object.keys(prev).filter((k) => !currentKeys.has(k));
-      if (stale.length === 0) {
-        return prev;
-      }
-      const next = { ...prev };
-      for (const k of stale) {
-        delete next[k];
-      }
-      return next;
-    });
-    setNameErrors((prev) => {
-      const stale = Object.keys(prev).filter((k) => !currentKeys.has(k));
-      if (stale.length === 0) {
-        return prev;
-      }
-      const next = { ...prev };
-      for (const k of stale) {
-        delete next[k];
-      }
-      return next;
-    });
-  }, [fields, setNameDrafts, setNameErrors]);
-
-  // ---------------------------------------------------------------------------
-  // Keep index-keyed drafts aligned with field order
-  // ---------------------------------------------------------------------------
-  useEffect(() => {
-    const orderSignature = fields
-      .map((field, index) => {
-        const name = String(field?.name ?? `idx-${index}`);
-        const bits = fieldToBitsString(field);
-        return `${name}|${bits}`;
-      })
-      .join('||');
-
-    const previousSignature = previousOrderSignatureRef.current;
-    previousOrderSignatureRef.current = orderSignature;
-
-    if (previousSignature === null || previousSignature === orderSignature) {
-      return;
-    }
-
-    setBitsDrafts({});
-    setBitsErrors({});
-    setDragPreviewRanges({});
-    setResetDrafts({});
-    setResetErrors({});
-  }, [fields, setBitsDrafts, setBitsErrors, setResetDrafts, setResetErrors]);
-
   return {
+    // wrapped rows
+    wrappedFields,
+
     // selection / hover
     selectedFieldIndex: editorState.selectedIndex,
-    setSelectedFieldIndex: editorState.setSelectedIndex,
+    setSelectedFieldIndex: editorState.setSelectedFieldIndex,
     hoveredFieldIndex: editorState.hoveredIndex,
-    setHoveredFieldIndex: editorState.setHoveredIndex,
+    setHoveredFieldIndex: editorState.setHoveredFieldIndex,
     selectedEditKey: editorState.activeCell.key,
     setSelectedEditKey: (key: EditKey) => editorState.setActiveCell((prev) => ({ ...prev, key })),
     activeCell: editorState.activeCell,
@@ -294,7 +269,8 @@ export function useFieldEditor(
     cancelEditRef: editorState.cancelEditRef,
 
     // helpers
-    ensureDraftsInitialized: (index: number) => ensureDraftsInitialized(index, fields[index]),
+    ensureDraftsInitialized: (rowId: string, index: number) =>
+      ensureDraftsInitialized(rowId, fields[index]),
     captureEditSnapshot: editorState.captureEditSnapshot,
     moveSelectedField,
     focusFieldEditor: editorState.focusCellEditor,

@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import type { YamlUpdateHandler } from '../../types/editor';
 import { VSCodeTextField } from '@vscode/webview-ui-toolkit/react';
 import {
@@ -14,6 +14,7 @@ import { generateUniqueName } from '../../utils/naming';
 import { useTableEditorState } from '../../hooks/useTableEditorState';
 import { RegisterTableRow, REG_COLUMN_ORDER } from './RegisterTableRow';
 import type { RegEditKey } from './RegisterTableRow';
+import { reconcileRowIds, type TableRowWrapper } from '../../utils/rowIdentity';
 
 export interface RegisterArrayEditorProps {
   /** The register array definition object. */
@@ -45,6 +46,15 @@ export function RegisterArrayEditor({
 
   const tbodyRef = useRef<HTMLTableSectionElement | null>(null);
 
+  // ---- wrapped rows for row identity ----
+  const [wrappedRegisters, setWrappedRegisters] = useState<Array<TableRowWrapper<RegisterModel>>>(
+    []
+  );
+
+  useEffect(() => {
+    setWrappedRegisters((prev) => reconcileRowIds(prev, nestedRegisters));
+  }, [nestedRegisters]);
+
   // -- Shared table orchestration --
   const insertNestedReg = (newIdx: number) => {
     const newName = generateUniqueName(nestedRegisters, 'reg');
@@ -66,15 +76,18 @@ export function RegisterArrayEditor({
     const newRegs = [...nestedRegisters];
     newRegs.splice(newIdx, 0, newReg);
     onUpdate(['registers'], newRegs as unknown[]);
-    editor.selectRow(newIdx, 'name');
+
+    window.setTimeout(() => {
+      editor.selectRow(newIdx, 'name');
+    }, 0);
   };
 
   const editor = useTableEditorState<RegisterModel, RegEditKey>({
-    rows: nestedRegisters,
+    rows: wrappedRegisters,
     rowsPath: ['registers'],
     columnOrder: REG_COLUMN_ORDER,
     onUpdate,
-    rowSelectorAttr: 'data-reg-idx',
+    rowSelectorAttr: 'data-row-id',
     onInsertAfter: () => {
       const selIdx = editor.selectedIndex >= 0 ? editor.selectedIndex : nestedRegisters.length - 1;
       insertNestedReg(selIdx + 1);
@@ -83,14 +96,17 @@ export function RegisterArrayEditor({
       const selIdx = editor.selectedIndex >= 0 ? editor.selectedIndex : 0;
       insertNestedReg(selIdx);
     },
-    onDelete: (rowIndex) => {
+    onDelete: (rowId) => {
+      const rowIndex = wrappedRegisters.findIndex((w) => w.rowId === rowId);
       if (rowIndex < 0 || rowIndex >= nestedRegisters.length) {
         return;
       }
       const newRegs = nestedRegisters.filter((_: RegisterModel, i: number) => i !== rowIndex);
       onUpdate(['registers'], newRegs as unknown[]);
       const nextRow = rowIndex > 0 ? rowIndex - 1 : newRegs.length > 0 ? 0 : -1;
-      editor.selectRow(nextRow);
+      window.setTimeout(() => {
+        editor.selectRow(nextRow);
+      }, 0);
     },
     enableHoverInsert: false,
     clampDeps: [arr?.name],
@@ -102,10 +118,24 @@ export function RegisterArrayEditor({
     <RegisterMapVisualizer
       registers={nestedRegisters}
       hoveredRegIndex={editor.hoveredIndex}
-      setHoveredRegIndex={editor.setHoveredIndex}
+      setHoveredRegIndex={editor.setHoveredFieldIndex}
       baseAddress={0}
       onReorderRegisters={(newRegs) => onUpdate(['registers'], newRegs)}
       onRegisterClick={(idx) => editor.selectRow(idx)}
+      onDeleteReg={(idx) => {
+        const rowId = wrappedRegisters[idx]?.rowId;
+        if (rowId) {
+          const rowIndex = wrappedRegisters.findIndex((w) => w.rowId === rowId);
+          if (rowIndex >= 0) {
+            const newRegs = nestedRegisters.filter((_, i) => i !== rowIndex);
+            onUpdate(['registers'], newRegs);
+            const nextRow = rowIndex > 0 ? rowIndex - 1 : newRegs.length > 0 ? 0 : -1;
+            window.setTimeout(() => {
+              editor.selectRow(nextRow);
+            }, 0);
+          }
+        }
+      }}
       layout={arrayLayout === 'side-by-side' ? 'vertical' : 'horizontal'}
     />
   );
@@ -133,13 +163,14 @@ export function RegisterArrayEditor({
           </tr>
         </thead>
         <tbody ref={tbodyRef} className="divide-y vscode-border text-sm">
-          {nestedRegisters.map((reg: RegisterModel, idx: number) => (
+          {wrappedRegisters.map((wrapped: TableRowWrapper<RegisterModel>, idx: number) => (
             <RegisterTableRow
-              key={idx}
-              reg={reg}
+              key={wrapped.rowId}
+              reg={wrapped.model}
+              rowId={wrapped.rowId}
               idx={idx}
-              isSelected={editor.selectedIndex === idx}
-              isHovered={editor.hoveredIndex === idx}
+              isSelected={editor.selectedRowId === wrapped.rowId}
+              isHovered={editor.hoveredRowId === wrapped.rowId}
               regActiveCell={editor.activeCell}
               color={getRegColor(idx)}
               cancelEditRef={editor.cancelEditRef}
@@ -147,7 +178,7 @@ export function RegisterArrayEditor({
               onUpdate={onUpdate}
               onRowClick={() => editor.handleRowClick(idx)}
               onCellClick={(key) => editor.handleCellClick(idx, key)}
-              onMouseEnter={() => editor.handleMouseEnter(idx)}
+              onMouseEnter={() => editor.setHoveredRowId(wrapped.rowId)}
               onMouseLeave={editor.handleMouseLeave}
             />
           ))}

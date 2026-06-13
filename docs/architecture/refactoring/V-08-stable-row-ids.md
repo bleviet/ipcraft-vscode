@@ -72,7 +72,21 @@ Reconciliation rules, in order, mirroring what `mergeNode` does for YAML nodes:
 1. Exact content match against an unconsumed previous row → keep its id.
 2. Same index + same name → keep id (covers value edits).
 3. Same name elsewhere (unconsumed) → keep id (covers moves).
-4. Otherwise → new id (covers inserts; deleted rows' ids retire with them).
+4. Same index, otherwise unconsumed → keep id (covers renames / in-place edits,
+   including duplicate-name renames where the name is no longer a reliable key).
+   **Trade-off:** a delete-at-N + insert-at-N in a *single* reconcile makes the
+   inserted row inherit the removed row's id (and any uncommitted draft). This is
+   deliberate — keeping draft state stable across renames is the dominant edit, and
+   the mis-pair only bites on a simultaneous external delete+insert at the same
+   index while the user has an uncommitted draft (see Risks). Pinned by the
+   "pass 4" case in `rowIdentity.test.ts`.
+5. Otherwise → new id (covers inserts; deleted rows' ids retire with them).
+
+Reconciliation also returns the *previous* array reference unchanged when every
+row reused its id and still points at the same model object. This makes
+`setRows(prev => reconcileRowIds(prev, next))` a no-op when `next` is a
+fresh-but-equal array (e.g. an unmemoised prop or `value ?? []`), so the effect
+that drives it cannot spin into an update loop.
 
 This runs where the document echo is parsed (`useMemoryMapState`/`DataNormalizer` output —
 or `FieldView.rowId` from V-1's `internal.types.ts` if that landed). An echo of our own edit

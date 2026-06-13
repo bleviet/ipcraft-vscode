@@ -16,6 +16,7 @@ import { useAutoFocus } from '../../hooks/useAutoFocus';
 import { useTableEditorState } from '../../hooks/useTableEditorState';
 import { RegisterTableRow, REG_COLUMN_ORDER } from './RegisterTableRow';
 import type { RegEditKey } from './RegisterTableRow';
+import { reconcileRowIds, type TableRowWrapper } from '../../utils/rowIdentity';
 
 export interface AddressBlockModel {
   name?: string;
@@ -71,12 +72,27 @@ export function BlockEditor({
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
-    regIndex: number;
+    regId: string;
   } | null>(null);
 
   const tbodyRef = useRef<HTMLTableSectionElement | null>(null);
 
   const liveRegisters = block?.registers ?? [];
+
+  // ---- wrapped rows for row identity ----
+  const [wrappedRegisters, setWrappedRegisters] = useState<Array<TableRowWrapper<RegisterModel>>>(
+    []
+  );
+
+  useEffect(() => {
+    setWrappedRegisters((prev) => reconcileRowIds(prev, liveRegisters));
+  }, [liveRegisters]);
+
+  // Always-current view for deferred callbacks (setTimeout), so we read the real
+  // reconciled rowId instead of recomputing it (which would burn the id counter
+  // and produce an id that never matches the rendered row).
+  const wrappedRegistersRef = useRef(wrappedRegisters);
+  wrappedRegistersRef.current = wrappedRegisters;
 
   // -- Shared table orchestration --
   const insertNewReg = (newIdx: number) => {
@@ -91,24 +107,34 @@ export function BlockEditor({
       address_offset: 0,
     });
     onUpdate(['registers'], newRegs as unknown[]);
-    editor.selectRow(newIdx, 'name');
+
     window.setTimeout(() => {
-      document.querySelector(`tr[data-row-idx="${newIdx}"]`)?.scrollIntoView({ block: 'center' });
-    }, 100);
+      editor.selectRow(newIdx, 'name');
+      const newRowId = wrappedRegistersRef.current[newIdx]?.rowId;
+      if (newRowId) {
+        editor.focusCellEditor(newRowId, 'name');
+        document
+          .querySelector(`tr[data-row-id="${newRowId}"]`)
+          ?.scrollIntoView({ block: 'center' });
+      }
+    }, 0);
   };
 
-  const deleteReg = (idx: number) => {
+  const deleteReg = (rowId: string) => {
+    const idx = wrappedRegisters.findIndex((w) => w.rowId === rowId);
     if (idx < 0 || idx >= liveRegisters.length) {
       return;
     }
     const newRegs = liveRegisters.filter((_: RegisterModel, i: number) => i !== idx);
     onUpdate(['registers'], newRegs as unknown[]);
     const nextRow = idx > 0 ? idx - 1 : newRegs.length > 0 ? 0 : -1;
-    editor.selectRow(nextRow, editor.activeCell.key);
+    window.setTimeout(() => {
+      editor.selectRow(nextRow, editor.activeCell.key);
+    }, 0);
   };
 
   const editor = useTableEditorState<RegisterModel, RegEditKey>({
-    rows: liveRegisters,
+    rows: wrappedRegisters,
     rowsPath: ['registers'],
     columnOrder: REG_COLUMN_ORDER,
     onUpdate,
@@ -121,7 +147,8 @@ export function BlockEditor({
       insertNewReg(newIdx);
     },
     onDelete: deleteReg,
-    onMove: (fromIndex, delta) => {
+    onMove: (rowId, delta) => {
+      const fromIndex = wrappedRegisters.findIndex((w) => w.rowId === rowId);
       const next = fromIndex + delta;
       if (
         fromIndex < 0 ||
@@ -136,7 +163,9 @@ export function BlockEditor({
       newRegs[fromIndex] = newRegs[next];
       newRegs[next] = temp;
       onUpdate(['registers'], newRegs as unknown[]);
-      editor.selectRow(next);
+      window.setTimeout(() => {
+        editor.selectRow(next);
+      }, 0);
     },
     enableHoverInsert: true,
     clampDeps: [block?.name],
@@ -233,7 +262,9 @@ export function BlockEditor({
         newIdx = selIdx;
       }
       onUpdate(['registers'], newRegs as unknown[]);
-      editor.selectRow(newIdx, 'name');
+      window.setTimeout(() => {
+        editor.selectRow(newIdx, 'name');
+      }, 0);
     };
 
     window.addEventListener('keydown', onKeyDown);
@@ -244,12 +275,17 @@ export function BlockEditor({
     <RegisterMapVisualizer
       registers={registers}
       hoveredRegIndex={editor.hoveredIndex}
-      setHoveredRegIndex={editor.setHoveredIndex}
+      setHoveredRegIndex={editor.setHoveredFieldIndex}
       baseAddress={baseAddress}
       onReorderRegisters={(newRegs) => onUpdate(['registers'], newRegs as unknown[])}
       onRegisterClick={onNavigateToRegister}
       onInsertAtGap={insertAtGap}
-      onDeleteReg={deleteReg}
+      onDeleteReg={(idx) => {
+        const rowId = wrappedRegisters[idx]?.rowId;
+        if (rowId) {
+          deleteReg(rowId);
+        }
+      }}
       layout={blockLayout === 'side-by-side' ? 'vertical' : 'horizontal'}
     />
   );
@@ -278,25 +314,26 @@ export function BlockEditor({
           </tr>
         </thead>
         <tbody ref={tbodyRef} className="text-sm" {...editor.insertBarTbodyProps}>
-          {registers.map((reg: RegisterModel, idx: number) => (
+          {wrappedRegisters.map((wrapped: TableRowWrapper<RegisterModel>, idx: number) => (
             <RegisterTableRow
-              key={idx}
-              reg={reg}
+              key={wrapped.rowId}
+              reg={wrapped.model}
+              rowId={wrapped.rowId}
               idx={idx}
-              isSelected={idx === editor.selectedIndex}
-              isHovered={idx === editor.hoveredIndex}
+              isSelected={wrapped.rowId === editor.selectedRowId}
+              isHovered={wrapped.rowId === editor.hoveredRowId}
               regActiveCell={editor.activeCell}
               color={getRegColor(idx)}
               cancelEditRef={editor.cancelEditRef}
               captureEditSnapshot={editor.captureEditSnapshot}
               onUpdate={onUpdate}
-              onRowClick={() => editor.handleRowClick(idx)}
-              onCellClick={(key) => editor.handleCellClick(idx, key)}
-              onMouseEnter={() => editor.handleMouseEnter(idx)}
-              onMouseLeave={editor.handleMouseLeave}
+              onRowClick={() => editor.selectRow(idx)}
+              onCellClick={(key) => editor.selectRow(idx, key)}
+              onMouseEnter={() => editor.setHoveredRowId(wrapped.rowId)}
+              onMouseLeave={() => editor.setHoveredRowId(null)}
               onContextMenu={(e) => {
                 e.preventDefault();
-                setContextMenu({ x: e.clientX, y: e.clientY, regIndex: idx });
+                setContextMenu({ x: e.clientX, y: e.clientY, regId: wrapped.rowId });
               }}
             />
           ))}
@@ -329,9 +366,15 @@ export function BlockEditor({
           <KeyboardShortcutsButton context="block" />
           <TableContextMenu
             position={contextMenu ? { x: contextMenu.x, y: contextMenu.y } : null}
-            onInsertAbove={() => insertAtGap(contextMenu!.regIndex)}
-            onInsertBelow={() => insertAtGap(contextMenu!.regIndex + 1)}
-            onDelete={() => deleteReg(contextMenu!.regIndex)}
+            onInsertAbove={() => {
+              const idx = wrappedRegisters.findIndex((w) => w.rowId === contextMenu!.regId);
+              insertAtGap(idx);
+            }}
+            onInsertBelow={() => {
+              const idx = wrappedRegisters.findIndex((w) => w.rowId === contextMenu!.regId);
+              insertAtGap(idx + 1);
+            }}
+            onDelete={() => deleteReg(contextMenu!.regId)}
             onClose={closeContextMenu}
           />
         </>

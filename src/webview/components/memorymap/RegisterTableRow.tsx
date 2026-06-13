@@ -11,7 +11,11 @@ import { EditableCell, CellInput } from '../../shared/components';
 // ---------------------------------------------------------------------------
 
 export type RegEditKey = 'name' | 'offset' | 'access' | 'description';
-export type RegActiveCell = { rowIndex: number; key: RegEditKey };
+export interface RegActiveCell {
+  rowId: string | null;
+  rowIndex: number;
+  key: RegEditKey;
+}
 export const REG_COLUMN_ORDER: RegEditKey[] = ['name', 'offset', 'access', 'description'];
 
 // ---------------------------------------------------------------------------
@@ -20,6 +24,7 @@ export const REG_COLUMN_ORDER: RegEditKey[] = ['name', 'offset', 'access', 'desc
 
 export interface RegisterTableRowProps {
   reg: RegisterModel;
+  rowId: string;
   idx: number;
   isSelected: boolean;
   isHovered: boolean;
@@ -41,15 +46,10 @@ export interface RegisterTableRowProps {
 
 /**
  * Shared register row used by both BlockEditor and RegisterArrayEditor.
- *
- * Behaviour:
- *   - name   : onInput live-commit; onBlur with cancelEditRef guard.
- *   - offset : onInput live-commit (hex display); onFocus captures snapshot.
- *   - access : VSCodeDropdown onInput live-commit.
- *   - description : VSCodeTextArea onInput live-commit; onFocus captures snapshot.
  */
 export function RegisterTableRow({
   reg,
+  rowId,
   idx,
   isSelected,
   isHovered,
@@ -67,11 +67,11 @@ export function RegisterTableRow({
   const offset = reg.address_offset ?? reg.offset ?? 0;
 
   const isCellActive = (key: RegEditKey) =>
-    regActiveCell.rowIndex === idx && regActiveCell.key === key;
+    regActiveCell.rowId === rowId && regActiveCell.key === key;
 
   return (
     <tr
-      data-row-idx={idx}
+      data-row-id={rowId}
       data-reg-idx={idx}
       className={`group vscode-row-solid transition-colors border-l-4 border-transparent border-b vscode-border h-12 ${
         isSelected

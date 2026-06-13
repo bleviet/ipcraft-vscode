@@ -11,7 +11,11 @@ import { EditableCell, CellInput } from '../../shared/components';
 // ---------------------------------------------------------------------------
 
 export type BlockEditKey = 'name' | 'base' | 'size' | 'usage' | 'description';
-export type BlockActiveCell = { rowIndex: number; key: BlockEditKey };
+export interface BlockActiveCell {
+  rowId: string | null;
+  rowIndex: number;
+  key: BlockEditKey;
+}
 export const BLOCK_COLUMN_ORDER: BlockEditKey[] = ['name', 'base', 'size', 'usage', 'description'];
 
 // ---------------------------------------------------------------------------
@@ -20,6 +24,7 @@ export const BLOCK_COLUMN_ORDER: BlockEditKey[] = ['name', 'base', 'size', 'usag
 
 export interface BlockTableRowProps {
   block: MemoryMapBlockDef;
+  rowId: string;
   idx: number;
   isSelected: boolean;
   isHovered: boolean;
@@ -41,16 +46,10 @@ export interface BlockTableRowProps {
 
 /**
  * Shared block row used by MemoryMapEditor.
- *
- * Behaviour:
- *   - name        : onInput live-commit; onBlur with cancelEditRef guard.
- *   - base        : onInput live-commit (hex display); onFocus captures snapshot.
- *   - size        : read-only display.
- *   - usage       : badge display (read-only for now).
- *   - description : VSCodeTextArea onInput live-commit; onFocus captures snapshot.
  */
 export function BlockTableRow({
   block,
+  rowId,
   idx,
   isSelected,
   isHovered,
@@ -69,11 +68,11 @@ export function BlockTableRow({
   const size = calculateBlockSize(block);
 
   const isCellActive = (key: BlockEditKey) =>
-    blockActiveCell.rowIndex === idx && blockActiveCell.key === key;
+    blockActiveCell.rowId === rowId && blockActiveCell.key === key;
 
   return (
     <tr
-      data-row-idx={idx}
+      data-row-id={rowId}
       data-block-idx={idx}
       className={`group transition-colors border-l-4 border-transparent border-b vscode-border h-12 ${
         isSelected

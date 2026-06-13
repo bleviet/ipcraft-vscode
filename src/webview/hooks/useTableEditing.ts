@@ -115,30 +115,38 @@ export const useTableEditing = <T, TColumnKey extends string>({
     [rows, onCommit, selectedIndex]
   );
 
+  const rowIds = React.useMemo(() => rows.map((_, idx) => String(idx)), [rows]);
+
   useTableNavigation<TColumnKey>({
     activeCell: {
-      rowIndex: selectedIndex,
+      rowId: selectedIndex >= 0 ? String(selectedIndex) : null,
       key: activeColumn || firstColumn,
     },
     setActiveCell: (cell) => {
-      setSelectedIndex(cell.rowIndex);
+      const idx = cell.rowId ? parseInt(cell.rowId, 10) : -1;
+      if (idx >= 0 && idx < rows.length) {
+        setSelectedIndex(idx);
+      }
       setActiveColumn(cell.key);
     },
-    rowCount: rows.length,
+    rowIds,
     columnOrder: [...columnKeys],
     containerRef,
-    onEdit: (rowIndex) => {
-      if (rows.length > 0 && rowIndex >= 0 && rowIndex < rows.length) {
-        handleEdit(rowIndex);
+    onEdit: (rowId) => {
+      const idx = parseInt(rowId, 10);
+      if (rows.length > 0 && idx >= 0 && idx < rows.length) {
+        handleEdit(idx);
       }
     },
-    onDelete: (rowIndex) => {
-      if (rows.length > 0 && rowIndex >= 0 && rowIndex < rows.length) {
-        handleDelete(rowIndex);
+    onDelete: (rowId) => {
+      const idx = parseInt(rowId, 10);
+      if (rows.length > 0 && idx >= 0 && idx < rows.length) {
+        handleDelete(idx);
       }
     },
     onInsertAfter: handleAdd,
     isActive: editingIndex === null && !isAdding,
+    rowSelectorAttr: 'data-row-idx',
   });
 
   useEffect(() => {

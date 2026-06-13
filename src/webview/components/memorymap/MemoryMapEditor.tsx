@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import type { YamlUpdateHandler } from '../../types/editor';
 import {
   KeyboardShortcutsButton,
@@ -17,6 +17,7 @@ import { useAutoFocus } from '../../hooks/useAutoFocus';
 import { useTableEditorState } from '../../hooks/useTableEditorState';
 import { BlockTableRow, BLOCK_COLUMN_ORDER } from './BlockTableRow';
 import type { BlockEditKey } from './BlockTableRow';
+import { reconcileRowIds, type TableRowWrapper } from '../../utils/rowIdentity';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -69,12 +70,25 @@ export function MemoryMapEditor({
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
-    blockIndex: number;
+    blockId: string;
   } | null>(null);
 
   const tbodyRef = useRef<HTMLTableSectionElement | null>(null);
 
   const liveBlocks = memoryMap?.address_blocks ?? memoryMap?.addressBlocks ?? [];
+
+  // ---- wrapped rows for row identity ----
+  const [wrappedBlocks, setWrappedBlocks] = useState<Array<TableRowWrapper<MemoryMapBlockDef>>>([]);
+
+  useEffect(() => {
+    setWrappedBlocks((prev) => reconcileRowIds(prev, liveBlocks));
+  }, [liveBlocks]);
+
+  // Always-current view for deferred callbacks (setTimeout), so we read the real
+  // reconciled rowId instead of recomputing it (which would burn the id counter
+  // and produce an id that never matches the rendered row).
+  const wrappedBlocksRef = useRef(wrappedBlocks);
+  wrappedBlocksRef.current = wrappedBlocks;
 
   const insertAtGap = (gapIndex: number) => {
     setInsertError(null);
@@ -88,21 +102,31 @@ export function MemoryMapEditor({
     }
     const newIdx = result.newIndex;
     onUpdate(['addressBlocks'], result.items);
-    editor.selectRow(newIdx, 'name');
-    editor.clearInsertBar();
+
     window.setTimeout(() => {
-      document.querySelector(`tr[data-row-idx="${newIdx}"]`)?.scrollIntoView({ block: 'center' });
-    }, 100);
+      editor.selectRow(newIdx, 'name');
+      editor.clearInsertBar();
+      const newRowId = wrappedBlocksRef.current[newIdx]?.rowId;
+      if (newRowId) {
+        editor.focusCellEditor(newRowId, 'name');
+        document
+          .querySelector(`tr[data-row-id="${newRowId}"]`)
+          ?.scrollIntoView({ block: 'center' });
+      }
+    }, 0);
   };
 
-  const deleteBlock = (idx: number) => {
+  const deleteBlock = (rowId: string) => {
+    const idx = wrappedBlocks.findIndex((w) => w.rowId === rowId);
     if (idx < 0 || idx >= liveBlocks.length) {
       return;
     }
     const newBlocks = liveBlocks.filter((_: unknown, i: number) => i !== idx);
     onUpdate(['addressBlocks'], newBlocks);
     const nextRow = idx > 0 ? idx - 1 : newBlocks.length > 0 ? 0 : -1;
-    editor.selectRow(nextRow, editor.activeCell.key);
+    window.setTimeout(() => {
+      editor.selectRow(nextRow, editor.activeCell.key);
+    }, 0);
   };
 
   const tryInsertBlock = (after: boolean) => {
@@ -117,11 +141,11 @@ export function MemoryMapEditor({
   };
 
   const editor = useTableEditorState<MemoryMapBlockDef, BlockEditKey>({
-    rows: liveBlocks,
+    rows: wrappedBlocks,
     rowsPath: ['addressBlocks'],
     columnOrder: BLOCK_COLUMN_ORDER,
     onUpdate,
-    rowSelectorAttr: 'data-block-idx',
+    rowSelectorAttr: 'data-row-id',
     onInsertAfter: () => tryInsertBlock(true),
     onInsertBefore: () => tryInsertBlock(false),
     onDelete: deleteBlock,
@@ -143,10 +167,15 @@ export function MemoryMapEditor({
     <AddressMapVisualizer
       blocks={blocks}
       hoveredBlockIndex={editor.hoveredIndex}
-      setHoveredBlockIndex={editor.setHoveredIndex}
+      setHoveredBlockIndex={editor.setHoveredFieldIndex}
       onBlockClick={onNavigateToBlock}
       onInsertAtGap={insertAtGap}
-      onDeleteBlock={deleteBlock}
+      onDeleteBlock={(idx) => {
+        const rowId = wrappedBlocks[idx]?.rowId;
+        if (rowId) {
+          deleteBlock(rowId);
+        }
+      }}
       layout={memoryMapLayout === 'side-by-side' ? 'vertical' : 'horizontal'}
     />
   );
@@ -177,25 +206,26 @@ export function MemoryMapEditor({
           </tr>
         </thead>
         <tbody ref={tbodyRef} className="text-sm" {...editor.insertBarTbodyProps}>
-          {blocks.map((block: MemoryMapBlockDef, idx: number) => (
+          {wrappedBlocks.map((wrapped: TableRowWrapper<MemoryMapBlockDef>, idx: number) => (
             <BlockTableRow
-              key={idx}
-              block={block}
+              key={wrapped.rowId}
+              block={wrapped.model}
+              rowId={wrapped.rowId}
               idx={idx}
-              isSelected={idx === editor.selectedIndex}
-              isHovered={idx === editor.hoveredIndex}
+              isSelected={wrapped.rowId === editor.selectedRowId}
+              isHovered={wrapped.rowId === editor.hoveredRowId}
               blockActiveCell={editor.activeCell}
               color={getBlockColor(idx)}
               cancelEditRef={editor.cancelEditRef}
               captureEditSnapshot={editor.captureEditSnapshot}
               onUpdate={onUpdate}
-              onRowClick={() => editor.handleRowClick(idx)}
-              onCellClick={(key) => editor.handleCellClick(idx, key)}
-              onMouseEnter={() => editor.handleMouseEnter(idx)}
-              onMouseLeave={editor.handleMouseLeave}
+              onRowClick={() => editor.selectRow(idx)}
+              onCellClick={(key) => editor.selectRow(idx, key)}
+              onMouseEnter={() => editor.setHoveredRowId(wrapped.rowId)}
+              onMouseLeave={() => editor.setHoveredRowId(null)}
               onContextMenu={(e) => {
                 e.preventDefault();
-                setContextMenu({ x: e.clientX, y: e.clientY, blockIndex: idx });
+                setContextMenu({ x: e.clientX, y: e.clientY, blockId: wrapped.rowId });
               }}
             />
           ))}
@@ -228,9 +258,15 @@ export function MemoryMapEditor({
           <KeyboardShortcutsButton context="memoryMap" />
           <TableContextMenu
             position={contextMenu ? { x: contextMenu.x, y: contextMenu.y } : null}
-            onInsertAbove={() => insertAtGap(contextMenu!.blockIndex)}
-            onInsertBelow={() => insertAtGap(contextMenu!.blockIndex + 1)}
-            onDelete={() => deleteBlock(contextMenu!.blockIndex)}
+            onInsertAbove={() => {
+              const idx = wrappedBlocks.findIndex((w) => w.rowId === contextMenu!.blockId);
+              insertAtGap(idx);
+            }}
+            onInsertBelow={() => {
+              const idx = wrappedBlocks.findIndex((w) => w.rowId === contextMenu!.blockId);
+              insertAtGap(idx + 1);
+            }}
+            onDelete={() => deleteBlock(contextMenu!.blockId)}
             onClose={closeContextMenu}
           />
         </>

@@ -36,43 +36,46 @@ describe('useFieldEditor — draft initialisation', () => {
   it('initialises nameDraft, bitsDraft and resetDraft for a field', () => {
     const fields: BitFieldRecord[] = [makeField('STATUS', 0, 4)];
     const { result } = renderHook(() => useFieldEditor(fields, 32, noop, true));
+    const rowId = result.current.wrappedFields[0].rowId;
 
     act(() => {
-      result.current.ensureDraftsInitialized(0);
+      result.current.ensureDraftsInitialized(rowId, 0);
     });
 
-    expect(result.current.nameDrafts['STATUS']).toBe('STATUS');
-    expect(result.current.bitsDrafts[0]).toBe('[3:0]');
-    expect(result.current.resetDrafts[0]).toBe('0x0');
+    expect(result.current.nameDrafts[rowId]).toBe('STATUS');
+    expect(result.current.bitsDrafts[rowId]).toBe('[3:0]');
+    expect(result.current.resetDrafts[rowId]).toBe('0x0');
   });
 
   it('does not overwrite an already-initialised draft', () => {
     const fields: BitFieldRecord[] = [makeField('CTRL', 4, 1)];
     const { result } = renderHook(() => useFieldEditor(fields, 32, noop, true));
+    const rowId = result.current.wrappedFields[0].rowId;
 
     act(() => {
-      result.current.ensureDraftsInitialized(0);
+      result.current.ensureDraftsInitialized(rowId, 0);
       // Manually overwrite the name draft
-      result.current.setNameDrafts({ CTRL: 'MY_DRAFT' });
+      result.current.setNameDrafts({ [rowId]: 'MY_DRAFT' });
     });
 
     // Calling again must not overwrite the manual draft
     act(() => {
-      result.current.ensureDraftsInitialized(0);
+      result.current.ensureDraftsInitialized(rowId, 0);
     });
 
-    expect(result.current.nameDrafts['CTRL']).toBe('MY_DRAFT');
+    expect(result.current.nameDrafts[rowId]).toBe('MY_DRAFT');
   });
 
   it('formats reset_value as hex string', () => {
     const fields: BitFieldRecord[] = [{ ...makeField('IRQ', 8, 1), reset_value: 255 }];
     const { result } = renderHook(() => useFieldEditor(fields, 32, noop, true));
+    const rowId = result.current.wrappedFields[0].rowId;
 
     act(() => {
-      result.current.ensureDraftsInitialized(0);
+      result.current.ensureDraftsInitialized(rowId, 0);
     });
 
-    expect(result.current.resetDrafts[0]).toBe('0xFF');
+    expect(result.current.resetDrafts[rowId]).toBe('0xFF');
   });
 });
 
@@ -106,6 +109,7 @@ describe('useFieldEditor — initial selection state', () => {
 
 describe('useFieldEditor — moveSelectedField', () => {
   it('moves down by 1 when delta is +1', () => {
+    jest.useFakeTimers();
     const fields = [makeField('A', 0), makeField('B', 1), makeField('C', 2)];
     const onUpdate = jest.fn();
     const { result } = renderHook(() => useFieldEditor(fields, 32, onUpdate, true));
@@ -119,8 +123,13 @@ describe('useFieldEditor — moveSelectedField', () => {
       result.current.moveSelectedField(1);
     });
 
+    act(() => {
+      jest.runOnlyPendingTimers();
+    });
+
     expect(result.current.selectedFieldIndex).toBe(1);
     expect(onUpdate).toHaveBeenCalledWith(['__op', 'field-move'], { index: 0, delta: 1 });
+    jest.useRealTimers();
   });
 
   it('does not move below 0', () => {
@@ -203,7 +212,7 @@ describe('useFieldEditor — insertError state', () => {
 // ---------------------------------------------------------------------------
 
 describe('useFieldEditor — reorder synchronization', () => {
-  it('clears index-keyed drafts when field order changes', () => {
+  it('keeps drafts matched to stable rowId when field order changes', () => {
     const initialFields: BitFieldRecord[] = [
       makeField('IRQ_ENABLE', 31, 1),
       makeField('RESERVED', 3, 28),
@@ -223,26 +232,32 @@ describe('useFieldEditor — reorder synchronization', () => {
       { initialProps: { fields: initialFields } }
     );
 
+    const rowId0 = result.current.wrappedFields[0].rowId; // IRQ_ENABLE
+    const rowId1 = result.current.wrappedFields[1].rowId; // RESERVED
+
     act(() => {
       result.current.setBitsDrafts({
-        0: '[30:3]',
-        1: '[31:31]',
+        [rowId0]: '[30:3]',
+        [rowId1]: '[31:31]',
       });
-      result.current.setBitsErrors({ 0: 'stale error' });
-      result.current.setDragPreviewRanges({ 0: [30, 3] });
-      result.current.setResetDrafts({ 0: '0x7', 1: '0x1' });
-      result.current.setResetErrors({ 1: 'stale reset error' });
+      result.current.setBitsErrors({ [rowId0]: 'stale error' });
+      result.current.setDragPreviewRanges({ [rowId0]: [30, 3] });
+      result.current.setResetDrafts({ [rowId0]: '0x7', [rowId1]: '0x1' });
+      result.current.setResetErrors({ [rowId1]: 'stale reset error' });
     });
 
     act(() => {
       rerender({ fields: reorderedFields });
     });
 
-    expect(result.current.bitsDrafts).toEqual({});
-    expect(result.current.bitsErrors).toEqual({});
-    expect(result.current.dragPreviewRanges).toEqual({});
-    expect(result.current.resetDrafts).toEqual({});
-    expect(result.current.resetErrors).toEqual({});
+    // Drafts must be preserved on their stable rowId, not cleared or mixed up
+    expect(result.current.bitsDrafts[rowId0]).toBe('[30:3]');
+    expect(result.current.bitsDrafts[rowId1]).toBe('[31:31]');
+    expect(result.current.bitsErrors[rowId0]).toBe('stale error');
+    expect(result.current.dragPreviewRanges[rowId0]).toEqual([30, 3]);
+    expect(result.current.resetDrafts[rowId0]).toBe('0x7');
+    expect(result.current.resetDrafts[rowId1]).toBe('0x1');
+    expect(result.current.resetErrors[rowId1]).toBe('stale reset error');
   });
 
   it('keeps drafts when field signature is unchanged', () => {
@@ -254,16 +269,18 @@ describe('useFieldEditor — reorder synchronization', () => {
       { initialProps: { fields: fieldsA } }
     );
 
+    const rowId0 = result.current.wrappedFields[0].rowId;
+
     act(() => {
-      result.current.setBitsDrafts({ 0: '[0:0]' });
-      result.current.setResetDrafts({ 0: '0x1' });
+      result.current.setBitsDrafts({ [rowId0]: '[0:0]' });
+      result.current.setResetDrafts({ [rowId0]: '0x1' });
     });
 
     act(() => {
       rerender({ fields: fieldsB });
     });
 
-    expect(result.current.bitsDrafts).toEqual({ 0: '[0:0]' });
-    expect(result.current.resetDrafts).toEqual({ 0: '0x1' });
+    expect(result.current.bitsDrafts[rowId0]).toBe('[0:0]');
+    expect(result.current.resetDrafts[rowId0]).toBe('0x1');
   });
 });
