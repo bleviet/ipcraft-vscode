@@ -35,7 +35,7 @@ export interface ScaffoldPack {
   packDir: string;
   files: ScaffoldFileRule[];
   /**
-   * When true, testbench generation gets the full register/bus context (bahonavi-style).
+   * When true, testbench generation gets the full register/bus context (IPCraft-style).
    * When false, testbench sees a minimal stub without register signals.
    */
   fullGeneration?: boolean;
@@ -62,15 +62,15 @@ export interface GenerateOptions {
   /** Simulation engine: 'ghdl' (default), 'icarus', 'verilator', 'questa'. */
   engine?: string;
   /**
-   * Enable the bahonavi methodology: full multi-file generation (top, core, bus wrapper,
+   * Enable the IPCraft methodology: full multi-file generation (top, core, bus wrapper,
    * package, register file). When false (default), only a single minimal top-level stub
    * is generated with an empty architecture/module body.
    * Ignored when scaffold_pack is set explicitly.
    */
-  bahonaviMethodology?: boolean;
+  ipCraftMethodology?: boolean;
   /**
    * Name of the scaffold pack to use for RTL file generation.
-   * Overrides bahonaviMethodology when present.
+   * Overrides ipCraftMethodology when present.
    * Resolves workspace pack first (.vscode/ipcraft/packs/<name>/), then built-in packs.
    */
   scaffoldPack?: string;
@@ -86,7 +86,7 @@ export interface GenerateResult {
   generatedContents?: Record<string, string>;
   /** Relative paths of managed:false files that already exist on disk (skip on write). */
   protectedPaths?: string[];
-  /** The scaffold pack id that was actually used (e.g. "builtin-bahonavi"). */
+  /** The scaffold pack id that was actually used (e.g. "builtin-ipcraft"). */
   resolvedPackName?: string;
   count?: number;
   busType?: string;

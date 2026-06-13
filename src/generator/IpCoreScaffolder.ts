@@ -73,7 +73,7 @@ export class IpCoreScaffolder {
       if (memmapRelpath !== undefined) {
         context.memmap_relpath = memmapRelpath;
       }
-      const bahonaviMethodology = options.bahonaviMethodology ?? false;
+      const ipCraftMethodology = options.ipCraftMethodology ?? false;
       const includeRegs = options.includeRegs !== false && hasMmSlave;
       const includeTestbench = options.includeTestbench !== false;
       const targets = options.targets ?? [];
@@ -97,7 +97,7 @@ export class IpCoreScaffolder {
       const scaffoldPackLoader = new ScaffoldPackLoader(this.resourceRoots.builtinPacksDir);
       const pack = packName
         ? scaffoldPackLoader.resolve(packName, workspacePackDirs)
-        : scaffoldPackLoader.resolveDefault(bahonaviMethodology);
+        : scaffoldPackLoader.resolveDefault(ipCraftMethodology);
       const resolvedPackName = path.basename(pack.packDir);
 
       // Pack-level template loader: searches pack dir first (user overrides), then built-in templates.

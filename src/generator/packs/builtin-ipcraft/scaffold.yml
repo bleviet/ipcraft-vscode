@@ -1,4 +1,4 @@
-name: "builtin-bahonavi"
+name: "builtin-ipcraft"
 description: >
   Standard layered architecture: package, top-level entity/module, core logic
   stub, bus wrapper, and register file. Recommended for IP cores with a memory-

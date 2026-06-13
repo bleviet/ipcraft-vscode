@@ -465,7 +465,7 @@ export interface IpCore {
   vlnv: VLNV;
   description?: Description;
   /**
-   * Scaffold pack used to generate this IP core (e.g. "builtin-bahonavi"). Persisted so the canvas picker restores the correct methodology when the file is reopened.
+   * Scaffold pack used to generate this IP core (e.g. "builtin-ipcraft"). Persisted so the canvas picker restores the correct methodology when the file is reopened.
    */
   scaffold_pack?: string;
   clocks?: Clocks;

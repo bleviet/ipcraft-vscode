@@ -63,7 +63,7 @@ describe('IpCoreScaffolder', () => {
     jest.clearAllMocks();
   });
 
-  it('generates a full project structure (bahonaviMethodology)', async () => {
+  it('generates a full project structure (ipCraftMethodology)', async () => {
     const inputPath = path.resolve(__dirname, '../../fixtures/sample-ipcore.yml');
     const outputDir = '/tmp/test-output';
 
@@ -71,7 +71,7 @@ describe('IpCoreScaffolder', () => {
       includeRegs: true,
       includeTestbench: true,
       targets: ['vivado', 'quartus'],
-      bahonaviMethodology: true,
+      ipCraftMethodology: true,
     });
 
     expect(result.success).toBe(true);
@@ -128,7 +128,7 @@ describe('IpCoreScaffolder', () => {
     expect(tclContent).toContain('add_parameter DEVICE_TAG STRING ""');
   });
 
-  it('generates a single minimal stub by default (no bahonaviMethodology)', async () => {
+  it('generates a single minimal stub by default (no ipCraftMethodology)', async () => {
     const inputPath = path.resolve(__dirname, '../../fixtures/sample-ipcore.yml');
     const outputDir = '/tmp/test-minimal-output';
 
@@ -136,7 +136,7 @@ describe('IpCoreScaffolder', () => {
       includeRegs: true,
       includeTestbench: true,
       targets: ['vivado', 'quartus'],
-      // bahonaviMethodology: false is the default
+      // ipCraftMethodology: false is the default
     });
 
     expect(result.success).toBe(true);

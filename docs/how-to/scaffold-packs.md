@@ -9,7 +9,7 @@ Five packs ship with IPCraft — two production-ready and three annotated exampl
 | Pack | Category | What it generates |
 |------|----------|-------------------|
 | `builtin-minimal` | Built-in | One top-level stub per IP core (entity/module, empty body) |
-| `builtin-bahonavi` | Built-in | Full layered set: package, top, core, bus wrapper, register file |
+| `builtin-ipcraft` | Built-in | Full layered set: package, top, core, bus wrapper, register file |
 | `example-register-only` | Example | Only the register file decoder — for IPs with existing RTL |
 | `example-no-regfile` | Example | Full layered set without the register file — write your own decode |
 | `example-with-docs` | Example | Full layered set plus a Markdown register reference document |
@@ -17,8 +17,8 @@ Five packs ship with IPCraft — two production-ready and three annotated exampl
 The example packs have extensively commented `scaffold.yml` files that explain every
 field, making them useful learning material even if you do not use them directly.
 
-The generator selects `builtin-minimal` or `builtin-bahonavi` automatically based on the
-`ipcraft.generate.bahonaviMethodology` setting unless you override it.
+The generator selects `builtin-minimal` or `builtin-ipcraft` automatically based on the
+`ipcraft.generate.ipCraftMethodology` setting unless you override it.
 
 !!! tip "Interactive walkthrough"
     Open the VS Code **Get Started** tab and search for **Get Started with Scaffold Packs**
@@ -50,10 +50,10 @@ Set `ipcraft.generate.scaffoldPack` in your workspace `settings.json`:
 The generator looks for the pack in this order:
 
 1. `.vscode/ipcraft/packs/<name>/scaffold.yml` (workspace-local pack)
-2. Built-in packs shipped with the extension (`builtin-minimal`, `builtin-bahonavi`)
+2. Built-in packs shipped with the extension (`builtin-minimal`, `builtin-ipcraft`)
 
 When `ipcraft.generate.scaffoldPack` is empty the value of
-`ipcraft.generate.bahonaviMethodology` is used as a fallback to keep existing
+`ipcraft.generate.ipCraftMethodology` is used as a fallback to keep existing
 projects working without any migration.
 
 ---
@@ -336,7 +336,7 @@ files:
 
 ## Example: Full Pack with Extra Artifacts
 
-This pack extends `builtin-bahonavi` with an additional Markdown stub for
+This pack extends `builtin-ipcraft` with an additional Markdown stub for
 register documentation placed next to the RTL:
 
 ```yaml title=".vscode/ipcraft/packs/doc-aware/scaffold.yml"

@@ -494,7 +494,7 @@ const IpCoreApp: React.FC = () => {
   const [scaffoldPack, setScaffoldPack] = useState('builtin-minimal');
   const [availableScaffoldPacks, setAvailableScaffoldPacks] = useState<PackSummary[]>([
     { id: 'builtin-minimal', label: 'Minimal', description: '', category: 'builtin' },
-    { id: 'builtin-bahonavi', label: 'Bahonavi', description: '', category: 'builtin' },
+    { id: 'builtin-ipcraft', label: 'IPCraft', description: '', category: 'builtin' },
   ]);
   // Active vendor toolchain section(s) shown in toolbar — mirrors ipcraft.toolbar.targets
   const [toolbarTargets, setToolbarTargets] = useState<string[]>(['vivado', 'quartus']);

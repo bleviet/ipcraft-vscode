@@ -52,7 +52,7 @@ at build time; AJV-validated in `IpCoreScaffolder.loadIpCore`). Root keys:
 vlnv: { vendor, library, name, version }   # identity — REQUIRED; presence of `vlnv` is how
                                            # IpCoreEditorProvider detects an IP core file
 description: ...
-scaffold_pack: builtin-bahonavi            # per-file generator pack selection (round-trips)
+scaffold_pack: builtin-ipcraft            # per-file generator pack selection (round-trips)
 clocks:      [{ name, logicalName, direction, frequency, associatedReset, ... }]
 resets:      [{ name, polarity, associatedClock, ... }]
 interrupts:  [{ name, logicalName, ... }]
@@ -436,7 +436,7 @@ load .ip.yml ──► AJV validate (ip_core.schema.json)
               ──► resolveMemoryMaps: follow mm.yml imports, prepareRegisters
                   (flatten arrays, compute offsets/widths for templates)
               ──► resolve scaffold pack:
-                  options.scaffoldPack > .ip.yml scaffold_pack > legacy bahonavi flag
+                  options.scaffoldPack > .ip.yml scaffold_pack > legacy IPCraft flag
                   search: .vscode/ipcraft/packs/<name>/ then built-in dist/packs/<name>/
               ──► for each pack file rule {source, target, condition, managed}:
                   Nunjucks-render condition + source/target names + template content
@@ -449,7 +449,7 @@ load .ip.yml ──► AJV validate (ip_core.schema.json)
 **Scaffold packs** are the extensibility mechanism: a pack is a directory with a
 `scaffold.yml` manifest (`files[]` rules, `fullGeneration` flag) plus `.j2` templates that
 shadow the built-in template directory via `TemplateLoader`'s ordered multi-root search.
-Built-ins: `builtin-minimal`, `builtin-bahonavi`, plus example packs. Workspace packs live in
+Built-ins: `builtin-minimal`, `builtin-ipcraft`, plus example packs. Workspace packs live in
 `.vscode/ipcraft/packs/` and can be exported from built-ins
 (`fpga-ip-core.exportScaffoldPack`). `TemplatePreviewProvider` renders `.j2` files live
 against a pinned IP core. Conditions in `scaffold.yml` are Nunjucks boolean expressions

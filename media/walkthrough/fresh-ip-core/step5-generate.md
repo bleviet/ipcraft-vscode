@@ -20,6 +20,6 @@ If you just want the RTL without vendor packaging or testbench, use **Generate H
 
 ### Choosing a scaffold pack
 
-The **Project Scaffold** section in the left navigation lets you pick which scaffold pack drives the generation. The default `builtin-bahonavi` pack produces the full layered structure above. Once you are comfortable, you can eject and customise a pack to match your team's conventions.
+The **Project Scaffold** section in the left navigation lets you pick which scaffold pack drives the generation. The default `builtin-ipcraft` pack produces the full layered structure above. Once you are comfortable, you can eject and customise a pack to match your team's conventions.
 
 > **Tip:** Change `ipcraft.generate.hdlLanguage` in settings to switch between VHDL and SystemVerilog output.

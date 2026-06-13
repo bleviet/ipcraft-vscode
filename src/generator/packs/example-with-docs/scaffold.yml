@@ -11,7 +11,7 @@ fullGeneration: true
 files:
   # ── What this pack does ────────────────────────────────────────────────────
   #
-  # This pack produces everything that builtin-bahonavi produces PLUS:
+  # This pack produces everything that builtin-ipcraft produces PLUS:
   #   docs/<name>_registers.md   ← human-readable register reference table
   #
   # The documentation file is marked managed:false because engineers often

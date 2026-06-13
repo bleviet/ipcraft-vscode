@@ -37,12 +37,12 @@ export class ScaffoldPackLoader {
   }
 
   /**
-   * Resolve the default built-in pack based on the legacy bahonaviMethodology flag.
-   * `true`  → builtin-bahonavi
+   * Resolve the default built-in pack based on the legacy ipCraftMethodology flag.
+   * `true`  → builtin-ipcraft
    * `false` → builtin-minimal
    */
-  resolveDefault(bahonaviMethodology: boolean): ScaffoldPack {
-    const packName = bahonaviMethodology ? 'builtin-bahonavi' : 'builtin-minimal';
+  resolveDefault(ipCraftMethodology: boolean): ScaffoldPack {
+    const packName = ipCraftMethodology ? 'builtin-ipcraft' : 'builtin-minimal';
     const packDir = path.join(this.builtinPacksDir, packName);
     if (!fs.existsSync(path.join(packDir, 'scaffold.yml'))) {
       throw new Error(`Built-in scaffold pack '${packName}' not found at: ${packDir}`);
