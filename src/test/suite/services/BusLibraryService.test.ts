@@ -10,8 +10,6 @@ describe('BusLibraryService', () => {
   let logger: LoggerMock;
   let readFileMock: jest.Mock;
   let readDirectoryMock: jest.Mock;
-  let context: vscode.ExtensionContext;
-
   beforeEach(() => {
     logger = {
       info: jest.fn(),
@@ -32,10 +30,6 @@ describe('BusLibraryService', () => {
       fsPath: filePath,
       toString: () => filePath,
     }));
-
-    context = {
-      extensionPath: '/ext',
-    } as vscode.ExtensionContext;
   });
 
   it('loads and merges all yml files from the bus definitions directory', async () => {
@@ -47,7 +41,7 @@ describe('BusLibraryService', () => {
       .mockResolvedValueOnce(Buffer.from('AXI4_LITE: { ports: [AWADDR] }', 'utf8'))
       .mockResolvedValueOnce(Buffer.from('AVALON_MEMORY_MAPPED: { ports: [address] }', 'utf8'));
 
-    const service = new BusLibraryService(logger as Logger, context);
+    const service = new BusLibraryService(logger as Logger, MOCK_DIR);
     const result = await service.loadDefaultLibrary();
 
     expect(result).toEqual({
@@ -66,7 +60,7 @@ describe('BusLibraryService', () => {
     readDirectoryMock.mockResolvedValue([['axi4_lite.yml', vscode.FileType.File]]);
     readFileMock.mockResolvedValue(Buffer.from('AXI4_LITE: { ports: [AWADDR] }', 'utf8'));
 
-    const service = new BusLibraryService(logger as Logger, context);
+    const service = new BusLibraryService(logger as Logger, MOCK_DIR);
     const first = await service.loadDefaultLibrary();
     const second = await service.loadDefaultLibrary();
 
@@ -77,7 +71,7 @@ describe('BusLibraryService', () => {
 
   it('throws and logs when bus library directory cannot be read', async () => {
     readDirectoryMock.mockRejectedValue(new Error('not found'));
-    const service = new BusLibraryService(logger as Logger, context);
+    const service = new BusLibraryService(logger as Logger, MOCK_DIR);
 
     await expect(service.loadDefaultLibrary()).rejects.toThrow(
       `Default bus library directory not found at ${MOCK_DIR}: not found`
@@ -91,7 +85,7 @@ describe('BusLibraryService', () => {
     readDirectoryMock.mockResolvedValue([['axi4_lite.yml', vscode.FileType.File]]);
     readFileMock.mockRejectedValue(new Error('permission denied'));
 
-    const service = new BusLibraryService(logger as Logger, context);
+    const service = new BusLibraryService(logger as Logger, MOCK_DIR);
 
     await expect(service.loadDefaultLibrary()).rejects.toThrow(
       `Failed to read bus definition from ${MOCK_DIR}/axi4_lite.yml: permission denied`
@@ -103,7 +97,7 @@ describe('BusLibraryService', () => {
     readDirectoryMock.mockResolvedValue([['axi4_lite.yml', vscode.FileType.File]]);
     readFileMock.mockResolvedValue(Buffer.from('{ invalid: [', 'utf8'));
 
-    const service = new BusLibraryService(logger as Logger, context);
+    const service = new BusLibraryService(logger as Logger, MOCK_DIR);
 
     await expect(service.loadDefaultLibrary()).rejects.toThrow(
       `Failed to parse bus definition from ${MOCK_DIR}/axi4_lite.yml`
@@ -117,7 +111,7 @@ describe('BusLibraryService', () => {
       .mockResolvedValueOnce(Buffer.from('AXI4_LITE: { ports: [AWADDR] }', 'utf8'))
       .mockResolvedValueOnce(Buffer.from('AXI4_LITE: { ports: [AWADDR, ARADDR] }', 'utf8'));
 
-    const service = new BusLibraryService(logger as Logger, context);
+    const service = new BusLibraryService(logger as Logger, MOCK_DIR);
     const first = await service.loadDefaultLibrary();
     service.clearCache();
     const second = await service.loadDefaultLibrary();
@@ -135,7 +129,7 @@ describe('BusLibraryService', () => {
     ]);
     readFileMock.mockResolvedValue(Buffer.from('AXI4_LITE: { ports: [AWADDR] }', 'utf8'));
 
-    const service = new BusLibraryService(logger as Logger, context);
+    const service = new BusLibraryService(logger as Logger, MOCK_DIR);
     const result = await service.loadDefaultLibrary();
 
     expect(result).toEqual({ AXI4_LITE: { ports: ['AWADDR'] } });

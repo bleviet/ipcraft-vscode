@@ -3,6 +3,7 @@ import * as path from 'path';
 import { Logger, LogLevel } from './utils/Logger';
 import { MemoryMapEditorProvider } from './providers/MemoryMapEditorProvider';
 import { IpCoreEditorProvider } from './providers/IpCoreEditorProvider';
+import { resolveResourceRoots, ResourceRoots } from './services/ResourceRoots';
 import { ReportsTreeProvider } from './providers/ReportsTreeProvider';
 import {
   createIpCoreCommand,
@@ -75,6 +76,17 @@ export function activate(context: vscode.ExtensionContext): void {
   const logger = new Logger('Extension');
   logger.info('Extension activating');
 
+  // Resolve resource roots at activation
+  let resourceRoots: ResourceRoots;
+  try {
+    resourceRoots = resolveResourceRoots(context.extensionPath);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    logger.error('Failed to resolve resource roots: ' + message);
+    void vscode.window.showErrorMessage('IPCraft extension activation failed: ' + message);
+    return;
+  }
+
   registerCustomProvider(
     context,
     logger,
@@ -87,7 +99,7 @@ export function activate(context: vscode.ExtensionContext): void {
     context,
     logger,
     'fpgaIpCore.editor',
-    new IpCoreEditorProvider(context),
+    new IpCoreEditorProvider(context, resourceRoots),
     'IP Core'
   );
 
@@ -95,7 +107,7 @@ export function activate(context: vscode.ExtensionContext): void {
     context,
     logger,
     'fpgaIpCore.sourcePreview',
-    new IpCoreSourcePreviewProvider(context),
+    new IpCoreSourcePreviewProvider(context, resourceRoots),
     'IP Core Source Preview'
   );
 
@@ -143,7 +155,7 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   // Register virtual document provider for .j2 template live preview
-  const templatePreviewProvider = new TemplatePreviewProvider(logger, context);
+  const templatePreviewProvider = new TemplatePreviewProvider(logger, context, resourceRoots);
   context.subscriptions.push(
     vscode.workspace.registerTextDocumentContentProvider(
       TEMPLATE_PREVIEW_SCHEME,
@@ -155,17 +167,17 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.window.onDidChangeActiveTextEditor(async (editor) => {
       if (editor && path.basename(editor.document.fileName) === 'scaffold.yml') {
-        const panel = ScaffoldPackPanel.show(logger, context);
+        const panel = ScaffoldPackPanel.show(logger, context, resourceRoots);
         await panel.refresh(editor.document.fileName);
       }
     })
   );
 
   // Register Scaffold Pack Commands (preview + export + watchers)
-  registerScaffoldPackCommands(context, templatePreviewProvider);
+  registerScaffoldPackCommands(context, templatePreviewProvider, resourceRoots);
 
   // Register VHDL Generator Commands
-  registerGeneratorCommands(context);
+  registerGeneratorCommands(context, resourceRoots);
   logger.info('Generator commands registered');
 
   // Register Build Commands + Reports tree view
@@ -209,7 +221,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
   // Install custom IPCraft bus definitions (e.g. Avalon Streaming) to the global OS config dir
   void import('./generator/VivadoBusDefInstaller').then(({ installGlobalBusDefinitions }) => {
-    installGlobalBusDefinitions(context.extensionPath)
+    installGlobalBusDefinitions(resourceRoots.busDefinitionsDir)
       .then((busDefsDir) => {
         logger.info(`Installed global bus definitions to: ${busDefsDir}`);
       })

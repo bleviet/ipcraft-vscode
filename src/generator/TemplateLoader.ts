@@ -1,4 +1,3 @@
-import * as fs from 'fs';
 import * as path from 'path';
 import * as nunjucks from 'nunjucks';
 import { Logger } from '../utils/Logger';
@@ -13,12 +12,10 @@ export class TemplateLoader {
    *   When a list is given, each path is searched in order — first match wins.
    *   This allows a scaffold pack directory to shadow built-in templates.
    */
-  constructor(logger: Logger, templatesPath?: string | string[]) {
+  constructor(logger: Logger, templatesPath: string | string[]) {
     this.logger = logger;
 
-    const paths: string[] = Array.isArray(templatesPath)
-      ? templatesPath
-      : [templatesPath ?? TemplateLoader.resolveTemplatesPath()];
+    const paths: string[] = Array.isArray(templatesPath) ? templatesPath : [templatesPath];
 
     // Canonical path used for logging; multi-root shows all paths joined.
     this.templatesPath = paths.join(path.delimiter);
@@ -87,18 +84,6 @@ export class TemplateLoader {
     });
 
     this.logger.info(`Template loader using ${this.templatesPath}`);
-  }
-
-  static resolveTemplatesPath(): string {
-    const candidates = [path.join(__dirname, 'templates')].filter(Boolean);
-
-    for (const candidate of candidates) {
-      if (fs.existsSync(candidate)) {
-        return candidate;
-      }
-    }
-
-    return process.cwd();
   }
 
   getTemplatesPath(): string {

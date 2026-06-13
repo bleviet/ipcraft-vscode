@@ -7,8 +7,6 @@ type LoggerMock = Pick<Logger, 'info' | 'warn' | 'error'>;
 describe('ImportResolver', () => {
   let logger: LoggerMock;
   let readFileMock: jest.Mock;
-  let context: vscode.ExtensionContext;
-
   beforeEach(() => {
     logger = {
       info: jest.fn(),
@@ -29,14 +27,10 @@ describe('ImportResolver', () => {
       get: (_key: string, defaultValue?: unknown) => defaultValue,
     });
     (vscode.workspace as { workspaceFolders?: unknown }).workspaceFolders = undefined;
-
-    context = {
-      extensionPath: '/ext',
-    } as vscode.ExtensionContext;
   });
 
   it('loads default bus library when useBusLibrary is not provided', async () => {
-    const resolver = new ImportResolver(logger as Logger, context);
+    const resolver = new ImportResolver(logger as Logger, '/ext/dist/resources/bus_definitions');
     (
       resolver as unknown as { busLibraryService: { loadDefaultLibrary: jest.Mock } }
     ).busLibraryService.loadDefaultLibrary = jest
@@ -51,7 +45,7 @@ describe('ImportResolver', () => {
   });
 
   it('falls back to default bus library when explicit bus library fails', async () => {
-    const resolver = new ImportResolver(logger as Logger, context);
+    const resolver = new ImportResolver(logger as Logger, '/ext/dist/resources/bus_definitions');
     (
       resolver as unknown as { busLibraryService: { loadDefaultLibrary: jest.Mock } }
     ).busLibraryService.loadDefaultLibrary = jest
@@ -69,7 +63,7 @@ describe('ImportResolver', () => {
   });
 
   it('resolves memory map imports for array and single-object YAML payloads', async () => {
-    const resolver = new ImportResolver(logger as Logger, context);
+    const resolver = new ImportResolver(logger as Logger, '/ext/dist/resources/bus_definitions');
 
     readFileMock
       .mockResolvedValueOnce(Buffer.from('- name: map0\n  baseAddress: 0x0\n', 'utf8'))
@@ -83,7 +77,7 @@ describe('ImportResolver', () => {
   });
 
   it('throws when any file set import fails', async () => {
-    const resolver = new ImportResolver(logger as Logger, context);
+    const resolver = new ImportResolver(logger as Logger, '/ext/dist/resources/bus_definitions');
 
     readFileMock.mockImplementation(async (uri: { fsPath: string }) => {
       if (uri.fsPath.endsWith('good_a.fileset.yml')) {
@@ -112,7 +106,7 @@ describe('ImportResolver', () => {
   });
 
   it('caches resolved bus library by absolute path and reloads after clearCache', async () => {
-    const resolver = new ImportResolver(logger as Logger, context);
+    const resolver = new ImportResolver(logger as Logger, '/ext/dist/resources/bus_definitions');
     readFileMock
       .mockResolvedValueOnce(Buffer.from('axi4: { ports: [awaddr] }', 'utf8'))
       .mockResolvedValueOnce(Buffer.from('wishbone: { ports: [adr] }', 'utf8'));

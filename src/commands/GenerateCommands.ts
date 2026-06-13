@@ -11,6 +11,7 @@ import { mkdir, writeFile, readFile } from 'fs/promises';
 import { Logger } from '../utils/Logger';
 import { TemplateLoader } from '../generator/TemplateLoader';
 import { IpCoreScaffolder } from '../generator/IpCoreScaffolder';
+import { ResourceRoots } from '../services/ResourceRoots';
 import { parseVhdlFile } from '../parser/VhdlParser';
 import { parseHwTclFile } from '../parser/HwTclParser';
 import { parseComponentXmlFile } from '../parser/ComponentXmlParser';
@@ -38,11 +39,13 @@ function readScaffoldPackSetting(genCfg: vscode.WorkspaceConfiguration): string 
   return explicit || undefined;
 }
 
-/**
- * Register all generator commands with VS Code
- */
+let globalResourceRoots: ResourceRoots;
 
-export function registerGeneratorCommands(context: vscode.ExtensionContext): void {
+export function registerGeneratorCommands(
+  context: vscode.ExtensionContext,
+  resourceRoots: ResourceRoots
+): void {
+  globalResourceRoots = resourceRoots;
   safeRegisterCommand(context, 'fpga-ip-core.generateHdl', async (uri?: vscode.Uri) => {
     await generateHdl(context, uri);
   });
@@ -99,15 +102,15 @@ export function registerGeneratorCommands(context: vscode.ExtensionContext): voi
   });
 
   safeRegisterCommand(context, 'fpga-ip-core.viewBusDefinitions', async () => {
-    await viewBusDefinitions(context);
+    await viewBusDefinitions();
   });
 }
 
 /**
  * Let the user pick a bus definition file and open it in a read-only editor tab
  */
-async function viewBusDefinitions(context: vscode.ExtensionContext): Promise<void> {
-  const busDirPath = path.join(context.extensionPath, 'dist', 'resources', 'bus_definitions');
+async function viewBusDefinitions(): Promise<void> {
+  const busDirPath = globalResourceRoots.busDefinitionsDir;
   const dirUri = vscode.Uri.file(busDirPath);
 
   let entries: [string, vscode.FileType][];
@@ -629,7 +632,11 @@ async function runGenerator(
   await vscode.window.withProgress(
     { location: vscode.ProgressLocation.Notification, title: 'Analyzing…', cancellable: false },
     async () => {
-      const generator = new IpCoreScaffolder(logger, new TemplateLoader(logger), context);
+      const generator = new IpCoreScaffolder(
+        logger,
+        new TemplateLoader(logger, globalResourceRoots.templatesDir),
+        globalResourceRoots
+      );
       dryResult = await generator.generateAll(ipCoreUri.fsPath, outputDir, {
         ...options,
         dryRun: true,

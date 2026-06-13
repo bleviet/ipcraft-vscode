@@ -3,6 +3,7 @@ import * as path from 'path';
 import { Logger } from '../utils/Logger';
 import { TemplateLoader } from '../generator/TemplateLoader';
 import { IpCoreScaffolder } from '../generator/IpCoreScaffolder';
+import { ResourceRoots } from '../services/ResourceRoots';
 
 export const TEMPLATE_PREVIEW_SCHEME = 'ipcraft-j2-preview';
 
@@ -19,10 +20,12 @@ export class TemplatePreviewProvider implements vscode.TextDocumentContentProvid
 
   private readonly logger: Logger;
   private readonly context: vscode.ExtensionContext;
+  private readonly resourceRoots: ResourceRoots;
 
-  constructor(logger: Logger, context: vscode.ExtensionContext) {
+  constructor(logger: Logger, context: vscode.ExtensionContext, resourceRoots: ResourceRoots) {
     this.logger = logger;
     this.context = context;
+    this.resourceRoots = resourceRoots;
   }
 
   async provideTextDocumentContent(uri: vscode.Uri): Promise<string> {
@@ -37,8 +40,8 @@ export class TemplatePreviewProvider implements vscode.TextDocumentContentProvid
     try {
       const scaffolder = new IpCoreScaffolder(
         this.logger,
-        new TemplateLoader(this.logger),
-        this.context
+        new TemplateLoader(this.logger, this.resourceRoots.templatesDir),
+        this.resourceRoots
       );
 
       const templateContext = await scaffolder.buildTemplateContextPublic(ipCorePath);
@@ -48,7 +51,7 @@ export class TemplatePreviewProvider implements vscode.TextDocumentContentProvid
       const templateName = path.basename(templatePath);
       const loader = new TemplateLoader(this.logger, [
         templateDir,
-        TemplateLoader.resolveTemplatesPath(),
+        this.resourceRoots.templatesDir,
       ]);
 
       return loader.render(templateName, templateContext);

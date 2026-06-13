@@ -3,26 +3,20 @@ import * as path from 'path';
 import * as yaml from 'js-yaml';
 import type { ScaffoldPack, ScaffoldFileRule } from './types';
 
-/** Resolved path to the directory containing the built-in packs (dist/packs/ or src/generator/packs/). */
-const BUILTIN_PACKS_DIR = (() => {
-  // Compiled bundle: __dirname = dist/  → dist/packs/
-  // ts-jest tests:   __dirname = src/generator/ → src/generator/packs/
-  const adjacent = path.join(__dirname, 'packs');
-  if (fs.existsSync(adjacent)) {
-    return adjacent;
-  }
-  // Fallback: running from out/ with source tree intact
-  return path.join(__dirname, '..', 'src', 'generator', 'packs');
-})();
-
 export class ScaffoldPackLoader {
+  private readonly builtinPacksDir: string;
+
+  constructor(builtinPacksDir: string) {
+    this.builtinPacksDir = builtinPacksDir;
+  }
+
   /**
    * Resolve a scaffold pack by name.
    * Lookup order: workspace pack dirs first, then built-in packs.
    * Workspace packs live at `.vscode/ipcraft/packs/<name>/scaffold.yml`.
    */
-  static resolve(packName: string, workspacePackDirs: string[] = []): ScaffoldPack {
-    const searchDirs = [...workspacePackDirs, BUILTIN_PACKS_DIR];
+  resolve(packName: string, workspacePackDirs: string[] = []): ScaffoldPack {
+    const searchDirs = [...workspacePackDirs, this.builtinPacksDir];
 
     for (const dir of searchDirs) {
       const candidate = path.join(dir, packName);
@@ -47,9 +41,9 @@ export class ScaffoldPackLoader {
    * `true`  → builtin-bahonavi
    * `false` → builtin-minimal
    */
-  static resolveDefault(bahonaviMethodology: boolean): ScaffoldPack {
+  resolveDefault(bahonaviMethodology: boolean): ScaffoldPack {
     const packName = bahonaviMethodology ? 'builtin-bahonavi' : 'builtin-minimal';
-    const packDir = path.join(BUILTIN_PACKS_DIR, packName);
+    const packDir = path.join(this.builtinPacksDir, packName);
     if (!fs.existsSync(path.join(packDir, 'scaffold.yml'))) {
       throw new Error(`Built-in scaffold pack '${packName}' not found at: ${packDir}`);
     }
@@ -82,18 +76,19 @@ export class ScaffoldPackLoader {
   }
 
   /** Return the absolute path to the built-in packs directory. */
-  static get builtinPacksDir(): string {
-    return BUILTIN_PACKS_DIR;
+  get builtinPacksDirectory(): string {
+    return this.builtinPacksDir;
   }
 
   /** List all built-in pack names (directory names inside BUILTIN_PACKS_DIR). */
-  static listBuiltinPacks(): string[] {
+  listBuiltinPacks(): string[] {
     try {
       return fs
-        .readdirSync(BUILTIN_PACKS_DIR, { withFileTypes: true })
+        .readdirSync(this.builtinPacksDir, { withFileTypes: true })
         .filter(
           (e) =>
-            e.isDirectory() && fs.existsSync(path.join(BUILTIN_PACKS_DIR, e.name, 'scaffold.yml'))
+            e.isDirectory() &&
+            fs.existsSync(path.join(this.builtinPacksDir, e.name, 'scaffold.yml'))
         )
         .map((e) => e.name);
     } catch {

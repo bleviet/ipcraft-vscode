@@ -25,6 +25,8 @@ import { IpCoreScaffolder } from '../../generator/IpCoreScaffolder';
 import { TemplateLoader } from '../../generator/TemplateLoader';
 import { Logger } from '../../utils/Logger';
 
+import { devResourceRoots } from '../../services/ResourceRoots';
+
 const REPO_ROOT = path.resolve(__dirname, '../../..');
 const TEMPLATES_DIR = path.join(REPO_ROOT, 'ipcraft-spec/templates');
 const EXAMPLES_DIR = path.join(REPO_ROOT, 'ipcraft-spec/examples');
@@ -111,8 +113,8 @@ export async function generateFixtures(): Promise<Fixture[]> {
   } as unknown as Logger;
 
   const loader = new TemplateLoader(logger, GENERATOR_TEMPLATES);
-  const context = { extensionPath: REPO_ROOT } as unknown as import('vscode').ExtensionContext;
-  const scaffolder = new IpCoreScaffolder(logger, loader, context);
+  const resourceRoots = devResourceRoots(REPO_ROOT);
+  const scaffolder = new IpCoreScaffolder(logger, loader, resourceRoots);
 
   const sources: YamlSource[] = [...collectTemplateSources(), ...collectExampleSources()];
 

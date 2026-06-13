@@ -32,6 +32,8 @@ export interface UseTableEditorStateOptions<TRow, TColumnKey extends ColumnKey> 
   enableHoverInsert?: boolean;
   /** Extra dependency values that should trigger the selection clamp effect. */
   clampDeps?: unknown[];
+  /** When false the table holds no selection (index -1). Default: true. */
+  isActive?: boolean;
 }
 
 export interface UseTableEditorStateReturn<TColumnKey extends ColumnKey> {
@@ -102,6 +104,7 @@ export function useTableEditorState<TRow, TColumnKey extends ColumnKey>({
   onAfterRevert,
   enableHoverInsert = true,
   clampDeps,
+  isActive = true,
 }: UseTableEditorStateOptions<TRow, TColumnKey>): UseTableEditorStateReturn<TColumnKey> {
   const firstColumn = columnOrder[0];
 
@@ -131,7 +134,9 @@ export function useTableEditorState<TRow, TColumnKey extends ColumnKey>({
   // ---- Clamp selection when data changes ----
   const extraDeps = clampDeps ?? [];
   useEffect(() => {
-    if (rows.length === 0) {
+    // Inactive tables hold no selection so a collapsed/unfocused editor never
+    // paints a phantom row highlight.
+    if (!isActive || rows.length === 0) {
       setSelectedIndex(-1);
       setActiveCell({ rowIndex: -1, key: firstColumn });
       return;
@@ -150,7 +155,7 @@ export function useTableEditorState<TRow, TColumnKey extends ColumnKey>({
       const key = (columnOrder as readonly string[]).includes(prev.key) ? prev.key : firstColumn;
       return { rowIndex, key: key };
     });
-  }, [rows.length, firstColumn, ...extraDeps]);
+  }, [rows.length, firstColumn, isActive, ...extraDeps]);
 
   // ---- Convenience: select a row ----
   const selectRow = useCallback((idx: number, key?: TColumnKey) => {

@@ -7,11 +7,11 @@ export class BusLibraryService {
   private readonly logger: Logger;
   private cachedDefaultLibrary: Record<string, unknown> | null = null;
   private cachedUserLibrary: Record<string, unknown> | null = null;
-  private readonly context: vscode.ExtensionContext;
+  private readonly busDefinitionsDir: string;
 
-  constructor(logger: Logger, context: vscode.ExtensionContext) {
+  constructor(logger: Logger, busDefinitionsDir: string) {
     this.logger = logger;
-    this.context = context;
+    this.busDefinitionsDir = busDefinitionsDir;
   }
 
   /**
@@ -26,12 +26,7 @@ export class BusLibraryService {
       return this.cachedDefaultLibrary;
     }
 
-    const busDirPath = path.join(
-      this.context.extensionPath,
-      'dist',
-      'resources',
-      'bus_definitions'
-    );
+    const busDirPath = this.busDefinitionsDir;
 
     const dirUri = vscode.Uri.file(busDirPath);
     let entries: [string, vscode.FileType][];

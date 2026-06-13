@@ -5,6 +5,7 @@ import { IpCoreScaffolder } from '../../../generator/IpCoreScaffolder';
 import { TemplateLoader } from '../../../generator/TemplateLoader';
 import { Logger } from '../../../utils/Logger';
 import { BusLibraryService } from '../../../services/BusLibraryService';
+import { devResourceRoots } from '../../../services/ResourceRoots';
 
 // Mock Logger
 jest.mock('../../../utils/Logger', () => {
@@ -46,7 +47,8 @@ describe('IpCoreScaffolder', () => {
   const templatesPath = path.resolve(__dirname, '../../../generator/templates');
   const loader = new TemplateLoader(logger, templatesPath);
 
-  const context = { extensionPath: '/ext' } as any;
+  const repoRoot = path.resolve(__dirname, '../../../..');
+  const resourceRoots = devResourceRoots(repoRoot);
 
   beforeEach(() => {
     // resetMocks: true in jest.config resets all mock implementations before each test.
@@ -57,7 +59,7 @@ describe('IpCoreScaffolder', () => {
       }),
       clearCache: jest.fn(),
     }));
-    scaffolder = new IpCoreScaffolder(logger, loader, context);
+    scaffolder = new IpCoreScaffolder(logger, loader, resourceRoots);
     jest.clearAllMocks();
   });
 
@@ -271,7 +273,7 @@ describe('IpCoreScaffolder', () => {
       }),
       clearCache: jest.fn(),
     }));
-    scaffolder = new IpCoreScaffolder(logger, loader, context);
+    scaffolder = new IpCoreScaffolder(logger, loader, resourceRoots);
 
     const inputPath = path.resolve(__dirname, '../../fixtures/xcvr-ipcore.yml');
 
@@ -327,7 +329,7 @@ describe('IpCoreScaffolder', () => {
       loadFromDirectories: jest.fn().mockResolvedValue({}),
       clearCache: jest.fn(),
     }));
-    scaffolder = new IpCoreScaffolder(logger, loader, context);
+    scaffolder = new IpCoreScaffolder(logger, loader, resourceRoots);
 
     const inputPath = path.resolve(__dirname, '../../fixtures/expr-ipcore.yml');
 

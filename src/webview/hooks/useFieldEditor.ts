@@ -89,7 +89,7 @@ export function useFieldEditor(
     onUpdate,
     rowSelectorAttr: 'data-field-index',
     enableHoverInsert: false, // fields don't use HoverInsertBar
-    clampDeps: [isActive],
+    isActive,
     onAfterRevert: (snapshot: BitFieldRecord[]) => {
       const rowIndex = editorState.activeCell.rowIndex;
       const snapshotField = snapshot[rowIndex];

@@ -16,18 +16,9 @@ const logger = new Logger('VivadoBusDefInstaller');
  * Installs IPCraft's custom bus definitions into the global OS configuration directory
  * so they can be referenced globally by Vivado.
  */
-export async function installGlobalBusDefinitions(extensionPath: string): Promise<string> {
-  const definitionsDir = path.join(extensionPath, 'dist', 'resources', 'bus_definitions');
-  let files: string[] = [];
-  let currentDir = definitionsDir;
-
-  try {
-    files = await fs.readdir(currentDir);
-  } catch (err) {
-    // Fallback if not running in production dist
-    currentDir = path.join(extensionPath, 'ipcraft-spec', 'bus_definitions');
-    files = await fs.readdir(currentDir);
-  }
+export async function installGlobalBusDefinitions(busDefinitionsDir: string): Promise<string> {
+  const currentDir = busDefinitionsDir;
+  const files = await fs.readdir(currentDir);
 
   const busDefinitions: BusDefinitions = {};
 

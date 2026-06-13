@@ -1,0 +1,33 @@
+# Foundations Refactoring Tasks
+
+- `[x]` V-9: Centralized Resource Root Resolution
+  - `[x]` Create `ResourceRoots.ts`
+  - `[x]` Refactor `TemplateLoader.ts`
+  - `[x]` Refactor `ScaffoldPackLoader.ts`
+  - `[x]` Refactor `BusLibraryService.ts`
+  - `[x]` Refactor `IpCoreScaffolder.ts`
+  - `[x]` Update `providerServices.ts`
+  - `[x]` Update `TemplatePreviewProvider.ts`
+  - `[x]` Update `IpCoreSourcePreviewProvider.ts`
+  - `[x]` Update `ScaffoldPackPanel.ts`
+  - `[x]` Update `GenerateCommands.ts`
+  - `[x]` Update `ScaffoldPackCommands.ts`
+  - `[x]` Update `extension.ts`
+  - `[x]` Refactor `ImportResolver.ts`
+  - `[x]` Refactor `IpCoreGenerateHandler.ts`
+- `[x]` V-10: Spec Versioning
+  - `[x]` Create `check-submodule.js`
+  - `[x]` Update `package.json`
+  - `[x]` Create `SpecConformance.test.ts`
+- `[x]` V-6: Webview Handshake Cleanup
+  - `[x]` Update `IpCoreEditorProvider.ts`
+  - `[x]` Update `IpCoreSourcePreviewProvider.ts`
+- `[x]` Unit Test Adaptations
+  - `[x]` Update `IpCoreScaffolder.test.ts`
+  - `[x]` Update `monitorChangeOf.test.ts`
+  - `[x]` Update `BusLibraryService.test.ts`
+  - `[x]` Update `ImportResolver.test.ts`
+  - `[x]` Update `generator.ts` (integration tests)
+- `[x]` Verification
+  - `[x]` Verify unit tests run successfully
+  - `[x]` Verify lint checks pass

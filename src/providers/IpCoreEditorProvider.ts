@@ -27,6 +27,7 @@ import { openInVivadoCommand } from '../commands/openInVivado';
 import { openInQuartusCommand } from '../commands/openInQuartus';
 import { listAll } from '../services/toolchains/registry';
 import { ScaffoldPackLoader } from '../generator/ScaffoldPackLoader';
+import { ResourceRoots } from '../services/ResourceRoots';
 
 interface IpcMessage {
   type: string;
@@ -73,12 +74,18 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
   private readonly subcoreResolver: SubcoreResolver;
   private readonly yamlValidator = new YamlValidator();
 
-  constructor(private readonly context: vscode.ExtensionContext) {
+  private readonly resourceRoots: ResourceRoots;
+
+  constructor(
+    private readonly context: vscode.ExtensionContext,
+    resourceRoots: ResourceRoots
+  ) {
+    this.resourceRoots = resourceRoots;
     const services = createSharedProviderServices(context);
     this.htmlGenerator = services.htmlGenerator;
     this.messageHandler = services.messageHandler;
     this.documentManager = services.documentManager;
-    this.importResolver = new ImportResolver(this.logger, context);
+    this.importResolver = new ImportResolver(this.logger, resourceRoots.busDefinitionsDir);
     this.subcoreResolver = new SubcoreResolver(context);
     void this.subcoreResolver.initialize();
 
@@ -153,9 +160,13 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
     // Set HTML content - use ipcore-specific HTML
     webviewPanel.webview.html = this.htmlGenerator.generateIpCoreHtml(webviewPanel.webview);
 
+    let isReady = false;
     let isDisposed = false;
 
     const updateWebview = async () => {
+      if (!isReady || isDisposed) {
+        return;
+      }
       await this.updateWebview(document, webviewPanel, () => isDisposed);
     };
 
@@ -182,12 +193,12 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
       configSubscription.dispose();
       fileWatcher.dispose();
     });
-    this.registerWebviewMessageHandlers(document, webviewPanel, updateWebview);
+    this.registerWebviewMessageHandlers(document, webviewPanel, updateWebview, () => {
+      isReady = true;
+    });
     WebviewStagingBridge.getInstance().register(document.uri.fsPath, webviewPanel);
 
-    setTimeout(() => {
-      void updateWebview();
-    }, 100);
+    this.logger.info('Waiting for webview ready handshake');
   }
 
   private subscribeToDocumentChanges(
@@ -243,7 +254,8 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
   private registerWebviewMessageHandlers(
     document: vscode.TextDocument,
     webviewPanel: vscode.WebviewPanel,
-    updateWebview: () => Promise<void>
+    updateWebview: () => Promise<void>,
+    onReady: () => void
   ): void {
     type MessageHandlerFn = (message: IpcMessage) => Promise<void>;
 
@@ -254,6 +266,7 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
     const messageHandlers: Record<string, MessageHandlerFn> = {
       ready: async () => {
         this.logger.info('Webview ready, sending initial update');
+        onReady();
         await updateWebview();
       },
       selectFiles: async (message) => {
@@ -265,7 +278,7 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
       generate: async (message) => {
         await handleGenerateRequest({
           logger: this.logger,
-          context: this.context,
+          resourceRoots: this.resourceRoots,
           documentManager: this.documentManager,
           document,
           webview: webviewPanel.webview,
@@ -500,7 +513,9 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
         yamlScaffoldPack ??
         (generateCfg.get<string>('scaffoldPack', '') ||
           (legacyBahonavi ? 'builtin-bahonavi' : 'builtin-minimal'));
-      const availableScaffoldPacks = collectAvailableScaffoldPacks();
+      const availableScaffoldPacks = collectAvailableScaffoldPacks(
+        this.resourceRoots.builtinPacksDir
+      );
 
       const toolbarTargets = vscode.workspace
         .getConfiguration('ipcraft.toolbar')
@@ -858,7 +873,7 @@ function packLabel(id: string): string {
  *  1. Built-in packs from the extension bundle
  *  2. Workspace packs from .vscode/ipcraft/packs/
  */
-function collectAvailableScaffoldPacks(): PackSummaryForWebview[] {
+function collectAvailableScaffoldPacks(builtinPacksDir: string): PackSummaryForWebview[] {
   const result: PackSummaryForWebview[] = [];
 
   const loadDir = (dir: string, defaultCategory: string) => {
@@ -890,7 +905,7 @@ function collectAvailableScaffoldPacks(): PackSummaryForWebview[] {
     }
   };
 
-  loadDir(ScaffoldPackLoader.builtinPacksDir, 'builtin');
+  loadDir(builtinPacksDir, 'builtin');
 
   const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
   if (workspaceRoot) {

@@ -5,6 +5,7 @@ import { Logger } from '../utils/Logger';
 import { ScaffoldPackLoader } from '../generator/ScaffoldPackLoader';
 import { TemplateLoader } from '../generator/TemplateLoader';
 import { IpCoreScaffolder } from '../generator/IpCoreScaffolder';
+import { ResourceRoots } from '../services/ResourceRoots';
 import {
   renderFileTree,
   escHtml,
@@ -31,11 +32,17 @@ export class ScaffoldPackPanel {
   private readonly panel: vscode.WebviewPanel;
   private readonly logger: Logger;
   private readonly context: vscode.ExtensionContext;
+  private readonly resourceRoots: ResourceRoots;
   private readonly disposables: vscode.Disposable[] = [];
 
-  private constructor(logger: Logger, context: vscode.ExtensionContext) {
+  private constructor(
+    logger: Logger,
+    context: vscode.ExtensionContext,
+    resourceRoots: ResourceRoots
+  ) {
     this.logger = logger;
     this.context = context;
+    this.resourceRoots = resourceRoots;
 
     this.panel = vscode.window.createWebviewPanel(
       'ipcraft-scaffold-preview',
@@ -65,9 +72,13 @@ export class ScaffoldPackPanel {
     );
   }
 
-  static show(logger: Logger, context: vscode.ExtensionContext): ScaffoldPackPanel {
+  static show(
+    logger: Logger,
+    context: vscode.ExtensionContext,
+    resourceRoots: ResourceRoots
+  ): ScaffoldPackPanel {
     if (!ScaffoldPackPanel._instance) {
-      ScaffoldPackPanel._instance = new ScaffoldPackPanel(logger, context);
+      ScaffoldPackPanel._instance = new ScaffoldPackPanel(logger, context, resourceRoots);
     } else {
       ScaffoldPackPanel._instance.panel.reveal(vscode.ViewColumn.Beside, true);
     }
@@ -98,14 +109,14 @@ export class ScaffoldPackPanel {
       if (ipCorePath) {
         const scaffolder = new IpCoreScaffolder(
           this.logger,
-          new TemplateLoader(this.logger),
-          this.context
+          new TemplateLoader(this.logger, this.resourceRoots.templatesDir),
+          this.resourceRoots
         );
         const ctx = await scaffolder.buildTemplateContextPublic(ipCorePath);
 
         const packLoader = new TemplateLoader(this.logger, [
           pack.packDir,
-          TemplateLoader.resolveTemplatesPath(),
+          this.resourceRoots.templatesDir,
         ]);
 
         files = pack.files.map((rule) => {

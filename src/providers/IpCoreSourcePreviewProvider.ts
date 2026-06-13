@@ -10,6 +10,7 @@ import { parseVhdlFile } from '../parser/VhdlParser';
 import { parseVerilogFile } from '../parser/VerilogParser';
 import { IpCoreScaffolder } from '../generator/IpCoreScaffolder';
 import { TemplateLoader } from '../generator/TemplateLoader';
+import { ResourceRoots } from '../services/ResourceRoots';
 import { resolveVendor } from '../utils/resolveVendor';
 import { legacyVendorToTargets } from '../utils/migrateIpCore';
 import type { GenerateOptionsMessage } from './IpCoreGenerateHandler';
@@ -88,8 +89,14 @@ export class IpCoreSourcePreviewProvider implements vscode.CustomTextEditorProvi
   private readonly logger = new Logger('IpCoreSourcePreviewProvider');
   private readonly htmlGenerator: HtmlGenerator;
 
-  constructor(private readonly context: vscode.ExtensionContext) {
+  private readonly resourceRoots: ResourceRoots;
+
+  constructor(
+    private readonly context: vscode.ExtensionContext,
+    resourceRoots: ResourceRoots
+  ) {
     this.htmlGenerator = new HtmlGenerator(context);
+    this.resourceRoots = resourceRoots;
   }
 
   public resolveCustomTextEditor(
@@ -174,9 +181,7 @@ export class IpCoreSourcePreviewProvider implements vscode.CustomTextEditorProvi
       }
     );
 
-    setTimeout(() => {
-      void parseAndUpdate();
-    }, 100);
+    // Handshake complete, initial parse triggers strictly on 'ready' message
   }
 
   private async handleGenerate(
@@ -208,8 +213,8 @@ export class IpCoreSourcePreviewProvider implements vscode.CustomTextEditorProvi
     try {
       const generator = new IpCoreScaffolder(
         this.logger,
-        new TemplateLoader(this.logger),
-        this.context
+        new TemplateLoader(this.logger, this.resourceRoots.templatesDir),
+        this.resourceRoots
       );
       const result = await generator.generateAll(tmpFile, outputDir, {
         targets: legacyVendorToTargets(message.options?.vendorFiles ?? 'none'),

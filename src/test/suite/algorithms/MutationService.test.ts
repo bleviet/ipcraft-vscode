@@ -68,7 +68,8 @@ describe('MutationService.insertElement', () => {
       expect(result.errors).toEqual([]);
       const blocks = getBlocks(result.memoryMap);
       expect(blocks).toHaveLength(3);
-      expect(blocks[1].name).toBe('block1');
+      // Unique name = highest existing suffix (BLOCK1) + 1, avoiding a `block1` collision.
+      expect(blocks[1].name).toBe('block2');
       expect(result.newIndex).toBe(1);
     });
 
@@ -80,7 +81,7 @@ describe('MutationService.insertElement', () => {
       const blocks = getBlocks(result.memoryMap);
       expect(blocks).toHaveLength(3);
       // New block inserted before BLOCK1
-      expect(blocks[1].name).toBe('block1');
+      expect(blocks[1].name).toBe('block2');
     });
 
     it('should insert into empty blocks array', () => {
@@ -113,7 +114,8 @@ describe('MutationService.insertElement', () => {
 
       const regs = getBlocks(result.memoryMap)[0].registers!;
       expect(regs).toHaveLength(4);
-      expect(regs[2].name).toBe('reg1');
+      // Unique name = highest existing suffix (REG2) + 1, avoiding a `reg1` collision.
+      expect(regs[2].name).toBe('reg3');
       expect(result.newIndex).toBe(2);
     });
 
@@ -123,7 +125,7 @@ describe('MutationService.insertElement', () => {
 
       const regs = getBlocks(result.memoryMap)[0].registers!;
       expect(regs).toHaveLength(4);
-      expect(regs[0].name).toBe('reg1');
+      expect(regs[0].name).toBe('reg3');
     });
 
     it('should recompute register offsets after insertion', () => {

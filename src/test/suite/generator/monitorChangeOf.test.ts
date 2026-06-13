@@ -5,6 +5,7 @@ import { TemplateLoader } from '../../../generator/TemplateLoader';
 import { IpCoreScaffolder } from '../../../generator/IpCoreScaffolder';
 import { Logger } from '../../../utils/Logger';
 import { BusLibraryService } from '../../../services/BusLibraryService';
+import { devResourceRoots } from '../../../services/ResourceRoots';
 
 jest.mock('../../../utils/Logger', () => ({
   Logger: jest.fn().mockImplementation(() => ({
@@ -446,7 +447,8 @@ describe('monitorChangeOf — IpCoreScaffolder end-to-end', () => {
   const logger = new Logger('test') as any;
   const templatesPath = path.resolve(__dirname, '../../../generator/templates');
   const loader = new TemplateLoader(logger, templatesPath);
-  const context = { extensionPath: '/ext' } as any;
+  const repoRoot = path.resolve(__dirname, '../../../..');
+  const resourceRoots = devResourceRoots(repoRoot);
   let scaffolder: any;
 
   beforeEach(() => {
@@ -456,7 +458,7 @@ describe('monitorChangeOf — IpCoreScaffolder end-to-end', () => {
       }),
       clearCache: jest.fn(),
     }));
-    scaffolder = new IpCoreScaffolder(logger, loader, context);
+    scaffolder = new IpCoreScaffolder(logger, loader, resourceRoots);
     jest.clearAllMocks();
   });
 

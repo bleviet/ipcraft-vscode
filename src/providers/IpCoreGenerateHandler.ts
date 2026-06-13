@@ -8,6 +8,8 @@ import { Logger } from '../utils/Logger';
 import { DocumentManager } from '../services/DocumentManager';
 import { legacyVendorToTargets } from '../utils/migrateIpCore';
 
+import { ResourceRoots } from '../services/ResourceRoots';
+
 export interface GenerateOptionsMessage {
   vendorFiles?: 'none' | 'altera' | 'xilinx' | 'both';
   includeTestbench?: boolean;
@@ -27,7 +29,7 @@ type FileSet = {
 
 interface HandleGenerateOptions {
   logger: Logger;
-  context: vscode.ExtensionContext;
+  resourceRoots: ResourceRoots;
   documentManager: DocumentManager;
   document: vscode.TextDocument;
   webview: vscode.Webview;
@@ -37,7 +39,7 @@ interface HandleGenerateOptions {
 
 export async function handleGenerateRequest({
   logger,
-  context,
+  resourceRoots,
   documentManager,
   document,
   webview,
@@ -68,7 +70,11 @@ export async function handleGenerateRequest({
 
   const outputBaseDir = folderUris[0].fsPath;
 
-  const generator = new IpCoreScaffolder(logger, new TemplateLoader(logger), context);
+  const generator = new IpCoreScaffolder(
+    logger,
+    new TemplateLoader(logger, resourceRoots.templatesDir),
+    resourceRoots
+  );
   const result = await generator.generateAll(document.uri.fsPath, outputBaseDir, {
     targets: legacyVendorToTargets(message.options?.vendorFiles ?? 'none'),
     includeTestbench: message.options?.includeTestbench !== false,

@@ -6,7 +6,7 @@ import { Logger } from '../utils/Logger';
 import { TemplatePreviewProvider } from '../providers/TemplatePreviewProvider';
 import { ScaffoldPackPanel } from '../providers/ScaffoldPackPanel';
 import { ScaffoldPackLoader } from '../generator/ScaffoldPackLoader';
-import { TemplateLoader } from '../generator/TemplateLoader';
+import { ResourceRoots } from '../services/ResourceRoots';
 import { safeRegisterCommand } from '../utils/vscodeHelpers';
 
 const logger = new Logger('ScaffoldPackCommands');
@@ -14,10 +14,16 @@ const logger = new Logger('ScaffoldPackCommands');
 /** Key used to persist the user's pinned preview IP core across sessions. */
 const PREVIEW_IP_CORE_KEY = 'ipcraft.scaffoldPreview.ipCorePath';
 
+let globalResourceRoots: ResourceRoots;
+let scaffoldPackLoader: ScaffoldPackLoader;
+
 export function registerScaffoldPackCommands(
   context: vscode.ExtensionContext,
-  previewProvider: TemplatePreviewProvider
+  previewProvider: TemplatePreviewProvider,
+  resourceRoots: ResourceRoots
 ): void {
+  globalResourceRoots = resourceRoots;
+  scaffoldPackLoader = new ScaffoldPackLoader(resourceRoots.builtinPacksDir);
   // ── Command: Preview Template Output ────────────────────────────────────
   safeRegisterCommand(context, 'fpga-ip-core.previewTemplateOutput', async (uri?: vscode.Uri) => {
     await previewTemplateOutput(context, previewProvider, uri);
@@ -192,7 +198,7 @@ async function refreshTemplatePreview(
 // ---------------------------------------------------------------------------
 
 async function exportScaffoldPack(context: vscode.ExtensionContext): Promise<void> {
-  const packNames = ScaffoldPackLoader.listBuiltinPacks();
+  const packNames = scaffoldPackLoader.listBuiltinPacks();
   if (packNames.length === 0) {
     void vscode.window.showErrorMessage('No built-in scaffold packs found.');
     return;
@@ -201,7 +207,7 @@ async function exportScaffoldPack(context: vscode.ExtensionContext): Promise<voi
   // Load metadata for each pack so we can show descriptions and group by category
   const packs = packNames.map((name) => {
     try {
-      return ScaffoldPackLoader.load(path.join(ScaffoldPackLoader.builtinPacksDir, name));
+      return ScaffoldPackLoader.load(path.join(scaffoldPackLoader.builtinPacksDirectory, name));
     } catch {
       return { name, description: undefined, category: undefined };
     }
@@ -259,7 +265,7 @@ async function exportScaffoldPack(context: vscode.ExtensionContext): Promise<voi
   }
 
   const destDir = path.join(workspaceRoot, '.vscode', 'ipcraft', 'packs', newName.trim());
-  const srcDir = path.join(ScaffoldPackLoader.builtinPacksDir, selected.packName);
+  const srcDir = path.join(scaffoldPackLoader.builtinPacksDirectory, selected.packName);
 
   try {
     // Step 1: copy the pack directory (scaffold.yml + any pack-local templates)
@@ -288,7 +294,7 @@ async function exportScaffoldPack(context: vscode.ExtensionContext): Promise<voi
           const manifestUri = vscode.Uri.file(path.join(destDir, 'scaffold.yml'));
           const doc = await vscode.workspace.openTextDocument(manifestUri);
           await vscode.window.showTextDocument(doc);
-          const panel = ScaffoldPackPanel.show(logger, context);
+          const panel = ScaffoldPackPanel.show(logger, context, globalResourceRoots);
           await panel.refresh(manifestUri.fsPath);
         }
       });
@@ -417,7 +423,7 @@ async function copyReferencedTemplates(
   sourceExpressions: string[],
   destDir: string
 ): Promise<string[]> {
-  const templatesDir = TemplateLoader.resolveTemplatesPath();
+  const templatesDir = globalResourceRoots.templatesDir;
   const copied: string[] = [];
 
   // Deduplicate expressions — many packs list the same source for VHDL and SV variants

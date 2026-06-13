@@ -33,9 +33,9 @@ export class ImportResolver {
   private busLibraryCache: Map<string, Record<string, unknown>> = new Map();
   private busLibraryService: BusLibraryService;
 
-  constructor(logger: Logger, context: vscode.ExtensionContext) {
+  constructor(logger: Logger, busDefinitionsDir: string) {
     this.logger = logger;
-    this.busLibraryService = new BusLibraryService(logger, context);
+    this.busLibraryService = new BusLibraryService(logger, busDefinitionsDir);
   }
 
   /**

@@ -1,9 +1,9 @@
 import * as fs from 'fs/promises';
-import { existsSync } from 'fs';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
 import * as vscode from 'vscode';
 import { Logger } from '../utils/Logger';
+import { ResourceRoots } from '../services/ResourceRoots';
 import { BusLibraryService } from '../services/BusLibraryService';
 import { TemplateLoader } from './TemplateLoader';
 import { ScaffoldPackLoader } from './ScaffoldPackLoader';
@@ -23,32 +23,6 @@ import { sortByCompilationOrder } from '../utils/compilationOrder';
 import { getToolchain } from '../services/toolchains/registry';
 import { generateTestbenchFiles, DEFAULT_FRAMEWORK, DEFAULT_ENGINE } from './testbench';
 import { YamlValidator } from '../services/YamlValidator';
-
-/**
- * Resolve the IP core JSON schema path across all runtime environments:
- *   1. Packaged VSIX / compiled bundle: schema is copied by webpack into dist/resources/schemas/
- *   2. Dev (running from dist/ with source tree intact): schema is one level up at ../ipcraft-spec/
- *   3. Tests (ts-jest, __dirname = src/generator/): schema is two levels up at ../../ipcraft-spec/
- *
- * NOTE: With webpack `target:"node"`, `__dirname` inside the output bundle is the OUTPUT file's
- * directory (dist/), not the source file's directory. The original `../../ipcraft-spec/` path
- * resolves correctly from `src/generator/` but goes to the wrong (sibling) repo from `dist/`.
- */
-const IP_CORE_SCHEMA_PATH = (() => {
-  const rel = (...parts: string[]): string => path.join(__dirname, ...parts);
-  // Packaged extension: schema copied to dist/resources/schemas/ by CopyWebpackPlugin
-  const fromResources = rel('resources', 'schemas', 'ip_core.schema.json');
-  if (existsSync(fromResources)) {
-    return fromResources;
-  }
-  // Dev: running compiled bundle from dist/ with the source tree still present
-  const fromRoot = rel('..', 'ipcraft-spec', 'schemas', 'ip_core.schema.json');
-  if (existsSync(fromRoot)) {
-    return fromRoot;
-  }
-  // Tests: ts-jest resolves __dirname to src/generator/
-  return rel('..', '..', 'ipcraft-spec', 'schemas', 'ip_core.schema.json');
-})();
 import type {
   BusDefinitions,
   BusPortDefinition,
@@ -64,11 +38,13 @@ export class IpCoreScaffolder {
   private readonly busLibraryService: BusLibraryService;
   private readonly validator = new YamlValidator();
   private busDefinitions: BusDefinitions | null = null;
+  private readonly resourceRoots: ResourceRoots;
 
-  constructor(logger: Logger, templates: TemplateLoader, context: vscode.ExtensionContext) {
+  constructor(logger: Logger, templates: TemplateLoader, resourceRoots: ResourceRoots) {
     this.logger = logger;
     this.templates = templates;
-    this.busLibraryService = new BusLibraryService(logger, context);
+    this.resourceRoots = resourceRoots;
+    this.busLibraryService = new BusLibraryService(logger, resourceRoots.busDefinitionsDir);
   }
 
   async generateAll(
@@ -117,15 +93,16 @@ export class IpCoreScaffolder {
         options.scaffoldPack ??
         (typeof ipCoreData.scaffold_pack === 'string' ? ipCoreData.scaffold_pack : undefined);
       const workspacePackDirs = this.resolveWorkspacePackDirs();
+      const scaffoldPackLoader = new ScaffoldPackLoader(this.resourceRoots.builtinPacksDir);
       const pack = packName
-        ? ScaffoldPackLoader.resolve(packName, workspacePackDirs)
-        : ScaffoldPackLoader.resolveDefault(bahonaviMethodology);
+        ? scaffoldPackLoader.resolve(packName, workspacePackDirs)
+        : scaffoldPackLoader.resolveDefault(bahonaviMethodology);
       const resolvedPackName = path.basename(pack.packDir);
 
       // Pack-level template loader: searches pack dir first (user overrides), then built-in templates.
       const packLoader = new TemplateLoader(this.logger, [
         pack.packDir,
-        TemplateLoader.resolveTemplatesPath(),
+        this.resourceRoots.templatesDir,
       ]);
 
       const files: Record<string, string> = {};
@@ -349,7 +326,8 @@ export class IpCoreScaffolder {
     if (!parsed || typeof parsed !== 'object') {
       throw new Error('Invalid IP core YAML');
     }
-    const schemaResult = this.validator.validateAgainstSchema(parsed, IP_CORE_SCHEMA_PATH);
+    const schemaPath = path.join(this.resourceRoots.schemasDir, 'ip_core.schema.json');
+    const schemaResult = this.validator.validateAgainstSchema(parsed, schemaPath);
     if (!schemaResult.valid) {
       throw new Error(`IP core YAML schema validation failed: ${schemaResult.error}`);
     }
