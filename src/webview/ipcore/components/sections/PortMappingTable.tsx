@@ -3,7 +3,7 @@ import { InlineEditField } from './InlineEditField';
 import { WidthField } from '../../../shared/components/WidthField';
 import type { WidthParameter } from '../../../shared/components/WidthField';
 
-const NUMERIC_PARAM_TYPES = new Set(['integer', 'natural', 'positive']);
+const NUMERIC_PARAM_TYPES = new Set(['integer']);
 
 interface BusPort {
   name: string;

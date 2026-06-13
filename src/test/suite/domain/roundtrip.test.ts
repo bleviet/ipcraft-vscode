@@ -83,7 +83,9 @@ describe('Domain Model Parse/Serialize Round-trips', () => {
           const errors = validateIpCore.errors
             ? JSON.stringify(validateIpCore.errors, null, 2)
             : 'Unknown validation error';
-          fail(`Serialized IP Core schema validation failed for ${relativePath}:\n${errors}`);
+          throw new Error(
+            `Serialized IP Core schema validation failed for ${relativePath}:\n${errors}`
+          );
         }
       } else {
         // Parse Memory Map

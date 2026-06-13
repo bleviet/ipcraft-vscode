@@ -188,9 +188,6 @@ function addParameter(
 
   const defaultValues: Record<string, unknown> = {
     integer: 0,
-    natural: 0,
-    positive: 1,
-    real: 0.0,
     boolean: false,
     string: '',
   };

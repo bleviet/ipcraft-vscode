@@ -152,6 +152,12 @@ export interface ParameterDef {
   value?: number | string;
   dataType?: string;
   description?: string;
+  min?: number | null;
+  max?: number | null;
+  allowedValues?: Array<number | string> | null;
+  allowed_values?: Array<number | string> | null;
+  uiGroup?: string | null;
+  ui_group?: string | null;
 }
 
 export interface PortDef {

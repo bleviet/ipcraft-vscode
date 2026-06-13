@@ -424,7 +424,7 @@ export type Name12 = string;
 /**
  * Data type
  */
-export type ParameterType = 'integer' | 'natural' | 'positive' | 'real' | 'boolean' | 'string';
+export type ParameterType = 'integer' | 'boolean' | 'string';
 /**
  * Parameter description
  */

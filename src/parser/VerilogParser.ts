@@ -9,9 +9,14 @@ import {
   parseParameterValue,
 } from './VhdlParser';
 
+interface VerilogParsedParameter extends ParsedParameter {
+  isVector?: boolean;
+}
+
 export interface VerilogParseResult {
   moduleName: string;
   yamlText: string;
+  warnings?: string[];
 }
 
 export async function parseVerilogFile(
@@ -106,12 +111,20 @@ export async function parseVerilogFile(
     });
   }
 
+  const warnings: string[] = [];
   if (parameters.length > 0) {
-    yamlData.parameters = parameters.map((param) => ({
-      name: param.name,
-      value: parseParameterValue(param.value),
-      dataType: normalizeParamType(param.type),
-    }));
+    yamlData.parameters = parameters.map((param: VerilogParsedParameter) => {
+      if (param.isVector) {
+        warnings.push(
+          `Warning: vector parameter detected on parameter '${param.name}'. Convert to integer for cross-vendor GUI compatibility.`
+        );
+      }
+      return {
+        name: param.name,
+        value: parseParameterValue(param.value),
+        dataType: normalizeParamType(param.type),
+      };
+    });
   }
 
   const relPath = path.relative(outputDir, filePath);
@@ -126,6 +139,7 @@ export async function parseVerilogFile(
   return {
     moduleName,
     yamlText: yaml.dump(yamlData, { noRefs: true, sortKeys: false, lineWidth: -1, indent: 2 }),
+    warnings,
   };
 }
 
@@ -171,7 +185,7 @@ function extractModuleName(content: string): string | null {
 // Parameters
 // ---------------------------------------------------------------------------
 
-function extractParameters(content: string): ParsedParameter[] {
+function extractParameters(content: string): VerilogParsedParameter[] {
   // Try #(...) first (Verilog 2001 / SystemVerilog style).
   const hashParams = extractHashParameters(content);
   if (hashParams.length > 0) {
@@ -181,9 +195,9 @@ function extractParameters(content: string): ParsedParameter[] {
   return extractBodyParameters(content);
 }
 
-function extractHashParameters(content: string): ParsedParameter[] {
+function extractHashParameters(content: string): VerilogParsedParameter[] {
   const modMatch = content.match(/\bmodule\s+\w+/i);
-  if (!modMatch?.index === undefined) {
+  if (modMatch?.index === undefined) {
     return [];
   }
   const after = content.slice((modMatch?.index ?? 0) + (modMatch?.[0].length ?? 0));
@@ -203,25 +217,28 @@ function extractHashParameters(content: string): ParsedParameter[] {
   return parseParameterBlock(block);
 }
 
-function extractBodyParameters(content: string): ParsedParameter[] {
-  const params: ParsedParameter[] = [];
+function extractBodyParameters(content: string): VerilogParsedParameter[] {
+  const params: VerilogParsedParameter[] = [];
   const seen = new Set<string>();
   // Matches: parameter [type] [dims] NAME = value
   const re =
-    /\bparameter\b\s+(?:(?:int|integer|logic|bit|reg|wire|real|signed|unsigned|byte|shortint|longint)\s+)*(?:\[[^\]]*\]\s*)?(\w+)\s*=\s*([^;,)]+)/gi;
+    /\bparameter\b\s+((?:(?:int|integer|logic|bit|reg|wire|real|signed|unsigned|byte|shortint|longint)\s+)*(?:\[[^\]]*\]\s*)?)(\w+)\s*=\s*([^;,)]+)/gi;
   let m: RegExpExecArray | null;
   while ((m = re.exec(content)) !== null) {
-    const name = m[1];
+    const typeDims = m[1];
+    const name = m[2];
+    const val = m[3].trim();
     if (!seen.has(name)) {
       seen.add(name);
-      params.push({ name, type: 'integer', value: m[2].trim() });
+      const isVector = /\[[^\]]+\]/.test(typeDims);
+      params.push({ name, type: 'integer', value: val, isVector });
     }
   }
   return params;
 }
 
-function parseParameterBlock(block: string): ParsedParameter[] {
-  const params: ParsedParameter[] = [];
+function parseParameterBlock(block: string): VerilogParsedParameter[] {
+  const params: VerilogParsedParameter[] = [];
   const seen = new Set<string>();
 
   for (const entry of splitByComma(block)) {
@@ -231,30 +248,26 @@ function parseParameterBlock(block: string): ParsedParameter[] {
     }
 
     // Strip leading keyword
-    let rest = trimmed.replace(/^\s*(parameter|localparam)\s+/i, '');
-    // Strip optional type keywords and packed dims
-    rest = rest.replace(
+    const rest = trimmed.replace(/^\s*(parameter|localparam)\s+/i, '');
+
+    // Capture the part before '=' to check for packed dimensions
+    const eqIdx = rest.indexOf('=');
+    const beforeEq = eqIdx === -1 ? rest : rest.slice(0, eqIdx);
+    const isVector = /\[[^\]]+\]/.test(beforeEq);
+
+    // Clean type-stripped name
+    let name = beforeEq.replace(
       /^(?:(?:int|integer|logic|bit|reg|wire|real|realtime|time|string|byte|shortint|longint|signed|unsigned)\s+)+/i,
       ''
     );
-    rest = rest.replace(/^\s*\[[^\]]*\]\s*/, '');
-
-    const eqIdx = rest.indexOf('=');
-    let name: string;
-    let value: string | undefined;
-    if (eqIdx === -1) {
-      name = rest.trim();
-      value = undefined;
-    } else {
-      name = rest.slice(0, eqIdx).trim();
-      value = rest.slice(eqIdx + 1).trim() || undefined;
-    }
+    name = name.replace(/^\s*\[[^\]]*\]\s*/, '').trim();
+    const value = eqIdx === -1 ? undefined : rest.slice(eqIdx + 1).trim() || undefined;
 
     if (!name || !/^\w+$/.test(name) || seen.has(name)) {
       continue;
     }
     seen.add(name);
-    params.push({ name, type: 'integer', value });
+    params.push({ name, type: 'integer', value, isVector });
   }
 
   return params;
@@ -354,11 +367,11 @@ function extractWidth(rangeStr: string): number | string | undefined {
 
 function normalizeParamType(type: string): string {
   const t = type.toLowerCase().trim();
-  if (['real', 'realtime'].includes(t)) {
-    return 'real';
-  }
   if (t === 'string') {
     return 'string';
+  }
+  if (t === 'boolean') {
+    return 'boolean';
   }
   return 'integer';
 }

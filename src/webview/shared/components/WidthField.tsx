@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { VSCodeTextField } from '@vscode/webview-ui-toolkit/react';
 import { evalWidthExpr } from '../utils/evalWidthExpr';
 
-const NUMERIC_PARAM_TYPES = new Set(['integer', 'natural', 'positive']);
+const NUMERIC_PARAM_TYPES = new Set(['integer']);
 
 export interface WidthParameter {
   name: string;

@@ -6,10 +6,10 @@ vlnv:
 description: Test core with parameterized conduit interfaces
 parameters:
   - name: XCVR_DW
-    dataType: natural
+    dataType: integer
     defaultValue: 16
   - name: XCVR_KW
-    dataType: natural
+    dataType: integer
     defaultValue: 2
   - name: DATA_WIDTH
     dataType: integer

@@ -6,7 +6,7 @@ vlnv:
 description: Test core with arithmetic-expression port widths (Rb_ByteEna pattern)
 parameters:
   - name: AxiDataWidth_g
-    dataType: positive
+    dataType: integer
     value: 32
 clocks:
   - name: Clk

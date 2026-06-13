@@ -704,6 +704,108 @@ const SubcorePanel: React.FC<SubcorePanelProps> = ({ entry, index, ipCore, onUpd
 //  Parameter / generic panel
 // ─────────────────────────────────────────────────────
 
+interface PropCheckboxProps {
+  label: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}
+
+const PropCheckbox: React.FC<PropCheckboxProps> = ({ label, checked, onChange }) => {
+  return (
+    <div
+      className="ci-field"
+      style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '8px 0' }}
+    >
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        style={{ cursor: 'pointer', margin: 0 }}
+      />
+      <label
+        className="ci-field__label"
+        style={{ marginBottom: 0, cursor: 'pointer', userSelect: 'none' }}
+      >
+        {label}
+      </label>
+    </div>
+  );
+};
+
+interface TagInputProps {
+  label: string;
+  values: Array<string | number>;
+  onChange: (newValues: Array<string | number> | null) => void;
+  isNumeric?: boolean;
+  placeholder?: string;
+}
+
+const TagInput: React.FC<TagInputProps> = ({
+  label,
+  values = [],
+  onChange,
+  isNumeric = false,
+  placeholder = 'Type and hit Enter...',
+}) => {
+  const [input, setInput] = useState('');
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const val = input.trim();
+      if (!val) {
+        return;
+      }
+
+      const parsed = isNumeric ? Number(val) : val;
+      if (isNumeric && !Number.isFinite(parsed)) {
+        return;
+      }
+
+      if (!values.includes(parsed)) {
+        onChange([...values, parsed]);
+      }
+      setInput('');
+    }
+  };
+
+  const removeValue = (val: string | number) => {
+    const next = values.filter((v) => v !== val);
+    onChange(next.length ? next : null);
+  };
+
+  return (
+    <div className="ci-field">
+      <label className="ci-field__label">{label}</label>
+      <input
+        className="ci-field__input"
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder={placeholder}
+      />
+      {values.length > 0 && (
+        <div className="ci-chips" style={{ marginTop: 6 }}>
+          {values.map((val, i) => (
+            <span
+              key={i}
+              className="ci-chip"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+            >
+              {String(val)}
+              <span
+                className="codicon codicon-close"
+                style={{ fontSize: 9, cursor: 'pointer', opacity: 0.6 }}
+                onClick={() => removeValue(val)}
+              />
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 interface ParameterPanelProps {
   param: Record<string, unknown>;
   index: number;
@@ -715,16 +817,18 @@ const ParameterPanel: React.FC<ParameterPanelProps> = ({ param, index, ipCore, o
   const params = (ipCore.parameters ?? []) as unknown as Array<Record<string, unknown>>;
   const existingNames = params.map((p) => String(p.name ?? '')).filter((_, i) => i !== index);
 
+  const dataType = String(param.dataType ?? 'integer');
+  const uiGroup = String(param.uiGroup ?? param.ui_group ?? '');
+
   const defVal =
     param.defaultValue !== undefined
-      ? String(param.defaultValue)
+      ? param.defaultValue
       : param.value !== undefined && typeof param.value !== 'object'
-        ? String(param.value)
+        ? param.value
         : '';
-  const dataType = String(param.dataType ?? 'integer');
 
   const saveDefault = (v: string) => {
-    if (dataType === 'integer' || dataType === 'natural' || dataType === 'positive') {
+    if (dataType === 'integer') {
       const n = Number(v);
       onUpdate(['parameters', index, 'defaultValue'], Number.isFinite(n) ? n : v);
     } else if (dataType === 'boolean') {
@@ -733,6 +837,62 @@ const ParameterPanel: React.FC<ParameterPanelProps> = ({ param, index, ipCore, o
       onUpdate(['parameters', index, 'defaultValue'], v);
     }
   };
+
+  const handleTypeChange = (newType: string) => {
+    onUpdate(['parameters', index, 'dataType'], newType);
+    onUpdate(['parameters', index, 'data_type'], null); // clear legacy type if any
+
+    // Clear constraints on type change
+    onUpdate(['parameters', index, 'min'], null);
+    onUpdate(['parameters', index, 'max'], null);
+    onUpdate(['parameters', index, 'allowedValues'], null);
+    onUpdate(['parameters', index, 'allowed_values'], null);
+
+    // Apply clean default values
+    if (newType === 'integer') {
+      onUpdate(['parameters', index, 'defaultValue'], 0);
+    } else if (newType === 'boolean') {
+      onUpdate(['parameters', index, 'defaultValue'], false);
+    } else {
+      onUpdate(['parameters', index, 'defaultValue'], '');
+    }
+  };
+
+  // Determine current constraint mode
+  let constraintMode = 'unrestricted';
+  const hasAllowedValues = param.allowedValues !== undefined || param.allowed_values !== undefined;
+  if (param.min !== undefined || param.max !== undefined) {
+    constraintMode = 'range';
+  } else if (hasAllowedValues) {
+    constraintMode = 'choices';
+  }
+
+  const handleConstraintModeChange = (mode: string) => {
+    if (mode === 'unrestricted') {
+      onUpdate(['parameters', index, 'min'], null);
+      onUpdate(['parameters', index, 'max'], null);
+      onUpdate(['parameters', index, 'allowedValues'], null);
+      onUpdate(['parameters', index, 'allowed_values'], null);
+    } else if (mode === 'range') {
+      onUpdate(['parameters', index, 'allowedValues'], null);
+      onUpdate(['parameters', index, 'allowed_values'], null);
+      onUpdate(['parameters', index, 'min'], 0);
+      onUpdate(['parameters', index, 'max'], 255);
+    } else if (mode === 'choices') {
+      onUpdate(['parameters', index, 'min'], null);
+      onUpdate(['parameters', index, 'max'], null);
+      onUpdate(['parameters', index, 'allowedValues'], []);
+      onUpdate(['parameters', index, 'allowed_values'], null);
+    }
+  };
+
+  const allowedValuesList = (
+    Array.isArray(param.allowedValues)
+      ? param.allowedValues
+      : Array.isArray(param.allowed_values)
+        ? param.allowed_values
+        : []
+  ) as Array<string | number>;
 
   return (
     <>
@@ -745,40 +905,114 @@ const ParameterPanel: React.FC<ParameterPanelProps> = ({ param, index, ipCore, o
           placeholder="DATA_WIDTH"
           mono
         />
-      </Section>
-      <Section title="Value">
         <PropSelect
           label="Data Type"
           value={dataType}
           options={PARAM_TYPE_OPTS}
-          onSave={(v) => onUpdate(['parameters', index, 'dataType'], v)}
-        />
-        <PropField
-          label="Default Value"
-          value={defVal}
-          onSave={saveDefault}
-          placeholder="32"
-          mono
+          onSave={handleTypeChange}
         />
       </Section>
-      {!!param.description && (
-        <Section title="Description">
-          <div
-            style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)', lineHeight: 1.5 }}
-          >
-            {String(param.description)}
-          </div>
+
+      <Section title="Value">
+        {dataType === 'boolean' ? (
+          <PropCheckbox
+            label="Default Value (True)"
+            checked={!!defVal}
+            onChange={(v) => onUpdate(['parameters', index, 'defaultValue'], v)}
+          />
+        ) : (
+          <PropField
+            label="Default Value"
+            value={String(defVal)}
+            onSave={saveDefault}
+            placeholder={dataType === 'integer' ? '32' : 'none'}
+            mono
+          />
+        )}
+      </Section>
+
+      {dataType !== 'boolean' && (
+        <Section title="Constraints">
+          <PropSelect
+            label="Constraint Mode"
+            value={constraintMode}
+            options={
+              dataType === 'integer'
+                ? [
+                    { value: 'unrestricted', label: 'Unrestricted' },
+                    { value: 'range', label: 'Range (Min/Max)' },
+                    { value: 'choices', label: 'Discrete Choices' },
+                  ]
+                : [
+                    { value: 'unrestricted', label: 'Unrestricted' },
+                    { value: 'choices', label: 'Discrete Choices' },
+                  ]
+            }
+            onSave={handleConstraintModeChange}
+          />
+          {constraintMode === 'range' && dataType === 'integer' && (
+            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+              <div style={{ flex: 1 }}>
+                <PropField
+                  label="Minimum"
+                  value={param.min !== undefined ? String(param.min) : ''}
+                  onSave={(v) => onUpdate(['parameters', index, 'min'], v ? Number(v) : null)}
+                  placeholder="0"
+                  mono
+                />
+              </div>
+              <div style={{ flex: 1 }}>
+                <PropField
+                  label="Maximum"
+                  value={param.max !== undefined ? String(param.max) : ''}
+                  onSave={(v) => onUpdate(['parameters', index, 'max'], v ? Number(v) : null)}
+                  placeholder="255"
+                  mono
+                />
+              </div>
+            </div>
+          )}
+          {constraintMode === 'choices' && (
+            <div style={{ marginTop: 10 }}>
+              <TagInput
+                label="Allowed Choices"
+                values={allowedValuesList}
+                isNumeric={dataType === 'integer'}
+                onChange={(vals) => onUpdate(['parameters', index, 'allowedValues'], vals)}
+                placeholder={
+                  dataType === 'integer'
+                    ? 'Type number and hit Enter...'
+                    : 'Type text and hit Enter...'
+                }
+              />
+            </div>
+          )}
         </Section>
       )}
+
+      <Section title="Documentation & Grouping">
+        <PropTextArea
+          label="Description"
+          value={param.description ? String(param.description) : ''}
+          onSave={(v) => onUpdate(['parameters', index, 'description'], v || null)}
+          placeholder="Optional parameter description..."
+        />
+        <PropField
+          label="UI Group"
+          value={uiGroup}
+          onSave={(v) => {
+            onUpdate(['parameters', index, 'uiGroup'], v || null);
+            onUpdate(['parameters', index, 'ui_group'], null);
+          }}
+          placeholder="e.g. Architecture"
+        />
+      </Section>
     </>
   );
 };
 
 const PARAM_TYPE_OPTS = [
   { value: 'integer', label: 'integer' },
-  { value: 'natural', label: 'natural' },
-  { value: 'positive', label: 'positive' },
-  { value: 'real', label: 'real' },
   { value: 'boolean', label: 'boolean' },
   { value: 'string', label: 'string' },
 ];

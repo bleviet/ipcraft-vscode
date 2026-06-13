@@ -9,6 +9,10 @@ interface Parameter {
   dataType: string;
   defaultValue: unknown;
   description?: string;
+  min?: number;
+  max?: number;
+  allowedValues?: (number | string)[];
+  allowed_values?: (number | string)[];
 }
 
 interface ParametersTableProps {
@@ -64,7 +68,12 @@ export const ParametersTable: React.FC<ParametersTableProps> = ({
     } else if (newType === 'string') {
       newDefault = '';
     }
-    setDraft({ ...draft, dataType: newType, defaultValue: newDefault });
+    const cleanDraft = { ...draft, dataType: newType, defaultValue: newDefault };
+    delete cleanDraft.min;
+    delete cleanDraft.max;
+    delete cleanDraft.allowedValues;
+    delete cleanDraft.allowed_values;
+    setDraft(cleanDraft);
   };
 
   const existingNames = parameters.map((p) => p.name).filter((_, i) => i !== editingIndex);

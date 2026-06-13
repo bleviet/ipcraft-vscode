@@ -37,7 +37,6 @@ const PALETTE: PaletteCategory[] = [
     title: 'Generics',
     items: [
       { kind: 'parameter', dataType: 'integer', nameHint: 'DATA_WIDTH', label: 'Integer Generic' },
-      { kind: 'parameter', dataType: 'natural', nameHint: 'DEPTH', label: 'Natural Generic' },
       { kind: 'parameter', dataType: 'boolean', nameHint: 'ENABLE', label: 'Boolean Generic' },
       { kind: 'parameter', dataType: 'string', nameHint: 'INIT_FILE', label: 'String Generic' },
     ],
@@ -319,9 +318,6 @@ function kindBadge(item: LibraryDragPayload): string {
   }
   if (item.kind === 'port' && item.direction) {
     return item.direction === 'in' ? 'in' : item.direction === 'out' ? 'out' : 'io';
-  }
-  if (item.kind === 'parameter' && item.dataType) {
-    return item.dataType;
   }
   return '';
 }

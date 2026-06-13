@@ -403,8 +403,10 @@
     <spirit:parameter>
       <spirit:name>{{ generic.name | upper }}</spirit:name>
       <spirit:displayName>{{ generic.name | replace('_', ' ') | title }}</spirit:displayName>
-      <spirit:value spirit:format="{{ 'long' if generic.type == 'integer' else 'string' }}" spirit:resolve="user"
-        spirit:id="PARAM_VALUE.{{ generic.name | upper }}">{{ generic.default_value }}</spirit:value>
+      <spirit:value spirit:format="{{ 'long' if generic.type == 'integer' else 'bool' if generic.type == 'boolean' else 'string' }}" spirit:resolve="user"
+        spirit:id="PARAM_VALUE.{{ generic.name | upper }}"
+        {%- if generic.min is not none %} spirit:minimum="{{ generic.min }}"{% endif -%}
+        {%- if generic.max is not none %} spirit:maximum="{{ generic.max }}"{% endif -%}>{{ generic.default_value }}</spirit:value>
     </spirit:parameter>
     {% endfor %}
   </spirit:parameters>

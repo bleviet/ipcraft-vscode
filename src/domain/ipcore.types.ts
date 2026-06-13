@@ -380,7 +380,7 @@ export type Name11 = string;
 /**
  * Data type
  */
-export type ParameterType = 'integer' | 'natural' | 'positive' | 'real' | 'boolean' | 'string';
+export type ParameterType = 'integer' | 'boolean' | 'string';
 /**
  * Parameter description
  */
@@ -388,7 +388,7 @@ export type Description11 = string;
 /**
  * Data type (snake_case alias for dataType).
  */
-export type ParameterType1 = 'integer' | 'natural' | 'positive' | 'real' | 'boolean' | 'string';
+export type ParameterType1 = 'integer' | 'boolean' | 'string';
 /**
  * Generics/parameters
  */
@@ -749,6 +749,30 @@ export interface Parameter {
     [k: string]: unknown;
   };
   data_type?: ParameterType1;
+  /**
+   * Minimum value constraint (for integer)
+   */
+  min?: number;
+  /**
+   * Maximum value constraint (for integer)
+   */
+  max?: number;
+  /**
+   * Allowed discrete choices constraint (mutually exclusive with min/max)
+   */
+  allowedValues?: (number | string)[];
+  /**
+   * Allowed discrete choices constraint (snake_case alias)
+   */
+  allowed_values?: (number | string)[];
+  /**
+   * UI grouping category
+   */
+  uiGroup?: string;
+  /**
+   * UI grouping category (snake_case alias)
+   */
+  ui_group?: string;
   [k: string]: unknown;
 }
 /**

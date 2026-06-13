@@ -842,6 +842,12 @@ async function parseVHDL(
           version: cfg.get<string>('version'),
         });
 
+        if (result.warnings && result.warnings.length > 0) {
+          for (const warn of result.warnings) {
+            void vscode.window.showWarningMessage(warn);
+          }
+        }
+
         const encoder = new TextEncoder();
         await vscode.workspace.fs.writeFile(
           vscode.Uri.file(defaultOutput),

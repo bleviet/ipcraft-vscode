@@ -74,12 +74,12 @@ describe('VhdlParser', () => {
     const params = parsed.parameters as Array<Record<string, unknown>>;
 
     expect(params).toHaveLength(3);
-    expect(params[0]).toMatchObject({ name: 'AxiAddrWidth_g', value: 8, dataType: 'positive' });
-    expect(params[1]).toMatchObject({ name: 'AxiDataWidth_g', value: 32, dataType: 'positive' });
+    expect(params[0]).toMatchObject({ name: 'AxiAddrWidth_g', value: 8, dataType: 'integer' });
+    expect(params[1]).toMatchObject({ name: 'AxiDataWidth_g', value: 32, dataType: 'integer' });
     expect(params[2]).toMatchObject({
       name: 'ReadTimeoutClks_g',
       value: 100,
-      dataType: 'positive',
+      dataType: 'integer',
     });
   });
 
@@ -107,10 +107,10 @@ describe('VhdlParser', () => {
 
     expect(params).toHaveLength(4);
     // Range constraints must be stripped — only the base type survives
-    expect(params[0]).toMatchObject({ name: 'AddrWidth_g', value: 32, dataType: 'natural' });
-    expect(params[1]).toMatchObject({ name: 'DataWidth_g', value: 32, dataType: 'natural' });
-    expect(params[2]).toMatchObject({ name: 'MaxBeats_g', value: 256, dataType: 'natural' });
-    expect(params[3]).toMatchObject({ name: 'Plain_g', value: 8, dataType: 'natural' });
+    expect(params[0]).toMatchObject({ name: 'AddrWidth_g', value: 32, dataType: 'integer' });
+    expect(params[1]).toMatchObject({ name: 'DataWidth_g', value: 32, dataType: 'integer' });
+    expect(params[2]).toMatchObject({ name: 'MaxBeats_g', value: 256, dataType: 'integer' });
+    expect(params[3]).toMatchObject({ name: 'Plain_g', value: 8, dataType: 'integer' });
   });
 
   it('detects width for ports with computed MSB expressions', async () => {
@@ -310,5 +310,41 @@ describe('VhdlParser', () => {
     expect(nameOverrides.WSTRB).toBe('WStrb');
     expect(nameOverrides.ARADDR).toBe('ArAddr');
     expect(nameOverrides.RDATA).toBe('RData');
+  });
+
+  it('warns when vector-type generics (std_logic_vector, bit_vector) are parsed and maps them to integer', async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ipcraft-vhdl-'));
+    const filePath = path.join(tempDir, 'vector_generic.vhd');
+    const vhdl = `
+      entity vector_generic is
+        generic (
+          VectorParam_g : std_logic_vector(7 downto 0) := x"FF";
+          BitVectorParam_g : bit_vector(3 downto 0) := "1010"
+        );
+        port (
+          Clk : in std_logic
+        );
+      end entity;
+    `;
+
+    await fs.writeFile(filePath, vhdl, 'utf8');
+    const result = await parseVhdlFile(filePath);
+    const parsed = yaml.load(result.yamlText) as Record<string, unknown>;
+    const params = parsed.parameters as Array<Record<string, unknown>>;
+
+    expect(params).toHaveLength(2);
+    expect(params[0]).toMatchObject({ name: 'VectorParam_g', value: 'x"FF"', dataType: 'integer' });
+    expect(params[1]).toMatchObject({
+      name: 'BitVectorParam_g',
+      value: '"1010"',
+      dataType: 'integer',
+    });
+    expect(result.warnings).toBeDefined();
+    expect(result.warnings).toContain(
+      "Warning: std_logic_vector generic detected on generic 'VectorParam_g'. Convert to integer for cross-vendor GUI compatibility."
+    );
+    expect(result.warnings).toContain(
+      "Warning: std_logic_vector generic detected on generic 'BitVectorParam_g'. Convert to integer for cross-vendor GUI compatibility."
+    );
   });
 });

@@ -40,6 +40,11 @@ set_parameter_property {{ generic.name | upper }} DEFAULT_VALUE {{ generic.defau
 set_parameter_property {{ generic.name | upper }} DISPLAY_NAME "{{ generic.name | replace('_', ' ') | title }}"
 set_parameter_property {{ generic.name | upper }} TYPE {{ generic.type | upper }}
 set_parameter_property {{ generic.name | upper }} UNITS None
+{% if generic.min is not none and generic.max is not none %}
+set_parameter_property {{ generic.name | upper }} ALLOWED_RANGES {{ generic.min }}:{{ generic.max }}
+{% elif generic.allowed_values %}
+set_parameter_property {{ generic.name | upper }} ALLOWED_RANGES { {{ generic.allowed_values | join(' ') }} }
+{% endif %}
 {% if generic.description %}
 set_parameter_property {{ generic.name | upper }} DESCRIPTION "{{ generic.description }}"
 {% endif %}

@@ -1,0 +1,36 @@
+# Restricting Generic Parameters to the Big Three Task List
+
+- `[x]` Update JSON Schema
+    - `[x]` Update ipcraft-spec/schemas/ip_core.schema.json enum and add constraint fields
+- `[x]` Generate & Normalize Domain Models
+    - `[x]` Rebuild typescript models from schema
+    - `[x]` Update src/domain/parse.ts to normalize generic constraints
+- `[x]` Update Parsers
+    - `[x]` Update VhdlParser.ts to warn on vector generics and map type names
+    - `[x]` Update VerilogParser.ts to warn and normalize Verilog types
+    - `[x]` Return warnings and display them in GenerateCommands.ts
+- `[x]` Update Webview UI Editor
+    - `[x]` Update ParametersTable.tsx options
+    - `[x]` Update CanvasInspector.tsx ParamSelect options
+    - `[x]` Implement state transition to clear constraints on type change
+    - `[x]` Implement Compact and Expanded Constraint UI views in CanvasInspector.tsx
+- `[x]` Update Generation Templates
+    - `[x]` Simplify IpCoreScaffolder.ts types mapping
+    - `[x]` Update amd_component_xml.j2 mapping and constraints
+    - `[x]` Update altera_hw_tcl.j2 parameter declaration types
+- `[x]` Migrate Example/Fixture Files
+    - `[x]` Update xcvr_loopback.ip.yml parameter dataType to integer
+    - `[x]` Update xcvr-ipcore.yml parameter dataType to integer
+    - `[x]` Update expr-ipcore.yml parameter dataType to integer
+- `[x]` Update VHDL Parser Tests
+    - `[x]` Update positive/natural assertions to integer in VhdlParser.test.ts
+    - `[x]` Add test cases for vector generic type warnings and mapping in VhdlParser.test.ts
+- `[x]` Update Canvas Library Palette and Webview Types
+    - `[x]` Remove Natural Generic from LibraryPalette.tsx
+    - `[x]` Remove parameter type badge notation from kindBadge in LibraryPalette.tsx
+    - `[x]` Update defaultValues in useCanvasDrop.ts to exclude natural/positive/real
+    - `[x]` Restrict NUMERIC_PARAM_TYPES to integer in PortMappingTable.tsx and WidthField.tsx
+    - `[x]` Update ParameterType union type in ipCore.d.ts
+- `[x]` Run Tests and Validate
+    - `[x]` Run unit tests with npm run test:unit
+    - `[x]` Run lint checks with npm run lint

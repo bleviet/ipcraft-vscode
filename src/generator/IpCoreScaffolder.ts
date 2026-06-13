@@ -635,6 +635,10 @@ export class IpCoreScaffolder {
         default_value: this.resolveGenericDefault(param.value, type),
         sv_default: this.resolveSvGenericDefault(param.value, type),
         description: param.description ? this.getString(param.description) : '',
+        min: param.min !== undefined ? param.min : null,
+        max: param.max !== undefined ? param.max : null,
+        allowed_values: param.allowedValues ?? param.allowed_values ?? null,
+        ui_group: param.uiGroup ?? param.ui_group ?? '',
       };
     });
   }
@@ -647,7 +651,7 @@ export class IpCoreScaffolder {
       return value;
     }
     const t = type.toLowerCase().trim();
-    if (t === 'integer' || t === 'natural' || t === 'positive') {
+    if (t === 'integer') {
       return 0;
     }
     if (t === 'boolean') {
@@ -656,12 +660,12 @@ export class IpCoreScaffolder {
     if (t === 'string') {
       return '""';
     }
-    return null;
+    return 0;
   }
 
   private resolveSvGenericType(vhdlType: string): string {
     const t = vhdlType.toLowerCase().trim();
-    if (t === 'integer' || t === 'natural' || t === 'positive') {
+    if (t === 'integer') {
       return 'int';
     }
     if (t === 'boolean') {
@@ -688,7 +692,7 @@ export class IpCoreScaffolder {
       }
       return value;
     }
-    if (t === 'integer' || t === 'natural' || t === 'positive') {
+    if (t === 'integer') {
       return 0;
     }
     if (t === 'boolean') {
@@ -697,7 +701,7 @@ export class IpCoreScaffolder {
     if (t === 'string') {
       return '""';
     }
-    return null;
+    return 0;
   }
 
   private prepareUserPorts(ipCore: IpCoreData): Array<Record<string, unknown>> {

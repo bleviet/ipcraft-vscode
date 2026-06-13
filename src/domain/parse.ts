@@ -357,6 +357,18 @@ export function normalizeIpCore(rootObj: Record<string, unknown>): IpCore {
         value: param.value ?? param.defaultValue,
         dataType: String(param.dataType ?? param.data_type ?? ''),
         description: param.description ? String(param.description) : undefined,
+        min: param.min !== undefined ? Number(param.min) : undefined,
+        max: param.max !== undefined ? Number(param.max) : undefined,
+        allowedValues: Array.isArray(param.allowedValues)
+          ? param.allowedValues
+          : Array.isArray(param.allowed_values)
+            ? param.allowed_values
+            : undefined,
+        uiGroup: param.uiGroup
+          ? String(param.uiGroup)
+          : param.ui_group
+            ? String(param.ui_group)
+            : undefined,
       };
     }),
     ports: ports.map((p: unknown) => {

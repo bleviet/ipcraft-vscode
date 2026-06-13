@@ -28,6 +28,7 @@ export interface ParseResult {
   entityName: string;
   yamlText: string;
   outputPath?: string;
+  warnings?: string[];
 }
 
 export async function parseVhdlFile(
@@ -129,12 +130,21 @@ export async function parseVhdlFile(
     });
   }
 
+  const warnings: string[] = [];
   if (parameters.length > 0) {
-    yamlData.parameters = parameters.map((param) => ({
-      name: param.name,
-      value: parseParameterValue(param.value),
-      dataType: normalizeParamDataType(param.type),
-    }));
+    yamlData.parameters = parameters.map((param) => {
+      const isVector = /std_logic_vector|bit_vector/i.test(param.type);
+      if (isVector) {
+        warnings.push(
+          `Warning: std_logic_vector generic detected on generic '${param.name}'. Convert to integer for cross-vendor GUI compatibility.`
+        );
+      }
+      return {
+        name: param.name,
+        value: parseParameterValue(param.value),
+        dataType: normalizeParamDataType(param.type),
+      };
+    });
   }
 
   const relativeVhdlPath = path.relative(outputDir, vhdlPath);
@@ -157,6 +167,7 @@ export async function parseVhdlFile(
   return {
     entityName,
     yamlText,
+    warnings,
   };
 }
 
@@ -363,10 +374,18 @@ export function portToDict(port: ParsedPort): Record<string, unknown> {
  * base type name so schema validation passes.
  */
 export function normalizeParamDataType(rawType: string): string {
-  return rawType
+  const normalized = rawType
     .replace(/\s+range\s+.*/i, '')
     .trim()
     .toLowerCase();
+
+  if (normalized === 'boolean') {
+    return 'boolean';
+  }
+  if (normalized === 'string') {
+    return 'string';
+  }
+  return 'integer';
 }
 
 export function parseParameterValue(value?: string): unknown {
