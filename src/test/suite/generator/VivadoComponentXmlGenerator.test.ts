@@ -703,6 +703,20 @@ describe('generateComponentXml', () => {
       expect(xml).toContain('spirit:dataType="integer"');
       expect(xml).not.toContain('spirit:dataType="natural"');
     });
+
+    it('emits choices and choiceRef elements when parameter has allowed values', () => {
+      const xml = gen({
+        parameters: [
+          { name: 'C_CHOICE_PARAM', value: 8, dataType: 'integer', allowedValues: [4, 8, 16] },
+        ],
+      });
+      expect(xml).toContain('<spirit:choices>');
+      expect(xml).toContain('<spirit:name>choice_C_CHOICE_PARAM</spirit:name>');
+      expect(xml).toContain('<spirit:enumeration spirit:text="4">4</spirit:enumeration>');
+      expect(xml).toContain('<spirit:enumeration spirit:text="8">8</spirit:enumeration>');
+      expect(xml).toContain('<spirit:enumeration spirit:text="16">16</spirit:enumeration>');
+      expect(xml).toContain('spirit:choiceRef="choice_C_CHOICE_PARAM"');
+    });
   });
 
   describe('vendorExtensions', () => {

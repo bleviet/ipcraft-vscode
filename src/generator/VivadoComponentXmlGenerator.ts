@@ -409,8 +409,14 @@ export function generateComponentXml(
 
   // ── choices ───────────────────────────────────────────────────────────────
 
-  if (resets.length > 0) {
-    lines.push(...renderChoices());
+  const hasResets = resets.length > 0;
+  const hasParamChoices = parameters.some(
+    (p) =>
+      Array.isArray(p.allowedValues ?? p.allowed_values) &&
+      (p.allowedValues ?? p.allowed_values)!.length > 0
+  );
+  if (hasResets || hasParamChoices) {
+    lines.push(...renderChoices(resets.length, parameters));
   }
 
   // ── fileSets ──────────────────────────────────────────────────────────────
@@ -1131,13 +1137,17 @@ function renderParameters(entityName: string, parameters: ParameterDef[]): strin
     if (param.description) {
       lines.push(`      <spirit:description>${x(param.description)}</spirit:description>`);
     }
+    const choicesList = param.allowedValues ?? param.allowed_values;
+    const hasChoices = Array.isArray(choicesList) && choicesList.length > 0;
+    const choiceRefAttr = hasChoices ? ` spirit:choiceRef="choice_${pName}"` : '';
+
     if (isInteger) {
       lines.push(
-        `      <spirit:value spirit:format="${format}" spirit:resolve="user" spirit:id="${x(paramId)}" spirit:minimum="0" spirit:rangeType="long">${x(value)}</spirit:value>`
+        `      <spirit:value spirit:format="${format}" spirit:resolve="user" spirit:id="${x(paramId)}" spirit:minimum="0" spirit:rangeType="long"${choiceRefAttr}>${x(value)}</spirit:value>`
       );
     } else {
       lines.push(
-        `      <spirit:value spirit:format="${format}" spirit:resolve="user" spirit:id="${x(paramId)}">${x(value)}</spirit:value>`
+        `      <spirit:value spirit:format="${format}" spirit:resolve="user" spirit:id="${x(paramId)}"${choiceRefAttr}>${x(value)}</spirit:value>`
       );
     }
     lines.push('    </spirit:parameter>');
@@ -1154,16 +1164,33 @@ function renderParameters(entityName: string, parameters: ParameterDef[]): strin
   return lines;
 }
 
-function renderChoices(): string[] {
-  return [
-    '  <spirit:choices>',
-    '    <spirit:choice>',
-    '      <spirit:name>choice_list_9d8b0d81</spirit:name>',
-    '      <spirit:enumeration>ACTIVE_HIGH</spirit:enumeration>',
-    '      <spirit:enumeration>ACTIVE_LOW</spirit:enumeration>',
-    '    </spirit:choice>',
-    '  </spirit:choices>',
-  ];
+function renderChoices(resetsCount: number, parameters: ParameterDef[] = []): string[] {
+  const lines: string[] = [];
+  lines.push('  <spirit:choices>');
+  if (resetsCount > 0) {
+    lines.push(
+      '    <spirit:choice>',
+      '      <spirit:name>choice_list_9d8b0d81</spirit:name>',
+      '      <spirit:enumeration>ACTIVE_HIGH</spirit:enumeration>',
+      '      <spirit:enumeration>ACTIVE_LOW</spirit:enumeration>',
+      '    </spirit:choice>'
+    );
+  }
+  for (const param of parameters) {
+    const choicesList = param.allowedValues ?? param.allowed_values;
+    if (Array.isArray(choicesList) && choicesList.length > 0) {
+      lines.push('    <spirit:choice>');
+      lines.push(`      <spirit:name>choice_${param.name}</spirit:name>`);
+      lines.push('      <spirit:enumerations>');
+      for (const val of choicesList) {
+        lines.push(`        <spirit:enumeration spirit:text="${val}">${val}</spirit:enumeration>`);
+      }
+      lines.push('      </spirit:enumerations>');
+      lines.push('    </spirit:choice>');
+    }
+  }
+  lines.push('  </spirit:choices>');
+  return lines;
 }
 
 function renderVendorExtensions(displayName: string, xilinxVersion: string): string[] {

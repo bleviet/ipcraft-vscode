@@ -100,12 +100,17 @@ describe('IpCoreScaffolder', () => {
     expect(tclContent).toContain(
       'set_parameter_property DATA_WIDTH DESCRIPTION "Width of the data bus"'
     );
+    expect(tclContent).toContain('set_parameter_property ADDR_WIDTH ALLOWED_RANGES 16:64');
+    expect(tclContent).toContain('set_parameter_property DATA_WIDTH ALLOWED_RANGES { 8 16 32 64 }');
 
-    // Verify Vivado component.xml contains parameter description
+    // Verify Vivado component.xml contains parameter description and choices
     const xmlContent = (fs.writeFile as unknown as jest.Mock).mock.calls.find((call) =>
       call[0].includes('xilinx/component.xml')
     )?.[1];
     expect(xmlContent).toContain('<spirit:description>Width of the data bus</spirit:description>');
+    expect(xmlContent).toContain('spirit:choiceRef="choice_DATA_WIDTH"');
+    expect(xmlContent).toContain('<spirit:name>choice_DATA_WIDTH</spirit:name>');
+    expect(xmlContent).toContain('<spirit:enumeration spirit:text="32">32</spirit:enumeration>');
   });
 
   it('generates a single minimal stub by default (no bahonaviMethodology)', async () => {

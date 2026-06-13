@@ -31,6 +31,11 @@
     - `[x]` Update defaultValues in useCanvasDrop.ts to exclude natural/positive/real
     - `[x]` Restrict NUMERIC_PARAM_TYPES to integer in PortMappingTable.tsx and WidthField.tsx
     - `[x]` Update ParameterType union type in ipCore.d.ts
+- `[x]` Discrete Choice Generator & Validation
+    - `[x]` Integrate isDefaultInvalid check and visual error outlining in CanvasInspector.tsx
+    - `[x]` Update VivadoComponentXmlGenerator.ts to generate spirit:choices and spirit:choiceRef
+    - `[x]` Update amd_component_xml.j2 to support choices and choiceRef
+    - `[x]` Add unit test cases in VivadoComponentXmlGenerator.test.ts for discrete choices
 - `[x]` Run Tests and Validate
     - `[x]` Run unit tests with npm run test:unit
     - `[x]` Run lint checks with npm run lint

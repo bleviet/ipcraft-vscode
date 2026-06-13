@@ -311,6 +311,28 @@
       {% endfor %}
     </spirit:ports>
   </spirit:model>
+  {%- set has_choices = false -%}
+  {%- for generic in generics -%}
+    {%- if generic.allowed_values and generic.allowed_values | length > 0 -%}
+      {%- set has_choices = true -%}
+    {%- endif -%}
+  {%- endfor -%}
+  {%- if has_choices -%}
+  <spirit:choices>
+    {%- for generic in generics -%}
+    {%- if generic.allowed_values and generic.allowed_values | length > 0 -%}
+    <spirit:choice>
+      <spirit:name>choice_{{ generic.name | upper }}</spirit:name>
+      <spirit:enumerations>
+        {%- for val in generic.allowed_values %}
+        <spirit:enumeration spirit:text="{{ val }}">{{ val }}</spirit:enumeration>
+        {%- endfor %}
+      </spirit:enumerations>
+    </spirit:choice>
+    {%- endif -%}
+    {%- endfor %}
+  </spirit:choices>
+  {%- endif -%}
   <spirit:fileSets>
     <spirit:fileSet>
       <spirit:name>amd_vhdlsynthesis_view_fileset</spirit:name>
@@ -406,7 +428,8 @@
       <spirit:value spirit:format="{{ 'long' if generic.type == 'integer' else 'bool' if generic.type == 'boolean' else 'string' }}" spirit:resolve="user"
         spirit:id="PARAM_VALUE.{{ generic.name | upper }}"
         {%- if generic.min is not none %} spirit:minimum="{{ generic.min }}"{% endif -%}
-        {%- if generic.max is not none %} spirit:maximum="{{ generic.max }}"{% endif -%}>{{ generic.default_value }}</spirit:value>
+        {%- if generic.max is not none %} spirit:maximum="{{ generic.max }}"{% endif -%}
+        {%- if generic.allowed_values and generic.allowed_values | length > 0 %} spirit:choiceRef="choice_{{ generic.name | upper }}"{% endif -%}>{{ generic.default_value }}</spirit:value>
     </spirit:parameter>
     {% endfor %}
   </spirit:parameters>

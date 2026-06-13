@@ -894,6 +894,11 @@ const ParameterPanel: React.FC<ParameterPanelProps> = ({ param, index, ipCore, o
         : []
   ) as Array<string | number>;
 
+  const isDefaultInvalid =
+    constraintMode === 'choices' &&
+    allowedValuesList.length > 0 &&
+    !allowedValuesList.includes(dataType === 'integer' ? Number(defVal) : String(defVal));
+
   return (
     <>
       <Section title="Identity">
@@ -927,6 +932,8 @@ const ParameterPanel: React.FC<ParameterPanelProps> = ({ param, index, ipCore, o
             onSave={saveDefault}
             placeholder={dataType === 'integer' ? '32' : 'none'}
             mono
+            hasError={isDefaultInvalid}
+            errorMsg="Value must be one of the allowed choices"
           />
         )}
       </Section>
@@ -2811,6 +2818,8 @@ interface PropFieldProps {
   placeholder?: string;
   hint?: string;
   mono?: boolean;
+  hasError?: boolean;
+  errorMsg?: string;
 }
 
 const PropField: React.FC<PropFieldProps> = ({
@@ -2821,6 +2830,8 @@ const PropField: React.FC<PropFieldProps> = ({
   placeholder,
   hint,
   mono = false,
+  hasError = false,
+  errorMsg,
 }) => {
   const [draft, setDraft] = useState(value);
   const [focused, setFocused] = useState(false);
@@ -2862,11 +2873,13 @@ const PropField: React.FC<PropFieldProps> = ({
     }
   };
 
+  const showErr = liveError ?? (hasError ? errorMsg : null);
+
   return (
     <div className="ci-field">
       <label className="ci-field__label">{label}</label>
       <input
-        className={`ci-field__input${liveError ? ' ci-field__input--error' : ''}`}
+        className={`ci-field__input${showErr ? ' ci-field__input--error' : ''}`}
         value={draft}
         placeholder={placeholder}
         onChange={(e) => handleChange(e.target.value)}
@@ -2878,8 +2891,8 @@ const PropField: React.FC<PropFieldProps> = ({
         onKeyDown={handleKeyDown}
         style={mono ? { fontFamily: 'var(--vscode-editor-font-family, monospace)' } : undefined}
       />
-      {liveError ? (
-        <div className="ci-field__error">{liveError}</div>
+      {showErr ? (
+        <div className="ci-field__error">{showErr}</div>
       ) : hint ? (
         <div className="ci-field__hint">{hint}</div>
       ) : null}

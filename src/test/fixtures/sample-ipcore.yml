@@ -26,7 +26,14 @@ parameters:
 - name: ADDR_WIDTH
   value: 32
   dataType: integer
+  min: 16
+  max: 64
 - name: DATA_WIDTH
   value: 32
   dataType: integer
   description: Width of the data bus
+  allowedValues:
+  - 8
+  - 16
+  - 32
+  - 64
