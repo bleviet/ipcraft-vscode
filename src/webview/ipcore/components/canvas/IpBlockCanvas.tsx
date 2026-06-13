@@ -1211,8 +1211,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
                       mmClickPath
                         ? () =>
                             vscode?.postMessage({
-                              type: 'command',
-                              command: 'openFile',
+                              type: 'openFile',
                               path: mmClickPath,
                             })
                         : undefined

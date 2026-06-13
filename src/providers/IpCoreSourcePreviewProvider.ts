@@ -15,6 +15,8 @@ import { resolveVendor } from '../utils/resolveVendor';
 import { legacyVendorToTargets } from '../utils/migrateIpCore';
 import type { GenerateOptionsMessage } from './IpCoreGenerateHandler';
 
+import { WebviewRouter } from '../services/WebviewRouter';
+
 type SourceKind = 'hwTcl' | 'componentXml' | 'vhdl' | 'verilog';
 
 interface ParsedSource {
@@ -121,6 +123,15 @@ export class IpCoreSourcePreviewProvider implements vscode.CustomTextEditorProvi
     let currentYaml = '';
     let componentName = path.basename(document.uri.fsPath, path.extname(document.uri.fsPath));
 
+    const router = new WebviewRouter({
+      webviewPanel,
+      document,
+      logger: this.logger,
+      onReady: async () => {
+        await parseAndUpdate();
+      },
+    });
+
     const parseAndUpdate = async (): Promise<void> => {
       if (isDisposed) {
         return;
@@ -129,8 +140,7 @@ export class IpCoreSourcePreviewProvider implements vscode.CustomTextEditorProvi
         const parsed = await parseSource(document.uri.fsPath, kind);
         currentYaml = parsed.yamlText;
         componentName = parsed.name;
-        void webviewPanel.webview.postMessage({
-          type: 'update',
+        router.postUpdate({
           text: currentYaml,
           fileName: path.basename(document.uri.fsPath),
           isPreview: true,
@@ -150,38 +160,25 @@ export class IpCoreSourcePreviewProvider implements vscode.CustomTextEditorProvi
       }
     });
 
+    router.on('update', async (message: { text?: string }) => {
+      if (message.text) {
+        currentYaml = message.text;
+      }
+    });
+
+    router.on('generate', async (message: GenerateMessage) => {
+      await this.handleGenerate(message, currentYaml, webviewPanel.webview);
+    });
+
+    router.on('saveAsIpYml', async () => {
+      await this.handleSaveAsIpYml(document.uri, currentYaml, componentName);
+    });
+
     webviewPanel.onDidDispose(() => {
       isDisposed = true;
       changeSubscription.dispose();
+      router.dispose();
     });
-
-    webviewPanel.webview.onDidReceiveMessage(
-      async (message: { type: string; text?: string; options?: GenerateOptionsMessage }) => {
-        switch (message.type) {
-          case 'ready':
-            await parseAndUpdate();
-            break;
-          case 'update':
-            // User edited in the visual editor — track in memory, don't touch source file
-            if (message.text) {
-              currentYaml = message.text;
-            }
-            break;
-          case 'generate':
-            await this.handleGenerate(
-              message as GenerateMessage,
-              currentYaml,
-              webviewPanel.webview
-            );
-            break;
-          case 'saveAsIpYml':
-            await this.handleSaveAsIpYml(document.uri, currentYaml, componentName);
-            break;
-        }
-      }
-    );
-
-    // Handshake complete, initial parse triggers strictly on 'ready' message
   }
 
   private async handleGenerate(

@@ -101,8 +101,7 @@ export const MemoryMapsEditor: React.FC<MemoryMapsEditorProps> = ({
             <button
               onClick={() =>
                 vscode?.postMessage({
-                  type: 'command',
-                  command: 'openFile',
+                  type: 'openFile',
                   path: importFile,
                 })
               }

@@ -28,6 +28,7 @@ function makeFakeDocument(initial: string) {
       return lines().length;
     },
     lineAt: (n: number) => ({ lineNumber: n, text: lines()[n] ?? '' }),
+    version: 1,
   };
   const applyReplace = (r: RecordedReplace) => {
     const ls = lines();

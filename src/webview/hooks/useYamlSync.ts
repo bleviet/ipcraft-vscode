@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
+import { createRevisionState, shouldApplyUpdate, buildUpdateMessage } from '../sync/revisionFilter';
 
 /**
  * VSCode API wrapper type
@@ -24,24 +25,26 @@ export function useYamlSync(
   vscode: VsCodeApi | undefined,
   onUpdate: (text: string, fileName?: string) => void
 ) {
+  const revision = useRef(createRevisionState());
+
   const onUpdateRef = useRef(onUpdate);
   onUpdateRef.current = onUpdate;
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent<ExtensionMessage>) => {
       const message = event.data;
-      if (!message || typeof message !== 'object') {
+      if (!message || typeof message !== 'object' || message.type !== 'update') {
         return;
       }
 
-      switch (message.type) {
-        case 'update':
-          if (message.text !== undefined) {
-            onUpdateRef.current(message.text, message.fileName);
-          }
-          break;
-        default:
-        // Ignore unknown message types
+      const apply = shouldApplyUpdate(revision.current, {
+        docVersion: message.docVersion as number | undefined,
+        sourceEditId: message.sourceEditId as number | undefined,
+        forceResync: message.forceResync === true,
+      });
+
+      if (apply && message.text !== undefined) {
+        onUpdateRef.current(message.text, message.fileName);
       }
     };
 
@@ -56,7 +59,7 @@ export function useYamlSync(
    */
   const sendUpdate = useCallback(
     (text: string) => {
-      vscode?.postMessage({ type: 'update', text });
+      vscode?.postMessage(buildUpdateMessage(revision.current, text));
     },
     [vscode]
   );

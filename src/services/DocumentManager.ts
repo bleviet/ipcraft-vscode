@@ -2,6 +2,11 @@ import * as vscode from 'vscode';
 import { Logger } from '../utils/Logger';
 import { handleError } from '../utils/ErrorHandler';
 
+export type UpdateResult =
+  | { type: 'applied' }
+  | { type: 'noop' }
+  | { type: 'rejected'; reason: 'stale-base' | 'error' };
+
 /**
  * Service responsible for managing document read/write operations
  */
@@ -28,12 +33,17 @@ export class DocumentManager {
    *
    * @param document The document to update
    * @param text The new content
-   * @returns Promise that resolves when the edit is applied
+   * @param baseDocVersion Optional version this edit was based on
+   * @returns Promise that resolves to the UpdateResult
    */
-  updateDocument(document: vscode.TextDocument, text: string): Promise<boolean> {
+  updateDocument(
+    document: vscode.TextDocument,
+    text: string,
+    baseDocVersion?: number
+  ): Promise<UpdateResult> {
     const key = document.uri.toString();
     const previous = this.updateQueues.get(key) ?? Promise.resolve();
-    const task = previous.then(() => this.performUpdate(document, text));
+    const task = previous.then(() => this.performUpdate(document, text, baseDocVersion));
     this.updateQueues.set(
       key,
       task.then(
@@ -44,9 +54,19 @@ export class DocumentManager {
     return task;
   }
 
-  private async performUpdate(document: vscode.TextDocument, text: string): Promise<boolean> {
+  private async performUpdate(
+    document: vscode.TextDocument,
+    text: string,
+    baseDocVersion?: number
+  ): Promise<UpdateResult> {
+    if (baseDocVersion !== undefined && document.version !== baseDocVersion) {
+      this.logger.warn(
+        `Rejecting update: document version ${document.version} !== base version ${baseDocVersion}`
+      );
+      return { type: 'rejected', reason: 'stale-base' };
+    }
     if (document.getText() === text) {
-      return true;
+      return { type: 'noop' };
     }
     try {
       const edit = new vscode.WorkspaceEdit();
@@ -62,14 +82,14 @@ export class DocumentManager {
 
       if (success) {
         this.logger.debug('Document updated successfully');
+        return { type: 'applied' };
       } else {
         this.logger.warn('Document update failed');
+        return { type: 'rejected', reason: 'error' };
       }
-
-      return success;
     } catch (error) {
       handleError(error, 'DocumentManager.performUpdate');
-      return false;
+      return { type: 'rejected', reason: 'error' };
     }
   }
 

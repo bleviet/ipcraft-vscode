@@ -134,8 +134,8 @@ export async function handleGenerateRequest({
     doc.setIn([key], updatedFileSets);
 
     const newText = doc.toString();
-    const updateSuccess = await documentManager.updateDocument(document, newText);
-    if (updateSuccess) {
+    const updateResult = await documentManager.updateDocument(document, newText);
+    if (updateResult.type !== 'rejected') {
       logger.info('Updated file sets with generated files');
       await refreshWebview();
     } else {

@@ -1,8 +1,9 @@
 import * as vscode from 'vscode';
 import { Logger } from '../utils/Logger';
 import { HtmlGenerator } from '../services/HtmlGenerator';
-import { MessageHandler } from '../services/MessageHandler';
+import { WebviewRouter } from '../services/WebviewRouter';
 import { DocumentManager } from '../services/DocumentManager';
+import { YamlValidator } from '../services/YamlValidator';
 import { createSharedProviderServices } from './providerServices';
 
 /**
@@ -11,13 +12,13 @@ import { createSharedProviderServices } from './providerServices';
 export class MemoryMapEditorProvider implements vscode.CustomTextEditorProvider {
   private readonly logger = new Logger('MemoryMapEditorProvider');
   private readonly htmlGenerator: HtmlGenerator;
-  private readonly messageHandler: MessageHandler;
+  private readonly yamlValidator: YamlValidator;
   private readonly documentManager: DocumentManager;
 
   constructor(private readonly context: vscode.ExtensionContext) {
     const services = createSharedProviderServices(context);
     this.htmlGenerator = services.htmlGenerator;
-    this.messageHandler = services.messageHandler;
+    this.yamlValidator = services.yamlValidator;
     this.documentManager = services.documentManager;
 
     this.logger.info('MemoryMapEditorProvider initialized');
@@ -41,42 +42,30 @@ export class MemoryMapEditorProvider implements vscode.CustomTextEditorProvider 
     // Set HTML content
     webviewPanel.webview.html = this.htmlGenerator.generateHtml(webviewPanel.webview);
 
-    let isReady = false;
+    const router = new WebviewRouter({
+      webviewPanel,
+      document,
+      logger: this.logger,
+      onReady: () => {
+        router.postUpdate({
+          text: this.documentManager.getText(document),
+          fileName: this.documentManager.getRelativePath(document.uri),
+        });
+      },
+    });
 
-    // Send update to webview when ready
-    const updateWebview = () => {
-      if (!isReady) {
-        return;
-      }
-      this.messageHandler.sendUpdate(webviewPanel.webview, document);
-    };
+    router.useStandardDocumentHandlers(this.documentManager, this.yamlValidator);
 
     // Listen for document changes
     const changeDocumentSubscription = vscode.workspace.onDidChangeTextDocument((e) => {
-      if (e.document.uri.toString() === document.uri.toString()) {
-        updateWebview();
-      }
+      router.handleDocumentChange(e);
     });
 
     // Clean up subscriptions when webview is disposed
     webviewPanel.onDidDispose(() => {
       changeDocumentSubscription.dispose();
+      router.dispose();
       this.logger.debug('Webview panel disposed');
     });
-
-    // Handle messages from the webview
-    webviewPanel.webview.onDidReceiveMessage((m: unknown) => {
-      const message = m as { type?: string; command: string };
-      if (message.type === 'ready') {
-        isReady = true;
-        updateWebview();
-        return;
-      }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
-      void this.messageHandler.handleMessage(message as any, document);
-    });
-
-    // Queue initial content until webview signals readiness
-    updateWebview();
   }
 }

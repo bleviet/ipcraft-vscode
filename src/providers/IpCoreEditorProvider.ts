@@ -6,7 +6,7 @@ import * as jsyaml from 'js-yaml';
 import * as YAML from 'yaml';
 import { Logger } from '../utils/Logger';
 import { HtmlGenerator } from '../services/HtmlGenerator';
-import { MessageHandler } from '../services/MessageHandler';
+import { WebviewRouter } from '../services/WebviewRouter';
 import { YamlValidator } from '../services/YamlValidator';
 import { DocumentManager } from '../services/DocumentManager';
 import { ImportResolver } from '../services/ImportResolver';
@@ -14,11 +14,12 @@ import { SubcoreResolver } from '../services/SubcoreResolver';
 import { isValidVlnv } from '../utils/vlnv';
 import { createNotIpCoreHtml } from './ipCoreErrorHtml';
 import { createSharedProviderServices } from './providerServices';
+import { handleGenerateRequest } from './IpCoreGenerateHandler';
 import {
-  handleGenerateRequest,
-  type GenerateRequestMessage,
-  type GenerateOptionsMessage,
-} from './IpCoreGenerateHandler';
+  IpCoreWebviewMessage,
+  GenerateRequestMessage,
+  GenerateOptionsMessage,
+} from '../shared/messages/ipCore';
 import { WebviewStagingBridge } from './WebviewStagingBridge';
 import { STAGING_SCHEME } from './StagingContentProvider';
 import { editInIpPackagerCommand } from '../commands/editInIpPackager';
@@ -68,7 +69,6 @@ const WEBVIEW_COMMAND_ALLOWLIST = new Set<string>([
 export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
   private readonly logger = new Logger('IpCoreEditorProvider');
   private readonly htmlGenerator: HtmlGenerator;
-  private readonly messageHandler: MessageHandler;
   private readonly documentManager: DocumentManager;
   private readonly importResolver: ImportResolver;
   private readonly subcoreResolver: SubcoreResolver;
@@ -83,7 +83,6 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
     this.resourceRoots = resourceRoots;
     const services = createSharedProviderServices(context);
     this.htmlGenerator = services.htmlGenerator;
-    this.messageHandler = services.messageHandler;
     this.documentManager = services.documentManager;
     this.importResolver = new ImportResolver(this.logger, resourceRoots.busDefinitionsDir);
     this.subcoreResolver = new SubcoreResolver(context);
@@ -160,17 +159,32 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
     // Set HTML content - use ipcore-specific HTML
     webviewPanel.webview.html = this.htmlGenerator.generateIpCoreHtml(webviewPanel.webview);
 
-    let isReady = false;
     let isDisposed = false;
 
-    const updateWebview = async () => {
-      if (!isReady || isDisposed) {
+    const router = new WebviewRouter<IpCoreWebviewMessage>({
+      webviewPanel,
+      document,
+      logger: this.logger,
+      commandAllowlist: WEBVIEW_COMMAND_ALLOWLIST,
+      onReady: async () => {
+        await updateWebview();
+      },
+    });
+
+    const updateWebview = async (sourceEditId?: number) => {
+      if (isDisposed) {
         return;
       }
-      await this.updateWebview(document, webviewPanel, () => isDisposed);
+      await this.updateWebview(document, router, () => isDisposed, sourceEditId);
     };
 
-    const changeDocumentSubscription = this.subscribeToDocumentChanges(document, updateWebview);
+    router.useStandardDocumentHandlers(this.documentManager, this.yamlValidator);
+
+    const changeDocumentSubscription = this.subscribeToDocumentChanges(
+      document,
+      router,
+      updateWebview
+    );
     const configSubscription = vscode.workspace.onDidChangeConfiguration((e) => {
       if (e.affectsConfiguration('ipcraft.busLibraryPaths')) {
         this.importResolver.clearCache();
@@ -192,22 +206,21 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
       changeDocumentSubscription.dispose();
       configSubscription.dispose();
       fileWatcher.dispose();
+      router.dispose();
     });
-    this.registerWebviewMessageHandlers(document, webviewPanel, updateWebview, () => {
-      isReady = true;
-    });
+    this.registerWebviewMessageHandlers(document, webviewPanel, router, updateWebview);
     WebviewStagingBridge.getInstance().register(document.uri.fsPath, webviewPanel);
-
-    this.logger.info('Waiting for webview ready handshake');
   }
 
   private subscribeToDocumentChanges(
     document: vscode.TextDocument,
-    updateWebview: () => Promise<void>
+    router: WebviewRouter<IpCoreWebviewMessage>,
+    updateWebview: (sourceEditId?: number) => Promise<void>
   ): vscode.Disposable {
     return vscode.workspace.onDidChangeTextDocument((e) => {
       if (e.document.uri.toString() === document.uri.toString()) {
-        void updateWebview();
+        const sourceEditId = router.popSourceEditId();
+        void updateWebview(sourceEditId);
       }
     });
   }
@@ -254,199 +267,191 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
   private registerWebviewMessageHandlers(
     document: vscode.TextDocument,
     webviewPanel: vscode.WebviewPanel,
-    updateWebview: () => Promise<void>,
-    onReady: () => void
+    router: WebviewRouter<IpCoreWebviewMessage>,
+    updateWebview: (sourceEditId?: number) => Promise<void>
   ): void {
-    type MessageHandlerFn = (message: IpcMessage) => Promise<void>;
-
     // Shared column for staging diff/preview actions. Pinned after the first open so
     // every subsequent View Diff / Preview reuses the same tab instead of opening new ones.
     let stagingSideColumn: vscode.ViewColumn | undefined;
 
-    const messageHandlers: Record<string, MessageHandlerFn> = {
-      ready: async () => {
-        this.logger.info('Webview ready, sending initial update');
-        onReady();
-        await updateWebview();
-      },
-      selectFiles: async (message) => {
-        await this.handleSelectFilesMessage(message, document, webviewPanel);
-      },
-      checkFilesExist: async (message) => {
-        await this.handleCheckFilesExistMessage(message, document, webviewPanel);
-      },
-      generate: async (message) => {
-        await handleGenerateRequest({
-          logger: this.logger,
-          resourceRoots: this.resourceRoots,
-          documentManager: this.documentManager,
-          document,
-          webview: webviewPanel.webview,
-          message: message as GenerateRequestMessage,
-          refreshWebview: updateWebview,
-        });
-      },
-      saveCustomBusDefinition: async (message) => {
-        await this.handleSaveCustomBusDefinition(message, document, webviewPanel);
-      },
-      command: async (message) => {
-        const cmd = String(message.command ?? '');
-        if (!WEBVIEW_COMMAND_ALLOWLIST.has(cmd)) {
-          this.logger.warn(`Blocked non-allowlisted webview command: ${cmd}`);
-          return;
-        }
-        await vscode.commands.executeCommand(cmd, document.uri);
-        void updateWebview();
-      },
-      setHdlLanguage: async (message) => {
-        const lang = message.language as string;
-        if (lang !== 'vhdl' && lang !== 'systemverilog') {
-          return;
-        }
-        const cfg = vscode.workspace.getConfiguration('ipcraft.generate');
-        await cfg.update('hdlLanguage', lang, vscode.ConfigurationTarget.Global);
-        // onDidChangeConfiguration fires updateWebview automatically
-      },
-      setToolbarTargets: async (message) => {
-        const raw = message.targets;
-        if (!Array.isArray(raw) || !raw.every((t) => typeof t === 'string')) {
-          return;
-        }
-        const cfg = vscode.workspace.getConfiguration('ipcraft.toolbar');
-        await cfg.update('targets', raw, vscode.ConfigurationTarget.Global);
-        // onDidChangeConfiguration fires updateWebview automatically
-      },
-      setScaffoldPack: async (message) => {
-        const packName = message.packName;
-        if (typeof packName !== 'string') {
-          return;
-        }
-        // Write to .ip.yml (per-file) so the pack round-trips with the file
-        await this.writeScaffoldPackToDocument(document, packName);
-        // Keep global setting as default for new files that don't yet have scaffold_pack
-        const cfg = vscode.workspace.getConfiguration('ipcraft.generate');
-        await cfg.update('scaffoldPack', packName, vscode.ConfigurationTarget.Global);
-        // onDidChangeConfiguration fires updateWebview automatically
-      },
-      openScaffoldPacksWalkthrough: async () => {
-        await vscode.commands.executeCommand(
-          'workbench.action.openWalkthrough',
-          'bleviet.ipcraft-vscode#scaffold-packs-getting-started',
-          false
-        );
-      },
-      openWalkthroughMenu: async () => {
-        await vscode.commands.executeCommand('fpga-ip-core.openWalkthroughMenu');
-      },
-      openFile: async (message) => {
-        await this.handleOpenFileMessage(message, document);
-      },
-      addSubcore: async () => {
-        await this.handleAddSubcoreMessage(webviewPanel);
-      },
-      editInIpPackager: async () => {
-        const componentXmlPath = path.join(
-          path.dirname(document.uri.fsPath),
-          'xilinx',
-          'component.xml'
-        );
-        await editInIpPackagerCommand(vscode.Uri.file(componentXmlPath));
-      },
-      editInPlatformDesigner: async () => {
-        const ipName = path.basename(document.uri.fsPath).replace(/\.ip\.ya?ml$/, '');
-        const hwTclPath = path.join(
-          path.dirname(document.uri.fsPath),
-          'altera',
-          `${ipName}_hw.tcl`
-        );
-        await editInPlatformDesignerCommand(vscode.Uri.file(hwTclPath));
-      },
-      openInVivado: async () => {
-        const ipName = path.basename(document.uri.fsPath).replace(/\.ip\.ya?ml$/, '');
-        const baseDir = path.dirname(document.uri.fsPath);
-        const xprFull = path.join(baseDir, 'xilinx', 'build', 'xpr', `${ipName}.xpr`);
-        const xprOoc = path.join(baseDir, 'xilinx', 'build', 'ooc', `${ipName}.xpr`);
-        const xprPath = await fs
-          .access(xprFull)
-          .then(() => xprFull)
-          .catch(() => xprOoc);
-        await openInVivadoCommand(vscode.Uri.file(xprPath));
-      },
-      openInQuartus: async () => {
-        const ipName = path.basename(document.uri.fsPath).replace(/\.ip\.ya?ml$/, '');
-        const qpfPath = path.join(
-          path.dirname(document.uri.fsPath),
-          'altera',
-          'build',
-          `${ipName}.qpf`
-        );
-        await openInQuartusCommand(vscode.Uri.file(qpfPath));
-      },
-      stagingResult: async (message) => {
-        stagingSideColumn = undefined;
-        WebviewStagingBridge.getInstance().resolveStaging(
-          document.uri.fsPath,
-          message.confirmed as boolean
-        );
-      },
-      stagingAction: async (message) => {
-        const files = WebviewStagingBridge.getInstance().getFiles(document.uri.fsPath);
-        if (!files) {
-          return;
-        }
-        const relativePath = String(message.relativePath ?? '');
-        const file = files.find((f) => f.relativePath === relativePath);
-        if (!file) {
-          return;
-        }
-        if (message.action === 'viewDiff') {
-          const diskUri = vscode.Uri.file(file.diskPath);
-          const generatedUri = vscode.Uri.from({
-            scheme: STAGING_SCHEME,
-            path: `/${file.relativePath}`,
-          });
-          const filename = generatedUri.path.split('/').pop() ?? file.relativePath;
-          const diffEditor = await vscode.commands.executeCommand<vscode.TextEditor | undefined>(
-            'vscode.diff',
-            diskUri,
-            generatedUri,
-            `${filename}: Current ↔ Generated`,
-            { preview: true, viewColumn: stagingSideColumn ?? vscode.ViewColumn.Beside }
-          );
-          if (diffEditor?.viewColumn !== undefined) {
-            stagingSideColumn = diffEditor.viewColumn;
-          }
-        } else if (message.action === 'viewPreview') {
-          const generatedUri = vscode.Uri.from({
-            scheme: STAGING_SCHEME,
-            path: `/${file.relativePath}`,
-          });
-          const doc = await vscode.workspace.openTextDocument(generatedUri);
-          const editor = await vscode.window.showTextDocument(doc, {
-            preview: true,
-            viewColumn: stagingSideColumn ?? vscode.ViewColumn.Beside,
-          });
-          if (editor.viewColumn !== undefined) {
-            stagingSideColumn = editor.viewColumn;
-          }
-        }
-      },
-    };
+    router.on('selectFiles', async (message) => {
+      await this.handleSelectFilesMessage(message, document, webviewPanel);
+    });
 
-    webviewPanel.webview.onDidReceiveMessage(async (message: IpcMessage) => {
-      const handler = messageHandlers[message.type];
-      if (handler) {
-        await handler(message);
+    router.on('checkFilesExist', async (message) => {
+      await this.handleCheckFilesExistMessage(message, document, webviewPanel);
+    });
+
+    router.on('generate', async (message) => {
+      await handleGenerateRequest({
+        logger: this.logger,
+        resourceRoots: this.resourceRoots,
+        documentManager: this.documentManager,
+        document,
+        webview: webviewPanel.webview,
+        message: message as GenerateRequestMessage,
+        refreshWebview: updateWebview,
+      });
+    });
+
+    router.on('saveCustomBusDefinition', async (message) => {
+      await this.handleSaveCustomBusDefinition(message, document, webviewPanel);
+    });
+
+    // This overrides the standard `command` handler registered by
+    // `useStandardDocumentHandlers`: the IP Core webview only uses `command` to
+    // invoke allow-listed VS Code command IDs. File opening uses the dedicated
+    // `openFile` message (handled below), and save/validate are not sent here.
+    router.on('command', async (message) => {
+      const cmd = String(message.command ?? '');
+      if (!WEBVIEW_COMMAND_ALLOWLIST.has(cmd)) {
+        this.logger.warn(`Blocked non-allowlisted webview command: ${cmd}`);
         return;
       }
-      await this.messageHandler.handleMessage(message, document);
+      await vscode.commands.executeCommand(cmd, document.uri);
+      void updateWebview();
+    });
+
+    router.on('setHdlLanguage', async (message) => {
+      const lang = message.language;
+      if (lang !== 'vhdl' && lang !== 'systemverilog') {
+        return;
+      }
+      const cfg = vscode.workspace.getConfiguration('ipcraft.generate');
+      await cfg.update('hdlLanguage', lang, vscode.ConfigurationTarget.Global);
+    });
+
+    router.on('setToolbarTargets', async (message) => {
+      const raw = message.targets;
+      if (!Array.isArray(raw) || !raw.every((t) => typeof t === 'string')) {
+        return;
+      }
+      const cfg = vscode.workspace.getConfiguration('ipcraft.toolbar');
+      await cfg.update('targets', raw, vscode.ConfigurationTarget.Global);
+    });
+
+    router.on('setScaffoldPack', async (message) => {
+      const packName = message.packName;
+      if (typeof packName !== 'string') {
+        return;
+      }
+      await this.writeScaffoldPackToDocument(document, packName);
+      const cfg = vscode.workspace.getConfiguration('ipcraft.generate');
+      await cfg.update('scaffoldPack', packName, vscode.ConfigurationTarget.Global);
+    });
+
+    router.on('openScaffoldPacksWalkthrough', async () => {
+      await vscode.commands.executeCommand(
+        'workbench.action.openWalkthrough',
+        'bleviet.ipcraft-vscode#scaffold-packs-getting-started',
+        false
+      );
+    });
+
+    router.on('openWalkthroughMenu', async () => {
+      await vscode.commands.executeCommand('fpga-ip-core.openWalkthroughMenu');
+    });
+
+    router.on('openFile', async (message) => {
+      await this.handleOpenFileMessage(message, document);
+    });
+
+    router.on('addSubcore', async () => {
+      await this.handleAddSubcoreMessage(webviewPanel);
+    });
+
+    router.on('editInIpPackager', async () => {
+      const componentXmlPath = path.join(
+        path.dirname(document.uri.fsPath),
+        'xilinx',
+        'component.xml'
+      );
+      await editInIpPackagerCommand(vscode.Uri.file(componentXmlPath));
+    });
+
+    router.on('editInPlatformDesigner', async () => {
+      const ipName = path.basename(document.uri.fsPath).replace(/\.ip\.ya?ml$/, '');
+      const hwTclPath = path.join(path.dirname(document.uri.fsPath), 'altera', `${ipName}_hw.tcl`);
+      await editInPlatformDesignerCommand(vscode.Uri.file(hwTclPath));
+    });
+
+    router.on('openInVivado', async () => {
+      const ipName = path.basename(document.uri.fsPath).replace(/\.ip\.ya?ml$/, '');
+      const baseDir = path.dirname(document.uri.fsPath);
+      const xprFull = path.join(baseDir, 'xilinx', 'build', 'xpr', `${ipName}.xpr`);
+      const xprOoc = path.join(baseDir, 'xilinx', 'build', 'ooc', `${ipName}.xpr`);
+      const xprPath = await fs
+        .access(xprFull)
+        .then(() => xprFull)
+        .catch(() => xprOoc);
+      await openInVivadoCommand(vscode.Uri.file(xprPath));
+    });
+
+    router.on('openInQuartus', async () => {
+      const ipName = path.basename(document.uri.fsPath).replace(/\.ip\.ya?ml$/, '');
+      const qpfPath = path.join(
+        path.dirname(document.uri.fsPath),
+        'altera',
+        'build',
+        `${ipName}.qpf`
+      );
+      await openInQuartusCommand(vscode.Uri.file(qpfPath));
+    });
+
+    router.on('stagingResult', async (message) => {
+      stagingSideColumn = undefined;
+      WebviewStagingBridge.getInstance().resolveStaging(document.uri.fsPath, message.confirmed);
+    });
+
+    router.on('stagingAction', async (message) => {
+      const files = WebviewStagingBridge.getInstance().getFiles(document.uri.fsPath);
+      if (!files) {
+        return;
+      }
+      const relativePath = String(message.relativePath ?? '');
+      const file = files.find((f) => f.relativePath === relativePath);
+      if (!file) {
+        return;
+      }
+      if (message.action === 'viewDiff') {
+        const diskUri = vscode.Uri.file(file.diskPath);
+        const generatedUri = vscode.Uri.from({
+          scheme: STAGING_SCHEME,
+          path: `/${file.relativePath}`,
+        });
+        const filename = generatedUri.path.split('/').pop() ?? file.relativePath;
+        const diffEditor = await vscode.commands.executeCommand<vscode.TextEditor | undefined>(
+          'vscode.diff',
+          diskUri,
+          generatedUri,
+          `${filename}: Current ↔ Generated`,
+          { preview: true, viewColumn: stagingSideColumn ?? vscode.ViewColumn.Beside }
+        );
+        if (diffEditor?.viewColumn !== undefined) {
+          stagingSideColumn = diffEditor.viewColumn;
+        }
+      } else if (message.action === 'viewPreview') {
+        const generatedUri = vscode.Uri.from({
+          scheme: STAGING_SCHEME,
+          path: `/${file.relativePath}`,
+        });
+        const doc = await vscode.workspace.openTextDocument(generatedUri);
+        const editor = await vscode.window.showTextDocument(doc, {
+          preview: true,
+          viewColumn: stagingSideColumn ?? vscode.ViewColumn.Beside,
+        });
+        if (editor.viewColumn !== undefined) {
+          stagingSideColumn = editor.viewColumn;
+        }
+      }
     });
   }
 
   private async updateWebview(
     document: vscode.TextDocument,
-    webviewPanel: vscode.WebviewPanel,
-    isDisposed: () => boolean
+    router: WebviewRouter<IpCoreWebviewMessage>,
+    isDisposed: () => boolean,
+    sourceEditId?: number
   ): Promise<void> {
     if (isDisposed()) {
       this.logger.debug('Webview already disposed, skipping update');
@@ -455,6 +460,10 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
 
     try {
       const text = document.getText();
+      // Capture the version now, alongside the text, so the async work below
+      // (import resolution, fs stats) can't let a concurrent edit bump the live
+      // version and desync the docVersion we stamp on this text.
+      const docVersion = document.version;
       const parsed = jsyaml.load(text);
       const baseDir = path.dirname(document.uri.fsPath);
       const imports = await this.importResolver.resolveImports(
@@ -525,22 +534,25 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
 
       const duplicatePrefixes = this.yamlValidator.findDuplicatePhysicalPrefixes(parsed);
 
-      void webviewPanel.webview.postMessage({
-        type: 'update',
-        text,
-        fileName: path.basename(document.uri.fsPath),
-        imports,
-        hasComponentXml,
-        hasHwTcl,
-        hasXpr,
-        hasQpf,
-        hdlLanguage,
-        scaffoldPack,
-        availableScaffoldPacks,
-        toolbarTargets,
-        allToolchains,
-        duplicatePrefixes,
-      });
+      router.postUpdate(
+        {
+          text,
+          fileName: path.basename(document.uri.fsPath),
+          imports,
+          hasComponentXml,
+          hasHwTcl,
+          hasXpr,
+          hasQpf,
+          hdlLanguage,
+          scaffoldPack,
+          availableScaffoldPacks,
+          toolbarTargets,
+          allToolchains,
+          duplicatePrefixes,
+          sourceEditId,
+        },
+        docVersion
+      );
     } catch (error) {
       this.logger.error('Failed to update webview', error as Error);
     }

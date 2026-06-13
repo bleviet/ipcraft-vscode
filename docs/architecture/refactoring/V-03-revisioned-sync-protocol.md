@@ -157,3 +157,32 @@ docVersion rule, because our newer edit produced a higher version. External edit
   task 3 and by the `docVersion` rule acting as an independent backstop.
 - `retainContextWhenHidden` means long-lived webviews; counters must not reset on tab
   switches (refs persist — verify with a hide/show test).
+
+## Known limitation (as implemented)
+
+The FIFO pairing in task 3 is **arrival-ordered**, not edit-identity-ordered, and there is no
+reliable point to pair a change event to the edit that caused it: `onDidChangeTextDocument`
+fires *before* `vscode.workspace.applyEdit` resolves, so the host cannot record
+"editId E produced version V" in time to match the event.
+
+Consequence — a narrow interleave: if an **external** edit lands after a webview edit has been
+sent (its `editId` is already on the FIFO) but before that edit's `applyEdit` runs, the
+external change event pops the FIFO and is stamped with the webview's `editId`. The webview
+then treats the external change as an echo of its own edit and drops it; the subsequent
+stale-base rejection resync would also look stale because `seenDocVersion` has advanced.
+
+This is **mitigated, not eliminated**:
+
+- **Data is safe regardless.** The `baseDocVersion` guard (V-4) rejects the stale webview edit
+  inside `DocumentManager`'s per-URI queue, so the external change is never overwritten on disk.
+- **The view is corrected.** The stale-base rejection resync carries `forceResync: true`
+  (see `WebviewRouter.useStandardDocumentHandlers` → `shouldApplyUpdate`), which bypasses the
+  `docVersion`/`sourceEditId` suppression so the webview re-parses the document (the SSOT)
+  even after the transient mislabel. Covered by
+  `src/test/suite/integrationLike/syncProtocol.test.ts` ("stale-base … force-resyncs").
+
+Eliminating the transient (so the external change is shown on the *first* event rather than the
+follow-up resync) would require identity-paired echoes — e.g. matching change events to
+`editId → resulting version` once that ordering is obtainable, or moving off arrival-ordered
+FIFO entirely. Deliberately out of scope: last-writer-wins with detect-and-resync is adequate,
+and the transient is sub-frame.
