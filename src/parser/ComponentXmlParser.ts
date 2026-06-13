@@ -103,9 +103,17 @@ function physicalPortNames(busIfEl: Element): string[] {
   return names;
 }
 
-/** Extract the full logical→physical port map for a bus interface. */
-function extractPortMap(busIfEl: Element): Array<{ logical: string; physical: string }> {
-  const result: Array<{ logical: string; physical: string }> = [];
+/** Extract the full logical→physical port map for a bus interface, annotated with direction and width from the model port table. */
+function extractPortMap(
+  busIfEl: Element,
+  modelPortAttrs: Map<string, { direction: 'in' | 'out'; width: number }>
+): Array<{ logical: string; physical: string; direction: 'in' | 'out'; width: number }> {
+  const result: Array<{
+    logical: string;
+    physical: string;
+    direction: 'in' | 'out';
+    width: number;
+  }> = [];
   const portMapsEl = childEl(busIfEl, 'portMaps');
   if (!portMapsEl) {
     return result;
@@ -114,7 +122,13 @@ function extractPortMap(busIfEl: Element): Array<{ logical: string; physical: st
     const logName = text(childEl(portMap, 'logicalPort') ?? portMap, 'name');
     const physName = text(childEl(portMap, 'physicalPort') ?? portMap, 'name');
     if (logName && physName) {
-      result.push({ logical: logName, physical: physName });
+      const attrs = modelPortAttrs.get(physName);
+      result.push({
+        logical: logName,
+        physical: physName,
+        direction: attrs?.direction ?? 'in',
+        width: attrs?.width ?? 1,
+      });
     }
   }
   return result;
@@ -269,7 +283,12 @@ export function parseComponentXmlText(
     name: string;
     type: string;
     busTypeVlnv?: { vendor: string; library: string; name: string; version: string };
-    rawPortMaps?: Array<{ logical: string; physical: string }>;
+    rawPortMaps?: Array<{
+      logical: string;
+      physical: string;
+      direction: 'in' | 'out';
+      width: number;
+    }>;
     mode: string;
     physicalPrefix?: string;
     associatedClock?: string;
@@ -277,6 +296,36 @@ export function parseComponentXmlText(
     memoryMapRef?: string;
     useOptionalPorts?: string[];
   }
+  // Build a lookup of physical port name → direction/width from spirit:model/spirit:ports.
+  // Used to annotate rawPortMaps for unknown bus types so the generator can emit
+  // correct spirit:ports entries without needing a bus definition.
+  const modelPortAttrs = new Map<string, { direction: 'in' | 'out'; width: number }>();
+  {
+    const _modelEl = childEl(root, 'model');
+    const _portsEl = _modelEl ? childEl(_modelEl, 'ports') : undefined;
+    if (_portsEl) {
+      for (const portEl of childEls(_portsEl, 'port')) {
+        const pName = text(portEl, 'name');
+        if (!pName) {
+          continue;
+        }
+        const wireEl = childEl(portEl, 'wire');
+        if (!wireEl) {
+          continue;
+        }
+        const direction = text(wireEl, 'direction') === 'out' ? 'out' : ('in' as const);
+        const vectorEl = childEl(wireEl, 'vector');
+        let width = 1;
+        if (vectorEl) {
+          const left = parseHexOrDec(text(vectorEl, 'left'));
+          const right = parseHexOrDec(text(vectorEl, 'right'));
+          width = Math.abs(left - right) + 1;
+        }
+        modelPortAttrs.set(pName, { direction, width });
+      }
+    }
+  }
+
   const busInterfaces: BusIfEntry[] = [];
 
   for (const busIf of busInterfaceEls) {
@@ -313,7 +362,7 @@ export function parseComponentXmlText(
       const btVersion = attr(busTypeEl, SPIRIT_NS, 'version') || '1.0';
       busType = `${btVendor}.${btLibrary}.${btName}.${btVersion}`;
       busTypeVlnv = { vendor: btVendor, library: btLibrary, name: btName, version: btVersion };
-      const portMapEntries = extractPortMap(busIf);
+      const portMapEntries = extractPortMap(busIf, modelPortAttrs);
       if (portMapEntries.length > 0) {
         rawPortMaps = portMapEntries;
       }

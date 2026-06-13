@@ -854,6 +854,15 @@ function renderPorts(
       : findCustomBusDef(ifaceType, busDefinitions)?.ports;
 
     if (!sourcePorts) {
+      // Unknown bus type with preserved rawPortMaps: emit physical ports directly
+      const rawPortMaps = iface.rawPortMaps as
+        | Array<{ logical: string; physical: string; direction: 'in' | 'out'; width: number }>
+        | undefined;
+      if (rawPortMaps) {
+        for (const pm of rawPortMaps) {
+          portLines.push(...renderModelPort(pm.physical, pm.direction, pm.width, isSv));
+        }
+      }
       continue;
     }
     const typedParams = parameters

@@ -256,8 +256,8 @@ describe('generateComponentXml', () => {
               version: '19.1',
             },
             rawPortMaps: [
-              { logical: 'DATA', physical: 'st_data' },
-              { logical: 'VALID', physical: 'st_valid' },
+              { logical: 'DATA', physical: 'st_data', direction: 'out' as const, width: 8 },
+              { logical: 'VALID', physical: 'st_valid', direction: 'out' as const, width: 1 },
             ],
             mode: 'master',
             useOptionalPorts: [],
@@ -265,10 +265,15 @@ describe('generateComponentXml', () => {
           },
         ],
       });
+      // portMaps section
       expect(xml).toContain('<spirit:name>DATA</spirit:name>');
       expect(xml).toContain('<spirit:name>st_data</spirit:name>');
       expect(xml).toContain('<spirit:name>VALID</spirit:name>');
       expect(xml).toContain('<spirit:name>st_valid</spirit:name>');
+      // spirit:ports section — physical ports must be declared
+      const portsSection = xml.slice(xml.indexOf('<spirit:ports>'), xml.indexOf('</spirit:ports>'));
+      expect(portsSection).toContain('<spirit:name>st_data</spirit:name>');
+      expect(portsSection).toContain('<spirit:name>st_valid</spirit:name>');
     });
   });
 

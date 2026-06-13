@@ -133,8 +133,13 @@ export interface BusInterfaceDef {
   type?: string;
   /** Raw VLNV components for unknown bus types parsed from component.xml. Avoids re-splitting the dot-joined type string which is ambiguous (vendor TLDs and versions both contain dots). */
   busTypeVlnv?: VlnvDef;
-  /** Original logical→physical port maps for unknown bus types. Preserved so the generator can emit them verbatim without needing a bus definition. */
-  rawPortMaps?: Array<{ logical: string; physical: string }>;
+  /** Original logical→physical port maps for unknown bus types, annotated with direction and width from spirit:model/spirit:ports. Preserved so the generator can emit them verbatim without needing a bus definition. */
+  rawPortMaps?: Array<{
+    logical: string;
+    physical: string;
+    direction: 'in' | 'out';
+    width: number;
+  }>;
   mode?: string;
   physicalPrefix?: string;
   useOptionalPorts?: string[];

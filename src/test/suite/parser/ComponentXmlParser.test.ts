@@ -870,6 +870,20 @@ const AVALON_STREAMING_XML = `<?xml version="1.0" encoding="UTF-8"?>
       </spirit:portMaps>
     </spirit:busInterface>
   </spirit:busInterfaces>
+  <spirit:model>
+    <spirit:ports>
+      <spirit:port>
+        <spirit:name>st_data</spirit:name>
+        <spirit:wire>
+          <spirit:direction>out</spirit:direction>
+          <spirit:vector>
+            <spirit:left>7</spirit:left>
+            <spirit:right>0</spirit:right>
+          </spirit:vector>
+        </spirit:wire>
+      </spirit:port>
+    </spirit:ports>
+  </spirit:model>
 </spirit:component>`;
 
 describe('unknown bus type VLNV preservation', () => {
@@ -903,6 +917,8 @@ describe('unknown bus type VLNV preservation', () => {
       }>;
     };
     const iface = ip.busInterfaces?.find((b) => b.name === 'st_source');
-    expect(iface?.rawPortMaps).toEqual([{ logical: 'DATA', physical: 'st_data' }]);
+    expect(iface?.rawPortMaps).toEqual([
+      { logical: 'DATA', physical: 'st_data', direction: 'out', width: 8 },
+    ]);
   });
 });
