@@ -690,6 +690,14 @@
             },
             "default": [],
             "markdownDescription": "Additional file system paths to scan for IP cores (directories containing `.ip.yml` or `component.xml` files)."
+          },
+          "ipcraft.scaffoldPackPaths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": [],
+            "markdownDescription": "Additional file system paths to scan recursively for custom Scaffold Packs (directories containing `scaffold.yml` files)."
           }
         }
       },
@@ -942,11 +950,26 @@
         }
       }
     ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "ipcraft-foundry",
+          "title": "IPCraft",
+          "icon": "resources/icon.png"
+        }
+      ]
+    },
     "views": {
       "explorer": [
         {
           "id": "fpga-ip-core.reportsView",
           "name": "IPCraft Build"
+        }
+      ],
+      "ipcraft-foundry": [
+        {
+          "id": "ipcraft-foundry.navigator",
+          "name": "Control Center"
         }
       ]
     },

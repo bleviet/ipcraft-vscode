@@ -5,6 +5,7 @@ import { MemoryMapEditorProvider } from './providers/MemoryMapEditorProvider';
 import { IpCoreEditorProvider } from './providers/IpCoreEditorProvider';
 import { resolveResourceRoots, ResourceRoots } from './services/ResourceRoots';
 import { ReportsTreeProvider } from './providers/ReportsTreeProvider';
+import { IpCoreTreeDataProvider } from './sidebar/IpCoreTreeDataProvider';
 import {
   createIpCoreCommand,
   createMemoryMapCommand,
@@ -185,6 +186,13 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.window.registerTreeDataProvider('fpga-ip-core.reportsView', reportsProvider)
   );
+
+  // Register IPCraft Foundry Navigator tree view
+  const foundryNavigatorProvider = new IpCoreTreeDataProvider();
+  context.subscriptions.push(
+    vscode.window.registerTreeDataProvider('ipcraft-foundry.navigator', foundryNavigatorProvider)
+  );
+  context.subscriptions.push(foundryNavigatorProvider);
 
   const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 10);
   statusBarItem.text = '$(circuit-board) IPCraft';
