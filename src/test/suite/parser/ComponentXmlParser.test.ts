@@ -893,4 +893,16 @@ describe('unknown bus type VLNV preservation', () => {
     const iface = ip.busInterfaces?.find((b) => b.name === 'st_source');
     expect(iface?.type).toBe('altera.com.interface.avalon_streaming.19.1');
   });
+
+  it('captures rawPortMaps with logical and physical names', () => {
+    const { ipYamlText } = parseComponentXmlText(AVALON_STREAMING_XML);
+    const ip = parseYaml(ipYamlText) as {
+      busInterfaces?: Array<{
+        name: string;
+        rawPortMaps?: Array<{ logical: string; physical: string }>;
+      }>;
+    };
+    const iface = ip.busInterfaces?.find((b) => b.name === 'st_source');
+    expect(iface?.rawPortMaps).toEqual([{ logical: 'DATA', physical: 'st_data' }]);
+  });
 });

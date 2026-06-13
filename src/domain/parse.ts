@@ -344,6 +344,7 @@ export function normalizeIpCore(rootObj: Record<string, unknown>): IpCore {
         : {}),
       ports: Array.isArray(bus.ports) ? bus.ports : undefined,
       ...(bus.busTypeVlnv ? { busTypeVlnv: bus.busTypeVlnv } : {}),
+      ...(bus.rawPortMaps ? { rawPortMaps: bus.rawPortMaps } : {}),
     };
   });
 

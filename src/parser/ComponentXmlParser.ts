@@ -103,6 +103,23 @@ function physicalPortNames(busIfEl: Element): string[] {
   return names;
 }
 
+/** Extract the full logical→physical port map for a bus interface. */
+function extractPortMap(busIfEl: Element): Array<{ logical: string; physical: string }> {
+  const result: Array<{ logical: string; physical: string }> = [];
+  const portMapsEl = childEl(busIfEl, 'portMaps');
+  if (!portMapsEl) {
+    return result;
+  }
+  for (const portMap of childEls(portMapsEl, 'portMap')) {
+    const logName = text(childEl(portMap, 'logicalPort') ?? portMap, 'name');
+    const physName = text(childEl(portMap, 'physicalPort') ?? portMap, 'name');
+    if (logName && physName) {
+      result.push({ logical: logName, physical: physName });
+    }
+  }
+  return result;
+}
+
 /** Derive the best common physical prefix for a bus interface. */
 function extractPhysicalPrefix(portNames: string[]): string | undefined {
   if (portNames.length === 0) {
@@ -252,6 +269,7 @@ export function parseComponentXmlText(
     name: string;
     type: string;
     busTypeVlnv?: { vendor: string; library: string; name: string; version: string };
+    rawPortMaps?: Array<{ logical: string; physical: string }>;
     mode: string;
     physicalPrefix?: string;
     associatedClock?: string;
@@ -279,6 +297,7 @@ export function parseComponentXmlText(
     // Bus type determination
     let busType: string;
     let busTypeVlnv: BusIfEntry['busTypeVlnv'];
+    let rawPortMaps: BusIfEntry['rawPortMaps'];
     if (btName === 'aximm') {
       const logPorts = logicalPortNames(busIf);
       // AXI4-Full has ARLEN (burst length); AXI4-Lite does not
@@ -286,14 +305,18 @@ export function parseComponentXmlText(
     } else if (btName === 'axis') {
       busType = AXIS_BUS;
     } else {
-      // Unknown bus type — preserve raw VLNV components separately so the
-      // generator can reconstruct the exact XML attributes without re-splitting
-      // the dot-joined string (vendor TLDs and versions both contain dots).
+      // Unknown bus type — preserve raw VLNV components and port maps so the
+      // generator can reconstruct the exact XML without re-splitting the
+      // dot-joined string (vendor TLDs and versions both contain dots).
       const btVendor = attr(busTypeEl, SPIRIT_NS, 'vendor') || 'user.org';
       const btLibrary = attr(busTypeEl, SPIRIT_NS, 'library') || 'user';
       const btVersion = attr(busTypeEl, SPIRIT_NS, 'version') || '1.0';
       busType = `${btVendor}.${btLibrary}.${btName}.${btVersion}`;
       busTypeVlnv = { vendor: btVendor, library: btLibrary, name: btName, version: btVersion };
+      const portMapEntries = extractPortMap(busIf);
+      if (portMapEntries.length > 0) {
+        rawPortMaps = portMapEntries;
+      }
     }
 
     // Physical prefix
@@ -323,6 +346,9 @@ export function parseComponentXmlText(
     };
     if (busTypeVlnv) {
       entry.busTypeVlnv = busTypeVlnv;
+    }
+    if (rawPortMaps) {
+      entry.rawPortMaps = rawPortMaps;
     }
     if (physicalPrefix) {
       entry.physicalPrefix = physicalPrefix;

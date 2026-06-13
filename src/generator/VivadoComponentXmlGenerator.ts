@@ -508,6 +508,24 @@ function renderBusInterface(iface: BusInterfaceDef, busDefinitions: BusDefinitio
     }
   } else if (customBus) {
     lines.push(...busDefPortMaps(customBus.ports, iface, mode));
+  } else {
+    const rawPortMaps = iface.rawPortMaps as
+      | Array<{ logical: string; physical: string }>
+      | undefined;
+    if (rawPortMaps && rawPortMaps.length > 0) {
+      lines.push('      <spirit:portMaps>');
+      for (const pm of rawPortMaps) {
+        lines.push('        <spirit:portMap>');
+        lines.push('          <spirit:logicalPort>');
+        lines.push(`            <spirit:name>${x(pm.logical)}</spirit:name>`);
+        lines.push('          </spirit:logicalPort>');
+        lines.push('          <spirit:physicalPort>');
+        lines.push(`            <spirit:name>${x(pm.physical)}</spirit:name>`);
+        lines.push('          </spirit:physicalPort>');
+        lines.push('        </spirit:portMap>');
+      }
+      lines.push('      </spirit:portMaps>');
+    }
   }
 
   // PROTOCOL parameter for AXI4/AXI4LITE

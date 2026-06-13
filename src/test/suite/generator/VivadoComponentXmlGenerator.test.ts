@@ -242,6 +242,34 @@ describe('generateComponentXml', () => {
       expect(xml).toContain('spirit:version="19.1"');
       expect(xml).not.toContain('spirit:vendor="user.org"');
     });
+
+    it('emits rawPortMaps verbatim for unknown bus types', () => {
+      const xml = gen({
+        busInterfaces: [
+          {
+            name: 'st_source',
+            type: 'altera.com.interface.avalon_streaming.19.1',
+            busTypeVlnv: {
+              vendor: 'altera.com',
+              library: 'interface',
+              name: 'avalon_streaming',
+              version: '19.1',
+            },
+            rawPortMaps: [
+              { logical: 'DATA', physical: 'st_data' },
+              { logical: 'VALID', physical: 'st_valid' },
+            ],
+            mode: 'master',
+            useOptionalPorts: [],
+            portWidthOverrides: {},
+          },
+        ],
+      });
+      expect(xml).toContain('<spirit:name>DATA</spirit:name>');
+      expect(xml).toContain('<spirit:name>st_data</spirit:name>');
+      expect(xml).toContain('<spirit:name>VALID</spirit:name>');
+      expect(xml).toContain('<spirit:name>st_valid</spirit:name>');
+    });
   });
 
   describe('custom bus type (with bus definition)', () => {
