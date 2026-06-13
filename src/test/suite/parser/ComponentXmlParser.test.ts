@@ -139,12 +139,46 @@ const AXI4LITE_XML = `<?xml version="1.0" encoding="UTF-8"?>
 
   <spirit:parameters>
     <spirit:parameter>
+      <spirit:name>Component_Name</spirit:name>
+      <spirit:value>axi_gpio_0</spirit:value>
+    </spirit:parameter>
+    <spirit:parameter>
       <spirit:name>C_GPIO_WIDTH</spirit:name>
       <spirit:value spirit:format="long">32</spirit:value>
     </spirit:parameter>
     <spirit:parameter>
       <spirit:name>C_ALL_INPUTS</spirit:name>
       <spirit:value spirit:format="bool">false</spirit:value>
+    </spirit:parameter>
+  </spirit:parameters>
+</spirit:component>`;
+
+// ---------------------------------------------------------------------------
+// Component with parameter range constraints and allowed-values (choiceRef)
+// ---------------------------------------------------------------------------
+const PARAM_CONSTRAINTS_XML = `<?xml version="1.0" encoding="UTF-8"?>
+<spirit:component xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009">
+  <spirit:vendor>acme.com</spirit:vendor>
+  <spirit:library>ip</spirit:library>
+  <spirit:name>constrained_ip</spirit:name>
+  <spirit:version>1.0</spirit:version>
+  <spirit:choices>
+    <spirit:choice>
+      <spirit:name>choice_MODE</spirit:name>
+      <spirit:enumerations>
+        <spirit:enumeration spirit:text="FAST">FAST</spirit:enumeration>
+        <spirit:enumeration spirit:text="SLOW">SLOW</spirit:enumeration>
+      </spirit:enumerations>
+    </spirit:choice>
+  </spirit:choices>
+  <spirit:parameters>
+    <spirit:parameter>
+      <spirit:name>DATA_WIDTH</spirit:name>
+      <spirit:value spirit:format="long" spirit:minimum="8" spirit:maximum="512" spirit:rangeType="long">32</spirit:value>
+    </spirit:parameter>
+    <spirit:parameter>
+      <spirit:name>MODE</spirit:name>
+      <spirit:value spirit:choiceRef="choice_MODE">FAST</spirit:value>
     </spirit:parameter>
   </spirit:parameters>
 </spirit:component>`;
@@ -392,6 +426,47 @@ describe('ComponentXmlParser', () => {
       const { ipYamlText } = parseComponentXmlText(MINIMAL_XML);
       const doc = parseYaml(ipYamlText);
       expect(doc.parameters).toBeUndefined();
+    });
+
+    it('excludes Vivado-internal Component_Name parameter', () => {
+      const { ipYamlText } = parseComponentXmlText(AXI4LITE_XML);
+      const doc = parseYaml(ipYamlText) as {
+        parameters: Array<{ name: string }>;
+      };
+      expect(doc.parameters.find((p) => p.name === 'Component_Name')).toBeUndefined();
+    });
+
+    it('extracts spirit:minimum and spirit:maximum as min/max', () => {
+      const { ipYamlText } = parseComponentXmlText(PARAM_CONSTRAINTS_XML);
+      const doc = parseYaml(ipYamlText) as {
+        parameters: Array<{ name: string; min?: number; max?: number }>;
+      };
+      const param = doc.parameters.find((p) => p.name === 'DATA_WIDTH');
+      expect(param).toBeDefined();
+      expect(param!.min).toBe(8);
+      expect(param!.max).toBe(512);
+    });
+
+    it('resolves spirit:choiceRef to allowedValues array', () => {
+      const { ipYamlText } = parseComponentXmlText(PARAM_CONSTRAINTS_XML);
+      const doc = parseYaml(ipYamlText) as {
+        parameters: Array<{ name: string; allowedValues?: unknown[] }>;
+      };
+      const param = doc.parameters.find((p) => p.name === 'MODE');
+      expect(param).toBeDefined();
+      expect(param!.allowedValues).toEqual(['FAST', 'SLOW']);
+    });
+
+    it('leaves min/max/allowedValues absent when not in XML', () => {
+      const { ipYamlText } = parseComponentXmlText(AXI4LITE_XML);
+      const doc = parseYaml(ipYamlText) as {
+        parameters: Array<{ name: string; min?: unknown; max?: unknown; allowedValues?: unknown }>;
+      };
+      const param = doc.parameters.find((p) => p.name === 'C_GPIO_WIDTH');
+      expect(param).toBeDefined();
+      expect(param!.min).toBeUndefined();
+      expect(param!.max).toBeUndefined();
+      expect(param!.allowedValues).toBeUndefined();
     });
   });
 

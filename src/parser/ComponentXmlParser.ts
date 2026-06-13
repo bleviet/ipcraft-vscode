@@ -383,10 +383,39 @@ export function parseComponentXmlText(
   }
 
   // ---- Parameters ---------------------------------------------------------
+  // Vivado injects these as IP-XACT parameters for its own tooling; they are
+  // not HDL generics and must not appear in the generated .ip.yml.
+  const VIVADO_INTERNAL_PARAMS = new Set(['Component_Name']);
+
+  // Build choices map: choiceName → allowed values (for spirit:choiceRef lookup)
+  const choicesMap = new Map<string, (string | number)[]>();
+  const choicesEl = el(root, 'choices');
+  if (choicesEl) {
+    for (const choiceEl of childEls(choicesEl, 'choice')) {
+      const choiceName = text(choiceEl, 'name');
+      if (!choiceName) {
+        continue;
+      }
+      const enumerationsEl = childEl(choiceEl, 'enumerations');
+      const enumEls = enumerationsEl
+        ? childEls(enumerationsEl, 'enumeration')
+        : childEls(choiceEl, 'enumeration');
+      const values: (string | number)[] = enumEls
+        .map((e) => e.textContent?.trim() ?? '')
+        .filter(Boolean);
+      if (values.length > 0) {
+        choicesMap.set(choiceName, values);
+      }
+    }
+  }
+
   interface Param {
     name: string;
     value: string | number | boolean;
     dataType: string;
+    min?: number;
+    max?: number;
+    allowedValues?: (string | number)[];
   }
   const parameters: Param[] = [];
 
@@ -394,7 +423,7 @@ export function parseComponentXmlText(
   if (topParamsEl) {
     for (const param of childEls(topParamsEl, 'parameter')) {
       const pName = text(param, 'name');
-      if (!pName) {
+      if (!pName || VIVADO_INTERNAL_PARAMS.has(pName)) {
         continue;
       }
 
@@ -416,7 +445,32 @@ export function parseComponentXmlText(
         dataType = 'boolean';
       }
 
-      parameters.push({ name: pName, value, dataType });
+      const entry: Param = { name: pName, value, dataType };
+
+      const minStr = valueEl ? attr(valueEl, SPIRIT_NS, 'minimum') : '';
+      const maxStr = valueEl ? attr(valueEl, SPIRIT_NS, 'maximum') : '';
+      const choiceRef = valueEl ? attr(valueEl, SPIRIT_NS, 'choiceRef') : '';
+
+      if (minStr !== '') {
+        const minVal = parseInt(minStr, 10);
+        if (!isNaN(minVal)) {
+          entry.min = minVal;
+        }
+      }
+      if (maxStr !== '') {
+        const maxVal = parseInt(maxStr, 10);
+        if (!isNaN(maxVal)) {
+          entry.max = maxVal;
+        }
+      }
+      if (choiceRef) {
+        const choices = choicesMap.get(choiceRef);
+        if (choices && choices.length > 0) {
+          entry.allowedValues = choices;
+        }
+      }
+
+      parameters.push(entry);
     }
   }
 

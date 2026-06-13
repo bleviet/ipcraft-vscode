@@ -1138,10 +1138,14 @@ function renderParameters(entityName: string, parameters: ParameterDef[]): strin
     const choicesList = param.allowedValues;
     const hasChoices = Array.isArray(choicesList) && choicesList.length > 0;
     const choiceRefAttr = hasChoices ? ` spirit:choiceRef="choice_${pName}"` : '';
+    const minAttr =
+      param.min !== undefined && param.min !== null ? ` spirit:minimum="${param.min}"` : '';
+    const maxAttr =
+      param.max !== undefined && param.max !== null ? ` spirit:maximum="${param.max}"` : '';
 
     if (isInteger) {
       lines.push(
-        `      <spirit:value spirit:format="${format}" spirit:resolve="user" spirit:id="${x(paramId)}" spirit:minimum="0" spirit:rangeType="long"${choiceRefAttr}>${x(value)}</spirit:value>`
+        `      <spirit:value spirit:format="${format}" spirit:resolve="user" spirit:id="${x(paramId)}"${minAttr}${maxAttr} spirit:rangeType="long"${choiceRefAttr}>${x(value)}</spirit:value>`
       );
     } else {
       lines.push(
