@@ -201,7 +201,7 @@ describe('generateComponentXml', () => {
   });
 
   describe('unknown bus type (no bus definition)', () => {
-    it('falls back to user.org with type as name', () => {
+    it('falls back to user.org with type as name when busTypeVlnv is absent', () => {
       const xml = gen({
         busInterfaces: [
           {
@@ -216,6 +216,31 @@ describe('generateComponentXml', () => {
       });
       expect(xml).toContain('spirit:vendor="user.org"');
       expect(xml).toContain('spirit:name="custom.busif.mybus.1.0"');
+    });
+
+    it('uses busTypeVlnv components when present (Avalon Streaming round-trip)', () => {
+      const xml = gen({
+        busInterfaces: [
+          {
+            name: 'st_source',
+            type: 'altera.com.interface.avalon_streaming.19.1',
+            busTypeVlnv: {
+              vendor: 'altera.com',
+              library: 'interface',
+              name: 'avalon_streaming',
+              version: '19.1',
+            },
+            mode: 'master',
+            useOptionalPorts: [],
+            portWidthOverrides: {},
+          },
+        ],
+      });
+      expect(xml).toContain('spirit:vendor="altera.com"');
+      expect(xml).toContain('spirit:library="interface"');
+      expect(xml).toContain('spirit:name="avalon_streaming"');
+      expect(xml).toContain('spirit:version="19.1"');
+      expect(xml).not.toContain('spirit:vendor="user.org"');
     });
   });
 

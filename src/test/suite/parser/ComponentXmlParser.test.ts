@@ -847,3 +847,50 @@ describe('subCoreRef parsing', () => {
     ).toBe(true);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Unknown bus type (Avalon Streaming) — VLNV round-trip
+// ---------------------------------------------------------------------------
+const AVALON_STREAMING_XML = `<?xml version="1.0" encoding="UTF-8"?>
+<spirit:component xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009">
+  <spirit:vendor>altera.com</spirit:vendor>
+  <spirit:library>ip</spirit:library>
+  <spirit:name>my_st_core</spirit:name>
+  <spirit:version>1.0</spirit:version>
+  <spirit:busInterfaces>
+    <spirit:busInterface>
+      <spirit:name>st_source</spirit:name>
+      <spirit:busType spirit:vendor="altera.com" spirit:library="interface" spirit:name="avalon_streaming" spirit:version="19.1"/>
+      <spirit:master/>
+      <spirit:portMaps>
+        <spirit:portMap>
+          <spirit:logicalPort><spirit:name>DATA</spirit:name></spirit:logicalPort>
+          <spirit:physicalPort><spirit:name>st_data</spirit:name></spirit:physicalPort>
+        </spirit:portMap>
+      </spirit:portMaps>
+    </spirit:busInterface>
+  </spirit:busInterfaces>
+</spirit:component>`;
+
+describe('unknown bus type VLNV preservation', () => {
+  type BusIf = { name: string; type: string; busTypeVlnv?: Record<string, string> };
+
+  it('stores busTypeVlnv with original vendor/library/name/version', () => {
+    const { ipYamlText } = parseComponentXmlText(AVALON_STREAMING_XML);
+    const ip = parseYaml(ipYamlText) as { busInterfaces?: BusIf[] };
+    const iface = ip.busInterfaces?.find((b) => b.name === 'st_source');
+    expect(iface?.busTypeVlnv).toEqual({
+      vendor: 'altera.com',
+      library: 'interface',
+      name: 'avalon_streaming',
+      version: '19.1',
+    });
+  });
+
+  it('encodes type as the dot-joined VLNV string', () => {
+    const { ipYamlText } = parseComponentXmlText(AVALON_STREAMING_XML);
+    const ip = parseYaml(ipYamlText) as { busInterfaces?: BusIf[] };
+    const iface = ip.busInterfaces?.find((b) => b.name === 'st_source');
+    expect(iface?.type).toBe('altera.com.interface.avalon_streaming.19.1');
+  });
+});

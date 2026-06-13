@@ -251,6 +251,7 @@ export function parseComponentXmlText(
   interface BusIfEntry {
     name: string;
     type: string;
+    busTypeVlnv?: { vendor: string; library: string; name: string; version: string };
     mode: string;
     physicalPrefix?: string;
     associatedClock?: string;
@@ -277,6 +278,7 @@ export function parseComponentXmlText(
 
     // Bus type determination
     let busType: string;
+    let busTypeVlnv: BusIfEntry['busTypeVlnv'];
     if (btName === 'aximm') {
       const logPorts = logicalPortNames(busIf);
       // AXI4-Full has ARLEN (burst length); AXI4-Lite does not
@@ -284,11 +286,14 @@ export function parseComponentXmlText(
     } else if (btName === 'axis') {
       busType = AXIS_BUS;
     } else {
-      // Unknown bus type — parse full VLNV from the XML attributes
+      // Unknown bus type — preserve raw VLNV components separately so the
+      // generator can reconstruct the exact XML attributes without re-splitting
+      // the dot-joined string (vendor TLDs and versions both contain dots).
       const btVendor = attr(busTypeEl, SPIRIT_NS, 'vendor') || 'user.org';
       const btLibrary = attr(busTypeEl, SPIRIT_NS, 'library') || 'user';
       const btVersion = attr(busTypeEl, SPIRIT_NS, 'version') || '1.0';
       busType = `${btVendor}.${btLibrary}.${btName}.${btVersion}`;
+      busTypeVlnv = { vendor: btVendor, library: btLibrary, name: btName, version: btVersion };
     }
 
     // Physical prefix
@@ -316,6 +321,9 @@ export function parseComponentXmlText(
       type: busType,
       mode,
     };
+    if (busTypeVlnv) {
+      entry.busTypeVlnv = busTypeVlnv;
+    }
     if (physicalPrefix) {
       entry.physicalPrefix = physicalPrefix;
     }

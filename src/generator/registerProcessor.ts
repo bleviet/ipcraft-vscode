@@ -186,6 +186,7 @@ export function expandBusInterfaces(ipCore: IpCoreData): BusInterfaceDef[] {
         expanded.push({
           name: String(namePattern).replace('{index}', String(idx)),
           type: getString(iface.type),
+          busTypeVlnv: iface.busTypeVlnv,
           mode: getString(iface.mode).toLowerCase(),
           physicalPrefix: String(prefixPattern).replace('{index}', String(idx)),
           useOptionalPorts: iface.useOptionalPorts ?? [],
@@ -203,6 +204,7 @@ export function expandBusInterfaces(ipCore: IpCoreData): BusInterfaceDef[] {
     expanded.push({
       name: iface.name,
       type: getString(iface.type),
+      busTypeVlnv: iface.busTypeVlnv,
       mode: getString(iface.mode).toLowerCase(),
       physicalPrefix: iface.physicalPrefix ?? 's_axi_',
       useOptionalPorts: iface.useOptionalPorts ?? [],

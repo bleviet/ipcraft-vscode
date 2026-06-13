@@ -479,12 +479,22 @@ function renderBusInterface(iface: BusInterfaceDef, busDefinitions: BusDefinitio
       `      <spirit:abstractionType spirit:vendor="${x(customBus.vendor)}" spirit:library="${x(customBus.library)}" spirit:name="${x(customBus.name)}_rtl" spirit:version="${x(customBus.version)}" />`
     );
   } else {
-    lines.push(`      <!-- Unsupported type: ${x(ifaceType)} -->`);
+    // Use preserved VLNV components when available (set by ComponentXmlParser for
+    // unknown bus types). Without them we cannot reliably split the dot-joined
+    // type string because vendor TLDs (e.g. "altera.com") and versions ("19.1")
+    // both contain dots.
+    const vlnv = iface.busTypeVlnv as
+      | { vendor: string; library: string; name: string; version: string }
+      | undefined;
+    const fallbackVendor = vlnv?.vendor ?? 'user.org';
+    const fallbackLibrary = vlnv?.library ?? 'user';
+    const fallbackName = vlnv?.name ?? ifaceType;
+    const fallbackVersion = vlnv?.version ?? '1.0';
     lines.push(
-      `      <spirit:busType spirit:vendor="user.org" spirit:library="user" spirit:name="${x(ifaceType)}" spirit:version="1.0" />`
+      `      <spirit:busType spirit:vendor="${x(fallbackVendor)}" spirit:library="${x(fallbackLibrary)}" spirit:name="${x(fallbackName)}" spirit:version="${x(fallbackVersion)}" />`
     );
     lines.push(
-      `      <spirit:abstractionType spirit:vendor="user.org" spirit:library="user" spirit:name="${x(ifaceType)}_rtl" spirit:version="1.0" />`
+      `      <spirit:abstractionType spirit:vendor="${x(fallbackVendor)}" spirit:library="${x(fallbackLibrary)}" spirit:name="${x(fallbackName)}_rtl" spirit:version="${x(fallbackVersion)}" />`
     );
   }
 

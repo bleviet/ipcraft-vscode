@@ -131,6 +131,8 @@ export interface BusInterfaceArrayDef {
 export interface BusInterfaceDef {
   name?: string;
   type?: string;
+  /** Raw VLNV components for unknown bus types parsed from component.xml. Avoids re-splitting the dot-joined type string which is ambiguous (vendor TLDs and versions both contain dots). */
+  busTypeVlnv?: VlnvDef;
   mode?: string;
   physicalPrefix?: string;
   useOptionalPorts?: string[];
