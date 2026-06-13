@@ -64,7 +64,7 @@ export function BlockTableRow({
   onMouseLeave,
   onContextMenu,
 }: BlockTableRowProps) {
-  const base = block.base_address ?? block.offset ?? 0;
+  const base = block.baseAddress ?? 0;
   const size = calculateBlockSize(block);
 
   const isCellActive = (key: BlockEditKey) =>
@@ -125,7 +125,7 @@ export function BlockTableRow({
           onInput={(value) => {
             const val = Number(value);
             if (!Number.isNaN(val)) {
-              onUpdate(['addressBlocks', idx, 'base_address'], val);
+              onUpdate(['addressBlocks', idx, 'baseAddress'], val);
             }
           }}
         />

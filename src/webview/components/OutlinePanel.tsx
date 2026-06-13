@@ -1,5 +1,5 @@
 import React, { useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
-import { MemoryMap, RegisterDef } from '../types/memoryMap';
+import type { NormalizedMemoryMap, NormalizedRegister } from '../../domain/internal.types';
 import { toHex } from '../utils/formatUtils';
 import { OutlineHeader } from './outline/index';
 import {
@@ -8,13 +8,13 @@ import {
   type YamlPath,
   isArrayNode,
 } from './outline/types';
-import { ROOT_ID, arrayRegisterId, blockId, registerArrayId } from './outline/outlineIds';
+import { ROOT_ID, arrayRegisterId, blockId } from './outline/outlineIds';
 import { buildVisibleSelections } from './outline/buildVisibleSelections';
 import { useOutlineKeyboard } from './outline/useOutlineKeyboard';
 import OutlineTreeNodes from './outline/OutlineTreeNodes';
 
 interface OutlineProps {
-  memoryMap: MemoryMap;
+  memoryMap: NormalizedMemoryMap;
   selectedId: string | null;
   onSelect: (selection: OutlineSelection) => void;
   onRename?: (path: YamlPath, newName: string) => void;
@@ -38,14 +38,11 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
       (memoryMap.addressBlocks ?? []).forEach((block, blockIdx) => {
         const blockNodeId = blockId(blockIdx);
         ids.add(blockNodeId);
-        const regs = (block as BlockModel).registers ?? [];
-        regs.forEach((reg: RegisterDef | { __kind?: string }, regIdx: number) => {
-          if (reg?.__kind === 'array') {
+        const regs = block.registers ?? [];
+        regs.forEach((reg: NormalizedRegister, regIdx: number) => {
+          if (reg.__kind === 'array') {
             ids.add(arrayRegisterId(blockIdx, regIdx));
           }
-        });
-        ((block as BlockModel).register_arrays ?? []).forEach((_: RegisterDef, arrIdx: number) => {
-          ids.add(registerArrayId(blockIdx, arrIdx));
         });
       });
       return ids;
@@ -181,7 +178,7 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
     const filteredBlocks = useMemo<Array<{ block: BlockModel; index: number }>>(() => {
       const q = query.trim().toLowerCase();
       const blocks = (memoryMap.addressBlocks ?? []).map((block, index) => ({
-        block: block as BlockModel,
+        block: block,
         index,
       }));
       if (!q) {
@@ -193,32 +190,26 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
           return true;
         }
         const regs = block.registers ?? [];
-        if (
-          regs.some((r: RegisterDef | { name?: string }) => {
-            if (!r) {
-              return false;
-            }
-            if (
-              String(r.name ?? '')
+        return regs.some((r: NormalizedRegister) => {
+          if (!r) {
+            return false;
+          }
+          if (
+            String(r.name ?? '')
+              .toLowerCase()
+              .includes(q)
+          ) {
+            return true;
+          }
+          if (isArrayNode(r)) {
+            return (r.registers ?? []).some((rr) =>
+              String(rr.name ?? '')
                 .toLowerCase()
                 .includes(q)
-            ) {
-              return true;
-            }
-            if (isArrayNode(r)) {
-              return (r.registers ?? []).some((rr) =>
-                String(rr.name ?? '')
-                  .toLowerCase()
-                  .includes(q)
-              );
-            }
-            return false;
-          })
-        ) {
-          return true;
-        }
-        const arrays = block.register_arrays ?? [];
-        return arrays.some((a: RegisterDef) => (a.name ?? '').toLowerCase().includes(q));
+            );
+          }
+          return false;
+        });
       });
     }, [memoryMap, query]);
 
@@ -323,15 +314,7 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
         </div>
         <div className="outline-footer p-3 text-xs vscode-muted flex justify-between">
           <span>{filteredBlocks.length} Items</span>
-          <span>
-            Base:{' '}
-            {toHex(
-              (memoryMap.addressBlocks?.[0]?.baseAddress ??
-                (memoryMap.addressBlocks?.[0] as unknown as Record<string, unknown>)
-                  ?.base_address ??
-                0) as number
-            )}
-          </span>
+          <span>Base: {toHex(memoryMap.addressBlocks?.[0]?.baseAddress ?? 0)}</span>
         </div>
         {outlineContextMenu && onRegisterAction && (
           <div

@@ -6,7 +6,7 @@
  * All rendering / editing logic lives in the sub-components.
  */
 import React, { useImperativeHandle, useMemo, useRef } from 'react';
-import { RegisterDef, BitFieldDef } from '../types/memoryMap';
+import { RegisterDef } from '../types/memoryMap';
 import type { YamlUpdateHandler, YamlPath } from '../types/editor';
 
 import { RegisterEditor, RegisterEditorHandle } from './register/RegisterEditor';
@@ -139,26 +139,7 @@ const DetailsPanel = React.forwardRef<DetailsPanelHandle, DetailsPanelProps>((pr
   const isRegister = selectedType === 'register' && !!selectedObject;
   const reg = isRegister ? (selectedObject as RegisterDef) : null;
 
-  const fields = useMemo(() => {
-    if (!reg?.fields) {
-      return [];
-    }
-    return reg.fields.map((f: BitFieldDef): BitFieldDef => {
-      const bitRange = f['bit_range'] as number[] | undefined;
-      if (bitRange) {
-        return f;
-      }
-      const bitOffset = f['bit_offset'];
-      const bitWidth = f['bit_width'];
-      if (bitOffset !== undefined && bitWidth !== undefined) {
-        const lo = Number(bitOffset);
-        const width = Number(bitWidth);
-        const hi = lo + width - 1;
-        return { ...f, bit_range: [hi, lo] } as BitFieldDef;
-      }
-      return f;
-    });
-  }, [reg?.fields]);
+  const fields = useMemo(() => reg?.fields ?? [], [reg?.fields]);
 
   // -----------------------------------------------------------------------
   // Render

@@ -58,13 +58,13 @@ function busDefPortMaps(
 ): string[] {
   const activePorts = getActiveBusPortsFromDefinition(
     ports as Array<{ name: string; width?: number; direction?: string; presence?: string }>,
-    iface.use_optional_ports ?? [],
-    String(iface.physical_prefix ?? ''),
+    iface.useOptionalPorts ?? [],
+    String(iface.physicalPrefix ?? ''),
     mode,
-    iface.port_width_overrides ?? {},
+    iface.portWidthOverrides ?? {},
     undefined,
     undefined,
-    iface.absent_ports
+    iface.absentPorts
   );
   if (activePorts.length === 0) {
     return [];
@@ -171,7 +171,7 @@ export function generateCustomBusDefs(
     }
   }
 
-  for (const iface of ipCore.bus_interfaces ?? []) {
+  for (const iface of ipCore.busInterfaces ?? []) {
     const ifaceType = String(iface.type ?? '');
     if (seen.has(ifaceType)) {
       continue;
@@ -357,14 +357,14 @@ export function generateComponentXml(
       continue;
     }
     const assocBusIfs = busInterfaces
-      .filter((bi) => bi.associated_clock === clock.name)
+      .filter((bi) => bi.associatedClock === clock.name)
       .map((bi) => String(bi.name).toUpperCase())
       .join(':');
     const assocReset =
-      clock.associated_reset ??
+      clock.associatedReset ??
       busInterfaces
-        .filter((bi) => bi.associated_clock === clock.name && bi.associated_reset)
-        .map((bi) => bi.associated_reset)[0];
+        .filter((bi) => bi.associatedClock === clock.name && bi.associatedReset)
+        .map((bi) => bi.associatedReset)[0];
     busIfLines.push(...renderClockInterface(clock.name, assocBusIfs, assocReset));
   }
 
@@ -792,7 +792,7 @@ function renderPorts(
   // the slave carries explicit portWidthOverrides.
   const typeOverrides: Record<string, Record<string, number | string>> = {};
   for (const iface of busInterfaces) {
-    const overrides = iface.port_width_overrides ?? {};
+    const overrides = iface.portWidthOverrides ?? {};
     if (Object.keys(overrides).length > 0) {
       const t = String(iface.type ?? '');
       typeOverrides[t] = { ...(typeOverrides[t] ?? {}), ...overrides };
@@ -836,17 +836,22 @@ function renderPorts(
     // Effective overrides: bus-type inherited overrides as base, interface-specific as override
     const effectiveOverrides: Record<string, number | string> = {
       ...(typeOverrides[ifaceType] ?? {}),
-      ...(iface.port_width_overrides ?? {}),
+      ...(iface.portWidthOverrides ?? {}),
     };
     const activePorts = getActiveBusPortsFromDefinition(
-      sourcePorts as Array<{ name: string; width?: number; direction?: string; presence?: string }>,
-      iface.use_optional_ports ?? [],
-      String(iface.physical_prefix ?? ''),
+      sourcePorts as Array<{
+        name: string;
+        width?: number | string;
+        direction?: string;
+        presence?: string;
+      }>,
+      iface.useOptionalPorts ?? [],
+      String(iface.physicalPrefix ?? ''),
       mode,
       effectiveOverrides,
       typedParams,
       undefined,
-      iface.absent_ports
+      iface.absentPorts
     );
     for (const port of activePorts) {
       portLines.push(
@@ -974,7 +979,7 @@ function renderModelParameters(parameters: ParameterDef[]): string[] {
       continue;
     }
     const pName = String(param.name);
-    const pType = String(param.data_type ?? 'integer').toLowerCase();
+    const pType = String(param.dataType ?? 'integer').toLowerCase();
     const ipXactType = toIpXactDataType(pType);
     const { format, defaultValue } = paramSpiritFormat(pType);
     const value =
@@ -1110,7 +1115,7 @@ function renderParameters(entityName: string, parameters: ParameterDef[]): strin
       continue;
     }
     const pName = String(param.name);
-    const pType = String(param.data_type ?? 'integer').toLowerCase();
+    const pType = String(param.dataType ?? 'integer').toLowerCase();
     const { format, defaultValue } = paramSpiritFormat(pType);
     const value =
       param.value !== undefined && param.value !== null ? String(param.value) : defaultValue;

@@ -1,20 +1,29 @@
-# Refactoring Tasks (V-8, V-2, V-7)
+# V-1 Unified Domain Model Execution Tasks
 
-- `[x]` V-8: Stable Row Identity for Table Editing
-  - `[x]` Create `src/webview/utils/rowIdentity.ts` and unit tests
-  - `[x]` Update `useTableNavigation.ts` to support `rowId`
-  - `[x]` Update `useTableEditorState.ts` to support `rowId`
-  - `[x]` Thread `rowId` through `useFieldEditor.ts`, `FieldsTable.tsx`, and `FieldTableRow.tsx`
-  - `[x]` Port register and address block tables to `rowId`
-- `[x]` V-2: Shared YAML Edit Module
-  - `[x]` Create `src/yamledit/` with `applyPathEdits.ts`, `mergeNode.ts`, `detectIndentSeq.ts`, `restoreHexSpellings.ts`, and unit tests
-  - `[x]` Add `applyPathDeletes` support
-  - `[x]` Migrate `useIpCoreState.ts` and update tests
-  - `[x]` Point `YamlService.ts` to `src/yamledit/`
-- `[x]` V-7: Import Resolution Consolidation
-  - `[x]` Create `src/services/imports/resolveMemoryMapImports.ts` and unit tests
-  - `[x]` Migrate `ImportResolver.ts`
-  - `[x]` Migrate `registerProcessor.ts`
-- `[x]` Verification
-  - `[x]` Confirm all tests pass (`npm test`)
-  - `[x]` Verify zero linter errors (`npm run lint`)
+- `[x]` Task 1: Type Generation Configuration
+  - `[x]` Update `generate-types` script in `package.json`
+  - `[x]` Run `npm run generate-types` and verify output in `src/domain/`
+  - `[x]` Update existing imports referencing `./types/memoryMap` and `./types/ipCore`
+- `[x]` Task 2: Characterization Tests for Round-trips
+  - `[x]` Create `roundtrip.test.ts` to pin current behavior of existing corpus fixtures
+- `[x]` Task 3: Introduce `src/domain/parse.ts`
+  - `[x]` Create `src/domain/internal.types.ts`
+  - `[x]` Create `src/domain/parse.ts`
+  - `[x]` Update `useMemoryMapState.ts` and deprecated `DataNormalizer.ts` to use it
+- `[x]` Task 4: Introduce `src/domain/serialize.ts`
+  - `[x]` Create `src/domain/serialize.ts`
+  - `[x]` Update `YamlService.ts` and deprecated `YamlSanitizer.ts` to use it
+- `[x]` Task 5: Migrate Generator Normalization
+  - `[x]` Update `registerProcessor.ts` to use new parsed camelCase domain models
+- `[x]` Task 6: Migrate Webview Components & Hooks to camelCase
+  - `[x]` Migrate Hooks (`useFieldEditor.ts`, `useTableEditorState.ts`, `useTableNavigation.ts`, `useFieldDrafts.ts`, etc.)
+  - `[x]` Migrate UI Components (`FieldsTable.tsx`, `FieldTableRow.tsx`, `RegisterEditor.tsx`, `BlockEditor.tsx`, `MemoryMapEditor.tsx`, etc.)
+  - `[x]` Migrate Services (`SpatialInsertionService.ts`, `FieldOperationService.ts`, etc.)
+  - `[x]` Migrate `index.tsx` and `useYamlUpdateHandler.ts` to use `serializeValue`
+- `[x]` Task 7: Delete Dead Aliases & Code Cleanups
+  - `[x]` Delete `DataNormalizer.ts` and `YamlSanitizer.ts`
+  - `[x]` Update `MemoryMapRoundTrip.test.ts` to use new domain APIs
+  - `[x]` Final compilation, test run, and linting checks
+    - All 1001 unit tests pass
+    - Zero lint warnings
+    - Type-check clean

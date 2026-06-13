@@ -5,7 +5,7 @@ import { YamlService } from '../services/YamlService';
 import type { Selection } from './useSelection';
 import { applyFieldOperation } from '../services/FieldOperationService';
 import { recomputeBitfieldLayout, type LayoutField } from '../algorithms/LayoutEngine';
-import { sanitizeFieldForYaml } from '../services/YamlSanitizer';
+import { serializeValue } from '../../domain/serialize';
 
 interface YamlUpdateHandlerOptions {
   selectionRef: MutableRefObject<Selection | null>;
@@ -55,8 +55,8 @@ export function useYamlUpdateHandler({
         // to maintain contiguous layout without disturbing other registers.
         if (String(path[1] ?? '') === 'field-move' && fields.length > 0) {
           const regWidth = typeof reg?.size === 'number' && reg.size > 0 ? reg.size : 32;
-          fields = recomputeBitfieldLayout(fields as LayoutField[], regWidth).map((f) =>
-            sanitizeFieldForYaml(f as Record<string, unknown>)
+          fields = recomputeBitfieldLayout(fields as LayoutField[], regWidth).map(
+            (f) => serializeValue(f as Record<string, unknown>) as Record<string, unknown>
           );
         }
         const newText = YamlService.applyPathEdits(rawTextRef.current, [

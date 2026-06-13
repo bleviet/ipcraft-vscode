@@ -77,11 +77,11 @@ function defaultField(name: string): LayoutField {
   return {
     name,
     bits: formatBitsRange(0, 0),
-    bit_offset: 0,
-    bit_width: 1,
-    bit_range: [0, 0] as [number, number],
+    offset: 0,
+    width: 1,
+    bitRange: [0, 0] as [number, number],
     access: 'read-write',
-    reset_value: 0,
+    resetValue: 0,
     description: '',
   };
 }

@@ -1,9 +1,9 @@
 import React from 'react';
-import { AddressBlock } from '../../types/memoryMap';
+import type { NormalizedAddressBlock } from '../../../domain/internal.types';
 
 interface BlockNodeProps {
   id: string;
-  block: AddressBlock;
+  block: NormalizedAddressBlock;
   isSelected: boolean;
   isExpanded: boolean;
   onClick: () => void;
@@ -41,9 +41,7 @@ const BlockNode = ({
         {name}{' '}
         <span className="opacity-50">
           @ 0x
-          {((block.baseAddress ?? (block as Record<string, unknown>).base_address ?? 0) as number)
-            .toString(16)
-            .toUpperCase()}
+          {block.baseAddress.toString(16).toUpperCase()}
         </span>
       </div>
       {isExpanded && <div>{children}</div>}

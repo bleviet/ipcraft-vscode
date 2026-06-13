@@ -29,11 +29,11 @@ export interface FieldModel {
   name?: string;
   bits?: string;
   bit?: number;
-  bit_range?: [number, number];
-  bit_offset?: number | string;
-  bit_width?: number | string;
+  bitRange?: [number, number];
+  offset?: number | string | null;
+  width?: number | string | null;
   access?: string;
-  reset_value?: number | null;
+  resetValue?: number | null;
   description?: string;
   monitorChangeOf?: string | null;
 }
@@ -47,7 +47,7 @@ interface BitFieldVisualizerProps {
   onUpdateFieldReset?: (fieldIndex: number, resetValue: number | null) => void;
   onUpdateFieldRange?: (fieldIndex: number, newRange: [number, number]) => void;
   onBatchUpdateFields?: (updates: { idx: number; range: [number, number] }[]) => void;
-  onCreateField?: (field: { bit_range: [number, number]; name: string }) => void;
+  onCreateField?: (field: { bitRange: [number, number]; name: string }) => void;
   /** Called during Ctrl+drag to report preview ranges. Pass null to clear preview. */
   onDragPreview?: (preview: { idx: number; range: [number, number] }[] | null) => void;
 }
@@ -100,7 +100,7 @@ const BitFieldVisualizerInner: React.FC<BitFieldVisualizerProps> = ({
       onUpdateFieldRange?.(fieldIndex, newRange);
     },
     onCreateCommit: (newRange) => {
-      onCreateField?.({ bit_range: newRange, name: 'new_field' });
+      onCreateField?.({ bitRange: newRange, name: 'new_field' });
     },
   });
 
@@ -241,7 +241,7 @@ const BitFieldVisualizerInner: React.FC<BitFieldVisualizerProps> = ({
     if (!onUpdateFieldReset) {
       return;
     }
-    const raw = fields?.[fieldIndex]?.reset_value;
+    const raw = fields?.[fieldIndex]?.resetValue;
     const current = raw === null || raw === undefined ? 0 : Number(raw);
     const next = setBit(current, localBit, desired);
     onUpdateFieldReset(fieldIndex, next);

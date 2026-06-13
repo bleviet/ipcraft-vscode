@@ -1,7 +1,6 @@
 import { useCallback } from 'react';
-import type { MemoryMap } from '../types/memoryMap';
+import type { NormalizedMemoryMap } from '../../domain/internal.types';
 import type { Selection } from './useSelection';
-import type { NormalizedRegister, NormalizedRegisterArray } from '../services/DataNormalizer';
 
 type ResolvedSelection = {
   type: Selection['type'];
@@ -9,7 +8,7 @@ type ResolvedSelection = {
   breadcrumbs: string[];
 };
 
-export function useSelectionResolver(memoryMap: MemoryMap | null) {
+export function useSelectionResolver(memoryMap: NormalizedMemoryMap | null) {
   return useCallback(
     (selection: Selection | null): ResolvedSelection | null => {
       if (!selection || !memoryMap) {
@@ -42,9 +41,7 @@ export function useSelectionResolver(memoryMap: MemoryMap | null) {
         };
       }
 
-      const blockRegisters = ((block as { registers?: unknown[] }).registers ?? []) as Array<
-        NormalizedRegister | NormalizedRegisterArray
-      >;
+      const blockRegisters = block.registers ?? [];
 
       if (selection.type === 'array') {
         const registerIndex = typeof selection.path[3] === 'number' ? selection.path[3] : null;
@@ -52,12 +49,11 @@ export function useSelectionResolver(memoryMap: MemoryMap | null) {
           return null;
         }
         const node = blockRegisters[registerIndex];
-        if (node && (node as { __kind?: string }).__kind === 'array') {
-          const registerArray = node as NormalizedRegisterArray;
+        if (node?.__kind === 'array') {
           return {
             type: 'array',
-            object: registerArray,
-            breadcrumbs: [memoryMap.name || 'Memory Map', block.name, registerArray.name],
+            object: node,
+            breadcrumbs: [memoryMap.name || 'Memory Map', block.name, node.name],
           };
         }
         return null;
@@ -73,14 +69,13 @@ export function useSelectionResolver(memoryMap: MemoryMap | null) {
           return null;
         }
         const node = blockRegisters[registerIndex];
-        if (!node || (node as { __kind?: string }).__kind === 'array') {
+        if (!node || node.__kind === 'array') {
           return null;
         }
-        const register = node as NormalizedRegister;
         return {
           type: 'register',
-          object: register,
-          breadcrumbs: [memoryMap.name || 'Memory Map', block.name, register.name],
+          object: node,
+          breadcrumbs: [memoryMap.name || 'Memory Map', block.name, node.name],
         };
       }
 
@@ -91,23 +86,17 @@ export function useSelectionResolver(memoryMap: MemoryMap | null) {
           return null;
         }
         const node = blockRegisters[arrayIndex];
-        if (!node || (node as { __kind?: string }).__kind !== 'array') {
+        if (node?.__kind !== 'array') {
           return null;
         }
-        const registerArray = node as NormalizedRegisterArray;
-        const register = registerArray.registers?.[nestedIndex];
+        const register = node.registers?.[nestedIndex];
         if (!register) {
           return null;
         }
         return {
           type: 'register',
           object: register,
-          breadcrumbs: [
-            memoryMap.name || 'Memory Map',
-            block.name,
-            registerArray.name,
-            register.name,
-          ],
+          breadcrumbs: [memoryMap.name || 'Memory Map', block.name, node.name, register.name],
         };
       }
 

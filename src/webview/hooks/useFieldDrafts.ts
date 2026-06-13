@@ -27,7 +27,7 @@ export function useFieldDrafts() {
       if (prev[rowId] !== undefined) {
         return prev;
       }
-      const v = field?.reset_value;
+      const v = field?.resetValue;
       const display =
         v !== null && v !== undefined ? `0x${Number(v).toString(16).toUpperCase()}` : '0x0';
       return { ...prev, [rowId]: display };

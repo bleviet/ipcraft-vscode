@@ -1,17 +1,9 @@
 import { ReactNode } from 'react';
-import { AddressBlock, RegisterDef } from '../../types/memoryMap';
+import type { NormalizedAddressBlock, NormalizedRegister } from '../../../domain/internal.types';
 
 export type YamlPath = Array<string | number>;
 
-export type RegisterArrayNode = {
-  __kind: 'array';
-  name: string;
-  offset: number;
-  count: number;
-  stride: number;
-  description?: string;
-  registers: RegisterDef[];
-};
+export type RegisterArrayNode = NormalizedRegister & { __kind: 'array' };
 
 export const isArrayNode = (node: unknown): node is RegisterArrayNode => {
   if (!node || typeof node !== 'object') {
@@ -21,10 +13,7 @@ export const isArrayNode = (node: unknown): node is RegisterArrayNode => {
   return n.__kind === 'array' && typeof n.count === 'number' && typeof n.stride === 'number';
 };
 
-export interface BlockNode extends AddressBlock {
-  registers?: (RegisterDef | RegisterArrayNode)[];
-  register_arrays?: RegisterDef[];
-}
+export type BlockNode = NormalizedAddressBlock;
 
 export interface OutlineSelection {
   id: string;

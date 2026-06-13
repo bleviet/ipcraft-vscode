@@ -18,7 +18,7 @@ import { generateUniqueName } from '../../utils/naming';
 export interface RegisterEditorProps {
   /** The register to display and edit. */
   register: RegisterDef;
-  /** Normalised bit fields (with bit_range / bit_offset / bit_width). */
+  /** Normalised bit fields (with offset / width). */
   fields: BitFieldRecord[];
   registerLayout: 'stacked' | 'side-by-side';
   toggleRegisterLayout: () => void;
@@ -76,7 +76,7 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
       return () => window.clearTimeout(id);
     }, [selectionMeta?.focusDetails, register?.name]);
 
-    // Normalise fields for BitFieldVisualizer (provide bit_range).
+    // Normalise fields for BitFieldVisualizer (provide bitRange).
     const normalisedFields = useMemo(() => {
       if (!register?.fields) {
         return [];
@@ -86,21 +86,22 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
           ...f,
           name: f.name ?? undefined,
           bits: f.bits ?? undefined,
-          bit_offset: f.bit_offset ?? undefined,
-          bit_width: f.bit_width ?? undefined,
+          offset: f.offset ?? undefined,
+          width: f.width ?? undefined,
           access: f.access ?? undefined,
-          reset_value: f.reset_value ?? undefined,
+          resetValue: f.resetValue ?? undefined,
           description: f.description ?? undefined,
         };
-        if (mappedF.bit_range) {
-          const validRange: [number, number] = [mappedF.bit_range[0], mappedF.bit_range[1]];
-          return { ...mappedF, bit_range: validRange };
-        }
-        if (mappedF.bit_offset !== undefined && mappedF.bit_width !== undefined) {
-          const lo = Number(mappedF.bit_offset);
-          const width = Number(mappedF.bit_width);
+        if (
+          mappedF.offset !== undefined &&
+          mappedF.width !== undefined &&
+          mappedF.offset !== null &&
+          mappedF.width !== null
+        ) {
+          const lo = Number(mappedF.offset);
+          const width = Number(mappedF.width);
           const hi = lo + width - 1;
-          return { ...mappedF, bit_range: [hi, lo] as [number, number] };
+          return { ...mappedF, bitRange: [hi, lo] as [number, number] };
         }
         return mappedF;
       });
@@ -112,16 +113,15 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
       setHoveredFieldIndex,
       registerSize,
       onUpdateFieldReset: (fieldIndex: number, resetValue: number | null) => {
-        onUpdate(['fields', fieldIndex, 'reset_value'], resetValue);
+        onUpdate(['fields', fieldIndex, 'resetValue'], resetValue);
       },
       onUpdateFieldRange: (fieldIndex: number, newRange: [number, number]) => {
         const [hi, lo] = newRange;
         const field = fields[fieldIndex];
         const updatedField = {
           ...field,
-          bit_range: newRange,
-          bit_offset: lo,
-          bit_width: hi - lo + 1,
+          offset: lo,
+          width: hi - lo + 1,
         };
         const newFields = [...fields];
         newFields[fieldIndex] = updatedField;
@@ -135,34 +135,33 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
           if (field) {
             newFields[idx] = {
               ...field,
-              bit_range: range,
-              bit_offset: lo,
-              bit_width: hi - lo + 1,
+              offset: lo,
+              width: hi - lo + 1,
             };
           }
         });
         newFields.sort((a, b) => {
-          const aLo = a.bit_range ? a.bit_range[1] : (a.bit_offset ?? 0);
-          const bLo = b.bit_range ? b.bit_range[1] : (b.bit_offset ?? 0);
+          const aLo = a.offset ?? 0;
+          const bLo = b.offset ?? 0;
           return aLo - bLo;
         });
         onUpdate(['fields'], newFields);
       },
-      onCreateField: (newField: { bit_range: [number, number]; name: string }) => {
+      onCreateField: (newField: { bitRange: [number, number]; name: string }) => {
         const name = generateUniqueName(fields, 'field');
-        const [hi, lo] = newField.bit_range;
+        const [hi, lo] = newField.bitRange;
         const field = {
           name,
-          bit_range: newField.bit_range,
-          bit_offset: lo,
-          bit_width: hi - lo + 1,
+          offset: lo,
+          width: hi - lo + 1,
           access: 'read-write',
-          reset_value: 0,
+          resetValue: 0,
           description: '',
         };
+
         const newFields = [...fields, field].sort((a, b) => {
-          const aLo = a.bit_range ? a.bit_range[1] : (a.bit_offset ?? 0);
-          const bLo = b.bit_range ? b.bit_range[1] : (b.bit_offset ?? 0);
+          const aLo = a.offset ?? 0;
+          const bLo = b.offset ?? 0;
           return aLo - bLo;
         });
         onUpdate(['fields'], newFields);

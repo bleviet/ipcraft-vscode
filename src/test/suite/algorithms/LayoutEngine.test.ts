@@ -20,24 +20,24 @@ describe('LayoutEngine', () => {
   describe('recomputeBitfieldLayout', () => {
     it('should pack fields contiguously from LSB', () => {
       const fields: LayoutField[] = [
-        { name: 'f0', bits: '[7:0]', bit_offset: 0, bit_width: 8 },
-        { name: 'f1', bits: '[20:15]', bit_offset: 15, bit_width: 6 },
-        { name: 'f2', bits: '[30:28]', bit_offset: 28, bit_width: 3 },
+        { name: 'f0', bits: '[7:0]', offset: 0, width: 8 },
+        { name: 'f1', bits: '[20:15]', offset: 15, width: 6 },
+        { name: 'f2', bits: '[30:28]', offset: 28, width: 3 },
       ];
 
       const result = recomputeBitfieldLayout(fields, 32);
 
       expect(result[0].bits).toBe('[7:0]');
-      expect(result[0].bit_offset).toBe(0);
-      expect(result[0].bit_width).toBe(8);
+      expect(result[0].offset).toBe(0);
+      expect(result[0].width).toBe(8);
 
       expect(result[1].bits).toBe('[13:8]');
-      expect(result[1].bit_offset).toBe(8);
-      expect(result[1].bit_width).toBe(6);
+      expect(result[1].offset).toBe(8);
+      expect(result[1].width).toBe(6);
 
       expect(result[2].bits).toBe('[16:14]');
-      expect(result[2].bit_offset).toBe(14);
-      expect(result[2].bit_width).toBe(3);
+      expect(result[2].offset).toBe(14);
+      expect(result[2].width).toBe(3);
     });
 
     it('should handle empty fields array', () => {
@@ -45,33 +45,33 @@ describe('LayoutEngine', () => {
     });
 
     it('should handle single field', () => {
-      const fields: LayoutField[] = [{ name: 'f0', bits: '[15:8]', bit_offset: 8, bit_width: 8 }];
+      const fields: LayoutField[] = [{ name: 'f0', bits: '[15:8]', offset: 8, width: 8 }];
 
       const result = recomputeBitfieldLayout(fields, 32);
 
       expect(result[0].bits).toBe('[7:0]');
-      expect(result[0].bit_offset).toBe(0);
-      expect(result[0].bit_width).toBe(8);
+      expect(result[0].offset).toBe(0);
+      expect(result[0].width).toBe(8);
     });
 
     it('should clamp to register width', () => {
       const fields: LayoutField[] = [
-        { name: 'f0', bits: '[15:0]', bit_offset: 0, bit_width: 16 },
-        { name: 'f1', bits: '[31:16]', bit_offset: 16, bit_width: 16 },
-        { name: 'f2', bits: '[7:0]', bit_offset: 0, bit_width: 8 },
+        { name: 'f0', bits: '[15:0]', offset: 0, width: 16 },
+        { name: 'f1', bits: '[31:16]', offset: 16, width: 16 },
+        { name: 'f2', bits: '[7:0]', offset: 0, width: 8 },
       ];
 
       const result = recomputeBitfieldLayout(fields, 32);
 
       // f0: [15:0], f1: [31:16], f2 is clamped -- MSB would be 39, clamped to 31
-      expect(result[2].bit_offset).toBe(32);
-      // bit_width clamped: msb = min(31, 32+8-1=39) = 31, but lsb = 32 > 31 -> width = 0
+      expect(result[2].offset).toBe(32);
+      // width clamped: msb = min(31, 32+8-1=39) = 31, but lsb = 32 > 31 -> width = 0
       // Actually: msb = min(31, 39) = 31, lsb = 32 -> width = 31-32+1 = 0
       // The clamp ensures we don't overflow, but this field is effectively at the boundary
     });
 
     it('should not mutate input array', () => {
-      const fields: LayoutField[] = [{ name: 'f0', bits: '[15:8]', bit_offset: 8, bit_width: 8 }];
+      const fields: LayoutField[] = [{ name: 'f0', bits: '[15:8]', offset: 8, width: 8 }];
       const originalBits = fields[0].bits;
 
       recomputeBitfieldLayout(fields, 32);
@@ -84,8 +84,8 @@ describe('LayoutEngine', () => {
         {
           name: 'f0',
           bits: '[7:0]',
-          bit_offset: 0,
-          bit_width: 8,
+          offset: 0,
+          width: 8,
           access: 'read-only',
           description: 'Status field',
           custom_prop: 42,
@@ -101,9 +101,9 @@ describe('LayoutEngine', () => {
 
     it('should handle overlapping input fields by packing them sequentially', () => {
       const fields: LayoutField[] = [
-        { name: 'f0', bits: '[7:0]', bit_offset: 0, bit_width: 8 },
-        { name: 'f1', bits: '[7:0]', bit_offset: 0, bit_width: 8 },
-        { name: 'f2', bits: '[7:0]', bit_offset: 0, bit_width: 8 },
+        { name: 'f0', bits: '[7:0]', offset: 0, width: 8 },
+        { name: 'f1', bits: '[7:0]', offset: 0, width: 8 },
+        { name: 'f2', bits: '[7:0]', offset: 0, width: 8 },
       ];
 
       const result = recomputeBitfieldLayout(fields, 32);
@@ -120,8 +120,8 @@ describe('LayoutEngine', () => {
 
       // Should default to 1-bit width at bit 0
       expect(result[0].bits).toBe('[0:0]');
-      expect(result[0].bit_offset).toBe(0);
-      expect(result[0].bit_width).toBe(1);
+      expect(result[0].offset).toBe(0);
+      expect(result[0].width).toBe(1);
     });
   });
 
@@ -290,8 +290,8 @@ describe('LayoutEngine', () => {
                 name: 'REG0',
                 offset: 0x100,
                 fields: [
-                  { name: 'f0', bits: '[20:10]', bit_offset: 10, bit_width: 11 },
-                  { name: 'f1', bits: '[5:0]', bit_offset: 0, bit_width: 6 },
+                  { name: 'f0', bits: '[20:10]', offset: 10, width: 11 },
+                  { name: 'f1', bits: '[5:0]', offset: 0, width: 6 },
                 ],
               },
               {
@@ -398,8 +398,8 @@ describe('LayoutEngine', () => {
                 offset: 0,
                 address_offset: 0,
                 fields: [
-                  { name: 'f0', bits: '[7:0]', bit_offset: 0, bit_width: 8 },
-                  { name: 'f1', bits: '[15:8]', bit_offset: 8, bit_width: 8 },
+                  { name: 'f0', bits: '[7:0]', offset: 0, width: 8 },
+                  { name: 'f1', bits: '[15:8]', offset: 8, width: 8 },
                 ],
               },
               { name: 'R1', offset: 4, address_offset: 4 },
@@ -438,8 +438,8 @@ describe('LayoutEngine', () => {
                     name: 'TEMPLATE',
                     offset: 0,
                     fields: [
-                      { name: 'f0', bits: '[20:10]', bit_offset: 10, bit_width: 11 },
-                      { name: 'f1', bits: '[5:0]', bit_offset: 0, bit_width: 6 },
+                      { name: 'f0', bits: '[20:10]', offset: 10, width: 11 },
+                      { name: 'f1', bits: '[5:0]', offset: 0, width: 6 },
                     ],
                   },
                 ],

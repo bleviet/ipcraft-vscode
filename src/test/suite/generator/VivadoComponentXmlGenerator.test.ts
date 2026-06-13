@@ -46,16 +46,16 @@ function makeIp(overrides: Partial<IpCoreData> = {}): IpCoreData {
     description: 'A test core',
     clocks: [{ name: 'clk' }],
     resets: [{ name: 'rst_n', polarity: 'activeLow' }],
-    bus_interfaces: [
+    busInterfaces: [
       {
         name: 's_axi',
         type: 'ipcraft.busif.axi4_lite.1.0',
         mode: 'slave',
-        physical_prefix: 's_axi_',
-        associated_clock: 'clk',
-        associated_reset: 'rst_n',
-        use_optional_ports: [],
-        port_width_overrides: {},
+        physicalPrefix: 's_axi_',
+        associatedClock: 'clk',
+        associatedReset: 'rst_n',
+        useOptionalPorts: [],
+        portWidthOverrides: {},
       },
     ],
     ports: [{ name: 'out_port', direction: 'out', width: 8 }],
@@ -81,7 +81,7 @@ describe('generateComponentXml', () => {
     });
 
     it('uses default vlnv when absent', () => {
-      const xml = generateComponentXml({ bus_interfaces: [] } as IpCoreData, BUS_DEFS);
+      const xml = generateComponentXml({ busInterfaces: [] } as IpCoreData, BUS_DEFS);
       expect(xml).toContain('<spirit:vendor>user</spirit:vendor>');
       expect(xml).toContain('<spirit:library>ip</spirit:library>');
       expect(xml).toContain('<spirit:name>ip_core</spirit:name>');
@@ -111,14 +111,14 @@ describe('generateComponentXml', () => {
 
     it('emits <spirit:master /> for master mode', () => {
       const xml = gen({
-        bus_interfaces: [
+        busInterfaces: [
           {
             name: 'm_axi',
             type: 'ipcraft.busif.axi4_lite.1.0',
             mode: 'master',
-            physical_prefix: 'm_axi_',
-            use_optional_ports: [],
-            port_width_overrides: {},
+            physicalPrefix: 'm_axi_',
+            useOptionalPorts: [],
+            portWidthOverrides: {},
           },
         ],
       });
@@ -143,14 +143,14 @@ describe('generateComponentXml', () => {
   describe('AXI4 Full bus interface', () => {
     it('includes PROTOCOL=AXI4', () => {
       const xml = gen({
-        bus_interfaces: [
+        busInterfaces: [
           {
             name: 's_axi',
             type: 'ipcraft.busif.axi4_full.1.0',
             mode: 'slave',
-            physical_prefix: 's_axi_',
-            use_optional_ports: [],
-            port_width_overrides: {},
+            physicalPrefix: 's_axi_',
+            useOptionalPorts: [],
+            portWidthOverrides: {},
           },
         ],
       });
@@ -162,14 +162,14 @@ describe('generateComponentXml', () => {
   describe('AXI-Stream bus interface', () => {
     function makeAxis(mode: string) {
       return gen({
-        bus_interfaces: [
+        busInterfaces: [
           {
             name: 'axis_s',
             type: 'ipcraft.busif.axi_stream.1.0',
             mode,
-            physical_prefix: 'axis_s_',
-            use_optional_ports: [],
-            port_width_overrides: {},
+            physicalPrefix: 'axis_s_',
+            useOptionalPorts: [],
+            portWidthOverrides: {},
           },
         ],
       });
@@ -203,14 +203,14 @@ describe('generateComponentXml', () => {
   describe('unknown bus type (no bus definition)', () => {
     it('falls back to user.org with type as name', () => {
       const xml = gen({
-        bus_interfaces: [
+        busInterfaces: [
           {
             name: 'custom_if',
             type: 'custom.busif.mybus.1.0',
             mode: 'slave',
-            physical_prefix: 'custom_',
-            use_optional_ports: [],
-            port_width_overrides: {},
+            physicalPrefix: 'custom_',
+            useOptionalPorts: [],
+            portWidthOverrides: {},
           },
         ],
       });
@@ -240,14 +240,14 @@ describe('generateComponentXml', () => {
 
     function makeCustomIp(mode = 'slave') {
       return makeIp({
-        bus_interfaces: [
+        busInterfaces: [
           {
             name: 'data_in',
             type: 'acme.com.interface.my_proto.1.0',
             mode,
-            physical_prefix: 'data_in_',
-            use_optional_ports: [],
-            port_width_overrides: {},
+            physicalPrefix: 'data_in_',
+            useOptionalPorts: [],
+            portWidthOverrides: {},
           },
         ],
       });
@@ -289,14 +289,14 @@ describe('generateComponentXml', () => {
     it('resolves parameterized portWidthOverrides using IP core parameters', () => {
       const ipWithParams = makeIp({
         parameters: [{ name: 'DATA_W', value: 32 }],
-        bus_interfaces: [
+        busInterfaces: [
           {
             name: 'data_in',
             type: 'acme.com.interface.my_proto.1.0',
             mode: 'slave',
-            physical_prefix: 'data_in_',
-            use_optional_ports: [],
-            port_width_overrides: { DATA: 'DATA_W' },
+            physicalPrefix: 'data_in_',
+            useOptionalPorts: [],
+            portWidthOverrides: { DATA: 'DATA_W' },
           },
         ],
       });
@@ -363,22 +363,22 @@ describe('generateComponentXml', () => {
     it('master interface inherits portWidthOverrides from sibling slave of the same bus type', () => {
       const ipWithBoth = makeIp({
         parameters: [{ name: 'DATA_W', value: 32 }],
-        bus_interfaces: [
+        busInterfaces: [
           {
             name: 'data_in',
             type: 'acme.com.interface.my_proto.1.0',
             mode: 'slave',
-            physical_prefix: 'data_in_',
-            use_optional_ports: [],
-            port_width_overrides: { DATA: 'DATA_W' },
+            physicalPrefix: 'data_in_',
+            useOptionalPorts: [],
+            portWidthOverrides: { DATA: 'DATA_W' },
           },
           {
             name: 'data_out',
             type: 'acme.com.interface.my_proto.1.0',
             mode: 'master',
-            physical_prefix: 'data_out_',
-            use_optional_ports: [],
-            port_width_overrides: {},
+            physicalPrefix: 'data_out_',
+            useOptionalPorts: [],
+            portWidthOverrides: {},
           },
         ],
       });
@@ -424,24 +424,24 @@ describe('generateComponentXml', () => {
 
     it('ASSOCIATED_BUSIF is colon-separated when multiple bus interfaces share a clock', () => {
       const xml = gen({
-        bus_interfaces: [
+        busInterfaces: [
           {
             name: 's_axi0',
             type: 'ipcraft.busif.axi4_lite.1.0',
             mode: 'slave',
-            physical_prefix: 's_axi0_',
-            associated_clock: 'clk',
-            use_optional_ports: [],
-            port_width_overrides: {},
+            physicalPrefix: 's_axi0_',
+            associatedClock: 'clk',
+            useOptionalPorts: [],
+            portWidthOverrides: {},
           },
           {
             name: 's_axi1',
             type: 'ipcraft.busif.axi4_lite.1.0',
             mode: 'slave',
-            physical_prefix: 's_axi1_',
-            associated_clock: 'clk',
-            use_optional_ports: [],
-            port_width_overrides: {},
+            physicalPrefix: 's_axi1_',
+            associatedClock: 'clk',
+            useOptionalPorts: [],
+            portWidthOverrides: {},
           },
         ],
       });
@@ -456,15 +456,15 @@ describe('generateComponentXml', () => {
 
     it('omits ASSOCIATED_BUSIF when no bus interfaces reference this clock', () => {
       const xml = gen({
-        bus_interfaces: [
+        busInterfaces: [
           {
             name: 's_axi',
             type: 'ipcraft.busif.axi4_lite.1.0',
             mode: 'slave',
-            physical_prefix: 's_axi_',
-            associated_clock: 'other_clk',
-            use_optional_ports: [],
-            port_width_overrides: {},
+            physicalPrefix: 's_axi_',
+            associatedClock: 'other_clk',
+            useOptionalPorts: [],
+            portWidthOverrides: {},
           },
         ],
       });
@@ -680,7 +680,7 @@ describe('generateComponentXml', () => {
 
     it('emits integer parameter with format=long and resolve=user', () => {
       const xml = gen({
-        parameters: [{ name: 'C_DATA_WIDTH', value: 32, data_type: 'integer' }],
+        parameters: [{ name: 'C_DATA_WIDTH', value: 32, dataType: 'integer' }],
       });
       expect(xml).toContain('<spirit:name>C_DATA_WIDTH</spirit:name>');
       expect(xml).toContain('spirit:format="long"');
@@ -690,7 +690,7 @@ describe('generateComponentXml', () => {
 
     it('emits string parameter with format=string', () => {
       const xml = gen({
-        parameters: [{ name: 'C_PROTOCOL', value: 'AXI4', data_type: 'string' }],
+        parameters: [{ name: 'C_PROTOCOL', value: 'AXI4', dataType: 'string' }],
       });
       expect(xml).toContain('spirit:format="string"');
       expect(xml).toContain('>AXI4<');
@@ -698,7 +698,7 @@ describe('generateComponentXml', () => {
 
     it('normalizes natural/positive to integer in modelParameter dataType', () => {
       const xml = gen({
-        parameters: [{ name: 'DEPTH', value: 8, data_type: 'natural' }],
+        parameters: [{ name: 'DEPTH', value: 8, dataType: 'natural' }],
       });
       expect(xml).toContain('spirit:dataType="integer"');
       expect(xml).not.toContain('spirit:dataType="natural"');
@@ -842,21 +842,21 @@ describe('array bus interface expansion', () => {
     description: '',
     clocks: [{ name: 'clk' }],
     resets: [{ name: 'rst_n', polarity: 'activeLow' }],
-    bus_interfaces: [
+    busInterfaces: [
       {
         name: 'S_AXIS',
         type: 'ipcraft.busif.axi_stream.1.0',
         mode: 'slave',
-        physical_prefix: 's_axis_',
-        associated_clock: 'clk',
-        associated_reset: 'rst_n',
-        use_optional_ports: [],
-        port_width_overrides: {},
+        physicalPrefix: 's_axis_',
+        associatedClock: 'clk',
+        associatedReset: 'rst_n',
+        useOptionalPorts: [],
+        portWidthOverrides: {},
         array: {
           count: 3,
-          index_start: 0,
-          naming_pattern: 'S_AXIS_{index}',
-          physical_prefix_pattern: 's_axis_{index}_',
+          indexStart: 0,
+          namingPattern: 'S_AXIS_{index}',
+          physicalPrefixPattern: 's_axis_{index}_',
         },
       },
     ],
@@ -967,14 +967,14 @@ describe('generateCustomBusDefs', () => {
     vlnv: { vendor: 'acme', library: 'ip', name: 'my_ip', version: '1.0.0' },
     clocks: [{ name: 'clk' }],
     resets: [],
-    bus_interfaces: [
+    busInterfaces: [
       {
         name: 'stream_in',
         type: 'acme.com.interface.my_proto.2.0',
         mode: 'slave',
-        physical_prefix: 's_',
-        use_optional_ports: [],
-        port_width_overrides: {},
+        physicalPrefix: 's_',
+        useOptionalPorts: [],
+        portWidthOverrides: {},
       },
     ],
     ports: [],
@@ -984,14 +984,14 @@ describe('generateCustomBusDefs', () => {
   it('returns empty object when all interfaces are standard types', () => {
     const ip: IpCoreData = {
       ...IP_WITH_CUSTOM,
-      bus_interfaces: [
+      busInterfaces: [
         {
           name: 's_axi',
           type: 'ipcraft.busif.axi4_lite.1.0',
           mode: 'slave',
-          physical_prefix: 's_axi_',
-          use_optional_ports: [],
-          port_width_overrides: {},
+          physicalPrefix: 's_axi_',
+          useOptionalPorts: [],
+          portWidthOverrides: {},
         },
       ],
     };
@@ -1034,9 +1034,9 @@ describe('generateCustomBusDefs', () => {
   it('deduplicates when the same custom type appears on multiple interfaces', () => {
     const ip: IpCoreData = {
       ...IP_WITH_CUSTOM,
-      bus_interfaces: [
-        { ...IP_WITH_CUSTOM.bus_interfaces![0], name: 'if_a' },
-        { ...IP_WITH_CUSTOM.bus_interfaces![0], name: 'if_b' },
+      busInterfaces: [
+        { ...IP_WITH_CUSTOM.busInterfaces![0], name: 'if_a' },
+        { ...IP_WITH_CUSTOM.busInterfaces![0], name: 'if_b' },
       ],
     };
     const files = generateCustomBusDefs(ip, DEFS_WITH_CUSTOM);
@@ -1046,22 +1046,22 @@ describe('generateCustomBusDefs', () => {
   it('generates separate busdef files for two different custom types', () => {
     const ip: IpCoreData = {
       ...IP_WITH_CUSTOM,
-      bus_interfaces: [
+      busInterfaces: [
         {
           name: 'if_a',
           type: 'acme.com.interface.my_proto.2.0',
           mode: 'slave',
-          physical_prefix: 'a_',
-          use_optional_ports: [],
-          port_width_overrides: {},
+          physicalPrefix: 'a_',
+          useOptionalPorts: [],
+          portWidthOverrides: {},
         },
         {
           name: 'if_b',
           type: 'acme.com.interface.other_bus.1.0',
           mode: 'slave',
-          physical_prefix: 'b_',
-          use_optional_ports: [],
-          port_width_overrides: {},
+          physicalPrefix: 'b_',
+          useOptionalPorts: [],
+          portWidthOverrides: {},
         },
       ],
     };

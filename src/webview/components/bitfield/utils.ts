@@ -3,9 +3,9 @@ import type { FieldModel } from '../BitFieldVisualizer';
 import type { ProSegment } from './types';
 
 export function getFieldRange(field: FieldModel): { lo: number; hi: number } | null {
-  if (field?.bit_range && Array.isArray(field.bit_range) && field.bit_range.length === 2) {
-    const hi = Number(field.bit_range[0]);
-    const lo = Number(field.bit_range[1]);
+  if (field?.bitRange && Array.isArray(field.bitRange) && field.bitRange.length === 2) {
+    const hi = Number(field.bitRange[0]);
+    const lo = Number(field.bitRange[1]);
     if (!Number.isFinite(hi) || !Number.isFinite(lo)) {
       return null;
     }
@@ -87,8 +87,8 @@ export function groupFields(fields: FieldModel[]) {
   fields.forEach((field, idx) => {
     let start = Number(field.bit ?? 0);
     let end = Number(field.bit ?? 0);
-    if (field.bit_range) {
-      [end, start] = field.bit_range;
+    if (field.bitRange) {
+      [end, start] = field.bitRange;
     }
     if (start > end) {
       [start, end] = [end, start];
@@ -245,8 +245,8 @@ export function findResizeBoundary(
 export function buildBitIndexArray(fields: FieldModel[], registerSize: number): (number | null)[] {
   const bits: (number | null)[] = Array.from({ length: registerSize }, () => null);
   fields.forEach((field, idx) => {
-    if (field.bit_range) {
-      const [hi, lo] = field.bit_range;
+    if (field.bitRange) {
+      const [hi, lo] = field.bitRange;
       for (let bit = lo; bit <= hi; bit++) {
         bits[bit] = idx;
       }
@@ -266,7 +266,7 @@ export function buildBitValues(fields: FieldModel[], registerSize: number): (0 |
     if (!range) {
       return;
     }
-    const raw = field?.reset_value;
+    const raw = field?.resetValue;
     const fieldValue = raw === null || raw === undefined ? 0 : Number(raw);
     for (let bit = range.lo; bit <= range.hi; bit++) {
       const localBit = bit - range.lo;

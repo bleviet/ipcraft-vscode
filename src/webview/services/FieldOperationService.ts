@@ -16,11 +16,11 @@ function normalizeFieldWidth(field: Record<string, unknown>): number {
 
   if (typeof field.bits === 'string') {
     const parsed = parseBitsLike(field.bits);
-    if (parsed && parsed.bit_width > 0) {
-      width = parsed.bit_width;
+    if (parsed && parsed.width > 0) {
+      width = parsed.width;
     }
-  } else if (Number.isFinite(field.bit_width as number) && (field.bit_width as number) > 0) {
-    width = Number(field.bit_width);
+  } else if (Number.isFinite(field.width as number) && (field.width as number) > 0) {
+    width = Number(field.width);
   }
 
   return Math.max(1, Math.min(32, Math.trunc(width)));
@@ -32,9 +32,9 @@ function firstFreeBit(fields: Record<string, unknown>[]): number {
   for (const field of fields) {
     const parsed = typeof field.bits === 'string' ? parseBitsLike(field.bits) : null;
     const bitOffset =
-      parsed?.bit_offset ??
-      (Number.isFinite(field.bit_offset as number) ? Number(field.bit_offset) : Number.NaN);
-    const bitWidth = parsed?.bit_width ?? normalizeFieldWidth(field);
+      parsed?.offset ??
+      (Number.isFinite(field.offset as number) ? Number(field.offset) : Number.NaN);
+    const bitWidth = parsed?.width ?? normalizeFieldWidth(field);
     const offset = Number.isFinite(bitOffset) ? Math.max(0, Math.trunc(bitOffset)) : 0;
     for (let bit = offset; bit < offset + bitWidth; bit++) {
       used.add(bit);

@@ -2,8 +2,8 @@
  * Result of parsing a bits-like string
  */
 export interface BitsRange {
-  bit_offset: number;
-  bit_width: number;
+  offset: number;
+  width: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -11,8 +11,8 @@ export interface BitsRange {
 // ---------------------------------------------------------------------------
 
 export interface BitFieldDef {
-  bit_offset?: number | null;
-  bit_width?: number | null;
+  offset?: number | null;
+  width?: number | null;
   bits?: string | null;
 }
 
@@ -50,7 +50,7 @@ function bitsLikeFromBounds(hi: number, lo: number): BitsRange | null {
   }
   const msb = Math.max(hi, lo);
   const lsb = Math.min(hi, lo);
-  return { bit_offset: lsb, bit_width: msb - lsb + 1 };
+  return { offset: lsb, width: msb - lsb + 1 };
 }
 
 /**
@@ -73,12 +73,12 @@ export function formatBitsRange(hi: number, lo: number): string {
 
 /**
  * Converts a field definition to its canonical bits string.
- * Computes from `bit_offset`/`bit_width` when available; falls back to the
+ * Computes from `offset`/`width` when available; falls back to the
  * `bits` property; returns `'[?:?]'` when neither can be determined.
  */
 export function fieldToBitsString(field: BitFieldDef): string {
-  const offset = Number(field?.bit_offset ?? NaN);
-  const width = Number(field?.bit_width ?? NaN);
+  const offset = Number(field?.offset ?? NaN);
+  const width = Number(field?.width ?? NaN);
   if (Number.isFinite(offset) && Number.isFinite(width) && width >= 1) {
     return formatBitsRange(offset + width - 1, offset);
   }
@@ -96,9 +96,9 @@ export function parseBitsLike(text: string): BitsRange | null {
   return bitsLikeFromBounds(bounds[0], bounds[1]);
 }
 
-export function formatBitsLike(bit_offset: number, bit_width: number): string {
-  const lsb = Number(bit_offset);
-  const width = Math.max(1, Number(bit_width));
-  const msb = lsb + width - 1;
+export function formatBitsLike(offset: number, width: number): string {
+  const lsb = Number(offset);
+  const w = Math.max(1, Number(width));
+  const msb = lsb + w - 1;
   return formatBitsRange(msb, lsb);
 }

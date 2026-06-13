@@ -7,11 +7,11 @@ import FieldTableRow from './FieldTableRow';
 export interface FieldDef {
   name?: string | null;
   bits?: string | null;
-  bit_offset?: number | null;
-  bit_width?: number | null;
-  bit_range?: [number, number] | null;
+  offset?: number | null;
+  width?: number | null;
+  bitRange?: [number, number] | null;
   access?: string | null;
-  reset_value?: number | null;
+  resetValue?: number | null;
   description?: string | null;
   monitorChangeOf?: string | null;
 }

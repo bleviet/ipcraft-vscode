@@ -18,6 +18,7 @@ import {
   normalizeIpCoreData,
   prepareRegisters,
   resolveMemoryMaps,
+  projectMemoryMapsForTemplate,
 } from './registerProcessor';
 import { sortByCompilationOrder } from '../utils/compilationOrder';
 import { getToolchain } from '../services/toolchains/registry';
@@ -478,13 +479,13 @@ export class IpCoreScaffolder {
           MM_TYPES.has(normalizeBusType(this.getString(iface.type)).templateType)
       );
       const primaryIndex = mmIdx >= 0 ? mmIdx : 0;
-      busPrefix = this.normalizePrefix(expandedBusInterfaces[primaryIndex].physical_prefix ?? '');
+      busPrefix = this.normalizePrefix(expandedBusInterfaces[primaryIndex].physicalPrefix ?? '');
 
       expandedBusInterfaces.forEach((iface, index) => {
         const busTypeInfo = normalizeBusType(this.getString(iface.type));
         // Conduit (custom) interfaces carry their own user-defined port list
         // instead of referencing a bus-library definition.
-        const conduitPorts = iface.conduit_ports as
+        const conduitPorts = iface.conduitPorts as
           | Array<{ name: string; width?: number | string; direction?: string; presence?: string }>
           | undefined;
         const busPortsForType =
@@ -493,15 +494,15 @@ export class IpCoreScaffolder {
             : this.resolvePortsForInterface(busTypeInfo.libraryKey, this.getString(iface.type));
         const activePorts = getActiveBusPortsFromDefinition(
           busPortsForType,
-          iface.use_optional_ports ?? [],
-          iface.physical_prefix ?? '',
+          iface.useOptionalPorts ?? [],
+          iface.physicalPrefix ?? '',
           iface.mode ?? '',
-          iface.port_width_overrides ?? {},
+          iface.portWidthOverrides ?? {},
           ipCore?.parameters as
-            | { name: string; value?: string | number; data_type?: string }[]
+            | { name: string; value?: string | number; dataType?: string }[]
             | undefined,
-          iface.port_name_overrides,
-          iface.absent_ports
+          iface.portNameOverrides,
+          iface.absentPorts
         ) as unknown as (TemplatePort & Record<string, unknown>)[];
         activePorts.forEach((port) => {
           port.tcl_width = toTclWidth(port.width, port.width_expr, parameterNames);
@@ -606,7 +607,7 @@ export class IpCoreScaffolder {
       data_width: 32,
       addr_width: addrWidth,
       reg_width: 4,
-      memory_maps: (await resolveMemoryMaps(ipCore, inputPath)) ?? [],
+      memory_maps: projectMemoryMapsForTemplate((await resolveMemoryMaps(ipCore, inputPath)) ?? []),
       clock_port: clockPort,
       reset_port: resetPort,
       reset_active_high: resetActiveHigh,
@@ -626,7 +627,7 @@ export class IpCoreScaffolder {
   private prepareGenerics(ipCore: IpCoreData): Array<Record<string, unknown>> {
     const params = ipCore?.parameters ?? [];
     return params.map((param) => {
-      const type = this.getString(param.data_type);
+      const type = this.getString(param.dataType);
       return {
         name: param.name,
         type,
@@ -817,7 +818,7 @@ function resolveMemmapRelpath(
   inputPath: string,
   outputDir: string
 ): string | undefined {
-  const memoryMaps = ipCore.memory_maps as unknown;
+  const memoryMaps = ipCore.memoryMaps;
   if (memoryMaps && !Array.isArray(memoryMaps) && typeof memoryMaps === 'object') {
     const importVal = (memoryMaps as Record<string, unknown>).import;
     if (typeof importVal === 'string') {

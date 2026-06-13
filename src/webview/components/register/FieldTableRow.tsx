@@ -75,8 +75,8 @@ const FieldTableRow = ({
   const bits = fieldToBitsString(field);
   const color = getFieldColor(field.name ?? `field${index}`);
   const resetDisplay =
-    field.reset_value !== null && field.reset_value !== undefined
-      ? `0x${Number(field.reset_value).toString(16).toUpperCase()}`
+    field.resetValue !== null && field.resetValue !== undefined
+      ? `0x${Number(field.resetValue).toString(16).toUpperCase()}`
       : '';
 
   const nameValue = nameDrafts[rowId] ?? String(field.name ?? '');
@@ -221,29 +221,29 @@ const FieldTableRow = ({
                         return {
                           ...f,
                           bits: next,
-                          bit_offset: parsed.bit_offset,
-                          bit_width: parsed.bit_width,
-                          bit_range: parsed.bit_range,
+                          offset: parsed.offset,
+                          width: parsed.width,
+                          bitRange: parsed.bitRange,
                         };
                       }
                       return { ...f, bits: next };
                     });
 
                     const curr = updatedFields[index];
-                    const currMSB = curr.bit_range
-                      ? curr.bit_range[0]
-                      : Number(curr.bit_offset) + Number(curr.bit_width) - 1;
+                    const currMSB = curr.bitRange
+                      ? curr.bitRange[0]
+                      : Number(curr.offset) + Number(curr.width) - 1;
                     let prevMSB = currMSB;
                     for (let i = index + 1; i < updatedFields.length; ++i) {
                       const f = updatedFields[i];
-                      const width = Number(f.bit_width) || 1;
+                      const width = Number(f.width) || 1;
                       const lsb = Number(prevMSB) + 1;
                       const msb = Number(lsb) + width - 1;
                       updatedFields[i] = {
                         ...f,
-                        bit_offset: lsb,
-                        bit_width: width,
-                        bit_range: [msb, lsb],
+                        offset: lsb,
+                        width: width,
+                        bitRange: [msb, lsb],
                         bits: formatBits(msb, lsb),
                       };
                       prevMSB = msb;
@@ -337,7 +337,7 @@ const FieldTableRow = ({
                     ...prev,
                     [rowId]: null,
                   }));
-                  onUpdate(['fields', index, 'reset_value'], null);
+                  onUpdate(['fields', index, 'resetValue'], null);
                   return;
                 }
 
@@ -348,7 +348,7 @@ const FieldTableRow = ({
                   [rowId]: err,
                 }));
                 if (!err && parsed !== null) {
-                  onUpdate(['fields', index, 'reset_value'], parsed);
+                  onUpdate(['fields', index, 'resetValue'], parsed);
                 }
               }}
             />

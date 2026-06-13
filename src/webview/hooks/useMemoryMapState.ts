@@ -1,28 +1,13 @@
 import { useCallback, useRef, useState } from 'react';
-import type { MemoryMap } from '../types/memoryMap';
-import { YamlService } from '../services/YamlService';
-import { DataNormalizer } from '../services/DataNormalizer';
-
-function parseAndNormalize(text: string): MemoryMap {
-  const parsed = YamlService.parse(text) as Record<string, unknown> | unknown[];
-
-  let map: unknown;
-  if (Array.isArray(parsed)) {
-    map = parsed[0];
-  } else if (parsed.memory_maps) {
-    map = (parsed.memory_maps as unknown[])[0];
-  } else {
-    map = parsed;
-  }
-
-  return DataNormalizer.normalizeMemoryMap(map);
-}
+import { parseMemoryMap } from '../../domain/parse';
+import type { NormalizedMemoryMap, MemoryMapRootStyle } from '../../domain/internal.types';
 
 /**
  * Hook for managing memory map state including YAML parsing and normalization
  */
 export function useMemoryMapState() {
-  const [memoryMap, setMemoryMap] = useState<MemoryMap | null>(null);
+  const [memoryMap, setMemoryMap] = useState<NormalizedMemoryMap | null>(null);
+  const [rootStyle, setRootStyle] = useState<MemoryMapRootStyle>('standalone');
   const [rawText, setRawText] = useState<string>('');
   const [parseError, setParseError] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string>('');
@@ -40,11 +25,14 @@ export function useMemoryMapState() {
       }
 
       try {
-        const normalized = parseAndNormalize(text);
-        setMemoryMap(normalized);
+        setMemoryMap((prevMap) => {
+          const parsedDoc = parseMemoryMap(text, prevMap ?? undefined);
+          setRootStyle(parsedDoc.rootStyle);
+          return parsedDoc.map;
+        });
         setParseError(null);
       } catch (err) {
-        console.error('parseAndNormalize FAILED:', err);
+        console.error('parseMemoryMap FAILED:', err);
         const message = err instanceof Error ? err.message : String(err);
         setParseError(message);
         if (options?.clearMemoryMapOnError) {
@@ -77,6 +65,7 @@ export function useMemoryMapState() {
 
   return {
     memoryMap,
+    rootStyle,
     rawText,
     rawTextRef,
     parseError,

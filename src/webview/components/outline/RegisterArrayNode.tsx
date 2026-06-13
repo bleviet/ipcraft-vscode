@@ -1,5 +1,5 @@
 import React from 'react';
-import { AddressBlock, RegisterDef } from '../../types/memoryMap';
+import type { NormalizedAddressBlock, NormalizedRegister } from '../../../domain/internal.types';
 import { toHex } from '../../utils/formatUtils';
 import FieldNode from './FieldNode';
 import RegisterNode from './RegisterNode';
@@ -12,7 +12,7 @@ import {
 
 interface RegisterArrayNodeProps {
   arrayNode: RegisterArrayNodeModel;
-  block: AddressBlock;
+  block: NormalizedAddressBlock;
   blockIndex: number;
   regIndex: number;
   memoryMapName: string;
@@ -41,13 +41,10 @@ const RegisterArrayNode = ({
   const isSelected = selectedId === id;
   const isExpanded = expanded.has(id);
 
-  const blockBase =
-    (block as Record<string, unknown>).baseAddress ??
-    (block as Record<string, unknown>).base_address ??
-    0;
-  const arrOff = (arrayNode as Record<string, unknown>).address_offset ?? arrayNode.offset ?? 0;
+  const blockBase = block.baseAddress;
+  const arrOff = arrayNode.offset;
   const start = Number(blockBase) + Number(arrOff);
-  const end = start + Math.max(1, arrayNode.count) * Math.max(1, arrayNode.stride) - 1;
+  const end = start + Math.max(1, arrayNode.count ?? 1) * Math.max(1, arrayNode.stride ?? 4) - 1;
 
   return (
     <div key={id}>
@@ -63,7 +60,7 @@ const RegisterArrayNode = ({
             type: 'array',
             object: arrayNode,
             breadcrumbs: [memoryMapName || 'Memory Map', block.name, arrayNode.name],
-            path: ['address_blocks', blockIndex, 'registers', regIndex],
+            path: ['addressBlocks', blockIndex, 'registers', regIndex],
           });
         }}
         style={{ paddingLeft: '40px' }}
@@ -75,7 +72,7 @@ const RegisterArrayNode = ({
         ></span>
         <span className="codicon codicon-symbol-array" style={{ marginRight: '6px' }}></span>
         {renderNameOrEdit(id, arrayNode.name, [
-          'address_blocks',
+          'addressBlocks',
           blockIndex,
           'registers',
           regIndex,
@@ -87,9 +84,9 @@ const RegisterArrayNode = ({
 
       {isExpanded && (
         <div>
-          {Array.from({ length: arrayNode.count }).map((_, elementIndex) => {
+          {Array.from({ length: arrayNode.count ?? 1 }).map((_, elementIndex) => {
             const elementId = `${id}-el-${elementIndex}`;
-            const elementBase = start + elementIndex * arrayNode.stride;
+            const elementBase = start + elementIndex * (arrayNode.stride ?? 4);
             const isElementSelected = selectedId === elementId;
             return (
               <div key={elementId}>
@@ -113,20 +110,18 @@ const RegisterArrayNode = ({
                         block.name,
                         `${arrayNode.name}[${elementIndex}]`,
                       ],
-                      path: ['address_blocks', blockIndex, 'registers', regIndex],
+                      path: ['addressBlocks', blockIndex, 'registers', regIndex],
                     });
                   }}
                   paddingLeft="60px"
                 />
 
-                {arrayNode.registers?.map((reg: RegisterDef, childIndex: number) => {
+                {arrayNode.registers?.map((reg: NormalizedRegister, childIndex: number) => {
                   const childId = `${elementId}-reg-${childIndex}`;
                   const isChildSelected = selectedId === childId;
-                  const absolute =
-                    elementBase +
-                    Number((reg as Record<string, unknown>).address_offset ?? reg.offset ?? 0);
+                  const absolute = elementBase + reg.offset;
                   const path: YamlPath = [
-                    'address_blocks',
+                    'addressBlocks',
                     blockIndex,
                     'registers',
                     regIndex,
@@ -153,9 +148,7 @@ const RegisterArrayNode = ({
                           path,
                           meta: {
                             absoluteAddress: absolute,
-                            relativeOffset: Number(
-                              (reg as Record<string, unknown>).address_offset ?? reg.offset ?? 0
-                            ),
+                            relativeOffset: reg.offset,
                           },
                         });
                       }}

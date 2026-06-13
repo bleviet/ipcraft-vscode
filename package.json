@@ -1380,7 +1380,7 @@
     "test:integration:vivado": "jest --config config/jest.integration.js --testPathPatterns=vivado",
     "test:integration:quartus": "jest --config config/jest.integration.js --testPathPatterns=quartus",
     "test:all": "npm run test:unit && npm run test:e2e && npm run test:browser",
-    "generate-types": "json2ts -i node_modules/ipcraft-spec/schemas/memory_map.schema.json -o src/webview/types/memoryMap.d.ts && json2ts -i node_modules/ipcraft-spec/schemas/ip_core.schema.json -o src/webview/types/ipCore.d.ts",
+    "generate-types": "node scripts/generate-types.js",
     "prepare": "husky install"
   },
   "devDependencies": {

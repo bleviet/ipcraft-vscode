@@ -1,10 +1,10 @@
 import { useEffect, useRef } from 'react';
 import type { MutableRefObject } from 'react';
 import type { Selection } from './useSelection';
-import type { MemoryMap } from '../types/memoryMap';
+import type { NormalizedMemoryMap } from '../../domain/internal.types';
 
 interface SelectionLifecycleOptions {
-  memoryMap: MemoryMap | null;
+  memoryMap: NormalizedMemoryMap | null;
   selectionRef: MutableRefObject<Selection | null>;
   handleSelect: (selection: Selection, addToHistory?: boolean) => void;
   resolveFromSelection: (

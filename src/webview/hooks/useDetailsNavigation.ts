@@ -1,10 +1,10 @@
 import { useCallback } from 'react';
 import type { MutableRefObject } from 'react';
-import type { MemoryMap } from '../types/memoryMap';
+import type { NormalizedMemoryMap } from '../../domain/internal.types';
 import type { Selection } from './useSelection';
 
 interface DetailsNavigationOptions {
-  memoryMap: MemoryMap | null;
+  memoryMap: NormalizedMemoryMap | null;
   selectedObject: unknown;
   selectionRef: MutableRefObject<Selection | null>;
   handleSelect: (selection: Selection, addToHistory?: boolean) => void;
@@ -59,7 +59,7 @@ export function useDetailsNavigation({
         const newPath = [...(selectionRef.current.path || []), 'registers', regIndex];
         const id = `${selectionRef.current.id}-reg-${regIndex}`;
         const elementBase = (arrayNode.__element_base as number) ?? 0;
-        const absoluteAddr = elementBase + ((reg.address_offset as number) ?? 0);
+        const absoluteAddr = elementBase + ((reg.offset as number) ?? 0);
 
         handleSelect({
           id,
@@ -72,7 +72,7 @@ export function useDetailsNavigation({
           path: newPath,
           meta: {
             absoluteAddress: absoluteAddr,
-            relativeOffset: (reg.address_offset as number) ?? 0,
+            relativeOffset: (reg.offset as number) ?? 0,
           },
         });
       }

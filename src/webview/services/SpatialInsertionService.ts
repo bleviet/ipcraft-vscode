@@ -50,11 +50,11 @@ export type InsertionDirection = 'before' | 'after';
 export interface BitFieldRuntimeDef {
   name: string;
   bits: string;
-  bit_offset: number;
-  bit_width: number;
-  bit_range: [number, number];
+  offset: number;
+  width: number;
+  bitRange: [number, number];
   access: string;
-  reset_value: number;
+  resetValue: number;
   description: string;
   [key: string]: unknown;
 }
@@ -75,8 +75,7 @@ export interface RegisterRuntimeDef {
 /** Runtime address block as used in memory maps. */
 export interface AddressBlockRuntimeDef {
   name: string;
-  base_address?: number;
-  offset?: number;
+  baseAddress?: number;
   size?: number;
   range?: number;
   registers?: RegisterRuntimeDef[];
@@ -115,9 +114,7 @@ function sortRegistersByOffset(registers: RegisterRuntimeDef[]): RegisterRuntime
 
 /** Sort blocks ascending by base address. */
 function sortBlocksByBase(blocks: AddressBlockRuntimeDef[]): AddressBlockRuntimeDef[] {
-  return [...blocks].sort(
-    (a, b) => (a.base_address ?? a.offset ?? 0) - (b.base_address ?? b.offset ?? 0)
-  );
+  return [...blocks].sort((a, b) => (a.baseAddress ?? 0) - (b.baseAddress ?? 0));
 }
 
 function toBitFieldRuntime(field: Record<string, unknown>, index: number): BitFieldRuntimeDef {
@@ -129,21 +126,22 @@ function toBitFieldRuntime(field: Record<string, unknown>, index: number): BitFi
     ...field,
     name: String(field.name ?? `field${index}`),
     bits,
-    bit_offset: typeof field.bit_offset === 'number' ? field.bit_offset : lsb,
-    bit_width: typeof field.bit_width === 'number' ? field.bit_width : msb - lsb + 1,
-    bit_range: [msb, lsb],
+    offset: typeof field.offset === 'number' ? field.offset : lsb,
+    width: typeof field.width === 'number' ? field.width : msb - lsb + 1,
+    bitRange: [msb, lsb],
     access: String(field.access ?? 'read-write'),
-    reset_value: typeof field.reset_value === 'number' ? field.reset_value : 0,
+    resetValue: typeof field.resetValue === 'number' ? field.resetValue : 0,
     description: String(field.description ?? ''),
   };
 }
 
 function toRegisterRuntime(reg: Record<string, unknown>, index: number): RegisterRuntimeDef {
+  // Prefer canonical `offset` (set by the repacker) over legacy `address_offset`.
   const offset =
-    typeof reg.address_offset === 'number'
-      ? reg.address_offset
-      : typeof reg.offset === 'number'
-        ? reg.offset
+    typeof reg.offset === 'number'
+      ? reg.offset
+      : typeof reg.address_offset === 'number'
+        ? reg.address_offset
         : index * 4;
   return {
     ...reg,
@@ -157,20 +155,17 @@ function toRegisterRuntime(reg: Record<string, unknown>, index: number): Registe
 
 function toBlockRuntime(block: Record<string, unknown>, index: number): AddressBlockRuntimeDef {
   const base =
-    typeof block.base_address === 'number'
-      ? block.base_address
-      : typeof block.offset === 'number'
-        ? block.offset
+    typeof block.baseAddress === 'number'
+      ? block.baseAddress
+      : typeof block.base_address === 'number'
+        ? block.base_address
         : index * 4;
-  // Strip runtime-only fields that don't belong in the YAML source:
-  //   • offset   — redundant alias for base_address
-  //   • size     — wrong default (4) for multi-register blocks; derived from registers anyway
-  //   • register_arrays — empty sentinel; preserve only when non-empty
-  const { offset: _o, size: _s, register_arrays, ...rest } = block;
+  // Strip legacy/redundant fields that don't belong in the YAML source.
+  const { base_address: _ba, offset: _o, size: _s, register_arrays, ...rest } = block;
   return {
     ...rest,
     name: String(block.name ?? `block${index}`),
-    base_address: base,
+    baseAddress: base,
     registers: Array.isArray(block.registers)
       ? block.registers.map((reg, regIdx) =>
           toRegisterRuntime(reg as Record<string, unknown>, regIdx)
@@ -204,7 +199,7 @@ export class SpatialInsertionService {
   private static defaultBlock(blockName: string, base: number): AddressBlockRuntimeDef {
     return {
       name: blockName,
-      base_address: base,
+      baseAddress: base,
       size: 4,
       usage: 'register',
       description: '',
@@ -259,11 +254,11 @@ export class SpatialInsertionService {
       const newField: BitFieldRuntimeDef = {
         name,
         bits: formatBits(0, 0),
-        bit_offset: 0,
-        bit_width: 1,
-        bit_range: [0, 0],
+        offset: 0,
+        width: 1,
+        bitRange: [0, 0],
         access: 'read-write',
-        reset_value: 0,
+        resetValue: 0,
         description: '',
       };
       return { items: [newField], newIndex: 0 };
@@ -313,11 +308,11 @@ export class SpatialInsertionService {
     const newField: BitFieldRuntimeDef = {
       name,
       bits: formatBits(newMsb, newLsb),
-      bit_offset: newLsb,
-      bit_width: 1,
-      bit_range: [newMsb, newLsb],
+      offset: newLsb,
+      width: 1,
+      bitRange: [newMsb, newLsb],
       access: 'read-write',
-      reset_value: 0,
+      resetValue: 0,
       description: '',
     };
 
@@ -369,11 +364,11 @@ export class SpatialInsertionService {
       const newField: BitFieldRuntimeDef = {
         name,
         bits: formatBits(0, 0),
-        bit_offset: 0,
-        bit_width: 1,
-        bit_range: [0, 0],
+        offset: 0,
+        width: 1,
+        bitRange: [0, 0],
         access: 'read-write',
-        reset_value: 0,
+        resetValue: 0,
         description: '',
       };
       return { items: [newField], newIndex: 0 };
@@ -423,11 +418,11 @@ export class SpatialInsertionService {
     const newField: BitFieldRuntimeDef = {
       name,
       bits: formatBits(newMsb, newLsb),
-      bit_offset: newLsb,
-      bit_width: 1,
-      bit_range: [newMsb, newLsb],
+      offset: newLsb,
+      width: 1,
+      bitRange: [newMsb, newLsb],
       access: 'read-write',
-      reset_value: 0,
+      resetValue: 0,
       description: '',
     };
 
@@ -602,7 +597,7 @@ export class SpatialInsertionService {
 
     const selIdx = selectedIndex >= 0 ? selectedIndex : blocks.length - 1;
     const selected = blocks[selIdx];
-    const selectedBase = selected.base_address ?? selected.offset ?? 0;
+    const selectedBase = selected.baseAddress ?? 0;
     const selectedSize = calculateBlockSize(selected as Parameters<typeof calculateBlockSize>[0]);
 
     const newBase = selectedBase + selectedSize;
@@ -641,7 +636,7 @@ export class SpatialInsertionService {
 
     const selIdx = selectedIndex >= 0 ? selectedIndex : blocks.length - 1;
     const selected = blocks[selIdx];
-    const selectedBase = selected.base_address ?? selected.offset ?? 0;
+    const selectedBase = selected.baseAddress ?? 0;
     const newSize = 4;
     const newEnd = selectedBase - 1;
     const newBase = Math.max(0, newEnd - newSize + 1);
@@ -663,7 +658,7 @@ export class SpatialInsertionService {
     // Shrink the previous block if it would overlap the new one.
     if (selIdx > 0) {
       const prevBlock = newBlocks[selIdx - 1];
-      const prevBase = prevBlock.base_address ?? prevBlock.offset ?? 0;
+      const prevBase = prevBlock.baseAddress ?? 0;
       const prevSize = calculateBlockSize(prevBlock as Parameters<typeof calculateBlockSize>[0]);
       const prevEnd = prevBase + prevSize - 1;
 

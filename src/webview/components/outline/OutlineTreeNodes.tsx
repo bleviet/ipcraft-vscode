@@ -1,5 +1,5 @@
 import React from 'react';
-import { MemoryMap, RegisterDef } from '../../types/memoryMap';
+import type { NormalizedMemoryMap, NormalizedRegister } from '../../../domain/internal.types';
 import { toHex } from '../../utils/formatUtils';
 import { BlockNode as OutlineBlockNode, RegisterArrayNode, RegisterNode } from '.';
 import {
@@ -9,10 +9,10 @@ import {
   YamlPath,
   isArrayNode,
 } from './types';
-import { blockId, registerArrayId, registerId } from './outlineIds';
+import { blockId, registerId } from './outlineIds';
 
 interface OutlineTreeNodesProps {
-  memoryMap: MemoryMap;
+  memoryMap: NormalizedMemoryMap;
   memoryMapName: string;
   filteredBlocks: Array<{ block: BlockModel; index: number }>;
   selectedId: string | null;
@@ -25,13 +25,13 @@ interface OutlineTreeNodesProps {
 }
 
 function renderLeafRegister(
-  memoryMap: MemoryMap,
+  memoryMap: NormalizedMemoryMap,
   memoryMapName: string,
   selectedId: string | null,
   onFocusTree: () => void,
   onSelect: (selection: OutlineSelection) => void,
   renderNameOrEdit: RenderNameOrEdit,
-  reg: RegisterDef,
+  reg: NormalizedRegister,
   blockIndex: number,
   regIndex: number,
   paddingLeft = '40px',
@@ -40,12 +40,8 @@ function renderLeafRegister(
   const id = registerId(blockIndex, regIndex);
   const isSelected = selectedId === id;
   const block = memoryMap.addressBlocks?.[blockIndex];
-  const blockBase = Number(
-    (block as Record<string, unknown>)?.baseAddress ??
-      (block as Record<string, unknown>)?.base_address ??
-      0
-  );
-  const regOff = Number((reg as Record<string, unknown>).address_offset ?? reg.offset ?? 0);
+  const blockBase = Number(block?.baseAddress ?? 0);
+  const regOff = Number(reg.offset ?? 0);
   const absolute = blockBase + regOff;
   const path: YamlPath = ['addressBlocks', blockIndex, 'registers', regIndex];
 
@@ -64,9 +60,7 @@ function renderLeafRegister(
           path,
           meta: {
             absoluteAddress: absolute,
-            relativeOffset: Number(
-              (reg as Record<string, unknown>).address_offset ?? reg.offset ?? 0
-            ),
+            relativeOffset: reg.offset,
           },
         });
       }}
@@ -82,81 +76,6 @@ function renderLeafRegister(
           : undefined
       }
     />
-  );
-}
-
-function renderArray(
-  memoryMap: MemoryMap,
-  memoryMapName: string,
-  selectedId: string | null,
-  expanded: Set<string>,
-  onToggleExpand: (id: string, e: React.MouseEvent) => void,
-  onFocusTree: () => void,
-  onSelect: (selection: OutlineSelection) => void,
-  renderNameOrEdit: RenderNameOrEdit,
-  arr: RegisterDef,
-  blockIndex: number,
-  arrayIndex: number
-) {
-  const id = registerArrayId(blockIndex, arrayIndex);
-  const isSelected = selectedId === id;
-  const isExpanded = expanded.has(id);
-
-  return (
-    <div key={id}>
-      <div
-        className={`tree-item ${isSelected ? 'selected' : ''}`}
-        role="treeitem"
-        aria-expanded={isExpanded}
-        aria-selected={isSelected}
-        onClick={() => {
-          onFocusTree();
-          onSelect({
-            id,
-            type: 'array',
-            object: arr,
-            breadcrumbs: [
-              memoryMapName,
-              memoryMap.addressBlocks?.[blockIndex]?.name ?? '',
-              arr.name,
-            ],
-            path: ['addressBlocks', blockIndex, 'register_arrays', arrayIndex],
-          });
-        }}
-        style={{ paddingLeft: '40px' }}
-      >
-        <span
-          className={`codicon codicon-chevron-${isExpanded ? 'down' : 'right'}`}
-          onClick={(e) => onToggleExpand(id, e)}
-          style={{ marginRight: '6px', cursor: 'pointer' }}
-        ></span>
-        <span className="codicon codicon-symbol-array" style={{ marginRight: '6px' }}></span>
-        {renderNameOrEdit(id, arr.name, [
-          'addressBlocks',
-          blockIndex,
-          'register_arrays',
-          arrayIndex,
-        ])}{' '}
-        <span className="opacity-50">[{arr.count}]</span>
-      </div>
-      {isExpanded && Array.isArray(arr.registers) && (
-        <div>
-          {arr.registers.map((reg: RegisterDef, idx: number) =>
-            renderLeafRegister(
-              memoryMap,
-              memoryMapName,
-              selectedId,
-              onFocusTree,
-              onSelect,
-              renderNameOrEdit,
-              reg,
-              blockIndex,
-              idx
-            )
-          )}
-        </div>
-      )}
-    </div>
   );
 }
 
@@ -233,21 +152,6 @@ const OutlineTreeNodes = ({
                 onRegisterContextMenu
               );
             })}
-            {block.register_arrays?.map((arr: RegisterDef, idx: number) =>
-              renderArray(
-                memoryMap,
-                memoryMapName,
-                selectedId,
-                expanded,
-                onToggleExpand,
-                onFocusTree,
-                onSelect,
-                renderNameOrEdit,
-                arr,
-                blockIndex,
-                idx
-              )
-            )}
           </OutlineBlockNode>
         );
       })}

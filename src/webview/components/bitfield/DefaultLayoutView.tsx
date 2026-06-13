@@ -87,7 +87,7 @@ const DefaultLayoutView = ({
                 if (localBit < 0 || localBit > r.hi - r.lo) {
                   return;
                 }
-                const raw = fields[fieldIdx]?.reset_value;
+                const raw = fields[fieldIdx]?.resetValue;
                 const current = raw === null || raw === undefined ? 0 : Number(raw);
                 const curBit = Math.floor(current / Math.pow(2, localBit)) % 2 === 1 ? 1 : 0;
                 const desired: 0 | 1 = curBit === 1 ? 0 : 1;

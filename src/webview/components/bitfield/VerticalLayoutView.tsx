@@ -236,9 +236,9 @@ const VerticalLayoutView = ({
             const isHovered = hoveredFieldIndex === group.idx;
             const field = fields[group.idx];
             const fieldReset =
-              field?.reset_value === null || field?.reset_value === undefined
+              field?.resetValue === null || field?.resetValue === undefined
                 ? 0
-                : Number(field.reset_value);
+                : Number(field.resetValue);
 
             return (
               <div

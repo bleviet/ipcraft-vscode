@@ -18,7 +18,7 @@ import { recomputeRegisterLayout } from './algorithms/LayoutEngine';
 import type { LayoutMemoryMap, LayoutRegister } from './algorithms/LayoutEngine';
 import { YamlService } from './services/YamlService';
 import { YamlPathResolver } from './services/YamlPathResolver';
-import { sanitizeRegisterForYaml, sanitizeBlockForYaml } from './services/YamlSanitizer';
+import { serializeValue } from '../domain/serialize';
 
 /** Effective register width (bits) of a block-like object. */
 function blockRegWidth(block: Record<string, unknown> | undefined): number {
@@ -166,7 +166,7 @@ const App = () => {
         string,
         unknown
       >[];
-      const sanitizedRegs = regs.map((r) => sanitizeRegisterForYaml(r, width));
+      const sanitizedRegs = regs.map((r) => serializeValue(r, width) as Record<string, unknown>);
       const newText = YamlService.applyPathEdits(rawTextRef.current, [
         {
           path: [...selectionRootPath, 'addressBlocks', blockIndex, 'registers'],
@@ -215,14 +215,14 @@ const App = () => {
         ]) as Record<string, unknown> | undefined;
         const width = blockRegWidth(container);
         const laidOut = recomputeRegisterLayout((value ?? []) as LayoutRegister[], width);
-        sanitizedValue = laidOut.map((r) =>
-          sanitizeRegisterForYaml(r as Record<string, unknown>, width)
+        sanitizedValue = laidOut.map(
+          (r) => serializeValue(r as Record<string, unknown>, width) as Record<string, unknown>
         );
       } else {
         // Block-level writes carry base addresses already computed by the
         // insertion service; just sanitize to schema keys.
-        sanitizedValue = ((value ?? []) as Record<string, unknown>[]).map((b) =>
-          sanitizeBlockForYaml(b)
+        sanitizedValue = ((value ?? []) as Record<string, unknown>[]).map(
+          (b) => serializeValue(b) as Record<string, unknown>
         );
       }
 

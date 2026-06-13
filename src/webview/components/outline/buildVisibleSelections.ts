@@ -1,17 +1,16 @@
-import { MemoryMap, RegisterDef } from '../../types/memoryMap';
+import type { NormalizedMemoryMap, NormalizedRegister } from '../../../domain/internal.types';
 import {
   arrayElementId,
   arrayElementRegisterId,
   arrayRegisterId,
   blockId,
-  registerArrayId,
   registerId,
   ROOT_ID,
 } from './outlineIds';
 import { BlockNode as BlockModel, OutlineSelection, isArrayNode } from './types';
 
 interface BuildVisibleSelectionsOptions {
-  memoryMap: MemoryMap;
+  memoryMap: NormalizedMemoryMap;
   memoryMapName: string;
   expanded: Set<string>;
   filteredBlocks: Array<{ block: BlockModel; index: number }>;
@@ -52,7 +51,7 @@ export function buildVisibleSelections({
     }
 
     const regsAny = block.registers ?? [];
-    regsAny.forEach((node: unknown, regIndex: number) => {
+    regsAny.forEach((node: NormalizedRegister, regIndex: number) => {
       if (isArrayNode(node)) {
         const arr = node;
         const arrNodeId = arrayRegisterId(blockIndex, regIndex);
@@ -68,13 +67,10 @@ export function buildVisibleSelections({
           return;
         }
 
-        const start =
-          ((block.baseAddress ??
-            (block as unknown as Record<string, unknown>).base_address ??
-            0) as number) + (arr.offset ?? 0);
-        Array.from({ length: arr.count }).forEach((_, elementIndex) => {
+        const start = block.baseAddress + (arr.offset ?? 0);
+        Array.from({ length: arr.count ?? 1 }).forEach((_, elementIndex) => {
           const elementNodeId = arrayElementId(blockIndex, regIndex, elementIndex);
-          const elementBase = start + elementIndex * arr.stride;
+          const elementBase = start + elementIndex * (arr.stride ?? 4);
           items.push({
             id: elementNodeId,
             type: 'array',
@@ -87,7 +83,7 @@ export function buildVisibleSelections({
             path: ['addressBlocks', blockIndex, 'registers', regIndex],
           });
 
-          (arr.registers ?? []).forEach((reg: RegisterDef, childIndex: number) => {
+          (arr.registers ?? []).forEach((reg: NormalizedRegister, childIndex: number) => {
             const childNodeId = arrayElementRegisterId(
               blockIndex,
               regIndex,
@@ -111,12 +107,9 @@ export function buildVisibleSelections({
         return;
       }
 
-      const reg = node as RegisterDef;
+      const reg = node;
       const regNodeId = registerId(blockIndex, regIndex);
-      const absolute =
-        ((block.baseAddress ??
-          (block as unknown as Record<string, unknown>).base_address ??
-          0) as number) + (reg.offset ?? 0);
+      const absolute = block.baseAddress + (reg.offset ?? 0);
       items.push({
         id: regNodeId,
         type: 'register',
@@ -127,40 +120,6 @@ export function buildVisibleSelections({
           absoluteAddress: absolute,
           relativeOffset: reg.offset ?? 0,
         },
-      });
-    });
-
-    (block.register_arrays ?? []).forEach((arr: RegisterDef, arrayIndex: number) => {
-      const arrNodeId = registerArrayId(blockIndex, arrayIndex);
-      items.push({
-        id: arrNodeId,
-        type: 'array',
-        object: arr,
-        breadcrumbs: [memoryMapName, memoryMap.addressBlocks?.[blockIndex]?.name ?? '', arr.name],
-        path: ['addressBlocks', blockIndex, 'register_arrays', arrayIndex],
-      });
-
-      if (!expanded.has(arrNodeId) || !Array.isArray(arr.registers)) {
-        return;
-      }
-
-      arr.registers.forEach((reg: RegisterDef, regIndex: number) => {
-        const regNodeId = registerId(blockIndex, regIndex);
-        const absolute =
-          ((block.baseAddress ??
-            (block as unknown as Record<string, unknown>).base_address ??
-            0) as number) + (reg.offset ?? 0);
-        items.push({
-          id: regNodeId,
-          type: 'register',
-          object: reg,
-          breadcrumbs: [memoryMapName, memoryMap.addressBlocks?.[blockIndex]?.name ?? '', reg.name],
-          path: ['addressBlocks', blockIndex, 'registers', regIndex],
-          meta: {
-            absoluteAddress: absolute,
-            relativeOffset: reg.offset ?? 0,
-          },
-        });
       });
     });
   });

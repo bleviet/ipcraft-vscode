@@ -56,15 +56,15 @@ describe('BitFieldUtils — standalone exports', () => {
   // fieldToBitsString
   // -------------------------------------------------------------------------
   describe('fieldToBitsString', () => {
-    it('computes from bit_offset and bit_width when both are present', () => {
-      expect(fieldToBitsString({ bit_offset: 0, bit_width: 1 })).toBe('[0:0]');
-      expect(fieldToBitsString({ bit_offset: 4, bit_width: 4 })).toBe('[7:4]');
-      expect(fieldToBitsString({ bit_offset: 0, bit_width: 32 })).toBe('[31:0]');
+    it('computes from offset and width when both are present', () => {
+      expect(fieldToBitsString({ offset: 0, width: 1 })).toBe('[0:0]');
+      expect(fieldToBitsString({ offset: 4, width: 4 })).toBe('[7:4]');
+      expect(fieldToBitsString({ offset: 0, width: 32 })).toBe('[31:0]');
     });
 
-    it('prefers numeric bit_offset/bit_width over the bits string', () => {
+    it('prefers numeric offset/width over the bits string', () => {
       // Even when bits is provided, numeric fields take priority
-      const field = { bit_offset: 0, bit_width: 8, bits: '[7:0]' };
+      const field = { offset: 0, width: 8, bits: '[7:0]' };
       expect(fieldToBitsString(field)).toBe('[7:0]');
     });
 
@@ -78,25 +78,25 @@ describe('BitFieldUtils — standalone exports', () => {
     });
 
     it('returns [?:?] when numeric fields are non-finite', () => {
-      expect(fieldToBitsString({ bit_offset: NaN, bit_width: 8 })).toBe('[?:?]');
-      expect(fieldToBitsString({ bit_offset: 0, bit_width: NaN })).toBe('[?:?]');
+      expect(fieldToBitsString({ offset: NaN, width: 8 })).toBe('[?:?]');
+      expect(fieldToBitsString({ offset: 0, width: NaN })).toBe('[?:?]');
     });
 
-    it('returns [?:?] when bit_width is less than 1', () => {
-      expect(fieldToBitsString({ bit_offset: 0, bit_width: 0 })).toBe('[?:?]');
+    it('returns [?:?] when width is less than 1', () => {
+      expect(fieldToBitsString({ offset: 0, width: 0 })).toBe('[?:?]');
     });
   });
 });
 
 describe('BitFieldUtils standalone helpers', () => {
   describe('parseBitsLike', () => {
-    it('parses [hi:lo] to {bit_offset, bit_width}', () => {
-      expect(parseBitsLike('[7:4]')).toEqual({ bit_offset: 4, bit_width: 4 });
-      expect(parseBitsLike('[31:0]')).toEqual({ bit_offset: 0, bit_width: 32 });
+    it('parses [hi:lo] to {offset, width}', () => {
+      expect(parseBitsLike('[7:4]')).toEqual({ offset: 4, width: 4 });
+      expect(parseBitsLike('[31:0]')).toEqual({ offset: 0, width: 32 });
     });
 
     it('parses [n] as a single bit', () => {
-      expect(parseBitsLike('[5]')).toEqual({ bit_offset: 5, bit_width: 1 });
+      expect(parseBitsLike('[5]')).toEqual({ offset: 5, width: 1 });
     });
 
     it('returns null for invalid strings', () => {
@@ -106,7 +106,7 @@ describe('BitFieldUtils standalone helpers', () => {
   });
 
   describe('formatBitsLike', () => {
-    it('formats bit_offset and bit_width as [msb:lsb]', () => {
+    it('formats offset and width as [msb:lsb]', () => {
       expect(formatBitsLike(4, 4)).toBe('[7:4]');
       expect(formatBitsLike(0, 32)).toBe('[31:0]');
       expect(formatBitsLike(0, 1)).toBe('[0:0]');

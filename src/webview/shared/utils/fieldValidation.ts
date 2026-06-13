@@ -1,7 +1,7 @@
 export interface FieldValidationInput {
   bits?: string | null;
-  bit_width?: number | null;
-  bit_range?: [number, number] | null;
+  width?: number | null;
+  bitRange?: [number, number] | null;
 }
 
 export function parseBitsWidth(bits: string): number | null {
@@ -65,9 +65,9 @@ export function parseBitsInput(text: string) {
   }
 
   return {
-    bit_offset: lsb,
-    bit_width: msb - lsb + 1,
-    bit_range: [msb, lsb] as [number, number],
+    offset: lsb,
+    width: msb - lsb + 1,
+    bitRange: [msb, lsb] as [number, number],
   };
 }
 
@@ -81,12 +81,12 @@ export function parseReset(text: string): number | null {
 }
 
 export function getFieldBitWidth(field: FieldValidationInput): number {
-  const width = Number(field?.bit_width);
+  const width = Number(field?.width);
   if (Number.isFinite(width) && width > 0) {
     return width;
   }
 
-  const bitRange = field?.bit_range;
+  const bitRange = field?.bitRange;
   if (Array.isArray(bitRange) && bitRange.length === 2) {
     const msb = Number(bitRange[0]);
     const lsb = Number(bitRange[1]);

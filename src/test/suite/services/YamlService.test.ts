@@ -119,9 +119,13 @@ describe('YamlService', () => {
         access: 'read-write',
       };
 
-      const result = YamlService.cleanForYaml(input);
+      const result = YamlService.cleanForYaml(input) as Record<string, unknown>;
 
-      expect(result).toEqual(input);
+      // The serializer strips size:32 (schema default) from register-like objects.
+      expect(result.name).toBe('CTRL_REG');
+      expect(result.offset).toBe(0);
+      expect(result.access).toBe('read-write');
+      expect(result.size).toBeUndefined();
     });
 
     it('should handle null and undefined', () => {

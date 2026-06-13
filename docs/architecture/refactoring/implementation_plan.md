@@ -1,13 +1,13 @@
-# Editing Robustness, Formatting Preservation, and Import Consolidation Refactoring Plan (V-8, V-2, V-7)
+# V-1 Unified Domain Model Implementation Plan
 
-Implement the sequencing points for editing robustness (V-8 stable row ids, V-2 shared serializer) and import resolution consolidation (V-7) from the architectural debt roadmap.
+Unify the three separate domain model vocabularies (schema camelCase, legacy snake_case, and webview-internal normalized variables) under a single, schema-conforming camelCase domain model. Establish a strict parsing and serialization boundary at the edge of the webview and generation systems.
 
 ## User Review Required
 
-The refactoring introduces structural changes to table editing hooks and YAML editing flows. Highlights:
-- Table selection hooks and components transition from index-keyed selection to unique `rowId` keys. Ids are assigned using position-stable reconciliation.
-- YAML modification in the IP Core editor moves from parse-modify-restringify to node-reuse merging. This preserves custom formatting, comments, and hex representations of untouched elements.
-- Generation fails loudly if any memory map imports are broken or unparseable.
+The refactoring introduces structural changes to all data paths and types:
+- Stored properties in the in-memory state transition from snake_case (e.g., `reset_value`, `bit_offset`, `bit_width`, `base_address`) to camelCase (e.g., `resetValue`, `offset`, `width`, `baseAddress`).
+- The parser accepts all formats tolerantly (snake_case, camelCase, fallback ranges), but the serializer only generates clean, camelCase schema shapes.
+- Untouched properties and comments are preserved during partial YAML edits using the AST merge layer.
 
 ## Open Questions
 
@@ -15,109 +15,110 @@ None.
 
 ## Proposed Changes
 
-### Stable Row Identity for Table Editing (V-8)
+### Domain Layer (New)
 
-Introduce position-stable unique IDs for table rows to avoid desynchronization of editing drafts during reordering, renaming, insertion, and deletion.
+#### [NEW] [memorymap.types.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/domain/memorymap.types.ts)
+- Generated file containing TypeScript interfaces matching `memory_map.schema.json`.
 
-#### [NEW] [rowIdentity.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/utils/rowIdentity.ts)
-- Implement `reconcileRowIds<T extends { name?: unknown }>(prev: Array<{ rowId: string; model: T }> | undefined, next: T[]): Array<{ rowId: string; model: T }>` using stable pairing rules:
-  1. Exact content match against an unconsumed previous row -> keep its id.
-  2. Same index + same name -> keep id.
-  3. Same name elsewhere (unconsumed) -> keep id.
-  4. Same index, otherwise unconsumed -> keep id (covers renames / in-place edits; see the same-index trade-off in [V-08](V-08-stable-row-ids.md#how)).
-  5. Otherwise -> generate a fresh monotonic `rowId`.
-- Return the previous array reference unchanged when every row reused its id and model, so the reconcile effect cannot loop on a fresh-but-equal `next` array.
+#### [NEW] [ipcore.types.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/domain/ipcore.types.ts)
+- Generated file containing TypeScript interfaces matching `ip_core.schema.json`.
 
-#### [MODIFY] [useTableNavigation.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/hooks/useTableNavigation.ts)
-- Transition `activeCell` to use `rowId: string | null` instead of `rowIndex: number`.
-- Modify scroll and keyboard navigation logic to query and locate elements using `tr[data-row-id]` and track active/selection focus by `rowId`.
-- Accept `rowIds: string[]` instead of `rowCount: number`.
+#### [NEW] [internal.types.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/domain/internal.types.ts)
+- Define `NormalizedField`, `NormalizedRegister`, `NormalizedAddressBlock`, and `NormalizedMemoryMap` structures that extend the generated types to guarantee presence of rendering/editing defaults (like `offset`, `width`, `bits`, `size`, `baseAddress`) and carry `rowId` from the V-8 stable identity refactor.
+- Define `MemoryMapDoc` which wraps the root layout formats (`standalone`, `array`, `nested` / `memory_maps`) to track root layout styles.
 
-#### [MODIFY] [useTableEditorState.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/hooks/useTableEditorState.ts)
-- Accept reconciled wrappers `rows: Array<{ rowId: string; model: TRow }>` and raw model array `rawRows: TRow[]`.
-- Keep selection internal states (`selectedRowId: string | null`, `hoveredRowId: string | null`, `activeCell: { rowId: string | null; key: TColumnKey }`) keyed by `rowId`.
-- Expose helper indexes (`selectedIndex`, `hoveredIndex`, `activeCell.rowIndex`) derived dynamically on render from `rawRows` array matching.
-- Adjust `focusCellEditor` to query elements using `data-row-id`.
+#### [NEW] [parse.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/domain/parse.ts)
+- Implement `parseMemoryMap(text: string, prevMap?: NormalizedMemoryMap): MemoryMapDoc`. Resolves aliases and fallbacks (like `reset_value` -> `resetValue`, `bit_offset`/`bit_width`/`bits` -> LSB/MSB/bits, `address_offset` -> `offset`, `base_address` -> `baseAddress`) and reconciles stable row IDs from `prevMap` using `rowIdentity`.
+- Implement `parseIpCore(text: string): IpCore`. Resolves all snake_case aliases to canonical camelCase.
 
-#### [MODIFY] [useFieldEditor.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/hooks/useFieldEditor.ts)
-- Maintain `wrappedFields` via `reconcileRowIds` on incoming `fields`.
-- Replace the multiple parallel draft/error state maps in `useFieldDrafts` with single unified maps keyed by `rowId` or using the new scheme.
-- Remove signature-based automatic full wipes and stale-name prune effects. Drafts now naturally live and die with their stable `rowId` mappings.
-
-#### [MODIFY] [FieldsTable.tsx](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/components/register/FieldsTable.tsx) / [FieldTableRow.tsx](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/components/register/FieldTableRow.tsx)
-- Use `rowId` for key elements and row container data attributes (`data-row-id` instead of `data-field-index`).
-- Access drafts and errors using the field's `rowId`.
-
-#### [MODIFY] [RegisterTableRow.tsx](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/components/memorymap/RegisterTableRow.tsx) / [BlockEditor.tsx](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/components/memorymap/BlockEditor.tsx)
-- Reconcile register list to wrapped elements with stable `rowId`s.
-- Bind selection and interaction handlers to register `rowId`s.
-
-#### [MODIFY] [MemoryMapEditor.tsx](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/components/memorymap/MemoryMapEditor.tsx) / [RegisterArrayEditor.tsx](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/components/memorymap/RegisterArrayEditor.tsx)
-- Port address block and memory-mapped lists to wrap and reconcile `rowId`s.
+#### [NEW] [serialize.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/domain/serialize.ts)
+- Implement `serializeMemoryMap(normalized: NormalizedMemoryMap, rootStyle: string): unknown`. Cleans and outputs a pure object matching `MemoryMap` or `MemoryMapSchema` depending on the `rootStyle`, dropping runtime-only keys (like `rowId`, `offset`/`width` inside fields if `bits` is present).
+- Implement `serializeIpCore(normalized: IpCore): unknown`.
 
 ---
 
-### Shared YAML Edit Module (V-2)
+### Shared Configuration and Scripts
 
-Consolidate YAML path editing, node merging, literal preservation, and indent sequence detection under a single shared, framework-free module.
+#### [MODIFY] [package.json](file:///home/balevision/workspace/bleviet/ipcraft-vscode/package.json)
+- Update `generate-types` script to output to `src/domain/memorymap.types.ts` and `src/domain/ipcore.types.ts`.
 
-#### [NEW] [index.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/yamledit/index.ts) / [applyPathEdits.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/yamledit/applyPathEdits.ts) / [mergeNode.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/yamledit/mergeNode.ts) / [detectIndentSeq.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/yamledit/detectIndentSeq.ts) / [restoreHexSpellings.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/yamledit/restoreHexSpellings.ts)
-- Pure module `src/yamledit/` depending solely on the `yaml` npm library.
-- Port regex-based sequence indentation detection as the canonical implementation.
-- Support `applyPathDeletes(text, paths)` helper to handle item and key deletions explicitly.
-- Re-use AST nodes recursively to preserve unchanged block indentation and comments.
+---
+
+### Core Services and Algorithms Refactoring
+
+#### [MODIFY] [LayoutEngine.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/algorithms/LayoutEngine.ts)
+- Refactor the pure algorithms to operate on `NormalizedField`, `NormalizedRegister`, and `NormalizedAddressBlock` types.
+- Replace snake_case properties with camelCase counterparts (e.g., `bit_offset` -> `offset`, `reset_value` -> `resetValue`, `base_address` -> `baseAddress`).
+
+#### [MODIFY] [MutationService.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/algorithms/MutationService.ts)
+- Adapt insertions, deletions, and relocations to produce/manipulate the camelCase types.
 
 #### [MODIFY] [YamlService.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/services/YamlService.ts)
-- Dissolve redundant edit/indentation helper logic and delegate call flows directly to the new `src/yamledit/` module.
+- Replace local `cleanForYaml` with calls to `serializeMemoryMap`.
+- Ensure all mutations through the AST edit layer receive cleaned camelCase inputs.
 
-#### [MODIFY] [useIpCoreState.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/ipcore/hooks/useIpCoreState.ts)
-- Replace custom loop-based serialization and inline document mutator with shared `applyPathEdits` and `applyPathDeletes` from `src/yamledit/`.
-- Prevent formatting churn and preserve comments/hex formatting on `.ip.yml` modifications.
+#### [DELETE] [DataNormalizer.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/services/DataNormalizer.ts)
+- Deprecate/delete and redirect call sites to `src/domain/parse.ts`.
+
+#### [DELETE] [YamlSanitizer.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/services/YamlSanitizer.ts)
+- Deprecate/delete in favor of `src/domain/serialize.ts`.
 
 ---
 
-### Import Resolution Consolidation (V-7)
-
-Unify duplicate `.mm.yml` import following logic from extension host displaying and generation paths.
-
-#### [NEW] [resolveMemoryMapImports.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/services/imports/resolveMemoryMapImports.ts) / [types.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/services/imports/types.ts)
-- Define `FileReader` interface with dependency-injected filesystem reader `readText(absPath: string): Promise<string>`.
-- Core resolution logic: loading array/legacy-object imported map entries, overriding with entry-level attributes (name, base offset), resolving paths relative to parent file, and collecting failures into an optional `error` output string.
-
-#### [MODIFY] [ImportResolver.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/services/ImportResolver.ts)
-- Instantiate vscode-fs wrapper reader and delegate memory map resolving tasks to the shared `resolveMemoryMapImports` function.
+### Generator Components Refactoring
 
 #### [MODIFY] [registerProcessor.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/generator/registerProcessor.ts)
-- Instantiate fs/promises file reader and delegate import task to the shared `resolveMemoryMapImports`.
-- Enforce strict generation errors when any import resolves with an error.
+- Use `parseIpCore` and `parseMemoryMap` at the generation boundaries instead of custom fallback parsing.
+- Update VHDL/SystemVerilog template preprocessors to read camelCase keys (e.g., `resetValue`, `baseAddress`, `offset`).
+
+---
+
+### Webview Components & Hooks Refactoring
+
+#### [MODIFY] [useMemoryMapState.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/hooks/useMemoryMapState.ts) / [useIpCoreState.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/ipcore/hooks/useIpCoreState.ts)
+- Retain the parsed domain models as state.
+
+#### [MODIFY] All Table/Editor hooks:
+- [useFieldEditor.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/hooks/useFieldEditor.ts)
+- [useTableEditorState.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/hooks/useTableEditorState.ts)
+- [useTableNavigation.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/hooks/useTableNavigation.ts)
+- [useFieldDrafts.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/hooks/useFieldDrafts.ts)
+- [useSelectionResolver.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/hooks/useSelectionResolver.ts)
+Update variables and parameter lookups to match the new camelCase properties.
+
+#### [MODIFY] React Components:
+- [FieldsTable.tsx](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/components/register/FieldsTable.tsx) / [FieldTableRow.tsx](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/components/register/FieldTableRow.tsx)
+- [RegisterEditor.tsx](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/components/register/RegisterEditor.tsx)
+- [BlockEditor.tsx](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/components/memorymap/BlockEditor.tsx) / [BlockTableRow.tsx](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/components/memorymap/BlockTableRow.tsx)
+- [DetailsPanel.tsx](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/components/DetailsPanel.tsx)
+- [OutlinePanel.tsx](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/components/OutlinePanel.tsx)
+- [RegisterMapVisualizer.tsx](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/webview/components/RegisterMapVisualizer.tsx)
+Update render and editor callbacks to use camelCase attributes.
 
 ---
 
 ### Tests
 
-#### [NEW] [yamledit.test.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/test/suite/yamledit/yamledit.test.ts)
-- Exhaustive unit tests for path edits, deletes, node-merging comment retention, hex preserving, and resolved sequence indent checks.
+#### [NEW] [roundtrip.test.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/test/suite/domain/roundtrip.test.ts)
+- Pin parse -> serialize round-trips for existing schemas and corpus files to guarantee zero semantic or literal data loss.
 
-#### [NEW] [rowIdentity.test.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/test/suite/webview/rowIdentity.test.ts)
-- Exhaustive table-driven tests for position-stable row-id reconciliation rules.
-
-#### [NEW] [resolveMemoryMapImports.test.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/test/suite/services/resolveMemoryMapImports.test.ts)
-- Unit tests validating the mock reader, correct paths, legacy overrides, and error collection rules.
-
-#### [MODIFY] [useFieldEditor.test.ts](file:///home/balevision/workspace/bleviet/ipcraft-vscode/src/test/suite/hooks/useFieldEditor.test.ts)
-- Adapt assertions to check `rowId` behavior, selection preservation, and verify fix for draft-editor bugs.
+#### [MODIFY] Update existing tests to conform to new type names:
+- `LayoutEngine.test.ts`
+- `MutationService.test.ts`
+- `useFieldEditor.test.ts`
+- `SpecConformance.test.ts`
 
 ## Verification Plan
 
 ### Automated Tests
+- Run `npm run generate-types` to ensure schema types are correctly built.
 - Run `npm test` to verify unit and integration tests.
 - Run `npm run lint` and `npm run type-check`.
-- Run `npm run compile`.
 
 ### Manual Verification
-- Verify table editing in Extension Development Host for:
-  - Memory Map Address Blocks (BlockEditor).
-  - Register fields (RegisterEditor / FieldsTable).
-  - Reordering, inserts, deletions, edits preserve input focus and drafts accurately.
-- Verify single clock rename in `.ip.yml` produces exactly one changed line in Git diff.
-- Verify unreadable imports block the HDL generation command with a clear error prompt.
+- Load memory map visually in Extension Development Host:
+  - Verify address blocks, registers, arrays, and fields load correctly.
+  - Verify editing names, offsets, access rules, reset values, and descriptions preserves draft state and commits correctly to YAML.
+  - Verify reordering registers and fields works as expected.
+- Run HDL generation commands on an IP Core:
+  - Verify generated VHDL / SystemVerilog matches outputs.

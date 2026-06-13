@@ -14,11 +14,11 @@ function makeField(name: string, lsb: number, width = 1): BitFieldRuntimeDef {
   return {
     name,
     bits: `[${msb}:${lsb}]`,
-    bit_offset: lsb,
-    bit_width: width,
-    bit_range: [msb, lsb],
+    offset: lsb,
+    width: width,
+    bitRange: [msb, lsb],
     access: 'read-write',
-    reset_value: 0,
+    resetValue: 0,
     description: '',
   };
 }
@@ -28,7 +28,7 @@ function makeRegister(name: string, offset: number): RegisterRuntimeDef {
 }
 
 function makeBlock(name: string, base: number, size = 4): AddressBlockRuntimeDef {
-  return { name, base_address: base, size, usage: 'register', description: '' };
+  return { name, baseAddress: base, size, usage: 'register', description: '' };
 }
 
 // ---------------------------------------------------------------------------
@@ -42,8 +42,8 @@ describe('SpatialInsertionService — bit fields', () => {
       expect(result.error).toBeUndefined();
       expect(result.items).toHaveLength(1);
       expect(result.newIndex).toBe(0);
-      expect(result.items[0].bit_offset).toBe(0);
-      expect(result.items[0].bit_width).toBe(1);
+      expect(result.items[0].offset).toBe(0);
+      expect(result.items[0].width).toBe(1);
     });
 
     it('inserts after the selected field', () => {
@@ -53,8 +53,8 @@ describe('SpatialInsertionService — bit fields', () => {
       expect(result.error).toBeUndefined();
       expect(result.items).toHaveLength(2);
       const newField = result.items[result.newIndex];
-      expect(newField.bit_offset).toBe(1);
-      expect(newField.bit_width).toBe(1);
+      expect(newField.offset).toBe(1);
+      expect(newField.width).toBe(1);
     });
 
     it('inserts after the last field when selectedIndex is -1', () => {
@@ -62,7 +62,7 @@ describe('SpatialInsertionService — bit fields', () => {
       const result = SpatialInsertionService.insertFieldAfter(fields, -1, 32);
       expect(result.error).toBeUndefined();
       const newField = result.items[result.newIndex];
-      expect(newField.bit_offset).toBe(2);
+      expect(newField.offset).toBe(2);
     });
 
     it('returns error when insertion would exceed register bounds', () => {
@@ -114,7 +114,7 @@ describe('SpatialInsertionService — bit fields', () => {
       const result = SpatialInsertionService.insertFieldBefore(fields, 0, 32);
       expect(result.error).toBeUndefined();
       const newField = result.items[result.newIndex];
-      expect(newField.bit_offset).toBe(0);
+      expect(newField.offset).toBe(0);
     });
 
     it('returns error when field is at lsb=0', () => {
@@ -239,7 +239,7 @@ describe('SpatialInsertionService — address blocks', () => {
       expect(result.error).toBeUndefined();
       expect(result.items).toHaveLength(1);
       expect(result.newIndex).toBe(0);
-      expect(result.items[0].base_address).toBe(0);
+      expect(result.items[0].baseAddress).toBe(0);
     });
 
     it('inserts after the selected block using block size', () => {
@@ -247,7 +247,7 @@ describe('SpatialInsertionService — address blocks', () => {
       const result = SpatialInsertionService.insertBlockAfter(blocks, 0);
       expect(result.error).toBeUndefined();
       const newBlock = result.items[result.newIndex];
-      expect(newBlock.base_address).toBe(16);
+      expect(newBlock.baseAddress).toBe(16);
     });
 
     it('inserts after the last block when selectedIndex is -1', () => {
@@ -255,7 +255,7 @@ describe('SpatialInsertionService — address blocks', () => {
       const result = SpatialInsertionService.insertBlockAfter(blocks, -1);
       expect(result.error).toBeUndefined();
       const newBlock = result.items[result.newIndex];
-      expect(newBlock.base_address).toBe(8);
+      expect(newBlock.baseAddress).toBe(8);
     });
 
     it('generates sequential block names', () => {
@@ -274,7 +274,7 @@ describe('SpatialInsertionService — address blocks', () => {
     it('uses register count * 4 for block size when registers exist', () => {
       const blockWithRegs: AddressBlockRuntimeDef = {
         name: 'block0',
-        base_address: 0,
+        baseAddress: 0,
         registers: [
           { name: 'r0', address_offset: 0, access: 'read-write', description: '' },
           { name: 'r1', address_offset: 4, access: 'read-write', description: '' },
@@ -284,7 +284,7 @@ describe('SpatialInsertionService — address blocks', () => {
       expect(result.error).toBeUndefined();
       // block has 2 registers => size = 8
       const newBlock = result.items[result.newIndex];
-      expect(newBlock.base_address).toBe(8);
+      expect(newBlock.baseAddress).toBe(8);
     });
   });
 
@@ -308,7 +308,7 @@ describe('SpatialInsertionService — address blocks', () => {
       const result = SpatialInsertionService.insertBlockBefore(blocks, 0);
       expect(result.error).toBeUndefined();
       const newBlock = result.items[result.newIndex];
-      expect(newBlock.base_address).toBeLessThan(16);
+      expect(newBlock.baseAddress).toBeLessThan(16);
     });
 
     it('returns error when previous block would have zero or negative size', () => {

@@ -45,9 +45,9 @@ export function repackFieldsForward(
     newFields[i] = {
       ...field,
       bits: formatBits(msb, lsb),
-      bit_offset: lsb,
-      bit_width: clampedWidth,
-      bit_range: [msb, lsb] as [number, number],
+      offset: lsb,
+      width: clampedWidth,
+      bitRange: [msb, lsb] as [number, number],
     };
   }
 
@@ -92,9 +92,9 @@ export function repackFieldsBackward(
     newFields[i] = {
       ...field,
       bits: formatBits(msb, lsb),
-      bit_offset: lsb,
-      bit_width: clampedWidth,
-      bit_range: [msb, lsb] as [number, number],
+      offset: lsb,
+      width: clampedWidth,
+      bitRange: [msb, lsb] as [number, number],
     };
   }
 

@@ -21,9 +21,9 @@ import { formatBitsRange, parseBitsRange, fieldToBitsString } from '../utils/Bit
 export interface LayoutField {
   name?: string;
   bits?: string | null;
-  bit_offset?: number | null;
-  bit_width?: number | null;
-  bit_range?: [number, number];
+  offset?: number | null;
+  width?: number | null;
+  bitRange?: [number, number];
   [key: string]: unknown;
 }
 
@@ -101,7 +101,7 @@ function effectiveRegWidth(block: LayoutBlock): number {
 /** Parse bit bounds from a field, returning [msb, lsb] or null. */
 function fieldBounds(field: LayoutField): [number, number] | null {
   const bitsStr = fieldToBitsString(
-    field as { bit_offset?: number | null; bit_width?: number | null; bits?: string | null }
+    field as { offset?: number | null; width?: number | null; bits?: string | null }
   );
   return parseBitsRange(bitsStr);
 }
@@ -148,8 +148,8 @@ export function recomputeBitfieldLayout(fields: LayoutField[], regWidth: number)
     const bounds = fieldBounds(field);
     const fieldWidth = bounds
       ? Math.abs(bounds[0] - bounds[1]) + 1
-      : typeof field.bit_width === 'number' && field.bit_width > 0
-        ? field.bit_width
+      : typeof field.width === 'number' && field.width > 0
+        ? field.width
         : 1;
 
     const lsb = nextLsb;
@@ -160,9 +160,9 @@ export function recomputeBitfieldLayout(fields: LayoutField[], regWidth: number)
     return {
       ...field,
       bits: formatBitsRange(msb, lsb),
-      bit_offset: lsb,
-      bit_width: clampedWidth,
-      bit_range: [msb, lsb] as [number, number],
+      offset: lsb,
+      width: clampedWidth,
+      bitRange: [msb, lsb] as [number, number],
     };
   });
 }

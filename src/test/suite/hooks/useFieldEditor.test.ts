@@ -17,11 +17,10 @@ function makeField(name: string, bitOffset: number, bitWidth = 1): BitFieldRecor
   return {
     name,
     bits: `[${hi}:${bitOffset}]`,
-    bit_offset: bitOffset,
-    bit_width: bitWidth,
-    bit_range: [hi, bitOffset],
+    offset: bitOffset,
+    width: bitWidth,
     access: 'read-write',
-    reset_value: 0,
+    resetValue: 0,
     description: '',
   };
 }
@@ -66,8 +65,8 @@ describe('useFieldEditor — draft initialisation', () => {
     expect(result.current.nameDrafts[rowId]).toBe('MY_DRAFT');
   });
 
-  it('formats reset_value as hex string', () => {
-    const fields: BitFieldRecord[] = [{ ...makeField('IRQ', 8, 1), reset_value: 255 }];
+  it('formats resetValue as hex string', () => {
+    const fields: BitFieldRecord[] = [{ ...makeField('IRQ', 8, 1), resetValue: 255 }];
     const { result } = renderHook(() => useFieldEditor(fields, 32, noop, true));
     const rowId = result.current.wrappedFields[0].rowId;
 

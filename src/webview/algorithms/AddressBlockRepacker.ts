@@ -26,8 +26,7 @@ export function repackBlocksForward(
   let nextBase = 0;
   if (fromIndex > 0) {
     const prevBlock = newBlocks[fromIndex - 1];
-    const prevBase: number =
-      typeof prevBlock.base_address === 'number' ? prevBlock.base_address : 0;
+    const prevBase: number = typeof prevBlock.baseAddress === 'number' ? prevBlock.baseAddress : 0;
     const prevSize = calculateBlockSize(prevBlock);
     nextBase = prevBase + prevSize;
   }
@@ -38,7 +37,7 @@ export function repackBlocksForward(
 
     newBlocks[i] = {
       ...block,
-      base_address: nextBase,
+      baseAddress: nextBase,
     };
     nextBase += blockSize;
   }
@@ -70,17 +69,17 @@ export function repackBlocksBackward(
   // `nextEnd` tracks an inclusive end address; `Infinity` preserves the current
   // block base for the first processed element when repacking from the tail.
   let nextEnd: number =
-    fromIndex < newBlocks.length - 1 ? (newBlocks[fromIndex + 1].base_address ?? 0) - 1 : Infinity;
+    fromIndex < newBlocks.length - 1 ? (newBlocks[fromIndex + 1].baseAddress ?? 0) - 1 : Infinity;
 
   for (let i = fromIndex; i >= 0; i--) {
     const block = newBlocks[i];
     const size = calculateBlockSize(block);
 
     // Use inclusive-address arithmetic: base = end - size + 1.
-    const base = nextEnd === Infinity ? (block.base_address ?? 0) : nextEnd - size + 1;
+    const base = nextEnd === Infinity ? (block.baseAddress ?? 0) : nextEnd - size + 1;
     newBlocks[i] = {
       ...block,
-      base_address: Math.max(0, base),
+      baseAddress: Math.max(0, base),
     };
     nextEnd = base - 1;
   }

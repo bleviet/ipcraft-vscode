@@ -28,11 +28,11 @@ function toRuntimeFields(fields: BitFieldRecord[]): BitFieldRuntimeDef[] {
       ...field,
       name: String(field.name ?? `field${index}`),
       bits: bitsString,
-      bit_offset: typeof field.bit_offset === 'number' ? field.bit_offset : lsb,
-      bit_width: typeof field.bit_width === 'number' ? field.bit_width : width,
-      bit_range: [msb, lsb],
+      offset: typeof field.offset === 'number' ? field.offset : lsb,
+      width: typeof field.width === 'number' ? field.width : width,
+      bitRange: [msb, lsb],
       access: String(field.access ?? 'read-write'),
-      reset_value: typeof field.reset_value === 'number' ? field.reset_value : 0,
+      resetValue: typeof field.resetValue === 'number' ? field.resetValue : 0,
       description: String(field.description ?? ''),
     };
   });
@@ -127,7 +127,7 @@ export function useFieldEditor(
       }));
       setBitsErrors((prev: Record<string, string | null>) => ({ ...prev, [rowId]: null }));
 
-      const rv = snapshotField.reset_value;
+      const rv = snapshotField.resetValue;
       const resetDisplay =
         rv !== null && rv !== undefined ? `0x${Number(rv).toString(16).toUpperCase()}` : '0x0';
       setResetDrafts((prev: Record<string, string>) => ({ ...prev, [rowId]: resetDisplay }));

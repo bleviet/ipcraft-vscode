@@ -25,18 +25,15 @@ export type YamlUpdateHandler = (path: YamlPath, value: unknown) => void;
  * Minimum shape for a bit field during layout / repacking operations.
  *
  * Looser than the generated `BitFieldDef` so that the algorithms can operate
- * on the enriched runtime objects the webview builds (which carry computed
- * `bit_offset`, `bit_width`, and `bit_range` alongside the canonical `bits`
- * string).
+ * on the enriched runtime objects the webview builds.
  */
 export interface BitFieldRecord {
   name?: string;
   bits?: string | null;
-  bit_offset?: number | null;
-  bit_width?: number | null;
-  bit_range?: [number, number];
+  offset?: number | null;
+  width?: number | null;
   access?: string | null;
-  reset_value?: number | null;
+  resetValue?: number | null;
   description?: string | null;
   [key: string]: unknown;
 }
@@ -49,7 +46,6 @@ export interface RegisterRecord {
   name?: string;
   /** Byte offset inside an address block. */
   offset?: number | null;
-  address_offset?: number;
   /** Present on register-array nodes. */
   __kind?: string;
   count?: number;
@@ -63,8 +59,8 @@ export interface RegisterRecord {
  */
 export interface AddressBlockRecord {
   name?: string;
-  base_address?: number;
-  size?: number;
+  baseAddress?: number;
+  range?: number | string | null;
   registers?: RegisterRecord[];
   [key: string]: unknown;
 }

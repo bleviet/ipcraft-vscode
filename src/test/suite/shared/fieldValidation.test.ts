@@ -66,22 +66,22 @@ describe('validateBitsString', () => {
 describe('parseBitsInput', () => {
   it('parses bracketed range', () => {
     const result = parseBitsInput('[7:0]');
-    expect(result).toEqual({ bit_offset: 0, bit_width: 8, bit_range: [7, 0] });
+    expect(result).toEqual({ offset: 0, width: 8, bitRange: [7, 0] });
   });
 
   it('parses bare range without brackets', () => {
     const result = parseBitsInput('7:0');
-    expect(result).toEqual({ bit_offset: 0, bit_width: 8, bit_range: [7, 0] });
+    expect(result).toEqual({ offset: 0, width: 8, bitRange: [7, 0] });
   });
 
   it('parses single bit', () => {
     const result = parseBitsInput('5');
-    expect(result).toEqual({ bit_offset: 5, bit_width: 1, bit_range: [5, 5] });
+    expect(result).toEqual({ offset: 5, width: 1, bitRange: [5, 5] });
   });
 
   it('auto-swaps reversed ranges', () => {
     const result = parseBitsInput('0:7');
-    expect(result).toEqual({ bit_offset: 0, bit_width: 8, bit_range: [7, 0] });
+    expect(result).toEqual({ offset: 0, width: 8, bitRange: [7, 0] });
   });
 
   it('returns null for empty input', () => {
@@ -123,18 +123,18 @@ describe('parseReset', () => {
 // ---------------------------------------------------------------------------
 
 describe('getFieldBitWidth', () => {
-  it('uses bit_width when available', () => {
-    expect(getFieldBitWidth({ bit_width: 8 })).toBe(8);
+  it('uses width when available', () => {
+    expect(getFieldBitWidth({ width: 8 })).toBe(8);
   });
 
-  it('computes from bit_range when bit_width is missing', () => {
-    expect(getFieldBitWidth({ bit_range: [7, 0] })).toBe(8);
-    expect(getFieldBitWidth({ bit_range: [3, 3] })).toBe(1);
+  it('computes from bitRange when width is missing', () => {
+    expect(getFieldBitWidth({ bitRange: [7, 0] })).toBe(8);
+    expect(getFieldBitWidth({ bitRange: [3, 3] })).toBe(1);
   });
 
   it('defaults to 1 when nothing is available', () => {
     expect(getFieldBitWidth({})).toBe(1);
-    expect(getFieldBitWidth({ bit_width: null })).toBe(1);
+    expect(getFieldBitWidth({ width: null })).toBe(1);
   });
 });
 
@@ -144,26 +144,26 @@ describe('getFieldBitWidth', () => {
 
 describe('validateResetForField', () => {
   it('accepts null reset value', () => {
-    expect(validateResetForField({ bit_width: 8 }, null)).toBeNull();
+    expect(validateResetForField({ width: 8 }, null)).toBeNull();
   });
 
   it('accepts valid reset value within range', () => {
-    expect(validateResetForField({ bit_width: 8 }, 255)).toBeNull();
-    expect(validateResetForField({ bit_width: 1 }, 0)).toBeNull();
-    expect(validateResetForField({ bit_width: 1 }, 1)).toBeNull();
+    expect(validateResetForField({ width: 8 }, 255)).toBeNull();
+    expect(validateResetForField({ width: 1 }, 0)).toBeNull();
+    expect(validateResetForField({ width: 1 }, 1)).toBeNull();
   });
 
   it('rejects negative reset value', () => {
-    expect(validateResetForField({ bit_width: 8 }, -1)).toBe('Reset must be >= 0');
+    expect(validateResetForField({ width: 8 }, -1)).toBe('Reset must be >= 0');
   });
 
   it('rejects reset value too large for field width', () => {
-    expect(validateResetForField({ bit_width: 1 }, 2)).toBe('Reset too large for 1 bit(s)');
-    expect(validateResetForField({ bit_width: 8 }, 256)).toBe('Reset too large for 8 bit(s)');
+    expect(validateResetForField({ width: 1 }, 2)).toBe('Reset too large for 1 bit(s)');
+    expect(validateResetForField({ width: 8 }, 256)).toBe('Reset too large for 8 bit(s)');
   });
 
   it('rejects non-finite numbers', () => {
-    expect(validateResetForField({ bit_width: 8 }, Infinity)).toBe('Invalid number');
-    expect(validateResetForField({ bit_width: 8 }, NaN)).toBe('Invalid number');
+    expect(validateResetForField({ width: 8 }, Infinity)).toBe('Invalid number');
+    expect(validateResetForField({ width: 8 }, NaN)).toBe('Invalid number');
   });
 });

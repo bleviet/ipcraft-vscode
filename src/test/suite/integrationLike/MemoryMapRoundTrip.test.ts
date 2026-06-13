@@ -12,7 +12,8 @@ import * as path from 'path';
 import Ajv from 'ajv';
 import { YamlService } from '../../../webview/services/YamlService';
 import { YamlPathResolver } from '../../../webview/services/YamlPathResolver';
-import { DataNormalizer } from '../../../webview/services/DataNormalizer';
+import { parseMemoryMap } from '../../../domain/parse';
+import { serializeValue } from '../../../domain/serialize';
 import { SpatialInsertionService } from '../../../webview/services/SpatialInsertionService';
 import {
   recomputeRegisterLayout,
@@ -20,10 +21,6 @@ import {
   type LayoutRegister,
 } from '../../../webview/algorithms/LayoutEngine';
 import { insertElement } from '../../../webview/algorithms/MutationService';
-import {
-  sanitizeRegisterForYaml,
-  sanitizeBlockForYaml,
-} from '../../../webview/services/YamlSanitizer';
 
 const examplesDir = path.resolve(__dirname, '../../../../ipcraft-spec/examples');
 const basicFile = path.join(examplesDir, 'basic_peripheral/basic_peripheral.mm.yml');
@@ -34,9 +31,7 @@ const schemaFile = path.resolve(
 );
 
 function parseAndNormalize(text: string) {
-  const parsed = YamlService.parse(text) as Record<string, unknown> | unknown[];
-  const map = Array.isArray(parsed) ? parsed[0] : parsed;
-  return DataNormalizer.normalizeMemoryMap(map);
+  return parseMemoryMap(text).map;
 }
 
 function blockRegWidth(block: Record<string, unknown> | undefined): number {
@@ -55,8 +50,8 @@ function uiAddBlock(text: string): string {
 
   const rootObj = YamlService.safeParse(text);
   const { selectionRootPath } = YamlPathResolver.getMapRootInfo(rootObj);
-  const sanitized = (result.items as unknown as Record<string, unknown>[]).map((b) =>
-    sanitizeBlockForYaml(b)
+  const sanitized = (result.items as unknown as Record<string, unknown>[]).map(
+    (b) => serializeValue(b) as Record<string, unknown>
   );
   return YamlService.applyPathEdits(text, [
     { path: [...selectionRootPath, 'addressBlocks'], value: sanitized },
@@ -77,7 +72,7 @@ function uiAddRegister(text: string, blockIndex: number): string {
   }
   const newRegs = [
     ...liveRegisters,
-    { name: `reg${maxN + 1}`, access: 'read-write', description: '', offset: 0, address_offset: 0 },
+    { name: `reg${maxN + 1}`, access: 'read-write', description: '', offset: 0 },
   ];
 
   const rootObj = YamlService.safeParse(text);
@@ -89,8 +84,8 @@ function uiAddRegister(text: string, blockIndex: number): string {
   ]) as Record<string, unknown>;
   const width = blockRegWidth(rawBlock);
   const laidOut = recomputeRegisterLayout(newRegs as LayoutRegister[], width);
-  const sanitized = laidOut.map((r) =>
-    sanitizeRegisterForYaml(r as Record<string, unknown>, width)
+  const sanitized = laidOut.map(
+    (r) => serializeValue(r as Record<string, unknown>, width) as Record<string, unknown>
   );
   return YamlService.applyPathEdits(text, [
     { path: [...selectionRootPath, 'addressBlocks', blockIndex, 'registers'], value: sanitized },
@@ -111,8 +106,8 @@ function uiAddRegisterOutline(text: string, blockIndex: number): string {
     []) as Record<string, unknown>[];
   const block = blocks[blockIndex];
   const width = blockRegWidth(block);
-  const sanitized = ((block.registers ?? []) as Record<string, unknown>[]).map((r) =>
-    sanitizeRegisterForYaml(r, width)
+  const sanitized = ((block.registers ?? []) as Record<string, unknown>[]).map(
+    (r) => serializeValue(r, width) as Record<string, unknown>
   );
   return YamlService.applyPathEdits(text, [
     { path: [...selectionRootPath, 'addressBlocks', blockIndex, 'registers'], value: sanitized },

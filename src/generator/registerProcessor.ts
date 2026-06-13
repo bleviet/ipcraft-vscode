@@ -2,6 +2,8 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import type { BusInterfaceDef, BusTypeInfo, IpCoreData } from './types';
 import { resolveMemoryMapImports } from '../services/imports/resolveMemoryMapImports';
+import { normalizeIpCore, normalizeMemoryMap } from '../domain/parse';
+import type { NormalizedMemoryMap, NormalizedRegister } from '../domain/internal.types';
 
 /**
  * Evaluate an arithmetic width expression that may reference parameter names.
@@ -88,140 +90,8 @@ function getString(value: unknown): string {
   return String(value);
 }
 
-function parseNumber(value: unknown): number {
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return value;
-  }
-  if (typeof value === 'string') {
-    const parsed = Number(value.trim());
-    return Number.isFinite(parsed) ? parsed : 0;
-  }
-  return 0;
-}
-
-function parseBits(bits: string): { offset: number; width: number } {
-  if (!bits || typeof bits !== 'string') {
-    return { offset: 0, width: 1 };
-  }
-  const range = bits.match(/\[(\d+):(\d+)\]/);
-  if (range) {
-    const high = Number(range[1]);
-    const low = Number(range[2]);
-    return { offset: Math.min(low, high), width: Math.abs(high - low) + 1 };
-  }
-  const single = bits.match(/\[(\d+)\]/);
-  if (single) {
-    const bit = Number(single[1]);
-    return { offset: bit, width: 1 };
-  }
-  return { offset: 0, width: 1 };
-}
-
-function normalizeBusInterface(raw: Record<string, unknown>): BusInterfaceDef {
-  const array = (raw.array as Record<string, unknown> | undefined) ?? undefined;
-  const useOptionalPorts =
-    (raw.use_optional_ports as string[] | undefined) ??
-    (raw.useOptionalPorts as string[] | undefined) ??
-    [];
-  const portWidthOverrides =
-    (raw.port_width_overrides as Record<string, number | string> | undefined) ??
-    (raw.portWidthOverrides as Record<string, number | string> | undefined) ??
-    {};
-  const portNameOverrides =
-    (raw.port_name_overrides as Record<string, string> | undefined) ??
-    (raw.portNameOverrides as Record<string, string> | undefined) ??
-    undefined;
-  const absentPorts =
-    (raw.absent_ports as string[] | undefined) ??
-    (raw.absentPorts as string[] | undefined) ??
-    undefined;
-  const conduitPorts =
-    (raw.conduit_ports as Array<Record<string, unknown>> | undefined) ??
-    (raw.conduitPorts as Array<Record<string, unknown>> | undefined) ??
-    undefined;
-  return {
-    name: getString(raw.name),
-    type: getString(raw.type),
-    mode: getString(raw.mode).toLowerCase(),
-    physical_prefix: getString(raw.physical_prefix ?? raw.physicalPrefix ?? 's_axi_'),
-    use_optional_ports: useOptionalPorts,
-    port_width_overrides: portWidthOverrides,
-    port_name_overrides: portNameOverrides,
-    absent_ports: absentPorts,
-    conduit_ports: conduitPorts,
-    associated_clock: getString(raw.associated_clock ?? raw.associatedClock),
-    associated_reset: getString(raw.associated_reset ?? raw.associatedReset),
-    array: array
-      ? {
-          count: parseNumber(array.count ?? 1),
-          index_start: parseNumber(array.index_start ?? array.indexStart ?? 0),
-          naming_pattern: getString(array.naming_pattern ?? array.namingPattern),
-          physical_prefix_pattern: getString(
-            array.physical_prefix_pattern ?? array.physicalPrefixPattern
-          ),
-        }
-      : undefined,
-    ports: Array.isArray(raw.ports) ? (raw.ports as Array<Record<string, unknown>>) : undefined,
-  };
-}
-
 export function normalizeIpCoreData(raw: Record<string, unknown>): IpCoreData {
-  const busInterfaces = ((raw.bus_interfaces as unknown[]) ??
-    (raw.busInterfaces as unknown[]) ??
-    []) as Array<Record<string, unknown>>;
-  const parameters = ((raw.parameters as unknown[]) ?? []) as Array<Record<string, unknown>>;
-  const ports = ((raw.ports as unknown[]) ?? []) as Array<Record<string, unknown>>;
-  const clocks = ((raw.clocks as unknown[]) ?? []) as Array<Record<string, unknown>>;
-  const resets = ((raw.resets as unknown[]) ?? []) as Array<Record<string, unknown>>;
-
-  return {
-    ...(raw as IpCoreData),
-    vlnv: (raw.vlnv as IpCoreData['vlnv']) ?? {},
-    description: getString(raw.description),
-    parameters: parameters.map((param) => ({
-      name: getString(param.name),
-      value: (param.value ?? param.defaultValue ?? undefined) as number | string | undefined,
-      data_type: getString(param.data_type ?? param.dataType),
-      description: param.description ? getString(param.description) : undefined,
-    })),
-    ports: ports.map((port) => ({
-      name: getString(port.name),
-      direction: getString(port.direction),
-      width: (port.width ?? 1) as number | string,
-      presence: getString(port.presence),
-    })),
-    bus_interfaces: busInterfaces.map(normalizeBusInterface),
-    clocks: clocks.map((clock) => ({
-      name: getString(clock.name),
-      ...((clock.frequency ?? null) !== null
-        ? { frequency: getString(clock.frequency) || null }
-        : {}),
-      ...((clock.associatedReset ?? clock.associated_reset)
-        ? { associated_reset: getString(clock.associatedReset ?? clock.associated_reset) }
-        : {}),
-    })),
-    resets: resets.map((reset) => ({
-      name: getString(reset.name),
-      polarity: getString(reset.polarity),
-      ...((reset.associatedClock ?? reset.associated_clock)
-        ? { associated_clock: getString(reset.associatedClock ?? reset.associated_clock) }
-        : {}),
-    })),
-    memory_maps: (raw.memory_maps ?? raw.memoryMaps ?? undefined) as
-      | Record<string, unknown>
-      | Record<string, unknown>[]
-      | undefined,
-    subcores: ((raw.subcores as unknown[]) ?? []).map((sc) => {
-      if (typeof sc === 'string') {
-        return { vlnv: sc };
-      }
-      const obj = sc as Record<string, unknown>;
-      return {
-        vlnv: getString(obj.vlnv),
-        ...(obj.path ? { path: getString(obj.path) } : {}),
-      };
-    }),
-  };
+  return normalizeIpCore(raw) as unknown as IpCoreData;
 }
 
 export function normalizeBusType(typeName: string): BusTypeInfo {
@@ -243,7 +113,7 @@ const MEMORY_MAPPED_TEMPLATE_TYPES = new Set(['axil', 'axi4', 'avmm']);
 
 export function getBusTypeForTemplate(ipCore: IpCoreData): string {
   let firstSlave: string | undefined;
-  for (const bus of ipCore.bus_interfaces ?? []) {
+  for (const bus of ipCore.busInterfaces ?? []) {
     if ((bus.mode ?? '').toLowerCase() === 'slave') {
       const templateType = normalizeBusType(getString(bus.type)).templateType;
       firstSlave ??= templateType;
@@ -257,7 +127,7 @@ export function getBusTypeForTemplate(ipCore: IpCoreData): string {
 }
 
 export function hasMemoryMappedSlaveInterface(ipCore: IpCoreData): boolean {
-  for (const bus of ipCore.bus_interfaces ?? []) {
+  for (const bus of ipCore.busInterfaces ?? []) {
     if ((bus.mode ?? '').toLowerCase() === 'slave') {
       const templateType = normalizeBusType(getString(bus.type)).templateType;
       if (MEMORY_MAPPED_TEMPLATE_TYPES.has(templateType)) {
@@ -269,7 +139,7 @@ export function hasMemoryMappedSlaveInterface(ipCore: IpCoreData): boolean {
 }
 
 /**
- * Checks whether any two expanded bus interfaces share the same physical_prefix,
+ * Checks whether any two expanded bus interfaces share the same physicalPrefix,
  * which would produce duplicate port names in generated HDL.
  * Returns a descriptive error string on collision, or null when all prefixes are unique.
  */
@@ -279,7 +149,7 @@ export function checkDuplicatePhysicalPrefixes(ipCore: IpCoreData): string | nul
   const duplicates: string[] = [];
 
   for (const iface of expanded) {
-    const prefix = iface.physical_prefix ?? '';
+    const prefix = iface.physicalPrefix ?? '';
     if (!prefix) {
       continue;
     }
@@ -300,32 +170,31 @@ export function checkDuplicatePhysicalPrefixes(ipCore: IpCoreData): string | nul
 }
 
 export function expandBusInterfaces(ipCore: IpCoreData): BusInterfaceDef[] {
-  const busInterfaces = ipCore.bus_interfaces ?? [];
+  const busInterfaces = ipCore.busInterfaces ?? [];
   const expanded: BusInterfaceDef[] = [];
 
   for (const iface of busInterfaces) {
     const arrayDef = iface.array;
     if (arrayDef) {
       const count = Number(arrayDef.count ?? 1);
-      const start = Number(arrayDef.index_start ?? 0);
+      const start = Number(arrayDef.indexStart ?? 0);
       for (let i = 0; i < count; i += 1) {
         const idx = start + i;
-        const namePattern = arrayDef.naming_pattern ?? `${String(iface.name)}_{index}`;
+        const namePattern = arrayDef.namingPattern ?? `${String(iface.name)}_{index}`;
         const prefixPattern =
-          arrayDef.physical_prefix_pattern ??
-          `${String(iface.physical_prefix ?? 's_axi_')}{index}_`;
+          arrayDef.physicalPrefixPattern ?? `${String(iface.physicalPrefix ?? 's_axi_')}{index}_`;
         expanded.push({
           name: String(namePattern).replace('{index}', String(idx)),
           type: getString(iface.type),
           mode: getString(iface.mode).toLowerCase(),
-          physical_prefix: String(prefixPattern).replace('{index}', String(idx)),
-          use_optional_ports: iface.use_optional_ports ?? [],
-          port_width_overrides: iface.port_width_overrides ?? {},
-          port_name_overrides: iface.port_name_overrides,
-          absent_ports: iface.absent_ports,
-          conduit_ports: iface.conduit_ports,
-          associated_clock: iface.associated_clock,
-          associated_reset: iface.associated_reset,
+          physicalPrefix: String(prefixPattern).replace('{index}', String(idx)),
+          useOptionalPorts: iface.useOptionalPorts ?? [],
+          portWidthOverrides: iface.portWidthOverrides ?? {},
+          portNameOverrides: iface.portNameOverrides,
+          absentPorts: iface.absentPorts,
+          conduitPorts: iface.conduitPorts,
+          associatedClock: iface.associatedClock,
+          associatedReset: iface.associatedReset,
         });
       }
       continue;
@@ -335,14 +204,14 @@ export function expandBusInterfaces(ipCore: IpCoreData): BusInterfaceDef[] {
       name: iface.name,
       type: getString(iface.type),
       mode: getString(iface.mode).toLowerCase(),
-      physical_prefix: iface.physical_prefix ?? 's_axi_',
-      use_optional_ports: iface.use_optional_ports ?? [],
-      port_width_overrides: iface.port_width_overrides ?? {},
-      port_name_overrides: iface.port_name_overrides,
-      absent_ports: iface.absent_ports,
-      conduit_ports: iface.conduit_ports,
-      associated_clock: iface.associated_clock,
-      associated_reset: iface.associated_reset,
+      physicalPrefix: iface.physicalPrefix ?? 's_axi_',
+      useOptionalPorts: iface.useOptionalPorts ?? [],
+      portWidthOverrides: iface.portWidthOverrides ?? {},
+      portNameOverrides: iface.portNameOverrides,
+      absentPorts: iface.absentPorts,
+      conduitPorts: iface.conduitPorts,
+      associatedClock: iface.associatedClock,
+      associatedReset: iface.associatedReset,
     });
   }
 
@@ -476,14 +345,14 @@ export function getActiveBusPortsFromDefinition(
 export async function resolveMemoryMaps(
   ipCore: IpCoreData,
   inputPath: string
-): Promise<Array<Record<string, unknown>>> {
+): Promise<NormalizedMemoryMap[]> {
   const baseDir = path.dirname(inputPath);
   const reader = {
     readText: (absPath: string) => fs.readFile(absPath, 'utf8'),
   };
 
   const { resolved, errors } = await resolveMemoryMapImports({
-    memoryMaps: ipCore.memory_maps,
+    memoryMaps: ipCore.memoryMaps,
     baseDir,
     reader,
   });
@@ -492,7 +361,7 @@ export async function resolveMemoryMaps(
     throw new Error(`Failed to resolve memory map imports: ${errors.join('; ')}`);
   }
 
-  return resolved;
+  return resolved.map((rawMap) => normalizeMemoryMap(rawMap));
 }
 
 export async function prepareRegisters(
@@ -502,22 +371,18 @@ export async function prepareRegisters(
   const memoryMaps = await resolveMemoryMaps(ipCore, inputPath);
   const registers: Array<Record<string, unknown>> = [];
 
-  const processRegister = (reg: Record<string, unknown>, baseOffset: number, prefix: string) => {
-    const currentOffset =
-      baseOffset + parseNumber(reg.address_offset ?? reg.addressOffset ?? reg.offset ?? 0);
+  const processRegister = (reg: NormalizedRegister, baseOffset: number, prefix: string) => {
+    const currentOffset = baseOffset + reg.offset;
     const regName = reg.name ?? 'REG';
 
-    const nestedRegs = reg.registers ?? [];
-    if (Array.isArray(nestedRegs) && nestedRegs.length > 0) {
-      const countValue = Number(reg.count ?? 1);
-      const count = Number.isFinite(countValue) && countValue > 0 ? countValue : 1;
-      const strideValue = Number(reg.stride ?? 0);
-      const stride = Number.isFinite(strideValue) ? strideValue : 0;
+    if (reg.registers && reg.registers.length > 0) {
+      const count = reg.count ?? 1;
+      const stride = reg.stride ?? 0;
       for (let i = 0; i < count; i += 1) {
         const instanceOffset = currentOffset + i * stride;
         const instancePrefix =
           count > 1 ? `${prefix}${String(regName)}_${i}_` : `${prefix}${String(regName)}_`;
-        (nestedRegs as Array<Record<string, unknown>>).forEach((child) => {
+        reg.registers.forEach((child) => {
           processRegister(child, instanceOffset, instancePrefix);
         });
       }
@@ -526,23 +391,18 @@ export async function prepareRegisters(
 
     // Flat register array (count > 1 without child registers): replicate the
     // register as <NAME>_<i> instances, mirroring the group-array expansion.
-    const flatCountValue = Number(reg.count ?? 1);
-    const flatCount =
-      Number.isFinite(flatCountValue) && flatCountValue > 0 ? Math.trunc(flatCountValue) : 1;
-    if (flatCount > 1 && !reg.__expanded_array_instance) {
-      const strideValue = Number(reg.stride ?? 0);
-      // Default stride: one 32-bit register slot (4 bytes).
-      const stride = Number.isFinite(strideValue) && strideValue > 0 ? strideValue : 4;
+    const flatCount = reg.count ?? 1;
+    if (flatCount > 1 && !(reg as unknown as Record<string, unknown>).__expanded_array_instance) {
+      const stride = reg.stride ?? 4;
       for (let i = 0; i < flatCount; i += 1) {
         processRegister(
           {
             ...reg,
             name: `${String(regName)}_${i}`,
-            offset:
-              parseNumber(reg.address_offset ?? reg.addressOffset ?? reg.offset ?? 0) + i * stride,
+            offset: reg.offset + i * stride,
             count: 1,
             __expanded_array_instance: true,
-          },
+          } as NormalizedRegister,
           baseOffset,
           prefix
         );
@@ -550,32 +410,17 @@ export async function prepareRegisters(
       return;
     }
 
-    const fields = ((reg.fields as Array<Record<string, unknown>>) ?? []).map((field) => {
-      // Schema allows either a bits string ("[7:0]") or numeric offset/width.
-      let bitOffset = field.bit_offset ?? field.bitOffset ?? field.bit_range ?? field.offset;
-      let bitWidth = field.bit_width ?? field.bitWidth ?? field.width;
-
-      if (bitOffset === undefined || bitWidth === undefined) {
-        const parsedBits = parseBits(getString(field.bits));
-        if (bitOffset === undefined) {
-          bitOffset = parsedBits.offset;
-        }
-        if (bitWidth === undefined) {
-          bitWidth = parsedBits.width;
-        }
-      }
-
+    const fields = (reg.fields ?? []).map((field) => {
       const access = getString(field.access ?? reg.access ?? 'read-write');
-      const resetValue = field.reset_value ?? field.resetValue ?? field.reset ?? 0;
 
       return {
         name: field.name,
-        offset: Number(bitOffset ?? 0),
-        width: Number(bitWidth ?? 1),
+        offset: field.offset,
+        width: field.width,
         access: access.toLowerCase(),
-        reset_value: resetValue,
+        reset_value: field.resetValue,
         description: field.description ?? '',
-        monitorChangeOf: field.monitorChangeOf ?? field.monitor_change_of ?? null,
+        monitorChangeOf: field.monitorChangeOf ?? null,
       };
     });
 
@@ -590,16 +435,95 @@ export async function prepareRegisters(
   };
 
   memoryMaps.forEach((map) => {
-    const blocks =
-      (map.addressBlocks as Array<Record<string, unknown>>) ??
-      (map.addressBlocks as Array<Record<string, unknown>>) ??
-      [];
-    blocks.forEach((block) => {
-      const baseOffset = parseNumber(block.base_address ?? block.baseAddress ?? block.offset ?? 0);
-      const regs = (block.registers as Array<Record<string, unknown>>) || [];
-      regs.forEach((reg) => processRegister(reg, baseOffset, ''));
+    (map.addressBlocks ?? []).forEach((block) => {
+      const baseOffset = block.baseAddress;
+      (block.registers ?? []).forEach((reg) => processRegister(reg, baseOffset, ''));
     });
   });
 
   return registers.sort((a, b) => (a.offset as number) - (b.offset as number));
+}
+
+type ProjectedRegister = {
+  name: string;
+  offset: number;
+  address_offset: number;
+  addressOffset: number;
+  size: number;
+  access: string;
+  resetValue: number;
+  reset_value: number;
+  description: string;
+  fields: Array<{
+    name: string;
+    bits: string;
+    offset: number;
+    bit_offset: number;
+    bitOffset: number;
+    width: number;
+    bit_width: number;
+    bitWidth: number;
+    access: string;
+    resetValue: number;
+    reset_value: number;
+    description: string;
+    monitorChangeOf?: string | null;
+  }>;
+  count?: number;
+  stride?: number;
+  registers?: ProjectedRegister[];
+};
+
+export function projectMemoryMapsForTemplate(maps: NormalizedMemoryMap[]): unknown[] {
+  return maps.map((map) => ({
+    name: map.name,
+    description: map.description,
+    address_blocks: (map.addressBlocks ?? []).map((block) => ({
+      name: block.name,
+      base_address: block.baseAddress,
+      baseAddress: block.baseAddress,
+      range: block.range,
+      usage: block.usage,
+      registers: (block.registers ?? []).map((reg) => {
+        const projectReg = (r: NormalizedRegister): ProjectedRegister => {
+          const base: ProjectedRegister = {
+            name: r.name,
+            offset: r.offset,
+            address_offset: r.offset,
+            addressOffset: r.offset,
+            size: r.size,
+            access: r.access,
+            resetValue: r.resetValue,
+            reset_value: r.resetValue,
+            description: r.description,
+            fields: (r.fields ?? []).map((f) => ({
+              name: f.name,
+              bits: f.bits,
+              offset: f.offset,
+              bit_offset: f.offset,
+              bitOffset: f.offset,
+              width: f.width,
+              bit_width: f.width,
+              bitWidth: f.width,
+              access: f.access,
+              resetValue: f.resetValue,
+              reset_value: f.resetValue,
+              description: f.description,
+              monitorChangeOf: f.monitorChangeOf,
+            })),
+          };
+          if (r.__kind === 'array') {
+            return {
+              ...base,
+              count: r.count,
+              stride: r.stride,
+              registers: (r.registers ?? []).map(projectReg),
+            };
+          }
+          return base;
+        };
+        return projectReg(reg);
+      }),
+    })),
+  }));
 }

@@ -17,18 +17,18 @@ describe('registerProcessor', () => {
     it('normalizes a minimal IP core', () => {
       const raw = {
         vlnv: { name: 'test' },
-        bus_interfaces: [],
+        busInterfaces: [],
       };
       const result = normalizeIpCoreData(raw);
       expect(result.vlnv!.name).toBe('test');
-      expect(result.bus_interfaces).toEqual([]);
+      expect(result.busInterfaces).toEqual([]);
       expect(result.parameters).toEqual([]);
       expect(result.clocks).toEqual([]);
     });
 
     it('collects parameters', () => {
       const raw = {
-        parameters: [{ name: 'PARAM', value: 42, data_type: 'int' }],
+        parameters: [{ name: 'PARAM', value: 42, dataType: 'int' }],
       };
       const result = normalizeIpCoreData(raw);
       expect(result.parameters).toHaveLength(1);
@@ -91,14 +91,14 @@ describe('registerProcessor', () => {
   describe('getBusTypeForTemplate', () => {
     it('returns slave template type', () => {
       const ipCore = {
-        bus_interfaces: [{ type: 'AVMM', mode: 'slave' }],
+        busInterfaces: [{ type: 'AVMM', mode: 'slave' }],
       };
 
       expect(getBusTypeForTemplate(ipCore as any)).toBe('avmm');
     });
 
     it('defaults to axil', () => {
-      const ipCore = { bus_interfaces: [] };
+      const ipCore = { busInterfaces: [] };
 
       expect(getBusTypeForTemplate(ipCore as any)).toBe('axil');
     });
@@ -107,12 +107,12 @@ describe('registerProcessor', () => {
   describe('expandBusInterfaces', () => {
     it('expands arrays', () => {
       const ipCore = {
-        bus_interfaces: [
+        busInterfaces: [
           {
             name: 'CH',
             type: 'AXIS',
             mode: 'master',
-            array: { count: 2, index_start: 0, naming_pattern: 'M_CH{index}' },
+            array: { count: 2, indexStart: 0, namingPattern: 'M_CH{index}' },
           },
         ],
       };
@@ -173,8 +173,8 @@ describe('registerProcessor', () => {
         { name: 'tx_k', direction: 'out', presence: 'required', width: 'XCVR_KW' },
       ];
       const parameters = [
-        { name: 'XCVR_DW', value: 16, data_type: 'natural' },
-        { name: 'XCVR_KW', value: 2, data_type: 'natural' },
+        { name: 'XCVR_DW', value: 16, dataType: 'natural' },
+        { name: 'XCVR_KW', value: 2, dataType: 'natural' },
       ];
       const result = getActiveBusPortsFromDefinition(
         defPorts,
@@ -203,7 +203,7 @@ describe('registerProcessor', () => {
       const defPorts = [
         { name: 'tx_data', direction: 'out', presence: 'required', width: 'XCVR_DW' },
       ];
-      const parameters = [{ name: 'XCVR_DW', value: 16, data_type: 'natural' }];
+      const parameters = [{ name: 'XCVR_DW', value: 16, dataType: 'natural' }];
       // Override with a fixed number
       const result = getActiveBusPortsFromDefinition(
         defPorts,
@@ -311,7 +311,7 @@ describe('registerProcessor', () => {
       const fixturePath = path.resolve(__dirname, '../../fixtures/sample-ipcore.yml');
       const ipCore = normalizeIpCoreData({
         vlnv: { name: 'sample' },
-        memory_maps: { import: 'sample-memmap.yml' },
+        memoryMaps: { import: 'sample-memmap.yml' },
       });
 
       const result = await prepareRegisters(ipCore, fixturePath);
@@ -343,7 +343,7 @@ describe('registerProcessor', () => {
       const mockMemMap = [{ addressBlocks: [{ registers: rawRegisters }] }] as any;
 
       // Injecting a manual memmap to avoid file read for this specific test
-      const result = await prepareRegisters({ ...ipCore, memory_maps: mockMemMap }, 'dummy.yml');
+      const result = await prepareRegisters({ ...ipCore, memoryMaps: mockMemMap }, 'dummy.yml');
 
       expect(result).toHaveLength(2);
       expect(result[0].name).toBe('CHANNEL_0_VAL');

@@ -123,26 +123,26 @@ export interface VlnvDef {
 
 export interface BusInterfaceArrayDef {
   count?: number;
-  index_start?: number;
-  naming_pattern?: string;
-  physical_prefix_pattern?: string;
+  indexStart?: number;
+  namingPattern?: string;
+  physicalPrefixPattern?: string;
 }
 
 export interface BusInterfaceDef {
   name?: string;
   type?: string;
   mode?: string;
-  physical_prefix?: string;
-  use_optional_ports?: string[];
-  port_width_overrides?: Record<string, number | string>;
-  port_name_overrides?: Record<string, string>;
+  physicalPrefix?: string;
+  useOptionalPorts?: string[];
+  portWidthOverrides?: Record<string, number | string>;
+  portNameOverrides?: Record<string, string>;
   /** Logical port names (uppercase) absent from the user's HDL source — skipped in generation. */
-  absent_ports?: string[];
-  associated_clock?: string;
-  associated_reset?: string;
+  absentPorts?: string[];
+  associatedClock?: string;
+  associatedReset?: string;
   array?: BusInterfaceArrayDef;
   /** User-defined signals for conduit (custom) interfaces. */
-  conduit_ports?: Array<Record<string, unknown>>;
+  conduitPorts?: Array<Record<string, unknown>>;
   ports?: Array<Record<string, unknown>>;
   [key: string]: unknown;
 }
@@ -150,7 +150,7 @@ export interface BusInterfaceDef {
 export interface ParameterDef {
   name?: string;
   value?: number | string;
-  data_type?: string;
+  dataType?: string;
   description?: string;
 }
 
@@ -164,13 +164,13 @@ export interface PortDef {
 export interface ClockDef {
   name?: string;
   frequency?: string | null;
-  associated_reset?: string;
+  associatedReset?: string;
 }
 
 export interface ResetDef {
   name?: string;
   polarity?: string;
-  associated_clock?: string;
+  associatedClock?: string;
 }
 
 export interface SubcoreRef {
@@ -181,13 +181,13 @@ export interface SubcoreRef {
 export interface IpCoreData {
   vlnv?: VlnvDef;
   description?: string;
-  scaffold_pack?: string;
+  scaffoldPack?: string;
   parameters?: ParameterDef[];
   ports?: PortDef[];
-  bus_interfaces?: BusInterfaceDef[];
+  busInterfaces?: BusInterfaceDef[];
   clocks?: ClockDef[];
   resets?: ResetDef[];
-  memory_maps?: Record<string, unknown> | Record<string, unknown>[];
+  memoryMaps?: unknown; // Tolerant memory maps structure
   subcores?: SubcoreRef[];
   targets?: string[];
   simulation?: SimulationConfig;

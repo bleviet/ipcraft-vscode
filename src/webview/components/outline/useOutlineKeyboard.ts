@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import type { Dispatch, KeyboardEvent, SetStateAction } from 'react';
-import type { MemoryMap } from '../../types/memoryMap';
+import type { NormalizedMemoryMap } from '../../../domain/internal.types';
 import type { OutlineSelection } from './types';
 import { parseOutlineId } from './outlineIds';
 
@@ -12,11 +12,11 @@ interface UseOutlineKeyboardOptions {
   onSelect: (selection: OutlineSelection) => void;
   onRename?: (path: Array<string | number>, newName: string) => void;
   startEditing: (id: string, currentName: string) => void;
-  memoryMap: MemoryMap;
+  memoryMap: NormalizedMemoryMap;
   setExpanded: Dispatch<SetStateAction<Set<string>>>;
 }
 
-function hasExpandableChildren(currentId: string, memoryMap: MemoryMap): boolean {
+function hasExpandableChildren(currentId: string, memoryMap: NormalizedMemoryMap): boolean {
   const parsed = parseOutlineId(currentId);
 
   if (
@@ -29,9 +29,7 @@ function hasExpandableChildren(currentId: string, memoryMap: MemoryMap): boolean
 
   if (parsed.kind === 'block') {
     const block = memoryMap.addressBlocks?.[parsed.blockIndex];
-    const hasRegisters = Array.isArray(block?.registers) && block.registers.length > 0;
-    const hasArrays = Array.isArray(block?.register_arrays) && block.register_arrays.length > 0;
-    return Boolean(hasRegisters || hasArrays);
+    return Boolean(Array.isArray(block?.registers) && block.registers.length > 0);
   }
 
   return false;

@@ -6,7 +6,7 @@ interface BlockRegisterLike {
 
 interface BlockLike {
   size?: number | string;
-  range?: number | string;
+  range?: number | string | null;
   registers?: BlockRegisterLike[];
 }
 
