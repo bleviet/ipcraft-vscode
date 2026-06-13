@@ -248,6 +248,149 @@ const TargetVendorPicker: React.FC<TargetVendorPickerProps> = ({ value, availabl
   );
 };
 
+type VendorDropdownItem =
+  | { separator: true }
+  | { icon: string; label: string; disabled?: boolean; command?: string; onClick?: () => void };
+
+interface VendorDropdownProps {
+  vendorId: string;
+  items: VendorDropdownItem[];
+}
+
+const VendorDropdown: React.FC<VendorDropdownProps> = ({ vendorId, items }) => {
+  const [open, setOpen] = useState(false);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    const handle = (e: MouseEvent) => {
+      if (
+        !menuRef.current?.contains(e.target as Node) &&
+        !btnRef.current?.contains(e.target as Node)
+      ) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handle);
+    return () => document.removeEventListener('mousedown', handle);
+  }, [open]);
+
+  const style = VENDOR_STYLE[vendorId] ?? FALLBACK_STYLE;
+  const rect = btnRef.current?.getBoundingClientRect();
+
+  return (
+    <>
+      <button
+        ref={btnRef}
+        className="canvas-view-toggle"
+        onClick={() => setOpen((o) => !o)}
+        type="button"
+        aria-haspopup="true"
+        aria-expanded={open}
+        title={`${VENDOR_STYLE[vendorId]?.label ?? vendorId.toUpperCase()} toolchain actions`}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 3,
+          fontSize: '9px',
+          fontWeight: 600,
+          letterSpacing: '0.04em',
+          color: style.fg,
+          background: open ? style.bg : undefined,
+        }}
+      >
+        {VENDOR_STYLE[vendorId]?.label ?? vendorId.toUpperCase()}
+        <span
+          className="codicon codicon-chevron-down"
+          style={{ fontSize: 8, opacity: 0.7, marginTop: 1 }}
+        />
+      </button>
+      {open && rect && (
+        <div
+          ref={menuRef}
+          style={{
+            position: 'fixed',
+            top: rect.bottom + 4,
+            right: window.innerWidth - rect.right,
+            zIndex: 200,
+            minWidth: 256,
+            background: 'var(--vscode-menu-background, var(--vscode-editorWidget-background))',
+            border: '1px solid var(--vscode-menu-border, var(--vscode-panel-border))',
+            borderRadius: 4,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+            padding: '4px 0',
+          }}
+        >
+          {items.map((item, i) => {
+            if ('separator' in item) {
+              return (
+                <div
+                  key={i}
+                  style={{
+                    height: 1,
+                    background:
+                      'var(--vscode-menu-separatorBackground, var(--vscode-panel-border))',
+                    margin: '4px 0',
+                  }}
+                />
+              );
+            }
+            return (
+              <button
+                key={i}
+                type="button"
+                disabled={item.disabled}
+                onClick={() => {
+                  setOpen(false);
+                  if (item.onClick) {
+                    item.onClick();
+                  } else if (item.command) {
+                    vscode?.postMessage({ type: 'command', command: item.command });
+                  }
+                }}
+                onMouseEnter={(e) => {
+                  if (!item.disabled) {
+                    (e.currentTarget as HTMLButtonElement).style.background =
+                      'var(--vscode-menu-selectionBackground, var(--vscode-list-hoverBackground))';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  width: '100%',
+                  padding: '4px 12px',
+                  background: 'transparent',
+                  border: 'none',
+                  color: item.disabled
+                    ? 'var(--vscode-disabledForeground)'
+                    : 'var(--vscode-menu-foreground, var(--vscode-foreground))',
+                  cursor: item.disabled ? 'not-allowed' : 'pointer',
+                  fontSize: '12px',
+                  textAlign: 'left',
+                  opacity: item.disabled ? 0.5 : 1,
+                }}
+              >
+                <span
+                  className={`codicon codicon-${item.icon}`}
+                  style={{ width: 14, fontSize: 12, flexShrink: 0 }}
+                />
+                {item.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </>
+  );
+};
+
 interface ToolbarGroupProps {
   label: string;
   children: React.ReactNode;
@@ -697,8 +840,9 @@ const IpCoreApp: React.FC = () => {
               </span>
             )}
           </div>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1">
+          <div className="flex items-start gap-2">
+            {/* Zone 1: History */}
+            <ToolbarGroup label="History">
               <button
                 className="canvas-view-toggle"
                 onClick={undo}
@@ -727,254 +871,184 @@ const IpCoreApp: React.FC = () => {
               >
                 <span className="codicon codicon-redo"></span>
               </button>
-            </div>
-            {/* Action groups */}
+            </ToolbarGroup>
+
+            {/* Zone 2: Context toggles — gating controls sit left of what they gate */}
             <div
-              className="flex items-center gap-2"
-              style={{ borderLeft: '1px solid var(--vscode-panel-border)', paddingLeft: '10px' }}
-            >
-              <ToolbarGroup label="Code Generation Methodology">
-                <button
-                  className="canvas-view-toggle"
-                  title="Get Started with Scaffold Packs"
-                  aria-label="Open scaffold packs walkthrough"
-                  type="button"
-                  onClick={() => vscode?.postMessage({ type: 'openWalkthroughMenu' })}
-                >
-                  <span className="codicon codicon-mortar-board" />
-                </button>
-                <ScaffoldPackPicker selected={scaffoldPack} packs={availableScaffoldPacks} />
-              </ToolbarGroup>
-
-              <div
-                style={{
-                  width: '1px',
-                  height: '28px',
-                  background: 'var(--vscode-panel-border)',
-                  opacity: 0.6,
-                }}
-              />
-
-              <ToolbarGroup label="Scaffold">
-                <ToolbarButton
-                  title="Scaffold Project (RTL + EDA packaging + Testbench)"
-                  icon="package"
-                  command="fpga-ip-core.scaffoldProject"
-                />
-              </ToolbarGroup>
-
-              <div
-                style={{
-                  width: '1px',
-                  height: '28px',
-                  background: 'var(--vscode-panel-border)',
-                  opacity: 0.6,
-                }}
-              />
-
-              <ToolbarGroup label="Design">
-                <ToolbarButton
-                  title="Create Register Map"
-                  icon="map"
-                  command="fpga-ip-core.createMemoryMap"
-                />
-                <ToolbarButton
-                  title={`Generate Top-Level ${hdlLanguage === 'systemverilog' ? 'SystemVerilog' : 'VHDL'}`}
-                  icon="code"
-                  command="fpga-ip-core.generateHdl"
-                />
-                <HdlLanguagePicker value={hdlLanguage} />
-              </ToolbarGroup>
-
-              <div
-                style={{
-                  width: '1px',
-                  height: '28px',
-                  background: 'var(--vscode-panel-border)',
-                  opacity: 0.6,
-                }}
-              />
-
-              <ToolbarGroup label="CocoTB">
-                <ToolbarButton
-                  title="Generate CocoTB Testbench"
-                  icon="beaker"
-                  command="fpga-ip-core.generateTestbench"
-                />
-              </ToolbarGroup>
-
-              {toolbarTargets.includes('quartus') && (
-                <>
-                  <div
-                    style={{
-                      width: '1px',
-                      height: '28px',
-                      background: 'var(--vscode-panel-border)',
-                      opacity: 0.6,
-                    }}
-                  />
-                  <ToolbarGroup label="Altera">
-                    <ToolbarButton
-                      title="Generate Platform Designer _hw.tcl component"
-                      icon="layers"
-                      command="fpga-ip-core.exportAltera"
-                    />
-                    <ToolbarButton
-                      title={
-                        hasHwTcl
-                          ? 'Open in Platform Designer (Quartus)'
-                          : 'Open in Platform Designer — run Generate Altera first'
-                      }
-                      icon="edit"
-                      disabled={!hasHwTcl}
-                      onClick={() => vscode?.postMessage({ type: 'editInPlatformDesigner' })}
-                    />
-                    <div
-                      style={{
-                        width: '1px',
-                        height: '16px',
-                        background: 'var(--vscode-panel-border)',
-                        opacity: 0.5,
-                        alignSelf: 'center',
-                      }}
-                    />
-                    <ToolbarButton
-                      title="Generate Quartus Project (creates .qpf)"
-                      icon="circuit-board"
-                      command="fpga-ip-core.generateQuartusProject"
-                    />
-                    <div
-                      style={{
-                        width: '1px',
-                        height: '16px',
-                        background: 'var(--vscode-panel-border)',
-                        opacity: 0.5,
-                        alignSelf: 'center',
-                      }}
-                    />
-                    <ToolbarButton
-                      title={
-                        hasQpf
-                          ? 'Open Project in Quartus'
-                          : 'Open Project in Quartus — generate project first'
-                      }
-                      icon="folder-opened"
-                      disabled={!hasQpf}
-                      onClick={() => vscode?.postMessage({ type: 'openInQuartus' })}
-                    />
-                    <ToolbarButton
-                      title={
-                        hasQpf
-                          ? 'Build: Quartus full compile'
-                          : 'Build: Quartus full compile — generate project first'
-                      }
-                      icon="tools"
-                      disabled={!hasQpf}
-                      command="fpga-ip-core.buildQuartusCompile"
-                    />
-                  </ToolbarGroup>
-                </>
-              )}
-
-              {toolbarTargets.includes('vivado') && (
-                <>
-                  <div
-                    style={{
-                      width: '1px',
-                      height: '28px',
-                      background: 'var(--vscode-panel-border)',
-                      opacity: 0.6,
-                    }}
-                  />
-                  <ToolbarGroup label="Xilinx">
-                    <ToolbarButton
-                      title="Generate Vivado Component XML"
-                      icon="layers"
-                      command="fpga-ip-core.exportXilinx"
-                    />
-                    <ToolbarButton
-                      title={
-                        hasComponentXml
-                          ? 'Edit in IP Packager (Vivado)'
-                          : 'Edit in IP Packager — run Generate Component XML first'
-                      }
-                      icon="edit"
-                      disabled={!hasComponentXml}
-                      onClick={() => vscode?.postMessage({ type: 'editInIpPackager' })}
-                    />
-                    <div
-                      style={{
-                        width: '1px',
-                        height: '16px',
-                        background: 'var(--vscode-panel-border)',
-                        opacity: 0.5,
-                        alignSelf: 'center',
-                      }}
-                    />
-                    <ToolbarButton
-                      title="Generate Vivado Project (creates .xpr)"
-                      icon="circuit-board"
-                      command="fpga-ip-core.generateVivadoProject"
-                    />
-                    <div
-                      style={{
-                        width: '1px',
-                        height: '16px',
-                        background: 'var(--vscode-panel-border)',
-                        opacity: 0.5,
-                        alignSelf: 'center',
-                      }}
-                    />
-                    <ToolbarButton
-                      title={
-                        hasXpr
-                          ? 'Open Project in Vivado'
-                          : 'Open Project in Vivado — generate project first'
-                      }
-                      icon="folder-opened"
-                      disabled={!hasXpr}
-                      onClick={() => vscode?.postMessage({ type: 'openInVivado' })}
-                    />
-                    <ToolbarButton
-                      title={
-                        hasXpr
-                          ? 'Build: Vivado OOC synthesis'
-                          : 'Build: Vivado OOC synthesis — generate project first'
-                      }
-                      icon="tools"
-                      disabled={!hasXpr}
-                      command="fpga-ip-core.buildVivadoOoc"
-                    />
-                  </ToolbarGroup>
-                </>
-              )}
-
-              <div
-                style={{
-                  width: '1px',
-                  height: '28px',
-                  background: 'var(--vscode-panel-border)',
-                  opacity: 0.6,
-                }}
-              />
-
+              style={{
+                width: '1px',
+                height: '28px',
+                background: 'var(--vscode-panel-border)',
+                opacity: 0.6,
+              }}
+            />
+            <ToolbarGroup label="Target">
               <TargetVendorPicker value={toolbarTargets} availableToolchains={allToolchains} />
+              <HdlLanguagePicker value={hdlLanguage} />
+            </ToolbarGroup>
 
-              <div
-                style={{
-                  width: '1px',
-                  height: '28px',
-                  background: 'var(--vscode-panel-border)',
-                  opacity: 0.6,
-                }}
+            {/* Zone 3: Scaffold pack manifest */}
+            <div
+              style={{
+                width: '1px',
+                height: '28px',
+                background: 'var(--vscode-panel-border)',
+                opacity: 0.6,
+              }}
+            />
+            <ToolbarGroup label="Scaffold Template">
+              <ScaffoldPackPicker selected={scaffoldPack} packs={availableScaffoldPacks} />
+            </ToolbarGroup>
+
+            {/* Zone 4: Core generate actions */}
+            <div
+              style={{
+                width: '1px',
+                height: '28px',
+                background: 'var(--vscode-panel-border)',
+                opacity: 0.6,
+              }}
+            />
+            <ToolbarGroup label="Generate">
+              <ToolbarButton
+                title="Scaffold Project (RTL + EDA packaging + Testbench)"
+                icon="package"
+                command="fpga-ip-core.scaffoldProject"
               />
+              <ToolbarButton
+                title="Create Register Map"
+                icon="map"
+                command="fpga-ip-core.createMemoryMap"
+              />
+              <ToolbarButton
+                title={`Generate Top-Level ${hdlLanguage === 'systemverilog' ? 'SystemVerilog' : 'VHDL'}`}
+                icon="code"
+                command="fpga-ip-core.generateHdl"
+              />
+              <ToolbarButton
+                title="Generate CocoTB Testbench"
+                icon="beaker"
+                command="fpga-ip-core.generateTestbench"
+              />
+            </ToolbarGroup>
 
+            {/* Zone 5: Single Integration group — stable width via visibility, not conditional rendering */}
+            {(toolbarTargets.includes('quartus') || toolbarTargets.includes('vivado')) && (
+              <>
+                <div
+                  style={{
+                    width: '1px',
+                    height: '28px',
+                    background: 'var(--vscode-panel-border)',
+                    opacity: 0.6,
+                  }}
+                />
+                <ToolbarGroup label="Integration">
+                  <div
+                    style={{
+                      visibility: toolbarTargets.includes('quartus') ? 'visible' : 'hidden',
+                    }}
+                  >
+                    <VendorDropdown
+                      vendorId="quartus"
+                      items={[
+                        {
+                          icon: 'layers',
+                          label: 'Generate Platform Designer _hw.tcl',
+                          command: 'fpga-ip-core.exportAltera',
+                        },
+                        {
+                          icon: 'edit',
+                          label: 'Open in Platform Designer',
+                          disabled: !hasHwTcl,
+                          onClick: () => vscode?.postMessage({ type: 'editInPlatformDesigner' }),
+                        },
+                        { separator: true },
+                        {
+                          icon: 'circuit-board',
+                          label: 'Generate Quartus Project',
+                          command: 'fpga-ip-core.generateQuartusProject',
+                        },
+                        {
+                          icon: 'folder-opened',
+                          label: 'Open Project in Quartus',
+                          disabled: !hasQpf,
+                          onClick: () => vscode?.postMessage({ type: 'openInQuartus' }),
+                        },
+                        {
+                          icon: 'tools',
+                          label: 'Build: Quartus full compile',
+                          disabled: !hasQpf,
+                          command: 'fpga-ip-core.buildQuartusCompile',
+                        },
+                      ]}
+                    />
+                  </div>
+                  <div
+                    style={{
+                      visibility: toolbarTargets.includes('vivado') ? 'visible' : 'hidden',
+                    }}
+                  >
+                    <VendorDropdown
+                      vendorId="vivado"
+                      items={[
+                        {
+                          icon: 'layers',
+                          label: 'Generate Vivado Component XML',
+                          command: 'fpga-ip-core.exportXilinx',
+                        },
+                        {
+                          icon: 'edit',
+                          label: 'Edit in IP Packager',
+                          disabled: !hasComponentXml,
+                          onClick: () => vscode?.postMessage({ type: 'editInIpPackager' }),
+                        },
+                        { separator: true },
+                        {
+                          icon: 'circuit-board',
+                          label: 'Generate Vivado Project',
+                          command: 'fpga-ip-core.generateVivadoProject',
+                        },
+                        {
+                          icon: 'folder-opened',
+                          label: 'Open Project in Vivado',
+                          disabled: !hasXpr,
+                          onClick: () => vscode?.postMessage({ type: 'openInVivado' }),
+                        },
+                        {
+                          icon: 'tools',
+                          label: 'Build: Vivado OOC synthesis',
+                          disabled: !hasXpr,
+                          command: 'fpga-ip-core.buildVivadoOoc',
+                        },
+                      ]}
+                    />
+                  </div>
+                </ToolbarGroup>
+              </>
+            )}
+
+            {/* Zone 6: Utilities */}
+            <div
+              style={{
+                width: '1px',
+                height: '28px',
+                background: 'var(--vscode-panel-border)',
+                opacity: 0.6,
+              }}
+            />
+            <ToolbarGroup label="Utilities">
+              <ToolbarButton
+                title="Get Started with Scaffold Packs"
+                icon="mortar-board"
+                onClick={() => vscode?.postMessage({ type: 'openWalkthroughMenu' })}
+              />
               <ToolbarButton
                 title="IPCraft Settings"
                 icon="gear"
                 command="fpga-ip-core.openSettings"
               />
-            </div>
+            </ToolbarGroup>
             {validationErrors.length > 0 && (
               <div className="text-sm" style={{ color: 'var(--vscode-errorForeground)' }}>
                 {validationErrors.length} validation error(s)
