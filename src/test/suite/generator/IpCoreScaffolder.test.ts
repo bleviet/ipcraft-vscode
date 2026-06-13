@@ -111,6 +111,21 @@ describe('IpCoreScaffolder', () => {
     expect(xmlContent).toContain('spirit:choiceRef="choice_DATA_WIDTH"');
     expect(xmlContent).toContain('<spirit:name>choice_DATA_WIDTH</spirit:name>');
     expect(xmlContent).toContain('<spirit:enumeration>32</spirit:enumeration>');
+
+    // String generics: VHDL must use quoted string literals
+    expect(vhdlContent).toContain('VENDOR_ID : string := "ACME"');
+    expect(vhdlContent).toContain('DEVICE_TAG : string := ""');
+
+    // String generics: component.xml must use raw (unquoted) values
+    expect(xmlContent).toContain('spirit:format="string"');
+    const vendorIdValueMatch = xmlContent?.match(
+      /PARAM_VALUE\.VENDOR_ID[^>]*>([^<]*)<\/spirit:value>/
+    );
+    expect(vendorIdValueMatch?.[1]).toBe('ACME');
+
+    // String generics: Altera hw.tcl must use quoted string literals (valid TCL)
+    expect(tclContent).toContain('add_parameter VENDOR_ID STRING "ACME"');
+    expect(tclContent).toContain('add_parameter DEVICE_TAG STRING ""');
   });
 
   it('generates a single minimal stub by default (no bahonaviMethodology)', async () => {

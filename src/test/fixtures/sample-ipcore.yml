@@ -37,3 +37,9 @@ parameters:
   - 16
   - 32
   - 64
+- name: VENDOR_ID
+  defaultValue: "ACME"
+  dataType: string
+  description: Vendor identifier
+- name: DEVICE_TAG
+  dataType: string

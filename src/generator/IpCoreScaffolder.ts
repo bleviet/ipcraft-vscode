@@ -705,18 +705,20 @@ export class IpCoreScaffolder {
     value: number | string | undefined,
     type: string
   ): number | string | null {
+    const t = type.toLowerCase().trim();
+    if (t === 'string') {
+      // Always emit a VHDL string literal; raw value has no quotes in YAML/JSON.
+      const raw = value !== undefined && value !== null ? String(value) : '';
+      return `"${raw}"`;
+    }
     if (value !== undefined && value !== null) {
       return value;
     }
-    const t = type.toLowerCase().trim();
     if (t === 'integer') {
       return 0;
     }
     if (t === 'boolean') {
       return 'false';
-    }
-    if (t === 'string') {
-      return '""';
     }
     return 0;
   }
@@ -742,6 +744,11 @@ export class IpCoreScaffolder {
     type: string
   ): number | string | null {
     const t = type.toLowerCase().trim();
+    if (t === 'string') {
+      // Always emit a quoted string literal; raw value has no quotes in YAML/JSON.
+      const raw = value !== undefined && value !== null ? String(value) : '';
+      return `"${raw}"`;
+    }
     if (value !== undefined && value !== null) {
       // VHDL boolean literals are not valid SystemVerilog; map to bit literals.
       if (t === 'boolean') {
@@ -755,9 +762,6 @@ export class IpCoreScaffolder {
     }
     if (t === 'boolean') {
       return "1'b0";
-    }
-    if (t === 'string') {
-      return '""';
     }
     return 0;
   }
