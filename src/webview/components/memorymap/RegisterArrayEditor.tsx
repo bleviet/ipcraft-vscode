@@ -42,7 +42,7 @@ export function RegisterArrayEditor({
 }: RegisterArrayEditorProps) {
   const arr = registerArray;
   const nestedRegisters = arr?.registers ?? [];
-  const baseOffset = arr?.address_offset ?? 0;
+  const baseOffset = arr?.offset ?? arr?.address_offset ?? 0;
 
   const tbodyRef = useRef<HTMLTableSectionElement | null>(null);
 

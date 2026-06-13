@@ -56,7 +56,7 @@ function normalizeField(raw: Record<string, unknown>): Omit<NormalizedField, 'ro
     bits: String(bits),
     offset,
     width,
-    access: String(raw.access ?? 'read-write'),
+    access: raw.access !== undefined ? String(raw.access) : undefined,
     resetValue: parseNumber(raw.resetValue ?? raw.reset_value ?? raw.reset, 0),
     description: String(raw.description ?? ''),
     enumeratedValues: (raw.enumeratedValues ?? raw.enumerated_values ?? null) as Record<
@@ -71,8 +71,10 @@ function normalizeRegister(
   raw: Record<string, unknown>,
   defaultRegWidth: number
 ): Omit<NormalizedRegister, 'rowId'> {
-  const isArray =
-    raw.count !== undefined && raw.stride !== undefined && Array.isArray(raw.registers);
+  // `count` alone is the array discriminant: flat arrays have count+stride but
+  // no nested `registers`; nested arrays have all three. `raw.registers` being
+  // absent must not strip count/stride from flat arrays (fixes RV-2).
+  const isArray = raw.count !== undefined;
 
   const size = parseNumber(raw.size, 32);
   const regWidth = size > 0 ? size : defaultRegWidth;
@@ -85,7 +87,7 @@ function normalizeRegister(
     name: String(raw.name ?? ''),
     offset: parseNumber(raw.offset ?? raw.address_offset ?? raw.addressOffset, 0),
     size,
-    access: String(raw.access ?? 'read-write'),
+    access: raw.access !== undefined ? String(raw.access) : undefined,
     resetValue: parseNumber(raw.resetValue ?? raw.reset_value, 0),
     description: String(raw.description ?? ''),
     fields: fields as NormalizedField[],
@@ -133,7 +135,8 @@ function normalizeBlock(raw: Record<string, unknown>): Omit<NormalizedAddressBlo
         const count = reg.count ?? 1;
         currentOffset = offset + count * stride;
       } else {
-        currentOffset = offset + defaultRegBytes;
+        const regBytes = reg.size > 0 ? Math.max(1, Math.floor(reg.size / 8)) : defaultRegBytes;
+        currentOffset = offset + regBytes;
       }
 
       return {

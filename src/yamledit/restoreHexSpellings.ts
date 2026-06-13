@@ -26,7 +26,9 @@ export function restoreHexSpellings(text: string, hexFix: Map<string, string>): 
   let out = text;
   for (const [rendered, source] of hexFix) {
     if (rendered !== source) {
-      out = out.replace(new RegExp(`\\b${rendered}\\b`, 'gi'), source);
+      // No `i` flag: rendered hex from yaml is always lowercase 0x…, so a
+      // case-insensitive replace could corrupt unrelated identifiers in comments.
+      out = out.replace(new RegExp(`\\b${rendered}\\b`, 'g'), source);
     }
   }
   return out;

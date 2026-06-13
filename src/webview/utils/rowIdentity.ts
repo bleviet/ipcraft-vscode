@@ -27,15 +27,17 @@ export function reconcileRowIds<T extends { name?: unknown }>(
   const consumedPrevIndices = new Set<number>();
   const matchedNextIndices = new Set<number>();
 
+  // Precompute JSON strings once to avoid O(n²) repeated serialization in pass 1.
+  const prevJsons = prev.map((w) => JSON.stringify(w.model));
+  const nextJsons = next.map((item) => JSON.stringify(item));
+
   // Pass 1: Exact content match against an unconsumed previous row -> keep its id.
   for (let nextIdx = 0; nextIdx < next.length; nextIdx++) {
-    const nextItem = next[nextIdx];
-    const nextJson = JSON.stringify(nextItem);
     for (let prevIdx = 0; prevIdx < prev.length; prevIdx++) {
       if (consumedPrevIndices.has(prevIdx)) {
         continue;
       }
-      if (JSON.stringify(prev[prevIdx].model) === nextJson) {
+      if (prevJsons[prevIdx] === nextJsons[nextIdx]) {
         result[nextIdx].rowId = prev[prevIdx].rowId;
         consumedPrevIndices.add(prevIdx);
         matchedNextIndices.add(nextIdx);

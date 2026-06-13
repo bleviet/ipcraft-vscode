@@ -64,7 +64,7 @@ export function RegisterTableRow({
   onMouseLeave,
   onContextMenu,
 }: RegisterTableRowProps) {
-  const offset = reg.address_offset ?? reg.offset ?? 0;
+  const offset = reg.offset ?? reg.address_offset ?? 0;
 
   const isCellActive = (key: RegEditKey) =>
     regActiveCell.rowId === rowId && regActiveCell.key === key;
@@ -124,7 +124,7 @@ export function RegisterTableRow({
           onInput={(value) => {
             const val = Number(value);
             if (!Number.isNaN(val)) {
-              onUpdate(['registers', idx, 'address_offset'], val);
+              onUpdate(['registers', idx, 'offset'], val);
             }
           }}
         />

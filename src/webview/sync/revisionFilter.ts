@@ -57,7 +57,10 @@ export function shouldApplyUpdate(state: RevisionState, update: IncomingUpdate):
     state.seenDocVersion = docVersion;
   }
 
-  if (sourceEditId !== undefined && sourceEditId === state.lastSentEditId) {
+  // Drop echoes of any edit we sent, not just the latest. An older in-flight
+  // echo (sourceEditId < lastSentEditId) would otherwise pass and revert the
+  // canvas to a superseded state.
+  if (sourceEditId !== undefined && sourceEditId > 0 && sourceEditId <= state.lastSentEditId) {
     return false;
   }
 

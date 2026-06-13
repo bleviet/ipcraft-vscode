@@ -29,6 +29,11 @@ export function applyPathEdits(text: string, edits: PathEdit[]): string {
     return text;
   }
 
+  // Collect hex spellings BEFORE any mutations so the map keys the pre-edit
+  // rendered value → original source string. Collecting after mergeNode would
+  // key the new value, causing restoreHexSpellings to silently revert edits.
+  const hexFix = collectHexSpellings(doc);
+
   let changed = false;
   for (const { path, value } of edits) {
     const current = doc.getIn(path, true);
@@ -45,8 +50,6 @@ export function applyPathEdits(text: string, edits: PathEdit[]): string {
   if (!changed) {
     return text;
   }
-
-  const hexFix = collectHexSpellings(doc);
   // lineWidth: 0 disables line folding. The pre-V-2 serializer used the `yaml`
   // default (80), which silently re-wraps any scalar longer than 80 columns —
   // reflowing untouched long descriptions and breaking the "one edit, one changed

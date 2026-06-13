@@ -171,14 +171,16 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
       },
     });
 
-    const updateWebview = async (sourceEditId?: number) => {
+    const updateWebview = async (sourceEditId?: number, forceResync = false) => {
       if (isDisposed) {
         return;
       }
-      await this.updateWebview(document, router, () => isDisposed, sourceEditId);
+      await this.updateWebview(document, router, () => isDisposed, sourceEditId, forceResync);
     };
 
-    router.useStandardDocumentHandlers(this.documentManager, this.yamlValidator);
+    router.useStandardDocumentHandlers(this.documentManager, this.yamlValidator, () => {
+      void updateWebview(undefined, true);
+    });
 
     const changeDocumentSubscription = this.subscribeToDocumentChanges(
       document,
@@ -188,19 +190,19 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
     const configSubscription = vscode.workspace.onDidChangeConfiguration((e) => {
       if (e.affectsConfiguration('ipcraft.busLibraryPaths')) {
         this.importResolver.clearCache();
-        void updateWebview();
+        void updateWebview(undefined, true);
       }
       if (e.affectsConfiguration('ipcraft.generate.hdlLanguage')) {
-        void updateWebview();
+        void updateWebview(undefined, true);
       }
       if (e.affectsConfiguration('ipcraft.toolbar.targets')) {
-        void updateWebview();
+        void updateWebview(undefined, true);
       }
       if (e.affectsConfiguration('ipcraft.generate.scaffoldPack')) {
-        void updateWebview();
+        void updateWebview(undefined, true);
       }
     });
-    const fileWatcher = this.watchGeneratedFiles(document, updateWebview);
+    const fileWatcher = this.watchGeneratedFiles(document, () => updateWebview(undefined, true));
     this.registerDisposal(webviewPanel, () => {
       isDisposed = true;
       changeDocumentSubscription.dispose();
@@ -451,7 +453,8 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
     document: vscode.TextDocument,
     router: WebviewRouter<IpCoreWebviewMessage>,
     isDisposed: () => boolean,
-    sourceEditId?: number
+    sourceEditId?: number,
+    forceResync = false
   ): Promise<void> {
     if (isDisposed()) {
       this.logger.debug('Webview already disposed, skipping update');
@@ -550,6 +553,7 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
           allToolchains,
           duplicatePrefixes,
           sourceEditId,
+          ...(forceResync ? { forceResync: true } : {}),
         },
         docVersion
       );

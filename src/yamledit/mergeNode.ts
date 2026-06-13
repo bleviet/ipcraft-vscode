@@ -22,8 +22,12 @@ export function mergeNode(doc: Document, current: unknown, value: unknown): unkn
   }
 
   if (isScalar(current)) {
-    current.value = value;
-    return current;
+    if (value === null || value === undefined || typeof value !== 'object') {
+      current.value = value;
+      return current;
+    }
+    // Assigning an object/array to a scalar node makes doc.toString() throw;
+    // fall through to doc.createNode() to create the correct node type.
   }
 
   // Sequence: match incoming elements to existing items (exact content first,

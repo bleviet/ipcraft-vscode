@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { createRevisionState, shouldApplyUpdate, buildUpdateMessage } from '../sync/revisionFilter';
 
+const SEND_DEBOUNCE_MS = 50;
+
 /**
  * VSCode API wrapper type
  */
@@ -26,9 +28,25 @@ export function useYamlSync(
   onUpdate: (text: string, fileName?: string) => void
 ) {
   const revision = useRef(createRevisionState());
+  const pendingText = useRef<string | null>(null);
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const onUpdateRef = useRef(onUpdate);
   onUpdateRef.current = onUpdate;
+
+  // Flush any pending debounced send on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimer.current !== null) {
+        clearTimeout(debounceTimer.current);
+        debounceTimer.current = null;
+        if (pendingText.current !== null && vscode) {
+          vscode.postMessage(buildUpdateMessage(revision.current, pendingText.current));
+          pendingText.current = null;
+        }
+      }
+    };
+  }, [vscode]);
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent<ExtensionMessage>) => {
@@ -55,11 +73,24 @@ export function useYamlSync(
   }, []); // Run only once
 
   /**
-   * Send updated YAML text to the extension
+   * Send updated YAML text to the extension, debounced to coalesce rapid edits.
+   * Multiple in-flight edits trigger false stale-base rejections; debouncing
+   * ensures only the latest edit is in-flight at any time.
    */
   const sendUpdate = useCallback(
     (text: string) => {
-      vscode?.postMessage(buildUpdateMessage(revision.current, text));
+      pendingText.current = text;
+      if (debounceTimer.current !== null) {
+        clearTimeout(debounceTimer.current);
+      }
+      debounceTimer.current = setTimeout(() => {
+        debounceTimer.current = null;
+        const t = pendingText.current;
+        pendingText.current = null;
+        if (t !== null && vscode) {
+          vscode.postMessage(buildUpdateMessage(revision.current, t));
+        }
+      }, SEND_DEBOUNCE_MS);
     },
     [vscode]
   );

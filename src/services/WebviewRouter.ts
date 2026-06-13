@@ -104,7 +104,8 @@ export class WebviewRouter<M extends { type: string } = { type: string }> {
 
   useStandardDocumentHandlers(
     documentManager: DocumentManager,
-    yamlValidator: YamlValidator
+    yamlValidator: YamlValidator,
+    onForceResync?: () => void
   ): this {
     this.on('update', async (message) => {
       // Cast the message to access properties since update is a standard protocol message type
@@ -136,11 +137,16 @@ export class WebviewRouter<M extends { type: string } = { type: string }> {
         // A concurrent external edit can be mislabeled as an echo of the rejected
         // webview edit (FIFO pairing) and dropped, and the version it bumped would
         // make this resync look stale — so the webview must accept it regardless.
-        this.postUpdate({
-          text: documentManager.getText(this.document),
-          fileName: documentManager.getRelativePath(this.document.uri),
-          forceResync: result.reason === 'stale-base',
-        });
+        if (result.reason === 'stale-base' && onForceResync) {
+          // Let the caller do a full update (e.g. IP core needs imports, hasComponentXml, etc.)
+          onForceResync();
+        } else {
+          this.postUpdate({
+            text: documentManager.getText(this.document),
+            fileName: documentManager.getRelativePath(this.document.uri),
+            forceResync: result.reason === 'stale-base',
+          });
+        }
       } else if (result.type === 'noop') {
         if (msg.editId !== undefined) {
           const idx = this.pendingEditIds.indexOf(msg.editId);

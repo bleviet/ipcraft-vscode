@@ -358,7 +358,11 @@ export async function resolveMemoryMaps(
   });
 
   if (errors.length > 0) {
-    throw new Error(`Failed to resolve memory map imports: ${errors.join('; ')}`);
+    // Warn and continue with the maps that did resolve; throwing here would
+    // discard all successfully-resolved maps when only one import fails.
+    console.warn(
+      `Memory map import errors (continuing with ${resolved.length} resolved): ${errors.join('; ')}`
+    );
   }
 
   return resolved.map((rawMap) => normalizeMemoryMap(rawMap));
@@ -450,7 +454,7 @@ type ProjectedRegister = {
   address_offset: number;
   addressOffset: number;
   size: number;
-  access: string;
+  access: string | undefined;
   resetValue: number;
   reset_value: number;
   description: string;
@@ -463,7 +467,7 @@ type ProjectedRegister = {
     width: number;
     bit_width: number;
     bitWidth: number;
-    access: string;
+    access: string | undefined;
     resetValue: number;
     reset_value: number;
     description: string;

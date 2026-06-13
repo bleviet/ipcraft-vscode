@@ -11,7 +11,7 @@ export interface NormalizedField {
   bits: string;
   offset: number; // bit LSB position
   width: number; // bit width
-  access: string;
+  access?: string;
   resetValue: number;
   description: string;
   enumeratedValues?: Record<string, string> | null;
@@ -23,7 +23,7 @@ export interface NormalizedRegister {
   name: string;
   offset: number; // byte offset
   size: number; // register width in bits
-  access: string;
+  access?: string;
   resetValue: number;
   description: string;
   fields: NormalizedField[];

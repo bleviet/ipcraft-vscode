@@ -5,6 +5,7 @@ import { calculateBlockSize } from '../utils/blockSize';
 
 export interface VisualizerAddressBlock {
   name?: string;
+  baseAddress?: number | string;
   base_address?: number | string;
   offset?: number | string;
   size?: number | string;
@@ -120,7 +121,7 @@ const AddressMapVisualizerInner: React.FC<AddressMapVisualizerProps> = ({
   // Group blocks by address ranges
   const groups = useMemo(() => {
     return blocks.map((block, idx) => {
-      const base = block.base_address ?? block.offset ?? 0;
+      const base = block.baseAddress ?? block.base_address ?? block.offset ?? 0;
       const size = calculateBlockSize(block);
       return {
         idx,
