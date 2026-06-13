@@ -2,7 +2,9 @@
 
 All notable changes to this project are documented in this file.
 
-## [Unreleased] - 2026-06-10
+## [Unreleased]
+
+## [0.3.0] - 2026-06-13
 
 ### Fixed
 - **Memory Map Structural Desync**: Fixed a critical bug where array-level operations (insert, delete, drag-and-drop relocate) on Address Blocks, Registers, and Bitfields would corrupt memory address offsets and bit range allocations.
