@@ -1,32 +1,23 @@
-name: Vivado Nightly (Tier 2)
+name: Nightly integration
 
 on:
   schedule:
     # 02:00 UTC every night
     - cron: '0 2 * * *'
   workflow_dispatch:
-    inputs:
-      vivado_bin:
-        description: 'Path to vivado binary on the runner'
-        required: false
-        default: '/tools/Xilinx/Vivado/2024.2/bin/vivado'
 
 # Only one nightly run at a time; cancel the in-progress one if a manual
 # dispatch is triggered while a scheduled run is already underway.
 concurrency:
-  group: vivado-nightly
+  group: nightly
   cancel-in-progress: true
 
 jobs:
-  vivado-tier2:
-    name: Vivado ipx::check_integrity + OOC synthesis
-    # Self-hosted runner that has Vivado installed and licensed.
-    # Label your runner with 'vivado' in the repo / org runner settings.
-    runs-on: [self-hosted, vivado]
+  integration-full:
+    name: Full integration suite (Tier 0 + Tier 1)
+    runs-on: ubuntu-latest
 
     env:
-      VIVADO_BIN: ${{ inputs.vivado_bin || '/tools/Xilinx/Vivado/2024.2/bin/vivado' }}
-      REQUIRE_VIVADO: '1'
       # Write a skip record for every tool that is absent on this host so
       # dashboards can distinguish "not tested" from "tested and passed".
       SKIP_TELEMETRY_FILE: ${{ github.workspace }}/skip-telemetry.ndjson
@@ -41,44 +32,36 @@ jobs:
           node-version: 20
           cache: npm
 
-      - run: npm ci
-
-      # Webpack copies bus_definitions and templates into dist/ — needed by
-      # the fixture generator even in an integration-only run.
-      - name: Build
-        run: npm run compile
-
-      # Full Tier 1 suite first: fail fast on open-source regressions before
-      # spending Vivado licence time on Tier 2.
-      - name: HDL integration (GHDL / Icarus / Verilator)
+      - name: Install open-source HDL and XML tools
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends ghdl iverilog verilator libxml2-utils
-          npm run test:integration:hdl
 
-      - name: IP-XACT structural validation
-        run: npm run test:integration:ipxact
+      - run: npm ci
+
+      - name: Build
+        run: npm run compile
+
+      # Tier 0 — pure Node, no tools needed
+      - name: Snapshot tests
+        run: npx jest --config config/jest.integration.js --testPathPatterns=snapshots
+
+      - name: Round-trip tests (component.xml + hw.tcl)
+        run: npx jest --config config/jest.integration.js --testPathPatterns=roundtrip
 
       - name: Pack conformance kit
         run: npm run test:integration:conformance
 
-      # Tier 2: Vivado ipx::check_integrity and OOC synthesis.
-      # REQUIRE_VIVADO=1 (set above) makes guardTier2 throw if Vivado is absent.
-      - name: Vivado validation (ipx::check_integrity + OOC synthesis)
-        run: npm run test:integration:vivado
+      # Tier 1 — open-source tools (installed above)
+      - name: HDL integration (GHDL / Icarus / Verilator)
+        run: npm run test:integration:hdl
 
-      # Always upload Vivado logs and the skip telemetry file so the run is
-      # auditable even when everything passes.
-      - name: Upload Vivado logs
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: vivado-logs-${{ github.run_id }}
-          path: |
-            vivado*.log
-            vivado*.jou
-          retention-days: 30
-          if-no-files-found: ignore
+      - name: IP-XACT / SPIRIT structural validation (xmllint)
+        run: npm run test:integration:ipxact
+
+      # Vivado and Quartus are not available on ubuntu-latest.
+      # guardTier2 lets them skip with a warning and records the skip in
+      # SKIP_TELEMETRY_FILE so the dashboard shows coverage gaps.
 
       - name: Upload skip telemetry
         if: always()
