@@ -1,4 +1,5 @@
 name: "example-with-docs"
+apiVersion: "^1.0"
 category: "example"
 description: >
   Full layered architecture plus a Markdown register documentation file.

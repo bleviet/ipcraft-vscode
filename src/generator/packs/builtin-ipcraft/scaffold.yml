@@ -1,4 +1,5 @@
 name: "builtin-ipcraft"
+apiVersion: "^1.0"
 description: >
   Standard layered architecture: package, top-level entity/module, core logic
   stub, bus wrapper, and register file. Recommended for IP cores with a memory-

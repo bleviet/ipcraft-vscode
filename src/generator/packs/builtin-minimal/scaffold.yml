@@ -1,4 +1,5 @@
 name: "builtin-minimal"
+apiVersion: "^1.0"
 description: >
   Minimal single-file HDL stub — entity/module declaration with an empty
   architecture/module body. Use this as a starting point when you want to

@@ -19,7 +19,7 @@ import { sortByCompilationOrder } from '../utils/compilationOrder';
 import { getToolchain } from '../services/toolchains/registry';
 import { generateTestbenchFiles, DEFAULT_FRAMEWORK, DEFAULT_ENGINE } from './testbench';
 import { YamlValidator } from '../services/YamlValidator';
-import { assertValidContext, CONTRACT_VERSION } from './contract';
+import { assertValidContext, CONTRACT_VERSION, checkPackApiVersion } from './contract';
 import type { TemplateContext } from './contract';
 import { BUS_REGISTRY } from './buses/builtin';
 import { clockResetResolver } from './resolvers/clockReset';
@@ -102,6 +102,7 @@ export class IpCoreScaffolder {
       const pack = packName
         ? scaffoldPackLoader.resolve(packName, workspacePackDirs)
         : scaffoldPackLoader.resolveDefault(ipCraftMethodology);
+      checkPackApiVersion(pack);
       const resolvedPackName = path.basename(pack.packDir);
 
       // Pack-level template loader: searches pack dir first (user overrides), then built-in templates.

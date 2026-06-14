@@ -39,6 +39,13 @@ export interface ScaffoldPack {
    * When false, testbench sees a minimal stub without register signals.
    */
   fullGeneration?: boolean;
+  /**
+   * SemVer range declaring which template context contract version this pack targets.
+   * E.g. "^1.0" means compatible with any 1.x contract >= 1.0.
+   * IPCraft rejects a pack whose apiVersion is not satisfied by the running CONTRACT_VERSION.
+   * Absent means no version constraint (unversioned packs skip the check).
+   */
+  apiVersion?: string;
 }
 
 export interface GenerateOptions {

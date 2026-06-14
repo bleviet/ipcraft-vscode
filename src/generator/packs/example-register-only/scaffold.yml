@@ -1,4 +1,5 @@
 name: "example-register-only"
+apiVersion: "^1.0"
 category: "example"
 description: >
   Generates only the register file decoder. Use this when your RTL top-level,

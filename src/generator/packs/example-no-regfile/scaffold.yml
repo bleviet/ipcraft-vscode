@@ -1,4 +1,5 @@
 name: "example-no-regfile"
+apiVersion: "^1.0"
 category: "example"
 description: >
   Full layered architecture (package, top, core, bus wrapper) without the

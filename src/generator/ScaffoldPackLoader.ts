@@ -72,6 +72,7 @@ export class ScaffoldPackLoader {
       packDir,
       files,
       fullGeneration: Boolean(parsed.fullGeneration ?? false),
+      apiVersion: parsed.apiVersion !== undefined ? String(parsed.apiVersion) : undefined,
     };
   }
 
