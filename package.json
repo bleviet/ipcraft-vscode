@@ -1402,6 +1402,8 @@
     "test:integration:hdl": "jest --config config/jest.integration.js --testPathPatterns=hdl",
     "test:integration:vivado": "jest --config config/jest.integration.js --testPathPatterns=vivado",
     "test:integration:quartus": "jest --config config/jest.integration.js --testPathPatterns=quartus",
+    "test:integration:ipxact": "jest --config config/jest.integration.js --testPathPatterns=ipxact",
+    "test:integration:conformance": "jest --config config/jest.integration.js --testPathPatterns=conformance",
     "test:all": "npm run test:unit && npm run test:e2e && npm run test:browser",
     "generate-types": "node scripts/generate-types.js",
     "prepare": "husky install"

@@ -16,6 +16,7 @@
  *   if (guardTier2('vivado', () => fs.existsSync(VIVADO_BIN), `not found at ${VIVADO_BIN}`)) return;
  */
 
+import * as fs from 'fs';
 import { spawnSync } from 'child_process';
 
 export function toolOnPath(name: string): boolean {
@@ -56,7 +57,10 @@ export function guardTier1(toolName: string, available: () => boolean): boolean 
  *
  * - If the tool is present: returns false (proceed).
  * - If REQUIRE_<TOOL>=1: throws (CI host has declared the tool must be present).
- * - Otherwise: warns visibly and returns true (caller returns early).
+ * - Otherwise: warns visibly, records a skip entry, and returns true.
+ *
+ * Skip telemetry: when SKIP_TELEMETRY_FILE is set, appends a NDJSON record so
+ * dashboards can track coverage gaps rather than seeing green-by-omission.
  */
 export function guardTier2(toolName: string, available: () => boolean, reason?: string): boolean {
   if (available()) {
@@ -71,9 +75,34 @@ export function guardTier2(toolName: string, available: () => boolean, reason?: 
     );
   }
 
+  const skipReason = reason ?? 'tool not found';
   console.warn(
-    `\n[tier 2] SKIPPING ${toolName}: ${reason ?? 'tool not found'}.\n` +
+    `\n[tier 2] SKIPPING ${toolName}: ${skipReason}.\n` +
       `  Set ${requireKey}=1 to fail instead of skipping.\n`
   );
+
+  recordSkip(toolName, skipReason);
   return true;
+}
+
+/**
+ * Append a skip record to SKIP_TELEMETRY_FILE (NDJSON) if the env var is set.
+ * Each line is a self-contained JSON object so the file can be streamed by CI dashboards.
+ */
+function recordSkip(toolName: string, reason: string): void {
+  const telemetryFile = process.env['SKIP_TELEMETRY_FILE'];
+  if (!telemetryFile) {
+    return;
+  }
+  const record = JSON.stringify({
+    tool: toolName,
+    tier: 2,
+    reason,
+    timestamp: new Date().toISOString(),
+  });
+  try {
+    fs.appendFileSync(telemetryFile, record + '\n', 'utf8');
+  } catch {
+    // Non-fatal: telemetry write failures must not break the test run.
+  }
 }
