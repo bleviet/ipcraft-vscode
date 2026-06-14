@@ -108,12 +108,19 @@ describe('useFieldEditor — initial selection state', () => {
 
 describe('useFieldEditor — moveSelectedField', () => {
   it('moves down by 1 when delta is +1', () => {
-    jest.useFakeTimers();
-    const fields = [makeField('A', 0), makeField('B', 1), makeField('C', 2)];
+    const fieldsBefore = [makeField('A', 0), makeField('B', 1), makeField('C', 2)];
+    // Simulate the upstream YAML reorder: A and B swap positions.
+    const fieldsAfter = [makeField('B', 0), makeField('A', 1), makeField('C', 2)];
     const onUpdate = jest.fn();
-    const { result } = renderHook(() => useFieldEditor(fields, 32, onUpdate, true));
 
-    // Manually set start index to 0
+    const { result, rerender } = renderHook(
+      ({ fields }: { fields: BitFieldRecord[] }) => useFieldEditor(fields, 32, onUpdate, true),
+      { initialProps: { fields: fieldsBefore } }
+    );
+
+    // Capture the stable rowId of field A (at index 0 before the move).
+    const rowIdA = result.current.wrappedFields[0].rowId;
+
     act(() => {
       result.current.setSelectedFieldIndex(0);
     });
@@ -122,13 +129,17 @@ describe('useFieldEditor — moveSelectedField', () => {
       result.current.moveSelectedField(1);
     });
 
+    // moveSelectedField only issues the op; it does NOT mutate selection locally.
+    // Selection follows the moved field via rowId after the parent rerenders.
+    expect(onUpdate).toHaveBeenCalledWith(['__op', 'field-move'], { index: 0, delta: 1 });
+
     act(() => {
-      jest.runOnlyPendingTimers();
+      rerender({ fields: fieldsAfter });
     });
 
+    // rowId is stable across reorder, so selectedIndex follows A to its new position.
+    expect(result.current.wrappedFields.findIndex((w) => w.rowId === rowIdA)).toBe(1);
     expect(result.current.selectedFieldIndex).toBe(1);
-    expect(onUpdate).toHaveBeenCalledWith(['__op', 'field-move'], { index: 0, delta: 1 });
-    jest.useRealTimers();
   });
 
   it('does not move below 0', () => {

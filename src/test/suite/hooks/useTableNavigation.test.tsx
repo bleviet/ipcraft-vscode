@@ -138,7 +138,10 @@ describe('useTableNavigation', () => {
     fireEvent.keyDown(container, { key: 'k' });
 
     expect(onMove).toHaveBeenCalledWith('row-1', 1);
-    expect(setActiveCell).toHaveBeenCalledWith({ rowId: 'row-2', key: 'desc' });
+    // Alt+Arrow keeps focus on the moved field (rowId stays stable after reorder);
+    // the displaced neighbour does NOT get focus.
+    expect(setActiveCell).toHaveBeenCalledWith({ rowId: 'row-1', key: 'desc' });
+    // Plain vim 'k' is regular vertical navigation: move active cell up one row.
     expect(setActiveCell).toHaveBeenCalledWith({ rowId: 'row-0', key: 'desc' });
   });
 
