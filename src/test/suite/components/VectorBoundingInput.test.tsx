@@ -364,70 +364,21 @@ describe('VectorBoundingInput', () => {
     expect(msbInput.value).toBe('9');
   });
 
-  it('does not commit on each step — only after the debounce window', () => {
-    jest.useFakeTimers();
-    try {
-      const onInput = jest.fn();
-      render(
-        <VectorBoundingInput
-          editKey="bits"
-          value="[15:8]"
-          registerSize={32}
-          maxWidth={32}
-          onInput={onInput}
-        />
-      );
+  it('commits onInput immediately on each step', () => {
+    const onInput = jest.fn();
+    render(
+      <VectorBoundingInput
+        editKey="bits"
+        value="[15:8]"
+        registerSize={32}
+        maxWidth={32}
+        onInput={onInput}
+      />
+    );
 
-      const msbInput = screen.getByPlaceholderText('MSB') as HTMLInputElement;
+    const msbInput = screen.getByPlaceholderText('MSB') as HTMLInputElement;
 
-      const step = () => {
-        const upEvent = new KeyboardEvent('keydown', {
-          key: 'ArrowUp',
-          bubbles: true,
-          cancelable: true,
-        });
-        act(() => {
-          msbInput.dispatchEvent(upEvent);
-        });
-      };
-
-      step();
-      step();
-      step();
-
-      // Local state updates immediately, but nothing is committed yet.
-      expect(msbInput.value).toBe('18');
-      expect(onInput).not.toHaveBeenCalled();
-
-      // After the debounce window, a single commit fires with the final value.
-      act(() => {
-        jest.advanceTimersByTime(300);
-      });
-      expect(onInput).toHaveBeenCalledTimes(1);
-      expect(onInput).toHaveBeenLastCalledWith('[18:8]');
-    } finally {
-      jest.useRealTimers();
-    }
-  });
-
-  it('flushes pending stepped value on blur and cancels the debounced commit', () => {
-    jest.useFakeTimers();
-    try {
-      const onInput = jest.fn();
-      const onBlur = jest.fn();
-      render(
-        <VectorBoundingInput
-          editKey="bits"
-          value="[15:8]"
-          registerSize={32}
-          maxWidth={32}
-          onInput={onInput}
-          onBlur={onBlur}
-        />
-      );
-
-      const msbInput = screen.getByPlaceholderText('MSB') as HTMLInputElement;
-
+    const step = () => {
       const upEvent = new KeyboardEvent('keydown', {
         key: 'ArrowUp',
         bubbles: true,
@@ -436,26 +387,53 @@ describe('VectorBoundingInput', () => {
       act(() => {
         msbInput.dispatchEvent(upEvent);
       });
-      expect(onInput).not.toHaveBeenCalled();
+    };
 
-      const container = msbInput.parentElement!;
-      act(() => {
-        fireEvent.blur(container, { relatedTarget: null });
-      });
+    step();
+    step();
+    step();
 
-      // Blur commits once.
-      expect(onInput).toHaveBeenCalledTimes(1);
-      expect(onInput).toHaveBeenLastCalledWith('[16:8]');
-      expect(onBlur).toHaveBeenLastCalledWith('[16:8]');
+    // Each step fires onInput immediately.
+    expect(msbInput.value).toBe('18');
+    expect(onInput).toHaveBeenCalledTimes(3);
+    expect(onInput).toHaveBeenLastCalledWith('[18:8]');
+  });
 
-      // The pending debounce was cancelled — no second commit fires.
-      act(() => {
-        jest.advanceTimersByTime(300);
-      });
-      expect(onInput).toHaveBeenCalledTimes(1);
-    } finally {
-      jest.useRealTimers();
-    }
+  it('step fires onInput immediately and blur commits the final stepped value', () => {
+    const onInput = jest.fn();
+    const onBlur = jest.fn();
+    render(
+      <VectorBoundingInput
+        editKey="bits"
+        value="[15:8]"
+        registerSize={32}
+        maxWidth={32}
+        onInput={onInput}
+        onBlur={onBlur}
+      />
+    );
+
+    const msbInput = screen.getByPlaceholderText('MSB') as HTMLInputElement;
+
+    const upEvent = new KeyboardEvent('keydown', {
+      key: 'ArrowUp',
+      bubbles: true,
+      cancelable: true,
+    });
+    act(() => {
+      msbInput.dispatchEvent(upEvent);
+    });
+    // Step fires onInput immediately.
+    expect(onInput).toHaveBeenCalledTimes(1);
+    expect(onInput).toHaveBeenLastCalledWith('[16:8]');
+
+    const container = msbInput.parentElement!;
+    act(() => {
+      fireEvent.blur(container, { relatedTarget: null });
+    });
+
+    // Blur commits the value via onInput + onBlur.
+    expect(onBlur).toHaveBeenCalledWith('[16:8]');
   });
 
   it('stepping MSB down never inverts below LSB', () => {
@@ -474,5 +452,34 @@ describe('VectorBoundingInput', () => {
 
     // MSB cannot drop below LSB (8); it stays clamped at 8.
     expect(msbInput.value).toBe('8');
+  });
+
+  it('LSB cannot step below minBit (lower neighbor boundary)', () => {
+    // CONTROL register scenario: STOP_ON_ERR [1:1] with RUN [0:0] as lower neighbor.
+    // minBit=1 means LSB can never step below 1, preventing overlap with RUN.
+    render(
+      <VectorBoundingInput
+        editKey="bits"
+        value="[1:1]"
+        registerSize={32}
+        maxWidth={31}
+        minBit={1}
+        onInput={jest.fn()}
+      />
+    );
+
+    const lsbInput = screen.getByPlaceholderText('LSB') as HTMLInputElement;
+
+    const downEvent = new KeyboardEvent('keydown', {
+      key: 'ArrowDown',
+      bubbles: true,
+      cancelable: true,
+    });
+    act(() => {
+      lsbInput.dispatchEvent(downEvent);
+    });
+
+    // LSB must stay at 1; stepping into bit 0 (RUN's territory) is blocked.
+    expect(lsbInput.value).toBe('1');
   });
 });

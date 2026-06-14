@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-const STEP_COMMIT_DEBOUNCE_MS = 300;
-
 export interface VectorBoundingInputProps {
   editKey: string;
   value: string;
   registerSize: number;
   maxWidth: number;
+  minBit?: number;
   hasError?: boolean;
   onInput: (value: string) => void;
   onBlur?: (value: string) => void;
@@ -20,6 +19,7 @@ export const VectorBoundingInput: React.FC<VectorBoundingInputProps> = ({
   value,
   registerSize,
   maxWidth,
+  minBit = 0,
   hasError = false,
   onInput,
   onBlur,
@@ -38,7 +38,6 @@ export const VectorBoundingInput: React.FC<VectorBoundingInputProps> = ({
   const localLsbRef = useRef(localLsb);
   const onInputRef = useRef(onInput);
   const adjustValueRef = useRef<((isMsb: boolean, delta: number) => void) | null>(null);
-  const commitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!isFocusedRef.current) {
@@ -59,15 +58,6 @@ export const VectorBoundingInput: React.FC<VectorBoundingInputProps> = ({
   useEffect(() => {
     onInputRef.current = onInput;
   }, [onInput]);
-
-  useEffect(() => {
-    return () => {
-      if (commitTimerRef.current !== null) {
-        clearTimeout(commitTimerRef.current);
-        commitTimerRef.current = null;
-      }
-    };
-  }, []);
 
   const parseValue = (val: string): [string, string] => {
     const trimmed = val.trim();
@@ -97,16 +87,6 @@ export const VectorBoundingInput: React.FC<VectorBoundingInputProps> = ({
     return `[${displayMsb}:${displayLsb}]`;
   };
 
-  const scheduleCommit = (range: string) => {
-    if (commitTimerRef.current !== null) {
-      clearTimeout(commitTimerRef.current);
-    }
-    commitTimerRef.current = setTimeout(() => {
-      commitTimerRef.current = null;
-      onInputRef.current(range);
-    }, STEP_COMMIT_DEBOUNCE_MS);
-  };
-
   const adjustValue = (isMsb: boolean, delta: number) => {
     const currentMsb = localMsbRef.current;
     const currentLsb = localLsbRef.current;
@@ -134,7 +114,7 @@ export const VectorBoundingInput: React.FC<VectorBoundingInputProps> = ({
     } else {
       const mNum = currentMsb === '' ? 0 : parseInt(currentMsb, 10);
       if (!Number.isNaN(mNum)) {
-        nextVal = Math.max(0, Math.max(mNum - maxWidth + 1, Math.min(nextVal, mNum)));
+        nextVal = Math.max(minBit, Math.max(mNum - maxWidth + 1, Math.min(nextVal, mNum)));
       }
     }
 
@@ -142,10 +122,10 @@ export const VectorBoundingInput: React.FC<VectorBoundingInputProps> = ({
 
     if (isMsb) {
       setLocalMsb(nextStr);
-      scheduleCommit(formatRange(nextStr, currentLsb));
+      onInputRef.current(formatRange(nextStr, currentLsb));
     } else {
       setLocalLsb(nextStr);
-      scheduleCommit(formatRange(currentMsb, nextStr));
+      onInputRef.current(formatRange(currentMsb, nextStr));
     }
   };
 
@@ -273,11 +253,6 @@ export const VectorBoundingInput: React.FC<VectorBoundingInputProps> = ({
   };
 
   const commitChanges = () => {
-    if (commitTimerRef.current !== null) {
-      clearTimeout(commitTimerRef.current);
-      commitTimerRef.current = null;
-    }
-
     if (cancelEditRef?.current) {
       return;
     }

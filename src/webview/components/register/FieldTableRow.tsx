@@ -110,6 +110,23 @@ const FieldTableRow = ({
   }
   const maxWidth = Math.max(1, registerSize - otherWidthsSum);
 
+  let lsbFloor = 0;
+  for (let i = 0; i < index; ++i) {
+    const otherRowId = fieldEditor.wrappedFields[i]?.rowId;
+    const b = otherRowId
+      ? (bitsDrafts[otherRowId] ?? fieldToBitsString(fields[i]))
+      : fieldToBitsString(fields[i]);
+    const parsed = parseBitsInput(b);
+    const otherMsb = parsed
+      ? parsed.bitRange[0]
+      : fields[i].bitRange
+        ? (fields[i].bitRange as [number, number])[0]
+        : Number(fields[i].offset) + (Number(fields[i].width) || 1) - 1;
+    if (Number.isFinite(otherMsb)) {
+      lsbFloor = Math.max(lsbFloor, otherMsb + 1);
+    }
+  }
+
   const applyBitsUpdate = (next: string) => {
     let err = validateBitsString(next);
     if (!err) {
@@ -336,6 +353,7 @@ const FieldTableRow = ({
                   value={bitsValue}
                   registerSize={registerSize}
                   maxWidth={maxWidth}
+                  minBit={lsbFloor}
                   hasError={!!bitsErr}
                   onFocus={onCellFocus(index, 'bits')}
                   cancelEditRef={fieldEditor.cancelEditRef}
