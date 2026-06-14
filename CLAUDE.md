@@ -4,8 +4,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 IPCraft is a VS Code extension providing visual editors for FPGA IP Core (`.ip.yml`) and Memory Map (`.mm.yml`) YAML specs, plus HDL code generation (VHDL/SystemVerilog), vendor project scaffolding (Vivado/Quartus), headless builds, and importers (VHDL, Platform Designer `_hw.tcl`, Vivado `component.xml`).
 
-A more exhaustive, service-by-service map lives in `.github/copilot-instructions.md` — consult it for details not covered here.
-
 ## Commands
 
 ```bash
