@@ -1,138 +1,238 @@
-# Bit Field Interaction
+# Bit Field Interaction Reference
 
-Detailed reference for how bit-field editing works in the Memory Map register editor.
+A lookup reference for bit-field editing in the Memory Map register editor:
+keyboard shortcuts, gesture inputs/outputs, callback contracts, data shapes, and
+function signatures.
 
-## Core Data Model
+For the mental model see [Spatial Editing](../concepts/spatial-editing.md); for
+how the pieces fit together see
+[Bit Field Handling](../architecture/bit-field-handling.md).
 
-Every bit field carries three position properties:
+## Data shapes
+
+Runtime position properties on a field (all camelCase; none are persisted):
 
 ```text
-bit_range:  [hi, lo]       -- canonical [MSB, LSB] tuple
-bit_offset: lo              -- LSB index
-bit_width:  hi - lo + 1     -- field width in bits
+bitRange : [hi, lo]        // canonical [MSB, LSB] tuple
+offset   : lo              // LSB index
+width    : hi - lo + 1     // field width in bits
 ```
+
+Persisted field keys: `name`, `bits`, `access`, `resetValue`, `description`, and
+optional `enumeratedValues` / `monitorChangeOf`.
+
+### `ProSegment` (`bitfield/types.ts`)
+
+A tagged union; the segment list tiles the register bit space MSB-first.
+
+```typescript
+type ProSegment =
+  | { type: 'field'; idx: number; start: number; end: number; name: string; color: string }
+  | { type: 'gap'; start: number; end: number };
+```
+
+`start` is the LSB of the span, `end` the MSB.
 
 ### Bit-ownership array
 
-`BitFieldVisualizer` builds a per-bit ownership array of length `registerSize` (default 32):
+`buildBitOwnerArray(fields, registerSize)` returns an array of length
+`registerSize` where `owners[bit] = fieldIndex | null`. Drives hit testing,
+resize-boundary calculation, and gap detection.
 
-```text
-owners[bit] = fieldIndex | null
-```
+## Keyboard shortcuts
 
-This array drives hit testing, collision detection, resize boundary calculation, and gap detection.
+### Visualizer (focused bit-field cell)
 
-### Segment model
+Direction maps to the layout's orientation.
 
-`buildProLayoutSegments(fields, registerSize)` converts fields and gaps into an ordered list of segments:
+| Layout | Reorder (swap with neighbour) | Resize (grow/shrink an edge) |
+|--------|-------------------------------|------------------------------|
+| `pro` (horizontal) | `Alt+Left` toward MSB, `Alt+Right` toward LSB | `Shift+Left` / `Shift+Right` |
+| `vertical` (stacked) | `Alt+Up` toward LSB, `Alt+Down` toward MSB | `Shift+Up` / `Shift+Down` |
+
+### Field table
+
+| Key | Action |
+|-----|--------|
+| `Arrow` keys / `h` `j` `k` `l` | Move the active cell |
+| `Alt+Up` / `Alt+Down` | Move the selected field up/down (focus follows the field) |
+| `F2` / `Enter` / `e` | Edit the active cell |
+| `d` / `Delete` | Delete the selected field |
+| `o` | Insert field after | 
+| `O` (`Shift+o`) | Insert field before |
+
+`Ctrl` / `Cmd` chords are not hijacked by table navigation.
+
+## Pointer gestures
+
+| Gesture | Trigger | Result | Commit callback |
+|---------|---------|--------|-----------------|
+| Resize | `Shift` + drag an edge of a field | New field range, clamped to neighbours | `onUpdateFieldRange` |
+| Create | `Shift` + drag inside a gap | New field over the dragged span | `onCreateField` |
+| Relocate | `Ctrl`/`Cmd` + drag a field | Field moved; others part to receive it (live preview) | `onBatchUpdateFields` |
+| Toggle reset bit | Click a bit cell | Flip that bit of the owning field's `resetValue` | `onUpdateFieldReset` |
+
+Relocate commits atomically through `onBatchUpdateFields`; sequential per-field
+updates would pass through overlapping intermediate states.
+
+## Callback contracts (`RegisterEditor` <- `BitFieldVisualizer`)
+
+| Callback | Signature | Meaning |
+|----------|-----------|---------|
+| `onUpdateFieldRange` | `(idx: number, [hi, lo]: [number, number])` | One field's range changed |
+| `onBatchUpdateFields` | `(updates: { idx: number; range: [hi, lo] }[])` | Many ranges changed atomically |
+| `onCreateField` | `({ bitRange: [hi, lo]; name: string })` | New field from a gap drag |
+| `onUpdateFieldReset` | `(idx: number, value: number \| null)` | A reset bit toggled |
+| `onDragPreview` | `(updates \| null)` | Transient Ctrl-drag preview (no YAML write) |
+
+## Function reference
+
+### Parse / format (`utils/BitFieldUtils.ts`)
+
+| Function | Signature | Notes |
+|----------|-----------|-------|
+| `parseBitsRange` | `(bits: string) => [hi, lo] \| null` | Strict bracketed parse |
+| `parseBitsLike` | `(text: string) => { offset, width } \| null` | Tolerant (accepts `7:0`) |
+| `formatBitsRange` | `(hi: number, lo: number) => string` | Builds `'[hi:lo]'` |
+| `fieldToBitsString` | `(field) => string` | Prefers `offset`/`width`, falls back to `bits` |
+
+### Validation (`shared/utils/fieldValidation.ts`)
+
+| Function | Signature |
+|----------|-----------|
+| `validateBitsString` | `(bits: string) => string \| null` (error message or null) |
+| `parseBitsInput` | `(text: string) => { offset, width, ... }` |
+| `parseBitsWidth` | `(bits: string) => number \| null` |
+| `parseReset` | `(text: string) => number \| null` |
+| `validateResetForField` | reset-value bounds check against field width |
+
+### Layout (`algorithms/LayoutEngine.ts`)
+
+| Function | Signature | Gaps |
+|----------|-----------|------|
+| `recomputeBitfieldLayout` | `(fields, regWidth) => LayoutField[]` | Removed (compact pack from bit 0) |
+| `reorderBitfieldLayout` | `(fields, movedIdx, direction: 'lsb' \| 'msb', regWidth) => LayoutField[]` | Preserved; skips gap segments to swap the moved field with the next field |
+
+### Segments and ownership (`bitfield/utils.ts`)
+
+| Function | Signature |
+|----------|-----------|
+| `getFieldRange` | `(field) => { lo, hi } \| null` |
+| `groupFields` | `(fields) => { idx, start, end, name, color }[]` |
+| `buildProLayoutSegments` | `(fields, registerSize) => ProSegment[]` |
+| `repackSegments` | `(segments: ProSegment[]) => ProSegment[]` (gap-preserving) |
+| `toFieldRangeUpdates` | `(segments) => { idx, range: [hi, lo] }[]` |
+| `buildBitOwnerArray` | `(fields, registerSize) => (number \| null)[]` |
+| `findResizeBoundary` | resize clamp bounds from neighbours |
+| `findGapBoundaries` | extent of the empty run under the cursor |
+
+### Reorder / resize helpers
+
+| Function | File | Signature |
+|----------|------|-----------|
+| `computeCtrlDragPreview` | `bitfield/reorderAlgorithm.ts` | Ctrl-drag preview segments |
+| `getKeyboardReorderUpdates` | `bitfield/keyboardOperations.ts` | Gap-preserving reorder range updates |
+| `getKeyboardResizeRange` | `bitfield/keyboardOperations.ts` | One-bit edge grow/shrink, bounded |
+
+### Reset / register value (`bitfield/utils.ts`)
+
+| Function | Signature | Notes |
+|----------|-----------|-------|
+| `bitAt` | `(value, bitIndex) => 0 \| 1` | Read one bit |
+| `setBit` | `(value, bitIndex, desired: 0 \| 1) => number` | Write one bit |
+| `extractBits` | `(value, lo, width) => number` | Slice a sub-value |
+| `maxForBits` | `(bitCount) => number` | Max value for a width |
+| `applyRegisterValueToFields` | decompose a register value onto each field |
+
+Value math uses `Math.pow(2, n)` arithmetic (safe to 53 bits), avoiding 32-bit
+bitwise truncation. Masks at width >= 53 fall back to `Number.MAX_SAFE_INTEGER`.
+
+### Insertion (`services/SpatialInsertionService.ts`)
+
+All methods are static and side-effect free, returning `InsertionResult<T>`:
 
 ```typescript
-{ type: 'field', idx, start: lo, end: hi, name, color }
-{ type: 'gap', start: lo, end: hi }
+interface InsertionResult<T> {
+  items: T[];        // updated array (unchanged on error)
+  newIndex: number;  // index of the new item (-1 on error)
+  error?: string;    // human-readable reason (only on failure)
+}
 ```
 
-Used for rendering and the Ctrl-drag reorder algorithm.
+| Method | Purpose |
+|--------|---------|
+| `insertField(dir, fields, selectedIndex, registerSize)` | Insert a 1-bit field after/before the selection |
+| `insertFieldAfter` / `insertFieldBefore` | Directional variants |
+| `insertRegister` / `insertRegisterAfter` / `insertRegisterBefore` | Insert a default 4-byte register |
+| `insertBlock` / `insertBlockAfter` / `insertBlockBefore` | Insert a block with one register |
 
-## Shift-Drag: Resize and Create
+| Repacker | File | Functions |
+|----------|------|-----------|
+| Field | `algorithms/BitFieldRepacker.ts` | `repackFieldsForward`, `repackFieldsBackward` |
+| Register | `algorithms/RegisterRepacker.ts` | `repackRegistersForward`, `repackRegistersBackward` |
+| Block | `algorithms/AddressBlockRepacker.ts` | `repackBlocksForward`, `repackBlocksBackward` |
 
-### Resize (Shift + pointer-down on a field)
+### Field operations (`services/FieldOperationService.ts`)
 
-1. Determine which edge the user grabbed (MSB or LSB) by comparing to field midpoint
-2. Anchor the opposite edge
-3. Compute drag boundaries using `findResizeBoundary`
-4. On pointer-move, clamp to boundaries
-5. On pointer-up, commit new range via `onUpdateFieldRange`
+`applyFieldOperation` dispatches the `__op` ops used by the table:
 
-### Create (Shift + pointer-down on a gap)
+| Op | Effect |
+|----|--------|
+| `field-move` | Swap `fields[index]` and `fields[index+delta]` (positions recomputed afterwards by `reorderBitfieldLayout`) |
+| add / delete | Add a field at the first free bit / remove by index |
 
-1. Find contiguous gap boundaries via `findGapBoundaries`
-2. Set anchor at clicked bit
-3. On pointer-move, expand selection within gap
-4. On pointer-up, emit `onCreateField` with the selected range
+## Table draft layers
 
-## Ctrl-Drag: Reorder
-
-Moves a field to a different bit position, pushing other fields aside.
-
-1. Build segment list from current fields
-2. Remove the dragged segment
-3. Repack remaining segments (dense, no gaps)
-4. Find insertion target at pointer position
-5. Insert dragged segment (before/after field, or split gap)
-6. Final repack assigns valid positions
-7. Live preview via `ctrlDrag.previewSegments`
-8. Commit on pointer-up with `onBatchUpdateFields` (atomic update)
-
-!!! important
-    Batch commit is essential. Sequential per-field updates would cause intermediate overlapping states.
-
-## Table Draft Layers
-
-`FieldsTable` display priority for bit ranges:
+`FieldsTable` resolves a row's displayed bit range in priority order:
 
 1. `dragPreviewRanges[index]` -- live Ctrl-drag preview (highest)
-2. `bitsDrafts[index]` -- user's uncommitted text edit
-3. `fieldToBitsString(field)` -- committed data model value
+2. `bitsDrafts[rowId]` -- the user's uncommitted text edit
+3. `fieldToBitsString(field)` -- the committed data-model value
 
-Draft maps are keyed by row index. On reorder, `useFieldEditor` detects order changes via an order signature and clears all draft maps.
+Draft maps (`nameDrafts`, `bitsDrafts`, `resetDrafts` and their error maps) are
+**keyed by `rowId`**, not by array index (`useFieldDrafts.ts`). On a reorder or
+other structural change `useFieldEditor` calls `clearAllDrafts()`.
 
-## Inline Bits Editing with Repack
+## Inline bits editing with cascade
 
 When the user edits a bit range in the table:
 
-1. Parse new bits string
-2. Validate format and total bit usage
-3. Update edited field positions
-4. Repack all subsequent fields (preserve widths, shift positions)
-5. Commit full updated field array
+1. Parse the new bits string (`parseBitsInput`).
+2. Validate format and total register usage (`validateBitsString`).
+3. Update the edited field's `offset` / `width` / `bitRange`.
+4. Cascade fields below upward to stay non-overlapping (widths preserved).
+5. Commit the full updated field array.
 
-## Data Commit Path
+## Layout views
+
+| View | File | Orientation | Used by `RegisterEditor` |
+|------|------|-------------|--------------------------|
+| `pro` | `bitfield/ProLayoutView.tsx` | Horizontal, MSB left, per-bit value cells | Yes (stacked register layout) |
+| `vertical` | `bitfield/VerticalLayoutView.tsx` | Stacked rows | Yes (side-by-side register layout) |
+| `default` | `bitfield/DefaultLayoutView.tsx` | Legacy grid | No (fallback branch only) |
+
+## Commit path
 
 ```text
 User interaction
   -> BitFieldVisualizer callback
-  -> RegisterEditor handler (compute derived fields, sort by LSB)
-  -> onUpdate(['fields'], newFields)
-  -> DetailsPanel -> useYamlSync -> YamlPathResolver -> DocumentManager
-  -> VS Code document update
+  -> RegisterEditor handler (compute derived fields, sort by offset)
+  -> onUpdate -> useYamlUpdateHandler
+  -> YamlService.applyPathEdits (yaml v2, comment-preserving)
+  -> serializeValue (strip rowId / offset / width)
+  -> updateRawText -> useYamlSync.sendUpdate (revisioned V-3/V-4)
+  -> postMessage -> extension DocumentManager -> VS Code document
 ```
 
-## Reset Value Editing
+## Test files
 
-Pro layout renders per-bit value cells:
-
-- Click a bit cell to toggle 0/1
-- Drag across bits to set multiple bits
-- Hex value bar shows composite value with direct hex input
-
-Uses `Math.pow(2, n)` arithmetic (safe up to 53 bits, avoiding 32-bit bitwise limits).
-
-## Implementation Files
-
-| File | Purpose |
-|------|---------|
-| `BitFieldVisualizer.tsx` | Visual diagram + pointer interaction |
-| `bitfield/ProLayoutView.tsx` | Pro layout rendering with value cells |
-| `bitfield/DefaultLayoutView.tsx` | Default layout rendering |
-| `bitfield/VerticalLayoutView.tsx` | Vertical (side-by-side) layout |
-| `bitfield/FieldCell.tsx` | Individual bit-field cell rendering |
-| `bitfield/ValueBar.tsx` | Hex value bar component |
-| `bitfield/useShiftDrag.ts` | Resize/create drag state machine |
-| `bitfield/useCtrlDrag.ts` | Reorder drag state machine |
-| `bitfield/useValueEditing.ts` | Reset value editing state machine |
-| `bitfield/reorderAlgorithm.ts` | Ctrl-drag reorder computation |
-| `bitfield/keyboardOperations.ts` | Keyboard reorder/resize helpers |
-| `bitfield/renderBitCellStyle.ts` | Shared bit-cell styling |
-| `bitfield/utils.ts` | Shared utility functions |
-| `register/RegisterEditor.tsx` | Wires callbacks to data model |
-| `register/FieldsTable.tsx` | Inline-editable table with drafts |
-| `register/FieldTableRow.tsx` | Individual field row rendering |
-| `hooks/useFieldEditor.ts` | Selection, drafts, keyboard, insertion |
-
-## Testing
-
-| Test File | Covers |
+| Test file | Covers |
 |-----------|--------|
-| `hooks/useFieldEditor.test.ts` | Draft management, selection, insertion, reorder sync |
-| `algorithms/BitFieldRepacker.test.ts` | Forward/backward repacking, edge clamping |
+| `algorithms/LayoutEngine.test.ts` | Compact + gap-preserving + gap-skipping layout |
+| `algorithms/BitFieldRepacker.test.ts` | Forward/backward field repacking, edge clamping |
+| `algorithms/RegisterRepacker.test.ts` | Register repacking |
+| `algorithms/AddressBlockRepacker.test.ts` | Block repacking |
 | `services/SpatialInsertionService.test.ts` | Field/register/block insertion pipeline |
+| `services/FieldOperationService.test.ts` | `field-move` array mutation |
+| `hooks/useFieldEditor.test.ts` | Draft management, selection, insertion, reorder |
+| `hooks/useTableNavigation.test.tsx` | Navigation, Alt+arrow move, focus-follows-field |
