@@ -62,6 +62,16 @@ module {{ entity_name }}_axil
   logic [C_DATA_WIDTH-1:0]     rd_data;
   logic                        rd_valid;
 
+  // Latches: hold W-channel data and AW/AR addresses after the handshake
+  logic [C_DATA_WIDTH-1:0]     wdata_latch  = '0;
+  logic [(C_DATA_WIDTH/8)-1:0] wstrb_latch  = '0;
+  logic [C_ADDR_WIDTH-1:0]     awaddr_lat   = '0;
+  logic [C_ADDR_WIDTH-1:0]     araddr_lat   = '0;
+  // wr_pending: single-cycle wr_en gate
+  logic                        wr_pending   = 1'b0;
+  // rd_invalid_d: registered flag for unmapped read address
+  logic                        rd_invalid_d = 1'b0;
+
   // Write transaction tracking
   logic aw_en          = 1'b1;
   logic addr_received  = 1'b0;
@@ -162,6 +172,7 @@ module {{ entity_name }}_axil
         awready       <= 1'b1;
         aw_en         <= 1'b0;
         addr_received <= 1'b1;
+        awaddr_lat    <= awaddr;
       end else if (bvalid && bready) begin
         aw_en         <= 1'b1;
         addr_received <= 1'b0;
@@ -184,6 +195,8 @@ module {{ entity_name }}_axil
       if (!wready && wvalid) begin
         wready        <= 1'b1;
         data_received <= 1'b1;
+        wdata_latch   <= wdata;
+        wstrb_latch   <= wstrb;
       end else if (bvalid && bready) begin
         data_received <= 1'b0;
         wready        <= 1'b0;
@@ -194,13 +207,24 @@ module {{ entity_name }}_axil
   end
 
   ////////////////////////////////////////////////////////////////////////////
+  // Write Enable Pulse Gate
+  ////////////////////////////////////////////////////////////////////////////
+  always_ff @(posedge clk) begin : wr_pending_proc
+    if (rst) begin
+      wr_pending <= 1'b0;
+    end else begin
+      wr_pending <= addr_received & data_received;
+    end
+  end
+
+  ////////////////////////////////////////////////////////////////////////////
   // Register Write Control
   // Generate write enable to register bank when both address and data received
   ////////////////////////////////////////////////////////////////////////////
-  assign wr_en   = addr_received & data_received;
-  assign wr_addr = awaddr[C_ADDR_WIDTH-1:0];
-  assign wr_data = wdata;
-  assign wr_strb = wstrb;
+  assign wr_en   = addr_received & data_received & ~wr_pending;
+  assign wr_addr = awaddr_lat[C_ADDR_WIDTH-1:0];
+  assign wr_data = wdata_latch;
+  assign wr_strb = wstrb_latch;
 
   ////////////////////////////////////////////////////////////////////////////
   // Write Response Logic
@@ -212,7 +236,8 @@ module {{ entity_name }}_axil
     end else begin
       if (addr_received && data_received && !bvalid) begin
         bvalid <= 1'b1;
-        bresp  <= C_RESP_OKAY;
+        bresp  <= ($unsigned(awaddr_lat[C_ADDR_WIDTH-1:2]) < {{ registers | length }})
+                  ? C_RESP_OKAY : C_RESP_SLVERR;
       end else if (bready && bvalid) begin
         bvalid <= 1'b0;
       end
@@ -227,7 +252,8 @@ module {{ entity_name }}_axil
       arready <= 1'b0;
     end else begin
       if (!arready && arvalid) begin
-        arready <= 1'b1;
+        arready    <= 1'b1;
+        araddr_lat <= araddr;
       end else begin
         arready <= 1'b0;
       end
@@ -238,7 +264,18 @@ module {{ entity_name }}_axil
   // Register Read Control
   ////////////////////////////////////////////////////////////////////////////
   assign rd_en   = arready & arvalid & ~rvalid;
-  assign rd_addr = araddr[C_ADDR_WIDTH-1:0];
+  assign rd_addr = araddr_lat[C_ADDR_WIDTH-1:0];
+
+  ////////////////////////////////////////////////////////////////////////////
+  // Invalid Read Address Detection
+  ////////////////////////////////////////////////////////////////////////////
+  always_ff @(posedge clk) begin : rd_invalid_proc
+    if (rst) begin
+      rd_invalid_d <= 1'b0;
+    end else begin
+      rd_invalid_d <= rd_en && ($unsigned(rd_addr[C_ADDR_WIDTH-1:2]) >= {{ registers | length }});
+    end
+  end
 
   ////////////////////////////////////////////////////////////////////////////
   // Read Valid Generation
@@ -253,6 +290,10 @@ module {{ entity_name }}_axil
         rvalid <= 1'b1;
         rresp  <= C_RESP_OKAY;
         rdata  <= rd_data;
+      end else if (rd_invalid_d) begin
+        rvalid <= 1'b1;
+        rresp  <= C_RESP_SLVERR;
+        rdata  <= '0;
       end else if (rvalid && rready) begin
         rvalid <= 1'b0;
       end

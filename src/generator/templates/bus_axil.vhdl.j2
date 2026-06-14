@@ -107,6 +107,17 @@ architecture rtl of {{ entity_name }}_axil is
   signal rd_data   : std_logic_vector(C_DATA_WIDTH-1 downto 0);
   signal rd_valid  : std_logic;
 
+  -- Write data/strobe latches: hold W-channel data until the register write
+  -- fires so the master is free to de-assert WVALID after the W handshake.
+  signal wdata_latch  : std_logic_vector(C_DATA_WIDTH-1 downto 0)    := (others => '0');
+  signal wstrb_latch  : std_logic_vector((C_DATA_WIDTH/8)-1 downto 0) := (others => '0');
+  -- Gate wr_en to a single-cycle pulse: wr_pending tracks that wr_en has
+  -- already fired this transaction so the second combinatorial cycle is blocked.
+  signal wr_pending   : std_logic := '0';
+  -- Registered flag for an unmapped read address: lets read_valid_proc respond
+  -- with SLVERR one cycle after rd_en, matching the timing of rd_valid.
+  signal rd_invalid_d : std_logic := '0';
+
   -- Write transaction tracking using VHDL 2008 records
   type t_write_transaction is record
     aw_en         : std_logic; -- Address write enable flag
@@ -227,9 +238,11 @@ begin
         write_txn.data_received <= '0';
       else
         if (wready = '0' and {{ wvalid_port[0].name if wvalid_port | length > 0 else "'0'" }} = '1') then
-          -- Ready to accept write data
+          -- Ready to accept write data; latch data and strobe immediately
           wready              <= '1';
           write_txn.data_received <= '1';
+          wdata_latch         <= {{ wdata_port[0].name if wdata_port | length > 0 else "(others => '0')" }};
+          wstrb_latch         <= {{ wstrb_port[0].name if wstrb_port | length > 0 else "(others => '1')" }};
         elsif (bvalid = '1' and {{ bready_port[0].name if bready_port | length > 0 else "'1'" }} = '1') then
           -- Write response completed, ready for next transaction
           write_txn.data_received <= '0';
@@ -242,13 +255,30 @@ begin
   end process write_data_proc;
 
   ----------------------------------------------------------------------------
+  -- Write Enable Pulse Gate
+  -- wr_pending shadows the combinatorial wr_en one cycle later, ensuring
+  -- wr_en is a single-cycle pulse even when addr/data_received stay high
+  -- until the B-channel handshake.
+  ----------------------------------------------------------------------------
+  wr_pending_proc : process (clk) is
+  begin
+    if rising_edge(clk) then
+      if rst = '1' then
+        wr_pending <= '0';
+      else
+        wr_pending <= write_txn.addr_received and write_txn.data_received;
+      end if;
+    end if;
+  end process wr_pending_proc;
+
+  ----------------------------------------------------------------------------
   -- Register Write Control
   -- Generate write enable to register bank when both address and data received
   ----------------------------------------------------------------------------
-  wr_en   <= write_txn.addr_received and write_txn.data_received;
+  wr_en   <= write_txn.addr_received and write_txn.data_received and not wr_pending;
   wr_addr <= awaddr(C_ADDR_WIDTH-1 downto 0);
-  wr_data <= {{ wdata_port[0].name if wdata_port | length > 0 else "(others => '0')" }};
-  wr_strb <= {{ wstrb_port[0].name if wstrb_port | length > 0 else "(others => '1')" }};
+  wr_data <= wdata_latch;
+  wr_strb <= wstrb_latch;
 
   ----------------------------------------------------------------------------
   -- Write Response Logic
@@ -263,7 +293,11 @@ begin
         if (write_txn.addr_received = '1' and write_txn.data_received = '1' and bvalid = '0') then
           -- Both address and data received, assert write response
           bvalid <= '1';
-          bresp  <= C_RESP_OKAY;
+          if to_integer(unsigned(awaddr(C_ADDR_WIDTH-1 downto 2))) < {{ registers | length }} then
+            bresp <= C_RESP_OKAY;
+          else
+            bresp <= C_RESP_SLVERR;
+          end if;
         elsif ({{ bready_port[0].name if bready_port | length > 0 else "'1'" }} = '1' and bvalid = '1') then
           -- Write response accepted by master
           bvalid <= '0';
@@ -300,8 +334,29 @@ begin
   rd_addr <= araddr(C_ADDR_WIDTH-1 downto 0);
 
   ----------------------------------------------------------------------------
+  -- Invalid Read Address Detection
+  -- Register bank never asserts rd_valid for unmapped addresses; rd_invalid_d
+  -- provides the alternative trigger for read_valid_proc to return SLVERR.
+  ----------------------------------------------------------------------------
+  rd_invalid_proc : process (clk) is
+  begin
+    if rising_edge(clk) then
+      if rst = '1' then
+        rd_invalid_d <= '0';
+      else
+        if rd_en = '1' and to_integer(unsigned(rd_addr(C_ADDR_WIDTH-1 downto 2))) >= {{ registers | length }} then
+          rd_invalid_d <= '1';
+        else
+          rd_invalid_d <= '0';
+        end if;
+      end if;
+    end if;
+  end process rd_invalid_proc;
+
+  ----------------------------------------------------------------------------
   -- Read Valid Generation
-  -- Assert RVALID when register bank provides valid read data
+  -- Assert RVALID when register bank provides valid read data or when the
+  -- address was unmapped (SLVERR, zero data).
   ----------------------------------------------------------------------------
   read_valid_proc : process (clk) is
   begin
@@ -316,6 +371,11 @@ begin
           rvalid <= '1';
           rresp  <= C_RESP_OKAY;
           rdata  <= rd_data;
+        elsif rd_invalid_d = '1' then
+          -- Unmapped read address: complete transaction with SLVERR and zero data
+          rvalid <= '1';
+          rresp  <= C_RESP_SLVERR;
+          rdata  <= (others => '0');
         elsif (rvalid = '1' and {{ rready_port[0].name if rready_port | length > 0 else "'1'" }} = '1') then
           -- Master accepted read data
           rvalid <= '0';
