@@ -167,6 +167,105 @@ export function recomputeBitfieldLayout(fields: LayoutField[], regWidth: number)
   });
 }
 
+/**
+ * Reorder bit-field layout after a single adjacent-field swap.
+ *
+ * After `moveField` swaps two fields in the array, their `bits` values still
+ * reflect the pre-swap positions.  This function builds segments from those
+ * old positions (including any gaps), swaps the two field segments, then
+ * repacks to produce new bit positions that preserve gaps.
+ *
+ * @param fields     Fields array immediately after the move (bits still old).
+ * @param movedIdx   New array index of the field that was moved.
+ * @param direction  'lsb' when moved up in array (toward lower bits);
+ *                   'msb' when moved down in array (toward higher bits).
+ * @param regWidth   Register width in bits.
+ */
+export function reorderBitfieldLayout(
+  fields: LayoutField[],
+  movedIdx: number,
+  direction: 'lsb' | 'msb',
+  regWidth: number
+): LayoutField[] {
+  const width = regWidth > 0 ? regWidth : 32;
+
+  type Seg = { idx: number; lo: number; hi: number; isGap: boolean };
+
+  const fieldSegs: { lo: number; hi: number; idx: number }[] = [];
+  fields.forEach((field, i) => {
+    const bounds = fieldBounds(field);
+    if (bounds) {
+      const hi = Math.max(bounds[0], bounds[1]);
+      const lo = Math.min(bounds[0], bounds[1]);
+      fieldSegs.push({ lo, hi, idx: i });
+    }
+  });
+
+  // Build MSB-first segment list including gap segments.
+  fieldSegs.sort((a, b) => b.hi - a.hi);
+  const segs: Seg[] = [];
+  let cursor = width - 1;
+  for (const fs of fieldSegs) {
+    if (cursor > fs.hi) {
+      segs.push({ idx: -1, lo: fs.hi + 1, hi: cursor, isGap: true });
+    }
+    segs.push({ idx: fs.idx, lo: fs.lo, hi: fs.hi, isGap: false });
+    cursor = fs.lo - 1;
+  }
+  if (cursor >= 0) {
+    segs.push({ idx: -1, lo: 0, hi: cursor, isGap: true });
+  }
+
+  const sourceSegIdx = segs.findIndex((s) => !s.isGap && s.idx === movedIdx);
+  if (sourceSegIdx === -1) {
+    return recomputeBitfieldLayout(fields, regWidth);
+  }
+
+  // Skip over gap segments so the table-row swap always targets the next FIELD,
+  // not an intermediate gap (e.g. when FIFO_LEVEL and BUSY have a gap between them).
+  const step = direction === 'msb' ? -1 : 1;
+  let targetSegIdx = sourceSegIdx + step;
+  while (targetSegIdx >= 0 && targetSegIdx < segs.length && segs[targetSegIdx].isGap) {
+    targetSegIdx += step;
+  }
+  if (targetSegIdx < 0 || targetSegIdx >= segs.length) {
+    return recomputeBitfieldLayout(fields, regWidth);
+  }
+
+  // Swap the two field segments (gap segments between them stay in place).
+  const reordered = [...segs];
+  const [moved] = reordered.splice(sourceSegIdx, 1);
+  reordered.splice(targetSegIdx, 0, moved);
+
+  // Repack from LSB.
+  let currentBit = 0;
+  const repacked = [...reordered]
+    .reverse()
+    .map((seg) => {
+      const segWidth = seg.hi - seg.lo + 1;
+      const lo = currentBit;
+      const hi = currentBit + segWidth - 1;
+      currentBit += segWidth;
+      return { ...seg, lo, hi };
+    })
+    .reverse();
+
+  const newFields = fields.map((f) => ({ ...f }));
+  for (const seg of repacked) {
+    if (!seg.isGap) {
+      const { lo, hi } = seg;
+      newFields[seg.idx] = {
+        ...newFields[seg.idx],
+        bits: formatBitsRange(hi, lo),
+        offset: lo,
+        width: hi - lo + 1,
+        bitRange: [hi, lo] as [number, number],
+      };
+    }
+  }
+  return newFields;
+}
+
 // ---------------------------------------------------------------------------
 // Register Layout
 // ---------------------------------------------------------------------------

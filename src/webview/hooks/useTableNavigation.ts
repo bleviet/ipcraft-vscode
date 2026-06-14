@@ -213,9 +213,10 @@ export function useTableNavigation<T extends ColumnKey>({
         e.preventDefault();
         e.stopPropagation();
         onMove(currentId, delta);
-        const nextId = rowIds[nextIdx];
-        setActiveCell({ rowId: nextId, key: currentKey });
-        scrollToCell(nextId, currentKey);
+        // Keep focus on the MOVED field, not on the displaced neighbour.
+        // After reconcileRowIds, currentId will be at nextIdx in the new rows.
+        setActiveCell({ rowId: currentId, key: currentKey });
+        scrollToCell(currentId, currentKey);
         return;
       }
 

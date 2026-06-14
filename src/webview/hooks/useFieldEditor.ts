@@ -162,9 +162,6 @@ export function useFieldEditor(
 
       onUpdate(['__op', 'field-move'], { index: fromIndex, delta });
       clearAllDrafts();
-      window.setTimeout(() => {
-        editorState.selectRow(next);
-      }, 0);
     },
   });
 
@@ -217,11 +214,8 @@ export function useFieldEditor(
 
       onUpdate(['__op', 'field-move'], { index, delta });
       clearAllDrafts();
-      window.setTimeout(() => {
-        editorState.selectRow(next);
-      }, 0);
     },
-    [editorState.selectedIndex, fields.length, onUpdate, editorState, clearAllDrafts]
+    [editorState.selectedIndex, fields.length, onUpdate, clearAllDrafts]
   );
 
   const refocusTableSoon = useCallback(() => {

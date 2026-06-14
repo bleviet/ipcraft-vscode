@@ -4,7 +4,7 @@ import { YamlPathResolver, type YamlPath } from '../services/YamlPathResolver';
 import { YamlService } from '../services/YamlService';
 import type { Selection } from './useSelection';
 import { applyFieldOperation } from '../services/FieldOperationService';
-import { recomputeBitfieldLayout, type LayoutField } from '../algorithms/LayoutEngine';
+import { reorderBitfieldLayout, type LayoutField } from '../algorithms/LayoutEngine';
 import { serializeValue } from '../../domain/serialize';
 
 interface YamlUpdateHandlerOptions {
@@ -51,13 +51,21 @@ export function useYamlUpdateHandler({
           | Record<string, unknown>
           | undefined;
         let fields = Array.isArray(reg?.fields) ? (reg.fields as Record<string, unknown>[]) : [];
-        // For field-move, repack bitfields only within the affected register
-        // to maintain contiguous layout without disturbing other registers.
+        // For field-move, swap adjacent field segments in bit-space while
+        // preserving gaps, rather than packing contiguously.
         if (String(path[1] ?? '') === 'field-move' && fields.length > 0) {
           const regWidth = typeof reg?.size === 'number' && reg.size > 0 ? reg.size : 32;
-          fields = recomputeBitfieldLayout(fields as LayoutField[], regWidth).map(
-            (f) => serializeValue(f as Record<string, unknown>) as Record<string, unknown>
-          );
+          const payload = value as { index?: number; delta?: number } | null;
+          const fromIdx = typeof payload?.index === 'number' ? payload.index : -1;
+          const delta = typeof payload?.delta === 'number' ? payload.delta : 0;
+          const movedIdx = fromIdx + delta;
+          const direction: 'lsb' | 'msb' = delta < 0 ? 'lsb' : 'msb';
+          fields = reorderBitfieldLayout(
+            fields as LayoutField[],
+            movedIdx,
+            direction,
+            regWidth
+          ).map((f) => serializeValue(f as Record<string, unknown>) as Record<string, unknown>);
         }
         const newText = YamlService.applyPathEdits(rawTextRef.current, [
           { path: [...registerPath, 'fields'], value: fields },

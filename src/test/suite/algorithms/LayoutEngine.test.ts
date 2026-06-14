@@ -1,5 +1,6 @@
 import {
   recomputeBitfieldLayout,
+  reorderBitfieldLayout,
   recomputeRegisterLayout,
   recomputeBlockLayout,
   recomputeFullLayout,
@@ -122,6 +123,85 @@ describe('LayoutEngine', () => {
       expect(result[0].bits).toBe('[0:0]');
       expect(result[0].offset).toBe(0);
       expect(result[0].width).toBe(1);
+    });
+  });
+
+  // =========================================================================
+  // reorderBitfieldLayout
+  // =========================================================================
+
+  describe('reorderBitfieldLayout', () => {
+    it('swaps FSM_STATE up past FIFO_LEVEL preserving a gap (bug regression)', () => {
+      // STATUS register from comprehensive_axi: BUSY[0:0], FIFO_LEVEL[15:4], FSM_STATE[18:16]
+      // After moveField swaps FSM_STATE (index 2) with FIFO_LEVEL (index 1):
+      const swapped: LayoutField[] = [
+        { name: 'BUSY', bits: '[0:0]', offset: 0, width: 1 },
+        { name: 'FSM_STATE', bits: '[18:16]', offset: 16, width: 3 }, // old bits, new pos
+        { name: 'FIFO_LEVEL', bits: '[15:4]', offset: 4, width: 12 }, // old bits, new pos
+      ];
+      // movedIdx=1 (FSM_STATE's new array pos), direction='lsb' (moved up = toward low bits)
+      const result = reorderBitfieldLayout(swapped, 1, 'lsb', 32);
+
+      expect(result[0].bits).toBe('[0:0]'); // BUSY unchanged
+      expect(result[1].bits).toBe('[6:4]'); // FSM_STATE took FIFO_LEVEL's slot
+      expect(result[2].bits).toBe('[18:7]'); // FIFO_LEVEL pushed past FSM_STATE
+    });
+
+    it('inverse: swaps FSM_STATE back down restoring original positions', () => {
+      // Starting from [BUSY([0:0]), FSM_STATE([6:4]), FIFO_LEVEL([18:7])],
+      // move FSM_STATE down (index 1 → 2, delta=+1).
+      // After moveField: FIFO_LEVEL moves to idx=1, FSM_STATE moves to idx=2.
+      const swapped: LayoutField[] = [
+        { name: 'BUSY', bits: '[0:0]', offset: 0, width: 1 },
+        { name: 'FIFO_LEVEL', bits: '[18:7]', offset: 7, width: 12 }, // was pos 2, now pos 1
+        { name: 'FSM_STATE', bits: '[6:4]', offset: 4, width: 3 }, // was pos 1, now pos 2
+      ];
+      // movedIdx=2 (FSM_STATE's new pos), direction='msb' (moved down in array)
+      const result = reorderBitfieldLayout(swapped, 2, 'msb', 32);
+
+      expect(result[0].bits).toBe('[0:0]'); // BUSY unchanged
+      expect(result[1].bits).toBe('[15:4]'); // FIFO_LEVEL back to original
+      expect(result[2].bits).toBe('[18:16]'); // FSM_STATE back to original
+    });
+
+    it('swaps two adjacent fields with no gap', () => {
+      const swapped: LayoutField[] = [
+        { name: 'A', bits: '[7:0]', offset: 0, width: 8 },
+        { name: 'C', bits: '[23:16]', offset: 16, width: 8 }, // moved up from pos 2
+        { name: 'B', bits: '[15:8]', offset: 8, width: 8 }, // displaced to pos 2
+      ];
+      const result = reorderBitfieldLayout(swapped, 1, 'lsb', 32);
+
+      expect(result[0].bits).toBe('[7:0]'); // A unchanged
+      expect(result[1].bits).toBe('[15:8]'); // C takes B's old slot
+      expect(result[2].bits).toBe('[23:16]'); // B takes C's old slot
+    });
+
+    it('swaps FIFO_LEVEL up past BUSY skipping a 3-bit gap', () => {
+      // STATUS register: BUSY[0:0], gap[3:1], FIFO_LEVEL[15:4], FSM_STATE[18:16]
+      // After moveField swaps FIFO_LEVEL (pos 1) with BUSY (pos 0):
+      const swapped: LayoutField[] = [
+        { name: 'FIFO_LEVEL', bits: '[15:4]', offset: 4, width: 12 }, // old bits, new pos 0
+        { name: 'BUSY', bits: '[0:0]', offset: 0, width: 1 }, // old bits, new pos 1
+        { name: 'FSM_STATE', bits: '[18:16]', offset: 16, width: 3 },
+      ];
+      // movedIdx=0 (FIFO_LEVEL's new array pos), direction='lsb'
+      const result = reorderBitfieldLayout(swapped, 0, 'lsb', 32);
+
+      expect(result[0].bits).toBe('[11:0]'); // FIFO_LEVEL: 12 bits from LSB
+      expect(result[1].bits).toBe('[12:12]'); // BUSY: pushed above FIFO_LEVEL
+      expect(result[2].bits).toBe('[18:16]'); // FSM_STATE: unchanged
+    });
+
+    it('does not mutate the input array', () => {
+      const swapped: LayoutField[] = [
+        { name: 'BUSY', bits: '[0:0]', offset: 0, width: 1 },
+        { name: 'FSM_STATE', bits: '[18:16]', offset: 16, width: 3 },
+        { name: 'FIFO_LEVEL', bits: '[15:4]', offset: 4, width: 12 },
+      ];
+      const origBits = swapped[1].bits;
+      reorderBitfieldLayout(swapped, 1, 'lsb', 32);
+      expect(swapped[1].bits).toBe(origBits);
     });
   });
 
