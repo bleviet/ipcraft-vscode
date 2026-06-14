@@ -108,5 +108,5 @@ export function formatBitsLike(offset: number, width: number): string {
  */
 export function isSimpleVector(value: string): boolean {
   const trimmed = value.trim();
-  return /^\[\d+(?::\d+)?\]$/.test(trimmed) || trimmed === '[?:?]';
+  return /^\[(?:\d+|\?)(?::(?:\d+|\?))?\]$/.test(trimmed);
 }

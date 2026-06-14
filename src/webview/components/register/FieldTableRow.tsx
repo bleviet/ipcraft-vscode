@@ -94,21 +94,41 @@ const FieldTableRow = ({
   const resetValue = resetDrafts[rowId] ?? (resetDisplay || '0x0');
   const resetErr = resetErrors[rowId] ?? null;
 
-  const handleBitsInput = (value: string) => {
-    const next = value ?? '';
-    setBitsDrafts((prev: Record<string, string>) => ({
-      ...prev,
-      [rowId]: next,
-    }));
+  // Compute maxWidth for this specific field to prevent register overflow
+  let otherWidthsSum = 0;
+  for (let i = 0; i < fields.length; ++i) {
+    if (i !== index) {
+      const otherRowId = fieldEditor.wrappedFields[i]?.rowId;
+      const b = otherRowId
+        ? (bitsDrafts[otherRowId] ?? fieldToBitsString(fields[i]))
+        : fieldToBitsString(fields[i]);
+      const w = parseBitsWidth(b);
+      if (w) {
+        otherWidthsSum += w;
+      }
+    }
+  }
+  const maxWidth = Math.max(1, registerSize - otherWidthsSum);
 
+  const applyBitsUpdate = (next: string) => {
     let err = validateBitsString(next);
     if (!err) {
       const thisWidth = parseBitsWidth(next);
       if (thisWidth !== null) {
         let total = 0;
-        for (let i = 0; i < fields.length; ++i) {
+        const updatedFields = fields.map((f, i) => {
           if (i === index) {
-            total += thisWidth;
+            const parsed = parseBitsInput(next);
+            if (parsed) {
+              return {
+                ...f,
+                bits: next,
+                offset: parsed.offset,
+                width: parsed.width,
+                bitRange: parsed.bitRange,
+              };
+            }
+            return { ...f, bits: next };
           } else {
             const otherRowId = fieldEditor.wrappedFields[i]?.rowId;
             const b = otherRowId
@@ -118,10 +138,72 @@ const FieldTableRow = ({
             if (w) {
               total += w;
             }
+            return { ...f };
           }
-        }
+        });
+
+        total += thisWidth;
+
         if (total > registerSize) {
           err = `Bit fields overflow register (${total} > ${registerSize})`;
+        }
+
+        if (!err) {
+          const curr = updatedFields[index];
+          const currMSB = curr.bitRange
+            ? curr.bitRange[0]
+            : Number(curr.offset) + Number(curr.width) - 1;
+          const currLSB = curr.bitRange ? curr.bitRange[1] : Number(curr.offset);
+
+          for (let i = 0; i < index; ++i) {
+            const f = fields[i];
+            const otherMsb = f.bitRange
+              ? f.bitRange[0]
+              : Number(f.offset) + (Number(f.width) || 1) - 1;
+            const otherLsb = f.bitRange ? f.bitRange[1] : Number(f.offset);
+            if (currMSB >= otherLsb && otherMsb >= currLSB) {
+              err = `Bit field would overlap with ${String(f.name ?? `field${i}`)} (${formatBits(otherMsb, otherLsb)})`;
+              break;
+            }
+          }
+
+          if (!err) {
+            let prevMSB = currMSB;
+            for (let i = index + 1; i < updatedFields.length; ++i) {
+              const f = updatedFields[i];
+              const width = Number(f.width) || 1;
+              const currentLsb = f.bitRange ? f.bitRange[1] : Number(f.offset);
+              if (currentLsb <= prevMSB) {
+                const lsb = prevMSB + 1;
+                const msb = lsb + width - 1;
+                updatedFields[i] = {
+                  ...f,
+                  offset: lsb,
+                  width: width,
+                  bitRange: [msb, lsb],
+                  bits: formatBits(msb, lsb),
+                };
+                prevMSB = msb;
+              } else {
+                const currentMsb = f.bitRange ? f.bitRange[0] : Number(f.offset) + width - 1;
+                prevMSB = currentMsb;
+              }
+            }
+
+            for (const f of updatedFields) {
+              const msb = f.bitRange
+                ? f.bitRange[0]
+                : Number(f.offset) + (Number(f.width) || 1) - 1;
+              if (msb >= registerSize) {
+                err = `Bit fields overflow register boundary (MSB ${msb} >= ${registerSize})`;
+                break;
+              }
+            }
+
+            if (!err) {
+              onUpdate(['fields'], updatedFields);
+            }
+          }
         }
       }
     }
@@ -130,46 +212,43 @@ const FieldTableRow = ({
       ...prev,
       [rowId]: err,
     }));
+  };
 
-    if (!err) {
-      const updatedFields = fields.map((f, i) => {
-        if (i !== index) {
-          return { ...f };
-        }
-        const parsed = parseBitsInput(next);
-        if (parsed) {
-          return {
-            ...f,
-            bits: next,
-            offset: parsed.offset,
-            width: parsed.width,
-            bitRange: parsed.bitRange,
-          };
-        }
-        return { ...f, bits: next };
-      });
+  const handleBitsInput = (value: string) => {
+    const next = value ?? '';
+    setBitsDrafts((prev: Record<string, string>) => ({
+      ...prev,
+      [rowId]: next,
+    }));
 
-      const curr = updatedFields[index];
-      const currMSB = curr.bitRange
-        ? curr.bitRange[0]
-        : Number(curr.offset) + Number(curr.width) - 1;
-      let prevMSB = currMSB;
-      for (let i = index + 1; i < updatedFields.length; ++i) {
-        const f = updatedFields[i];
-        const width = Number(f.width) || 1;
-        const lsb = Number(prevMSB) + 1;
-        const msb = Number(lsb) + width - 1;
-        updatedFields[i] = {
-          ...f,
-          offset: lsb,
-          width: width,
-          bitRange: [msb, lsb],
-          bits: formatBits(msb, lsb),
-        };
-        prevMSB = msb;
-      }
-      onUpdate(['fields'], updatedFields);
+    if (!isSimpleVector(next) || next.includes('?')) {
+      setBitsErrors((prev: Record<string, string | null>) => ({
+        ...prev,
+        [rowId]: null,
+      }));
+      return;
     }
+
+    applyBitsUpdate(next);
+  };
+
+  const handleBitsCommit = (value: string) => {
+    if (fieldEditor.cancelEditRef?.current) {
+      return;
+    }
+
+    const next = value ?? '';
+
+    if (!isSimpleVector(next)) {
+      setBitsErrors((prev: Record<string, string | null>) => ({
+        ...prev,
+        [rowId]: null,
+      }));
+      onUpdate(['fields', index, 'bits'], next);
+      return;
+    }
+
+    applyBitsUpdate(next);
   };
 
   return (
@@ -256,10 +335,12 @@ const FieldTableRow = ({
                   className="w-full font-mono"
                   value={bitsValue}
                   registerSize={registerSize}
+                  maxWidth={maxWidth}
                   hasError={!!bitsErr}
                   onFocus={onCellFocus(index, 'bits')}
                   cancelEditRef={fieldEditor.cancelEditRef}
                   onInput={handleBitsInput}
+                  onBlur={handleBitsCommit}
                 />
               ) : (
                 <CellInput
@@ -269,6 +350,7 @@ const FieldTableRow = ({
                   onFocus={onCellFocus(index, 'bits')}
                   cancelEditRef={fieldEditor.cancelEditRef}
                   onInput={handleBitsInput}
+                  onBlur={handleBitsCommit}
                 />
               )}
               {bitsErr ? <div className="text-xs vscode-error mt-1">{bitsErr}</div> : null}

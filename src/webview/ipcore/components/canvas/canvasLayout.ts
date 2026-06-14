@@ -636,8 +636,7 @@ export function computeLayout(
             const widthLbl = formatWidth(rawWidth as number | string | undefined);
             const isAbsent = absentPortsSet.has(portDef.name.toUpperCase());
             const active =
-              !isAbsent &&
-              (portDef.presence === 'required' || useOptional.includes(portDef.name));
+              !isAbsent && (portDef.presence === 'required' || useOptional.includes(portDef.name));
 
             // For array interfaces, use the physicalPrefixPattern so the sub-port
             // physical name reflects the replicated naming (e.g. m_axis_ch{index}_tdata)

@@ -129,6 +129,11 @@ describe('BitFieldUtils standalone helpers', () => {
       expect(isSimpleVector('[?:?]')).toBe(true);
     });
 
+    it('returns true for partial placeholders [?:N] and [N:?]', () => {
+      expect(isSimpleVector('[?:8]')).toBe(true);
+      expect(isSimpleVector('[15:?]')).toBe(true);
+    });
+
     it('returns false for complex parameters and formulas', () => {
       expect(isSimpleVector('((AxiDataWidth_g/8)-1)')).toBe(false);
       expect(isSimpleVector('[AxiDataWidth_g-1:0]')).toBe(false);

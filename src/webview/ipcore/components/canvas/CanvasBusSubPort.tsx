@@ -214,7 +214,9 @@ export const CanvasBusSubPort: React.FC<CanvasBusSubPortProps> = ({
           >
             !
           </text>
-          <title>Required by bus spec but absent from HDL source — not included in generated output</title>
+          <title>
+            Required by bus spec but absent from HDL source — not included in generated output
+          </title>
         </g>
       )}
 
