@@ -219,6 +219,19 @@ const FieldTableRow = ({
 
             if (!err) {
               onUpdate(['fields'], updatedFields);
+              setBitsDrafts((prev: Record<string, string>) => {
+                const next = { ...prev };
+                for (let i = index + 1; i < updatedFields.length; ++i) {
+                  const cascadedRowId = fieldEditor.wrappedFields[i]?.rowId;
+                  if (cascadedRowId) {
+                    const newBits = updatedFields[i].bits ?? fieldToBitsString(fields[i]);
+                    if (newBits) {
+                      next[cascadedRowId] = newBits;
+                    }
+                  }
+                }
+                return next;
+              });
             }
           }
         }

@@ -121,6 +121,27 @@ describe('FieldTableRow bitfields cascading', () => {
     expect(updatedFields[2].bits).toBe('[7:4]');
     // CLEAR_STATS should remain [31:31] (no overlap with [7:4])
     expect(updatedFields[3].bits).toBe('[31:31]');
+
+    // bitsDrafts for cascaded fields must be updated immediately so their
+    // VectorBoundingInput displays the new position without waiting for the
+    // document round-trip (prevents the "RUN[9:0] / STOP_ON_ERR[13:7]"
+    // visual overlap scenario).
+    const setBitsDraftsCalls = (defaultFieldEditor.setBitsDrafts as jest.Mock).mock.calls as [
+      unknown,
+    ][][];
+    type DraftsUpdater = (p: Record<string, string>) => Record<string, string>;
+    const cascadeCall = setBitsDraftsCalls
+      .map((c) => c[0] as DraftsUpdater | unknown)
+      .find((updater): updater is DraftsUpdater => {
+        if (typeof updater !== 'function') {
+          return false;
+        }
+        const result = (updater as DraftsUpdater)({});
+        return 'row-1' in result;
+      });
+    expect(cascadeCall).toBeDefined();
+    const cascadeState = cascadeCall ? cascadeCall({}) : {};
+    expect(cascadeState['row-1']).toBe('[2:2]');
   });
 
   it('prevents saving and raises validation error when cascade shifts fields beyond register size limit', () => {
