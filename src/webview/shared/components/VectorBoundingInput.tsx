@@ -226,7 +226,6 @@ export const VectorBoundingInput: React.FC<VectorBoundingInputProps> = ({
       ref={containerRef}
       onFocus={handleFocus}
       onBlur={handleBlur}
-      data-edit-key={editKey}
       className={`
         inline-flex items-center justify-center
         h-[22px] px-1 bg-[var(--vscode-input-background)]
@@ -251,6 +250,7 @@ export const VectorBoundingInput: React.FC<VectorBoundingInputProps> = ({
         value={localMsb}
         onChange={handleMsbChange}
         placeholder="MSB"
+        data-edit-key={editKey}
         className="w-[24px] text-center bg-transparent border-none outline-none p-0 h-full font-mono text-xs text-[var(--vscode-input-foreground)] focus:bg-[var(--vscode-input-background)]"
         style={{
           boxSizing: 'border-box',

@@ -22,6 +22,8 @@ describe('VectorBoundingInput', () => {
 
     expect(msbInput.value).toBe('15');
     expect(lsbInput.value).toBe('8');
+    expect(msbInput.getAttribute('data-edit-key')).toBe('bits');
+    expect(msbInput.parentElement?.getAttribute('data-edit-key')).toBeNull();
   });
 
   it('updates input values and propagates to onInput', () => {
