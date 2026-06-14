@@ -56,6 +56,11 @@ message(STATUS "Node.js ${_NODE_VERSION_RAW}  →  ${NODE_EXECUTABLE}")
 message(STATUS "npm              →  ${NPM_EXECUTABLE}")
 
 # ─── Derive VSIX filename from package.json (name + version) ──────────────────
+# Re-configure automatically whenever package.json changes (e.g. version bump)
+# so that the VSIX filename stays in sync without a manual cmake -B build.
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    "${CMAKE_SOURCE_DIR}/package.json"
+)
 execute_process(
     COMMAND ${NODE_EXECUTABLE} -p "require('./package.json').name"
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
