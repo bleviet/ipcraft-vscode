@@ -119,11 +119,12 @@ export class ScaffoldPackPanel {
           this.resourceRoots.templatesDir,
         ]);
 
+        const renderCtx = ctx as unknown as Record<string, unknown>;
         files = pack.files.map((rule) => {
-          const conditionPassed = packLoader.evaluateCondition(rule.condition, ctx);
+          const conditionPassed = packLoader.evaluateCondition(rule.condition, renderCtx);
           let relativePath = rule.target;
           try {
-            relativePath = packLoader.renderString(rule.target, ctx);
+            relativePath = packLoader.renderString(rule.target, renderCtx);
           } catch {
             // leave as template string if render fails
           }

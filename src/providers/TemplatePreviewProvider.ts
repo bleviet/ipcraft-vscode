@@ -54,7 +54,7 @@ export class TemplatePreviewProvider implements vscode.TextDocumentContentProvid
         this.resourceRoots.templatesDir,
       ]);
 
-      return loader.render(templateName, templateContext);
+      return loader.render(templateName, templateContext as unknown as Record<string, unknown>);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       this.logger.error('Template preview render failed', err as Error);

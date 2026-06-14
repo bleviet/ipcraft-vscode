@@ -172,7 +172,7 @@ module {{ entity_name }}_axil
         awready       <= 1'b1;
         aw_en         <= 1'b0;
         addr_received <= 1'b1;
-        awaddr_lat    <= awaddr;
+        awaddr_lat    <= awaddr[C_ADDR_WIDTH-1:0];
       end else if (bvalid && bready) begin
         aw_en         <= 1'b1;
         addr_received <= 1'b0;
@@ -253,7 +253,7 @@ module {{ entity_name }}_axil
     end else begin
       if (!arready && arvalid) begin
         arready    <= 1'b1;
-        araddr_lat <= araddr;
+        araddr_lat <= araddr[C_ADDR_WIDTH-1:0];
       end else begin
         arready <= 1'b0;
       end

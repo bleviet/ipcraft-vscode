@@ -1,0 +1,441 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ipcraft.dev/schemas/template_context/1.0.0",
+  "title": "TemplateContext",
+  "description": "Versioned template context passed to all Nunjucks/Jinja2 templates during IP core generation. This is the public API for third-party scaffold packs.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "name",
+    "entity_name",
+    "has_memory_mapped_slave",
+    "data_width",
+    "addr_width",
+    "reg_width",
+    "registers",
+    "sw_registers",
+    "hw_registers",
+    "w1c_registers",
+    "cos_registers",
+    "generics",
+    "xgui_pages",
+    "user_ports",
+    "interrupt_ports",
+    "bus_type",
+    "bus_prefix",
+    "bus_ports",
+    "secondary_bus_ports",
+    "secondary_bus_interfaces",
+    "expanded_bus_interfaces",
+    "elaborate_port_widths",
+    "memory_maps",
+    "clock_port",
+    "reset_port",
+    "reset_active_high",
+    "clocks_with_period",
+    "memmap_relpath",
+    "description",
+    "display_name"
+  ],
+  "properties": {
+    "contract_version": {
+      "type": "string",
+      "const": "1.0.0",
+      "description": "Semantic version of the template context contract."
+    },
+    "name": { "type": "string" },
+    "entity_name": { "type": "string" },
+    "has_memory_mapped_slave": { "type": "boolean" },
+
+    "data_width": { "type": "integer", "minimum": 1 },
+    "addr_width": { "type": "integer", "minimum": 1 },
+    "reg_width": { "type": "integer", "minimum": 1 },
+
+    "registers": { "type": "array", "items": { "$ref": "#/definitions/AnnotatedRegister" } },
+    "sw_registers": { "type": "array", "items": { "$ref": "#/definitions/Register" } },
+    "hw_registers": { "type": "array", "items": { "$ref": "#/definitions/Register" } },
+    "w1c_registers": { "type": "array", "items": { "$ref": "#/definitions/W1cRegister" } },
+    "cos_registers": { "type": "array", "items": { "$ref": "#/definitions/CosRegister" } },
+
+    "generics": { "type": "array", "items": { "$ref": "#/definitions/Generic" } },
+    "xgui_pages": { "type": "array", "items": { "$ref": "#/definitions/XguiPage" } },
+
+    "user_ports": { "type": "array", "items": { "$ref": "#/definitions/UserPort" } },
+    "interrupt_ports": { "type": "array", "items": { "$ref": "#/definitions/InterruptPort" } },
+
+    "bus_type": { "type": "string" },
+    "bus_prefix": { "type": "string" },
+    "bus_ports": { "type": "array", "items": { "$ref": "#/definitions/BusPort" } },
+    "secondary_bus_ports": { "type": "array", "items": { "$ref": "#/definitions/BusPort" } },
+    "secondary_bus_interfaces": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/SecondaryBusInterface" }
+    },
+    "expanded_bus_interfaces": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/ExpandedBusInterface" }
+    },
+    "elaborate_port_widths": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/ElaboratePortWidth" }
+    },
+
+    "memory_maps": { "type": "array", "items": { "$ref": "#/definitions/MemoryMap" } },
+
+    "clock_port": { "type": "string" },
+    "reset_port": { "type": "string" },
+    "reset_active_high": { "type": "boolean" },
+    "clocks_with_period": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/ClockWithPeriod" }
+    },
+
+    "memmap_relpath": { "type": "string" },
+
+    "vendor": { "type": "string" },
+    "library": { "type": "string" },
+    "version": { "type": "string" },
+    "author": { "type": "string" },
+    "description": { "type": "string" },
+    "display_name": { "type": "string" }
+  },
+  "definitions": {
+    "Field": {
+      "type": "object",
+      "required": ["name", "offset", "width", "access", "reset_value", "description", "monitorChangeOf"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "offset": { "type": "integer" },
+        "width": { "type": "integer" },
+        "access": { "type": "string" },
+        "reset_value": { "type": ["integer", "null"] },
+        "description": { "type": "string" },
+        "monitorChangeOf": { "type": ["string", "null"] }
+      }
+    },
+    "Register": {
+      "type": "object",
+      "required": ["name", "offset", "access", "description", "fields"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "offset": { "type": "integer" },
+        "access": { "type": "string" },
+        "description": { "type": "string" },
+        "fields": { "type": "array", "items": { "$ref": "#/definitions/Field" } }
+      }
+    },
+    "AnnotatedRegister": {
+      "type": "object",
+      "required": ["name", "offset", "access", "description", "fields", "has_cos_fields"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "offset": { "type": "integer" },
+        "access": { "type": "string" },
+        "description": { "type": "string" },
+        "fields": { "type": "array", "items": { "$ref": "#/definitions/Field" } },
+        "has_cos_fields": { "type": "boolean" }
+      }
+    },
+    "W1cField": {
+      "type": "object",
+      "required": ["name", "offset", "width", "access", "reset_value", "description", "monitorChangeOf", "is_cos"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "offset": { "type": "integer" },
+        "width": { "type": "integer" },
+        "access": { "type": "string" },
+        "reset_value": { "type": ["integer", "null"] },
+        "description": { "type": "string" },
+        "monitorChangeOf": { "type": ["string", "null"] },
+        "is_cos": { "type": "boolean" }
+      }
+    },
+    "W1cRegister": {
+      "type": "object",
+      "required": ["name", "offset", "access", "description", "fields"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "offset": { "type": "integer" },
+        "access": { "type": "string" },
+        "description": { "type": "string" },
+        "fields": { "type": "array", "items": { "$ref": "#/definitions/W1cField" } }
+      }
+    },
+    "CosField": {
+      "type": "object",
+      "required": ["name", "offset", "width", "access", "reset_value", "description", "monitorChangeOf", "monitored_field"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "offset": { "type": "integer" },
+        "width": { "type": "integer" },
+        "access": { "type": "string" },
+        "reset_value": { "type": ["integer", "null"] },
+        "description": { "type": "string" },
+        "monitorChangeOf": { "type": ["string", "null"] },
+        "monitored_field": { "$ref": "#/definitions/Field" }
+      }
+    },
+    "CosRegister": {
+      "type": "object",
+      "required": ["name", "offset", "access", "description", "fields", "cos_fields", "val_fields"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "offset": { "type": "integer" },
+        "access": { "type": "string" },
+        "description": { "type": "string" },
+        "fields": { "type": "array", "items": { "$ref": "#/definitions/Field" } },
+        "cos_fields": { "type": "array", "items": { "$ref": "#/definitions/CosField" } },
+        "val_fields": { "type": "array", "items": { "$ref": "#/definitions/Field" } }
+      }
+    },
+    "Generic": {
+      "type": "object",
+      "required": ["name", "type", "sv_type", "default_value", "sv_default", "description", "min", "max", "allowed_values", "ui_page", "ui_group"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "type": { "type": "string" },
+        "sv_type": { "type": "string" },
+        "default_value": { "type": ["integer", "number", "string", "boolean", "null"] },
+        "sv_default": { "type": ["integer", "number", "string", "boolean", "null"] },
+        "description": { "type": "string" },
+        "min": { "type": ["number", "null"] },
+        "max": { "type": ["number", "null"] },
+        "allowed_values": {
+          "oneOf": [
+            { "type": "array", "items": { "type": ["number", "string"] } },
+            { "type": "null" }
+          ]
+        },
+        "ui_page": { "type": "string" },
+        "ui_group": { "type": "string" }
+      }
+    },
+    "XguiGroup": {
+      "type": "object",
+      "required": ["name", "tcl_var", "param_names"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "tcl_var": { "type": "string" },
+        "param_names": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "XguiPage": {
+      "type": "object",
+      "required": ["name", "tcl_var", "groups", "ungrouped_param_names"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "tcl_var": { "type": "string" },
+        "groups": { "type": "array", "items": { "$ref": "#/definitions/XguiGroup" } },
+        "ungrouped_param_names": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "UserPort": {
+      "type": "object",
+      "required": ["name", "direction", "sv_direction", "type", "sv_type", "width", "width_expr", "is_parameterized", "default_width"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "direction": { "type": "string" },
+        "sv_direction": { "type": "string" },
+        "type": { "type": "string" },
+        "sv_type": { "type": "string" },
+        "width": { "type": "number" },
+        "width_expr": { "type": ["string", "null"] },
+        "is_parameterized": { "type": "boolean" },
+        "default_width": { "type": ["number", "null"] },
+        "tcl_width": { "type": "string" }
+      }
+    },
+    "BusPort": {
+      "type": "object",
+      "required": ["logical_name", "name", "direction", "sv_direction", "width", "width_expr", "is_parameterized", "default_width", "type", "sv_type"],
+      "additionalProperties": false,
+      "properties": {
+        "logical_name": { "type": "string" },
+        "name": { "type": "string" },
+        "direction": { "type": "string" },
+        "sv_direction": { "type": "string" },
+        "width": { "type": "number" },
+        "width_expr": { "type": ["string", "null"] },
+        "is_parameterized": { "type": "boolean" },
+        "default_width": { "type": ["number", "null"] },
+        "type": { "type": "string" },
+        "sv_type": { "type": "string" },
+        "tcl_width": { "type": "string" }
+      }
+    },
+    "InterruptPort": {
+      "type": "object",
+      "required": ["name", "direction", "sensitivity"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "direction": { "type": "string" },
+        "sensitivity": { "type": "string" }
+      }
+    },
+    "SecondaryBusInterface": {
+      "type": "object",
+      "required": ["name", "mode", "ports"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "mode": { "type": "string" },
+        "ports": { "type": "array", "items": { "$ref": "#/definitions/BusPort" } }
+      }
+    },
+    "VlnvDef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "vendor": { "type": "string" },
+        "library": { "type": "string" },
+        "name": { "type": "string" },
+        "version": { "type": "string" }
+      }
+    },
+    "RawPortMap": {
+      "type": "object",
+      "required": ["logical", "physical", "direction", "width"],
+      "additionalProperties": false,
+      "properties": {
+        "logical": { "type": "string" },
+        "physical": { "type": "string" },
+        "direction": { "type": "string", "enum": ["in", "out"] },
+        "width": { "type": "integer" }
+      }
+    },
+    "ConduitPort": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "width": { "type": ["number", "string"] },
+        "direction": { "type": "string" },
+        "presence": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "ExpandedBusInterface": {
+      "type": "object",
+      "required": ["mode", "physicalPrefix", "useOptionalPorts", "portWidthOverrides"],
+      "additionalProperties": true,
+      "properties": {
+        "name": { "type": "string" },
+        "type": { "type": "string" },
+        "mode": { "type": "string" },
+        "physicalPrefix": { "type": "string" },
+        "useOptionalPorts": { "type": "array", "items": { "type": "string" } },
+        "portWidthOverrides": {
+          "type": "object",
+          "additionalProperties": { "type": ["number", "string"] }
+        },
+        "portNameOverrides": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "absentPorts": { "type": "array", "items": { "type": "string" } },
+        "associatedClock": { "type": "string" },
+        "associatedReset": { "type": "string" },
+        "conduitPorts": { "type": "array", "items": { "$ref": "#/definitions/ConduitPort" } },
+        "busTypeVlnv": { "$ref": "#/definitions/VlnvDef" },
+        "rawPortMaps": { "type": "array", "items": { "$ref": "#/definitions/RawPortMap" } },
+        "ports": { "type": "array", "items": { "$ref": "#/definitions/BusPort" } }
+      }
+    },
+    "ElaboratePortWidth": {
+      "type": "object",
+      "required": ["iface_name", "port_name", "logical_name", "direction", "tcl_width"],
+      "additionalProperties": false,
+      "properties": {
+        "iface_name": { "type": "string" },
+        "port_name": { "type": "string" },
+        "logical_name": { "type": "string" },
+        "direction": { "type": "string" },
+        "tcl_width": { "type": "string" }
+      }
+    },
+    "ClockWithPeriod": {
+      "type": "object",
+      "required": ["name", "frequency", "period_ns"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "frequency": { "type": ["string", "null"] },
+        "period_ns": { "type": ["string", "null"] }
+      }
+    },
+    "MemoryMapField": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "name": { "type": "string" },
+        "bits": { "type": "string" },
+        "offset": { "type": "integer" },
+        "bit_offset": { "type": "integer" },
+        "bitOffset": { "type": "integer" },
+        "width": { "type": "integer" },
+        "bit_width": { "type": "integer" },
+        "bitWidth": { "type": "integer" },
+        "access": { "type": "string" },
+        "resetValue": { "type": "integer" },
+        "reset_value": { "type": "integer" },
+        "description": { "type": "string" },
+        "monitorChangeOf": { "type": ["string", "null"] }
+      }
+    },
+    "MemoryMapRegister": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "name": { "type": "string" },
+        "offset": { "type": "integer" },
+        "address_offset": { "type": "integer" },
+        "addressOffset": { "type": "integer" },
+        "size": { "type": "integer" },
+        "access": { "type": "string" },
+        "resetValue": { "type": "integer" },
+        "reset_value": { "type": "integer" },
+        "description": { "type": "string" },
+        "fields": { "type": "array", "items": { "$ref": "#/definitions/MemoryMapField" } },
+        "count": { "type": "integer" },
+        "stride": { "type": "integer" },
+        "registers": { "type": "array", "items": { "$ref": "#/definitions/MemoryMapRegister" } }
+      }
+    },
+    "MemoryMapAddressBlock": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "name": { "type": "string" },
+        "base_address": { "type": "integer" },
+        "baseAddress": { "type": "integer" },
+        "range": { "type": ["integer", "number", "string", "null"] },
+        "usage": { "type": "string" },
+        "registers": { "type": "array", "items": { "$ref": "#/definitions/MemoryMapRegister" } }
+      }
+    },
+    "MemoryMap": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "address_blocks": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/MemoryMapAddressBlock" }
+        }
+      }
+    }
+  }
+}

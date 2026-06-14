@@ -747,21 +747,21 @@ export interface Parameter {
   /**
    * Minimum value constraint (for integer)
    */
-  min?: number;
+  min?: number | null;
   /**
    * Maximum value constraint (for integer)
    */
-  max?: number;
+  max?: number | null;
   /**
    * Allowed discrete choices constraint (mutually exclusive with min/max)
    */
-  allowedValues?: (number | string)[];
+  allowedValues?: (number | string)[] | null;
   /**
-   * Wizard tab / page name in Vivado IP Packager and Platform Designer.
+   * Wizard tab / page name in Vivado IP Packager and Platform Designer
    */
   uiPage?: string;
   /**
-   * Sub-group within uiPage. Requires uiPage.
+   * Sub-group within uiPage. Requires uiPage to be set.
    */
   uiGroup?: string;
   [k: string]: unknown;

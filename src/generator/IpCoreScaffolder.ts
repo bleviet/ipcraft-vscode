@@ -24,6 +24,8 @@ import { sortByCompilationOrder } from '../utils/compilationOrder';
 import { getToolchain } from '../services/toolchains/registry';
 import { generateTestbenchFiles, DEFAULT_FRAMEWORK, DEFAULT_ENGINE } from './testbench';
 import { YamlValidator } from '../services/YamlValidator';
+import { assertValidContext, CONTRACT_VERSION } from './contract';
+import type { TemplateContext } from './contract';
 import type {
   BusDefinitions,
   BusPortDefinition,
@@ -73,6 +75,7 @@ export class IpCoreScaffolder {
       if (memmapRelpath !== undefined) {
         context.memmap_relpath = memmapRelpath;
       }
+      assertValidContext(context);
       const ipCraftMethodology = options.ipCraftMethodology ?? false;
       const includeRegs = options.includeRegs !== false && hasMmSlave;
       const includeTestbench = options.includeTestbench !== false;
@@ -339,13 +342,14 @@ export class IpCoreScaffolder {
    * Public entry point for building a template context from an IP core YAML path.
    * Used by TemplatePreviewProvider to render .j2 previews without writing files.
    */
-  async buildTemplateContextPublic(inputPath: string): Promise<Record<string, unknown>> {
+  async buildTemplateContextPublic(inputPath: string): Promise<TemplateContext> {
     await this.ensureBusDefinitions();
     const ipCore = await this.loadIpCore(inputPath);
     const busType = getBusTypeForTemplate(ipCore);
     const hasMmSlave = hasMemoryMappedSlaveInterface(ipCore);
     const context = await this.buildTemplateContext(ipCore, busType, inputPath);
     context.has_memory_mapped_slave = hasMmSlave;
+    assertValidContext(context);
     return context;
   }
 
@@ -588,6 +592,7 @@ export class IpCoreScaffolder {
     const _generics = this.prepareGenerics(ipCore);
 
     return {
+      contract_version: CONTRACT_VERSION,
       name,
       entity_name: name,
       registers: annotatedRegisters,
