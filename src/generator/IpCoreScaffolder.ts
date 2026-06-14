@@ -8,13 +8,8 @@ import { BusLibraryService } from '../services/BusLibraryService';
 import { TemplateLoader } from './TemplateLoader';
 import { ScaffoldPackLoader } from './ScaffoldPackLoader';
 import {
-  checkDuplicatePhysicalPrefixes,
-  evalWidthExpr,
-  expandBusInterfaces,
-  getActiveBusPortsFromDefinition,
   getBusTypeForTemplate,
   hasMemoryMappedSlaveInterface,
-  normalizeBusType,
   normalizeIpCoreData,
   prepareRegisters,
   resolveMemoryMaps,
@@ -26,9 +21,15 @@ import { generateTestbenchFiles, DEFAULT_FRAMEWORK, DEFAULT_ENGINE } from './tes
 import { YamlValidator } from '../services/YamlValidator';
 import { assertValidContext, CONTRACT_VERSION } from './contract';
 import type { TemplateContext } from './contract';
+import { BUS_REGISTRY } from './buses/builtin';
+import { clockResetResolver } from './resolvers/clockReset';
+import { genericsResolver } from './resolvers/generics';
+import { addressingResolver } from './resolvers/addressing';
+import { busResolver } from './resolvers/bus';
+import { shadowRegistersResolver } from './resolvers/shadowRegisters';
+import type { ResolverInput } from './resolvers/types';
 import type {
   BusDefinitions,
-  BusPortDefinition,
   GenerateOptions,
   GenerateResult,
   HdlLanguage,
@@ -360,265 +361,35 @@ export class IpCoreScaffolder {
   ): Promise<Record<string, unknown>> {
     const name = String(ipCore?.vlnv?.name ?? 'ip_core').toLowerCase();
     const registers = await prepareRegisters(ipCore, inputPath);
-    const swAccess = new Set([
-      'read-write',
-      'write-only',
-      'rw',
-      'wo',
-      'read-write-1-to-clear',
-      'write-1-to-clear',
-    ]);
-    const hwAccess = new Set(['read-only', 'ro']);
-    const w1cAccess = new Set(['write-1-to-clear', 'read-write-1-to-clear']);
 
-    const swRegisters = registers.filter((reg) => swAccess.has(this.getString(reg.access)));
-    const hwRegisters = registers.filter((reg) => hwAccess.has(this.getString(reg.access)));
-    const w1cRegisters = registers.filter((reg) => {
-      if (w1cAccess.has(this.getString(reg.access))) {
-        return true;
-      }
-      const fields = (reg.fields as Array<Record<string, unknown>>) ?? [];
-      return fields.some((f) => w1cAccess.has(this.getString(f.access)));
-    });
+    const resolverInput: ResolverInput = {
+      ipCore,
+      registers,
+      busDefinitions: this.busDefinitions ?? {},
+      registry: BUS_REGISTRY,
+    };
 
-    // CoS registers: any field has monitorChangeOf.
-    // Validate and build cos_fields/val_fields metadata for templates.
-    const cosRegisters = registers
-      .map((reg) => {
-        const fields = (reg.fields as Array<Record<string, unknown>>) ?? [];
-        const cosFields = fields
-          .filter((f) => {
-            const mco = this.getString(f['monitorChangeOf']);
-            return mco !== '';
-          })
-          .map((field) => {
-            const targetName = this.getString(field['monitorChangeOf']);
-            if (!w1cAccess.has(this.getString(field.access))) {
-              throw new Error(
-                `Field "${this.getString(field.name)}" in register "${this.getString(reg.name)}" uses monitorChangeOf but access type "${this.getString(field.access)}" is not write-1-to-clear or read-write-1-to-clear.`
-              );
-            }
-            const monitoredField =
-              fields.find((f) => this.getString(f.name as string) === targetName) ?? null;
-            if (!monitoredField) {
-              throw new Error(
-                `Field "${this.getString(field.name)}" in register "${this.getString(reg.name)}" references monitorChangeOf: "${targetName}" but no such field exists in the same register.`
-              );
-            }
-            return { ...field, monitored_field: monitoredField };
-          });
+    const shadow = shadowRegistersResolver.resolve(resolverInput);
+    const clockReset = clockResetResolver.resolve(resolverInput);
+    const bus = busResolver.resolve(resolverInput);
+    const generics = genericsResolver.resolve(resolverInput);
+    const addressing = addressingResolver.resolve(resolverInput);
 
-        if (cosFields.length === 0) {
-          return null;
-        }
-
-        // Unique monitored fields (deduplicated by name) for the _val record type.
-        const seen = new Set<string>();
-        const valFields = cosFields
-          .map((cf) => cf.monitored_field)
-          .filter((mf) => {
-            if (!mf) {
-              return false;
-            }
-            const n = this.getString(mf.name);
-            if (seen.has(n)) {
-              return false;
-            }
-            seen.add(n);
-            return true;
-          });
-
-        return { ...reg, cos_fields: cosFields, val_fields: valFields };
-      })
-      .filter((r): r is NonNullable<typeof r> => r !== null);
-
-    // Annotate ALL w1cRegisters fields with is_cos flag so templates can filter CoS fields
-    // from external pulse records. Non-CoS registers get is_cos: false on every field.
-    const cosRegNames = new Set(
-      cosRegisters.map((r) => this.getString((r as Record<string, unknown>).name))
+    const memoryMaps = projectMemoryMapsForTemplate(
+      (await resolveMemoryMaps(ipCore, inputPath)) ?? []
     );
-    const annotatedW1cRegisters = w1cRegisters.map((reg) => {
-      const fields = (reg.fields as Array<Record<string, unknown>>) ?? [];
-      return {
-        ...reg,
-        fields: fields.map((field) => {
-          const mco = this.getString(field['monitorChangeOf']);
-          return { ...field, is_cos: mco !== '' };
-        }),
-      };
-    });
-
-    // Annotate all registers with has_cos_fields for template read/write path guards.
-    const annotatedRegisters = registers.map((reg) => ({
-      ...reg,
-      has_cos_fields: cosRegNames.has(this.getString(reg.name)),
-    }));
-
-    const clocks = ipCore?.clocks ?? [];
-    const resets = ipCore?.resets ?? [];
-    const clockPort = clocks[0]?.name ?? 'clk';
-    const resetPort = resets[0]?.name ?? 'rst';
-    const resetPolarity = this.getString(resets[0]?.polarity ?? 'activeHigh');
-    const resetActiveHigh = resetPolarity.toLowerCase().includes('high');
-
-    const expandedBusInterfaces = expandBusInterfaces(ipCore);
-    const prefixError = checkDuplicatePhysicalPrefixes(ipCore);
-    if (prefixError) {
-      throw new Error(prefixError);
-    }
-    const busPorts: Array<Record<string, unknown>> = [];
-    const secondaryBusPorts: Array<Record<string, unknown>> = [];
-    const secondaryBusInterfaces: Array<Record<string, unknown>> = [];
-    let busPrefix = 's_axi';
-
-    const parameterNames = (ipCore?.parameters ?? []).map((p) => String(p.name));
-
-    if (expandedBusInterfaces.length > 0) {
-      // Prefer the first memory-mapped slave as the primary interface (drives the bus wrapper).
-      // Non-MM interfaces (AVST, AXI-Stream, …) become secondary — wired to the core directly.
-      const MM_TYPES = new Set(['axil', 'axi4', 'avmm']);
-      const mmIdx = expandedBusInterfaces.findIndex(
-        (iface) =>
-          (iface.mode ?? '').toLowerCase() === 'slave' &&
-          MM_TYPES.has(normalizeBusType(this.getString(iface.type)).templateType)
-      );
-      const primaryIndex = mmIdx >= 0 ? mmIdx : 0;
-      busPrefix = this.normalizePrefix(expandedBusInterfaces[primaryIndex].physicalPrefix ?? '');
-
-      expandedBusInterfaces.forEach((iface, index) => {
-        const busTypeInfo = normalizeBusType(this.getString(iface.type));
-        // Conduit (custom) interfaces carry their own user-defined port list
-        // instead of referencing a bus-library definition.
-        const conduitPorts = iface.conduitPorts as
-          | Array<{ name: string; width?: number | string; direction?: string; presence?: string }>
-          | undefined;
-        const busPortsForType =
-          conduitPorts && conduitPorts.length > 0
-            ? conduitPorts
-            : this.resolvePortsForInterface(busTypeInfo.libraryKey, this.getString(iface.type));
-        const activePorts = getActiveBusPortsFromDefinition(
-          busPortsForType,
-          iface.useOptionalPorts ?? [],
-          iface.physicalPrefix ?? '',
-          iface.mode ?? '',
-          iface.portWidthOverrides ?? {},
-          ipCore?.parameters as
-            | { name: string; value?: string | number; dataType?: string }[]
-            | undefined,
-          iface.portNameOverrides,
-          iface.absentPorts
-        ) as unknown as (TemplatePort & Record<string, unknown>)[];
-        activePorts.forEach((port) => {
-          port.tcl_width = toTclWidth(port.width, port.width_expr, parameterNames);
-        });
-        iface.ports = activePorts;
-        if (index === primaryIndex) {
-          busPorts.push(...activePorts);
-        } else {
-          secondaryBusPorts.push(...activePorts);
-          secondaryBusInterfaces.push({
-            name: iface.name ?? '',
-            mode: iface.mode ?? '',
-            ports: activePorts,
-          });
-        }
-      });
-    }
-
-    const userPorts = this.prepareUserPorts(ipCore) as unknown as TemplatePort[];
-    userPorts.forEach((port) => {
-      port.tcl_width = toTclWidth(port.width, port.width_expr, parameterNames);
-    });
-
-    // Collect all parameterized ports for the elaborate proc.
-    // add_interface_port with get_parameter_value widths must be inside an elaborate callback,
-    // not at global scope. set_port_property WIDTH is deprecated since SOPC 11.0.
-    const elaboratePortWidths: Array<{
-      iface_name: string;
-      port_name: string;
-      logical_name: string;
-      direction: string;
-      tcl_width: string;
-    }> = [];
-    for (const iface of expandedBusInterfaces) {
-      const ifaceName = String((iface as Record<string, unknown>).name ?? '');
-      const ifacePorts = (iface as Record<string, unknown>).ports as TemplatePort[] | undefined;
-      if (ifacePorts) {
-        for (const port of ifacePorts) {
-          if (port.is_parameterized && port.tcl_width) {
-            elaboratePortWidths.push({
-              iface_name: ifaceName,
-              port_name: port.name,
-              logical_name: String(port.logical_name ?? port.name),
-              direction: port.direction,
-              tcl_width: port.tcl_width,
-            });
-          }
-        }
-      }
-    }
-    for (const port of userPorts) {
-      if (port.is_parameterized && port.tcl_width) {
-        elaboratePortWidths.push({
-          iface_name: port.name,
-          port_name: port.name,
-          logical_name: port.name,
-          direction: port.direction,
-          tcl_width: port.tcl_width,
-        });
-      }
-    }
-
-    const clocksWithPeriod = clocks.map((clock) => ({
-      name: clock.name ?? '',
-      frequency: clock.frequency ?? null,
-      period_ns: parseClockPeriodNs(clock.frequency),
-    }));
-
-    // Auto-calculate the address width from the highest register byte address so
-    // the generated C_ADDR_WIDTH constant matches the actual register map size.
-    // Minimum 3 bits so that `wr_addr(C_ADDR_WIDTH-1 downto 2)` is always a
-    // valid non-null range in VHDL (requires high index >= low index, i.e. >= 2).
-    // The user can override this with `addrWidth` in the IP core YAML.
-    const lastReg = registers.length > 0 ? registers[registers.length - 1] : null;
-    const lastOffsetEnd = lastReg ? ((lastReg.offset as number) ?? 0) + 4 : 4;
-    // The register-file decoder addresses registers densely by word index
-    // (declaration order), not by YAML offset, so the address space must also
-    // cover registers.length words even when the declared offsets are smaller.
-    const maxByteAddress = Math.max(lastOffsetEnd, registers.length * 4);
-    const computedAddrWidth = Math.max(3, Math.ceil(Math.log2(Math.max(maxByteAddress, 2))));
-    const rawAddrWidth = (ipCore as Record<string, unknown>).addrWidth;
-    const addrWidth = typeof rawAddrWidth === 'number' ? rawAddrWidth : computedAddrWidth;
-    const _generics = this.prepareGenerics(ipCore);
 
     return {
       contract_version: CONTRACT_VERSION,
       name,
       entity_name: name,
-      registers: annotatedRegisters,
-      sw_registers: swRegisters,
-      hw_registers: hwRegisters,
-      w1c_registers: annotatedW1cRegisters,
-      cos_registers: cosRegisters,
-      generics: _generics,
-      xgui_pages: this.prepareXguiPages(_generics),
-      user_ports: userPorts,
-      interrupt_ports: this.prepareInterruptPorts(ipCore),
       bus_type: busType,
-      bus_ports: busPorts,
-      secondary_bus_ports: secondaryBusPorts,
-      secondary_bus_interfaces: secondaryBusInterfaces,
-      expanded_bus_interfaces: expandedBusInterfaces,
-      elaborate_port_widths: elaboratePortWidths,
-      bus_prefix: expandedBusInterfaces.length > 0 ? busPrefix : 's_axi',
-      data_width: 32,
-      addr_width: addrWidth,
-      reg_width: 4,
-      memory_maps: projectMemoryMapsForTemplate((await resolveMemoryMaps(ipCore, inputPath)) ?? []),
-      clock_port: clockPort,
-      reset_port: resetPort,
-      reset_active_high: resetActiveHigh,
-      clocks_with_period: clocksWithPeriod,
+      ...shadow,
+      ...clockReset,
+      ...bus,
+      ...generics,
+      ...addressing,
+      memory_maps: memoryMaps,
       memmap_relpath: `../${name}.mm.yml`,
       vendor: ipCore?.vlnv?.vendor,
       library: ipCore?.vlnv?.library,
@@ -629,262 +400,6 @@ export class IpCoreScaffolder {
         .replace(/_/g, ' ')
         .replace(/\b\w/g, (letter) => letter.toUpperCase()),
     };
-  }
-
-  private prepareGenerics(ipCore: IpCoreData): Array<Record<string, unknown>> {
-    const params = ipCore?.parameters ?? [];
-    return params.map((param) => {
-      const type = this.getString(param.dataType);
-      return {
-        name: param.name,
-        type,
-        sv_type: this.resolveSvGenericType(type),
-        default_value: this.resolveGenericDefault(param.value, type),
-        sv_default: this.resolveSvGenericDefault(param.value, type),
-        description: param.description ? this.getString(param.description) : '',
-        min: param.min !== undefined ? param.min : null,
-        max: param.max !== undefined ? param.max : null,
-        allowed_values: param.allowedValues ?? null,
-        ui_page: param.uiPage ?? '',
-        ui_group: param.uiGroup ?? '',
-      };
-    });
-  }
-
-  /**
-   * Pre-compute the page/group layout for XGUI templates so templates don't
-   * need to perform set operations (Nunjucks lacks Python's list.append).
-   * Returns ordered unique pages, each with ordered unique groups and their
-   * member generic names. Generics with no uiPage land on "Page 0".
-   */
-  prepareXguiPages(generics: Array<Record<string, unknown>>): Array<{
-    name: string;
-    tcl_var: string;
-    groups: Array<{ name: string; tcl_var: string; param_names: string[] }>;
-    ungrouped_param_names: string[];
-  }> {
-    const toTclVar = (s: string) => s.replace(/[\s\-.]/g, '_');
-
-    const pageOrder: string[] = [];
-    const groupOrder: Map<string, string[]> = new Map();
-    const groupParams: Map<string, Map<string, string[]>> = new Map();
-    const ungroupedParams: Map<string, string[]> = new Map();
-
-    for (const g of generics) {
-      const page = g.ui_page ? String(g.ui_page) : 'Page 0';
-      const group = g.ui_group ? String(g.ui_group) : '';
-      const name = String(g.name ?? '');
-
-      if (!pageOrder.includes(page)) {
-        pageOrder.push(page);
-        groupOrder.set(page, []);
-        groupParams.set(page, new Map());
-        ungroupedParams.set(page, []);
-      }
-
-      if (group) {
-        const groups = groupOrder.get(page)!;
-        if (!groups.includes(group)) {
-          groups.push(group);
-          groupParams.get(page)!.set(group, []);
-        }
-        groupParams.get(page)!.get(group)!.push(name);
-      } else {
-        ungroupedParams.get(page)!.push(name);
-      }
-    }
-
-    return pageOrder.map((page) => ({
-      name: page,
-      tcl_var: `Page_${toTclVar(page)}`,
-      groups: (groupOrder.get(page) ?? []).map((group) => ({
-        name: group,
-        tcl_var: `Group_${toTclVar(page)}_${toTclVar(group)}`,
-        param_names: groupParams.get(page)!.get(group) ?? [],
-      })),
-      ungrouped_param_names: ungroupedParams.get(page) ?? [],
-    }));
-  }
-
-  private resolveGenericDefault(
-    value: number | string | undefined,
-    type: string
-  ): number | string | null {
-    const t = type.toLowerCase().trim();
-    if (t === 'string') {
-      const raw = value !== undefined && value !== null ? String(value) : '';
-      // Strip pre-existing surrounding quotes (legacy fixtures stored VHDL-quoted values).
-      const inner =
-        raw.length >= 2 && raw.startsWith('"') && raw.endsWith('"') ? raw.slice(1, -1) : raw;
-      return `"${inner}"`;
-    }
-    if (value !== undefined && value !== null) {
-      return value;
-    }
-    if (t === 'integer') {
-      return 0;
-    }
-    if (t === 'boolean') {
-      return 'false';
-    }
-    return 0;
-  }
-
-  private resolveSvGenericType(vhdlType: string): string {
-    const t = vhdlType.toLowerCase().trim();
-    if (t === 'integer') {
-      return 'int';
-    }
-    if (t === 'boolean') {
-      return 'bit';
-    }
-    if (t === 'string') {
-      // Untyped parameter: a typed `parameter string` cannot be overridden
-      // through the hierarchy in some tools (e.g. Icarus Verilog).
-      return '';
-    }
-    return 'int';
-  }
-
-  private resolveSvGenericDefault(
-    value: number | string | undefined,
-    type: string
-  ): number | string | null {
-    const t = type.toLowerCase().trim();
-    if (t === 'string') {
-      const raw = value !== undefined && value !== null ? String(value) : '';
-      // Strip pre-existing surrounding quotes (legacy fixtures stored VHDL-quoted values).
-      const inner =
-        raw.length >= 2 && raw.startsWith('"') && raw.endsWith('"') ? raw.slice(1, -1) : raw;
-      return `"${inner}"`;
-    }
-    if (value !== undefined && value !== null) {
-      // VHDL boolean literals are not valid SystemVerilog; map to bit literals.
-      if (t === 'boolean') {
-        const v = String(value).toLowerCase().trim();
-        return v === 'true' || v === '1' ? "1'b1" : "1'b0";
-      }
-      return value;
-    }
-    if (t === 'integer') {
-      return 0;
-    }
-    if (t === 'boolean') {
-      return "1'b0";
-    }
-    return 0;
-  }
-
-  private prepareUserPorts(ipCore: IpCoreData): Array<Record<string, unknown>> {
-    const params = ipCore?.parameters ?? [];
-    const paramDefaults = new Map<string, number>();
-    params.forEach((param) => {
-      if (param?.name && param?.value !== undefined) {
-        paramDefaults.set(String(param.name), Number(param.value));
-      }
-    });
-
-    const ports = ipCore?.ports ?? [];
-    return ports.map((port) => {
-      const direction = this.getString(port.direction).toLowerCase();
-      const svDirection = direction === 'in' ? 'input' : direction === 'out' ? 'output' : 'inout';
-      const widthValue = port.width ?? 1;
-      const isParameterized = typeof widthValue === 'string';
-
-      if (isParameterized) {
-        const numericDefault = evalWidthExpr(widthValue, paramDefaults) ?? 32;
-        const defaultWidth = numericDefault - 1;
-        return {
-          name: String(port.name),
-          direction,
-          sv_direction: svDirection,
-          type: `std_logic_vector(${widthValue}-1 downto 0)`,
-          sv_type: `logic [${widthValue}-1:0]`,
-          width: numericDefault,
-          width_expr: widthValue,
-          is_parameterized: true,
-          default_width: defaultWidth,
-        };
-      }
-
-      const width = Number(widthValue);
-      if (width === 1) {
-        return {
-          name: String(port.name),
-          direction,
-          sv_direction: svDirection,
-          type: 'std_logic',
-          sv_type: 'logic',
-          width: 1,
-          width_expr: null,
-          is_parameterized: false,
-          default_width: null,
-        };
-      }
-
-      return {
-        name: String(port.name),
-        direction,
-        sv_direction: svDirection,
-        type: `std_logic_vector(${width - 1} downto 0)`,
-        sv_type: `logic [${width - 1}:0]`,
-        width,
-        width_expr: null,
-        is_parameterized: false,
-        default_width: null,
-      };
-    });
-  }
-
-  private prepareInterruptPorts(ipCore: IpCoreData): Array<Record<string, unknown>> {
-    const interrupts = (ipCore as Record<string, unknown>)?.interrupts as
-      | Array<Record<string, unknown>>
-      | undefined;
-    if (!interrupts || interrupts.length === 0) {
-      return [];
-    }
-    return interrupts.map((intr) => ({
-      name: String(intr.name ?? ''),
-      direction: String(intr.direction ?? 'out').toLowerCase(),
-      sensitivity: String(intr.sensitivity ?? 'LEVEL_HIGH'),
-    }));
-  }
-
-  private resolvePortsForInterface(libraryKey: string, ifaceType: string): BusPortDefinition[] {
-    const knownPorts = libraryKey ? this.busDefinitions?.[libraryKey]?.ports : undefined;
-    if (knownPorts) {
-      return knownPorts;
-    }
-    for (const def of Object.values(this.busDefinitions ?? {})) {
-      const bt = (def as { busType?: Record<string, string> }).busType;
-      if (!bt?.vendor || !bt.library || !bt.name || !bt.version) {
-        continue;
-      }
-      if (`${bt.vendor}.${bt.library}.${bt.name}.${bt.version}` === ifaceType) {
-        return def.ports ?? [];
-      }
-    }
-    return [];
-  }
-
-  private normalizePrefix(prefix: string): string {
-    if (!prefix) {
-      return 's_axi';
-    }
-    return prefix.endsWith('_') ? prefix.slice(0, -1) : prefix;
-  }
-
-  private getString(value: unknown): string {
-    if (value === null || value === undefined) {
-      return '';
-    }
-    if (typeof value === 'string') {
-      return value;
-    }
-    if (typeof value === 'object' && value !== null && 'value' in value) {
-      return String((value as Record<string, unknown>).value);
-    }
-    return String(value);
   }
 }
 
@@ -955,82 +470,4 @@ async function collectRtlFiles(
   );
 
   return sortedAbsPaths.map((absPath) => path.relative(tclSubDir, absPath).replace(/\\/g, '/'));
-}
-
-function parseClockPeriodNs(frequency: string | null | undefined): string | null {
-  if (!frequency) {
-    return null;
-  }
-  const m = /^(\d+(?:\.\d+)?)\s*(GHz|MHz|kHz|Hz)$/i.exec(frequency.trim());
-  if (!m) {
-    return null;
-  }
-  const value = parseFloat(m[1]);
-  const unit = m[2].toLowerCase();
-  let hz: number;
-  if (unit === 'ghz') {
-    hz = value * 1e9;
-  } else if (unit === 'mhz') {
-    hz = value * 1e6;
-  } else if (unit === 'khz') {
-    hz = value * 1e3;
-  } else {
-    hz = value;
-  }
-  const periodNs = 1e9 / hz;
-  return periodNs.toFixed(3);
-}
-
-function toTclWidthExpression(exprStr: string, paramNames: string[]): string {
-  let converted = exprStr;
-  let hasParam = false;
-  const upperParamNames = paramNames.map((p) => p.toUpperCase());
-
-  converted = converted.replace(/\b([a-zA-Z_][a-zA-Z0-9_]*)\b/g, (match) => {
-    const upper = match.toUpperCase();
-    if (upperParamNames.includes(upper)) {
-      hasParam = true;
-      return `[get_parameter_value ${upper}]`;
-    }
-    return match;
-  });
-
-  if (!hasParam) {
-    return exprStr;
-  }
-
-  const isSimpleRef = /^\[get_parameter_value [a-zA-Z0-9_]+\]$/.test(converted.trim());
-  if (isSimpleRef) {
-    return converted;
-  } else {
-    return `[expr ${converted}]`;
-  }
-}
-
-interface TemplatePort extends Record<string, unknown> {
-  name: string;
-  direction: string;
-  width: number | string | null;
-  width_expr: string | null;
-  is_parameterized: boolean;
-  tcl_width?: string;
-  logical_name?: string;
-  sv_direction?: string;
-  type?: string;
-  sv_type?: string;
-  default_width?: number | null;
-}
-
-function toTclWidth(
-  width: number | string | null,
-  widthExpr: string | null,
-  paramNames: string[]
-): string {
-  if (widthExpr) {
-    return toTclWidthExpression(widthExpr, paramNames);
-  }
-  if (typeof width === 'string') {
-    return toTclWidthExpression(width, paramNames);
-  }
-  return String(width ?? 1);
 }

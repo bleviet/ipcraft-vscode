@@ -4,78 +4,10 @@ import type { BusInterfaceDef, BusTypeInfo, IpCoreData } from './types';
 import { resolveMemoryMapImports } from '../services/imports/resolveMemoryMapImports';
 import { normalizeIpCore, normalizeMemoryMap } from '../domain/parse';
 import type { NormalizedMemoryMap, NormalizedRegister } from '../domain/internal.types';
+import { BUS_REGISTRY } from './buses/builtin';
 
-/**
- * Evaluate an arithmetic width expression that may reference parameter names.
- * Returns the computed integer or undefined when any identifier remains unresolved.
- *
- * Examples:
- *   evalWidthExpr("AxiDataWidth_g",     { AxiDataWidth_g: 32 }) → 32
- *   evalWidthExpr("AxiDataWidth_g/8",   { AxiDataWidth_g: 32 }) → 4
- *   evalWidthExpr("AxiDataWidth_g * 2", { AxiDataWidth_g: 32 }) → 64
- */
-export function evalWidthExpr(
-  expr: string,
-  paramDefaults: Map<string, number> | Record<string, number>
-): number | undefined {
-  const trimmed = expr.trim();
-
-  const asNum = Number(trimmed);
-  if (Number.isFinite(asNum)) {
-    return asNum;
-  }
-
-  const defaults: Record<string, number> =
-    paramDefaults instanceof Map ? Object.fromEntries(paramDefaults) : paramDefaults;
-
-  // Substitute known param names, longest first to avoid partial-name collisions
-  let resolved = trimmed;
-  for (const name of Object.keys(defaults).sort((a, b) => b.length - a.length)) {
-    resolved = resolved.replace(new RegExp(`\\b${name}\\b`, 'g'), String(defaults[name]));
-  }
-
-  // After substitution only arithmetic tokens should remain
-  if (!/^[0-9\s+\-*/().]+$/.test(resolved)) {
-    return undefined;
-  }
-
-  try {
-    const result = (new Function(`return (${resolved})`) as () => unknown)();
-    const num = Number(result);
-    return Number.isFinite(num) ? Math.trunc(num) : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-// Maps the bus name segment of an ipcraft VLNV string to BusTypeInfo.
-// The libraryKey must match the top-level key in the bundled bus_definitions YAML files.
-const VLNV_BUS_NAME_MAP: Record<string, BusTypeInfo> = {
-  axi4_lite: { libraryKey: 'AXI4_LITE', templateType: 'axil' },
-  axi4_full: { libraryKey: 'AXI4_FULL', templateType: 'axi4' },
-  axi_stream: { libraryKey: 'AXI_STREAM', templateType: 'axis' },
-  avalon_mm: { libraryKey: 'AVALON_MEMORY_MAPPED', templateType: 'avmm' },
-  avalon_st: { libraryKey: 'AVALON_STREAMING', templateType: 'avst' },
-};
-
-const BUS_TYPE_ALIASES: Record<string, BusTypeInfo> = {
-  AXI4L: { libraryKey: 'AXI4_LITE', templateType: 'axil' },
-  AXI4LITE: { libraryKey: 'AXI4_LITE', templateType: 'axil' },
-  AXILITE: { libraryKey: 'AXI4_LITE', templateType: 'axil' },
-  AXIL: { libraryKey: 'AXI4_LITE', templateType: 'axil' },
-  AXI4F: { libraryKey: 'AXI4_FULL', templateType: 'axi4' },
-  AXI4FULL: { libraryKey: 'AXI4_FULL', templateType: 'axi4' },
-  AXI4: { libraryKey: 'AXI4_FULL', templateType: 'axi4' },
-  AXI4S: { libraryKey: 'AXI_STREAM', templateType: 'axis' },
-  AXISTREAM: { libraryKey: 'AXI_STREAM', templateType: 'axis' },
-  AXIS: { libraryKey: 'AXI_STREAM', templateType: 'axis' },
-  AVALONMM: { libraryKey: 'AVALON_MEMORY_MAPPED', templateType: 'avmm' },
-  AVMM: { libraryKey: 'AVALON_MEMORY_MAPPED', templateType: 'avmm' },
-  AVALONMEMORYMAPPED: { libraryKey: 'AVALON_MEMORY_MAPPED', templateType: 'avmm' },
-  AVALONSTREAMING: { libraryKey: 'AVALON_STREAMING', templateType: 'avst' },
-  AVALONST: { libraryKey: 'AVALON_STREAMING', templateType: 'avst' },
-  AVST: { libraryKey: 'AVALON_STREAMING', templateType: 'avst' },
-};
+import { evalWidthExpr } from '../shared/evalWidthExpr';
+export { evalWidthExpr };
 
 function getString(value: unknown): string {
   if (value === null || value === undefined) {
@@ -95,21 +27,8 @@ export function normalizeIpCoreData(raw: Record<string, unknown>): IpCoreData {
 }
 
 export function normalizeBusType(typeName: string): BusTypeInfo {
-  // Handle ipcraft VLNV format: ipcraft.busif.{name}.{version}
-  const vlnvMatch = /^ipcraft\.busif\.(.+?)\.\d/.exec(typeName);
-  if (vlnvMatch) {
-    return (
-      VLNV_BUS_NAME_MAP[vlnvMatch[1].toLowerCase()] ?? {
-        libraryKey: '',
-        templateType: 'custom',
-      }
-    );
-  }
-  const normalized = typeName.toUpperCase().replace(/[\s_.-]/g, '');
-  return BUS_TYPE_ALIASES[normalized] ?? { libraryKey: '', templateType: 'custom' };
+  return BUS_REGISTRY.normalize(typeName);
 }
-
-const MEMORY_MAPPED_TEMPLATE_TYPES = new Set(['axil', 'axi4', 'avmm']);
 
 export function getBusTypeForTemplate(ipCore: IpCoreData): string {
   let firstSlave: string | undefined;
@@ -117,8 +36,7 @@ export function getBusTypeForTemplate(ipCore: IpCoreData): string {
     if ((bus.mode ?? '').toLowerCase() === 'slave') {
       const templateType = normalizeBusType(getString(bus.type)).templateType;
       firstSlave ??= templateType;
-      // Prefer the first memory-mapped slave — that's the bus for which a wrapper template exists.
-      if (MEMORY_MAPPED_TEMPLATE_TYPES.has(templateType)) {
+      if (BUS_REGISTRY.isMemoryMapped(templateType)) {
         return templateType;
       }
     }
@@ -130,7 +48,7 @@ export function hasMemoryMappedSlaveInterface(ipCore: IpCoreData): boolean {
   for (const bus of ipCore.busInterfaces ?? []) {
     if ((bus.mode ?? '').toLowerCase() === 'slave') {
       const templateType = normalizeBusType(getString(bus.type)).templateType;
-      if (MEMORY_MAPPED_TEMPLATE_TYPES.has(templateType)) {
+      if (BUS_REGISTRY.isMemoryMapped(templateType)) {
         return true;
       }
     }
