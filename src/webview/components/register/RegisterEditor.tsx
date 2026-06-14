@@ -10,6 +10,7 @@ import { FieldsTable } from './FieldsTable';
 import { useFieldEditor } from '../../hooks/useFieldEditor';
 import type { RegisterDef } from '../../types/memoryMap';
 import { generateUniqueName } from '../../utils/naming';
+import { formatBitsRange } from '../../utils/BitFieldUtils';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -120,6 +121,7 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
         const field = fields[fieldIndex];
         const updatedField = {
           ...field,
+          bits: formatBitsRange(hi, lo),
           offset: lo,
           width: hi - lo + 1,
         };
@@ -135,6 +137,7 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
           if (field) {
             newFields[idx] = {
               ...field,
+              bits: formatBitsRange(hi, lo),
               offset: lo,
               width: hi - lo + 1,
             };
@@ -152,6 +155,7 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
         const [hi, lo] = newField.bitRange;
         const field = {
           name,
+          bits: formatBitsRange(hi, lo),
           offset: lo,
           width: hi - lo + 1,
           access: 'read-write',
