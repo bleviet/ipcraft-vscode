@@ -20,14 +20,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import { spawnSync } from 'child_process';
 import { generateFixtures, Fixture } from './generator';
-
-const SKIP_GHDL = process.env.SKIP_GHDL === '1' || !toolAvailable('ghdl');
-const SKIP_IVERILOG = process.env.SKIP_IVERILOG === '1' || !toolAvailable('iverilog');
-const SKIP_VERILATOR = process.env.SKIP_VERILATOR === '1' || !toolAvailable('verilator');
-
-function toolAvailable(tool: string): boolean {
-  return spawnSync('which', [tool], { encoding: 'utf8' }).status === 0;
-}
+import { guardTier1, toolOnPath } from './tier';
 
 let fixtures: Fixture[] = [];
 
@@ -78,9 +71,7 @@ function topUnit(ordered: string[], ext: string): string | null {
 
 describe('GHDL: generated VHDL compiles for simulation and synthesis', () => {
   it('analyzes, elaborates and synthesizes every VHDL fixture', () => {
-    if (SKIP_GHDL) {
-      // eslint-disable-next-line no-console
-      console.log('Skipping GHDL validation (SKIP_GHDL=1 or ghdl not found)');
+    if (guardTier1('ghdl', () => toolOnPath('ghdl'))) {
       return;
     }
 
@@ -133,9 +124,7 @@ describe('GHDL: generated VHDL compiles for simulation and synthesis', () => {
 
 describe('Icarus Verilog: generated SystemVerilog compiles', () => {
   it('compiles every SystemVerilog fixture with iverilog -g2012', () => {
-    if (SKIP_IVERILOG) {
-      // eslint-disable-next-line no-console
-      console.log('Skipping iverilog validation (SKIP_IVERILOG=1 or iverilog not found)');
+    if (guardTier1('iverilog', () => toolOnPath('iverilog'))) {
       return;
     }
 
@@ -171,9 +160,7 @@ describe('Icarus Verilog: generated SystemVerilog compiles', () => {
 
 describe('Verilator: generated SystemVerilog passes lint', () => {
   it('lints every SystemVerilog fixture with verilator --lint-only', () => {
-    if (SKIP_VERILATOR) {
-      // eslint-disable-next-line no-console
-      console.log('Skipping Verilator validation (SKIP_VERILATOR=1 or verilator not found)');
+    if (guardTier1('verilator', () => toolOnPath('verilator'))) {
       return;
     }
 

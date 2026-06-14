@@ -18,21 +18,12 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { spawnSync } from 'child_process';
 import { generateFixtures, xilinxFixtures, Fixture } from './generator';
+import { guardTier2 } from './tier';
 
 const VIVADO_BIN =
   process.env.VIVADO_BIN ?? '/home/balevision/tools/Xilinx/Vivado/2024.2/bin/vivado';
 
 const VALIDATE_TCL = path.resolve(__dirname, '../../../scripts/integration/vivado/validate.tcl');
-
-const VIVADO_AVAILABLE = fs.existsSync(VIVADO_BIN);
-
-const SKIP =
-  process.env.SKIP_VIVADO === '1' || (!VIVADO_AVAILABLE && process.env.REQUIRE_VIVADO !== '1');
-
-const SKIP_REASON =
-  process.env.SKIP_VIVADO === '1'
-    ? 'SKIP_VIVADO=1'
-    : `Vivado not found at ${VIVADO_BIN} (set VIVADO_BIN or REQUIRE_VIVADO=1)`;
 
 let xilinxes: Fixture[] = [];
 
@@ -46,9 +37,13 @@ it('generates at least one Xilinx fixture with component.xml', () => {
 });
 
 it('all Xilinx fixtures pass Vivado ipx::check_integrity', () => {
-  if (SKIP) {
-    // eslint-disable-next-line no-console
-    console.log(`Skipping Vivado validation (${SKIP_REASON})`);
+  if (
+    guardTier2(
+      'vivado',
+      () => fs.existsSync(VIVADO_BIN),
+      `not found at ${VIVADO_BIN} (set VIVADO_BIN or REQUIRE_VIVADO=1)`
+    )
+  ) {
     return;
   }
 
@@ -131,9 +126,13 @@ it('all fixtures have correct testbench and HDL files generated', () => {
 });
 
 it('all Xilinx Vivado project creation scripts run successfully', () => {
-  if (SKIP) {
-    // eslint-disable-next-line no-console
-    console.log(`Skipping Vivado project creation validation (${SKIP_REASON})`);
+  if (
+    guardTier2(
+      'vivado',
+      () => fs.existsSync(VIVADO_BIN),
+      `not found at ${VIVADO_BIN} (set VIVADO_BIN or REQUIRE_VIVADO=1)`
+    )
+  ) {
     return;
   }
 
@@ -189,9 +188,13 @@ it('all Xilinx Vivado project creation scripts run successfully', () => {
 });
 
 it('representative Vivado projects compile and synthesize successfully in Out-Of-Context mode', () => {
-  if (SKIP) {
-    // eslint-disable-next-line no-console
-    console.log(`Skipping Vivado OOC synthesis validation (${SKIP_REASON})`);
+  if (
+    guardTier2(
+      'vivado',
+      () => fs.existsSync(VIVADO_BIN),
+      `not found at ${VIVADO_BIN} (set VIVADO_BIN or REQUIRE_VIVADO=1)`
+    )
+  ) {
     return;
   }
 

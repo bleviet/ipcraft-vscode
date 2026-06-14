@@ -17,6 +17,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { spawnSync } from 'child_process';
 import { generateFixtures, alteraFixtures, hwTclFiles, Fixture, FIXTURE_BASE } from './generator';
+import { guardTier1 } from './tier';
 
 const REPO_ROOT = path.resolve(__dirname, '../../..');
 const DOCKER_IMAGE = process.env.QUARTUS_DOCKER_IMAGE ?? 'cvsoc/quartus:23.1';
@@ -27,17 +28,6 @@ function dockerImageAvailable(image: string): boolean {
   const result = spawnSync('docker', ['image', 'inspect', image], { encoding: 'utf8' });
   return !result.error && result.status === 0;
 }
-
-const QUARTUS_AVAILABLE =
-  process.env.REQUIRE_QUARTUS === '1' ||
-  (process.env.SKIP_QUARTUS !== '1' && dockerImageAvailable(DOCKER_IMAGE));
-
-const SKIP = process.env.SKIP_QUARTUS === '1' || !QUARTUS_AVAILABLE;
-
-const SKIP_REASON =
-  process.env.SKIP_QUARTUS === '1'
-    ? 'SKIP_QUARTUS=1'
-    : `Docker image ${DOCKER_IMAGE} not available (pull it or set REQUIRE_QUARTUS=1)`;
 
 let alteras: Fixture[] = [];
 
@@ -51,9 +41,7 @@ it('generates at least one Altera fixture with _hw.tcl', () => {
 });
 
 it('all Altera _hw.tcl files pass Platform Designer stub validation', () => {
-  if (SKIP) {
-    // eslint-disable-next-line no-console
-    console.log(`Skipping Quartus validation (${SKIP_REASON})`);
+  if (guardTier1('docker', () => dockerImageAvailable(DOCKER_IMAGE))) {
     return;
   }
 
@@ -119,9 +107,7 @@ it('all Altera _hw.tcl files pass Platform Designer stub validation', () => {
 });
 
 it('all Altera Quartus project creation scripts run successfully', () => {
-  if (SKIP) {
-    // eslint-disable-next-line no-console
-    console.log(`Skipping Quartus project validation (${SKIP_REASON})`);
+  if (guardTier1('docker', () => dockerImageAvailable(DOCKER_IMAGE))) {
     return;
   }
 

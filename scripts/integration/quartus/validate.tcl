@@ -40,17 +40,16 @@ foreach hw_tcl $argv {
         continue
     }
 
-    # ── Call elaborate ────────────────────────────────────────────────────────
-    if {[llength [info procs elaborate]] == 0} {
-        puts "FAIL: hw.tcl does not define an 'elaborate' procedure"
-        incr total_errors
-        continue
-    }
-    set rc [catch {elaborate} err]
-    if {$rc != 0} {
-        puts "FAIL: elaborate raised: $err"
-        incr total_errors
-        continue
+    # ── Call elaborate (optional) ─────────────────────────────────────────────
+    # Platform Designer only invokes elaborate when ELABORATION_CALLBACK is set;
+    # static components without parameterized ports do not define it and that is valid.
+    if {[llength [info procs elaborate]] > 0} {
+        set rc [catch {elaborate} err]
+        if {$rc != 0} {
+            puts "FAIL: elaborate raised: $err"
+            incr total_errors
+            continue
+        }
     }
 
     # ── Call validate (optional — skip if not defined) ────────────────────────
