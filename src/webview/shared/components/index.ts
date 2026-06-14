@@ -15,6 +15,7 @@ export { HoverInsertBar } from './HoverInsertBar';
 export { TableContextMenu } from './TableContextMenu';
 export { EditableCell } from './EditableCell';
 export { CellInput } from './CellInput';
+export { VectorBoundingInput } from './VectorBoundingInput';
 
 export type { FormFieldProps } from './FormField';
 export type { SelectFieldProps } from './SelectField';
@@ -29,3 +30,4 @@ export type { HoverInsertBarProps } from './HoverInsertBar';
 export type { TableContextMenuProps } from './TableContextMenu';
 export type { EditableCellProps } from './EditableCell';
 export type { CellInputProps } from './CellInput';
+export type { VectorBoundingInputProps } from './VectorBoundingInput';

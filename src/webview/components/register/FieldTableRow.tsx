@@ -3,7 +3,11 @@ import type { YamlUpdateHandler } from '../../types/editor';
 import { VSCodeDropdown, VSCodeOption } from '@vscode/webview-ui-toolkit/react';
 import { ACCESS_OPTIONS } from '../../shared/constants';
 import { FIELD_COLORS, getFieldColor } from '../../shared/colors';
-import { fieldToBitsString, formatBitsRange as formatBits } from '../../utils/BitFieldUtils';
+import {
+  fieldToBitsString,
+  formatBitsRange as formatBits,
+  isSimpleVector,
+} from '../../utils/BitFieldUtils';
 import { validateVhdlIdentifier } from '../../shared/utils/validation';
 import {
   parseBitsInput,
@@ -14,7 +18,7 @@ import {
 } from '../../shared/utils/fieldValidation';
 import type { EditKey, FieldEditorState } from '../../hooks/useFieldEditor';
 import type { FieldDef } from './FieldsTable';
-import { EditableCell, CellInput } from '../../shared/components';
+import { EditableCell, CellInput, VectorBoundingInput } from '../../shared/components';
 
 interface FieldTableRowProps {
   field: FieldDef;
@@ -89,6 +93,84 @@ const FieldTableRow = ({
   const bitsErr = bitsErrors[rowId] ?? null;
   const resetValue = resetDrafts[rowId] ?? (resetDisplay || '0x0');
   const resetErr = resetErrors[rowId] ?? null;
+
+  const handleBitsInput = (value: string) => {
+    const next = value ?? '';
+    setBitsDrafts((prev: Record<string, string>) => ({
+      ...prev,
+      [rowId]: next,
+    }));
+
+    let err = validateBitsString(next);
+    if (!err) {
+      const thisWidth = parseBitsWidth(next);
+      if (thisWidth !== null) {
+        let total = 0;
+        for (let i = 0; i < fields.length; ++i) {
+          if (i === index) {
+            total += thisWidth;
+          } else {
+            const otherRowId = fieldEditor.wrappedFields[i]?.rowId;
+            const b = otherRowId
+              ? (bitsDrafts[otherRowId] ?? fieldToBitsString(fields[i]))
+              : fieldToBitsString(fields[i]);
+            const w = parseBitsWidth(b);
+            if (w) {
+              total += w;
+            }
+          }
+        }
+        if (total > registerSize) {
+          err = `Bit fields overflow register (${total} > ${registerSize})`;
+        }
+      }
+    }
+
+    setBitsErrors((prev: Record<string, string | null>) => ({
+      ...prev,
+      [rowId]: err,
+    }));
+
+    if (!err) {
+      const updatedFields = fields.map((f, i) => {
+        if (i !== index) {
+          return { ...f };
+        }
+        const parsed = parseBitsInput(next);
+        if (parsed) {
+          return {
+            ...f,
+            bits: next,
+            offset: parsed.offset,
+            width: parsed.width,
+            bitRange: parsed.bitRange,
+          };
+        }
+        return { ...f, bits: next };
+      });
+
+      const curr = updatedFields[index];
+      const currMSB = curr.bitRange
+        ? curr.bitRange[0]
+        : Number(curr.offset) + Number(curr.width) - 1;
+      let prevMSB = currMSB;
+      for (let i = index + 1; i < updatedFields.length; ++i) {
+        const f = updatedFields[i];
+        const width = Number(f.width) || 1;
+        const lsb = Number(prevMSB) + 1;
+        const msb = Number(lsb) + width - 1;
+        updatedFields[i] = {
+          ...f,
+          offset: lsb,
+          width: width,
+          bitRange: [msb, lsb],
+          bits: formatBits(msb, lsb),
+        };
+        prevMSB = msb;
+      }
+      onUpdate(['fields'], updatedFields);
+    }
+  };
 
   return (
     <tr
@@ -168,90 +250,27 @@ const FieldTableRow = ({
         >
           <div className="flex items-center h-10">
             <div className="flex flex-col w-full">
-              <CellInput
-                editKey="bits"
-                className="w-full font-mono"
-                value={bitsValue}
-                onFocus={onCellFocus(index, 'bits')}
-                cancelEditRef={fieldEditor.cancelEditRef}
-                onInput={(value) => {
-                  const next = value ?? '';
-                  setBitsDrafts((prev: Record<string, string>) => ({
-                    ...prev,
-                    [rowId]: next,
-                  }));
-
-                  let err = validateBitsString(next);
-                  if (!err) {
-                    const thisWidth = parseBitsWidth(next);
-                    if (thisWidth !== null) {
-                      let total = 0;
-                      for (let i = 0; i < fields.length; ++i) {
-                        if (i === index) {
-                          total += thisWidth;
-                        } else {
-                          const otherRowId = fieldEditor.wrappedFields[i]?.rowId;
-                          const b = otherRowId
-                            ? (bitsDrafts[otherRowId] ?? fieldToBitsString(fields[i]))
-                            : fieldToBitsString(fields[i]);
-                          const w = parseBitsWidth(b);
-                          if (w) {
-                            total += w;
-                          }
-                        }
-                      }
-                      if (total > registerSize) {
-                        err = `Bit fields overflow register (${total} > ${registerSize})`;
-                      }
-                    }
-                  }
-
-                  setBitsErrors((prev: Record<string, string | null>) => ({
-                    ...prev,
-                    [rowId]: err,
-                  }));
-
-                  if (!err) {
-                    const updatedFields = fields.map((f, i) => {
-                      if (i !== index) {
-                        return { ...f };
-                      }
-                      const parsed = parseBitsInput(next);
-                      if (parsed) {
-                        return {
-                          ...f,
-                          bits: next,
-                          offset: parsed.offset,
-                          width: parsed.width,
-                          bitRange: parsed.bitRange,
-                        };
-                      }
-                      return { ...f, bits: next };
-                    });
-
-                    const curr = updatedFields[index];
-                    const currMSB = curr.bitRange
-                      ? curr.bitRange[0]
-                      : Number(curr.offset) + Number(curr.width) - 1;
-                    let prevMSB = currMSB;
-                    for (let i = index + 1; i < updatedFields.length; ++i) {
-                      const f = updatedFields[i];
-                      const width = Number(f.width) || 1;
-                      const lsb = Number(prevMSB) + 1;
-                      const msb = Number(lsb) + width - 1;
-                      updatedFields[i] = {
-                        ...f,
-                        offset: lsb,
-                        width: width,
-                        bitRange: [msb, lsb],
-                        bits: formatBits(msb, lsb),
-                      };
-                      prevMSB = msb;
-                    }
-                    onUpdate(['fields'], updatedFields);
-                  }
-                }}
-              />
+              {isSimpleVector(bitsValue) ? (
+                <VectorBoundingInput
+                  editKey="bits"
+                  className="w-full font-mono"
+                  value={bitsValue}
+                  registerSize={registerSize}
+                  hasError={!!bitsErr}
+                  onFocus={onCellFocus(index, 'bits')}
+                  cancelEditRef={fieldEditor.cancelEditRef}
+                  onInput={handleBitsInput}
+                />
+              ) : (
+                <CellInput
+                  editKey="bits"
+                  className="w-full font-mono"
+                  value={bitsValue}
+                  onFocus={onCellFocus(index, 'bits')}
+                  cancelEditRef={fieldEditor.cancelEditRef}
+                  onInput={handleBitsInput}
+                />
+              )}
               {bitsErr ? <div className="text-xs vscode-error mt-1">{bitsErr}</div> : null}
             </div>
           </div>

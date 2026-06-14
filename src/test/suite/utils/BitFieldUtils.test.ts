@@ -4,6 +4,7 @@ import {
   parseBitsLike,
   formatBitsRange,
   fieldToBitsString,
+  isSimpleVector,
 } from '../../../webview/utils/BitFieldUtils';
 
 describe('BitFieldUtils — standalone exports', () => {
@@ -110,6 +111,34 @@ describe('BitFieldUtils standalone helpers', () => {
       expect(formatBitsLike(4, 4)).toBe('[7:4]');
       expect(formatBitsLike(0, 32)).toBe('[31:0]');
       expect(formatBitsLike(0, 1)).toBe('[0:0]');
+    });
+  });
+
+  describe('isSimpleVector', () => {
+    it('returns true for valid [MSB:LSB] bounds', () => {
+      expect(isSimpleVector('[15:8]')).toBe(true);
+      expect(isSimpleVector('[31:0]')).toBe(true);
+    });
+
+    it('returns true for single bit bounds [N]', () => {
+      expect(isSimpleVector('[7]')).toBe(true);
+      expect(isSimpleVector('[0]')).toBe(true);
+    });
+
+    it('returns true for placeholder [?:?]', () => {
+      expect(isSimpleVector('[?:?]')).toBe(true);
+    });
+
+    it('returns false for complex parameters and formulas', () => {
+      expect(isSimpleVector('((AxiDataWidth_g/8)-1)')).toBe(false);
+      expect(isSimpleVector('[AxiDataWidth_g-1:0]')).toBe(false);
+      expect(isSimpleVector('[7:lsb_param]')).toBe(false);
+    });
+
+    it('returns false for malformed formats', () => {
+      expect(isSimpleVector('15:8')).toBe(false);
+      expect(isSimpleVector('[15-8]')).toBe(false);
+      expect(isSimpleVector('')).toBe(false);
     });
   });
 });
