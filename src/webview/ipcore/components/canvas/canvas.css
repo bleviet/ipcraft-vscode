@@ -1391,11 +1391,13 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  width: 16px;
-  height: 16px;
-  padding: 0;
+  min-width: 24px;
+  height: 18px;
+  padding: 0 2px;
   font-family: var(--vscode-editor-font-family, monospace);
-  font-size: 8px;
+  font-size: 10px;
+  line-height: 1;
+  white-space: nowrap;
   background: var(--vscode-button-secondaryBackground);
   color: var(--vscode-button-secondaryForeground);
   border: 1px solid var(--vscode-button-border, transparent);
