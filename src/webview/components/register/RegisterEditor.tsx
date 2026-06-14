@@ -124,6 +124,7 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
           bits: formatBitsRange(hi, lo),
           offset: lo,
           width: hi - lo + 1,
+          bitRange: [hi, lo] as [number, number],
         };
         const newFields = [...fields];
         newFields[fieldIndex] = updatedField;
@@ -140,6 +141,7 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
               bits: formatBitsRange(hi, lo),
               offset: lo,
               width: hi - lo + 1,
+              bitRange: [hi, lo] as [number, number],
             };
           }
         });
@@ -158,6 +160,7 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
           bits: formatBitsRange(hi, lo),
           offset: lo,
           width: hi - lo + 1,
+          bitRange: [hi, lo] as [number, number],
           access: 'read-write',
           resetValue: 0,
           description: '',
@@ -174,9 +177,12 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
         if (preview === null) {
           setDragPreviewRanges({});
         } else {
-          const newRanges: Record<number, [number, number]> = {};
+          const newRanges: Record<string, [number, number]> = {};
           preview.forEach(({ idx, range }) => {
-            newRanges[idx] = range;
+            const rowId = fieldEditor.wrappedFields[idx]?.rowId;
+            if (rowId) {
+              newRanges[rowId] = range;
+            }
           });
           setDragPreviewRanges(newRanges);
         }
