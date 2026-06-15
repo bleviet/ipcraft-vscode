@@ -6,6 +6,7 @@ export interface VectorBoundingInputProps {
   registerSize: number;
   maxWidth: number;
   minBit?: number;
+  maxBit?: number;
   hasError?: boolean;
   onInput: (value: string) => void;
   onBlur?: (value: string) => void;
@@ -20,6 +21,7 @@ export const VectorBoundingInput: React.FC<VectorBoundingInputProps> = ({
   registerSize,
   maxWidth,
   minBit = 0,
+  maxBit,
   hasError = false,
   onInput,
   onBlur,
@@ -123,7 +125,11 @@ export const VectorBoundingInput: React.FC<VectorBoundingInputProps> = ({
     if (isMsb) {
       const lNum = currentLsb === '' ? 0 : parseInt(currentLsb, 10);
       if (!Number.isNaN(lNum)) {
-        nextVal = Math.max(lNum, Math.min(nextVal, lNum + maxWidth - 1));
+        // Hard-clamp the MSB at the upper neighbour boundary (maxBit), mirroring
+        // the LSB's minBit floor, so stepping never pushes the next field up and
+        // overflows the register.
+        const ceilBit = maxBit ?? safeMaxBit;
+        nextVal = Math.max(lNum, Math.min(nextVal, lNum + maxWidth - 1, ceilBit));
       }
     } else {
       const mNum = currentMsb === '' ? 0 : parseInt(currentMsb, 10);

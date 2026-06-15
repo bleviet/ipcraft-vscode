@@ -110,14 +110,21 @@ const FieldTableRow = ({
   }
   const maxWidth = Math.max(1, registerSize - otherWidthsSum);
 
-  // Committed LSB of this field — used to determine which other fields sit below it.
+  // Committed LSB/MSB of this field — used to determine which other fields sit
+  // below or above it.
   const committedLsb: number = field.bitRange
     ? field.bitRange[1]
     : Number.isFinite(Number(field.offset))
       ? Number(field.offset)
       : 0;
+  const committedMsb: number = field.bitRange
+    ? field.bitRange[0]
+    : Number.isFinite(Number(field.offset))
+      ? Number(field.offset) + (Number(field.width) || 1) - 1
+      : registerSize - 1;
 
   let lsbFloor = 0;
+  let msbCeiling = registerSize - 1;
   for (let i = 0; i < fields.length; ++i) {
     if (i === index) {
       continue;
@@ -132,14 +139,26 @@ const FieldTableRow = ({
       : fields[i].bitRange
         ? (fields[i].bitRange as [number, number])[0]
         : Number(fields[i].offset) + (Number(fields[i].width) || 1) - 1;
+    const otherLsb = parsed
+      ? parsed.bitRange[1]
+      : fields[i].bitRange
+        ? (fields[i].bitRange as [number, number])[1]
+        : Number(fields[i].offset);
     // Only fields that are entirely below the current field's committed LSB
     // constrain how low the LSB can step — fields above impose no lower bound.
     if (Number.isFinite(otherMsb) && otherMsb < committedLsb) {
       lsbFloor = Math.max(lsbFloor, otherMsb + 1);
     }
+    // Symmetrically, only fields entirely above the current field's committed
+    // MSB cap how high the MSB can step — stepping into the next field's LSB
+    // would otherwise cascade it up and overflow the register.
+    if (Number.isFinite(otherLsb) && otherLsb > committedMsb) {
+      msbCeiling = Math.min(msbCeiling, otherLsb - 1);
+    }
   }
-  // Safety: never let the floor exceed the register's last bit index.
+  // Safety: keep the bounds within the register's valid bit index range.
   lsbFloor = Math.min(lsbFloor, registerSize - 1);
+  msbCeiling = Math.max(msbCeiling, 0);
 
   const applyBitsUpdate = (next: string) => {
     let err = validateBitsString(next);
@@ -425,6 +444,7 @@ const FieldTableRow = ({
                   registerSize={registerSize}
                   maxWidth={maxWidth}
                   minBit={lsbFloor}
+                  maxBit={msbCeiling}
                   hasError={!!bitsErr}
                   onFocus={onCellFocus(index, 'bits')}
                   cancelEditRef={fieldEditor.cancelEditRef}

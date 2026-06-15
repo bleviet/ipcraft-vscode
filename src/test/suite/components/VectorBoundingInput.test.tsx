@@ -187,6 +187,35 @@ describe('VectorBoundingInput', () => {
     expect(msbInput.value).toBe('15');
   });
 
+  it('hard-clamps MSB stepping at the upper neighbour boundary (maxBit)', () => {
+    const onInput = jest.fn();
+    // LINK_STATE [13:6] with LINK_TOGGLED at [31:14] above it: MSB must not step
+    // past 13 (the neighbour's LSB - 1), or the cascade would overflow.
+    render(
+      <VectorBoundingInput
+        editKey="bits"
+        value="[13:6]"
+        registerSize={32}
+        maxWidth={14}
+        maxBit={13}
+        onInput={onInput}
+      />
+    );
+
+    const msbInput = screen.getByPlaceholderText('MSB') as HTMLInputElement;
+    const upEvent = new KeyboardEvent('keydown', {
+      key: 'ArrowUp',
+      bubbles: true,
+      cancelable: true,
+    });
+    act(() => {
+      msbInput.dispatchEvent(upEvent);
+    });
+
+    expect(msbInput.value).toBe('13');
+    expect(onInput).toHaveBeenLastCalledWith('[13:6]');
+  });
+
   it('prevents default event bubbles on ArrowUp and ArrowDown keys', () => {
     const onInput = jest.fn();
     render(

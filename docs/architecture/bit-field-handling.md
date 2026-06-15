@@ -258,10 +258,13 @@ The field table (`FieldsTable.tsx`, `FieldTableRow.tsx`, state in
   rules keep it correct when the array order has briefly diverged from bit order
   after a reorder (see ADR-8): the running `maxMSB` only absorbs lower-index
   fields whose MSB is at or below the edited field's new MSB, and the stepping
-  floor (`lsbFloor` / `VectorBoundingInput.minBit`) only counts fields strictly
-  below the edited field's committed LSB. Without those scopes a high-bit field
-  sitting at a low array index inflates the cascade and raises a spurious
-  "overflow register boundary" error.
+  bounds — the LSB floor (`lsbFloor` / `VectorBoundingInput.minBit`) and the MSB
+  ceiling (`msbCeiling` / `VectorBoundingInput.maxBit`) — hard-clamp each spinner
+  at its nearest neighbour, counting only fields strictly below the committed LSB
+  or strictly above the committed MSB respectively. The floor/ceiling stop a step
+  from pushing a neighbour past the register boundary; without the scopes a
+  high-bit field sitting at a low array index also inflates the cascade and raises
+  a spurious "overflow register boundary" error.
 - **access / reset / description**: committed per-cell; `monitorChangeOf` is
   cleared when access changes away from a W1C type.
 
@@ -518,8 +521,11 @@ preserved *and* external moves are reflected. Covered by
 
 Editing a field's `bits` rejects overlaps with lower-index fields and pushes
 higher-index fields upward. The running `maxMSB` only absorbs lower-index fields
-whose MSB is at or below the edited field's new MSB, and the LSB stepping floor
-only counts fields strictly below the edited field's committed LSB.
+whose MSB is at or below the edited field's new MSB. The MSB/LSB steppers
+(`VectorBoundingInput`) are additionally hard-clamped at the nearest neighbour:
+the LSB floor counts only fields strictly below the committed LSB, and the
+symmetric MSB ceiling counts only fields strictly above the committed MSB, so a
+single step can never push a neighbour past the register boundary.
 
 **Why:** the directional rule keeps the cascade cheap and predictable -- a single
 forward pass. The scoping rules prevent a field that is geometrically *above* the
