@@ -51,7 +51,7 @@ describe('validateBitsString', () => {
   });
 
   it('rejects MSB < LSB', () => {
-    expect(validateBitsString('[0:7]')).toBe('MSB must be >= LSB');
+    expect(validateBitsString('[0:7]')).toMatch(/MSB \(0\) must be >= LSB \(7\)/);
   });
 
   it('rejects non-numeric content', () => {

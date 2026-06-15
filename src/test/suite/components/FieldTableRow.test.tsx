@@ -194,7 +194,7 @@ describe('FieldTableRow bitfields cascading', () => {
       setBitsErrors.mock.calls.length - 1
     ]?.[0] as (prev: Record<string, string>) => Record<string, string>;
     const errorState = latestErrorUpdate({});
-    expect(errorState['row-0']).toContain('overflow register boundary');
+    expect(errorState['row-0']).toMatch(/overlap|overflow/);
   });
 
   it('commits complex expression via CellInput fallback without strict validation', () => {
@@ -385,5 +385,173 @@ describe('FieldTableRow bitfields cascading', () => {
     expect(lastErrorCall).toBeDefined();
     const errorState = lastErrorCall ? lastErrorCall({}) : {};
     expect(errorState['row-1']).toMatch(/overlap with RUN/);
+  });
+
+  it('detects overlap with fields AFTER edited index (post Ctrl+drag reorder)', () => {
+    // After Ctrl+drag, the array may be sorted by offset but the edited field
+    // could overlap with a field at a HIGHER index that has a LOWER bit position.
+    // This reproduces the EVENTS register scenario:
+    //   [UNDERRUN[1:1], OVERRUN[0:0], SRC_ACTIVE[8:8], SRC_TOGGLED[9:9]]
+    // Editing SRC_ACTIVE (index 2) to [20:14] must detect overlap with
+    // SRC_TOGGLED (index 3, bits [9:9]).
+    const fields: FieldDef[] = [
+      { name: 'UNDERRUN', bits: '[1:1]', offset: 1, width: 1, bitRange: [1, 1] },
+      { name: 'OVERRUN', bits: '[0:0]', offset: 0, width: 1, bitRange: [0, 0] },
+      { name: 'SRC_ACTIVE', bits: '[8:8]', offset: 8, width: 1, bitRange: [8, 8] },
+      { name: 'SRC_TOGGLED', bits: '[9:9]', offset: 9, width: 1, bitRange: [9, 9] },
+    ];
+
+    const onUpdate = jest.fn();
+    const setBitsErrors = jest.fn();
+    const onCellClick = jest.fn(() => jest.fn());
+    const onCellFocus = jest.fn(() => jest.fn());
+    const mockFieldEditor = {
+      ...defaultFieldEditor,
+      setBitsErrors,
+      wrappedFields: [
+        { rowId: 'row-0', model: {} },
+        { rowId: 'row-1', model: {} },
+        { rowId: 'row-2', model: {} },
+        { rowId: 'row-3', model: {} },
+      ],
+    };
+
+    render(
+      <table>
+        <tbody>
+          <FieldTableRow
+            field={fields[2]}
+            rowId="row-2"
+            index={2}
+            fields={fields}
+            registerSize={32}
+            onUpdate={onUpdate}
+            fieldEditor={mockFieldEditor}
+            onRowClick={jest.fn()}
+            onCellClick={onCellClick}
+            onCellFocus={onCellFocus}
+          />
+        </tbody>
+      </table>
+    );
+
+    const input = screen.getByTestId('vector-bounding-input');
+    fireEvent.change(input, { target: { value: '[20:14]' } });
+
+    // The cascade must push SRC_TOGGLED above the edited field's MSB (20),
+    // not just above the previous field's MSB.
+    expect(onUpdate).toHaveBeenCalled();
+    const [, updatedFields] = onUpdate.mock.calls[onUpdate.mock.calls.length - 1];
+    expect(updatedFields[2].bits).toBe('[20:14]');
+    expect(updatedFields[3].bits).toBe('[21:21]');
+  });
+
+  it('cascade tracks max MSB of all positioned fields, not just previous', () => {
+    // Fields: A[4:0], B[9:9], C[10:10]. Edit B (index 1) to [12:8].
+    // B now overlaps C at [10:10]. The cascade must push C above B's MSB (12).
+    const fields: FieldDef[] = [
+      { name: 'A', bits: '[4:0]', offset: 0, width: 5, bitRange: [4, 0] },
+      { name: 'B', bits: '[9:9]', offset: 9, width: 1, bitRange: [9, 9] },
+      { name: 'C', bits: '[10:10]', offset: 10, width: 1, bitRange: [10, 10] },
+    ];
+
+    const onUpdate = jest.fn();
+    const onCellClick = jest.fn(() => jest.fn());
+    const onCellFocus = jest.fn(() => jest.fn());
+    const mockFieldEditor = {
+      ...defaultFieldEditor,
+      wrappedFields: [
+        { rowId: 'row-0', model: {} },
+        { rowId: 'row-1', model: {} },
+        { rowId: 'row-2', model: {} },
+      ],
+    };
+
+    render(
+      <table>
+        <tbody>
+          <FieldTableRow
+            field={fields[1]}
+            rowId="row-1"
+            index={1}
+            fields={fields}
+            registerSize={32}
+            onUpdate={onUpdate}
+            fieldEditor={mockFieldEditor}
+            onRowClick={jest.fn()}
+            onCellClick={onCellClick}
+            onCellFocus={onCellFocus}
+          />
+        </tbody>
+      </table>
+    );
+
+    const input = screen.getByTestId('vector-bounding-input');
+    fireEvent.change(input, { target: { value: '[12:8]' } });
+
+    // B becomes [12:8], C must be pushed to [13:13] (above maxMSB=12)
+    expect(onUpdate).toHaveBeenCalled();
+    const [, updatedFields] = onUpdate.mock.calls[onUpdate.mock.calls.length - 1];
+    expect(updatedFields[1].bits).toBe('[12:8]');
+    expect(updatedFields[2].bits).toBe('[13:13]');
+  });
+
+  it('post-cascade check rejects when cascade cannot resolve overlap with lower-bit field at higher index', () => {
+    // After Ctrl+drag reorder: [B[8:8], A[0:0], C[9:9]]
+    // Edit A (index 1) to [5:3]. B at [8:8] is at index 0 (before A).
+    // C at [9:9] is at index 2 (after A), cascade pushes C above maxMSB=5.
+    // But B at [8:8] is NOT cascaded (index < 1). No overlap with B.
+    // Now test: [B[8:8], C[9:9], A[0:0]]. Edit A (index 2) to [10:5].
+    // Pre-cascade check: no fields before index 2 overlap [10:5]? B[8:8] overlaps!
+    const fields: FieldDef[] = [
+      { name: 'B', bits: '[8:8]', offset: 8, width: 1, bitRange: [8, 8] },
+      { name: 'C', bits: '[9:9]', offset: 9, width: 1, bitRange: [9, 9] },
+      { name: 'A', bits: '[0:0]', offset: 0, width: 1, bitRange: [0, 0] },
+    ];
+
+    const onUpdate = jest.fn();
+    const setBitsErrors = jest.fn();
+    const onCellClick = jest.fn(() => jest.fn());
+    const onCellFocus = jest.fn(() => jest.fn());
+    const mockFieldEditor = {
+      ...defaultFieldEditor,
+      setBitsErrors,
+      wrappedFields: [
+        { rowId: 'row-0', model: {} },
+        { rowId: 'row-1', model: {} },
+        { rowId: 'row-2', model: {} },
+      ],
+    };
+
+    render(
+      <table>
+        <tbody>
+          <FieldTableRow
+            field={fields[2]}
+            rowId="row-2"
+            index={2}
+            fields={fields}
+            registerSize={32}
+            onUpdate={onUpdate}
+            fieldEditor={mockFieldEditor}
+            onRowClick={jest.fn()}
+            onCellClick={onCellClick}
+            onCellFocus={onCellFocus}
+          />
+        </tbody>
+      </table>
+    );
+
+    const input = screen.getByTestId('vector-bounding-input');
+    fireEvent.change(input, { target: { value: '[10:5]' } });
+
+    // Must be rejected: A[10:5] overlaps B[8:8] which is at index < 2
+    expect(onUpdate).not.toHaveBeenCalled();
+    const lastErrorCall = setBitsErrors.mock.calls[setBitsErrors.mock.calls.length - 1]?.[0] as
+      | ((prev: Record<string, string>) => Record<string, string>)
+      | undefined;
+    expect(lastErrorCall).toBeDefined();
+    const errorState = lastErrorCall ? lastErrorCall({}) : {};
+    expect(errorState['row-2']).toMatch(/overlap with B/);
   });
 });

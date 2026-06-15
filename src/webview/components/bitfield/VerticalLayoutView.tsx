@@ -13,6 +13,7 @@ interface DragState {
   shiftDrag: ShiftDragState;
   shiftHeld: boolean;
   ctrlDragActive: boolean;
+  ctrlDragPreviewValid: boolean;
   ctrlHeld: boolean;
   isCtrlDragActive: () => boolean;
   dragActive: boolean;
@@ -128,6 +129,7 @@ const VerticalLayoutView = ({
     shiftDrag,
     shiftHeld,
     ctrlDragActive,
+    ctrlDragPreviewValid,
     ctrlHeld,
     isCtrlDragActive,
     dragActive,
@@ -196,7 +198,13 @@ const VerticalLayoutView = ({
                               opacity: isInDragRange ? 0.95 : 0.6,
                               borderTop:
                                 i === 0 ? undefined : '1px solid var(--vscode-panel-border)',
-                              cursor: ctrlDragActive ? 'grabbing' : ctrlHeld ? 'grab' : 'pointer',
+                              cursor: ctrlDragActive
+                                ? ctrlDragPreviewValid
+                                  ? 'grabbing'
+                                  : 'no-drop'
+                                : ctrlHeld
+                                  ? 'grab'
+                                  : 'pointer',
                             }}
                             onPointerDown={(e) => {
                               if (e.shiftKey) {
@@ -370,6 +378,7 @@ const VerticalLayoutView = ({
                       isInNewRange,
                       colorToken: group.color,
                       ctrlDragActive,
+                      ctrlDragPreviewValid,
                       ctrlHeld,
                       defaultCursor,
                       outOfRangeOpacity: 0.35,

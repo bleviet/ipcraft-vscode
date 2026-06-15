@@ -482,4 +482,52 @@ describe('VectorBoundingInput', () => {
     // LSB must stay at 1; stepping into bit 0 (RUN's territory) is blocked.
     expect(lsbInput.value).toBe('1');
   });
+
+  it('adopts an external value change while focused (Alt+arrow reorder)', () => {
+    // When a field is moved with the table Alt+Up/Down its bits change underneath
+    // a focused BIT(S) cell. The displayed MSB/LSB must follow the new value
+    // rather than staying stale at the pre-move position.
+    const { rerender } = render(
+      <VectorBoundingInput
+        editKey="bits"
+        value="[18:16]"
+        registerSize={32}
+        maxWidth={32}
+        onInput={jest.fn()}
+      />
+    );
+
+    const msbInput = screen.getByPlaceholderText('MSB') as HTMLInputElement;
+    const lsbInput = screen.getByPlaceholderText('LSB') as HTMLInputElement;
+    expect(`[${msbInput.value}:${lsbInput.value}]`).toBe('[18:16]');
+
+    // The cell is focused (active in the table) when the reorder happens.
+    fireEvent.focus(msbInput);
+
+    rerender(
+      <VectorBoundingInput
+        editKey="bits"
+        value="[6:4]"
+        registerSize={32}
+        maxWidth={32}
+        onInput={jest.fn()}
+      />
+    );
+
+    expect(`[${msbInput.value}:${lsbInput.value}]`).toBe('[6:4]');
+  });
+
+  it('does not clobber in-progress typing when the parent echoes the draft back', () => {
+    // TestWrapper mirrors onInput into `value`, reproducing the live draft echo.
+    // Typing must survive the resulting re-render (the echo is not an external
+    // change and must not reset the field).
+    render(<TestWrapper initialValue="[15:8]" />);
+
+    const msbInput = screen.getByPlaceholderText('MSB') as HTMLInputElement;
+    fireEvent.focus(msbInput);
+    fireEvent.change(msbInput, { target: { value: '9' } });
+
+    // The user's keystroke stands; the echoed value did not reset it.
+    expect(msbInput.value).toBe('9');
+  });
 });

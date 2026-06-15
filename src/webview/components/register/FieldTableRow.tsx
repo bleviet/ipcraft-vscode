@@ -110,8 +110,18 @@ const FieldTableRow = ({
   }
   const maxWidth = Math.max(1, registerSize - otherWidthsSum);
 
+  // Committed LSB of this field — used to determine which other fields sit below it.
+  const committedLsb: number = field.bitRange
+    ? field.bitRange[1]
+    : Number.isFinite(Number(field.offset))
+      ? Number(field.offset)
+      : 0;
+
   let lsbFloor = 0;
-  for (let i = 0; i < index; ++i) {
+  for (let i = 0; i < fields.length; ++i) {
+    if (i === index) {
+      continue;
+    }
     const otherRowId = fieldEditor.wrappedFields[i]?.rowId;
     const b = otherRowId
       ? (bitsDrafts[otherRowId] ?? fieldToBitsString(fields[i]))
@@ -122,10 +132,14 @@ const FieldTableRow = ({
       : fields[i].bitRange
         ? (fields[i].bitRange as [number, number])[0]
         : Number(fields[i].offset) + (Number(fields[i].width) || 1) - 1;
-    if (Number.isFinite(otherMsb)) {
+    // Only fields that are entirely below the current field's committed LSB
+    // constrain how low the LSB can step — fields above impose no lower bound.
+    if (Number.isFinite(otherMsb) && otherMsb < committedLsb) {
       lsbFloor = Math.max(lsbFloor, otherMsb + 1);
     }
   }
+  // Safety: never let the floor exceed the register's last bit index.
+  lsbFloor = Math.min(lsbFloor, registerSize - 1);
 
   const applyBitsUpdate = (next: string) => {
     let err = validateBitsString(next);
@@ -185,13 +199,25 @@ const FieldTableRow = ({
           }
 
           if (!err) {
-            let prevMSB = currMSB;
+            let maxMSB = currMSB;
+            for (let i = 0; i < index; ++i) {
+              const f = updatedFields[i];
+              const msb = f.bitRange
+                ? f.bitRange[0]
+                : Number(f.offset) + (Number(f.width) || 1) - 1;
+              // Only fields at or below the edited field's new MSB affect the cascade
+              // floor. Fields above it (possible after ctrl-drag reorder) are
+              // independent and must not inflate maxMSB.
+              if (msb <= currMSB && msb > maxMSB) {
+                maxMSB = msb;
+              }
+            }
             for (let i = index + 1; i < updatedFields.length; ++i) {
               const f = updatedFields[i];
               const width = Number(f.width) || 1;
               const currentLsb = f.bitRange ? f.bitRange[1] : Number(f.offset);
-              if (currentLsb <= prevMSB) {
-                const lsb = prevMSB + 1;
+              if (currentLsb <= maxMSB) {
+                const lsb = maxMSB + 1;
                 const msb = lsb + width - 1;
                 updatedFields[i] = {
                   ...f,
@@ -200,10 +226,42 @@ const FieldTableRow = ({
                   bitRange: [msb, lsb],
                   bits: formatBits(msb, lsb),
                 };
-                prevMSB = msb;
+                maxMSB = msb;
               } else {
                 const currentMsb = f.bitRange ? f.bitRange[0] : Number(f.offset) + width - 1;
-                prevMSB = currentMsb;
+                if (currentMsb > maxMSB) {
+                  maxMSB = currentMsb;
+                }
+              }
+            }
+
+            for (let i = 0; !err && i < updatedFields.length; ++i) {
+              if (i === index) {
+                continue;
+              }
+              const a = updatedFields[i];
+              const aMsb = a.bitRange
+                ? a.bitRange[0]
+                : Number(a.offset) + (Number(a.width) || 1) - 1;
+              const aLsb = a.bitRange ? a.bitRange[1] : Number(a.offset);
+              for (let j = i + 1; j < updatedFields.length; ++j) {
+                if (j === index) {
+                  continue;
+                }
+                const b = updatedFields[j];
+                const bMsb = b.bitRange
+                  ? b.bitRange[0]
+                  : Number(b.offset) + (Number(b.width) || 1) - 1;
+                const bLsb = b.bitRange ? b.bitRange[1] : Number(b.offset);
+                if (aMsb >= bLsb && bMsb >= aLsb) {
+                  const otherName =
+                    i === index ? String(b.name ?? `field${j}`) : String(a.name ?? `field${i}`);
+                  err = `Bit field would overlap with ${otherName}`;
+                  break;
+                }
+              }
+              if (err) {
+                break;
               }
             }
 

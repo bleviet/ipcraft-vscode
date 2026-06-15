@@ -53,7 +53,13 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
 
     const fieldEditor = useFieldEditor(fields, registerSize, onUpdate, true);
 
-    const { hoveredFieldIndex, setHoveredFieldIndex, setDragPreviewRanges, focusRef } = fieldEditor;
+    const {
+      hoveredFieldIndex,
+      setHoveredFieldIndex,
+      setDragPreviewRanges,
+      setBitsDrafts,
+      focusRef,
+    } = fieldEditor;
 
     // Expose focus() to parent (e.g. DetailsPanel's useImperativeHandle).
     useImperativeHandle(
@@ -128,7 +134,24 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
         };
         const newFields = [...fields];
         newFields[fieldIndex] = updatedField;
+        // Keep the fields array sorted by bit position. The table cascade in
+        // FieldTableRow treats array order as bit order; a single-field move
+        // that left the array unsorted would make the cascade push the wrong
+        // fields (and overflow the register). Mirror onBatchUpdateFields.
+        newFields.sort((a, b) => {
+          const aLo = a.offset ?? 0;
+          const bLo = b.offset ?? 0;
+          return aLo - bLo;
+        });
         onUpdate(['fields'], newFields);
+        setBitsDrafts((prev: Record<string, string>) => {
+          const next = { ...prev };
+          const rowId = fieldEditor.wrappedFields[fieldIndex]?.rowId;
+          if (rowId) {
+            delete next[rowId];
+          }
+          return next;
+        });
       },
       onBatchUpdateFields: (updates: { idx: number; range: [number, number] }[]) => {
         const newFields = [...fields];
@@ -151,6 +174,16 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
           return aLo - bLo;
         });
         onUpdate(['fields'], newFields);
+        setBitsDrafts((prev: Record<string, string>) => {
+          const next = { ...prev };
+          updates.forEach(({ idx }) => {
+            const rowId = fieldEditor.wrappedFields[idx]?.rowId;
+            if (rowId) {
+              delete next[rowId];
+            }
+          });
+          return next;
+        });
       },
       onCreateField: (newField: { bitRange: [number, number]; name: string }) => {
         const name = generateUniqueName(fields, 'field');

@@ -38,12 +38,26 @@ export const VectorBoundingInput: React.FC<VectorBoundingInputProps> = ({
   const localLsbRef = useRef(localLsb);
   const onInputRef = useRef(onInput);
   const adjustValueRef = useRef<((isMsb: boolean, delta: number) => void) | null>(null);
+  // Last range string this component emitted via onInput. Used to tell our own
+  // echo (the parent reflecting our keystrokes back through `value`) apart from
+  // an external change to the field's bits (e.g. an Alt+arrow reorder or a
+  // cascade) that we must adopt even while the cell is focused.
+  const lastEmittedRef = useRef(value);
+
+  const emitInput = (next: string) => {
+    lastEmittedRef.current = next;
+    onInputRef.current(next);
+  };
 
   useEffect(() => {
-    if (!isFocusedRef.current) {
+    // Always adopt the incoming value when not focused. While focused, adopt it
+    // only when it is NOT an echo of our own last edit — otherwise an external
+    // change (reorder/cascade) would leave the displayed MSB/LSB stale.
+    if (!isFocusedRef.current || value !== lastEmittedRef.current) {
       const [m, l] = parseValue(value);
       setLocalMsb(m);
       setLocalLsb(l);
+      lastEmittedRef.current = value;
     }
   }, [value]);
 
@@ -122,10 +136,10 @@ export const VectorBoundingInput: React.FC<VectorBoundingInputProps> = ({
 
     if (isMsb) {
       setLocalMsb(nextStr);
-      onInputRef.current(formatRange(nextStr, currentLsb));
+      emitInput(formatRange(nextStr, currentLsb));
     } else {
       setLocalLsb(nextStr);
-      onInputRef.current(formatRange(currentMsb, nextStr));
+      emitInput(formatRange(currentMsb, nextStr));
     }
   };
 
@@ -216,7 +230,7 @@ export const VectorBoundingInput: React.FC<VectorBoundingInputProps> = ({
       }
     }
     setLocalMsb(finalMsb);
-    onInput(formatRange(finalMsb, localLsb));
+    emitInput(formatRange(finalMsb, localLsb));
   };
 
   const handleLsbChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -242,7 +256,7 @@ export const VectorBoundingInput: React.FC<VectorBoundingInputProps> = ({
       }
     }
     setLocalLsb(finalLsb);
-    onInput(formatRange(localMsb, finalLsb));
+    emitInput(formatRange(localMsb, finalLsb));
   };
 
   const handleFocus = () => {
@@ -261,7 +275,7 @@ export const VectorBoundingInput: React.FC<VectorBoundingInputProps> = ({
     let lNum = localLsb === '' ? NaN : parseInt(localLsb, 10);
 
     if (Number.isNaN(mNum) && Number.isNaN(lNum)) {
-      onInput('[?:?]');
+      emitInput('[?:?]');
       onBlur?.('[?:?]');
       return;
     }
@@ -294,7 +308,7 @@ export const VectorBoundingInput: React.FC<VectorBoundingInputProps> = ({
 
     const rangeStr = formatRange(finalMsb, finalLsb);
     if (rangeStr !== value) {
-      onInput(rangeStr);
+      emitInput(rangeStr);
       onBlur?.(rangeStr);
     }
   };

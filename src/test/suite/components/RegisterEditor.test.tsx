@@ -77,6 +77,7 @@ jest.mock('../../../webview/hooks/useFieldEditor', () => ({
     hoveredFieldIndex: null,
     setHoveredFieldIndex: jest.fn(),
     setDragPreviewRanges,
+    setBitsDrafts: jest.fn(),
     focusRef: { current: null },
   }),
 }));
@@ -215,6 +216,46 @@ describe('RegisterEditor layouts', () => {
     expect(moved.offset).toBe(8);
     expect(moved.width).toBe(2);
     expect(moved.bits).toBe('[9:8]');
+  });
+
+  it('re-sorts fields by bit position after a single-field range commit', () => {
+    // A single-field drag/resize commit must keep the fields array sorted by
+    // bit position. FieldTableRow's cascade treats array index as bit order;
+    // an unsorted array makes it cascade the wrong fields and overflow the
+    // register (the "CLEAR_STATS [10:5] -> MSB 32 >= 32" bug).
+    bitFieldVisualizerMock.mockClear();
+    const onUpdate = jest.fn();
+    const dragFields: BitFieldRecord[] = [
+      { name: 'LOW', bits: '[2:0]', offset: 0, width: 3, bitRange: [2, 0] },
+      { name: 'HIGH', bits: '[7:4]', offset: 4, width: 4, bitRange: [7, 4] },
+    ];
+
+    render(
+      <RegisterEditor
+        register={register}
+        fields={dragFields}
+        registerLayout="stacked"
+        toggleRegisterLayout={jest.fn()}
+        onUpdate={onUpdate}
+      />
+    );
+
+    const props = bitFieldVisualizerMock.mock.calls[
+      bitFieldVisualizerMock.mock.calls.length - 1
+    ]?.[0] as {
+      onUpdateFieldRange?: (idx: number, range: [number, number]) => void;
+    };
+
+    // Move LOW (index 0) above HIGH: [2:0] -> [11:9]. The array must come back
+    // ordered by offset, so HIGH (offset 4) precedes LOW (offset 9).
+    props.onUpdateFieldRange!(0, [11, 9]);
+
+    const [, committed] = onUpdate.mock.calls[onUpdate.mock.calls.length - 1] as [
+      unknown,
+      BitFieldRecord[],
+    ];
+    expect(committed.map((f) => f.name)).toEqual(['HIGH', 'LOW']);
+    expect(committed.map((f) => f.offset)).toEqual([4, 9]);
   });
 
   it('maps onDragPreview idx entries to rowId keys so the field table can show the preview', () => {

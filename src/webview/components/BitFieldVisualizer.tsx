@@ -139,6 +139,7 @@ const BitFieldVisualizerInner: React.FC<BitFieldVisualizerProps> = ({
         active: true,
         draggedFieldIndex: fieldAtBit,
         previewSegments: buildProLayoutSegments(fields, registerSize),
+        previewValid: true,
       });
     }
   };
@@ -210,12 +211,13 @@ const BitFieldVisualizerInner: React.FC<BitFieldVisualizerProps> = ({
     }
 
     const preview = computeCtrlDragPreview(bit, ctrlDrag.draggedFieldIndex, fields, registerSize);
-    if (!preview) {
-      return;
+    if (preview) {
+      setCtrlDrag((prev) => ({ ...prev, previewSegments: preview.segments, previewValid: true }));
+      onDragPreview?.(preview.updates);
+    } else {
+      setCtrlDrag((prev) => ({ ...prev, previewSegments: null, previewValid: false }));
+      onDragPreview?.(null);
     }
-
-    setCtrlDrag((prev) => ({ ...prev, previewSegments: preview.segments }));
-    onDragPreview?.(preview.updates);
   };
 
   const applyKeyboardReorder = (fieldIndex: number, direction: 'msb' | 'lsb') => {
@@ -317,6 +319,7 @@ const BitFieldVisualizerInner: React.FC<BitFieldVisualizerProps> = ({
         shiftDrag,
         shiftHeld,
         ctrlDragActive: ctrlDrag.active,
+        ctrlDragPreviewValid: ctrlDrag.previewValid,
         ctrlHeld,
         isCtrlDragActive: () => ctrlDragRef.current.active,
         dragActive,

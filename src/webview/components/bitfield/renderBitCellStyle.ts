@@ -7,6 +7,7 @@ interface RenderBitCellStyleArgs {
   isInNewRange: boolean;
   colorToken: string;
   ctrlDragActive: boolean;
+  ctrlDragPreviewValid?: boolean;
   ctrlHeld: boolean;
   labelSizeClass?: string;
   defaultCursor?: CSSProperties['cursor'];
@@ -27,6 +28,7 @@ export function renderBitCellStyle({
   isInNewRange,
   colorToken,
   ctrlDragActive,
+  ctrlDragPreviewValid = true,
   ctrlHeld,
   labelSizeClass = 'text-sm',
   defaultCursor = 'pointer',
@@ -52,7 +54,13 @@ export function renderBitCellStyle({
           ? 'inset 0 0 0 1px var(--ipcraft-pattern-ring)'
           : undefined,
       border: isInNewRange ? '2px solid var(--vscode-focusBorder)' : undefined,
-      cursor: ctrlDragActive ? 'grabbing' : ctrlHeld ? 'grab' : defaultCursor,
+      cursor: ctrlDragActive
+        ? ctrlDragPreviewValid
+          ? 'grabbing'
+          : 'no-drop'
+        : ctrlHeld
+          ? 'grab'
+          : defaultCursor,
     },
   };
 }
