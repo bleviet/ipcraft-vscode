@@ -1,4 +1,4 @@
-import React, { useCallback, useLayoutEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   VSCodeTextField,
   VSCodeTextArea,
@@ -45,10 +45,26 @@ export function CellInput({
   style,
   options = [],
 }: CellInputProps) {
+  const isTextArea = variant === 'textarea';
+
   // The toolkit React wrapper forwards `ref` to the underlying
   // `<vscode-text-area>` element, which hosts the real <textarea> in its shadow
   // DOM. The declared ref type is misleading, so capture it as an HTMLElement.
   const textAreaRef = useRef<HTMLElement | null>(null);
+
+  // Local draft for the textarea. While the field is focused, the draft is the
+  // source of truth so a lagging round-trip of `value` (parse -> serialize ->
+  // re-parse) cannot rewrite the element's value and snap the caret to the end.
+  const [draft, setDraft] = useState(value);
+  const isFocusedRef = useRef(false);
+
+  // Adopt external `value` changes only when the field is not being edited
+  // (reloads, undo, programmatic updates).
+  useEffect(() => {
+    if (!isFocusedRef.current && draft !== value) {
+      setDraft(value);
+    }
+  }, [value, draft]);
 
   // Auto-grow the textarea to fit its content so multi-line descriptions are
   // not clipped. minHeight (from `style`) acts as the floor.
@@ -67,16 +83,17 @@ export function CellInput({
   }, [style?.minHeight]);
 
   useLayoutEffect(() => {
-    if (variant === 'textarea') {
+    if (isTextArea) {
       autoGrowTextArea();
     }
-  }, [value, variant, autoGrowTextArea]);
+  }, [draft, isTextArea, autoGrowTextArea]);
 
   const handleInput = (e: Event | React.FormEvent<HTMLElement>) => {
-    onInput((e.target as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement).value);
-    if (variant === 'textarea') {
-      autoGrowTextArea();
+    const next = (e.target as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement).value;
+    if (isTextArea) {
+      setDraft(next);
     }
+    onInput(next);
   };
 
   const handleBlur = (e: Event | React.FocusEvent<HTMLElement>) => {
@@ -121,10 +138,18 @@ export function CellInput({
         className={className}
         style={style}
         rows={1}
-        value={value}
-        onFocus={onFocus}
+        value={draft}
+        onFocus={() => {
+          isFocusedRef.current = true;
+          onFocus();
+        }}
         onInput={handleInput}
-        onBlur={handleBlur}
+        onBlur={(e) => {
+          // Clearing focus first lets the sync effect re-adopt the canonical
+          // value (e.g. after any normalization) once editing is done.
+          isFocusedRef.current = false;
+          handleBlur(e);
+        }}
       />
     );
   }
