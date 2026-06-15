@@ -46,13 +46,15 @@ export function CellInput({
   options = [],
 }: CellInputProps) {
   const isTextArea = variant === 'textarea';
+  // Text and textarea inputs have a caret; the dropdown does not.
+  const usesDraft = variant !== 'dropdown';
 
   // The toolkit React wrapper forwards `ref` to the underlying
   // `<vscode-text-area>` element, which hosts the real <textarea> in its shadow
   // DOM. The declared ref type is misleading, so capture it as an HTMLElement.
   const textAreaRef = useRef<HTMLElement | null>(null);
 
-  // Local draft for the textarea. While the field is focused, the draft is the
+  // Local draft for text inputs. While the field is focused, the draft is the
   // source of truth so a lagging round-trip of `value` (parse -> serialize ->
   // re-parse) cannot rewrite the element's value and snap the caret to the end.
   const [draft, setDraft] = useState(value);
@@ -90,7 +92,7 @@ export function CellInput({
 
   const handleInput = (e: Event | React.FormEvent<HTMLElement>) => {
     const next = (e.target as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement).value;
-    if (isTextArea) {
+    if (usesDraft) {
       setDraft(next);
     }
     onInput(next);
@@ -159,10 +161,18 @@ export function CellInput({
       data-edit-key={editKey}
       className={className}
       style={style}
-      value={value}
-      onFocus={onFocus}
+      value={draft}
+      onFocus={() => {
+        isFocusedRef.current = true;
+        onFocus();
+      }}
       onInput={handleInput}
-      onBlur={handleBlur}
+      onBlur={(e) => {
+        // Clearing focus first lets the sync effect re-adopt the canonical
+        // value (e.g. after any normalization) once editing is done.
+        isFocusedRef.current = false;
+        handleBlur(e);
+      }}
     />
   );
 }
