@@ -1,4 +1,4 @@
-import React, { useCallback, useLayoutEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import {
   VSCodeTextField,
   VSCodeTextArea,
@@ -74,10 +74,17 @@ export function CellInput({
     inner.style.height = `${Math.max(inner.scrollHeight + borders, floor)}px`;
   }, [style?.minHeight]);
 
-  useLayoutEffect(() => {
-    if (isTextArea) {
-      autoGrowTextArea();
+  // Size pre-filled textareas on mount and whenever the value changes. The
+  // toolkit applies the value to the shadow <textarea> via an async template
+  // binding, so defer one frame to measure after it has flushed (a synchronous
+  // effect would measure an empty control). Typing is handled synchronously in
+  // handleInput, where the browser has already updated the control.
+  useEffect(() => {
+    if (!isTextArea) {
+      return;
     }
+    const raf = requestAnimationFrame(() => autoGrowTextArea());
+    return () => cancelAnimationFrame(raf);
   }, [draft, isTextArea, autoGrowTextArea]);
 
   const handleInput = (e: Event | React.FormEvent<HTMLElement>) => {
@@ -86,6 +93,9 @@ export function CellInput({
       setDraft(next);
     }
     onInput(next);
+    if (isTextArea) {
+      autoGrowTextArea();
+    }
   };
 
   const handleBlur = (e: Event | React.FocusEvent<HTMLElement>) => {
