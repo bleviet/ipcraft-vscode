@@ -112,6 +112,19 @@ describe('IpCoreScaffolder', () => {
     expect(xmlContent).toContain('<spirit:name>choice_DATA_WIDTH</spirit:name>');
     expect(xmlContent).toContain('<spirit:enumeration>32</spirit:enumeration>');
 
+    // Vivado xGUI: parameter descriptions surface as customize-dialog tooltips
+    const xguiContent = (fs.writeFile as unknown as jest.Mock).mock.calls.find((call) =>
+      call[0].includes('xilinx/xgui/sample_core_v1_0_0.tcl')
+    )?.[1];
+    expect(xguiContent).toContain(
+      'set DATA_WIDTH [ipgui::add_param $IPINST -name "DATA_WIDTH" -parent ${Page_Page_0}]'
+    );
+    expect(xguiContent).toContain('set_property tooltip {Width of the data bus} ${DATA_WIDTH}');
+    expect(xguiContent).toContain('set_property tooltip {Vendor identifier} ${VENDOR_ID}');
+    // Parameters without a description are added without a tooltip line
+    expect(xguiContent).toContain('ipgui::add_param $IPINST -name "ADDR_WIDTH"');
+    expect(xguiContent).not.toMatch(/set_property tooltip .* \$\{ADDR_WIDTH\}/);
+
     // String generics: VHDL must use quoted string literals
     expect(vhdlContent).toContain('VENDOR_ID : string := "ACME"');
     expect(vhdlContent).toContain('DEVICE_TAG : string := ""');

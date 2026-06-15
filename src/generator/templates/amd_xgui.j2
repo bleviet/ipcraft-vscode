@@ -7,12 +7,22 @@ proc init_gui { IPINST } {
 {% for group in page.groups %}
   set {{ group.tcl_var }} [ipgui::add_group $IPINST -name "{{ group.name }}" -parent ${{"{"}}{{ page.tcl_var }}{{"}"}}]
 {% endfor %}
-{% for param_name in page.ungrouped_param_names %}
-  ipgui::add_param $IPINST -name "{{ param_name }}" -parent ${{"{"}}{{ page.tcl_var }}{{"}"}}
+{% for param in page.ungrouped_params %}
+{% if param.tooltip %}
+  set {{ param.name }} [ipgui::add_param $IPINST -name "{{ param.name }}" -parent ${{"{"}}{{ page.tcl_var }}{{"}"}}]
+  set_property tooltip {{"{"}}{{ param.tooltip }}{{"}"}} ${{"{"}}{{ param.name }}{{"}"}}
+{% else %}
+  ipgui::add_param $IPINST -name "{{ param.name }}" -parent ${{"{"}}{{ page.tcl_var }}{{"}"}}
+{% endif %}
 {% endfor %}
 {% for group in page.groups %}
-{% for param_name in group.param_names %}
-  ipgui::add_param $IPINST -name "{{ param_name }}" -parent ${{"{"}}{{ group.tcl_var }}{{"}"}}
+{% for param in group.params %}
+{% if param.tooltip %}
+  set {{ param.name }} [ipgui::add_param $IPINST -name "{{ param.name }}" -parent ${{"{"}}{{ group.tcl_var }}{{"}"}}]
+  set_property tooltip {{"{"}}{{ param.tooltip }}{{"}"}} ${{"{"}}{{ param.name }}{{"}"}}
+{% else %}
+  ipgui::add_param $IPINST -name "{{ param.name }}" -parent ${{"{"}}{{ group.tcl_var }}{{"}"}}
+{% endif %}
 {% endfor %}
 {% endfor %}
 {% endfor %}

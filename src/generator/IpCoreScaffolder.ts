@@ -33,6 +33,27 @@ import type {
   IpCoreData,
 } from './types';
 
+/** A parameter as laid out for the Vivado xGUI: name plus a tooltip string. */
+interface XguiParam {
+  name: string;
+  /** Description sanitized for a Tcl brace-quoted `set_property tooltip {...}`. */
+  tooltip: string;
+}
+
+/**
+ * Sanitize a parameter description for safe use inside a Tcl brace-quoted
+ * string (`{...}`) in the xGUI tooltip: collapse whitespace/newlines onto one
+ * line and neutralize characters that would unbalance the braces.
+ */
+function toTclBraceText(text: string): string {
+  return text
+    .replace(/\s+/g, ' ')
+    .replace(/\\/g, '')
+    .replace(/\{/g, '(')
+    .replace(/\}/g, ')')
+    .trim();
+}
+
 export class IpCoreScaffolder {
   private readonly logger: Logger;
   private readonly templates: TemplateLoader;
@@ -650,25 +671,30 @@ export class IpCoreScaffolder {
    * Pre-compute the page/group layout for XGUI templates so templates don't
    * need to perform set operations (Nunjucks lacks Python's list.append).
    * Returns ordered unique pages, each with ordered unique groups and their
-   * member generic names. Generics with no uiPage land on "Page 0".
+   * member params (name + tooltip). Generics with no uiPage land on "Page 0".
+   * Each param carries a `tooltip` sourced from its description so the xGUI
+   * can surface it via `set_property tooltip` in the Vivado customize dialog.
    */
   prepareXguiPages(generics: Array<Record<string, unknown>>): Array<{
     name: string;
     tcl_var: string;
-    groups: Array<{ name: string; tcl_var: string; param_names: string[] }>;
-    ungrouped_param_names: string[];
+    groups: Array<{ name: string; tcl_var: string; params: XguiParam[] }>;
+    ungrouped_params: XguiParam[];
   }> {
     const toTclVar = (s: string) => s.replace(/[\s\-.]/g, '_');
 
     const pageOrder: string[] = [];
     const groupOrder: Map<string, string[]> = new Map();
-    const groupParams: Map<string, Map<string, string[]>> = new Map();
-    const ungroupedParams: Map<string, string[]> = new Map();
+    const groupParams: Map<string, Map<string, XguiParam[]>> = new Map();
+    const ungroupedParams: Map<string, XguiParam[]> = new Map();
 
     for (const g of generics) {
       const page = g.ui_page ? String(g.ui_page) : 'Page 0';
       const group = g.ui_group ? String(g.ui_group) : '';
-      const name = String(g.name ?? '');
+      const param: XguiParam = {
+        name: String(g.name ?? ''),
+        tooltip: toTclBraceText(g.description ? String(g.description) : ''),
+      };
 
       if (!pageOrder.includes(page)) {
         pageOrder.push(page);
@@ -683,9 +709,9 @@ export class IpCoreScaffolder {
           groups.push(group);
           groupParams.get(page)!.set(group, []);
         }
-        groupParams.get(page)!.get(group)!.push(name);
+        groupParams.get(page)!.get(group)!.push(param);
       } else {
-        ungroupedParams.get(page)!.push(name);
+        ungroupedParams.get(page)!.push(param);
       }
     }
 
@@ -695,9 +721,9 @@ export class IpCoreScaffolder {
       groups: (groupOrder.get(page) ?? []).map((group) => ({
         name: group,
         tcl_var: `Group_${toTclVar(page)}_${toTclVar(group)}`,
-        param_names: groupParams.get(page)!.get(group) ?? [],
+        params: groupParams.get(page)!.get(group) ?? [],
       })),
-      ungrouped_param_names: ungroupedParams.get(page) ?? [],
+      ungrouped_params: ungroupedParams.get(page) ?? [],
     }));
   }
 
