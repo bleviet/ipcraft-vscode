@@ -179,6 +179,29 @@ describe('IpCoreScaffolder', () => {
     expect(vhdlContent).not.toContain('use work.sample_core_pkg.all');
   });
 
+  it('honors the testbench engine option in the scaffolded Makefile', async () => {
+    // Scaffold bundles the testbench; the simulator (engine) chosen in settings
+    // must reach the generated Makefile, not silently fall back to the default.
+    const inputPath = path.resolve(__dirname, '../../fixtures/sample-ipcore.yml');
+    const outputDir = '/tmp/test-engine-output';
+
+    const result = await scaffolder.generateAll(inputPath, outputDir, {
+      includeRegs: true,
+      includeTestbench: true,
+      framework: 'cocotb',
+      engine: 'questa',
+      targets: [],
+    });
+
+    expect(result.success).toBe(true);
+
+    const makefile = (fs.writeFile as unknown as jest.Mock).mock.calls.find((call: string[]) =>
+      call[0].includes('tb/Makefile')
+    )?.[1] as string;
+    expect(makefile).toContain('SIM ?= questa');
+    expect(makefile).not.toContain('SIM ?= ghdl');
+  });
+
   it('does not add simulation sources to Vivado/Quartus project TCLs', async () => {
     // When includeVhdl: false, collectRtlFiles falls back to reading fileSets.
     // Simulation files (in tb/) must be excluded even when their type is vhdl/sv.
