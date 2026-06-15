@@ -77,7 +77,6 @@ export class IpCoreScaffolder {
         context.memmap_relpath = memmapRelpath;
       }
       assertValidContext(context);
-      const ipCraftMethodology = options.ipCraftMethodology ?? false;
       const includeRegs = options.includeRegs !== false && hasMmSlave;
       const includeTestbench = options.includeTestbench !== false;
       const targets = options.targets ?? [];
@@ -93,7 +92,7 @@ export class IpCoreScaffolder {
       context.includeRegs = includeRegs;
 
       // ── Resolve scaffold pack ──────────────────────────────────────────────
-      // Cascade: explicit option (settings/picker) > scaffold_pack in .ip.yml > legacy flag.
+      // Cascade: explicit option (settings/picker) > scaffold_pack in .ip.yml
       const packName =
         options.scaffoldPack ??
         (typeof ipCoreData.scaffold_pack === 'string' ? ipCoreData.scaffold_pack : undefined);
@@ -101,7 +100,7 @@ export class IpCoreScaffolder {
       const scaffoldPackLoader = new ScaffoldPackLoader(this.resourceRoots.builtinPacksDir);
       const pack = packName
         ? scaffoldPackLoader.resolve(packName, workspacePackDirs)
-        : scaffoldPackLoader.resolveDefault(ipCraftMethodology);
+        : scaffoldPackLoader.resolveDefault();
       checkPackApiVersion(pack);
       const resolvedPackName = path.basename(pack.packDir);
 

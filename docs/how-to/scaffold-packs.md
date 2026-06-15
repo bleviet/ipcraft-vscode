@@ -17,8 +17,7 @@ Five packs ship with IPCraft — two production-ready and three annotated exampl
 The example packs have extensively commented `scaffold.yml` files that explain every
 field, making them useful learning material even if you do not use them directly.
 
-The generator selects `builtin-minimal` or `builtin-ipcraft` automatically based on the
-`ipcraft.generate.ipCraftMethodology` setting unless you override it.
+The generator uses `builtin-minimal` as the default scaffold pack unless you override it.
 
 !!! tip "Interactive walkthrough"
     Open the VS Code **Get Started** tab and search for **Get Started with Scaffold Packs**
@@ -33,7 +32,7 @@ and is independent of the `.ip.yml` spec file.
 
 **Option A — Canvas dropdown (recommended)**
 
-Open any `.ip.yml` in the visual editor. The **Code Generation Methodology** dropdown
+Open any `.ip.yml` in the visual editor. The **Scaffold Template** dropdown
 in the toolbar lists every detected pack, grouped by category. Selecting a pack saves
 it to `ipcraft.generate.scaffoldPack` immediately.
 
@@ -52,9 +51,7 @@ The generator looks for the pack in this order:
 1. `.vscode/ipcraft/packs/<name>/scaffold.yml` (workspace-local pack)
 2. Built-in packs shipped with the extension (`builtin-minimal`, `builtin-ipcraft`)
 
-When `ipcraft.generate.scaffoldPack` is empty the value of
-`ipcraft.generate.ipCraftMethodology` is used as a fallback to keep existing
-projects working without any migration.
+When `ipcraft.generate.scaffoldPack` is empty, `builtin-minimal` is used as a fallback.
 
 ---
 
@@ -125,7 +122,7 @@ From here:
 - Delete template files you do not need to customise — the generator falls back
   to the built-in version for any template not found in the pack directory.
 
-Activate the pack by selecting it in the canvas **Code Generation Methodology** dropdown,
+Activate the pack by selecting it in the canvas **Scaffold Template** dropdown,
 or by setting `ipcraft.generate.scaffoldPack: "aurora-rtl"` in workspace settings.
 
 ---

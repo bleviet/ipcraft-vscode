@@ -63,7 +63,7 @@ describe('IpCoreScaffolder', () => {
     jest.clearAllMocks();
   });
 
-  it('generates a full project structure (ipCraftMethodology)', async () => {
+  it('generates a full project structure (builtin-ipcraft)', async () => {
     const inputPath = path.resolve(__dirname, '../../fixtures/sample-ipcore.yml');
     const outputDir = '/tmp/test-output';
 
@@ -71,7 +71,7 @@ describe('IpCoreScaffolder', () => {
       includeRegs: true,
       includeTestbench: true,
       targets: ['vivado', 'quartus'],
-      ipCraftMethodology: true,
+      scaffoldPack: 'builtin-ipcraft',
     });
 
     expect(result.success).toBe(true);
@@ -141,7 +141,7 @@ describe('IpCoreScaffolder', () => {
     expect(tclContent).toContain('add_parameter DEVICE_TAG STRING ""');
   });
 
-  it('generates a single minimal stub by default (no ipCraftMethodology)', async () => {
+  it('generates a single minimal stub by default (builtin-minimal)', async () => {
     const inputPath = path.resolve(__dirname, '../../fixtures/sample-ipcore.yml');
     const outputDir = '/tmp/test-minimal-output';
 
@@ -149,7 +149,7 @@ describe('IpCoreScaffolder', () => {
       includeRegs: true,
       includeTestbench: true,
       targets: ['vivado', 'quartus'],
-      // ipCraftMethodology: false is the default
+      // builtin-minimal is the default
     });
 
     expect(result.success).toBe(true);

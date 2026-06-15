@@ -69,15 +69,7 @@ export interface GenerateOptions {
   /** Simulation engine: 'ghdl' (default), 'icarus', 'verilator', 'questa'. */
   engine?: string;
   /**
-   * Enable the IPCraft methodology: full multi-file generation (top, core, bus wrapper,
-   * package, register file). When false (default), only a single minimal top-level stub
-   * is generated with an empty architecture/module body.
-   * Ignored when scaffold_pack is set explicitly.
-   */
-  ipCraftMethodology?: boolean;
-  /**
    * Name of the scaffold pack to use for RTL file generation.
-   * Overrides ipCraftMethodology when present.
    * Resolves workspace pack first (.vscode/ipcraft/packs/<name>/), then built-in packs.
    */
   scaffoldPack?: string;

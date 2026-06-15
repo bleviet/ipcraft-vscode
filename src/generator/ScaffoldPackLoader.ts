@@ -37,12 +37,10 @@ export class ScaffoldPackLoader {
   }
 
   /**
-   * Resolve the default built-in pack based on the legacy ipCraftMethodology flag.
-   * `true`  → builtin-ipcraft
-   * `false` → builtin-minimal
+   * Resolve the default built-in pack.
    */
-  resolveDefault(ipCraftMethodology: boolean): ScaffoldPack {
-    const packName = ipCraftMethodology ? 'builtin-ipcraft' : 'builtin-minimal';
+  resolveDefault(): ScaffoldPack {
+    const packName = 'builtin-minimal';
     const packDir = path.join(this.builtinPacksDir, packName);
     if (!fs.existsSync(path.join(packDir, 'scaffold.yml'))) {
       throw new Error(`Built-in scaffold pack '${packName}' not found at: ${packDir}`);

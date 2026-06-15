@@ -517,14 +517,11 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
 
       const generateCfg = vscode.workspace.getConfiguration('ipcraft.generate');
       const hdlLanguage = generateCfg.get<string>('hdlLanguage', 'vhdl');
-      // Cascade: .ip.yml scaffold_pack > workspace setting > legacy flag > default
-      const legacyIpCraft = generateCfg.get<boolean>('ipCraftMethodology', false);
+      // Cascade: .ip.yml scaffold_pack > workspace setting > default
       const yamlScaffoldPack =
         typeof parsedData.scaffold_pack === 'string' ? parsedData.scaffold_pack : undefined;
       const scaffoldPack =
-        yamlScaffoldPack ??
-        (generateCfg.get<string>('scaffoldPack', '') ||
-          (legacyIpCraft ? 'builtin-ipcraft' : 'builtin-minimal'));
+        yamlScaffoldPack ?? (generateCfg.get<string>('scaffoldPack', '') || 'builtin-minimal');
       const availableScaffoldPacks = collectAvailableScaffoldPacks(
         this.resourceRoots.builtinPacksDir
       );

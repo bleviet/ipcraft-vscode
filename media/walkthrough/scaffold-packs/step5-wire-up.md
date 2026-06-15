@@ -6,7 +6,7 @@ spec. This keeps IP core definitions independent of tooling preferences.
 **Option A — Canvas dropdown (fastest)**
 
 Open any `.ip.yml` in the visual editor and pick your pack from the
-**Code Generation Methodology** dropdown in the toolbar. The setting is saved immediately.
+**Scaffold Template** dropdown in the toolbar. The setting is saved immediately.
 
 **Option B — settings.json**
 

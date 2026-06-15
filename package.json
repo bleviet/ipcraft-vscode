@@ -730,15 +730,10 @@
             "default": "vhdl",
             "description": "HDL language for RTL file generation (VHDL or SystemVerilog)."
           },
-          "ipcraft.generate.ipCraftMethodology": {
-            "type": "boolean",
-            "default": false,
-            "markdownDescription": "**Deprecated** — prefer `ipcraft.generate.scaffoldPack`. Enable the **IPCraft methodology**: generates the full multi-file HDL structure (top, core, bus wrapper, package, register file). Ignored when `scaffoldPack` is set."
-          },
           "ipcraft.generate.scaffoldPack": {
             "type": "string",
             "default": "",
-            "markdownDescription": "Scaffold pack to use for RTL code generation. Overrides `ipcraft.generate.ipCraftMethodology` when set. Built-in values: `builtin-minimal`, `builtin-ipcraft`. Example packs: `example-register-only`, `example-no-regfile`, `example-with-docs`. Workspace packs live in `.vscode/ipcraft/packs/<name>/`. Leave empty to use the value derived from `ipCraftMethodology`."
+            "markdownDescription": "Scaffold pack to use for RTL code generation. Built-in values: `builtin-minimal`, `builtin-ipcraft`. Example packs: `example-register-only`, `example-no-regfile`, `example-with-docs`. Workspace packs live in `.vscode/ipcraft/packs/<name>/`."
           }
         }
       },

@@ -465,7 +465,7 @@ describe('monitorChangeOf — IpCoreScaffolder end-to-end', () => {
   it('generates successfully with a valid monitorChangeOf field', async () => {
     const inputPath = path.resolve(__dirname, '../../fixtures/cos-ipcore.yml');
     const result = await scaffolder.generateAll(inputPath, '/tmp/cos-test-out', {
-      ipCraftMethodology: true,
+      scaffoldPack: 'builtin-ipcraft',
       includeRegs: true,
     });
     expect(result.success).toBe(true);
@@ -474,7 +474,7 @@ describe('monitorChangeOf — IpCoreScaffolder end-to-end', () => {
   it('generates VHDL package containing _val type and correct _pulse record', async () => {
     const inputPath = path.resolve(__dirname, '../../fixtures/cos-ipcore.yml');
     await scaffolder.generateAll(inputPath, '/tmp/cos-pkg-out', {
-      ipCraftMethodology: true,
+      scaffoldPack: 'builtin-ipcraft',
       includeRegs: true,
     });
 
@@ -492,7 +492,7 @@ describe('monitorChangeOf — IpCoreScaffolder end-to-end', () => {
   it('generates VHDL register file with shadow signals and CoS arbitration', async () => {
     const inputPath = path.resolve(__dirname, '../../fixtures/cos-ipcore.yml');
     await scaffolder.generateAll(inputPath, '/tmp/cos-regs-out', {
-      ipCraftMethodology: true,
+      scaffoldPack: 'builtin-ipcraft',
       includeRegs: true,
     });
 
@@ -565,7 +565,7 @@ describe('monitorChangeOf — IpCoreScaffolder end-to-end', () => {
 
     try {
       const result = await scaffolder.generateAll(tmpPath, '/tmp/bad-cos-out', {
-        ipCraftMethodology: true,
+        scaffoldPack: 'builtin-ipcraft',
         includeRegs: true,
       });
       expect(result.success).toBe(false);
@@ -637,7 +637,7 @@ describe('monitorChangeOf — IpCoreScaffolder end-to-end', () => {
 
     try {
       const result = await scaffolder.generateAll(tmpPath, '/tmp/bad-access-cos-out', {
-        ipCraftMethodology: true,
+        scaffoldPack: 'builtin-ipcraft',
         includeRegs: true,
       });
       expect(result.success).toBe(false);
@@ -651,7 +651,7 @@ describe('monitorChangeOf — IpCoreScaffolder end-to-end', () => {
   it('external W1C field (FIFO_OVERFLOW) is unaffected alongside CoS field', async () => {
     const inputPath = path.resolve(__dirname, '../../fixtures/cos-ipcore.yml');
     await scaffolder.generateAll(inputPath, '/tmp/cos-regression-out', {
-      ipCraftMethodology: true,
+      scaffoldPack: 'builtin-ipcraft',
       includeRegs: true,
     });
 
