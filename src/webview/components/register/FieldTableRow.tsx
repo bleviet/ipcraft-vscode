@@ -553,13 +553,12 @@ const FieldTableRow = ({
           className="px-6 py-2 vscode-muted"
           style={{ width: '40%', minWidth: '240px' }}
         >
-          <div className="flex items-center h-10">
+          <div className="flex items-start">
             <CellInput
               editKey="description"
               variant="textarea"
               className="w-full"
               style={{
-                height: '40px',
                 minHeight: '40px',
                 resize: 'none',
               }}

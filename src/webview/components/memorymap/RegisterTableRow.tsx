@@ -161,7 +161,7 @@ export function RegisterTableRow({
           editKey="description"
           variant="textarea"
           className="w-full"
-          style={{ height: '40px', minHeight: '40px', resize: 'none' }}
+          style={{ minHeight: '40px', resize: 'none' }}
           value={reg.description ?? ''}
           onFocus={captureEditSnapshot}
           onInput={(value) => onUpdate(['registers', idx, 'description'], value)}

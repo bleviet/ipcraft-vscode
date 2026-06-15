@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useLayoutEffect, useRef } from 'react';
 import {
   VSCodeTextField,
   VSCodeTextArea,
@@ -45,8 +45,38 @@ export function CellInput({
   style,
   options = [],
 }: CellInputProps) {
+  // The toolkit React wrapper forwards `ref` to the underlying
+  // `<vscode-text-area>` element, which hosts the real <textarea> in its shadow
+  // DOM. The declared ref type is misleading, so capture it as an HTMLElement.
+  const textAreaRef = useRef<HTMLElement | null>(null);
+
+  // Auto-grow the textarea to fit its content so multi-line descriptions are
+  // not clipped. minHeight (from `style`) acts as the floor.
+  const autoGrowTextArea = useCallback(() => {
+    const inner = textAreaRef.current?.shadowRoot?.querySelector('textarea');
+    if (!inner) {
+      return;
+    }
+    inner.style.overflowY = 'hidden';
+    inner.style.height = 'auto';
+    const computed = getComputedStyle(inner);
+    const borders =
+      parseFloat(computed.borderTopWidth || '0') + parseFloat(computed.borderBottomWidth || '0');
+    const floor = parseFloat(String(style?.minHeight ?? '')) || 0;
+    inner.style.height = `${Math.max(inner.scrollHeight + borders, floor)}px`;
+  }, [style?.minHeight]);
+
+  useLayoutEffect(() => {
+    if (variant === 'textarea') {
+      autoGrowTextArea();
+    }
+  }, [value, variant, autoGrowTextArea]);
+
   const handleInput = (e: Event | React.FormEvent<HTMLElement>) => {
     onInput((e.target as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement).value);
+    if (variant === 'textarea') {
+      autoGrowTextArea();
+    }
   };
 
   const handleBlur = (e: Event | React.FocusEvent<HTMLElement>) => {
@@ -84,6 +114,9 @@ export function CellInput({
   if (variant === 'textarea') {
     return (
       <VSCodeTextArea
+        ref={(el) => {
+          textAreaRef.current = el as unknown as HTMLElement | null;
+        }}
         data-edit-key={editKey}
         className={className}
         style={style}

@@ -164,6 +164,7 @@ export function BlockTableRow({
           editKey="description"
           variant="textarea"
           className="w-full"
+          style={{ minHeight: '40px', resize: 'none' }}
           value={block.description ?? ''}
           onFocus={captureEditSnapshot}
           onInput={(value) => onUpdate(['addressBlocks', idx, 'description'], value)}
