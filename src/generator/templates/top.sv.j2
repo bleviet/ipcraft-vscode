@@ -34,7 +34,7 @@ module {{ entity_name }}{% if has_memory_mapped_slave %} import {{ entity_name }
 {% endfor %}
 {% endif %}
 );
-{% set has_regs_in = hw_registers | length > 0 or w1c_registers | length > 0 or cos_registers | length > 0 %}
+{% set has_regs_in = hw_registers | length > 0 or w1c_registers | length > 0 or sc_registers | length > 0 or cos_registers | length > 0 %}
 {% if has_memory_mapped_slave and (sw_registers | length > 0 or has_regs_in) %}
 
   // Internal register signals

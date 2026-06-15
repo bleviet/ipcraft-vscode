@@ -4,6 +4,8 @@ export const ACCESS_OPTIONS = [
   'read-write',
   'write-1-to-clear',
   'read-write-1-to-clear',
+  'write-self-clearing',
+  'read-write-self-clearing',
 ] as const;
 
 export const BASIC_ACCESS_OPTIONS = ['read-write', 'read-only', 'write-only'] as const;

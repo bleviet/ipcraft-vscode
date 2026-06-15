@@ -384,9 +384,12 @@ export class IpCoreScaffolder {
       'wo',
       'read-write-1-to-clear',
       'write-1-to-clear',
+      'read-write-self-clearing',
+      'write-self-clearing',
     ]);
     const hwAccess = new Set(['read-only', 'ro']);
     const w1cAccess = new Set(['write-1-to-clear', 'read-write-1-to-clear']);
+    const scAccess = new Set(['write-self-clearing', 'read-write-self-clearing']);
 
     const swRegisters = registers.filter((reg) => swAccess.has(this.getString(reg.access)));
     const hwRegisters = registers.filter((reg) => hwAccess.has(this.getString(reg.access)));
@@ -396,6 +399,13 @@ export class IpCoreScaffolder {
       }
       const fields = (reg.fields as Array<Record<string, unknown>>) ?? [];
       return fields.some((f) => w1cAccess.has(this.getString(f.access)));
+    });
+    const scRegisters = registers.filter((reg) => {
+      if (scAccess.has(this.getString(reg.access))) {
+        return true;
+      }
+      const fields = (reg.fields as Array<Record<string, unknown>>) ?? [];
+      return fields.some((f) => scAccess.has(this.getString(f.access)));
     });
 
     // CoS registers: any field has monitorChangeOf.
@@ -615,6 +625,7 @@ export class IpCoreScaffolder {
       sw_registers: swRegisters,
       hw_registers: hwRegisters,
       w1c_registers: annotatedW1cRegisters,
+      sc_registers: scRegisters,
       cos_registers: cosRegisters,
       generics: _generics,
       xgui_pages: this.prepareXguiPages(_generics),

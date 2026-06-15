@@ -33,13 +33,13 @@ module {{ entity_name }}_regs
   input  logic                          rd_en,
   input  logic [C_ADDR_WIDTH-1:0]       rd_addr,
   output logic [C_DATA_WIDTH-1:0]       rd_data,
-  output logic                          rd_valid{% if sw_registers | length > 0 or hw_registers | length > 0 or w1c_registers | length > 0 or cos_registers | length > 0 %},{% endif %}
+  output logic                          rd_valid{% if sw_registers | length > 0 or hw_registers | length > 0 or w1c_registers | length > 0 or sc_registers | length > 0 or cos_registers | length > 0 %},{% endif %}
 
   // Register interface to core logic
 {% if sw_registers | length > 0 %}
-  output regs_sw2hw_t regs_out{{ "," if hw_registers | length > 0 or w1c_registers | length > 0 or cos_registers | length > 0 else "" }}  // SW-writable registers (to core)
+  output regs_sw2hw_t regs_out{{ "," if hw_registers | length > 0 or w1c_registers | length > 0 or sc_registers | length > 0 or cos_registers | length > 0 else "" }}  // SW-writable registers (to core)
 {% endif %}
-{% if hw_registers | length > 0 or w1c_registers | length > 0 or cos_registers | length > 0 %}
+{% if hw_registers | length > 0 or w1c_registers | length > 0 or sc_registers | length > 0 or cos_registers | length > 0 %}
   input  regs_hw2sw_t regs_in   // HW status registers + W1C event pulses + CoS values (from core)
 {% endif %}
 );
@@ -141,6 +141,32 @@ module {{ entity_name }}_regs
 {% endfor %}
 {% endfor %}
 {% endif %}
+{% if sc_registers | length > 0 %}
+      // SC arbitration: hardware event-clear has priority over CPU set.
+      // Runs every clock cycle so no pulse is missed even when the CPU is not writing.
+{% for reg in sc_registers %}
+{% set sc_flds = reg.fields | selectattr('access', 'in', ['write-self-clearing', 'read-write-self-clearing']) %}
+{% for field in sc_flds %}
+{% if field.width == 1 %}
+      if (regs_in.{{ reg.name | lower }}_clear.{{ field.name | lower }}_clear) begin
+        regs.{{ reg.name | lower }}.{{ field.name | lower }} <= 1'b0;
+      end else if (wr_en && wr_addr[C_ADDR_WIDTH-1:2] == REG_{{ reg.name | upper }}_ADDR
+                   && wr_strb[{{ (field.offset / 8) | int }}] && wr_data[{{ field.offset }}]) begin
+        regs.{{ reg.name | lower }}.{{ field.name | lower }} <= 1'b1;
+      end
+{% else %}
+      for (int i = 0; i < {{ field.width }}; i++) begin
+        if (regs_in.{{ reg.name | lower }}_clear.{{ field.name | lower }}_clear[i]) begin
+          regs.{{ reg.name | lower }}.{{ field.name | lower }}[i] <= 1'b0;
+        end else if (wr_en && wr_addr[C_ADDR_WIDTH-1:2] == REG_{{ reg.name | upper }}_ADDR
+                     && wr_strb[({{ field.offset }} + i) / 8] && wr_data[{{ field.offset }} + i]) begin
+          regs.{{ reg.name | lower }}.{{ field.name | lower }}[i] <= 1'b1;
+        end
+      end
+{% endif %}
+{% endfor %}
+{% endfor %}
+{% endif %}
 {% if cos_registers | length %}
       // CoS W1C arbitration (internally generated change-of-state pulse)
 {% for reg in cos_registers %}
@@ -169,7 +195,7 @@ module {{ entity_name }}_regs
         unique case (wr_addr[C_ADDR_WIDTH-1:2])
 {% for reg in registers %}
 {% if reg.access in ['read-write', 'write-only', 'rw', 'wo', 'read_write', 'write_only'] %}
-{% set blocked_flds = reg.fields | selectattr('access', 'in', ['write-1-to-clear', 'read-write-1-to-clear', 'read-only', 'ro']) %}
+{% set blocked_flds = reg.fields | selectattr('access', 'in', ['write-1-to-clear', 'read-write-1-to-clear', 'write-self-clearing', 'read-write-self-clearing', 'read-only', 'ro']) %}
 {% if blocked_flds | length %}
           REG_{{ reg.name | upper }}_ADDR: begin : wr_{{ reg.name | lower }}
             // Temp variable: member select on a function call is not supported
@@ -177,7 +203,7 @@ module {{ entity_name }}_regs
             {{ reg.name | lower }}_t v_new;
             v_new = unpack_{{ reg.name | lower }}(apply_wstrb(pack_{{ reg.name | lower }}(regs.{{ reg.name | lower }}), wr_data, wr_strb));
 {% for field in reg.fields %}
-{% if field.access not in ['write-1-to-clear', 'read-write-1-to-clear', 'read-only', 'ro'] %}
+{% if field.access not in ['write-1-to-clear', 'read-write-1-to-clear', 'write-self-clearing', 'read-write-self-clearing', 'read-only', 'ro'] %}
             regs.{{ reg.name | lower }}.{{ field.name | lower }} <= v_new.{{ field.name | lower }};
 {% endif %}
 {% endfor %}
@@ -208,7 +234,7 @@ module {{ entity_name }}_regs
 {% if not reg.has_cos_fields %}
 {% if reg.access in ['read-only', 'ro', 'read_only'] %}
         REG_{{ reg.name | upper }}_ADDR: rd_data_int <= pack_{{ reg.name | lower }}(regs_in.{{ reg.name | lower }});
-{% elif reg.access in ['read-write', 'rw', 'read_write', 'read-write-1-to-clear'] %}
+{% elif reg.access in ['read-write', 'rw', 'read_write', 'read-write-1-to-clear', 'read-write-self-clearing'] %}
         REG_{{ reg.name | upper }}_ADDR: rd_data_int <= pack_{{ reg.name | lower }}(regs.{{ reg.name | lower }});
 {% endif %}
 {% endif %}
@@ -219,7 +245,7 @@ module {{ entity_name }}_regs
             logic [C_DATA_WIDTH-1:0] v;
             v = '0;
 {% for field in reg.fields %}
-{% if field.access in ['write-1-to-clear', 'read-write-1-to-clear'] %}
+{% if field.access in ['write-1-to-clear', 'read-write-1-to-clear', 'write-self-clearing', 'read-write-self-clearing'] %}
 {% if field.width == 1 %}
             v[{{ field.offset }}] = regs.{{ reg.name | lower }}.{{ field.name | lower }};
 {% else %}

@@ -36,7 +36,9 @@ export type AccessType =
   | 'write-only'
   | 'read-write'
   | 'write-1-to-clear'
-  | 'read-write-1-to-clear';
+  | 'read-write-1-to-clear'
+  | 'write-self-clearing'
+  | 'read-write-self-clearing';
 /**
  * Block description
  */
@@ -65,7 +67,9 @@ export type AccessType1 =
   | 'write-only'
   | 'read-write'
   | 'write-1-to-clear'
-  | 'read-write-1-to-clear';
+  | 'read-write-1-to-clear'
+  | 'write-self-clearing'
+  | 'read-write-self-clearing';
 /**
  * Reset value for entire register
  */
@@ -98,7 +102,9 @@ export type AccessType2 =
   | 'write-only'
   | 'read-write'
   | 'write-1-to-clear'
-  | 'read-write-1-to-clear';
+  | 'read-write-1-to-clear'
+  | 'write-self-clearing'
+  | 'read-write-self-clearing';
 /**
  * Reset/default value
  */

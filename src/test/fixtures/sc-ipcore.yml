@@ -1,0 +1,24 @@
+apiVersion: '1.0'
+vlnv:
+  vendor: test.com
+  library: unit
+  name: sc_core
+  version: 1.0.0
+description: IP core fixture for self-clearing (SC) access type tests
+clocks:
+- name: clk
+  direction: in
+resets:
+- name: rst
+  direction: in
+  polarity: activeHigh
+busInterfaces:
+- name: S_AXI
+  type: AXI4L
+  mode: slave
+  physicalPrefix: s_axi_
+  associatedClock: clk
+  associatedReset: rst
+  memoryMapRef: SC_MAP
+memoryMaps:
+  import: sc-memmap.yml
