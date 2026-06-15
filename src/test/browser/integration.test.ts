@@ -100,9 +100,9 @@ addressBlocks:
     const editorHeader = page.locator('h2:has-text("CTRL")');
     await expect(editorHeader).toBeVisible();
 
-    // 3. Edit a field
-    const bitsInput = page.locator('[data-edit-key="bits"]').first();
-    await expect(bitsInput).toBeVisible();
+    // 3. Edit a field (MSB)
+    const msbInput = page.getByPlaceholder('MSB').first();
+    await expect(msbInput).toBeVisible();
 
     // Reset last message tracker
     await page.evaluate(() => {
@@ -110,10 +110,10 @@ addressBlocks:
     });
 
     // Action: Click, clear and type
-    await bitsInput.click();
+    await msbInput.click();
     await page.keyboard.press('Control+A');
     await page.keyboard.press('Backspace');
-    await page.keyboard.type('[1:0]');
+    await page.keyboard.type('1');
     await page.keyboard.press('Enter');
 
     // 4. Verification of outbound message
