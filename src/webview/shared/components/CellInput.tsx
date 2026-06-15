@@ -1,10 +1,11 @@
-import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useCallback, useLayoutEffect, useRef } from 'react';
 import {
   VSCodeTextField,
   VSCodeTextArea,
   VSCodeDropdown,
   VSCodeOption,
 } from '@vscode/webview-ui-toolkit/react';
+import { useEditableDraft } from '../hooks/useEditableDraft';
 
 export interface CellInputProps {
   /** Edit key for data-edit-key attribute. */
@@ -54,19 +55,8 @@ export function CellInput({
   // DOM. The declared ref type is misleading, so capture it as an HTMLElement.
   const textAreaRef = useRef<HTMLElement | null>(null);
 
-  // Local draft for text inputs. While the field is focused, the draft is the
-  // source of truth so a lagging round-trip of `value` (parse -> serialize ->
-  // re-parse) cannot rewrite the element's value and snap the caret to the end.
-  const [draft, setDraft] = useState(value);
-  const isFocusedRef = useRef(false);
-
-  // Adopt external `value` changes only when the field is not being edited
-  // (reloads, undo, programmatic updates).
-  useEffect(() => {
-    if (!isFocusedRef.current && draft !== value) {
-      setDraft(value);
-    }
-  }, [value, draft]);
+  // Local draft keeps the caret stable for text/textarea inputs (see hook).
+  const { draft, setDraft, markFocused, markBlurred } = useEditableDraft(value);
 
   // Auto-grow the textarea to fit its content so multi-line descriptions are
   // not clipped. minHeight (from `style`) acts as the floor.
@@ -142,14 +132,14 @@ export function CellInput({
         rows={1}
         value={draft}
         onFocus={() => {
-          isFocusedRef.current = true;
+          markFocused();
           onFocus();
         }}
         onInput={handleInput}
         onBlur={(e) => {
-          // Clearing focus first lets the sync effect re-adopt the canonical
-          // value (e.g. after any normalization) once editing is done.
-          isFocusedRef.current = false;
+          // Clearing focus first lets the draft re-adopt the canonical value
+          // (e.g. after any normalization) once editing is done.
+          markBlurred();
           handleBlur(e);
         }}
       />
@@ -163,14 +153,14 @@ export function CellInput({
       style={style}
       value={draft}
       onFocus={() => {
-        isFocusedRef.current = true;
+        markFocused();
         onFocus();
       }}
       onInput={handleInput}
       onBlur={(e) => {
-        // Clearing focus first lets the sync effect re-adopt the canonical
-        // value (e.g. after any normalization) once editing is done.
-        isFocusedRef.current = false;
+        // Clearing focus first lets the draft re-adopt the canonical value
+        // (e.g. after any normalization) once editing is done.
+        markBlurred();
         handleBlur(e);
       }}
     />

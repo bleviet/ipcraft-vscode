@@ -12,6 +12,7 @@ import { FIELD_COLOR_KEYS } from '../../shared/colors';
 import { toHex } from '../../utils/formatUtils';
 import { generateUniqueName } from '../../utils/naming';
 import { useTableEditorState } from '../../hooks/useTableEditorState';
+import { useEditableDraft } from '../../shared/hooks/useEditableDraft';
 import { RegisterTableRow, REG_COLUMN_ORDER } from './RegisterTableRow';
 import type { RegEditKey } from './RegisterTableRow';
 import { reconcileRowIds, type TableRowWrapper } from '../../utils/rowIdentity';
@@ -43,6 +44,11 @@ export function RegisterArrayEditor({
   const arr = registerArray;
   const nestedRegisters = arr?.registers ?? [];
   const baseOffset = arr?.offset ?? arr?.address_offset ?? 0;
+
+  // Local drafts keep the caret stable in the header fields (see hook).
+  const nameDraft = useEditableDraft(arr?.name ?? '');
+  const countDraft = useEditableDraft(String(arr?.count ?? 1));
+  const strideDraft = useEditableDraft(String(arr?.stride ?? 4));
 
   const tbodyRef = useRef<HTMLTableSectionElement | null>(null);
 
@@ -201,10 +207,14 @@ export function RegisterArrayEditor({
         <div>
           <label className="text-xs vscode-muted block mb-1">Name</label>
           <VSCodeTextField
-            value={arr?.name ?? ''}
-            onInput={(e: Event | React.FormEvent<HTMLElement>) =>
-              onUpdate(['name'], (e.target as HTMLInputElement).value)
-            }
+            value={nameDraft.draft}
+            onFocus={nameDraft.markFocused}
+            onBlur={nameDraft.markBlurred}
+            onInput={(e: Event | React.FormEvent<HTMLElement>) => {
+              const next = (e.target as HTMLInputElement).value;
+              nameDraft.setDraft(next);
+              onUpdate(['name'], next);
+            }}
             className="w-full"
           />
         </div>
@@ -215,9 +225,13 @@ export function RegisterArrayEditor({
         <div>
           <label className="text-xs vscode-muted block mb-1">Count</label>
           <VSCodeTextField
-            value={String(arr?.count ?? 1)}
+            value={countDraft.draft}
+            onFocus={countDraft.markFocused}
+            onBlur={countDraft.markBlurred}
             onInput={(e: Event | React.FormEvent<HTMLElement>) => {
-              const val = parseInt((e.target as HTMLInputElement).value, 10);
+              const raw = (e.target as HTMLInputElement).value;
+              countDraft.setDraft(raw);
+              const val = parseInt(raw, 10);
               if (!isNaN(val) && val > 0) {
                 onUpdate(['count'], val);
               }
@@ -228,9 +242,13 @@ export function RegisterArrayEditor({
         <div>
           <label className="text-xs vscode-muted block mb-1">Stride (bytes)</label>
           <VSCodeTextField
-            value={String(arr?.stride ?? 4)}
+            value={strideDraft.draft}
+            onFocus={strideDraft.markFocused}
+            onBlur={strideDraft.markBlurred}
             onInput={(e: Event | React.FormEvent<HTMLElement>) => {
-              const val = parseInt((e.target as HTMLInputElement).value, 10);
+              const raw = (e.target as HTMLInputElement).value;
+              strideDraft.setDraft(raw);
+              const val = parseInt(raw, 10);
               if (!isNaN(val) && val > 0) {
                 onUpdate(['stride'], val);
               }
