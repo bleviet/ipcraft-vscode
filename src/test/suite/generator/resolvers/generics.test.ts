@@ -69,7 +69,7 @@ describe('buildXguiPages', () => {
     const pages = buildXguiPages(generics);
     expect(pages).toHaveLength(1);
     expect(pages[0].name).toBe('Page 0');
-    expect(pages[0].ungrouped_param_names).toEqual(['A']);
+    expect(pages[0].ungrouped_params).toEqual([{ name: 'A', tooltip: '' }]);
   });
 
   it('groups generics into named page and group', () => {
@@ -77,7 +77,7 @@ describe('buildXguiPages', () => {
     const pages = buildXguiPages(generics);
     expect(pages[0].name).toBe('Config');
     expect(pages[0].groups[0].name).toBe('Widths');
-    expect(pages[0].groups[0].param_names).toEqual(['A']);
+    expect(pages[0].groups[0].params).toEqual([{ name: 'A', tooltip: '' }]);
   });
 
   it('generates tcl_var slugs', () => {
