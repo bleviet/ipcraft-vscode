@@ -28,7 +28,7 @@
   ],
   "displayName": "IPCraft for VS Code",
   "description": "Visual editor for IP Core (IPCraft) and Memory Map specifications",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "engines": {
     "vscode": "^1.80.0"
   },
@@ -196,25 +196,25 @@
       },
       {
         "command": "fpga-ip-core.vivadoNotConfigured",
-        "title": "Vivado Not Found \u2014 Click to Configure",
+        "title": "Vivado Not Found — Click to Configure",
         "category": "IPCraft",
         "icon": "$(warning)"
       },
       {
         "command": "fpga-ip-core.quartusNotConfigured",
-        "title": "Quartus Not Found \u2014 Click to Configure",
+        "title": "Quartus Not Found — Click to Configure",
         "category": "IPCraft",
         "icon": "$(warning)"
       },
       {
         "command": "fpga-ip-core.qsysEditNotConfigured",
-        "title": "Platform Designer Not Found \u2014 Click to Configure",
+        "title": "Platform Designer Not Found — Click to Configure",
         "category": "IPCraft",
         "icon": "$(warning)"
       },
       {
         "command": "fpga-ip-core.buildNotConfigured",
-        "title": "No Build Tools Configured \u2014 Click to Configure",
+        "title": "No Build Tools Configured — Click to Configure",
         "category": "IPCraft",
         "icon": "$(warning)"
       },
@@ -250,7 +250,7 @@
       },
       {
         "command": "fpga-ip-core.migrateLegacy",
-        "title": "Migrate Legacy IP Cores (vendor: \u2192 targets:)",
+        "title": "Migrate Legacy IP Cores (vendor: → targets:)",
         "category": "IPCraft"
       },
       {
@@ -724,8 +724,8 @@
               "systemverilog"
             ],
             "enumDescriptions": [
-              "VHDL \u2014 generates .vhd source files",
-              "SystemVerilog \u2014 generates .sv source files"
+              "VHDL — generates .vhd source files",
+              "SystemVerilog — generates .sv source files"
             ],
             "default": "vhdl",
             "description": "HDL language for RTL file generation (VHDL or SystemVerilog)."
@@ -733,7 +733,7 @@
           "ipcraft.generate.ipCraftMethodology": {
             "type": "boolean",
             "default": false,
-            "markdownDescription": "**Deprecated** \u2014 prefer `ipcraft.generate.scaffoldPack`. Enable the **IPCraft methodology**: generates the full multi-file HDL structure (top, core, bus wrapper, package, register file). Ignored when `scaffoldPack` is set."
+            "markdownDescription": "**Deprecated** — prefer `ipcraft.generate.scaffoldPack`. Enable the **IPCraft methodology**: generates the full multi-file HDL structure (top, core, bus wrapper, package, register file). Ignored when `scaffoldPack` is set."
           },
           "ipcraft.generate.scaffoldPack": {
             "type": "string",
@@ -767,10 +767,10 @@
               "questa"
             ],
             "enumDescriptions": [
-              "GHDL \u2014 open-source VHDL simulator (--std=08)",
-              "Icarus Verilog \u2014 open-source Verilog/SV simulator",
-              "Verilator \u2014 high-performance SV simulator",
-              "Questa / ModelSim \u2014 commercial VHDL/SV simulator"
+              "GHDL — open-source VHDL simulator (--std=08)",
+              "Icarus Verilog — open-source Verilog/SV simulator",
+              "Verilator — high-performance SV simulator",
+              "Questa / ModelSim — commercial VHDL/SV simulator"
             ],
             "default": "ghdl",
             "description": "Simulation engine used by the generated testbench."
@@ -799,8 +799,8 @@
           "ipcraft.import.vendor": {
             "type": "string",
             "default": "user",
-            "description": "Vendor name used when importing IP cores (VHDL, hw.tcl, component.xml). Leave blank or 'user' to auto-detect from git user.email (e.g. user@company.com \u2192 company.com), falling back to 'ipcraft'.",
-            "markdownDescription": "Vendor name used when importing IP cores (VHDL, `_hw.tcl`, `component.xml`). Leave blank or `user` to auto-detect from git `user.email` (e.g. `user@company.com` \u2192 `company.com`), falling back to `ipcraft`."
+            "description": "Vendor name used when importing IP cores (VHDL, hw.tcl, component.xml). Leave blank or 'user' to auto-detect from git user.email (e.g. user@company.com → company.com), falling back to 'ipcraft'.",
+            "markdownDescription": "Vendor name used when importing IP cores (VHDL, `_hw.tcl`, `component.xml`). Leave blank or `user` to auto-detect from git `user.email` (e.g. `user@company.com` → `company.com`), falling back to `ipcraft`."
           },
           "ipcraft.import.library": {
             "type": "string",

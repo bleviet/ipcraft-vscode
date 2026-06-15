@@ -46,7 +46,7 @@ export function useCtrlDrag({ onCommitPreview, onCancelPreview }: UseCtrlDragOpt
     }
 
     const commitCtrlDrag = () => {
-      if (ctrlDrag.previewSegments) {
+      if (ctrlDrag.previewSegments && ctrlDrag.previewValid) {
         onCommitPreview?.(ctrlDrag.previewSegments);
       }
       onCancelPreview?.();

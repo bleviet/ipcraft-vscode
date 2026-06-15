@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import {
   VSCodeTextField,
   VSCodeTextArea,
   VSCodeDropdown,
   VSCodeOption,
 } from '@vscode/webview-ui-toolkit/react';
+import { useEditableDraft } from '../hooks/useEditableDraft';
 
 export interface CellInputProps {
   /** Edit key for data-edit-key attribute. */
@@ -45,8 +46,56 @@ export function CellInput({
   style,
   options = [],
 }: CellInputProps) {
+  const isTextArea = variant === 'textarea';
+  // Text and textarea inputs have a caret; the dropdown does not.
+  const usesDraft = variant !== 'dropdown';
+
+  // The toolkit React wrapper forwards `ref` to the underlying
+  // `<vscode-text-area>` element, which hosts the real <textarea> in its shadow
+  // DOM. The declared ref type is misleading, so capture it as an HTMLElement.
+  const textAreaRef = useRef<HTMLElement | null>(null);
+
+  // Local draft keeps the caret stable for text/textarea inputs (see hook).
+  const { draft, setDraft, markFocused, markBlurred } = useEditableDraft(value);
+
+  // Auto-grow the textarea to fit its content so multi-line descriptions are
+  // not clipped. minHeight (from `style`) acts as the floor.
+  const autoGrowTextArea = useCallback(() => {
+    const inner = textAreaRef.current?.shadowRoot?.querySelector('textarea');
+    if (!inner) {
+      return;
+    }
+    inner.style.overflowY = 'hidden';
+    inner.style.height = 'auto';
+    const computed = getComputedStyle(inner);
+    const borders =
+      parseFloat(computed.borderTopWidth || '0') + parseFloat(computed.borderBottomWidth || '0');
+    const floor = parseFloat(String(style?.minHeight ?? '')) || 0;
+    inner.style.height = `${Math.max(inner.scrollHeight + borders, floor)}px`;
+  }, [style?.minHeight]);
+
+  // Size pre-filled textareas on mount and whenever the value changes. The
+  // toolkit applies the value to the shadow <textarea> via an async template
+  // binding, so defer one frame to measure after it has flushed (a synchronous
+  // effect would measure an empty control). Typing is handled synchronously in
+  // handleInput, where the browser has already updated the control.
+  useEffect(() => {
+    if (!isTextArea) {
+      return;
+    }
+    const raf = requestAnimationFrame(() => autoGrowTextArea());
+    return () => cancelAnimationFrame(raf);
+  }, [draft, isTextArea, autoGrowTextArea]);
+
   const handleInput = (e: Event | React.FormEvent<HTMLElement>) => {
-    onInput((e.target as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement).value);
+    const next = (e.target as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement).value;
+    if (usesDraft) {
+      setDraft(next);
+    }
+    onInput(next);
+    if (isTextArea) {
+      autoGrowTextArea();
+    }
   };
 
   const handleBlur = (e: Event | React.FocusEvent<HTMLElement>) => {
@@ -84,14 +133,25 @@ export function CellInput({
   if (variant === 'textarea') {
     return (
       <VSCodeTextArea
+        ref={(el) => {
+          textAreaRef.current = el as unknown as HTMLElement | null;
+        }}
         data-edit-key={editKey}
         className={className}
         style={style}
         rows={1}
-        value={value}
-        onFocus={onFocus}
+        value={draft}
+        onFocus={() => {
+          markFocused();
+          onFocus();
+        }}
         onInput={handleInput}
-        onBlur={handleBlur}
+        onBlur={(e) => {
+          // Clearing focus first lets the draft re-adopt the canonical value
+          // (e.g. after any normalization) once editing is done.
+          markBlurred();
+          handleBlur(e);
+        }}
       />
     );
   }
@@ -101,10 +161,18 @@ export function CellInput({
       data-edit-key={editKey}
       className={className}
       style={style}
-      value={value}
-      onFocus={onFocus}
+      value={draft}
+      onFocus={() => {
+        markFocused();
+        onFocus();
+      }}
       onInput={handleInput}
-      onBlur={handleBlur}
+      onBlur={(e) => {
+        // Clearing focus first lets the draft re-adopt the canonical value
+        // (e.g. after any normalization) once editing is done.
+        markBlurred();
+        handleBlur(e);
+      }}
     />
   );
 }

@@ -1,5 +1,6 @@
 import React from 'react';
 import { VSCodeTextField } from '@vscode/webview-ui-toolkit/react';
+import { useEditableDraft } from '../hooks/useEditableDraft';
 
 export interface NumberFieldProps {
   label: string;
@@ -38,7 +39,10 @@ export const NumberField: React.FC<NumberFieldProps> = ({
   onSave,
   onCancel,
 }) => {
+  const { draft, setDraft, markFocused, markBlurred } = useEditableDraft(String(value));
+
   const handleChange = (newValue: string) => {
+    setDraft(newValue);
     const num = parseInt(newValue, 10);
     if (!isNaN(num)) {
       onChange(num);
@@ -68,8 +72,10 @@ export const NumberField: React.FC<NumberFieldProps> = ({
       <VSCodeTextField
         data-edit-key={dataEditKey}
         className={className}
-        value={String(value)}
+        value={draft}
         disabled={disabled}
+        onFocus={markFocused}
+        onBlur={markBlurred}
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         onInput={(e: any) => {
           const event = e as unknown as React.ChangeEvent<HTMLInputElement>;

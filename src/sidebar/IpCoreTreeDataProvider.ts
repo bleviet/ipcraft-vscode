@@ -90,7 +90,13 @@ export class IpCoreTreeDataProvider implements vscode.TreeDataProvider<FoundryNo
     // 2. Scan Workspace for Specs
     const specsNodes = await this.scanWorkspaceForSpecs();
     if (specsNodes.length > 0) {
-      nodes.push(...specsNodes);
+      const workspaceNode = new FoundryNode({
+        label: 'Workspace IP Cores',
+        icon: 'library',
+        collapsibleState: vscode.TreeItemCollapsibleState.Expanded,
+      });
+      workspaceNode.children = specsNodes;
+      nodes.push(workspaceNode);
     }
 
     return nodes;
@@ -170,9 +176,10 @@ export class FoundryNode extends vscode.TreeItem {
   constructor(def: NodeDef) {
     super(
       def.label,
-      def.children?.length
-        ? (def.collapsibleState ?? vscode.TreeItemCollapsibleState.Collapsed)
-        : vscode.TreeItemCollapsibleState.None
+      def.collapsibleState ??
+        (def.children?.length
+          ? vscode.TreeItemCollapsibleState.Collapsed
+          : vscode.TreeItemCollapsibleState.None)
     );
 
     if (def.icon) {

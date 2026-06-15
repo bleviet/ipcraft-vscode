@@ -234,6 +234,10 @@ async function scaffoldProject(
   const hdlLanguage = genCfg.get<'vhdl' | 'systemverilog'>('hdlLanguage', 'vhdl');
   const ipCraftMethodology = genCfg.get<boolean>('ipCraftMethodology', false);
   const scaffoldPack = readScaffoldPackSetting(genCfg);
+  // Scaffold bundles the testbench, so honor the same framework/engine settings
+  // the standalone 'Generate Testbench' button uses (see generateTestbench).
+  const framework = cfg.get<string>('testbench.framework', 'cocotb');
+  const engine = cfg.get<string>('testbench.engine', 'ghdl');
 
   const targets = vscode.workspace
     .getConfiguration('ipcraft.toolbar')
@@ -270,6 +274,8 @@ async function scaffoldProject(
       includeVhdl: true,
       includeRegs: true,
       includeTestbench,
+      framework,
+      engine,
       includeVivadoProject: targets.includes('vivado'),
       targetPart,
       includeQuartusProject: targets.includes('quartus'),

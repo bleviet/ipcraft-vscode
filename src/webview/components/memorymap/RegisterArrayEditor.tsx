@@ -12,9 +12,13 @@ import { FIELD_COLOR_KEYS } from '../../shared/colors';
 import { toHex } from '../../utils/formatUtils';
 import { generateUniqueName } from '../../utils/naming';
 import { useTableEditorState } from '../../hooks/useTableEditorState';
+import { useEditableDraft } from '../../shared/hooks/useEditableDraft';
 import { RegisterTableRow, REG_COLUMN_ORDER } from './RegisterTableRow';
 import type { RegEditKey } from './RegisterTableRow';
 import { reconcileRowIds, type TableRowWrapper } from '../../utils/rowIdentity';
+import { RegisterEditor } from '../register/RegisterEditor';
+import type { RegisterDef } from '../../types/memoryMap';
+import type { BitFieldRecord } from '../../types/editor';
 
 export interface RegisterArrayEditorProps {
   /** The register array definition object. */
@@ -43,6 +47,17 @@ export function RegisterArrayEditor({
   const arr = registerArray;
   const nestedRegisters = arr?.registers ?? [];
   const baseOffset = arr?.offset ?? arr?.address_offset ?? 0;
+
+  // A flat register array (count/stride + fields, no nested registers) is a
+  // single register template replicated N times: it gets the same bit-field
+  // editor a normal register does. Register groups (nested registers) keep the
+  // nested-registers table below.
+  const isFlatArray = nestedRegisters.length === 0;
+
+  // Local drafts keep the caret stable in the header fields (see hook).
+  const nameDraft = useEditableDraft(arr?.name ?? '');
+  const countDraft = useEditableDraft(String(arr?.count ?? 1));
+  const strideDraft = useEditableDraft(String(arr?.stride ?? 4));
 
   const tbodyRef = useRef<HTMLTableSectionElement | null>(null);
 
@@ -201,10 +216,14 @@ export function RegisterArrayEditor({
         <div>
           <label className="text-xs vscode-muted block mb-1">Name</label>
           <VSCodeTextField
-            value={arr?.name ?? ''}
-            onInput={(e: Event | React.FormEvent<HTMLElement>) =>
-              onUpdate(['name'], (e.target as HTMLInputElement).value)
-            }
+            value={nameDraft.draft}
+            onFocus={nameDraft.markFocused}
+            onBlur={nameDraft.markBlurred}
+            onInput={(e: Event | React.FormEvent<HTMLElement>) => {
+              const next = (e.target as HTMLInputElement).value;
+              nameDraft.setDraft(next);
+              onUpdate(['name'], next);
+            }}
             className="w-full"
           />
         </div>
@@ -215,9 +234,13 @@ export function RegisterArrayEditor({
         <div>
           <label className="text-xs vscode-muted block mb-1">Count</label>
           <VSCodeTextField
-            value={String(arr?.count ?? 1)}
+            value={countDraft.draft}
+            onFocus={countDraft.markFocused}
+            onBlur={countDraft.markBlurred}
             onInput={(e: Event | React.FormEvent<HTMLElement>) => {
-              const val = parseInt((e.target as HTMLInputElement).value, 10);
+              const raw = (e.target as HTMLInputElement).value;
+              countDraft.setDraft(raw);
+              const val = parseInt(raw, 10);
               if (!isNaN(val) && val > 0) {
                 onUpdate(['count'], val);
               }
@@ -228,9 +251,13 @@ export function RegisterArrayEditor({
         <div>
           <label className="text-xs vscode-muted block mb-1">Stride (bytes)</label>
           <VSCodeTextField
-            value={String(arr?.stride ?? 4)}
+            value={strideDraft.draft}
+            onFocus={strideDraft.markFocused}
+            onBlur={strideDraft.markBlurred}
             onInput={(e: Event | React.FormEvent<HTMLElement>) => {
-              const val = parseInt((e.target as HTMLInputElement).value, 10);
+              const raw = (e.target as HTMLInputElement).value;
+              strideDraft.setDraft(raw);
+              const val = parseInt(raw, 10);
               if (!isNaN(val) && val > 0) {
                 onUpdate(['stride'], val);
               }
@@ -248,6 +275,23 @@ export function RegisterArrayEditor({
       </div>
     </>
   );
+
+  // Flat array: reuse the register bit-field editor, keeping the array
+  // dimension controls (name/count/stride) in the header.
+  if (isFlatArray) {
+    return (
+      <RegisterEditor
+        register={arr as unknown as RegisterDef}
+        fields={(arr?.fields ?? []) as BitFieldRecord[]}
+        registerLayout={arrayLayout}
+        toggleRegisterLayout={toggleArrayLayout}
+        onUpdate={onUpdate}
+        title={arr?.name ?? 'Register Array'}
+        headerChildren={headerChildren}
+        footerContext="array"
+      />
+    );
+  }
 
   return (
     <TwoPanelEditorLayout

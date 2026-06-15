@@ -1,5 +1,6 @@
 import React from 'react';
 import { VSCodeTextField } from '@vscode/webview-ui-toolkit/react';
+import { useEditableDraft } from '../hooks/useEditableDraft';
 
 export interface FormFieldProps {
   label: string;
@@ -40,8 +41,10 @@ export const FormField: React.FC<FormFieldProps> = ({
   onCancel,
 }) => {
   const [localError, setLocalError] = React.useState<string | null>(null);
+  const { draft, setDraft, markFocused, markBlurred } = useEditableDraft(value);
 
   const handleBlur = () => {
+    markBlurred();
     if (validator) {
       const validationError = validator(value);
       setLocalError(validationError);
@@ -76,13 +79,15 @@ export const FormField: React.FC<FormFieldProps> = ({
       <VSCodeTextField
         data-edit-key={dataEditKey}
         className={className}
-        value={value}
+        value={draft}
         placeholder={placeholder}
         disabled={disabled}
+        onFocus={markFocused}
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         onInput={(e: any) => {
           const event = e as unknown as React.ChangeEvent<HTMLInputElement>;
           const newValue = event.target.value ?? '';
+          setDraft(newValue);
           onChange(newValue);
           if (localError && validator) {
             const validationError = validator(newValue);

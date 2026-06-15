@@ -188,7 +188,13 @@ graph TB
   the target under the cursor, inserts the field on the MSB/LSB side of a target
   field or splits a target gap, then `repackSegments` produces the final tiling.
   Preview segments render live; the commit is deferred one animation frame so
-  React paints the final arrangement before drag state resets (see ADR-4).
+  React paints the final arrangement before drag state resets (see ADR-4). When
+  the cursor is over a position where the field cannot legally land,
+  `computeCtrlDragPreview` returns nothing and `CtrlDragState.previewValid` goes
+  `false`: the cell cursor switches to `no-drop` (`renderBitCellStyle`) and
+  `pointerup` commits nothing. `useCtrlDrag.commitCtrlDrag` only fires
+  `onCommitPreview` while `previewValid` is `true`, so the last *valid* preview
+  is never silently committed when the user releases over an invalid spot.
 - **Keyboard in the visualizer** (`keyboardOperations.ts`): `Alt+arrow` reorders
   (`getKeyboardReorderUpdates` -> `repackSegments`), `Shift+arrow` resizes
   (`getKeyboardResizeRange`). Direction maps to layout orientation -- see the
@@ -244,13 +250,126 @@ The field table (`FieldsTable.tsx`, `FieldTableRow.tsx`, state in
   the name, so a rename recolors the field.
 - **Edit `bits` directly**: validated (`validateBitsString`) and checked for
   register overflow against the other fields. On a valid edit the field's
-  `offset`/`width`/`bitRange` are recomputed (`parseBitsInput`) and **fields
-  below cascade upward** to stay non-overlapping; the whole array is committed.
+  `offset`/`width`/`bitRange` are recomputed (`parseBitsInput`) and **higher-index
+  fields cascade upward** to stay non-overlapping; the whole array is committed
+  in one write. The cascade is *array-order directional* and assumes the array is
+  sorted by bit position (ADR-6): fields *before* the edited index are fixed and
+  an overlap with one is rejected; fields *after* it are pushed up. Two scoping
+  rules keep it correct when the array order has briefly diverged from bit order
+  after a reorder (see ADR-8): the running `maxMSB` only absorbs lower-index
+  fields whose MSB is at or below the edited field's new MSB, and the stepping
+  bounds — the LSB floor (`lsbFloor` / `VectorBoundingInput.minBit`) and the MSB
+  ceiling (`msbCeiling` / `VectorBoundingInput.maxBit`) — hard-clamp each spinner
+  at its nearest neighbour, counting only fields strictly below the committed LSB
+  or strictly above the committed MSB respectively. The floor/ceiling stop a step
+  from pushing a neighbour past the register boundary; without the scopes a
+  high-bit field sitting at a low array index also inflates the cascade and raises
+  a spurious "overflow register boundary" error.
 - **access / reset / description**: committed per-cell; `monitorChangeOf` is
   cleared when access changes away from a W1C type.
 
 Row identity is preserved across reloads by `rowId` (UI-only, never persisted),
 reconciled in `rowIdentity.ts`.
+
+## Keeping views, cells, and drafts in sync
+
+The same field is shown in up to three places at once -- its visualizer segment,
+its table row's Bit(s) cell, and (mid-gesture) a live drag preview. They read
+from different state, so the rules below are what keep them agreeing. Most "the
+cell shows the wrong or stale value" bugs trace back to one of these rules being
+violated.
+
+### What a Bit(s) cell displays
+
+`FieldTableRow` resolves the value shown in a row's Bit(s) cell with a fixed
+precedence:
+
+```ts
+const previewRange = dragPreviewRanges[rowId];
+const bitsValue = previewRange
+  ? `[${previewRange[0]}:${previewRange[1]}]`   // 1. live Ctrl-drag preview
+  : (bitsDrafts[rowId] ?? bits);                 // 2. local draft, else 3. derived bits
+```
+
+1. **Drag preview** (`dragPreviewRanges[rowId]`) -- transient, set by
+   `onDragPreview` during a Ctrl-drag and cleared on commit/cancel. Never
+   written to YAML.
+2. **Draft** (`bitsDrafts[rowId]`) -- the in-progress edit; the live echo of
+   what the cell editor last emitted (see below).
+3. **Derived bits** (`fieldToBitsString(field)`) -- computed from the committed
+   `offset`/`width`/`bits` once no draft or preview shadows it.
+
+Every layer is keyed by `rowId`, the UI-only identity from `reconcileRowIds`.
+Because reconciliation matches by *name* across moves, a draft or preview
+follows its field even when the array is reordered.
+
+### The draft layer as a live echo
+
+Typing in a cell calls `handleBitsInput`, which stores the raw string verbatim
+in `bitsDrafts[rowId]` and (if it parses) runs the cascade. Because `bitsValue`
+falls back to the draft, the cell re-renders showing exactly what was typed --
+the draft is the field's *live echo*. Drafts are cleared whenever a structural
+commit would make them stale:
+
+| Event | Who clears | Scope |
+|-------|-----------|-------|
+| Ctrl-drag / kbd reorder commit | `onBatchUpdateFields` | every updated field's draft |
+| Single resize / kbd resize commit | `onUpdateFieldRange` | the moved field's draft |
+| Table Alt+Up/Down move | `useFieldEditor.onMove` | all drafts (`clearAllDrafts`) |
+| Insert / delete | `useFieldEditor` | all drafts |
+
+After a draft is cleared the cell falls through to the derived bits -- which is
+why a committed reorder must update the underlying `bits`, not just the array
+order.
+
+### The MSB/LSB cell editor (`VectorBoundingInput`)
+
+The Bit(s) cell for a simple vector renders `VectorBoundingInput` -- two text
+inputs (`MSB`, `LSB`) driven by *local* component state (`localMsb`,
+`localLsb`), not directly by the `value` prop. Local state is required so the
+user can hold an intermediate, not-yet-valid range while typing (e.g. clearing
+MSB before retyping it). The editor therefore has to choose when to overwrite
+local state from an incoming `value`:
+
+```ts
+// VectorBoundingInput.tsx
+if (!isFocusedRef.current || value !== lastEmittedRef.current) {
+  // adopt the incoming value into localMsb / localLsb
+}
+```
+
+- **Not focused** -- always adopt `value`. The steady-state path.
+- **Focused** -- adopt only when `value` is *not* an echo of this editor's own
+  last emission. `lastEmittedRef` records every string the editor sends through
+  `onInput`; the parent reflects that string back as the draft, so an echo
+  compares equal and is ignored (it must not clobber in-progress typing). Any
+  *other* change to `value` while focused -- an Alt+Up/Down reorder or a cascade
+  moving the field under the cursor -- is genuinely external and is adopted (see
+  ADR-7).
+
+### Array order must equal bit order
+
+The direct-bits cascade treats **array index as bit-position order** (ADR-8).
+That contract only holds while the fields array is sorted ascending by `offset`,
+so every positional commit in `RegisterEditor` re-sorts before writing:
+
+- `onBatchUpdateFields` (Ctrl-drag, kbd reorder) -- apply ranges, sort by offset.
+- `onUpdateFieldRange` (resize, kbd resize) -- rewrite one range, sort by offset.
+- `onCreateField` -- append, sort by offset.
+
+The table Alt+Up/Down path keeps the invariant differently: it does not re-sort,
+because `reorderBitfieldLayout` already produces a bit-order-consistent array
+(the array swap plus gap-preserving repack move the field in both array and bit
+space together). See ADR-6.
+
+### Corner cases at a glance
+
+| Symptom | Cause | Guard |
+|---------|-------|-------|
+| Cell shows stale MSB/LSB after Alt+Up/Down | focused editor ignored an external `value` | `lastEmittedRef` echo test (ADR-7) |
+| Edit raises a spurious "overflow register boundary" | array order diverged from bit order | re-sort on every positional commit (ADR-6); cascade scoping (ADR-8) |
+| Reorder destroys a reserved-bit gap | wrong repack strategy | gap-preserving repack (ADR-2) |
+| Invalid Ctrl-drop still commits | committing the last valid preview | `previewValid` gate (see Ctrl-drag) |
 
 ## Commit path: how an edit reaches disk
 
@@ -259,7 +378,7 @@ Every gesture and edit routes through a `RegisterEditor` callback, then the
 
 | Visualizer callback | Meaning | RegisterEditor action |
 |---------------------|---------|-----------------------|
-| `onUpdateFieldRange(idx, [hi, lo])` | One field's range changed (resize, kbd resize) | Rewrite that field's `bits`/`offset`/`width` |
+| `onUpdateFieldRange(idx, [hi, lo])` | One field's range changed (resize, kbd resize) | Rewrite that field's `bits`/`offset`/`width`, re-sort by offset |
 | `onBatchUpdateFields(updates)` | Many ranges changed (Ctrl-drag, kbd reorder) | Apply all, re-sort by offset |
 | `onCreateField({ bitRange, name })` | New field from a gap drag | Append with a unique name, sort by offset |
 | `onUpdateFieldReset(idx, value)` | A reset bit toggled | Write `resetValue` |
@@ -368,6 +487,54 @@ index pointed at whatever field now sat at the old slot. A deferred
 it was removed; identity-based (`rowId`) selection plus `reconcileRowIds` keeps
 focus on the moved field at its new index. Covered by `useTableNavigation.test.tsx`.
 
+### ADR-6: the fields array stays sorted by bit position
+
+The fields array is kept sorted ascending by `offset` after every positional
+edit. The visualizer commits (`onUpdateFieldRange`, `onBatchUpdateFields`,
+`onCreateField`) re-sort explicitly; the table Alt+Up/Down path stays sorted
+because `reorderBitfieldLayout` moves the field in array and bit space together.
+
+**Why:** the direct-bits cascade in `FieldTableRow` uses array index as a proxy
+for bit-position order (ADR-8). A single-field resize that rewrote one `bits`
+value without re-sorting left a low-bit field at a high array index; a later edit
+to another field then cascaded that field past bit 31 and reported a phantom
+"overflow register boundary". Re-sorting on every positional commit restores the
+invariant the cascade relies on. Covered by `RegisterEditor.test.tsx`.
+
+### ADR-7: the cell editor adopts external value changes even while focused
+
+`VectorBoundingInput` overwrites its local `localMsb`/`localLsb` from the `value`
+prop when it is unfocused, or when focused and `value` differs from the editor's
+own last emitted string (`lastEmittedRef`).
+
+**Why:** the inputs are locally controlled so the user can type intermediate
+states, and the parent echoes each keystroke back as the draft -- naively
+adopting `value` would fight the user's typing. The earlier guard skipped *all*
+updates while focused, which froze the displayed MSB/LSB when a field was moved
+with the table Alt+Up/Down (that gesture requires the cell to be focused) or when
+a cascade shifted the field under the cursor. Comparing against the last emitted
+string distinguishes a harmless echo from a genuine external change, so typing is
+preserved *and* external moves are reflected. Covered by
+`VectorBoundingInput.test.tsx`.
+
+### ADR-8: the direct-bits cascade is array-order directional and scoped
+
+Editing a field's `bits` rejects overlaps with lower-index fields and pushes
+higher-index fields upward. The running `maxMSB` only absorbs lower-index fields
+whose MSB is at or below the edited field's new MSB. The MSB/LSB steppers
+(`VectorBoundingInput`) are additionally hard-clamped at the nearest neighbour:
+the LSB floor counts only fields strictly below the committed LSB, and the
+symmetric MSB ceiling counts only fields strictly above the committed MSB, so a
+single step can never push a neighbour past the register boundary.
+
+**Why:** the directional rule keeps the cascade cheap and predictable -- a single
+forward pass. The scoping rules prevent a field that is geometrically *above* the
+edited range (but happens to sit at a nearby array index after a reorder) from
+inflating the cascade and forcing a neighbour past the register boundary. The
+invariant in ADR-6 normally keeps array and bit order aligned; ADR-8's scoping is
+the defensive layer that keeps a single edit correct even during the brief window
+where they diverge. Covered by `FieldTableRow.test.tsx`.
+
 ## Testing
 
 | Test file | Covers |
@@ -380,3 +547,6 @@ focus on the moved field at its new index. Covered by `useTableNavigation.test.t
 | `src/test/suite/services/SpatialInsertionService.test.ts` | Field/register/block insertion pipeline |
 | `src/test/suite/hooks/useFieldEditor.test.ts` | Table reorder/insert, draft handling |
 | `src/test/suite/hooks/useTableNavigation.test.tsx` | Arrow navigation, Alt+arrow move, focus-follows-field |
+| `src/test/suite/components/RegisterEditor.test.tsx` | Re-sort by offset on single-field and batch commits; `bitRange` sync on Ctrl-drag (ADR-6) |
+| `src/test/suite/components/FieldTableRow.test.tsx` | Direct-bits cascade, gap preservation, scoping after reorder (ADR-8) |
+| `src/test/suite/components/VectorBoundingInput.test.tsx` | MSB/LSB editing, stepping bounds, external-value adoption while focused (ADR-7) |

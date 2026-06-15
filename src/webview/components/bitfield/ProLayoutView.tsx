@@ -13,6 +13,7 @@ interface DragState {
   shiftDrag: ShiftDragState;
   shiftHeld: boolean;
   ctrlDragActive: boolean;
+  ctrlDragPreviewValid: boolean;
   ctrlHeld: boolean;
   isCtrlDragActive: () => boolean;
   dragActive: boolean;
@@ -125,6 +126,7 @@ const ProLayoutView = ({
     shiftDrag,
     shiftHeld,
     ctrlDragActive,
+    ctrlDragPreviewValid,
     ctrlHeld,
     isCtrlDragActive,
     dragActive,
@@ -187,7 +189,13 @@ const ProLayoutView = ({
                             border: isInDragRange
                               ? '2px solid var(--vscode-focusBorder)'
                               : undefined,
-                            cursor: ctrlDragActive ? 'grabbing' : ctrlHeld ? 'grab' : 'pointer',
+                            cursor: ctrlDragActive
+                              ? ctrlDragPreviewValid
+                                ? 'grabbing'
+                                : 'no-drop'
+                              : ctrlHeld
+                                ? 'grab'
+                                : 'pointer',
                           }}
                           onPointerDown={(e) => {
                             if (e.shiftKey) {
@@ -360,6 +368,7 @@ const ProLayoutView = ({
                         color={group.color}
                         fieldIndex={group.idx}
                         ctrlDragActive={ctrlDragActive}
+                        ctrlDragPreviewValid={ctrlDragPreviewValid}
                         ctrlHeld={ctrlHeld}
                         onPointerDown={(e) => {
                           if (e.shiftKey) {

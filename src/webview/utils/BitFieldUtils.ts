@@ -102,3 +102,11 @@ export function formatBitsLike(offset: number, width: number): string {
   const msb = lsb + w - 1;
   return formatBitsRange(msb, lsb);
 }
+
+/**
+ * Checks if a bits string represents a simple vector range like '[15:8]', '[7]', or '[?:?]'.
+ */
+export function isSimpleVector(value: string): boolean {
+  const trimmed = value.trim();
+  return /^\[(?:\d+|\?)(?::(?:\d+|\?))?\]$/.test(trimmed);
+}

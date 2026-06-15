@@ -1,5 +1,6 @@
 import React from 'react';
 import { VSCodeTextArea } from '@vscode/webview-ui-toolkit/react';
+import { useEditableDraft } from '../hooks/useEditableDraft';
 
 export interface TextAreaFieldProps {
   label: string;
@@ -36,6 +37,8 @@ export const TextAreaField: React.FC<TextAreaFieldProps> = ({
   onSave,
   onCancel,
 }) => {
+  const { draft, setDraft, markFocused, markBlurred } = useEditableDraft(value);
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleKeyDown = (e: any) => {
     const event = e as unknown as KeyboardEvent;
@@ -57,14 +60,18 @@ export const TextAreaField: React.FC<TextAreaFieldProps> = ({
       <VSCodeTextArea
         data-edit-key={dataEditKey}
         className={className}
-        value={value}
+        value={draft}
         rows={rows}
         placeholder={placeholder}
         disabled={disabled}
+        onFocus={markFocused}
+        onBlur={markBlurred}
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         onInput={(e: any) => {
           const event = e as unknown as React.ChangeEvent<HTMLTextAreaElement>;
-          onChange(event.target.value ?? '');
+          const newValue = event.target.value ?? '';
+          setDraft(newValue);
+          onChange(newValue);
         }}
         onKeyDown={handleKeyDown}
         style={

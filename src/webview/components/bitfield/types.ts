@@ -35,10 +35,12 @@ export interface CtrlDragState {
   active: boolean;
   draggedFieldIndex: number | null;
   previewSegments: ProSegment[] | null;
+  previewValid: boolean;
 }
 
 export const CTRL_DRAG_INITIAL: CtrlDragState = {
   active: false,
   draggedFieldIndex: null,
   previewSegments: null,
+  previewValid: true,
 };

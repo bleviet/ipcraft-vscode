@@ -11,6 +11,7 @@ interface FieldCellProps {
   color: string;
   fieldIndex: number;
   ctrlDragActive: boolean;
+  ctrlDragPreviewValid?: boolean;
   ctrlHeld: boolean;
   onPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
   onPointerMove: () => void;
@@ -27,6 +28,7 @@ const FieldCell = ({
   color,
   fieldIndex: _fieldIndex,
   ctrlDragActive,
+  ctrlDragPreviewValid,
   ctrlHeld,
   onPointerDown,
   onPointerMove,
@@ -38,6 +40,7 @@ const FieldCell = ({
     isInNewRange,
     colorToken: color,
     ctrlDragActive,
+    ctrlDragPreviewValid,
     ctrlHeld,
     defaultCursor: 'pointer',
     outOfRangeOpacity: 0.3,

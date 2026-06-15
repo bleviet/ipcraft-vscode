@@ -4,6 +4,15 @@ export interface FieldValidationInput {
   bitRange?: [number, number] | null;
 }
 
+export interface FieldRangeContext {
+  name?: string | null;
+  bitRange?: [number, number] | null;
+  offset?: number | string | null;
+  width?: number | string | null;
+}
+
+export type FieldEditValidationResult = { ok: true } | { ok: false; reason: string };
+
 export function parseBitsWidth(bits: string): number | null {
   const match = bits.trim().match(/^\[(\d+)(?::(\d+))?\]$/);
   if (!match) {
@@ -29,9 +38,56 @@ export function validateBitsString(bits: string): string | null {
     return 'Bit indices must be >= 0';
   }
   if (n < m) {
-    return 'MSB must be >= LSB';
+    return `MSB (${n}) must be >= LSB (${m})`;
   }
   return null;
+}
+
+export function validateFieldEdit(
+  proposed: { hi: number; lo: number },
+  fields: FieldRangeContext[],
+  registerWidth: number,
+  excludeIndex?: number
+): FieldEditValidationResult {
+  const { hi, lo } = proposed;
+
+  if (lo < 0) {
+    return { ok: false, reason: `LSB (${lo}) must be >= 0` };
+  }
+  if (hi < lo) {
+    return { ok: false, reason: `MSB (${hi}) must be >= LSB (${lo})` };
+  }
+  if (hi >= registerWidth) {
+    return {
+      ok: false,
+      reason: `MSB (${hi}) exceeds register width (bits 0–${registerWidth - 1})`,
+    };
+  }
+
+  for (let i = 0; i < fields.length; i++) {
+    if (i === excludeIndex) {
+      continue;
+    }
+    const f = fields[i];
+    let otherHi: number;
+    let otherLo: number;
+    if (f.bitRange && Array.isArray(f.bitRange) && f.bitRange.length === 2) {
+      [otherHi, otherLo] = f.bitRange;
+    } else {
+      otherLo = Number(f.offset ?? 0);
+      const w = Number(f.width ?? 1);
+      otherHi = otherLo + w - 1;
+    }
+    if (!Number.isFinite(otherHi) || !Number.isFinite(otherLo)) {
+      continue;
+    }
+    if (hi >= otherLo && otherHi >= lo) {
+      const fname = String(f.name ?? `field${i}`);
+      return { ok: false, reason: `Overlaps with ${fname} ([${otherHi}:${otherLo}])` };
+    }
+  }
+
+  return { ok: true };
 }
 
 export function parseBitsInput(text: string) {

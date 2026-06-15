@@ -3,7 +3,7 @@ import * as path from 'path';
 import Ajv from 'ajv';
 
 import { parseMemoryMap, parseIpCore } from '../../../domain/parse';
-import { serializeMemoryMap, serializeIpCore } from '../../../domain/serialize';
+import { serializeMemoryMap, serializeIpCore, serializeValue } from '../../../domain/serialize';
 
 const REPO_ROOT = path.resolve(__dirname, '../../../..');
 const FIXTURES_DIR = path.join(REPO_ROOT, 'src', 'test', 'fixtures');
@@ -125,4 +125,24 @@ describe('Domain Model Parse/Serialize Round-trips', () => {
       }
     });
   }
+});
+
+describe('serializeValue strips UI-only field properties', () => {
+  it('removes the camelCase bitRange computed by the visualizer/cascade', () => {
+    const field = {
+      name: 'A',
+      bits: '[7:4]',
+      offset: 4,
+      width: 4,
+      bitRange: [7, 4],
+      access: 'read-write',
+    };
+
+    const result = serializeValue(field) as Record<string, unknown>;
+
+    expect('bitRange' in result).toBe(false);
+    expect('offset' in result).toBe(false);
+    expect('width' in result).toBe(false);
+    expect(result.bits).toBe('[7:4]');
+  });
 });

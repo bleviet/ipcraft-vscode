@@ -42,6 +42,7 @@ export function serializeValue(obj: unknown, defaultRegWidth = 32): unknown {
     delete out.bit_offset;
     delete out.bit_width;
     delete out.bit_range;
+    delete out.bitRange;
     delete out.bitOffset;
     delete out.bitWidth;
 
