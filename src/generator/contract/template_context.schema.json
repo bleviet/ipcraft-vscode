@@ -17,6 +17,7 @@
     "sw_registers",
     "hw_registers",
     "w1c_registers",
+    "sc_registers",
     "cos_registers",
     "generics",
     "xgui_pages",
@@ -56,6 +57,7 @@
     "sw_registers": { "type": "array", "items": { "$ref": "#/definitions/Register" } },
     "hw_registers": { "type": "array", "items": { "$ref": "#/definitions/Register" } },
     "w1c_registers": { "type": "array", "items": { "$ref": "#/definitions/W1cRegister" } },
+    "sc_registers": { "type": "array", "items": { "$ref": "#/definitions/Register" } },
     "cos_registers": { "type": "array", "items": { "$ref": "#/definitions/CosRegister" } },
 
     "generics": { "type": "array", "items": { "$ref": "#/definitions/Generic" } },
@@ -221,23 +223,45 @@
     },
     "XguiGroup": {
       "type": "object",
-      "required": ["name", "tcl_var", "param_names"],
+      "required": ["name", "tcl_var", "params"],
       "additionalProperties": false,
       "properties": {
         "name": { "type": "string" },
         "tcl_var": { "type": "string" },
-        "param_names": { "type": "array", "items": { "type": "string" } }
+        "params": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "tooltip"],
+            "additionalProperties": false,
+            "properties": {
+              "name": { "type": "string" },
+              "tooltip": { "type": "string" }
+            }
+          }
+        }
       }
     },
     "XguiPage": {
       "type": "object",
-      "required": ["name", "tcl_var", "groups", "ungrouped_param_names"],
+      "required": ["name", "tcl_var", "groups", "ungrouped_params"],
       "additionalProperties": false,
       "properties": {
         "name": { "type": "string" },
         "tcl_var": { "type": "string" },
         "groups": { "type": "array", "items": { "$ref": "#/definitions/XguiGroup" } },
-        "ungrouped_param_names": { "type": "array", "items": { "type": "string" } }
+        "ungrouped_params": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "tooltip"],
+            "additionalProperties": false,
+            "properties": {
+              "name": { "type": "string" },
+              "tooltip": { "type": "string" }
+            }
+          }
+        }
       }
     },
     "UserPort": {

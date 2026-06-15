@@ -1,0 +1,39 @@
+- name: SC_MAP
+  description: Memory map for self-clearing (SC) feature tests
+  addressBlocks:
+  - name: REGS
+    baseAddress: 0
+    usage: register
+    registers:
+    - name: DMA_CTRL
+      offset: 0
+      access: read-write-self-clearing
+      description: Register-level read-write-self-clearing (SW sets, HW clears on done)
+      fields:
+      - name: START
+        bits: '[0:0]'
+        description: SW writes 1 to start; HW pulses clear when the transfer completes
+      - name: CHAN
+        bits: '[7:4]'
+        description: Per-bit channel start; each bit cleared independently by HW
+    - name: TRIGGER
+      offset: 4
+      access: write-self-clearing
+      description: Register-level write-self-clearing (write-only, not read back)
+      fields:
+      - name: GO
+        bits: '[0:0]'
+        description: SW writes 1 to trigger; HW clears when armed
+    - name: MIXED
+      offset: 8
+      access: read-write
+      description: Read-write register with a single field-level SC bit
+      fields:
+      - name: MODE
+        bits: '[3:0]'
+        access: read-write
+        description: Plain read-write configuration field
+      - name: KICK
+        bits: '[8:8]'
+        access: read-write-self-clearing
+        description: Field-level SC bit inside an otherwise read-write register

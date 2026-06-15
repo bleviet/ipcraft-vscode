@@ -186,13 +186,27 @@ export function spawnGui(
 ): void {
   const { cwd, docker, env = {}, extraMounts = [], x11 = true } = options;
 
+  const cfg = vscode.workspace.getConfiguration('ipcraft');
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+  const customDisplay = cfg.get<string>('gui.display') || process.env.DISPLAY;
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+  const customXAuth = cfg.get<string>('gui.xauthority') || process.env.XAUTHORITY;
+
+  const spawnEnv = { ...process.env, ...env };
+  if (customDisplay) {
+    spawnEnv.DISPLAY = customDisplay;
+  }
+  if (customXAuth) {
+    spawnEnv.XAUTHORITY = customXAuth;
+  }
+
   let spawnExe = executable;
   let spawnArgs = args;
 
   if (docker?.image) {
     const x11Flags: string[] =
-      x11 && process.env.DISPLAY
-        ? ['-e', `DISPLAY=${process.env.DISPLAY}`, '-v', '/tmp/.X11-unix:/tmp/.X11-unix']
+      x11 && customDisplay
+        ? ['-e', `DISPLAY=${customDisplay}`, '-v', '/tmp/.X11-unix:/tmp/.X11-unix']
         : [];
     const envFlags = Object.entries(env).flatMap(([k, v]) => ['-e', `${k}=${v}`]);
     const mountFlags = extraMounts.flatMap(({ host, container, ro }) => [
@@ -227,6 +241,7 @@ export function spawnGui(
 
   const child = spawn(spawnExe, spawnArgs, {
     cwd,
+    env: spawnEnv,
     detached: true,
     stdio: 'ignore',
   });

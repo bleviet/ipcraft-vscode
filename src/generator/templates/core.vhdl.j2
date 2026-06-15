@@ -25,7 +25,7 @@ entity {{ entity_name }}_core is
     clk : in std_logic;
     rst : in std_logic;
 
-{% set has_regs_in = hw_registers | length > 0 or w1c_registers | length > 0 or cos_registers | length > 0 %}
+{% set has_regs_in = hw_registers | length > 0 or w1c_registers | length > 0 or sc_registers | length > 0 or cos_registers | length > 0 %}
 {% if sw_registers | length > 0 or has_regs_in %}
     -- Register interface (record-based)
 {% if sw_registers | length > 0 %}

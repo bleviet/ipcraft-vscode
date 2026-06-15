@@ -93,6 +93,28 @@ package {{ entity_name }}_pkg;
 {% endif %}
 {% endfor %}
 {% endif %}
+{% if sc_registers | length %}
+  // SC event-clear struct types (hardware drives a 1-cycle strobe to clear a bit set by software)
+{% for reg in sc_registers %}
+{% if reg.fields | length %}
+{% set sc_flds = reg.fields | selectattr('access', 'in', ['write-self-clearing', 'read-write-self-clearing']) %}
+{% if sc_flds | length %}
+
+  // {{ reg.name }} SC event-clear fields
+  typedef struct packed {
+{% for field in sc_flds %}
+{% if field.width == 1 %}
+    logic        {{ field.name | lower }}_clear;  // event strobe → clears {{ reg.name }}.{{ field.name | lower }}
+{% else %}
+    logic [{{ field.width - 1 }}:0] {{ field.name | lower }}_clear;  // per-bit strobes → clear {{ reg.name }}.{{ field.name | lower }}
+{% endif %}
+{% endfor %}
+  } {{ reg.name | lower }}_clear_t;
+
+{% endif %}
+{% endif %}
+{% endfor %}
+{% endif %}
 {% if cos_registers | length %}
   // CoS value-port struct types (live hardware values for change-of-state monitoring)
 {% for reg in cos_registers %}
@@ -132,8 +154,8 @@ package {{ entity_name }}_pkg;
 {% set _ = ext_w1c_regs_sv.push(reg) %}
 {% endif %}
 {% endfor %}
-{% if hw_registers | length or ext_w1c_regs_sv | length or cos_registers | length %}
-  // HW -> SW: Status registers (RO) + W1C event-pulse inputs + CoS value ports
+{% if hw_registers | length or ext_w1c_regs_sv | length or sc_registers | length or cos_registers | length %}
+  // HW -> SW: Status registers (RO) + W1C/SC event pulses + CoS value ports
   typedef struct packed {
 {% for reg in hw_registers %}
     {{ reg.name | lower }}_t {{ reg.name | lower }};
@@ -141,6 +163,12 @@ package {{ entity_name }}_pkg;
 {% for reg in ext_w1c_regs_sv %}
 {% if reg.fields | length %}
     {{ reg.name | lower }}_pulse_t {{ reg.name | lower }}_pulse;  // W1C event pulses for {{ reg.name }}
+{% endif %}
+{% endfor %}
+{% for reg in sc_registers %}
+{% set sc_flds = reg.fields | selectattr('access', 'in', ['write-self-clearing', 'read-write-self-clearing']) %}
+{% if sc_flds | length %}
+    {{ reg.name | lower }}_clear_t {{ reg.name | lower }}_clear;  // SC event clear pulses for {{ reg.name }}
 {% endif %}
 {% endfor %}
 {% for reg in cos_registers %}

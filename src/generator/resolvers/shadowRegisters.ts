@@ -19,6 +19,7 @@ export interface ShadowRegisterResult {
   sw_registers: Array<Record<string, unknown>>;
   hw_registers: Array<Record<string, unknown>>;
   w1c_registers: Array<Record<string, unknown>>;
+  sc_registers: Array<Record<string, unknown>>;
   cos_registers: Array<Record<string, unknown>>;
   registers: Array<Record<string, unknown>>;
 }
@@ -39,8 +40,11 @@ export function buildShadowRegisters(
     'wo',
     'read-write-1-to-clear',
     'write-1-to-clear',
+    'read-write-self-clearing',
+    'write-self-clearing',
   ]);
   const hwAccess = new Set(['read-only', 'ro']);
+  const scAccess = new Set(['write-self-clearing', 'read-write-self-clearing']);
 
   const registers = baseRegisters as Array<Record<string, unknown>>;
 
@@ -52,6 +56,14 @@ export function buildShadowRegisters(
     }
     const fields = (reg.fields as Array<Record<string, unknown>>) ?? [];
     return fields.some((f) => W1C_ACCESS.has(getString(f.access)));
+  });
+
+  const scRegisters = registers.filter((reg) => {
+    if (scAccess.has(getString(reg.access))) {
+      return true;
+    }
+    const fields = (reg.fields as Array<Record<string, unknown>>) ?? [];
+    return fields.some((f) => scAccess.has(getString(f.access)));
   });
 
   const cosRegisters = registers
@@ -124,6 +136,7 @@ export function buildShadowRegisters(
     sw_registers: swRegisters,
     hw_registers: hwRegisters,
     w1c_registers: annotatedW1cRegisters,
+    sc_registers: scRegisters,
     cos_registers: cosRegisters,
   };
 }

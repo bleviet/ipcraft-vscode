@@ -691,6 +691,16 @@
             "default": [],
             "markdownDescription": "Additional file system paths to scan for IP cores (directories containing `.ip.yml` or `component.xml` files)."
           },
+          "ipcraft.gui.display": {
+            "type": "string",
+            "default": "",
+            "markdownDescription": "DISPLAY environment variable to use for GUI tools (Vivado, Quartus, Platform Designer). Useful for Remote SSH / X11 forwarding (e.g. `localhost:10.0` or `:100` for xpra)."
+          },
+          "ipcraft.gui.xauthority": {
+            "type": "string",
+            "default": "",
+            "markdownDescription": "XAUTHORITY environment variable to use for GUI tools. Needed for X11 forwarding in some Remote SSH setups."
+          },
           "ipcraft.scaffoldPackPaths": {
             "type": "array",
             "items": {

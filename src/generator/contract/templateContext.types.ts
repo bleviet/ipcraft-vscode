@@ -22,6 +22,7 @@ export interface TemplateContext {
   sw_registers: Register[];
   hw_registers: Register[];
   w1c_registers: W1CRegister[];
+  sc_registers: Register[];
   cos_registers: CosRegister[];
   generics: Generic[];
   xgui_pages: XguiPage[];
@@ -124,12 +125,18 @@ export interface XguiPage {
   name: string;
   tcl_var: string;
   groups: XguiGroup[];
-  ungrouped_param_names: string[];
+  ungrouped_params: {
+    name: string;
+    tooltip: string;
+  }[];
 }
 export interface XguiGroup {
   name: string;
   tcl_var: string;
-  param_names: string[];
+  params: {
+    name: string;
+    tooltip: string;
+  }[];
 }
 export interface UserPort {
   name: string;
