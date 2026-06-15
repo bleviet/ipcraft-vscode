@@ -187,7 +187,14 @@ package {{ entity_name }}_pkg is
 {% set _ = ext_w1c_regs.push(reg) %}
 {% endif %}
 {% endfor %}
-{% if hw_registers | length or ext_w1c_regs | length or sc_registers | length or cos_registers | length %}
+{% set sc_clear_regs = [] %}
+{% for reg in sc_registers %}
+{% set sc_flds = reg.fields | selectattr('access', 'in', ['write-self-clearing', 'read-write-self-clearing']) %}
+{% if sc_flds | length %}
+{% set _ = sc_clear_regs.push(reg) %}
+{% endif %}
+{% endfor %}
+{% if hw_registers | length or ext_w1c_regs | length or sc_clear_regs | length or cos_registers | length %}
 
   -- HW -> SW: Status registers (RO) + W1C/SC event pulses + CoS value ports
   type t_regs_hw2sw is record
@@ -203,11 +210,8 @@ package {{ entity_name }}_pkg is
     {{ reg.name | lower }}_pulse : t_reg_{{ reg.name | lower }}_pulse;  -- W1C event pulses for {{ reg.name }}
 {% endif %}
 {% endfor %}
-{% for reg in sc_registers %}
-{% set sc_flds = reg.fields | selectattr('access', 'in', ['write-self-clearing', 'read-write-self-clearing']) %}
-{% if sc_flds | length %}
+{% for reg in sc_clear_regs %}
     {{ reg.name | lower }}_clear : t_reg_{{ reg.name | lower }}_clear;  -- SC event clear pulses for {{ reg.name }}
-{% endif %}
 {% endfor %}
 {% for reg in cos_registers %}
 {% if reg.val_fields | length %}
@@ -218,7 +222,7 @@ package {{ entity_name }}_pkg is
 
 {% set has_hw = hw_registers | length > 0 %}
 {% set has_ext_w1c = ext_w1c_regs | length > 0 %}
-{% set has_sc = sc_registers | length > 0 %}
+{% set has_sc = sc_clear_regs | length > 0 %}
 {% set has_cos = cos_registers | length > 0 %}
   constant C_REGS_HW2SW_RESET : t_regs_hw2sw := (
 {% for reg in hw_registers %}
@@ -235,12 +239,9 @@ package {{ entity_name }}_pkg is
     {{ reg.name | lower }}_pulse => C_REG_{{ reg.name | upper }}_PULSE_RESET{{ "" if is_last else "," }}
 {% endif %}
 {% endfor %}
-{% for reg in sc_registers %}
-{% set sc_flds = reg.fields | selectattr('access', 'in', ['write-self-clearing', 'read-write-self-clearing']) %}
+{% for reg in sc_clear_regs %}
 {% set is_last = loop.last and not has_cos %}
-{% if sc_flds | length %}
     {{ reg.name | lower }}_clear => C_REG_{{ reg.name | upper }}_CLEAR_RESET{{ "" if is_last else "," }}
-{% endif %}
 {% endfor %}
 {% for reg in cos_registers %}
 {% if reg.val_fields | length %}

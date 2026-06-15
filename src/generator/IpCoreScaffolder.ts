@@ -383,7 +383,6 @@ export class IpCoreScaffolder {
       contract_version: CONTRACT_VERSION,
       name,
       entity_name: name,
-
       bus_type: busType,
       ...shadow,
       ...clockReset,
