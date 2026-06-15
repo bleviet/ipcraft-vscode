@@ -29,6 +29,12 @@ export interface RegisterEditorProps {
     focusDetails?: boolean;
   };
   onUpdate: YamlUpdateHandler;
+  /** Header title override (defaults to the register name). */
+  title?: string;
+  /** Extra content rendered below the header title (e.g. array dimensions). */
+  headerChildren?: React.ReactNode;
+  /** Keyboard-shortcuts context for the footer (defaults to 'register'). */
+  footerContext?: 'register' | 'array';
 }
 
 export type RegisterEditorHandle = {
@@ -48,7 +54,20 @@ export type RegisterEditorHandle = {
  * Exposes a `focus()` method via ref.
  */
 export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEditorProps>(
-  ({ register, fields, registerLayout, toggleRegisterLayout, selectionMeta, onUpdate }, ref) => {
+  (
+    {
+      register,
+      fields,
+      registerLayout,
+      toggleRegisterLayout,
+      selectionMeta,
+      onUpdate,
+      title,
+      headerChildren,
+      footerContext = 'register',
+    },
+    ref
+  ) => {
     const registerSize = register?.size ?? 32;
 
     const fieldEditor = useFieldEditor(fields, registerSize, onUpdate, true);
@@ -226,11 +245,13 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
       <TwoPanelEditorLayout
         header={
           <EditorHeader
-            title={register.name ?? ''}
+            title={title ?? register.name ?? ''}
             description={register.description}
             layout={registerLayout}
             onToggleLayout={toggleRegisterLayout}
-          />
+          >
+            {headerChildren}
+          </EditorHeader>
         }
         visualizer={
           <BitFieldVisualizer
@@ -246,7 +267,7 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
             fieldEditor={fieldEditor}
           />
         }
-        footer={<KeyboardShortcutsButton context="register" />}
+        footer={<KeyboardShortcutsButton context={footerContext} />}
         layout={registerLayout}
       />
     );

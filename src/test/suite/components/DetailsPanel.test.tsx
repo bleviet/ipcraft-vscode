@@ -150,6 +150,32 @@ describe('DetailsPanel — routing', () => {
     expect(screen.getByTestId('mock-register-editor')).toBeInTheDocument();
   });
 
+  it('masquerades flat-array element (fields, no nested registers) as RegisterEditor', () => {
+    const mockArray = {
+      name: 'CH_GAIN',
+      __element_index: 0,
+      __element_base: 0x40,
+      count: 4,
+      stride: 4,
+      fields: [{ name: 'GAIN', bits: '[11:0]' }],
+    };
+    render(
+      <DetailsPanel
+        selectedType="array"
+        selectedObject={mockArray}
+        onUpdate={noop}
+        {...baseProps}
+      />
+    );
+    expect(screen.getByTestId('mock-register-editor')).toBeInTheDocument();
+    const props = lastRegisterEditorProps as
+      | { register?: { name?: string }; fields?: unknown[] }
+      | undefined;
+    // The element edits the array's own shared field template directly.
+    expect(props?.register?.name).toBe('CH_GAIN');
+    expect(props?.fields).toHaveLength(1);
+  });
+
   it('masquerades multi-register array element as BlockEditor', () => {
     const mockArray = {
       name: 'TIMER',

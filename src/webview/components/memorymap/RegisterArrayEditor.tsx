@@ -16,6 +16,9 @@ import { useEditableDraft } from '../../shared/hooks/useEditableDraft';
 import { RegisterTableRow, REG_COLUMN_ORDER } from './RegisterTableRow';
 import type { RegEditKey } from './RegisterTableRow';
 import { reconcileRowIds, type TableRowWrapper } from '../../utils/rowIdentity';
+import { RegisterEditor } from '../register/RegisterEditor';
+import type { RegisterDef } from '../../types/memoryMap';
+import type { BitFieldRecord } from '../../types/editor';
 
 export interface RegisterArrayEditorProps {
   /** The register array definition object. */
@@ -44,6 +47,12 @@ export function RegisterArrayEditor({
   const arr = registerArray;
   const nestedRegisters = arr?.registers ?? [];
   const baseOffset = arr?.offset ?? arr?.address_offset ?? 0;
+
+  // A flat register array (count/stride + fields, no nested registers) is a
+  // single register template replicated N times: it gets the same bit-field
+  // editor a normal register does. Register groups (nested registers) keep the
+  // nested-registers table below.
+  const isFlatArray = nestedRegisters.length === 0;
 
   // Local drafts keep the caret stable in the header fields (see hook).
   const nameDraft = useEditableDraft(arr?.name ?? '');
@@ -266,6 +275,23 @@ export function RegisterArrayEditor({
       </div>
     </>
   );
+
+  // Flat array: reuse the register bit-field editor, keeping the array
+  // dimension controls (name/count/stride) in the header.
+  if (isFlatArray) {
+    return (
+      <RegisterEditor
+        register={arr as unknown as RegisterDef}
+        fields={(arr?.fields ?? []) as BitFieldRecord[]}
+        registerLayout={arrayLayout}
+        toggleRegisterLayout={toggleArrayLayout}
+        onUpdate={onUpdate}
+        title={arr?.name ?? 'Register Array'}
+        headerChildren={headerChildren}
+        footerContext="array"
+      />
+    );
+  }
 
   return (
     <TwoPanelEditorLayout

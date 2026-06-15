@@ -83,7 +83,19 @@ const DetailsPanel = React.forwardRef<DetailsPanelHandle, DetailsPanelProps>((pr
     const arr = rawSelectedObject as Record<string, unknown> & { registers?: unknown[] };
     const registers: unknown[] = (arr.registers as unknown[]) || [];
 
-    if (registers.length === 1) {
+    if (registers.length === 0) {
+      // Flat register array: every element shares one bit-field template, so an
+      // element edits the array's own fields directly (no path remapping).
+      selectedType = 'register';
+      selectedObject = arr;
+
+      if (arr.__element_base !== undefined) {
+        selectionMeta = {
+          ...(rawSelectionMeta ?? {}),
+          absoluteAddress: arr.__element_base as number,
+        };
+      }
+    } else if (registers.length === 1) {
       // Single Register: Masquerade as a single Register View
       selectedType = 'register';
       selectedObject = registers[0];

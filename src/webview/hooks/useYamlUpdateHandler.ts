@@ -35,7 +35,9 @@ export function useYamlUpdateHandler({
 
       const { root, selectionRootPath } = YamlPathResolver.getMapRootInfo(rootObj);
 
-      if (path[0] === '__op' && selection.type === 'register') {
+      // Flat register arrays expose the same bit-field editor as registers, so
+      // their field operations are routed through the same fields-array writer.
+      if (path[0] === '__op' && (selection.type === 'register' || selection.type === 'array')) {
         // Compute the resulting fields array on the plain object, then write
         // only that array back so the rest of the document keeps its
         // formatting and comments.

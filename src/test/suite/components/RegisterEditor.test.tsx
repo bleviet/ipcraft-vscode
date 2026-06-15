@@ -122,6 +122,29 @@ describe('RegisterEditor layouts', () => {
     expect(screen.getByTitle('Switch to stacked layout')).toBeInTheDocument();
   });
 
+  it('renders a title override and header children (flat register array reuse)', () => {
+    render(
+      <RegisterEditor
+        register={register}
+        fields={fields}
+        registerLayout="stacked"
+        toggleRegisterLayout={jest.fn()}
+        onUpdate={noop}
+        title="CH_GAIN"
+        headerChildren={<div data-testid="array-dimensions">count/stride</div>}
+        footerContext="array"
+      />
+    );
+
+    const header = screen.getByTestId('mock-editor-header');
+    expect(header).toHaveTextContent('CH_GAIN');
+    expect(header).not.toHaveTextContent('CTRL');
+    expect(screen.getByTestId('array-dimensions')).toBeInTheDocument();
+    // The bit-field editor itself is still rendered for the array template.
+    expect(screen.getByTestId('mock-fields-table')).toBeInTheDocument();
+    expect(bitFieldVisualizerMock).toHaveBeenCalled();
+  });
+
   it('renders stacked mode with pro visualizer layout', () => {
     const toggle = jest.fn();
     render(
