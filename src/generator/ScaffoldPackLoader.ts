@@ -11,11 +11,21 @@ export class ScaffoldPackLoader {
   }
 
   /**
-   * Resolve a scaffold pack by name.
-   * Lookup order: workspace pack dirs first, then built-in packs.
-   * Workspace packs live at `.vscode/ipcraft/packs/<name>/scaffold.yml`.
+   * Resolve a scaffold pack by name or by absolute directory path.
+   *
+   * An absolute path pointing at a directory that contains a `scaffold.yml` is
+   * loaded directly. This lets callers (e.g. the conformance kit) validate a pack
+   * at an arbitrary location, outside the workspace and built-in search paths.
+   *
+   * Otherwise `packName` is treated as a name and looked up by directory:
+   * workspace pack dirs first, then built-in packs. Workspace packs live at
+   * `.vscode/ipcraft/packs/<name>/scaffold.yml`.
    */
   resolve(packName: string, workspacePackDirs: string[] = []): ScaffoldPack {
+    if (path.isAbsolute(packName) && fs.existsSync(path.join(packName, 'scaffold.yml'))) {
+      return ScaffoldPackLoader.load(packName);
+    }
+
     const searchDirs = [...workspacePackDirs, this.builtinPacksDir];
 
     for (const dir of searchDirs) {

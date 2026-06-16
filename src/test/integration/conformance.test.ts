@@ -162,7 +162,9 @@ const thirdPartyEnabled = Boolean(thirdPartyPackDir && thirdPartyFixture);
     const scaffolder = new IpCoreScaffolder(silentLogger(), templateLoader, resourceRoots);
 
     const result = await scaffolder.generateAll(thirdPartyFixture!, outDir, {
-      scaffoldPack: path.basename(thirdPartyPackDir!),
+      // Pass the full pack directory path so the pack resolves directly,
+      // independent of workspace/built-in search paths.
+      scaffoldPack: thirdPartyPackDir!,
       includeRegs: true,
       includeTestbench: false,
     });
