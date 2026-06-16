@@ -50,6 +50,8 @@ nav:
   - Getting Started:
       - Quick Start: getting-started/quickstart.md
       - Development Setup: getting-started/development.md
+  - Tutorials:
+      - Build and Verify a Scaffold Pack: tutorials/build-and-verify-a-scaffold-pack.md
   - How-to Guides:
       - Importing from Existing Files: how-to/vhdl-import.md
       - Generating a Project: how-to/generating-a-project.md
