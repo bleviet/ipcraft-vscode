@@ -102,6 +102,7 @@ export function RegisterTableRow({
       {/* DRAG HANDLE */}
       <td
         className="w-8 px-1 text-center select-none opacity-0 group-hover:opacity-40 hover:!opacity-80"
+        title="Drag to reorder"
         style={{ cursor: onDragHandlePointerDown ? 'grab' : 'default' }}
         onPointerDown={onDragHandlePointerDown}
         onClick={(e) => e.stopPropagation()}

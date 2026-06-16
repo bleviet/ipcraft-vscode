@@ -20,6 +20,14 @@ import { RegisterEditor } from '../register/RegisterEditor';
 import type { RegisterDef } from '../../types/memoryMap';
 import type { BitFieldRecord } from '../../types/editor';
 
+interface DragState {
+  active: boolean;
+  fromRowId: string | null;
+  toRowId: string | null;
+}
+
+const DRAG_IDLE: DragState = { active: false, fromRowId: null, toRowId: null };
+
 export interface RegisterArrayEditorProps {
   /** The register array definition object. */
   registerArray: RegisterModel;
@@ -69,6 +77,54 @@ export function RegisterArrayEditor({
   useEffect(() => {
     setWrappedRegisters((prev) => reconcileRowIds(prev, nestedRegisters));
   }, [nestedRegisters]);
+
+  // ---- drag-to-reorder ----
+  const [dragState, setDragState] = useState<DragState>(DRAG_IDLE);
+
+  const handleDragHandlePointerDown = (rowId: string, e: React.PointerEvent) => {
+    if (e.button !== 0) {
+      return;
+    }
+    e.preventDefault();
+    e.stopPropagation();
+    setDragState({ active: true, fromRowId: rowId, toRowId: rowId });
+  };
+
+  const handleDragEnterRow = (rowId: string) => {
+    if (!dragState.active) {
+      return;
+    }
+    setDragState((prev) => ({ ...prev, toRowId: rowId }));
+  };
+
+  useEffect(() => {
+    if (!dragState.active) {
+      return;
+    }
+    const commit = () => {
+      const { fromRowId, toRowId } = dragState;
+      if (fromRowId && toRowId && fromRowId !== toRowId) {
+        const fromIdx = wrappedRegisters.findIndex((w) => w.rowId === fromRowId);
+        const toIdx = wrappedRegisters.findIndex((w) => w.rowId === toRowId);
+        if (fromIdx >= 0 && toIdx >= 0) {
+          const newRegs = [...nestedRegisters];
+          const [moved] = newRegs.splice(fromIdx, 1);
+          newRegs.splice(toIdx, 0, moved);
+          onUpdate(['registers'], newRegs as unknown[]);
+        }
+      }
+      setDragState(DRAG_IDLE);
+    };
+    const cancel = () => setDragState(DRAG_IDLE);
+    window.addEventListener('pointerup', commit);
+    window.addEventListener('pointercancel', cancel);
+    window.addEventListener('blur', cancel);
+    return () => {
+      window.removeEventListener('pointerup', commit);
+      window.removeEventListener('pointercancel', cancel);
+      window.removeEventListener('blur', cancel);
+    };
+  }, [dragState, wrappedRegisters, nestedRegisters, onUpdate]);
 
   // -- Shared table orchestration --
   const insertNestedReg = (newIdx: number) => {
@@ -160,17 +216,19 @@ export function RegisterArrayEditor({
       ref={editor.containerRef as React.RefObject<HTMLDivElement>}
       tabIndex={0}
       data-registers-table="true"
-      className="flex-1 overflow-auto min-h-0 outline-none focus:outline-none"
+      className={`flex-1 overflow-auto min-h-0 outline-none focus:outline-none${dragState.active ? ' cursor-grabbing select-none' : ''}`}
     >
       <table className="w-full text-left border-collapse table-fixed">
         <colgroup>
-          <col className="w-[30%] min-w-[200px]" />
+          <col className="w-8" />
+          <col className="w-[28%] min-w-[180px]" />
           <col className="w-[20%] min-w-[120px]" />
           <col className="w-[15%] min-w-[100px]" />
-          <col className="w-[35%]" />
+          <col className="w-[37%]" />
         </colgroup>
         <thead className="vscode-surface-alt text-xs font-semibold vscode-muted uppercase tracking-wider sticky top-0 z-10 shadow-sm">
           <tr className="h-12">
+            <th className="w-8 border-b vscode-border" />
             <th className="px-6 py-3 border-b vscode-border align-middle">Name</th>
             <th className="px-4 py-3 border-b vscode-border align-middle">Offset</th>
             <th className="px-4 py-3 border-b vscode-border align-middle">Access</th>
@@ -195,6 +253,14 @@ export function RegisterArrayEditor({
               onCellClick={(key) => editor.handleCellClick(idx, key)}
               onMouseEnter={() => editor.setHoveredRowId(wrapped.rowId)}
               onMouseLeave={editor.handleMouseLeave}
+              isDragSource={dragState.active && dragState.fromRowId === wrapped.rowId}
+              isDragTarget={
+                dragState.active &&
+                dragState.toRowId === wrapped.rowId &&
+                dragState.fromRowId !== wrapped.rowId
+              }
+              onDragHandlePointerDown={(e) => handleDragHandlePointerDown(wrapped.rowId, e)}
+              onPointerEnterRow={() => handleDragEnterRow(wrapped.rowId)}
             />
           ))}
           {nestedRegisters.length === 0 && (
