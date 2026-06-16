@@ -52,6 +52,13 @@ describe('TemplateLoader', () => {
     expect(result).toContain('REG_REG');
   });
 
+  it('format filter takes (formatString, value) — pipe the format string, value is the argument', () => {
+    expect(loader.renderString("{{ '%02X' | format(4) }}", {})).toBe('04');
+    expect(loader.renderString("{{ '%X' | format(255) }}", {})).toBe('FF');
+    expect(loader.renderString("{{ '%08X' | format(255) }}", {})).toBe('000000FF');
+    expect(loader.renderString("{{ '%x' | format(255) }}", {})).toBe('ff');
+  });
+
   it('applies list filter', () => {
     const context = {
       entity_name: 'test',

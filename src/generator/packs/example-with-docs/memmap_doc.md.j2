@@ -19,7 +19,7 @@
 | Offset | Name | Access | Description |
 |--------|------|--------|-------------|
 {% for reg in registers %}
-| `0x{{ reg.offset | format('%02X') }}` | `{{ reg.name }}` | `{{ reg.access }}` | {{ reg.description if reg.description else "—" }} |
+| `0x{{ '%02X' | format(reg.offset) }}` | `{{ reg.name }}` | `{{ reg.access }}` | {{ reg.description if reg.description else "—" }} |
 {% endfor %}
 {% else %}
 *No registers defined.*
@@ -28,7 +28,7 @@
 ---
 
 {% for reg in registers %}
-## `{{ reg.name }}` — Offset `0x{{ reg.offset | format('%02X') }}`
+## `{{ reg.name }}` — Offset `0x{{ '%02X' | format(reg.offset) }}`
 
 {{ reg.description if reg.description else "" }}
 
@@ -36,7 +36,7 @@
 | Bits | Field | Access | Reset | Description |
 |------|-------|--------|-------|-------------|
 {% for field in reg.fields %}
-| `[{{ field.offset + field.width - 1 }}:{{ field.offset }}]` | `{{ field.name }}` | `{{ field.access }}` | `0x{{ field.reset_value | format('%X') }}` | {{ field.description if field.description else "—" }} |
+| `[{{ field.offset + field.width - 1 }}:{{ field.offset }}]` | `{{ field.name }}` | `{{ field.access }}` | `0x{{ '%X' | format(field.reset_value) }}` | {{ field.description if field.description else "—" }} |
 {% endfor %}
 {% else %}
 *No fields defined.*
