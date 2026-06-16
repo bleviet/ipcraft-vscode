@@ -84,12 +84,6 @@ export function MemoryMapEditor({
     setWrappedBlocks((prev) => reconcileRowIds(prev, liveBlocks));
   }, [liveBlocks]);
 
-  // Always-current view for deferred callbacks (setTimeout), so we read the real
-  // reconciled rowId instead of recomputing it (which would burn the id counter
-  // and produce an id that never matches the rendered row).
-  const wrappedBlocksRef = useRef(wrappedBlocks);
-  wrappedBlocksRef.current = wrappedBlocks;
-
   const insertAtGap = (gapIndex: number) => {
     setInsertError(null);
     const result =

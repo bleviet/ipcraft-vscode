@@ -88,12 +88,6 @@ export function BlockEditor({
     setWrappedRegisters((prev) => reconcileRowIds(prev, liveRegisters));
   }, [liveRegisters]);
 
-  // Always-current view for deferred callbacks (setTimeout), so we read the real
-  // reconciled rowId instead of recomputing it (which would burn the id counter
-  // and produce an id that never matches the rendered row).
-  const wrappedRegistersRef = useRef(wrappedRegisters);
-  wrappedRegistersRef.current = wrappedRegisters;
-
   const insertNewReg = (newIdx: number) => {
     setInsertError(null);
     const newRegs = [...liveRegisters];
@@ -152,9 +146,6 @@ export function BlockEditor({
       newRegs[fromIndex] = newRegs[next];
       newRegs[next] = temp;
       onUpdate(['registers'], newRegs as unknown[]);
-      window.setTimeout(() => {
-        editor.selectRow(next);
-      }, 0);
     },
     enableHoverInsert: true,
     clampDeps: [block?.name],

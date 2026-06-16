@@ -69,12 +69,6 @@ export function useFieldEditor(
     setWrappedFields((prev) => reconcileRowIds(prev, fields));
   }, [fields]);
 
-  // Always-current view of wrappedFields for deferred callbacks (setTimeout),
-  // where the captured closure value would be stale. Reads the real reconciled
-  // rowIds rather than recomputing them (which would burn the id counter).
-  const wrappedFieldsRef = useRef(wrappedFields);
-  wrappedFieldsRef.current = wrappedFields;
-
   // ---- drafts ----
   const drafts = useFieldDrafts();
   const {
