@@ -38,6 +38,10 @@ export interface RegisterTableRowProps {
   onMouseEnter: () => void;
   onMouseLeave: () => void;
   onContextMenu?: (e: React.MouseEvent) => void;
+  isDragSource?: boolean;
+  isDragTarget?: boolean;
+  onDragHandlePointerDown?: (e: React.PointerEvent<HTMLTableCellElement>) => void;
+  onPointerEnterRow?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -63,6 +67,10 @@ export function RegisterTableRow({
   onMouseEnter,
   onMouseLeave,
   onContextMenu,
+  isDragSource = false,
+  isDragTarget = false,
+  onDragHandlePointerDown,
+  onPointerEnterRow,
 }: RegisterTableRowProps) {
   const offset = reg.offset ?? reg.address_offset ?? 0;
 
@@ -74,17 +82,32 @@ export function RegisterTableRow({
       data-row-id={rowId}
       data-reg-idx={idx}
       className={`group vscode-row-solid transition-colors border-l-4 border-transparent border-b vscode-border h-12 ${
-        isSelected
-          ? 'vscode-focus-border vscode-row-selected'
-          : isHovered
-            ? 'vscode-focus-border vscode-row-hover'
-            : ''
+        isDragSource
+          ? 'opacity-40'
+          : isDragTarget
+            ? 'vscode-focus-border'
+            : isSelected
+              ? 'vscode-focus-border vscode-row-selected'
+              : isHovered
+                ? 'vscode-focus-border vscode-row-hover'
+                : ''
       }`}
+      style={isDragTarget ? { boxShadow: '0 0 0 2px var(--vscode-focusBorder) inset' } : undefined}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       onClick={onRowClick}
       onContextMenu={onContextMenu}
+      onPointerEnter={onPointerEnterRow}
     >
+      {/* DRAG HANDLE */}
+      <td
+        className="w-8 px-1 text-center select-none opacity-0 group-hover:opacity-40 hover:!opacity-80"
+        style={{ cursor: onDragHandlePointerDown ? 'grab' : 'default' }}
+        onPointerDown={onDragHandlePointerDown}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <span className="codicon codicon-gripper text-sm" />
+      </td>
       {/* NAME */}
       <EditableCell
         columnKey="name"

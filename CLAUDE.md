@@ -54,6 +54,33 @@ Two webpack bundles run in **completely separate JS environments** and communica
 - Webview drops echoes of its own edits (`sourceEditId <= lastSentEditId`) and stale updates (`docVersion <= seenDocVersion`).
 - **Only change `revisionFilter.ts` together with `WebviewRouter`**; both are unit-tested in `src/test/suite/`. Test `revisionFilter` directly rather than through integration harnesses.
 
+### Table editors — shared patterns
+
+Every keyboard-navigable table in the Memory Map editor (`BlockEditor`, `MemoryMapEditor`, `RegisterArrayEditor`, and `useFieldEditor`) is built on **`useTableEditorState`** (`src/webview/hooks/useTableEditorState.ts`). It composes three lower-level hooks:
+
+- `useTableNavigation` — arrow/Vim navigation, Alt+Arrow move, inline-edit entry
+- `useCellEditGuard` — snapshot/revert and cancel-edit ref
+- `useHoverInsertBar` — hover-based gap insert bar
+
+All three receive `rows: TableRowWrapper<T>[]` (reconciled wrapped rows with stable `rowId`) rather than raw model arrays.
+
+**Post-insert focus** — after calling `onUpdate([...], newItems)`, the new row does not yet exist in `wrappedRows`. The established pattern is:
+1. Set `pendingInsertFocusRef.current = { name, key }` before the update.
+2. In a `useEffect` that watches `wrappedRows`, find the new row by name, then call `editor.selectRow(index, key)` + `editor.focusCellEditor(rowId, key)`.
+
+Never use `window.setTimeout(() => editor.selectRow(newIdx))` for post-insert focus — the row may not be rendered yet and the index will be wrong if reconciliation renumbers rows.
+
+**Move (`onMove`) selection rule** — `useTableNavigation` calls `onMove(rowId, delta)` and immediately sets `activeCell` to the moved row's stable `rowId`. The `onMove` callback must only perform the array swap and `onUpdate`; it must **not** call `editor.selectRow` in a `setTimeout`. Selection follows the moved item via its `rowId` after `reconcileRowIds` re-matches it in the new position.
+
+### Layout computation
+
+`src/webview/algorithms/LayoutEngine.ts` is the canonical pure-function module for bit-field layout:
+
+- `recomputeBitfieldLayout(fields, regWidth)` — contiguous pack from bit 0 (no gaps); used for structural operations (insert/delete).
+- `reorderBitfieldLayout(fields, movedIdx, direction, regWidth)` — gap-preserving swap; used for field-move from the table editor.
+
+When adding register- or block-level layout operations, extend `LayoutEngine.ts`. Do not add layout math inside components or hooks.
+
 ### Code generation
 
 `src/generator/` uses **Nunjucks** (`.j2`) templates in `src/generator/templates/`, copied to `dist/templates/` at build time by `CopyWebpackPlugin`. Edit templates there, never in `dist/`. With `trimBlocks: true`, the newline after any closing `%}` is consumed — use `{% set var = value %}` for inline conditionals to avoid stray newlines in rendered HDL.
@@ -66,6 +93,7 @@ Two webpack bundles run in **completely separate JS environments** and communica
 
 - **Two YAML libraries, used deliberately:** `js-yaml` (v4) for read-only parse / simple dump; `yaml` (v2) for any modify-and-write-back path (preserves comments + hex literals). Never use `js-yaml` to write back.
 - **Strict camelCase, no dual-state fallbacks.** TypeScript/React/JSON-Schema properties are camelCase only (`allowedValues`, `uiGroup`, `dataType`). Never read or define snake_case in these domains, and never write fallback logic like `param.uiGroup ?? param.ui_group`. snake_case is reserved exclusively for variables inside Nunjucks/Jinja2 template contexts.
+- **`__op` special operations:** `useYamlUpdateHandler` recognises paths starting with `['__op', ...]` as structured operations that bypass normal path-edit logic. `['__op', 'field-move']` is the only current case; it routes through `FieldOperationService.applyFieldOperation` then `reorderBitfieldLayout`. Add new `__op` variants in `useYamlUpdateHandler.ts` when an edit cannot be expressed as a single path/value write (e.g. a multi-field atomic update).
 - **Logging:** extension side uses `new Logger('ComponentName')` (`src/utils/Logger.ts`), never `console.log`. Webview may use `console.warn`/`console.error` for error paths.
 - **Styling:** Tailwind v3 utility classes in JSX; theme-aware colors via `var(--vscode-*)` (helpers in `src/webview/shared/colors.ts`).
 - **`vscode` is mocked** via `__mocks__/vscode.ts` (jest maps `^vscode$` to it); use the mock's stubs, don't re-mock per file.
