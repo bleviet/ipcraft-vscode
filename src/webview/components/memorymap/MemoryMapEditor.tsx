@@ -101,19 +101,10 @@ export function MemoryMapEditor({
       return;
     }
     const newIdx = result.newIndex;
+    const name = result.items[newIdx].name ?? '';
+    pendingInsertFocusRef.current = { name, key: 'name' };
     onUpdate(['addressBlocks'], result.items);
-
-    window.setTimeout(() => {
-      editor.selectRow(newIdx, 'name');
-      editor.clearInsertBar();
-      const newRowId = wrappedBlocksRef.current[newIdx]?.rowId;
-      if (newRowId) {
-        editor.focusCellEditor(newRowId, 'name');
-        document
-          .querySelector(`tr[data-row-id="${newRowId}"]`)
-          ?.scrollIntoView({ block: 'center' });
-      }
-    }, 0);
+    editor.clearInsertBar();
   };
 
   const deleteBlock = (rowId: string) => {
@@ -152,6 +143,22 @@ export function MemoryMapEditor({
     enableHoverInsert: true,
     clampDeps: [memoryMap?.name],
   });
+
+  const pendingInsertFocusRef = useRef<{ name: string; key: BlockEditKey } | null>(null);
+
+  useEffect(() => {
+    if (pendingInsertFocusRef.current) {
+      const { name, key } = pendingInsertFocusRef.current;
+      const index = wrappedBlocks.findIndex((w) => w.model.name === name);
+      if (index >= 0) {
+        const rowId = wrappedBlocks[index].rowId;
+        editor.selectRow(index, key);
+        editor.focusCellEditor(rowId, key);
+        document.querySelector(`tr[data-row-id="${rowId}"]`)?.scrollIntoView({ block: 'center' });
+        pendingInsertFocusRef.current = null;
+      }
+    }
+  }, [wrappedBlocks, editor]);
 
   useAutoFocus(
     editor.containerRef as React.RefObject<HTMLDivElement>,

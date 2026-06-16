@@ -32,8 +32,22 @@ describe('BitFieldRepacker', () => {
 
       const result = repackFieldsForward(fields, 1, 32);
 
-      // Field 2 should start at bit 4 (MSB+1 of field 1)
+      // Field 2 should start at bit 4 (MSB+1 of field 1) because of overlap
       expect(result[1].bits).toBe('[7:4]');
+    });
+
+    it('should preserve gaps if there is no overlap', () => {
+      // field1: [0:0], field2: [3:3] (gap at [2:1])
+      const fields = [
+        { name: 'field1', bits: '[0:0]', bit_offset: 0, bit_width: 1 },
+        { name: 'field2', bits: '[3:3]', bit_offset: 3, bit_width: 1 },
+      ];
+
+      const result = repackFieldsForward(fields, 1, 32);
+
+      // Field 2 should remain at [3:3] since [3:3] is after [0:0] and does not overlap
+      expect(result[0].bits).toBe('[0:0]');
+      expect(result[1].bits).toBe('[3:3]');
     });
   });
 
@@ -58,19 +72,35 @@ describe('BitFieldRepacker', () => {
       expect(result[0].bits).toBe('[7:0]');
     });
 
-    it('should start from LSB-1 of next field', () => {
+    it('should start from LSB-1 of next field only if there is overlap', () => {
       const fields = [
         { name: 'field1', bits: '[10:5]', bit_offset: 5, bit_width: 6 },
-        { name: 'field2', bits: '[10:9]', bit_offset: 9, bit_width: 2 }, // example
+        { name: 'field2', bits: '[10:9]', bit_offset: 9, bit_width: 2 }, // overlaps field1
         { name: 'field3', bits: '[20:16]', bit_offset: 16, bit_width: 5 },
       ];
 
       // Assume we repack index 1 down.
       // Next is index 2 [20:16]. LSB=16.
-      // Index 1 should end at 15. Width 2 -> [15:14].
+      // Index 1 has MSB=10 <= LSB(16)-1=15, so it does not overlap with index 2.
+      // Index 1 should remain at [10:9].
+      // Index 0 (field1) has MSB=10 > LSB(9)-1=8 (where field2 ends), so it overlaps and gets shifted.
       const result = repackFieldsBackward(fields, 1, 32);
 
-      expect(result[1].bits).toBe('[15:14]');
+      expect(result[1].bits).toBe('[10:9]');
+      expect(result[0].bits).toBe('[8:3]');
+    });
+
+    it('should preserve gaps if there is no overlap', () => {
+      // field1: [0:0], field2: [3:3] (gap at [2:1])
+      const fields = [
+        { name: 'field1', bits: '[0:0]', bit_offset: 0, bit_width: 1 },
+        { name: 'field2', bits: '[3:3]', bit_offset: 3, bit_width: 1 },
+      ];
+
+      const result = repackFieldsBackward(fields, 0, 32);
+
+      expect(result[0].bits).toBe('[0:0]');
+      expect(result[1].bits).toBe('[3:3]');
     });
 
     it('should return an unchanged copy for out-of-range fromIndex', () => {

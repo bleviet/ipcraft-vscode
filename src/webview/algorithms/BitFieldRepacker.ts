@@ -36,7 +36,10 @@ export function repackFieldsForward(
     const parsed = parseBitsRange(fieldToBitsString(field));
     const width = parsed ? Math.abs(parsed[0] - parsed[1]) + 1 : 1;
 
-    const lsb = nextLsb;
+    let lsb = parsed ? parsed[1] : nextLsb;
+    if (lsb < nextLsb) {
+      lsb = nextLsb;
+    }
     // Clamp MSB so partially invalid source widths cannot overflow the register.
     const msb = Math.min(regWidth - 1, lsb + width - 1);
     const clampedWidth = msb - lsb + 1;
@@ -83,7 +86,10 @@ export function repackFieldsBackward(
     const parsed = parseBitsRange(fieldToBitsString(field));
     const width = parsed ? Math.abs(parsed[0] - parsed[1]) + 1 : 1;
 
-    const msb = nextMsb;
+    let msb = parsed ? parsed[0] : nextMsb;
+    if (msb > nextMsb) {
+      msb = nextMsb;
+    }
     // Clamp to bit 0 so backward repacking never produces negative bit indices.
     const lsb = Math.max(0, msb - width + 1);
     const clampedWidth = msb - lsb + 1;

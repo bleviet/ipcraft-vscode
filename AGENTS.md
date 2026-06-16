@@ -102,3 +102,4 @@ via `src/test/integration/setup.ts`), and there is no Jest for browser tests
   (only `warn`/`error` are allowed, and only in webview error paths).
 - No emojis anywhere — code, comments, docs, commit messages.
 - Never auto-commit. Run lint/type-check/test and let the developer review.
+- Run compile after code generation to ensure the generated code is correct. Fix errors and regenerate if needed.

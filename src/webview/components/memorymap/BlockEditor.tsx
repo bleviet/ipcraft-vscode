@@ -94,7 +94,6 @@ export function BlockEditor({
   const wrappedRegistersRef = useRef(wrappedRegisters);
   wrappedRegistersRef.current = wrappedRegisters;
 
-  // -- Shared table orchestration --
   const insertNewReg = (newIdx: number) => {
     setInsertError(null);
     const newRegs = [...liveRegisters];
@@ -106,18 +105,8 @@ export function BlockEditor({
       offset: 0,
       address_offset: 0,
     });
+    pendingInsertFocusRef.current = { name, key: 'name' };
     onUpdate(['registers'], newRegs as unknown[]);
-
-    window.setTimeout(() => {
-      editor.selectRow(newIdx, 'name');
-      const newRowId = wrappedRegistersRef.current[newIdx]?.rowId;
-      if (newRowId) {
-        editor.focusCellEditor(newRowId, 'name');
-        document
-          .querySelector(`tr[data-row-id="${newRowId}"]`)
-          ?.scrollIntoView({ block: 'center' });
-      }
-    }, 0);
   };
 
   const deleteReg = (rowId: string) => {
@@ -170,6 +159,22 @@ export function BlockEditor({
     enableHoverInsert: true,
     clampDeps: [block?.name],
   });
+
+  const pendingInsertFocusRef = useRef<{ name: string; key: RegEditKey } | null>(null);
+
+  useEffect(() => {
+    if (pendingInsertFocusRef.current) {
+      const { name, key } = pendingInsertFocusRef.current;
+      const index = wrappedRegisters.findIndex((w) => w.model.name === name);
+      if (index >= 0) {
+        const rowId = wrappedRegisters[index].rowId;
+        editor.selectRow(index, key);
+        editor.focusCellEditor(rowId, key);
+        document.querySelector(`tr[data-row-id="${rowId}"]`)?.scrollIntoView({ block: 'center' });
+        pendingInsertFocusRef.current = null;
+      }
+    }
+  }, [wrappedRegisters, editor]);
 
   const getRegColor = (idx: number) => FIELD_COLOR_KEYS[idx % FIELD_COLOR_KEYS.length];
 
@@ -249,22 +254,17 @@ export function BlockEditor({
         ],
       };
       let newRegs: RegisterModel[];
-      let newIdx: number;
       if (isInsertArrayAfter) {
         newRegs = [
           ...liveRegisters.slice(0, selIdx + 1),
           newArray,
           ...liveRegisters.slice(selIdx + 1),
         ];
-        newIdx = selIdx + 1;
       } else {
         newRegs = [...liveRegisters.slice(0, selIdx), newArray, ...liveRegisters.slice(selIdx)];
-        newIdx = selIdx;
       }
+      pendingInsertFocusRef.current = { name: arrayName, key: 'name' };
       onUpdate(['registers'], newRegs as unknown[]);
-      window.setTimeout(() => {
-        editor.selectRow(newIdx, 'name');
-      }, 0);
     };
 
     window.addEventListener('keydown', onKeyDown);
