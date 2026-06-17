@@ -96,20 +96,67 @@ export function BlockEditor({
     setWrappedRegisters((prev) => reconcileRowIds(prev, liveRegisters));
   }, [liveRegisters]);
 
-  const insertNewReg = (newIdx: number, autoFocus = false) => {
+  const insertNewItem = (
+    newIdx: number,
+    kind: 'register' | 'flat-array' | 'array' = 'register',
+    autoFocus = false
+  ) => {
     setInsertError(null);
     const newRegs = [...liveRegisters];
-    const name = generateUniqueName(liveRegisters, 'reg');
-    newRegs.splice(newIdx, 0, {
-      name,
-      description: '',
-      offset: 0,
-      address_offset: 0,
-    });
-    if (autoFocus) {
-      pendingInsertFocusRef.current = { name, key: 'name' };
+
+    if (kind === 'array') {
+      const arrayName = generateUniqueName(liveRegisters, 'array');
+      newRegs.splice(newIdx, 0, {
+        __kind: 'array',
+        name: arrayName,
+        offset: 0,
+        address_offset: 0,
+        count: 2,
+        stride: 4,
+        description: '',
+        registers: [
+          {
+            name: 'reg0',
+            offset: 0,
+            address_offset: 0,
+            description: '',
+            fields: [{ name: 'data', bits: '[31:0]', access: 'read-write', description: '' }],
+          },
+        ],
+      });
+      if (autoFocus) {
+        pendingInsertFocusRef.current = { name: arrayName, key: 'name' };
+      } else {
+        pendingSelectRef.current = { name: arrayName, key: 'name' };
+      }
+    } else if (kind === 'flat-array') {
+      const name = generateUniqueName(liveRegisters, 'regArray');
+      newRegs.splice(newIdx, 0, {
+        name,
+        offset: 0,
+        address_offset: 0,
+        count: 2,
+        stride: 4,
+        description: '',
+      });
+      if (autoFocus) {
+        pendingInsertFocusRef.current = { name, key: 'name' };
+      } else {
+        pendingSelectRef.current = { name, key: 'name' };
+      }
     } else {
-      pendingSelectRef.current = { name, key: 'name' };
+      const name = generateUniqueName(liveRegisters, 'reg');
+      newRegs.splice(newIdx, 0, {
+        name,
+        description: '',
+        offset: 0,
+        address_offset: 0,
+      });
+      if (autoFocus) {
+        pendingInsertFocusRef.current = { name, key: 'name' };
+      } else {
+        pendingSelectRef.current = { name, key: 'name' };
+      }
     }
     onUpdate(['registers'], newRegs as unknown[]);
   };
@@ -134,11 +181,11 @@ export function BlockEditor({
     onUpdate,
     onInsertAfter: () => {
       const newIdx = editor.selectedIndex + 1;
-      insertNewReg(newIdx);
+      insertNewItem(newIdx, 'register');
     },
     onInsertBefore: () => {
       const newIdx = Math.max(0, editor.selectedIndex);
-      insertNewReg(newIdx);
+      insertNewItem(newIdx, 'register');
     },
     onDelete: deleteReg,
     onMove: (rowId, delta) => {
@@ -197,8 +244,11 @@ export function BlockEditor({
     [block?.name]
   );
 
-  const insertAtGap = (gapIndex: number) => {
-    insertNewReg(gapIndex, true);
+  const insertAtGap = (
+    gapIndex: number,
+    kind: 'register' | 'flat-array' | 'array' = 'register'
+  ) => {
+    insertNewItem(gapIndex, kind, true);
     editor.clearInsertBar();
   };
 

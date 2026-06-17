@@ -20,7 +20,7 @@ interface RegisterMapVisualizerProps {
   baseAddress?: number;
   onReorderRegisters?: (newRegisters: VisualizerRegister[]) => void;
   onRegisterClick?: (regIndex: number) => void;
-  onInsertAtGap?: (gapIndex: number) => void;
+  onInsertAtGap?: (gapIndex: number, kind: 'register' | 'flat-array' | 'array') => void;
   onDeleteReg?: (regIndex: number) => void;
   layout?: 'horizontal' | 'vertical';
 }
@@ -338,19 +338,47 @@ const RegisterMapVisualizerInner: React.FC<RegisterMapVisualizerProps> = ({
               className="flex-1 h-[2px] rounded-full"
               style={{ background: 'linear-gradient(to right, #f97316, #f43f5e)' }}
             />
-            <button
-              className="pointer-events-auto w-5 h-5 rounded-full text-white text-[11px] font-bold flex items-center justify-center hover:scale-110 transition-transform shadow mx-1 flex-shrink-0"
-              style={{ background: 'linear-gradient(135deg, #f97316, #f43f5e)' }}
-              title={`Insert register at position ${insertHoverGap}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                onInsertAtGap(insertHoverGap);
-                setInsertHoverGap(null);
-                setInsertBarScrollY(null);
-              }}
-            >
-              +
-            </button>
+            <div className="flex gap-1 mx-2 pointer-events-auto">
+              <button
+                className="px-2 py-0.5 rounded-full text-white text-[10px] font-bold flex items-center justify-center hover:scale-105 transition-transform shadow"
+                style={{ background: 'linear-gradient(135deg, #f97316, #f43f5e)' }}
+                title={`Insert Register at position ${insertHoverGap}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onInsertAtGap(insertHoverGap, 'register');
+                  setInsertHoverGap(null);
+                  setInsertBarScrollY(null);
+                }}
+              >
+                + REG
+              </button>
+              <button
+                className="px-2 py-0.5 rounded-full text-white text-[10px] font-bold flex items-center justify-center hover:scale-105 transition-transform shadow"
+                style={{ background: 'linear-gradient(135deg, #f97316, #f43f5e)' }}
+                title={`Insert Flat Array at position ${insertHoverGap}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onInsertAtGap(insertHoverGap, 'flat-array');
+                  setInsertHoverGap(null);
+                  setInsertBarScrollY(null);
+                }}
+              >
+                + FLAT ARR
+              </button>
+              <button
+                className="px-2 py-0.5 rounded-full text-white text-[10px] font-bold flex items-center justify-center hover:scale-105 transition-transform shadow"
+                style={{ background: 'linear-gradient(135deg, #f97316, #f43f5e)' }}
+                title={`Insert Register Array at position ${insertHoverGap}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onInsertAtGap(insertHoverGap, 'array');
+                  setInsertHoverGap(null);
+                  setInsertBarScrollY(null);
+                }}
+              >
+                + NESTED ARR
+              </button>
+            </div>
             <div
               className="flex-1 h-[2px] rounded-full"
               style={{ background: 'linear-gradient(to left, #f97316, #f43f5e)' }}
@@ -365,28 +393,76 @@ const RegisterMapVisualizerInner: React.FC<RegisterMapVisualizerProps> = ({
             onPointerDown={(e) => e.stopPropagation()}
           >
             {onInsertAtGap && (
-              <button
-                className="w-full text-left px-4 py-2 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
-                onClick={() => {
-                  onInsertAtGap(contextMenu.regIndex);
-                  setContextMenu(null);
-                }}
-              >
-                <span className="codicon codicon-arrow-up text-xs" />
-                Insert Above
-              </button>
-            )}
-            {onInsertAtGap && (
-              <button
-                className="w-full text-left px-4 py-2 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
-                onClick={() => {
-                  onInsertAtGap(contextMenu.regIndex + 1);
-                  setContextMenu(null);
-                }}
-              >
-                <span className="codicon codicon-arrow-down text-xs" />
-                Insert Below
-              </button>
+              <>
+                <div className="px-3 py-1 text-xs font-semibold vscode-muted bg-[var(--vscode-editorWidget-background)] uppercase tracking-wider">
+                  Insert Above
+                </div>
+                <button
+                  className="w-full text-left px-4 py-1.5 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
+                  onClick={() => {
+                    onInsertAtGap(contextMenu.regIndex, 'register');
+                    setContextMenu(null);
+                  }}
+                >
+                  <span className="codicon codicon-symbol-field text-xs" />
+                  Register
+                </button>
+                <button
+                  className="w-full text-left px-4 py-1.5 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
+                  onClick={() => {
+                    onInsertAtGap(contextMenu.regIndex, 'flat-array');
+                    setContextMenu(null);
+                  }}
+                >
+                  <span className="codicon codicon-symbol-array text-xs" />
+                  Flat Array
+                </button>
+                <button
+                  className="w-full text-left px-4 py-1.5 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
+                  onClick={() => {
+                    onInsertAtGap(contextMenu.regIndex, 'array');
+                    setContextMenu(null);
+                  }}
+                >
+                  <span className="codicon codicon-symbol-struct text-xs" />
+                  Nested Array
+                </button>
+
+                <div className="border-t vscode-border my-1" />
+                <div className="px-3 py-1 text-xs font-semibold vscode-muted bg-[var(--vscode-editorWidget-background)] uppercase tracking-wider">
+                  Insert Below
+                </div>
+                <button
+                  className="w-full text-left px-4 py-1.5 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
+                  onClick={() => {
+                    onInsertAtGap(contextMenu.regIndex + 1, 'register');
+                    setContextMenu(null);
+                  }}
+                >
+                  <span className="codicon codicon-symbol-field text-xs" />
+                  Register
+                </button>
+                <button
+                  className="w-full text-left px-4 py-1.5 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
+                  onClick={() => {
+                    onInsertAtGap(contextMenu.regIndex + 1, 'flat-array');
+                    setContextMenu(null);
+                  }}
+                >
+                  <span className="codicon codicon-symbol-array text-xs" />
+                  Flat Array
+                </button>
+                <button
+                  className="w-full text-left px-4 py-1.5 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
+                  onClick={() => {
+                    onInsertAtGap(contextMenu.regIndex + 1, 'array');
+                    setContextMenu(null);
+                  }}
+                >
+                  <span className="codicon codicon-symbol-struct text-xs" />
+                  Nested Array
+                </button>
+              </>
             )}
             {onDeleteReg && (
               <>
