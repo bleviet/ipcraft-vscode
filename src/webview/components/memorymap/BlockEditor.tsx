@@ -370,7 +370,7 @@ export function BlockEditor({
           <tr className="h-12">
             <th className="w-8 border-b vscode-border" />
             <th className="px-6 py-3 border-b vscode-border align-middle">Name</th>
-            <th className="px-4 py-3 border-b vscode-border align-middle">Offset</th>
+            <th className="px-4 py-3 border-b vscode-border align-middle">Base Address</th>
             <th className="px-4 py-3 border-b vscode-border align-middle">Address Range</th>
             <th className="px-6 py-3 border-b vscode-border align-middle">Description</th>
           </tr>

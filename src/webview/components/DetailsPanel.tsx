@@ -211,6 +211,7 @@ const DetailsPanel = React.forwardRef<DetailsPanelHandle, DetailsPanelProps>((pr
         registerArray={selectedObject as Parameters<typeof RegisterArrayEditor>[0]['registerArray']}
         arrayLayout={arrayLayout}
         toggleArrayLayout={toggleArrayLayout}
+        selectionMeta={selectionMeta}
         onUpdate={onUpdate}
       />
     );

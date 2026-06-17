@@ -62,6 +62,10 @@ const RegisterArrayNode = ({
             object: arrayNode,
             breadcrumbs: [memoryMapName || 'Memory Map', block.name, arrayNode.name],
             path: ['addressBlocks', blockIndex, 'registers', regIndex],
+            meta: {
+              absoluteAddress: start,
+              relativeOffset: Number(arrayNode.offset ?? 0),
+            },
           });
         }}
         style={{ paddingLeft: '40px' }}

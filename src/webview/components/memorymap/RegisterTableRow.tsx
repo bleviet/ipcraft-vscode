@@ -162,7 +162,7 @@ export function RegisterTableRow({
         </div>
       </EditableCell>
 
-      {/* OFFSET */}
+      {/* OFFSET / BASE ADDRESS */}
       <EditableCell
         columnKey="offset"
         isActive={isCellActive('offset')}
@@ -172,12 +172,12 @@ export function RegisterTableRow({
         <CellInput
           editKey="offset"
           className="w-full font-mono"
-          value={toHex(offset as number)}
+          value={toHex(absStart)}
           onFocus={captureEditSnapshot}
           onInput={(value) => {
             const val = Number(value);
             if (!Number.isNaN(val)) {
-              onUpdate(['registers', idx, 'offset'], val);
+              onUpdate(['registers', idx, 'offset'], val - baseAddress);
             }
           }}
         />

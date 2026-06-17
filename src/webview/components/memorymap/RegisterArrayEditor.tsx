@@ -33,6 +33,11 @@ export interface RegisterArrayEditorProps {
   registerArray: RegisterModel;
   arrayLayout: 'stacked' | 'side-by-side';
   toggleArrayLayout: () => void;
+  selectionMeta?: {
+    absoluteAddress?: number;
+    relativeOffset?: number;
+    focusDetails?: boolean;
+  };
   onUpdate: YamlUpdateHandler;
 }
 
@@ -50,11 +55,13 @@ export function RegisterArrayEditor({
   registerArray,
   arrayLayout,
   toggleArrayLayout,
+  selectionMeta,
   onUpdate,
 }: RegisterArrayEditorProps) {
   const arr = registerArray;
   const nestedRegisters = arr?.registers ?? [];
   const baseOffset = arr?.offset ?? arr?.address_offset ?? 0;
+  const baseAddress = selectionMeta?.absoluteAddress ?? Number(baseOffset);
 
   // A flat register array (count/stride + fields, no nested registers) is a
   // single register template replicated N times: it gets the same bit-field
@@ -189,7 +196,7 @@ export function RegisterArrayEditor({
       registers={nestedRegisters}
       hoveredRegIndex={editor.hoveredIndex}
       setHoveredRegIndex={editor.setHoveredFieldIndex}
-      baseAddress={0}
+      baseAddress={baseAddress}
       onReorderRegisters={(newRegs) => onUpdate(['registers'], newRegs)}
       onRegisterClick={(idx) => editor.selectRow(idx)}
       onDeleteReg={(idx) => {
@@ -229,7 +236,7 @@ export function RegisterArrayEditor({
           <tr className="h-12">
             <th className="w-8 border-b vscode-border" />
             <th className="px-6 py-3 border-b vscode-border align-middle">Name</th>
-            <th className="px-4 py-3 border-b vscode-border align-middle">Offset</th>
+            <th className="px-4 py-3 border-b vscode-border align-middle">Base Address</th>
             <th className="px-4 py-3 border-b vscode-border align-middle">Address Range</th>
             <th className="px-6 py-3 border-b vscode-border align-middle">Description</th>
           </tr>
@@ -263,6 +270,7 @@ export function RegisterArrayEditor({
               siblingNames={nestedRegisters
                 .filter((_: RegisterModel, i: number) => i !== idx)
                 .map((r: RegisterModel) => String(r.name ?? ''))}
+              baseAddress={baseAddress}
             />
           ))}
           {nestedRegisters.length === 0 && (
@@ -296,8 +304,8 @@ export function RegisterArrayEditor({
           />
         </div>
         <div>
-          <label className="text-xs vscode-muted block mb-1">Base Offset</label>
-          <span className="font-mono text-sm">{toHex(Number(baseOffset))}</span>
+          <label className="text-xs vscode-muted block mb-1">Base Address</label>
+          <span className="font-mono text-sm">{toHex(baseAddress)}</span>
         </div>
         <div>
           <label className="text-xs vscode-muted block mb-1">Count</label>
@@ -336,8 +344,8 @@ export function RegisterArrayEditor({
       </div>
       <div className="text-sm vscode-muted mt-2 mb-1">
         <span className="font-mono">
-          {toHex(Number(baseOffset))} →{' '}
-          {toHex(Number(baseOffset) + Number(arr?.count ?? 1) * Number(arr?.stride ?? 4) - 1)}
+          {toHex(baseAddress)} →{' '}
+          {toHex(baseAddress + Number(arr?.count ?? 1) * Number(arr?.stride ?? 4) - 1)}
         </span>
         <span className="ml-2">({(arr?.count ?? 1) * (arr?.stride ?? 4)} bytes total)</span>
       </div>
@@ -353,6 +361,7 @@ export function RegisterArrayEditor({
         fields={(arr?.fields ?? []) as BitFieldRecord[]}
         registerLayout={arrayLayout}
         toggleRegisterLayout={toggleArrayLayout}
+        selectionMeta={selectionMeta}
         onUpdate={onUpdate}
         title={arr?.name ?? 'Register Array'}
         headerChildren={headerChildren}

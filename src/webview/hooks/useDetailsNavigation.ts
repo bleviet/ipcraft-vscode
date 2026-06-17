@@ -34,6 +34,9 @@ export function useDetailsNavigation({
         const isArray = reg.__kind === 'array';
         const newPath = [...currentPath, 'registers', regIndex];
         const idSuffix = isArray ? `-arrreg-${regIndex}` : `-reg-${regIndex}`;
+        const blockBase = Number(block.baseAddress ?? 0);
+        const regOff = Number(reg.offset ?? reg.address_offset ?? 0);
+        const absolute = blockBase + regOff;
 
         handleSelect({
           id: `${selectionRef.current.id}${idSuffix}`,
@@ -44,6 +47,10 @@ export function useDetailsNavigation({
             String(reg.name ?? `Register ${regIndex}`),
           ],
           path: newPath,
+          meta: {
+            absoluteAddress: absolute,
+            relativeOffset: regOff,
+          },
         });
         return;
       }
