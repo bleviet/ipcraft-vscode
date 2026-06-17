@@ -19,6 +19,8 @@ import type { LayoutMemoryMap, LayoutRegister } from './algorithms/LayoutEngine'
 import { YamlService } from './services/YamlService';
 import { YamlPathResolver } from './services/YamlPathResolver';
 import { serializeValue } from '../domain/serialize';
+import { calculateBlockSize } from './utils/blockSize';
+import type { YamlPath } from './types/editor';
 
 /** Effective register width (bits) of a block-like object. */
 function blockRegWidth(block: Record<string, unknown> | undefined): number {
@@ -209,6 +211,7 @@ const App = () => {
       const { root, selectionRootPath } = YamlPathResolver.getMapRootInfo(rootObj);
       const fullPath = [...selectionRootPath, ...selection.path, ...path];
 
+      const edits: { path: YamlPath; value: unknown }[] = [];
       let sanitizedValue: unknown;
       if (isRegistersWrite) {
         // Find the container whose registers are being edited.
@@ -223,17 +226,28 @@ const App = () => {
         sanitizedValue = laidOut.map(
           (r) => serializeValue(r as Record<string, unknown>, width) as Record<string, unknown>
         );
+
+        edits.push({ path: fullPath, value: sanitizedValue });
+
+        // Auto-expand stride for Register Arrays if footprint exceeds current stride
+        if (container && (container.count !== undefined || container.__kind === 'array')) {
+          const footprint = calculateBlockSize({ registers: laidOut });
+          const currentStride = typeof container.stride === 'number' ? container.stride : 4;
+          if (footprint > currentStride) {
+            const newStride = Math.ceil(footprint / 4) * 4;
+            edits.push({ path: [...containerPath, 'stride'], value: newStride });
+          }
+        }
       } else {
         // Block-level writes carry base addresses already computed by the
         // insertion service; just sanitize to schema keys.
         sanitizedValue = ((value ?? []) as Record<string, unknown>[]).map(
           (b) => serializeValue(b) as Record<string, unknown>
         );
+        edits.push({ path: fullPath, value: sanitizedValue });
       }
 
-      const newText = YamlService.applyPathEdits(rawTextRef.current, [
-        { path: fullPath, value: sanitizedValue },
-      ]);
+      const newText = YamlService.applyPathEdits(rawTextRef.current, edits);
       if (newText !== rawTextRef.current) {
         updateRawText(newText);
         sendUpdate(newText);
