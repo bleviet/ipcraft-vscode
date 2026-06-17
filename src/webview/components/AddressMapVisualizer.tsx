@@ -239,37 +239,6 @@ const AddressMapVisualizerInner: React.FC<AddressMapVisualizerProps> = ({
     return clamped.map((p) => (p / sum) * 100);
   }, [segments, totalEnd]);
 
-  // Cumulative left positions for each segment boundary (0…100 %).
-  const cumulativePcts = useMemo(() => {
-    const result = [0];
-    for (const p of displayPcts) {
-      result.push(result[result.length - 1] + p);
-    }
-    return result;
-  }, [displayPcts]);
-
-  // Ruler labels: address at each segment boundary, collision-avoided (8 % min gap).
-  const rulerLabels = useMemo(() => {
-    if (segments.length === 0) {
-      return [] as Array<{ left: number; addr: number; anchor: 'left' | 'right' }>;
-    }
-    const labels: Array<{ left: number; addr: number; anchor: 'left' | 'right' }> = [];
-    let lastLeft = -20;
-
-    for (let i = 0; i < segments.length; i++) {
-      const left = cumulativePcts[i];
-      if (left - lastLeft >= 8) {
-        labels.push({ left, addr: segments[i].start, anchor: 'left' });
-        lastLeft = left;
-      }
-    }
-    // Final address (right edge), only if not too close to last label.
-    if (100 - lastLeft >= 8) {
-      labels.push({ left: 100, addr: totalEnd, anchor: 'right' });
-    }
-    return labels;
-  }, [segments, cumulativePcts, totalEnd]);
-
   // ---------------------------------------------------------------------------
   // Vertical list layout (side-by-side mode)
   // ---------------------------------------------------------------------------
@@ -411,7 +380,7 @@ const AddressMapVisualizerInner: React.FC<AddressMapVisualizerProps> = ({
   }
 
   // ---------------------------------------------------------------------------
-  // Proportional address space bar (stacked / horizontal layout)
+  // Proportional columns (stacked / horizontal layout)
   // ---------------------------------------------------------------------------
 
   if (blocks.length === 0) {
@@ -422,12 +391,14 @@ const AddressMapVisualizerInner: React.FC<AddressMapVisualizerProps> = ({
     );
   }
 
+  const separatorShadow = 'inset 0 0 0 1px var(--vscode-panel-border)';
+
   return (
-    <div className="w-full px-3 pt-3 pb-1 select-none">
+    <div className="w-full select-none">
       {/* Overlap warning */}
       {overlapSet.size > 0 && (
         <div
-          className="mb-2 text-xs px-2 py-1 rounded flex items-center gap-1.5"
+          className="mx-4 mt-2 text-xs px-2 py-1 rounded flex items-center gap-1.5"
           style={{
             background: 'color-mix(in srgb, var(--vscode-errorForeground) 12%, transparent)',
             color: 'var(--vscode-errorForeground)',
@@ -439,104 +410,114 @@ const AddressMapVisualizerInner: React.FC<AddressMapVisualizerProps> = ({
         </div>
       )}
 
-      {/* Proportional bar */}
-      <div className="relative w-full flex rounded overflow-hidden" style={{ height: '64px' }}>
-        {segments.map((seg, i) => {
-          const width = `${displayPcts[i]}%`;
+      {/* Proportional columns */}
+      <div className="relative w-full flex items-start overflow-x-auto pb-2">
+        <div className="relative flex flex-row items-end gap-0 pl-4 pr-2 pt-12 pb-2 min-h-[64px] w-full">
+          {segments.map((seg, i) => {
+            const width = `${displayPcts[i]}%`;
 
-          if (seg.type === 'gap') {
+            // Gap column — hatched, non-interactive
+            if (seg.type === 'gap') {
+              return (
+                <div
+                  key={`gap-${seg.start}`}
+                  className="relative self-stretch flex flex-col items-center justify-center overflow-hidden"
+                  style={{ width }}
+                  title={`Unallocated: ${toHex(seg.start)} → ${toHex(seg.end)} (${formatSize(seg.size)})`}
+                >
+                  <div
+                    className="w-full flex-1 rounded-sm"
+                    style={{
+                      background: 'var(--vscode-editor-background)',
+                      backgroundImage:
+                        'repeating-linear-gradient(-45deg, var(--vscode-editorWidget-border, var(--vscode-panel-border)) 0, var(--vscode-editorWidget-border, var(--vscode-panel-border)) 1px, transparent 0, transparent 50%)',
+                      backgroundSize: '7px 7px',
+                      opacity: 0.6,
+                      minHeight: '80px',
+                    }}
+                  />
+                  {displayPcts[i] > 6 && (
+                    <div className="text-center text-[10px] vscode-muted font-mono mt-1 opacity-70 leading-tight">
+                      {formatSize(seg.size)}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
+            // Block column
+            const isHovered = hoveredBlockIndex === seg.idx;
+            const isOverlap = overlapSet.has(seg.idx);
+
             return (
               <div
-                key={`gap-${seg.start}`}
-                className="relative flex items-center justify-center overflow-hidden shrink-0"
-                style={{ width }}
-                title={`Unallocated: ${toHex(seg.start)} → ${toHex(seg.end)} (${formatSize(seg.size)})`}
+                key={`block-${seg.idx}`}
+                className={`relative flex flex-col items-center justify-end select-none ${isHovered ? 'z-10' : ''}`}
+                style={{ width, cursor: onBlockClick ? 'pointer' : 'default' }}
+                onMouseEnter={() => setHoveredBlockIndex(seg.idx)}
+                onMouseLeave={() => setHoveredBlockIndex(null)}
+                onClick={() => onBlockClick?.(seg.idx)}
               >
-                {/* Diagonal stripe — uses SVG pattern approach via CSS */}
-                <div
-                  className="absolute inset-0"
-                  style={{
-                    background: 'var(--vscode-editor-background)',
-                    backgroundImage:
-                      'repeating-linear-gradient(-45deg, var(--vscode-editorWidget-border, var(--vscode-panel-border)) 0, var(--vscode-editorWidget-border, var(--vscode-panel-border)) 1px, transparent 0, transparent 50%)',
-                    backgroundSize: '8px 8px',
-                    opacity: 0.5,
-                  }}
-                />
-                {displayPcts[i] > 7 && (
-                  <span className="relative z-10 text-[9px] font-mono vscode-muted opacity-60 px-0.5 text-center leading-tight">
-                    {formatSize(seg.size)}
-                    <br />
-                    free
-                  </span>
+                {/* Floating label — only on hover to avoid overlap with proportional widths */}
+                {isHovered && (
+                  <div
+                    className="absolute -top-12 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded border shadow-lg text-xs whitespace-nowrap z-20 pointer-events-none"
+                    style={{
+                      background: 'var(--vscode-editorWidget-background)',
+                      color: 'var(--vscode-foreground)',
+                      borderColor: 'var(--vscode-panel-border)',
+                    }}
+                  >
+                    <span className="font-bold">{seg.name}</span>
+                    <span className="ml-2 vscode-muted font-mono text-[10px]">
+                      [{toHex(seg.start)}:{toHex(seg.end)}]
+                    </span>
+                    <div className="text-[10px] vscode-muted font-mono">
+                      {formatSize(seg.size)} · {seg.usage}
+                    </div>
+                  </div>
                 )}
+
+                {/* The column */}
+                <div
+                  className="w-full overflow-hidden flex items-center justify-center px-2 rounded-md"
+                  style={{
+                    height: '80px',
+                    backgroundColor: FIELD_COLORS[seg.color],
+                    transform: isHovered ? 'translateY(-2px)' : undefined,
+                    filter: isHovered ? 'saturate(1.15) brightness(1.05)' : undefined,
+                    boxShadow: isOverlap
+                      ? `${separatorShadow}, 0 0 0 2px var(--vscode-errorForeground)`
+                      : isHovered
+                        ? `${separatorShadow}, 0 0 0 2px var(--vscode-focusBorder), 0 10px 20px color-mix(in srgb, var(--vscode-foreground) 22%, transparent)`
+                        : separatorShadow,
+                  }}
+                >
+                  <div className="flex flex-col items-center gap-0.5 overflow-hidden w-full">
+                    <span className="ipcraft-pattern-label text-[10px] font-mono font-semibold select-none truncate max-w-full px-1">
+                      {seg.usage === 'memory' ? 'MEM' : 'REG'}
+                    </span>
+                    {displayPcts[i] > 8 && (
+                      <span className="text-[9px] font-mono opacity-70 truncate max-w-full px-1">
+                        {formatSize(seg.size)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Start address below column */}
+                <div className="text-center text-[11px] vscode-muted font-mono mt-1">
+                  {toHex(seg.start)}
+                </div>
               </div>
             );
-          }
-
-          // Block segment
-          const isHovered = hoveredBlockIndex === seg.idx;
-          const isOverlap = overlapSet.has(seg.idx);
-
-          return (
-            <div
-              key={`block-${seg.idx}`}
-              className="relative flex flex-col items-center justify-center overflow-hidden shrink-0 transition-[filter,opacity]"
-              style={{
-                width,
-                backgroundColor: FIELD_COLORS[seg.color],
-                cursor: onBlockClick ? 'pointer' : 'default',
-                opacity: hoveredBlockIndex !== null && !isHovered ? 0.55 : 1,
-                filter: isHovered ? 'saturate(1.2) brightness(1.07)' : undefined,
-                outline: isOverlap ? '2px solid var(--vscode-errorForeground)' : undefined,
-                outlineOffset: '-2px',
-              }}
-              onMouseEnter={() => setHoveredBlockIndex(seg.idx)}
-              onMouseLeave={() => setHoveredBlockIndex(null)}
-              onClick={() => onBlockClick?.(seg.idx)}
-              title={`${seg.name} • ${toHex(seg.start)} → ${toHex(seg.end)} • ${formatSize(seg.size)} • ${seg.usage}`}
-            >
-              {/* Hover overlay */}
-              {isHovered && <div className="absolute inset-0 bg-white/10 pointer-events-none" />}
-
-              {displayPcts[i] > 5 && (
-                <span
-                  className="font-mono text-[11px] font-semibold truncate w-full text-center px-1 leading-tight"
-                  style={{ color: 'inherit' }}
-                >
-                  {seg.name}
-                </span>
-              )}
-              {displayPcts[i] > 8 && (
-                <span className="font-mono text-[9px] opacity-75 leading-tight">
-                  {formatSize(seg.size)}
-                </span>
-              )}
-              {displayPcts[i] > 12 && (
-                <span className="font-mono text-[9px] opacity-60 leading-tight">
-                  {toHex(seg.start)}
-                </span>
-              )}
-            </div>
-          );
-        })}
+          })}
+        </div>
       </div>
 
-      {/* Address ruler */}
-      <div className="relative w-full mt-1" style={{ height: '16px' }}>
-        {rulerLabels.map((label) => (
-          <span
-            key={label.left}
-            className="absolute text-[9px] font-mono vscode-muted whitespace-nowrap"
-            style={
-              label.anchor === 'right'
-                ? { right: 0, transform: 'translateX(0)' }
-                : { left: `${label.left}%` }
-            }
-          >
-            {toHex(label.addr)}
-          </span>
-        ))}
+      {/* Address ruler for context at the far right */}
+      <div className="px-4 pb-1 flex justify-end">
+        <span className="text-[9px] font-mono vscode-muted opacity-70">{toHex(totalEnd)}</span>
       </div>
     </div>
   );
