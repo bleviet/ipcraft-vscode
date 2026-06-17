@@ -150,18 +150,17 @@ export function useFieldEditor(
     },
   });
 
-  const pendingInsertFocusRef = useRef<{ name: string; key: EditKey } | null>(null);
+  const pendingSelectRef = useRef<{ name: string; key: EditKey } | null>(null);
 
   useEffect(() => {
-    if (pendingInsertFocusRef.current) {
-      const { name, key } = pendingInsertFocusRef.current;
+    if (pendingSelectRef.current) {
+      const { name, key } = pendingSelectRef.current;
       const index = wrappedFields.findIndex((w) => w.model.name === name);
       if (index >= 0) {
         const rowId = wrappedFields[index].rowId;
         editorState.selectRow(index, key);
-        editorState.focusCellEditor(rowId, key);
         document.querySelector(`tr[data-row-id="${rowId}"]`)?.scrollIntoView({ block: 'center' });
-        pendingInsertFocusRef.current = null;
+        pendingSelectRef.current = null;
       }
     }
   }, [wrappedFields, editorState]);
@@ -184,7 +183,7 @@ export function useFieldEditor(
       }
 
       const newIndex = result.newIndex;
-      pendingInsertFocusRef.current = { name: result.items[newIndex].name, key: 'name' };
+      pendingSelectRef.current = { name: result.items[newIndex].name, key: 'name' };
       onUpdate(['fields'], result.items);
       clearAllDrafts();
     },

@@ -56,21 +56,34 @@ Two webpack bundles run in **completely separate JS environments** and communica
 
 ### Table editors — shared patterns
 
-Every keyboard-navigable table in the Memory Map editor (`BlockEditor`, `MemoryMapEditor`, `RegisterArrayEditor`, and `useFieldEditor`) is built on **`useTableEditorState`** (`src/webview/hooks/useTableEditorState.ts`). It composes three lower-level hooks:
+The Memory Map editor contains **three parallel table editors** that share the same architecture. Any change to the insert/delete/navigation pattern must be applied to all three:
 
-- `useTableNavigation` — arrow/Vim navigation, Alt+Arrow move, inline-edit entry
+| Editor | File | Rows | Table row component |
+|---|---|---|---|
+| `BlockEditor` | `src/webview/components/memorymap/BlockEditor.tsx` | registers in an address block | `RegisterTableRow` |
+| `MemoryMapEditor` | `src/webview/components/memorymap/MemoryMapEditor.tsx` | address blocks | `BlockTableRow` |
+| `useFieldEditor` | `src/webview/hooks/useFieldEditor.ts` | bit fields in a register | `FieldTableRow` (via `FieldsTable`) |
+
+`RegisterArrayEditor` (`src/webview/components/memorymap/RegisterArrayEditor.tsx`) also uses `RegisterTableRow` for nested registers inside a register array and follows the same conventions.
+
+Every keyboard-navigable table is built on **`useTableEditorState`** (`src/webview/hooks/useTableEditorState.ts`), which composes three lower-level hooks:
+
+- `useTableNavigation` — arrow/Vim navigation, Alt+Arrow move, `o`/`O` insert, `e`/F2 edit
 - `useCellEditGuard` — snapshot/revert and cancel-edit ref
 - `useHoverInsertBar` — hover-based gap insert bar
 
 All three receive `rows: TableRowWrapper<T>[]` (reconciled wrapped rows with stable `rowId`) rather than raw model arrays.
 
-**Post-insert focus** — after calling `onUpdate([...], newItems)`, the new row does not yet exist in `wrappedRows`. The established pattern is:
-1. Set `pendingInsertFocusRef.current = { name, key }` before the update.
-2. In a `useEffect` that watches `wrappedRows`, find the new row by name, then call `editor.selectRow(index, key)` + `editor.focusCellEditor(rowId, key)`.
+**Post-insert focus — keyboard vs. mouse** — after `onUpdate([...], newItems)` the new row does not yet exist in `wrappedRows`. The pattern depends on what triggered the insert:
 
-Never use `window.setTimeout(() => editor.selectRow(newIdx))` for post-insert focus — the row may not be rendered yet and the index will be wrong if reconciliation renumbers rows.
+- **Keyboard-triggered inserts** (`o`, `O`, `Shift+A`, `Shift+I` via `useTableNavigation` or a `window.addEventListener('keydown')` handler): set `pendingSelectRef.current = { name, key }` before the update. In a `useEffect` watching `wrappedRows`, find the new row by name and call **only** `editor.selectRow(index, key)`. Do NOT call `editor.focusCellEditor` — that moves DOM focus into the input and makes `isTypingTarget` true, which blocks `useTableNavigation` from seeing the next `o` keypress.
+
+- **Mouse-triggered inserts** (hover-bar insert button, context menu): set `pendingInsertFocusRef.current = { name, key }` before the update. In the same `useEffect`, call `editor.selectRow(index, key)` **and** `editor.focusCellEditor(rowId, key)` so the user can type the new name immediately.
+
+Both refs are checked in the same `useEffect([wrappedRows, editor])`. Never use `window.setTimeout(() => editor.selectRow(newIdx))` for post-insert focus — the row may not be rendered yet.
 
 **Move (`onMove`) selection rule** — `useTableNavigation` calls `onMove(rowId, delta)` and immediately sets `activeCell` to the moved row's stable `rowId`. The `onMove` callback must only perform the array swap and `onUpdate`; it must **not** call `editor.selectRow` in a `setTimeout`. Selection follows the moved item via its `rowId` after `reconcileRowIds` re-matches it in the new position.
+
 
 ### Layout computation
 

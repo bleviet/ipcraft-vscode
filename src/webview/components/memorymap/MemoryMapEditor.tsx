@@ -84,7 +84,7 @@ export function MemoryMapEditor({
     setWrappedBlocks((prev) => reconcileRowIds(prev, liveBlocks));
   }, [liveBlocks]);
 
-  const insertAtGap = (gapIndex: number) => {
+  const insertAtGap = (gapIndex: number, autoFocus = true) => {
     setInsertError(null);
     const result =
       gapIndex === 0
@@ -96,7 +96,11 @@ export function MemoryMapEditor({
     }
     const newIdx = result.newIndex;
     const name = result.items[newIdx].name ?? '';
-    pendingInsertFocusRef.current = { name, key: 'name' };
+    if (autoFocus) {
+      pendingInsertFocusRef.current = { name, key: 'name' };
+    } else {
+      pendingSelectRef.current = { name, key: 'name' };
+    }
     onUpdate(['addressBlocks'], result.items);
     editor.clearInsertBar();
   };
@@ -122,7 +126,7 @@ export function MemoryMapEditor({
       : editor.selectedIndex < 0
         ? 0
         : editor.selectedIndex;
-    insertAtGap(gapIndex);
+    insertAtGap(gapIndex, false);
   };
 
   const editor = useTableEditorState<MemoryMapBlockDef, BlockEditKey>({
@@ -139,6 +143,7 @@ export function MemoryMapEditor({
   });
 
   const pendingInsertFocusRef = useRef<{ name: string; key: BlockEditKey } | null>(null);
+  const pendingSelectRef = useRef<{ name: string; key: BlockEditKey } | null>(null);
 
   useEffect(() => {
     if (pendingInsertFocusRef.current) {
@@ -150,6 +155,16 @@ export function MemoryMapEditor({
         editor.focusCellEditor(rowId, key);
         document.querySelector(`tr[data-row-id="${rowId}"]`)?.scrollIntoView({ block: 'center' });
         pendingInsertFocusRef.current = null;
+      }
+    }
+    if (pendingSelectRef.current) {
+      const { name, key } = pendingSelectRef.current;
+      const index = wrappedBlocks.findIndex((w) => w.model.name === name);
+      if (index >= 0) {
+        const rowId = wrappedBlocks[index].rowId;
+        editor.selectRow(index, key);
+        document.querySelector(`tr[data-row-id="${rowId}"]`)?.scrollIntoView({ block: 'center' });
+        pendingSelectRef.current = null;
       }
     }
   }, [wrappedBlocks, editor]);

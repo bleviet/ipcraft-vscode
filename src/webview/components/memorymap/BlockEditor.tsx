@@ -96,7 +96,7 @@ export function BlockEditor({
     setWrappedRegisters((prev) => reconcileRowIds(prev, liveRegisters));
   }, [liveRegisters]);
 
-  const insertNewReg = (newIdx: number) => {
+  const insertNewReg = (newIdx: number, autoFocus = false) => {
     setInsertError(null);
     const newRegs = [...liveRegisters];
     const name = generateUniqueName(liveRegisters, 'reg');
@@ -106,7 +106,11 @@ export function BlockEditor({
       offset: 0,
       address_offset: 0,
     });
-    pendingInsertFocusRef.current = { name, key: 'name' };
+    if (autoFocus) {
+      pendingInsertFocusRef.current = { name, key: 'name' };
+    } else {
+      pendingSelectRef.current = { name, key: 'name' };
+    }
     onUpdate(['registers'], newRegs as unknown[]);
   };
 
@@ -159,6 +163,7 @@ export function BlockEditor({
   });
 
   const pendingInsertFocusRef = useRef<{ name: string; key: RegEditKey } | null>(null);
+  const pendingSelectRef = useRef<{ name: string; key: RegEditKey } | null>(null);
 
   useEffect(() => {
     if (pendingInsertFocusRef.current) {
@@ -172,6 +177,16 @@ export function BlockEditor({
         pendingInsertFocusRef.current = null;
       }
     }
+    if (pendingSelectRef.current) {
+      const { name, key } = pendingSelectRef.current;
+      const index = wrappedRegisters.findIndex((w) => w.model.name === name);
+      if (index >= 0) {
+        const rowId = wrappedRegisters[index].rowId;
+        editor.selectRow(index, key);
+        document.querySelector(`tr[data-row-id="${rowId}"]`)?.scrollIntoView({ block: 'center' });
+        pendingSelectRef.current = null;
+      }
+    }
   }, [wrappedRegisters, editor]);
 
   const getRegColor = (idx: number) => FIELD_COLOR_KEYS[idx % FIELD_COLOR_KEYS.length];
@@ -183,7 +198,7 @@ export function BlockEditor({
   );
 
   const insertAtGap = (gapIndex: number) => {
-    insertNewReg(gapIndex);
+    insertNewReg(gapIndex, true);
     editor.clearInsertBar();
   };
 
@@ -308,7 +323,7 @@ export function BlockEditor({
       } else {
         newRegs = [...liveRegisters.slice(0, selIdx), newArray, ...liveRegisters.slice(selIdx)];
       }
-      pendingInsertFocusRef.current = { name: arrayName, key: 'name' };
+      pendingSelectRef.current = { name: arrayName, key: 'name' };
       onUpdate(['registers'], newRegs as unknown[]);
     };
 

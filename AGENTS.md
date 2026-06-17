@@ -92,6 +92,25 @@ via `src/test/integration/setup.ts`), and there is no Jest for browser tests
   `eslint --fix` + `prettier --write` on `*.{ts,tsx}`. ESLint policy is
   `--max-warnings 0` (see `eslint.config.js`); a single warning fails CI.
 
+## Table editors — three parallel editors, one architecture
+
+The Memory Map webview has **three parallel table editors** that must be kept in sync whenever insert/delete/navigation logic changes:
+
+| Editor component | Hook | Rows edited |
+|---|---|---|
+| `BlockEditor` | `useTableEditorState` | registers in a block |
+| `MemoryMapEditor` | `useTableEditorState` | address blocks |
+| `useFieldEditor` | `useTableEditorState` (via internal `editorState`) | bit fields in a register |
+
+`RegisterArrayEditor` follows the same conventions for its nested registers table.
+
+**Critical: keyboard insert vs. mouse insert use different refs.**
+
+- Keyboard (`o`/`O`/`Shift+A`/`Shift+I`): use `pendingSelectRef` — `useEffect` calls only `editor.selectRow`. Never call `editor.focusCellEditor` here; it moves DOM focus into the input, sets `isTypingTarget = true`, and silently swallows all subsequent `o` keypresses.
+- Mouse (hover-bar, context menu): use `pendingInsertFocusRef` — `useEffect` calls `editor.selectRow` AND `editor.focusCellEditor` so the user can type the new name immediately.
+
+Both refs are resolved in the same `useEffect([wrappedRows, editor])`.
+
 ## Style / convention hard rules (project-specific)
 
 - camelCase only in TS/React/JSON Schema property names. No snake_case fields
