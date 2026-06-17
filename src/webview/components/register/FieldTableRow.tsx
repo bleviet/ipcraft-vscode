@@ -8,7 +8,7 @@ import {
   formatBitsRange as formatBits,
   isSimpleVector,
 } from '../../utils/BitFieldUtils';
-import { validateVhdlIdentifier } from '../../shared/utils/validation';
+import { validateVhdlIdentifier, validateUniqueName } from '../../shared/utils/validation';
 import {
   parseBitsInput,
   parseBitsWidth,
@@ -409,7 +409,13 @@ const FieldTableRow = ({
                     ...prev,
                     [rowId]: next,
                   }));
-                  const err = validateVhdlIdentifier(next);
+                  const err =
+                    validateVhdlIdentifier(next) ??
+                    validateUniqueName(
+                      next,
+                      fields.map((f) => String(f.name ?? '')),
+                      String(field.name ?? '')
+                    );
                   setNameErrors((prev: Record<string, string | null>) => ({
                     ...prev,
                     [rowId]: err,
@@ -417,7 +423,13 @@ const FieldTableRow = ({
                 }}
                 onBlur={(value) => {
                   const next = value ?? '';
-                  const err = validateVhdlIdentifier(next);
+                  const err =
+                    validateVhdlIdentifier(next) ??
+                    validateUniqueName(
+                      next,
+                      fields.map((f) => String(f.name ?? '')),
+                      String(field.name ?? '')
+                    );
                   if (!err) {
                     onUpdate(['fields', index, 'name'], next.trim());
                   }

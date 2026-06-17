@@ -228,6 +228,9 @@ export function MemoryMapEditor({
                 e.preventDefault();
                 setContextMenu({ x: e.clientX, y: e.clientY, blockId: wrapped.rowId });
               }}
+              siblingNames={liveBlocks
+                .filter((_: unknown, i: number) => i !== idx)
+                .map((b: unknown) => String((b as MemoryMapBlockDef).name ?? ''))}
             />
           ))}
         </tbody>

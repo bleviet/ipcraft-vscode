@@ -31,7 +31,7 @@ export function validateUniqueName(
   } // Editing current item
 
   if (existingNames.includes(name)) {
-    return 'Name must be unique';
+    return 'Name is already used';
   }
 
   return null;

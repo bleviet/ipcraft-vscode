@@ -261,6 +261,9 @@ export function RegisterArrayEditor({
               }
               onDragHandlePointerDown={(e) => handleDragHandlePointerDown(wrapped.rowId, e)}
               onPointerEnterRow={() => handleDragEnterRow(wrapped.rowId)}
+              siblingNames={nestedRegisters
+                .filter((_: RegisterModel, i: number) => i !== idx)
+                .map((r: RegisterModel) => String(r.name ?? ''))}
             />
           ))}
           {nestedRegisters.length === 0 && (

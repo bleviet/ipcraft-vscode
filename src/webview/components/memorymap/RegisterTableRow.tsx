@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { FIELD_COLORS } from '../../shared/colors';
 import { ACCESS_OPTIONS } from '../../shared/constants';
 import { toHex } from '../../utils/formatUtils';
 import type { YamlUpdateHandler } from '../../types/editor';
 import type { RegisterModel } from '../../types/registerModel';
 import { EditableCell, CellInput } from '../../shared/components';
+import { validateUniqueName } from '../../shared/utils/validation';
 
 // ---------------------------------------------------------------------------
 // Types — exported so parent editors can import instead of re-declaring
@@ -42,6 +43,7 @@ export interface RegisterTableRowProps {
   isDragTarget?: boolean;
   onDragHandlePointerDown?: (e: React.PointerEvent<HTMLTableCellElement>) => void;
   onPointerEnterRow?: () => void;
+  siblingNames?: string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -71,7 +73,9 @@ export function RegisterTableRow({
   isDragTarget = false,
   onDragHandlePointerDown,
   onPointerEnterRow,
+  siblingNames,
 }: RegisterTableRowProps) {
+  const [nameError, setNameError] = useState<string | null>(null);
   const offset = reg.offset ?? reg.address_offset ?? 0;
 
   const isCellActive = (key: RegEditKey) =>
@@ -116,20 +120,35 @@ export function RegisterTableRow({
         onCellClick={() => onCellClick('name')}
         className="px-6 py-2 font-medium"
       >
-        <div className="flex items-center gap-2">
-          <div
-            className="w-2.5 h-2.5 rounded-sm shrink-0"
-            style={{ backgroundColor: FIELD_COLORS[color] || color }}
-          />
-          <CellInput
-            editKey="name"
-            className="flex-1"
-            value={reg.name ?? ''}
-            onFocus={captureEditSnapshot}
-            cancelEditRef={cancelEditRef}
-            onInput={(value) => onUpdate(['registers', idx, 'name'], value)}
-            onBlur={(value) => onUpdate(['registers', idx, 'name'], value)}
-          />
+        <div className="flex flex-col justify-center">
+          <div className="flex items-center gap-2 h-10">
+            <div
+              className="w-2.5 h-2.5 rounded-sm shrink-0"
+              style={{ backgroundColor: FIELD_COLORS[color] || color }}
+            />
+            <CellInput
+              editKey="name"
+              className="flex-1"
+              value={reg.name ?? ''}
+              onFocus={captureEditSnapshot}
+              cancelEditRef={cancelEditRef}
+              onInput={(value) => {
+                const err = validateUniqueName(value, siblingNames ?? [], reg.name ?? '');
+                setNameError(err);
+                if (!err) {
+                  onUpdate(['registers', idx, 'name'], value);
+                }
+              }}
+              onBlur={(value) => {
+                const err = validateUniqueName(value, siblingNames ?? [], reg.name ?? '');
+                setNameError(err);
+                if (!err) {
+                  onUpdate(['registers', idx, 'name'], value);
+                }
+              }}
+            />
+          </div>
+          {nameError ? <div className="text-xs vscode-error mt-1">{nameError}</div> : null}
         </div>
       </EditableCell>
 

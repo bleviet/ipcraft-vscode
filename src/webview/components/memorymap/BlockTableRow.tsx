@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { FIELD_COLORS } from '../../shared/colors';
 import { calculateBlockSize } from '../../utils/blockSize';
 import { toHex } from '../../utils/formatUtils';
 import type { YamlUpdateHandler } from '../../types/editor';
 import type { MemoryMapBlockDef } from './MemoryMapEditor';
 import { EditableCell, CellInput } from '../../shared/components';
+import { validateUniqueName } from '../../shared/utils/validation';
 
 // ---------------------------------------------------------------------------
 // Types -- exported so parent editors can import instead of re-declaring
@@ -38,6 +39,7 @@ export interface BlockTableRowProps {
   onMouseEnter: () => void;
   onMouseLeave: () => void;
   onContextMenu?: (e: React.MouseEvent) => void;
+  siblingNames?: string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -63,7 +65,9 @@ export function BlockTableRow({
   onMouseEnter,
   onMouseLeave,
   onContextMenu,
+  siblingNames,
 }: BlockTableRowProps) {
+  const [nameError, setNameError] = useState<string | null>(null);
   const base = block.baseAddress ?? 0;
   const size = calculateBlockSize(block);
 
@@ -93,20 +97,35 @@ export function BlockTableRow({
         onCellClick={() => onCellClick('name')}
         className="px-6 py-2 font-medium"
       >
-        <div className="flex items-center gap-2">
-          <div
-            className="w-2.5 h-2.5 rounded-sm shrink-0"
-            style={{ backgroundColor: FIELD_COLORS[color] || color }}
-          />
-          <CellInput
-            editKey="name"
-            className="flex-1"
-            value={block.name || ''}
-            onFocus={captureEditSnapshot}
-            cancelEditRef={cancelEditRef}
-            onInput={(value) => onUpdate(['addressBlocks', idx, 'name'], value)}
-            onBlur={(value) => onUpdate(['addressBlocks', idx, 'name'], value)}
-          />
+        <div className="flex flex-col justify-center">
+          <div className="flex items-center gap-2 h-10">
+            <div
+              className="w-2.5 h-2.5 rounded-sm shrink-0"
+              style={{ backgroundColor: FIELD_COLORS[color] || color }}
+            />
+            <CellInput
+              editKey="name"
+              className="flex-1"
+              value={block.name || ''}
+              onFocus={captureEditSnapshot}
+              cancelEditRef={cancelEditRef}
+              onInput={(value) => {
+                const err = validateUniqueName(value, siblingNames ?? [], block.name ?? '');
+                setNameError(err);
+                if (!err) {
+                  onUpdate(['addressBlocks', idx, 'name'], value);
+                }
+              }}
+              onBlur={(value) => {
+                const err = validateUniqueName(value, siblingNames ?? [], block.name ?? '');
+                setNameError(err);
+                if (!err) {
+                  onUpdate(['addressBlocks', idx, 'name'], value);
+                }
+              }}
+            />
+          </div>
+          {nameError ? <div className="text-xs vscode-error mt-1">{nameError}</div> : null}
         </div>
       </EditableCell>
 
