@@ -112,7 +112,7 @@ export function MemoryMapEditor({
     }
     const newBlocks = liveBlocks.filter((_: unknown, i: number) => i !== idx);
     onUpdate(['addressBlocks'], newBlocks);
-    const nextRow = idx > 0 ? idx - 1 : newBlocks.length > 0 ? 0 : -1;
+    const nextRow = idx < newBlocks.length ? idx : newBlocks.length - 1;
     window.setTimeout(() => {
       editor.selectRow(nextRow, editor.activeCell.key);
     }, 0);

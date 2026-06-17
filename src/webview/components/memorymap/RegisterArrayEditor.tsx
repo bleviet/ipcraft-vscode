@@ -180,7 +180,7 @@ export function RegisterArrayEditor({
       }
       const newRegs = nestedRegisters.filter((_: RegisterModel, i: number) => i !== rowIndex);
       onUpdate(['registers'], newRegs as unknown[]);
-      const nextRow = rowIndex > 0 ? rowIndex - 1 : newRegs.length > 0 ? 0 : -1;
+      const nextRow = rowIndex < newRegs.length ? rowIndex : newRegs.length - 1;
       window.setTimeout(() => {
         editor.selectRow(nextRow);
       }, 0);
@@ -206,7 +206,7 @@ export function RegisterArrayEditor({
           if (rowIndex >= 0) {
             const newRegs = nestedRegisters.filter((_, i) => i !== rowIndex);
             onUpdate(['registers'], newRegs);
-            const nextRow = rowIndex > 0 ? rowIndex - 1 : newRegs.length > 0 ? 0 : -1;
+            const nextRow = rowIndex < newRegs.length ? rowIndex : newRegs.length - 1;
             window.setTimeout(() => {
               editor.selectRow(nextRow);
             }, 0);

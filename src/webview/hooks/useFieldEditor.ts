@@ -131,7 +131,7 @@ export function useFieldEditor(
       const newFields = fields.filter((_, index) => index !== rowIndex);
       onUpdate(['fields'], newFields);
 
-      const nextRow = rowIndex > 0 ? rowIndex - 1 : newFields.length > 0 ? 0 : -1;
+      const nextRow = rowIndex < newFields.length ? rowIndex : newFields.length - 1;
       window.setTimeout(() => {
         editorState.selectRow(nextRow, currentKey);
       }, 0);

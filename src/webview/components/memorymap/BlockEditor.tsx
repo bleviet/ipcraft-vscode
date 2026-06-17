@@ -121,7 +121,7 @@ export function BlockEditor({
     }
     const newRegs = liveRegisters.filter((_: RegisterModel, i: number) => i !== idx);
     onUpdate(['registers'], newRegs as unknown[]);
-    const nextRow = idx > 0 ? idx - 1 : newRegs.length > 0 ? 0 : -1;
+    const nextRow = idx < newRegs.length ? idx : newRegs.length - 1;
     window.setTimeout(() => {
       editor.selectRow(nextRow, editor.activeCell.key);
     }, 0);

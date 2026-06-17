@@ -130,8 +130,14 @@ export function useTableEditorState<TRow, TColumnKey extends ColumnKey>({
   });
 
   // ---- Derived index mappings ----
+  const lastKnownSelectedIndexRef = useRef<number>(0);
+
   const selectedIndex = useMemo(() => {
-    return selectedRowId ? rows.findIndex((r) => r.rowId === selectedRowId) : -1;
+    const idx = selectedRowId ? rows.findIndex((r) => r.rowId === selectedRowId) : -1;
+    if (idx !== -1) {
+      lastKnownSelectedIndexRef.current = idx;
+    }
+    return idx;
   }, [rows, selectedRowId]);
 
   const hoveredIndex = useMemo(() => {
@@ -180,14 +186,16 @@ export function useTableEditorState<TRow, TColumnKey extends ColumnKey>({
 
     setSelectedRowId((prev) => {
       if (!prev || !rows.some((r) => r.rowId === prev)) {
-        return rows[0].rowId;
+        const idx = Math.min(Math.max(0, lastKnownSelectedIndexRef.current), rows.length - 1);
+        return rows[idx]?.rowId ?? null;
       }
       return prev;
     });
 
     setActiveCellState((prev) => {
       const exists = rows.some((r) => r.rowId === prev.rowId);
-      const rowId = exists ? prev.rowId : rows[0].rowId;
+      const idx = Math.min(Math.max(0, lastKnownSelectedIndexRef.current), rows.length - 1);
+      const rowId = exists ? prev.rowId : (rows[idx]?.rowId ?? null);
       const key = (columnOrder as readonly string[]).includes(prev.key) ? prev.key : firstColumn;
       if (prev.rowId === rowId && prev.key === key) {
         return prev;
