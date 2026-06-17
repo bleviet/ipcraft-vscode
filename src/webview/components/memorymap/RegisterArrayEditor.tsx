@@ -220,15 +220,17 @@ export function RegisterArrayEditor({
       <table className="w-full text-left border-collapse table-fixed">
         <colgroup>
           <col className="w-8" />
-          <col className="w-[30%] min-w-[180px]" />
-          <col className="w-[20%] min-w-[120px]" />
-          <col className="w-[50%]" />
+          <col className="w-[25%] min-w-[160px]" />
+          <col className="w-[14%] min-w-[100px]" />
+          <col className="w-[20%] min-w-[140px]" />
+          <col className="w-[41%]" />
         </colgroup>
         <thead className="vscode-surface-alt text-xs font-semibold vscode-muted uppercase tracking-wider sticky top-0 z-10 shadow-sm">
           <tr className="h-12">
             <th className="w-8 border-b vscode-border" />
             <th className="px-6 py-3 border-b vscode-border align-middle">Name</th>
             <th className="px-4 py-3 border-b vscode-border align-middle">Offset</th>
+            <th className="px-4 py-3 border-b vscode-border align-middle">Address Range</th>
             <th className="px-6 py-3 border-b vscode-border align-middle">Description</th>
           </tr>
         </thead>

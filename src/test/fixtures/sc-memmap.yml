@@ -7,26 +7,26 @@
     registers:
     - name: DMA_CTRL
       offset: 0
-      access: read-write-self-clearing
-      description: Register-level read-write-self-clearing (SW sets, HW clears on done)
+      description: Read-write-self-clearing register (SW sets, HW clears on done)
       fields:
       - name: START
         bits: '[0:0]'
+        access: read-write-self-clearing
         description: SW writes 1 to start; HW pulses clear when the transfer completes
       - name: CHAN
         bits: '[7:4]'
+        access: read-write-self-clearing
         description: Per-bit channel start; each bit cleared independently by HW
     - name: TRIGGER
       offset: 4
-      access: write-self-clearing
-      description: Register-level write-self-clearing (write-only, not read back)
+      description: Write-self-clearing register (write-only, not read back)
       fields:
       - name: GO
         bits: '[0:0]'
+        access: write-self-clearing
         description: SW writes 1 to trigger; HW clears when armed
     - name: MIXED
       offset: 8
-      access: read-write
       description: Read-write register with a single field-level SC bit
       fields:
       - name: MODE

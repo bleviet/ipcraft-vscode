@@ -191,17 +191,19 @@ export function MemoryMapEditor({
       {insertError ? <div className="vscode-error px-4 py-2 text-xs">{insertError}</div> : null}
       <table className="w-full text-left border-collapse table-fixed">
         <colgroup>
-          <col className="w-[25%] min-w-[200px]" />
-          <col className="w-[20%] min-w-[120px]" />
-          <col className="w-[15%] min-w-[100px]" />
-          <col className="w-[15%] min-w-[100px]" />
-          <col className="w-[25%]" />
+          <col className="w-[22%] min-w-[160px]" />
+          <col className="w-[13%] min-w-[100px]" />
+          <col className="w-[9%] min-w-[70px]" />
+          <col className="w-[18%] min-w-[140px]" />
+          <col className="w-[12%] min-w-[90px]" />
+          <col className="w-[26%]" />
         </colgroup>
         <thead className="vscode-surface-alt text-xs font-semibold vscode-muted uppercase tracking-wider sticky top-0 z-10 shadow-sm">
           <tr className="h-12">
             <th className="px-6 py-3 border-b vscode-border align-middle">Name</th>
             <th className="px-4 py-3 border-b vscode-border align-middle">Base Address</th>
             <th className="px-4 py-3 border-b vscode-border align-middle">Size</th>
+            <th className="px-4 py-3 border-b vscode-border align-middle">Address Range</th>
             <th className="px-4 py-3 border-b vscode-border align-middle">Usage</th>
             <th className="px-6 py-3 border-b vscode-border align-middle">Description</th>
           </tr>

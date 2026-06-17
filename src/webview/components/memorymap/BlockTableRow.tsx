@@ -43,6 +43,28 @@ export interface BlockTableRowProps {
 }
 
 // ---------------------------------------------------------------------------
+// Usage badge styles — keyed by usage value
+// ---------------------------------------------------------------------------
+
+const USAGE_BADGE_STYLE: Record<string, React.CSSProperties> = {
+  register: {
+    background: 'color-mix(in srgb, var(--vscode-charts-blue) 15%, transparent)',
+    color: 'var(--vscode-charts-blue)',
+    border: '1px solid color-mix(in srgb, var(--vscode-charts-blue) 35%, transparent)',
+  },
+  memory: {
+    background: 'color-mix(in srgb, var(--vscode-charts-yellow) 15%, transparent)',
+    color: 'var(--vscode-charts-yellow)',
+    border: '1px solid color-mix(in srgb, var(--vscode-charts-yellow) 35%, transparent)',
+  },
+  reserved: {
+    background: 'color-mix(in srgb, var(--vscode-disabledForeground) 12%, transparent)',
+    color: 'var(--vscode-disabledForeground)',
+    border: '1px solid color-mix(in srgb, var(--vscode-disabledForeground) 25%, transparent)',
+  },
+};
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
@@ -160,6 +182,19 @@ export function BlockTableRow({
         {size < 1024 ? `${size}B` : `${(size / 1024).toFixed(1)}KB`}
       </EditableCell>
 
+      {/* ADDRESS RANGE (read-only) */}
+      <td className="px-4 py-2 font-mono text-sm vscode-muted">
+        {size > 0 ? (
+          <>
+            {toHex(base)}
+            <span className="mx-1 opacity-50">→</span>
+            {toHex(base + size - 1)}
+          </>
+        ) : (
+          toHex(base)
+        )}
+      </td>
+
       {/* USAGE */}
       <EditableCell
         columnKey="usage"
@@ -167,7 +202,10 @@ export function BlockTableRow({
         onCellClick={() => onCellClick('usage')}
         className="px-4 py-2"
       >
-        <span className="px-2 py-0.5 rounded text-xs font-medium vscode-badge whitespace-nowrap">
+        <span
+          className="px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap"
+          style={USAGE_BADGE_STYLE[block.usage ?? 'register'] ?? USAGE_BADGE_STYLE.register}
+        >
           {block.usage ?? 'register'}
         </span>
       </EditableCell>

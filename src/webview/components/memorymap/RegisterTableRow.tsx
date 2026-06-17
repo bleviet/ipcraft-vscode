@@ -43,6 +43,7 @@ export interface RegisterTableRowProps {
   onDragHandlePointerDown?: (e: React.PointerEvent<HTMLTableCellElement>) => void;
   onPointerEnterRow?: () => void;
   siblingNames?: string[];
+  baseAddress?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -73,9 +74,17 @@ export function RegisterTableRow({
   onDragHandlePointerDown,
   onPointerEnterRow,
   siblingNames,
+  baseAddress = 0,
 }: RegisterTableRowProps) {
   const [nameError, setNameError] = useState<string | null>(null);
   const offset = reg.offset ?? reg.address_offset ?? 0;
+  const absStart = baseAddress + Number(offset);
+  const absEnd =
+    reg.__kind === 'array' && reg.count && reg.stride
+      ? absStart + Number(reg.count) * Number(reg.stride) - 1
+      : absStart +
+        Math.max(1, Math.floor(Number((reg as Record<string, unknown>).size ?? 32) / 8)) -
+        1;
 
   const isCellActive = (key: RegEditKey) =>
     regActiveCell.rowId === rowId && regActiveCell.key === key;
@@ -171,6 +180,13 @@ export function RegisterTableRow({
           }}
         />
       </EditableCell>
+
+      {/* ADDRESS RANGE (read-only) */}
+      <td className="px-4 py-2 font-mono text-sm vscode-muted">
+        {toHex(absStart)}
+        <span className="mx-1 opacity-50">→</span>
+        {toHex(absEnd)}
+      </td>
 
       {/* DESCRIPTION */}
       <EditableCell

@@ -49,6 +49,14 @@ function deriveRegisterAccess(fieldAccesses: string[]): string {
   if (fieldAccesses.every((a) => HW_READ_ONLY_ACCESSES.has(a))) {
     return 'read-only';
   }
+  // Preserve SC type when all fields share the same SC access so the VHDL
+  // template can distinguish SC-only registers from plain write-only ones.
+  if (fieldAccesses.every((a) => a === 'write-self-clearing')) {
+    return 'write-self-clearing';
+  }
+  if (fieldAccesses.every((a) => a === 'read-write-self-clearing')) {
+    return 'read-write-self-clearing';
+  }
   const hasSwWrite = fieldAccesses.some((a) => SW_WRITE_ACCESSES.has(a));
   const hasSwRead = fieldAccesses.some((a) => SW_READ_ACCESSES.has(a));
   if (hasSwWrite && hasSwRead) {

@@ -50,15 +50,17 @@ export function buildShadowRegisters(
 
   const swRegisters = registers.filter((reg) => {
     const fields = (reg.fields as Array<Record<string, unknown>>) ?? [];
-    return (
-      fields.length === 0 || fields.some((f) => swAccess.has(getString(f.access) || 'read-write'))
-    );
+    if (fields.length === 0) {
+      return !hwAccess.has(getString(reg.access) || 'read-write');
+    }
+    return fields.some((f) => swAccess.has(getString(f.access) || 'read-write'));
   });
   const hwRegisters = registers.filter((reg) => {
     const fields = (reg.fields as Array<Record<string, unknown>>) ?? [];
-    return (
-      fields.length > 0 && fields.every((f) => hwAccess.has(getString(f.access) || 'read-write'))
-    );
+    if (fields.length === 0) {
+      return hwAccess.has(getString(reg.access) || 'read-write');
+    }
+    return fields.every((f) => hwAccess.has(getString(f.access) || 'read-write'));
   });
   const w1cRegisters = registers.filter((reg) => {
     const fields = (reg.fields as Array<Record<string, unknown>>) ?? [];
