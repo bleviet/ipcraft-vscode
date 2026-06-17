@@ -70,6 +70,86 @@ type Segment = BlockSegment | GapSegment;
 const MIN_DISPLAY_PCT = 3.5;
 
 // ---------------------------------------------------------------------------
+// Shared segment computation hook
+// ---------------------------------------------------------------------------
+
+function useSegments(blocks: VisualizerAddressBlock[]) {
+  const rawGroups = useMemo(() => {
+    return blocks.map((block, idx) => {
+      const base = block.baseAddress ?? block.base_address ?? block.offset ?? 0;
+      const size = calculateBlockSize(block);
+      return {
+        idx,
+        name: block.name ?? `Block ${idx}`,
+        start: Number(base),
+        end: Number(base) + Number(size) - 1,
+        size,
+        color: getBlockColor(idx),
+        usage: block.usage ?? 'register',
+      };
+    });
+  }, [blocks]);
+
+  const sortedGroups = useMemo(() => [...rawGroups].sort((a, b) => a.start - b.start), [rawGroups]);
+
+  const { segments, totalEnd, overlapSet } = useMemo(() => {
+    if (sortedGroups.length === 0) {
+      return { segments: [] as Segment[], totalEnd: 0, overlapSet: new Set<number>() };
+    }
+
+    const overlapSet = new Set<number>();
+    for (let i = 0; i < sortedGroups.length; i++) {
+      for (let j = i + 1; j < sortedGroups.length; j++) {
+        if (
+          sortedGroups[i].start <= sortedGroups[j].end &&
+          sortedGroups[i].end >= sortedGroups[j].start
+        ) {
+          overlapSet.add(sortedGroups[i].idx);
+          overlapSet.add(sortedGroups[j].idx);
+        }
+      }
+    }
+
+    const maxEnd = Math.max(...sortedGroups.map((g) => g.end + 1));
+    const segs: Segment[] = [];
+    let cursor = 0;
+    for (const g of sortedGroups) {
+      if (g.start > cursor) {
+        segs.push({ type: 'gap', start: cursor, end: g.start - 1, size: g.start - cursor });
+      }
+      segs.push({
+        type: 'block',
+        idx: g.idx,
+        start: g.start,
+        end: g.end,
+        size: g.size,
+        name: g.name,
+        color: g.color,
+        usage: g.usage,
+      });
+      cursor = Math.max(cursor, g.end + 1);
+    }
+
+    return { segments: segs, totalEnd: maxEnd, overlapSet };
+  }, [sortedGroups]);
+
+  const displayPcts = useMemo(() => {
+    if (segments.length === 0 || totalEnd === 0) {
+      return [] as number[];
+    }
+    const natural = segments.map((s) => (s.size / totalEnd) * 100);
+    const clamped = natural.map((p) => Math.max(p, MIN_DISPLAY_PCT));
+    const sum = clamped.reduce((a, b) => a + b, 0);
+    return clamped.map((p) => (p / sum) * 100);
+  }, [segments, totalEnd]);
+
+  return { segments, totalEnd, overlapSet, displayPcts };
+}
+
+const STRIPE_BG =
+  'repeating-linear-gradient(-45deg, var(--vscode-editorWidget-border, var(--vscode-panel-border)) 0, var(--vscode-editorWidget-border, var(--vscode-panel-border)) 1px, transparent 0, transparent 50%)';
+
+// ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
 
@@ -82,60 +162,22 @@ const AddressMapVisualizerInner: React.FC<AddressMapVisualizerProps> = ({
   onDeleteBlock,
   layout = 'horizontal',
 }) => {
-  const [insertHoverGap, setInsertHoverGap] = useState<number | null>(null);
-  const [insertBarScrollY, setInsertBarScrollY] = useState<number | null>(null);
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
     blockIndex: number;
   } | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const insertClearRef = useRef<number | null>(null);
   const contextMenuRef = useRef<HTMLDivElement | null>(null);
 
-  const scheduleInsertClear = () => {
-    if (insertClearRef.current) {
-      clearTimeout(insertClearRef.current);
-    }
-    insertClearRef.current = window.setTimeout(() => {
-      setInsertHoverGap(null);
-      setInsertBarScrollY(null);
-    }, 150);
-  };
+  const { segments, totalEnd, overlapSet, displayPcts } = useSegments(blocks);
 
-  const cancelInsertClear = () => {
-    if (insertClearRef.current) {
-      clearTimeout(insertClearRef.current);
-      insertClearRef.current = null;
-    }
-  };
-
-  const handleContainerMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!onInsertAtGap) {
-      return;
-    }
-    cancelInsertClear();
-    const rows = Array.from(e.currentTarget.querySelectorAll<HTMLElement>('[data-viz-row]'));
-    if (rows.length === 0) {
-      return;
-    }
-    const THRESHOLD = 12;
-    const mouseY = e.clientY;
-    for (let i = 0; i <= rows.length; i++) {
-      const gapViewportY =
-        i === 0 ? rows[0].getBoundingClientRect().top : rows[i - 1].getBoundingClientRect().bottom;
-      if (Math.abs(mouseY - gapViewportY) < THRESHOLD) {
-        const containerEl = containerRef.current;
-        if (containerEl) {
-          const cRect = containerEl.getBoundingClientRect();
-          setInsertHoverGap(i);
-          setInsertBarScrollY(gapViewportY - cRect.top + containerEl.scrollTop);
-        }
-        return;
-      }
-    }
-    scheduleInsertClear();
-  };
+  // First and last block segment indices — used for tooltip edge-pinning.
+  const firstBlockSegIdx = useMemo(() => segments.findIndex((s) => s.type === 'block'), [segments]);
+  const lastBlockSegIdx = useMemo(
+    () => segments.length - 1 - [...segments].reverse().findIndex((s) => s.type === 'block'),
+    [segments]
+  );
 
   useEffect(() => {
     if (!contextMenu) {
@@ -160,172 +202,135 @@ const AddressMapVisualizerInner: React.FC<AddressMapVisualizerProps> = ({
   }, [contextMenu]);
 
   // ---------------------------------------------------------------------------
-  // Derived data for all layouts
-  // ---------------------------------------------------------------------------
-
-  const groups = useMemo(() => {
-    return blocks.map((block, idx) => {
-      const base = block.baseAddress ?? block.base_address ?? block.offset ?? 0;
-      const size = calculateBlockSize(block);
-      return {
-        idx,
-        name: block.name ?? `Block ${idx}`,
-        start: Number(base),
-        end: Number(base) + Number(size) - 1,
-        size,
-        color: getBlockColor(idx),
-        usage: block.usage ?? 'register',
-      };
-    });
-  }, [blocks]);
-
-  // ---------------------------------------------------------------------------
-  // Proportional bar data (horizontal layout)
-  // ---------------------------------------------------------------------------
-
-  const sortedGroups = useMemo(() => [...groups].sort((a, b) => a.start - b.start), [groups]);
-
-  const { segments, totalEnd, overlapSet } = useMemo(() => {
-    if (sortedGroups.length === 0) {
-      return { segments: [] as Segment[], totalEnd: 0, overlapSet: new Set<number>() };
-    }
-
-    // Detect pairwise overlaps
-    const overlapSet = new Set<number>();
-    for (let i = 0; i < sortedGroups.length; i++) {
-      for (let j = i + 1; j < sortedGroups.length; j++) {
-        if (
-          sortedGroups[i].start <= sortedGroups[j].end &&
-          sortedGroups[i].end >= sortedGroups[j].start
-        ) {
-          overlapSet.add(sortedGroups[i].idx);
-          overlapSet.add(sortedGroups[j].idx);
-        }
-      }
-    }
-
-    const maxEnd = Math.max(...sortedGroups.map((g) => g.end + 1));
-
-    const segs: Segment[] = [];
-    let cursor = 0;
-    for (const g of sortedGroups) {
-      if (g.start > cursor) {
-        segs.push({ type: 'gap', start: cursor, end: g.start - 1, size: g.start - cursor });
-      }
-      segs.push({
-        type: 'block',
-        idx: g.idx,
-        start: g.start,
-        end: g.end,
-        size: g.size,
-        name: g.name,
-        color: g.color,
-        usage: g.usage,
-      });
-      cursor = Math.max(cursor, g.end + 1);
-    }
-
-    return { segments: segs, totalEnd: maxEnd, overlapSet };
-  }, [sortedGroups]);
-
-  // Display widths: proportional with minimum floor, normalized to sum to 100 %.
-  const displayPcts = useMemo(() => {
-    if (segments.length === 0 || totalEnd === 0) {
-      return [] as number[];
-    }
-    const natural = segments.map((s) => (s.size / totalEnd) * 100);
-    const clamped = natural.map((p) => Math.max(p, MIN_DISPLAY_PCT));
-    const sum = clamped.reduce((a, b) => a + b, 0);
-    return clamped.map((p) => (p / sum) * 100);
-  }, [segments, totalEnd]);
-
-  // ---------------------------------------------------------------------------
-  // Vertical list layout (side-by-side mode)
+  // Vertical proportional layout (side-by-side mode)
   // ---------------------------------------------------------------------------
 
   if (layout === 'vertical') {
+    if (blocks.length === 0) {
+      return (
+        <div className="w-full px-3 py-6 text-center vscode-muted text-sm select-none">
+          No address blocks defined.
+        </div>
+      );
+    }
+
     return (
       <div
         ref={containerRef}
-        className="flex flex-col w-full relative"
-        onMouseMove={handleContainerMouseMove}
-        onMouseLeave={scheduleInsertClear}
+        className="w-full relative select-none"
+        onMouseLeave={() => setHoveredBlockIndex(null)}
       >
-        {groups.map((group) => {
-          const isHovered = hoveredBlockIndex === group.idx;
-          return (
-            <div
-              key={group.idx}
-              data-viz-row
-              className={`flex items-center gap-3 px-3 py-2 border-b vscode-border select-none transition-colors ${
-                isHovered ? 'vscode-row-hover' : ''
-              }`}
-              style={{ cursor: onBlockClick ? 'pointer' : 'default' }}
-              onMouseEnter={() => setHoveredBlockIndex(group.idx)}
-              onMouseLeave={() => setHoveredBlockIndex(null)}
-              onClick={() => onBlockClick?.(group.idx)}
-              onContextMenu={(e) => {
-                if (!onInsertAtGap && !onDeleteBlock) {
-                  return;
-                }
-                e.preventDefault();
-                setContextMenu({ x: e.clientX, y: e.clientY, blockIndex: group.idx });
-              }}
-            >
-              <div
-                className="w-3 shrink-0 self-stretch rounded-sm"
-                style={{
-                  backgroundColor: FIELD_COLORS[group.color],
-                  filter: isHovered ? 'saturate(1.15) brightness(1.05)' : undefined,
-                }}
-              />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="font-mono font-semibold text-sm truncate">{group.name}</span>
-                  <span className="ipcraft-pattern-label text-[10px] font-mono shrink-0">
-                    {group.usage === 'memory' ? 'MEM' : 'REG'}
-                  </span>
-                </div>
-                <div className="text-[11px] vscode-muted font-mono">
-                  {toHex(group.start)}
-                  <span className="mx-1 opacity-50">→</span>
-                  {toHex(group.end)}
-                  <span className="ml-2 opacity-60">{formatSize(group.size)}</span>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-        {onInsertAtGap && insertHoverGap !== null && insertBarScrollY !== null && (
+        {overlapSet.size > 0 && (
           <div
-            className="absolute left-0 right-0 z-20 flex items-center px-3 pointer-events-none"
-            style={{ top: insertBarScrollY, transform: 'translateY(-50%)' }}
-            onMouseEnter={cancelInsertClear}
-            onMouseLeave={scheduleInsertClear}
+            className="mx-2 mt-2 mb-1 text-xs px-2 py-1 rounded flex items-center gap-1.5"
+            style={{
+              background: 'color-mix(in srgb, var(--vscode-errorForeground) 12%, transparent)',
+              color: 'var(--vscode-errorForeground)',
+              border:
+                '1px solid color-mix(in srgb, var(--vscode-errorForeground) 30%, transparent)',
+            }}
           >
-            <div
-              className="flex-1 h-[2px] rounded-full"
-              style={{ background: 'linear-gradient(to right, #f97316, #f43f5e)' }}
-            />
-            <button
-              className="pointer-events-auto w-5 h-5 rounded-full text-white text-[11px] font-bold flex items-center justify-center hover:scale-110 transition-transform shadow mx-1 flex-shrink-0"
-              style={{ background: 'linear-gradient(135deg, #f97316, #f43f5e)' }}
-              title={`Insert block at position ${insertHoverGap}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                onInsertAtGap(insertHoverGap);
-                setInsertHoverGap(null);
-                setInsertBarScrollY(null);
-              }}
-            >
-              +
-            </button>
-            <div
-              className="flex-1 h-[2px] rounded-full"
-              style={{ background: 'linear-gradient(to left, #f97316, #f43f5e)' }}
-            />
+            <span className="codicon codicon-warning text-[11px]" />
+            Address space overlap detected
           </div>
         )}
+
+        {/* Proportional rows: flex-grow proportional to size, min-height as floor */}
+        <div className="flex flex-col px-2 py-2" style={{ minHeight: '260px' }}>
+          {segments.map((seg, i) => {
+            const flexGrow = displayPcts[i];
+
+            if (seg.type === 'gap') {
+              return (
+                <div
+                  key={`gap-${seg.start}`}
+                  className="relative flex items-center overflow-hidden rounded-sm"
+                  style={{
+                    flexGrow,
+                    minHeight: '20px',
+                    background: 'var(--vscode-editor-background)',
+                    backgroundImage: STRIPE_BG,
+                    backgroundSize: '7px 7px',
+                    opacity: 0.6,
+                    marginBottom: '2px',
+                  }}
+                  title={`Unallocated: ${toHex(seg.start)} → ${toHex(seg.end)} (${formatSize(seg.size)})`}
+                >
+                  <span className="text-[9px] font-mono vscode-muted opacity-70 px-2 py-0.5 leading-tight truncate">
+                    {formatSize(seg.size)} free
+                  </span>
+                </div>
+              );
+            }
+
+            // Block row
+            const isHovered = hoveredBlockIndex === seg.idx;
+            const isOverlap = overlapSet.has(seg.idx);
+
+            return (
+              <div
+                key={`block-${seg.idx}`}
+                data-viz-row
+                className="relative flex items-center gap-2 overflow-hidden rounded-md transition-[filter,opacity]"
+                style={{
+                  flexGrow,
+                  minHeight: '36px',
+                  backgroundColor: FIELD_COLORS[seg.color],
+                  cursor: onBlockClick ? 'pointer' : 'default',
+                  marginBottom: '2px',
+                  filter: isHovered ? 'saturate(1.15) brightness(1.07)' : undefined,
+                  outline: isOverlap ? '2px solid var(--vscode-errorForeground)' : undefined,
+                  outlineOffset: '-2px',
+                  boxShadow: isHovered
+                    ? '0 0 0 2px var(--vscode-focusBorder)'
+                    : 'inset 0 0 0 1px var(--vscode-panel-border)',
+                }}
+                onMouseEnter={() => setHoveredBlockIndex(seg.idx)}
+                onClick={() => onBlockClick?.(seg.idx)}
+                onContextMenu={(e) => {
+                  if (!onInsertAtGap && !onDeleteBlock) {
+                    return;
+                  }
+                  e.preventDefault();
+                  setContextMenu({ x: e.clientX, y: e.clientY, blockIndex: seg.idx });
+                }}
+                title={`${seg.name} • ${toHex(seg.start)} → ${toHex(seg.end)} • ${formatSize(seg.size)}`}
+              >
+                {isHovered && (
+                  <div className="absolute inset-0 bg-white/10 pointer-events-none rounded-md" />
+                )}
+                <div className="flex flex-col justify-center px-2 py-1 min-w-0 overflow-hidden leading-tight">
+                  <span className="font-mono font-semibold text-[11px] truncate">{seg.name}</span>
+                  <span className="font-mono text-[9px] opacity-70 truncate">
+                    {toHex(seg.start)} → {toHex(seg.end)}
+                  </span>
+                  {flexGrow > 8 && (
+                    <span className="font-mono text-[9px] opacity-60">{formatSize(seg.size)}</span>
+                  )}
+                </div>
+                <div className="shrink-0 ml-auto pr-2">
+                  <span className="ipcraft-pattern-label text-[9px] font-mono">
+                    {seg.usage === 'memory' ? 'MEM' : 'REG'}
+                  </span>
+                </div>
+                {/* Address tick on the right edge */}
+                <div
+                  className="absolute right-0 top-0 text-[8px] font-mono opacity-50 pr-1 pt-0.5 pointer-events-none"
+                  style={{ color: 'inherit' }}
+                >
+                  {toHex(seg.start)}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* End address */}
+        <div className="px-2 pb-1 text-right">
+          <span className="text-[9px] font-mono vscode-muted opacity-60">{toHex(totalEnd)}</span>
+        </div>
+
+        {/* Context menu */}
         {contextMenu && (onInsertAtGap ?? onDeleteBlock) && (
           <div
             ref={contextMenuRef}
@@ -410,13 +415,13 @@ const AddressMapVisualizerInner: React.FC<AddressMapVisualizerProps> = ({
         </div>
       )}
 
-      {/* Proportional columns */}
-      <div className="relative w-full flex items-start overflow-x-auto pb-2">
+      {/* Proportional columns — overflow visible so hover tooltips on edge columns aren't clipped */}
+      <div className="relative w-full flex items-start pb-2">
         <div className="relative flex flex-row items-end gap-0 pl-4 pr-2 pt-12 pb-2 min-h-[64px] w-full">
           {segments.map((seg, i) => {
             const width = `${displayPcts[i]}%`;
 
-            // Gap column — hatched, non-interactive
+            // Gap column
             if (seg.type === 'gap') {
               return (
                 <div
@@ -429,8 +434,7 @@ const AddressMapVisualizerInner: React.FC<AddressMapVisualizerProps> = ({
                     className="w-full flex-1 rounded-sm"
                     style={{
                       background: 'var(--vscode-editor-background)',
-                      backgroundImage:
-                        'repeating-linear-gradient(-45deg, var(--vscode-editorWidget-border, var(--vscode-panel-border)) 0, var(--vscode-editorWidget-border, var(--vscode-panel-border)) 1px, transparent 0, transparent 50%)',
+                      backgroundImage: STRIPE_BG,
                       backgroundSize: '7px 7px',
                       opacity: 0.6,
                       minHeight: '80px',
@@ -449,6 +453,16 @@ const AddressMapVisualizerInner: React.FC<AddressMapVisualizerProps> = ({
             const isHovered = hoveredBlockIndex === seg.idx;
             const isOverlap = overlapSet.has(seg.idx);
 
+            // Pin hover tooltip to left edge for first block, right edge for last,
+            // centred for everything in between — prevents clipping at container edges.
+            const isFirst = i === firstBlockSegIdx;
+            const isLast = i === lastBlockSegIdx;
+            const tooltipStyle: React.CSSProperties = isFirst
+              ? { left: 0 }
+              : isLast
+                ? { right: 0 }
+                : { left: '50%', transform: 'translateX(-50%)' };
+
             return (
               <div
                 key={`block-${seg.idx}`}
@@ -458,11 +472,12 @@ const AddressMapVisualizerInner: React.FC<AddressMapVisualizerProps> = ({
                 onMouseLeave={() => setHoveredBlockIndex(null)}
                 onClick={() => onBlockClick?.(seg.idx)}
               >
-                {/* Floating label — only on hover to avoid overlap with proportional widths */}
+                {/* Hover tooltip — edge-pinned to avoid clipping */}
                 {isHovered && (
                   <div
-                    className="absolute -top-12 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded border shadow-lg text-xs whitespace-nowrap z-20 pointer-events-none"
+                    className="absolute -top-12 px-2 py-0.5 rounded border shadow-lg text-xs whitespace-nowrap z-20 pointer-events-none"
                     style={{
+                      ...tooltipStyle,
                       background: 'var(--vscode-editorWidget-background)',
                       color: 'var(--vscode-foreground)',
                       borderColor: 'var(--vscode-panel-border)',
@@ -515,7 +530,7 @@ const AddressMapVisualizerInner: React.FC<AddressMapVisualizerProps> = ({
         </div>
       </div>
 
-      {/* Address ruler for context at the far right */}
+      {/* End address */}
       <div className="px-4 pb-1 flex justify-end">
         <span className="text-[9px] font-mono vscode-muted opacity-70">{toHex(totalEnd)}</span>
       </div>
