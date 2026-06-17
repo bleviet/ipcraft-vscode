@@ -190,9 +190,15 @@ const App = () => {
   // extension host.
   const handleUpdateWithRepack = useCallback(
     (path: (string | number)[], value: unknown) => {
-      const isRegistersWrite = path[0] === 'registers' && path.length === 1;
       const isBlocksWrite = path[0] === 'addressBlocks' && path.length === 1;
-      if (!isRegistersWrite && !isBlocksWrite) {
+      const isRegistersWrite = path[0] === 'registers' && path.length === 1;
+      const isNestedRegistersWrite =
+        path.length === 3 &&
+        path[0] === 'registers' &&
+        typeof path[1] === 'number' &&
+        path[2] === 'registers';
+
+      if (!isRegistersWrite && !isNestedRegistersWrite && !isBlocksWrite) {
         handleUpdate(path, value);
         return;
       }
@@ -209,12 +215,17 @@ const App = () => {
       const fullPath = [...selectionRootPath, ...selection.path, ...path];
 
       let sanitizedValue: unknown;
-      if (isRegistersWrite) {
-        // Repack the edited container's registers and sanitize to schema keys.
-        const container = YamlPathResolver.getAtPath(root, [
-          ...selectionRootPath,
-          ...selection.path,
-        ]) as Record<string, unknown> | undefined;
+      if (isRegistersWrite || isNestedRegistersWrite) {
+        // Find the container whose registers are being edited.
+        // For block registers, it's the block itself. For nested registers, it's the array register.
+        const containerPath = isNestedRegistersWrite
+          ? [...selectionRootPath, ...selection.path, path[0], path[1]]
+          : [...selectionRootPath, ...selection.path];
+
+        const container = YamlPathResolver.getAtPath(root, containerPath) as
+          | Record<string, unknown>
+          | undefined;
+
         const width = blockRegWidth(container);
         const laidOut = recomputeRegisterLayout((value ?? []) as LayoutRegister[], width);
         sanitizedValue = laidOut.map(
