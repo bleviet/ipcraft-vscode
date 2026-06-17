@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode, ErrorInfo } from 'react';
 import { createRoot } from 'react-dom/client';
 import Outline, { type OutlineHandle } from './components/OutlinePanel';
@@ -33,6 +33,8 @@ import './index.css';
  */
 const App = () => {
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(300);
+  const sidebarResizingRef = useRef(false);
   const registerLayout = useLayoutToggle();
   const blockLayout = useLayoutToggle();
   const memoryMapLayout = useLayoutToggle();
@@ -286,6 +288,7 @@ const App = () => {
       )}
       <aside
         className={`sidebar flex flex-col shrink-0 overflow-y-auto ${sidebarOpen ? 'sidebar-open' : ''}`}
+        style={{ width: sidebarWidth }}
       >
         <Outline
           ref={outlineRef}
@@ -294,6 +297,24 @@ const App = () => {
           onSelect={handleSelect}
           onRename={handleOutlineRename}
           onRegisterAction={handleRegisterAction}
+        />
+        <div
+          className="sidebar-resize-handle"
+          aria-hidden="true"
+          onPointerDown={(e) => {
+            e.preventDefault();
+            sidebarResizingRef.current = true;
+            (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
+          }}
+          onPointerMove={(e) => {
+            if (!sidebarResizingRef.current) {
+              return;
+            }
+            setSidebarWidth(Math.min(600, Math.max(180, e.clientX)));
+          }}
+          onPointerUp={() => {
+            sidebarResizingRef.current = false;
+          }}
         />
       </aside>
       <section className="flex-1 overflow-hidden min-w-0">

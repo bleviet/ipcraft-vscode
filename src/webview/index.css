@@ -204,6 +204,25 @@ body {
     border-right: 1px solid var(--vscode-panel-border);
     overflow-y: auto;
     background-color: var(--vscode-sideBar-background);
+    position: relative;
+}
+
+.sidebar-resize-handle {
+    position: absolute;
+    top: 0;
+    right: -3px;
+    width: 6px;
+    height: 100%;
+    cursor: col-resize;
+    z-index: 50;
+    background: transparent;
+    transition: background 0.15s;
+}
+
+.sidebar-resize-handle:hover,
+.sidebar-resize-handle:active {
+    background: var(--vscode-focusBorder);
+    opacity: 0.6;
 }
 
 .main-content {
