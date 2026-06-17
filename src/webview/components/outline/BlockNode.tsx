@@ -25,6 +25,7 @@ const BlockNode = ({
   return (
     <div key={id}>
       <div
+        data-outline-id={id}
         className={`tree-item ${isSelected ? 'selected' : ''}`}
         role="treeitem"
         aria-expanded={isExpanded}

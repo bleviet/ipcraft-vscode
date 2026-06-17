@@ -22,6 +22,7 @@ const FieldNode = ({
   return (
     <div
       key={id}
+      data-outline-id={id}
       className={`tree-item ${isSelected ? 'selected' : ''}`}
       role="treeitem"
       aria-selected={isSelected}

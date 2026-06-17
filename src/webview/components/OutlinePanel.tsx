@@ -88,6 +88,16 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
       };
     }, [outlineContextMenu]);
 
+    useEffect(() => {
+      if (!selectedId) {
+        return;
+      }
+      const el = treeFocusRef.current?.querySelector<HTMLElement>(
+        `[data-outline-id="${CSS.escape(selectedId)}"]`
+      );
+      el?.scrollIntoView({ block: 'nearest' });
+    }, [selectedId]);
+
     useImperativeHandle(
       ref,
       () => ({
@@ -269,6 +279,7 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
               role="treeitem"
               aria-expanded={isRootExpanded}
               aria-selected={isRootSelected}
+              data-outline-id={rootId}
               onClick={() => {
                 treeFocusRef.current?.focus();
                 onSelect({

@@ -22,6 +22,7 @@ const RegisterNode = ({
   return (
     <div
       key={id}
+      data-outline-id={id}
       className={`tree-item ${isSelected ? 'selected' : ''} gap-2 text-sm`}
       role="treeitem"
       aria-selected={isSelected}
