@@ -433,6 +433,19 @@ const FieldTableRow = ({
                   if (!err) {
                     onUpdate(['fields', index, 'name'], next.trim());
                   }
+                  // Release the draft override either way — committed or
+                  // rejected, the cell should go back to tracking the
+                  // canonical field name so later external changes (e.g.
+                  // undo) aren't masked by a stale typed value.
+                  setNameDrafts((prev: Record<string, string>) => {
+                    const rest = { ...prev };
+                    delete rest[rowId];
+                    return rest;
+                  });
+                  setNameErrors((prev: Record<string, string | null>) => ({
+                    ...prev,
+                    [rowId]: null,
+                  }));
                 }}
               />
             </div>

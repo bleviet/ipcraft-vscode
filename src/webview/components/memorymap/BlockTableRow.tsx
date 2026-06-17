@@ -140,10 +140,12 @@ export function BlockTableRow({
               }}
               onBlur={(value) => {
                 const err = validateUniqueName(value, siblingNames ?? [], block.name ?? '');
-                setNameError(err);
                 if (!err) {
                   onUpdate(['addressBlocks', idx, 'name'], value);
                 }
+                // Either committed or discarded — the input reverts to the
+                // canonical value either way, so no error should linger.
+                setNameError(null);
               }}
             />
           </div>

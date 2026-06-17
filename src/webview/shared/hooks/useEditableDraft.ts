@@ -17,6 +17,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 export function useEditableDraft(value: string) {
   const [draft, setDraft] = useState(value);
   const isFocusedRef = useRef(false);
+  const valueRef = useRef(value);
+  valueRef.current = value;
 
   useEffect(() => {
     if (!isFocusedRef.current && draft !== value) {
@@ -28,8 +30,13 @@ export function useEditableDraft(value: string) {
     isFocusedRef.current = true;
   }, []);
 
+  // Force the resync here rather than relying on the effect above: when the
+  // edit was rejected (e.g. failed validation), onUpdate is never called, so
+  // `value` never changes and no re-render occurs to run that effect — the
+  // draft would otherwise stay stuck on the rejected text forever.
   const markBlurred = useCallback(() => {
     isFocusedRef.current = false;
+    setDraft(valueRef.current);
   }, []);
 
   return { draft, setDraft, markFocused, markBlurred };

@@ -149,10 +149,12 @@ export function RegisterTableRow({
               }}
               onBlur={(value) => {
                 const err = validateUniqueName(value, siblingNames ?? [], reg.name ?? '');
-                setNameError(err);
                 if (!err) {
                   onUpdate(['registers', idx, 'name'], value);
                 }
+                // Either committed or discarded — the input reverts to the
+                // canonical value either way, so no error should linger.
+                setNameError(null);
               }}
             />
           </div>
