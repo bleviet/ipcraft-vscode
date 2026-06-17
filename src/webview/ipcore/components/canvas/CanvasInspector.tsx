@@ -1719,7 +1719,10 @@ const BusPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, onUpda
   const currentPrefix = bus.physicalPrefix ?? '';
   const hasDuplicatePrefix =
     currentPrefix.length > 0 &&
-    buses.some((b, i) => i !== index && (b.physicalPrefix ?? '') === currentPrefix);
+    buses.some(
+      (b, i) =>
+        i !== index && (b.physicalPrefix ?? '').toLowerCase() === currentPrefix.toLowerCase()
+    );
 
   const clockOpts = clocks.map((c) => ({ value: c.name, label: c.name }));
   const resetOpts = resets.map((r) => ({ value: r.name, label: r.name }));
@@ -1987,7 +1990,10 @@ const ConduitPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, on
   const currentConduitPrefix = bus.physicalPrefix ?? '';
   const hasConduitDuplicatePrefix =
     currentConduitPrefix.length > 0 &&
-    buses.some((b, i) => i !== index && (b.physicalPrefix ?? '') === currentConduitPrefix);
+    buses.some(
+      (b, i) =>
+        i !== index && (b.physicalPrefix ?? '').toLowerCase() === currentConduitPrefix.toLowerCase()
+    );
 
   const clockOpts = clocks.map((c) => ({ value: c.name, label: c.name }));
   const resetOpts = resets.map((r) => ({ value: r.name, label: r.name }));

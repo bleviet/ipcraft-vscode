@@ -805,7 +805,7 @@ const IpCoreApp: React.FC = () => {
     const buses = (ipCore as unknown as IpCore)?.busInterfaces ?? [];
     const prefixCount = new Map<string, number>();
     for (const bus of buses as BusInterface[]) {
-      const p = bus.physicalPrefix ?? '';
+      const p = (bus.physicalPrefix ?? '').toLowerCase();
       if (p) {
         prefixCount.set(p, (prefixCount.get(p) ?? 0) + 1);
       }

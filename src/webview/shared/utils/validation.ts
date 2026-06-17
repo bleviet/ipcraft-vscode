@@ -19,18 +19,21 @@ export function validateVhdlIdentifier(value: string): string | null {
 
 /**
  * Unique name validation
- * Checks if name already exists in list
+ * Checks if name already exists in list, case-insensitively (HDL identifiers
+ * are case-insensitive, so ERROR_O and error_o collide).
  */
 export function validateUniqueName(
   name: string,
   existingNames: string[],
   currentName?: string
 ): string | null {
-  if (name === currentName) {
+  const lowerName = name.toLowerCase();
+
+  if (lowerName === currentName?.toLowerCase()) {
     return null;
   } // Editing current item
 
-  if (existingNames.includes(name)) {
+  if (existingNames.some((existing) => existing.toLowerCase() === lowerName)) {
     return 'Name is already used';
   }
 

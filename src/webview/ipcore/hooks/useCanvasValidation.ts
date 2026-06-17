@@ -44,10 +44,11 @@ export const useCanvasValidation = (ipCore: IpCore): CanvasAnnotations => {
     if (!port.name) {
       addAnnotation(id, 'error', 'Port must have a name');
     } else {
-      if (portNames.has(port.name)) {
+      const key = port.name.toLowerCase();
+      if (portNames.has(key)) {
         addAnnotation(id, 'error', `Duplicate port name: ${port.name}`);
       } else {
-        portNames.add(port.name);
+        portNames.add(key);
       }
     }
   });
@@ -55,7 +56,7 @@ export const useCanvasValidation = (ipCore: IpCore): CanvasAnnotations => {
   // Collect duplicate physicalPrefix values across all bus interfaces
   const prefixCount = new Map<string, number>();
   ipCore.busInterfaces?.forEach((bus: BusInterface) => {
-    const p = bus.physicalPrefix ?? '';
+    const p = (bus.physicalPrefix ?? '').toLowerCase();
     if (p) {
       prefixCount.set(p, (prefixCount.get(p) ?? 0) + 1);
     }
@@ -72,10 +73,11 @@ export const useCanvasValidation = (ipCore: IpCore): CanvasAnnotations => {
     if (!bus.name) {
       addAnnotation(id, 'error', 'Bus interface must have a name');
     } else {
-      if (busNames.has(bus.name)) {
+      const key = bus.name.toLowerCase();
+      if (busNames.has(key)) {
         addAnnotation(id, 'error', `Duplicate bus interface name: ${bus.name}`);
       } else {
-        busNames.add(bus.name);
+        busNames.add(key);
       }
     }
 
@@ -101,7 +103,7 @@ export const useCanvasValidation = (ipCore: IpCore): CanvasAnnotations => {
 
     // Warn when this interface's physicalPrefix collides with another interface
     const prefix = bus.physicalPrefix ?? '';
-    if (prefix && duplicatePrefixSet.has(prefix)) {
+    if (prefix && duplicatePrefixSet.has(prefix.toLowerCase())) {
       addAnnotation(
         id,
         'warning',
@@ -116,10 +118,11 @@ export const useCanvasValidation = (ipCore: IpCore): CanvasAnnotations => {
         if (!cp.name) {
           return;
         }
-        if (conduitPortNames.has(cp.name)) {
+        const key = cp.name.toLowerCase();
+        if (conduitPortNames.has(key)) {
           addAnnotation(`bus:${idx}:cp:${portIdx}`, 'error', `Duplicate port name: ${cp.name}`);
         } else {
-          conduitPortNames.add(cp.name);
+          conduitPortNames.add(key);
         }
       });
     }
@@ -128,11 +131,12 @@ export const useCanvasValidation = (ipCore: IpCore): CanvasAnnotations => {
     if (bus.portNameOverrides) {
       const suffixToLogicals = new Map<string, string[]>();
       for (const [logicalName, suffix] of Object.entries(bus.portNameOverrides)) {
-        const existing = suffixToLogicals.get(suffix);
+        const key = suffix.toLowerCase();
+        const existing = suffixToLogicals.get(key);
         if (existing) {
           existing.push(logicalName);
         } else {
-          suffixToLogicals.set(suffix, [logicalName]);
+          suffixToLogicals.set(key, [logicalName]);
         }
       }
       for (const [suffix, logicalNames] of suffixToLogicals) {
@@ -152,10 +156,11 @@ export const useCanvasValidation = (ipCore: IpCore): CanvasAnnotations => {
     if (!irq.name) {
       addAnnotation(id, 'error', 'Interrupt must have a name');
     } else {
-      if (irqNames.has(irq.name)) {
+      const key = irq.name.toLowerCase();
+      if (irqNames.has(key)) {
         addAnnotation(id, 'error', `Duplicate interrupt name: ${irq.name}`);
       } else {
-        irqNames.add(irq.name);
+        irqNames.add(key);
       }
     }
   });

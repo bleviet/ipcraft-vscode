@@ -117,10 +117,11 @@ export function checkDuplicatePhysicalPrefixes(ipCore: IpCoreData): string | nul
     if (!prefix) {
       continue;
     }
-    if (seen.has(prefix)) {
-      duplicates.push(`'${prefix}' (shared by '${seen.get(prefix)}' and '${iface.name ?? ''}')`);
+    const key = prefix.toLowerCase();
+    if (seen.has(key)) {
+      duplicates.push(`'${prefix}' (shared by '${seen.get(key)}' and '${iface.name ?? ''}')`);
     } else {
-      seen.set(prefix, iface.name ?? '');
+      seen.set(key, iface.name ?? '');
     }
   }
 

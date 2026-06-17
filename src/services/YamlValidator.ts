@@ -81,7 +81,7 @@ export class YamlValidator {
       }
       const b = bus as Record<string, unknown>;
       const name = String(b.name ?? '');
-      const prefix = String(b.physicalPrefix ?? b.physical_prefix ?? '');
+      const prefix = String(b.physicalPrefix ?? b.physical_prefix ?? '').toLowerCase();
       if (!prefix) {
         continue;
       }
