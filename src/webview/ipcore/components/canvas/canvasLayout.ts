@@ -17,13 +17,13 @@ export const EDGE_PADDING = 24;
 
 /**
  * Minimum Y-offset (relative to blockY) at which the first port may be placed.
- * The block header contains the core name (y+15) and VLNV subtitle (y+42, 9 px font,
- * bottom ≈ y+47).  56 keeps a comfortable gap below that text.
+ * The block header contains the core name (y+15), vendor (y+42), and library (y+62).
+ * 82 keeps a comfortable gap below that text.
  */
-const BLOCK_HEADER_HEIGHT = 56;
+const BLOCK_HEADER_HEIGHT = 82;
 
 /** Minimum block height (even with zero ports) */
-export const MIN_BLOCK_HEIGHT = 120;
+export const MIN_BLOCK_HEIGHT = 124;
 
 /** Horizontal block width */
 export const BLOCK_WIDTH = 280;
@@ -124,8 +124,10 @@ export interface CanvasLayout {
   viewBox: { width: number; height: number };
   /** Core display name */
   coreName: string;
-  /** VLNV subtitle */
-  vlnvLabel: string;
+  /** Vendor subtitle */
+  vendorLabel: string;
+  /** Library subtitle */
+  libraryLabel: string;
   /** Generics rendered inside the block, below the separator */
   parameters: LayoutParameter[];
   /** Y of separator line above the generics section (only rendered when parameters.length > 0) */
@@ -323,7 +325,7 @@ export function computeLayout(
   });
 
   // Build the subcores section (Dependencies) shown inside the block above parameters
-  const DEP_SEPARATOR_Y_OFFSET = 60; // separator from blockY (below VLNV header)
+  const DEP_SEPARATOR_Y_OFFSET = 86; // separator from blockY (below VLNV header)
   const DEP_HEADER_HEIGHT = 26; // height occupied by separator line + "Dependencies" label
   const DEP_ROW_HEIGHT = 18;
   const DEP_AFTER_GAP = 8; // gap between last dep row and the parameter separator
@@ -708,8 +710,9 @@ export function computeLayout(
 
   // Labels
   const vlnv = ipCore.vlnv;
-  const coreName = vlnv.name;
-  const vlnvLabel = `${vlnv.vendor}:${vlnv.library}:${vlnv.name}:${vlnv.version}`;
+  const coreName = `${vlnv.name} v${vlnv.version}`;
+  const vendorLabel = vlnv.vendor;
+  const libraryLabel = vlnv.library;
 
   return {
     blockRect: { x: blockX, y: blockY, width: blockWidth, height: blockHeight },
@@ -717,7 +720,8 @@ export function computeLayout(
     subPorts: layoutSubPorts,
     viewBox: { width: viewWidth, height: viewHeight },
     coreName,
-    vlnvLabel,
+    vendorLabel,
+    libraryLabel,
     parameters: layoutParameters,
     paramSeparatorY: blockY + PARAM_SEPARATOR_Y_OFFSET,
     portSeparatorY:

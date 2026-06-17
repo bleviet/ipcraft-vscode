@@ -688,7 +688,8 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
     subPorts,
     viewBox,
     coreName,
-    vlnvLabel,
+    vendorLabel,
+    libraryLabel,
     parameters,
     paramSeparatorY,
     portSeparatorY,
@@ -881,16 +882,46 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
           {coreName}
         </text>
 
-        {/* VLNV subtitle */}
+        {/* Vendor subtitle */}
         <text
-          x={blockRect.x + blockRect.width / 2}
+          x={blockRect.x + 24}
           y={blockRect.y + 42}
-          textAnchor="middle"
           dominantBaseline="central"
-          className="ip-block-vlnv"
+          className="ip-block-param-name"
           style={{ pointerEvents: 'none' }}
         >
-          {vlnvLabel}
+          vendor
+        </text>
+        <text
+          x={blockRect.x + blockRect.width - 24}
+          y={blockRect.y + 42}
+          textAnchor="end"
+          dominantBaseline="central"
+          className="ip-block-param-value"
+          style={{ pointerEvents: 'none' }}
+        >
+          {vendorLabel}
+        </text>
+
+        {/* Library subtitle */}
+        <text
+          x={blockRect.x + 24}
+          y={blockRect.y + 62}
+          dominantBaseline="central"
+          className="ip-block-param-name"
+          style={{ pointerEvents: 'none' }}
+        >
+          library
+        </text>
+        <text
+          x={blockRect.x + blockRect.width - 24}
+          y={blockRect.y + 62}
+          textAnchor="end"
+          dominantBaseline="central"
+          className="ip-block-param-value"
+          style={{ pointerEvents: 'none' }}
+        >
+          {libraryLabel}
         </text>
 
         {/* Edit hint — visible when block is hovered or body is selected */}

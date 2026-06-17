@@ -24,8 +24,9 @@ describe('computeLayout', () => {
     const ip = makeIpCore();
     const layout = computeLayout(ip);
 
-    expect(layout.coreName).toBe('my_core');
-    expect(layout.vlnvLabel).toBe('test:ip:my_core:1.0.0');
+    expect(layout.coreName).toBe('my_core v1.0.0');
+    expect(layout.vendorLabel).toBe('test');
+    expect(layout.libraryLabel).toBe('ip');
     expect(layout.ports).toHaveLength(0);
     expect(layout.blockRect.width).toBe(BLOCK_WIDTH);
     expect(layout.blockRect.height).toBe(MIN_BLOCK_HEIGHT);
@@ -364,12 +365,12 @@ describe('computeLayout', () => {
       expect(layout.subcoreDeps[0].shortName).toBe('my_sub');
     });
 
-    it('depSeparatorY is at blockY + 60 regardless of subcores count', () => {
+    it('depSeparatorY is at blockY + 86 regardless of subcores count', () => {
       const ip = makeIpCore({
         subcores: ['a.com:l:foo:1.0'],
       } as Partial<IpCore>);
       const layout = computeLayout(ip);
-      expect(layout.depSeparatorY).toBe(layout.blockRect.y + 60);
+      expect(layout.depSeparatorY).toBe(layout.blockRect.y + 86);
     });
 
     it('subcore rows have increasing Y positions', () => {
