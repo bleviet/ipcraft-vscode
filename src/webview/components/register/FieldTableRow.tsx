@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { YamlUpdateHandler } from '../../types/editor';
 import { VSCodeDropdown, VSCodeOption } from '@vscode/webview-ui-toolkit/react';
 import { ACCESS_OPTIONS } from '../../shared/constants';
@@ -58,10 +58,6 @@ const FieldTableRow = ({
     hoveredFieldIndex,
     setHoveredFieldIndex,
     activeCell,
-    nameDrafts,
-    setNameDrafts,
-    nameErrors,
-    setNameErrors,
     bitsDrafts,
     setBitsDrafts,
     bitsErrors,
@@ -73,6 +69,8 @@ const FieldTableRow = ({
     setResetErrors,
   } = fieldEditor;
 
+  const [nameError, setNameError] = useState<string | null>(null);
+
   const W1C_ACCESS = new Set(['write-1-to-clear', 'read-write-1-to-clear']);
   const isW1C = W1C_ACCESS.has(field.access ?? '');
 
@@ -82,9 +80,6 @@ const FieldTableRow = ({
     field.resetValue !== null && field.resetValue !== undefined
       ? `0x${Number(field.resetValue).toString(16).toUpperCase()}`
       : '';
-
-  const nameValue = nameDrafts[rowId] ?? String(field.name ?? '');
-  const nameErr = nameErrors[rowId] ?? null;
 
   const previewRange = dragPreviewRanges[rowId];
   const bitsValue = previewRange
@@ -400,15 +395,11 @@ const FieldTableRow = ({
               <CellInput
                 editKey="name"
                 className="flex-1"
-                value={nameValue}
+                value={field.name ?? ''}
                 onFocus={onCellFocus(index, 'name')}
                 cancelEditRef={fieldEditor.cancelEditRef}
                 onInput={(value) => {
                   const next = value ?? '';
-                  setNameDrafts((prev: Record<string, string>) => ({
-                    ...prev,
-                    [rowId]: next,
-                  }));
                   const err =
                     validateVhdlIdentifier(next) ??
                     validateUniqueName(
@@ -416,10 +407,10 @@ const FieldTableRow = ({
                       fields.map((f) => String(f.name ?? '')),
                       String(field.name ?? '')
                     );
-                  setNameErrors((prev: Record<string, string | null>) => ({
-                    ...prev,
-                    [rowId]: err,
-                  }));
+                  setNameError(err);
+                  if (!err) {
+                    onUpdate(['fields', index, 'name'], next);
+                  }
                 }}
                 onBlur={(value) => {
                   const next = value ?? '';
@@ -433,23 +424,13 @@ const FieldTableRow = ({
                   if (!err) {
                     onUpdate(['fields', index, 'name'], next.trim());
                   }
-                  // Release the draft override either way — committed or
-                  // rejected, the cell should go back to tracking the
-                  // canonical field name so later external changes (e.g.
-                  // undo) aren't masked by a stale typed value.
-                  setNameDrafts((prev: Record<string, string>) => {
-                    const rest = { ...prev };
-                    delete rest[rowId];
-                    return rest;
-                  });
-                  setNameErrors((prev: Record<string, string | null>) => ({
-                    ...prev,
-                    [rowId]: null,
-                  }));
+                  // Either committed or discarded — the input reverts to the
+                  // canonical value either way, so no error should linger.
+                  setNameError(null);
                 }}
               />
             </div>
-            {nameErr ? <div className="text-xs vscode-error mt-1">{nameErr}</div> : null}
+            {nameError ? <div className="text-xs vscode-error mt-1">{nameError}</div> : null}
           </div>
         </EditableCell>
 

@@ -3,9 +3,6 @@ import type { BitFieldRecord } from '../types/editor';
 import { fieldToBitsString } from '../utils/BitFieldUtils';
 
 export function useFieldDrafts() {
-  const [nameDrafts, setNameDrafts] = useState<Record<string, string>>({});
-  const [nameErrors, setNameErrors] = useState<Record<string, string | null>>({});
-
   const [bitsDrafts, setBitsDrafts] = useState<Record<string, string>>({});
   const [bitsErrors, setBitsErrors] = useState<Record<string, string | null>>({});
 
@@ -17,9 +14,6 @@ export function useFieldDrafts() {
       return;
     }
 
-    setNameDrafts((prev) =>
-      prev[rowId] !== undefined ? prev : { ...prev, [rowId]: String(field.name ?? '') }
-    );
     setBitsDrafts((prev) =>
       prev[rowId] !== undefined ? prev : { ...prev, [rowId]: fieldToBitsString(field) }
     );
@@ -35,8 +29,6 @@ export function useFieldDrafts() {
   }, []);
 
   const clearAllDrafts = useCallback(() => {
-    setNameDrafts({});
-    setNameErrors({});
     setBitsDrafts({});
     setBitsErrors({});
     setResetDrafts({});
@@ -44,10 +36,6 @@ export function useFieldDrafts() {
   }, []);
 
   return {
-    nameDrafts,
-    setNameDrafts,
-    nameErrors,
-    setNameErrors,
     bitsDrafts,
     setBitsDrafts,
     bitsErrors,

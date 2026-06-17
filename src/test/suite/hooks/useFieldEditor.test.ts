@@ -32,7 +32,7 @@ const noop = jest.fn();
 // ---------------------------------------------------------------------------
 
 describe('useFieldEditor — draft initialisation', () => {
-  it('initialises nameDraft, bitsDraft and resetDraft for a field', () => {
+  it('initialises bitsDraft and resetDraft for a field', () => {
     const fields: BitFieldRecord[] = [makeField('STATUS', 0, 4)];
     const { result } = renderHook(() => useFieldEditor(fields, 32, noop, true));
     const rowId = result.current.wrappedFields[0].rowId;
@@ -41,7 +41,6 @@ describe('useFieldEditor — draft initialisation', () => {
       result.current.ensureDraftsInitialized(rowId, 0);
     });
 
-    expect(result.current.nameDrafts[rowId]).toBe('STATUS');
     expect(result.current.bitsDrafts[rowId]).toBe('[3:0]');
     expect(result.current.resetDrafts[rowId]).toBe('0x0');
   });
@@ -53,8 +52,8 @@ describe('useFieldEditor — draft initialisation', () => {
 
     act(() => {
       result.current.ensureDraftsInitialized(rowId, 0);
-      // Manually overwrite the name draft
-      result.current.setNameDrafts({ [rowId]: 'MY_DRAFT' });
+      // Manually overwrite the bits draft
+      result.current.setBitsDrafts({ [rowId]: '[31:0]' });
     });
 
     // Calling again must not overwrite the manual draft
@@ -62,7 +61,7 @@ describe('useFieldEditor — draft initialisation', () => {
       result.current.ensureDraftsInitialized(rowId, 0);
     });
 
-    expect(result.current.nameDrafts[rowId]).toBe('MY_DRAFT');
+    expect(result.current.bitsDrafts[rowId]).toBe('[31:0]');
   });
 
   it('formats resetValue as hex string', () => {
@@ -179,7 +178,6 @@ describe('useFieldEditor — moveSelectedField', () => {
     // Seed some draft state
     act(() => {
       result.current.setSelectedFieldIndex(0);
-      result.current.setNameDrafts({ X: 'edited' });
       result.current.setBitsDrafts({ 0: '[3:0]' });
     });
 
@@ -187,7 +185,6 @@ describe('useFieldEditor — moveSelectedField', () => {
       result.current.moveSelectedField(1);
     });
 
-    expect(result.current.nameDrafts).toEqual({});
     expect(result.current.bitsDrafts).toEqual({});
   });
 });

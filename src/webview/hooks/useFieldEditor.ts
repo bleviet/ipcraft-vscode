@@ -72,10 +72,6 @@ export function useFieldEditor(
   // ---- drafts ----
   const drafts = useFieldDrafts();
   const {
-    nameDrafts,
-    setNameDrafts,
-    nameErrors,
-    setNameErrors,
     bitsDrafts,
     setBitsDrafts,
     bitsErrors,
@@ -110,11 +106,6 @@ export function useFieldEditor(
         return;
       }
 
-      setNameDrafts((prev: Record<string, string>) => ({
-        ...prev,
-        [rowId]: String(snapshotField.name ?? ''),
-      }));
-      setNameErrors((prev: Record<string, string | null>) => ({ ...prev, [rowId]: null }));
       setBitsDrafts((prev: Record<string, string>) => ({
         ...prev,
         [rowId]: fieldToBitsString(snapshotField),
@@ -239,10 +230,6 @@ export function useFieldEditor(
     setActiveCell: editorState.setActiveCell,
 
     // drafts
-    nameDrafts,
-    setNameDrafts,
-    nameErrors,
-    setNameErrors,
     bitsDrafts,
     setBitsDrafts,
     bitsErrors,
