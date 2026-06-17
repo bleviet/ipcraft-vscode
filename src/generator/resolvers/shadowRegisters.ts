@@ -48,20 +48,24 @@ export function buildShadowRegisters(
 
   const registers = baseRegisters as Array<Record<string, unknown>>;
 
-  const swRegisters = registers.filter((reg) => swAccess.has(getString(reg.access)));
-  const hwRegisters = registers.filter((reg) => hwAccess.has(getString(reg.access)));
+  const swRegisters = registers.filter((reg) => {
+    const fields = (reg.fields as Array<Record<string, unknown>>) ?? [];
+    return (
+      fields.length === 0 || fields.some((f) => swAccess.has(getString(f.access) || 'read-write'))
+    );
+  });
+  const hwRegisters = registers.filter((reg) => {
+    const fields = (reg.fields as Array<Record<string, unknown>>) ?? [];
+    return (
+      fields.length > 0 && fields.every((f) => hwAccess.has(getString(f.access) || 'read-write'))
+    );
+  });
   const w1cRegisters = registers.filter((reg) => {
-    if (W1C_ACCESS.has(getString(reg.access))) {
-      return true;
-    }
     const fields = (reg.fields as Array<Record<string, unknown>>) ?? [];
     return fields.some((f) => W1C_ACCESS.has(getString(f.access)));
   });
 
   const scRegisters = registers.filter((reg) => {
-    if (scAccess.has(getString(reg.access))) {
-      return true;
-    }
     const fields = (reg.fields as Array<Record<string, unknown>>) ?? [];
     return fields.some((f) => scAccess.has(getString(f.access)));
   });

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { FIELD_COLORS } from '../../shared/colors';
-import { ACCESS_OPTIONS } from '../../shared/constants';
 import { toHex } from '../../utils/formatUtils';
 import type { YamlUpdateHandler } from '../../types/editor';
 import type { RegisterModel } from '../../types/registerModel';
@@ -11,13 +10,13 @@ import { validateUniqueName } from '../../shared/utils/validation';
 // Types — exported so parent editors can import instead of re-declaring
 // ---------------------------------------------------------------------------
 
-export type RegEditKey = 'name' | 'offset' | 'access' | 'description';
+export type RegEditKey = 'name' | 'offset' | 'description';
 export interface RegActiveCell {
   rowId: string | null;
   rowIndex: number;
   key: RegEditKey;
 }
-export const REG_COLUMN_ORDER: RegEditKey[] = ['name', 'offset', 'access', 'description'];
+export const REG_COLUMN_ORDER: RegEditKey[] = ['name', 'offset', 'description'];
 
 // ---------------------------------------------------------------------------
 // Props
@@ -170,25 +169,6 @@ export function RegisterTableRow({
               onUpdate(['registers', idx, 'offset'], val);
             }
           }}
-        />
-      </EditableCell>
-
-      {/* ACCESS */}
-      <EditableCell
-        columnKey="access"
-        isActive={isCellActive('access')}
-        onCellClick={() => onCellClick('access')}
-        className="px-4 py-2"
-        style={{ overflow: 'visible', position: 'relative' }}
-      >
-        <CellInput
-          editKey="access"
-          variant="dropdown"
-          className="w-full"
-          value={reg.access ?? 'read-write'}
-          options={ACCESS_OPTIONS}
-          onFocus={captureEditSnapshot}
-          onInput={(value) => onUpdate(['registers', idx, 'access'], value)}
         />
       </EditableCell>
 

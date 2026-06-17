@@ -102,7 +102,6 @@ export function BlockEditor({
     const name = generateUniqueName(liveRegisters, 'reg');
     newRegs.splice(newIdx, 0, {
       name,
-      access: 'read-write',
       description: '',
       offset: 0,
       address_offset: 0,
@@ -294,7 +293,6 @@ export function BlockEditor({
             name: 'reg0',
             offset: 0,
             address_offset: 0,
-            access: 'read-write',
             description: '',
             fields: [{ name: 'data', bits: '[31:0]', access: 'read-write', description: '' }],
           },
@@ -348,17 +346,15 @@ export function BlockEditor({
       <table className="w-full text-left border-collapse table-fixed">
         <colgroup>
           <col className="w-8" />
-          <col className="w-[28%] min-w-[180px]" />
+          <col className="w-[30%] min-w-[180px]" />
           <col className="w-[20%] min-w-[120px]" />
-          <col className="w-[15%] min-w-[100px]" />
-          <col className="w-[37%]" />
+          <col className="w-[50%]" />
         </colgroup>
         <thead className="vscode-surface-alt text-xs font-semibold vscode-muted uppercase tracking-wider sticky top-0 z-10 shadow-sm">
           <tr className="h-12">
             <th className="w-8 border-b vscode-border" />
             <th className="px-6 py-3 border-b vscode-border align-middle">Name</th>
             <th className="px-4 py-3 border-b vscode-border align-middle">Offset</th>
-            <th className="px-4 py-3 border-b vscode-border align-middle">Access</th>
             <th className="px-6 py-3 border-b vscode-border align-middle">Description</th>
           </tr>
         </thead>

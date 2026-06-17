@@ -22,6 +22,44 @@ function getString(value: unknown): string {
   return String(value);
 }
 
+const SW_WRITE_ACCESSES = new Set([
+  'read-write',
+  'write-only',
+  'rw',
+  'wo',
+  'read-write-1-to-clear',
+  'write-1-to-clear',
+  'read-write-self-clearing',
+  'write-self-clearing',
+]);
+const HW_READ_ONLY_ACCESSES = new Set(['read-only', 'ro']);
+const SW_READ_ACCESSES = new Set([
+  'read-write',
+  'rw',
+  'read-only',
+  'ro',
+  'read-write-1-to-clear',
+  'read-write-self-clearing',
+]);
+
+function deriveRegisterAccess(fieldAccesses: string[]): string {
+  if (fieldAccesses.length === 0) {
+    return 'read-write';
+  }
+  if (fieldAccesses.every((a) => HW_READ_ONLY_ACCESSES.has(a))) {
+    return 'read-only';
+  }
+  const hasSwWrite = fieldAccesses.some((a) => SW_WRITE_ACCESSES.has(a));
+  const hasSwRead = fieldAccesses.some((a) => SW_READ_ACCESSES.has(a));
+  if (hasSwWrite && hasSwRead) {
+    return 'read-write';
+  }
+  if (hasSwWrite) {
+    return 'write-only';
+  }
+  return 'read-only';
+}
+
 export function normalizeIpCoreData(raw: Record<string, unknown>): IpCoreData {
   return normalizeIpCore(raw) as unknown as IpCoreData;
 }
@@ -337,7 +375,7 @@ export async function prepareRegisters(
     }
 
     const fields = (reg.fields ?? []).map((field) => {
-      const access = getString(field.access ?? reg.access ?? 'read-write');
+      const access = getString(field.access ?? 'read-write');
 
       return {
         name: field.name,
@@ -350,11 +388,11 @@ export async function prepareRegisters(
       };
     });
 
-    const regAccess = getString(reg.access ?? 'read-write');
+    const regAccess = deriveRegisterAccess(fields.map((f) => f.access));
     registers.push({
       name: `${prefix}${String(regName)}`,
       offset: currentOffset,
-      access: regAccess.toLowerCase(),
+      access: regAccess,
       description: reg.description ?? '',
       fields,
     });
@@ -412,31 +450,34 @@ export function projectMemoryMapsForTemplate(maps: NormalizedMemoryMap[]): unkno
       usage: block.usage,
       registers: (block.registers ?? []).map((reg) => {
         const projectReg = (r: NormalizedRegister): ProjectedRegister => {
+          const projectedFields = (r.fields ?? []).map((f) => ({
+            name: f.name,
+            bits: f.bits,
+            offset: f.offset,
+            bit_offset: f.offset,
+            bitOffset: f.offset,
+            width: f.width,
+            bit_width: f.width,
+            bitWidth: f.width,
+            access: f.access,
+            resetValue: f.resetValue,
+            reset_value: f.resetValue,
+            description: f.description,
+            monitorChangeOf: f.monitorChangeOf,
+          }));
           const base: ProjectedRegister = {
             name: r.name,
             offset: r.offset,
             address_offset: r.offset,
             addressOffset: r.offset,
             size: r.size,
-            access: r.access,
+            access: deriveRegisterAccess(
+              projectedFields.map((f) => getString(f.access) || 'read-write')
+            ),
             resetValue: r.resetValue,
             reset_value: r.resetValue,
             description: r.description,
-            fields: (r.fields ?? []).map((f) => ({
-              name: f.name,
-              bits: f.bits,
-              offset: f.offset,
-              bit_offset: f.offset,
-              bitOffset: f.offset,
-              width: f.width,
-              bit_width: f.width,
-              bitWidth: f.width,
-              access: f.access,
-              resetValue: f.resetValue,
-              reset_value: f.resetValue,
-              description: f.description,
-              monitorChangeOf: f.monitorChangeOf,
-            })),
+            fields: projectedFields,
           };
           if (r.__kind === 'array') {
             return {
