@@ -9,7 +9,7 @@ import {
   YamlPath,
   isArrayNode,
 } from './types';
-import { blockId, registerId } from './outlineIds';
+import { blockId, registerId, arrayRegisterId } from './outlineIds';
 
 interface OutlineTreeNodesProps {
   memoryMap: NormalizedMemoryMap;
@@ -140,7 +140,7 @@ const OutlineTreeNodes = ({
                     onFocusTree={onFocusTree}
                     onSelect={onSelect}
                     onDoubleClick={() =>
-                      startEditing?.(registerId(blockIndex, idx), node.name ?? '')
+                      startEditing?.(arrayRegisterId(blockIndex, idx), node.name ?? '')
                     }
                     renderNameOrEdit={renderNameOrEdit}
                     startEditing={startEditing}
