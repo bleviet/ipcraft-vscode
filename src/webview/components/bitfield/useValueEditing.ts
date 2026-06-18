@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 interface UseValueEditingOptions {
   registerSize: number;
@@ -27,13 +27,27 @@ export function useValueEditing({
     return `0x${registerValue.toString(16).toUpperCase()}`;
   }, [registerValue, valueView]);
 
+  // This hook only writes registerValue on commit (blur/Enter in ValueBar),
+  // never on every keystroke, and every commit flips `valueEditing` to false
+  // in the same batched render. So a `registerValue` change observed while
+  // still editing can only be external (undo/redo, or another edit to the
+  // underlying fields) -- never an echo of this draft's own typing -- and
+  // must be adopted immediately rather than left stale until blur.
+  const lastRegisterValueRef = useRef(registerValue);
+
   useEffect(() => {
-    if (valueEditing) {
+    if (!valueEditing) {
+      lastRegisterValueRef.current = registerValue;
+      setValueDraft(registerValueText);
+      setValueError(null);
       return;
     }
-    setValueDraft(registerValueText);
-    setValueError(null);
-  }, [registerValueText, valueEditing]);
+    if (registerValue !== lastRegisterValueRef.current) {
+      lastRegisterValueRef.current = registerValue;
+      setValueDraft(registerValueText);
+      setValueError(null);
+    }
+  }, [registerValueText, valueEditing, registerValue]);
 
   const validateRegisterValue = (v: number | null): string | null => {
     if (v === null) {
