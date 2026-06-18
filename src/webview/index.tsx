@@ -111,6 +111,14 @@ const App = () => {
         return;
       }
 
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
+      ) {
+        return;
+      }
+
       e.preventDefault();
       e.stopPropagation();
 

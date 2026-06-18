@@ -9,7 +9,7 @@ import React, { useImperativeHandle, useMemo, useRef } from 'react';
 import { RegisterDef } from '../types/memoryMap';
 import type { YamlUpdateHandler, YamlPath } from '../types/editor';
 
-import { RegisterEditor, RegisterEditorHandle } from './register/RegisterEditor';
+import { RegisterEditor } from './register/RegisterEditor';
 import { MemoryMapEditor } from './memorymap/MemoryMapEditor';
 import { BlockEditor } from './memorymap/BlockEditor';
 import { RegisterArrayEditor } from './memorymap/RegisterArrayEditor';
@@ -127,22 +127,26 @@ const DetailsPanel = React.forwardRef<DetailsPanelHandle, DetailsPanelProps>((pr
   }
 
   // -----------------------------------------------------------------------
-  // Imperative handle — forward focus() to the active sub-editor
+  // Imperative handle — forward focus() to the active sub-editor's
+  // keyboard table container. Every sub-editor renders exactly one
+  // container tagged with a data-*-table="true" attribute (from
+  // useTableEditorState / useFieldEditor); the BitFieldVisualizer also
+  // has tabIndex={0} but is NOT a valid focus target for panel
+  // switching, so we scope the query to the table markers.
   // -----------------------------------------------------------------------
-  const registerEditorRef = useRef<RegisterEditorHandle | null>(null);
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
 
   useImperativeHandle(
     ref,
     () => ({
       focus: () => {
-        if (selectedType === 'register') {
-          registerEditorRef.current?.focus();
-        }
-        // MemoryMapEditor, BlockEditor and RegisterArrayEditor manage focus
-        // internally via their own focusDetails handling.
+        const container = wrapperRef.current?.querySelector<HTMLElement>(
+          '[data-fields-table], [data-blocks-table], [data-regs-table], [data-registers-table]'
+        );
+        container?.focus();
       },
     }),
-    [selectedType]
+    []
   );
 
   // -----------------------------------------------------------------------
@@ -159,7 +163,10 @@ const DetailsPanel = React.forwardRef<DetailsPanelHandle, DetailsPanelProps>((pr
 
   if (!selectedObject) {
     return (
-      <div className="flex items-center justify-center h-full vscode-muted text-sm">
+      <div
+        ref={wrapperRef}
+        className="flex items-center justify-center h-full vscode-muted text-sm"
+      >
         Select an item to view details
       </div>
     );
@@ -167,58 +174,67 @@ const DetailsPanel = React.forwardRef<DetailsPanelHandle, DetailsPanelProps>((pr
 
   if (selectedType === 'register' && reg) {
     return (
-      <RegisterEditor
-        ref={registerEditorRef}
-        register={reg}
-        fields={fields}
-        selectionMeta={selectionMeta}
-        registerLayout={registerLayout}
-        toggleRegisterLayout={toggleRegisterLayout}
-        onUpdate={onUpdate}
-      />
+      <div ref={wrapperRef} className="h-full">
+        <RegisterEditor
+          register={reg}
+          fields={fields}
+          selectionMeta={selectionMeta}
+          registerLayout={registerLayout}
+          toggleRegisterLayout={toggleRegisterLayout}
+          onUpdate={onUpdate}
+        />
+      </div>
     );
   }
 
   if (selectedType === 'memoryMap') {
     return (
-      <MemoryMapEditor
-        memoryMap={selectedObject as Parameters<typeof MemoryMapEditor>[0]['memoryMap']}
-        memoryMapLayout={memoryMapLayout}
-        toggleMemoryMapLayout={toggleMemoryMapLayout}
-        selectionMeta={selectionMeta}
-        onUpdate={onUpdate}
-        onNavigateToBlock={onNavigateToBlock}
-      />
+      <div ref={wrapperRef} className="h-full">
+        <MemoryMapEditor
+          memoryMap={selectedObject as Parameters<typeof MemoryMapEditor>[0]['memoryMap']}
+          memoryMapLayout={memoryMapLayout}
+          toggleMemoryMapLayout={toggleMemoryMapLayout}
+          selectionMeta={selectionMeta}
+          onUpdate={onUpdate}
+          onNavigateToBlock={onNavigateToBlock}
+        />
+      </div>
     );
   }
 
   if (selectedType === 'block') {
     return (
-      <BlockEditor
-        block={selectedObject as Parameters<typeof BlockEditor>[0]['block']}
-        blockLayout={blockLayout}
-        toggleBlockLayout={toggleBlockLayout}
-        selectionMeta={selectionMeta}
-        onUpdate={onUpdate}
-        onNavigateToRegister={onNavigateToRegister}
-      />
+      <div ref={wrapperRef} className="h-full">
+        <BlockEditor
+          block={selectedObject as Parameters<typeof BlockEditor>[0]['block']}
+          blockLayout={blockLayout}
+          toggleBlockLayout={toggleBlockLayout}
+          selectionMeta={selectionMeta}
+          onUpdate={onUpdate}
+          onNavigateToRegister={onNavigateToRegister}
+        />
+      </div>
     );
   }
 
   if (selectedType === 'array') {
     return (
-      <RegisterArrayEditor
-        registerArray={selectedObject as Parameters<typeof RegisterArrayEditor>[0]['registerArray']}
-        arrayLayout={arrayLayout}
-        toggleArrayLayout={toggleArrayLayout}
-        selectionMeta={selectionMeta}
-        onUpdate={onUpdate}
-      />
+      <div ref={wrapperRef} className="h-full">
+        <RegisterArrayEditor
+          registerArray={
+            selectedObject as Parameters<typeof RegisterArrayEditor>[0]['registerArray']
+          }
+          arrayLayout={arrayLayout}
+          toggleArrayLayout={toggleArrayLayout}
+          selectionMeta={selectionMeta}
+          onUpdate={onUpdate}
+        />
+      </div>
     );
   }
 
   return (
-    <div className="flex items-center justify-center h-full vscode-muted text-sm">
+    <div ref={wrapperRef} className="flex items-center justify-center h-full vscode-muted text-sm">
       Select an item to view details
     </div>
   );

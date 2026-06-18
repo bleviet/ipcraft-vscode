@@ -12,6 +12,7 @@ import { FIELD_COLOR_KEYS } from '../../shared/colors';
 import { toHex } from '../../utils/formatUtils';
 import { generateUniqueName } from '../../utils/naming';
 import { useTableEditorState } from '../../hooks/useTableEditorState';
+import { useAutoFocus } from '../../hooks/useAutoFocus';
 import { useEditableDraft } from '../../shared/hooks/useEditableDraft';
 import { RegisterTableRow, REG_COLUMN_ORDER } from './RegisterTableRow';
 import type { RegEditKey } from './RegisterTableRow';
@@ -230,6 +231,12 @@ export function RegisterArrayEditor({
   });
 
   const getRegColor = (i: number) => FIELD_COLOR_KEYS[i % FIELD_COLOR_KEYS.length];
+
+  useAutoFocus(
+    editor.containerRef as React.RefObject<HTMLDivElement>,
+    !isFlatArray && !!selectionMeta?.focusDetails,
+    [arr?.name]
+  );
 
   const visualizer = (
     <RegisterMapVisualizer
