@@ -28,6 +28,15 @@ export interface MemoryMapBlockDef extends AddressBlockRuntimeDef {
   description?: string;
 }
 
+interface DragState {
+  active: boolean;
+  fromRowId: string | null;
+  toRowId: string | null;
+  position: 'top' | 'bottom' | 'center' | null;
+}
+
+const DRAG_IDLE: DragState = { active: false, fromRowId: null, toRowId: null, position: null };
+
 export interface MemoryMapEditorProps {
   /** The memory map object (has name, description, address_blocks / addressBlocks). */
   memoryMap: {
@@ -179,6 +188,92 @@ export function MemoryMapEditor({
 
   const getBlockColor = (idx: number) => FIELD_COLOR_KEYS[idx % FIELD_COLOR_KEYS.length];
 
+  const [dragState, setDragState] = useState<DragState>(DRAG_IDLE);
+
+  const handleDragHandlePointerDown = (rowId: string, e: React.PointerEvent) => {
+    if (e.button !== 0) {
+      return;
+    }
+    e.preventDefault();
+    e.stopPropagation();
+    setDragState({ active: true, fromRowId: rowId, toRowId: rowId, position: 'center' });
+  };
+
+  const handleDragEnterRow = (rowId: string) => {
+    if (!dragState.active) {
+      return;
+    }
+    setDragState((prev) => ({ ...prev, toRowId: rowId }));
+  };
+
+  const handleDragMove = (rowId: string, e: React.PointerEvent) => {
+    if (!dragState.active) {
+      return;
+    }
+
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const y = e.clientY - rect.top;
+    const height = rect.height;
+
+    let pos: 'top' | 'bottom' | 'center' = 'center';
+    if (y < height * 0.25) {
+      pos = 'top';
+    } else if (y > height * 0.75) {
+      pos = 'bottom';
+    }
+
+    setDragState((prev) => {
+      if (prev.toRowId === rowId && prev.position === pos) {
+        return prev;
+      }
+      return { ...prev, toRowId: rowId, position: pos };
+    });
+  };
+
+  useEffect(() => {
+    if (!dragState.active) {
+      return;
+    }
+    const commit = () => {
+      const { fromRowId, toRowId, position } = dragState;
+      if (fromRowId && toRowId) {
+        const fromIdx = wrappedBlocks.findIndex((w) => w.rowId === fromRowId);
+        const toIdx = wrappedBlocks.findIndex((w) => w.rowId === toRowId);
+        if (fromIdx >= 0 && toIdx >= 0 && (fromIdx !== toIdx || position !== 'center')) {
+          const newBlocks = [...liveBlocks];
+          if (position === 'center') {
+            // SWAP
+            const temp = newBlocks[fromIdx];
+            newBlocks[fromIdx] = newBlocks[toIdx];
+            newBlocks[toIdx] = temp;
+          } else {
+            // INSERT
+            let insertIdx = toIdx;
+            if (position === 'bottom') {
+              insertIdx++;
+            }
+            const [moved] = newBlocks.splice(fromIdx, 1);
+            if (fromIdx < insertIdx) {
+              insertIdx--;
+            }
+            newBlocks.splice(insertIdx, 0, moved);
+          }
+          onUpdate(['addressBlocks'], newBlocks);
+        }
+      }
+      setDragState(DRAG_IDLE);
+    };
+    const cancel = () => setDragState(DRAG_IDLE);
+    window.addEventListener('pointerup', commit);
+    window.addEventListener('pointercancel', cancel);
+    window.addEventListener('blur', cancel);
+    return () => {
+      window.removeEventListener('pointerup', commit);
+      window.removeEventListener('pointercancel', cancel);
+      window.removeEventListener('blur', cancel);
+    };
+  }, [dragState, wrappedBlocks, liveBlocks, onUpdate]);
+
   const visualizer = (
     <AddressMapVisualizer
       blocks={blocks}
@@ -201,11 +296,12 @@ export function MemoryMapEditor({
       ref={editor.containerRef as React.RefObject<HTMLDivElement>}
       tabIndex={0}
       data-blocks-table="true"
-      className="flex-1 overflow-auto min-h-0 outline-none focus:outline-none relative"
+      className={`flex-1 overflow-auto min-h-0 outline-none focus:outline-none relative${dragState.active ? ' cursor-grabbing select-none' : ''}`}
     >
       {insertError ? <div className="vscode-error px-4 py-2 text-xs">{insertError}</div> : null}
       <table className="w-full text-left border-collapse table-fixed">
         <colgroup>
+          <col className="w-8" />
           <col className="w-[22%] min-w-[160px]" />
           <col className="w-[13%] min-w-[100px]" />
           <col className="w-[9%] min-w-[70px]" />
@@ -215,6 +311,7 @@ export function MemoryMapEditor({
         </colgroup>
         <thead className="vscode-surface-alt text-xs font-semibold vscode-muted uppercase tracking-wider sticky top-0 z-10 shadow-sm">
           <tr className="h-12">
+            <th className="w-8 border-b vscode-border" />
             <th className="px-6 py-3 border-b vscode-border align-middle">Name</th>
             <th className="px-4 py-3 border-b vscode-border align-middle">Base Address</th>
             <th className="px-4 py-3 border-b vscode-border align-middle">Size</th>
@@ -245,6 +342,22 @@ export function MemoryMapEditor({
                 e.preventDefault();
                 setContextMenu({ x: e.clientX, y: e.clientY, blockId: wrapped.rowId });
               }}
+              isDragSource={dragState.active && dragState.fromRowId === wrapped.rowId}
+              isDragTarget={
+                dragState.active &&
+                dragState.fromRowId !== wrapped.rowId &&
+                dragState.toRowId === wrapped.rowId
+              }
+              dragTargetPosition={
+                dragState.active &&
+                dragState.fromRowId !== wrapped.rowId &&
+                dragState.toRowId === wrapped.rowId
+                  ? dragState.position
+                  : null
+              }
+              onDragHandlePointerDown={(e) => handleDragHandlePointerDown(wrapped.rowId, e)}
+              onPointerEnterRow={() => handleDragEnterRow(wrapped.rowId)}
+              onDragMove={handleDragMove}
               siblingNames={liveBlocks
                 .filter((_: unknown, i: number) => i !== idx)
                 .map((b: unknown) => String((b as MemoryMapBlockDef).name ?? ''))}

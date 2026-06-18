@@ -65,6 +65,10 @@ export function FieldsTable({ fields, registerSize, onUpdate, fieldEditor }: Fie
     ensureDraftsInitialized,
     captureEditSnapshot,
     moveSelectedField,
+    dragState,
+    onDragHandlePointerDown,
+    onPointerEnterRow,
+    onDragMove,
   } = fieldEditor;
 
   const setActiveEditorCell = (
@@ -144,7 +148,7 @@ export function FieldsTable({ fields, registerSize, onUpdate, fieldEditor }: Fie
           ref={focusRef as React.RefObject<HTMLDivElement>}
           tabIndex={0}
           data-fields-table="true"
-          className="flex-1 overflow-auto min-h-0 outline-none focus:outline-none"
+          className={`flex-1 overflow-auto min-h-0 outline-none focus:outline-none${dragState.active ? ' cursor-grabbing select-none' : ''}`}
           style={{ overflowY: 'auto', overflowX: 'auto' }}
         >
           {insertError ? <div className="vscode-error px-4 py-2 text-xs">{insertError}</div> : null}
@@ -160,6 +164,7 @@ export function FieldsTable({ fields, registerSize, onUpdate, fieldEditor }: Fie
             renderTableContent={() => (
               <>
                 <colgroup>
+                  <col className="w-8" />
                   <col className="w-[18%] min-w-[120px]" />
                   <col className="w-[14%] min-w-[100px]" />
                   <col className="w-[14%] min-w-[120px]" />
@@ -168,6 +173,7 @@ export function FieldsTable({ fields, registerSize, onUpdate, fieldEditor }: Fie
                 </colgroup>
                 <thead className="vscode-surface-alt text-xs font-semibold vscode-muted uppercase tracking-wider sticky top-0 z-10 shadow-sm">
                   <tr className="h-12">
+                    <th className="w-8 border-b vscode-border" />
                     <th className="px-6 py-3 border-b vscode-border align-middle">Name</th>
                     <th className="px-4 py-3 border-b vscode-border align-middle">Bit(s)</th>
                     <th className="px-4 py-3 border-b vscode-border align-middle">Access</th>
@@ -189,6 +195,22 @@ export function FieldsTable({ fields, registerSize, onUpdate, fieldEditor }: Fie
                       onRowClick={(idx) => handleRowClick(idx, wrapped.rowId)}
                       onCellClick={(idx, key, opt) => handleCellClick(idx, wrapped.rowId, key, opt)}
                       onCellFocus={(idx, key, opt) => handleCellFocus(idx, wrapped.rowId, key, opt)}
+                      isDragSource={dragState.active && dragState.fromRowId === wrapped.rowId}
+                      isDragTarget={
+                        dragState.active &&
+                        dragState.fromRowId !== wrapped.rowId &&
+                        dragState.toRowId === wrapped.rowId
+                      }
+                      dragTargetPosition={
+                        dragState.active &&
+                        dragState.fromRowId !== wrapped.rowId &&
+                        dragState.toRowId === wrapped.rowId
+                          ? dragState.position
+                          : null
+                      }
+                      onDragHandlePointerDown={(e) => onDragHandlePointerDown(wrapped.rowId, e)}
+                      onPointerEnterRow={() => onPointerEnterRow(wrapped.rowId)}
+                      onDragMove={onDragMove}
                     />
                   ))}
                 </tbody>

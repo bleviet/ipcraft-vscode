@@ -39,6 +39,12 @@ export interface BlockTableRowProps {
   onMouseEnter: () => void;
   onMouseLeave: () => void;
   onContextMenu?: (e: React.MouseEvent) => void;
+  isDragSource?: boolean;
+  isDragTarget?: boolean;
+  dragTargetPosition?: 'top' | 'bottom' | 'center' | null;
+  onDragHandlePointerDown?: (e: React.PointerEvent<HTMLTableCellElement>) => void;
+  onPointerEnterRow?: () => void;
+  onDragMove?: (rowId: string, e: React.PointerEvent) => void;
   siblingNames?: string[];
 }
 
@@ -87,6 +93,12 @@ export function BlockTableRow({
   onMouseEnter,
   onMouseLeave,
   onContextMenu,
+  isDragSource = false,
+  isDragTarget = false,
+  dragTargetPosition = null,
+  onDragHandlePointerDown,
+  onPointerEnterRow,
+  onDragMove,
   siblingNames,
 }: BlockTableRowProps) {
   const [nameError, setNameError] = useState<string | null>(null);
@@ -101,17 +113,62 @@ export function BlockTableRow({
       data-row-id={rowId}
       data-block-idx={idx}
       className={`group transition-colors border-l-4 border-transparent border-b vscode-border h-12 ${
-        isSelected
-          ? 'vscode-focus-border vscode-row-selected'
-          : isHovered
-            ? 'vscode-focus-border vscode-row-hover'
-            : ''
+        isDragSource
+          ? 'opacity-40'
+          : isDragTarget && dragTargetPosition === 'center'
+            ? 'vscode-focus-border'
+            : isSelected
+              ? 'vscode-focus-border vscode-row-selected'
+              : isHovered
+                ? 'vscode-focus-border vscode-row-hover'
+                : ''
       }`}
+      style={
+        isDragTarget
+          ? dragTargetPosition === 'top'
+            ? {
+                backgroundImage: 'linear-gradient(to right, #f97316, #f43f5e)',
+                backgroundSize: '100% 2px',
+                backgroundPosition: 'top',
+                backgroundRepeat: 'no-repeat',
+              }
+            : dragTargetPosition === 'bottom'
+              ? {
+                  backgroundImage: 'linear-gradient(to right, #f97316, #f43f5e)',
+                  backgroundSize: '100% 2px',
+                  backgroundPosition: 'bottom',
+                  backgroundRepeat: 'no-repeat',
+                }
+              : {
+                  backgroundImage:
+                    'linear-gradient(to right, #f97316, #f43f5e), linear-gradient(to right, #f97316, #f43f5e), linear-gradient(to bottom, #f97316, #f97316), linear-gradient(to bottom, #f43f5e, #f43f5e)',
+                  backgroundSize: '100% 2px, 100% 2px, 2px 100%, 2px 100%',
+                  backgroundPosition: 'top, bottom, left, right',
+                  backgroundRepeat: 'no-repeat',
+                }
+          : undefined
+      }
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       onClick={onRowClick}
       onContextMenu={onContextMenu}
+      onPointerEnter={onPointerEnterRow}
+      onPointerMove={(e) => {
+        if (onDragMove) {
+          onDragMove(rowId, e);
+        }
+      }}
     >
+      {/* DRAG HANDLE */}
+      <td
+        className="w-8 px-1 text-center select-none opacity-0 group-hover:opacity-40 hover:!opacity-80"
+        title="Drag to reorder"
+        style={{ cursor: onDragHandlePointerDown ? 'grab' : 'default' }}
+        onPointerDown={onDragHandlePointerDown}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <span className="codicon codicon-gripper text-sm" />
+      </td>
       {/* NAME */}
       <EditableCell
         columnKey="name"

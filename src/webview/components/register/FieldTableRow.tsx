@@ -39,6 +39,12 @@ interface FieldTableRowProps {
     key: EditKey,
     options?: { initializeDrafts?: boolean }
   ) => () => void;
+  isDragSource?: boolean;
+  isDragTarget?: boolean;
+  dragTargetPosition?: 'top' | 'bottom' | 'center' | null;
+  onDragHandlePointerDown?: (e: React.PointerEvent<HTMLTableCellElement>) => void;
+  onPointerEnterRow?: () => void;
+  onDragMove?: (rowId: string, e: React.PointerEvent) => void;
 }
 
 const FieldTableRow = ({
@@ -52,6 +58,12 @@ const FieldTableRow = ({
   onRowClick,
   onCellClick,
   onCellFocus,
+  isDragSource = false,
+  isDragTarget = false,
+  dragTargetPosition = null,
+  onDragHandlePointerDown,
+  onPointerEnterRow,
+  onDragMove,
 }: FieldTableRowProps) => {
   const {
     selectedFieldIndex,
@@ -357,21 +369,66 @@ const FieldTableRow = ({
     <tr
       data-row-id={rowId}
       className={`group vscode-row-solid transition-colors border-l-4 border-transparent h-12 ${
-        index === selectedFieldIndex
-          ? 'vscode-focus-border vscode-row-selected'
-          : index === hoveredFieldIndex
-            ? 'vscode-focus-border vscode-row-hover'
-            : ''
+        isDragSource
+          ? 'opacity-40'
+          : isDragTarget && dragTargetPosition === 'center'
+            ? 'vscode-focus-border'
+            : index === selectedFieldIndex
+              ? 'vscode-focus-border vscode-row-selected'
+              : index === hoveredFieldIndex
+                ? 'vscode-focus-border vscode-row-hover'
+                : ''
       }`}
-      style={{ position: 'relative' }}
+      style={{
+        position: 'relative',
+        ...(isDragTarget
+          ? dragTargetPosition === 'top'
+            ? {
+                backgroundImage: 'linear-gradient(to right, #f97316, #f43f5e)',
+                backgroundSize: '100% 2px',
+                backgroundPosition: 'top',
+                backgroundRepeat: 'no-repeat',
+              }
+            : dragTargetPosition === 'bottom'
+              ? {
+                  backgroundImage: 'linear-gradient(to right, #f97316, #f43f5e)',
+                  backgroundSize: '100% 2px',
+                  backgroundPosition: 'bottom',
+                  backgroundRepeat: 'no-repeat',
+                }
+              : {
+                  backgroundImage:
+                    'linear-gradient(to right, #f97316, #f43f5e), linear-gradient(to right, #f97316, #f43f5e), linear-gradient(to bottom, #f97316, #f97316), linear-gradient(to bottom, #f43f5e, #f43f5e)',
+                  backgroundSize: '100% 2px, 100% 2px, 2px 100%, 2px 100%',
+                  backgroundPosition: 'top, bottom, left, right',
+                  backgroundRepeat: 'no-repeat',
+                }
+          : undefined),
+      }}
       onMouseEnter={() => setHoveredFieldIndex(index)}
       onMouseLeave={() => setHoveredFieldIndex(null)}
       onClick={() => onRowClick(index)}
+      onPointerEnter={onPointerEnterRow}
+      onPointerMove={(e) => {
+        if (onDragMove) {
+          onDragMove(rowId, e);
+        }
+      }}
       id={`row-${String(field.name ?? '')
         .toLowerCase()
         .replace(/[^a-z0-9_]/g, '-')}`}
     >
       <>
+        {/* DRAG HANDLE */}
+        <td
+          className="w-8 px-1 text-center select-none opacity-0 group-hover:opacity-40 hover:!opacity-80"
+          title="Drag to reorder"
+          style={{ cursor: onDragHandlePointerDown ? 'grab' : 'default' }}
+          onPointerDown={onDragHandlePointerDown}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <span className="codicon codicon-gripper text-sm" />
+        </td>
         <EditableCell
           columnKey="name"
           isActive={activeCell.rowId === rowId && activeCell.key === 'name'}

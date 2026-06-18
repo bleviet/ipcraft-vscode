@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type React from 'react';
 import { SpatialInsertionService } from '../services/SpatialInsertionService';
 import type { BitFieldRuntimeDef } from '../services/SpatialInsertionService';
 import { fieldToBitsString, parseBitsRange } from '../utils/BitFieldUtils';
@@ -15,6 +16,20 @@ export type EditKey = 'name' | 'bits' | 'access' | 'reset' | 'description';
 export type ActiveCell = { rowId: string | null; key: EditKey };
 
 export const COLUMN_ORDER: EditKey[] = ['name', 'bits', 'access', 'reset', 'description'];
+
+interface FieldDragState {
+  active: boolean;
+  fromRowId: string | null;
+  toRowId: string | null;
+  position: 'top' | 'bottom' | 'center' | null;
+}
+
+const FIELD_DRAG_IDLE: FieldDragState = {
+  active: false,
+  fromRowId: null,
+  toRowId: null,
+  position: null,
+};
 
 function toRuntimeFields(fields: BitFieldRecord[]): BitFieldRuntimeDef[] {
   return fields.map((field, index) => {
@@ -150,6 +165,92 @@ export function useFieldEditor(
     },
   });
 
+  // ---- drag-to-reorder ----
+  // Field row order is bit-position order, so a drag is decomposed into a
+  // sequence of single-step `field-move` ops (same op the move-up/move-down
+  // buttons use) rather than a direct array splice — each step both swaps
+  // the row and gap-preserving-swaps the underlying bit range.
+  const [dragState, setDragState] = useState<FieldDragState>(FIELD_DRAG_IDLE);
+
+  const handleDragHandlePointerDown = (rowId: string, e: React.PointerEvent) => {
+    if (e.button !== 0) {
+      return;
+    }
+    e.preventDefault();
+    e.stopPropagation();
+    setDragState({ active: true, fromRowId: rowId, toRowId: rowId, position: 'center' });
+  };
+
+  const handleDragEnterRow = (rowId: string) => {
+    if (!dragState.active) {
+      return;
+    }
+    setDragState((prev) => ({ ...prev, toRowId: rowId }));
+  };
+
+  const handleDragMove = (rowId: string, e: React.PointerEvent) => {
+    if (!dragState.active) {
+      return;
+    }
+
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const y = e.clientY - rect.top;
+    const height = rect.height;
+
+    let pos: 'top' | 'bottom' | 'center' = 'center';
+    if (y < height * 0.25) {
+      pos = 'top';
+    } else if (y > height * 0.75) {
+      pos = 'bottom';
+    }
+
+    setDragState((prev) => {
+      if (prev.toRowId === rowId && prev.position === pos) {
+        return prev;
+      }
+      return { ...prev, toRowId: rowId, position: pos };
+    });
+  };
+
+  useEffect(() => {
+    if (!dragState.active) {
+      return;
+    }
+    const commit = () => {
+      const { fromRowId, toRowId, position } = dragState;
+      if (fromRowId && toRowId) {
+        const fromIdx = wrappedFields.findIndex((w) => w.rowId === fromRowId);
+        const toIdx = wrappedFields.findIndex((w) => w.rowId === toRowId);
+        if (fromIdx >= 0 && toIdx >= 0) {
+          let destIdx = toIdx;
+          if (position === 'bottom') {
+            destIdx++;
+          }
+          if (position !== 'center' && fromIdx < destIdx) {
+            destIdx--;
+          }
+          if (destIdx !== fromIdx && destIdx >= 0 && destIdx < fields.length) {
+            const delta = destIdx > fromIdx ? 1 : -1;
+            for (let idx = fromIdx; idx !== destIdx; idx += delta) {
+              onUpdate(['__op', 'field-move'], { index: idx, delta });
+            }
+            clearAllDrafts();
+          }
+        }
+      }
+      setDragState(FIELD_DRAG_IDLE);
+    };
+    const cancel = () => setDragState(FIELD_DRAG_IDLE);
+    window.addEventListener('pointerup', commit);
+    window.addEventListener('pointercancel', cancel);
+    window.addEventListener('blur', cancel);
+    return () => {
+      window.removeEventListener('pointerup', commit);
+      window.removeEventListener('pointercancel', cancel);
+      window.removeEventListener('blur', cancel);
+    };
+  }, [dragState, wrappedFields, fields, onUpdate, clearAllDrafts]);
+
   const pendingSelectRef = useRef<{ name: string; key: EditKey } | null>(null);
 
   useEffect(() => {
@@ -227,6 +328,12 @@ export function useFieldEditor(
     setSelectedEditKey: (key: EditKey) => editorState.setActiveCell((prev) => ({ ...prev, key })),
     activeCell: editorState.activeCell,
     setActiveCell: editorState.setActiveCell,
+
+    // row drag-to-reorder
+    dragState,
+    onDragHandlePointerDown: handleDragHandlePointerDown,
+    onPointerEnterRow: handleDragEnterRow,
+    onDragMove: handleDragMove,
 
     // drafts
     bitsDrafts,
