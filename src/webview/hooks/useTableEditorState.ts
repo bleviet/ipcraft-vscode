@@ -35,6 +35,8 @@ export interface UseTableEditorStateOptions<TRow, TColumnKey extends ColumnKey> 
   onAfterRevert?: (snapshot: TRow[]) => void;
   /** Whether to enable HoverInsertBar tracking. Default: true. */
   enableHoverInsert?: boolean;
+  /** CSS selector matching individual row elements, used by the hover insert bar to find gaps. Required when enableHoverInsert is true. */
+  hoverRowSelector?: string;
   /** Extra dependency values that should trigger the selection clamp effect. */
   clampDeps?: unknown[];
   /** When false the table holds no selection. Default: true. */
@@ -116,6 +118,7 @@ export function useTableEditorState<TRow, TColumnKey extends ColumnKey>({
   onDelete,
   onAfterRevert,
   enableHoverInsert = true,
+  hoverRowSelector,
   clampDeps,
   isActive = true,
 }: UseTableEditorStateOptions<TRow, TColumnKey>): UseTableEditorStateReturn<TColumnKey> {
@@ -173,7 +176,10 @@ export function useTableEditorState<TRow, TColumnKey extends ColumnKey>({
   });
 
   // ---- Hover insert bar ----
-  const hoverInsert = useHoverInsertBar(containerRef as React.RefObject<HTMLElement>);
+  const hoverInsert = useHoverInsertBar(
+    containerRef as React.RefObject<HTMLElement>,
+    hoverRowSelector ?? ''
+  );
 
   // ---- Clamp selection when data changes ----
   const extraDeps = clampDeps ?? [];

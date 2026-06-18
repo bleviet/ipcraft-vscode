@@ -3,6 +3,8 @@ import type { NormalizedAddressBlock, NormalizedRegister } from '../../../domain
 
 export type YamlPath = Array<string | number>;
 
+export type RegisterInsertKind = 'register' | 'flat-array' | 'array';
+
 export type RegisterArrayNode = NormalizedRegister & { __kind: 'array' };
 
 export const isArrayNode = (node: unknown): node is RegisterArrayNode => {

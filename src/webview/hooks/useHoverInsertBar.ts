@@ -4,7 +4,7 @@ export interface UseHoverInsertBarReturn {
   insertHoverGap: number | null;
   insertBarScrollY: number | null;
   tbodyProps: {
-    onMouseMove: (e: React.MouseEvent<HTMLTableSectionElement>) => void;
+    onMouseMove: (e: React.MouseEvent<HTMLElement>) => void;
     onMouseLeave: () => void;
   };
   barProps: {
@@ -14,8 +14,17 @@ export interface UseHoverInsertBarReturn {
   clear: () => void;
 }
 
+/**
+ * Tracks the nearest row-boundary gap while the mouse moves over a row
+ * container, for rendering a hover "insert here" line/button.
+ *
+ * @param rowSelector CSS selector matching the individual row elements to
+ * measure gaps between (e.g. `'tr[data-reg-idx]'` for a table, or
+ * `'[data-outline-row]'` for tree rows rendered as plain divs).
+ */
 export function useHoverInsertBar(
-  containerRef: React.RefObject<HTMLElement>
+  containerRef: React.RefObject<HTMLElement>,
+  rowSelector: string
 ): UseHoverInsertBarReturn {
   const [insertHoverGap, setInsertHoverGap] = useState<number | null>(null);
   const [insertBarScrollY, setInsertBarScrollY] = useState<number | null>(null);
@@ -38,9 +47,9 @@ export function useHoverInsertBar(
     }
   };
 
-  const handleTbodyMouseMove = (e: React.MouseEvent<HTMLTableSectionElement>) => {
+  const handleTbodyMouseMove = (e: React.MouseEvent<HTMLElement>) => {
     cancelInsertClear();
-    const rows = Array.from(e.currentTarget.querySelectorAll<HTMLElement>('tr[data-row-idx]'));
+    const rows = Array.from(e.currentTarget.querySelectorAll<HTMLElement>(rowSelector));
     if (rows.length === 0) {
       return;
     }

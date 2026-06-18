@@ -207,6 +207,7 @@ export function BlockEditor({
       onUpdate(['registers'], newRegs as unknown[]);
     },
     enableHoverInsert: true,
+    hoverRowSelector: 'tr[data-reg-idx]',
     clampDeps: [block?.name],
   });
 
@@ -514,7 +515,14 @@ export function BlockEditor({
         gapIndex={editor.insertHoverGap}
         positionY={editor.insertBarScrollY}
         itemLabel="register"
-        onInsert={insertAtGap}
+        kinds={[
+          { value: 'register', label: 'register', icon: '+' },
+          { value: 'flat-array', label: 'flat array', icon: '[]' },
+          { value: 'array', label: 'nested array', icon: '{}' },
+        ]}
+        onInsert={(gapIndex, kind) =>
+          insertAtGap(gapIndex, (kind as 'register' | 'flat-array' | 'array') ?? 'register')
+        }
         {...editor.insertBarHoverProps}
       />
     </div>
@@ -537,14 +545,6 @@ export function BlockEditor({
           <KeyboardShortcutsButton context="block" />
           <TableContextMenu
             position={contextMenu ? { x: contextMenu.x, y: contextMenu.y } : null}
-            onInsertAbove={() => {
-              const idx = wrappedRegisters.findIndex((w) => w.rowId === contextMenu!.regId);
-              insertAtGap(idx);
-            }}
-            onInsertBelow={() => {
-              const idx = wrappedRegisters.findIndex((w) => w.rowId === contextMenu!.regId);
-              insertAtGap(idx + 1);
-            }}
             onDelete={() => deleteReg(contextMenu!.regId)}
             onClose={closeContextMenu}
           />

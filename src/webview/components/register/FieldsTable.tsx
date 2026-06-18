@@ -1,6 +1,6 @@
 import React from 'react';
 import type { YamlUpdateHandler } from '../../types/editor';
-import { EditableTable } from '../../shared/components';
+import { EditableTable, HoverInsertBar } from '../../shared/components';
 import type { EditKey, FieldEditorState } from '../../hooks/useFieldEditor';
 import FieldTableRow from './FieldTableRow';
 
@@ -69,6 +69,11 @@ export function FieldsTable({ fields, registerSize, onUpdate, fieldEditor }: Fie
     onDragHandlePointerDown,
     onPointerEnterRow,
     onDragMove,
+    insertHoverGap,
+    insertBarScrollY,
+    insertBarTbodyProps,
+    insertBarHoverProps,
+    insertFieldAtGap,
   } = fieldEditor;
 
   const setActiveEditorCell = (
@@ -148,7 +153,7 @@ export function FieldsTable({ fields, registerSize, onUpdate, fieldEditor }: Fie
           ref={focusRef as React.RefObject<HTMLDivElement>}
           tabIndex={0}
           data-fields-table="true"
-          className={`flex-1 overflow-auto min-h-0 outline-none focus:outline-none${dragState.active ? ' cursor-grabbing select-none' : ''}`}
+          className={`flex-1 overflow-auto min-h-0 outline-none focus:outline-none relative${dragState.active ? ' cursor-grabbing select-none' : ''}`}
           style={{ overflowY: 'auto', overflowX: 'auto' }}
         >
           {insertError ? <div className="vscode-error px-4 py-2 text-xs">{insertError}</div> : null}
@@ -181,7 +186,7 @@ export function FieldsTable({ fields, registerSize, onUpdate, fieldEditor }: Fie
                     <th className="px-6 py-3 border-b vscode-border align-middle">Description</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y vscode-border text-sm">
+                <tbody className="divide-y vscode-border text-sm" {...insertBarTbodyProps}>
                   {wrappedFields.map((wrapped, index) => (
                     <FieldTableRow
                       key={wrapped.rowId}
@@ -216,6 +221,13 @@ export function FieldsTable({ fields, registerSize, onUpdate, fieldEditor }: Fie
                 </tbody>
               </>
             )}
+          />
+          <HoverInsertBar
+            gapIndex={insertHoverGap}
+            positionY={insertBarScrollY}
+            itemLabel="field"
+            onInsert={(gapIndex) => insertFieldAtGap(gapIndex)}
+            {...insertBarHoverProps}
           />
         </div>
       </div>

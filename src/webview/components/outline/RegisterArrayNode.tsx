@@ -54,6 +54,7 @@ const RegisterArrayNode = ({
     <div key={id}>
       <div
         data-outline-id={id}
+        data-reg-row="true"
         className={`tree-item ${isSelected ? 'selected' : ''}`}
         role="treeitem"
         aria-expanded={isExpanded}

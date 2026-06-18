@@ -2,9 +2,12 @@ import React, { useEffect, useImperativeHandle, useMemo, useRef, useState } from
 import type { NormalizedMemoryMap, NormalizedRegister } from '../../domain/internal.types';
 import { toHex } from '../utils/formatUtils';
 import { OutlineHeader } from './outline/index';
+import { TableContextMenu, HoverInsertBar } from '../shared/components';
+import { useHoverInsertBar } from '../hooks/useHoverInsertBar';
 import {
   type BlockNode as BlockModel,
   type OutlineSelection,
+  type RegisterInsertKind,
   type YamlPath,
   isArrayNode,
 } from './outline/types';
@@ -18,11 +21,12 @@ interface OutlineProps {
   selectedId: string | null;
   onSelect: (selection: OutlineSelection) => void;
   onRename?: (path: YamlPath, newName: string) => void;
-  onRegisterAction?: (
-    blockIndex: number,
-    regIndex: number,
-    action: 'insertBefore' | 'insertAfter' | 'delete'
-  ) => void;
+  onRegisterDelete?: (blockIndex: number, regIndex: number) => void;
+  onBlockDelete?: (blockIndex: number) => void;
+  /** `gapIndex` is an absolute splice position into the block's `registers` array. */
+  onInsertRegisterAtGap?: (blockIndex: number, gapIndex: number, kind: RegisterInsertKind) => void;
+  /** `gapIndex` is an absolute splice position into `memoryMap.addressBlocks`. */
+  onInsertBlockAtGap?: (gapIndex: number) => void;
 }
 
 export type OutlineHandle = {
@@ -30,7 +34,19 @@ export type OutlineHandle = {
 };
 
 const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
-  ({ memoryMap, selectedId, onSelect, onRename, onRegisterAction }, ref) => {
+  (
+    {
+      memoryMap,
+      selectedId,
+      onSelect,
+      onRename,
+      onRegisterDelete,
+      onBlockDelete,
+      onInsertRegisterAtGap,
+      onInsertBlockAtGap,
+    },
+    ref
+  ) => {
     const memoryMapName = memoryMap.name || 'Memory Map';
 
     const allIds = useMemo(() => {
@@ -55,38 +71,19 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editingValue, setEditingValue] = useState('');
     const editInputRef = useRef<HTMLInputElement | null>(null);
-    const outlineContextMenuRef = useRef<HTMLDivElement | null>(null);
     const [outlineContextMenu, setOutlineContextMenu] = useState<{
       x: number;
       y: number;
+      target: 'register' | 'block';
       blockIndex: number;
-      regIndex: number;
+      regIndex?: number;
     } | null>(null);
 
-    useEffect(() => {
-      if (!outlineContextMenu) {
-        return;
-      }
-      const handlePointerDown = (e: PointerEvent) => {
-        if (
-          outlineContextMenuRef.current &&
-          !outlineContextMenuRef.current.contains(e.target as Node)
-        ) {
-          setOutlineContextMenu(null);
-        }
-      };
-      const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === 'Escape') {
-          setOutlineContextMenu(null);
-        }
-      };
-      document.addEventListener('pointerdown', handlePointerDown);
-      document.addEventListener('keydown', handleKeyDown);
-      return () => {
-        document.removeEventListener('pointerdown', handlePointerDown);
-        document.removeEventListener('keydown', handleKeyDown);
-      };
-    }, [outlineContextMenu]);
+    const openRegisterContextMenu = (blockIndex: number, regIndex: number, x: number, y: number) =>
+      setOutlineContextMenu({ x, y, target: 'register', blockIndex, regIndex });
+
+    const openBlockContextMenu = (blockIndex: number, x: number, y: number) =>
+      setOutlineContextMenu({ x, y, target: 'block', blockIndex });
 
     useEffect(() => {
       if (!selectedId) {
@@ -223,6 +220,23 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
       });
     }, [memoryMap, query]);
 
+    // Resolves a gap position within the *visible* (search-filtered) block list
+    // to an absolute splice index into the unfiltered `memoryMap.addressBlocks`.
+    const resolveBlockGapTarget = (gapIndex: number): number => {
+      if (filteredBlocks.length === 0) {
+        return 0;
+      }
+      if (gapIndex >= filteredBlocks.length) {
+        return filteredBlocks[filteredBlocks.length - 1].index + 1;
+      }
+      return filteredBlocks[gapIndex].index;
+    };
+
+    const blockHoverBar = useHoverInsertBar(
+      treeFocusRef as React.RefObject<HTMLElement>,
+      '[data-block-row]'
+    );
+
     const rootId = ROOT_ID;
     const isRootExpanded = expanded.has(rootId);
     const isRootSelected = selectedId === rootId;
@@ -272,7 +286,9 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
             role="tree"
             aria-label="Memory map outline"
             onKeyDown={onTreeKeyDown}
-            className="outline-none focus:outline-none"
+            className="outline-none focus:outline-none relative"
+            onMouseMove={onInsertBlockAtGap ? blockHoverBar.tbodyProps.onMouseMove : undefined}
+            onMouseLeave={onInsertBlockAtGap ? blockHoverBar.tbodyProps.onMouseLeave : undefined}
           >
             <div
               className={`tree-item ${isRootSelected ? 'selected' : ''} gap-2 text-sm`}
@@ -318,11 +334,26 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
                 renderNameOrEdit={renderNameOrEdit}
                 startEditing={startEditing}
                 onRegisterContextMenu={
-                  onRegisterAction
-                    ? (bi, ri, x, y) =>
-                        setOutlineContextMenu({ x, y, blockIndex: bi, regIndex: ri })
+                  onRegisterDelete
+                    ? (bi, ri, x, y) => openRegisterContextMenu(bi, ri, x, y)
                     : undefined
                 }
+                onBlockContextMenu={
+                  onBlockDelete ? (bi, x, y) => openBlockContextMenu(bi, x, y) : undefined
+                }
+                onInsertRegisterAtGap={onInsertRegisterAtGap}
+              />
+            )}
+            {onInsertBlockAtGap && (
+              <HoverInsertBar
+                gapIndex={blockHoverBar.insertHoverGap}
+                positionY={blockHoverBar.insertBarScrollY}
+                itemLabel="block"
+                onInsert={(gapIndex) => {
+                  onInsertBlockAtGap(resolveBlockGapTarget(gapIndex));
+                  blockHoverBar.clear();
+                }}
+                {...blockHoverBar.barProps}
               />
             )}
           </div>
@@ -331,59 +362,22 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
           <span>{filteredBlocks.length} Items</span>
           <span>Base: {toHex(memoryMap.addressBlocks?.[0]?.baseAddress ?? 0)}</span>
         </div>
-        {outlineContextMenu && onRegisterAction && (
-          <div
-            ref={outlineContextMenuRef}
-            className="fixed z-[200] min-w-[160px] rounded-lg shadow-xl border vscode-border vscode-surface overflow-hidden text-sm"
-            style={{ left: outlineContextMenu.x, top: outlineContextMenu.y }}
-            onPointerDown={(e) => e.stopPropagation()}
-          >
-            <button
-              className="w-full text-left px-4 py-2 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
-              onClick={() => {
-                onRegisterAction(
-                  outlineContextMenu.blockIndex,
-                  outlineContextMenu.regIndex,
-                  'insertBefore'
-                );
-                setOutlineContextMenu(null);
-              }}
-            >
-              <span className="codicon codicon-arrow-up text-xs" />
-              Insert Above
-            </button>
-            <button
-              className="w-full text-left px-4 py-2 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
-              onClick={() => {
-                onRegisterAction(
-                  outlineContextMenu.blockIndex,
-                  outlineContextMenu.regIndex,
-                  'insertAfter'
-                );
-                setOutlineContextMenu(null);
-              }}
-            >
-              <span className="codicon codicon-arrow-down text-xs" />
-              Insert Below
-            </button>
-            <div className="border-t vscode-border my-0.5" />
-            <button
-              className="w-full text-left px-4 py-2 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
-              style={{ color: 'var(--vscode-errorForeground)' }}
-              onClick={() => {
-                onRegisterAction(
-                  outlineContextMenu.blockIndex,
-                  outlineContextMenu.regIndex,
-                  'delete'
-                );
-                setOutlineContextMenu(null);
-              }}
-            >
-              <span className="codicon codicon-trash text-xs" />
-              Delete
-            </button>
-          </div>
-        )}
+        <TableContextMenu
+          position={
+            outlineContextMenu ? { x: outlineContextMenu.x, y: outlineContextMenu.y } : null
+          }
+          onDelete={() => {
+            if (!outlineContextMenu) {
+              return;
+            }
+            if (outlineContextMenu.target === 'register') {
+              onRegisterDelete?.(outlineContextMenu.blockIndex, outlineContextMenu.regIndex ?? 0);
+            } else {
+              onBlockDelete?.(outlineContextMenu.blockIndex);
+            }
+          }}
+          onClose={() => setOutlineContextMenu(null)}
+        />
       </>
     );
   }

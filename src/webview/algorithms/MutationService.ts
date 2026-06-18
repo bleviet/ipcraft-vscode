@@ -27,6 +27,7 @@ import { formatBitsRange } from '../utils/BitFieldUtils';
 
 export type Layer = 'block' | 'register' | 'field';
 export type InsertMode = 'before' | 'after';
+export type RegisterKind = 'register' | 'flat-array' | 'array';
 
 /** Path to a parent container in the memory map hierarchy. */
 export interface ParentPath {
@@ -97,6 +98,53 @@ function defaultRegister(name: string): LayoutRegister {
   };
 }
 
+/** Create a default flat array register (count/stride, no nested registers). */
+function defaultFlatArray(name: string): LayoutRegister {
+  return {
+    name,
+    offset: 0,
+    address_offset: 0,
+    count: 2,
+    stride: 4,
+    description: '',
+  };
+}
+
+/** Create a default nested register array (count/stride + template registers). */
+function defaultArray(name: string): LayoutRegister {
+  return {
+    __kind: 'array',
+    name,
+    offset: 0,
+    address_offset: 0,
+    count: 2,
+    stride: 4,
+    description: '',
+    registers: [
+      {
+        name: 'reg0',
+        offset: 0,
+        address_offset: 0,
+        description: '',
+        fields: [{ name: 'data', bits: '[31:0]', access: 'read-write', description: '' }],
+      },
+    ],
+  };
+}
+
+/** Build a register node of the requested kind with a sequential name. */
+function buildRegisterOfKind(kind: RegisterKind, items: { name?: string }[]): LayoutRegister {
+  const prefix = kind === 'array' ? 'array' : kind === 'flat-array' ? 'regArray' : 'reg';
+  const name = nextSequentialName(items, prefix);
+  if (kind === 'array') {
+    return defaultArray(name);
+  }
+  if (kind === 'flat-array') {
+    return defaultFlatArray(name);
+  }
+  return defaultRegister(name);
+}
+
 /** Create a default block with one register. */
 function defaultBlock(name: string): LayoutBlock {
   return {
@@ -126,7 +174,8 @@ export function insertElement(
   layer: Layer,
   mode: InsertMode,
   targetIndex: number,
-  parentPath?: ParentPath
+  parentPath?: ParentPath,
+  kind?: RegisterKind
 ): MutationResult {
   const map = cloneMap(memoryMap);
   const blocks = getBlocks(map);
@@ -161,9 +210,10 @@ export function insertElement(
       };
     }
     const regs = block.registers ?? [];
-    const name = nextSequentialName(regs, 'reg');
+    const newReg = buildRegisterOfKind(kind ?? 'register', regs);
+    const name = newReg.name ?? '';
     const insertIdx = computeInsertIndex(targetIndex, regs.length, mode);
-    regs.splice(insertIdx, 0, defaultRegister(name));
+    regs.splice(insertIdx, 0, newReg);
     block.registers = regs;
     setBlocks(map, blocks);
 
@@ -513,4 +563,20 @@ function computeInsertIndex(targetIndex: number, arrayLength: number, mode: Inse
   }
   const clamped = targetIndex < 0 ? arrayLength - 1 : Math.min(targetIndex, arrayLength - 1);
   return mode === 'after' ? clamped + 1 : clamped;
+}
+
+/**
+ * Converts an absolute splice position (e.g. from a hover insert bar's gap
+ * index) into the `(mode, targetIndex)` pair `insertElement` expects.
+ * `computeInsertIndex` can't represent "append at the very end" with
+ * `mode: 'before'` alone, since it clamps `targetIndex` to `arrayLength - 1`.
+ */
+export function gapToInsertMode(
+  spliceIndex: number,
+  arrayLength: number
+): { mode: InsertMode; targetIndex: number } {
+  if (arrayLength === 0 || spliceIndex < arrayLength) {
+    return { mode: 'before', targetIndex: spliceIndex };
+  }
+  return { mode: 'after', targetIndex: arrayLength - 1 };
 }

@@ -2,6 +2,7 @@ import {
   insertElement,
   deleteElement,
   relocateElement,
+  gapToInsertMode,
 } from '../../../webview/algorithms/MutationService';
 import type { LayoutMemoryMap } from '../../../webview/algorithms/LayoutEngine';
 
@@ -378,5 +379,21 @@ describe('MutationService.relocateElement', () => {
       expect(getBlocks(map)[0].registers![0].name).toBe(originalName);
       expect(getBlocks(map)[0].registers).toHaveLength(3);
     });
+  });
+});
+
+describe('gapToInsertMode', () => {
+  it('maps a gap before an existing item to mode "before" at that index', () => {
+    expect(gapToInsertMode(0, 3)).toEqual({ mode: 'before', targetIndex: 0 });
+    expect(gapToInsertMode(1, 3)).toEqual({ mode: 'before', targetIndex: 1 });
+    expect(gapToInsertMode(2, 3)).toEqual({ mode: 'before', targetIndex: 2 });
+  });
+
+  it('maps the trailing gap (append) to mode "after" at the last index', () => {
+    expect(gapToInsertMode(3, 3)).toEqual({ mode: 'after', targetIndex: 2 });
+  });
+
+  it('maps any gap into an empty array to mode "before" at index 0', () => {
+    expect(gapToInsertMode(0, 0)).toEqual({ mode: 'before', targetIndex: 0 });
   });
 });

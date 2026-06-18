@@ -26,7 +26,7 @@ export type { EditableTableProps, EditableTableColumn } from './EditableTable';
 export type { WidthFieldProps, WidthParameter } from './WidthField';
 export type { EditorHeaderProps } from './EditorHeader';
 export type { TwoPanelEditorLayoutProps } from './TwoPanelEditorLayout';
-export type { HoverInsertBarProps } from './HoverInsertBar';
+export type { HoverInsertBarProps, HoverInsertKind } from './HoverInsertBar';
 export type { TableContextMenuProps } from './TableContextMenu';
 export type { EditableCellProps } from './EditableCell';
 export type { CellInputProps } from './CellInput';

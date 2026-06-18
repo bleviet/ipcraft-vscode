@@ -13,7 +13,7 @@ import { useOutlineRename } from './hooks/useOutlineRename';
 import { useDetailsNavigation } from './hooks/useDetailsNavigation';
 import { useYamlUpdateHandler } from './hooks/useYamlUpdateHandler';
 import { useLayoutToggle } from './hooks/useLayoutToggle';
-import { insertElement, deleteElement } from './algorithms/MutationService';
+import { insertElement, deleteElement, gapToInsertMode } from './algorithms/MutationService';
 import { recomputeRegisterLayout } from './algorithms/LayoutEngine';
 import type { LayoutMemoryMap, LayoutRegister } from './algorithms/LayoutEngine';
 import { YamlService } from './services/YamlService';
@@ -135,60 +135,133 @@ const App = () => {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
 
-  const handleRegisterAction = (
-    blockIndex: number,
-    regIndex: number,
-    action: 'insertBefore' | 'insertAfter' | 'delete'
-  ) => {
+  /** Parses the current document and resolves the live memory-map root + its selection-relative path. */
+  const getMapObj = () => {
     const rootObj = YamlService.safeParse(rawTextRef.current);
     if (!rootObj) {
-      return;
+      return null;
     }
     const { root, selectionRootPath } = YamlPathResolver.getMapRootInfo(rootObj);
     const mapObj =
       selectionRootPath.length > 0
         ? (YamlPathResolver.getAtPath(root, selectionRootPath) as LayoutMemoryMap)
         : (root as LayoutMemoryMap);
+    return { mapObj, selectionRootPath };
+  };
 
-    let result;
-    if (action === 'delete') {
-      result = deleteElement(mapObj, 'register', regIndex, { blockIndex });
-    } else {
-      result = insertElement(
-        mapObj,
-        'register',
-        action === 'insertBefore' ? 'before' : 'after',
-        regIndex,
-        { blockIndex }
-      );
+  /** Writes back only the affected block's `registers` array, preserving formatting/comments elsewhere. */
+  const writeBlockRegisters = (
+    selectionRootPath: YamlPath,
+    blockIndex: number,
+    resultMemoryMap: LayoutMemoryMap
+  ) => {
+    const blocks = (resultMemoryMap.addressBlocks ??
+      resultMemoryMap.address_blocks ??
+      []) as Record<string, unknown>[];
+    const block = blocks[blockIndex];
+    if (!block) {
+      return;
     }
+    const width = blockRegWidth(block);
+    const regs = (Array.isArray(block.registers) ? block.registers : []) as Record<
+      string,
+      unknown
+    >[];
+    const sanitizedRegs = regs.map((r) => serializeValue(r, width) as Record<string, unknown>);
+    const newText = YamlService.applyPathEdits(rawTextRef.current, [
+      {
+        path: [...selectionRootPath, 'addressBlocks', blockIndex, 'registers'],
+        value: sanitizedRegs,
+      },
+    ]);
+    if (newText !== rawTextRef.current) {
+      updateRawText(newText);
+      sendUpdate(newText);
+    }
+  };
 
+  /** Writes back the full `addressBlocks` array. */
+  const writeAddressBlocks = (selectionRootPath: YamlPath, resultMemoryMap: LayoutMemoryMap) => {
+    const blocks = (resultMemoryMap.addressBlocks ??
+      resultMemoryMap.address_blocks ??
+      []) as Record<string, unknown>[];
+    const sanitizedBlocks = blocks.map((b) => {
+      const width = blockRegWidth(b);
+      const regs = (Array.isArray(b.registers) ? b.registers : []) as Record<string, unknown>[];
+      return {
+        ...b,
+        registers: regs.map((r) => serializeValue(r, width) as Record<string, unknown>),
+      };
+    });
+    const newText = YamlService.applyPathEdits(rawTextRef.current, [
+      {
+        path: [...selectionRootPath, 'addressBlocks'],
+        value: sanitizedBlocks,
+      },
+    ]);
+    if (newText !== rawTextRef.current) {
+      updateRawText(newText);
+      sendUpdate(newText);
+    }
+  };
+
+  const handleRegisterDelete = (blockIndex: number, regIndex: number) => {
+    const ctx = getMapObj();
+    if (!ctx) {
+      return;
+    }
+    const result = deleteElement(ctx.mapObj, 'register', regIndex, { blockIndex });
     if (result.errors.length === 0) {
-      // Write only the affected block's registers array so the rest of the
-      // document keeps its formatting and comments.
-      const blocks = (result.memoryMap.addressBlocks ??
-        result.memoryMap.address_blocks ??
-        []) as Record<string, unknown>[];
-      const block = blocks[blockIndex];
-      if (!block) {
-        return;
-      }
-      const width = blockRegWidth(block);
-      const regs = (Array.isArray(block.registers) ? block.registers : []) as Record<
-        string,
-        unknown
-      >[];
-      const sanitizedRegs = regs.map((r) => serializeValue(r, width) as Record<string, unknown>);
-      const newText = YamlService.applyPathEdits(rawTextRef.current, [
-        {
-          path: [...selectionRootPath, 'addressBlocks', blockIndex, 'registers'],
-          value: sanitizedRegs,
-        },
-      ]);
-      if (newText !== rawTextRef.current) {
-        updateRawText(newText);
-        sendUpdate(newText);
-      }
+      writeBlockRegisters(ctx.selectionRootPath, blockIndex, result.memoryMap);
+    }
+  };
+
+  /** `gapIndex` is an absolute splice position into the block's `registers` array. */
+  const handleInsertRegisterAtGap = (
+    blockIndex: number,
+    gapIndex: number,
+    kind: 'register' | 'flat-array' | 'array'
+  ) => {
+    const ctx = getMapObj();
+    if (!ctx) {
+      return;
+    }
+    const blocks = (ctx.mapObj.addressBlocks ?? ctx.mapObj.address_blocks ?? []) as Record<
+      string,
+      unknown
+    >[];
+    const regs = (
+      Array.isArray(blocks[blockIndex]?.registers) ? blocks[blockIndex].registers : []
+    ) as unknown[];
+    const { mode, targetIndex } = gapToInsertMode(gapIndex, regs.length);
+    const result = insertElement(ctx.mapObj, 'register', mode, targetIndex, { blockIndex }, kind);
+    if (result.errors.length === 0) {
+      writeBlockRegisters(ctx.selectionRootPath, blockIndex, result.memoryMap);
+    }
+  };
+
+  const handleBlockDelete = (blockIndex: number) => {
+    const ctx = getMapObj();
+    if (!ctx) {
+      return;
+    }
+    const result = deleteElement(ctx.mapObj, 'block', blockIndex);
+    if (result.errors.length === 0) {
+      writeAddressBlocks(ctx.selectionRootPath, result.memoryMap);
+    }
+  };
+
+  /** `gapIndex` is an absolute splice position into `memoryMap.addressBlocks`. */
+  const handleInsertBlockAtGap = (gapIndex: number) => {
+    const ctx = getMapObj();
+    if (!ctx) {
+      return;
+    }
+    const blocks = (ctx.mapObj.addressBlocks ?? ctx.mapObj.address_blocks ?? []) as unknown[];
+    const { mode, targetIndex } = gapToInsertMode(gapIndex, blocks.length);
+    const result = insertElement(ctx.mapObj, 'block', mode, targetIndex);
+    if (result.errors.length === 0) {
+      writeAddressBlocks(ctx.selectionRootPath, result.memoryMap);
     }
   };
 
@@ -321,7 +394,10 @@ const App = () => {
           selectedId={selectedId}
           onSelect={handleSelect}
           onRename={handleOutlineRename}
-          onRegisterAction={handleRegisterAction}
+          onRegisterDelete={handleRegisterDelete}
+          onBlockDelete={handleBlockDelete}
+          onInsertRegisterAtGap={handleInsertRegisterAtGap}
+          onInsertBlockAtGap={handleInsertBlockAtGap}
         />
         <div
           className="sidebar-resize-handle"

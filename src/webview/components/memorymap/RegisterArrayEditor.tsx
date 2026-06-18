@@ -5,6 +5,7 @@ import {
   KeyboardShortcutsButton,
   EditorHeader,
   TwoPanelEditorLayout,
+  HoverInsertBar,
 } from '../../shared/components';
 import RegisterMapVisualizer from '../RegisterMapVisualizer';
 import type { RegisterModel } from '../../types/registerModel';
@@ -226,7 +227,8 @@ export function RegisterArrayEditor({
         editor.selectRow(nextRow);
       }, 0);
     },
-    enableHoverInsert: false,
+    enableHoverInsert: true,
+    hoverRowSelector: 'tr[data-reg-idx]',
     clampDeps: [arr?.name],
   });
 
@@ -269,7 +271,7 @@ export function RegisterArrayEditor({
       ref={editor.containerRef as React.RefObject<HTMLDivElement>}
       tabIndex={0}
       data-registers-table="true"
-      className={`flex-1 overflow-auto min-h-0 outline-none focus:outline-none${dragState.active ? ' cursor-grabbing select-none' : ''}`}
+      className={`flex-1 overflow-auto min-h-0 outline-none focus:outline-none relative${dragState.active ? ' cursor-grabbing select-none' : ''}`}
     >
       <table className="w-full text-left border-collapse table-fixed">
         <colgroup>
@@ -288,7 +290,11 @@ export function RegisterArrayEditor({
             <th className="px-6 py-3 border-b vscode-border align-middle">Description</th>
           </tr>
         </thead>
-        <tbody ref={tbodyRef} className="divide-y vscode-border text-sm">
+        <tbody
+          ref={tbodyRef}
+          className="divide-y vscode-border text-sm"
+          {...editor.insertBarTbodyProps}
+        >
           {wrappedRegisters.map((wrapped: TableRowWrapper<RegisterModel>, idx: number) => (
             <RegisterTableRow
               key={wrapped.rowId}
@@ -338,6 +344,13 @@ export function RegisterArrayEditor({
           )}
         </tbody>
       </table>
+      <HoverInsertBar
+        gapIndex={editor.insertHoverGap}
+        positionY={editor.insertBarScrollY}
+        itemLabel="register"
+        onInsert={(gapIndex) => insertNestedReg(gapIndex)}
+        {...editor.insertBarHoverProps}
+      />
     </div>
   );
 

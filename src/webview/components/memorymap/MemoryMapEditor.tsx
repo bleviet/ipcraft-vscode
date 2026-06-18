@@ -148,6 +148,7 @@ export function MemoryMapEditor({
     onInsertBefore: () => tryInsertBlock(false),
     onDelete: deleteBlock,
     enableHoverInsert: true,
+    hoverRowSelector: 'tr[data-block-idx]',
     clampDeps: [memoryMap?.name],
   });
 
@@ -369,7 +370,7 @@ export function MemoryMapEditor({
         gapIndex={editor.insertHoverGap}
         positionY={editor.insertBarScrollY}
         itemLabel="block"
-        onInsert={insertAtGap}
+        onInsert={(gapIndex) => insertAtGap(gapIndex)}
         {...editor.insertBarHoverProps}
       />
     </div>
@@ -392,14 +393,6 @@ export function MemoryMapEditor({
           <KeyboardShortcutsButton context="memoryMap" />
           <TableContextMenu
             position={contextMenu ? { x: contextMenu.x, y: contextMenu.y } : null}
-            onInsertAbove={() => {
-              const idx = wrappedBlocks.findIndex((w) => w.rowId === contextMenu!.blockId);
-              insertAtGap(idx);
-            }}
-            onInsertBelow={() => {
-              const idx = wrappedBlocks.findIndex((w) => w.rowId === contextMenu!.blockId);
-              insertAtGap(idx + 1);
-            }}
             onDelete={() => deleteBlock(contextMenu!.blockId)}
             onClose={closeContextMenu}
           />

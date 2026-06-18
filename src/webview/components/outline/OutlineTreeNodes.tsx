@@ -5,6 +5,7 @@ import { BlockNode as OutlineBlockNode, RegisterArrayNode, RegisterNode } from '
 import {
   BlockNode as BlockModel,
   OutlineSelection,
+  RegisterInsertKind,
   RenderNameOrEdit,
   YamlPath,
   isArrayNode,
@@ -23,6 +24,8 @@ interface OutlineTreeNodesProps {
   renderNameOrEdit: RenderNameOrEdit;
   startEditing?: (id: string, name: string) => void;
   onRegisterContextMenu?: (blockIndex: number, regIndex: number, x: number, y: number) => void;
+  onBlockContextMenu?: (blockIndex: number, x: number, y: number) => void;
+  onInsertRegisterAtGap?: (blockIndex: number, gapIndex: number, kind: RegisterInsertKind) => void;
 }
 
 function renderLeafRegister(
@@ -37,7 +40,8 @@ function renderLeafRegister(
   blockIndex: number,
   regIndex: number,
   paddingLeft = '40px',
-  onRegisterContextMenu?: (blockIndex: number, regIndex: number, x: number, y: number) => void
+  onRegisterContextMenu?: (blockIndex: number, regIndex: number, x: number, y: number) => void,
+  rowIdx?: number
 ) {
   const id = registerId(blockIndex, regIndex);
   const isSelected = selectedId === id;
@@ -70,6 +74,7 @@ function renderLeafRegister(
       paddingLeft={paddingLeft}
       name={renderNameOrEdit(id, reg.name, path, 'flex-1')}
       offsetLabel={`@ ${toHex(absolute)}`}
+      rowIdx={rowIdx}
       onContextMenu={
         onRegisterContextMenu
           ? (e) => {
@@ -94,6 +99,8 @@ const OutlineTreeNodes = ({
   renderNameOrEdit,
   startEditing,
   onRegisterContextMenu,
+  onBlockContextMenu,
+  onInsertRegisterAtGap,
 }: OutlineTreeNodesProps) => {
   return (
     <>
@@ -108,8 +115,10 @@ const OutlineTreeNodes = ({
             key={id}
             id={id}
             block={block}
+            blockIndex={blockIndex}
             isSelected={isSelected}
             isExpanded={isExpanded}
+            onInsertRegisterAtGap={onInsertRegisterAtGap}
             onClick={() => {
               onFocusTree();
               onSelect({
@@ -122,6 +131,14 @@ const OutlineTreeNodes = ({
             }}
             onToggleExpand={(e) => onToggleExpand(id, e)}
             onDoubleClick={() => startEditing?.(id, block.name ?? '')}
+            onContextMenu={
+              onBlockContextMenu
+                ? (e) => {
+                    e.preventDefault();
+                    onBlockContextMenu(blockIndex, e.clientX, e.clientY);
+                  }
+                : undefined
+            }
             name={renderNameOrEdit(id, block.name, ['addressBlocks', blockIndex], 'flex-1')}
           >
             {regsAny.map((node, idx) => {
@@ -159,7 +176,8 @@ const OutlineTreeNodes = ({
                 blockIndex,
                 idx,
                 '40px',
-                onRegisterContextMenu
+                onRegisterContextMenu,
+                idx
               );
             })}
           </OutlineBlockNode>

@@ -108,7 +108,8 @@ export function useFieldEditor(
     columnOrder: COLUMN_ORDER,
     onUpdate,
     rowSelectorAttr: 'data-row-id',
-    enableHoverInsert: false, // fields don't use HoverInsertBar
+    enableHoverInsert: true,
+    hoverRowSelector: 'tr[data-field-idx]',
     isActive,
     onAfterRevert: (snapshot: BitFieldRecord[]) => {
       const rowId = editorState.activeCell.rowId;
@@ -291,6 +292,30 @@ export function useFieldEditor(
     [fields, editorState.selectedIndex, registerSize, onUpdate, editorState, clearAllDrafts]
   );
 
+  /** Inserts a field at an exact gap index (used by the hover insert bar), independent of selection. */
+  const insertFieldAtGap = useCallback(
+    (gapIndex: number) => {
+      setInsertError(null);
+      const typedFields = toRuntimeFields(fields);
+      const result =
+        gapIndex === 0
+          ? SpatialInsertionService.insertField('before', typedFields, 0, registerSize)
+          : SpatialInsertionService.insertField('after', typedFields, gapIndex - 1, registerSize);
+
+      if (result.error) {
+        setInsertError(result.error);
+        return;
+      }
+
+      const newIndex = result.newIndex;
+      pendingSelectRef.current = { name: result.items[newIndex].name, key: 'name' };
+      onUpdate(['fields'], result.items);
+      clearAllDrafts();
+      editorState.clearInsertBar();
+    },
+    [fields, registerSize, onUpdate, clearAllDrafts, editorState]
+  );
+
   /** Moves the currently selected field up (-1) or down (+1). */
   const moveSelectedField = useCallback(
     (delta: -1 | 1) => {
@@ -350,6 +375,13 @@ export function useFieldEditor(
     // insert error
     insertError,
     setInsertError,
+
+    // hover insert bar
+    insertHoverGap: editorState.insertHoverGap,
+    insertBarScrollY: editorState.insertBarScrollY,
+    insertBarTbodyProps: editorState.insertBarTbodyProps,
+    insertBarHoverProps: editorState.insertBarHoverProps,
+    insertFieldAtGap,
 
     // refs
     focusRef: editorState.containerRef,
