@@ -5,6 +5,7 @@ interface RegisterNodeProps {
   isSelected: boolean;
   onClick: () => void;
   onContextMenu?: (e: React.MouseEvent) => void;
+  onDoubleClick?: () => void;
   paddingLeft: string;
   name: React.ReactNode;
   offsetLabel: string;
@@ -14,6 +15,7 @@ const RegisterNode = ({
   id,
   isSelected,
   onClick,
+  onDoubleClick,
   onContextMenu,
   paddingLeft,
   name,
@@ -27,6 +29,7 @@ const RegisterNode = ({
       role="treeitem"
       aria-selected={isSelected}
       onClick={onClick}
+      onDoubleClick={onDoubleClick}
       onContextMenu={onContextMenu}
       style={{ paddingLeft }}
     >

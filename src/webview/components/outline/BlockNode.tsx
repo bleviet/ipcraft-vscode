@@ -7,6 +7,7 @@ interface BlockNodeProps {
   isSelected: boolean;
   isExpanded: boolean;
   onClick: () => void;
+  onDoubleClick?: () => void;
   onToggleExpand: (e: React.MouseEvent) => void;
   name: React.ReactNode;
   children?: React.ReactNode;
@@ -18,6 +19,7 @@ const BlockNode = ({
   isSelected,
   isExpanded,
   onClick,
+  onDoubleClick,
   onToggleExpand,
   name,
   children,
@@ -31,6 +33,7 @@ const BlockNode = ({
         aria-expanded={isExpanded}
         aria-selected={isSelected}
         onClick={onClick}
+        onDoubleClick={onDoubleClick}
         style={{ paddingLeft: '20px' }}
       >
         <span

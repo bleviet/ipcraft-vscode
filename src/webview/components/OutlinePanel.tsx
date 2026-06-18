@@ -290,6 +290,7 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
                   path: [],
                 });
               }}
+              onDoubleClick={() => startEditing(rootId, memoryMapName)}
             >
               <span
                 className={`codicon codicon-chevron-${isRootExpanded ? 'down' : 'right'} text-[16px] ${
@@ -313,6 +314,7 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
                 onFocusTree={() => treeFocusRef.current?.focus()}
                 onSelect={onSelect}
                 renderNameOrEdit={renderNameOrEdit}
+                startEditing={startEditing}
                 onRegisterContextMenu={
                   onRegisterAction
                     ? (bi, ri, x, y) =>

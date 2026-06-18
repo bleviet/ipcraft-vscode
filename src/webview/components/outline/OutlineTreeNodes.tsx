@@ -21,6 +21,7 @@ interface OutlineTreeNodesProps {
   onFocusTree: () => void;
   onSelect: (selection: OutlineSelection) => void;
   renderNameOrEdit: RenderNameOrEdit;
+  startEditing?: (id: string, name: string) => void;
   onRegisterContextMenu?: (blockIndex: number, regIndex: number, x: number, y: number) => void;
 }
 
@@ -31,6 +32,7 @@ function renderLeafRegister(
   onFocusTree: () => void,
   onSelect: (selection: OutlineSelection) => void,
   renderNameOrEdit: RenderNameOrEdit,
+  startEditing: ((id: string, name: string) => void) | undefined,
   reg: NormalizedRegister,
   blockIndex: number,
   regIndex: number,
@@ -64,6 +66,7 @@ function renderLeafRegister(
           },
         });
       }}
+      onDoubleClick={() => startEditing?.(id, reg.name ?? '')}
       paddingLeft={paddingLeft}
       name={renderNameOrEdit(id, reg.name, path, 'flex-1')}
       offsetLabel={`@ ${toHex(absolute)}`}
@@ -89,6 +92,7 @@ const OutlineTreeNodes = ({
   onFocusTree,
   onSelect,
   renderNameOrEdit,
+  startEditing,
   onRegisterContextMenu,
 }: OutlineTreeNodesProps) => {
   return (
@@ -117,7 +121,8 @@ const OutlineTreeNodes = ({
               });
             }}
             onToggleExpand={(e) => onToggleExpand(id, e)}
-            name={renderNameOrEdit(id, block.name, ['addressBlocks', blockIndex])}
+            onDoubleClick={() => startEditing?.(id, block.name ?? '')}
+            name={renderNameOrEdit(id, block.name, ['addressBlocks', blockIndex], 'flex-1')}
           >
             {regsAny.map((node, idx) => {
               if (isArrayNode(node)) {
@@ -134,6 +139,9 @@ const OutlineTreeNodes = ({
                     onToggleExpand={onToggleExpand}
                     onFocusTree={onFocusTree}
                     onSelect={onSelect}
+                    onDoubleClick={() =>
+                      startEditing?.(registerId(blockIndex, idx), node.name ?? '')
+                    }
                     renderNameOrEdit={renderNameOrEdit}
                   />
                 );
@@ -145,6 +153,7 @@ const OutlineTreeNodes = ({
                 onFocusTree,
                 onSelect,
                 renderNameOrEdit,
+                startEditing,
                 node,
                 blockIndex,
                 idx,

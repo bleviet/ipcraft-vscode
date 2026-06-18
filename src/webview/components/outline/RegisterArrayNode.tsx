@@ -21,6 +21,7 @@ interface RegisterArrayNodeProps {
   onToggleExpand: (id: string, e: React.MouseEvent) => void;
   onFocusTree: () => void;
   onSelect: (selection: OutlineSelection) => void;
+  onDoubleClick?: () => void;
   renderNameOrEdit: RenderNameOrEdit;
 }
 
@@ -35,6 +36,7 @@ const RegisterArrayNode = ({
   onToggleExpand,
   onFocusTree,
   onSelect,
+  onDoubleClick,
   renderNameOrEdit,
 }: RegisterArrayNodeProps) => {
   const id = `block-${blockIndex}-arrreg-${regIndex}`;
@@ -68,6 +70,7 @@ const RegisterArrayNode = ({
             },
           });
         }}
+        onDoubleClick={onDoubleClick}
         style={{ paddingLeft: '40px' }}
       >
         <span
