@@ -143,6 +143,7 @@ const OutlineTreeNodes = ({
                       startEditing?.(registerId(blockIndex, idx), node.name ?? '')
                     }
                     renderNameOrEdit={renderNameOrEdit}
+                    startEditing={startEditing}
                   />
                 );
               }

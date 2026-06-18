@@ -23,6 +23,7 @@ interface RegisterArrayNodeProps {
   onSelect: (selection: OutlineSelection) => void;
   onDoubleClick?: () => void;
   renderNameOrEdit: RenderNameOrEdit;
+  startEditing?: (id: string, name: string) => void;
 }
 
 const RegisterArrayNode = ({
@@ -38,6 +39,7 @@ const RegisterArrayNode = ({
   onSelect,
   onDoubleClick,
   renderNameOrEdit,
+  startEditing,
 }: RegisterArrayNodeProps) => {
   const id = `block-${blockIndex}-arrreg-${regIndex}`;
   const isSelected = selectedId === id;
@@ -160,6 +162,7 @@ const RegisterArrayNode = ({
                           },
                         });
                       }}
+                      onDoubleClick={() => startEditing?.(childId, reg.name ?? '')}
                       paddingLeft="80px"
                       name={renderNameOrEdit(childId, reg.name, path)}
                       offsetLabel={`@ ${toHex(absolute)}`}
