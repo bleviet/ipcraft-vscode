@@ -133,6 +133,28 @@ body {
     border: 1px solid color-mix(in srgb, var(--vscode-badge-foreground) 22%, transparent);
 }
 
+.bitfield-help-popover {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    z-index: 30;
+    padding: 6px 8px;
+    border-radius: 4px;
+    background: var(--vscode-editorHoverWidget-background, var(--vscode-editorWidget-background));
+    border: 1px solid var(--vscode-editorHoverWidget-border, var(--vscode-panel-border));
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    white-space: nowrap;
+}
+
+.bitfield-help-popover__row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 2px 0;
+    font-size: 11px;
+    color: var(--vscode-foreground);
+}
+
 .fpga-grid-bg {
     background-image:
         linear-gradient(to right, color-mix(in srgb, var(--vscode-foreground) 12%, transparent) 1px, transparent 1px),

@@ -38,6 +38,47 @@ export interface FieldModel {
   monitorChangeOf?: string | null;
 }
 
+const GESTURE_HELP: Array<{ keys: string; description: string }> = [
+  { keys: 'Shift + Drag', description: 'Resize or create field' },
+  { keys: 'Ctrl/⌘ + Drag', description: 'Move field (translate)' },
+  { keys: 'Click bit', description: 'Toggle bit value (0/1)' },
+];
+
+/**
+ * Drag gestures (Shift/Ctrl+drag) have no visible affordance, so this is the
+ * one place that teaches them: an (i) icon the user only needs to hover once.
+ */
+const BitFieldGestureHelp: React.FC = () => {
+  const [open, setOpen] = useState(false);
+  return (
+    <div
+      className="absolute top-1 right-1 z-20"
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+      onFocus={() => setOpen(true)}
+      onBlur={() => setOpen(false)}
+    >
+      <i
+        className="codicon codicon-info vscode-muted cursor-help"
+        style={{ fontSize: '14px' }}
+        tabIndex={0}
+        role="button"
+        aria-label="Bit field gestures"
+      />
+      {open && (
+        <div className="bitfield-help-popover" role="tooltip">
+          {GESTURE_HELP.map(({ keys, description }) => (
+            <div key={keys} className="bitfield-help-popover__row">
+              <kbd className="vscode-badge px-1 py-0.5 rounded font-mono text-[10px]">{keys}</kbd>
+              <span>{description}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 interface BitFieldVisualizerProps {
   fields: FieldModel[];
   hoveredFieldIndex?: number | null;
@@ -344,43 +385,52 @@ const BitFieldVisualizerInner: React.FC<BitFieldVisualizerProps> = ({
 
     if (layout === 'vertical') {
       return (
-        <VerticalLayoutView
-          {...sharedProps}
-          interactions={{ ...sharedProps.interactions, getResizableEdges }}
-          layoutConfig={{ bitOwners, registerSize, valueView, valueBar }}
-        />
+        <div className="relative">
+          <BitFieldGestureHelp />
+          <VerticalLayoutView
+            {...sharedProps}
+            interactions={{ ...sharedProps.interactions, getResizableEdges }}
+            layoutConfig={{ bitOwners, registerSize, valueView, valueBar }}
+          />
+        </div>
       );
     }
 
     return (
-      <ProLayoutView
-        {...sharedProps}
-        interactions={{ ...sharedProps.interactions, getResizableEdges }}
-        layoutConfig={{ bitOwners, registerSize, valueView, valueBar }}
-      />
+      <div className="relative">
+        <BitFieldGestureHelp />
+        <ProLayoutView
+          {...sharedProps}
+          interactions={{ ...sharedProps.interactions, getResizableEdges }}
+          layoutConfig={{ bitOwners, registerSize, valueView, valueBar }}
+        />
+      </div>
     );
   }
 
   return (
-    <DefaultLayoutView
-      bits={bits}
-      fields={fields}
-      bitValues={bitValues}
-      hoveredFieldIndex={hoveredFieldIndex}
-      setHoveredFieldIndex={setHoveredFieldIndex}
-      onUpdateFieldReset={onUpdateFieldReset}
-      getFieldRange={getFieldRange}
-      handleShiftPointerDown={handleShiftPointerDown}
-      handleShiftPointerMove={handleShiftPointerMove}
-      dragActive={dragActive}
-      dragSetTo={dragSetTo}
-      dragLast={dragLast}
-      setDragActive={setDragActive}
-      setDragSetTo={setDragSetTo}
-      setDragLast={setDragLast}
-      applyBit={applyBit}
-      valueBar={valueBar}
-    />
+    <div className="relative">
+      <BitFieldGestureHelp />
+      <DefaultLayoutView
+        bits={bits}
+        fields={fields}
+        bitValues={bitValues}
+        hoveredFieldIndex={hoveredFieldIndex}
+        setHoveredFieldIndex={setHoveredFieldIndex}
+        onUpdateFieldReset={onUpdateFieldReset}
+        getFieldRange={getFieldRange}
+        handleShiftPointerDown={handleShiftPointerDown}
+        handleShiftPointerMove={handleShiftPointerMove}
+        dragActive={dragActive}
+        dragSetTo={dragSetTo}
+        dragLast={dragLast}
+        setDragActive={setDragActive}
+        setDragSetTo={setDragSetTo}
+        setDragLast={setDragLast}
+        applyBit={applyBit}
+        valueBar={valueBar}
+      />
+    </div>
   );
 };
 
