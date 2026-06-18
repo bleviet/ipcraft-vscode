@@ -111,9 +111,19 @@ export function RegisterTableRow({
       style={
         isDragTarget
           ? dragTargetPosition === 'top'
-            ? { boxShadow: 'inset 0 2px 0 0 var(--vscode-focusBorder)' }
+            ? {
+                backgroundImage: 'linear-gradient(to right, #f97316, #f43f5e)',
+                backgroundSize: '100% 2px',
+                backgroundPosition: 'top',
+                backgroundRepeat: 'no-repeat',
+              }
             : dragTargetPosition === 'bottom'
-              ? { boxShadow: 'inset 0 -2px 0 0 var(--vscode-focusBorder)' }
+              ? {
+                  backgroundImage: 'linear-gradient(to right, #f97316, #f43f5e)',
+                  backgroundSize: '100% 2px',
+                  backgroundPosition: 'bottom',
+                  backgroundRepeat: 'no-repeat',
+                }
               : { boxShadow: 'inset 0 0 0 2px var(--vscode-focusBorder)' }
           : undefined
       }
