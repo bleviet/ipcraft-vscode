@@ -35,6 +35,8 @@ const RegisterNode = ({
     >
       <span
         className={`codicon codicon-symbol-variable text-[16px] ${isSelected ? '' : 'opacity-70'}`}
+        title="Register"
+        style={{ color: 'var(--vscode-symbolIcon-propertyForeground)' }}
       ></span>
       {name}
       <span className="text-[10px] vscode-muted font-mono">{offsetLabel}</span>

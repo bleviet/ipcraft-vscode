@@ -300,6 +300,8 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
               ></span>
               <span
                 className={`codicon codicon-map text-[16px] ${isRootSelected ? '' : 'opacity-70'}`}
+                title="Memory Map"
+                style={{ color: 'var(--vscode-symbolIcon-namespaceForeground)' }}
               ></span>
               {renderNameOrEdit(rootId, memoryMapName, [], 'flex-1')}
             </div>

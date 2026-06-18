@@ -41,7 +41,11 @@ const BlockNode = ({
           onClick={onToggleExpand}
           style={{ marginRight: '6px', cursor: 'pointer' }}
         ></span>
-        <span className="codicon codicon-package" style={{ marginRight: '6px' }}></span>
+        <span
+          className="codicon codicon-package"
+          title="Address Block"
+          style={{ marginRight: '6px', color: 'var(--vscode-symbolIcon-classForeground)' }}
+        ></span>
         {name}{' '}
         <span className="opacity-50">
           @ 0x

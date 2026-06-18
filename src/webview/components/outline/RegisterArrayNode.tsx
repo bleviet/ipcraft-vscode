@@ -80,13 +80,12 @@ const RegisterArrayNode = ({
           onClick={(e) => onToggleExpand(id, e)}
           style={{ marginRight: '6px', cursor: 'pointer' }}
         ></span>
-        <span className="codicon codicon-symbol-array" style={{ marginRight: '6px' }}></span>
-        {renderNameOrEdit(id, arrayNode.name, [
-          'addressBlocks',
-          blockIndex,
-          'registers',
-          regIndex,
-        ])}{' '}
+        <span
+          className="codicon codicon-symbol-array"
+          title="Register Array"
+          style={{ marginRight: '6px', color: 'var(--vscode-symbolIcon-arrayForeground)' }}
+        ></span>
+        {renderNameOrEdit(id, arrayNode.name, ['addressBlocks', blockIndex, 'registers', regIndex])}{' '}
         <span className="opacity-50">
           @ {toHex(start)}-{toHex(end)} [{arrayNode.count}]
         </span>
@@ -124,6 +123,8 @@ const RegisterArrayNode = ({
                     });
                   }}
                   paddingLeft="60px"
+                  iconTitle="Array Element"
+                  iconStyle={{ color: 'var(--vscode-symbolIcon-enumeratorForeground)' }}
                 />
 
                 {arrayNode.registers?.map((reg: NormalizedRegister, childIndex: number) => {

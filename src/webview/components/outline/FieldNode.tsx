@@ -8,6 +8,8 @@ interface FieldNodeProps {
   paddingLeft: string;
   iconClassName?: string;
   suffix?: React.ReactNode;
+  iconTitle?: string;
+  iconStyle?: React.CSSProperties;
 }
 
 const FieldNode = ({
@@ -17,6 +19,8 @@ const FieldNode = ({
   onClick,
   paddingLeft,
   iconClassName = 'codicon codicon-symbol-namespace',
+  iconTitle,
+  iconStyle,
   suffix,
 }: FieldNodeProps) => {
   return (
@@ -29,7 +33,11 @@ const FieldNode = ({
       onClick={onClick}
       style={{ paddingLeft }}
     >
-      <span className={iconClassName} style={{ marginRight: '6px' }}></span>
+      <span
+        className={iconClassName}
+        title={iconTitle}
+        style={{ marginRight: '6px', ...iconStyle }}
+      ></span>
       {label}
       {suffix}
     </div>
