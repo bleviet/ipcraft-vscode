@@ -124,7 +124,13 @@ export function RegisterTableRow({
                   backgroundPosition: 'bottom',
                   backgroundRepeat: 'no-repeat',
                 }
-              : { boxShadow: 'inset 0 0 0 2px var(--vscode-focusBorder)' }
+              : {
+                  backgroundImage:
+                    'linear-gradient(to right, #f97316, #f43f5e), linear-gradient(to right, #f97316, #f43f5e), linear-gradient(to bottom, #f97316, #f97316), linear-gradient(to bottom, #f43f5e, #f43f5e)',
+                  backgroundSize: '100% 2px, 100% 2px, 2px 100%, 2px 100%',
+                  backgroundPosition: 'top, bottom, left, right',
+                  backgroundRepeat: 'no-repeat',
+                }
           : undefined
       }
       onMouseEnter={onMouseEnter}
