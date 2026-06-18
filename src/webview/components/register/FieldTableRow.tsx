@@ -506,7 +506,7 @@ const FieldTableRow = ({
                 </span>
                 <VSCodeDropdown
                   value={String(field.monitorChangeOf ?? '')}
-                  className="flex-1"
+                  className="vscode-field-bare flex-1"
                   position="below"
                   onInput={(e: Event | React.FormEvent<HTMLElement>) => {
                     const val = (e.target as HTMLInputElement).value;

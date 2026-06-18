@@ -116,6 +116,13 @@ body {
     box-shadow: inset 0 0 0 2px var(--vscode-focusBorder);
 }
 
+/* Hides the resting border on vscode-text-field/-text-area/-dropdown (they
+   share the --dropdown-border token); the border still appears on focus via
+   the toolkit's own --focus-border token, which this does not touch. */
+.vscode-field-bare {
+    --dropdown-border: transparent;
+}
+
 .vscode-error {
     color: var(--vscode-errorForeground);
 }

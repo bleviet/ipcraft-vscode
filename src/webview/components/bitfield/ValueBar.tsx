@@ -34,7 +34,7 @@ const ValueBar = ({
       <div className="text-sm vscode-muted font-mono font-semibold">Value:</div>
       <div className="min-w-[120px] text-base">
         <VSCodeTextField
-          className="w-full"
+          className="vscode-field-bare w-full"
           value={valueDraft}
           onFocus={() => setValueEditing(true)}
           onBlur={() => {

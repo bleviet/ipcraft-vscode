@@ -348,7 +348,7 @@ export function RegisterArrayEditor({
               nameDraft.setDraft(next);
               onUpdate(['name'], next);
             }}
-            className="w-full"
+            className="vscode-field-bare w-full"
           />
         </div>
         <div>
@@ -369,7 +369,7 @@ export function RegisterArrayEditor({
                 onUpdate(['count'], val);
               }
             }}
-            className="w-24"
+            className="vscode-field-bare w-24"
           />
         </div>
         <div>
@@ -386,7 +386,7 @@ export function RegisterArrayEditor({
                 onUpdate(['stride'], val);
               }
             }}
-            className="w-24"
+            className="vscode-field-bare w-24"
           />
         </div>
       </div>

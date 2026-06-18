@@ -114,7 +114,7 @@ export function CellInput({
     return (
       <VSCodeDropdown
         data-edit-key={editKey}
-        className={className}
+        className={`vscode-field-bare ${className}`}
         style={style}
         value={value}
         onFocus={onFocus}
@@ -137,7 +137,7 @@ export function CellInput({
           textAreaRef.current = el as unknown as HTMLElement | null;
         }}
         data-edit-key={editKey}
-        className={className}
+        className={`vscode-field-bare ${className}`}
         style={style}
         rows={1}
         value={draft}
@@ -159,7 +159,7 @@ export function CellInput({
   return (
     <VSCodeTextField
       data-edit-key={editKey}
-      className={className}
+      className={`vscode-field-bare ${className}`}
       style={style}
       value={draft}
       onFocus={() => {

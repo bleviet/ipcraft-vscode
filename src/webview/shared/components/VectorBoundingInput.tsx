@@ -349,7 +349,7 @@ export const VectorBoundingInput: React.FC<VectorBoundingInputProps> = ({
         ${
           showError
             ? 'border-[var(--vscode-inputValidation-errorBorder)] focus-within:border-[var(--vscode-inputValidation-errorBorder)]'
-            : 'border-[var(--vscode-input-border,transparent)] focus-within:border-[var(--vscode-focusBorder)]'
+            : 'border-transparent focus-within:border-[var(--vscode-focusBorder)]'
         }
         focus-within:ring-1 focus-within:ring-[var(--vscode-focusBorder)]
         ${className}
