@@ -24,9 +24,10 @@ interface DragState {
   active: boolean;
   fromRowId: string | null;
   toRowId: string | null;
+  position: 'top' | 'bottom' | 'center' | null;
 }
 
-const DRAG_IDLE: DragState = { active: false, fromRowId: null, toRowId: null };
+const DRAG_IDLE: DragState = { active: false, fromRowId: null, toRowId: null, position: null };
 
 export interface RegisterArrayEditorProps {
   /** The register array definition object. */
@@ -94,7 +95,7 @@ export function RegisterArrayEditor({
     }
     e.preventDefault();
     e.stopPropagation();
-    setDragState({ active: true, fromRowId: rowId, toRowId: rowId });
+    setDragState({ active: true, fromRowId: rowId, toRowId: rowId, position: 'center' });
   };
 
   const handleDragEnterRow = (rowId: string) => {
@@ -104,19 +105,58 @@ export function RegisterArrayEditor({
     setDragState((prev) => ({ ...prev, toRowId: rowId }));
   };
 
+  const handleDragMove = (rowId: string, e: React.PointerEvent) => {
+    if (!dragState.active) {
+      return;
+    }
+
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const y = e.clientY - rect.top;
+    const height = rect.height;
+
+    let pos: 'top' | 'bottom' | 'center' = 'center';
+    if (y < height * 0.25) {
+      pos = 'top';
+    } else if (y > height * 0.75) {
+      pos = 'bottom';
+    }
+
+    setDragState((prev) => {
+      if (prev.toRowId === rowId && prev.position === pos) {
+        return prev;
+      }
+      return { ...prev, toRowId: rowId, position: pos };
+    });
+  };
+
   useEffect(() => {
     if (!dragState.active) {
       return;
     }
     const commit = () => {
-      const { fromRowId, toRowId } = dragState;
-      if (fromRowId && toRowId && fromRowId !== toRowId) {
+      const { fromRowId, toRowId, position } = dragState;
+      if (fromRowId && toRowId) {
         const fromIdx = wrappedRegisters.findIndex((w) => w.rowId === fromRowId);
         const toIdx = wrappedRegisters.findIndex((w) => w.rowId === toRowId);
-        if (fromIdx >= 0 && toIdx >= 0) {
+        if (fromIdx >= 0 && toIdx >= 0 && (fromIdx !== toIdx || position !== 'center')) {
           const newRegs = [...nestedRegisters];
-          const [moved] = newRegs.splice(fromIdx, 1);
-          newRegs.splice(toIdx, 0, moved);
+          if (position === 'center') {
+            // SWAP
+            const temp = newRegs[fromIdx];
+            newRegs[fromIdx] = newRegs[toIdx];
+            newRegs[toIdx] = temp;
+          } else {
+            // INSERT
+            let insertIdx = toIdx;
+            if (position === 'bottom') {
+              insertIdx++;
+            }
+            const [moved] = newRegs.splice(fromIdx, 1);
+            if (fromIdx < insertIdx) {
+              insertIdx--;
+            }
+            newRegs.splice(insertIdx, 0, moved);
+          }
           onUpdate(['registers'], newRegs as unknown[]);
         }
       }
@@ -265,8 +305,16 @@ export function RegisterArrayEditor({
                 dragState.toRowId === wrapped.rowId &&
                 dragState.fromRowId !== wrapped.rowId
               }
+              dragTargetPosition={
+                dragState.active &&
+                dragState.fromRowId !== wrapped.rowId &&
+                dragState.toRowId === wrapped.rowId
+                  ? dragState.position
+                  : null
+              }
               onDragHandlePointerDown={(e) => handleDragHandlePointerDown(wrapped.rowId, e)}
               onPointerEnterRow={() => handleDragEnterRow(wrapped.rowId)}
+              onDragMove={handleDragMove}
               siblingNames={nestedRegisters
                 .filter((_: RegisterModel, i: number) => i !== idx)
                 .map((r: RegisterModel) => String(r.name ?? ''))}

@@ -40,8 +40,10 @@ export interface RegisterTableRowProps {
   onContextMenu?: (e: React.MouseEvent) => void;
   isDragSource?: boolean;
   isDragTarget?: boolean;
+  dragTargetPosition?: 'top' | 'bottom' | 'center' | null;
   onDragHandlePointerDown?: (e: React.PointerEvent<HTMLTableCellElement>) => void;
   onPointerEnterRow?: () => void;
+  onDragMove?: (rowId: string, e: React.PointerEvent) => void;
   siblingNames?: string[];
   baseAddress?: number;
 }
@@ -71,8 +73,10 @@ export function RegisterTableRow({
   onContextMenu,
   isDragSource = false,
   isDragTarget = false,
+  dragTargetPosition = null,
   onDragHandlePointerDown,
   onPointerEnterRow,
+  onDragMove,
   siblingNames,
   baseAddress = 0,
 }: RegisterTableRowProps) {
@@ -96,7 +100,7 @@ export function RegisterTableRow({
       className={`group vscode-row-solid transition-colors border-l-4 border-transparent border-b vscode-border h-12 ${
         isDragSource
           ? 'opacity-40'
-          : isDragTarget
+          : isDragTarget && dragTargetPosition === 'center'
             ? 'vscode-focus-border'
             : isSelected
               ? 'vscode-focus-border vscode-row-selected'
@@ -104,12 +108,25 @@ export function RegisterTableRow({
                 ? 'vscode-focus-border vscode-row-hover'
                 : ''
       }`}
-      style={isDragTarget ? { boxShadow: '0 0 0 2px var(--vscode-focusBorder) inset' } : undefined}
+      style={
+        isDragTarget
+          ? dragTargetPosition === 'top'
+            ? { boxShadow: 'inset 0 2px 0 0 var(--vscode-focusBorder)' }
+            : dragTargetPosition === 'bottom'
+              ? { boxShadow: 'inset 0 -2px 0 0 var(--vscode-focusBorder)' }
+              : { boxShadow: 'inset 0 0 0 2px var(--vscode-focusBorder)' }
+          : undefined
+      }
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       onClick={onRowClick}
       onContextMenu={onContextMenu}
       onPointerEnter={onPointerEnterRow}
+      onPointerMove={(e) => {
+        if (onDragMove) {
+          onDragMove(rowId, e);
+        }
+      }}
     >
       {/* DRAG HANDLE */}
       <td
