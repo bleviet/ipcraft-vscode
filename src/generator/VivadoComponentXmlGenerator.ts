@@ -36,7 +36,7 @@ function findCustomBusDef(ifaceType: string, busDefinitions: BusDefinitions): Cu
     if (!bt?.vendor || !bt.library || !bt.name || !bt.version) {
       continue;
     }
-    const vlnv = `${bt.vendor}.${bt.library}.${bt.name}.${bt.version}`;
+    const vlnv = `${bt.vendor}:${bt.library}:${bt.name}:${bt.version}`;
     if (vlnv === ifaceType) {
       return {
         vendor: bt.vendor,

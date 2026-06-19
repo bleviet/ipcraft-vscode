@@ -27,7 +27,7 @@ describe('addressingResolver', () => {
     const result = addressingResolver.resolve(
       makeInput(
         {
-          busInterfaces: [{ name: 'S_AXI', type: 'ipcraft.busif.axi4_lite.1.0', mode: 'slave' }],
+          busInterfaces: [{ name: 'S_AXI', type: 'ipcraft:busif:axi4_lite:1.0', mode: 'slave' }],
         },
         [],
         { AXI4_LITE: { ports: [{ name: 'WDATA', width: 32 }] } }

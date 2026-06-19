@@ -196,8 +196,8 @@ function busProtocolShortName(busType: string): string {
   if (lower.includes('conduit')) {
     return 'Custom';
   }
-  // Fallback: extract the name segment from VLNV (vendor.library.name.major.minor)
-  const parts = busType.split('.');
+  // Fallback: extract the name segment from VLNV (vendor:library:name:version)
+  const parts = busType.split(':');
   const name = parts.length >= 3 ? parts[2] : (parts[parts.length - 1] ?? busType);
   const clean = name.replace(/_/g, '-');
   return clean.length <= 4 ? clean.toUpperCase() : clean.charAt(0).toUpperCase() + clean.slice(1);

@@ -149,7 +149,7 @@ export type Ports = Port[];
  */
 export type Name5 = string;
 /**
- * Bus type identifier in vendor.library.name.version format (e.g., 'ipcraft.busif.axi4_lite.1.0')
+ * Bus type identifier: a full VLNV in vendor:library:name:version format (e.g., 'ipcraft:busif:axi4_lite:1.0'), or a recognized short alias (e.g., 'AXI4L').
  */
 export type Type3 = string;
 /**

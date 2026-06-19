@@ -25,7 +25,7 @@ export class BusRuleRegistry {
 
   /** Resolve a bus type string (VLNV or alias) to BusTypeInfo for template use. */
   normalize(typeName: string): BusTypeInfo {
-    const vlnvMatch = /^ipcraft\.busif\.(.+?)\.\d/.exec(typeName);
+    const vlnvMatch = /^ipcraft:busif:(.+?):\d/.exec(typeName);
     if (vlnvMatch) {
       const provider = this.matchVlnv(vlnvMatch[1]);
       if (provider) {

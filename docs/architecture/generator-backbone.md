@@ -205,7 +205,7 @@ into individual `expanded_bus_interfaces` entries.
 ## Bus rule registry
 
 `BusRuleRegistry` maps bus type strings — whether they arrive as VLNV names
-(`ipcraft.busif.axi4_lite.1.0`) or as short aliases (`AXILITE`, `axil`) — to a
+(`ipcraft:busif:axi4_lite:1.0`) or as short aliases (`AXILITE`, `axil`) — to a
 `BusRuleProvider` that declares the canonical `id` and whether the protocol is
 memory-mapped.
 

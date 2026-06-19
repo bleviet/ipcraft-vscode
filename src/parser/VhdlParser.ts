@@ -722,7 +722,7 @@ export function detectBusInterfaces(
       });
     }
 
-    const busName = prefix.replace(/_+$/, '') || busDef.id.split('.')[3] || 'bus';
+    const busName = prefix.replace(/_+$/, '') || busDef.id.split(':')[2] || 'bus';
 
     const associatedClock =
       clockReset.clocks.find((c) => c.name.toLowerCase().startsWith(prefix))?.name ??

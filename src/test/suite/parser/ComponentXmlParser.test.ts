@@ -341,7 +341,7 @@ describe('ComponentXmlParser', () => {
       };
       const iface = doc.busInterfaces.find((b) => b.name === 'S_AXI');
       expect(iface).toBeDefined();
-      expect(iface!.type).toBe('ipcraft.busif.axi4_lite.1.0');
+      expect(iface!.type).toBe('ipcraft:busif:axi4_lite:1.0');
       expect(iface!.mode).toBe('slave');
       expect(iface!.physicalPrefix).toBe('s_axi_');
     });
@@ -353,7 +353,7 @@ describe('ComponentXmlParser', () => {
       };
       const iface = doc.busInterfaces.find((b) => b.name === 'M_AXI');
       expect(iface).toBeDefined();
-      expect(iface!.type).toBe('ipcraft.busif.axi4_full.1.0');
+      expect(iface!.type).toBe('ipcraft:busif:axi4_full:1.0');
       expect(iface!.mode).toBe('master');
     });
 
@@ -364,9 +364,9 @@ describe('ComponentXmlParser', () => {
       };
       const slave = doc.busInterfaces.find((b) => b.name === 'S_AXIS');
       const master = doc.busInterfaces.find((b) => b.name === 'M_AXIS');
-      expect(slave?.type).toBe('ipcraft.busif.axi_stream.1.0');
+      expect(slave?.type).toBe('ipcraft:busif:axi_stream:1.0');
       expect(slave?.mode).toBe('slave');
-      expect(master?.type).toBe('ipcraft.busif.axi_stream.1.0');
+      expect(master?.type).toBe('ipcraft:busif:axi_stream:1.0');
       expect(master?.mode).toBe('master');
     });
 
@@ -901,11 +901,11 @@ describe('unknown bus type VLNV preservation', () => {
     });
   });
 
-  it('encodes type as the dot-joined VLNV string', () => {
+  it('encodes type as the colon-joined VLNV string', () => {
     const { ipYamlText } = parseComponentXmlText(AVALON_STREAMING_XML);
     const ip = parseYaml(ipYamlText) as { busInterfaces?: BusIf[] };
     const iface = ip.busInterfaces?.find((b) => b.name === 'st_source');
-    expect(iface?.type).toBe('altera.com.interface.avalon_streaming.19.1');
+    expect(iface?.type).toBe('altera.com:interface:avalon_streaming:19.1');
   });
 
   it('captures rawPortMaps with logical and physical names', () => {

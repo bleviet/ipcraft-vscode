@@ -112,7 +112,7 @@ const AVALON_ST: BusPortDef[] = [
 ];
 
 /**
- * Resolves a bus type string (e.g. "ipcraft.busif.axi4_lite.1.0") to its port list.
+ * Resolves a bus type string (e.g. "ipcraft:busif:axi4_lite:1.0") to its port list.
  * Returns null if the bus type is unknown.
  */
 export function lookupBusDef(busType: string): BusPortDef[] | null {
@@ -186,7 +186,7 @@ export function listLibraryBusTypes(
     if (bt.vendor === 'ipcraft') {
       continue;
     }
-    const vlnv = [bt.vendor, bt.library, bt.name, bt.version].filter(Boolean).join('.');
+    const vlnv = [bt.vendor, bt.library, bt.name, bt.version].filter(Boolean).join(':');
     if (vlnv) {
       result.push({ vlnv, label: `${bt.name ?? vlnv} (${bt.vendor ?? 'lib'})` });
     }
@@ -209,8 +209,8 @@ export function lookupBusDefFromLibrary(
     if (!bt) {
       continue;
     }
-    // Build VLNV string: vendor.library.name.version (version may contain dots)
-    const vlnv = [bt.vendor, bt.library, bt.name, bt.version].filter(Boolean).join('.');
+    // Build VLNV string: vendor:library:name:version
+    const vlnv = [bt.vendor, bt.library, bt.name, bt.version].filter(Boolean).join(':');
     if (vlnv !== busType) {
       continue;
     }

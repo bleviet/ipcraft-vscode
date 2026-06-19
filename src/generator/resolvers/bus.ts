@@ -85,7 +85,7 @@ function resolvePortsForInterface(
     if (!bt?.vendor || !bt.library || !bt.name || !bt.version) {
       continue;
     }
-    if (`${bt.vendor}.${bt.library}.${bt.name}.${bt.version}` === ifaceType) {
+    if (`${bt.vendor}:${bt.library}:${bt.name}:${bt.version}` === ifaceType) {
       return def.ports ?? [];
     }
   }

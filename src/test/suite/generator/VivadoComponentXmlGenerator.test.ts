@@ -49,7 +49,7 @@ function makeIp(overrides: Partial<IpCoreData> = {}): IpCoreData {
     busInterfaces: [
       {
         name: 's_axi',
-        type: 'ipcraft.busif.axi4_lite.1.0',
+        type: 'ipcraft:busif:axi4_lite:1.0',
         mode: 'slave',
         physicalPrefix: 's_axi_',
         associatedClock: 'clk',
@@ -114,7 +114,7 @@ describe('generateComponentXml', () => {
         busInterfaces: [
           {
             name: 'm_axi',
-            type: 'ipcraft.busif.axi4_lite.1.0',
+            type: 'ipcraft:busif:axi4_lite:1.0',
             mode: 'master',
             physicalPrefix: 'm_axi_',
             useOptionalPorts: [],
@@ -146,7 +146,7 @@ describe('generateComponentXml', () => {
         busInterfaces: [
           {
             name: 's_axi',
-            type: 'ipcraft.busif.axi4_full.1.0',
+            type: 'ipcraft:busif:axi4_full:1.0',
             mode: 'slave',
             physicalPrefix: 's_axi_',
             useOptionalPorts: [],
@@ -165,7 +165,7 @@ describe('generateComponentXml', () => {
         busInterfaces: [
           {
             name: 'axis_s',
-            type: 'ipcraft.busif.axi_stream.1.0',
+            type: 'ipcraft:busif:axi_stream:1.0',
             mode,
             physicalPrefix: 'axis_s_',
             useOptionalPorts: [],
@@ -206,7 +206,7 @@ describe('generateComponentXml', () => {
         busInterfaces: [
           {
             name: 'custom_if',
-            type: 'custom.busif.mybus.1.0',
+            type: 'custom:busif:mybus:1.0',
             mode: 'slave',
             physicalPrefix: 'custom_',
             useOptionalPorts: [],
@@ -215,7 +215,7 @@ describe('generateComponentXml', () => {
         ],
       });
       expect(xml).toContain('spirit:vendor="user.org"');
-      expect(xml).toContain('spirit:name="custom.busif.mybus.1.0"');
+      expect(xml).toContain('spirit:name="custom:busif:mybus:1.0"');
     });
 
     it('uses busTypeVlnv components when present (Avalon Streaming round-trip)', () => {
@@ -223,7 +223,7 @@ describe('generateComponentXml', () => {
         busInterfaces: [
           {
             name: 'st_source',
-            type: 'altera.com.interface.avalon_streaming.19.1',
+            type: 'altera.com:interface:avalon_streaming:19.1',
             busTypeVlnv: {
               vendor: 'altera.com',
               library: 'interface',
@@ -248,7 +248,7 @@ describe('generateComponentXml', () => {
         busInterfaces: [
           {
             name: 'st_source',
-            type: 'altera.com.interface.avalon_streaming.19.1',
+            type: 'altera.com:interface:avalon_streaming:19.1',
             busTypeVlnv: {
               vendor: 'altera.com',
               library: 'interface',
@@ -301,7 +301,7 @@ describe('generateComponentXml', () => {
         busInterfaces: [
           {
             name: 'data_in',
-            type: 'acme.com.interface.my_proto.1.0',
+            type: 'acme.com:interface:my_proto:1.0',
             mode,
             physicalPrefix: 'data_in_',
             useOptionalPorts: [],
@@ -350,7 +350,7 @@ describe('generateComponentXml', () => {
         busInterfaces: [
           {
             name: 'data_in',
-            type: 'acme.com.interface.my_proto.1.0',
+            type: 'acme.com:interface:my_proto:1.0',
             mode: 'slave',
             physicalPrefix: 'data_in_',
             useOptionalPorts: [],
@@ -424,7 +424,7 @@ describe('generateComponentXml', () => {
         busInterfaces: [
           {
             name: 'data_in',
-            type: 'acme.com.interface.my_proto.1.0',
+            type: 'acme.com:interface:my_proto:1.0',
             mode: 'slave',
             physicalPrefix: 'data_in_',
             useOptionalPorts: [],
@@ -432,7 +432,7 @@ describe('generateComponentXml', () => {
           },
           {
             name: 'data_out',
-            type: 'acme.com.interface.my_proto.1.0',
+            type: 'acme.com:interface:my_proto:1.0',
             mode: 'master',
             physicalPrefix: 'data_out_',
             useOptionalPorts: [],
@@ -485,7 +485,7 @@ describe('generateComponentXml', () => {
         busInterfaces: [
           {
             name: 's_axi0',
-            type: 'ipcraft.busif.axi4_lite.1.0',
+            type: 'ipcraft:busif:axi4_lite:1.0',
             mode: 'slave',
             physicalPrefix: 's_axi0_',
             associatedClock: 'clk',
@@ -494,7 +494,7 @@ describe('generateComponentXml', () => {
           },
           {
             name: 's_axi1',
-            type: 'ipcraft.busif.axi4_lite.1.0',
+            type: 'ipcraft:busif:axi4_lite:1.0',
             mode: 'slave',
             physicalPrefix: 's_axi1_',
             associatedClock: 'clk',
@@ -517,7 +517,7 @@ describe('generateComponentXml', () => {
         busInterfaces: [
           {
             name: 's_axi',
-            type: 'ipcraft.busif.axi4_lite.1.0',
+            type: 'ipcraft:busif:axi4_lite:1.0',
             mode: 'slave',
             physicalPrefix: 's_axi_',
             associatedClock: 'other_clk',
@@ -945,7 +945,7 @@ describe('array bus interface expansion', () => {
     busInterfaces: [
       {
         name: 'S_AXIS',
-        type: 'ipcraft.busif.axi_stream.1.0',
+        type: 'ipcraft:busif:axi_stream:1.0',
         mode: 'slave',
         physicalPrefix: 's_axis_',
         associatedClock: 'clk',
@@ -1070,7 +1070,7 @@ describe('generateCustomBusDefs', () => {
     busInterfaces: [
       {
         name: 'stream_in',
-        type: 'acme.com.interface.my_proto.2.0',
+        type: 'acme.com:interface:my_proto:2.0',
         mode: 'slave',
         physicalPrefix: 's_',
         useOptionalPorts: [],
@@ -1087,7 +1087,7 @@ describe('generateCustomBusDefs', () => {
       busInterfaces: [
         {
           name: 's_axi',
-          type: 'ipcraft.busif.axi4_lite.1.0',
+          type: 'ipcraft:busif:axi4_lite:1.0',
           mode: 'slave',
           physicalPrefix: 's_axi_',
           useOptionalPorts: [],
@@ -1149,7 +1149,7 @@ describe('generateCustomBusDefs', () => {
       busInterfaces: [
         {
           name: 'if_a',
-          type: 'acme.com.interface.my_proto.2.0',
+          type: 'acme.com:interface:my_proto:2.0',
           mode: 'slave',
           physicalPrefix: 'a_',
           useOptionalPorts: [],
@@ -1157,7 +1157,7 @@ describe('generateCustomBusDefs', () => {
         },
         {
           name: 'if_b',
-          type: 'acme.com.interface.other_bus.1.0',
+          type: 'acme.com:interface:other_bus:1.0',
           mode: 'slave',
           physicalPrefix: 'b_',
           useOptionalPorts: [],

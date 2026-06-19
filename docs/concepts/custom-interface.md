@@ -45,7 +45,7 @@ When a Custom Interface is used by only one IP core, the signal list is embedded
 ```yaml
 busInterfaces:
   - name: DIAG_OUT
-    type: ipcraft.busif.conduit.1.0
+    type: ipcraft:busif:conduit:1.0
     mode: conduit
     physicalPrefix: diag_
     conduitPorts:
@@ -110,11 +110,11 @@ The word "conduit" appears in two overlapping contexts that are worth distinguis
 
 **`mode: conduit`** is one of the five interface modes (`slave`, `master`, `source`, `sink`, `conduit`). It declares that this interface carries signals point-to-point without any bus transaction semantics — no handshake, no addressing, no flow control implied by the protocol. A standard bus type can be used with `mode: conduit`, though this is uncommon.
 
-**A conduit-type bus interface** is an interface whose `type` string contains `conduit` (e.g. `ipcraft.busif.conduit.1.0`). This is IPCraft's placeholder type for interfaces whose signal set is defined entirely by `conduitPorts` rather than a library entry. It implies `mode: conduit` by convention, but the two are technically independent fields.
+**A conduit-type bus interface** is an interface whose `type` string contains `conduit` (e.g. `ipcraft:busif:conduit:1.0`). This is IPCraft's placeholder type for interfaces whose signal set is defined entirely by `conduitPorts` rather than a library entry. It implies `mode: conduit` by convention, but the two are technically independent fields.
 
 **A user-defined bus type** (e.g. `acme.com.interface.my_proto.2.0`) is a Custom Interface that has its own VLNV identity. It may use `mode: slave` or `mode: master` to express directionality, even though its signal set is not from the built-in library. The generator treats any type string that does not appear in the built-in catalog as a custom type and generates the corresponding bus definition XML.
 
-In practice: use `mode: conduit` with the `ipcraft.busif.conduit.1.0` type for pass-through groupings where direction is not meaningful. Use a named VLNV type with `mode: slave` or `mode: master` for proprietary protocols where the initiator/responder distinction matters.
+In practice: use `mode: conduit` with the `ipcraft:busif:conduit:1.0` type for pass-through groupings where direction is not meaningful. Use a named VLNV type with `mode: slave` or `mode: master` for proprietary protocols where the initiator/responder distinction matters.
 
 ---
 

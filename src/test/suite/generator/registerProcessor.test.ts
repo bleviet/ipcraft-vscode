@@ -39,23 +39,23 @@ describe('registerProcessor', () => {
 
   describe('normalizeBusType', () => {
     it('handles ipcraft VLNV strings', () => {
-      expect(normalizeBusType('ipcraft.busif.axi4_lite.1.0')).toEqual({
+      expect(normalizeBusType('ipcraft:busif:axi4_lite:1.0')).toEqual({
         libraryKey: 'AXI4_LITE',
         templateType: 'axil',
       });
-      expect(normalizeBusType('ipcraft.busif.axi4_full.1.0')).toEqual({
+      expect(normalizeBusType('ipcraft:busif:axi4_full:1.0')).toEqual({
         libraryKey: 'AXI4_FULL',
         templateType: 'axi4',
       });
-      expect(normalizeBusType('ipcraft.busif.axi_stream.1.0')).toEqual({
+      expect(normalizeBusType('ipcraft:busif:axi_stream:1.0')).toEqual({
         libraryKey: 'AXI_STREAM',
         templateType: 'axis',
       });
-      expect(normalizeBusType('ipcraft.busif.avalon_mm.1.0')).toEqual({
+      expect(normalizeBusType('ipcraft:busif:avalon_mm:1.0')).toEqual({
         libraryKey: 'AVALON_MEMORY_MAPPED',
         templateType: 'avmm',
       });
-      expect(normalizeBusType('ipcraft.busif.avalon_st.1.0')).toEqual({
+      expect(normalizeBusType('ipcraft:busif:avalon_st:1.0')).toEqual({
         libraryKey: 'AVALON_STREAMING',
         templateType: 'avst',
       });
@@ -81,7 +81,7 @@ describe('registerProcessor', () => {
         libraryKey: '',
         templateType: 'custom',
       });
-      expect(normalizeBusType('user.busif.myif.1.0')).toEqual({
+      expect(normalizeBusType('user:busif:myif:1.0')).toEqual({
         libraryKey: '',
         templateType: 'custom',
       });

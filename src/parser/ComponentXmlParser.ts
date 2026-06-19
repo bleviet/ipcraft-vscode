@@ -356,11 +356,11 @@ export function parseComponentXmlText(
     } else {
       // Unknown bus type — preserve raw VLNV components and port maps so the
       // generator can reconstruct the exact XML without re-splitting the
-      // dot-joined string (vendor TLDs and versions both contain dots).
+      // colon-joined string (vendor TLDs and versions both legitimately contain dots).
       const btVendor = attr(busTypeEl, SPIRIT_NS, 'vendor') || 'user.org';
       const btLibrary = attr(busTypeEl, SPIRIT_NS, 'library') || 'user';
       const btVersion = attr(busTypeEl, SPIRIT_NS, 'version') || '1.0';
-      busType = `${btVendor}.${btLibrary}.${btName}.${btVersion}`;
+      busType = `${btVendor}:${btLibrary}:${btName}:${btVersion}`;
       busTypeVlnv = { vendor: btVendor, library: btLibrary, name: btName, version: btVersion };
       const portMapEntries = extractPortMap(busIf, modelPortAttrs);
       if (portMapEntries.length > 0) {

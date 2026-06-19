@@ -130,7 +130,7 @@ function buildUserBusItems(busLibrary: Record<string, unknown>): LibraryDragPayl
     const library = typeof bt.library === 'string' ? bt.library : 'busif';
     const name = typeof bt.name === 'string' ? bt.name : key.toLowerCase();
     const version = typeof bt.version === 'string' ? bt.version : '1.0';
-    const vlnv = `${vendor}.${library}.${name}.${version}`;
+    const vlnv = `${vendor}:${library}:${name}:${version}`;
 
     // Build display label from busType.name, fall back to the key
     let label: string;

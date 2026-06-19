@@ -28,6 +28,7 @@ import { supportsMemoryMap } from './canvasLayout';
 import { vscode } from '../../../vscode';
 import { evalWidthExpr } from '../../../shared/utils/evalWidthExpr';
 import { BUS_VLNV } from '../../../../shared/busVlnv';
+import { isValidVlnv } from '../../../../utils/vlnv';
 
 interface CanvasInspectorProps {
   selected: CanvasElement | null;
@@ -1692,7 +1693,7 @@ interface BusPanelProps {
  *  - Mode explicitly set to 'conduit'
  *  - Type name includes 'conduit'
  *  - Inline conduit ports are defined
- *  - Bus type is not a built-in protocol (e.g. user.busif.xcvr.1.0)
+ *  - Bus type is not a built-in protocol (e.g. user:busif:xcvr:1.0)
  */
 function isCustomBusInterface(bus: BusInterface): boolean {
   return (
@@ -1940,23 +1941,30 @@ const BusPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, onUpda
 //  Conduit (Custom Interface) panel
 // ─────────────────────────────────────────────────────
 
-/** Extract the meaningful name segment from a custom bus type VLNV, e.g. 'user.busif.spi.1.0' → 'spi' */
+/**
+ * Extract the meaningful name segment from a user-namespaced VLNV, e.g. 'user:busif:spi:1.0' → 'spi'.
+ * A fully-qualified external VLNV (e.g. pasted from IP-XACT/Vivado) is returned as-is so it
+ * round-trips through the field unchanged instead of being reduced to one segment.
+ */
 function conduitTypeName(busType: string): string {
   if (isConduitType(busType)) {
     return '';
   }
-  const parts = busType.split('.');
+  if (!busType.startsWith('user:busif:')) {
+    return busType;
+  }
+  const parts = busType.split(':');
   return parts.length >= 3 ? parts[2] : '';
 }
 
-/** Build a user-namespaced VLNV from a display name, e.g. 'SPI' → 'user.busif.spi.1.0' */
+/** Build a user-namespaced VLNV from a display name, e.g. 'SPI' → 'user:busif:spi:1.0' */
 function buildConduitType(name: string): string {
   const safe =
     name
       .toLowerCase()
       .replace(/\s+/g, '_')
       .replace(/[^a-z0-9_]/g, '') || 'custom';
-  return `user.busif.${safe}.1.0`;
+  return `user:busif:${safe}:1.0`;
 }
 
 const ConduitPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, onUpdate }) => {
@@ -2082,13 +2090,25 @@ const ConduitPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, on
           value={typeName}
           onSave={(v) => {
             const trimmed = v.trim();
+            if (!trimmed) {
+              onUpdate(['busInterfaces', index, 'type'], BUS_VLNV.CONDUIT);
+              return;
+            }
+            // A fully-qualified VLNV (e.g. pasted from IP-XACT/Vivado) is saved as-is;
+            // a short display name (e.g. "SPI") is synthesized into a user:busif VLNV.
             onUpdate(
               ['busInterfaces', index, 'type'],
-              trimmed ? buildConduitType(trimmed) : BUS_VLNV.CONDUIT
+              isValidVlnv(trimmed) ? trimmed : buildConduitType(trimmed)
             );
           }}
-          placeholder="SPI, I2C, UART…"
-          hint={typeName ? `VLNV: user.busif.${typeName}.1.0` : 'Give this interface a name'}
+          placeholder="SPI, I2C, UART, or a full vendor:library:name:version"
+          hint={
+            typeName
+              ? typeName.includes(':')
+                ? `VLNV: ${typeName}`
+                : `VLNV: user:busif:${typeName}:1.0`
+              : 'Give this interface a name, or paste a full VLNV'
+          }
           mono
         />
       </Section>
@@ -2986,7 +3006,7 @@ const BusTypeField: React.FC<BusTypeFieldProps> = ({ value, busLibrary, onSave }
           )}
         </button>
       </div>
-      {mode === 'manual' && <div className="ci-field__hint">Vendor.library.name.version</div>}
+      {mode === 'manual' && <div className="ci-field__hint">Vendor:library:name:version</div>}
     </div>
   );
 };

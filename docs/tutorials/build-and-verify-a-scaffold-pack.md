@@ -60,7 +60,7 @@ resets:
   associatedClock: clk
 busInterfaces:
 - name: s_axi_lite
-  type: ipcraft.busif.axi4_lite.1.0
+  type: ipcraft:busif:axi4_lite:1.0
   mode: slave
   physicalPrefix: s_axil_
   associatedClock: clk

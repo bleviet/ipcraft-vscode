@@ -158,7 +158,7 @@ export const GroupingMappingStep: React.FC<GroupingMappingStepProps> = ({
   );
 
   const [interfaceName, setInterfaceName] = useState(() => {
-    const lower = busType.split('.')[2] ?? 'interface';
+    const lower = busType.split(':')[2] ?? 'interface';
     return lower.replace(/_/g, '_').toLowerCase();
   });
   const [prefix, setPrefix] = useState(initialPrefix ?? inferred?.prefix ?? '');

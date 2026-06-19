@@ -125,7 +125,7 @@ describe('HwTclParser', () => {
         busInterfaces: Array<Record<string, unknown>>;
       };
       const bi = doc.busInterfaces[0];
-      expect(bi.type).toBe('ipcraft.busif.axi4_lite.1.0');
+      expect(bi.type).toBe('ipcraft:busif:axi4_lite:1.0');
       expect(bi.mode).toBe('slave');
       expect(bi.physicalPrefix).toBe('s_axi_');
     });
@@ -138,7 +138,7 @@ describe('HwTclParser', () => {
       const doc = parseYaml(parse(tcl).yamlText) as {
         busInterfaces: Array<Record<string, unknown>>;
       };
-      expect(doc.busInterfaces[0].type).toBe('ipcraft.busif.avalon_mm.1.0');
+      expect(doc.busInterfaces[0].type).toBe('ipcraft:busif:avalon_mm:1.0');
     });
 
     it('maps start mode to master', () => {
@@ -454,7 +454,7 @@ describe('HwTclParser', () => {
       expect(ports[0]).toMatchObject({ name: 'out_port', direction: 'out', width: 8 });
 
       const bi = (doc.busInterfaces as Array<Record<string, unknown>>)[0];
-      expect(bi.type).toBe('ipcraft.busif.axi4_lite.1.0');
+      expect(bi.type).toBe('ipcraft:busif:axi4_lite:1.0');
       expect(bi.mode).toBe('slave');
       expect(bi.physicalPrefix).toBe('s_axi_');
       expect(bi.associatedClock).toBe('clk');

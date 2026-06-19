@@ -53,7 +53,7 @@ describeIf('ComponentXmlParser — real Vivado files', () => {
     it('includes an AXI4-Lite slave bus interface', () => {
       const doc = yaml.load(result.ipYamlText) as AnyRecord;
       const busifs: AnyRecord[] = doc.busInterfaces ?? [];
-      const axi4l = busifs.find((b) => b.type === 'ipcraft.busif.axi4_lite.1.0');
+      const axi4l = busifs.find((b) => b.type === 'ipcraft:busif:axi4_lite:1.0');
       expect(axi4l).toBeDefined();
       expect(axi4l?.mode).toBe('slave');
     });
@@ -124,7 +124,7 @@ describeIf('ComponentXmlParser — real Vivado files', () => {
     it('includes an AXI4-Lite bus interface', () => {
       const doc = yaml.load(result.ipYamlText) as AnyRecord;
       const busifs: AnyRecord[] = doc.busInterfaces ?? [];
-      expect(busifs.some((b) => b.type === 'ipcraft.busif.axi4_lite.1.0')).toBe(true);
+      expect(busifs.some((b) => b.type === 'ipcraft:busif:axi4_lite:1.0')).toBe(true);
     });
 
     it('generates mm.yml (has registers)', () => {
@@ -164,7 +164,7 @@ describeIf('ComponentXmlParser — real Vivado files', () => {
       const doc = yaml.load(result.ipYamlText) as AnyRecord;
       const busifs: AnyRecord[] = doc.busInterfaces ?? [];
       const lite = busifs.find(
-        (b) => b.type === 'ipcraft.busif.axi4_lite.1.0' && b.mode === 'slave'
+        (b) => b.type === 'ipcraft:busif:axi4_lite:1.0' && b.mode === 'slave'
       );
       expect(lite).toBeDefined();
     });
@@ -173,7 +173,7 @@ describeIf('ComponentXmlParser — real Vivado files', () => {
       const doc = yaml.load(result.ipYamlText) as AnyRecord;
       const busifs: AnyRecord[] = doc.busInterfaces ?? [];
       const fullMasters = busifs.filter(
-        (b) => b.type === 'ipcraft.busif.axi4_full.1.0' && b.mode === 'master'
+        (b) => b.type === 'ipcraft:busif:axi4_full:1.0' && b.mode === 'master'
       );
       expect(fullMasters.length).toBeGreaterThan(0);
     });
@@ -181,7 +181,7 @@ describeIf('ComponentXmlParser — real Vivado files', () => {
     it('detects AXI-Stream interfaces', () => {
       const doc = yaml.load(result.ipYamlText) as AnyRecord;
       const busifs: AnyRecord[] = doc.busInterfaces ?? [];
-      expect(busifs.some((b) => b.type === 'ipcraft.busif.axi_stream.1.0')).toBe(true);
+      expect(busifs.some((b) => b.type === 'ipcraft:busif:axi_stream:1.0')).toBe(true);
     });
 
     it('generates mm.yml with registers', () => {
@@ -219,9 +219,9 @@ describeIf('ComponentXmlParser — real Vivado files', () => {
       const doc = yaml.load(result.ipYamlText) as AnyRecord;
       const busifs: AnyRecord[] = doc.busInterfaces ?? [];
       const AXI_TYPES = [
-        'ipcraft.busif.axi4_lite.1.0',
-        'ipcraft.busif.axi4_full.1.0',
-        'ipcraft.busif.axi_stream.1.0',
+        'ipcraft:busif:axi4_lite:1.0',
+        'ipcraft:busif:axi4_full:1.0',
+        'ipcraft:busif:axi_stream:1.0',
       ];
       expect(busifs.some((b) => AXI_TYPES.includes(b.type as string))).toBe(true);
     });

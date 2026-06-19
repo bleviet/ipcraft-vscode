@@ -70,13 +70,13 @@ describe('computeLayout', () => {
       busInterfaces: [
         {
           name: 's_axi',
-          type: 'ipcraft.busif.axi4_lite.1.0',
+          type: 'ipcraft:busif:axi4_lite:1.0',
           mode: 'slave' as const,
           physicalPrefix: 's_axi_',
         },
         {
           name: 'm_axi',
-          type: 'ipcraft.busif.axi4_lite.1.0',
+          type: 'ipcraft:busif:axi4_lite:1.0',
           mode: 'master' as const,
           physicalPrefix: 'm_axi_',
         },
@@ -152,7 +152,7 @@ describe('computeLayout', () => {
       busInterfaces: [
         {
           name: 'm_axis',
-          type: 'ipcraft.busif.axi_stream.1.0',
+          type: 'ipcraft:busif:axi_stream:1.0',
           mode: 'master' as const,
           physicalPrefix: 'm_axis_',
         },
@@ -170,7 +170,7 @@ describe('computeLayout', () => {
       busInterfaces: [
         {
           name: 'custom_if',
-          type: 'ipcraft.busif.conduit.1.0',
+          type: 'ipcraft:busif:conduit:1.0',
           mode: 'conduit' as const,
           physicalPrefix: 'if_',
           conduitPorts: [
@@ -227,7 +227,7 @@ describe('computeLayout', () => {
       busInterfaces: [
         {
           name: 's_axi',
-          type: 'ipcraft.busif.axi4_lite.1.0',
+          type: 'ipcraft:busif:axi4_lite:1.0',
           mode: 'slave' as const,
           physicalPrefix: 's_axi_',
         },
@@ -267,13 +267,13 @@ describe('computeLayout', () => {
       busInterfaces: [
         {
           name: 'axis_in',
-          type: 'ipcraft.busif.axi_stream.1.0',
+          type: 'ipcraft:busif:axi_stream:1.0',
           mode: 'sink' as const,
           physicalPrefix: 's_axis_',
         },
         {
           name: 'axis_out',
-          type: 'ipcraft.busif.axi_stream.1.0',
+          type: 'ipcraft:busif:axi_stream:1.0',
           mode: 'source' as const,
           physicalPrefix: 'm_axis_',
         },
@@ -295,21 +295,21 @@ describe('computeLayout', () => {
       busInterfaces: [
         {
           name: 'xcvr_slave',
-          type: 'user.busif.xcvr.1.0',
+          type: 'user:busif:xcvr:1.0',
           mode: 'slave' as const,
           physicalPrefix: 'xcvr_s_',
           conduitPorts: [{ name: 'tx_data', direction: 'out' as const, width: 16 }],
         },
         {
           name: 'xcvr_master',
-          type: 'user.busif.xcvr.1.0',
+          type: 'user:busif:xcvr:1.0',
           mode: 'master' as const,
           physicalPrefix: 'xcvr_m_',
           conduitPorts: [{ name: 'tx_data', direction: 'out' as const, width: 16 }],
         },
         {
           name: 'xcvr_conduit',
-          type: 'user.busif.xcvr.1.0',
+          type: 'user:busif:xcvr:1.0',
           mode: 'conduit' as const,
           physicalPrefix: 'xcvr_c_',
           conduitPorts: [{ name: 'tx_data', direction: 'out' as const, width: 16 }],

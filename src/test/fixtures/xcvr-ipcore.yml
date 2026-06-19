@@ -27,14 +27,14 @@ ports:
     width: DATA_WIDTH
 busInterfaces:
   - name: xcvr_if_in
-    type: user.busif.xcvr.1.0
+    type: user:busif:xcvr:1.0
     mode: slave
     physicalPrefix: xcvr_if_in_
     portWidthOverrides:
       tx_data: XCVR_DW
       tx_k: XCVR_KW
   - name: xcvr_if_out
-    type: user.busif.xcvr.1.0
+    type: user:busif:xcvr:1.0
     mode: master
     physicalPrefix: xcvr_if_out_
 useBusLibrary: ./custom_bus_definitions
