@@ -201,7 +201,7 @@ describe('generateComponentXml', () => {
   });
 
   describe('unknown bus type (no bus definition)', () => {
-    it('falls back to user.org with type as name when busTypeVlnv is absent', () => {
+    it('splits a well-formed VLNV type into its real components when busTypeVlnv is absent', () => {
       const xml = gen({
         busInterfaces: [
           {
@@ -214,8 +214,27 @@ describe('generateComponentXml', () => {
           },
         ],
       });
+      expect(xml).toContain(
+        'spirit:vendor="custom" spirit:library="busif" spirit:name="mybus" spirit:version="1.0"'
+      );
+      expect(xml).not.toContain('spirit:vendor="user.org"');
+    });
+
+    it('falls back to user.org with the raw type as name when type is not a valid VLNV', () => {
+      const xml = gen({
+        busInterfaces: [
+          {
+            name: 'custom_if',
+            type: 'mybus',
+            mode: 'slave',
+            physicalPrefix: 'custom_',
+            useOptionalPorts: [],
+            portWidthOverrides: {},
+          },
+        ],
+      });
       expect(xml).toContain('spirit:vendor="user.org"');
-      expect(xml).toContain('spirit:name="custom:busif:mybus:1.0"');
+      expect(xml).toContain('spirit:name="mybus"');
     });
 
     it('uses busTypeVlnv components when present (Avalon Streaming round-trip)', () => {

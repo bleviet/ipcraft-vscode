@@ -5,7 +5,7 @@ import {
   normalizeBusType,
 } from './registerProcessor';
 import { detectVivadoVersion } from '../utils/detectVivadoVersion';
-import { parseVlnv } from '../utils/vlnv';
+import { parseVlnv, isValidVlnv } from '../utils/vlnv';
 import { BUS_VLNV } from '../shared/busVlnv';
 import type {
   BusDefinitions,
@@ -480,16 +480,18 @@ function renderBusInterface(iface: BusInterfaceDef, busDefinitions: BusDefinitio
     );
   } else {
     // Use preserved VLNV components when available (set by ComponentXmlParser for
-    // unknown bus types). Without them we cannot reliably split the dot-joined
-    // type string because vendor TLDs (e.g. "altera.com") and versions ("19.1")
-    // both contain dots.
+    // unknown bus types imported from a component.xml). Otherwise, if ifaceType
+    // is itself a well-formed colon-separated VLNV (e.g. a custom/external type
+    // entered directly in the editor), split it into its real components instead
+    // of dumping the whole string into "name" under a synthetic user.org:user wrapper.
     const vlnv = iface.busTypeVlnv as
       | { vendor: string; library: string; name: string; version: string }
       | undefined;
-    const fallbackVendor = vlnv?.vendor ?? 'user.org';
-    const fallbackLibrary = vlnv?.library ?? 'user';
-    const fallbackName = vlnv?.name ?? ifaceType;
-    const fallbackVersion = vlnv?.version ?? '1.0';
+    const parsedType = !vlnv && isValidVlnv(ifaceType) ? parseVlnv(ifaceType) : undefined;
+    const fallbackVendor = vlnv?.vendor ?? parsedType?.vendor ?? 'user.org';
+    const fallbackLibrary = vlnv?.library ?? parsedType?.library ?? 'user';
+    const fallbackName = vlnv?.name ?? parsedType?.name ?? ifaceType;
+    const fallbackVersion = vlnv?.version ?? parsedType?.version ?? '1.0';
     lines.push(
       `      <spirit:busType spirit:vendor="${x(fallbackVendor)}" spirit:library="${x(fallbackLibrary)}" spirit:name="${x(fallbackName)}" spirit:version="${x(fallbackVersion)}" />`
     );
