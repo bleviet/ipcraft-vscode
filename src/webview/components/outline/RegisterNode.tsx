@@ -9,6 +9,7 @@ interface RegisterNodeProps {
   paddingLeft: string;
   name: React.ReactNode;
   offsetLabel: string;
+  actionButton?: React.ReactNode;
 }
 
 const RegisterNode = ({
@@ -20,12 +21,13 @@ const RegisterNode = ({
   paddingLeft,
   name,
   offsetLabel,
+  actionButton,
 }: RegisterNodeProps) => {
   return (
     <div
       key={id}
       data-outline-id={id}
-      className={`tree-item ${isSelected ? 'selected' : ''} gap-2 text-sm`}
+      className={`tree-item ${isSelected ? 'selected' : ''} gap-2 text-sm group`}
       role="treeitem"
       aria-selected={isSelected}
       onClick={onClick}
@@ -39,7 +41,8 @@ const RegisterNode = ({
         style={{ color: 'var(--vscode-symbolIcon-propertyForeground)' }}
       ></span>
       {name}
-      <span className="text-[10px] vscode-muted font-mono">{offsetLabel}</span>
+      <span className="text-[10px] vscode-muted font-mono shrink-0">{offsetLabel}</span>
+      {actionButton}
     </div>
   );
 };

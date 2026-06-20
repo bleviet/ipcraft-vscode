@@ -148,6 +148,33 @@ describe('MutationService.insertElement', () => {
       expect(blocks[0].base_address).toBe(0);
       expect(blocks[1].base_address).toBe(16);
     });
+
+    it('should insert a flat array register when flat-array is specified', () => {
+      const map = makeMap();
+      const result = insertElement(map, 'register', 'after', 1, { blockIndex: 0 }, 'flat-array');
+
+      const regs = getBlocks(result.memoryMap)[0].registers!;
+      expect(regs).toHaveLength(4);
+      const inserted = regs[2];
+      expect(inserted.name).toBe('regArray1');
+      expect(inserted.count).toBe(2);
+      expect(inserted.stride).toBe(4);
+      expect(inserted.registers).toBeUndefined();
+    });
+
+    it('should insert a nested array register when array is specified', () => {
+      const map = makeMap();
+      const result = insertElement(map, 'register', 'after', 1, { blockIndex: 0 }, 'array');
+
+      const regs = getBlocks(result.memoryMap)[0].registers!;
+      expect(regs).toHaveLength(4);
+      const inserted = regs[2];
+      expect(inserted.name).toBe('array1');
+      expect(inserted.count).toBe(2);
+      expect(inserted.stride).toBe(4);
+      expect(inserted.registers).toBeDefined();
+      expect(inserted.registers![0].name).toBe('reg0');
+    });
   });
 
   describe('field layer', () => {

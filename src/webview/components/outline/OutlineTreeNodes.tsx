@@ -47,6 +47,24 @@ function renderLeafRegister(
   const absolute = blockBase + regOff;
   const path: YamlPath = ['addressBlocks', blockIndex, 'registers', regIndex];
 
+  const actionButton = onRegisterContextMenu ? (
+    <button
+      className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-[var(--vscode-toolbar-hoverBackground)] text-[var(--vscode-foreground)] flex items-center justify-center shrink-0 ml-auto"
+      onClick={(e) => {
+        e.stopPropagation();
+        onRegisterContextMenu(blockIndex, regIndex, e.clientX, e.clientY);
+      }}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
+      title="More Actions..."
+      aria-label="More Actions..."
+    >
+      <span className="codicon codicon-kebab-vertical text-sm" />
+    </button>
+  ) : undefined;
+
   return (
     <RegisterNode
       key={id}
@@ -70,6 +88,7 @@ function renderLeafRegister(
       paddingLeft={paddingLeft}
       name={renderNameOrEdit(id, reg.name, path, 'flex-1')}
       offsetLabel={`@ ${toHex(absolute)}`}
+      actionButton={actionButton}
       onContextMenu={
         onRegisterContextMenu
           ? (e) => {
@@ -144,6 +163,7 @@ const OutlineTreeNodes = ({
                     }
                     renderNameOrEdit={renderNameOrEdit}
                     startEditing={startEditing}
+                    onRegisterContextMenu={onRegisterContextMenu}
                   />
                 );
               }

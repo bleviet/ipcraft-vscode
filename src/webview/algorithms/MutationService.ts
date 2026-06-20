@@ -97,6 +97,39 @@ function defaultRegister(name: string): LayoutRegister {
   };
 }
 
+/** Create a default flat array. */
+function defaultFlatArray(name: string): LayoutRegister {
+  return {
+    name,
+    offset: 0,
+    address_offset: 0,
+    count: 2,
+    stride: 4,
+    description: '',
+  };
+}
+
+/** Create a default nested array. */
+function defaultNestedArray(name: string): LayoutRegister {
+  return {
+    name,
+    offset: 0,
+    address_offset: 0,
+    count: 2,
+    stride: 4,
+    description: '',
+    registers: [
+      {
+        name: 'reg0',
+        offset: 0,
+        address_offset: 0,
+        description: '',
+        fields: [{ name: 'data', bits: '[31:0]', access: 'read-write', description: '' }],
+      },
+    ],
+  };
+}
+
 /** Create a default block with one register. */
 function defaultBlock(name: string): LayoutBlock {
   return {
@@ -120,13 +153,15 @@ function defaultBlock(name: string): LayoutBlock {
  * @param mode        'before' or 'after' the target.
  * @param targetIndex Index of the reference element. -1 means end.
  * @param parentPath  Path to the parent container (required for 'register' and 'field' layers).
+ * @param kind        The kind of register to insert ('register', 'flat-array', or 'array').
  */
 export function insertElement(
   memoryMap: LayoutMemoryMap,
   layer: Layer,
   mode: InsertMode,
   targetIndex: number,
-  parentPath?: ParentPath
+  parentPath?: ParentPath,
+  kind: 'register' | 'flat-array' | 'array' = 'register'
 ): MutationResult {
   const map = cloneMap(memoryMap);
   const blocks = getBlocks(map);
@@ -161,9 +196,20 @@ export function insertElement(
       };
     }
     const regs = block.registers ?? [];
-    const name = nextSequentialName(regs, 'reg');
+    const prefix = kind === 'register' ? 'reg' : kind === 'flat-array' ? 'regArray' : 'array';
+    const name = nextSequentialName(regs, prefix);
     const insertIdx = computeInsertIndex(targetIndex, regs.length, mode);
-    regs.splice(insertIdx, 0, defaultRegister(name));
+
+    let newReg: LayoutRegister;
+    if (kind === 'array') {
+      newReg = defaultNestedArray(name);
+    } else if (kind === 'flat-array') {
+      newReg = defaultFlatArray(name);
+    } else {
+      newReg = defaultRegister(name);
+    }
+
+    regs.splice(insertIdx, 0, newReg);
     block.registers = regs;
     setBlocks(map, blocks);
 

@@ -138,7 +138,8 @@ const App = () => {
   const handleRegisterAction = (
     blockIndex: number,
     regIndex: number,
-    action: 'insertBefore' | 'insertAfter' | 'delete'
+    action: 'insertBefore' | 'insertAfter' | 'delete',
+    kind?: 'register' | 'flat-array' | 'array'
   ) => {
     const rootObj = YamlService.safeParse(rawTextRef.current);
     if (!rootObj) {
@@ -159,7 +160,8 @@ const App = () => {
         'register',
         action === 'insertBefore' ? 'before' : 'after',
         regIndex,
-        { blockIndex }
+        { blockIndex },
+        kind
       );
     }
 

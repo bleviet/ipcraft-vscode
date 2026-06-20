@@ -24,6 +24,7 @@ interface RegisterArrayNodeProps {
   onDoubleClick?: () => void;
   renderNameOrEdit: RenderNameOrEdit;
   startEditing?: (id: string, name: string) => void;
+  onRegisterContextMenu?: (blockIndex: number, regIndex: number, x: number, y: number) => void;
 }
 
 const RegisterArrayNode = ({
@@ -40,6 +41,7 @@ const RegisterArrayNode = ({
   onDoubleClick,
   renderNameOrEdit,
   startEditing,
+  onRegisterContextMenu,
 }: RegisterArrayNodeProps) => {
   const id = `block-${blockIndex}-arrreg-${regIndex}`;
   const isSelected = selectedId === id;
@@ -54,7 +56,7 @@ const RegisterArrayNode = ({
     <div key={id}>
       <div
         data-outline-id={id}
-        className={`tree-item ${isSelected ? 'selected' : ''}`}
+        className={`tree-item ${isSelected ? 'selected' : ''} gap-2 text-sm group`}
         role="treeitem"
         aria-expanded={isExpanded}
         aria-selected={isSelected}
@@ -73,22 +75,52 @@ const RegisterArrayNode = ({
           });
         }}
         onDoubleClick={onDoubleClick}
+        onContextMenu={
+          onRegisterContextMenu
+            ? (e) => {
+                e.preventDefault();
+                onRegisterContextMenu(blockIndex, regIndex, e.clientX, e.clientY);
+              }
+            : undefined
+        }
         style={{ paddingLeft: '40px' }}
       >
         <span
           className={`codicon codicon-chevron-${isExpanded ? 'down' : 'right'}`}
           onClick={(e) => onToggleExpand(id, e)}
-          style={{ marginRight: '6px', cursor: 'pointer' }}
+          style={{ cursor: 'pointer' }}
         ></span>
         <span
           className="codicon codicon-symbol-array"
           title="Register Array"
-          style={{ marginRight: '6px', color: 'var(--vscode-symbolIcon-arrayForeground)' }}
+          style={{ color: 'var(--vscode-symbolIcon-arrayForeground)' }}
         ></span>
-        {renderNameOrEdit(id, arrayNode.name, ['addressBlocks', blockIndex, 'registers', regIndex])}{' '}
-        <span className="opacity-50">
-          @ {toHex(start)}-{toHex(end)} [{arrayNode.count}]
+        {renderNameOrEdit(
+          id,
+          arrayNode.name,
+          ['addressBlocks', blockIndex, 'registers', regIndex],
+          'flex-1'
+        )}{' '}
+        <span className="text-[10px] vscode-muted font-mono shrink-0">
+          {toHex(start)}-{toHex(end)} [{arrayNode.count}]
         </span>
+        {onRegisterContextMenu && (
+          <button
+            className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-[var(--vscode-toolbar-hoverBackground)] text-[var(--vscode-foreground)] flex items-center justify-center shrink-0 ml-auto"
+            onClick={(e) => {
+              e.stopPropagation();
+              onRegisterContextMenu(blockIndex, regIndex, e.clientX, e.clientY);
+            }}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+            title="More Actions..."
+            aria-label="More Actions..."
+          >
+            <span className="codicon codicon-kebab-vertical text-sm" />
+          </button>
+        )}
       </div>
 
       {isExpanded && (
