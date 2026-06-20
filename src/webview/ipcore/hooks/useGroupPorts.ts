@@ -6,6 +6,51 @@ import { BUS_VLNV } from '../../../shared/busVlnv';
 
 export type BatchUpdate = (mutations: Array<[Array<string | number>, unknown]>) => void;
 
+export interface MapConduitToBusOptions {
+  mode: 'slave' | 'master';
+  portNameOverrides: Record<string, string>;
+  useOptionalPorts: string[];
+}
+
+/**
+ * Converts an already-authored conduit interface (free-form conduitPorts) into a
+ * known-bus-type interface once its type resolves to a library definition (built-in,
+ * saved custom, or discovered via the Vivado interface catalog scan): sets mode and
+ * portNameOverrides/useOptionalPorts from the user's signal mapping, and clears
+ * conduitPorts since the library definition is now the source of truth for ports.
+ * Returns the updated busInterfaces array (does not mutate ipCore).
+ */
+export function applyMapConduitToKnownBus(
+  ipCore: IpCore,
+  busIndex: number,
+  opts: MapConduitToBusOptions
+): BusInterface[] {
+  const buses = [...(ipCore.busInterfaces ?? [])] as Array<
+    BusInterface & {
+      portNameOverrides?: Record<string, string>;
+      useOptionalPorts?: string[];
+    }
+  >;
+  const current = buses[busIndex];
+  if (!current) {
+    return buses;
+  }
+
+  const updated: (typeof buses)[number] = {
+    ...current,
+    mode: opts.mode,
+    conduitPorts: null,
+  };
+  if (Object.keys(opts.portNameOverrides).length > 0) {
+    updated.portNameOverrides = opts.portNameOverrides;
+  }
+  if (opts.useOptionalPorts.length > 0) {
+    updated.useOptionalPorts = opts.useOptionalPorts;
+  }
+  buses[busIndex] = updated;
+  return buses;
+}
+
 export interface GroupAsStandardOptions {
   portIndices: number[];
   busType: string;

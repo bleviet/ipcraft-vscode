@@ -29,6 +29,8 @@ import { vscode } from '../../../vscode';
 import { evalWidthExpr } from '../../../shared/utils/evalWidthExpr';
 import { BUS_VLNV } from '../../../../shared/busVlnv';
 import { isValidVlnv } from '../../../../utils/vlnv';
+import { MapConduitToBusDialog, type MapConduitToBusResult } from './MapConduitToBusDialog';
+import { applyMapConduitToKnownBus } from '../../hooks/useGroupPorts';
 
 interface CanvasInspectorProps {
   selected: CanvasElement | null;
@@ -2009,10 +2011,17 @@ const ConduitPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, on
   const typeName = conduitTypeName(bus.type);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
 
-  // If the bus type is already present in the loaded bus library, this interface
-  // has a saved definition — show Port Widths instead of the conduit signals editor.
+  // If the bus type is already present in the loaded bus library (built-in, saved
+  // custom, or discovered via the Vivado interface catalog scan), this interface has
+  // a known definition. If conduitPorts is still empty, switch straight to the
+  // standard Port Widths flow used by other known bus types. If conduitPorts already
+  // has data, keep showing it as-is (it's presumably already wired to real HDL) and
+  // offer a "Map Signals" action instead of silently reinterpreting it.
   const busLibrary = imports?.busLibrary as Record<string, unknown> | undefined;
   const libraryPortDefs = busLibrary ? lookupBusDefFromLibrary(bus.type, busLibrary) : null;
+  const existingConduitPorts = bus.conduitPorts ?? [];
+  const hasOwnConduitPorts = existingConduitPorts.length > 0;
+  const [showMappingDialog, setShowMappingDialog] = useState(false);
 
   const handleSaveBusDef = useCallback(() => {
     const conduitPorts = bus.conduitPorts ?? [];
@@ -2073,6 +2082,13 @@ const ConduitPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, on
     };
     window.addEventListener('message', handler);
   }, [bus, index, typeName, ipCore, onUpdate]);
+
+  const handleMapToKnownBus = useCallback(
+    (result: MapConduitToBusResult) => {
+      onUpdate(['busInterfaces'], applyMapConduitToKnownBus(ipCore, index, result));
+    },
+    [ipCore, index, onUpdate]
+  );
 
   return (
     <>
@@ -2161,7 +2177,7 @@ const ConduitPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, on
           emptyOption="— None —"
         />
       </Section>
-      {libraryPortDefs ? (
+      {libraryPortDefs && !hasOwnConduitPorts ? (
         <PortWidthOverridesSection
           bus={bus}
           busIndex={index}
@@ -2172,6 +2188,31 @@ const ConduitPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, on
         />
       ) : (
         <>
+          {libraryPortDefs && hasOwnConduitPorts && (
+            <div
+              className="flex items-start gap-1.5 px-2 py-1.5 rounded text-xs"
+              role="status"
+              style={{
+                background: 'var(--vscode-inputValidation-infoBackground)',
+                border: '1px solid var(--vscode-inputValidation-infoBorder)',
+                color:
+                  'var(--vscode-inputValidation-infoForeground, var(--vscode-editor-foreground))',
+              }}
+            >
+              <span className="codicon codicon-info" style={{ flexShrink: 0, marginTop: '1px' }} />
+              <span style={{ flex: 1 }}>
+                Known interface: <code>{typeName || bus.type}</code>. Map your signals to its
+                official ports for correct component.xml generation.
+              </span>
+              <button
+                className="ci-conduit-save-btn"
+                onClick={() => setShowMappingDialog(true)}
+                type="button"
+              >
+                Map Signals
+              </button>
+            </div>
+          )}
           <ConduitSignalsSection
             bus={bus}
             busIndex={index}
@@ -2179,26 +2220,40 @@ const ConduitPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, on
             paramValues={paramValues}
             onUpdate={onUpdate}
           />
-          <div className="ci-conduit-footer">
-            <button
-              className={`ci-conduit-save-btn${saveState === 'saved' ? ' ci-conduit-save-btn--saved' : ''}`}
-              onClick={handleSaveBusDef}
-              disabled={saveState === 'saving'}
-              title="Save interface definition as a reusable YAML file"
-              type="button"
-            >
-              {saveState === 'saved' ? (
-                <>
-                  <span className="codicon codicon-check" aria-hidden="true" /> Saved
-                </>
-              ) : (
-                <>
-                  <span className="codicon codicon-save" aria-hidden="true" /> Save Bus Definition
-                </>
-              )}
-            </button>
-          </div>
+          {!libraryPortDefs && (
+            <div className="ci-conduit-footer">
+              <button
+                className={`ci-conduit-save-btn${saveState === 'saved' ? ' ci-conduit-save-btn--saved' : ''}`}
+                onClick={handleSaveBusDef}
+                disabled={saveState === 'saving'}
+                title="Save interface definition as a reusable YAML file"
+                type="button"
+              >
+                {saveState === 'saved' ? (
+                  <>
+                    <span className="codicon codicon-check" aria-hidden="true" /> Saved
+                  </>
+                ) : (
+                  <>
+                    <span className="codicon codicon-save" aria-hidden="true" /> Save Bus Definition
+                  </>
+                )}
+              </button>
+            </div>
+          )}
         </>
+      )}
+      {showMappingDialog && libraryPortDefs && (
+        <MapConduitToBusDialog
+          busLabel={typeName || bus.type}
+          conduitPorts={existingConduitPorts}
+          libraryPortDefs={libraryPortDefs}
+          onConfirm={(result) => {
+            handleMapToKnownBus(result);
+            setShowMappingDialog(false);
+          }}
+          onCancel={() => setShowMappingDialog(false)}
+        />
       )}
     </>
   );

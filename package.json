@@ -171,6 +171,12 @@
         "enablement": "ipcraft.vivadoFound"
       },
       {
+        "command": "fpga-ip-core.scanVivadoInterfaces",
+        "title": "Scan Vivado Interface Catalog",
+        "category": "IPCraft",
+        "enablement": "ipcraft.vivadoFound"
+      },
+      {
         "command": "fpga-ip-core.build",
         "title": "Build",
         "category": "IPCraft",

@@ -124,7 +124,7 @@ export interface BusInterfaceArrayDef {
   count?: number;
   indexStart?: number;
   namingPattern?: string;
-  physicalPrefixPattern?: string;
+  physicalPrefixPattern?: string | null;
 }
 
 export interface BusInterfaceDef {
@@ -140,7 +140,7 @@ export interface BusInterfaceDef {
     width: number;
   }>;
   mode?: string;
-  physicalPrefix?: string;
+  physicalPrefix?: string | null;
   useOptionalPorts?: string[];
   portWidthOverrides?: Record<string, number | string>;
   portNameOverrides?: Record<string, string>;

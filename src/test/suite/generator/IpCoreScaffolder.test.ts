@@ -1,6 +1,7 @@
 /* eslint-disable */
 import * as path from 'path';
 import * as fs from 'fs/promises';
+import * as vscode from 'vscode';
 import { IpCoreScaffolder } from '../../../generator/IpCoreScaffolder';
 import { TemplateLoader } from '../../../generator/TemplateLoader';
 import { Logger } from '../../../utils/Logger';
@@ -41,6 +42,13 @@ jest.mock('fs/promises', () => {
   };
 });
 
+// Mock the Vivado interface cache lookup used by ensureBusDefinitions().
+const mockVivadoPathExists = jest.fn().mockResolvedValue(false);
+jest.mock('../../../services/VivadoInterfaceScanner', () => ({
+  getVivadoInterfaceCacheDir: () => '/fake/vivado/cache/bus_definitions',
+  pathExists: (p: string) => mockVivadoPathExists(p),
+}));
+
 describe('IpCoreScaffolder', () => {
   let scaffolder: any;
   const logger = new Logger('test');
@@ -59,6 +67,7 @@ describe('IpCoreScaffolder', () => {
       }),
       clearCache: jest.fn(),
     }));
+    mockVivadoPathExists.mockResolvedValue(false);
     scaffolder = new IpCoreScaffolder(logger, loader, resourceRoots);
     jest.clearAllMocks();
   });
@@ -420,5 +429,54 @@ describe('IpCoreScaffolder', () => {
     expect(tclContent).toContain(
       'add_interface_port Rb_WrData Rb_WrData rb_wrdata Output [get_parameter_value AXIDATAWIDTH_G]'
     );
+  });
+
+  it('merges in the cached Vivado interface catalog when it has been scanned', async () => {
+    (vscode.workspace.getConfiguration as jest.Mock).mockReturnValue({
+      get: (_key: string, defaultValue?: unknown) => defaultValue,
+    });
+    const loadFromUserPaths = jest.fn().mockResolvedValue({});
+    (BusLibraryService as jest.Mock).mockImplementation(() => ({
+      loadDefaultLibrary: jest.fn().mockResolvedValue({}),
+      loadFromUserPaths,
+      clearCache: jest.fn(),
+    }));
+    mockVivadoPathExists.mockResolvedValue(true);
+    scaffolder = new IpCoreScaffolder(logger, loader, resourceRoots);
+
+    const inputPath = path.resolve(__dirname, '../../fixtures/sample-ipcore.yml');
+    await scaffolder.generateAll(inputPath, '/tmp/test-output', {
+      includeRegs: false,
+      includeTestbench: false,
+      targets: ['vivado'],
+    });
+
+    expect(loadFromUserPaths).toHaveBeenCalledWith(
+      expect.arrayContaining(['/fake/vivado/cache/bus_definitions']),
+      undefined
+    );
+  });
+
+  it('does not include the Vivado interface cache when it has not been scanned', async () => {
+    (vscode.workspace.getConfiguration as jest.Mock).mockReturnValue({
+      get: (_key: string, defaultValue?: unknown) => defaultValue,
+    });
+    const loadFromUserPaths = jest.fn().mockResolvedValue({});
+    (BusLibraryService as jest.Mock).mockImplementation(() => ({
+      loadDefaultLibrary: jest.fn().mockResolvedValue({}),
+      loadFromUserPaths,
+      clearCache: jest.fn(),
+    }));
+    mockVivadoPathExists.mockResolvedValue(false);
+    scaffolder = new IpCoreScaffolder(logger, loader, resourceRoots);
+
+    const inputPath = path.resolve(__dirname, '../../fixtures/sample-ipcore.yml');
+    await scaffolder.generateAll(inputPath, '/tmp/test-output', {
+      includeRegs: false,
+      includeTestbench: false,
+      targets: ['vivado'],
+    });
+
+    expect(loadFromUserPaths).not.toHaveBeenCalled();
   });
 });

@@ -122,6 +122,30 @@ describe('registerProcessor', () => {
       expect(result[0].name).toBe('M_CH0');
       expect(result[1].name).toBe('M_CH1');
     });
+
+    it('defaults missing physicalPrefix to s_axi_ for a standard bus interface', () => {
+      const ipCore = {
+        busInterfaces: [{ name: 'bus', type: 'AXI4-Lite', mode: 'slave' }],
+      };
+      const result = expandBusInterfaces(ipCore as any);
+      expect(result[0].physicalPrefix).toBe('s_axi_');
+    });
+
+    it('defaults a null physicalPrefix to empty (no prefix) for a conduit interface', () => {
+      const ipCore = {
+        busInterfaces: [
+          {
+            name: 'fifo_write',
+            type: 'xilinx.com:interface:fifo_write:1.0',
+            mode: 'conduit',
+            physicalPrefix: null,
+            conduitPorts: [{ name: 'fifo_wr_en', direction: 'out', presence: 'required' }],
+          },
+        ],
+      };
+      const result = expandBusInterfaces(ipCore as any);
+      expect(result[0].physicalPrefix).toBe('');
+    });
   });
 
   describe('getVhdlPortType', () => {

@@ -508,6 +508,14 @@ function renderBusInterface(iface: BusInterfaceDef, busDefinitions: BusDefinitio
     if (busDef?.ports) {
       lines.push(...busDefPortMaps(busDef.ports, iface, mode));
     }
+  } else if (iface.conduitPorts && (iface.conduitPorts as unknown[]).length > 0) {
+    // Ports already authored directly on the interface take priority over a
+    // newly-discovered library match (e.g. from the Vivado interface catalog):
+    // the user's physical port names are presumably already wired up in their real
+    // HDL, and a library match alone doesn't tell us how to remap them to the
+    // library's official logical names. Silently switching here would produce a
+    // component.xml with physical names that don't exist on the actual entity.
+    lines.push(...busDefPortMaps(iface.conduitPorts as BusPortDefinition[], iface, mode));
   } else if (customBus) {
     lines.push(...busDefPortMaps(customBus.ports, iface, mode));
   } else {

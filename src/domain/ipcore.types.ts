@@ -23,7 +23,7 @@ export type Version = string;
 /**
  * IP core description
  */
-export type Description = string;
+export type Description = string | null;
 /**
  * Physical port name (HDL)
  */
@@ -67,7 +67,7 @@ export type Name2 = string;
 /**
  * Standard logical name for association
  */
-export type Logicalname1 = string;
+export type Logicalname1 = string | null;
 /**
  * Port direction enumeration.
  */
@@ -167,7 +167,7 @@ export type BusInterfaceMode = 'master' | 'slave' | 'source' | 'sink' | 'conduit
 /**
  * Prefix for physical port names (e.g., 's_axi_')
  */
-export type Physicalprefix = string;
+export type Physicalprefix = string | null;
 /**
  * Logical clock name this interface uses
  */
@@ -203,7 +203,7 @@ export type Namingpattern = string;
 /**
  * Physical prefix pattern with {index} placeholder
  */
-export type Physicalprefixpattern = string;
+export type Physicalprefixpattern = string | null;
 /**
  * Interface description
  */
@@ -390,7 +390,7 @@ export type ParameterType = 'integer' | 'boolean' | 'string';
 /**
  * Parameter description
  */
-export type Description11 = string;
+export type Description11 = string | null;
 /**
  * Generics/parameters
  */
@@ -765,11 +765,11 @@ export interface Parameter {
   /**
    * Wizard tab / page name in Vivado IP Packager and Platform Designer
    */
-  uiPage?: string;
+  uiPage?: string | null;
   /**
    * Sub-group within uiPage. Requires uiPage to be set.
    */
-  uiGroup?: string;
+  uiGroup?: string | null;
   [k: string]: unknown;
 }
 /**

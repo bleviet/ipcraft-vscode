@@ -220,6 +220,83 @@ describe('generateComponentXml', () => {
       expect(xml).not.toContain('spirit:vendor="user.org"');
     });
 
+    it('emits portMaps from conduitPorts for an unsaved custom interface (no busDefinitions entry)', () => {
+      const xml = gen({
+        busInterfaces: [
+          {
+            name: 'fifo_write',
+            type: 'xilinx.com:interface:fifo_write:1.0',
+            mode: 'conduit',
+            physicalPrefix: null,
+            conduitPorts: [
+              { name: 'fifo_wr_en', direction: 'out', presence: 'required', width: 1 },
+              { name: 'fifo_wr_data', direction: 'out', presence: 'required', width: 8 },
+              { name: 'fifo_almost_full', direction: 'in', presence: 'required', width: 1 },
+            ],
+            useOptionalPorts: [],
+            portWidthOverrides: {},
+          },
+        ],
+      });
+      const idx = xml.indexOf('<spirit:name>fifo_write</spirit:name>');
+      const block = xml.slice(idx, xml.indexOf('</spirit:busInterface>', idx));
+      expect(block).toContain('<spirit:portMaps>');
+      // Conduit ports carry their final physical name already — no AXI-style
+      // 's_axi_' prefix should be injected when physicalPrefix is unset/null.
+      for (const name of ['fifo_wr_en', 'fifo_wr_data', 'fifo_almost_full']) {
+        expect(block).toContain(`<spirit:name>${name}</spirit:name>`);
+      }
+      expect(block).not.toContain('s_axi_');
+    });
+
+    it('keeps using already-authored conduitPorts even when the type also matches a known busDefinitions entry', () => {
+      const defsWithFifoWrite: BusDefinitions = {
+        ...BUS_DEFS,
+        FIFO_WRITE: {
+          busType: {
+            vendor: 'xilinx.com',
+            library: 'interface',
+            name: 'fifo_write',
+            version: '1.0',
+          },
+          ports: [
+            { name: 'WR_DATA', direction: 'out', presence: 'required' },
+            { name: 'WR_EN', width: 1, direction: 'out', presence: 'required' },
+            { name: 'FULL', width: 1, direction: 'in', presence: 'optional' },
+          ],
+        },
+      };
+      const ip = makeIp({
+        busInterfaces: [
+          {
+            name: 'fifo_write',
+            type: 'xilinx.com:interface:fifo_write:1.0',
+            mode: 'conduit',
+            physicalPrefix: null,
+            conduitPorts: [
+              { name: 'fifo_wr_en', direction: 'out', presence: 'required', width: 1 },
+              { name: 'fifo_wr_data', direction: 'out', presence: 'required', width: 8 },
+              { name: 'fifo_almost_full', direction: 'in', presence: 'required', width: 1 },
+            ],
+            useOptionalPorts: [],
+            portWidthOverrides: {},
+          },
+        ],
+      });
+      const xml = generateComponentXml(ip, defsWithFifoWrite);
+      const idx = xml.indexOf('<spirit:name>fifo_write</spirit:name>');
+      const block = xml.slice(idx, xml.indexOf('</spirit:busInterface>', idx));
+
+      // busType/abstractionType still correctly declare the real Xilinx interface...
+      expect(block).toContain('spirit:vendor="xilinx.com"');
+      expect(block).toContain('spirit:name="fifo_write"');
+      // ...but the portMaps still reflect the user's own already-wired conduitPorts,
+      // not the library's official logical names — switching silently would produce
+      // physical port names that don't exist on the user's real HDL entity.
+      expect(block).toContain('<spirit:name>fifo_wr_en</spirit:name>');
+      expect(block).not.toContain('<spirit:name>WR_EN</spirit:name>');
+    });
+
     it('falls back to user.org with the raw type as name when type is not a valid VLNV', () => {
       const xml = gen({
         busInterfaces: [

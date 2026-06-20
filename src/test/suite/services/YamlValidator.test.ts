@@ -227,5 +227,38 @@ describe('YamlValidator', () => {
       expect(result.valid).toBe(false);
       expect(result.error).toContain('vlnv');
     });
+
+    it('accepts a custom conduit interface with a null physicalPrefix (grouped signals, no explicit prefix)', () => {
+      const data = {
+        vlnv: { vendor: 'test', library: 'lib', name: 'core', version: '1.0' },
+        description: null,
+        busInterfaces: [
+          {
+            name: 'fifo_write',
+            type: 'user:busif:fifo_write:1.0',
+            mode: 'conduit',
+            physicalPrefix: null,
+            conduitPorts: [
+              { name: 'fifo_write', direction: 'out', presence: 'required' },
+              { name: 'fifo_almost_full', direction: 'in', presence: 'required' },
+            ],
+          },
+        ],
+      };
+      const result = validator.validateAgainstSchema(data, IP_CORE_SCHEMA_PATH);
+      expect(result.valid).toBe(true);
+      expect(result.error).toBeUndefined();
+    });
+
+    it('accepts null for parameters[].description/uiPage/uiGroup and resets[].logicalName', () => {
+      const data = {
+        vlnv: { vendor: 'test', library: 'lib', name: 'core', version: '1.0' },
+        parameters: [{ name: 'WIDTH', description: null, uiPage: null, uiGroup: null }],
+        resets: [{ name: 'rst_n', logicalName: null }],
+      };
+      const result = validator.validateAgainstSchema(data, IP_CORE_SCHEMA_PATH);
+      expect(result.valid).toBe(true);
+      expect(result.error).toBeUndefined();
+    });
   });
 });

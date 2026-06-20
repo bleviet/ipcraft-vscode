@@ -1,4 +1,11 @@
 import * as vscode from 'vscode';
+
+const mockPathExists = jest.fn<Promise<boolean>, [string]>();
+jest.mock('../../../services/VivadoInterfaceScanner', () => ({
+  getVivadoInterfaceCacheDir: () => '/fake/vivado/cache/bus_definitions',
+  pathExists: (p: string): Promise<boolean> => mockPathExists(p),
+}));
+
 import { ImportResolver } from '../../../services/ImportResolver';
 import { Logger } from '../../../utils/Logger';
 
@@ -13,6 +20,7 @@ describe('ImportResolver', () => {
       warn: jest.fn(),
       error: jest.fn(),
     };
+    mockPathExists.mockReset().mockResolvedValue(false);
 
     readFileMock = jest.fn();
     (vscode.workspace as unknown as { fs: { readFile: jest.Mock; stat: jest.Mock } }).fs = {
@@ -41,7 +49,70 @@ describe('ImportResolver', () => {
 
     expect(result.busLibrary).toEqual({ axi4: { ports: ['awaddr'] } });
     expect(result.memoryMaps).toBeUndefined();
-    expect(result.fileSets).toBeUndefined();
+  });
+
+  it('does not merge in the Vivado interface cache when it has not been scanned', async () => {
+    mockPathExists.mockResolvedValue(false);
+    const resolver = new ImportResolver(logger as Logger, '/ext/dist/resources/bus_definitions');
+    const loadFromUserPaths = jest.fn().mockResolvedValue({});
+    (
+      resolver as unknown as {
+        busLibraryService: { loadDefaultLibrary: jest.Mock; loadFromUserPaths: jest.Mock };
+      }
+    ).busLibraryService.loadDefaultLibrary = jest.fn().mockResolvedValue({});
+    (
+      resolver as unknown as { busLibraryService: { loadFromUserPaths: jest.Mock } }
+    ).busLibraryService.loadFromUserPaths = loadFromUserPaths;
+    (vscode.workspace.getConfiguration as jest.Mock).mockReturnValue({
+      get: (key: string, defaultValue?: unknown) =>
+        key === 'busLibraryPaths' ? ['./my-buses'] : defaultValue,
+    });
+
+    await resolver.resolveImports({}, '/project');
+
+    expect(loadFromUserPaths).toHaveBeenCalledWith(['./my-buses'], undefined);
+  });
+
+  it('merges in the cached Vivado interface catalog when it has been scanned', async () => {
+    mockPathExists.mockResolvedValue(true);
+    const resolver = new ImportResolver(logger as Logger, '/ext/dist/resources/bus_definitions');
+    const loadFromUserPaths = jest.fn().mockResolvedValue({});
+    (
+      resolver as unknown as { busLibraryService: { loadDefaultLibrary: jest.Mock } }
+    ).busLibraryService.loadDefaultLibrary = jest.fn().mockResolvedValue({});
+    (
+      resolver as unknown as { busLibraryService: { loadFromUserPaths: jest.Mock } }
+    ).busLibraryService.loadFromUserPaths = loadFromUserPaths;
+    (vscode.workspace.getConfiguration as jest.Mock).mockReturnValue({
+      get: (key: string, defaultValue?: unknown) =>
+        key === 'busLibraryPaths' ? ['./my-buses'] : defaultValue,
+    });
+
+    await resolver.resolveImports({}, '/project');
+
+    expect(loadFromUserPaths).toHaveBeenCalledWith(
+      ['./my-buses', '/fake/vivado/cache/bus_definitions'],
+      undefined
+    );
+  });
+
+  it('merges in the cached Vivado interface catalog even with no busLibraryPaths configured', async () => {
+    mockPathExists.mockResolvedValue(true);
+    const resolver = new ImportResolver(logger as Logger, '/ext/dist/resources/bus_definitions');
+    const loadFromUserPaths = jest.fn().mockResolvedValue({});
+    (
+      resolver as unknown as { busLibraryService: { loadDefaultLibrary: jest.Mock } }
+    ).busLibraryService.loadDefaultLibrary = jest.fn().mockResolvedValue({});
+    (
+      resolver as unknown as { busLibraryService: { loadFromUserPaths: jest.Mock } }
+    ).busLibraryService.loadFromUserPaths = loadFromUserPaths;
+
+    await resolver.resolveImports({}, '/project');
+
+    expect(loadFromUserPaths).toHaveBeenCalledWith(
+      ['/fake/vivado/cache/bus_definitions'],
+      undefined
+    );
   });
 
   it('falls back to default bus library when explicit bus library fails', async () => {

@@ -5,6 +5,7 @@ import * as vscode from 'vscode';
 import { Logger } from '../utils/Logger';
 import { ResourceRoots } from '../services/ResourceRoots';
 import { BusLibraryService } from '../services/BusLibraryService';
+import { getVivadoInterfaceCacheDir, pathExists } from '../services/VivadoInterfaceScanner';
 import { TemplateLoader } from './TemplateLoader';
 import { ScaffoldPackLoader } from './ScaffoldPackLoader';
 import {
@@ -313,7 +314,14 @@ export class IpCoreScaffolder {
     let userLibrary: Record<string, unknown> = {};
     try {
       const config = vscode.workspace.getConfiguration('ipcraft');
-      const userPaths = config.get<string[]>('busLibraryPaths', []);
+      const userPaths = [...config.get<string[]>('busLibraryPaths', [])];
+      // Cached Vivado interface catalog (if "Scan Vivado Interface Catalog" has been
+      // run) — a single global cache shared by every IP core, never duplicated per
+      // project. Same merge point used by ImportResolver for the webview.
+      const vivadoCacheDir = getVivadoInterfaceCacheDir();
+      if (await pathExists(vivadoCacheDir)) {
+        userPaths.push(vivadoCacheDir);
+      }
       const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
       if (userPaths.length > 0) {
         userLibrary = await this.busLibraryService.loadFromUserPaths(userPaths, workspaceRoot);

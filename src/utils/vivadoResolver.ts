@@ -19,6 +19,48 @@ export interface VivadoLauncher {
   prefixArgs: string[];
 }
 
+function hasVivadoBinary(dir: string, isWindows: boolean): boolean {
+  const script = path.join(dir, isWindows ? WIN_SCRIPT_SUBPATH : LINUX_BIN_SUBPATH);
+  return fs.existsSync(script);
+}
+
+/**
+ * Resolves `installDir` to the actual version-specific Vivado installation directory
+ * (the one containing `data/`, `bin/`, etc.), independent of how the executable is
+ * launched on each platform. Used both to locate the launcher and to read static
+ * resources Vivado ships on disk (e.g. `data/ip/interfaces/`).
+ *
+ * Expected layouts (tried in order):
+ *   - installDir IS the version-specific directory (user set the version-specific dir)
+ *   - installDir is the Vivado family directory containing versioned subdirectories
+ *     (e.g. /tools/Xilinx/Vivado/2024.2/) — the latest version is picked
+ *     (lexicographic descending — Xilinx uses YYYY.N).
+ *
+ * Returns null if no Vivado installation can be found under installDir.
+ */
+export function resolveVivadoInstallDir(installDir: string): string | null {
+  const isWindows = process.platform === 'win32';
+
+  if (hasVivadoBinary(installDir, isWindows)) {
+    return installDir;
+  }
+
+  try {
+    const entries = fs.readdirSync(installDir);
+    const candidates = entries
+      .filter((e) => hasVivadoBinary(path.join(installDir, e), isWindows))
+      .sort()
+      .reverse();
+    if (candidates.length > 0) {
+      return path.join(installDir, candidates[0]);
+    }
+  } catch {
+    // installDir doesn't exist or isn't readable.
+  }
+
+  return null;
+}
+
 /**
  * Searches `installDir` for the Vivado launcher.
  *
@@ -31,43 +73,25 @@ export interface VivadoLauncher {
  * Returns null if no matching executable is found.
  */
 export function findVivadoInInstallDir(installDir: string): VivadoLauncher | null {
-  const isWindows = process.platform === 'win32';
+  const resolvedDir = resolveVivadoInstallDir(installDir);
+  if (!resolvedDir) {
+    return null;
+  }
 
+  const isWindows = process.platform === 'win32';
   if (isWindows) {
-    const launcher = path.join(installDir, WIN_LAUNCHER_SUBPATH);
-    const script = path.join(installDir, WIN_SCRIPT_SUBPATH);
+    const launcher = path.join(resolvedDir, WIN_LAUNCHER_SUBPATH);
+    const script = path.join(resolvedDir, WIN_SCRIPT_SUBPATH);
     if (fs.existsSync(launcher) && fs.existsSync(script)) {
       return { exe: launcher, prefixArgs: [script] };
     }
     if (fs.existsSync(script)) {
       return { exe: script, prefixArgs: [] };
     }
-  } else {
-    // Direct: installDir is the version-specific directory.
-    const binary = path.join(installDir, LINUX_BIN_SUBPATH);
-    if (fs.existsSync(binary)) {
-      return { exe: binary, prefixArgs: [] };
-    }
-
-    // Fallback: installDir is the Vivado family directory that contains versioned
-    // subdirectories (e.g. /tools/Xilinx/Vivado/2024.2/). Scan one level deep and
-    // pick the latest version (lexicographic descending — Xilinx uses YYYY.N).
-    try {
-      const entries = fs.readdirSync(installDir);
-      const candidates = entries
-        .map((e) => path.join(installDir, e, 'bin', 'vivado'))
-        .filter((p) => fs.existsSync(p))
-        .sort()
-        .reverse();
-      if (candidates.length > 0) {
-        return { exe: candidates[0], prefixArgs: [] };
-      }
-    } catch {
-      // installDir doesn't exist or isn't readable — fall through to null.
-    }
+    return null;
   }
 
-  return null;
+  return { exe: path.join(resolvedDir, LINUX_BIN_SUBPATH), prefixArgs: [] };
 }
 
 /**

@@ -13,6 +13,7 @@ import * as yaml from 'js-yaml';
 import { Logger } from '../utils/Logger';
 import { BusLibraryService } from './BusLibraryService';
 import { resolveMemoryMapImports } from './imports/resolveMemoryMapImports';
+import { getVivadoInterfaceCacheDir, pathExists } from './VivadoInterfaceScanner';
 
 export interface ResolvedImports {
   memoryMaps?: Record<string, unknown>[];
@@ -96,7 +97,9 @@ export class ImportResolver {
 
   /**
    * Load default bus library from ipcore_spec, extended with any user-defined paths
-   * configured via the `ipcraft.busLibraryPaths` VS Code setting.
+   * configured via the `ipcraft.busLibraryPaths` VS Code setting, plus the cached
+   * Vivado interface catalog (if "Scan Vivado Interface Catalog" has been run) —
+   * a single global cache shared by every IP core, never duplicated per project.
    * Returns the library in the format expected by the UI: { [key]: { ports: [...] } }
    */
   private async loadDefaultBusLibrary(): Promise<Record<string, unknown>> {
@@ -105,7 +108,11 @@ export class ImportResolver {
     this.logger.info(`Loaded ${count} bus types from local library`);
 
     const config = vscode.workspace.getConfiguration('ipcraft');
-    const userPaths = config.get<string[]>('busLibraryPaths', []);
+    const userPaths = [...config.get<string[]>('busLibraryPaths', [])];
+    const vivadoCacheDir = getVivadoInterfaceCacheDir();
+    if (await pathExists(vivadoCacheDir)) {
+      userPaths.push(vivadoCacheDir);
+    }
     const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
 
     if (userPaths.length > 0) {

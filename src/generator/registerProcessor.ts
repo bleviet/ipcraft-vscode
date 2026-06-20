@@ -139,6 +139,11 @@ export function expandBusInterfaces(ipCore: IpCoreData): BusInterfaceDef[] {
   const expanded: BusInterfaceDef[] = [];
 
   for (const iface of busInterfaces) {
+    const mode = getString(iface.mode).toLowerCase();
+    // Conduit ports are typically authored with their final, literal physical
+    // names already (e.g. via conduitPorts), so an unset prefix means "no
+    // prefix" — not the AXI-style 's_axi_' default used for standard buses.
+    const defaultPrefix = mode === 'conduit' ? '' : 's_axi_';
     const arrayDef = iface.array;
     if (arrayDef) {
       const count = Number(arrayDef.count ?? 1);
@@ -147,13 +152,14 @@ export function expandBusInterfaces(ipCore: IpCoreData): BusInterfaceDef[] {
         const idx = start + i;
         const namePattern = arrayDef.namingPattern ?? `${String(iface.name)}_{index}`;
         const prefixPattern =
-          arrayDef.physicalPrefixPattern ?? `${String(iface.physicalPrefix ?? 's_axi_')}{index}_`;
+          arrayDef.physicalPrefixPattern ??
+          `${String(iface.physicalPrefix ?? defaultPrefix)}{index}_`;
         expanded.push({
           name: String(namePattern).replace('{index}', String(idx)),
           type: getString(iface.type),
           busTypeVlnv: iface.busTypeVlnv,
           rawPortMaps: iface.rawPortMaps,
-          mode: getString(iface.mode).toLowerCase(),
+          mode,
           physicalPrefix: String(prefixPattern).replace('{index}', String(idx)),
           useOptionalPorts: iface.useOptionalPorts ?? [],
           portWidthOverrides: iface.portWidthOverrides ?? {},
@@ -172,8 +178,8 @@ export function expandBusInterfaces(ipCore: IpCoreData): BusInterfaceDef[] {
       type: getString(iface.type),
       busTypeVlnv: iface.busTypeVlnv,
       rawPortMaps: iface.rawPortMaps,
-      mode: getString(iface.mode).toLowerCase(),
-      physicalPrefix: iface.physicalPrefix ?? 's_axi_',
+      mode,
+      physicalPrefix: iface.physicalPrefix ?? defaultPrefix,
       useOptionalPorts: iface.useOptionalPorts ?? [],
       portWidthOverrides: iface.portWidthOverrides ?? {},
       portNameOverrides: iface.portNameOverrides,

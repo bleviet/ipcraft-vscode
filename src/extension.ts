@@ -18,6 +18,7 @@ import { editInPlatformDesignerCommand } from './commands/editInPlatformDesigner
 import { openInVivadoCommand } from './commands/openInVivado';
 import { openInQuartusCommand } from './commands/openInQuartus';
 import { scanVivadoCatalogCommand } from './commands/scanVivadoCatalog';
+import { scanVivadoInterfacesCommand } from './commands/scanVivadoInterfaces';
 import { openAsTextCommand, openAsVisualCommand } from './commands/toggleEditorMode';
 import { IpCoreSourcePreviewProvider } from './providers/IpCoreSourcePreviewProvider';
 import { safeRegisterCommand } from './utils/vscodeHelpers';
@@ -129,6 +130,7 @@ export function activate(context: vscode.ExtensionContext): void {
   safeRegisterCommand(context, 'fpga-ip-core.openInVivado', openInVivadoCommand);
   safeRegisterCommand(context, 'fpga-ip-core.openInQuartus', openInQuartusCommand);
   safeRegisterCommand(context, 'fpga-ip-core.scanVivadoCatalog', scanVivadoCatalogCommand);
+  safeRegisterCommand(context, 'fpga-ip-core.scanVivadoInterfaces', scanVivadoInterfacesCommand);
   safeRegisterCommand(context, 'fpga-ip-core.vivadoNotConfigured', vivadoNotConfiguredCommand);
   safeRegisterCommand(context, 'fpga-ip-core.quartusNotConfigured', quartusNotConfiguredCommand);
   safeRegisterCommand(context, 'fpga-ip-core.qsysEditNotConfigured', qsysEditNotConfiguredCommand);

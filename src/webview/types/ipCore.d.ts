@@ -23,7 +23,7 @@ export type Version = string;
 /**
  * IP core description
  */
-export type Description = string;
+export type Description = string | null;
 /**
  * Physical port name (HDL)
  */
@@ -63,7 +63,7 @@ export type Name2 = string;
 /**
  * Standard logical name for association
  */
-export type Logicalname1 = string;
+export type Logicalname1 = string | null;
 /**
  * Port direction enumeration.
  */
@@ -159,7 +159,7 @@ export type BusInterfaceMode = 'master' | 'slave' | 'source' | 'sink' | 'conduit
 /**
  * Prefix for physical port names (e.g., 's_axi_')
  */
-export type Physicalprefix = string;
+export type Physicalprefix = string | null;
 /**
  * Logical clock name this interface uses
  */
@@ -191,7 +191,7 @@ export type Namingpattern = string;
 /**
  * Physical prefix pattern with {index} placeholder
  */
-export type Physicalprefixpattern = string;
+export type Physicalprefixpattern = string | null;
 /**
  * Interface description
  */
@@ -370,7 +370,7 @@ export type Name11 = string;
 /**
  * File set description
  */
-export type Description11 = string;
+export type Description11 = string | null;
 /**
  * Whether the file should be overwritten on generation
  */
