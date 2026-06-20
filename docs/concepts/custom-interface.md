@@ -2,6 +2,8 @@
 
 A Custom Interface is a bus interface whose signal set is defined by the designer rather than drawn from a built-in protocol library. Where a standard interface (AXI4-Lite, AXI-Stream, Avalon-MM, etc.) has a fixed, tool-recognized signal list, a Custom Interface carries exactly the signals you name — no more, no less. This makes it the right choice whenever a connection between IP cores does not map cleanly onto an industry-standard bus protocol.
 
+> **Before reaching for a Custom Interface**, check whether the protocol you need is one Vivado already ships metadata for (e.g. Xilinx's `fifo_write`/`fifo_read`). If so, [scanning the Vivado Interface Catalog](vivado-interface-catalog.md) lets IPCraft recognize it directly — same selection and width-override UI as a built-in bus type, and no hand-typed signal list to keep in sync. The rest of this page describes the model for interfaces that genuinely have no such metadata anywhere.
+
 ---
 
 ## Why Custom Interfaces Exist

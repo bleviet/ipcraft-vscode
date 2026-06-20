@@ -46,6 +46,7 @@ Both use `retainContextWhenHidden: true` for state persistence and share the sam
 | `FileSetUpdater` | `src/services/FileSetUpdater.ts` | Updates file set entries after generation |
 | `SubcoreResolver` | `src/services/SubcoreResolver.ts` | Resolves sub-core references across `.ip.yml` files |
 | `VivadoCatalogScanner` | `src/services/VivadoCatalogScanner.ts` | Scans the Vivado IP catalog and caches results |
+| `VivadoInterfaceScanner` | `src/services/VivadoInterfaceScanner.ts` | Scans the Vivado *interface* catalog (`data/ip/interfaces/`) and caches bus definitions — see [Vivado Interface Catalog](vivado-interface-catalog.md) |
 | `ToolDetector` | `src/services/ToolDetector.ts` | Detects installed vendor toolchains (Vivado, Quartus) |
 
 ## Commands
@@ -60,6 +61,7 @@ Both use `retainContextWhenHidden: true` for state persistence and share the sam
 | `openInVivado.ts` | Open in Vivado (generate project if needed, then launch GUI) |
 | `openInQuartus.ts` | Open in Quartus (generate project if needed, then launch GUI) |
 | `scanVivadoCatalog.ts` | Scan Vivado IP Catalog |
+| `scanVivadoInterfaces.ts` | Scan Vivado Interface Catalog |
 | `migrateLegacyIpCore.ts` | Migrate Legacy IP Cores (`vendor:` → `targets:`) |
 | `toggleEditorMode.ts` | Open as Text Editor / Open as Visual Editor |
 | `toolNotConfigured.ts` | "Tool Not Found — Click to Configure" placeholder commands |
@@ -166,6 +168,8 @@ The toolchain abstraction centralises all vendor-tool configuration. Commands su
 
 `src/parser/VhdlParser.ts` -- parses existing VHDL files into IP Core/Memory Map YAML specifications. Accessible via the `Import from VHDL` command or right-click context menu on `.vhd`/`.vhdl` files.
 
+`src/parser/VivadoInterfaceXmlParser.ts` -- parses Vivado's own IP-XACT `busDefinition`/`abstractionDefinition` XML files (under `data/ip/interfaces/`) into bus definitions usable by `BusLibraryService`. Used by `VivadoInterfaceScanner`, not exposed as a standalone command — see [Vivado Interface Catalog](vivado-interface-catalog.md).
+
 ## Utilities
 
 | File | Purpose |
@@ -180,7 +184,7 @@ The toolchain abstraction centralises all vendor-tool configuration. Commands su
 | `src/utils/migrateIpCore.ts` | Migrates legacy `vendor:` fields to `targets:` |
 | `src/utils/pickBoard.ts` | Board/part picker QuickPick logic |
 | `src/utils/quartusResolver.ts` | Resolves Quartus binary paths from `installDir` |
-| `src/utils/vivadoResolver.ts` | Resolves Vivado binary paths from `installDir` |
+| `src/utils/vivadoResolver.ts` | Resolves Vivado binary paths from `installDir`; `resolveVivadoInstallDir()` resolves the install directory itself, reused by `VivadoInterfaceScanner` |
 | `src/utils/resolveVendor.ts` | Maps `targets[]` entries to vendor toolchain IDs |
 | `src/utils/sourceFileMounts.ts` | Builds Docker volume mount arguments for source files |
 | `src/utils/vlnv.ts` | VLNV string parsing and comparison |

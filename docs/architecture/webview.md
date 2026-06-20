@@ -62,6 +62,14 @@ The webview is an embedded browser that renders the visual editors using React. 
 | `GeneratorPanel` | `ipcore/components/sections/GeneratorPanel.tsx` | VHDL generation UI |
 | `InlineEditField` | `ipcore/components/sections/InlineEditField.tsx` | Reusable inline edit component |
 
+### Canvas (IP Core)
+
+The drag-and-drop block canvas (`ipcore/components/canvas/`) — `IpBlockCanvas`, `CanvasInspector`, `CanvasBusBundle`, `LibraryPalette` — is not yet fully catalogued here; see `architecture.md`'s component diagram for the full family. One addition from the Vivado Interface Catalog work:
+
+| Component | File | Role |
+|-----------|------|------|
+| `MapConduitToBusDialog` | `ipcore/components/canvas/MapConduitToBusDialog.tsx` | Maps an already-authored conduit interface's signals onto a newly-recognized library bus type's logical ports — see [Vivado Interface Catalog](vivado-interface-catalog.md) |
+
 ## Memory Map Hooks
 
 State management and behavior logic for the Memory Map editor:
@@ -90,6 +98,7 @@ State management and behavior logic for the Memory Map editor:
 | `useIpCoreSync` | `ipcore/hooks/useIpCoreSync.ts` | Sends YAML updates to extension host |
 | `useNavigation` | `ipcore/hooks/useNavigation.ts` | Section navigation state |
 | `useBusInterfaceEditing` | `ipcore/hooks/useBusInterfaceEditing.ts` | Bus interface editing state and actions |
+| `useGroupPorts` | `ipcore/hooks/useGroupPorts.ts` | Grouping standalone ports into bus interfaces (and the reverse); `applyMapConduitToKnownBus()` converts a conduit interface to `portNameOverrides` once its type resolves to a library definition — see [Vivado Interface Catalog](vivado-interface-catalog.md) |
 
 ## Webview Services
 

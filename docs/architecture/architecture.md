@@ -488,6 +488,7 @@ context keys (`ipcraft.vivadoFound`, …) that grey out commands. `ReportParser`
 | Vendor toolchains | `src/services/toolchains/` |
 | Importers (experimental) | `src/parser/{Vhdl,HwTcl,ComponentXml,Verilog}Parser.ts` |
 | Schemas / spec | `ipcraft-spec/` (nested repo; schemas copied to `dist/resources/schemas/`) |
+| Vivado interface catalog scan | `src/services/VivadoInterfaceScanner.ts`, `src/parser/VivadoInterfaceXmlParser.ts`, `src/commands/scanVivadoInterfaces.ts` — see [Vivado Interface Catalog](vivado-interface-catalog.md) |
 
 ---
 

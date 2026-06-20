@@ -16,7 +16,7 @@ graph TB
     subgraph "Extension Host"
         EXT["extension.ts"]
         PROV["Providers\nMemoryMapEditorProvider\nIpCoreEditorProvider\nIpCoreGenerateHandler\nproviderServices"]
-        SVC["Services\nMessageHandler\nDocumentManager\nYamlValidator\nHtmlGenerator\nImportResolver\nBusLibraryService\nFileSetUpdater\nSubcoreResolver\nVivadoCatalogScanner\nToolDetector"]
+        SVC["Services\nMessageHandler\nDocumentManager\nYamlValidator\nHtmlGenerator\nImportResolver\nBusLibraryService\nFileSetUpdater\nSubcoreResolver\nVivadoCatalogScanner\nVivadoInterfaceScanner\nToolDetector"]
         CMD["Commands\nFileCreation\nGenerate\nBuild\nVivado/Quartus\nMigrate"]
         GEN["Generator\nIpCoreScaffolder\nregisterProcessor\nTemplateLoader\ntestbench/"]
         TC["Toolchains\nVivadoToolchain\nQuartusToolchain\nregistry"]
