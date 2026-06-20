@@ -3,6 +3,26 @@ import * as vscode from 'vscode';
 import * as yaml from 'js-yaml';
 import { Logger } from '../utils/Logger';
 
+/**
+ * Validates that a parsed YAML object looks like a bus definition record:
+ * a top-level object where at least one value is an object with an array
+ * `ports` field. Shared by BusLibraryService.scanDirectory and
+ * WorkspaceBusDefinitionScanner so validation logic stays in one place.
+ */
+export function isBusDefRecord(parsed: unknown): parsed is Record<string, unknown> {
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    return false;
+  }
+  const record = parsed as Record<string, unknown>;
+  return Object.values(record).some(
+    (v) =>
+      v !== null &&
+      typeof v === 'object' &&
+      !Array.isArray(v) &&
+      Array.isArray((v as Record<string, unknown>).ports)
+  );
+}
+
 export class BusLibraryService {
   private readonly logger: Logger;
   private cachedDefaultLibrary: Record<string, unknown> | null = null;
@@ -131,19 +151,8 @@ export class BusLibraryService {
           const fileData = await vscode.workspace.fs.readFile(fileUri);
           const content = Buffer.from(fileData).toString('utf8');
           const parsed = yaml.load(content);
-          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-            const record = parsed as Record<string, unknown>;
-            // Validate: at least one top-level value must be an object with an array `ports` field
-            const looksLikeBusDef = Object.values(record).some(
-              (v) =>
-                v !== null &&
-                typeof v === 'object' &&
-                !Array.isArray(v) &&
-                Array.isArray((v as Record<string, unknown>).ports)
-            );
-            if (looksLikeBusDef) {
-              Object.assign(merged, record);
-            }
+          if (isBusDefRecord(parsed)) {
+            Object.assign(merged, parsed);
           }
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);

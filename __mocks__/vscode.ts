@@ -57,3 +57,43 @@ export class Range {
 export class WorkspaceEdit {
   replace = jest.fn();
 }
+
+/**
+ * Minimal EventEmitter stub for tests of services that expose VS Code events
+ * (e.g. WorkspaceBusDefinitionScanner.onDidScan). Real VS Code's EventEmitter
+ * stores a listener list and fires on demand — this stub does the same.
+ */
+export class EventEmitter<T = unknown> {
+  private listeners: Array<(e: T) => void> = [];
+
+  get event(): (listener: (e: T) => void) => { dispose: () => void } {
+    return (listener: (e: T) => void) => {
+      this.listeners.push(listener);
+      return {
+        dispose: () => {
+          this.listeners = this.listeners.filter((l) => l !== listener);
+        },
+      };
+    };
+  }
+
+  fire(data: T): void {
+    for (const listener of this.listeners) {
+      listener(data);
+    }
+  }
+
+  dispose(): void {
+    this.listeners = [];
+  }
+}
+
+export class Disposable {
+  private disposeFn: () => void;
+  constructor(disposeFn: () => void) {
+    this.disposeFn = disposeFn;
+  }
+  dispose(): void {
+    this.disposeFn();
+  }
+}

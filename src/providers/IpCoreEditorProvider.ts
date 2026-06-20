@@ -10,6 +10,7 @@ import { WebviewRouter } from '../services/WebviewRouter';
 import { YamlValidator } from '../services/YamlValidator';
 import { DocumentManager } from '../services/DocumentManager';
 import { ImportResolver } from '../services/ImportResolver';
+import { getWorkspaceBusDefinitionScanner } from '../services/WorkspaceBusDefinitionScanner';
 import { SubcoreResolver } from '../services/SubcoreResolver';
 import { isValidVlnv } from '../utils/vlnv';
 import { createNotIpCoreHtml } from './ipCoreErrorHtml';
@@ -202,11 +203,19 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
         void updateWebview(undefined, true);
       }
     });
+    // Refresh when workspace bus definitions are re-scanned, so the Inspector
+    // picks up newly discovered (or removed) workspace bus definitions without
+    // requiring the user to re-open the editor.
+    const workspaceBusDefSubscription = getWorkspaceBusDefinitionScanner().onDidScan(() => {
+      this.importResolver.clearCache();
+      void updateWebview(undefined, true);
+    });
     const fileWatcher = this.watchGeneratedFiles(document, () => updateWebview(undefined, true));
     this.registerDisposal(webviewPanel, () => {
       isDisposed = true;
       changeDocumentSubscription.dispose();
       configSubscription.dispose();
+      workspaceBusDefSubscription.dispose();
       fileWatcher.dispose();
       router.dispose();
     });

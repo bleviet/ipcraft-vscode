@@ -6,6 +6,18 @@ jest.mock('../../../services/VivadoInterfaceScanner', () => ({
   pathExists: (p: string): Promise<boolean> => mockPathExists(p),
 }));
 
+const mockWorkspaceScan = jest.fn<
+  Promise<{ library: Record<string, unknown>; count: number; files: unknown[] }>,
+  []
+>();
+jest.mock('../../../services/WorkspaceBusDefinitionScanner', () => ({
+  getWorkspaceBusDefinitionScanner: () => ({
+    scan: () => mockWorkspaceScan(),
+    clearCache: jest.fn(),
+    onDidScan: jest.fn(() => ({ dispose: jest.fn() })),
+  }),
+}));
+
 import { ImportResolver } from '../../../services/ImportResolver';
 import { Logger } from '../../../utils/Logger';
 
@@ -21,6 +33,7 @@ describe('ImportResolver', () => {
       error: jest.fn(),
     };
     mockPathExists.mockReset().mockResolvedValue(false);
+    mockWorkspaceScan.mockReset().mockResolvedValue({ library: {}, count: 0, files: [] });
 
     readFileMock = jest.fn();
     (vscode.workspace as unknown as { fs: { readFile: jest.Mock; stat: jest.Mock } }).fs = {
@@ -113,6 +126,35 @@ describe('ImportResolver', () => {
       ['/fake/vivado/cache/bus_definitions'],
       undefined
     );
+  });
+
+  it('merges workspace-discovered bus definitions into the library', async () => {
+    mockPathExists.mockResolvedValue(false);
+    mockWorkspaceScan.mockResolvedValue({
+      library: { MY_CUSTOM_BUS: { ports: [{ name: 'CLK' }], source: 'workspace' } },
+      count: 1,
+      files: [],
+    });
+    const resolver = new ImportResolver(logger as Logger, '/ext/dist/resources/bus_definitions');
+    (
+      resolver as unknown as { busLibraryService: { loadDefaultLibrary: jest.Mock } }
+    ).busLibraryService.loadDefaultLibrary = jest
+      .fn()
+      .mockResolvedValue({ AXI4_LITE: { ports: [{ name: 'ACLK' }] } });
+
+    const result = await resolver.resolveImports({}, '/project');
+
+    expect(result.busLibrary).toEqual({
+      AXI4_LITE: { ports: [{ name: 'ACLK' }] },
+      MY_CUSTOM_BUS: { ports: [{ name: 'CLK' }], source: 'workspace' },
+    });
+  });
+
+  it('clearCache also clears the workspace bus definition scanner cache', () => {
+    const resolver = new ImportResolver(logger as Logger, '/ext/dist/resources/bus_definitions');
+    // clearCache should not throw and should log the cleared message.
+    resolver.clearCache();
+    expect(logger.info).toHaveBeenCalledWith('Bus library cache cleared');
   });
 
   it('falls back to default bus library when explicit bus library fails', async () => {
