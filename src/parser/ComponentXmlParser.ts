@@ -3,6 +3,7 @@ import * as yaml from 'js-yaml';
 import { DOMParser } from '@xmldom/xmldom';
 import { lookupBusDef } from '../webview/ipcore/data/busDefinitions';
 import { BUS_VLNV } from '../shared/busVlnv';
+import { applyArrayCollapse, type CollapsibleInterface } from '../shared/arrayCollapse';
 
 // IP-XACT 1685-2009 namespace
 const SPIRIT_NS = 'http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009';
@@ -326,7 +327,7 @@ export function parseComponentXmlText(
     }
   }
 
-  const busInterfaces: BusIfEntry[] = [];
+  const builtBuses: Array<{ entry: BusIfEntry; collapsible: CollapsibleInterface }> = [];
 
   for (const busIf of busInterfaceEls) {
     const busTypeEl = busIf.getElementsByTagNameNS(SPIRIT_NS, 'busType')[0] as Element | undefined;
@@ -342,6 +343,10 @@ export function parseComponentXmlText(
     const ifName = text(busIf, 'name');
     const isSlave = !!busIf.getElementsByTagNameNS(SPIRIT_NS, 'slave')[0];
     const mode = isSlave ? 'slave' : 'master';
+
+    // Full logical→physical map (IP-XACT always provides portMaps); reused below for both
+    // rawPortMaps (unknown types) and the collapsible view (array detection).
+    const portMap = extractPortMap(busIf, modelPortAttrs);
 
     // Bus type determination
     let busType: string;
@@ -362,9 +367,8 @@ export function parseComponentXmlText(
       const btVersion = attr(busTypeEl, SPIRIT_NS, 'version') || '1.0';
       busType = `${btVendor}:${btLibrary}:${btName}:${btVersion}`;
       busTypeVlnv = { vendor: btVendor, library: btLibrary, name: btName, version: btVersion };
-      const portMapEntries = extractPortMap(busIf, modelPortAttrs);
-      if (portMapEntries.length > 0) {
-        rawPortMaps = portMapEntries;
+      if (portMap.length > 0) {
+        rawPortMaps = portMap;
       }
     }
 
@@ -424,8 +428,17 @@ export function parseComponentXmlText(
       }
     }
 
-    busInterfaces.push(entry);
+    const signalNames: Record<string, string> = {};
+    for (const pm of portMap) {
+      signalNames[pm.logical] = pm.physical;
+    }
+    const collapsible: CollapsibleInterface = { name: ifName, type: busType, mode, signalNames };
+
+    builtBuses.push({ entry, collapsible });
   }
+
+  // Merge index-varying siblings (e.g. four AXI-Stream channels) into single array interfaces.
+  const busInterfaces = applyArrayCollapse(builtBuses);
 
   // ---- Interrupt bus interfaces -------------------------------------------
   interface InterruptEntry {

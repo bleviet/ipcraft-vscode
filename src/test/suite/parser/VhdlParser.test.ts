@@ -347,4 +347,114 @@ describe('VhdlParser', () => {
       "Warning: std_logic_vector generic detected on generic 'BitVectorParam_g'. Convert to integer for cross-vendor GUI compatibility."
     );
   });
+
+  describe('decorated, indexed bus interfaces (e.g. Avalon-ST with direction-tagged, indexed ports)', () => {
+    it('detects a single Avalon-ST sink whose ports carry an index and a trailing direction tag', async () => {
+      const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ipcraft-vhdl-'));
+      const filePath = path.join(tempDir, 'single_sink.vhd');
+      const vhdl = `
+        entity single_sink is
+          port (
+            clk           : in  std_logic;
+            asi_valid_0_i : in  std_logic;
+            asi_data_0_i  : in  std_logic_vector(7 downto 0)
+          );
+        end entity single_sink;
+      `;
+      await fs.writeFile(filePath, vhdl, 'utf8');
+      const result = await parseVhdlFile(filePath, { detectBus: true });
+      const parsed = yaml.load(result.yamlText) as {
+        busInterfaces?: Array<Record<string, unknown>>;
+        ports?: Array<Record<string, unknown>>;
+      };
+
+      expect(parsed.busInterfaces).toHaveLength(1);
+      const bi = parsed.busInterfaces![0];
+      expect(bi.type).toBe('ipcraft:busif:avalon_st:1.0');
+      expect(bi.mode).toBe('slave');
+      expect(bi.physicalNamePattern).toBe('asi_{signal}_0_i');
+      expect(bi.array).toBeUndefined();
+      // The detected ports must not leak into the leftover ports[] list.
+      const leftoverNames = (parsed.ports ?? []).map((p) => p.name);
+      expect(leftoverNames).not.toContain('asi_valid_0_i');
+      expect(leftoverNames).not.toContain('asi_data_0_i');
+    });
+
+    it('collapses multiple decorated, indexed Avalon-ST sinks into one array interface', async () => {
+      const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ipcraft-vhdl-'));
+      const filePath = path.join(tempDir, 'multi_sink.vhd');
+      const vhdl = `
+        entity multi_sink is
+          port (
+            clk           : in  std_logic;
+            asi_valid_0_i : in  std_logic;
+            asi_data_0_i  : in  std_logic_vector(7 downto 0);
+            asi_valid_1_i : in  std_logic;
+            asi_data_1_i  : in  std_logic_vector(7 downto 0)
+          );
+        end entity multi_sink;
+      `;
+      await fs.writeFile(filePath, vhdl, 'utf8');
+      const result = await parseVhdlFile(filePath, { detectBus: true });
+      const parsed = yaml.load(result.yamlText) as {
+        busInterfaces?: Array<Record<string, unknown>>;
+      };
+
+      // Previously this either went undetected entirely, or (if it had matched at all)
+      // would have produced two interfaces colliding on the same physicalPrefix.
+      expect(parsed.busInterfaces).toHaveLength(1);
+      const bi = parsed.busInterfaces![0];
+      expect(bi.type).toBe('ipcraft:busif:avalon_st:1.0');
+      expect(bi.physicalNamePattern).toBe('asi_{signal}_{index}_i');
+      expect(bi.array).toEqual({ count: 2, indexStart: 0, namingPattern: 'asi_{index}_i' });
+    });
+
+    it('still detects conventional prefix-based AXI4-Lite ports unaffected by the decorated pass', async () => {
+      const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ipcraft-vhdl-'));
+      const filePath = path.join(tempDir, 'mixed.vhd');
+      const vhdl = `
+        entity mixed is
+          port (
+            s_axi_aclk    : in  std_logic;
+            s_axi_aresetn : in  std_logic;
+            s_axi_awaddr  : in  std_logic_vector(31 downto 0);
+            s_axi_awprot  : in  std_logic_vector(2 downto 0);
+            s_axi_awvalid : in  std_logic;
+            s_axi_awready : out std_logic;
+            s_axi_wdata   : in  std_logic_vector(31 downto 0);
+            s_axi_wstrb   : in  std_logic_vector(3 downto 0);
+            s_axi_wvalid  : in  std_logic;
+            s_axi_wready  : out std_logic;
+            s_axi_bresp   : out std_logic_vector(1 downto 0);
+            s_axi_bvalid  : out std_logic;
+            s_axi_bready  : in  std_logic;
+            s_axi_araddr  : in  std_logic_vector(31 downto 0);
+            s_axi_arprot  : in  std_logic_vector(2 downto 0);
+            s_axi_arvalid : in  std_logic;
+            s_axi_arready : out std_logic;
+            s_axi_rdata   : out std_logic_vector(31 downto 0);
+            s_axi_rresp   : out std_logic_vector(1 downto 0);
+            s_axi_rvalid  : out std_logic;
+            s_axi_rready  : in  std_logic;
+            asi_valid_0_i : in  std_logic;
+            asi_data_0_i  : in  std_logic_vector(7 downto 0);
+            asi_valid_1_i : in  std_logic;
+            asi_data_1_i  : in  std_logic_vector(7 downto 0)
+          );
+        end entity mixed;
+      `;
+      await fs.writeFile(filePath, vhdl, 'utf8');
+      const result = await parseVhdlFile(filePath, { detectBus: true });
+      const parsed = yaml.load(result.yamlText) as {
+        busInterfaces?: Array<Record<string, unknown>>;
+      };
+
+      expect(parsed.busInterfaces).toHaveLength(2);
+      const axi = parsed.busInterfaces!.find((b) => b.type === 'ipcraft:busif:axi4_lite:1.0');
+      const avst = parsed.busInterfaces!.find((b) => b.type === 'ipcraft:busif:avalon_st:1.0');
+      expect(axi?.physicalPrefix).toBe('s_axi_');
+      expect(avst?.physicalNamePattern).toBe('asi_{signal}_{index}_i');
+      expect(avst?.array).toEqual({ count: 2, indexStart: 0, namingPattern: 'asi_{index}_i' });
+    });
+  });
 });

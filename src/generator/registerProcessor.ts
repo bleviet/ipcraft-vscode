@@ -7,6 +7,7 @@ import type { NormalizedMemoryMap, NormalizedRegister } from '../domain/internal
 import { BUS_REGISTRY } from './buses/builtin';
 
 import { evalWidthExpr } from '../shared/evalWidthExpr';
+import { resolvePhysicalPortName } from '../shared/physicalName';
 export { evalWidthExpr };
 
 function getString(value: unknown): string {
@@ -109,17 +110,19 @@ export function hasMemoryMappedSlaveInterface(ipCore: IpCoreData): boolean {
  */
 export function checkDuplicatePhysicalPrefixes(ipCore: IpCoreData): string | null {
   const expanded = expandBusInterfaces(ipCore);
-  const seen = new Map<string, string>(); // prefix → first interface name
+  const seen = new Map<string, string>(); // naming key → first interface name
   const duplicates: string[] = [];
 
   for (const iface of expanded) {
-    const prefix = iface.physicalPrefix ?? '';
-    if (!prefix) {
+    // A physicalNamePattern is the more specific identity when present (array instances differ
+    // by their substituted {index}, so they never collide); otherwise fall back to the prefix.
+    const naming = iface.physicalNamePattern ?? iface.physicalPrefix ?? '';
+    if (!naming) {
       continue;
     }
-    const key = prefix.toLowerCase();
+    const key = naming.toLowerCase();
     if (seen.has(key)) {
-      duplicates.push(`'${prefix}' (shared by '${seen.get(key)}' and '${iface.name ?? ''}')`);
+      duplicates.push(`'${naming}' (shared by '${seen.get(key)}' and '${iface.name ?? ''}')`);
     } else {
       seen.set(key, iface.name ?? '');
     }
@@ -127,7 +130,7 @@ export function checkDuplicatePhysicalPrefixes(ipCore: IpCoreData): string | nul
 
   if (duplicates.length > 0) {
     return (
-      `Duplicate physicalPrefix values would produce conflicting port names: ` +
+      `Duplicate physical port naming would produce conflicting port names: ` +
       duplicates.join(', ')
     );
   }
@@ -154,13 +157,17 @@ export function expandBusInterfaces(ipCore: IpCoreData): BusInterfaceDef[] {
         const prefixPattern =
           arrayDef.physicalPrefixPattern ??
           `${String(iface.physicalPrefix ?? defaultPrefix)}{index}_`;
+        const namePatternForIndex = iface.physicalNamePattern
+          ? String(iface.physicalNamePattern).split('{index}').join(String(idx))
+          : undefined;
         expanded.push({
-          name: String(namePattern).replace('{index}', String(idx)),
+          name: String(namePattern).split('{index}').join(String(idx)),
           type: getString(iface.type),
           busTypeVlnv: iface.busTypeVlnv,
           rawPortMaps: iface.rawPortMaps,
           mode,
-          physicalPrefix: String(prefixPattern).replace('{index}', String(idx)),
+          physicalPrefix: String(prefixPattern).split('{index}').join(String(idx)),
+          physicalNamePattern: namePatternForIndex,
           useOptionalPorts: iface.useOptionalPorts ?? [],
           portWidthOverrides: iface.portWidthOverrides ?? {},
           portNameOverrides: iface.portNameOverrides,
@@ -180,6 +187,7 @@ export function expandBusInterfaces(ipCore: IpCoreData): BusInterfaceDef[] {
       rawPortMaps: iface.rawPortMaps,
       mode,
       physicalPrefix: iface.physicalPrefix ?? defaultPrefix,
+      physicalNamePattern: iface.physicalNamePattern ?? undefined,
       useOptionalPorts: iface.useOptionalPorts ?? [],
       portWidthOverrides: iface.portWidthOverrides ?? {},
       portNameOverrides: iface.portNameOverrides,
@@ -215,7 +223,8 @@ export function getActiveBusPortsFromDefinition(
   portWidthOverrides: Record<string, number | string>,
   parameters?: Array<{ name: string; value?: number | string; data_type?: string }>,
   portNameOverrides?: Record<string, string>,
-  absentPorts?: string[]
+  absentPorts?: string[],
+  physicalNamePattern?: string | null
 ): Array<Record<string, unknown>> {
   const optionalSet = new Set(useOptionalPorts || []);
   const absentSet = new Set((absentPorts ?? []).map((n) => n.toUpperCase()));
@@ -299,10 +308,14 @@ export function getActiveBusPortsFromDefinition(
       svType = getSvPortType(numWidth, logicalName);
     }
 
-    const physicalSuffix = portNameOverrides?.[logicalName] ?? logicalName.toLowerCase();
+    const physicalName = resolvePhysicalPortName(logicalName, {
+      physicalNamePattern,
+      physicalPrefix,
+      portNameOverrides,
+    });
     activePorts.push({
       logical_name: logicalName,
-      name: `${physicalPrefix}${physicalSuffix}`,
+      name: physicalName,
       direction,
       sv_direction: direction === 'in' ? 'input' : direction === 'out' ? 'output' : 'inout',
       width: numWidth,

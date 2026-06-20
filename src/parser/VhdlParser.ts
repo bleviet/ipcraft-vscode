@@ -2,6 +2,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
 import { BUS_VLNV } from '../shared/busVlnv';
+import { applyArrayCollapse, type CollapsibleInterface } from '../shared/arrayCollapse';
 
 export interface ParsedPort {
   name: string;
@@ -109,8 +110,15 @@ export async function parseVhdlFile(
         name: bus.name,
         type: bus.type,
         mode: bus.mode,
-        physicalPrefix: bus.physicalPrefix,
       };
+      if (bus.physicalNamePattern) {
+        entry.physicalNamePattern = bus.physicalNamePattern;
+      } else {
+        entry.physicalPrefix = bus.physicalPrefix;
+      }
+      if (bus.array) {
+        entry.array = bus.array;
+      }
       if (bus.associatedClock) {
         entry.associatedClock = bus.associatedClock;
       }
@@ -563,21 +571,38 @@ const BUS_DEFINITIONS: readonly BusDef[] = [
   },
 ];
 
-export function detectBusInterfaces(
+export interface DetectedBusInterface {
+  name: string;
+  type: string;
+  mode: string;
+  physicalPrefix?: string;
+  /** Template for physical port names; takes precedence over physicalPrefix when set.
+   *  Used for naming conventions a literal prefix cannot express (decorations, indices
+   *  not in the prefix position, e.g. 'asi_{signal}_0_i' before array collapsing). */
+  physicalNamePattern?: string;
+  associatedClock?: string;
+  associatedReset?: string;
+  portWidthOverrides?: Record<string, string | number>;
+  portNameOverrides?: Record<string, string>;
+  absentPorts?: string[];
+  array?: { count: number; indexStart: number; namingPattern: string };
+  /** Internal: logical signal name -> actual physical port name, for signals genuinely present
+   *  in the HDL. Used only to detect array siblings; stripped before the result is returned. */
+  presentSignals?: Record<string, string>;
+}
+
+/**
+ * Prefix-based detection: groups ports into bus interfaces by stripping a known signal
+ * suffix from each port name (the remainder, ending in '_', is the candidate physicalPrefix).
+ * Only matches ports where the logical signal is a literal suffix — see
+ * `detectDecoratedBusInterfaces` for ports with decorations (direction tags, etc.) or where
+ * the per-instance index sits after the signal name.
+ */
+function detectPrefixBusInterfaces(
   ports: ParsedPort[],
   clockReset: { clocks: Array<{ name: string }>; resets: Array<{ name: string; polarity: string }> }
 ): {
-  busInterfaces: Array<{
-    name: string;
-    type: string;
-    mode: string;
-    physicalPrefix: string;
-    associatedClock?: string;
-    associatedReset?: string;
-    portWidthOverrides?: Record<string, string | number>;
-    portNameOverrides?: Record<string, string>;
-    absentPorts?: string[];
-  }>;
+  busInterfaces: DetectedBusInterface[];
   busPortNames: Set<string>;
 } {
   const portMap = new Map<string, ParsedPort>();
@@ -689,17 +714,7 @@ export function detectBusInterfaces(
   // Greedy assignment: skip a candidate if the majority of its matched ports are
   // already claimed by a previously accepted (more specific) bus interface.
   const claimedPorts = new Set<string>();
-  const busInterfaces: Array<{
-    name: string;
-    type: string;
-    mode: string;
-    physicalPrefix: string;
-    associatedClock?: string;
-    associatedReset?: string;
-    portWidthOverrides?: Record<string, string | number>;
-    portNameOverrides?: Record<string, string>;
-    absentPorts?: string[];
-  }> = [];
+  const busInterfaces: DetectedBusInterface[] = [];
   const busPortNames = new Set<string>();
 
   for (const { prefix, busDef, matchedPorts, mode } of sorted) {
@@ -745,6 +760,7 @@ export function detectBusInterfaces(
     const portWidthOverrides: Record<string, string | number> = {};
     const portNameOverrides: Record<string, string> = {};
     const absentPorts: string[] = [];
+    const presentSignals: Record<string, string> = {};
     for (const sig of busDef.signals) {
       const port = portMap.get(prefix + sig.name);
       if (!port) {
@@ -754,6 +770,7 @@ export function detectBusInterfaces(
         continue;
       }
       const logicalName = sig.name.toUpperCase();
+      presentSignals[logicalName] = port.name;
 
       if (typeof port.width === 'string') {
         let overrideExpr = port.width;
@@ -787,8 +804,286 @@ export function detectBusInterfaces(
         Object.keys(portWidthOverrides).length > 0 ? portWidthOverrides : undefined,
       portNameOverrides: Object.keys(portNameOverrides).length > 0 ? portNameOverrides : undefined,
       absentPorts: absentPorts.length > 0 ? absentPorts : undefined,
+      presentSignals,
     });
   }
+
+  return { busInterfaces, busPortNames };
+}
+
+const SIGNAL_PLACEHOLDER = '{signal}';
+
+/**
+ * Decorated detection: for ports `detectPrefixBusInterfaces` could not claim because the
+ * logical signal is not a literal suffix (a direction tag or an instance index follows it,
+ * e.g. 'asi_valid_0_i'), find the signal as a token anywhere in the underscore-split name and
+ * build a name *template* (the token replaced with '{signal}') instead of a literal prefix.
+ *
+ * Mirrors `detectPrefixBusInterfaces`'s scoring (minRequired, exclusiveSignals, direction
+ * voting, and the "too many unexplained same-shape ports" guard) with "prefix" generalized to
+ * "template shape" (same token count, every non-signal token matches literally).
+ */
+function detectDecoratedBusInterfaces(
+  ports: ParsedPort[],
+  clockReset: { clocks: Array<{ name: string }>; resets: Array<{ name: string; polarity: string }> }
+): {
+  busInterfaces: DetectedBusInterface[];
+  busPortNames: Set<string>;
+} {
+  const portMap = new Map<string, ParsedPort>();
+  ports.forEach((p) => portMap.set(p.name.toLowerCase(), p));
+  const tokensByPort = new Map<string, string[]>();
+  for (const lowerName of portMap.keys()) {
+    tokensByPort.set(lowerName, lowerName.split('_'));
+  }
+
+  // Candidate templates: every position where a known signal name appears as a whole token.
+  const candidateTemplates = new Set<string>();
+  for (const busDef of BUS_DEFINITIONS) {
+    for (const sig of busDef.signals) {
+      for (const tokens of tokensByPort.values()) {
+        for (let i = 0; i < tokens.length; i += 1) {
+          if (tokens[i] === sig.name) {
+            const skeleton = [...tokens];
+            skeleton[i] = SIGNAL_PLACEHOLDER;
+            candidateTemplates.add(skeleton.join('_'));
+          }
+        }
+      }
+    }
+  }
+
+  const candidates: Array<{
+    template: string;
+    busDef: BusDef;
+    requiredCount: number;
+    totalCount: number;
+    mode: 'master' | 'slave';
+    matchedPorts: Set<string>;
+  }> = [];
+
+  for (const template of candidateTemplates) {
+    const templateTokens = template.split('_');
+    for (const busDef of BUS_DEFINITIONS) {
+      if (busDef.exclusiveSignals) {
+        const hasExclusive = busDef.exclusiveSignals.some((s) =>
+          portMap.has(template.replace(SIGNAL_PLACEHOLDER, s))
+        );
+        if (!hasExclusive) {
+          continue;
+        }
+      }
+
+      let requiredCount = 0;
+      let totalCount = 0;
+      let masterVotes = 0;
+      let slaveVotes = 0;
+      const matchedPorts = new Set<string>();
+
+      for (const sig of busDef.signals) {
+        const port = portMap.get(template.replace(SIGNAL_PLACEHOLDER, sig.name));
+        if (!port) {
+          continue;
+        }
+        matchedPorts.add(port.name);
+        totalCount++;
+        if (sig.presence === 'required') {
+          requiredCount++;
+        }
+        if (port.direction === sig.direction) {
+          masterVotes++;
+        } else if (port.direction !== 'inout') {
+          slaveVotes++;
+        }
+      }
+
+      if (requiredCount < busDef.minRequired) {
+        continue;
+      }
+
+      // Same false-positive guard as detectPrefixBusInterfaces, generalized from "starts with
+      // prefix" to "same token-shape as the template" (every non-signal token matches literally).
+      let shapeCount = 0;
+      for (const tokens of tokensByPort.values()) {
+        if (tokens.length !== templateTokens.length) {
+          continue;
+        }
+        let fits = true;
+        for (let i = 0; i < tokens.length; i += 1) {
+          if (templateTokens[i] !== SIGNAL_PLACEHOLDER && tokens[i] !== templateTokens[i]) {
+            fits = false;
+            break;
+          }
+        }
+        if (fits) {
+          shapeCount++;
+        }
+      }
+      const unrecognizedCount = shapeCount - matchedPorts.size;
+      if (unrecognizedCount >= matchedPorts.size) {
+        continue;
+      }
+
+      candidates.push({
+        template,
+        busDef,
+        requiredCount,
+        totalCount,
+        mode: slaveVotes >= masterVotes ? 'slave' : 'master',
+        matchedPorts,
+      });
+    }
+  }
+
+  // Per template, keep only the best-scoring bus definition.
+  const byTemplate = new Map<string, (typeof candidates)[number]>();
+  for (const c of candidates) {
+    const existing = byTemplate.get(c.template);
+    if (
+      !existing ||
+      c.requiredCount > existing.requiredCount ||
+      (c.requiredCount === existing.requiredCount && c.totalCount > existing.totalCount)
+    ) {
+      byTemplate.set(c.template, c);
+    }
+  }
+
+  // Longer (more literal, more specific) template first, then higher required count.
+  const sorted = [...byTemplate.values()].sort(
+    (a, b) => b.template.length - a.template.length || b.requiredCount - a.requiredCount
+  );
+
+  // Greedy assignment, same overlap rule as detectPrefixBusInterfaces. Unlike that function,
+  // only the recognized signals are claimed — any other port that merely fits the template
+  // shape is left as a regular port rather than silently dropped.
+  const claimedPorts = new Set<string>();
+  const busInterfaces: DetectedBusInterface[] = [];
+  const busPortNames = new Set<string>();
+
+  for (const { template, busDef, matchedPorts, mode } of sorted) {
+    const overlap = [...matchedPorts].filter((n) => claimedPorts.has(n)).length;
+    if (overlap * 2 > matchedPorts.size) {
+      continue;
+    }
+
+    matchedPorts.forEach((n) => {
+      claimedPorts.add(n);
+      busPortNames.add(n);
+    });
+
+    const signalIndex = templateSignalIndex(template);
+    const exemplarPort = [...matchedPorts][0];
+    const exemplarTokens = exemplarPort.split('_');
+    const originalTemplateTokens = [...exemplarTokens];
+    originalTemplateTokens[signalIndex] = SIGNAL_PLACEHOLDER;
+    const physicalNamePattern = originalTemplateTokens.join('_');
+
+    // Synthetic per-instance name: the template with the signal token dropped (not just
+    // blanked), so a literal index token (e.g. '0') stays directly adjacent to its neighbours.
+    // Sibling instances get names differing only by that index, which is what the later
+    // array-collapse pass (shared with the other importers) keys on to merge them.
+    const nameTokens = template.split('_').filter((_, i) => i !== signalIndex);
+    const name = nameTokens.join('_').replace(/^_+|_+$/g, '') || busDef.id.split(':')[2] || 'bus';
+
+    const literalPrefix = template.split('_').slice(0, signalIndex).join('_') + '_';
+    const associatedClock =
+      clockReset.clocks.find((c) => c.name.toLowerCase().startsWith(literalPrefix))?.name ??
+      (clockReset.clocks.length === 1 ? clockReset.clocks[0].name : undefined);
+    const associatedReset =
+      clockReset.resets.find((r) => r.name.toLowerCase().startsWith(literalPrefix))?.name ??
+      (clockReset.resets.length === 1 ? clockReset.resets[0].name : undefined);
+
+    const portWidthOverrides: Record<string, string | number> = {};
+    const absentPorts: string[] = [];
+    const presentSignals: Record<string, string> = {};
+    for (const sig of busDef.signals) {
+      const port = portMap.get(template.replace(SIGNAL_PLACEHOLDER, sig.name));
+      if (!port) {
+        if (sig.presence === 'required') {
+          absentPorts.push(sig.name.toUpperCase());
+        }
+        continue;
+      }
+      const logicalName = sig.name.toUpperCase();
+      presentSignals[logicalName] = port.name;
+      if (typeof port.width === 'string') {
+        let overrideExpr = port.width;
+        if (logicalName === 'WSTRB') {
+          overrideExpr = overrideExpr.replace(/\s*\/\s*\d+\s*$/, '').trim();
+          if (!overrideExpr) {
+            continue;
+          }
+        }
+        portWidthOverrides[logicalName] = overrideExpr;
+      }
+      // Note: no portNameOverrides needed here — by construction every matched port's name is
+      // exactly `physicalNamePattern` with '{signal}' substituted by sig.name, so the pattern
+      // alone reproduces it.
+    }
+
+    busInterfaces.push({
+      name,
+      type: busDef.id,
+      mode,
+      physicalNamePattern,
+      associatedClock,
+      associatedReset,
+      portWidthOverrides:
+        Object.keys(portWidthOverrides).length > 0 ? portWidthOverrides : undefined,
+      absentPorts: absentPorts.length > 0 ? absentPorts : undefined,
+      presentSignals,
+    });
+  }
+
+  return { busInterfaces, busPortNames };
+}
+
+function templateSignalIndex(template: string): number {
+  return template.split('_').indexOf(SIGNAL_PLACEHOLDER);
+}
+
+/**
+ * Detects bus interfaces from a flat port list, combining two passes:
+ *
+ *  1. `detectPrefixBusInterfaces` — literal-suffix matching (fast path for conventional
+ *     `prefix + signal` naming).
+ *  2. `detectDecoratedBusInterfaces` — runs on whatever pass 1 left unclaimed, finding the
+ *     signal as a token anywhere in the name so decorations (direction tags, etc.) and an
+ *     index placed after the signal are both handled.
+ *
+ * The combined single-instance results are then run through the same convention-agnostic
+ * array-collapse used by the other importers, so multiple instances of one interface — whether
+ * distinguished by a literal prefix (`m_axis_ch0_`/`m_axis_ch1_`) or a decorated, indexed
+ * template (`asi_{signal}_0_i`/`asi_{signal}_1_i`) — are merged into a single `array` interface.
+ */
+export function detectBusInterfaces(
+  ports: ParsedPort[],
+  clockReset: { clocks: Array<{ name: string }>; resets: Array<{ name: string; polarity: string }> }
+): {
+  busInterfaces: DetectedBusInterface[];
+  busPortNames: Set<string>;
+} {
+  const pass1 = detectPrefixBusInterfaces(ports, clockReset);
+  const leftoverPorts = ports.filter((p) => !pass1.busPortNames.has(p.name));
+  const pass2 = detectDecoratedBusInterfaces(leftoverPorts, clockReset);
+
+  const busPortNames = new Set<string>([...pass1.busPortNames, ...pass2.busPortNames]);
+
+  const built = [...pass1.busInterfaces, ...pass2.busInterfaces].map((bi) => ({
+    entry: bi,
+    collapsible: {
+      name: bi.name,
+      type: bi.type,
+      mode: bi.mode,
+      signalNames: bi.presentSignals ?? {},
+    } satisfies CollapsibleInterface,
+  }));
+  const busInterfaces = (applyArrayCollapse(built) as unknown as DetectedBusInterface[]).map(
+    (bi) => {
+      const { presentSignals: _internal, ...rest } = bi;
+      return rest;
+    }
+  );
 
   return { busInterfaces, busPortNames };
 }

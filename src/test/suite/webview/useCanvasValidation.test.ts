@@ -122,11 +122,33 @@ describe('useCanvasValidation', () => {
     const annotations = useCanvasValidation(ipCore);
     const bus0Msgs = annotations['bus:0']?.map((a) => a.message) ?? [];
     const bus1Msgs = annotations['bus:1']?.map((a) => a.message) ?? [];
-    expect(bus0Msgs.some((m) => m.includes('Duplicate physicalPrefix'))).toBe(true);
-    expect(bus1Msgs.some((m) => m.includes('Duplicate physicalPrefix'))).toBe(true);
+    expect(bus0Msgs.some((m) => m.includes('Duplicate physical port naming'))).toBe(true);
+    expect(bus1Msgs.some((m) => m.includes('Duplicate physical port naming'))).toBe(true);
     expect(
-      annotations['bus:0'].find((a) => a.message.includes('Duplicate physicalPrefix'))?.severity
+      annotations['bus:0'].find((a) => a.message.includes('Duplicate physical port naming'))
+        ?.severity
     ).toBe('warning');
+  });
+
+  it('does not flag array interfaces sharing a base physicalNamePattern as duplicates', () => {
+    const ipCore: IpCore = {
+      vlnv: { vendor: 'test', library: 'lib', name: 'TestCore', version: '1.0' },
+      clocks: [{ name: 'clk' }],
+      busInterfaces: [
+        {
+          name: 'SINK',
+          type: 'ipcraft:busif:avalon_st:1.0',
+          mode: 'sink',
+          physicalPrefix: '',
+          physicalNamePattern: 'asi_{signal}_{index}_i',
+          array: { count: 2, indexStart: 0, namingPattern: 'sink_{index}' },
+          associatedClock: 'clk',
+        },
+      ],
+    };
+    const annotations = useCanvasValidation(ipCore);
+    const msgs = annotations['bus:0']?.map((a) => a.message) ?? [];
+    expect(msgs.some((m) => m.includes('Duplicate physical port naming'))).toBe(false);
   });
 
   it('should detect duplicate conduit port names within the same bus interface', () => {

@@ -4,6 +4,7 @@ import * as yaml from 'js-yaml';
 import { lookupBusDef } from '../webview/ipcore/data/busDefinitions';
 import { resolveVendor } from '../utils/resolveVendor';
 import { BUS_VLNV } from '../shared/busVlnv';
+import { applyArrayCollapse, type CollapsibleInterface } from '../shared/arrayCollapse';
 
 export interface HwTclParseOptions {
   library?: string;
@@ -406,15 +407,16 @@ export function parseHwTclContent(
 
   // ── Bus interfaces ──────────────────────────────────────────────────────────
 
-  const busEntries = busIfaces.map((bi) => {
+  const builtBuses = busIfaces.map((bi) => {
     const mode = bi.mode === 'start' ? 'master' : 'slave';
+    const type = BUS_TYPE_MAP[bi.type];
 
     const portNames = bi.ports.map((p) => p.portName);
     const physicalPrefix = computePhysicalPrefix(portNames);
 
     const entry: Record<string, unknown> = {
       name: bi.name,
-      type: BUS_TYPE_MAP[bi.type],
+      type,
       mode,
       physicalPrefix,
     };
@@ -432,7 +434,7 @@ export function parseHwTclContent(
     }
 
     // Detect optional ports that are actually present in the hw.tcl
-    const busDef = lookupBusDef(BUS_TYPE_MAP[bi.type]);
+    const busDef = lookupBusDef(type);
     if (busDef) {
       const presentLogical = new Set(bi.ports.map((p) => p.logicalName.toLowerCase()));
       const useOptionalPorts = busDef
@@ -443,8 +445,18 @@ export function parseHwTclContent(
       }
     }
 
-    return entry;
+    // Collapsible view: the actual physical port name for each logical signal, used to detect
+    // index-varying siblings (sink_0_if / sink_1_if) and merge them into one array interface.
+    const signalNames: Record<string, string> = {};
+    for (const p of bi.ports) {
+      signalNames[p.logicalName] = p.portName;
+    }
+    const collapsible: CollapsibleInterface = { name: bi.name, type, mode, signalNames };
+
+    return { entry, collapsible };
   });
+
+  const busEntries = applyArrayCollapse(builtBuses);
   if (busEntries.length > 0) {
     yamlData.busInterfaces = busEntries;
   }

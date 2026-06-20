@@ -53,10 +53,21 @@ export const useCanvasValidation = (ipCore: IpCore): CanvasAnnotations => {
     }
   });
 
-  // Collect duplicate physicalPrefix values across all bus interfaces
+  // Collect duplicate physical-naming keys across all bus interfaces. A physicalNamePattern is
+  // the more specific identity when present (array instances differ by their substituted {index},
+  // so they never collide); otherwise fall back to the physicalPrefix. Array interfaces (which
+  // expand to distinct {index} names) are skipped entirely.
+  const namingKey = (bus: BusInterface): string => {
+    if (bus.array) {
+      return '';
+    }
+    const pattern = (bus as BusInterface & { physicalNamePattern?: string | null })
+      .physicalNamePattern;
+    return (pattern ?? bus.physicalPrefix ?? '').toLowerCase();
+  };
   const prefixCount = new Map<string, number>();
   ipCore.busInterfaces?.forEach((bus: BusInterface) => {
-    const p = (bus.physicalPrefix ?? '').toLowerCase();
+    const p = namingKey(bus);
     if (p) {
       prefixCount.set(p, (prefixCount.get(p) ?? 0) + 1);
     }
@@ -114,13 +125,13 @@ export const useCanvasValidation = (ipCore: IpCore): CanvasAnnotations => {
       }
     }
 
-    // Warn when this interface's physicalPrefix collides with another interface
-    const prefix = bus.physicalPrefix ?? '';
-    if (prefix && duplicatePrefixSet.has(prefix.toLowerCase())) {
+    // Warn when this interface's physical naming collides with another interface
+    const naming = namingKey(bus);
+    if (naming && duplicatePrefixSet.has(naming)) {
       addAnnotation(
         id,
         'warning',
-        `Duplicate physicalPrefix "${prefix}" — will produce conflicting port names in generated HDL`
+        `Duplicate physical port naming "${naming}" — will produce conflicting port names in generated HDL`
       );
     }
 

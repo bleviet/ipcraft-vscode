@@ -3,6 +3,7 @@ import type { IpCore, BusInterface, ConduitPort, Port } from '../../types/ipCore
 import { lookupBusDef, isConduitType } from '../data/busDefinitions';
 import type { BusPortDef } from '../data/busDefinitions';
 import { BUS_VLNV } from '../../../shared/busVlnv';
+import { resolvePhysicalPortName } from '../../../shared/physicalName';
 
 export type BatchUpdate = (mutations: Array<[Array<string | number>, unknown]>) => void;
 
@@ -213,6 +214,9 @@ export function useGroupPorts(ipCore: IpCore, batchUpdate: BatchUpdate) {
         const signalDefs: BusPortDef[] | null = lookupBusDef(bus.type);
         if (signalDefs) {
           const prefix = bus.physicalPrefix ?? '';
+          const namePattern =
+            (bus as BusInterface & { physicalNamePattern?: string | null }).physicalNamePattern ??
+            null;
           const widthOverrides =
             (bus as BusInterface & { portWidthOverrides?: Record<string, number | string> })
               .portWidthOverrides ?? {};
@@ -222,34 +226,49 @@ export function useGroupPorts(ipCore: IpCore, batchUpdate: BatchUpdate) {
           const useOptional = new Set((bus.useOptionalPorts ?? []).map((s) => s.toUpperCase()));
           const isMaster = bus.mode === 'master' || bus.mode === 'source';
 
-          for (const def of signalDefs) {
-            // Skip clock/reset-role signals — they live in their own arrays
-            if (def.role) {
-              continue;
-            }
-            // Skip optional signals that were not explicitly activated
-            if (def.presence === 'optional' && !useOptional.has(def.name.toUpperCase())) {
-              continue;
-            }
+          // An array interface restores every instance; otherwise a single pass (index undefined).
+          const arr = bus.array;
+          const indices: Array<number | undefined> = arr
+            ? Array.from({ length: Number(arr.count) }, (_, k) => Number(arr.indexStart ?? 0) + k)
+            : [undefined];
 
-            // Physical port name: prefix + (override suffix OR logical_name.lowercase)
-            const suffix = nameOverrides[def.name] ?? def.name.toLowerCase();
-            const portName = `${prefix}${suffix}`;
-
-            // Direction: def.direction is from master perspective; flip for slave
-            let dir: Port['direction'] = 'inout';
-            if (def.direction) {
-              if (isMaster) {
-                dir = def.direction;
-              } else {
-                dir = def.direction === 'in' ? 'out' : 'in';
+          for (const idx of indices) {
+            for (const def of signalDefs) {
+              // Skip clock/reset-role signals — they live in their own arrays
+              if (def.role) {
+                continue;
               }
+              // Skip optional signals that were not explicitly activated
+              if (def.presence === 'optional' && !useOptional.has(def.name.toUpperCase())) {
+                continue;
+              }
+
+              // Physical port name from the pattern (or legacy prefix + suffix).
+              const portName = resolvePhysicalPortName(
+                def.name,
+                {
+                  physicalNamePattern: namePattern,
+                  physicalPrefix: prefix,
+                  portNameOverrides: nameOverrides,
+                },
+                idx
+              );
+
+              // Direction: def.direction is from master perspective; flip for slave
+              let dir: Port['direction'] = 'inout';
+              if (def.direction) {
+                if (isMaster) {
+                  dir = def.direction;
+                } else {
+                  dir = def.direction === 'in' ? 'out' : 'in';
+                }
+              }
+
+              // Width: override > protocol default > 1
+              const width: number | string = widthOverrides[def.name] ?? def.width ?? 1;
+
+              restoredPorts.push({ name: portName, direction: dir, width });
             }
-
-            // Width: override > protocol default > 1
-            const width: number | string = widthOverrides[def.name] ?? def.width ?? 1;
-
-            restoredPorts.push({ name: portName, direction: dir, width });
           }
         }
       }

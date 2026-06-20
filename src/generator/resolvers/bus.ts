@@ -219,7 +219,8 @@ export const busResolver: ContextResolver = {
             | { name: string; value?: number | string; data_type?: string }[]
             | undefined,
           iface.portNameOverrides,
-          iface.absentPorts
+          iface.absentPorts,
+          iface.physicalNamePattern
         ) as unknown as (TemplatePort & Record<string, unknown>)[];
 
         activePorts.forEach((port) => {

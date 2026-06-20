@@ -93,8 +93,15 @@ export async function parseVerilogFile(
         name: bus.name,
         type: bus.type,
         mode: bus.mode,
-        physicalPrefix: bus.physicalPrefix,
       };
+      if (bus.physicalNamePattern) {
+        entry.physicalNamePattern = bus.physicalNamePattern;
+      } else {
+        entry.physicalPrefix = bus.physicalPrefix;
+      }
+      if (bus.array) {
+        entry.array = bus.array;
+      }
       if (bus.associatedClock) {
         entry.associatedClock = bus.associatedClock;
       }
@@ -106,6 +113,9 @@ export async function parseVerilogFile(
       }
       if (bus.portNameOverrides && Object.keys(bus.portNameOverrides).length > 0) {
         entry.portNameOverrides = bus.portNameOverrides;
+      }
+      if (bus.absentPorts && bus.absentPorts.length > 0) {
+        entry.absentPorts = bus.absentPorts;
       }
       return entry;
     });

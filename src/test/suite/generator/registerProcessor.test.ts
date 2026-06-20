@@ -123,6 +123,56 @@ describe('registerProcessor', () => {
       expect(result[1].name).toBe('M_CH1');
     });
 
+    it('substitutes {index} into physicalNamePattern per array instance', () => {
+      const ipCore = {
+        busInterfaces: [
+          {
+            name: 'SINK',
+            type: 'AVALON_ST',
+            mode: 'sink',
+            physicalNamePattern: 'asi_{signal}_{index}_i',
+            array: { count: 2, indexStart: 0, namingPattern: 'sink_{index}' },
+          },
+        ],
+      };
+      const result = expandBusInterfaces(ipCore as any);
+      expect(result).toHaveLength(2);
+      expect(result[0].physicalNamePattern).toBe('asi_{signal}_0_i');
+      expect(result[1].physicalNamePattern).toBe('asi_{signal}_1_i');
+    });
+
+    it('round-trips index-varying port names through expand + resolve', () => {
+      const ipCore = {
+        busInterfaces: [
+          {
+            name: 'SINK',
+            type: 'AVALON_ST',
+            mode: 'sink',
+            physicalNamePattern: 'asi_{signal}_{index}_i',
+            array: { count: 2, indexStart: 0, namingPattern: 'sink_{index}' },
+          },
+        ],
+      };
+      const defPorts = [
+        { name: 'DATA', presence: 'required', direction: 'out', width: 8 },
+        { name: 'VALID', presence: 'required', direction: 'out' },
+      ];
+      const names = expandBusInterfaces(ipCore as any).flatMap((iface) =>
+        getActiveBusPortsFromDefinition(
+          defPorts,
+          [],
+          iface.physicalPrefix ?? '',
+          iface.mode ?? '',
+          {},
+          undefined,
+          undefined,
+          undefined,
+          iface.physicalNamePattern
+        ).map((p) => p.name)
+      );
+      expect(names).toEqual(['asi_data_0_i', 'asi_valid_0_i', 'asi_data_1_i', 'asi_valid_1_i']);
+    });
+
     it('defaults missing physicalPrefix to s_axi_ for a standard bus interface', () => {
       const ipCore = {
         busInterfaces: [{ name: 'bus', type: 'AXI4-Lite', mode: 'slave' }],

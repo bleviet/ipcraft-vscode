@@ -169,6 +169,10 @@ export type BusInterfaceMode = 'master' | 'slave' | 'source' | 'sink' | 'conduit
  */
 export type Physicalprefix = string | null;
 /**
+ * Template for physical port names, generalizing physicalPrefix. Uses placeholders '{signal}' (the logical signal name, lowercased, or its portNameOverrides value) and '{index}' (the array instance index). Any other characters are literal, so direction tags and decorations need no special handling (e.g. 'asi_{signal}_{index}_i'). When set, it takes precedence over physicalPrefix. 'physicalPrefix: "s_axi_"' is equivalent to 'physicalNamePattern: "s_axi_{signal}"'.
+ */
+export type Physicalnamepattern = string | null;
+/**
  * Logical clock name this interface uses
  */
 export type Associatedclock1 = string | null;
@@ -201,7 +205,7 @@ export type Indexstart = number;
  */
 export type Namingpattern = string;
 /**
- * Physical prefix pattern with {index} placeholder
+ * Physical prefix pattern with {index} placeholder. Optional: when the bus interface sets physicalNamePattern (which already carries {index}), the prefix pattern is unused.
  */
 export type Physicalprefixpattern = string | null;
 /**
@@ -628,6 +632,7 @@ export interface BusInterface {
   type: Type3;
   mode: BusInterfaceMode;
   physicalPrefix?: Physicalprefix;
+  physicalNamePattern?: Physicalnamepattern;
   associatedClock?: Associatedclock1;
   associatedReset?: Associatedreset1;
   memoryMapRef?: Memorymapref;
@@ -657,7 +662,7 @@ export interface ArrayConfig {
   count: Count;
   indexStart?: Indexstart;
   namingPattern: Namingpattern;
-  physicalPrefixPattern: Physicalprefixpattern;
+  physicalPrefixPattern?: Physicalprefixpattern;
 }
 /**
  * A single signal within a conduit (custom) bus interface.

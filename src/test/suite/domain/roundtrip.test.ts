@@ -196,3 +196,33 @@ busInterfaces:
     expect(parsed2.busInterfaces?.[0]?.physicalPrefix).toBe('');
   });
 });
+
+describe('parseIpCore physicalNamePattern + array round-trip', () => {
+  const yamlStr = `
+vlnv: foo:bar:baz:1.0
+busInterfaces:
+  - name: SINK
+    type: ipcraft:busif:avalon_st:1.0
+    mode: sink
+    physicalNamePattern: "asi_{signal}_{index}_i"
+    array:
+      count: 2
+      indexStart: 0
+      namingPattern: sink_{index}
+`;
+
+  it('reads physicalNamePattern and the array block', () => {
+    const parsed = parseIpCore(yamlStr);
+    const bus = parsed.busInterfaces?.[0] as Record<string, unknown>;
+    expect(bus.physicalNamePattern).toBe('asi_{signal}_{index}_i');
+    expect(bus.array).toMatchObject({ count: 2, indexStart: 0, namingPattern: 'sink_{index}' });
+  });
+
+  it('preserves physicalNamePattern and array through serialize', () => {
+    const parsed = parseIpCore(yamlStr);
+    const serialized = serializeIpCore(parsed) as { busInterfaces: Array<Record<string, unknown>> };
+    const bus = serialized.busInterfaces[0];
+    expect(bus.physicalNamePattern).toBe('asi_{signal}_{index}_i');
+    expect(bus.array).toMatchObject({ count: 2, namingPattern: 'sink_{index}' });
+  });
+});

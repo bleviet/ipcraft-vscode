@@ -555,6 +555,11 @@ export interface BusInterface {
   type: Type3;
   mode: BusInterfaceMode;
   physicalPrefix: Physicalprefix;
+  /** Template for physical port names, generalizing physicalPrefix. Placeholders '{signal}'
+   *  (logical signal name, lowercased or via portNameOverrides) and '{index}' (array instance);
+   *  all other characters are literal (e.g. 'asi_{signal}_{index}_i'). Takes precedence over
+   *  physicalPrefix when set. */
+  physicalNamePattern?: string | null;
   associatedClock?: Associatedclock;
   associatedReset?: Associatedreset;
   memoryMapRef?: Memorymapref;
@@ -591,7 +596,8 @@ export interface ArrayConfig {
   count: Count;
   indexStart?: Indexstart;
   namingPattern: Namingpattern;
-  physicalPrefixPattern: Physicalprefixpattern;
+  /** Optional: unused when the interface sets physicalNamePattern (which carries {index}). */
+  physicalPrefixPattern?: Physicalprefixpattern;
 }
 /**
  * A single signal within a conduit (custom) bus interface.

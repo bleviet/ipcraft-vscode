@@ -329,6 +329,7 @@ export function normalizeIpCore(rootObj: Record<string, unknown>): IpCore {
           : String(
               bus.physicalPrefix ?? bus.physical_prefix ?? (mode === 'conduit' ? '' : 's_axi_')
             ),
+      ...(bus.physicalNamePattern ? { physicalNamePattern: String(bus.physicalNamePattern) } : {}),
       useOptionalPorts,
       portWidthOverrides,
       portNameOverrides,

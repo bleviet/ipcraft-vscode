@@ -691,4 +691,47 @@ describe('parseHwTclFile (source directive)', () => {
     expect(clocks).toHaveLength(1);
     expect(clocks[0].name).toBe('s_axi_aclk');
   });
+
+  describe('array-of-interfaces detection', () => {
+    it('collapses index-varying Avalon-ST sinks into one array interface', () => {
+      const tcl = `
+        set_module_property NAME multi_sink
+        add_interface sink_0 avalon_streaming end
+        add_interface_port sink_0 asi_valid_0_i valid Input 1
+        add_interface_port sink_0 asi_data_0_i data Input 8
+        add_interface sink_1 avalon_streaming end
+        add_interface_port sink_1 asi_valid_1_i valid Input 1
+        add_interface_port sink_1 asi_data_1_i data Input 8
+      `;
+      const doc = parseYaml(parse(tcl).yamlText) as {
+        busInterfaces: Array<Record<string, unknown>>;
+      };
+
+      // Previously this produced two interfaces both with physicalPrefix 'asi_' (a collision).
+      expect(doc.busInterfaces).toHaveLength(1);
+      const bi = doc.busInterfaces[0];
+      expect(bi.type).toBe('ipcraft:busif:avalon_st:1.0');
+      expect(bi.physicalNamePattern).toBe('asi_{signal}_{index}_i');
+      expect(bi.physicalPrefix).toBeUndefined();
+      expect(bi.array).toEqual({
+        count: 2,
+        indexStart: 0,
+        namingPattern: 'sink_{index}',
+      });
+    });
+
+    it('leaves a single decorated sink as an ordinary interface', () => {
+      const tcl = `
+        set_module_property NAME single_sink
+        add_interface sink_0 avalon_streaming end
+        add_interface_port sink_0 asi_valid_0_i valid Input 1
+        add_interface_port sink_0 asi_data_0_i data Input 8
+      `;
+      const doc = parseYaml(parse(tcl).yamlText) as {
+        busInterfaces: Array<Record<string, unknown>>;
+      };
+      expect(doc.busInterfaces).toHaveLength(1);
+      expect(doc.busInterfaces[0].array).toBeUndefined();
+    });
+  });
 });

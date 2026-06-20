@@ -145,6 +145,10 @@ export interface BusInterfaceDef {
   }>;
   mode?: string;
   physicalPrefix?: string | null;
+  /** Template for physical port names, generalizing physicalPrefix. Placeholders '{signal}'
+   *  (logical signal name, lowercased or via portNameOverrides) and '{index}' (array instance);
+   *  all other characters are literal. Takes precedence over physicalPrefix when set. */
+  physicalNamePattern?: string | null;
   useOptionalPorts?: string[];
   portWidthOverrides?: Record<string, number | string>;
   portNameOverrides?: Record<string, string>;
