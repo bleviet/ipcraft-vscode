@@ -83,6 +83,22 @@ export class IpCoreTreeDataProvider implements vscode.TreeDataProvider<FoundryNo
             title: 'Create Register Map',
           },
         },
+        {
+          label: 'Scan Vivado IP Catalog',
+          icon: 'search',
+          command: {
+            command: 'fpga-ip-core.scanVivadoCatalog',
+            title: 'Scan Vivado IP Catalog',
+          },
+        },
+        {
+          label: 'Scan Vivado Interface Catalog',
+          icon: 'search',
+          command: {
+            command: 'fpga-ip-core.scanVivadoInterfaces',
+            title: 'Scan Vivado Interface Catalog',
+          },
+        },
       ],
     });
     nodes.push(actionsNode);
