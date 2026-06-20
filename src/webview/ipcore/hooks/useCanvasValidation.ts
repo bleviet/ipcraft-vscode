@@ -85,19 +85,33 @@ export const useCanvasValidation = (ipCore: IpCore): CanvasAnnotations => {
       addAnnotation(id, 'error', 'Bus interface must have a type');
     }
 
-    if (!bus.associatedClock) {
-      addAnnotation(id, 'warning', 'Bus interface is missing an associated clock');
-    } else {
-      const clockExists = ipCore.clocks?.some((c: Clock) => c.name === bus.associatedClock);
-      if (!clockExists) {
-        addAnnotation(id, 'error', `Referenced clock '${bus.associatedClock}' does not exist`);
-      }
-    }
+    // A conduit is a signal group with no clock domain of its own — unlike a real
+    // bus protocol, where the clock association is expected (warned if missing)
+    // and the reset association is optional.
+    const isConduit = (bus.mode ?? 'conduit') === 'conduit';
 
-    if (bus.associatedReset) {
-      const resetExists = ipCore.resets?.some((r: Reset) => r.name === bus.associatedReset);
-      if (!resetExists) {
-        addAnnotation(id, 'error', `Referenced reset '${bus.associatedReset}' does not exist`);
+    if (isConduit) {
+      if (bus.associatedClock) {
+        addAnnotation(id, 'error', 'Conduit interfaces must not have an associated clock');
+      }
+      if (bus.associatedReset) {
+        addAnnotation(id, 'error', 'Conduit interfaces must not have an associated reset');
+      }
+    } else {
+      if (!bus.associatedClock) {
+        addAnnotation(id, 'warning', 'Bus interface is missing an associated clock');
+      } else {
+        const clockExists = ipCore.clocks?.some((c: Clock) => c.name === bus.associatedClock);
+        if (!clockExists) {
+          addAnnotation(id, 'error', `Referenced clock '${bus.associatedClock}' does not exist`);
+        }
+      }
+
+      if (bus.associatedReset) {
+        const resetExists = ipCore.resets?.some((r: Reset) => r.name === bus.associatedReset);
+        if (!resetExists) {
+          addAnnotation(id, 'error', `Referenced reset '${bus.associatedReset}' does not exist`);
+        }
       }
     }
 

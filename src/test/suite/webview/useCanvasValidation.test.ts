@@ -259,6 +259,67 @@ describe('useCanvasValidation', () => {
     expect(bus1Msgs.some((m) => m.includes('Duplicate physicalPrefix'))).toBe(false);
   });
 
+  it('should flag a conduit interface with an associated clock or reset as an error', () => {
+    const ipCore: IpCore = {
+      vlnv: { vendor: 'test', library: 'lib', name: 'TestCore', version: '1.0' },
+      clocks: [{ name: 'clk' }],
+      resets: [{ name: 'rst' }],
+      busInterfaces: [
+        {
+          name: 'custom_if',
+          type: 'user:busif:custom:1.0',
+          mode: 'conduit',
+          physicalPrefix: 'custom_if_',
+          associatedClock: 'clk',
+          associatedReset: 'rst',
+        },
+      ],
+    };
+
+    const annotations = useCanvasValidation(ipCore);
+    expect(annotations['bus:0']).toBeDefined();
+    expect(annotations['bus:0']).toHaveLength(2);
+    expect(annotations['bus:0'][0].severity).toBe('error');
+    expect(annotations['bus:0'][0].message).toContain('must not have an associated clock');
+    expect(annotations['bus:0'][1].severity).toBe('error');
+    expect(annotations['bus:0'][1].message).toContain('must not have an associated reset');
+  });
+
+  it('should not warn about a missing associated clock for a conduit interface', () => {
+    const ipCore: IpCore = {
+      vlnv: { vendor: 'test', library: 'lib', name: 'TestCore', version: '1.0' },
+      busInterfaces: [
+        {
+          name: 'custom_if',
+          type: 'user:busif:custom:1.0',
+          mode: 'conduit',
+          physicalPrefix: 'custom_if_',
+        },
+      ],
+    };
+
+    const annotations = useCanvasValidation(ipCore);
+    expect(annotations['bus:0']).toBeUndefined();
+  });
+
+  it('should treat a bus interface with no mode as conduit for the clock/reset rule', () => {
+    const ipCore: IpCore = {
+      vlnv: { vendor: 'test', library: 'lib', name: 'TestCore', version: '1.0' },
+      clocks: [{ name: 'clk' }],
+      busInterfaces: [
+        {
+          name: 'custom_if',
+          type: 'user:busif:custom:1.0',
+          associatedClock: 'clk',
+        } as any,
+      ],
+    };
+
+    const annotations = useCanvasValidation(ipCore);
+    expect(annotations['bus:0']).toBeDefined();
+    expect(annotations['bus:0'][0].message).toContain('must not have an associated clock');
+  });
+
   it('should not flag duplicate empty or null physicalPrefix values', () => {
     const ipCore: IpCore = {
       vlnv: { vendor: 'test', library: 'lib', name: 'TestCore', version: '1.0' },

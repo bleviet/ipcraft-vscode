@@ -2090,6 +2090,23 @@ const ConduitPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, on
     [ipCore, index, onUpdate]
   );
 
+  // A conduit is a signal group with no clock domain of its own; mirrors the
+  // 'conduit' default for the Mode select below.
+  const isConduitMode = (bus.mode ?? 'conduit') === 'conduit';
+
+  const handleModeChange = useCallback(
+    (newMode: string) => {
+      onUpdate(['busInterfaces', index, 'mode'], newMode);
+      if (newMode === 'conduit') {
+        // Clear any stale association left over from a previous master/slave mode —
+        // conduits must not have an associated clock or reset.
+        onUpdate(['busInterfaces', index, 'associatedClock'], null);
+        onUpdate(['busInterfaces', index, 'associatedReset'], null);
+      }
+    },
+    [index, onUpdate]
+  );
+
   return (
     <>
       <Section title="Identity">
@@ -2112,7 +2129,7 @@ const ConduitPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, on
           label="Mode"
           value={bus.mode ?? 'conduit'}
           options={CONDUIT_MODE_OPTS}
-          onSave={(v) => onUpdate(['busInterfaces', index, 'mode'], v)}
+          onSave={handleModeChange}
         />
         <PropField
           label="Physical Prefix"
@@ -2140,22 +2157,26 @@ const ConduitPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, on
           </div>
         )}
       </Section>
-      <Section title="Associations">
-        <PropSelect
-          label="Clock"
-          value={bus.associatedClock ?? ''}
-          options={clockOpts}
-          onSave={(v) => onUpdate(['busInterfaces', index, 'associatedClock'], v || null)}
-          emptyOption="— None —"
-        />
-        <PropSelect
-          label="Reset"
-          value={bus.associatedReset ?? ''}
-          options={resetOpts}
-          onSave={(v) => onUpdate(['busInterfaces', index, 'associatedReset'], v || null)}
-          emptyOption="— None —"
-        />
-      </Section>
+      {/* Conduits are signal groups with no clock domain — only show clock/reset
+          association once the user picks a real master/slave mode. */}
+      {!isConduitMode && (
+        <Section title="Associations">
+          <PropSelect
+            label="Clock"
+            value={bus.associatedClock ?? ''}
+            options={clockOpts}
+            onSave={(v) => onUpdate(['busInterfaces', index, 'associatedClock'], v || null)}
+            emptyOption="— None —"
+          />
+          <PropSelect
+            label="Reset"
+            value={bus.associatedReset ?? ''}
+            options={resetOpts}
+            onSave={(v) => onUpdate(['busInterfaces', index, 'associatedReset'], v || null)}
+            emptyOption="— None —"
+          />
+        </Section>
+      )}
       {libraryPortDefs && !hasOwnConduitPorts ? (
         <PortWidthOverridesSection
           bus={bus}
