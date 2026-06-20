@@ -355,8 +355,10 @@ async function generateTestbench(
     return;
   }
   const cfg = vscode.workspace.getConfiguration('ipcraft');
+  const genCfg = vscode.workspace.getConfiguration('ipcraft.generate');
   const framework = cfg.get<string>('testbench.framework', 'cocotb');
   const engine = cfg.get<string>('testbench.engine', 'ghdl');
+  const scaffoldPack = readScaffoldPackSetting(genCfg);
   const outputDir = path.dirname(ipCoreUri.fsPath);
   await runGenerator(
     context,
@@ -369,6 +371,7 @@ async function generateTestbench(
       includeTestbench: true,
       framework,
       engine,
+      scaffoldPack,
       silent: true,
     },
     `Generating ${framework} testbench...`

@@ -1,6 +1,8 @@
 /* eslint-disable */
 import * as path from 'path';
 import * as fs from 'fs/promises';
+import * as fs2 from 'fs';
+import * as os from 'os';
 import * as vscode from 'vscode';
 import { IpCoreScaffolder } from '../../../generator/IpCoreScaffolder';
 import { TemplateLoader } from '../../../generator/TemplateLoader';
@@ -209,6 +211,47 @@ describe('IpCoreScaffolder', () => {
     )?.[1] as string;
     expect(makefile).toContain('SIM ?= questa');
     expect(makefile).not.toContain('SIM ?= ghdl');
+  });
+
+  it('uses the active scaffold pack to override the built-in CocoTB test template', async () => {
+    // Issue #3: a custom scaffold pack's cocotb_test.py.j2 must shadow the built-in
+    // template, the same way pack templates already shadow built-in RTL templates.
+    const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-scaffolder-pack-'));
+    const workspaceRoot = path.join(tmp, 'workspace');
+    const packDir = path.join(workspaceRoot, '.vscode', 'ipcraft', 'packs', 'my-pack');
+    fs2.mkdirSync(packDir, { recursive: true });
+    fs2.writeFileSync(
+      path.join(packDir, 'scaffold.yml'),
+      'name: "my-pack"\nfullGeneration: true\nfiles: []\n'
+    );
+    fs2.writeFileSync(path.join(packDir, 'cocotb_test.py.j2'), '# CUSTOM OVERRIDE\n');
+
+    const originalWorkspaceFolders = (vscode.workspace as any).workspaceFolders;
+    (vscode.workspace as any).workspaceFolders = [{ uri: { fsPath: workspaceRoot } }];
+
+    try {
+      const inputPath = path.resolve(__dirname, '../../fixtures/sample-ipcore.yml');
+      const outputDir = '/tmp/test-pack-override-output';
+
+      const result = await scaffolder.generateAll(inputPath, outputDir, {
+        includeRegs: true,
+        includeTestbench: true,
+        framework: 'cocotb',
+        engine: 'ghdl',
+        targets: [],
+        scaffoldPack: 'my-pack',
+      });
+
+      expect(result.success).toBe(true);
+
+      const testFile = (fs.writeFile as unknown as jest.Mock).mock.calls.find((call: string[]) =>
+        call[0].includes('_test.py')
+      )?.[1] as string;
+      expect(testFile).toContain('CUSTOM OVERRIDE');
+    } finally {
+      (vscode.workspace as any).workspaceFolders = originalWorkspaceFolders;
+      fs2.rmSync(tmp, { recursive: true, force: true });
+    }
   });
 
   it('does not add simulation sources to Vivado/Quartus project TCLs', async () => {

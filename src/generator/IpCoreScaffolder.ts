@@ -143,7 +143,7 @@ export class IpCoreScaffolder {
         const tbFiles = generateTestbenchFiles(framework, engine, {
           name,
           templateContext: tbCtx,
-          templates: this.templates,
+          templates: packLoader,
           isSv,
           hasMmSlave: pack.fullGeneration ? hasMmSlave : false,
           extraCompileArgs: simCfg?.compileArgs,
