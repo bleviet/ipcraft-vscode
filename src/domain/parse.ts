@@ -317,12 +317,18 @@ export function normalizeIpCore(rootObj: Record<string, unknown>): IpCore {
     const conduitPorts = bus.conduit_ports ?? bus.conduitPorts;
 
     const array = bus.array as Record<string, unknown> | undefined;
+    const mode = String(bus.mode ?? '').toLowerCase();
 
     return {
       name: String(bus.name ?? ''),
       type: String(bus.type ?? ''),
-      mode: String(bus.mode ?? '').toLowerCase(),
-      physicalPrefix: String(bus.physicalPrefix ?? bus.physical_prefix ?? 's_axi_'),
+      mode,
+      physicalPrefix:
+        bus.physicalPrefix === null || bus.physical_prefix === null
+          ? ''
+          : String(
+              bus.physicalPrefix ?? bus.physical_prefix ?? (mode === 'conduit' ? '' : 's_axi_')
+            ),
       useOptionalPorts,
       portWidthOverrides,
       portNameOverrides,

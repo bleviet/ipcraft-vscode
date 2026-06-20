@@ -146,3 +146,53 @@ describe('serializeValue strips UI-only field properties', () => {
     expect(result.bits).toBe('[7:4]');
   });
 });
+
+describe('parseIpCore physicalPrefix handling', () => {
+  it('should default to s_axi_ for non-conduit bus interfaces when absent', () => {
+    const yamlStr = `
+vlnv: foo:bar:baz:1.0
+busInterfaces:
+  - name: my_bus
+    type: my_type
+    mode: slave
+`;
+    const parsed = parseIpCore(yamlStr);
+    expect(parsed.busInterfaces?.[0]?.physicalPrefix).toBe('s_axi_');
+  });
+
+  it('should default to empty string for conduit bus interfaces when absent', () => {
+    const yamlStr = `
+vlnv: foo:bar:baz:1.0
+busInterfaces:
+  - name: my_bus
+    type: my_type
+    mode: conduit
+`;
+    const parsed = parseIpCore(yamlStr);
+    expect(parsed.busInterfaces?.[0]?.physicalPrefix).toBe('');
+  });
+
+  it('should preserve explicitly empty or null physicalPrefix as empty string', () => {
+    const yamlStr1 = `
+vlnv: foo:bar:baz:1.0
+busInterfaces:
+  - name: my_bus
+    type: my_type
+    mode: slave
+    physicalPrefix: null
+`;
+    const parsed1 = parseIpCore(yamlStr1);
+    expect(parsed1.busInterfaces?.[0]?.physicalPrefix).toBe('');
+
+    const yamlStr2 = `
+vlnv: foo:bar:baz:1.0
+busInterfaces:
+  - name: my_bus
+    type: my_type
+    mode: slave
+    physicalPrefix: ""
+`;
+    const parsed2 = parseIpCore(yamlStr2);
+    expect(parsed2.busInterfaces?.[0]?.physicalPrefix).toBe('');
+  });
+});

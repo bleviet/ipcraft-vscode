@@ -258,4 +258,33 @@ describe('useCanvasValidation', () => {
     expect(bus0Msgs.some((m) => m.includes('Duplicate physicalPrefix'))).toBe(false);
     expect(bus1Msgs.some((m) => m.includes('Duplicate physicalPrefix'))).toBe(false);
   });
+
+  it('should not flag duplicate empty or null physicalPrefix values', () => {
+    const ipCore: IpCore = {
+      vlnv: { vendor: 'test', library: 'lib', name: 'TestCore', version: '1.0' },
+      clocks: [{ name: 'clk' }],
+      busInterfaces: [
+        {
+          name: 'bus_a',
+          type: 'axis',
+          mode: 'source',
+          physicalPrefix: '',
+          associatedClock: 'clk',
+        },
+        {
+          name: 'bus_b',
+          type: 'axis',
+          mode: 'sink',
+          physicalPrefix: null as any,
+          associatedClock: 'clk',
+        },
+      ],
+    };
+
+    const annotations = useCanvasValidation(ipCore);
+    const bus0Msgs = annotations['bus:0']?.map((a) => a.message) ?? [];
+    const bus1Msgs = annotations['bus:1']?.map((a) => a.message) ?? [];
+    expect(bus0Msgs.some((m) => m.includes('Duplicate physicalPrefix'))).toBe(false);
+    expect(bus1Msgs.some((m) => m.includes('Duplicate physicalPrefix'))).toBe(false);
+  });
 });
