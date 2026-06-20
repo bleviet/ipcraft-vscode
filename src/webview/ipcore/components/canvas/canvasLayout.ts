@@ -203,28 +203,6 @@ function busProtocolShortName(busType: string): string {
   return clean.length <= 4 ? clean.toUpperCase() : clean.charAt(0).toUpperCase() + clean.slice(1);
 }
 
-/**
- * Returns true if this bus type + mode combination supports a memory map reference.
- * Only single (non-array), slave-mode, memory-mapped protocols qualify:
- * AXI4-Lite, AXI4-Full, Avalon-MM.
- */
-export function supportsMemoryMap(busType: string, mode: string): boolean {
-  if (mode !== 'slave') {
-    return false;
-  }
-  const lower = busType.toLowerCase();
-  // Streaming protocols are never memory-mapped
-  if (
-    lower.includes('stream') ||
-    lower.includes('axi4s') ||
-    lower.includes('avalon_st') ||
-    lower.includes('avalon-st')
-  ) {
-    return false;
-  }
-  return lower.includes('axi4') || lower.includes('avalon_mm') || lower.includes('avalon-mm');
-}
-
 function modeLabel(mode: string): string {
   switch (mode) {
     case 'slave':

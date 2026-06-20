@@ -145,6 +145,9 @@ export function lookupBusDef(busType: string): BusPortDef[] | null {
   ) {
     return AVALON_ST;
   }
+  if (lower.includes('avalon')) {
+    return AVALON_MM;
+  }
   // Full AXI4 (after ruling out lite/stream)
   if (lower.includes('axi4') && !lower.includes('lite') && !lower.includes('stream')) {
     return AXI4_FULL;

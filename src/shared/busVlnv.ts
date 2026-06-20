@@ -24,3 +24,26 @@ export const BUS_VLNV = {
 
 /** Union of every canonical IPCraft bus VLNV string. */
 export type BusVlnv = (typeof BUS_VLNV)[keyof typeof BUS_VLNV];
+
+/**
+ * Returns true if a bus type + mode combination may reference a memory map.
+ * Only single (non-array), slave-mode, memory-mapped protocols qualify:
+ * AXI4-Lite, AXI4-Full, and Avalon-MM. Streaming protocols are rejected first
+ * so a bare "avalon" token (e.g. the generator-emitted
+ * "xilinx.com:interface:avalon:1.0") cannot match Avalon-ST.
+ */
+export function busSupportsMemoryMap(busType: string, mode: string): boolean {
+  if (mode !== 'slave') {
+    return false;
+  }
+  const lower = busType.toLowerCase();
+  if (
+    lower.includes('stream') ||
+    lower.includes('axi4s') ||
+    lower.includes('avalon_st') ||
+    lower.includes('avalon-st')
+  ) {
+    return false;
+  }
+  return lower.includes('axi4') || lower.includes('avalon');
+}

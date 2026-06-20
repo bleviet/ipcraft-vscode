@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import * as yaml from 'yaml';
 import { applyPathEdits, applyPathDeletes } from '../../../yamledit';
+import { busSupportsMemoryMap } from '../../../shared/busVlnv';
 
 export interface IpCoreState {
   ipCore: Record<string, unknown> | null;
@@ -30,22 +31,6 @@ export interface ValidationError {
   section: 'busInterfaces';
   entityName: string;
   field: string;
-}
-
-function busSupportsMemoryMap(busType: string, mode: string): boolean {
-  if (mode !== 'slave') {
-    return false;
-  }
-  const lower = busType.toLowerCase();
-  if (
-    lower.includes('stream') ||
-    lower.includes('axi4s') ||
-    lower.includes('avalon_st') ||
-    lower.includes('avalon-st')
-  ) {
-    return false;
-  }
-  return lower.includes('axi4') || lower.includes('avalon_mm') || lower.includes('avalon-mm');
 }
 
 /**

@@ -24,10 +24,9 @@ import {
   listLibraryBusTypes,
   type BusPortDef,
 } from '../../data/busDefinitions';
-import { supportsMemoryMap } from './canvasLayout';
 import { vscode } from '../../../vscode';
 import { evalWidthExpr } from '../../../shared/utils/evalWidthExpr';
-import { BUS_VLNV } from '../../../../shared/busVlnv';
+import { BUS_VLNV, busSupportsMemoryMap } from '../../../../shared/busVlnv';
 import { isValidVlnv } from '../../../../utils/vlnv';
 import { MapConduitToBusDialog, type MapConduitToBusResult } from './MapConduitToBusDialog';
 import { applyMapConduitToKnownBus } from '../../hooks/useGroupPorts';
@@ -1748,7 +1747,7 @@ const BusPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, onUpda
     | null;
   const isArray = (arrayDef?.count ?? 0) > 1;
   const hasPrefixPattern = isArray && !!arrayDef?.physicalPrefixPattern;
-  const canHaveMemoryMap = !isArray && supportsMemoryMap(bus.type, bus.mode);
+  const canHaveMemoryMap = !isArray && busSupportsMemoryMap(bus.type, bus.mode);
 
   // The import path shown for this interface's map entry (per-interface, not global).
   const currentMapImportPath: string | null = (() => {
