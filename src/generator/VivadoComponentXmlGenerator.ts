@@ -25,6 +25,9 @@ export interface CustomBusInfo {
   version: string;
   description: string;
   ports: BusPortDefinition[];
+  /** 'vivado' when this definition came from a local Vivado install scan rather than
+   *  a user-authored custom bus definition — see BusDefinition.source. */
+  source?: string;
 }
 
 function findCustomBusDef(ifaceType: string, busDefinitions: BusDefinitions): CustomBusInfo | null {
@@ -45,6 +48,7 @@ function findCustomBusDef(ifaceType: string, busDefinitions: BusDefinitions): Cu
         version: bt.version,
         description: bt.description ?? '',
         ports: def.ports ?? [],
+        source: def.source,
       };
     }
   }
@@ -176,11 +180,14 @@ export function generateCustomBusDefs(
     if (seen.has(ifaceType)) {
       continue;
     }
+    seen.add(ifaceType);
     const custom = findCustomBusDef(ifaceType, busDefinitions);
-    if (!custom) {
+    // Vivado-discovered interfaces (e.g. fifo_write) already ship their own
+    // busDefinition/abstractionDefinition XML inside the Vivado install — only
+    // user-authored custom interfaces need IPCraft to generate and bundle one.
+    if (!custom || custom.source === 'vivado') {
       continue;
     }
-    seen.add(ifaceType);
 
     // Resolve any parameter-name widths to their numeric defaults so the
     // generated Vivado XML contains concrete numbers, not raw parameter strings.

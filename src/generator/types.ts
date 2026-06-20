@@ -109,6 +109,10 @@ export type BusDefinition = {
     description?: string;
   };
   ports?: BusPortDefinition[];
+  /** Set to 'vivado' for interfaces discovered from a local Vivado install (e.g. fifo_write) —
+   *  Vivado already ships busDefinition/abstractionDefinition XML for these, so IPCraft must
+   *  not bundle a duplicate copy when packaging. Absent for user-authored custom interfaces. */
+  source?: string;
 };
 
 export type BusDefinitions = Record<string, BusDefinition>;

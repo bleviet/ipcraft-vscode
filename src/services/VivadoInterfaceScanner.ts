@@ -114,6 +114,10 @@ export class VivadoInterfaceScanner {
             version: iface.busType.version,
             ...(iface.description ? { description: iface.description } : {}),
           },
+          // Marks this definition as already known to the local Vivado install, so
+          // packaging never bundles a redundant busDefinition/abstractionDefinition
+          // copy for it (see VivadoComponentXmlGenerator.generateCustomBusDefs).
+          source: 'vivado',
           ports: iface.ports,
         },
       };

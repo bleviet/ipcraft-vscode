@@ -1239,6 +1239,49 @@ describe('generateCustomBusDefs', () => {
     expect(Object.keys(files)).toHaveLength(2); // only one bus def pair
   });
 
+  it('skips busdef generation for interfaces discovered from a local Vivado install', () => {
+    const ip: IpCoreData = {
+      ...IP_WITH_CUSTOM,
+      busInterfaces: [
+        {
+          name: 'fifo_write',
+          type: 'xilinx.com:interface:fifo_write:1.0',
+          mode: 'master',
+          physicalPrefix: null,
+          useOptionalPorts: [],
+          portWidthOverrides: {},
+        },
+      ],
+    };
+    const defs: BusDefinitions = {
+      ...BUS_DEFS,
+      FIFO_WRITE: {
+        busType: { vendor: 'xilinx.com', library: 'interface', name: 'fifo_write', version: '1.0' },
+        source: 'vivado',
+        ports: [{ name: 'WR_EN', width: 1, direction: 'out', presence: 'required' }],
+      },
+    };
+    expect(generateCustomBusDefs(ip, defs)).toEqual({});
+  });
+
+  it('still generates busdef files for a user-authored custom type with no source tag', () => {
+    const ip: IpCoreData = {
+      ...IP_WITH_CUSTOM,
+      busInterfaces: [
+        {
+          name: 'stream_in',
+          type: 'acme.com:interface:my_proto:2.0',
+          mode: 'slave',
+          physicalPrefix: 's_',
+          useOptionalPorts: [],
+          portWidthOverrides: {},
+        },
+      ],
+    };
+    const files = generateCustomBusDefs(ip, DEFS_WITH_CUSTOM);
+    expect(Object.keys(files)).toContain('busdef/my_proto.xml');
+  });
+
   it('generates separate busdef files for two different custom types', () => {
     const ip: IpCoreData = {
       ...IP_WITH_CUSTOM,
