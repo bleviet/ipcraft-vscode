@@ -125,9 +125,16 @@ export class ImportResolver {
 
     // Merge workspace-discovered bus definitions (tagged `source: 'workspace'`),
     // mirroring how the Vivado interface cache is merged above. These are
-    // standalone .yml/.yaml files in the user's workspace that match the bus
-    // definition shape, surfaced as known interfaces in the Inspector.
-    const workspaceResult = await getWorkspaceBusDefinitionScanner().scan();
+    // standalone .yml/.yaml/.xml files in the user's workspace that match the
+    // bus definition shape, surfaced as known interfaces in the Inspector.
+    //
+    // peekAndScanInBackground() never blocks on the workspace walk — in a
+    // large repository that walk is too slow to run on every editor open/
+    // update. It returns whatever's already been discovered (possibly
+    // nothing yet) and, the first time, kicks off a background scan that
+    // fires `onDidScan` on completion; `IpCoreEditorProvider` is subscribed
+    // to that event and refreshes the webview once results are in.
+    const workspaceResult = getWorkspaceBusDefinitionScanner().peekAndScanInBackground();
     if (workspaceResult.count > 0) {
       merged = { ...merged, ...workspaceResult.library };
     }

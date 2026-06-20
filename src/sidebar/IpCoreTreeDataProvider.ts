@@ -18,6 +18,7 @@ export class IpCoreTreeDataProvider implements vscode.TreeDataProvider<FoundryNo
 
   private workspaceWatcher: vscode.FileSystemWatcher | undefined;
   private busDefWatcher: vscode.FileSystemWatcher | undefined;
+  private busDefScanSubscription: vscode.Disposable | undefined;
 
   constructor() {
     this.setupWatcher();
@@ -44,6 +45,14 @@ export class IpCoreTreeDataProvider implements vscode.TreeDataProvider<FoundryNo
       getWorkspaceBusDefinitionScanner().clearCache();
       this.refresh();
     });
+
+    // The tree never blocks on the (potentially expensive) workspace bus def
+    // scan — it renders with whatever's cached so far (see
+    // scanWorkspaceForBusDefs) and refreshes once a background or explicit
+    // scan completes.
+    this.busDefScanSubscription = getWorkspaceBusDefinitionScanner().onDidScan(() =>
+      this.refresh()
+    );
   }
 
   dispose(): void {
@@ -52,6 +61,9 @@ export class IpCoreTreeDataProvider implements vscode.TreeDataProvider<FoundryNo
     }
     if (this.busDefWatcher) {
       this.busDefWatcher.dispose();
+    }
+    if (this.busDefScanSubscription) {
+      this.busDefScanSubscription.dispose();
     }
   }
 
@@ -226,11 +238,13 @@ export class IpCoreTreeDataProvider implements vscode.TreeDataProvider<FoundryNo
   }
 
   /**
-   * Scans the workspace for standalone bus definition files (YAML, same shape
-   * as `ipcraft-spec/bus_definitions/*.yml`, or IP-XACT bus/abstraction
-   * definition XML), grouped by parent directory. Reuses the shared
-   * `WorkspaceBusDefinitionScanner` singleton so the result is cached between
-   * the tree and `ImportResolver`.
+   * Shows whatever standalone bus definition files (YAML, same shape as
+   * `ipcraft-spec/bus_definitions/*.yml`, or IP-XACT bus/abstraction
+   * definition XML) have already been discovered, grouped by parent
+   * directory. Never blocks the tree on the underlying workspace walk:
+   * `peekAndScanInBackground()` returns instantly, kicking off a scan in the
+   * background the first time and refreshing the tree (via `onDidScan`,
+   * subscribed in `setupWatcher`) once it completes.
    */
   private async scanWorkspaceForBusDefs(): Promise<FoundryNode[]> {
     const workspaceFolders = vscode.workspace.workspaceFolders;
@@ -238,7 +252,7 @@ export class IpCoreTreeDataProvider implements vscode.TreeDataProvider<FoundryNo
       return [];
     }
 
-    const result = await getWorkspaceBusDefinitionScanner().scan();
+    const result = getWorkspaceBusDefinitionScanner().peekAndScanInBackground();
     if (result.files.length === 0) {
       return [];
     }

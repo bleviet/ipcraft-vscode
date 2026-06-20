@@ -111,6 +111,12 @@ describe('WorkspaceBusDefinitionScanner', () => {
     (vscode.workspace as { workspaceFolders?: unknown }).workspaceFolders = [
       { uri: { fsPath: '/workspace' } },
     ];
+    // jest.config's resetMocks wipes the default getConfiguration() implementation
+    // between tests; buildExcludeGlob() reads files.exclude/search.exclude, so it
+    // needs a stub here (returning the default value, i.e. no configured excludes).
+    (vscode.workspace.getConfiguration as jest.Mock).mockReturnValue({
+      get: (_key: string, defaultValue?: unknown) => defaultValue,
+    });
   });
 
   afterEach(() => {
@@ -373,5 +379,91 @@ describe('WorkspaceBusDefinitionScanner', () => {
     expect(result.library.AXI4_LITE).toBeDefined();
     expect(result.library.ACME_COM_INTERFACE_MY_CUSTOM_1_0).toBeDefined();
     expect(result.files).toHaveLength(3);
+  });
+
+  describe('peekAndScanInBackground', () => {
+    it('returns an empty result immediately without waiting on the workspace walk', () => {
+      // findFiles never resolves during this test, simulating a slow scan of a
+      // huge repository — peekAndScanInBackground must not wait on it.
+      (vscode.workspace as unknown as { findFiles: jest.Mock }).findFiles = jest
+        .fn()
+        .mockReturnValue(new Promise(() => {}));
+
+      const result = scanner.peekAndScanInBackground();
+
+      expect(result).toEqual({ library: {}, files: [], count: 0 });
+    });
+
+    it('kicks off exactly one background scan and fires onDidScan once it resolves', async () => {
+      mockWorkspace([{ fsPath: '/workspace/buses/axi4_lite.yml' }], async () =>
+        Buffer.from(AXI4_LITE_YML, 'utf8')
+      );
+      const fired = jest.fn();
+      const sub = scanner.onDidScan(fired);
+
+      const first = scanner.peekAndScanInBackground();
+      expect(first.count).toBe(0);
+      expect(fired).not.toHaveBeenCalled();
+
+      // A second concurrent call must not start a second scan.
+      const second = scanner.peekAndScanInBackground();
+      expect(second.count).toBe(0);
+
+      // scan() with no in-flight forced scan joins the same in-flight background scan.
+      const resolved = await scanner.scan();
+      expect(resolved.count).toBe(1);
+      expect(fired).toHaveBeenCalledTimes(1);
+      // Exactly one findFiles call per format (YAML, XML) — confirms the two
+      // peekAndScanInBackground() calls above shared a single background scan.
+      expect(
+        (vscode.workspace as unknown as { findFiles: jest.Mock }).findFiles
+      ).toHaveBeenCalledTimes(2);
+
+      // Once resolved, the result is served from cache without any new I/O.
+      const third = scanner.peekAndScanInBackground();
+      expect(third.count).toBe(1);
+      expect(
+        (vscode.workspace as unknown as { findFiles: jest.Mock }).findFiles
+      ).toHaveBeenCalledTimes(2);
+
+      sub.dispose();
+    });
+  });
+
+  describe('exclude glob', () => {
+    it('always prunes known build/cache directories during the walk', async () => {
+      mockWorkspace([], async () => Buffer.from('', 'utf8'));
+
+      await scanner.scan();
+
+      const findFilesMock = (vscode.workspace as unknown as { findFiles: jest.Mock }).findFiles;
+      const excludeArg = findFilesMock.mock.calls[0][1] as string;
+      expect(excludeArg).toContain('node_modules');
+      expect(excludeArg).toContain('.runs');
+      expect(excludeArg).toContain('.ip_user_files');
+    });
+
+    it('also prunes directories configured via files.exclude / search.exclude', async () => {
+      mockWorkspace([], async () => Buffer.from('', 'utf8'));
+      (vscode.workspace.getConfiguration as jest.Mock).mockImplementation((section: string) => ({
+        get: (_key: string, defaultValue?: unknown) =>
+          section === 'files' ? { '**/vendor_blobs': true } : defaultValue,
+      }));
+
+      await scanner.scan();
+
+      const findFilesMock = (vscode.workspace as unknown as { findFiles: jest.Mock }).findFiles;
+      const excludeArg = findFilesMock.mock.calls[0][1] as string;
+      expect(excludeArg).toContain('vendor_blobs');
+    });
+
+    it('caps each glob at the candidate limit and passes it to findFiles', async () => {
+      mockWorkspace([], async () => Buffer.from('', 'utf8'));
+
+      await scanner.scan();
+
+      const findFilesMock = (vscode.workspace as unknown as { findFiles: jest.Mock }).findFiles;
+      expect(findFilesMock.mock.calls[0][2]).toBe(5000);
+    });
   });
 });

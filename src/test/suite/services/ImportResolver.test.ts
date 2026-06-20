@@ -7,12 +7,12 @@ jest.mock('../../../services/VivadoInterfaceScanner', () => ({
 }));
 
 const mockWorkspaceScan = jest.fn<
-  Promise<{ library: Record<string, unknown>; count: number; files: unknown[] }>,
+  { library: Record<string, unknown>; count: number; files: unknown[] },
   []
 >();
 jest.mock('../../../services/WorkspaceBusDefinitionScanner', () => ({
   getWorkspaceBusDefinitionScanner: () => ({
-    scan: () => mockWorkspaceScan(),
+    peekAndScanInBackground: () => mockWorkspaceScan(),
     clearCache: jest.fn(),
     onDidScan: jest.fn(() => ({ dispose: jest.fn() })),
   }),
@@ -33,7 +33,7 @@ describe('ImportResolver', () => {
       error: jest.fn(),
     };
     mockPathExists.mockReset().mockResolvedValue(false);
-    mockWorkspaceScan.mockReset().mockResolvedValue({ library: {}, count: 0, files: [] });
+    mockWorkspaceScan.mockReset().mockReturnValue({ library: {}, count: 0, files: [] });
 
     readFileMock = jest.fn();
     (vscode.workspace as unknown as { fs: { readFile: jest.Mock; stat: jest.Mock } }).fs = {
@@ -130,7 +130,7 @@ describe('ImportResolver', () => {
 
   it('merges workspace-discovered bus definitions into the library', async () => {
     mockPathExists.mockResolvedValue(false);
-    mockWorkspaceScan.mockResolvedValue({
+    mockWorkspaceScan.mockReturnValue({
       library: { MY_CUSTOM_BUS: { ports: [{ name: 'CLK' }], source: 'workspace' } },
       count: 1,
       files: [],
