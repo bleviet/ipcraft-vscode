@@ -30,11 +30,12 @@ export class IpCoreTreeDataProvider implements vscode.TreeDataProvider<FoundryNo
     this.workspaceWatcher.onDidChange(() => this.refresh());
     this.workspaceWatcher.onDidDelete(() => this.refresh());
 
-    // Watch generic .yml/.yaml files for bus definition changes. Only
-    // create/delete events invalidate the workspace bus def scan cache —
+    // Watch generic .yml/.yaml/.xml files for bus definition changes (.xml
+    // covers IP-XACT bus/abstraction definitions from Vivado's IP Packager).
+    // Only create/delete events invalidate the workspace bus def scan cache —
     // change events fire too frequently during editing, and the explicit
     // "Scan Workspace Bus Definitions" command handles manual refreshes.
-    this.busDefWatcher = vscode.workspace.createFileSystemWatcher('**/*.{yml,yaml}');
+    this.busDefWatcher = vscode.workspace.createFileSystemWatcher('**/*.{yml,yaml,xml}');
     this.busDefWatcher.onDidCreate(() => {
       getWorkspaceBusDefinitionScanner().clearCache();
       this.refresh();
@@ -225,10 +226,11 @@ export class IpCoreTreeDataProvider implements vscode.TreeDataProvider<FoundryNo
   }
 
   /**
-   * Scans the workspace for standalone bus definition YAML files (same shape
-   * as `ipcraft-spec/bus_definitions/*.yml`), grouped by parent directory.
-   * Reuses the shared `WorkspaceBusDefinitionScanner` singleton so the result
-   * is cached between the tree and `ImportResolver`.
+   * Scans the workspace for standalone bus definition files (YAML, same shape
+   * as `ipcraft-spec/bus_definitions/*.yml`, or IP-XACT bus/abstraction
+   * definition XML), grouped by parent directory. Reuses the shared
+   * `WorkspaceBusDefinitionScanner` singleton so the result is cached between
+   * the tree and `ImportResolver`.
    */
   private async scanWorkspaceForBusDefs(): Promise<FoundryNode[]> {
     const workspaceFolders = vscode.workspace.workspaceFolders;

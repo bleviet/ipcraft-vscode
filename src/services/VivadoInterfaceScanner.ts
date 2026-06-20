@@ -30,12 +30,44 @@ export async function pathExists(p: string): Promise<boolean> {
   }
 }
 
-/** Sanitizes a VLNV into a filesystem-safe, collision-free identifier. */
-function vlnvToFileStem(busType: VivadoInterfaceDef['busType']): string {
+/**
+ * Sanitizes a VLNV into a filesystem-safe, collision-free identifier.
+ * Exported for reuse by `WorkspaceBusDefinitionScanner`, which derives the
+ * same library key for IP-XACT bus definitions found in the workspace.
+ */
+export function vlnvToFileStem(busType: VivadoInterfaceDef['busType']): string {
   return `${busType.vendor}_${busType.library}_${busType.name}_${busType.version}`
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '_')
     .replace(/^_+|_+$/g, '');
+}
+
+/**
+ * Converts a parsed IP-XACT interface into a `{ [KEY]: { busType, source, ports } }`
+ * bus-definition library entry, the same shape as `ipcraft-spec/bus_definitions/*.yml`.
+ * Shared by `VivadoInterfaceScanner` (caches Vivado-install interfaces, `source: 'vivado'`)
+ * and `WorkspaceBusDefinitionScanner` (discovers IP-XACT XML in the workspace,
+ * `source: 'workspace'`).
+ */
+export function vivadoInterfaceToBusDefEntry(
+  iface: VivadoInterfaceDef,
+  source: string
+): { key: string; record: Record<string, unknown> } {
+  const stem = vlnvToFileStem(iface.busType);
+  return {
+    key: stem.toUpperCase(),
+    record: {
+      busType: {
+        vendor: iface.busType.vendor,
+        library: iface.busType.library,
+        name: iface.busType.name,
+        version: iface.busType.version,
+        ...(iface.description ? { description: iface.description } : {}),
+      },
+      source,
+      ports: iface.ports,
+    },
+  };
 }
 
 export class VivadoInterfaceScanner {
@@ -104,25 +136,13 @@ export class VivadoInterfaceScanner {
     await fs.mkdir(cacheDir, { recursive: true });
 
     for (const iface of interfaces) {
-      const stem = vlnvToFileStem(iface.busType);
-      const doc: Record<string, unknown> = {
-        [stem.toUpperCase()]: {
-          busType: {
-            vendor: iface.busType.vendor,
-            library: iface.busType.library,
-            name: iface.busType.name,
-            version: iface.busType.version,
-            ...(iface.description ? { description: iface.description } : {}),
-          },
-          // Marks this definition as already known to the local Vivado install, so
-          // packaging never bundles a redundant busDefinition/abstractionDefinition
-          // copy for it (see VivadoComponentXmlGenerator.generateCustomBusDefs).
-          source: 'vivado',
-          ports: iface.ports,
-        },
-      };
+      // Marks this definition as already known to the local Vivado install, so
+      // packaging never bundles a redundant busDefinition/abstractionDefinition
+      // copy for it (see VivadoComponentXmlGenerator.generateCustomBusDefs).
+      const { key, record } = vivadoInterfaceToBusDefEntry(iface, 'vivado');
+      const doc: Record<string, unknown> = { [key]: record };
       const fileContent = yaml.dump(doc, { noRefs: true, sortKeys: false });
-      await fs.writeFile(path.join(cacheDir, `${stem}.yml`), fileContent, 'utf8');
+      await fs.writeFile(path.join(cacheDir, `${key.toLowerCase()}.yml`), fileContent, 'utf8');
     }
   }
 }

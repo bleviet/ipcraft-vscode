@@ -3,9 +3,10 @@ import { getWorkspaceBusDefinitionScanner } from '../services/WorkspaceBusDefini
 
 /**
  * Command handler for "Scan Workspace Bus Definitions". Forces a re-scan of
- * workspace folders for standalone bus definition YAML files, refreshes the
- * Control Center tree, and notifies open IP core editors so their Inspector
- * picks up the updated bus library.
+ * workspace folders for standalone bus definition files — YAML and IP-XACT
+ * bus/abstraction definition XML (e.g. from Vivado's IP Packager) — refreshes
+ * the Control Center tree, and notifies open IP core editors so their
+ * Inspector picks up the updated bus library.
  *
  * The `onDidScan` event from the scanner triggers `IpCoreEditorProvider` to
  * clear its import-resolver cache and force-resync any open webview, so
@@ -25,8 +26,9 @@ export async function scanWorkspaceBusDefinitionsCommand(): Promise<void> {
         const result = await scanner.scan(true);
         if (result.count === 0) {
           void vscode.window.showInformationMessage(
-            'No bus definition YAML files found in the workspace. ' +
-              'Bus definitions are .yml/.yaml files with a top-level key containing a `ports` array (excluding .ip.yml and .mm.yml).'
+            'No bus definition files found in the workspace. ' +
+              'Bus definitions are either .yml/.yaml files with a top-level key containing a `ports` array ' +
+              '(excluding .ip.yml and .mm.yml), or IP-XACT busDefinition/abstractionDefinition .xml file pairs.'
           );
         } else {
           void vscode.window.showInformationMessage(
