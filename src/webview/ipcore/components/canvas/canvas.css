@@ -1169,9 +1169,55 @@
   gap: 4px;
 }
 .ci-field__input-row .ci-field__input,
-.ci-field__input-row .ci-field__select {
+.ci-field__input-row .ci-field__select,
+.ci-field__input-row .ci-combobox {
   flex: 1 1 0;
   min-width: 0;
+}
+
+/* FuzzySelect — searchable dropdown over a list of VLNV options */
+.ci-combobox {
+  position: relative;
+}
+.ci-combobox__input {
+  cursor: pointer;
+}
+.ci-combobox__list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 2px;
+  max-height: 220px;
+  overflow-y: auto;
+  background: var(--vscode-dropdown-background);
+  border: 1px solid var(--vscode-dropdown-border, var(--vscode-panel-border));
+  border-radius: 2px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  z-index: 100;
+  padding: 2px;
+}
+.ci-combobox__option {
+  padding: 4px 8px;
+  font-size: 12px;
+  border-radius: 2px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ci-combobox__option:hover,
+.ci-combobox__option--active {
+  background: var(--vscode-list-hoverBackground);
+}
+.ci-combobox__option--selected {
+  font-weight: 600;
+}
+.ci-combobox__empty {
+  padding: 4px 8px;
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  font-style: italic;
 }
 
 /* Taller toggle button that matches the ci-field input height */
@@ -1339,6 +1385,12 @@
 
 .ci-pw-row--overridden .ci-pw-name {
   font-weight: 600;
+}
+
+/* Marks a port with no fixed/standard width (parameterized in the interface spec) */
+.ci-pw-unconstrained {
+  color: var(--vscode-charts-orange, var(--vscode-descriptionForeground));
+  margin-left: 1px;
 }
 
 /* Wrapper for the input/select + optional mode-toggle button */
