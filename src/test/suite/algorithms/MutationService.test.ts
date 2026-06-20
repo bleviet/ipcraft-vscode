@@ -105,6 +105,21 @@ describe('MutationService.insertElement', () => {
       expect(blocks[1].base_address).toBe(12);
       expect(blocks[2].base_address).toBe(16);
     });
+
+    it('should insert a RAM block when kind is ram', () => {
+      const map = makeMap();
+      const result = insertElement(map, 'block', 'after', 0, undefined, 'ram');
+
+      expect(result.errors).toEqual([]);
+      const blocks = getBlocks(result.memoryMap);
+      expect(blocks).toHaveLength(3);
+      const newBlock = blocks[1];
+      expect(newBlock.name).toBe('ram1');
+      expect(newBlock.usage).toBe('memory');
+      expect(newBlock.range).toBe(1024);
+      expect(newBlock.defaultRegWidth).toBe(32);
+      expect(result.newIndex).toBe(1);
+    });
   });
 
   describe('register layer', () => {
@@ -147,6 +162,104 @@ describe('MutationService.insertElement', () => {
       // BLOCK0 now has 4 regs = 16 bytes
       expect(blocks[0].base_address).toBe(0);
       expect(blocks[1].base_address).toBe(16);
+    });
+
+    it('should insert a flat array register when flat-array is specified', () => {
+      const map = makeMap();
+      const result = insertElement(map, 'register', 'after', 1, { blockIndex: 0 }, 'flat-array');
+
+      const regs = getBlocks(result.memoryMap)[0].registers!;
+      expect(regs).toHaveLength(4);
+      const inserted = regs[2];
+      expect(inserted.name).toBe('regArray1');
+      expect(inserted.count).toBe(2);
+      expect(inserted.stride).toBe(4);
+      expect(inserted.registers).toBeUndefined();
+    });
+
+    it('should insert a nested array register when array is specified', () => {
+      const map = makeMap();
+      const result = insertElement(map, 'register', 'after', 1, { blockIndex: 0 }, 'array');
+
+      const regs = getBlocks(result.memoryMap)[0].registers!;
+      expect(regs).toHaveLength(4);
+      const inserted = regs[2];
+      expect(inserted.name).toBe('array1');
+      expect(inserted.count).toBe(2);
+      expect(inserted.stride).toBe(4);
+      expect(inserted.registers).toBeDefined();
+      expect(inserted.registers![0].name).toBe('reg0');
+    });
+
+    it('should insert a register inside a register array', () => {
+      const map = makeMap({
+        addressBlocks: [
+          {
+            name: 'BLOCK0',
+            base_address: 0,
+            registers: [
+              {
+                name: 'ARR0',
+                count: 2,
+                stride: 16,
+                registers: [
+                  { name: 'SUBREG0', offset: 0 },
+                  { name: 'SUBREG1', offset: 4 },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+
+      const result = insertElement(map, 'register', 'after', 0, {
+        blockIndex: 0,
+        registerIndex: 0,
+      });
+
+      expect(result.errors).toEqual([]);
+      const subRegs = getBlocks(result.memoryMap)[0].registers![0].registers!;
+      expect(subRegs).toHaveLength(3);
+      expect(subRegs[0].name).toBe('SUBREG0');
+      expect(subRegs[0].offset).toBe(0);
+      expect(subRegs[1].name).toBe('reg1');
+      expect(subRegs[1].offset).toBe(4);
+      expect(subRegs[2].name).toBe('SUBREG1');
+      expect(subRegs[2].offset).toBe(8);
+      expect(result.newIndex).toBe(1);
+    });
+
+    it('should calculate the base address of element 1 correctly by updating stride after nested insertion', () => {
+      const map = makeMap({
+        addressBlocks: [
+          {
+            name: 'BLOCK0',
+            base_address: 512,
+            registers: [
+              {
+                name: 'DMA',
+                count: 2,
+                stride: 16,
+                registers: [
+                  { name: 'SRC', offset: 0 },
+                  { name: 'DST', offset: 4 },
+                  { name: 'LEN', offset: 8 },
+                  { name: 'CTRL', offset: 12 },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+
+      const result = insertElement(map, 'register', 'after', 3, {
+        blockIndex: 0,
+        registerIndex: 0,
+      });
+
+      expect(result.errors).toEqual([]);
+      const dma = getBlocks(result.memoryMap)[0].registers![0];
+      expect(dma.stride).toBe(20);
     });
   });
 
@@ -218,6 +331,36 @@ describe('MutationService.deleteElement', () => {
       const blocks = getBlocks(result.memoryMap);
       // BLOCK0 now has 2 regs = 8 bytes
       expect(blocks[1].base_address).toBe(8);
+    });
+
+    it('should delete a register inside a register array', () => {
+      const map = makeMap({
+        addressBlocks: [
+          {
+            name: 'BLOCK0',
+            base_address: 0,
+            registers: [
+              {
+                name: 'ARR0',
+                count: 2,
+                stride: 16,
+                registers: [
+                  { name: 'SUBREG0', offset: 0 },
+                  { name: 'SUBREG1', offset: 4 },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+
+      const result = deleteElement(map, 'register', 1, { blockIndex: 0, registerIndex: 0 });
+
+      expect(result.errors).toEqual([]);
+      const subRegs = getBlocks(result.memoryMap)[0].registers![0].registers!;
+      expect(subRegs).toHaveLength(1);
+      expect(subRegs[0].name).toBe('SUBREG0');
+      expect(result.newIndex).toBe(0);
     });
   });
 

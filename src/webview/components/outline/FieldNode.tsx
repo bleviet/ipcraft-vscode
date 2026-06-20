@@ -10,6 +10,8 @@ interface FieldNodeProps {
   suffix?: React.ReactNode;
   iconTitle?: string;
   iconStyle?: React.CSSProperties;
+  actionButton?: React.ReactNode;
+  onContextMenu?: (e: React.MouseEvent) => void;
 }
 
 const FieldNode = ({
@@ -22,24 +24,24 @@ const FieldNode = ({
   iconTitle,
   iconStyle,
   suffix,
+  actionButton,
+  onContextMenu,
 }: FieldNodeProps) => {
   return (
     <div
       key={id}
       data-outline-id={id}
-      className={`tree-item ${isSelected ? 'selected' : ''}`}
+      className={`tree-item ${isSelected ? 'selected' : ''} gap-2 text-sm group`}
       role="treeitem"
       aria-selected={isSelected}
       onClick={onClick}
+      onContextMenu={onContextMenu}
       style={{ paddingLeft }}
     >
-      <span
-        className={iconClassName}
-        title={iconTitle}
-        style={{ marginRight: '6px', ...iconStyle }}
-      ></span>
+      <span className={iconClassName} title={iconTitle} style={{ ...iconStyle }}></span>
       {label}
       {suffix}
+      {actionButton}
     </div>
   );
 };

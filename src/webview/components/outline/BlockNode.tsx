@@ -11,6 +11,8 @@ interface BlockNodeProps {
   onToggleExpand: (e: React.MouseEvent) => void;
   name: React.ReactNode;
   children?: React.ReactNode;
+  actionButton?: React.ReactNode;
+  onContextMenu?: (e: React.MouseEvent) => void;
 }
 
 const BlockNode = ({
@@ -23,34 +25,37 @@ const BlockNode = ({
   onToggleExpand,
   name,
   children,
+  actionButton,
+  onContextMenu,
 }: BlockNodeProps) => {
   return (
     <div key={id}>
       <div
         data-outline-id={id}
-        className={`tree-item ${isSelected ? 'selected' : ''}`}
+        className={`tree-item ${isSelected ? 'selected' : ''} gap-2 text-sm group`}
         role="treeitem"
         aria-expanded={isExpanded}
         aria-selected={isSelected}
         onClick={onClick}
         onDoubleClick={onDoubleClick}
+        onContextMenu={onContextMenu}
         style={{ paddingLeft: '20px' }}
       >
         <span
           className={`codicon codicon-chevron-${isExpanded ? 'down' : 'right'}`}
           onClick={onToggleExpand}
-          style={{ marginRight: '6px', cursor: 'pointer' }}
+          style={{ cursor: 'pointer' }}
         ></span>
         <span
           className="codicon codicon-package"
           title="Address Block"
-          style={{ marginRight: '6px', color: 'var(--vscode-symbolIcon-classForeground)' }}
+          style={{ color: 'var(--vscode-symbolIcon-classForeground)' }}
         ></span>
         {name}{' '}
-        <span className="opacity-50">
-          @ 0x
-          {block.baseAddress.toString(16).toUpperCase()}
+        <span className="text-[10px] vscode-muted font-mono shrink-0">
+          @ 0x{block.baseAddress.toString(16).toUpperCase()}
         </span>
+        {actionButton}
       </div>
       {isExpanded && <div>{children}</div>}
     </div>

@@ -22,7 +22,14 @@ interface OutlineTreeNodesProps {
   onSelect: (selection: OutlineSelection) => void;
   renderNameOrEdit: RenderNameOrEdit;
   startEditing?: (id: string, name: string) => void;
-  onRegisterContextMenu?: (blockIndex: number, regIndex: number, x: number, y: number) => void;
+  onRegisterContextMenu?: (
+    blockIndex: number,
+    regIndex: number | undefined,
+    x: number,
+    y: number,
+    parentRegIndex?: number
+  ) => void;
+  onBlockContextMenu?: (blockIndex: number, x: number, y: number) => void;
 }
 
 function renderLeafRegister(
@@ -37,7 +44,13 @@ function renderLeafRegister(
   blockIndex: number,
   regIndex: number,
   paddingLeft = '40px',
-  onRegisterContextMenu?: (blockIndex: number, regIndex: number, x: number, y: number) => void
+  onRegisterContextMenu?: (
+    blockIndex: number,
+    regIndex: number | undefined,
+    x: number,
+    y: number,
+    parentRegIndex?: number
+  ) => void
 ) {
   const id = registerId(blockIndex, regIndex);
   const isSelected = selectedId === id;
@@ -46,6 +59,26 @@ function renderLeafRegister(
   const regOff = Number(reg.offset ?? 0);
   const absolute = blockBase + regOff;
   const path: YamlPath = ['addressBlocks', blockIndex, 'registers', regIndex];
+
+  const actionButton = onRegisterContextMenu ? (
+    <button
+      className={`${
+        isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+      } transition-opacity p-0.5 rounded hover:bg-[var(--vscode-toolbar-hoverBackground)] text-[var(--vscode-foreground)] flex items-center justify-center shrink-0 ml-auto`}
+      onClick={(e) => {
+        e.stopPropagation();
+        onRegisterContextMenu(blockIndex, regIndex, e.clientX, e.clientY);
+      }}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
+      title="More Actions..."
+      aria-label="More Actions..."
+    >
+      <span className="codicon codicon-kebab-vertical text-sm" />
+    </button>
+  ) : undefined;
 
   return (
     <RegisterNode
@@ -70,6 +103,7 @@ function renderLeafRegister(
       paddingLeft={paddingLeft}
       name={renderNameOrEdit(id, reg.name, path, 'flex-1')}
       offsetLabel={`@ ${toHex(absolute)}`}
+      actionButton={actionButton}
       onContextMenu={
         onRegisterContextMenu
           ? (e) => {
@@ -94,6 +128,7 @@ const OutlineTreeNodes = ({
   renderNameOrEdit,
   startEditing,
   onRegisterContextMenu,
+  onBlockContextMenu,
 }: OutlineTreeNodesProps) => {
   return (
     <>
@@ -102,6 +137,26 @@ const OutlineTreeNodes = ({
         const isExpanded = expanded.has(id);
         const isSelected = selectedId === id;
         const regsAny = block.registers ?? [];
+
+        const actionButton = onBlockContextMenu ? (
+          <button
+            className={`${
+              isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+            } transition-opacity p-0.5 rounded hover:bg-[var(--vscode-toolbar-hoverBackground)] text-[var(--vscode-foreground)] flex items-center justify-center shrink-0 ml-auto`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onBlockContextMenu(blockIndex, e.clientX, e.clientY);
+            }}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+            title="More Actions..."
+            aria-label="More Actions..."
+          >
+            <span className="codicon codicon-kebab-vertical text-sm" />
+          </button>
+        ) : undefined;
 
         return (
           <OutlineBlockNode
@@ -123,6 +178,15 @@ const OutlineTreeNodes = ({
             onToggleExpand={(e) => onToggleExpand(id, e)}
             onDoubleClick={() => startEditing?.(id, block.name ?? '')}
             name={renderNameOrEdit(id, block.name, ['addressBlocks', blockIndex], 'flex-1')}
+            actionButton={actionButton}
+            onContextMenu={
+              onBlockContextMenu
+                ? (e) => {
+                    e.preventDefault();
+                    onBlockContextMenu(blockIndex, e.clientX, e.clientY);
+                  }
+                : undefined
+            }
           >
             {regsAny.map((node, idx) => {
               if (isArrayNode(node)) {
@@ -144,6 +208,7 @@ const OutlineTreeNodes = ({
                     }
                     renderNameOrEdit={renderNameOrEdit}
                     startEditing={startEditing}
+                    onRegisterContextMenu={onRegisterContextMenu}
                   />
                 );
               }
