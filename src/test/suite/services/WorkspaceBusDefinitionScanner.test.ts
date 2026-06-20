@@ -1,26 +1,44 @@
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 import * as vscode from 'vscode';
+
+// The scanner now reads/stats real files via Node's `fs` (for the persistent
+// scan-cache key and the XML head-byte probe), so fixtures live on real disk
+// in a temp directory rather than behind fake `fsPath` strings. The
+// persistent cache itself is redirected to a temp "config dir" the same way
+// VivadoInterfaceScanner.test.ts redirects getIpcraftConfigDir().
+const FAKE_CONFIG_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-config-test-'));
+jest.mock('../../../utils/configDir', () => ({
+  getIpcraftConfigDir: () => FAKE_CONFIG_DIR,
+}));
+
 import { WorkspaceBusDefinitionScanner } from '../../../services/WorkspaceBusDefinitionScanner';
+import * as VivadoInterfaceXmlParser from '../../../parser/VivadoInterfaceXmlParser';
 
 /**
- * The scanner uses vscode.workspace.findFiles + fs.readFile, which the shared
- * __mocks__/vscode.ts does not stub. We install per-test mocks here, mirroring
- * the pattern in ImportResolver.test.ts / BusLibraryService.test.ts.
+ * The scanner uses vscode.workspace.findFiles + vscode.workspace.fs.readFile
+ * for actual file reads, which the shared __mocks__/vscode.ts does not stub.
+ * We install per-test mocks here, mirroring the pattern in
+ * ImportResolver.test.ts / BusLibraryService.test.ts — but unlike before,
+ * `findFiles` now returns URIs pointing at real files written to `workspaceDir`
+ * (a fresh temp directory per test) so the scanner's `fs.promises.stat` /
+ * head-byte-read calls succeed exactly as they would in production.
  *
- * `findFilesResult` is keyed by the glob pattern's file-extension group so
- * the YAML scan (`**\/*.{yml,yaml}`) and XML scan (`**\/*.xml`) each see only
- * their own candidates, mirroring how `vscode.workspace.findFiles` would.
+ * `findFilesResult` is keyed by the glob pattern: the YAML scan
+ * (`**\/*.busdef.yml`) and XML scan (`**\/*.xml`) each see only their own
+ * candidates, mirroring how `vscode.workspace.findFiles` would.
  */
-function mockWorkspace(
-  yamlFiles: { fsPath: string }[],
-  readFileImpl: (uri: { fsPath: string }) => Promise<Buffer>,
-  xmlFiles: { fsPath: string }[] = []
-): void {
+function mockWorkspace(yamlPaths: string[], xmlPaths: string[] = []): void {
   const findFilesMock = jest.fn().mockImplementation((pattern: { pattern: string }) => {
-    return Promise.resolve(pattern.pattern.endsWith('.xml') ? xmlFiles : yamlFiles);
+    const paths = pattern.pattern.endsWith('.xml') ? xmlPaths : yamlPaths;
+    return Promise.resolve(paths.map((p) => ({ fsPath: p, toString: () => p })));
   });
   (vscode.workspace as unknown as { findFiles: jest.Mock }).findFiles = findFilesMock;
   (vscode.workspace as unknown as { fs: { readFile: jest.Mock } }).fs = {
-    readFile: jest.fn().mockImplementation((uri: { fsPath: string }) => readFileImpl(uri)),
+    readFile: jest
+      .fn()
+      .mockImplementation((uri: { fsPath: string }) => fs.promises.readFile(uri.fsPath)),
   };
   (vscode as unknown as { RelativePattern: unknown }).RelativePattern = class {
     pattern: string;
@@ -99,17 +117,25 @@ const MY_CUSTOM_ABSTRACTION_XML = `<?xml version="1.0" encoding="UTF-8"?>
   </spirit:ports>
 </spirit:abstractionDefinition>`;
 
+// A plain, non-IP-XACT XML file — must never reach the DOM parser.
+const NOT_IPXACT_XML = `<?xml version="1.0" encoding="UTF-8"?>
+<project>
+  <name>some-vendor-build-output</name>
+</project>`;
+
 describe('WorkspaceBusDefinitionScanner', () => {
   let scanner: WorkspaceBusDefinitionScanner;
+  let workspaceDir: string;
 
   beforeEach(() => {
+    workspaceDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-workspace-test-'));
     scanner = new WorkspaceBusDefinitionScanner();
     (vscode.Uri.file as jest.Mock).mockImplementation((filePath: string) => ({
       fsPath: filePath,
       toString: () => filePath,
     }));
     (vscode.workspace as { workspaceFolders?: unknown }).workspaceFolders = [
-      { uri: { fsPath: '/workspace' } },
+      { uri: { fsPath: workspaceDir } },
     ];
     // jest.config's resetMocks wipes the default getConfiguration() implementation
     // between tests; buildExcludeGlob() reads files.exclude/search.exclude, so it
@@ -121,11 +147,25 @@ describe('WorkspaceBusDefinitionScanner', () => {
 
   afterEach(() => {
     (vscode.workspace as { workspaceFolders?: unknown }).workspaceFolders = undefined;
+    fs.rmSync(workspaceDir, { recursive: true, force: true });
+    fs.rmSync(path.join(FAKE_CONFIG_DIR, 'bus_definitions'), { recursive: true, force: true });
   });
+
+  afterAll(() => {
+    fs.rmSync(FAKE_CONFIG_DIR, { recursive: true, force: true });
+  });
+
+  /** Writes `content` to `relativePath` under the test's workspace temp dir and returns the absolute path. */
+  function writeWorkspaceFile(relativePath: string, content: string): string {
+    const absPath = path.join(workspaceDir, relativePath);
+    fs.mkdirSync(path.dirname(absPath), { recursive: true });
+    fs.writeFileSync(absPath, content, 'utf8');
+    return absPath;
+  }
 
   it('returns an empty result when no workspace folders are open', async () => {
     (vscode.workspace as { workspaceFolders?: unknown }).workspaceFolders = undefined;
-    mockWorkspace([], async () => Buffer.from('', 'utf8'));
+    mockWorkspace([]);
 
     const result = await scanner.scan();
     expect(result.count).toBe(0);
@@ -133,19 +173,10 @@ describe('WorkspaceBusDefinitionScanner', () => {
     expect(result.library).toEqual({});
   });
 
-  it('discovers bus definition YAML files and tags them with source: workspace', async () => {
-    mockWorkspace(
-      [{ fsPath: '/workspace/buses/axi4_lite.yml' }, { fsPath: '/workspace/buses/custom.yml' }],
-      async (uri) => {
-        if (uri.fsPath.endsWith('axi4_lite.yml')) {
-          return Buffer.from(AXI4_LITE_YML, 'utf8');
-        }
-        if (uri.fsPath.endsWith('custom.yml')) {
-          return Buffer.from(CUSTOM_BUS_YML, 'utf8');
-        }
-        throw new Error('unexpected: ' + uri.fsPath);
-      }
-    );
+  it('discovers .busdef.yml files and tags them with source: workspace', async () => {
+    const axi4Path = writeWorkspaceFile('buses/axi4_lite.busdef.yml', AXI4_LITE_YML);
+    const customPath = writeWorkspaceFile('buses/custom.busdef.yml', CUSTOM_BUS_YML);
+    mockWorkspace([axi4Path, customPath]);
 
     const result = await scanner.scan();
 
@@ -157,38 +188,24 @@ describe('WorkspaceBusDefinitionScanner', () => {
     expect((result.library.MY_CUSTOM_BUS as Record<string, unknown>).source).toBe('workspace');
   });
 
-  it('excludes .ip.yml and .mm.yml files from the scan', async () => {
-    mockWorkspace(
-      [
-        { fsPath: '/workspace/mycore.ip.yml' },
-        { fsPath: '/workspace/mymap.mm.yml' },
-        { fsPath: '/workspace/buses/axi4_lite.yml' },
-      ],
-      async (uri) => {
-        if (uri.fsPath.endsWith('axi4_lite.yml')) {
-          return Buffer.from(AXI4_LITE_YML, 'utf8');
-        }
-        throw new Error('should not read ip/mm file: ' + uri.fsPath);
-      }
-    );
+  it('only matches the .busdef.yml glob — plain .yml/.ip.yml/.mm.yml never become candidates', async () => {
+    // The glob itself excludes these; findFiles only returns what matches
+    // `**/*.busdef.yml`, so this asserts the scanner doesn't read anything
+    // beyond what the (mocked) findFiles result provides.
+    const axi4Path = writeWorkspaceFile('buses/axi4_lite.busdef.yml', AXI4_LITE_YML);
+    mockWorkspace([axi4Path]);
 
     const result = await scanner.scan();
 
     expect(result.count).toBe(1);
     expect(result.files).toHaveLength(1);
-    expect(result.files[0].uri.fsPath).toBe('/workspace/buses/axi4_lite.yml');
+    expect(result.files[0].uri.fsPath).toBe(axi4Path);
   });
 
   it('skips YAML files that do not look like bus definitions', async () => {
-    mockWorkspace(
-      [{ fsPath: '/workspace/config.yml' }, { fsPath: '/workspace/buses/axi4_lite.yml' }],
-      async (uri) => {
-        if (uri.fsPath.endsWith('config.yml')) {
-          return Buffer.from(NOT_A_BUS_DEF_YML, 'utf8');
-        }
-        return Buffer.from(AXI4_LITE_YML, 'utf8');
-      }
-    );
+    const configPath = writeWorkspaceFile('config.busdef.yml', NOT_A_BUS_DEF_YML);
+    const axi4Path = writeWorkspaceFile('buses/axi4_lite.busdef.yml', AXI4_LITE_YML);
+    mockWorkspace([configPath, axi4Path]);
 
     const result = await scanner.scan();
 
@@ -198,9 +215,8 @@ describe('WorkspaceBusDefinitionScanner', () => {
   });
 
   it('caches the result and does not re-scan on subsequent calls', async () => {
-    mockWorkspace([{ fsPath: '/workspace/buses/axi4_lite.yml' }], async () =>
-      Buffer.from(AXI4_LITE_YML, 'utf8')
-    );
+    const axi4Path = writeWorkspaceFile('buses/axi4_lite.busdef.yml', AXI4_LITE_YML);
+    mockWorkspace([axi4Path]);
 
     const first = await scanner.scan();
     const second = await scanner.scan();
@@ -215,13 +231,11 @@ describe('WorkspaceBusDefinitionScanner', () => {
   });
 
   it('force=true re-scans even when cached', async () => {
-    let fileContent = AXI4_LITE_YML;
-    mockWorkspace([{ fsPath: '/workspace/buses/axi4_lite.yml' }], async () =>
-      Buffer.from(fileContent, 'utf8')
-    );
+    const axi4Path = writeWorkspaceFile('buses/axi4_lite.busdef.yml', AXI4_LITE_YML);
+    mockWorkspace([axi4Path]);
 
     await scanner.scan();
-    fileContent = CUSTOM_BUS_YML;
+    fs.writeFileSync(axi4Path, CUSTOM_BUS_YML, 'utf8');
     const result = await scanner.scan(true);
 
     expect(result.count).toBe(1);
@@ -230,29 +244,23 @@ describe('WorkspaceBusDefinitionScanner', () => {
   });
 
   it('clearCache invalidates the cache so the next scan re-reads files', async () => {
-    let fileContent = AXI4_LITE_YML;
-    mockWorkspace([{ fsPath: '/workspace/buses/axi4_lite.yml' }], async () =>
-      Buffer.from(fileContent, 'utf8')
-    );
+    const axi4Path = writeWorkspaceFile('buses/axi4_lite.busdef.yml', AXI4_LITE_YML);
+    mockWorkspace([axi4Path]);
 
     await scanner.scan();
     scanner.clearCache();
-    fileContent = CUSTOM_BUS_YML;
+    fs.writeFileSync(axi4Path, CUSTOM_BUS_YML, 'utf8');
     const result = await scanner.scan();
 
     expect(result.library.MY_CUSTOM_BUS).toBeDefined();
   });
 
   it('continues scanning when a file cannot be read or parsed', async () => {
-    mockWorkspace(
-      [{ fsPath: '/workspace/buses/broken.yml' }, { fsPath: '/workspace/buses/axi4_lite.yml' }],
-      async (uri) => {
-        if (uri.fsPath.endsWith('broken.yml')) {
-          throw new Error('read error');
-        }
-        return Buffer.from(AXI4_LITE_YML, 'utf8');
-      }
-    );
+    // A candidate path that findFiles "found" but doesn't actually exist on
+    // disk — fs.promises.stat fails, the scanner must log and move on.
+    const brokenPath = path.join(workspaceDir, 'buses', 'broken.busdef.yml');
+    const axi4Path = writeWorkspaceFile('buses/axi4_lite.busdef.yml', AXI4_LITE_YML);
+    mockWorkspace([brokenPath, axi4Path]);
 
     const result = await scanner.scan();
 
@@ -262,9 +270,8 @@ describe('WorkspaceBusDefinitionScanner', () => {
   });
 
   it('fires onDidScan only after a forced re-scan, not on cache-miss scans', async () => {
-    mockWorkspace([{ fsPath: '/workspace/buses/axi4_lite.yml' }], async () =>
-      Buffer.from(AXI4_LITE_YML, 'utf8')
-    );
+    const axi4Path = writeWorkspaceFile('buses/axi4_lite.busdef.yml', AXI4_LITE_YML);
+    mockWorkspace([axi4Path]);
 
     const fired = jest.fn();
     const sub = scanner.onDidScan(fired);
@@ -286,22 +293,12 @@ describe('WorkspaceBusDefinitionScanner', () => {
   });
 
   it('discovers an IP-XACT busDefinition/abstractionDefinition XML pair and tags it source: workspace', async () => {
-    mockWorkspace(
-      [],
-      async (uri) => {
-        if (uri.fsPath.endsWith('my_custom.xml')) {
-          return Buffer.from(MY_CUSTOM_BUSDEF_XML, 'utf8');
-        }
-        if (uri.fsPath.endsWith('my_custom_rtl.xml')) {
-          return Buffer.from(MY_CUSTOM_ABSTRACTION_XML, 'utf8');
-        }
-        throw new Error('unexpected: ' + uri.fsPath);
-      },
-      [
-        { fsPath: '/workspace/busdef/my_custom.xml' },
-        { fsPath: '/workspace/busdef/my_custom_rtl.xml' },
-      ]
+    const busDefPath = writeWorkspaceFile('busdef/my_custom.xml', MY_CUSTOM_BUSDEF_XML);
+    const abstractionPath = writeWorkspaceFile(
+      'busdef/my_custom_rtl.xml',
+      MY_CUSTOM_ABSTRACTION_XML
     );
+    mockWorkspace([], [busDefPath, abstractionPath]);
 
     const result = await scanner.scan();
 
@@ -321,9 +318,8 @@ describe('WorkspaceBusDefinitionScanner', () => {
   });
 
   it('ignores an XML file whose abstractionDefinition pair is missing', async () => {
-    mockWorkspace([], async () => Buffer.from(MY_CUSTOM_BUSDEF_XML, 'utf8'), [
-      { fsPath: '/workspace/busdef/my_custom.xml' },
-    ]);
+    const busDefPath = writeWorkspaceFile('busdef/my_custom.xml', MY_CUSTOM_BUSDEF_XML);
+    mockWorkspace([], [busDefPath]);
 
     const result = await scanner.scan();
 
@@ -332,46 +328,28 @@ describe('WorkspaceBusDefinitionScanner', () => {
   });
 
   it('skips unreadable XML files without aborting the scan', async () => {
-    mockWorkspace(
-      [],
-      async (uri) => {
-        if (uri.fsPath.endsWith('my_custom.xml')) {
-          throw new Error('read error');
-        }
-        return Buffer.from(MY_CUSTOM_ABSTRACTION_XML, 'utf8');
-      },
-      [
-        { fsPath: '/workspace/busdef/my_custom.xml' },
-        { fsPath: '/workspace/busdef/my_custom_rtl.xml' },
-      ]
+    // "Found" by findFiles but does not exist on disk.
+    const missingPath = path.join(workspaceDir, 'busdef', 'my_custom.xml');
+    const abstractionPath = writeWorkspaceFile(
+      'busdef/my_custom_rtl.xml',
+      MY_CUSTOM_ABSTRACTION_XML
     );
+    mockWorkspace([], [missingPath, abstractionPath]);
 
-    // The busDefinition.xml failed to read, so the pair can't resolve — no
+    // The busDefinition.xml failed to stat, so the pair can't resolve — no
     // bus type is produced, but the scan completes rather than throwing.
     const result = await scanner.scan();
     expect(result.count).toBe(0);
   });
 
   it('merges bus definitions discovered from both YAML and XML', async () => {
-    mockWorkspace(
-      [{ fsPath: '/workspace/buses/axi4_lite.yml' }],
-      async (uri) => {
-        if (uri.fsPath.endsWith('axi4_lite.yml')) {
-          return Buffer.from(AXI4_LITE_YML, 'utf8');
-        }
-        if (uri.fsPath.endsWith('my_custom.xml')) {
-          return Buffer.from(MY_CUSTOM_BUSDEF_XML, 'utf8');
-        }
-        if (uri.fsPath.endsWith('my_custom_rtl.xml')) {
-          return Buffer.from(MY_CUSTOM_ABSTRACTION_XML, 'utf8');
-        }
-        throw new Error('unexpected: ' + uri.fsPath);
-      },
-      [
-        { fsPath: '/workspace/busdef/my_custom.xml' },
-        { fsPath: '/workspace/busdef/my_custom_rtl.xml' },
-      ]
+    const axi4Path = writeWorkspaceFile('buses/axi4_lite.busdef.yml', AXI4_LITE_YML);
+    const busDefPath = writeWorkspaceFile('busdef/my_custom.xml', MY_CUSTOM_BUSDEF_XML);
+    const abstractionPath = writeWorkspaceFile(
+      'busdef/my_custom_rtl.xml',
+      MY_CUSTOM_ABSTRACTION_XML
     );
+    mockWorkspace([axi4Path], [busDefPath, abstractionPath]);
 
     const result = await scanner.scan();
 
@@ -381,8 +359,131 @@ describe('WorkspaceBusDefinitionScanner', () => {
     expect(result.files).toHaveLength(3);
   });
 
+  describe('XML content-sniff probe', () => {
+    it('never passes a non-IP-XACT .xml file to the DOM parser', async () => {
+      const notIpxactPath = writeWorkspaceFile('build/output.xml', NOT_IPXACT_XML);
+      mockWorkspace([], [notIpxactPath]);
+
+      const parseSpy = jest.spyOn(VivadoInterfaceXmlParser, 'parseVivadoInterfaceFiles');
+
+      const result = await scanner.scan();
+
+      expect(result.count).toBe(0);
+      // The cheap head-byte probe must reject the file before
+      // parseVivadoInterfaceFiles (the expensive DOM-parse path) ever runs.
+      expect(parseSpy).not.toHaveBeenCalled();
+
+      parseSpy.mockRestore();
+    });
+
+    it('still parses a real IP-XACT file even though the probe ran first', async () => {
+      const busDefPath = writeWorkspaceFile('busdef/my_custom.xml', MY_CUSTOM_BUSDEF_XML);
+      const abstractionPath = writeWorkspaceFile(
+        'busdef/my_custom_rtl.xml',
+        MY_CUSTOM_ABSTRACTION_XML
+      );
+      mockWorkspace([], [busDefPath, abstractionPath]);
+
+      const parseSpy = jest.spyOn(VivadoInterfaceXmlParser, 'parseVivadoInterfaceFiles');
+
+      const result = await scanner.scan();
+
+      expect(result.count).toBe(1);
+      expect(parseSpy).toHaveBeenCalledTimes(1);
+
+      parseSpy.mockRestore();
+    });
+  });
+
+  describe('persistent scan cache', () => {
+    it('reuses unchanged (mtime, size) files on a second scan without reading them again', async () => {
+      const axi4Path = writeWorkspaceFile('buses/axi4_lite.busdef.yml', AXI4_LITE_YML);
+      const busDefPath = writeWorkspaceFile('busdef/my_custom.xml', MY_CUSTOM_BUSDEF_XML);
+      const abstractionPath = writeWorkspaceFile(
+        'busdef/my_custom_rtl.xml',
+        MY_CUSTOM_ABSTRACTION_XML
+      );
+      mockWorkspace([axi4Path], [busDefPath, abstractionPath]);
+
+      const first = await scanner.scan();
+      expect(first.count).toBe(2);
+
+      // A brand-new scanner instance simulates a new VS Code window: its
+      // in-memory cache starts empty, but the persistent cache on disk
+      // (written by the first scanner's scan()) should still be warm.
+      const secondScanner = new WorkspaceBusDefinitionScanner();
+      const readFileSpy = (vscode.workspace as unknown as { fs: { readFile: jest.Mock } }).fs
+        .readFile;
+      readFileSpy.mockClear();
+
+      const second = await secondScanner.scan();
+
+      expect(second.count).toBe(2);
+      // Every candidate's (mtime, size) matched the persisted cache, so no
+      // file content was read at all on the warm pass.
+      expect(readFileSpy).not.toHaveBeenCalled();
+    });
+
+    it('re-reads a file once its content (and therefore size) changes', async () => {
+      const axi4Path = writeWorkspaceFile('buses/axi4_lite.busdef.yml', AXI4_LITE_YML);
+      mockWorkspace([axi4Path]);
+
+      await scanner.scan();
+
+      // Change content (and size) so the cached (mtime, size) no longer matches.
+      fs.writeFileSync(axi4Path, CUSTOM_BUS_YML, 'utf8');
+
+      const secondScanner = new WorkspaceBusDefinitionScanner();
+      const result = await secondScanner.scan();
+
+      expect(result.library.MY_CUSTOM_BUS).toBeDefined();
+      expect(result.library.AXI4_LITE).toBeUndefined();
+    });
+
+    it('scan(force=true) bypasses the persistent cache and re-reads everything', async () => {
+      const axi4Path = writeWorkspaceFile('buses/axi4_lite.busdef.yml', AXI4_LITE_YML);
+      mockWorkspace([axi4Path]);
+
+      await scanner.scan();
+
+      const secondScanner = new WorkspaceBusDefinitionScanner();
+      const readFileSpy = (vscode.workspace as unknown as { fs: { readFile: jest.Mock } }).fs
+        .readFile;
+      readFileSpy.mockClear();
+
+      const result = await secondScanner.scan(true);
+
+      expect(result.count).toBe(1);
+      // force=true must re-read the file even though (mtime, size) is unchanged.
+      expect(readFileSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('drops cache entries for files no longer present in the workspace', async () => {
+      const axi4Path = writeWorkspaceFile('buses/axi4_lite.busdef.yml', AXI4_LITE_YML);
+      mockWorkspace([axi4Path]);
+      await scanner.scan();
+
+      // Simulate the file being deleted: it's no longer returned by findFiles.
+      mockWorkspace([]);
+      const secondScanner = new WorkspaceBusDefinitionScanner();
+      const afterDelete = await secondScanner.scan();
+      expect(afterDelete.count).toBe(0);
+
+      // Re-create the same path with the same original content. If the stale
+      // cache entry had survived, this would be wrongly served from cache
+      // with a mismatched (or matching, masking a real bug) signature; the
+      // important behavioral guarantee is that the file is read normally.
+      fs.writeFileSync(axi4Path, AXI4_LITE_YML, 'utf8');
+      mockWorkspace([axi4Path]);
+      const thirdScanner = new WorkspaceBusDefinitionScanner();
+      const afterRecreate = await thirdScanner.scan();
+      expect(afterRecreate.count).toBe(1);
+      expect(afterRecreate.library.AXI4_LITE).toBeDefined();
+    });
+  });
+
   describe('peekAndScanInBackground', () => {
-    it('returns an empty result immediately without waiting on the workspace walk', () => {
+    it('returns an empty result immediately without waiting on the workspace walk', async () => {
       // findFiles never resolves during this test, simulating a slow scan of a
       // huge repository — peekAndScanInBackground must not wait on it.
       (vscode.workspace as unknown as { findFiles: jest.Mock }).findFiles = jest
@@ -392,12 +493,17 @@ describe('WorkspaceBusDefinitionScanner', () => {
       const result = scanner.peekAndScanInBackground();
 
       expect(result).toEqual({ library: {}, files: [], count: 0 });
+
+      // doScan() awaits the persistent cache load (real fs I/O) before it ever
+      // reaches the never-resolving findFiles mock above. Flush that real I/O
+      // here so the dangling scan blocks on *this* test's findFiles mock and
+      // never resumes mid-way through a later test against a different mock.
+      await new Promise((resolve) => setTimeout(resolve, 0));
     });
 
     it('kicks off exactly one background scan and fires onDidScan once it resolves', async () => {
-      mockWorkspace([{ fsPath: '/workspace/buses/axi4_lite.yml' }], async () =>
-        Buffer.from(AXI4_LITE_YML, 'utf8')
-      );
+      const axi4Path = writeWorkspaceFile('buses/axi4_lite.busdef.yml', AXI4_LITE_YML);
+      mockWorkspace([axi4Path]);
       const fired = jest.fn();
       const sub = scanner.onDidScan(fired);
 
@@ -432,7 +538,7 @@ describe('WorkspaceBusDefinitionScanner', () => {
 
   describe('exclude glob', () => {
     it('always prunes known build/cache directories during the walk', async () => {
-      mockWorkspace([], async () => Buffer.from('', 'utf8'));
+      mockWorkspace([]);
 
       await scanner.scan();
 
@@ -444,7 +550,7 @@ describe('WorkspaceBusDefinitionScanner', () => {
     });
 
     it('also prunes directories configured via files.exclude / search.exclude', async () => {
-      mockWorkspace([], async () => Buffer.from('', 'utf8'));
+      mockWorkspace([]);
       (vscode.workspace.getConfiguration as jest.Mock).mockImplementation((section: string) => ({
         get: (_key: string, defaultValue?: unknown) =>
           section === 'files' ? { '**/vendor_blobs': true } : defaultValue,
@@ -458,7 +564,7 @@ describe('WorkspaceBusDefinitionScanner', () => {
     });
 
     it('caps each glob at the candidate limit and passes it to findFiles', async () => {
-      mockWorkspace([], async () => Buffer.from('', 'utf8'));
+      mockWorkspace([]);
 
       await scanner.scan();
 

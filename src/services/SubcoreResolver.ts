@@ -8,6 +8,11 @@ import { XILINX_COMMON_IPS } from '../data/xilinxCatalog';
 
 const logger = new Logger('SubcoreResolver');
 
+// Mirrors the dependency/build directories ScaffoldPackCommands.ts's IP-file
+// lookup and WorkspaceBusDefinitionScanner's exclude glob both prune, so the
+// workspace .ip.yml walk doesn't descend into node_modules or similar.
+const SUBCORE_SCAN_EXCLUDE_GLOB = '**/node_modules/**';
+
 export interface ResolvedSubcore {
   vlnv: string;
   source: 'workspace' | 'user-repo' | 'vivado-catalog' | 'builtin' | 'unresolved';
@@ -100,7 +105,7 @@ export class SubcoreResolver {
   private async scanWorkspace(): Promise<void> {
     const newIndex = new Map<string, string>();
     try {
-      const files = await vscode.workspace.findFiles('**/*.ip.yml');
+      const files = await vscode.workspace.findFiles('**/*.ip.yml', SUBCORE_SCAN_EXCLUDE_GLOB);
       for (const fileUri of files) {
         const vlnv = await this.quickParseVlnv(fileUri.fsPath);
         if (vlnv) {

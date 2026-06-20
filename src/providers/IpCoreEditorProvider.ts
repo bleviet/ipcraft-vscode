@@ -205,8 +205,14 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
     });
     // Refresh when workspace bus definitions are re-scanned, so the Inspector
     // picks up newly discovered (or removed) workspace bus definitions without
-    // requiring the user to re-open the editor.
-    const workspaceBusDefSubscription = getWorkspaceBusDefinitionScanner().onDidScan(() => {
+    // requiring the user to re-open the editor. Skip the cache-clear + forced
+    // resync when the scan found nothing new/changed — the common case once
+    // the persistent scan cache is warm, where re-resolving imports and
+    // resyncing every open editor would be pure overhead.
+    const workspaceBusDefSubscription = getWorkspaceBusDefinitionScanner().onDidScan((event) => {
+      if (!event.changed) {
+        return;
+      }
       this.importResolver.clearCache();
       void updateWebview(undefined, true);
     });
@@ -710,7 +716,7 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
     const jsyaml = await import('js-yaml');
     const yamlContent = jsyaml.dump(busDefObj, { indent: 2, lineWidth: 120 });
 
-    const filePath = path.join(customDir, `${typeName}.yml`);
+    const filePath = path.join(customDir, `${typeName}.busdef.yml`);
     const fileUri = vscode.Uri.file(filePath);
     await vscode.workspace.fs.writeFile(fileUri, Buffer.from(yamlContent, 'utf8'));
     this.logger.info(`Saved custom bus definition: ${filePath}`);

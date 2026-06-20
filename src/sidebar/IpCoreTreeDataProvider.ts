@@ -12,12 +12,30 @@ interface NodeDef {
   contextValue?: string;
 }
 
+// Vendor builds can rewrite many .xml files in quick succession; coalescing
+// create/delete bursts over this window before invalidating the workspace
+// bus def scan cache avoids thrashing on that noise while still picking up
+// genuinely-added Vivado IP-XACT XML without a manual rescan.
+const XML_WATCHER_DEBOUNCE_MS = 2000;
+
+/** Coalesces rapid-fire calls to `fn` into one call `delayMs` after the last one. */
+function debounce(fn: () => void, delayMs: number): () => void {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  return () => {
+    if (timer) {
+      clearTimeout(timer);
+    }
+    timer = setTimeout(fn, delayMs);
+  };
+}
+
 export class IpCoreTreeDataProvider implements vscode.TreeDataProvider<FoundryNode> {
   private _onDidChangeTreeData = new vscode.EventEmitter<FoundryNode | undefined | null | void>();
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
   private workspaceWatcher: vscode.FileSystemWatcher | undefined;
   private busDefWatcher: vscode.FileSystemWatcher | undefined;
+  private xmlBusDefWatcher: vscode.FileSystemWatcher | undefined;
   private busDefScanSubscription: vscode.Disposable | undefined;
 
   constructor() {
@@ -31,12 +49,13 @@ export class IpCoreTreeDataProvider implements vscode.TreeDataProvider<FoundryNo
     this.workspaceWatcher.onDidChange(() => this.refresh());
     this.workspaceWatcher.onDidDelete(() => this.refresh());
 
-    // Watch generic .yml/.yaml/.xml files for bus definition changes (.xml
-    // covers IP-XACT bus/abstraction definitions from Vivado's IP Packager).
-    // Only create/delete events invalidate the workspace bus def scan cache —
-    // change events fire too frequently during editing, and the explicit
-    // "Scan Workspace Bus Definitions" command handles manual refreshes.
-    this.busDefWatcher = vscode.workspace.createFileSystemWatcher('**/*.{yml,yaml,xml}');
+    // Watch `*.busdef.yml` files for bus definition changes — the hard
+    // naming convention workspace-discovered bus definitions must follow
+    // (see WorkspaceBusDefinitionScanner). Only create/delete events
+    // invalidate the workspace bus def scan cache — change events fire too
+    // frequently during editing, and the explicit "Scan Workspace Bus
+    // Definitions" command handles manual refreshes.
+    this.busDefWatcher = vscode.workspace.createFileSystemWatcher('**/*.busdef.yml');
     this.busDefWatcher.onDidCreate(() => {
       getWorkspaceBusDefinitionScanner().clearCache();
       this.refresh();
@@ -45,6 +64,21 @@ export class IpCoreTreeDataProvider implements vscode.TreeDataProvider<FoundryNo
       getWorkspaceBusDefinitionScanner().clearCache();
       this.refresh();
     });
+
+    // Vivado-style IP-XACT bus definitions are still discovered by
+    // content-sniffing any `**/*.xml` file (no filename convention to watch
+    // for) — see WorkspaceBusDefinitionScanner.scanXmlFiles. That glob is far
+    // too broad to clear the cache on every event (vendor builds rewrite
+    // many .xml files), so create/delete events are debounced and coalesced
+    // before invalidating, trading a few seconds of staleness for not
+    // thrashing the scanner on vendor build noise.
+    this.xmlBusDefWatcher = vscode.workspace.createFileSystemWatcher('**/*.xml');
+    const debouncedXmlInvalidate = debounce(() => {
+      getWorkspaceBusDefinitionScanner().clearCache();
+      this.refresh();
+    }, XML_WATCHER_DEBOUNCE_MS);
+    this.xmlBusDefWatcher.onDidCreate(debouncedXmlInvalidate);
+    this.xmlBusDefWatcher.onDidDelete(debouncedXmlInvalidate);
 
     // The tree never blocks on the (potentially expensive) workspace bus def
     // scan — it renders with whatever's cached so far (see
@@ -61,6 +95,9 @@ export class IpCoreTreeDataProvider implements vscode.TreeDataProvider<FoundryNo
     }
     if (this.busDefWatcher) {
       this.busDefWatcher.dispose();
+    }
+    if (this.xmlBusDefWatcher) {
+      this.xmlBusDefWatcher.dispose();
     }
     if (this.busDefScanSubscription) {
       this.busDefScanSubscription.dispose();

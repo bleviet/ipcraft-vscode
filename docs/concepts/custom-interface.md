@@ -104,6 +104,8 @@ busInterfaces:
 
 In the canvas inspector, clicking **Save** on a custom interface writes the current `conduitPorts` to a `.busdef.yml` file and updates the interface to reference it — converting an inline definition to a reusable one in a single step.
 
+Beyond an explicit `useBusLibrary` reference, IPCraft also auto-discovers reusable bus definitions across the whole workspace so they appear as known interfaces in the Inspector without any per-IP-core configuration. For YAML, this discovery is filename-gated: only files matching `*.busdef.yml` are scanned — a plain `.yml` file is never auto-discovered, even if its content matches the bus definition shape. Vivado-style IP-XACT `.xml` bus/abstraction definitions have no such filename convention, so they are instead discovered by sniffing file content for the IP-XACT namespace and element names.
+
 ---
 
 ## Custom Interface Types vs. Conduit Mode
