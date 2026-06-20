@@ -165,7 +165,7 @@ export function expandBusInterfaces(ipCore: IpCoreData): BusInterfaceDef[] {
           portWidthOverrides: iface.portWidthOverrides ?? {},
           portNameOverrides: iface.portNameOverrides,
           absentPorts: iface.absentPorts,
-          conduitPorts: iface.conduitPorts,
+          conduitPorts: iface.conduitPorts ?? [],
           associatedClock: iface.associatedClock,
           associatedReset: iface.associatedReset,
         });
@@ -184,7 +184,7 @@ export function expandBusInterfaces(ipCore: IpCoreData): BusInterfaceDef[] {
       portWidthOverrides: iface.portWidthOverrides ?? {},
       portNameOverrides: iface.portNameOverrides,
       absentPorts: iface.absentPorts,
-      conduitPorts: iface.conduitPorts,
+      conduitPorts: iface.conduitPorts ?? [],
       associatedClock: iface.associatedClock,
       associatedReset: iface.associatedReset,
     });
