@@ -177,6 +177,12 @@
         "enablement": "ipcraft.vivadoFound"
       },
       {
+        "command": "fpga-ip-core.scanWorkspaceBusDefinitions",
+        "title": "Scan Workspace Bus Definitions",
+        "category": "IPCraft",
+        "icon": "$(search)"
+      },
+      {
         "command": "fpga-ip-core.build",
         "title": "Build",
         "category": "IPCraft",

@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import { getWorkspaceBusDefinitionScanner } from '../services/WorkspaceBusDefinitionScanner';
 
 interface NodeDef {
   label: string;
@@ -16,6 +17,7 @@ export class IpCoreTreeDataProvider implements vscode.TreeDataProvider<FoundryNo
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
   private workspaceWatcher: vscode.FileSystemWatcher | undefined;
+  private busDefWatcher: vscode.FileSystemWatcher | undefined;
 
   constructor() {
     this.setupWatcher();
@@ -27,11 +29,29 @@ export class IpCoreTreeDataProvider implements vscode.TreeDataProvider<FoundryNo
     this.workspaceWatcher.onDidCreate(() => this.refresh());
     this.workspaceWatcher.onDidChange(() => this.refresh());
     this.workspaceWatcher.onDidDelete(() => this.refresh());
+
+    // Watch generic .yml/.yaml/.xml files for bus definition changes (.xml
+    // covers IP-XACT bus/abstraction definitions from Vivado's IP Packager).
+    // Only create/delete events invalidate the workspace bus def scan cache —
+    // change events fire too frequently during editing, and the explicit
+    // "Scan Workspace Bus Definitions" command handles manual refreshes.
+    this.busDefWatcher = vscode.workspace.createFileSystemWatcher('**/*.{yml,yaml,xml}');
+    this.busDefWatcher.onDidCreate(() => {
+      getWorkspaceBusDefinitionScanner().clearCache();
+      this.refresh();
+    });
+    this.busDefWatcher.onDidDelete(() => {
+      getWorkspaceBusDefinitionScanner().clearCache();
+      this.refresh();
+    });
   }
 
   dispose(): void {
     if (this.workspaceWatcher) {
       this.workspaceWatcher.dispose();
+    }
+    if (this.busDefWatcher) {
+      this.busDefWatcher.dispose();
     }
   }
 
@@ -99,6 +119,14 @@ export class IpCoreTreeDataProvider implements vscode.TreeDataProvider<FoundryNo
             title: 'Scan Vivado Interface Catalog',
           },
         },
+        {
+          label: 'Scan Workspace Bus Definitions',
+          icon: 'search',
+          command: {
+            command: 'fpga-ip-core.scanWorkspaceBusDefinitions',
+            title: 'Scan Workspace Bus Definitions',
+          },
+        },
       ],
     });
     nodes.push(actionsNode);
@@ -113,6 +141,18 @@ export class IpCoreTreeDataProvider implements vscode.TreeDataProvider<FoundryNo
       });
       workspaceNode.children = specsNodes;
       nodes.push(workspaceNode);
+    }
+
+    // 3. Scan Workspace for Bus Definitions
+    const busDefNodes = await this.scanWorkspaceForBusDefs();
+    if (busDefNodes.length > 0) {
+      const busDefNode = new FoundryNode({
+        label: 'Workspace Bus Definitions',
+        icon: 'circuit-board',
+        collapsibleState: vscode.TreeItemCollapsibleState.Expanded,
+      });
+      busDefNode.children = busDefNodes;
+      nodes.push(busDefNode);
     }
 
     return nodes;
@@ -181,6 +221,71 @@ export class IpCoreTreeDataProvider implements vscode.TreeDataProvider<FoundryNo
     }
 
     // Sort folders alphabetically
+    folderNodes.sort((a, b) => (a.label as string).localeCompare(b.label as string));
+    return folderNodes;
+  }
+
+  /**
+   * Scans the workspace for standalone bus definition files (YAML, same shape
+   * as `ipcraft-spec/bus_definitions/*.yml`, or IP-XACT bus/abstraction
+   * definition XML), grouped by parent directory. Reuses the shared
+   * `WorkspaceBusDefinitionScanner` singleton so the result is cached between
+   * the tree and `ImportResolver`.
+   */
+  private async scanWorkspaceForBusDefs(): Promise<FoundryNode[]> {
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (!workspaceFolders) {
+      return [];
+    }
+
+    const result = await getWorkspaceBusDefinitionScanner().scan();
+    if (result.files.length === 0) {
+      return [];
+    }
+
+    // Group discovered bus def files by parent directory path
+    const groups = new Map<
+      string,
+      { dirUri: vscode.Uri; entries: { name: string; uri: vscode.Uri }[] }
+    >();
+    for (const file of result.files) {
+      const dirPath = path.dirname(file.uri.fsPath);
+      const relativeDir = vscode.workspace.asRelativePath(dirPath);
+      const displayDir = relativeDir === '' || relativeDir === '.' ? 'Root Project' : relativeDir;
+
+      let group = groups.get(displayDir);
+      if (!group) {
+        group = { dirUri: vscode.Uri.file(dirPath), entries: [] };
+        groups.set(displayDir, group);
+      }
+      group.entries.push({ name: path.basename(file.uri.fsPath), uri: file.uri });
+    }
+
+    const folderNodes: FoundryNode[] = [];
+    for (const [folderName, group] of groups.entries()) {
+      const fileChildren: NodeDef[] = group.entries.map((entry) => ({
+        label: entry.name,
+        icon: 'symbol-interface',
+        resourceUri: entry.uri,
+        contextValue: 'workspace-bus-def',
+        command: {
+          command: 'vscode.open',
+          title: 'Open File',
+          arguments: [entry.uri],
+        },
+      }));
+
+      fileChildren.sort((a, b) => a.label.localeCompare(b.label));
+
+      const folderNode = new FoundryNode({
+        label: folderName,
+        icon: 'folder',
+        collapsibleState: vscode.TreeItemCollapsibleState.Collapsed,
+        children: fileChildren,
+      });
+      folderNodes.push(folderNode);
+    }
+
     folderNodes.sort((a, b) => (a.label as string).localeCompare(b.label as string));
     return folderNodes;
   }

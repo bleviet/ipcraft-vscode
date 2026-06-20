@@ -12,6 +12,7 @@ import * as path from 'path';
 import * as yaml from 'js-yaml';
 import { Logger } from '../utils/Logger';
 import { BusLibraryService } from './BusLibraryService';
+import { getWorkspaceBusDefinitionScanner } from './WorkspaceBusDefinitionScanner';
 import { resolveMemoryMapImports } from './imports/resolveMemoryMapImports';
 import { getVivadoInterfaceCacheDir, pathExists } from './VivadoInterfaceScanner';
 
@@ -115,12 +116,23 @@ export class ImportResolver {
     }
     const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
 
+    let merged: Record<string, unknown> = { ...library };
+
     if (userPaths.length > 0) {
       const userLibrary = await this.busLibraryService.loadFromUserPaths(userPaths, workspaceRoot);
-      return { ...library, ...userLibrary };
+      merged = { ...merged, ...userLibrary };
     }
 
-    return library;
+    // Merge workspace-discovered bus definitions (tagged `source: 'workspace'`),
+    // mirroring how the Vivado interface cache is merged above. These are
+    // standalone .yml/.yaml files in the user's workspace that match the bus
+    // definition shape, surfaced as known interfaces in the Inspector.
+    const workspaceResult = await getWorkspaceBusDefinitionScanner().scan();
+    if (workspaceResult.count > 0) {
+      merged = { ...merged, ...workspaceResult.library };
+    }
+
+    return merged;
   }
 
   private async readYamlFile(absolutePath: string): Promise<unknown> {
@@ -287,6 +299,7 @@ export class ImportResolver {
   clearCache(): void {
     this.busLibraryCache.clear();
     this.busLibraryService.clearCache();
+    getWorkspaceBusDefinitionScanner().clearCache();
     this.logger.info('Bus library cache cleared');
   }
 }

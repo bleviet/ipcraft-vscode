@@ -195,13 +195,18 @@ describe('memory map YAML round-trip stays schema-clean', () => {
     expect(noop).toBe(src);
   });
 
-  it('updates parent stride correctly after inserting a register in outline panel', () => {
+  it('preserves parent stride when it already accommodates the expanded template', () => {
     // block 1 is DMA_REGS, parentRegIndex 0 is DMA
+    // DMA has count: 2, stride: 32, and 4 sub-registers (16-byte template).
+    // After inserting a 5th register, the template grows to 20 bytes, which
+    // still fits within the existing stride of 32 — so stride is unchanged.
+    // (recomputeRegisterLayout only grows stride, never shrinks it, and only
+    // when currentStride < alignedFootprint.)
     const src = fs.readFileSync(axiFile, 'utf8');
     const out = uiAddRegisterInsideArrayOutline(src, 1, 0);
 
     expect(validate(YamlService.parse(out))).toBe(true);
-    expect(out).toContain('stride: 40'); // DMA stride should update to 40
+    expect(out).toContain('stride: 32'); // DMA stride unchanged (32 >= 20-byte template)
   });
 });
 
