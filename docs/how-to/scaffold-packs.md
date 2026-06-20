@@ -222,6 +222,58 @@ accidentally overwritten.
 
 ---
 
+## Overriding Testbench Templates
+
+The same shadowing rule applies to testbench generation (**Generate CocoTB Testbench** /
+the testbench step of **Generate Scaffold Project**): drop a `.j2` file with the same
+name as a built-in testbench template directly in the pack directory, no `scaffold.yml`
+entry required. The active scaffold pack is checked first; the built-in template is used
+only when the pack does not provide an override.
+
+The overridable built-in CocoTB templates (in `src/generator/templates/`) are:
+
+| Template | Output |
+|----------|--------|
+| `cocotb_test.py.j2` | `tb/{{ name }}_test.py` |
+| `cocotb_conftest.py.j2` | `tb/conftest.py` |
+| `cocotb_pytest.py.j2` | `tb/test_{{ name }}_sim.py` |
+| `cocotb_makefile.j2` | `tb/Makefile` (VHDL) |
+| `cocotb_makefile.sv.j2` | `tb/Makefile` (SystemVerilog) |
+| `cocotb_dump.v.j2` | `tb/dump.v` (SystemVerilog only) |
+| `mm_loader.py.j2` | `tb/mm_loader.py` (memory-mapped slave only) |
+| `vscode_settings.json.j2` | `.vscode/settings.json` |
+
+```text
+.vscode/ipcraft/packs/my-pack/
+  scaffold.yml
+  cocotb_test.py.j2      ← optional: overrides the built-in CocoTB test stub
+```
+
+---
+
+## Overriding Vendor Project Templates
+
+Vendor toolchain output that is template-driven follows the same shadowing rule too —
+overridable via every command that scaffolds a Vivado/Quartus target (**Generate
+Scaffold Project**, **Export Altera/Xilinx Component**, **Generate Vivado/Quartus
+Project**, and the build variants):
+
+| Template | Output |
+|----------|--------|
+| `altera_hw_tcl.j2` | `altera/{{ name }}_hw.tcl` |
+| `quartus_project.tcl.j2` | `altera/{{ name }}_project.tcl` (project generation only) |
+| `quartus_sdc.j2` | `altera/{{ name }}.sdc` (project generation only) |
+| `amd_xgui.j2` | `xilinx/xgui/{{ name }}_v{{ version }}.tcl` |
+| `vivado_project.tcl.j2` | `xilinx/{{ name }}_project.tcl` (project generation only) |
+| `vivado_ooc.xdc.j2` | `xilinx/{{ name }}.xdc` (project generation only) |
+| `vivado_run_ooc.tcl.j2` / `vivado_run_xpr.tcl.j2` | `xilinx/{{ name }}_run_ooc.tcl` / `_run_xpr.tcl` (project generation only) |
+
+!!! note "component.xml is not template-based"
+    Vivado's `component.xml` is generated programmatically, not from a `.j2` template,
+    so it cannot currently be overridden by a scaffold pack.
+
+---
+
 ## Template Context Variables
 
 The following variables are available inside every `.j2` template and in

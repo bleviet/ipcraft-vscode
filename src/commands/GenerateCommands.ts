@@ -306,6 +306,8 @@ async function exportAltera(
   if (!ipCoreUri) {
     return;
   }
+  const genCfg = vscode.workspace.getConfiguration('ipcraft.generate');
+  const scaffoldPack = readScaffoldPackSetting(genCfg);
   const outputDir = path.dirname(ipCoreUri.fsPath);
   await runGenerator(
     context,
@@ -316,6 +318,7 @@ async function exportAltera(
       includeVhdl: false,
       includeRegs: false,
       includeTestbench: false,
+      scaffoldPack,
       silent: true,
     },
     'Exporting Altera Platform Designer component...'
@@ -330,6 +333,8 @@ async function exportXilinx(
   if (!ipCoreUri) {
     return;
   }
+  const genCfg = vscode.workspace.getConfiguration('ipcraft.generate');
+  const scaffoldPack = readScaffoldPackSetting(genCfg);
   const outputDir = path.dirname(ipCoreUri.fsPath);
   await runGenerator(
     context,
@@ -340,6 +345,7 @@ async function exportXilinx(
       includeVhdl: false,
       includeRegs: false,
       includeTestbench: false,
+      scaffoldPack,
       silent: true,
     },
     'Exporting Xilinx Vivado component...'
@@ -355,8 +361,10 @@ async function generateTestbench(
     return;
   }
   const cfg = vscode.workspace.getConfiguration('ipcraft');
+  const genCfg = vscode.workspace.getConfiguration('ipcraft.generate');
   const framework = cfg.get<string>('testbench.framework', 'cocotb');
   const engine = cfg.get<string>('testbench.engine', 'ghdl');
+  const scaffoldPack = readScaffoldPackSetting(genCfg);
   const outputDir = path.dirname(ipCoreUri.fsPath);
   await runGenerator(
     context,
@@ -369,6 +377,7 @@ async function generateTestbench(
       includeTestbench: true,
       framework,
       engine,
+      scaffoldPack,
       silent: true,
     },
     `Generating ${framework} testbench...`
@@ -385,6 +394,8 @@ async function generateVivadoProject(
   }
 
   const cfg = vscode.workspace.getConfiguration('ipcraft');
+  const genCfg = vscode.workspace.getConfiguration('ipcraft.generate');
+  const scaffoldPack = readScaffoldPackSetting(genCfg);
   const targetPart = await pickVivadoPart(
     context,
     cfg.get<string>('vivado.defaultPart', 'xc7z020clg484-1')
@@ -410,6 +421,7 @@ async function generateVivadoProject(
       includeTestbench: false,
       includeVivadoProject: true,
       targetPart,
+      scaffoldPack,
       silent: true,
     },
     'Generating Vivado project...'
@@ -430,6 +442,8 @@ async function generateQuartusProject(
   }
 
   const cfg = vscode.workspace.getConfiguration('ipcraft');
+  const genCfg = vscode.workspace.getConfiguration('ipcraft.generate');
+  const scaffoldPack = readScaffoldPackSetting(genCfg);
   const quartusDevice = await pickQuartusDevice(
     context,
     cfg.get<string>('quartus.defaultDevice', '5CSEBA6U23I7')
@@ -455,6 +469,7 @@ async function generateQuartusProject(
       includeTestbench: false,
       includeQuartusProject: true,
       quartusDevice,
+      scaffoldPack,
       silent: true,
     },
     'Generating Quartus project...'
@@ -475,6 +490,8 @@ async function generateAndBuildVivado(
   }
 
   const cfg = vscode.workspace.getConfiguration('ipcraft');
+  const genCfg = vscode.workspace.getConfiguration('ipcraft.generate');
+  const scaffoldPack = readScaffoldPackSetting(genCfg);
   const targetPart = await pickVivadoPart(
     context,
     cfg.get<string>('vivado.defaultPart', 'xc7z020clg484-1')
@@ -495,6 +512,7 @@ async function generateAndBuildVivado(
       includeTestbench: false,
       includeVivadoProject: true,
       targetPart,
+      scaffoldPack,
       silent: true,
     },
     'Generating Vivado project...'
@@ -515,6 +533,8 @@ async function generateAndBuildQuartus(
   }
 
   const cfg = vscode.workspace.getConfiguration('ipcraft');
+  const genCfg = vscode.workspace.getConfiguration('ipcraft.generate');
+  const scaffoldPack = readScaffoldPackSetting(genCfg);
   const quartusDevice = await pickQuartusDevice(
     context,
     cfg.get<string>('quartus.defaultDevice', '5CSEBA6U23I7')
@@ -535,6 +555,7 @@ async function generateAndBuildQuartus(
       includeTestbench: false,
       includeQuartusProject: true,
       quartusDevice,
+      scaffoldPack,
       silent: true,
     },
     'Generating Quartus project...'

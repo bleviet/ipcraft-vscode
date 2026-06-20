@@ -749,7 +749,7 @@
           "ipcraft.generate.scaffoldPack": {
             "type": "string",
             "default": "",
-            "markdownDescription": "Scaffold pack to use for RTL code generation. Built-in values: `builtin-minimal`, `builtin-ipcraft`. Example packs: `example-register-only`, `example-no-regfile`, `example-with-docs`. Workspace packs live in `.vscode/ipcraft/packs/<name>/`."
+            "markdownDescription": "Scaffold pack to use for RTL and testbench code generation. Built-in values: `builtin-minimal`, `builtin-ipcraft`. Example packs: `example-register-only`, `example-no-regfile`, `example-with-docs`. Workspace packs live in `.vscode/ipcraft/packs/<name>/`."
           }
         }
       },
