@@ -194,4 +194,75 @@ describe('memory map YAML round-trip stays schema-clean', () => {
     const noop = YamlService.applyPathEdits(src, [{ path: [0, 'name'], value: 'CSR' }]);
     expect(noop).toBe(src);
   });
+
+  it('updates parent stride correctly after inserting a register in outline panel', () => {
+    // block 1 is DMA_REGS, parentRegIndex 0 is DMA
+    const src = fs.readFileSync(axiFile, 'utf8');
+    const out = uiAddRegisterInsideArrayOutline(src, 1, 0);
+
+    expect(validate(YamlService.parse(out))).toBe(true);
+    expect(out).toContain('stride: 40'); // DMA stride should update to 40
+  });
 });
+
+function uiAddRegisterInsideArrayOutline(
+  text: string,
+  blockIndex: number,
+  parentRegIndex: number
+): string {
+  const rootObj = YamlService.safeParse(text);
+  const { root, selectionRootPath } = YamlPathResolver.getMapRootInfo(rootObj);
+  const mapObj = YamlPathResolver.getAtPath(root, selectionRootPath) as LayoutMemoryMap;
+
+  // Insert register inside the parent array at targetIndex -1 (append)
+  const result = insertElement(
+    mapObj,
+    'register',
+    'after',
+    -1,
+    { blockIndex, registerIndex: parentRegIndex },
+    'register'
+  );
+  expect(result.errors).toEqual([]);
+
+  const blocks = (result.memoryMap.addressBlocks ??
+    result.memoryMap.address_blocks ??
+    []) as Record<string, unknown>[];
+  const block = blocks[blockIndex];
+  const width = blockRegWidth(block);
+
+  const edits = [];
+  const parentReg = (block.registers as Record<string, unknown>[])?.[parentRegIndex];
+  const regs = (Array.isArray(parentReg.registers) ? parentReg.registers : []) as Record<
+    string,
+    unknown
+  >[];
+  const value = regs.map((r) => serializeValue(r, width) as Record<string, unknown>);
+  edits.push({
+    path: [
+      ...selectionRootPath,
+      'addressBlocks',
+      blockIndex,
+      'registers',
+      parentRegIndex,
+      'registers',
+    ],
+    value,
+  });
+
+  if (parentReg.stride !== undefined) {
+    edits.push({
+      path: [
+        ...selectionRootPath,
+        'addressBlocks',
+        blockIndex,
+        'registers',
+        parentRegIndex,
+        'stride',
+      ],
+      value: parentReg.stride,
+    });
+  }
+
+  return YamlService.applyPathEdits(text, edits);
+}

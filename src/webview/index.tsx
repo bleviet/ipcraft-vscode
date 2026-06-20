@@ -137,9 +137,10 @@ const App = () => {
 
   const handleRegisterAction = (
     blockIndex: number,
-    regIndex: number,
+    regIndex: number | undefined,
     action: 'insertBefore' | 'insertAfter' | 'delete',
-    kind?: 'register' | 'flat-array' | 'array'
+    kind?: 'register' | 'flat-array' | 'array',
+    parentRegIndex?: number
   ) => {
     const rootObj = YamlService.safeParse(rawTextRef.current);
     if (!rootObj) {
@@ -151,22 +152,27 @@ const App = () => {
         ? (YamlPathResolver.getAtPath(root, selectionRootPath) as LayoutMemoryMap)
         : (root as LayoutMemoryMap);
 
+    const targetIdx = regIndex ?? -1;
+
     let result;
     if (action === 'delete') {
-      result = deleteElement(mapObj, 'register', regIndex, { blockIndex });
+      result = deleteElement(mapObj, 'register', targetIdx, {
+        blockIndex,
+        registerIndex: parentRegIndex,
+      });
     } else {
       result = insertElement(
         mapObj,
         'register',
         action === 'insertBefore' ? 'before' : 'after',
-        regIndex,
-        { blockIndex },
+        targetIdx,
+        { blockIndex, registerIndex: parentRegIndex },
         kind
       );
     }
 
     if (result.errors.length === 0) {
-      // Write only the affected block's registers array so the rest of the
+      // Write only the affected registers array so the rest of the
       // document keeps its formatting and comments.
       const blocks = (result.memoryMap.addressBlocks ??
         result.memoryMap.address_blocks ??
@@ -176,17 +182,57 @@ const App = () => {
         return;
       }
       const width = blockRegWidth(block);
-      const regs = (Array.isArray(block.registers) ? block.registers : []) as Record<
-        string,
-        unknown
-      >[];
-      const sanitizedRegs = regs.map((r) => serializeValue(r, width) as Record<string, unknown>);
-      const newText = YamlService.applyPathEdits(rawTextRef.current, [
-        {
+
+      const edits = [];
+
+      if (parentRegIndex !== undefined) {
+        const parentReg = (block.registers as Record<string, unknown>[])?.[parentRegIndex];
+        if (!parentReg) {
+          return;
+        }
+        const regs = (Array.isArray(parentReg.registers) ? parentReg.registers : []) as Record<
+          string,
+          unknown
+        >[];
+        const value = regs.map((r) => serializeValue(r, width) as Record<string, unknown>);
+        edits.push({
+          path: [
+            ...selectionRootPath,
+            'addressBlocks',
+            blockIndex,
+            'registers',
+            parentRegIndex,
+            'registers',
+          ],
+          value,
+        });
+
+        if (parentReg.stride !== undefined) {
+          edits.push({
+            path: [
+              ...selectionRootPath,
+              'addressBlocks',
+              blockIndex,
+              'registers',
+              parentRegIndex,
+              'stride',
+            ],
+            value: parentReg.stride,
+          });
+        }
+      } else {
+        const regs = (Array.isArray(block.registers) ? block.registers : []) as Record<
+          string,
+          unknown
+        >[];
+        const value = regs.map((r) => serializeValue(r, width) as Record<string, unknown>);
+        edits.push({
           path: [...selectionRootPath, 'addressBlocks', blockIndex, 'registers'],
-          value: sanitizedRegs,
-        },
-      ]);
+          value,
+        });
+      }
+
+      const newText = YamlService.applyPathEdits(rawTextRef.current, edits);
       if (newText !== rawTextRef.current) {
         updateRawText(newText);
         sendUpdate(newText);

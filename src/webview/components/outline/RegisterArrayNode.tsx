@@ -24,7 +24,13 @@ interface RegisterArrayNodeProps {
   onDoubleClick?: () => void;
   renderNameOrEdit: RenderNameOrEdit;
   startEditing?: (id: string, name: string) => void;
-  onRegisterContextMenu?: (blockIndex: number, regIndex: number, x: number, y: number) => void;
+  onRegisterContextMenu?: (
+    blockIndex: number,
+    regIndex: number | undefined,
+    x: number,
+    y: number,
+    parentRegIndex?: number
+  ) => void;
 }
 
 const RegisterArrayNode = ({
@@ -131,6 +137,26 @@ const RegisterArrayNode = ({
             const elementId = `${id}-el-${elementIndex}`;
             const elementBase = start + elementIndex * (arrayNode.stride ?? 4);
             const isElementSelected = selectedId === elementId;
+            const elementActionButton = onRegisterContextMenu ? (
+              <button
+                className={`${
+                  isElementSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                } transition-opacity p-0.5 rounded hover:bg-[var(--vscode-toolbar-hoverBackground)] text-[var(--vscode-foreground)] flex items-center justify-center shrink-0 ml-auto`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRegisterContextMenu(blockIndex, undefined, e.clientX, e.clientY, regIndex);
+                }}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                title="More Actions..."
+                aria-label="More Actions..."
+              >
+                <span className="codicon codicon-kebab-vertical text-sm" />
+              </button>
+            ) : undefined;
+
             return (
               <div key={elementId}>
                 <FieldNode
@@ -159,6 +185,21 @@ const RegisterArrayNode = ({
                   paddingLeft="60px"
                   iconTitle="Array Element"
                   iconStyle={{ color: 'var(--vscode-symbolIcon-enumeratorForeground)' }}
+                  actionButton={elementActionButton}
+                  onContextMenu={
+                    onRegisterContextMenu
+                      ? (e) => {
+                          e.preventDefault();
+                          onRegisterContextMenu(
+                            blockIndex,
+                            undefined,
+                            e.clientX,
+                            e.clientY,
+                            regIndex
+                          );
+                        }
+                      : undefined
+                  }
                 />
 
                 {arrayNode.registers?.map((reg: NormalizedRegister, childIndex: number) => {
@@ -173,6 +214,33 @@ const RegisterArrayNode = ({
                     'registers',
                     childIndex,
                   ];
+
+                  const childActionButton = onRegisterContextMenu ? (
+                    <button
+                      className={`${
+                        isChildSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                      } transition-opacity p-0.5 rounded hover:bg-[var(--vscode-toolbar-hoverBackground)] text-[var(--vscode-foreground)] flex items-center justify-center shrink-0 ml-auto`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRegisterContextMenu(
+                          blockIndex,
+                          childIndex,
+                          e.clientX,
+                          e.clientY,
+                          regIndex
+                        );
+                      }}
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
+                      title="More Actions..."
+                      aria-label="More Actions..."
+                    >
+                      <span className="codicon codicon-kebab-vertical text-sm" />
+                    </button>
+                  ) : undefined;
+
                   return (
                     <RegisterNode
                       key={childId}
@@ -201,6 +269,21 @@ const RegisterArrayNode = ({
                       paddingLeft="80px"
                       name={renderNameOrEdit(childId, reg.name, path)}
                       offsetLabel={`@ ${toHex(absolute)}`}
+                      actionButton={childActionButton}
+                      onContextMenu={
+                        onRegisterContextMenu
+                          ? (e) => {
+                              e.preventDefault();
+                              onRegisterContextMenu(
+                                blockIndex,
+                                childIndex,
+                                e.clientX,
+                                e.clientY,
+                                regIndex
+                              );
+                            }
+                          : undefined
+                      }
                     />
                   );
                 })}

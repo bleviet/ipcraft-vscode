@@ -212,7 +212,30 @@ export function insertElement(
         newIndex: -1,
       };
     }
-    const regs = block.registers ?? [];
+
+    let regs: LayoutRegister[];
+    let parentArray: LayoutRegister | undefined;
+    if (parentPath?.registerIndex !== undefined) {
+      parentArray = (block.registers ?? [])[parentPath.registerIndex];
+      if (!parentArray) {
+        return {
+          memoryMap,
+          errors: [
+            {
+              layer: 'register',
+              parentPath: `blocks[${bi}].registers[${parentPath.registerIndex}]`,
+              message: 'Parent register array not found',
+              severity: 'error',
+            },
+          ],
+          newIndex: -1,
+        };
+      }
+      regs = parentArray.registers ?? [];
+    } else {
+      regs = block.registers ?? [];
+    }
+
     const prefix = kind === 'register' ? 'reg' : kind === 'flat-array' ? 'regArray' : 'array';
     const name = nextSequentialName(regs, prefix);
     const insertIdx = computeInsertIndex(targetIndex, regs.length, mode);
@@ -227,11 +250,20 @@ export function insertElement(
     }
 
     regs.splice(insertIdx, 0, newReg);
-    block.registers = regs;
+    if (parentArray) {
+      parentArray.registers = regs;
+    } else {
+      block.registers = regs;
+    }
     setBlocks(map, blocks);
 
     const { data, errors } = recomputeAddressLayout(map);
-    const finalRegs = getBlocks(data)[bi]?.registers ?? [];
+    let finalRegs: LayoutRegister[];
+    if (parentPath?.registerIndex !== undefined) {
+      finalRegs = (getBlocks(data)[bi]?.registers ?? [])[parentPath.registerIndex]?.registers ?? [];
+    } else {
+      finalRegs = getBlocks(data)[bi]?.registers ?? [];
+    }
     const newIndex = finalRegs.findIndex((r) => r.name === name);
     return { memoryMap: data, errors, newIndex };
   }
@@ -339,14 +371,40 @@ export function deleteElement(
         newIndex: -1,
       };
     }
-    const regs = block.registers ?? [];
+
+    let regs: LayoutRegister[];
+    let parentArray: LayoutRegister | undefined;
+    if (parentPath?.registerIndex !== undefined) {
+      parentArray = (block.registers ?? [])[parentPath.registerIndex];
+      if (!parentArray) {
+        return {
+          memoryMap,
+          errors: [
+            {
+              layer: 'register',
+              parentPath: `blocks[${bi}].registers[${parentPath.registerIndex}]`,
+              message: 'Parent register array not found',
+              severity: 'error',
+            },
+          ],
+          newIndex: -1,
+        };
+      }
+      regs = parentArray.registers ?? [];
+    } else {
+      regs = block.registers ?? [];
+    }
+
     if (targetIndex < 0 || targetIndex >= regs.length) {
       return {
         memoryMap,
         errors: [
           {
             layer: 'register',
-            parentPath: `blocks[${bi}]`,
+            parentPath:
+              parentPath?.registerIndex !== undefined
+                ? `blocks[${bi}].registers[${parentPath.registerIndex}]`
+                : `blocks[${bi}]`,
             message: 'Invalid register index',
             severity: 'error',
           },
@@ -355,10 +413,19 @@ export function deleteElement(
       };
     }
     regs.splice(targetIndex, 1);
-    block.registers = regs;
+    if (parentArray) {
+      parentArray.registers = regs;
+    } else {
+      block.registers = regs;
+    }
     setBlocks(map, blocks);
     const { data, errors } = recomputeAddressLayout(map);
-    const finalRegs = getBlocks(data)[bi]?.registers ?? [];
+    let finalRegs: LayoutRegister[];
+    if (parentPath?.registerIndex !== undefined) {
+      finalRegs = (getBlocks(data)[bi]?.registers ?? [])[parentPath.registerIndex]?.registers ?? [];
+    } else {
+      finalRegs = getBlocks(data)[bi]?.registers ?? [];
+    }
     return { memoryMap: data, errors, newIndex: Math.min(targetIndex, finalRegs.length - 1) };
   }
 

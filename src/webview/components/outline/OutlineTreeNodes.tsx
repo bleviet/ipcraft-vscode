@@ -22,7 +22,13 @@ interface OutlineTreeNodesProps {
   onSelect: (selection: OutlineSelection) => void;
   renderNameOrEdit: RenderNameOrEdit;
   startEditing?: (id: string, name: string) => void;
-  onRegisterContextMenu?: (blockIndex: number, regIndex: number, x: number, y: number) => void;
+  onRegisterContextMenu?: (
+    blockIndex: number,
+    regIndex: number | undefined,
+    x: number,
+    y: number,
+    parentRegIndex?: number
+  ) => void;
   onBlockContextMenu?: (blockIndex: number, x: number, y: number) => void;
 }
 
@@ -38,7 +44,13 @@ function renderLeafRegister(
   blockIndex: number,
   regIndex: number,
   paddingLeft = '40px',
-  onRegisterContextMenu?: (blockIndex: number, regIndex: number, x: number, y: number) => void
+  onRegisterContextMenu?: (
+    blockIndex: number,
+    regIndex: number | undefined,
+    x: number,
+    y: number,
+    parentRegIndex?: number
+  ) => void
 ) {
   const id = registerId(blockIndex, regIndex);
   const isSelected = selectedId === id;

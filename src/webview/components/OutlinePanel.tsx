@@ -20,9 +20,10 @@ interface OutlineProps {
   onRename?: (path: YamlPath, newName: string) => void;
   onRegisterAction?: (
     blockIndex: number,
-    regIndex: number,
+    regIndex: number | undefined,
     action: 'insertBefore' | 'insertAfter' | 'delete',
-    kind?: 'register' | 'flat-array' | 'array'
+    kind?: 'register' | 'flat-array' | 'array',
+    parentRegIndex?: number
   ) => void;
   onBlockAction?: (
     blockIndex: number,
@@ -67,6 +68,7 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
       y: number;
       blockIndex: number;
       regIndex?: number;
+      parentRegIndex?: number;
     } | null>(null);
 
     useEffect(() => {
@@ -325,8 +327,14 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
                 startEditing={startEditing}
                 onRegisterContextMenu={
                   onRegisterAction
-                    ? (bi, ri, x, y) =>
-                        setOutlineContextMenu({ x, y, blockIndex: bi, regIndex: ri })
+                    ? (bi, ri, x, y, parentRegIndex) =>
+                        setOutlineContextMenu({
+                          x,
+                          y,
+                          blockIndex: bi,
+                          regIndex: ri,
+                          parentRegIndex,
+                        })
                     : undefined
                 }
                 onBlockContextMenu={
@@ -349,7 +357,95 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
             style={{ left: outlineContextMenu.x, top: outlineContextMenu.y }}
             onPointerDown={(e) => e.stopPropagation()}
           >
-            {outlineContextMenu.regIndex === undefined ? (
+            {outlineContextMenu.parentRegIndex !== undefined ? (
+              // Inside a register array or flat array context
+              outlineContextMenu.regIndex === undefined ? (
+                // Array element node context menu: only allow to insert register
+                <>
+                  <button
+                    className="w-full text-left px-4 py-2 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
+                    onClick={() => {
+                      onRegisterAction?.(
+                        outlineContextMenu.blockIndex,
+                        undefined,
+                        'insertAfter',
+                        'register',
+                        outlineContextMenu.parentRegIndex
+                      );
+                      setOutlineContextMenu(null);
+                    }}
+                  >
+                    <span className="codicon codicon-symbol-field text-xs" />
+                    Insert Register
+                  </button>
+                </>
+              ) : (
+                // Child register node context menu: only allow to insert register (above/below) and delete
+                <>
+                  <div className="px-3 py-1 text-xs font-semibold vscode-muted bg-[var(--vscode-editorWidget-background)] uppercase tracking-wider">
+                    Insert Above
+                  </div>
+                  <button
+                    className="w-full text-left px-4 py-1.5 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
+                    onClick={() => {
+                      onRegisterAction?.(
+                        outlineContextMenu.blockIndex,
+                        outlineContextMenu.regIndex,
+                        'insertBefore',
+                        'register',
+                        outlineContextMenu.parentRegIndex
+                      );
+                      setOutlineContextMenu(null);
+                    }}
+                  >
+                    <span className="codicon codicon-symbol-field text-xs" />
+                    Register
+                  </button>
+
+                  <div className="border-t vscode-border my-1" />
+
+                  <div className="px-3 py-1 text-xs font-semibold vscode-muted bg-[var(--vscode-editorWidget-background)] uppercase tracking-wider">
+                    Insert Below
+                  </div>
+                  <button
+                    className="w-full text-left px-4 py-1.5 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
+                    onClick={() => {
+                      onRegisterAction?.(
+                        outlineContextMenu.blockIndex,
+                        outlineContextMenu.regIndex,
+                        'insertAfter',
+                        'register',
+                        outlineContextMenu.parentRegIndex
+                      );
+                      setOutlineContextMenu(null);
+                    }}
+                  >
+                    <span className="codicon codicon-symbol-field text-xs" />
+                    Register
+                  </button>
+
+                  <div className="border-t vscode-border my-0.5" />
+
+                  <button
+                    className="w-full text-left px-4 py-2 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
+                    style={{ color: 'var(--vscode-errorForeground)' }}
+                    onClick={() => {
+                      onRegisterAction?.(
+                        outlineContextMenu.blockIndex,
+                        outlineContextMenu.regIndex,
+                        'delete',
+                        undefined,
+                        outlineContextMenu.parentRegIndex
+                      );
+                      setOutlineContextMenu(null);
+                    }}
+                  >
+                    <span className="codicon codicon-trash text-xs" />
+                    Delete
+                  </button>
+                </>
+              )
+            ) : outlineContextMenu.regIndex === undefined ? (
               // Address Block context menu
               <>
                 <div className="px-3 py-1 text-xs font-semibold vscode-muted bg-[var(--vscode-editorWidget-background)] uppercase tracking-wider">
@@ -427,7 +523,7 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
                   onClick={() => {
                     onRegisterAction?.(
                       outlineContextMenu.blockIndex,
-                      outlineContextMenu.regIndex!,
+                      outlineContextMenu.regIndex,
                       'insertBefore',
                       'register'
                     );
@@ -442,7 +538,7 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
                   onClick={() => {
                     onRegisterAction?.(
                       outlineContextMenu.blockIndex,
-                      outlineContextMenu.regIndex!,
+                      outlineContextMenu.regIndex,
                       'insertBefore',
                       'flat-array'
                     );
@@ -457,7 +553,7 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
                   onClick={() => {
                     onRegisterAction?.(
                       outlineContextMenu.blockIndex,
-                      outlineContextMenu.regIndex!,
+                      outlineContextMenu.regIndex,
                       'insertBefore',
                       'array'
                     );
@@ -478,7 +574,7 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
                   onClick={() => {
                     onRegisterAction?.(
                       outlineContextMenu.blockIndex,
-                      outlineContextMenu.regIndex!,
+                      outlineContextMenu.regIndex,
                       'insertAfter',
                       'register'
                     );
@@ -493,7 +589,7 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
                   onClick={() => {
                     onRegisterAction?.(
                       outlineContextMenu.blockIndex,
-                      outlineContextMenu.regIndex!,
+                      outlineContextMenu.regIndex,
                       'insertAfter',
                       'flat-array'
                     );
@@ -508,7 +604,7 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
                   onClick={() => {
                     onRegisterAction?.(
                       outlineContextMenu.blockIndex,
-                      outlineContextMenu.regIndex!,
+                      outlineContextMenu.regIndex,
                       'insertAfter',
                       'array'
                     );
@@ -527,7 +623,7 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
                   onClick={() => {
                     onRegisterAction?.(
                       outlineContextMenu.blockIndex,
-                      outlineContextMenu.regIndex!,
+                      outlineContextMenu.regIndex,
                       'delete'
                     );
                     setOutlineContextMenu(null);

@@ -300,8 +300,16 @@ export function recomputeRegisterLayout(
     };
 
     // Recurse into register-array template registers.
-    if (reg.__kind === 'array' && Array.isArray(reg.registers)) {
-      updated.registers = recomputeRegisterLayout(reg.registers, _defaultRegWidth);
+    if (Array.isArray(reg.registers)) {
+      const subRegs = recomputeRegisterLayout(reg.registers, _defaultRegWidth);
+      updated.registers = subRegs;
+
+      const templateFootprint = subRegs.reduce((sum, r) => sum + registerFootprintBytes(r), 0);
+      const alignedFootprint = Math.ceil(templateFootprint / 4) * 4;
+      const currentStride = reg.stride ?? 4;
+      if (currentStride < alignedFootprint) {
+        updated.stride = alignedFootprint;
+      }
     }
 
     return updated;
@@ -401,7 +409,7 @@ export function recomputeFullLayout(memoryMap: LayoutMemoryMap): LayoutResult<La
       }
 
       // Recurse into register-array template registers.
-      if (reg.__kind === 'array' && Array.isArray(reg.registers)) {
+      if (Array.isArray(reg.registers)) {
         updated.registers = reg.registers.map((subReg) => {
           if (!Array.isArray(subReg.fields) || subReg.fields.length === 0) {
             return subReg;
