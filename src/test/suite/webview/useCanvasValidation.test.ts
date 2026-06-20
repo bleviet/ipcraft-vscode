@@ -54,7 +54,7 @@ describe('useCanvasValidation', () => {
     expect(annotations['bus:1'][0].message).toContain('Duplicate bus interface name');
   });
 
-  it('should flag missing associated clock in bus interfaces as a warning', () => {
+  it('should not flag a master/slave bus interface for missing clock or reset — both are optional', () => {
     const ipCore: IpCore = {
       vlnv: { vendor: 'test', library: 'lib', name: 'TestCore', version: '1.0' },
       busInterfaces: [
@@ -68,9 +68,7 @@ describe('useCanvasValidation', () => {
     };
 
     const annotations = useCanvasValidation(ipCore);
-    expect(annotations['bus:0']).toBeDefined();
-    expect(annotations['bus:0'][0].severity).toBe('warning');
-    expect(annotations['bus:0'][0].message).toContain('missing an associated clock');
+    expect(annotations['bus:0']).toBeUndefined();
   });
 
   it('should flag invalid clock and reset references as errors', () => {

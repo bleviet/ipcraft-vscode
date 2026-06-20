@@ -85,9 +85,10 @@ export const useCanvasValidation = (ipCore: IpCore): CanvasAnnotations => {
       addAnnotation(id, 'error', 'Bus interface must have a type');
     }
 
-    // A conduit is a signal group with no clock domain of its own — unlike a real
-    // bus protocol, where the clock association is expected (warned if missing)
-    // and the reset association is optional.
+    // A conduit is a signal group with no clock domain of its own, so it must not
+    // have either association. A real bus protocol (master/slave) may optionally
+    // have a clock and/or reset — neither is required, but a reference to a
+    // nonexistent clock/reset is always an error.
     const isConduit = (bus.mode ?? 'conduit') === 'conduit';
 
     if (isConduit) {
@@ -98,9 +99,7 @@ export const useCanvasValidation = (ipCore: IpCore): CanvasAnnotations => {
         addAnnotation(id, 'error', 'Conduit interfaces must not have an associated reset');
       }
     } else {
-      if (!bus.associatedClock) {
-        addAnnotation(id, 'warning', 'Bus interface is missing an associated clock');
-      } else {
+      if (bus.associatedClock) {
         const clockExists = ipCore.clocks?.some((c: Clock) => c.name === bus.associatedClock);
         if (!clockExists) {
           addAnnotation(id, 'error', `Referenced clock '${bus.associatedClock}' does not exist`);
