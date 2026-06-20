@@ -191,7 +191,7 @@ export class IpCoreScaffolder {
           {
             name,
             templateContext: context,
-            templates: this.templates,
+            templates: packLoader,
             ipCoreData,
             busDefinitions: this.busDefinitions ?? {},
             isSv,

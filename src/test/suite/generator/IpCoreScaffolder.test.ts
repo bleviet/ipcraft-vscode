@@ -213,9 +213,10 @@ describe('IpCoreScaffolder', () => {
     expect(makefile).not.toContain('SIM ?= ghdl');
   });
 
-  it('uses the active scaffold pack to override the built-in CocoTB test template', async () => {
+  it('uses the active scaffold pack to override built-in CocoTB and vendor templates', async () => {
     // Issue #3: a custom scaffold pack's cocotb_test.py.j2 must shadow the built-in
     // template, the same way pack templates already shadow built-in RTL templates.
+    // Vendor toolchain templates (e.g. _hw.tcl) must be equally overridable.
     const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-scaffolder-pack-'));
     const workspaceRoot = path.join(tmp, 'workspace');
     const packDir = path.join(workspaceRoot, '.vscode', 'ipcraft', 'packs', 'my-pack');
@@ -225,6 +226,7 @@ describe('IpCoreScaffolder', () => {
       'name: "my-pack"\nfullGeneration: true\nfiles: []\n'
     );
     fs2.writeFileSync(path.join(packDir, 'cocotb_test.py.j2'), '# CUSTOM OVERRIDE\n');
+    fs2.writeFileSync(path.join(packDir, 'altera_hw_tcl.j2'), '# CUSTOM HW TCL OVERRIDE\n');
 
     const originalWorkspaceFolders = (vscode.workspace as any).workspaceFolders;
     (vscode.workspace as any).workspaceFolders = [{ uri: { fsPath: workspaceRoot } }];
@@ -238,7 +240,7 @@ describe('IpCoreScaffolder', () => {
         includeTestbench: true,
         framework: 'cocotb',
         engine: 'ghdl',
-        targets: [],
+        targets: ['quartus'],
         scaffoldPack: 'my-pack',
       });
 
@@ -248,6 +250,11 @@ describe('IpCoreScaffolder', () => {
         call[0].includes('_test.py')
       )?.[1] as string;
       expect(testFile).toContain('CUSTOM OVERRIDE');
+
+      const hwTcl = (fs.writeFile as unknown as jest.Mock).mock.calls.find((call: string[]) =>
+        call[0].includes('_hw.tcl')
+      )?.[1] as string;
+      expect(hwTcl).toContain('CUSTOM HW TCL OVERRIDE');
     } finally {
       (vscode.workspace as any).workspaceFolders = originalWorkspaceFolders;
       fs2.rmSync(tmp, { recursive: true, force: true });

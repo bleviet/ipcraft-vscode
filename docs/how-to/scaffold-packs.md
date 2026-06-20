@@ -251,6 +251,29 @@ The overridable built-in CocoTB templates (in `src/generator/templates/`) are:
 
 ---
 
+## Overriding Vendor Project Templates
+
+Vendor toolchain output that is template-driven follows the same shadowing rule too —
+overridable via every command that scaffolds a Vivado/Quartus target (**Generate
+Scaffold Project**, **Export Altera/Xilinx Component**, **Generate Vivado/Quartus
+Project**, and the build variants):
+
+| Template | Output |
+|----------|--------|
+| `altera_hw_tcl.j2` | `altera/{{ name }}_hw.tcl` |
+| `quartus_project.tcl.j2` | `altera/{{ name }}_project.tcl` (project generation only) |
+| `quartus_sdc.j2` | `altera/{{ name }}.sdc` (project generation only) |
+| `amd_xgui.j2` | `xilinx/xgui/{{ name }}_v{{ version }}.tcl` |
+| `vivado_project.tcl.j2` | `xilinx/{{ name }}_project.tcl` (project generation only) |
+| `vivado_ooc.xdc.j2` | `xilinx/{{ name }}.xdc` (project generation only) |
+| `vivado_run_ooc.tcl.j2` / `vivado_run_xpr.tcl.j2` | `xilinx/{{ name }}_run_ooc.tcl` / `_run_xpr.tcl` (project generation only) |
+
+!!! note "component.xml is not template-based"
+    Vivado's `component.xml` is generated programmatically, not from a `.j2` template,
+    so it cannot currently be overridden by a scaffold pack.
+
+---
+
 ## Template Context Variables
 
 The following variables are available inside every `.j2` template and in
