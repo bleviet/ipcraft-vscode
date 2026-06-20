@@ -141,6 +141,21 @@ function defaultBlock(name: string): LayoutBlock {
   };
 }
 
+/** Create a default RAM/memory block. */
+function defaultRamBlock(name: string): LayoutBlock {
+  return {
+    name,
+    base_address: 0,
+    baseAddress: 0,
+    usage: 'memory',
+    range: 1024,
+    defaultRegWidth: 32,
+    default_reg_width: 32,
+    access: 'read-write',
+    description: '',
+  };
+}
+
 // ---------------------------------------------------------------------------
 // insertElement
 // ---------------------------------------------------------------------------
@@ -153,7 +168,7 @@ function defaultBlock(name: string): LayoutBlock {
  * @param mode        'before' or 'after' the target.
  * @param targetIndex Index of the reference element. -1 means end.
  * @param parentPath  Path to the parent container (required for 'register' and 'field' layers).
- * @param kind        The kind of register to insert ('register', 'flat-array', or 'array').
+ * @param kind        The kind of element to insert ('register', 'flat-array', 'array', 'block', or 'ram').
  */
 export function insertElement(
   memoryMap: LayoutMemoryMap,
@@ -161,15 +176,17 @@ export function insertElement(
   mode: InsertMode,
   targetIndex: number,
   parentPath?: ParentPath,
-  kind: 'register' | 'flat-array' | 'array' = 'register'
+  kind: 'register' | 'flat-array' | 'array' | 'block' | 'ram' = 'register'
 ): MutationResult {
   const map = cloneMap(memoryMap);
   const blocks = getBlocks(map);
 
   if (layer === 'block') {
-    const name = nextSequentialName(blocks, 'block');
+    const prefix = kind === 'ram' ? 'ram' : 'block';
+    const name = nextSequentialName(blocks, prefix);
     const insertIdx = computeInsertIndex(targetIndex, blocks.length, mode);
-    blocks.splice(insertIdx, 0, defaultBlock(name));
+    const newBlock = kind === 'ram' ? defaultRamBlock(name) : defaultBlock(name);
+    blocks.splice(insertIdx, 0, newBlock);
     setBlocks(map, blocks);
 
     const { data, errors } = recomputeAddressLayout(map);

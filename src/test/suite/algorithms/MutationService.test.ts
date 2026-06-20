@@ -105,6 +105,21 @@ describe('MutationService.insertElement', () => {
       expect(blocks[1].base_address).toBe(12);
       expect(blocks[2].base_address).toBe(16);
     });
+
+    it('should insert a RAM block when kind is ram', () => {
+      const map = makeMap();
+      const result = insertElement(map, 'block', 'after', 0, undefined, 'ram');
+
+      expect(result.errors).toEqual([]);
+      const blocks = getBlocks(result.memoryMap);
+      expect(blocks).toHaveLength(3);
+      const newBlock = blocks[1];
+      expect(newBlock.name).toBe('ram1');
+      expect(newBlock.usage).toBe('memory');
+      expect(newBlock.range).toBe(1024);
+      expect(newBlock.defaultRegWidth).toBe(32);
+      expect(result.newIndex).toBe(1);
+    });
   });
 
   describe('register layer', () => {

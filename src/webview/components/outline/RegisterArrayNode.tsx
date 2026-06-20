@@ -106,7 +106,9 @@ const RegisterArrayNode = ({
         </span>
         {onRegisterContextMenu && (
           <button
-            className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-[var(--vscode-toolbar-hoverBackground)] text-[var(--vscode-foreground)] flex items-center justify-center shrink-0 ml-auto"
+            className={`${
+              isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+            } transition-opacity p-0.5 rounded hover:bg-[var(--vscode-toolbar-hoverBackground)] text-[var(--vscode-foreground)] flex items-center justify-center shrink-0 ml-auto`}
             onClick={(e) => {
               e.stopPropagation();
               onRegisterContextMenu(blockIndex, regIndex, e.clientX, e.clientY);

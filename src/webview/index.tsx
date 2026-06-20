@@ -194,6 +194,53 @@ const App = () => {
     }
   };
 
+  const handleBlockAction = (
+    blockIndex: number,
+    action: 'insertBefore' | 'insertAfter' | 'delete',
+    kind?: 'block' | 'ram'
+  ) => {
+    const rootObj = YamlService.safeParse(rawTextRef.current);
+    if (!rootObj) {
+      return;
+    }
+    const { root, selectionRootPath } = YamlPathResolver.getMapRootInfo(rootObj);
+    const mapObj =
+      selectionRootPath.length > 0
+        ? (YamlPathResolver.getAtPath(root, selectionRootPath) as LayoutMemoryMap)
+        : (root as LayoutMemoryMap);
+
+    let result;
+    if (action === 'delete') {
+      result = deleteElement(mapObj, 'block', blockIndex);
+    } else {
+      result = insertElement(
+        mapObj,
+        'block',
+        action === 'insertBefore' ? 'before' : 'after',
+        blockIndex,
+        undefined,
+        kind
+      );
+    }
+
+    if (result.errors.length === 0) {
+      const blocks = (result.memoryMap.addressBlocks ??
+        result.memoryMap.address_blocks ??
+        []) as Record<string, unknown>[];
+      const sanitized = blocks.map((b) => serializeValue(b) as Record<string, unknown>);
+      const newText = YamlService.applyPathEdits(rawTextRef.current, [
+        {
+          path: [...selectionRootPath, 'addressBlocks'],
+          value: sanitized,
+        },
+      ]);
+      if (newText !== rawTextRef.current) {
+        updateRawText(newText);
+        sendUpdate(newText);
+      }
+    }
+  };
+
   // Wraps handleUpdate for array-level structure changes (insert/delete/
   // reorder from BlockEditor or MemoryMapEditor). The structural edit, the
   // layout repack and schema sanitization are applied in a single pass
@@ -324,6 +371,7 @@ const App = () => {
           onSelect={handleSelect}
           onRename={handleOutlineRename}
           onRegisterAction={handleRegisterAction}
+          onBlockAction={handleBlockAction}
         />
         <div
           className="sidebar-resize-handle"

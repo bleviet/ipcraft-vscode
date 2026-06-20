@@ -24,6 +24,11 @@ interface OutlineProps {
     action: 'insertBefore' | 'insertAfter' | 'delete',
     kind?: 'register' | 'flat-array' | 'array'
   ) => void;
+  onBlockAction?: (
+    blockIndex: number,
+    action: 'insertBefore' | 'insertAfter' | 'delete',
+    kind?: 'block' | 'ram'
+  ) => void;
 }
 
 export type OutlineHandle = {
@@ -31,7 +36,7 @@ export type OutlineHandle = {
 };
 
 const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
-  ({ memoryMap, selectedId, onSelect, onRename, onRegisterAction }, ref) => {
+  ({ memoryMap, selectedId, onSelect, onRename, onRegisterAction, onBlockAction }, ref) => {
     const memoryMapName = memoryMap.name || 'Memory Map';
 
     const allIds = useMemo(() => {
@@ -61,7 +66,7 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
       x: number;
       y: number;
       blockIndex: number;
-      regIndex: number;
+      regIndex?: number;
     } | null>(null);
 
     useEffect(() => {
@@ -324,6 +329,11 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
                         setOutlineContextMenu({ x, y, blockIndex: bi, regIndex: ri })
                     : undefined
                 }
+                onBlockContextMenu={
+                  onBlockAction
+                    ? (bi, x, y) => setOutlineContextMenu({ x, y, blockIndex: bi })
+                    : undefined
+                }
               />
             )}
           </div>
@@ -332,130 +342,202 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
           <span>{filteredBlocks.length} Items</span>
           <span>Base: {toHex(memoryMap.addressBlocks?.[0]?.baseAddress ?? 0)}</span>
         </div>
-        {outlineContextMenu && onRegisterAction && (
+        {outlineContextMenu && (onRegisterAction ?? onBlockAction) && (
           <div
             ref={outlineContextMenuRef}
             className="fixed z-[200] min-w-[160px] rounded-lg shadow-xl border vscode-border vscode-surface overflow-hidden text-sm py-1"
             style={{ left: outlineContextMenu.x, top: outlineContextMenu.y }}
             onPointerDown={(e) => e.stopPropagation()}
           >
-            <div className="px-3 py-1 text-xs font-semibold vscode-muted bg-[var(--vscode-editorWidget-background)] uppercase tracking-wider">
-              Insert Above
-            </div>
-            <button
-              className="w-full text-left px-4 py-1.5 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
-              onClick={() => {
-                onRegisterAction(
-                  outlineContextMenu.blockIndex,
-                  outlineContextMenu.regIndex,
-                  'insertBefore',
-                  'register'
-                );
-                setOutlineContextMenu(null);
-              }}
-            >
-              <span className="codicon codicon-symbol-field text-xs" />
-              Register
-            </button>
-            <button
-              className="w-full text-left px-4 py-1.5 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
-              onClick={() => {
-                onRegisterAction(
-                  outlineContextMenu.blockIndex,
-                  outlineContextMenu.regIndex,
-                  'insertBefore',
-                  'flat-array'
-                );
-                setOutlineContextMenu(null);
-              }}
-            >
-              <span className="codicon codicon-symbol-array text-xs" />
-              Flat Array
-            </button>
-            <button
-              className="w-full text-left px-4 py-1.5 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
-              onClick={() => {
-                onRegisterAction(
-                  outlineContextMenu.blockIndex,
-                  outlineContextMenu.regIndex,
-                  'insertBefore',
-                  'array'
-                );
-                setOutlineContextMenu(null);
-              }}
-            >
-              <span className="codicon codicon-symbol-struct text-xs" />
-              Nested Array
-            </button>
+            {outlineContextMenu.regIndex === undefined ? (
+              // Address Block context menu
+              <>
+                <div className="px-3 py-1 text-xs font-semibold vscode-muted bg-[var(--vscode-editorWidget-background)] uppercase tracking-wider">
+                  Insert Above
+                </div>
+                <button
+                  className="w-full text-left px-4 py-1.5 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
+                  onClick={() => {
+                    onBlockAction?.(outlineContextMenu.blockIndex, 'insertBefore', 'block');
+                    setOutlineContextMenu(null);
+                  }}
+                >
+                  <span className="codicon codicon-package text-xs" />
+                  Address Block
+                </button>
+                <button
+                  className="w-full text-left px-4 py-1.5 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
+                  onClick={() => {
+                    onBlockAction?.(outlineContextMenu.blockIndex, 'insertBefore', 'ram');
+                    setOutlineContextMenu(null);
+                  }}
+                >
+                  <span className="codicon codicon-database text-xs" />
+                  RAM
+                </button>
 
-            <div className="border-t vscode-border my-1" />
+                <div className="border-t vscode-border my-1" />
 
-            <div className="px-3 py-1 text-xs font-semibold vscode-muted bg-[var(--vscode-editorWidget-background)] uppercase tracking-wider">
-              Insert Below
-            </div>
-            <button
-              className="w-full text-left px-4 py-1.5 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
-              onClick={() => {
-                onRegisterAction(
-                  outlineContextMenu.blockIndex,
-                  outlineContextMenu.regIndex,
-                  'insertAfter',
-                  'register'
-                );
-                setOutlineContextMenu(null);
-              }}
-            >
-              <span className="codicon codicon-symbol-field text-xs" />
-              Register
-            </button>
-            <button
-              className="w-full text-left px-4 py-1.5 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
-              onClick={() => {
-                onRegisterAction(
-                  outlineContextMenu.blockIndex,
-                  outlineContextMenu.regIndex,
-                  'insertAfter',
-                  'flat-array'
-                );
-                setOutlineContextMenu(null);
-              }}
-            >
-              <span className="codicon codicon-symbol-array text-xs" />
-              Flat Array
-            </button>
-            <button
-              className="w-full text-left px-4 py-1.5 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
-              onClick={() => {
-                onRegisterAction(
-                  outlineContextMenu.blockIndex,
-                  outlineContextMenu.regIndex,
-                  'insertAfter',
-                  'array'
-                );
-                setOutlineContextMenu(null);
-              }}
-            >
-              <span className="codicon codicon-symbol-struct text-xs" />
-              Nested Array
-            </button>
+                <div className="px-3 py-1 text-xs font-semibold vscode-muted bg-[var(--vscode-editorWidget-background)] uppercase tracking-wider">
+                  Insert Below
+                </div>
+                <button
+                  className="w-full text-left px-4 py-1.5 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
+                  onClick={() => {
+                    onBlockAction?.(outlineContextMenu.blockIndex, 'insertAfter', 'block');
+                    setOutlineContextMenu(null);
+                  }}
+                >
+                  <span className="codicon codicon-package text-xs" />
+                  Address Block
+                </button>
+                <button
+                  className="w-full text-left px-4 py-1.5 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
+                  onClick={() => {
+                    onBlockAction?.(outlineContextMenu.blockIndex, 'insertAfter', 'ram');
+                    setOutlineContextMenu(null);
+                  }}
+                >
+                  <span className="codicon codicon-database text-xs" />
+                  RAM
+                </button>
 
-            <div className="border-t vscode-border my-0.5" />
+                <div className="border-t vscode-border my-0.5" />
 
-            <button
-              className="w-full text-left px-4 py-2 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
-              style={{ color: 'var(--vscode-errorForeground)' }}
-              onClick={() => {
-                onRegisterAction(
-                  outlineContextMenu.blockIndex,
-                  outlineContextMenu.regIndex,
-                  'delete'
-                );
-                setOutlineContextMenu(null);
-              }}
-            >
-              <span className="codicon codicon-trash text-xs" />
-              Delete
-            </button>
+                <button
+                  className="w-full text-left px-4 py-2 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
+                  style={{ color: 'var(--vscode-errorForeground)' }}
+                  onClick={() => {
+                    onBlockAction?.(outlineContextMenu.blockIndex, 'delete');
+                    setOutlineContextMenu(null);
+                  }}
+                >
+                  <span className="codicon codicon-trash text-xs" />
+                  Delete
+                </button>
+              </>
+            ) : (
+              // Register/RegisterArray context menu
+              <>
+                <div className="px-3 py-1 text-xs font-semibold vscode-muted bg-[var(--vscode-editorWidget-background)] uppercase tracking-wider">
+                  Insert Above
+                </div>
+                <button
+                  className="w-full text-left px-4 py-1.5 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
+                  onClick={() => {
+                    onRegisterAction?.(
+                      outlineContextMenu.blockIndex,
+                      outlineContextMenu.regIndex!,
+                      'insertBefore',
+                      'register'
+                    );
+                    setOutlineContextMenu(null);
+                  }}
+                >
+                  <span className="codicon codicon-symbol-field text-xs" />
+                  Register
+                </button>
+                <button
+                  className="w-full text-left px-4 py-1.5 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
+                  onClick={() => {
+                    onRegisterAction?.(
+                      outlineContextMenu.blockIndex,
+                      outlineContextMenu.regIndex!,
+                      'insertBefore',
+                      'flat-array'
+                    );
+                    setOutlineContextMenu(null);
+                  }}
+                >
+                  <span className="codicon codicon-symbol-array text-xs" />
+                  Flat Array
+                </button>
+                <button
+                  className="w-full text-left px-4 py-1.5 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
+                  onClick={() => {
+                    onRegisterAction?.(
+                      outlineContextMenu.blockIndex,
+                      outlineContextMenu.regIndex!,
+                      'insertBefore',
+                      'array'
+                    );
+                    setOutlineContextMenu(null);
+                  }}
+                >
+                  <span className="codicon codicon-symbol-struct text-xs" />
+                  Nested Array
+                </button>
+
+                <div className="border-t vscode-border my-1" />
+
+                <div className="px-3 py-1 text-xs font-semibold vscode-muted bg-[var(--vscode-editorWidget-background)] uppercase tracking-wider">
+                  Insert Below
+                </div>
+                <button
+                  className="w-full text-left px-4 py-1.5 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
+                  onClick={() => {
+                    onRegisterAction?.(
+                      outlineContextMenu.blockIndex,
+                      outlineContextMenu.regIndex!,
+                      'insertAfter',
+                      'register'
+                    );
+                    setOutlineContextMenu(null);
+                  }}
+                >
+                  <span className="codicon codicon-symbol-field text-xs" />
+                  Register
+                </button>
+                <button
+                  className="w-full text-left px-4 py-1.5 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
+                  onClick={() => {
+                    onRegisterAction?.(
+                      outlineContextMenu.blockIndex,
+                      outlineContextMenu.regIndex!,
+                      'insertAfter',
+                      'flat-array'
+                    );
+                    setOutlineContextMenu(null);
+                  }}
+                >
+                  <span className="codicon codicon-symbol-array text-xs" />
+                  Flat Array
+                </button>
+                <button
+                  className="w-full text-left px-4 py-1.5 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
+                  onClick={() => {
+                    onRegisterAction?.(
+                      outlineContextMenu.blockIndex,
+                      outlineContextMenu.regIndex!,
+                      'insertAfter',
+                      'array'
+                    );
+                    setOutlineContextMenu(null);
+                  }}
+                >
+                  <span className="codicon codicon-symbol-struct text-xs" />
+                  Nested Array
+                </button>
+
+                <div className="border-t vscode-border my-0.5" />
+
+                <button
+                  className="w-full text-left px-4 py-2 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
+                  style={{ color: 'var(--vscode-errorForeground)' }}
+                  onClick={() => {
+                    onRegisterAction?.(
+                      outlineContextMenu.blockIndex,
+                      outlineContextMenu.regIndex!,
+                      'delete'
+                    );
+                    setOutlineContextMenu(null);
+                  }}
+                >
+                  <span className="codicon codicon-trash text-xs" />
+                  Delete
+                </button>
+              </>
+            )}
           </div>
         )}
       </>
