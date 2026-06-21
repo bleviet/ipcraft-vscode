@@ -140,9 +140,29 @@ A local Jenkins instance running in Docker, with two agent types:
 
 **Jenkinsfile structure:**
 
+Toolchain versions and Docker images are passed as **Jenkins parameters** so the
+pipeline can be re-run against different versions without editing the Jenkinsfile.
+
 ```groovy
 pipeline {
     agent none
+    parameters {
+        string(name: 'VIVADO_BIN',
+               defaultValue: '/tools/Xilinx/Vivado/2024.2/bin/vivado',
+               description: 'Path to Vivado binary on the vendor agent')
+        string(name: 'VIVADO_VERSION',
+               defaultValue: '2024.2',
+               description: 'Vivado version (for reporting)')
+        string(name: 'QUARTUS_DOCKER_IMAGE',
+               defaultValue: 'cvsoc/quartus:23.1',
+               description: 'Docker image for Quartus tests')
+        string(name: 'QUARTUS_VERSION',
+               defaultValue: '23.1',
+               description: 'Quartus version (for reporting)')
+        string(name: 'VIVADO_LICENSE_SERVER',
+               defaultValue: '',
+               description: 'FlexLM license server (e.g., 2100@host)')
+    }
     stages {
         stage('Quick checks') {
             agent { label 'ipcraft-oss' }
@@ -163,6 +183,13 @@ pipeline {
         }
         stage('Vendor synthesis') {
             agent { label 'ipcraft-vendor' }
+            environment {
+                VIVADO_BIN             = "${params.VIVADO_BIN}"
+                VIVADO_VERSION         = "${params.VIVADO_VERSION}"
+                QUARTUS_DOCKER_IMAGE   = "${params.QUARTUS_DOCKER_IMAGE}"
+                QUARTUS_VERSION        = "${params.QUARTUS_VERSION}"
+                VIVADO_LICENSE_SERVER  = "${params.VIVADO_LICENSE_SERVER}"
+            }
             steps {
                 sh 'REQUIRE_VIVADO=1 npm run test:integration:vivado'
                 sh 'REQUIRE_QUARTUS=1 npm run test:integration:quartus'
@@ -180,13 +207,61 @@ pipeline {
 }
 ```
 
-#### 4b. Docker images
+#### 4b. Configurable toolchain versions and Docker images
 
-| Image | Base | Contents |
+All Docker image names and toolchain versions are **configurable via environment variables**, not hardcoded. This allows the same test suite to run on different machines with different tool installations.
+
+**Environment variables:**
+
+| Variable | Default | Purpose |
 |---|---|---|
-| `ipcraft/oss-tools` | `ubuntu:22.04` | Node.js 20, GHDL, iverilog, Verilator, xmllint, Chromium (for Playwright) |
-| `cvsoc/quartus:23.1` | Existing | Already used for Quartus stub validation |
-| `ipcraft/vivado:2024.2` | Custom | Vivado 2024.2 + license server config. **Licensed -- not distributable.** Built locally from a Dockerfile that installs Vivado in batch mode. |
+| `QUARTUS_DOCKER_IMAGE` | `cvsoc/quartus:23.1` | Docker image for Quartus validation and synthesis |
+| `VIVADO_BIN` | `/home/balevision/tools/Xilinx/Vivado/2024.2/bin/vivado` | Path to Vivado binary (host install or Docker-mounted) |
+| `VIVADO_VERSION` | `2024.2` | Vivado version string (used for reporting and version-specific workarounds) |
+| `QUARTUS_VERSION` | `23.1` | Quartus version string (used for reporting) |
+| `VIVADO_LICENSE_SERVER` | _(unset)_ | FlexLM license server URL (e.g., `2100@license.example.com`) |
+| `OSS_DOCKER_IMAGE` | _(none -- runs on host)_ | Optional Docker image for open-source tools (GHDL, iverilog, Verilator) |
+
+**Version matrix testing:**
+
+To test against multiple toolchain versions, run the integration suite in a matrix:
+
+```bash
+# Vivado 2023.2
+VIVADO_BIN=/tools/Xilinx/Vivado/2023.2/bin/vivado \
+VIVADO_VERSION=2023.2 \
+npm run test:integration:vivado
+
+# Vivado 2024.2 (default)
+VIVADO_BIN=/tools/Xilinx/Vivado/2024.2/bin/vivado \
+VIVADO_VERSION=2024.2 \
+npm run test:integration:vivado
+
+# Quartus 22.1
+QUARTUS_DOCKER_IMAGE=cvsoc/quartus:22.1 \
+QUARTUS_VERSION=22.1 \
+npm run test:integration:quartus
+
+# Quartus 24.1
+QUARTUS_DOCKER_IMAGE=myregistry/quartus:24.1 \
+QUARTUS_VERSION=24.1 \
+npm run test:integration:quartus
+```
+
+The Jenkins pipeline (or GitHub Actions matrix) can parameterize these env vars to run the full version matrix nightly or on tag releases.
+
+**Docker image requirements:**
+
+The Quartus Docker image must provide:
+- `tclsh` at a known path (currently `/opt/intelFPGA/quartus/bin/tclsh`)
+- `quartus_sh` for project creation tests
+- `quartus_map`, `quartus_fit`, `quartus_asm` for full compilation (Phase 2b)
+
+The Vivado setup can be either:
+- **Host install:** Vivado installed directly on the CI agent machine, `VIVADO_BIN` points to the binary.
+- **Docker container:** Vivado in a Docker image with the license server configured. The test spawns `docker run` with the image name from `VIVADO_DOCKER_IMAGE` (optional, not yet implemented -- host install is simpler for licensed tools).
+
+**No hardcoded image names in test code.** The existing `quartus.test.ts` and `vivado.test.ts` already read from env vars with defaults. All new tests must follow this pattern.
 
 #### 4c. GitHub Actions bridge
 
@@ -194,9 +269,9 @@ The existing `ci.yml` continues to run on `ubuntu-latest` for fast feedback (lin
 
 Alternatively, a **GitHub Actions self-hosted runner** on the vendor-tools machine could replace Jenkins entirely. This is simpler if only one machine has Vivado.
 
-**Decision point:** Jenkins vs. GitHub Actions self-hosted runner. Jenkins gives more pipeline flexibility and Docker orchestration. GitHub Actions is simpler and integrates natively with PR status. Recommendation: start with GitHub Actions self-hosted runner (less infrastructure), migrate to Jenkins only if multi-agent orchestration becomes necessary.
+**Decision:** Local Jenkins + Docker for vendor tool CI (dedicated Vivado machine available).
 
-**Exit criteria:** Every PR triggers Vivado OOC synthesis (all target fixtures) and Quartus compile (all target fixtures). Results visible as PR check status.
+**Exit criteria:** Every PR triggers Vivado OOC synthesis (all target fixtures) and Quartus compile (all target fixtures). Results visible as PR check status. Toolchain versions are configurable via env vars, not hardcoded.
 
 ---
 
