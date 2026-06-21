@@ -129,6 +129,31 @@ addressBlocks:
     expect(lastMsg.type).toBe('update');
     expect(lastMsg.text).toContain('"[1:0]"');
   });
+
+  test('should focus and select newly inserted register on insert below', async ({ page }) => {
+    // 1. Locate current register (CTRL)
+    const ctrlItem = page.locator('[role="treeitem"]', { hasText: 'CTRL' }).first();
+    await expect(ctrlItem).toBeVisible();
+
+    // 2. Right-click CTRL item to trigger context menu
+    await ctrlItem.click({ button: 'right' });
+
+    // 3. Verify context menu is visible and click "Register" under "Insert Below"
+    const insertBelowHeading = page.locator('text=Insert Below');
+    await expect(insertBelowHeading).toBeVisible();
+
+    // The second button with text "Register" is the one for "Insert Below"
+    const registerButtons = page.locator('button:has-text("Register")');
+    await registerButtons.nth(1).click();
+
+    // 4. Verify that a new register is created (should be named reg1 by nextSequentialName)
+    const newRegItem = page.locator('[role="treeitem"]', { hasText: 'reg1' }).first();
+    await expect(newRegItem).toBeVisible();
+
+    // 5. Verify that the new register is selected and the old one is not
+    await expect(newRegItem).toHaveClass(/selected/);
+    await expect(ctrlItem).not.toHaveClass(/selected/);
+  });
 });
 
 test.describe('IPCraft IP Core Webview Integration', () => {

@@ -2,6 +2,12 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode, ErrorInfo } from 'react';
 import { createRoot } from 'react-dom/client';
 import Outline, { type OutlineHandle } from './components/OutlinePanel';
+import {
+  blockId,
+  registerId,
+  arrayRegisterId,
+  arrayElementRegisterId,
+} from './components/outline/outlineIds';
 import DetailsPanel, { type DetailsPanelHandle } from './components/DetailsPanel';
 import { vscode } from './vscode';
 import { useMemoryMapState } from './hooks/useMemoryMapState';
@@ -237,6 +243,80 @@ const App = () => {
         updateRawText(newText);
         sendUpdate(newText);
       }
+
+      if (action !== 'delete' && result.newIndex !== -1) {
+        const blocks = result.memoryMap.addressBlocks ?? result.memoryMap.address_blocks ?? [];
+        const block = blocks[blockIndex];
+        const mapName = result.memoryMap.name ?? 'Memory Map';
+
+        if (parentRegIndex !== undefined) {
+          const parentReg = (block?.registers as Record<string, unknown>[])?.[parentRegIndex];
+          const newReg = (parentReg?.registers as Record<string, unknown>[])?.[result.newIndex];
+          if (block && parentReg && newReg) {
+            let elementIndex = 0;
+            if (selectedId) {
+              const match = selectedId.match(/arrreg-\d+-el-(\d+)/);
+              if (match) {
+                elementIndex = parseInt(match[1], 10);
+              }
+            }
+            const id = arrayElementRegisterId(
+              blockIndex,
+              parentRegIndex,
+              elementIndex,
+              result.newIndex
+            );
+            const blockBase = Number(block.baseAddress ?? 0);
+            const arrOff = Number(parentReg.offset ?? 0);
+            const elementBase = blockBase + arrOff + elementIndex * Number(parentReg.stride ?? 4);
+            const absolute = elementBase + Number(newReg.offset ?? 0);
+            handleSelect({
+              id,
+              type: 'register',
+              object: newReg,
+              breadcrumbs: [
+                mapName,
+                block.name ?? '',
+                `${parentReg.name}[${elementIndex}]`,
+                String(newReg.name),
+              ],
+              path: [
+                'addressBlocks',
+                blockIndex,
+                'registers',
+                parentRegIndex,
+                'registers',
+                result.newIndex,
+              ],
+              meta: {
+                absoluteAddress: absolute,
+                relativeOffset: Number(newReg.offset ?? 0),
+              },
+            });
+          }
+        } else {
+          const newReg = (block?.registers as Record<string, unknown>[])?.[result.newIndex];
+          if (block && newReg) {
+            const isArray = newReg.__kind === 'array' || kind === 'array';
+            const id = isArray
+              ? arrayRegisterId(blockIndex, result.newIndex)
+              : registerId(blockIndex, result.newIndex);
+            const blockBase = Number(block.baseAddress ?? 0);
+            const absolute = blockBase + Number(newReg.offset ?? 0);
+            handleSelect({
+              id,
+              type: isArray ? 'array' : 'register',
+              object: newReg,
+              breadcrumbs: [mapName, block.name ?? '', String(newReg.name)],
+              path: ['addressBlocks', blockIndex, 'registers', result.newIndex],
+              meta: {
+                absoluteAddress: absolute,
+                relativeOffset: Number(newReg.offset ?? 0),
+              },
+            });
+          }
+        }
+      }
     }
   };
 
@@ -283,6 +363,22 @@ const App = () => {
       if (newText !== rawTextRef.current) {
         updateRawText(newText);
         sendUpdate(newText);
+      }
+
+      if (action !== 'delete' && result.newIndex !== -1) {
+        const blocks = result.memoryMap.addressBlocks ?? result.memoryMap.address_blocks ?? [];
+        const newBlock = blocks[result.newIndex];
+        if (newBlock) {
+          const mapName = result.memoryMap.name ?? 'Memory Map';
+          const id = blockId(result.newIndex);
+          handleSelect({
+            id,
+            type: 'block',
+            object: newBlock,
+            breadcrumbs: [mapName, newBlock.name ?? ''],
+            path: ['addressBlocks', result.newIndex],
+          });
+        }
       }
     }
   };
