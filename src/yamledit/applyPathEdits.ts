@@ -1,4 +1,4 @@
-import { parseDocument } from 'yaml';
+import { parseDocument, isScalar } from 'yaml';
 import { detectIndentSeq } from './detectIndentSeq';
 import { collectHexSpellings, restoreHexSpellings } from './restoreHexSpellings';
 import { mergeNode } from './mergeNode';
@@ -16,6 +16,17 @@ function toJS(node: unknown): unknown {
 
 function sameJson(a: unknown, b: unknown): boolean {
   return JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+}
+
+function parsePossibleHex(val: string): number | null {
+  const cleaned = val.trim();
+  if (cleaned.startsWith('0x') || cleaned.startsWith('0X')) {
+    const parsed = parseInt(cleaned, 16);
+    if (!isNaN(parsed)) {
+      return parsed;
+    }
+  }
+  return null;
 }
 
 /**
@@ -37,10 +48,23 @@ export function applyPathEdits(text: string, edits: PathEdit[]): string {
   let changed = false;
   for (const { path, value } of edits) {
     const current = doc.getIn(path, true);
-    if (sameJson(toJS(current), value)) {
+    let finalValue = value;
+    let forceHex = false;
+    if (typeof value === 'string') {
+      const parsed = parsePossibleHex(value);
+      if (parsed !== null) {
+        finalValue = parsed;
+        forceHex = true;
+      }
+    }
+
+    if (sameJson(toJS(current), finalValue)) {
       continue;
     }
-    const merged = mergeNode(doc, current, value);
+    const merged = mergeNode(doc, current, finalValue);
+    if (forceHex && isScalar(merged)) {
+      merged.format = 'HEX';
+    }
     if (merged !== current) {
       doc.setIn(path, merged);
     }

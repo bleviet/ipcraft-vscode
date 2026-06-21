@@ -22,6 +22,7 @@ interface OutlineTreeNodesProps {
   onFocusTree: () => void;
   onSelect: (selection: OutlineSelection) => void;
   renderNameOrEdit: RenderNameOrEdit;
+  renderBaseAddressOrEdit?: (id: string, baseAddress: number, path: YamlPath) => React.ReactNode;
   startEditing?: (id: string, name: string) => void;
   onRegisterContextMenu?: (
     blockIndex: number,
@@ -127,6 +128,7 @@ const OutlineTreeNodes = ({
   onFocusTree,
   onSelect,
   renderNameOrEdit,
+  renderBaseAddressOrEdit,
   startEditing,
   onRegisterContextMenu,
   onBlockContextMenu,
@@ -204,6 +206,11 @@ const OutlineTreeNodes = ({
             onToggleExpand={(e) => onToggleExpand(id, e)}
             onDoubleClick={() => startEditing?.(id, block.name ?? '')}
             name={renderNameOrEdit(id, block.name, ['addressBlocks', blockIndex], 'flex-1')}
+            baseAddress={
+              renderBaseAddressOrEdit
+                ? renderBaseAddressOrEdit(id, block.baseAddress, ['addressBlocks', blockIndex])
+                : undefined
+            }
             actionButton={actionButton}
             onContextMenu={
               onBlockContextMenu

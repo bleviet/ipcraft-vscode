@@ -10,7 +10,7 @@ interface UseOutlineKeyboardOptions {
   rootId: string;
   visibleSelections: OutlineSelection[];
   onSelect: (selection: OutlineSelection) => void;
-  onRename?: (path: Array<string | number>, newName: string) => void;
+  onRename?: (path: Array<string | number>, newName: string | number) => void;
   startEditing: (id: string, currentName: string) => void;
   memoryMap: NormalizedMemoryMap;
   setExpanded: Dispatch<SetStateAction<Set<string>>>;

@@ -11,7 +11,7 @@ interface OutlineRenameOptions {
 
 export function useOutlineRename({ rawTextRef, updateRawText, sendUpdate }: OutlineRenameOptions) {
   return useCallback(
-    (path: YamlPath, newName: string) => {
+    (path: YamlPath, newName: string | number) => {
       const currentText = rawTextRef.current;
       const rootObj = YamlService.safeParse(currentText);
       if (!rootObj) {

@@ -13,11 +13,43 @@ import { buildVisibleSelections } from './outline/buildVisibleSelections';
 import { useOutlineKeyboard } from './outline/useOutlineKeyboard';
 import OutlineTreeNodes from './outline/OutlineTreeNodes';
 
+function parseAddressString(val: string): number | null {
+  const cleaned = val.trim();
+  if (!cleaned) {
+    return null;
+  }
+
+  // Try standard direct parsing (handles decimal and 0x prefix)
+  const direct = Number(cleaned);
+  if (Number.isFinite(direct)) {
+    return direct;
+  }
+
+  // Handle trailing 'h' or 'H' (e.g. 1000h, 40h)
+  if (/^[0-9a-fA-F]+[hH]$/.test(cleaned)) {
+    const hexVal = parseInt(cleaned.slice(0, -1), 16);
+    if (!isNaN(hexVal)) {
+      return hexVal;
+    }
+  }
+
+  // Handle 'h' or 'H' prefix or quote format (e.g. h1000, 'h1000, 16'h1000)
+  const hexPrefixMatch = cleaned.match(/(?:'?[hH])([0-9a-fA-F]+)$/);
+  if (hexPrefixMatch) {
+    const hexVal = parseInt(hexPrefixMatch[1], 16);
+    if (!isNaN(hexVal)) {
+      return hexVal;
+    }
+  }
+
+  return null;
+}
+
 interface OutlineProps {
   memoryMap: NormalizedMemoryMap;
   selectedId: string | null;
   onSelect: (selection: OutlineSelection) => void;
-  onRename?: (path: YamlPath, newName: string) => void;
+  onRename?: (path: YamlPath, newName: string | number) => void;
   onRegisterAction?: (
     blockIndex: number,
     regIndex: number | undefined,
@@ -62,6 +94,10 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editingValue, setEditingValue] = useState('');
     const editInputRef = useRef<HTMLInputElement | null>(null);
+
+    const [editingBaseId, setEditingBaseId] = useState<string | null>(null);
+    const [editingBaseValue, setEditingBaseValue] = useState('');
+    const editBaseInputRef = useRef<HTMLInputElement | null>(null);
     const outlineContextMenuRef = useRef<HTMLDivElement | null>(null);
     const [outlineContextMenu, setOutlineContextMenu] = useState<{
       x: number;
@@ -158,6 +194,91 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
       treeFocusRef.current?.focus();
     };
 
+    const startEditingBase = (id: string, currentAddress: number) => {
+      if (!onRename) {
+        return;
+      }
+      setEditingBaseId(id);
+      setEditingBaseValue(`0x${currentAddress.toString(16).toUpperCase()}`);
+      setTimeout(() => {
+        editBaseInputRef.current?.focus();
+        editBaseInputRef.current?.select();
+      }, 0);
+    };
+
+    const commitEditBase = (path: YamlPath) => {
+      if (!onRename || !editingBaseId) {
+        return;
+      }
+      const parsed = parseAddressString(editingBaseValue);
+      if (parsed !== null && parsed >= 0) {
+        const trimmed = editingBaseValue.trim();
+        const isHexInput =
+          trimmed.startsWith('0x') || trimmed.startsWith('0X') || /[hH]$/.test(trimmed);
+        if (isHexInput) {
+          onRename([...path, 'baseAddress'], `0x${parsed.toString(16).toUpperCase()}`);
+        } else {
+          onRename([...path, 'baseAddress'], parsed);
+        }
+      }
+      setEditingBaseId(null);
+      setEditingBaseValue('');
+      treeFocusRef.current?.focus();
+    };
+
+    const cancelEditBase = () => {
+      setEditingBaseId(null);
+      setEditingBaseValue('');
+      treeFocusRef.current?.focus();
+    };
+
+    const renderBaseAddressOrEdit = (id: string, baseAddress: number, path: YamlPath) => {
+      if (editingBaseId === id) {
+        return (
+          <input
+            ref={editBaseInputRef}
+            type="text"
+            className="outline-inline-edit px-1 py-0 text-sm font-mono rounded border shrink-0"
+            style={{
+              background: 'var(--vscode-input-background)',
+              color: 'var(--vscode-input-foreground)',
+              borderColor: 'var(--vscode-focusBorder)',
+              minWidth: '80px',
+              width: `${Math.max(80, editingBaseValue.length * 8)}px`,
+            }}
+            value={editingBaseValue}
+            onChange={(e) => setEditingBaseValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                e.stopPropagation();
+                commitEditBase(path);
+              } else if (e.key === 'Escape') {
+                e.preventDefault();
+                e.stopPropagation();
+                cancelEditBase();
+              }
+            }}
+            onBlur={() => commitEditBase(path)}
+            onClick={(e) => e.stopPropagation()}
+            onDoubleClick={(e) => e.stopPropagation()}
+          />
+        );
+      }
+      return (
+        <span
+          className="text-[10px] vscode-muted font-mono shrink-0 cursor-pointer hover:underline"
+          title="Double click to change base address"
+          onDoubleClick={(e) => {
+            e.stopPropagation();
+            startEditingBase(id, baseAddress);
+          }}
+        >
+          @ 0x{baseAddress.toString(16).toUpperCase()}
+        </span>
+      );
+    };
+
     const renderNameOrEdit = (id: string, name: string, path: YamlPath, className?: string) => {
       if (editingId === id) {
         return (
@@ -245,7 +366,7 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
     }, [memoryMap, memoryMapName, expanded, filteredBlocks]);
 
     const onTreeKeyDown = useOutlineKeyboard({
-      editingId,
+      editingId: editingId ?? editingBaseId,
       selectedId,
       rootId,
       visibleSelections,
@@ -324,6 +445,7 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
                 onFocusTree={() => treeFocusRef.current?.focus()}
                 onSelect={onSelect}
                 renderNameOrEdit={renderNameOrEdit}
+                renderBaseAddressOrEdit={renderBaseAddressOrEdit}
                 startEditing={startEditing}
                 onRegisterContextMenu={
                   onRegisterAction
