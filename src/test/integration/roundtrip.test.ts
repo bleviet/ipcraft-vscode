@@ -244,3 +244,139 @@ describe('Quartus hw.tcl round-trip', () => {
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// Cross-vendor structural consistency
+// ---------------------------------------------------------------------------
+
+const CROSS_VENDOR_MM_TYPES = new Set(['axil', 'axi4']);
+
+describe('Cross-vendor structural consistency', () => {
+  it('Vivado component.xml and Quartus hw.tcl declare the same VLNV name', async () => {
+    const failures: string[] = [];
+
+    for (const fixture of allFixtures) {
+      const xmlPath = path.join(fixture.outputDir, 'xilinx', 'component.xml');
+      const alteraDir = path.join(fixture.outputDir, 'altera');
+      if (!fs.existsSync(xmlPath) || !fs.existsSync(alteraDir)) {
+        continue;
+      }
+      const tclFiles = hwTclFiles(fixture);
+      if (tclFiles.length === 0) {
+        continue;
+      }
+
+      const xmlText = fs.readFileSync(xmlPath, 'utf8');
+      const xmlParsed = parseComponentXmlText(xmlText);
+      const xmlYaml = jsYaml.load(xmlParsed.ipYamlText) as Record<string, unknown>;
+      const xmlName = String((xmlYaml.vlnv as Record<string, unknown>)?.name ?? '').toLowerCase();
+
+      for (const tclPath of tclFiles) {
+        const tclResult = await parseHwTclFile(tclPath);
+        const tclName = tclResult.componentName.toLowerCase();
+
+        if (xmlName !== tclName) {
+          failures.push(
+            `${fixture.name}: VLNV name mismatch\n` +
+              `  component.xml: "${xmlName}"\n` +
+              `  hw.tcl:        "${tclName}"`
+          );
+        }
+      }
+    }
+
+    if (failures.length > 0) {
+      throw new Error(`Cross-vendor VLNV name mismatches:\n\n${failures.join('\n\n')}`);
+    }
+  });
+
+  it('Vivado and Quartus declare the same memory-mapped bus protocols', async () => {
+    const failures: string[] = [];
+
+    for (const fixture of allFixtures) {
+      const xmlPath = path.join(fixture.outputDir, 'xilinx', 'component.xml');
+      const alteraDir = path.join(fixture.outputDir, 'altera');
+      if (!fs.existsSync(xmlPath) || !fs.existsSync(alteraDir)) {
+        continue;
+      }
+      const tclFiles = hwTclFiles(fixture);
+      if (tclFiles.length === 0) {
+        continue;
+      }
+
+      const xmlText = fs.readFileSync(xmlPath, 'utf8');
+      const xmlParsed = parseComponentXmlText(xmlText);
+      const xmlYaml = jsYaml.load(xmlParsed.ipYamlText) as Record<string, unknown>;
+      const xmlMm = filterBusByTypes(
+        (xmlYaml.busInterfaces as unknown[]) ?? [],
+        CROSS_VENDOR_MM_TYPES
+      );
+
+      for (const tclPath of tclFiles) {
+        const tclResult = await parseHwTclFile(tclPath);
+        const tclYaml = jsYaml.load(tclResult.yamlText) as Record<string, unknown>;
+        const tclMm = filterBusByTypes(
+          (tclYaml.busInterfaces as unknown[]) ?? [],
+          CROSS_VENDOR_MM_TYPES
+        );
+
+        if (JSON.stringify(xmlMm) !== JSON.stringify(tclMm)) {
+          failures.push(
+            `${fixture.name} (${path.basename(tclPath)}): MM bus protocols\n` +
+              `  component.xml: [${xmlMm.join(', ')}]\n` +
+              `  hw.tcl:        [${tclMm.join(', ')}]`
+          );
+        }
+      }
+    }
+
+    if (failures.length > 0) {
+      throw new Error(`Cross-vendor MM bus mismatches:\n\n${failures.join('\n\n')}`);
+    }
+  });
+
+  it('Vivado and Quartus declare the same parameter names', async () => {
+    const failures: string[] = [];
+
+    for (const fixture of allFixtures) {
+      const xmlPath = path.join(fixture.outputDir, 'xilinx', 'component.xml');
+      const alteraDir = path.join(fixture.outputDir, 'altera');
+      if (!fs.existsSync(xmlPath) || !fs.existsSync(alteraDir)) {
+        continue;
+      }
+      const tclFiles = hwTclFiles(fixture);
+      if (tclFiles.length === 0) {
+        continue;
+      }
+
+      const xmlText = fs.readFileSync(xmlPath, 'utf8');
+      const xmlParsed = parseComponentXmlText(xmlText);
+      const xmlYaml = jsYaml.load(xmlParsed.ipYamlText) as Record<string, unknown>;
+      const xmlParams = ((xmlYaml.parameters as unknown[]) ?? [])
+        .filter((p) => p && typeof p === 'object')
+        .map((p) => String((p as Record<string, unknown>).name ?? '').toLowerCase())
+        .sort();
+
+      for (const tclPath of tclFiles) {
+        const tclResult = await parseHwTclFile(tclPath);
+        const tclYaml = jsYaml.load(tclResult.yamlText) as Record<string, unknown>;
+        const tclParams = ((tclYaml.parameters as unknown[]) ?? [])
+          .filter((p) => p && typeof p === 'object')
+          .map((p) => String((p as Record<string, unknown>).name ?? '').toLowerCase())
+          .sort();
+
+        if (JSON.stringify(xmlParams) !== JSON.stringify(tclParams)) {
+          failures.push(
+            `${fixture.name} (${path.basename(tclPath)}): parameter names\n` +
+              `  component.xml: [${xmlParams.join(', ')}]\n` +
+              `  hw.tcl:        [${tclParams.join(', ')}]`
+          );
+        }
+      }
+    }
+
+    if (failures.length > 0) {
+      throw new Error(`Cross-vendor parameter mismatches:\n\n${failures.join('\n\n')}`);
+    }
+  });
+});

@@ -13,7 +13,6 @@ test.describe('IPCraft Webview UI Integration', () => {
   });
 
   test.beforeEach(async ({ page }) => {
-    // Log console messages from the page
     page.on('console', (msg) => {
       if (msg.text().startsWith('VSCODE_MESSAGE:')) {
         console.log('Browser PostMessage:', msg.text().substring(15));
@@ -22,7 +21,6 @@ test.describe('IPCraft Webview UI Integration', () => {
       }
     });
 
-    // Wait for ready message from the webview
     console.log('Waiting for READY message from webview...');
     const readyPromise = page.waitForEvent('console', {
       predicate: (msg) => msg.text().includes('VSCODE_MESSAGE:') && msg.text().includes('"ready"'),
@@ -31,13 +29,11 @@ test.describe('IPCraft Webview UI Integration', () => {
 
     await page.goto(harnessPath);
 
-    // Wait for React to hydrate
     await page.waitForSelector('#root div');
 
     await readyPromise;
     console.log('READY message received, sending initial YAML');
 
-    // Render initial data with retries until loading disappears
     await page.evaluate(() => {
       const yaml = `
 addressBlocks:
@@ -75,48 +71,38 @@ addressBlocks:
         }
       }, 500);
 
-      // First attempt
       send();
 
-      // Safety timeout
       setTimeout(() => clearInterval(interval), 10000);
     });
 
-    // Wait for main content
     await page.waitForSelector('#root main', { timeout: 15000 });
   });
 
   test('should render, edit and post message correctly', async ({ page }) => {
-    // 1. Initial render check
     await expect(page.locator('section')).toContainText('REGS', { timeout: 15000 });
 
     const ctrlItem = page.locator('[role="treeitem"] >> text=CTRL').first();
     await expect(ctrlItem).toBeVisible();
 
-    // 2. Click to open editor
     await ctrlItem.click();
 
-    // Wait for details panel header
     const editorHeader = page.locator('h2:has-text("CTRL")');
     await expect(editorHeader).toBeVisible();
 
-    // 3. Edit a field (MSB)
     const msbInput = page.getByPlaceholder('MSB').first();
     await expect(msbInput).toBeVisible();
 
-    // Reset last message tracker
     await page.evaluate(() => {
       (window as any).__last_message = null;
     });
 
-    // Action: Click, clear and type
     await msbInput.click();
     await page.keyboard.press('Control+A');
     await page.keyboard.press('Backspace');
     await page.keyboard.type('1');
     await page.keyboard.press('Enter');
 
-    // 4. Verification of outbound message
     await page.waitForFunction(
       () => {
         const msg = (window as any).__last_message;
@@ -131,28 +117,283 @@ addressBlocks:
   });
 
   test('should focus and select newly inserted register on insert below', async ({ page }) => {
-    // 1. Locate current register (CTRL)
     const ctrlItem = page.locator('[role="treeitem"]', { hasText: 'CTRL' }).first();
     await expect(ctrlItem).toBeVisible();
 
-    // 2. Right-click CTRL item to trigger context menu
     await ctrlItem.click({ button: 'right' });
 
-    // 3. Verify context menu is visible and click "Register" under "Insert Below"
     const insertBelowHeading = page.locator('text=Insert Below');
     await expect(insertBelowHeading).toBeVisible();
 
-    // The second button with text "Register" is the one for "Insert Below"
     const registerButtons = page.locator('button:has-text("Register")');
     await registerButtons.nth(1).click();
 
-    // 4. Verify that a new register is created (should be named reg1 by nextSequentialName)
     const newRegItem = page.locator('[role="treeitem"]', { hasText: 'reg1' }).first();
     await expect(newRegItem).toBeVisible();
 
-    // 5. Verify that the new register is selected and the old one is not
     await expect(newRegItem).toHaveClass(/selected/);
     await expect(ctrlItem).not.toHaveClass(/selected/);
+  });
+
+  test('should render tree with root, block, and register nodes', async ({ page }) => {
+    const rootItem = page.locator('[data-outline-id="root"]');
+    await expect(rootItem).toBeVisible();
+    await expect(rootItem).toContainText('Memory Map');
+
+    const blockItem = page.locator('[data-outline-id="block-0"]');
+    await expect(blockItem).toBeVisible();
+    await expect(blockItem).toContainText('REGS');
+
+    const regItem = page.locator('[data-outline-id="block-0-reg-0"]');
+    await expect(regItem).toBeVisible();
+    await expect(regItem).toContainText('CTRL');
+  });
+
+  test('should show register editor when CTRL tree item is clicked', async ({ page }) => {
+    const ctrlItem = page.locator('[data-outline-id="block-0-reg-0"]');
+    await ctrlItem.click();
+
+    const header = page.locator('h2:has-text("CTRL")');
+    await expect(header).toBeVisible({ timeout: 5000 });
+
+    const msbInput = page.getByPlaceholder('MSB');
+    await expect(msbInput.first()).toBeVisible({ timeout: 5000 });
+  });
+
+  test('should update details panel when selecting different tree nodes', async ({ page }) => {
+    const multiYaml = `
+addressBlocks:
+  - name: REGS
+    base_address: 0
+    registers:
+      - name: CTRL
+        description: Control register
+        address_offset: 0
+        fields:
+          - name: ENABLE
+            bits: "[0:0]"
+            reset_value: "0x0"
+      - name: STATUS
+        description: Status register
+        address_offset: 4
+        fields:
+          - name: READY
+            bits: "[0:0]"
+            reset_value: "0x0"
+`;
+    await page.evaluate((yaml) => {
+      (window as any).__RENDER__(yaml);
+    }, multiYaml);
+
+    await page.waitForTimeout(500);
+
+    const ctrlItem = page.locator('[data-outline-id="block-0-reg-0"]');
+    await ctrlItem.click();
+    await expect(page.locator('h2:has-text("CTRL")')).toBeVisible({ timeout: 5000 });
+
+    const statusItem = page.locator('[data-outline-id="block-0-reg-1"]');
+    await statusItem.click();
+    await expect(page.locator('h2:has-text("STATUS")')).toBeVisible({ timeout: 5000 });
+  });
+
+  test('should show block editor when address block tree node is clicked', async ({ page }) => {
+    const blockItem = page.locator('[data-outline-id="block-0"]');
+    await blockItem.click();
+
+    await expect(page.locator('h2:has-text("REGS")')).toBeVisible({ timeout: 5000 });
+  });
+
+  test('should show memory map editor when root tree node is clicked', async ({ page }) => {
+    const rootItem = page.locator('[data-outline-id="root"]');
+    await rootItem.click();
+
+    const blocksTable = page.locator('[data-blocks-table]');
+    await expect(blocksTable).toBeVisible({ timeout: 5000 });
+  });
+
+  test('should navigate tree items with ArrowDown key', async ({ page }) => {
+    const tree = page.locator('[role="tree"]');
+    await tree.focus();
+
+    const rootItem = page.locator('[data-outline-id="root"]');
+    await rootItem.click();
+
+    await page.keyboard.press('ArrowDown');
+    await page.waitForTimeout(200);
+
+    const blockItem = page.locator('[data-outline-id="block-0"]');
+    await expect(blockItem).toHaveClass(/selected/);
+
+    await page.keyboard.press('ArrowDown');
+    await page.waitForTimeout(200);
+
+    const regItem = page.locator('[data-outline-id="block-0-reg-0"]');
+    await expect(regItem).toHaveClass(/selected/);
+  });
+
+  test('should rename a register via double-click on tree item', async ({ page }) => {
+    const ctrlItem = page.locator('[data-outline-id="block-0-reg-0"]');
+    await ctrlItem.dblclick();
+
+    const editInput = page.locator('.outline-inline-edit');
+    await expect(editInput).toBeVisible({ timeout: 3000 });
+
+    await editInput.fill('MY_REG');
+    await editInput.press('Enter');
+
+    await page.waitForTimeout(500);
+
+    const renamedItem = page.locator('[role="treeitem"]', { hasText: 'MY_REG' });
+    await expect(renamedItem).toBeVisible({ timeout: 5000 });
+  });
+
+  test('should insert register above via context menu', async ({ page }) => {
+    const ctrlItem = page.locator('[data-outline-id="block-0-reg-0"]');
+    await ctrlItem.click({ button: 'right' });
+
+    const insertAboveHeading = page.locator('text=Insert Above');
+    await expect(insertAboveHeading).toBeVisible();
+
+    const registerButtons = page.locator('button:has-text("Register")');
+    await registerButtons.first().click();
+
+    const newRegItem = page.locator('[role="treeitem"]', { hasText: 'reg1' }).first();
+    await expect(newRegItem).toBeVisible({ timeout: 5000 });
+  });
+
+  test('should delete a register via context menu', async ({ page }) => {
+    const ctrlItem = page.locator('[data-outline-id="block-0-reg-0"]');
+    await expect(ctrlItem).toBeVisible();
+
+    await ctrlItem.click({ button: 'right' });
+
+    const deleteBtn = page.locator('button:has-text("Delete")');
+    await expect(deleteBtn).toBeVisible();
+    await deleteBtn.click();
+
+    await page.waitForTimeout(500);
+
+    const ctrlAfter = page.locator('[data-outline-id="block-0-reg-0"]');
+    await expect(ctrlAfter).not.toBeVisible({ timeout: 5000 });
+  });
+
+  test('should filter tree items using search input', async ({ page }) => {
+    const multiYaml = `
+addressBlocks:
+  - name: REGS
+    base_address: 0
+    registers:
+      - name: CTRL
+        address_offset: 0
+        fields:
+          - name: ENABLE
+            bits: "[0:0]"
+      - name: STATUS
+        address_offset: 4
+        fields:
+          - name: READY
+            bits: "[0:0]"
+`;
+    await page.evaluate((yaml) => {
+      (window as any).__RENDER__(yaml);
+    }, multiYaml);
+    await page.waitForTimeout(500);
+
+    const filterInput = page.locator('.outline-filter-input');
+    await filterInput.fill('STATUS');
+
+    await page.waitForTimeout(300);
+
+    const ctrlItem = page.locator('[role="treeitem"]', { hasText: 'CTRL' });
+    await expect(ctrlItem).not.toBeVisible({ timeout: 3000 });
+
+    const statusItem = page.locator('[role="treeitem"]', { hasText: 'STATUS' });
+    await expect(statusItem).toBeVisible();
+  });
+
+  test('should expand and collapse tree nodes via chevron click', async ({ page }) => {
+    const blockChevron = page
+      .locator(
+        '[data-outline-id="block-0"] .codicon-chevron-down, [data-outline-id="block-0"] .codicon-chevron-right'
+      )
+      .first();
+
+    const regItem = page.locator('[data-outline-id="block-0-reg-0"]');
+    await expect(regItem).toBeVisible();
+
+    await blockChevron.click();
+    await page.waitForTimeout(300);
+
+    await expect(regItem).not.toBeVisible({ timeout: 3000 });
+
+    await blockChevron.click();
+    await page.waitForTimeout(300);
+
+    await expect(regItem).toBeVisible({ timeout: 3000 });
+  });
+
+  test('should edit field reset value and post message', async ({ page }) => {
+    const ctrlItem = page.locator('[data-outline-id="block-0-reg-0"]');
+    await ctrlItem.click();
+
+    await expect(page.locator('h2:has-text("CTRL")')).toBeVisible({ timeout: 5000 });
+
+    await page.evaluate(() => {
+      (window as any).__last_message = null;
+    });
+
+    const resetInput = page.getByPlaceholder('Reset').first();
+    if (await resetInput.isVisible()) {
+      await resetInput.click();
+      await page.keyboard.press('Control+A');
+      await page.keyboard.press('Backspace');
+      await page.keyboard.type('0x1');
+      await page.keyboard.press('Enter');
+
+      await page.waitForFunction(
+        () => {
+          const msg = (window as any).__last_message;
+          return msg && msg.type === 'update';
+        },
+        { timeout: 10000 }
+      );
+
+      const lastMsg = await page.evaluate(() => (window as any).__last_message);
+      expect(lastMsg.type).toBe('update');
+    }
+  });
+
+  test('should collapse all and expand all via toggle button', async ({ page }) => {
+    const regItem = page.locator('[data-outline-id="block-0-reg-0"]');
+    await expect(regItem).toBeVisible();
+
+    const toggleBtn = page.locator('.outline-filter-button');
+    await toggleBtn.click();
+    await page.waitForTimeout(300);
+
+    const blockItem = page.locator('[data-outline-id="block-0"]');
+    await expect(blockItem).toBeVisible();
+
+    const blockRegChildren = page.locator('[data-outline-id="block-0-reg-0"]');
+    await expect(blockRegChildren).not.toBeVisible({ timeout: 3000 });
+
+    await toggleBtn.click();
+    await page.waitForTimeout(300);
+
+    await expect(regItem).toBeVisible({ timeout: 3000 });
+  });
+
+  test('should show base address in outline footer', async ({ page }) => {
+    const footer = page.locator('.outline-footer');
+    await expect(footer).toBeVisible();
+    await expect(footer).toContainText('Base:');
+    await expect(footer).toContainText('0x0');
+  });
+
+  test('should show item count in outline footer', async ({ page }) => {
+    const footer = page.locator('.outline-footer');
+    await expect(footer).toBeVisible();
+    await expect(footer).toContainText('1 Items');
   });
 });
 
@@ -172,12 +413,85 @@ bus_interfaces:
     mode: slave
 `;
 
+  const ipCoreWithParams = `
+vlnv:
+  vendor: acme.com
+  library: ip
+  name: param_core
+  version: 2.0.0
+description: Core with parameters
+bus_interfaces:
+  - name: S_AXI
+    type: AXI4L
+    mode: slave
+parameters:
+  - name: ADDR_WIDTH
+    value: 32
+    dataType: integer
+  - name: DATA_WIDTH
+    value: 16
+    dataType: integer
+`;
+
+  const ipCoreMultiBus = `
+vlnv:
+  vendor: multi.com
+  library: bus
+  name: dual_bus_core
+  version: 1.0.0
+description: Core with two bus interfaces
+bus_interfaces:
+  - name: S_AXI
+    type: AXI4L
+    mode: slave
+  - name: M_AXI
+    type: AXI4L
+    mode: master
+`;
+
+  const ipCoreNoBus = `
+vlnv:
+  vendor: simple.com
+  library: basic
+  name: no_bus_core
+  version: 1.0.0
+description: Core without bus interfaces
+clocks:
+  - name: clk
+    direction: in
+resets:
+  - name: rst
+    direction: in
+    polarity: activeHigh
+`;
+
   test.afterEach(async ({ page }, testInfo) => {
     if (testInfo.status !== testInfo.expectedStatus) {
       const html = await page.content();
       console.log(`IPCore page HTML on failure (${testInfo.title}):`, html.substring(0, 2000));
     }
   });
+
+  async function setupIpCore(page: any, yaml: string, fileName: string = 'test_core.ip.yml') {
+    const readyPromise = page.waitForEvent('console', {
+      predicate: (msg: any) =>
+        msg.text().includes('VSCODE_MESSAGE:') && msg.text().includes('"ready"'),
+      timeout: 10000,
+    });
+
+    await page.goto(harnessPath);
+    await page.waitForSelector('#ipcore-root');
+    await readyPromise;
+
+    await page.evaluate(
+      ({ yaml: y, fileName: fn }: { yaml: string; fileName: string }) => {
+        window.postMessage({ type: 'update', text: y, fileName: fn }, '*');
+      },
+      { yaml, fileName }
+    );
+
+    await page.waitForTimeout(500);
+  }
 
   test('should render canvas view from injected YAML', async ({ page }) => {
     const readyPromise = page.waitForEvent('console', {
@@ -187,17 +501,14 @@ bus_interfaces:
 
     await page.goto(harnessPath);
 
-    // Wait for the React app to mount
     await page.waitForSelector('#ipcore-root');
 
     await readyPromise;
 
-    // Inject IP Core YAML via postMessage (same shape the extension host sends)
     await page.evaluate((yaml) => {
       window.postMessage({ type: 'update', text: yaml, fileName: 'test_core.ip.yml' }, '*');
     }, sampleIpCoreYaml);
 
-    // The header should show the file name and VLNV info
     await expect(page.getByText('test_core.ip.yml')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('span', { hasText: /test\.com.*smoke.*test_core/ })).toBeVisible({
       timeout: 5000,
@@ -218,12 +529,126 @@ bus_interfaces:
       window.postMessage({ type: 'update', text: yaml, fileName: 'test_core.ip.yml' }, '*');
     }, sampleIpCoreYaml);
 
-    // The canvas view should be the only view — verify no table-view toggle exists
     await expect(page.getByRole('button', { name: 'Table view' })).not.toBeVisible({
       timeout: 5000,
     });
 
-    // VLNV info visible in header
     await expect(page.locator('span', { hasText: /test\.com/ })).toBeVisible({ timeout: 10000 });
+  });
+
+  test('should open body inspector when canvas block body is clicked', async ({ page }) => {
+    await setupIpCore(page, sampleIpCoreYaml);
+
+    const bodyRect = page.locator('.ip-block-body');
+    await expect(bodyRect).toBeVisible({ timeout: 5000 });
+    await bodyRect.click();
+
+    const inspector = page.locator('.canvas-inspector');
+    await expect(inspector).toBeVisible({ timeout: 5000 });
+
+    await expect(inspector).toContainText('VLNV');
+    await expect(inspector).toContainText('Vendor');
+    await expect(inspector).toContainText('Library');
+  });
+
+  test('should edit VLNV vendor field in body inspector', async ({ page }) => {
+    await setupIpCore(page, sampleIpCoreYaml);
+
+    const bodyRect = page.locator('.ip-block-body');
+    await bodyRect.click();
+
+    const inspector = page.locator('.canvas-inspector');
+    await expect(inspector).toBeVisible({ timeout: 5000 });
+
+    await page.evaluate(() => {
+      (window as any).__last_message = null;
+    });
+
+    const vendorField = inspector.locator('input').first();
+    await vendorField.click();
+    await page.keyboard.press('Control+A');
+    await page.keyboard.press('Backspace');
+    await page.keyboard.type('new-vendor.com');
+    await page.keyboard.press('Enter');
+
+    await page.waitForFunction(
+      () => {
+        const msg = (window as any).__last_message;
+        return msg && msg.type === 'update';
+      },
+      { timeout: 10000 }
+    );
+
+    const lastMsg = await page.evaluate(() => (window as any).__last_message);
+    expect(lastMsg.type).toBe('update');
+    expect(lastMsg.text).toContain('new-vendor.com');
+  });
+
+  test('should render bus interface on canvas', async ({ page }) => {
+    await setupIpCore(page, sampleIpCoreYaml);
+
+    const canvas = page.locator('.ip-canvas-svg');
+    await expect(canvas).toBeVisible({ timeout: 5000 });
+
+    const busBundle = page.locator('[data-port-id^="bus:"]');
+    await expect(busBundle.first()).toBeVisible({ timeout: 5000 });
+  });
+
+  test('should render parameters on canvas from injected YAML', async ({ page }) => {
+    await setupIpCore(page, ipCoreWithParams);
+
+    const canvas = page.locator('.ip-canvas-svg');
+    await expect(canvas).toBeVisible({ timeout: 5000 });
+
+    const paramText = page.locator('.ip-block-param-name');
+    await expect(paramText.first()).toBeVisible({ timeout: 5000 });
+
+    const canvasSvg = page.locator('.ip-canvas-svg');
+    await expect(canvasSvg).toContainText('ADDR_WIDTH');
+    await expect(canvasSvg).toContainText('DATA_WIDTH');
+  });
+
+  test('should display file name in header', async ({ page }) => {
+    await setupIpCore(page, sampleIpCoreYaml, 'my_custom_core.ip.yml');
+
+    const header = page.locator('h1');
+    await expect(header).toContainText('my_custom_core.ip.yml', { timeout: 5000 });
+  });
+
+  test('should render multiple bus interfaces simultaneously', async ({ page }) => {
+    await setupIpCore(page, ipCoreMultiBus);
+
+    const busBundles = page.locator('[data-port-id^="bus:"]');
+    await expect(busBundles.first()).toBeVisible({ timeout: 5000 });
+
+    const count = await busBundles.count();
+    expect(count).toBeGreaterThanOrEqual(2);
+  });
+
+  test('should handle YAML with no bus interfaces gracefully', async ({ page }) => {
+    await setupIpCore(page, ipCoreNoBus);
+
+    const canvas = page.locator('.ip-canvas-svg');
+    await expect(canvas).toBeVisible({ timeout: 5000 });
+
+    const header = page.locator('h1');
+    await expect(header).toContainText('test_core.ip.yml', { timeout: 5000 });
+
+    const busBundles = page.locator('[data-port-id^="bus:"]');
+    const count = await busBundles.count();
+    expect(count).toBe(0);
+  });
+
+  test('should show empty state when no IP core is loaded', async ({ page }) => {
+    const readyPromise = page.waitForEvent('console', {
+      predicate: (msg) => msg.text().includes('VSCODE_MESSAGE:') && msg.text().includes('"ready"'),
+      timeout: 10000,
+    });
+
+    await page.goto(harnessPath);
+    await page.waitForSelector('#ipcore-root');
+    await readyPromise;
+
+    await expect(page.getByText('No IP core loaded')).toBeVisible({ timeout: 10000 });
   });
 });

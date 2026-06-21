@@ -198,11 +198,30 @@ it('representative Vivado projects compile and synthesize successfully in Out-Of
     return;
   }
 
-  // We choose representative fixtures to compile:
-  // e.g. minimal_vhdl (VHDL) and minimal_sv (SystemVerilog)
-  const targets = xilinxes.filter((f) => f.name === 'minimal_vhdl' || f.name === 'minimal_sv');
+  const synthesisTargetNames = new Set([
+    'minimal_vhdl',
+    'minimal_sv',
+    'axi_slave_vhdl',
+    'axi_slave_sv',
+    'avalon_peripheral_vhdl',
+    'avalon_peripheral_sv',
+    'basic_vhdl',
+    'basic_sv',
+    'examples/basic_peripheral_vhdl',
+    'examples/basic_peripheral_sv',
+    'examples/comprehensive_axi_vhdl',
+    'examples/comprehensive_axi_sv',
+    'examples/comprehensive_avalon_vhdl',
+    'examples/comprehensive_avalon_sv',
+    'examples/multi_interface_accelerator_vhdl',
+    'examples/multi_interface_accelerator_sv',
+  ]);
+  const targets = xilinxes.filter((f) => synthesisTargetNames.has(f.name));
   if (targets.length === 0) {
-    throw new Error('Could not find minimal_vhdl or minimal_sv fixtures');
+    throw new Error(
+      'No synthesis targets found. Expected at least one of: ' +
+        [...synthesisTargetNames].join(', ')
+    );
   }
 
   const failures: string[] = [];

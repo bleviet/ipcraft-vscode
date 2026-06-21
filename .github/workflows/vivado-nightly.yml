@@ -36,6 +36,7 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends ghdl iverilog verilator libxml2-utils
+          pip3 install --no-cache-dir cocotb pytest
 
       - run: npm ci
 
@@ -49,6 +50,9 @@ jobs:
       - name: Round-trip tests (component.xml + hw.tcl)
         run: npx jest --config config/jest.integration.js --testPathPatterns=roundtrip
 
+      - name: Parser round-trip tests (VHDL + Verilog)
+        run: npx jest --config config/jest.integration.js --testPathPatterns=parser-roundtrip
+
       - name: Pack conformance kit
         run: npm run test:integration:conformance
 
@@ -58,6 +62,9 @@ jobs:
 
       - name: IP-XACT / SPIRIT structural validation (xmllint)
         run: npm run test:integration:ipxact
+
+      - name: cocotb testbench execution (GHDL + Icarus)
+        run: npx jest --config config/jest.integration.js --testPathPatterns=testbench
 
       # Vivado and Quartus are not available on ubuntu-latest.
       # guardTier2 lets them skip with a warning and records the skip in

@@ -165,3 +165,93 @@ it('all Altera Quartus project creation scripts run successfully', () => {
     console.log(`  PASS: Quartus project for ${fixture.name}`);
   }
 });
+
+const COMPILE_TCL = '/work/scripts/integration/quartus/run_compile.tcl';
+
+const compileTargetNames = new Set([
+  'minimal_vhdl',
+  'minimal_sv',
+  'avalon_peripheral_vhdl',
+  'avalon_peripheral_sv',
+  'basic_vhdl',
+  'basic_sv',
+  'examples/basic_peripheral_vhdl',
+  'examples/basic_peripheral_sv',
+  'examples/comprehensive_avalon_vhdl',
+  'examples/comprehensive_avalon_sv',
+]);
+
+it('representative Quartus projects compile successfully', () => {
+  if (guardTier1('docker', () => dockerImageAvailable(DOCKER_IMAGE))) {
+    return;
+  }
+
+  const targets = alteras.filter((f) => compileTargetNames.has(f.name));
+  if (targets.length === 0) {
+    throw new Error(
+      'No compile targets found. Expected at least one of: ' + [...compileTargetNames].join(', ')
+    );
+  }
+
+  const failures: string[] = [];
+
+  for (const fixture of targets) {
+    const alteraDir = path.join(fixture.outputDir, 'altera');
+    if (!fs.existsSync(alteraDir)) {
+      failures.push(`${fixture.name}: altera directory not found`);
+      continue;
+    }
+    const files = fs.readdirSync(alteraDir);
+    const qpfFile = files.find((f) => f.endsWith('.qpf'));
+    if (!qpfFile) {
+      failures.push(`${fixture.name}: .qpf project file not found`);
+      continue;
+    }
+    const projectName = qpfFile.replace('.qpf', '');
+    const alteraDirInContainer = alteraDir.replace(REPO_ROOT, '/work');
+
+    const result = spawnSync(
+      'docker',
+      [
+        'run',
+        '--rm',
+        '-v',
+        `${REPO_ROOT}:/work`,
+        '-v',
+        `${FIXTURE_BASE}:${FIXTURE_BASE}`,
+        DOCKER_IMAGE,
+        '/opt/intelFPGA/quartus/bin/quartus_sh',
+        '-t',
+        COMPILE_TCL,
+        alteraDirInContainer,
+        projectName,
+      ],
+      { encoding: 'utf8', timeout: 600_000 }
+    );
+
+    if (result.error) {
+      failures.push(`${fixture.name}: failed to spawn Docker — ${result.error.message}`);
+      continue;
+    }
+
+    if (result.status !== 0) {
+      failures.push(
+        [
+          `${fixture.name}: Quartus compile FAIL (exit ${result.status})`,
+          `stdout:\n${result.stdout}`,
+          `stderr:\n${result.stderr}`,
+        ].join('\n')
+      );
+    } else {
+      // eslint-disable-next-line no-console
+      console.log(`  PASS: Quartus compile for ${fixture.name}`);
+    }
+  }
+
+  if (failures.length > 0) {
+    throw new Error(
+      `Quartus compile failed for ${failures.length} of ${targets.length} fixture(s):\n\n` +
+        failures.join('\n\n---\n\n')
+    );
+  }
+});

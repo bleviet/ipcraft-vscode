@@ -84,11 +84,20 @@ jobs:
       - name: Build
         run: npm run compile
 
+      - name: Snapshot tests (Tier 0)
+        run: npx jest --config config/jest.integration.js --testPathPatterns=snapshots
+
+      - name: Round-trip tests (Tier 0)
+        run: npx jest --config config/jest.integration.js --testPathPatterns=roundtrip
+
+      - name: Parser round-trip tests (Tier 0)
+        run: npx jest --config config/jest.integration.js --testPathPatterns=parser-roundtrip
+
+      - name: Pack conformance kit
+        run: npm run test:integration:conformance
+
       - name: HDL integration tests (GHDL, Icarus, Verilator)
         run: npm run test:integration:hdl
 
       - name: IP-XACT / SPIRIT structural validation (xmllint)
         run: npm run test:integration:ipxact
-
-      - name: Pack conformance kit
-        run: npm run test:integration:conformance
