@@ -13,6 +13,7 @@ interface HarnessProps {
   onMove?: jest.Mock;
   onInsertAfter?: jest.Mock;
   onInsertBefore?: jest.Mock;
+  rowIds?: string[];
 }
 
 const DUMMY_ROW_IDS = ['row-0', 'row-1', 'row-2'];
@@ -26,13 +27,14 @@ function Harness({
   onMove,
   onInsertAfter,
   onInsertBefore,
+  rowIds = DUMMY_ROW_IDS,
 }: HarnessProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useTableNavigation<Column>({
     activeCell,
     setActiveCell,
-    rowIds: DUMMY_ROW_IDS,
+    rowIds,
     columnOrder: ['name', 'offset', 'desc'],
     containerRef,
     onEdit,
@@ -48,7 +50,7 @@ function Harness({
       <input data-testid="typing-input" />
       <table>
         <tbody>
-          {DUMMY_ROW_IDS.map((rowId, index) => (
+          {rowIds.map((rowId, index) => (
             <tr key={rowId} data-row-id={rowId}>
               <td data-col-key="name">name-{index}</td>
               <td data-col-key="offset">offset-{index}</td>
@@ -168,5 +170,30 @@ describe('useTableNavigation', () => {
     fireEvent.keyDown(input, { key: 'ArrowDown' });
 
     expect(setActiveCell).not.toHaveBeenCalled();
+  });
+
+  it('supports insert shortcuts even when the table is empty', () => {
+    const setActiveCell = jest.fn();
+    const onInsertAfter = jest.fn();
+    const onInsertBefore = jest.fn();
+
+    const { getByTestId } = render(
+      <Harness
+        activeCell={{ rowId: null, key: 'name' }}
+        setActiveCell={setActiveCell}
+        rowIds={[]}
+        onInsertAfter={onInsertAfter}
+        onInsertBefore={onInsertBefore}
+      />
+    );
+
+    const container = getByTestId('container');
+    container.focus();
+
+    fireEvent.keyDown(container, { key: 'o' });
+    fireEvent.keyDown(container, { key: 'O', shiftKey: true });
+
+    expect(onInsertAfter).toHaveBeenCalledTimes(1);
+    expect(onInsertBefore).toHaveBeenCalledTimes(1);
   });
 });

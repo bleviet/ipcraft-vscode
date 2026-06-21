@@ -356,6 +356,7 @@ export function useFieldEditor(
     cancelEditRef: editorState.cancelEditRef,
 
     // helpers
+    insertField: () => tryInsertField(true),
     ensureDraftsInitialized: (rowId: string, index: number) =>
       ensureDraftsInitialized(rowId, fields[index]),
     captureEditSnapshot: editorState.captureEditSnapshot,

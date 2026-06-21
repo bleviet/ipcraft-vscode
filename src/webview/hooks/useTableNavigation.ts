@@ -158,6 +158,18 @@ export function useTableNavigation<T extends ColumnKey>({
 
       const currentId = activeCell.rowId ?? (rowIds.length > 0 ? rowIds[0] : null);
       if (!currentId) {
+        if (isInsertAfter && onInsertAfter) {
+          e.preventDefault();
+          e.stopPropagation();
+          onInsertAfter();
+          return;
+        }
+        if (isInsertBefore && onInsertBefore) {
+          e.preventDefault();
+          e.stopPropagation();
+          onInsertBefore();
+          return;
+        }
         return;
       }
       const currentRow = rowIds.indexOf(currentId);

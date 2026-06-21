@@ -121,103 +121,153 @@ export function FieldsTable({ fields, registerSize, onUpdate, fieldEditor }: Fie
   return (
     <div className="flex-1 flex overflow-hidden min-h-0">
       <div className="flex-1 vscode-surface border-r vscode-border min-h-0 flex flex-col">
-        {/* Toolbar: move up / move down */}
-        <div className="shrink-0 px-4 py-2 border-b vscode-border vscode-surface flex items-center justify-end gap-1">
-          <button
-            className="p-2 rounded-md transition-colors disabled:opacity-40 vscode-icon-button"
-            onClick={() => moveSelectedField(-1)}
-            disabled={selectedFieldIndex <= 0}
-            title="Move field up"
-            type="button"
+        {fields.length === 0 ? (
+          <div
+            ref={focusRef as React.RefObject<HTMLDivElement>}
+            tabIndex={0}
+            data-fields-table="true"
+            className="flex-1 flex flex-col items-center justify-center p-8 text-center vscode-surface outline-none focus:outline-none"
           >
-            <span className="codicon codicon-chevron-up"></span>
-          </button>
-          <button
-            className="p-2 rounded-md transition-colors disabled:opacity-40 vscode-icon-button"
-            onClick={() => moveSelectedField(1)}
-            disabled={selectedFieldIndex < 0 || selectedFieldIndex >= fields.length - 1}
-            title="Move field down"
-            type="button"
-          >
-            <span className="codicon codicon-chevron-down"></span>
-          </button>
-        </div>
+            <button
+              onClick={() => fieldEditor.insertField()}
+              className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-md"
+              style={{
+                background: 'var(--vscode-button-background)',
+                color: 'var(--vscode-button-foreground)',
+                border: 'none',
+                cursor: 'pointer',
+              }}
+              title="Add first bit field"
+              type="button"
+            >
+              <span className="codicon codicon-plus text-xl"></span>
+            </button>
+            <div className="mt-4 text-xs text-center space-y-1">
+              <div className="vscode-muted">
+                Or press{' '}
+                <kbd className="px-1.5 py-0.5 rounded font-mono text-[10px] bg-white/10 border border-white/10">
+                  o
+                </kbd>{' '}
+                key when focused
+              </div>
+              <div className="vscode-muted">
+                Or{' '}
+                <kbd className="px-1.5 py-0.5 rounded font-mono text-[10px] bg-white/10 border border-white/10">
+                  Shift + Drag
+                </kbd>{' '}
+                in the visualizer
+              </div>
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Toolbar: move up / move down */}
+            <div className="shrink-0 px-4 py-2 border-b vscode-border vscode-surface flex items-center justify-end gap-1">
+              <button
+                className="p-2 rounded-md transition-colors disabled:opacity-40 vscode-icon-button"
+                onClick={() => moveSelectedField(-1)}
+                disabled={selectedFieldIndex <= 0}
+                title="Move field up"
+                type="button"
+              >
+                <span className="codicon codicon-chevron-up"></span>
+              </button>
+              <button
+                className="p-2 rounded-md transition-colors disabled:opacity-40 vscode-icon-button"
+                onClick={() => moveSelectedField(1)}
+                disabled={selectedFieldIndex < 0 || selectedFieldIndex >= fields.length - 1}
+                title="Move field down"
+                type="button"
+              >
+                <span className="codicon codicon-chevron-down"></span>
+              </button>
+            </div>
 
-        {/* Scrollable table */}
-        <div
-          ref={focusRef as React.RefObject<HTMLDivElement>}
-          tabIndex={0}
-          data-fields-table="true"
-          className={`flex-1 overflow-auto min-h-0 outline-none focus:outline-none${dragState.active ? ' cursor-grabbing select-none' : ''}`}
-          style={{ overflowY: 'auto', overflowX: 'auto' }}
-        >
-          {insertError ? <div className="vscode-error px-4 py-2 text-xs">{insertError}</div> : null}
+            {/* Scrollable table */}
+            <div
+              ref={focusRef as React.RefObject<HTMLDivElement>}
+              tabIndex={0}
+              data-fields-table="true"
+              className={`flex-1 overflow-auto min-h-0 outline-none focus:outline-none${dragState.active ? ' cursor-grabbing select-none' : ''}`}
+              style={{ overflowY: 'auto', overflowX: 'auto' }}
+            >
+              {insertError ? (
+                <div className="vscode-error px-4 py-2 text-xs">{insertError}</div>
+              ) : null}
 
-          <EditableTable
-            rows={fields}
-            columns={FIELD_TABLE_COLUMNS}
-            showHeaderSection={false}
-            showTableBorder={false}
-            containerClassName=""
-            tableWrapperClassName=""
-            tableClassName="w-full text-left border-collapse table-fixed"
-            renderTableContent={() => (
-              <>
-                <colgroup>
-                  <col className="w-8" />
-                  <col className="w-[18%] min-w-[120px]" />
-                  <col className="w-[14%] min-w-[100px]" />
-                  <col className="w-[14%] min-w-[120px]" />
-                  <col className="w-[14%] min-w-[110px]" />
-                  <col className="w-[40%] min-w-[240px]" />
-                </colgroup>
-                <thead className="vscode-surface-alt text-xs font-semibold vscode-muted uppercase tracking-wider sticky top-0 z-10 shadow-sm">
-                  <tr className="h-12">
-                    <th className="w-8 border-b vscode-border" />
-                    <th className="px-6 py-3 border-b vscode-border align-middle">Name</th>
-                    <th className="px-4 py-3 border-b vscode-border align-middle">Bit(s)</th>
-                    <th className="px-4 py-3 border-b vscode-border align-middle">Access</th>
-                    <th className="px-4 py-3 border-b vscode-border align-middle">Reset</th>
-                    <th className="px-6 py-3 border-b vscode-border align-middle">Description</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y vscode-border text-sm">
-                  {wrappedFields.map((wrapped, index) => (
-                    <FieldTableRow
-                      key={wrapped.rowId}
-                      field={wrapped.model}
-                      rowId={wrapped.rowId}
-                      index={index}
-                      fields={fields}
-                      registerSize={registerSize}
-                      onUpdate={onUpdate}
-                      fieldEditor={fieldEditor}
-                      onRowClick={(idx) => handleRowClick(idx, wrapped.rowId)}
-                      onCellClick={(idx, key, opt) => handleCellClick(idx, wrapped.rowId, key, opt)}
-                      onCellFocus={(idx, key, opt) => handleCellFocus(idx, wrapped.rowId, key, opt)}
-                      isDragSource={dragState.active && dragState.fromRowId === wrapped.rowId}
-                      isDragTarget={
-                        dragState.active &&
-                        dragState.fromRowId !== wrapped.rowId &&
-                        dragState.toRowId === wrapped.rowId
-                      }
-                      dragTargetPosition={
-                        dragState.active &&
-                        dragState.fromRowId !== wrapped.rowId &&
-                        dragState.toRowId === wrapped.rowId
-                          ? dragState.position
-                          : null
-                      }
-                      onDragHandlePointerDown={(e) => onDragHandlePointerDown(wrapped.rowId, e)}
-                      onPointerEnterRow={() => onPointerEnterRow(wrapped.rowId)}
-                      onDragMove={onDragMove}
-                    />
-                  ))}
-                </tbody>
-              </>
-            )}
-          />
-        </div>
+              <EditableTable
+                rows={fields}
+                columns={FIELD_TABLE_COLUMNS}
+                showHeaderSection={false}
+                showTableBorder={false}
+                containerClassName=""
+                tableWrapperClassName=""
+                tableClassName="w-full text-left border-collapse table-fixed"
+                renderTableContent={() => (
+                  <>
+                    <colgroup>
+                      <col className="w-8" />
+                      <col className="w-[18%] min-w-[120px]" />
+                      <col className="w-[14%] min-w-[100px]" />
+                      <col className="w-[14%] min-w-[120px]" />
+                      <col className="w-[14%] min-w-[110px]" />
+                      <col className="w-[40%] min-w-[240px]" />
+                    </colgroup>
+                    <thead className="vscode-surface-alt text-xs font-semibold vscode-muted uppercase tracking-wider sticky top-0 z-10 shadow-sm">
+                      <tr className="h-12">
+                        <th className="w-8 border-b vscode-border" />
+                        <th className="px-6 py-3 border-b vscode-border align-middle">Name</th>
+                        <th className="px-4 py-3 border-b vscode-border align-middle">Bit(s)</th>
+                        <th className="px-4 py-3 border-b vscode-border align-middle">Access</th>
+                        <th className="px-4 py-3 border-b vscode-border align-middle">Reset</th>
+                        <th className="px-6 py-3 border-b vscode-border align-middle">
+                          Description
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y vscode-border text-sm">
+                      {wrappedFields.map((wrapped, index) => (
+                        <FieldTableRow
+                          key={wrapped.rowId}
+                          field={wrapped.model}
+                          rowId={wrapped.rowId}
+                          index={index}
+                          fields={fields}
+                          registerSize={registerSize}
+                          onUpdate={onUpdate}
+                          fieldEditor={fieldEditor}
+                          onRowClick={(idx) => handleRowClick(idx, wrapped.rowId)}
+                          onCellClick={(idx, key, opt) =>
+                            handleCellClick(idx, wrapped.rowId, key, opt)
+                          }
+                          onCellFocus={(idx, key, opt) =>
+                            handleCellFocus(idx, wrapped.rowId, key, opt)
+                          }
+                          isDragSource={dragState.active && dragState.fromRowId === wrapped.rowId}
+                          isDragTarget={
+                            dragState.active &&
+                            dragState.fromRowId !== wrapped.rowId &&
+                            dragState.toRowId === wrapped.rowId
+                          }
+                          dragTargetPosition={
+                            dragState.active &&
+                            dragState.fromRowId !== wrapped.rowId &&
+                            dragState.toRowId === wrapped.rowId
+                              ? dragState.position
+                              : null
+                          }
+                          onDragHandlePointerDown={(e) => onDragHandlePointerDown(wrapped.rowId, e)}
+                          onPointerEnterRow={() => onPointerEnterRow(wrapped.rowId)}
+                          onDragMove={onDragMove}
+                        />
+                      ))}
+                    </tbody>
+                  </>
+                )}
+              />
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
