@@ -33,14 +33,15 @@ const RegisterNode = ({
       onClick={onClick}
       onDoubleClick={onDoubleClick}
       onContextMenu={onContextMenu}
-      style={{ paddingLeft }}
     >
-      <span
-        className={`codicon codicon-symbol-variable text-[16px] ${isSelected ? '' : 'opacity-70'}`}
-        title="Register"
-        style={{ color: 'var(--vscode-symbolIcon-propertyForeground)' }}
-      ></span>
-      {name}
+      <div style={{ paddingLeft }} className="flex items-center gap-2 flex-grow min-w-0">
+        <span
+          className={`codicon codicon-symbol-variable text-[16px] ${isSelected ? '' : 'opacity-70'}`}
+          title="Register"
+          style={{ color: 'var(--vscode-symbolIcon-propertyForeground)' }}
+        ></span>
+        {name}
+      </div>
       <span className="text-[10px] vscode-muted font-mono shrink-0">{offsetLabel}</span>
       {actionButton}
     </div>

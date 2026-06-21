@@ -89,24 +89,25 @@ const RegisterArrayNode = ({
               }
             : undefined
         }
-        style={{ paddingLeft: '40px' }}
       >
-        <span
-          className={`codicon codicon-chevron-${isExpanded ? 'down' : 'right'}`}
-          onClick={(e) => onToggleExpand(id, e)}
-          style={{ cursor: 'pointer' }}
-        ></span>
-        <span
-          className="codicon codicon-symbol-array"
-          title="Register Array"
-          style={{ color: 'var(--vscode-symbolIcon-arrayForeground)' }}
-        ></span>
-        {renderNameOrEdit(
-          id,
-          arrayNode.name,
-          ['addressBlocks', blockIndex, 'registers', regIndex],
-          'flex-1'
-        )}{' '}
+        <div style={{ paddingLeft: '40px' }} className="flex items-center gap-2 flex-grow min-w-0">
+          <span
+            className={`codicon codicon-chevron-${isExpanded ? 'down' : 'right'}`}
+            onClick={(e) => onToggleExpand(id, e)}
+            style={{ cursor: 'pointer' }}
+          ></span>
+          <span
+            className="codicon codicon-symbol-array"
+            title="Register Array"
+            style={{ color: 'var(--vscode-symbolIcon-arrayForeground)' }}
+          ></span>
+          {renderNameOrEdit(
+            id,
+            arrayNode.name,
+            ['addressBlocks', blockIndex, 'registers', regIndex],
+            'flex-1'
+          )}
+        </div>
         <span className="text-[10px] vscode-muted font-mono shrink-0">
           {toHex(start)}-{toHex(end)} [{arrayNode.count}]
         </span>

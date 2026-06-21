@@ -36,10 +36,11 @@ const FieldNode = ({
       aria-selected={isSelected}
       onClick={onClick}
       onContextMenu={onContextMenu}
-      style={{ paddingLeft }}
     >
-      <span className={iconClassName} title={iconTitle} style={{ ...iconStyle }}></span>
-      {label}
+      <div style={{ paddingLeft }} className="flex items-center gap-2 flex-grow min-w-0">
+        <span className={iconClassName} title={iconTitle} style={{ ...iconStyle }}></span>
+        {label}
+      </div>
       {suffix}
       {actionButton}
     </div>

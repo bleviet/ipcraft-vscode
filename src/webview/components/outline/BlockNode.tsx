@@ -43,19 +43,20 @@ const BlockNode = ({
         onClick={onClick}
         onDoubleClick={onDoubleClick}
         onContextMenu={onContextMenu}
-        style={{ paddingLeft: '20px' }}
       >
-        <span
-          className={`codicon codicon-chevron-${isExpanded ? 'down' : 'right'}`}
-          onClick={onToggleExpand}
-          style={{ cursor: 'pointer' }}
-        ></span>
-        <span
-          className="codicon codicon-package"
-          title="Address Block"
-          style={{ color: 'var(--vscode-symbolIcon-classForeground)' }}
-        ></span>
-        {name}{' '}
+        <div style={{ paddingLeft: '20px' }} className="flex items-center gap-2 flex-grow min-w-0">
+          <span
+            className={`codicon codicon-chevron-${isExpanded ? 'down' : 'right'}`}
+            onClick={onToggleExpand}
+            style={{ cursor: 'pointer' }}
+          ></span>
+          <span
+            className="codicon codicon-package"
+            title="Address Block"
+            style={{ color: 'var(--vscode-symbolIcon-classForeground)' }}
+          ></span>
+          {name}
+        </div>
         {baseAddress !== undefined ? (
           baseAddress
         ) : (
