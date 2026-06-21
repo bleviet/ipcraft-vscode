@@ -149,6 +149,12 @@ export interface BusInterfaceDef {
    *  (logical signal name, lowercased or via portNameOverrides) and '{index}' (array instance);
    *  all other characters are literal. Takes precedence over physicalPrefix when set. */
   physicalNamePattern?: string | null;
+  /**
+   *  Per-signal substitution for the `*` wildcard in `physicalNamePattern`. Set when the pattern
+   *  carries `*` because sibling signals disagree on a trailing decoration (e.g. `_i` vs `_o`).
+   *  Keys are logical signal names (uppercase); values are the literal text `*` resolves to.
+   */
+  wildcardMatches?: Record<string, string>;
   useOptionalPorts?: string[];
   portWidthOverrides?: Record<string, number | string>;
   portNameOverrides?: Record<string, string>;

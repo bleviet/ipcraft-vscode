@@ -56,7 +56,23 @@ export interface GroupAsStandardOptions {
   portIndices: number[];
   busType: string;
   mode: 'slave' | 'master';
-  physicalPrefix: string;
+  /**
+   * Legacy literal prefix (`s_axi_`). Mutually exclusive with physicalNamePattern:
+   * when a pattern is set it takes precedence and physicalPrefix is omitted.
+   */
+  physicalPrefix?: string;
+  /**
+   * Template with `{signal}` / `{index}` placeholders, generalizing physicalPrefix.
+   * Set for decorated single interfaces (`asi_{signal}_i`) and array interfaces.
+   */
+  physicalNamePattern?: string;
+  /**
+   * Per-signal substitution for the `*` wildcard in `physicalNamePattern`, set when the pattern
+   * carries `*` because sibling signals disagree on a trailing decoration (mixed `_i`/`_o`).
+   */
+  wildcardMatches?: Record<string, string>;
+  /** Array configuration. Required when the interface expands to multiple instances. */
+  array?: { count: number; indexStart: number; namingPattern: string };
   interfaceName: string;
   portNameOverrides?: Record<string, string>;
   portWidthOverrides?: Record<string, number | string>;
@@ -83,9 +99,24 @@ export function useGroupPorts(ipCore: IpCore, batchUpdate: BatchUpdate) {
         name: opts.interfaceName,
         type: opts.busType,
         mode: opts.mode,
-        physicalPrefix: opts.physicalPrefix,
+        physicalPrefix: opts.physicalNamePattern ? '' : (opts.physicalPrefix ?? ''),
       };
 
+      if (opts.physicalNamePattern) {
+        (newBus as BusInterface & { physicalNamePattern?: string }).physicalNamePattern =
+          opts.physicalNamePattern;
+      }
+      if (opts.wildcardMatches) {
+        (newBus as BusInterface & { wildcardMatches?: Record<string, string> }).wildcardMatches =
+          opts.wildcardMatches;
+      }
+      if (opts.array) {
+        (
+          newBus as BusInterface & {
+            array?: { count: number; indexStart: number; namingPattern: string };
+          }
+        ).array = opts.array;
+      }
       if (opts.associatedClock) {
         newBus.associatedClock = opts.associatedClock;
       }

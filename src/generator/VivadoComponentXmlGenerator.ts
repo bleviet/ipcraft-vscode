@@ -69,7 +69,8 @@ function busDefPortMaps(
     undefined,
     undefined,
     iface.absentPorts,
-    iface.physicalNamePattern
+    iface.physicalNamePattern,
+    iface.wildcardMatches
   );
   if (activePorts.length === 0) {
     return [];

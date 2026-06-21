@@ -3244,7 +3244,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>6523a194</spirit:value>
+            <spirit:value>2fafe3b7</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -3661,7 +3661,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       <spirit:file>
         <spirit:name>xgui/basic_peripheral_v1_0_0.tcl</spirit:name>
         <spirit:fileType>tclSource</spirit:fileType>
-        <spirit:userFileType>CHECKSUM_6523a194</spirit:userFileType>
+        <spirit:userFileType>CHECKSUM_2fafe3b7</spirit:userFileType>
         <spirit:userFileType>XGUI_VERSION_2</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
@@ -4026,7 +4026,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>6523a194</spirit:value>
+            <spirit:value>2fafe3b7</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -4443,7 +4443,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       <spirit:file>
         <spirit:name>xgui/basic_peripheral_v1_0_0.tcl</spirit:name>
         <spirit:fileType>tclSource</spirit:fileType>
-        <spirit:userFileType>CHECKSUM_6523a194</spirit:userFileType>
+        <spirit:userFileType>CHECKSUM_2fafe3b7</spirit:userFileType>
         <spirit:userFileType>XGUI_VERSION_2</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
@@ -4840,7 +4840,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>a7d5db3b</spirit:value>
+            <spirit:value>8d67dc18</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -5262,7 +5262,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       <spirit:file>
         <spirit:name>xgui/comprehensive_avalon_v1_0_0.tcl</spirit:name>
         <spirit:fileType>tclSource</spirit:fileType>
-        <spirit:userFileType>CHECKSUM_a7d5db3b</spirit:userFileType>
+        <spirit:userFileType>CHECKSUM_8d67dc18</spirit:userFileType>
         <spirit:userFileType>XGUI_VERSION_2</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
@@ -5635,7 +5635,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>a7d5db3b</spirit:value>
+            <spirit:value>8d67dc18</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -6057,7 +6057,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       <spirit:file>
         <spirit:name>xgui/comprehensive_avalon_v1_0_0.tcl</spirit:name>
         <spirit:fileType>tclSource</spirit:fileType>
-        <spirit:userFileType>CHECKSUM_a7d5db3b</spirit:userFileType>
+        <spirit:userFileType>CHECKSUM_8d67dc18</spirit:userFileType>
         <spirit:userFileType>XGUI_VERSION_2</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
@@ -6739,9 +6739,35 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
     </spirit:busInterface>
     <spirit:busInterface>
       <spirit:name>DBG</spirit:name>
-      <spirit:busType spirit:vendor="user.org" spirit:library="user" spirit:name="ipcraft.busif.conduit.1.0" spirit:version="1.0" />
-      <spirit:abstractionType spirit:vendor="user.org" spirit:library="user" spirit:name="ipcraft.busif.conduit.1.0_rtl" spirit:version="1.0" />
+      <spirit:busType spirit:vendor="ipcraft" spirit:library="busif" spirit:name="conduit" spirit:version="1.0" />
+      <spirit:abstractionType spirit:vendor="ipcraft" spirit:library="busif" spirit:name="conduit_rtl" spirit:version="1.0" />
       <spirit:slave />
+      <spirit:portMaps>
+        <spirit:portMap>
+          <spirit:logicalPort>
+            <spirit:name>trace_data</spirit:name>
+          </spirit:logicalPort>
+          <spirit:physicalPort>
+            <spirit:name>dbg_trace_data</spirit:name>
+          </spirit:physicalPort>
+        </spirit:portMap>
+        <spirit:portMap>
+          <spirit:logicalPort>
+            <spirit:name>trace_valid</spirit:name>
+          </spirit:logicalPort>
+          <spirit:physicalPort>
+            <spirit:name>dbg_trace_valid</spirit:name>
+          </spirit:physicalPort>
+        </spirit:portMap>
+        <spirit:portMap>
+          <spirit:logicalPort>
+            <spirit:name>trigger</spirit:name>
+          </spirit:logicalPort>
+          <spirit:physicalPort>
+            <spirit:name>dbg_trigger</spirit:name>
+          </spirit:physicalPort>
+        </spirit:portMap>
+      </spirit:portMaps>
     </spirit:busInterface>
     <spirit:busInterface>
       <spirit:name>i_clk_axi</spirit:name>
@@ -6924,7 +6950,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>8ee5b311</spirit:value>
+            <spirit:value>22d17bcb</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -8185,7 +8211,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       <spirit:file>
         <spirit:name>xgui/comprehensive_axi_v1_0_0.tcl</spirit:name>
         <spirit:fileType>tclSource</spirit:fileType>
-        <spirit:userFileType>CHECKSUM_8ee5b311</spirit:userFileType>
+        <spirit:userFileType>CHECKSUM_22d17bcb</spirit:userFileType>
         <spirit:userFileType>XGUI_VERSION_2</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
@@ -8891,9 +8917,35 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
     </spirit:busInterface>
     <spirit:busInterface>
       <spirit:name>DBG</spirit:name>
-      <spirit:busType spirit:vendor="user.org" spirit:library="user" spirit:name="ipcraft.busif.conduit.1.0" spirit:version="1.0" />
-      <spirit:abstractionType spirit:vendor="user.org" spirit:library="user" spirit:name="ipcraft.busif.conduit.1.0_rtl" spirit:version="1.0" />
+      <spirit:busType spirit:vendor="ipcraft" spirit:library="busif" spirit:name="conduit" spirit:version="1.0" />
+      <spirit:abstractionType spirit:vendor="ipcraft" spirit:library="busif" spirit:name="conduit_rtl" spirit:version="1.0" />
       <spirit:slave />
+      <spirit:portMaps>
+        <spirit:portMap>
+          <spirit:logicalPort>
+            <spirit:name>trace_data</spirit:name>
+          </spirit:logicalPort>
+          <spirit:physicalPort>
+            <spirit:name>dbg_trace_data</spirit:name>
+          </spirit:physicalPort>
+        </spirit:portMap>
+        <spirit:portMap>
+          <spirit:logicalPort>
+            <spirit:name>trace_valid</spirit:name>
+          </spirit:logicalPort>
+          <spirit:physicalPort>
+            <spirit:name>dbg_trace_valid</spirit:name>
+          </spirit:physicalPort>
+        </spirit:portMap>
+        <spirit:portMap>
+          <spirit:logicalPort>
+            <spirit:name>trigger</spirit:name>
+          </spirit:logicalPort>
+          <spirit:physicalPort>
+            <spirit:name>dbg_trigger</spirit:name>
+          </spirit:physicalPort>
+        </spirit:portMap>
+      </spirit:portMaps>
     </spirit:busInterface>
     <spirit:busInterface>
       <spirit:name>i_clk_axi</spirit:name>
@@ -9076,7 +9128,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>8ee5b311</spirit:value>
+            <spirit:value>22d17bcb</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -10337,7 +10389,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       <spirit:file>
         <spirit:name>xgui/comprehensive_axi_v1_0_0.tcl</spirit:name>
         <spirit:fileType>tclSource</spirit:fileType>
-        <spirit:userFileType>CHECKSUM_8ee5b311</spirit:userFileType>
+        <spirit:userFileType>CHECKSUM_22d17bcb</spirit:userFileType>
         <spirit:userFileType>XGUI_VERSION_2</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
@@ -14498,7 +14550,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>30f87277</spirit:value>
+            <spirit:value>f221a872</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -16041,7 +16093,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       <spirit:file>
         <spirit:name>xgui/system_controller_v1_0_0.tcl</spirit:name>
         <spirit:fileType>tclSource</spirit:fileType>
-        <spirit:userFileType>CHECKSUM_30f87277</spirit:userFileType>
+        <spirit:userFileType>CHECKSUM_f221a872</spirit:userFileType>
         <spirit:userFileType>XGUI_VERSION_2</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
@@ -17311,7 +17363,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>30f87277</spirit:value>
+            <spirit:value>f221a872</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -18854,7 +18906,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       <spirit:file>
         <spirit:name>xgui/system_controller_v1_0_0.tcl</spirit:name>
         <spirit:fileType>tclSource</spirit:fileType>
-        <spirit:userFileType>CHECKSUM_30f87277</spirit:userFileType>
+        <spirit:userFileType>CHECKSUM_f221a872</spirit:userFileType>
         <spirit:userFileType>XGUI_VERSION_2</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
@@ -19104,7 +19156,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>70158566</spirit:value>
+            <spirit:value>7d0d078c</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -19313,7 +19365,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       <spirit:file>
         <spirit:name>xgui/xcvr_loopback_v1_0_0.tcl</spirit:name>
         <spirit:fileType>tclSource</spirit:fileType>
-        <spirit:userFileType>CHECKSUM_70158566</spirit:userFileType>
+        <spirit:userFileType>CHECKSUM_7d0d078c</spirit:userFileType>
         <spirit:userFileType>XGUI_VERSION_2</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
@@ -19552,7 +19604,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>70158566</spirit:value>
+            <spirit:value>7d0d078c</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -19761,7 +19813,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       <spirit:file>
         <spirit:name>xgui/xcvr_loopback_v1_0_0.tcl</spirit:name>
         <spirit:fileType>tclSource</spirit:fileType>
-        <spirit:userFileType>CHECKSUM_70158566</spirit:userFileType>
+        <spirit:userFileType>CHECKSUM_7d0d078c</spirit:userFileType>
         <spirit:userFileType>XGUI_VERSION_2</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
@@ -20553,7 +20605,7 @@ add_interface_port reset reset reset Input 1
 # Bus Interfaces (Generic)
 # -----------------------------------------------------------------------------
 
-# Interface: avalon_mm_slave (ipcraft.busif.avalon_mm.1.0)
+# Interface: avalon_mm_slave (ipcraft:busif:avalon_mm:1.0)
 add_interface avalon_mm_slave avalon end
 set_interface_property avalon_mm_slave associatedClock clk
 set_interface_property avalon_mm_slave associatedReset reset
@@ -20577,7 +20629,7 @@ add_interface_port avalon_mm_slave s_avmm_readdatavalid readdatavalid Output 1
 add_interface_port avalon_mm_slave s_avmm_waitrequest waitrequest Output 1
 
 
-# Interface: avalon_st_sink (ipcraft.busif.avalon_st.1.0)
+# Interface: avalon_st_sink (ipcraft:busif:avalon_st:1.0)
 add_interface avalon_st_sink avalon_streaming end
 set_interface_property avalon_st_sink associatedClock clk
 set_interface_property avalon_st_sink associatedReset reset
@@ -20597,7 +20649,7 @@ add_interface_port avalon_st_sink s_avst_startofpacket startofpacket Input 1
 add_interface_port avalon_st_sink s_avst_endofpacket endofpacket Input 1
 
 
-# Interface: avalon_st_source (ipcraft.busif.avalon_st.1.0)
+# Interface: avalon_st_source (ipcraft:busif:avalon_st:1.0)
 add_interface avalon_st_source avalon_streaming start
 set_interface_property avalon_st_source associatedClock clk
 set_interface_property avalon_st_source associatedReset reset
@@ -20702,7 +20754,7 @@ add_interface_port reset reset reset Input 1
 # Bus Interfaces (Generic)
 # -----------------------------------------------------------------------------
 
-# Interface: avalon_mm_slave (ipcraft.busif.avalon_mm.1.0)
+# Interface: avalon_mm_slave (ipcraft:busif:avalon_mm:1.0)
 add_interface avalon_mm_slave avalon end
 set_interface_property avalon_mm_slave associatedClock clk
 set_interface_property avalon_mm_slave associatedReset reset
@@ -20726,7 +20778,7 @@ add_interface_port avalon_mm_slave s_avmm_readdatavalid readdatavalid Output 1
 add_interface_port avalon_mm_slave s_avmm_waitrequest waitrequest Output 1
 
 
-# Interface: avalon_st_sink (ipcraft.busif.avalon_st.1.0)
+# Interface: avalon_st_sink (ipcraft:busif:avalon_st:1.0)
 add_interface avalon_st_sink avalon_streaming end
 set_interface_property avalon_st_sink associatedClock clk
 set_interface_property avalon_st_sink associatedReset reset
@@ -20746,7 +20798,7 @@ add_interface_port avalon_st_sink s_avst_startofpacket startofpacket Input 1
 add_interface_port avalon_st_sink s_avst_endofpacket endofpacket Input 1
 
 
-# Interface: avalon_st_source (ipcraft.busif.avalon_st.1.0)
+# Interface: avalon_st_source (ipcraft:busif:avalon_st:1.0)
 add_interface avalon_st_source avalon_streaming start
 set_interface_property avalon_st_source associatedClock clk
 set_interface_property avalon_st_source associatedReset reset
@@ -20851,7 +20903,7 @@ add_interface_port reset reset_n reset_n Input 1
 # Bus Interfaces (Generic)
 # -----------------------------------------------------------------------------
 
-# Interface: s_axi_lite (ipcraft.busif.axi4_lite.1.0)
+# Interface: s_axi_lite (ipcraft:busif:axi4_lite:1.0)
 add_interface s_axi_lite axi4lite end
 set_interface_property s_axi_lite associatedClock clk
 set_interface_property s_axi_lite associatedReset reset
@@ -20970,7 +21022,7 @@ add_interface_port reset reset_n reset_n Input 1
 # Bus Interfaces (Generic)
 # -----------------------------------------------------------------------------
 
-# Interface: s_axi_lite (ipcraft.busif.axi4_lite.1.0)
+# Interface: s_axi_lite (ipcraft:busif:axi4_lite:1.0)
 add_interface s_axi_lite axi4lite end
 set_interface_property s_axi_lite associatedClock clk
 set_interface_property s_axi_lite associatedReset reset
@@ -21348,7 +21400,7 @@ add_interface_port reset reset_n reset_n Input 1
 # Bus Interfaces (Generic)
 # -----------------------------------------------------------------------------
 
-# Interface: S_AXI_LITE (ipcraft.busif.axi4_lite.1.0)
+# Interface: S_AXI_LITE (ipcraft:busif:axi4_lite:1.0)
 add_interface S_AXI_LITE axi4lite end
 set_interface_property S_AXI_LITE associatedClock clk
 set_interface_property S_AXI_LITE associatedReset reset
@@ -21558,7 +21610,7 @@ add_interface_port reset reset_n reset_n Input 1
 # Bus Interfaces (Generic)
 # -----------------------------------------------------------------------------
 
-# Interface: S_AXI_LITE (ipcraft.busif.axi4_lite.1.0)
+# Interface: S_AXI_LITE (ipcraft:busif:axi4_lite:1.0)
 add_interface S_AXI_LITE axi4lite end
 set_interface_property S_AXI_LITE associatedClock clk
 set_interface_property S_AXI_LITE associatedReset reset
@@ -21715,7 +21767,7 @@ add_interface_port reset rst reset Input 1
 # Bus Interfaces (Generic)
 # -----------------------------------------------------------------------------
 
-# Interface: S_AVMM (ipcraft.busif.avalon_mm.1.0)
+# Interface: S_AVMM (ipcraft:busif:avalon_mm:1.0)
 add_interface S_AVMM avalon end
 set_interface_property S_AVMM associatedClock clk
 set_interface_property S_AVMM associatedReset reset
@@ -21740,7 +21792,7 @@ add_interface_port S_AVMM avs_readdatavalid readdatavalid Output 1
 add_interface_port S_AVMM avs_waitrequest waitrequest Output 1
 
 
-# Interface: SRC_ST (ipcraft.busif.avalon_st.1.0)
+# Interface: SRC_ST (ipcraft:busif:avalon_st:1.0)
 add_interface SRC_ST avalon_streaming start
 set_interface_property SRC_ST associatedClock clk
 set_interface_property SRC_ST associatedReset reset
@@ -21762,7 +21814,7 @@ add_interface_port SRC_ST aso_channel channel Output 2
 add_interface_port SRC_ST aso_error error Output 2
 
 
-# Interface: SNK_ST (ipcraft.busif.avalon_st.1.0)
+# Interface: SNK_ST (ipcraft:busif:avalon_st:1.0)
 add_interface SNK_ST avalon_streaming end
 set_interface_property SNK_ST associatedClock clk
 set_interface_property SNK_ST associatedReset reset
@@ -21919,7 +21971,7 @@ add_interface_port reset rst reset Input 1
 # Bus Interfaces (Generic)
 # -----------------------------------------------------------------------------
 
-# Interface: S_AVMM (ipcraft.busif.avalon_mm.1.0)
+# Interface: S_AVMM (ipcraft:busif:avalon_mm:1.0)
 add_interface S_AVMM avalon end
 set_interface_property S_AVMM associatedClock clk
 set_interface_property S_AVMM associatedReset reset
@@ -21944,7 +21996,7 @@ add_interface_port S_AVMM avs_readdatavalid readdatavalid Output 1
 add_interface_port S_AVMM avs_waitrequest waitrequest Output 1
 
 
-# Interface: SRC_ST (ipcraft.busif.avalon_st.1.0)
+# Interface: SRC_ST (ipcraft:busif:avalon_st:1.0)
 add_interface SRC_ST avalon_streaming start
 set_interface_property SRC_ST associatedClock clk
 set_interface_property SRC_ST associatedReset reset
@@ -21966,7 +22018,7 @@ add_interface_port SRC_ST aso_channel channel Output 2
 add_interface_port SRC_ST aso_error error Output 2
 
 
-# Interface: SNK_ST (ipcraft.busif.avalon_st.1.0)
+# Interface: SNK_ST (ipcraft:busif:avalon_st:1.0)
 add_interface SNK_ST avalon_streaming end
 set_interface_property SNK_ST associatedClock clk
 set_interface_property SNK_ST associatedReset reset
@@ -22163,7 +22215,7 @@ add_interface_port reset i_rstn_axi reset_n Input 1
 # Bus Interfaces (Generic)
 # -----------------------------------------------------------------------------
 
-# Interface: S_AXI (ipcraft.busif.axi4_lite.1.0)
+# Interface: S_AXI (ipcraft:busif:axi4_lite:1.0)
 add_interface S_AXI axi4lite end
 set_interface_property S_AXI associatedClock clk
 set_interface_property S_AXI associatedReset reset
@@ -22197,7 +22249,7 @@ add_interface_port S_AXI s_axi_rvalid rvalid Output 1
 add_interface_port S_AXI s_axi_rready rready Input 1
 
 
-# Interface: M_AXI (ipcraft.busif.axi4_full.1.0)
+# Interface: M_AXI (ipcraft:busif:axi4_full:1.0)
 add_interface M_AXI axi4 start
 set_interface_property M_AXI associatedClock clk
 set_interface_property M_AXI associatedReset reset
@@ -22247,7 +22299,7 @@ add_interface_port M_AXI m_axi_rvalid rvalid Input 1
 add_interface_port M_AXI m_axi_rready rready Output 1
 
 
-# Interface: M_AXIS_CH1 (ipcraft.busif.axi_stream.1.0)
+# Interface: M_AXIS_CH1 (ipcraft:busif:axi_stream:1.0)
 add_interface M_AXIS_CH1 axi4stream start
 set_interface_property M_AXIS_CH1 associatedClock clk
 set_interface_property M_AXIS_CH1 associatedReset reset
@@ -22268,7 +22320,7 @@ add_interface_port M_AXIS_CH1 m_axis_ch1_tlast tlast Output 1
 add_interface_port M_AXIS_CH1 m_axis_ch1_tuser tuser Output 4
 
 
-# Interface: M_AXIS_CH2 (ipcraft.busif.axi_stream.1.0)
+# Interface: M_AXIS_CH2 (ipcraft:busif:axi_stream:1.0)
 add_interface M_AXIS_CH2 axi4stream start
 set_interface_property M_AXIS_CH2 associatedClock clk
 set_interface_property M_AXIS_CH2 associatedReset reset
@@ -22289,7 +22341,7 @@ add_interface_port M_AXIS_CH2 m_axis_ch2_tlast tlast Output 1
 add_interface_port M_AXIS_CH2 m_axis_ch2_tuser tuser Output 4
 
 
-# Interface: S_AXIS (ipcraft.busif.axi_stream.1.0)
+# Interface: S_AXIS (ipcraft:busif:axi_stream:1.0)
 add_interface S_AXIS axi4stream end
 set_interface_property S_AXIS associatedClock clk
 set_interface_property S_AXIS associatedReset reset
@@ -22308,7 +22360,7 @@ add_interface_port S_AXIS s_axis_tready tready Output 1
 add_interface_port S_AXIS s_axis_tlast tlast Input 1
 
 
-# Interface: DBG (ipcraft.busif.conduit.1.0)
+# Interface: DBG (ipcraft:busif:conduit:1.0)
 add_interface DBG conduit end
 set_interface_property DBG associatedClock clk
 set_interface_property DBG associatedReset reset
@@ -22528,7 +22580,7 @@ add_interface_port reset i_rstn_axi reset_n Input 1
 # Bus Interfaces (Generic)
 # -----------------------------------------------------------------------------
 
-# Interface: S_AXI (ipcraft.busif.axi4_lite.1.0)
+# Interface: S_AXI (ipcraft:busif:axi4_lite:1.0)
 add_interface S_AXI axi4lite end
 set_interface_property S_AXI associatedClock clk
 set_interface_property S_AXI associatedReset reset
@@ -22562,7 +22614,7 @@ add_interface_port S_AXI s_axi_rvalid rvalid Output 1
 add_interface_port S_AXI s_axi_rready rready Input 1
 
 
-# Interface: M_AXI (ipcraft.busif.axi4_full.1.0)
+# Interface: M_AXI (ipcraft:busif:axi4_full:1.0)
 add_interface M_AXI axi4 start
 set_interface_property M_AXI associatedClock clk
 set_interface_property M_AXI associatedReset reset
@@ -22612,7 +22664,7 @@ add_interface_port M_AXI m_axi_rvalid rvalid Input 1
 add_interface_port M_AXI m_axi_rready rready Output 1
 
 
-# Interface: M_AXIS_CH1 (ipcraft.busif.axi_stream.1.0)
+# Interface: M_AXIS_CH1 (ipcraft:busif:axi_stream:1.0)
 add_interface M_AXIS_CH1 axi4stream start
 set_interface_property M_AXIS_CH1 associatedClock clk
 set_interface_property M_AXIS_CH1 associatedReset reset
@@ -22633,7 +22685,7 @@ add_interface_port M_AXIS_CH1 m_axis_ch1_tlast tlast Output 1
 add_interface_port M_AXIS_CH1 m_axis_ch1_tuser tuser Output 4
 
 
-# Interface: M_AXIS_CH2 (ipcraft.busif.axi_stream.1.0)
+# Interface: M_AXIS_CH2 (ipcraft:busif:axi_stream:1.0)
 add_interface M_AXIS_CH2 axi4stream start
 set_interface_property M_AXIS_CH2 associatedClock clk
 set_interface_property M_AXIS_CH2 associatedReset reset
@@ -22654,7 +22706,7 @@ add_interface_port M_AXIS_CH2 m_axis_ch2_tlast tlast Output 1
 add_interface_port M_AXIS_CH2 m_axis_ch2_tuser tuser Output 4
 
 
-# Interface: S_AXIS (ipcraft.busif.axi_stream.1.0)
+# Interface: S_AXIS (ipcraft:busif:axi_stream:1.0)
 add_interface S_AXIS axi4stream end
 set_interface_property S_AXIS associatedClock clk
 set_interface_property S_AXIS associatedReset reset
@@ -22673,7 +22725,7 @@ add_interface_port S_AXIS s_axis_tready tready Output 1
 add_interface_port S_AXIS s_axis_tlast tlast Input 1
 
 
-# Interface: DBG (ipcraft.busif.conduit.1.0)
+# Interface: DBG (ipcraft:busif:conduit:1.0)
 add_interface DBG conduit end
 set_interface_property DBG associatedClock clk
 set_interface_property DBG associatedReset reset
@@ -23020,7 +23072,7 @@ add_interface_port reset i_rst_n_sys reset_n Input 1
 # Bus Interfaces (Generic)
 # -----------------------------------------------------------------------------
 
-# Interface: S_AXI_LITE (ipcraft.busif.axi4_lite.1.0)
+# Interface: S_AXI_LITE (ipcraft:busif:axi4_lite:1.0)
 add_interface S_AXI_LITE axi4lite end
 set_interface_property S_AXI_LITE associatedClock clk
 set_interface_property S_AXI_LITE associatedReset reset
@@ -23054,7 +23106,7 @@ add_interface_port S_AXI_LITE s_axi_rvalid rvalid Output 1
 add_interface_port S_AXI_LITE s_axi_rready rready Input 1
 
 
-# Interface: M_AXIS_CH0_OUT (ipcraft.busif.axi_stream.1.0)
+# Interface: M_AXIS_CH0_OUT (ipcraft:busif:axi_stream:1.0)
 add_interface M_AXIS_CH0_OUT axi4stream start
 set_interface_property M_AXIS_CH0_OUT associatedClock clk
 set_interface_property M_AXIS_CH0_OUT associatedReset reset
@@ -23074,7 +23126,7 @@ add_interface_port M_AXIS_CH0_OUT m_axis_ch0_tlast tlast Output 1
 add_interface_port M_AXIS_CH0_OUT m_axis_ch0_tuser tuser Output 1
 
 
-# Interface: M_AXIS_CH1_OUT (ipcraft.busif.axi_stream.1.0)
+# Interface: M_AXIS_CH1_OUT (ipcraft:busif:axi_stream:1.0)
 add_interface M_AXIS_CH1_OUT axi4stream start
 set_interface_property M_AXIS_CH1_OUT associatedClock clk
 set_interface_property M_AXIS_CH1_OUT associatedReset reset
@@ -23094,7 +23146,7 @@ add_interface_port M_AXIS_CH1_OUT m_axis_ch1_tlast tlast Output 1
 add_interface_port M_AXIS_CH1_OUT m_axis_ch1_tuser tuser Output 1
 
 
-# Interface: M_AXIS_CH2_OUT (ipcraft.busif.axi_stream.1.0)
+# Interface: M_AXIS_CH2_OUT (ipcraft:busif:axi_stream:1.0)
 add_interface M_AXIS_CH2_OUT axi4stream start
 set_interface_property M_AXIS_CH2_OUT associatedClock clk
 set_interface_property M_AXIS_CH2_OUT associatedReset reset
@@ -23114,7 +23166,7 @@ add_interface_port M_AXIS_CH2_OUT m_axis_ch2_tlast tlast Output 1
 add_interface_port M_AXIS_CH2_OUT m_axis_ch2_tuser tuser Output 1
 
 
-# Interface: M_AXIS_CH3_OUT (ipcraft.busif.axi_stream.1.0)
+# Interface: M_AXIS_CH3_OUT (ipcraft:busif:axi_stream:1.0)
 add_interface M_AXIS_CH3_OUT axi4stream start
 set_interface_property M_AXIS_CH3_OUT associatedClock clk
 set_interface_property M_AXIS_CH3_OUT associatedReset reset
@@ -23134,7 +23186,7 @@ add_interface_port M_AXIS_CH3_OUT m_axis_ch3_tlast tlast Output 1
 add_interface_port M_AXIS_CH3_OUT m_axis_ch3_tuser tuser Output 1
 
 
-# Interface: S_AXIS_IN (ipcraft.busif.axi_stream.1.0)
+# Interface: S_AXIS_IN (ipcraft:busif:axi_stream:1.0)
 add_interface S_AXIS_IN axi4stream end
 set_interface_property S_AXIS_IN associatedClock clk
 set_interface_property S_AXIS_IN associatedReset reset
@@ -23253,7 +23305,7 @@ add_interface_port reset i_rst_n_sys reset_n Input 1
 # Bus Interfaces (Generic)
 # -----------------------------------------------------------------------------
 
-# Interface: S_AXI_LITE (ipcraft.busif.axi4_lite.1.0)
+# Interface: S_AXI_LITE (ipcraft:busif:axi4_lite:1.0)
 add_interface S_AXI_LITE axi4lite end
 set_interface_property S_AXI_LITE associatedClock clk
 set_interface_property S_AXI_LITE associatedReset reset
@@ -23287,7 +23339,7 @@ add_interface_port S_AXI_LITE s_axi_rvalid rvalid Output 1
 add_interface_port S_AXI_LITE s_axi_rready rready Input 1
 
 
-# Interface: M_AXIS_CH0_OUT (ipcraft.busif.axi_stream.1.0)
+# Interface: M_AXIS_CH0_OUT (ipcraft:busif:axi_stream:1.0)
 add_interface M_AXIS_CH0_OUT axi4stream start
 set_interface_property M_AXIS_CH0_OUT associatedClock clk
 set_interface_property M_AXIS_CH0_OUT associatedReset reset
@@ -23307,7 +23359,7 @@ add_interface_port M_AXIS_CH0_OUT m_axis_ch0_tlast tlast Output 1
 add_interface_port M_AXIS_CH0_OUT m_axis_ch0_tuser tuser Output 1
 
 
-# Interface: M_AXIS_CH1_OUT (ipcraft.busif.axi_stream.1.0)
+# Interface: M_AXIS_CH1_OUT (ipcraft:busif:axi_stream:1.0)
 add_interface M_AXIS_CH1_OUT axi4stream start
 set_interface_property M_AXIS_CH1_OUT associatedClock clk
 set_interface_property M_AXIS_CH1_OUT associatedReset reset
@@ -23327,7 +23379,7 @@ add_interface_port M_AXIS_CH1_OUT m_axis_ch1_tlast tlast Output 1
 add_interface_port M_AXIS_CH1_OUT m_axis_ch1_tuser tuser Output 1
 
 
-# Interface: M_AXIS_CH2_OUT (ipcraft.busif.axi_stream.1.0)
+# Interface: M_AXIS_CH2_OUT (ipcraft:busif:axi_stream:1.0)
 add_interface M_AXIS_CH2_OUT axi4stream start
 set_interface_property M_AXIS_CH2_OUT associatedClock clk
 set_interface_property M_AXIS_CH2_OUT associatedReset reset
@@ -23347,7 +23399,7 @@ add_interface_port M_AXIS_CH2_OUT m_axis_ch2_tlast tlast Output 1
 add_interface_port M_AXIS_CH2_OUT m_axis_ch2_tuser tuser Output 1
 
 
-# Interface: M_AXIS_CH3_OUT (ipcraft.busif.axi_stream.1.0)
+# Interface: M_AXIS_CH3_OUT (ipcraft:busif:axi_stream:1.0)
 add_interface M_AXIS_CH3_OUT axi4stream start
 set_interface_property M_AXIS_CH3_OUT associatedClock clk
 set_interface_property M_AXIS_CH3_OUT associatedReset reset
@@ -23367,7 +23419,7 @@ add_interface_port M_AXIS_CH3_OUT m_axis_ch3_tlast tlast Output 1
 add_interface_port M_AXIS_CH3_OUT m_axis_ch3_tuser tuser Output 1
 
 
-# Interface: S_AXIS_IN (ipcraft.busif.axi_stream.1.0)
+# Interface: S_AXIS_IN (ipcraft:busif:axi_stream:1.0)
 add_interface S_AXIS_IN axi4stream end
 set_interface_property S_AXIS_IN associatedClock clk
 set_interface_property S_AXIS_IN associatedReset reset
@@ -23517,7 +23569,7 @@ add_interface_port reset RST_SYS reset_n Input 1
 # Bus Interfaces (Generic)
 # -----------------------------------------------------------------------------
 
-# Interface: control_reg (ipcraft.busif.axi4_lite.1.0)
+# Interface: control_reg (ipcraft:busif:axi4_lite:1.0)
 add_interface control_reg axi4lite end
 set_interface_property control_reg associatedClock clk
 set_interface_property control_reg associatedReset reset
@@ -23551,7 +23603,7 @@ add_interface_port control_reg s_axi_ctrl_rvalid rvalid Output 1
 add_interface_port control_reg s_axi_ctrl_rready rready Input 1
 
 
-# Interface: dma_control (ipcraft.busif.axi4_lite.1.0)
+# Interface: dma_control (ipcraft:busif:axi4_lite:1.0)
 add_interface dma_control axi4lite end
 set_interface_property dma_control associatedClock clk
 set_interface_property dma_control associatedReset reset
@@ -23585,7 +23637,7 @@ add_interface_port dma_control s_axi_dma_rvalid rvalid Output 1
 add_interface_port dma_control s_axi_dma_rready rready Input 1
 
 
-# Interface: memory_port (ipcraft.busif.axi4_lite.1.0)
+# Interface: memory_port (ipcraft:busif:axi4_lite:1.0)
 add_interface memory_port axi4lite start
 set_interface_property memory_port associatedClock clk
 set_interface_property memory_port associatedReset reset
@@ -23619,7 +23671,7 @@ add_interface_port memory_port m_axi_mem_rvalid rvalid Input 1
 add_interface_port memory_port m_axi_mem_rready rready Output 1
 
 
-# Interface: data_stream_in (ipcraft.busif.axi_stream.1.0)
+# Interface: data_stream_in (ipcraft:busif:axi_stream:1.0)
 add_interface data_stream_in axi4stream end
 set_interface_property data_stream_in associatedClock clk
 set_interface_property data_stream_in associatedReset reset
@@ -23637,7 +23689,7 @@ add_interface_port data_stream_in s_axis_data_tvalid tvalid Input 1
 add_interface_port data_stream_in s_axis_data_tready tready Output 1
 
 
-# Interface: data_stream_out (ipcraft.busif.axi_stream.1.0)
+# Interface: data_stream_out (ipcraft:busif:axi_stream:1.0)
 add_interface data_stream_out axi4stream start
 set_interface_property data_stream_out associatedClock clk
 set_interface_property data_stream_out associatedReset reset
@@ -23655,7 +23707,7 @@ add_interface_port data_stream_out m_axis_data_tvalid tvalid Output 1
 add_interface_port data_stream_out m_axis_data_tready tready Input 1
 
 
-# Interface: pcie_interface (ipcraft.busif.axi4_lite.1.0)
+# Interface: pcie_interface (ipcraft:busif:axi4_lite:1.0)
 add_interface pcie_interface axi4lite start
 set_interface_property pcie_interface associatedClock clk
 set_interface_property pcie_interface associatedReset reset
@@ -23689,7 +23741,7 @@ add_interface_port pcie_interface m_axi_pcie_rvalid rvalid Input 1
 add_interface_port pcie_interface m_axi_pcie_rready rready Output 1
 
 
-# Interface: usb_data_in (ipcraft.busif.axi_stream.1.0)
+# Interface: usb_data_in (ipcraft:busif:axi_stream:1.0)
 add_interface usb_data_in axi4stream end
 set_interface_property usb_data_in associatedClock clk
 set_interface_property usb_data_in associatedReset reset
@@ -23707,7 +23759,7 @@ add_interface_port usb_data_in s_axis_usb_tvalid tvalid Input 1
 add_interface_port usb_data_in s_axis_usb_tready tready Output 1
 
 
-# Interface: usb_data_out (ipcraft.busif.axi_stream.1.0)
+# Interface: usb_data_out (ipcraft:busif:axi_stream:1.0)
 add_interface usb_data_out axi4stream start
 set_interface_property usb_data_out associatedClock clk
 set_interface_property usb_data_out associatedReset reset
@@ -23857,7 +23909,7 @@ add_interface_port reset RST_SYS reset_n Input 1
 # Bus Interfaces (Generic)
 # -----------------------------------------------------------------------------
 
-# Interface: control_reg (ipcraft.busif.axi4_lite.1.0)
+# Interface: control_reg (ipcraft:busif:axi4_lite:1.0)
 add_interface control_reg axi4lite end
 set_interface_property control_reg associatedClock clk
 set_interface_property control_reg associatedReset reset
@@ -23891,7 +23943,7 @@ add_interface_port control_reg s_axi_ctrl_rvalid rvalid Output 1
 add_interface_port control_reg s_axi_ctrl_rready rready Input 1
 
 
-# Interface: dma_control (ipcraft.busif.axi4_lite.1.0)
+# Interface: dma_control (ipcraft:busif:axi4_lite:1.0)
 add_interface dma_control axi4lite end
 set_interface_property dma_control associatedClock clk
 set_interface_property dma_control associatedReset reset
@@ -23925,7 +23977,7 @@ add_interface_port dma_control s_axi_dma_rvalid rvalid Output 1
 add_interface_port dma_control s_axi_dma_rready rready Input 1
 
 
-# Interface: memory_port (ipcraft.busif.axi4_lite.1.0)
+# Interface: memory_port (ipcraft:busif:axi4_lite:1.0)
 add_interface memory_port axi4lite start
 set_interface_property memory_port associatedClock clk
 set_interface_property memory_port associatedReset reset
@@ -23959,7 +24011,7 @@ add_interface_port memory_port m_axi_mem_rvalid rvalid Input 1
 add_interface_port memory_port m_axi_mem_rready rready Output 1
 
 
-# Interface: data_stream_in (ipcraft.busif.axi_stream.1.0)
+# Interface: data_stream_in (ipcraft:busif:axi_stream:1.0)
 add_interface data_stream_in axi4stream end
 set_interface_property data_stream_in associatedClock clk
 set_interface_property data_stream_in associatedReset reset
@@ -23977,7 +24029,7 @@ add_interface_port data_stream_in s_axis_data_tvalid tvalid Input 1
 add_interface_port data_stream_in s_axis_data_tready tready Output 1
 
 
-# Interface: data_stream_out (ipcraft.busif.axi_stream.1.0)
+# Interface: data_stream_out (ipcraft:busif:axi_stream:1.0)
 add_interface data_stream_out axi4stream start
 set_interface_property data_stream_out associatedClock clk
 set_interface_property data_stream_out associatedReset reset
@@ -23995,7 +24047,7 @@ add_interface_port data_stream_out m_axis_data_tvalid tvalid Output 1
 add_interface_port data_stream_out m_axis_data_tready tready Input 1
 
 
-# Interface: pcie_interface (ipcraft.busif.axi4_lite.1.0)
+# Interface: pcie_interface (ipcraft:busif:axi4_lite:1.0)
 add_interface pcie_interface axi4lite start
 set_interface_property pcie_interface associatedClock clk
 set_interface_property pcie_interface associatedReset reset
@@ -24029,7 +24081,7 @@ add_interface_port pcie_interface m_axi_pcie_rvalid rvalid Input 1
 add_interface_port pcie_interface m_axi_pcie_rready rready Output 1
 
 
-# Interface: usb_data_in (ipcraft.busif.axi_stream.1.0)
+# Interface: usb_data_in (ipcraft:busif:axi_stream:1.0)
 add_interface usb_data_in axi4stream end
 set_interface_property usb_data_in associatedClock clk
 set_interface_property usb_data_in associatedReset reset
@@ -24047,7 +24099,7 @@ add_interface_port usb_data_in s_axis_usb_tvalid tvalid Input 1
 add_interface_port usb_data_in s_axis_usb_tready tready Output 1
 
 
-# Interface: usb_data_out (ipcraft.busif.axi_stream.1.0)
+# Interface: usb_data_out (ipcraft:busif:axi_stream:1.0)
 add_interface usb_data_out axi4stream start
 set_interface_property usb_data_out associatedClock clk
 set_interface_property usb_data_out associatedReset reset
@@ -24179,7 +24231,7 @@ add_interface_port reset reset_n reset_n Input 1
 # Bus Interfaces (Generic)
 # -----------------------------------------------------------------------------
 
-# Interface: xcvr_in (user.busif.xcvr.1.0)
+# Interface: xcvr_in (user:busif:xcvr:1.0)
 add_interface xcvr_in conduit end
 set_interface_property xcvr_in associatedClock clk
 set_interface_property xcvr_in associatedReset reset
@@ -24194,7 +24246,7 @@ set_interface_property xcvr_in SVD_ADDRESS_GROUP ""
 # Ports
 
 
-# Interface: xcvr_out (user.busif.xcvr.1.0)
+# Interface: xcvr_out (user:busif:xcvr:1.0)
 add_interface xcvr_out conduit end
 set_interface_property xcvr_out associatedClock clk
 set_interface_property xcvr_out associatedReset reset
@@ -24331,7 +24383,7 @@ add_interface_port reset reset_n reset_n Input 1
 # Bus Interfaces (Generic)
 # -----------------------------------------------------------------------------
 
-# Interface: xcvr_in (user.busif.xcvr.1.0)
+# Interface: xcvr_in (user:busif:xcvr:1.0)
 add_interface xcvr_in conduit end
 set_interface_property xcvr_in associatedClock clk
 set_interface_property xcvr_in associatedReset reset
@@ -24346,7 +24398,7 @@ set_interface_property xcvr_in SVD_ADDRESS_GROUP ""
 # Ports
 
 
-# Interface: xcvr_out (user.busif.xcvr.1.0)
+# Interface: xcvr_out (user:busif:xcvr:1.0)
 add_interface xcvr_out conduit end
 set_interface_property xcvr_out associatedClock clk
 set_interface_property xcvr_out associatedReset reset

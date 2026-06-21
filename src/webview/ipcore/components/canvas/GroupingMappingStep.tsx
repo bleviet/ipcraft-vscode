@@ -4,6 +4,7 @@ import type { GroupAsStandardOptions } from '../../hooks/useGroupPorts';
 import {
   inferPortAssignments,
   inferPrefixAndMode,
+  inferGroupingPlan,
   portSuffix,
   type SignalAssignment,
 } from '../../utils/protocolMatcher';
@@ -129,6 +130,16 @@ const STYLE = {
     cursor: 'pointer',
     fontSize: 12,
   },
+  readOnly: {
+    opacity: 0.55,
+    fontFamily: 'var(--vscode-editor-font-family, monospace)',
+    fontSize: 11,
+  },
+  hint: {
+    padding: '4px 12px',
+    fontSize: 11,
+    opacity: 0.7,
+  },
 };
 
 export const GroupingMappingStep: React.FC<GroupingMappingStepProps> = ({
@@ -152,9 +163,23 @@ export const GroupingMappingStep: React.FC<GroupingMappingStepProps> = ({
     [selectedPorts]
   );
 
+  // Structural grouping plan: detects array-of-interfaces and decorated single names,
+  // producing a physicalNamePattern. Used for the multi-port selection flow from the
+  // canvas toolbar. The merge-into-existing-bus flow (initialPrefix set) always uses
+  // the interactive prefix table instead.
+  const plan = useMemo(
+    () => (initialPrefix === undefined ? inferGroupingPlan(portsAsInput, busType) : null),
+    [portsAsInput, busType, initialPrefix]
+  );
+
+  const isPatternMode =
+    initialPrefix === undefined &&
+    plan !== null &&
+    (plan.kind === 'array' || plan.physicalNamePattern !== undefined);
+
   const inferred = useMemo(
-    () => inferPrefixAndMode(portsAsInput, busType),
-    [portsAsInput, busType]
+    () => (isPatternMode ? null : inferPrefixAndMode(portsAsInput, busType)),
+    [portsAsInput, busType, isPatternMode]
   );
 
   const [interfaceName, setInterfaceName] = useState(() => {
@@ -162,7 +187,9 @@ export const GroupingMappingStep: React.FC<GroupingMappingStepProps> = ({
     return lower.replace(/_/g, '_').toLowerCase();
   });
   const [prefix, setPrefix] = useState(initialPrefix ?? inferred?.prefix ?? '');
-  const [mode, setMode] = useState<'slave' | 'master'>(initialMode ?? inferred?.mode ?? 'slave');
+  const [mode, setMode] = useState<'slave' | 'master'>(
+    initialMode ?? plan?.mode ?? inferred?.mode ?? 'slave'
+  );
   const [assignments, setAssignments] = useState<AssignmentRow[]>([]);
   const [staleWarning, setStaleWarning] = useState(false);
 
@@ -177,7 +204,7 @@ export const GroupingMappingStep: React.FC<GroupingMappingStepProps> = ({
         setStaleWarning(true);
       }
 
-      const inferred = inferPortAssignments(
+      const inferredAssignments = inferPortAssignments(
         current.map((p) => ({ name: p.name, direction: p.direction })),
         busType,
         currentMode,
@@ -188,7 +215,7 @@ export const GroupingMappingStep: React.FC<GroupingMappingStepProps> = ({
       // already owned by the bus is shown as read-only so the user cannot
       // accidentally unassign it.
       setAssignments(
-        inferred.map((a): AssignmentRow => {
+        inferredAssignments.map((a): AssignmentRow => {
           const existingPhysical = existingPortAssignments?.[a.logicalName];
           if (existingPhysical) {
             return {
@@ -207,11 +234,15 @@ export const GroupingMappingStep: React.FC<GroupingMappingStepProps> = ({
 
   // Initial compute — intentionally runs only on mount
   useEffect(() => {
-    recomputeAssignments(prefix, mode);
+    if (isPatternMode && plan) {
+      setAssignments(plan.assignments.map((a) => ({ ...a, isLocked: false })));
+    } else {
+      recomputeAssignments(prefix, mode);
+    }
     // The empty dep array is intentional: we only want to auto-assign on mount.
     // Subsequent prefix/mode changes are handled by handlePrefixChange/handleModeChange.
     // Port staleness is handled by the separate effect below.
-  }, []); // mount-only
+  }, []);
 
   // Re-evaluate when source file changes (ipCore.ports changes)
   useEffect(() => {
@@ -219,10 +250,14 @@ export const GroupingMappingStep: React.FC<GroupingMappingStepProps> = ({
     if (current.length !== selectedPortIndices.length) {
       setStaleWarning(true);
     }
-    recomputeAssignments(prefix, mode);
+    if (isPatternMode && plan) {
+      setAssignments(plan.assignments.map((a) => ({ ...a, isLocked: false })));
+    } else {
+      recomputeAssignments(prefix, mode);
+    }
     // We intentionally omit prefix/mode from deps here — those are handled by
     // the dedicated handlers. We only want to react to external port list changes.
-  }, [ipCore.ports]); // port-staleness guard
+  }, [ipCore.ports]);
 
   const handlePrefixChange = (newPrefix: string) => {
     setPrefix(newPrefix);
@@ -231,7 +266,18 @@ export const GroupingMappingStep: React.FC<GroupingMappingStepProps> = ({
 
   const handleModeChange = (newMode: 'slave' | 'master') => {
     setMode(newMode);
-    recomputeAssignments(prefix, newMode);
+    if (!isPatternMode) {
+      recomputeAssignments(prefix, newMode);
+    } else if (plan) {
+      // Pattern/array tables are derived from the plan; mode only flips expected dirs.
+      setAssignments(
+        plan.assignments.map((a) => ({
+          ...a,
+          expectedDir: flipExpectedDir(a.expectedDir, mode, newMode),
+          isLocked: false,
+        }))
+      );
+    }
   };
 
   const handleAssignmentChange = (logicalName: string, portName: string | null) => {
@@ -256,14 +302,13 @@ export const GroupingMappingStep: React.FC<GroupingMappingStepProps> = ({
   const portDefs = lookupBusDef(busType);
   const hasAnyAssignableSignals = (portDefs?.filter((d) => !d.role).length ?? 0) > 0;
 
-  const handleConfirm = () => {
+  const buildPortOverridesAndIndices = () => {
     const portNameOverrides: Record<string, string> = {};
     const portWidthOverrides: Record<string, number | string> = {};
     const useOptionalPorts: string[] = [];
     const assignedPortIndices: number[] = [];
 
     for (const a of assignments) {
-      // Locked rows are already part of the existing bus — skip them entirely.
       if (a.isLocked || !a.assignedPort) {
         continue;
       }
@@ -271,17 +316,51 @@ export const GroupingMappingStep: React.FC<GroupingMappingStepProps> = ({
       if (idx >= 0) {
         assignedPortIndices.push(idx);
       }
-      if (a.hasSuffixMismatch) {
+      // In pattern mode the template already encodes naming; overrides only apply
+      // to the interactive prefix flow where a port's suffix diverges from the signal.
+      if (!isPatternMode && a.hasSuffixMismatch) {
         portNameOverrides[a.logicalName] = portSuffix(a.assignedPort.name, prefix);
       }
       if (a.presence === 'optional') {
         useOptionalPorts.push(a.logicalName);
       }
-      // Preserve the physical port's actual width instead of the bus default
       const physicalPort = selectedPorts.find((p) => p.name === a.assignedPort!.name);
       if (physicalPort?.width !== undefined) {
         portWidthOverrides[a.logicalName] = physicalPort.width;
       }
+    }
+
+    return { portNameOverrides, portWidthOverrides, useOptionalPorts, assignedPortIndices };
+  };
+
+  const handleConfirm = () => {
+    const { portNameOverrides, portWidthOverrides, useOptionalPorts, assignedPortIndices } =
+      buildPortOverridesAndIndices();
+
+    if (isPatternMode && plan) {
+      const pattern = plan.kind === 'array' ? plan.physicalNamePattern : plan.physicalNamePattern!;
+      const baseOpts: GroupAsStandardOptions = {
+        portIndices: assignedPortIndices,
+        busType,
+        mode,
+        physicalNamePattern: pattern,
+        wildcardMatches: plan.wildcardMatches,
+        interfaceName,
+        portWidthOverrides:
+          Object.keys(portWidthOverrides).length > 0 ? portWidthOverrides : undefined,
+        useOptionalPorts: useOptionalPorts.length > 0 ? useOptionalPorts : undefined,
+        associatedClock: associatedClock || null,
+        associatedReset: associatedReset || null,
+      };
+      if (plan.kind === 'array') {
+        baseOpts.array = {
+          count: plan.array.count,
+          indexStart: plan.array.indexStart,
+          namingPattern: `${interfaceName}_{index}`,
+        };
+      }
+      onConfirm(baseOpts);
+      return;
     }
 
     onConfirm({
@@ -301,6 +380,13 @@ export const GroupingMappingStep: React.FC<GroupingMappingStepProps> = ({
 
   const clocks = ipCore.clocks ?? [];
   const resets = ipCore.resets ?? [];
+
+  const patternLabel =
+    plan?.kind === 'array'
+      ? plan.physicalNamePattern
+      : plan?.kind === 'single'
+        ? plan.physicalNamePattern
+        : undefined;
 
   return (
     <div style={STYLE.panel}>
@@ -336,15 +422,35 @@ export const GroupingMappingStep: React.FC<GroupingMappingStepProps> = ({
             onChange={(e) => setInterfaceName(e.target.value)}
           />
         </div>
-        <div style={STYLE.field}>
-          <span style={STYLE.label}>Prefix</span>
-          <input
-            style={STYLE.input}
-            value={prefix}
-            onChange={(e) => handlePrefixChange(e.target.value)}
-            placeholder="e.g. s_axi_"
-          />
-        </div>
+        {isPatternMode ? (
+          <>
+            <div style={STYLE.field}>
+              <span style={STYLE.label}>Name pattern</span>
+              <input
+                style={{ ...STYLE.input, opacity: 0.85 }}
+                value={patternLabel ?? ''}
+                readOnly
+                title="Inferred physicalNamePattern — {signal} and {index} are placeholders"
+              />
+            </div>
+            {plan?.kind === 'array' && (
+              <div style={STYLE.hint}>
+                Array of {plan.array.count} interface{plan.array.count !== 1 ? 's' : ''} (index
+                starts at {plan.array.indexStart}); one array interface will be created.
+              </div>
+            )}
+          </>
+        ) : (
+          <div style={STYLE.field}>
+            <span style={STYLE.label}>Prefix</span>
+            <input
+              style={STYLE.input}
+              value={prefix}
+              onChange={(e) => handlePrefixChange(e.target.value)}
+              placeholder="e.g. s_axi_"
+            />
+          </div>
+        )}
         <div style={STYLE.field}>
           <span style={STYLE.label}>Mode</span>
           <select
@@ -429,15 +535,17 @@ export const GroupingMappingStep: React.FC<GroupingMappingStepProps> = ({
                         {a.logicalName}
                       </td>
                       <td style={STYLE.tdCell}>
-                        {a.isLocked ? (
-                          // Already assigned inside the existing bus — show read-only
+                        {a.isLocked || isPatternMode ? (
+                          // Locked rows are owned by an existing bus; pattern/array
+                          // rows are structurally fixed by the inferred template. Both
+                          // are shown read-only.
                           <span
-                            style={{
-                              opacity: 0.55,
-                              fontFamily: 'var(--vscode-editor-font-family, monospace)',
-                              fontSize: 11,
-                            }}
-                            title="Already assigned in this bus interface"
+                            style={STYLE.readOnly}
+                            title={
+                              a.isLocked
+                                ? 'Already assigned in this bus interface'
+                                : 'Fixed by the inferred name pattern'
+                            }
                           >
                             {a.assignedPort?.name ?? '—'}
                           </span>
@@ -518,3 +626,15 @@ export const GroupingMappingStep: React.FC<GroupingMappingStepProps> = ({
     </div>
   );
 };
+
+/** Flip an expected direction when the user changes mode after mount (pattern tables). */
+function flipExpectedDir(
+  dir: 'in' | 'out' | undefined,
+  fromMode: 'slave' | 'master',
+  toMode: 'slave' | 'master'
+): 'in' | 'out' | undefined {
+  if (!dir || fromMode === toMode) {
+    return dir;
+  }
+  return dir === 'in' ? 'out' : 'in';
+}

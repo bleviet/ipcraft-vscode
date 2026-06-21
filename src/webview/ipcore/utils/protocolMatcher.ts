@@ -1,10 +1,12 @@
 import { lookupBusDef, type BusPortDef } from '../data/busDefinitions';
 import { BUS_VLNV } from '../../../shared/busVlnv';
+import { planArrayCollapse, type CollapsibleInterface } from '../../../shared/arrayCollapse';
+import { substitutePattern } from '../../../shared/physicalName';
 
 export interface ProtocolMatch {
   busType: string;
   label: string;
-  /** 0..1 — fraction of required signals matched */
+  /** 0..1 — fraction of required signals matched (best instance) */
   score: number;
   inferredMode: 'slave' | 'master';
   detectedPrefix: string;
@@ -50,22 +52,153 @@ const PROTOCOL_SPECS: readonly ProtocolSpec[] = [
   },
 ];
 
+type PortLike = { name: string; direction: 'in' | 'out' | 'inout' };
+
+/** Split a port name into lowercase `_`-delimited tokens (empty tokens dropped). */
+function tokenize(name: string): string[] {
+  return name
+    .toLowerCase()
+    .split('_')
+    .map((t) => t.trim())
+    .filter((t) => t.length > 0);
+}
+
+/** A logical signal paired with its single-token physical spelling. */
+interface SignalToken {
+  def: BusPortDef;
+  token: string;
+}
+
 /**
- * Score a set of port names against all known protocols.
- * Returns matches sorted by score descending, filtered to score >= 0.5.
+ * One detected instance of a protocol: the literal "skeleton" (a port's tokens
+ * with its signal token removed) shared by every signal that belongs to it, plus
+ * the physical port mapped to each logical signal.
  *
- * Direction information is not available at this stage (we only have names),
- * so mode is inferred by counting direction votes from the BusPortDef list.
- * Full directional enforcement is done in inferPortAssignments().
+ * Ports that share a skeleton are the same interface instance; differing numeric
+ * skeletons (`asi_0_i` vs `asi_1_i`) mark array members.
  */
-export function matchPorts(
-  ports: Array<{ name: string; direction: 'in' | 'out' | 'inout' }>
-): ProtocolMatch[] {
-  const portMap = new Map<string, { name: string; direction: 'in' | 'out' | 'inout' }>();
-  for (const p of ports) {
-    portMap.set(p.name.toLowerCase(), p);
+interface DetectedInstance {
+  skeleton: string;
+  signalToPort: Record<string, PortLike>;
+}
+
+/** Find, for a port, the single signal token it contains; ties break toward the
+ *  longer (more specific) signal name. Returns null when no signal token matches. */
+function matchPortToSignal(
+  tokens: string[],
+  signals: SignalToken[]
+): { signal: SignalToken; pos: number } | null {
+  let best: { signal: SignalToken; pos: number } | null = null;
+  for (let pos = 0; pos < tokens.length; pos += 1) {
+    const tok = tokens[pos];
+    const signal = signals.find((s) => s.token === tok);
+    if (!signal) {
+      continue;
+    }
+    if (!best || signal.token.length > best.signal.token.length) {
+      best = { signal, pos };
+    }
+  }
+  return best;
+}
+
+/** Build detected instances by tokenizing every port and grouping on skeleton. */
+function buildInstances(ports: PortLike[], signalDefs: BusPortDef[]): DetectedInstance[] {
+  const signals: SignalToken[] = signalDefs.map((def) => ({ def, token: def.name.toLowerCase() }));
+  const bySkeleton = new Map<string, DetectedInstance>();
+
+  for (const port of ports) {
+    const tokens = tokenize(port.name);
+    const match = matchPortToSignal(tokens, signals);
+    if (!match) {
+      continue;
+    }
+    const skeleton = tokens.filter((_, i) => i !== match.pos).join('_');
+    let inst = bySkeleton.get(skeleton);
+    if (!inst) {
+      inst = { skeleton, signalToPort: {} };
+      bySkeleton.set(skeleton, inst);
+    }
+    // First port wins per signal; a later port for the same signal in the same
+    // instance is almost always a duplicate and is ignored.
+    if (!inst.signalToPort[match.signal.def.name]) {
+      inst.signalToPort[match.signal.def.name] = port;
+    }
   }
 
+  return [...bySkeleton.values()];
+}
+
+/**
+ * Reduce a skeleton to its "core" by stripping trailing non-numeric decoration tokens. The
+ * numeric index token (if any) is preserved, so `asi_0_i` and `asi_0_o` both reduce to `asi_0` —
+ * they are the same interface instance whose signals carry different direction tags. When there
+ * is no numeric token the skeleton is returned unchanged (single-instance, no index to key on).
+ */
+function coreSkeleton(skeleton: string): string {
+  const tokens = skeleton.split('_');
+  let last = tokens.length;
+  while (last > 0 && tokens[last - 1] !== '' && !/^\d+$/.test(tokens[last - 1])) {
+    last -= 1;
+  }
+  if (last === tokens.length) {
+    return skeleton;
+  }
+  // Only strip when a numeric token remains (otherwise we'd merge unrelated single instances).
+  const hasNumeric = tokens.slice(0, last).some((t) => /^\d+$/.test(t));
+  return hasNumeric ? tokens.slice(0, last).join('_') : skeleton;
+}
+
+/**
+ * Merge detected instances that share a core skeleton (differ only by trailing decoration like a
+ * direction tag), unioning their per-signal port maps so the collapse sees one instance per index.
+ */
+function mergeByCoreSkeleton(instances: DetectedInstance[]): DetectedInstance[] {
+  const byCore = new Map<string, DetectedInstance>();
+  for (const inst of instances) {
+    const core = coreSkeleton(inst.skeleton);
+    const existing = byCore.get(core);
+    if (!existing) {
+      byCore.set(core, { ...inst, skeleton: core });
+    } else {
+      for (const [name, port] of Object.entries(inst.signalToPort)) {
+        if (!existing.signalToPort[name]) {
+          existing.signalToPort[name] = port;
+        }
+      }
+    }
+  }
+  return [...byCore.values()];
+}
+
+/** Vote master/slave from the directions of the matched ports and their signals. */
+function inferMode(matched: Array<{ port: PortLike; def: BusPortDef }>): 'slave' | 'master' {
+  let masterVotes = 0;
+  let slaveVotes = 0;
+  for (const { port, def } of matched) {
+    const defDir = def.direction;
+    if (!defDir || port.direction === 'inout') {
+      continue;
+    }
+    if (port.direction === defDir) {
+      masterVotes += 1;
+    } else {
+      slaveVotes += 1;
+    }
+  }
+  return slaveVotes >= masterVotes ? 'slave' : 'master';
+}
+
+/**
+ * Score a set of port names against all known protocols.
+ *
+ * Matching is token-based: a port covers a logical signal when the signal name is
+ * one of the port's `_`-delimited tokens, so decorated / indexed names
+ * (`asi_valid_0_i`) are recognized regardless of where the index sits or what
+ * direction tag trails the signal. Returns matches sorted by score descending,
+ * filtered to score >= 0.5.
+ */
+export function matchPorts(ports: PortLike[]): ProtocolMatch[] {
   const results: ProtocolMatch[] = [];
 
   for (const spec of PROTOCOL_SPECS) {
@@ -73,59 +206,31 @@ export function matchPorts(
     if (!portDefs) {
       continue;
     }
-
     const signalDefs = portDefs.filter((d) => !d.role);
     const totalRequired = signalDefs.filter((d) => d.presence === 'required').length;
     if (totalRequired === 0) {
       continue;
     }
 
-    // Collect candidate prefixes from port names by stripping known signal suffixes.
-    const candidatePrefixes = new Set<string>(['']);
-    for (const def of signalDefs) {
-      const suffix = def.name.toLowerCase();
-      for (const [lower] of portMap) {
-        if (lower.endsWith(suffix) && lower.length > suffix.length) {
-          const prefix = lower.slice(0, lower.length - suffix.length);
-          if (prefix.endsWith('_')) {
-            candidatePrefixes.add(prefix);
-          }
-        }
-      }
+    const instances = buildInstances(ports, signalDefs);
+    if (instances.length === 0) {
+      continue;
     }
 
-    for (const prefix of candidatePrefixes) {
+    for (const inst of instances) {
+      const matchedNames = Object.values(inst.signalToPort).map((p) => p.name);
+      const requiredMatched = signalDefs.filter(
+        (d) => d.presence === 'required' && inst.signalToPort[d.name]
+      ).length;
+
       // Apply exclusiveSignals guard to prevent less-specific protocols from
       // matching on a more-specific one's port set.
       if (spec.exclusiveSignals) {
-        const hasExclusive = spec.exclusiveSignals.some((s) => portMap.has(prefix + s));
+        const hasExclusive = spec.exclusiveSignals.some((s) =>
+          Object.values(inst.signalToPort).some((p) => tokenize(p.name).includes(s))
+        );
         if (!hasExclusive) {
           continue;
-        }
-      }
-
-      let requiredMatched = 0;
-      let masterVotes = 0;
-      let slaveVotes = 0;
-      const matchedPortNames: string[] = [];
-
-      for (const def of signalDefs) {
-        const port = portMap.get(prefix + def.name.toLowerCase());
-        if (!port) {
-          continue;
-        }
-        matchedPortNames.push(port.name);
-        if (def.presence === 'required') {
-          requiredMatched++;
-        }
-        // Direction voting: def.direction is from master perspective.
-        // If port direction matches master direction → master vote; else → slave vote.
-        if (def.direction && port.direction !== 'inout') {
-          if (port.direction === def.direction) {
-            masterVotes++;
-          } else {
-            slaveVotes++;
-          }
         }
       }
 
@@ -133,24 +238,32 @@ export function matchPorts(
         continue;
       }
 
-      // Reject if too many same-prefix ports are unexplained (avoids false positives
-      // on register-bank interfaces that happen to share generic signal names).
-      if (prefix) {
-        const samePrefixCount = [...portMap.keys()].filter((k) => k.startsWith(prefix)).length;
-        const unrecognizedCount = samePrefixCount - matchedPortNames.length;
-        if (unrecognizedCount >= matchedPortNames.length) {
-          continue;
-        }
+      // Reject if too many same-skeleton ports are unexplained. A port belongs to this
+      // instance when its tokens minus its signal token equal the instance skeleton.
+      const signalsForMatch = signalDefs.map((d) => ({ def: d, token: d.name.toLowerCase() }));
+      const sameSkeletonCount = ports.filter((p) => {
+        const toks = tokenize(p.name);
+        const m = matchPortToSignal(toks, signalsForMatch);
+        const rest = m ? toks.filter((_, i) => i !== m.pos).join('_') : toks.join('_');
+        return rest === inst.skeleton;
+      }).length;
+      const unrecognizedCount = sameSkeletonCount - matchedNames.length;
+      if (inst.skeleton && unrecognizedCount >= matchedNames.length) {
+        continue;
       }
 
       const score = requiredMatched / totalRequired;
+      const defByName = new Map(signalDefs.map((d) => [d.name, d] as const));
+      const matchedPairs = Object.entries(inst.signalToPort)
+        .map(([name, port]) => ({ port, def: defByName.get(name)! }))
+        .filter((p) => p.def);
       results.push({
         busType: spec.busType,
         label: spec.label,
         score,
-        inferredMode: slaveVotes >= masterVotes ? 'slave' : 'master',
-        detectedPrefix: prefix,
-        matchedPortNames,
+        inferredMode: inferMode(matchedPairs),
+        detectedPrefix: inferPrefixFromInstance(inst),
+        matchedPortNames: matchedNames,
       });
     }
   }
@@ -168,26 +281,34 @@ export function matchPorts(
 }
 
 /**
- * For a given set of port names and a target busType, find the best-fit prefix
- * and infer mode. Returns null if no plausible match is found.
+ * Legacy `physicalPrefix` for an instance when its ports reduce to a uniform
+ * `prefix{signal}` template (the common AXI case). Returns '' when the names carry
+ * decoration after the signal or do not template uniformly — pattern-based callers
+ * then use `physicalNamePattern` instead.
  */
-export function inferPrefixAndMode(
-  ports: Array<{ name: string; direction: 'in' | 'out' | 'inout' }>,
-  busType: string
-): { prefix: string; mode: 'slave' | 'master' } | null {
-  const matches = matchPorts(ports);
-  const match = matches.find((m) => m.busType === busType);
-  if (!match) {
-    return null;
+function inferPrefixFromInstance(inst: DetectedInstance): string {
+  const pattern = inferSinglePattern(inst);
+  if (pattern?.endsWith('{signal}')) {
+    return pattern.slice(0, -'{signal}'.length);
   }
-  return { prefix: match.detectedPrefix, mode: match.inferredMode };
+  return '';
 }
 
-/**
- * Returns the expected direction of a logical signal for a given mode.
- * BusPortDef directions are defined from the master perspective.
- * For slave mode, in/out are swapped.
- */
+export interface SignalAssignment {
+  logicalName: string;
+  /** null means "unassigned" */
+  assignedPort: PortLike | null;
+  presence: 'required' | 'optional';
+  /** Expected direction for the chosen mode */
+  expectedDir: 'in' | 'out' | undefined;
+  /**
+   * True when the assigned port's suffix after stripping the prefix
+   * does not match logical_name.toLowerCase() — requires a portNameOverride.
+   */
+  hasSuffixMismatch: boolean;
+}
+
+/** Returns the expected direction of a logical signal for a given mode. */
 export function expectedDirection(
   def: BusPortDef,
   mode: 'slave' | 'master'
@@ -201,70 +322,197 @@ export function expectedDirection(
   return def.direction === 'in' ? 'out' : 'in';
 }
 
-export interface SignalAssignment {
-  logicalName: string;
-  /** null means "unassigned" */
-  assignedPort: { name: string; direction: 'in' | 'out' | 'inout' } | null;
-  presence: 'required' | 'optional';
-  /** Expected direction for the chosen mode */
-  expectedDir: 'in' | 'out' | undefined;
-  /**
-   * True when the assigned port's suffix after stripping the prefix
-   * does not match logical_name.toLowerCase() — requires a portNameOverride.
-   */
-  hasSuffixMismatch: boolean;
-}
-
 /**
- * Auto-assign selected ports to logical signals of a protocol.
- *
- * - Direction mismatch is an absolute disqualifier: a port whose direction
- *   contradicts the signal's expected direction is never assigned.
- * - Clock/reset role signals are excluded from the assignment table.
+ * Build the per-signal assignment table for one instance under a chosen mode.
+ * Optional signals are included so the user can opt into them. Direction-filtered:
+ * a port whose direction contradicts the signal's expected direction is left
+ * unassigned.
  */
-export function inferPortAssignments(
-  ports: Array<{ name: string; direction: 'in' | 'out' | 'inout' }>,
+function buildAssignments(
+  inst: DetectedInstance,
   busType: string,
-  mode: 'slave' | 'master',
-  prefix: string
+  mode: 'slave' | 'master'
 ): SignalAssignment[] {
   const portDefs = lookupBusDef(busType);
   if (!portDefs) {
     return [];
   }
-
   const signalDefs = portDefs.filter((d) => !d.role);
-  const portMap = new Map<string, { name: string; direction: 'in' | 'out' | 'inout' }>();
-  for (const p of ports) {
-    portMap.set(p.name.toLowerCase(), p);
-  }
-
   return signalDefs.map((def): SignalAssignment => {
     const expDir = expectedDirection(def, mode);
-    const canonicalKey = prefix + def.name.toLowerCase();
-    const exactMatch = portMap.get(canonicalKey);
-
-    // Exact name match — still verify direction
-    if (exactMatch) {
-      const dirOk = !expDir || exactMatch.direction === 'inout' || exactMatch.direction === expDir;
-      return {
-        logicalName: def.name,
-        assignedPort: dirOk ? exactMatch : null,
-        presence: def.presence,
-        expectedDir: expDir,
-        hasSuffixMismatch: false,
-      };
-    }
-
-    // No exact match — leave unassigned
+    const port = inst.signalToPort[def.name] ?? null;
+    const dirOk = !port || !expDir || port.direction === 'inout' || port.direction === expDir;
     return {
       logicalName: def.name,
-      assignedPort: null,
+      assignedPort: dirOk ? port : null,
       presence: def.presence,
       expectedDir: expDir,
       hasSuffixMismatch: false,
     };
   });
+}
+
+/**
+ * Infer a uniform `physicalNamePattern` (`{signal}` placeholder) for a single
+ * instance: every signal's port must reduce to the same token template, and the
+ * template must reproduce each original port name exactly when `{signal}` is
+ * substituted back. Returns null when the signals do not share one template
+ * (caller then falls back to legacy prefix + overrides).
+ */
+function inferSinglePattern(inst: DetectedInstance): string | null {
+  let pattern: string | null = null;
+  for (const [logical, port] of Object.entries(inst.signalToPort)) {
+    const sigToken = logical.toLowerCase();
+    const tokens = tokenize(port.name);
+    const pos = tokens.indexOf(sigToken);
+    if (pos === -1) {
+      return null;
+    }
+    const templated = tokens.slice();
+    templated[pos] = '{signal}';
+    const candidate = templated.join('_');
+    if (pattern === null) {
+      pattern = candidate;
+    } else if (pattern !== candidate) {
+      return null;
+    }
+    if (substitutePattern(candidate, sigToken) !== port.name.toLowerCase()) {
+      return null;
+    }
+  }
+  return pattern;
+}
+
+export type GroupingPlan =
+  | {
+      kind: 'single';
+      mode: 'slave' | 'master';
+      /** legacy prefix when the pattern is a plain `prefix{signal}`; else undefined */
+      physicalPrefix?: string;
+      /** set when the matched names carry decoration beyond a plain prefix */
+      physicalNamePattern?: string;
+      /** per-signal `*` substitution, set when the pattern carries `*` */
+      wildcardMatches?: Record<string, string>;
+      /** read-only table: the auto-assigned signals for the representative instance */
+      assignments: SignalAssignment[];
+      matchedPortNames: string[];
+    }
+  | {
+      kind: 'array';
+      mode: 'slave' | 'master';
+      physicalNamePattern: string;
+      /** per-signal `*` substitution, set when the pattern carries `*` (mixed direction tags) */
+      wildcardMatches?: Record<string, string>;
+      array: { count: number; indexStart: number };
+      assignments: SignalAssignment[];
+      matchedPortNames: string[];
+    };
+
+/**
+ * Decide how a port selection should be grouped under a bus type: a single
+ * interface (legacy prefix or decorated pattern) or an array of interfaces
+ * (one `physicalNamePattern` with `{index}` spanning the matched instances).
+ *
+ * Array detection reuses the shared lossless `planArrayCollapse`: only when the
+ * synthesized pattern reproduces every original port name exactly are the
+ * siblings merged. Otherwise the selection is treated as a single interface.
+ */
+export function inferGroupingPlan(ports: PortLike[], busType: string): GroupingPlan | null {
+  const portDefs = lookupBusDef(busType);
+  if (!portDefs) {
+    return null;
+  }
+  const signalDefs = portDefs.filter((d) => !d.role);
+  if (signalDefs.length === 0) {
+    return null;
+  }
+
+  const rawInstances = buildInstances(ports, signalDefs);
+  if (rawInstances.length === 0) {
+    return null;
+  }
+  // Merge instances whose skeletons differ only by a trailing decoration token (e.g. the
+  // `_i`/`_o` direction tag on Avalon-ST sinks: `asi_0_i` for valid/data and `asi_0_o` for
+  // ready belong to the same instance). The shared wildcard collapse then emits one array
+  // interface with a `*` pattern instead of splitting the interface by direction tag.
+  const instances = mergeByCoreSkeleton(rawInstances);
+
+  const defByName = new Map(signalDefs.map((d) => [d.name, d] as const));
+  const matchedPairs = instances.flatMap((inst) =>
+    Object.entries(inst.signalToPort)
+      .map(([name, port]) => ({ port, def: defByName.get(name)! }))
+      .filter((p) => p.def)
+  );
+  const mode = inferMode(matchedPairs);
+  const matchedPortNames = matchedPairs.map((p) => p.port.name);
+
+  // Array path: feed the instances (skeleton as the per-instance name) to the shared
+  // lossless collapse. The skeleton's numeric token becomes {index}; the resulting
+  // physicalNamePattern carries both {signal} and {index}.
+  if (instances.length >= 2) {
+    const collapsibles: CollapsibleInterface[] = instances.map((inst) => ({
+      name: inst.skeleton,
+      type: busType,
+      mode,
+      signalNames: Object.fromEntries(
+        Object.entries(inst.signalToPort).map(([logical, port]) => [logical, port.name])
+      ),
+    }));
+    const plans = planArrayCollapse(collapsibles);
+    const arrayPlan = plans.find((p) => p.kind === 'array');
+    if (arrayPlan?.kind === 'array') {
+      // Representative instance = lowest index member (first after sort).
+      const repInst =
+        instances.find((inst) => inst.skeleton === collapsibles[arrayPlan.indices[0]].name) ??
+        instances[0];
+      return {
+        kind: 'array',
+        mode,
+        physicalNamePattern: arrayPlan.physicalNamePattern,
+        wildcardMatches: arrayPlan.wildcardMatches,
+        array: { count: arrayPlan.count, indexStart: arrayPlan.indexStart },
+        assignments: buildAssignments(repInst, busType, mode),
+        matchedPortNames,
+      };
+    }
+  }
+
+  // Single path: prefer one uniform pattern; fall back to a legacy prefix when the
+  // pattern is a plain prefix (ends in {signal}) or the signals do not template.
+  const inst = instances[0];
+  const pattern = inferSinglePattern(inst);
+  const assignments = buildAssignments(inst, busType, mode);
+
+  if (pattern?.endsWith('{signal}')) {
+    const prefix = pattern.slice(0, -'{signal}'.length);
+    return {
+      kind: 'single',
+      mode,
+      physicalPrefix: prefix,
+      assignments,
+      matchedPortNames,
+    };
+  }
+
+  if (pattern) {
+    return {
+      kind: 'single',
+      mode,
+      physicalNamePattern: pattern,
+      assignments,
+      matchedPortNames,
+    };
+  }
+
+  // No uniform template: degrade to a best-effort prefix so the legacy prefix
+  // table flow stays usable (overrides cover the irregular signals).
+  return {
+    kind: 'single',
+    mode,
+    physicalPrefix: inferPrefixFromInstance(inst),
+    assignments,
+    matchedPortNames,
+  };
 }
 
 /** Returns all known standard protocol types, in display order. */
@@ -283,4 +531,52 @@ export function portSuffix(portName: string, prefix: string): string {
     return lower.slice(prefixLower.length);
   }
   return lower;
+}
+
+// Kept for backward-compatibility with any external callers; the grouping dialog
+// now uses inferGroupingPlan directly.
+export function inferPrefixAndMode(
+  ports: PortLike[],
+  busType: string
+): { prefix: string; mode: 'slave' | 'master' } | null {
+  const matches = matchPorts(ports);
+  const match = matches.find((m) => m.busType === busType);
+  if (!match) {
+    return null;
+  }
+  return { prefix: match.detectedPrefix, mode: match.inferredMode };
+}
+
+export function inferPortAssignments(
+  ports: PortLike[],
+  busType: string,
+  mode: 'slave' | 'master',
+  prefix: string
+): SignalAssignment[] {
+  const portDefs = lookupBusDef(busType);
+  if (!portDefs) {
+    return [];
+  }
+  const signalDefs = portDefs.filter((d) => !d.role);
+  const instances = buildInstances(ports, signalDefs);
+  // Best instance by required-signal coverage under the given prefix.
+  const inst =
+    instances
+      .filter((i) => inferPrefixFromInstance(i) === prefix || !prefix)
+      .sort((a, b) => countRequired(b, signalDefs) - countRequired(a, signalDefs))[0] ??
+    instances[0];
+  if (!inst) {
+    return signalDefs.map((def) => ({
+      logicalName: def.name,
+      assignedPort: null,
+      presence: def.presence,
+      expectedDir: expectedDirection(def, mode),
+      hasSuffixMismatch: false,
+    }));
+  }
+  return buildAssignments(inst, busType, mode);
+}
+
+function countRequired(inst: DetectedInstance, signalDefs: BusPortDef[]): number {
+  return signalDefs.filter((d) => d.presence === 'required' && inst.signalToPort[d.name]).length;
 }

@@ -1705,6 +1705,27 @@ function isCustomBusInterface(bus: BusInterface): boolean {
   );
 }
 
+/** Parse a "LOGICAL=decoration, ..." editor string into a wildcardMatches map (or null to clear). */
+function parseWildcardMatches(text: string): Record<string, string> | null {
+  const trimmed = text.trim();
+  if (!trimmed) {
+    return null;
+  }
+  const out: Record<string, string> = {};
+  for (const pair of trimmed.split(',')) {
+    const eq = pair.indexOf('=');
+    if (eq <= 0) {
+      continue;
+    }
+    const key = pair.slice(0, eq).trim();
+    const val = pair.slice(eq + 1).trim();
+    if (key) {
+      out[key] = val;
+    }
+  }
+  return Object.keys(out).length > 0 ? out : null;
+}
+
 const BusPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, onUpdate }) => {
   if (isCustomBusInterface(bus)) {
     return (
@@ -1747,6 +1768,16 @@ const BusPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, onUpda
     | null;
   const isArray = (arrayDef?.count ?? 0) > 1;
   const hasPrefixPattern = isArray && !!arrayDef?.physicalPrefixPattern;
+  const physicalNamePattern = (bus as BusInterface & { physicalNamePattern?: string | null })
+    .physicalNamePattern;
+  const wildcardMatches =
+    (bus as BusInterface & { wildcardMatches?: Record<string, string> | null }).wildcardMatches ??
+    null;
+  const wildcardMatchesText = wildcardMatches
+    ? Object.entries(wildcardMatches)
+        .map(([k, v]) => `${k}=${v}`)
+        .join(', ')
+    : '';
   const canHaveMemoryMap = !isArray && busSupportsMemoryMap(bus.type, bus.mode);
 
   // The import path shown for this interface's map entry (per-interface, not global).
@@ -1855,12 +1886,34 @@ const BusPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, onUpda
             value={bus.physicalPrefix ?? ''}
             onSave={(v) => onUpdate(['busInterfaces', index, 'physicalPrefix'], v || null)}
             hint={
-              !bus.physicalPrefix && !isArray
-                ? 'Defaults to s_axi_ at generation'
-                : isArray
-                  ? `Auto-pattern: ${bus.physicalPrefix ?? 's_axi_'}{index}_`
-                  : undefined
+              physicalNamePattern
+                ? 'Unused when a Physical Name Pattern is set'
+                : !bus.physicalPrefix && !isArray
+                  ? 'Defaults to s_axi_ at generation'
+                  : isArray
+                    ? `Auto-pattern: ${bus.physicalPrefix ?? 's_axi_'}{index}_`
+                    : undefined
             }
+            mono
+          />
+        )}
+        <PropField
+          label="Name Pattern"
+          value={physicalNamePattern ?? ''}
+          onSave={(v) => onUpdate(['busInterfaces', index, 'physicalNamePattern'], v || null)}
+          placeholder="e.g. asi_{signal}_{index}_i  (or asi_{signal}_{index}_* for mixed tags)"
+          hint="Template with {signal} and {index} placeholders; '*' carries a per-signal decoration (see Wildcards). Takes precedence over the prefix when set"
+          mono
+        />
+        {physicalNamePattern?.includes('*') && (
+          <PropField
+            label="Wildcards"
+            value={wildcardMatchesText}
+            onSave={(v) =>
+              onUpdate(['busInterfaces', index, 'wildcardMatches'], parseWildcardMatches(v))
+            }
+            placeholder='e.g. VALID=i,READY=o  (logical=decoration for each "*")'
+            hint="Per-signal substitution for '*' in the name pattern, as logical=decoration pairs"
             mono
           />
         )}

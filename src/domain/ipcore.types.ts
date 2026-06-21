@@ -169,7 +169,7 @@ export type BusInterfaceMode = 'master' | 'slave' | 'source' | 'sink' | 'conduit
  */
 export type Physicalprefix = string | null;
 /**
- * Template for physical port names, generalizing physicalPrefix. Uses placeholders '{signal}' (the logical signal name, lowercased, or its portNameOverrides value) and '{index}' (the array instance index). Any other characters are literal, so direction tags and decorations need no special handling (e.g. 'asi_{signal}_{index}_i'). When set, it takes precedence over physicalPrefix. 'physicalPrefix: "s_axi_"' is equivalent to 'physicalNamePattern: "s_axi_{signal}"'.
+ * Template for physical port names, generalizing physicalPrefix. Uses placeholders '{signal}' (the logical signal name, lowercased, or its portNameOverrides value) and '{index}' (the array instance index). Any other characters are literal, so direction tags and decorations need no special handling (e.g. 'asi_{signal}_{index}_i'). A single '*' wildcard may appear (typically trailing, as in 'asi_{signal}_{index}_*') to cover signals whose decoration varies within one interface (e.g. Avalon-ST sinks where 'valid'/'data' carry '_i' but 'ready' carries '_o'); the per-signal '*' substitution is stored in 'wildcardMatches'. 'physicalPrefix: "s_axi_"' is equivalent to 'physicalNamePattern: "s_axi_{signal}"'.
  */
 export type Physicalnamepattern = string | null;
 /**
@@ -633,6 +633,7 @@ export interface BusInterface {
   mode: BusInterfaceMode;
   physicalPrefix?: Physicalprefix;
   physicalNamePattern?: Physicalnamepattern;
+  wildcardMatches?: Wildcardmatches;
   associatedClock?: Associatedclock1;
   associatedReset?: Associatedreset1;
   memoryMapRef?: Memorymapref;
@@ -646,6 +647,12 @@ export interface BusInterface {
   description?: Description5;
   conduitPorts?: ConduitPorts;
   [k: string]: unknown;
+}
+/**
+ * Per-signal substitution for the '*' wildcard in 'physicalNamePattern'. Keys are logical signal names; values are the literal text '*' resolves to for that signal (e.g. {"VALID":"i","READY":"o"}). Only used when 'physicalNamePattern' contains '*'; signals absent from the map resolve '*' to the empty string.
+ */
+export interface Wildcardmatches {
+  [k: string]: string;
 }
 /**
  * Port width overrides {port_name: width_or_parameter_name}

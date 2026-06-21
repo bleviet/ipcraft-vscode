@@ -226,3 +226,37 @@ busInterfaces:
     expect(bus.array).toMatchObject({ count: 2, namingPattern: 'sink_{index}' });
   });
 });
+
+describe('parseIpCore wildcardMatches round-trip', () => {
+  const yamlStr = `
+vlnv: foo:bar:baz:1.0
+busInterfaces:
+  - name: SINK
+    type: ipcraft:busif:avalon_st:1.0
+    mode: sink
+    physicalNamePattern: "asi_{signal}_{index}_*"
+    wildcardMatches:
+      VALID: i
+      DATA: i
+      READY: o
+    array:
+      count: 2
+      indexStart: 0
+      namingPattern: sink_{index}
+`;
+
+  it('reads wildcardMatches', () => {
+    const parsed = parseIpCore(yamlStr);
+    const bus = parsed.busInterfaces?.[0] as Record<string, unknown>;
+    expect(bus.physicalNamePattern).toBe('asi_{signal}_{index}_*');
+    expect(bus.wildcardMatches).toEqual({ VALID: 'i', DATA: 'i', READY: 'o' });
+  });
+
+  it('preserves wildcardMatches through serialize', () => {
+    const parsed = parseIpCore(yamlStr);
+    const serialized = serializeIpCore(parsed) as { busInterfaces: Array<Record<string, unknown>> };
+    const bus = serialized.busInterfaces[0];
+    expect(bus.physicalNamePattern).toBe('asi_{signal}_{index}_*');
+    expect(bus.wildcardMatches).toEqual({ VALID: 'i', DATA: 'i', READY: 'o' });
+  });
+});

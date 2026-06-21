@@ -7,7 +7,7 @@ import type { NormalizedMemoryMap, NormalizedRegister } from '../domain/internal
 import { BUS_REGISTRY } from './buses/builtin';
 
 import { evalWidthExpr } from '../shared/evalWidthExpr';
-import { resolvePhysicalPortName } from '../shared/physicalName';
+import { resolvePhysicalPortName, substituteIndex } from '../shared/physicalName';
 export { evalWidthExpr };
 
 function getString(value: unknown): string {
@@ -157,17 +157,20 @@ export function expandBusInterfaces(ipCore: IpCoreData): BusInterfaceDef[] {
         const prefixPattern =
           arrayDef.physicalPrefixPattern ??
           `${String(iface.physicalPrefix ?? defaultPrefix)}{index}_`;
+        // Index substitution is width-aware ({index:N}) so zero-padded array members
+        // (sink_00_if) regenerate with the original padding instead of collapsing to one digit.
         const namePatternForIndex = iface.physicalNamePattern
-          ? String(iface.physicalNamePattern).split('{index}').join(String(idx))
+          ? substituteIndex(String(iface.physicalNamePattern), idx)
           : undefined;
         expanded.push({
-          name: String(namePattern).split('{index}').join(String(idx)),
+          name: substituteIndex(String(namePattern), idx),
           type: getString(iface.type),
           busTypeVlnv: iface.busTypeVlnv,
           rawPortMaps: iface.rawPortMaps,
           mode,
-          physicalPrefix: String(prefixPattern).split('{index}').join(String(idx)),
+          physicalPrefix: substituteIndex(String(prefixPattern), idx),
           physicalNamePattern: namePatternForIndex,
+          wildcardMatches: iface.wildcardMatches,
           useOptionalPorts: iface.useOptionalPorts ?? [],
           portWidthOverrides: iface.portWidthOverrides ?? {},
           portNameOverrides: iface.portNameOverrides,
@@ -188,6 +191,7 @@ export function expandBusInterfaces(ipCore: IpCoreData): BusInterfaceDef[] {
       mode,
       physicalPrefix: iface.physicalPrefix ?? defaultPrefix,
       physicalNamePattern: iface.physicalNamePattern ?? undefined,
+      wildcardMatches: iface.wildcardMatches,
       useOptionalPorts: iface.useOptionalPorts ?? [],
       portWidthOverrides: iface.portWidthOverrides ?? {},
       portNameOverrides: iface.portNameOverrides,
@@ -224,7 +228,8 @@ export function getActiveBusPortsFromDefinition(
   parameters?: Array<{ name: string; value?: number | string; data_type?: string }>,
   portNameOverrides?: Record<string, string>,
   absentPorts?: string[],
-  physicalNamePattern?: string | null
+  physicalNamePattern?: string | null,
+  wildcardMatches?: Record<string, string>
 ): Array<Record<string, unknown>> {
   const optionalSet = new Set(useOptionalPorts || []);
   const absentSet = new Set((absentPorts ?? []).map((n) => n.toUpperCase()));
@@ -312,6 +317,7 @@ export function getActiveBusPortsFromDefinition(
       physicalNamePattern,
       physicalPrefix,
       portNameOverrides,
+      wildcardMatches,
     });
     activePorts.push({
       logical_name: logicalName,
