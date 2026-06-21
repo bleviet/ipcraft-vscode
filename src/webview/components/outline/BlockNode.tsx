@@ -13,6 +13,7 @@ interface BlockNodeProps {
   children?: React.ReactNode;
   actionButton?: React.ReactNode;
   onContextMenu?: (e: React.MouseEvent) => void;
+  isOverlapping?: boolean;
 }
 
 const BlockNode = ({
@@ -27,6 +28,7 @@ const BlockNode = ({
   children,
   actionButton,
   onContextMenu,
+  isOverlapping,
 }: BlockNodeProps) => {
   return (
     <div key={id}>
@@ -55,6 +57,13 @@ const BlockNode = ({
         <span className="text-[10px] vscode-muted font-mono shrink-0">
           @ 0x{block.baseAddress.toString(16).toUpperCase()}
         </span>
+        {isOverlapping && (
+          <span
+            className="codicon codicon-warning text-xs shrink-0 animate-pulse"
+            style={{ color: 'var(--vscode-inputValidation-errorForeground, #f48771)' }}
+            title="Address overlap detected"
+          />
+        )}
         {actionButton}
       </div>
       {isExpanded && <div>{children}</div>}

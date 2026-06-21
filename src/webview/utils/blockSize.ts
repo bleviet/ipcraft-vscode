@@ -10,7 +10,45 @@ interface BlockLike {
   registers?: BlockRegisterLike[];
 }
 
+function parseSizeString(val: string): number | null {
+  const cleaned = val.trim();
+
+  // Try parsing directly (handles standard decimals and hex like 0x1000)
+  const direct = Number(cleaned);
+  if (Number.isFinite(direct)) {
+    return direct;
+  }
+
+  // Parse numbers followed by a unit suffix (K, M, G)
+  const match = cleaned.match(/^(\d+(?:\.\d+)?)\s*([kmgKMG])$/);
+  if (match) {
+    const numPart = parseFloat(match[1]);
+    const suffix = match[2].toUpperCase();
+    let multiplier = 1;
+    switch (suffix) {
+      case 'K':
+        multiplier = 1024;
+        break;
+      case 'M':
+        multiplier = 1024 * 1024;
+        break;
+      case 'G':
+        multiplier = 1024 * 1024 * 1024;
+        break;
+    }
+    return Math.floor(numPart * multiplier);
+  }
+
+  return null;
+}
+
 function parseNumeric(value: unknown, fallback: number): number {
+  if (typeof value === 'string') {
+    const parsed = parseSizeString(value);
+    if (parsed !== null) {
+      return parsed;
+    }
+  }
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
 }

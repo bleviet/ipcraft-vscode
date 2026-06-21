@@ -2,6 +2,7 @@ import React from 'react';
 import type { NormalizedMemoryMap, NormalizedRegister } from '../../../domain/internal.types';
 import { toHex } from '../../utils/formatUtils';
 import { BlockNode as OutlineBlockNode, RegisterArrayNode, RegisterNode } from '.';
+import { calculateBlockSize } from '../../utils/blockSize';
 import {
   BlockNode as BlockModel,
   OutlineSelection,
@@ -130,6 +131,30 @@ const OutlineTreeNodes = ({
   onRegisterContextMenu,
   onBlockContextMenu,
 }: OutlineTreeNodesProps) => {
+  const overlappingBlockIndices = React.useMemo(() => {
+    const blocks = memoryMap.addressBlocks ?? [];
+    const overlaps = new Set<number>();
+
+    const ranges = blocks.map((block) => {
+      const start = Number(block.baseAddress ?? 0);
+      const size = Math.max(1, calculateBlockSize(block));
+      const end = start + size - 1;
+      return { start, end };
+    });
+
+    for (let i = 0; i < ranges.length; i++) {
+      for (let j = i + 1; j < ranges.length; j++) {
+        const a = ranges[i];
+        const b = ranges[j];
+        if (Math.max(a.start, b.start) <= Math.min(a.end, b.end)) {
+          overlaps.add(i);
+          overlaps.add(j);
+        }
+      }
+    }
+    return overlaps;
+  }, [memoryMap]);
+
   return (
     <>
       {filteredBlocks.map(({ block, index: blockIndex }) => {
@@ -165,6 +190,7 @@ const OutlineTreeNodes = ({
             block={block}
             isSelected={isSelected}
             isExpanded={isExpanded}
+            isOverlapping={overlappingBlockIndices.has(blockIndex)}
             onClick={() => {
               onFocusTree();
               onSelect({
