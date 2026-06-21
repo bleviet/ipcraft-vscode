@@ -49,8 +49,19 @@ describe('Spec Conformance Tests', () => {
       const stat = fs.statSync(fullPath);
 
       if (stat.isDirectory()) {
-        // Skip custom_bus_definitions directory
-        if (file === 'custom_bus_definitions') {
+        const skipDirs = new Set([
+          'custom_bus_definitions',
+          'build',
+          'sim',
+          'CMakeFiles',
+          'node_modules',
+          '.git',
+          'dist',
+          'out',
+          '__pycache__',
+          '.pytest_cache',
+        ]);
+        if (skipDirs.has(file)) {
           continue;
         }
         results.push(...getYamlFiles(fullPath));
