@@ -1,0 +1,93 @@
+- name: CORNER_MAP
+  description: Memory map with edge-case register and field configurations
+  addressBlocks:
+  - name: REGS
+    baseAddress: 0
+    usage: register
+    registers:
+    - name: MIXED_ACCESS
+      description: Register with mixed access modes
+      offset: 0
+      fields:
+      - name: RW_FIELD
+        bits: '[3:0]'
+        access: read-write
+        description: Read-write field
+      - name: RO_FIELD
+        bits: '[7:4]'
+        access: read-only
+        description: Read-only status field
+      - name: WO_FIELD
+        bits: '[11:8]'
+        access: write-only
+        description: Write-only control field
+      - name: W1C_FIELD
+        bits: '[15:12]'
+        access: write-1-to-clear
+        description: Write-1-to-clear status field
+    - name: SINGLE_BIT
+      description: Register with single-bit fields
+      offset: 4
+      fields:
+      - name: FLAG_A
+        bits: '[0:0]'
+        access: read-write
+      - name: FLAG_B
+        bits: '[1:1]'
+        access: read-write
+      - name: FLAG_C
+        bits: '[2:2]'
+        access: read-only
+    - name: FULL_WIDTH
+      description: Field spanning full register width
+      offset: 8
+      fields:
+      - name: DATA
+        bits: '[31:0]'
+        access: read-write
+        description: Full 32-bit data field
+    - name: WIDE_FIELD
+      description: Register with field wider than 32 bits
+      offset: 12
+      size: 64
+      fields:
+      - name: WIDE_DATA
+        bits: '[47:0]'
+        access: read-write
+        description: 48-bit wide field
+      - name: WIDE_FLAGS
+        bits: '[63:48]'
+        access: read-write
+        description: 16-bit flags
+    - name: PARAMETRIC
+      description: Register with parametric width
+      offset: 16
+      fields:
+      - name: PARAM_DATA
+        bits: '[ADDR_WIDTH-1:0]'
+        access: read-write
+        description: Width depends on parameter
+  - name: FIFO
+    baseAddress: 256
+    usage: memory
+    range: 1024
+    access: read-write
+    description: FIFO memory block with address gap from REGS
+  - name: SPARSE
+    baseAddress: 4096
+    usage: register
+    description: Sparse block with large address gap
+    registers:
+    - name: SPARSE_CTRL
+      offset: 0
+      fields:
+      - name: ENABLE
+        bits: '[0:0]'
+        access: read-write
+    - name: SPARSE_STATUS
+      offset: 256
+      fields:
+      - name: READY
+        bits: '[0:0]'
+        access: read-only
+      description: Status register with large offset gap

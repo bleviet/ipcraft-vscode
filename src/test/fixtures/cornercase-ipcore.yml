@@ -1,0 +1,73 @@
+apiVersion: '1.0'
+vlnv:
+  vendor: test.com
+  library: corner
+  name: corner_case_core
+  version: 1.0.0
+description: IP core fixture exercising edge cases in parameters, clocks, and bus interfaces
+clocks:
+- name: sys_clk
+  direction: in
+  description: Primary system clock
+- name: fast_clk
+  direction: in
+  associatedReset: sys_rst
+  description: Secondary high-speed clock domain
+resets:
+- name: sys_rst
+  direction: in
+  polarity: activeLow
+  associatedClock: sys_clk
+- name: fast_rst
+  direction: in
+  polarity: activeHigh
+  associatedClock: fast_clk
+busInterfaces:
+- name: S_AXI_CTRL
+  type: AXI4L
+  mode: slave
+  physicalPrefix: s_axi_ctrl_
+  associatedClock: sys_clk
+  associatedReset: sys_rst
+  memoryMapRef: CORNER_MAP
+  description: Control and status register interface
+- name: M_AXI_DATA
+  type: AXI4
+  mode: master
+  physicalPrefix: m_axi_data_
+  associatedClock: fast_clk
+  associatedReset: fast_rst
+  description: Data path master interface
+parameters:
+- name: ADDR_WIDTH
+  value: 12
+  dataType: integer
+  min: 8
+  max: 32
+  description: Address bus width for control interface
+- name: DATA_WIDTH
+  value: 32
+  dataType: integer
+  allowedValues:
+  - 8
+  - 16
+  - 32
+  - 64
+  - 128
+  description: Data bus width with discrete allowed values
+- name: FIFO_DEPTH
+  value: 256
+  dataType: integer
+  min: 16
+  max: 4096
+  description: Depth of internal FIFO
+- name: ENABLE_PARITY
+  value: false
+  dataType: boolean
+  description: Enable parity checking on data path
+- name: DEVICE_LABEL
+  defaultValue: CORNER_IP
+  dataType: string
+  description: Human-readable device label
+memoryMaps:
+  import: cornercase-memmap.yml
