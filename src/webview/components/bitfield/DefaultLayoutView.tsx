@@ -19,6 +19,7 @@ interface DefaultLayoutViewProps {
   setDragLast: (key: string | null) => void;
   applyBit: (fieldIndex: number, localBit: number, desired: 0 | 1) => void;
   valueBar: React.ReactNode;
+  onFieldContextMenu?: (fieldIndex: number, e: React.MouseEvent) => void;
 }
 
 const DefaultLayoutView = ({
@@ -39,6 +40,7 @@ const DefaultLayoutView = ({
   setDragLast,
   applyBit,
   valueBar,
+  onFieldContextMenu,
 }: DefaultLayoutViewProps) => {
   return (
     <div className="w-full flex flex-col items-center">
@@ -65,6 +67,11 @@ const DefaultLayoutView = ({
               }}
               onMouseEnter={() => fieldIdx !== null && setHoveredFieldIndex(fieldIdx)}
               onMouseLeave={() => setHoveredFieldIndex(null)}
+              onContextMenu={
+                onFieldContextMenu && fieldIdx !== null
+                  ? (e) => onFieldContextMenu(fieldIdx, e)
+                  : undefined
+              }
               onPointerDown={(e) => {
                 if (e.shiftKey) {
                   handleShiftPointerDown(bit, e);

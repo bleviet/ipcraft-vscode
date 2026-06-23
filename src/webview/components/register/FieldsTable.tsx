@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { YamlUpdateHandler } from '../../types/editor';
-import { EditableTable } from '../../shared/components';
+import { EditableTable, TableContextMenu } from '../../shared/components';
 import type { EditKey, FieldEditorState } from '../../hooks/useFieldEditor';
 import FieldTableRow from './FieldTableRow';
 
@@ -69,7 +69,23 @@ export function FieldsTable({ fields, registerSize, onUpdate, fieldEditor }: Fie
     onDragHandlePointerDown,
     onPointerEnterRow,
     onDragMove,
+    deleteField,
   } = fieldEditor;
+
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    rowId: string;
+  } | null>(null);
+
+  const closeContextMenu = () => setContextMenu(null);
+
+  const handleRowContextMenu = (rowId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSelectedFieldIndex(wrappedFields.findIndex((w) => w.rowId === rowId));
+    setContextMenu({ x: e.clientX, y: e.clientY, rowId });
+  };
 
   const setActiveEditorCell = (
     index: number,
@@ -259,6 +275,7 @@ export function FieldsTable({ fields, registerSize, onUpdate, fieldEditor }: Fie
                           onDragHandlePointerDown={(e) => onDragHandlePointerDown(wrapped.rowId, e)}
                           onPointerEnterRow={() => onPointerEnterRow(wrapped.rowId)}
                           onDragMove={onDragMove}
+                          onContextMenu={(e) => handleRowContextMenu(wrapped.rowId, e)}
                         />
                       ))}
                     </tbody>
@@ -269,6 +286,15 @@ export function FieldsTable({ fields, registerSize, onUpdate, fieldEditor }: Fie
           </>
         )}
       </div>
+      <TableContextMenu
+        position={contextMenu ? { x: contextMenu.x, y: contextMenu.y } : null}
+        onDelete={() => {
+          if (contextMenu) {
+            deleteField(contextMenu.rowId);
+          }
+        }}
+        onClose={closeContextMenu}
+      />
     </div>
   );
 }

@@ -45,6 +45,7 @@ interface FieldTableRowProps {
   onDragHandlePointerDown?: (e: React.PointerEvent<HTMLTableCellElement>) => void;
   onPointerEnterRow?: () => void;
   onDragMove?: (rowId: string, e: React.PointerEvent) => void;
+  onContextMenu?: (e: React.MouseEvent) => void;
 }
 
 const FieldTableRow = ({
@@ -64,6 +65,7 @@ const FieldTableRow = ({
   onDragHandlePointerDown,
   onPointerEnterRow,
   onDragMove,
+  onContextMenu,
 }: FieldTableRowProps) => {
   const {
     selectedFieldIndex,
@@ -408,6 +410,7 @@ const FieldTableRow = ({
       onMouseEnter={() => setHoveredFieldIndex(index)}
       onMouseLeave={() => setHoveredFieldIndex(null)}
       onClick={() => onRowClick(index)}
+      onContextMenu={onContextMenu}
       onPointerEnter={onPointerEnterRow}
       onPointerMove={(e) => {
         if (onDragMove) {

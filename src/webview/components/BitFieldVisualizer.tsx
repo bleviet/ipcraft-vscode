@@ -7,6 +7,7 @@ import ValueBar from './bitfield/ValueBar';
 import DefaultLayoutView from './bitfield/DefaultLayoutView';
 import ProLayoutView from './bitfield/ProLayoutView';
 import VerticalLayoutView from './bitfield/VerticalLayoutView';
+import { TableContextMenu } from '../shared/components';
 import { getKeyboardReorderUpdates, getKeyboardResizeRange } from './bitfield/keyboardOperations';
 import { computeCtrlDragPreview } from './bitfield/reorderAlgorithm';
 import {
@@ -91,6 +92,8 @@ interface BitFieldVisualizerProps {
   onCreateField?: (field: { bitRange: [number, number]; name: string }) => void;
   /** Called during Ctrl+drag to report preview ranges. Pass null to clear preview. */
   onDragPreview?: (preview: { idx: number; range: [number, number] }[] | null) => void;
+  /** Delete a bit field by index (no repack / shift). Right-click on a field. */
+  onDeleteField?: (fieldIndex: number) => void;
 }
 
 const BitFieldVisualizerInner: React.FC<BitFieldVisualizerProps> = ({
@@ -104,12 +107,41 @@ const BitFieldVisualizerInner: React.FC<BitFieldVisualizerProps> = ({
   onBatchUpdateFields,
   onCreateField,
   onDragPreview,
+  onDeleteField,
 }) => {
   const [dragActive, setDragActive] = useState(false);
   const [dragSetTo, setDragSetTo] = useState<0 | 1>(0);
   const [dragLast, setDragLast] = useState<string | null>(null);
 
+  const [fieldContextMenu, setFieldContextMenu] = useState<{
+    x: number;
+    y: number;
+    fieldIndex: number;
+  } | null>(null);
+
   const keyboardHelpId = 'bitfield-keyboard-help';
+
+  const handleFieldContextMenu = (fieldIndex: number, e: React.MouseEvent) => {
+    if (!onDeleteField) {
+      return;
+    }
+    e.preventDefault();
+    e.stopPropagation();
+    setHoveredFieldIndex(fieldIndex);
+    setFieldContextMenu({ x: e.clientX, y: e.clientY, fieldIndex });
+  };
+
+  const fieldContextMenuNode = (
+    <TableContextMenu
+      position={fieldContextMenu ? { x: fieldContextMenu.x, y: fieldContextMenu.y } : null}
+      onDelete={() => {
+        if (fieldContextMenu && onDeleteField) {
+          onDeleteField(fieldContextMenu.fieldIndex);
+        }
+      }}
+      onClose={() => setFieldContextMenu(null)}
+    />
+  );
 
   const commitRangeUpdates = (updates: { idx: number; range: [number, number] }[]) => {
     if (updates.length === 0) {
@@ -380,6 +412,7 @@ const BitFieldVisualizerInner: React.FC<BitFieldVisualizerProps> = ({
         applyKeyboardResize,
         applyBit,
         bitAt,
+        onFieldContextMenu: handleFieldContextMenu,
       },
     };
 
@@ -392,6 +425,7 @@ const BitFieldVisualizerInner: React.FC<BitFieldVisualizerProps> = ({
             interactions={{ ...sharedProps.interactions, getResizableEdges }}
             layoutConfig={{ bitOwners, registerSize, valueView, valueBar }}
           />
+          {fieldContextMenuNode}
         </div>
       );
     }
@@ -404,6 +438,7 @@ const BitFieldVisualizerInner: React.FC<BitFieldVisualizerProps> = ({
           interactions={{ ...sharedProps.interactions, getResizableEdges }}
           layoutConfig={{ bitOwners, registerSize, valueView, valueBar }}
         />
+        {fieldContextMenuNode}
       </div>
     );
   }
@@ -429,7 +464,9 @@ const BitFieldVisualizerInner: React.FC<BitFieldVisualizerProps> = ({
         setDragLast={setDragLast}
         applyBit={applyBit}
         valueBar={valueBar}
+        onFieldContextMenu={handleFieldContextMenu}
       />
+      {fieldContextMenuNode}
     </div>
   );
 };
@@ -446,7 +483,8 @@ const BitFieldVisualizer = React.memo(
     prev.onUpdateFieldRange === next.onUpdateFieldRange &&
     prev.onBatchUpdateFields === next.onBatchUpdateFields &&
     prev.onCreateField === next.onCreateField &&
-    prev.onDragPreview === next.onDragPreview
+    prev.onDragPreview === next.onDragPreview &&
+    prev.onDeleteField === next.onDeleteField
 );
 
 export default BitFieldVisualizer;

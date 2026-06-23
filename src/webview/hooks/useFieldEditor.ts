@@ -101,6 +101,11 @@ export function useFieldEditor(
 
   const [dragPreviewRanges, setDragPreviewRanges] = useState<Record<string, [number, number]>>({});
 
+  // Indirection so the inline `onDelete` (wired to keyboard Delete via
+  // useTableNavigation) and the context-menu `deleteField` share one code path
+  // without creating a TDZ cycle through `editorState`.
+  const deleteFieldRef = useRef<(rowId: string) => void>(() => {});
+
   // ---- orchestration state ----
   const editorState = useTableEditorState<BitFieldRecord, EditKey>({
     rows: wrappedFields,
@@ -135,7 +140,24 @@ export function useFieldEditor(
     },
     onInsertAfter: () => tryInsertField(true),
     onInsertBefore: () => tryInsertField(false),
-    onDelete: (rowId) => {
+    onDelete: (rowId) => deleteFieldRef.current(rowId),
+    onMove: (rowId, delta) => {
+      const fromIndex = wrappedFields.findIndex((w) => w.rowId === rowId);
+      const next = fromIndex + delta;
+      if (fromIndex < 0 || fromIndex >= fields.length || next < 0 || next >= fields.length) {
+        return;
+      }
+
+      onUpdate(['__op', 'field-move'], { index: fromIndex, delta });
+      clearAllDrafts();
+    },
+  });
+
+  // Removes a bit field by rowId. It only splices the row out — remaining
+  // fields keep their committed bit positions (no repack / cascade), so other
+  // fields are never shifted up or down. See issue #16.
+  const deleteField = useCallback(
+    (rowId: string) => {
       const rowIndex = wrappedFields.findIndex((w) => w.rowId === rowId);
       if (rowIndex < 0) {
         return;
@@ -153,17 +175,10 @@ export function useFieldEditor(
 
       clearAllDrafts();
     },
-    onMove: (rowId, delta) => {
-      const fromIndex = wrappedFields.findIndex((w) => w.rowId === rowId);
-      const next = fromIndex + delta;
-      if (fromIndex < 0 || fromIndex >= fields.length || next < 0 || next >= fields.length) {
-        return;
-      }
+    [wrappedFields, editorState, fields, onUpdate, clearAllDrafts]
+  );
 
-      onUpdate(['__op', 'field-move'], { index: fromIndex, delta });
-      clearAllDrafts();
-    },
-  });
+  deleteFieldRef.current = deleteField;
 
   // ---- drag-to-reorder ----
   // Field row order is bit-position order, so a drag is decomposed into a
@@ -357,6 +372,7 @@ export function useFieldEditor(
 
     // helpers
     insertField: () => tryInsertField(true),
+    deleteField,
     ensureDraftsInitialized: (rowId: string, index: number) =>
       ensureDraftsInitialized(rowId, fields[index]),
     captureEditSnapshot: editorState.captureEditSnapshot,

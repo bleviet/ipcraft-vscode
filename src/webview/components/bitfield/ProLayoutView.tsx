@@ -34,6 +34,7 @@ interface InteractionHandlers {
   applyKeyboardResize: (fieldIndex: number, edge: 'msb' | 'lsb') => void;
   applyBit: (fieldIndex: number, localBit: number, desired: 0 | 1) => void;
   bitAt: (value: number, bitIndex: number) => 0 | 1;
+  onFieldContextMenu?: (fieldIndex: number, e: React.MouseEvent) => void;
   getResizableEdges: (
     fieldStart: number,
     fieldEnd: number,
@@ -147,6 +148,7 @@ const ProLayoutView = ({
     applyBit,
     bitAt,
     getResizableEdges,
+    onFieldContextMenu,
   } = interactions;
   const { bitOwners, registerSize, valueView, valueBar } = layoutConfig;
 
@@ -267,6 +269,9 @@ const ProLayoutView = ({
                 onMouseLeave={() => setHoveredFieldIndex(null)}
                 onFocus={() => setHoveredFieldIndex(group.idx)}
                 onBlur={() => setHoveredFieldIndex(null)}
+                onContextMenu={
+                  onFieldContextMenu ? (e) => onFieldContextMenu(group.idx, e) : undefined
+                }
                 onKeyDown={(e) => {
                   if (e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
                     e.preventDefault();

@@ -239,6 +239,12 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
           setDragPreviewRanges(newRanges);
         }
       },
+      onDeleteField: (fieldIndex: number) => {
+        const rowId = fieldEditor.wrappedFields[fieldIndex]?.rowId;
+        if (rowId) {
+          fieldEditor.deleteField(rowId);
+        }
+      },
     };
 
     return (

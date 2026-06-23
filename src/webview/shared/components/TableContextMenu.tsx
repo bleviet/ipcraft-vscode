@@ -2,8 +2,8 @@ import React, { useEffect, useRef } from 'react';
 
 export interface TableContextMenuProps {
   position: { x: number; y: number } | null;
-  onInsertAbove: () => void;
-  onInsertBelow: () => void;
+  onInsertAbove?: () => void;
+  onInsertBelow?: () => void;
   onDelete: () => void;
   onClose: () => void;
 }
@@ -50,27 +50,31 @@ export function TableContextMenu({
       style={{ left: position.x, top: position.y }}
       onPointerDown={(e) => e.stopPropagation()}
     >
-      <button
-        className="w-full text-left px-4 py-2 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
-        onClick={() => {
-          onInsertAbove();
-          onClose();
-        }}
-      >
-        <span className="codicon codicon-arrow-up text-xs" />
-        Insert Above
-      </button>
-      <button
-        className="w-full text-left px-4 py-2 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
-        onClick={() => {
-          onInsertBelow();
-          onClose();
-        }}
-      >
-        <span className="codicon codicon-arrow-down text-xs" />
-        Insert Below
-      </button>
-      <div className="border-t vscode-border my-0.5" />
+      {onInsertAbove && (
+        <button
+          className="w-full text-left px-4 py-2 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
+          onClick={() => {
+            onInsertAbove();
+            onClose();
+          }}
+        >
+          <span className="codicon codicon-arrow-up text-xs" />
+          Insert Above
+        </button>
+      )}
+      {onInsertBelow && (
+        <button
+          className="w-full text-left px-4 py-2 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
+          onClick={() => {
+            onInsertBelow();
+            onClose();
+          }}
+        >
+          <span className="codicon codicon-arrow-down text-xs" />
+          Insert Below
+        </button>
+      )}
+      {(onInsertAbove ?? onInsertBelow) && <div className="border-t vscode-border my-0.5" />}
       <button
         className="w-full text-left px-4 py-2 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
         style={{ color: 'var(--vscode-errorForeground)' }}
