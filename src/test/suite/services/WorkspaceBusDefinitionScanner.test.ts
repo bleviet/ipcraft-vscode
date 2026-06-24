@@ -484,21 +484,29 @@ describe('WorkspaceBusDefinitionScanner', () => {
 
   describe('peekAndScanInBackground', () => {
     it('returns an empty result immediately without waiting on the workspace walk', async () => {
-      // findFiles never resolves during this test, simulating a slow scan of a
-      // huge repository — peekAndScanInBackground must not wait on it.
+      // findFiles stays pending when peekAndScanInBackground is called,
+      // simulating a slow scan of a huge repository — the call must not wait on
+      // it. We hold the resolver so the dangling background scan can be drained
+      // at the end of the test (see below) instead of leaking into a later one.
+      let releaseFindFiles!: () => void;
+      const pendingFindFiles = new Promise<unknown[]>((resolve) => {
+        releaseFindFiles = () => resolve([]);
+      });
       (vscode.workspace as unknown as { findFiles: jest.Mock }).findFiles = jest
         .fn()
-        .mockReturnValue(new Promise(() => {}));
+        .mockReturnValue(pendingFindFiles);
 
       const result = scanner.peekAndScanInBackground();
 
       expect(result).toEqual({ library: {}, files: [], count: 0 });
 
-      // doScan() awaits the persistent cache load (real fs I/O) before it ever
-      // reaches the never-resolving findFiles mock above. Flush that real I/O
-      // here so the dangling scan blocks on *this* test's findFiles mock and
-      // never resumes mid-way through a later test against a different mock.
-      await new Promise((resolve) => setTimeout(resolve, 0));
+      // Drain the background scan deterministically: release findFiles (empty
+      // result) and join the in-flight scan to completion. Otherwise the scan —
+      // which first awaits the persistent cache load (real fs I/O) — could
+      // resume mid-way through a later test and call that test's findFiles mock,
+      // inflating its call count.
+      releaseFindFiles();
+      await scanner.scan();
     });
 
     it('kicks off exactly one background scan and fires onDidScan once it resolves', async () => {
