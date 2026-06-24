@@ -393,6 +393,58 @@ const App = () => {
     (path: (string | number)[], value: unknown) => {
       const isBlocksWrite = path[0] === 'addressBlocks' && path.length === 1;
       const isRegistersWrite = path[0] === 'registers' && path.length === 1;
+      const isStrideOrCountEdit =
+        path.length === 1 && (path[0] === 'stride' || path[0] === 'count');
+
+      // Stride/count edits on a register array change its footprint, so the
+      // offsets of every sibling register after it must be re-stamped. A plain
+      // handleUpdate would write only the scalar and leave stale offsets behind.
+      if (isStrideOrCountEdit) {
+        const selection = selectionRef.current;
+        if (selection?.type === 'array') {
+          const rootObj = YamlService.safeParse(rawTextRef.current);
+          if (rootObj) {
+            const { root, selectionRootPath } = YamlPathResolver.getMapRootInfo(rootObj);
+            // Stamp the new stride/count onto the parsed array node so the
+            // layout engine accounts for the updated footprint.
+            const arrayPath = [...selectionRootPath, ...selection.path];
+            const arrayNode = YamlPathResolver.getAtPath(root, arrayPath) as
+              | Record<string, unknown>
+              | undefined;
+            if (arrayNode) {
+              arrayNode[path[0] as string] = value;
+
+              // The container (block for top-level arrays, parent array for
+              // nested ones) holds the sibling registers needing offset repack.
+              const containerPath = [...selectionRootPath, ...selection.path.slice(0, -2)];
+              const container = YamlPathResolver.getAtPath(root, containerPath) as
+                | Record<string, unknown>
+                | undefined;
+              if (container && Array.isArray(container.registers)) {
+                const width = blockRegWidth(container);
+                const laidOut = recomputeRegisterLayout(
+                  container.registers as LayoutRegister[],
+                  width
+                );
+                const sanitizedRegs = laidOut.map(
+                  (r) =>
+                    serializeValue(r as Record<string, unknown>, width) as Record<string, unknown>
+                );
+                const edits: { path: YamlPath; value: unknown }[] = [
+                  { path: [...containerPath, 'registers'], value: sanitizedRegs },
+                ];
+                const newText = YamlService.applyPathEdits(rawTextRef.current, edits);
+                if (newText !== rawTextRef.current) {
+                  updateRawText(newText);
+                  sendUpdate(newText);
+                }
+              }
+            }
+          }
+          return;
+        }
+        // Non-array stride/count edit: fall through to the plain update path.
+      }
 
       if (!isRegistersWrite && !isBlocksWrite) {
         handleUpdate(path, value);

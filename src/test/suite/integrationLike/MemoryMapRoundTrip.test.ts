@@ -92,6 +92,47 @@ function uiAddRegister(text: string, blockIndex: number): string {
   ]);
 }
 
+/**
+ * RegisterArrayEditor stride/count edit + handleUpdateWithRepack repack branch.
+ * Mirrors the exact data-flow of index.tsx when a user edits the Stride or
+ * Count field on a selected register array: the new scalar is stamped on the
+ * array node, then the sibling registers list is repacked via
+ * recomputeRegisterLayout so every register after the array gets a fresh
+ * offset.
+ */
+function uiEditArrayDimension(
+  text: string,
+  blockIndex: number,
+  regIndex: number,
+  field: 'stride' | 'count',
+  value: number
+): string {
+  const rootObj = YamlService.safeParse(text);
+  const { root, selectionRootPath } = YamlPathResolver.getMapRootInfo(rootObj);
+
+  // Stamp the new stride/count onto the parsed array node.
+  const arrayPath = [...selectionRootPath, 'addressBlocks', blockIndex, 'registers', regIndex];
+  const arrayNode = YamlPathResolver.getAtPath(root, arrayPath) as
+    | Record<string, unknown>
+    | undefined;
+  if (!arrayNode) {
+    return text;
+  }
+  arrayNode[field] = value;
+
+  // Repack the block's registers so siblings after the array get fresh offsets.
+  const blockPath = [...selectionRootPath, 'addressBlocks', blockIndex];
+  const block = YamlPathResolver.getAtPath(root, blockPath) as Record<string, unknown> | undefined;
+  const width = blockRegWidth(block);
+  const laidOut = recomputeRegisterLayout((block?.registers ?? []) as LayoutRegister[], width);
+  const sanitized = laidOut.map(
+    (r) => serializeValue(r as Record<string, unknown>, width) as Record<string, unknown>
+  );
+  return YamlService.applyPathEdits(text, [
+    { path: [...blockPath, 'registers'], value: sanitized },
+  ]);
+}
+
 /** Outline context menu "Insert Below" + handleRegisterAction. */
 function uiAddRegisterOutline(text: string, blockIndex: number): string {
   const rootObj = YamlService.safeParse(text);
@@ -207,6 +248,52 @@ describe('memory map YAML round-trip stays schema-clean', () => {
 
     expect(validate(YamlService.parse(out))).toBe(true);
     expect(out).toContain('stride: 32'); // DMA stride unchanged (32 >= 20-byte template)
+  });
+
+  it('editing a flat array stride repacks sibling register offsets', () => {
+    // block 0 is CORE_REGS, register 6 is CH_GAIN (flat array: count 4, stride 4).
+    // CH_GAIN occupies bytes 0x5C..0x6B (the last register before it, SCRATCH,
+    // ends at 0x5C after IRQ_EVENT at 0x38). After bumping stride from 4 to 8,
+    // the array footprint doubles (4 * 8 = 32 bytes) and any register after it
+    // must shift. CH_GAIN is the last register in CORE_REGS so this test adds
+    // a trailing register first to exercise the repack.
+    const src = fs.readFileSync(axiFile, 'utf8');
+    const withTrailing = uiAddRegisterOutline(src, 0); // append reg after CH_GAIN
+    const out = uiEditArrayDimension(withTrailing, 0, 6, 'stride', 8);
+
+    expect(validate(YamlService.parse(out))).toBe(true);
+    expect(out).toContain('stride: 8');
+    // The trailing register must have moved by the stride delta (4 extra
+    // bytes per array element * 4 elements = 16 bytes).
+    const doc = YamlService.parse(out) as Array<{
+      addressBlocks: Array<{
+        registers: Array<{ offset: number; count?: number; stride?: number }>;
+      }>;
+    }>;
+    const regs = doc[0].addressBlocks[0].registers;
+    const trailing = regs[regs.length - 1];
+    const chGainEnd = regs[6].offset + (regs[6].count ?? 1) * (regs[6].stride ?? 4);
+    expect(trailing.offset).toBe(chGainEnd);
+  });
+
+  it('editing a flat array count repacks sibling register offsets', () => {
+    // Same setup: CH_GAIN at block 0 register 6 (count 4, stride 4).
+    // Increasing count from 4 to 8 doubles the footprint.
+    const src = fs.readFileSync(axiFile, 'utf8');
+    const withTrailing = uiAddRegisterOutline(src, 0);
+    const out = uiEditArrayDimension(withTrailing, 0, 6, 'count', 8);
+
+    expect(validate(YamlService.parse(out))).toBe(true);
+    expect(out).toContain('count: 8');
+    const doc = YamlService.parse(out) as Array<{
+      addressBlocks: Array<{
+        registers: Array<{ offset: number; count?: number; stride?: number }>;
+      }>;
+    }>;
+    const regs = doc[0].addressBlocks[0].registers;
+    const trailing = regs[regs.length - 1];
+    const chGainEnd = regs[6].offset + (regs[6].count ?? 1) * (regs[6].stride ?? 4);
+    expect(trailing.offset).toBe(chGainEnd);
   });
 });
 
