@@ -97,9 +97,11 @@ it('VHDL pkg file content matches snapshot', () => {
   const pkgMap: Record<string, string> = {};
 
   for (const f of successful) {
-    for (const [relPath, content] of Object.entries(f.files)) {
+    for (const [relPath, absPath] of Object.entries(f.files)) {
       if (relPath.endsWith('_pkg.vhd')) {
-        pkgMap[`${stableKey(f)}/${relPath}`] = content;
+        // f.files maps a relative path to the absolute written path; snapshot
+        // the file content (machine-independent), not the tmpdir path.
+        pkgMap[`${stableKey(f)}/${relPath}`] = fs.readFileSync(absPath, 'utf8');
       }
     }
   }
@@ -118,9 +120,11 @@ it('SystemVerilog pkg file content matches snapshot', () => {
   const pkgMap: Record<string, string> = {};
 
   for (const f of successful) {
-    for (const [relPath, content] of Object.entries(f.files)) {
+    for (const [relPath, absPath] of Object.entries(f.files)) {
       if (relPath.endsWith('_pkg.sv')) {
-        pkgMap[`${stableKey(f)}/${relPath}`] = content;
+        // f.files maps a relative path to the absolute written path; snapshot
+        // the file content (machine-independent), not the tmpdir path.
+        pkgMap[`${stableKey(f)}/${relPath}`] = fs.readFileSync(absPath, 'utf8');
       }
     }
   }
@@ -140,7 +144,9 @@ it('testbench Makefile content matches snapshot', () => {
 
   for (const f of successful) {
     if ('tb/Makefile' in f.files) {
-      makeMap[stableKey(f)] = f.files['tb/Makefile'];
+      // f.files maps a relative path to the absolute written path; snapshot
+      // the file content (machine-independent), not the tmpdir path.
+      makeMap[stableKey(f)] = fs.readFileSync(f.files['tb/Makefile'], 'utf8');
     }
   }
 
