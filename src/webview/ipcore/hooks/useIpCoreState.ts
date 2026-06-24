@@ -34,6 +34,19 @@ export interface ValidationError {
 }
 
 /**
+ * The schema documents `bus_interfaces` as a snake_case alias for `busInterfaces`
+ * (ip_core.schema.json). Unlike the Memory Map domain layer, the IP Core webview
+ * reads the parsed YAML object directly without going through domain/parse.ts, so
+ * that alias must be resolved here or bus interfaces silently vanish from the canvas.
+ */
+function aliasBusInterfaces(data: Record<string, unknown>): Record<string, unknown> {
+  if (data.busInterfaces === undefined && Array.isArray(data.bus_interfaces)) {
+    return { ...data, busInterfaces: data.bus_interfaces };
+  }
+  return data;
+}
+
+/**
  * Hook for managing IP Core state
  *
  * Handles:
@@ -64,7 +77,7 @@ export function useIpCoreState() {
           throw new Error('Invalid YAML: must be an object');
         }
 
-        const data = parsed as Record<string, unknown>;
+        const data = aliasBusInterfaces(parsed as Record<string, unknown>);
 
         setState({
           ipCore: data,
@@ -103,7 +116,7 @@ export function useIpCoreState() {
             ? applyPathDeletes(prev.rawYaml, [path])
             : applyPathEdits(prev.rawYaml, [{ path, value }]);
 
-        const newIpCore = yaml.parse(newYaml) as Record<string, unknown>;
+        const newIpCore = aliasBusInterfaces(yaml.parse(newYaml) as Record<string, unknown>);
 
         return {
           ...prev,

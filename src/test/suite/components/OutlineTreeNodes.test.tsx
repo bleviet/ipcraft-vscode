@@ -58,6 +58,7 @@ describe('OutlineTreeNodes overlap warning rendering', () => {
         memoryMap={memoryMap}
         memoryMapName="Test Map"
         filteredBlocks={filteredBlocks}
+        query=""
         selectedId={null}
         expanded={new Set()}
         onToggleExpand={onToggleExpand}

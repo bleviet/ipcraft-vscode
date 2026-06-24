@@ -16,6 +16,7 @@ interface OutlineTreeNodesProps {
   memoryMap: NormalizedMemoryMap;
   memoryMapName: string;
   filteredBlocks: Array<{ block: BlockModel; index: number }>;
+  query: string;
   selectedId: string | null;
   expanded: Set<string>;
   onToggleExpand: (id: string, e: React.MouseEvent) => void;
@@ -122,6 +123,7 @@ const OutlineTreeNodes = ({
   memoryMap,
   memoryMapName,
   filteredBlocks,
+  query,
   selectedId,
   expanded,
   onToggleExpand,
@@ -164,6 +166,8 @@ const OutlineTreeNodes = ({
         const isExpanded = expanded.has(id);
         const isSelected = selectedId === id;
         const regsAny = block.registers ?? [];
+        const q = query.trim().toLowerCase();
+        const blockMatches = !q || (block.name ?? '').toLowerCase().includes(q);
 
         const actionButton = onBlockContextMenu ? (
           <button
@@ -222,6 +226,23 @@ const OutlineTreeNodes = ({
             }
           >
             {regsAny.map((node, idx) => {
+              if (!blockMatches) {
+                const nodeMatches = isArrayNode(node)
+                  ? String(node.name ?? '')
+                      .toLowerCase()
+                      .includes(q) ||
+                    (node.registers ?? []).some((rr) =>
+                      String(rr.name ?? '')
+                        .toLowerCase()
+                        .includes(q)
+                    )
+                  : String(node.name ?? '')
+                      .toLowerCase()
+                      .includes(q);
+                if (!nodeMatches) {
+                  return null;
+                }
+              }
               if (isArrayNode(node)) {
                 return (
                   <RegisterArrayNode

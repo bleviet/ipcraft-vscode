@@ -443,6 +443,7 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
                 memoryMap={memoryMap}
                 memoryMapName={memoryMapName}
                 filteredBlocks={filteredBlocks}
+                query={query}
                 selectedId={selectedId}
                 expanded={expanded}
                 onToggleExpand={toggleExpand}
