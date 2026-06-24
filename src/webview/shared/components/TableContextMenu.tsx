@@ -1,4 +1,5 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
+import { useClampedMenuPosition } from '../hooks/useClampedMenuPosition';
 
 export interface TableContextMenuProps {
   position: { x: number; y: number } | null;
@@ -15,7 +16,7 @@ export function TableContextMenu({
   onDelete,
   onClose,
 }: TableContextMenuProps) {
-  const menuRef = useRef<HTMLDivElement | null>(null);
+  const { menuRef, adjusted } = useClampedMenuPosition(position);
 
   useEffect(() => {
     if (!position) {
@@ -39,7 +40,7 @@ export function TableContextMenu({
     };
   }, [position, onClose]);
 
-  if (!position) {
+  if (!adjusted) {
     return null;
   }
 
@@ -47,7 +48,7 @@ export function TableContextMenu({
     <div
       ref={menuRef}
       className="fixed z-[200] min-w-[160px] rounded-lg shadow-xl border vscode-border vscode-surface overflow-hidden text-sm"
-      style={{ left: position.x, top: position.y }}
+      style={{ left: adjusted.x, top: adjusted.y }}
       onPointerDown={(e) => e.stopPropagation()}
     >
       {onInsertAbove && (

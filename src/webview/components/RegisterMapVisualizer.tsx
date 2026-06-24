@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { FIELD_COLORS, FIELD_COLOR_KEYS } from '../shared/colors';
 import { toHex } from '../utils/formatUtils';
+import { useClampedMenuPosition } from '../shared/hooks/useClampedMenuPosition';
 
 export interface VisualizerRegister {
   name?: string;
@@ -63,7 +64,9 @@ const RegisterMapVisualizerInner: React.FC<RegisterMapVisualizerProps> = ({
   } | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const insertClearRef = useRef<number | null>(null);
-  const contextMenuRef = useRef<HTMLDivElement | null>(null);
+  const contextMenuPos = useClampedMenuPosition(
+    contextMenu ? { x: contextMenu.x, y: contextMenu.y } : null
+  );
 
   const scheduleInsertClear = () => {
     if (insertClearRef.current) {
@@ -114,7 +117,10 @@ const RegisterMapVisualizerInner: React.FC<RegisterMapVisualizerProps> = ({
       return;
     }
     const handlePointerDown = (e: PointerEvent) => {
-      if (contextMenuRef.current && !contextMenuRef.current.contains(e.target as Node)) {
+      if (
+        contextMenuPos.menuRef.current &&
+        !contextMenuPos.menuRef.current.contains(e.target as Node)
+      ) {
         setContextMenu(null);
       }
     };
@@ -387,9 +393,12 @@ const RegisterMapVisualizerInner: React.FC<RegisterMapVisualizerProps> = ({
         )}
         {contextMenu && (onInsertAtGap ?? onDeleteReg) && (
           <div
-            ref={contextMenuRef}
+            ref={contextMenuPos.menuRef}
             className="fixed z-[200] min-w-[160px] rounded-lg shadow-xl border vscode-border vscode-surface overflow-hidden text-sm"
-            style={{ left: contextMenu.x, top: contextMenu.y }}
+            style={{
+              left: (contextMenuPos.adjusted ?? contextMenu).x,
+              top: (contextMenuPos.adjusted ?? contextMenu).y,
+            }}
             onPointerDown={(e) => e.stopPropagation()}
           >
             {onInsertAtGap && (

@@ -12,6 +12,7 @@ import { ROOT_ID, arrayRegisterId, blockId } from './outline/outlineIds';
 import { buildVisibleSelections } from './outline/buildVisibleSelections';
 import { useOutlineKeyboard } from './outline/useOutlineKeyboard';
 import OutlineTreeNodes from './outline/OutlineTreeNodes';
+import { useClampedMenuPosition } from '../shared/hooks/useClampedMenuPosition';
 
 function parseAddressString(val: string): number | null {
   const cleaned = val.trim();
@@ -98,7 +99,6 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
     const [editingBaseId, setEditingBaseId] = useState<string | null>(null);
     const [editingBaseValue, setEditingBaseValue] = useState('');
     const editBaseInputRef = useRef<HTMLInputElement | null>(null);
-    const outlineContextMenuRef = useRef<HTMLDivElement | null>(null);
     const [outlineContextMenu, setOutlineContextMenu] = useState<{
       x: number;
       y: number;
@@ -107,14 +107,18 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
       parentRegIndex?: number;
     } | null>(null);
 
+    const outlineMenuPos = useClampedMenuPosition(
+      outlineContextMenu ? { x: outlineContextMenu.x, y: outlineContextMenu.y } : null
+    );
+
     useEffect(() => {
       if (!outlineContextMenu) {
         return;
       }
       const handlePointerDown = (e: PointerEvent) => {
         if (
-          outlineContextMenuRef.current &&
-          !outlineContextMenuRef.current.contains(e.target as Node)
+          outlineMenuPos.menuRef.current &&
+          !outlineMenuPos.menuRef.current.contains(e.target as Node)
         ) {
           setOutlineContextMenu(null);
         }
@@ -474,9 +478,12 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
         </div>
         {outlineContextMenu && (onRegisterAction ?? onBlockAction) && (
           <div
-            ref={outlineContextMenuRef}
+            ref={outlineMenuPos.menuRef}
             className="fixed z-[200] min-w-[160px] rounded-lg shadow-xl border vscode-border vscode-surface overflow-hidden text-sm py-1"
-            style={{ left: outlineContextMenu.x, top: outlineContextMenu.y }}
+            style={{
+              left: (outlineMenuPos.adjusted ?? outlineContextMenu).x,
+              top: (outlineMenuPos.adjusted ?? outlineContextMenu).y,
+            }}
             onPointerDown={(e) => e.stopPropagation()}
           >
             {outlineContextMenu.parentRegIndex !== undefined ? (
