@@ -282,6 +282,14 @@ function extractWidthFromType(type: string): number | string | undefined {
     if (paramMatch) {
       return paramMatch[1];
     }
+    // Canonical clog2 form: (integer(ceil(log2(real(DEPTH)))))-1 downto 0 →
+    // "clog2(DEPTH)" (collapses our own generated expansion back to the function).
+    const clog2Match = range.match(
+      /^\(?integer\(ceil\(log2\(real\(\s*(\w+)\s*\)\)\)\)\)?\s*-\s*1\s+downto\s+0$/i
+    );
+    if (clog2Match) {
+      return `clog2(${clog2Match[1]})`;
+    }
     // Paren-wrapped expression: (AxiDataWidth_g/8) - 1 downto 0 → "AxiDataWidth_g/8"
     const parenExprMatch = range.match(/^\((.+)\)\s*-\s*1\s+downto\s+0$/i);
     if (parenExprMatch) {

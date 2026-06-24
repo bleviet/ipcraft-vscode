@@ -7,7 +7,53 @@ import type { NormalizedMemoryMap, NormalizedRegister } from '../domain/internal
 import { BUS_REGISTRY } from './buses/builtin';
 
 import { evalWidthExpr } from '../shared/evalWidthExpr';
+import { parse, serialize, containsParamRef } from '../shared/widthExprAst';
 export { evalWidthExpr };
+
+/**
+ * Resolve a string-valued port width to a numeric default and, when it is
+ * parameterized, the canonical width expression. A constant expression (no
+ * parameter reference, including a constant function such as `clog2(8)`) is
+ * folded to a literal and reported with `expr: null` so it routes through the
+ * static numeric-width path.
+ */
+export function resolveStringWidth(
+  s: string,
+  paramDefaults: Map<string, number> | Record<string, number>
+): { numeric: number; expr: string | null } {
+  const ast = parse(s);
+  const numeric = evalWidthExpr(s, paramDefaults) ?? 1;
+  if (ast && !containsParamRef(ast)) {
+    return { numeric, expr: null };
+  }
+  return { numeric, expr: s };
+}
+
+/**
+ * Build the VHDL and SystemVerilog vector type strings for a parameterized port
+ * width expression, expanding any predefined functions per dialect. Falls back
+ * to the legacy raw-string wrap for an un-parseable expression.
+ */
+export function buildParameterizedPortTypes(widthExpr: string): {
+  type: string;
+  sv_type: string;
+} {
+  const ast = parse(widthExpr);
+  if (!ast) {
+    const isCompound = /[+\-*/]/.test(widthExpr);
+    const fmt = isCompound ? `(${widthExpr})` : widthExpr;
+    return { type: `std_logic_vector(${fmt}-1 downto 0)`, sv_type: `logic [${fmt}-1:0]` };
+  }
+  const isLeaf = ast.type === 'Number' || ast.type === 'ParamRef';
+  const vhdl = serialize(ast, 'vhdl').code;
+  const sv = serialize(ast, 'systemverilog').code;
+  const fmtVhdl = isLeaf ? vhdl : `(${vhdl})`;
+  const fmtSv = isLeaf ? sv : `(${sv})`;
+  return {
+    type: `std_logic_vector(${fmtVhdl}-1 downto 0)`,
+    sv_type: `logic [${fmtSv}-1:0]`,
+  };
+}
 
 function getString(value: unknown): string {
   if (value === null || value === undefined) {
@@ -259,17 +305,20 @@ export function getActiveBusPortsFromDefinition(
       const override = portWidthOverrides[logicalName];
       if (typeof override === 'string') {
         // Resolve parameter reference or expression; preserve as widthExpr for templates
-        width = evalWidthExpr(override, paramDefaults) ?? 1;
-        widthExpr = override;
+        const resolved = resolveStringWidth(override, paramDefaults);
+        width = resolved.numeric;
+        widthExpr = resolved.expr;
       } else {
         width = override;
       }
     } else if (typeof width === 'string') {
-      // Port width is a parameter name or arithmetic expression (e.g. "XCVR_DW" or
-      // "AxiDataWidth_g/8"). Evaluate to a numeric default for type generation and
-      // keep the original expression as widthExpr for generic references in templates.
-      widthExpr = width;
-      width = evalWidthExpr(width, paramDefaults) ?? 1;
+      // Port width is a parameter name or arithmetic expression (e.g. "XCVR_DW",
+      // "AxiDataWidth_g/8", or "clog2(DEPTH)"). Evaluate to a numeric default for
+      // type generation and keep the original expression as widthExpr for generic
+      // references in templates. A constant expression folds to a literal.
+      const resolved = resolveStringWidth(width, paramDefaults);
+      width = resolved.numeric;
+      widthExpr = resolved.expr;
     }
 
     // WSTRB width is DATA_WIDTH/8. The YAML convention stores only the data-width
@@ -288,12 +337,11 @@ export function getActiveBusPortsFromDefinition(
     let vhdlType: string;
     let svType: string;
     if (widthExpr !== null) {
-      // Compound expressions (e.g. "AxiDataWidth_g/8") need outer parens so the
-      // subtraction binds to the whole expression, not just its last operand.
-      const isCompound = /[+\-*/]/.test(widthExpr);
-      const fmtExpr = isCompound ? `(${widthExpr})` : widthExpr;
-      vhdlType = `std_logic_vector(${fmtExpr}-1 downto 0)`;
-      svType = `logic [${fmtExpr}-1:0]`;
+      // Parameterized width — expand predefined functions per dialect and
+      // parenthesize non-leaf expressions so the trailing "-1" binds correctly.
+      const types = buildParameterizedPortTypes(widthExpr);
+      vhdlType = types.type;
+      svType = types.sv_type;
     } else {
       vhdlType = getVhdlPortType(numWidth, logicalName);
       svType = getSvPortType(numWidth, logicalName);

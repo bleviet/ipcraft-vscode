@@ -9,6 +9,9 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
+{% if uses_math_real %}
+use ieee.math_real.all;
+{% endif %}
 {% if has_memory_mapped_slave %}
 use work.{{ entity_name }}_pkg.all;
 {% endif %}

@@ -346,6 +346,18 @@ function extractWidth(rangeStr: string): number | string | undefined {
     return Math.abs(parseInt(numeric[1], 10) - parseInt(numeric[2], 10)) + 1;
   }
 
+  // $clog2(PARAM)-1 : 0  →  width expression "clog2(PARAM)"
+  const clog2Minus1 = s.match(/^\$clog2\(\s*(\w+)\s*\)\s*-\s*1\s*:\s*0$/i);
+  if (clog2Minus1) {
+    return `clog2(${clog2Minus1[1]})`;
+  }
+
+  // $clog2(PARAM) : 0  →  treat clog2(PARAM) as width
+  const clog2Colon0 = s.match(/^\$clog2\(\s*(\w+)\s*\)\s*:\s*0$/i);
+  if (clog2Colon0) {
+    return `clog2(${clog2Colon0[1]})`;
+  }
+
   // PARAM-1 : 0  →  width = PARAM
   const paramMinus1 = s.match(/^(\w+)\s*-\s*1\s*:\s*0$/);
   if (paramMinus1) {

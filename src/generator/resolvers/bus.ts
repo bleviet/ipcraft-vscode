@@ -4,9 +4,11 @@ import {
   checkDuplicatePhysicalPrefixes,
   getActiveBusPortsFromDefinition,
   normalizeBusType,
+  resolveStringWidth,
+  buildParameterizedPortTypes,
 } from '../registerProcessor';
 import type { BusInterfaceDef, BusPortDefinition } from '../types';
-import { evalWidthExpr } from '../../shared/evalWidthExpr';
+import { parse, serialize, widthExprUsesMathReal } from '../../shared/widthExprAst';
 
 function getString(value: unknown): string {
   if (value === null || value === undefined) {
@@ -29,17 +31,22 @@ function normalizePrefix(prefix: string): string {
 }
 
 function toTclWidthExpression(exprStr: string, paramNames: string[]): string {
-  let converted = exprStr;
-  let hasParam = false;
+  const ast = parse(exprStr);
+  if (!ast) {
+    return exprStr;
+  }
   const upperParamNames = paramNames.map((p) => p.toUpperCase());
-  converted = converted.replace(/\b([a-zA-Z_][a-zA-Z0-9_]*)\b/g, (match) => {
-    const upper = match.toUpperCase();
-    if (upperParamNames.includes(upper)) {
-      hasParam = true;
-      return `[get_parameter_value ${upper}]`;
-    }
-    return match;
-  });
+  let hasParam = false;
+  const converted = serialize(ast, 'tcl', {
+    paramRef: (name) => {
+      const upper = name.toUpperCase();
+      if (upperParamNames.includes(upper)) {
+        hasParam = true;
+        return `[get_parameter_value ${upper}]`;
+      }
+      return name;
+    },
+  }).code;
   if (!hasParam) {
     return exprStr;
   }
@@ -110,25 +117,32 @@ export function buildUserPorts(
     const direction = getString(port.direction).toLowerCase();
     const svDirection = direction === 'in' ? 'input' : direction === 'out' ? 'output' : 'inout';
     const widthValue = port.width ?? 1;
-    const isParameterized = typeof widthValue === 'string';
 
-    if (isParameterized) {
-      const numericDefault = evalWidthExpr(widthValue, paramDefaults) ?? 32;
+    // A string width may be a parameter reference, an arithmetic expression, or
+    // a predefined function call. A constant expression folds to a literal.
+    const resolved =
+      typeof widthValue === 'string'
+        ? resolveStringWidth(widthValue, paramDefaults)
+        : { numeric: Number(widthValue), expr: null };
+
+    if (resolved.expr !== null) {
+      const numericDefault = resolved.numeric || 32;
+      const types = buildParameterizedPortTypes(resolved.expr);
       return {
         name: String(port.name),
         direction,
         sv_direction: svDirection,
-        type: `std_logic_vector(${widthValue}-1 downto 0)`,
-        sv_type: `logic [${widthValue}-1:0]`,
+        type: types.type,
+        sv_type: types.sv_type,
         width: numericDefault,
-        width_expr: widthValue,
+        width_expr: resolved.expr,
         is_parameterized: true,
         default_width: numericDefault - 1,
-        tcl_width: toTclWidth(numericDefault, widthValue, paramNames),
+        tcl_width: toTclWidth(numericDefault, resolved.expr, paramNames),
       };
     }
 
-    const width = Number(widthValue);
+    const width = resolved.numeric;
     return {
       name: String(port.name),
       direction,
@@ -271,6 +285,15 @@ export const busResolver: ContextResolver = {
       }
     }
 
+    // A parameterized width using a VHDL math_real function (clog2/log2/ceil/
+    // floor) requires `use ieee.math_real.all;` in the entity context clause.
+    const usesMathReal = [...busPorts, ...secondaryBusPorts, ...userPorts].some(
+      (port) =>
+        port.is_parameterized === true &&
+        typeof port.width_expr === 'string' &&
+        widthExprUsesMathReal(port.width_expr)
+    );
+
     return {
       bus_prefix: expandedBusInterfaces.length > 0 ? busPrefix : 's_axi',
       bus_ports: busPorts,
@@ -280,6 +303,7 @@ export const busResolver: ContextResolver = {
       elaborate_port_widths: elaboratePortWidths,
       user_ports: userPorts,
       interrupt_ports: buildInterruptPorts(ipCore),
+      uses_math_real: usesMathReal,
     };
   },
 };

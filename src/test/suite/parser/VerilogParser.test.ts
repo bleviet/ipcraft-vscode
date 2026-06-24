@@ -229,6 +229,26 @@ endmodule
       expect(data!.width).toBe('WIDTH');
     });
 
+    it('extracts a clog2 width from $clog2(PARAM)-1:0', async () => {
+      const result = await writeAndParse(
+        'clog2.v',
+        `
+module fifo #(
+  parameter DEPTH = 1024
+) (
+  output wire [$clog2(DEPTH)-1:0] rd_ptr
+);
+endmodule
+`
+      );
+      const parsed = yaml.load(result.yamlText) as Record<string, unknown>;
+      const ports = parsed.ports as Array<Record<string, unknown>>;
+      const rdPtr = ports.find((p) => p.name === 'rd_ptr');
+
+      expect(rdPtr).toBeDefined();
+      expect(rdPtr!.width).toBe('clog2(DEPTH)');
+    });
+
     it('extracts width from [PARAM:0] range', async () => {
       const result = await writeAndParse(
         'param0.v',

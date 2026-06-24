@@ -1,0 +1,27 @@
+vlnv:
+  vendor: test
+  library: lib
+  name: clog2_fifo
+  version: 1.0.0
+description: Test core with a clog2-derived port width (FIFO pointer pattern)
+parameters:
+  - name: FIFO_DEPTH
+    dataType: integer
+    value: 1024
+    description: Depth of the internal FIFO in words
+clocks:
+  - name: Clk
+    direction: in
+resets:
+  - name: Rst_n
+    direction: in
+    polarity: activeLow
+ports:
+  - name: fifo_rd_ptr
+    direction: out
+    width: clog2(FIFO_DEPTH)
+    description: FIFO read pointer, width derived from FIFO_DEPTH
+  - name: fifo_data
+    direction: out
+    width: 32
+busInterfaces: []

@@ -95,6 +95,11 @@
 
     "memmap_relpath": { "type": "string" },
 
+    "uses_math_real": {
+      "type": "boolean",
+      "description": "True when any parameterized port width uses a VHDL math_real function (clog2/log2/ceil/floor), so the entity context clause must add `use ieee.math_real.all;`."
+    },
+
     "vendor": { "type": "string" },
     "library": { "type": "string" },
     "version": { "type": "string" },

@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { VSCodeTextField } from '@vscode/webview-ui-toolkit/react';
-import { evalWidthExpr } from '../utils/evalWidthExpr';
+import { evalWidthExpr, normalizeFunctionNames } from '../utils/evalWidthExpr';
 
 const NUMERIC_PARAM_TYPES = new Set(['integer']);
 
@@ -91,7 +91,9 @@ export const WidthField: React.FC<WidthFieldProps> = ({
     if (!isNaN(asInt) && asInt > 0 && String(asInt) === trimmed) {
       return asInt;
     }
-    return trimmed;
+    // Canonicalize predefined function names (CLOG2 -> clog2) so persisted YAML
+    // stays consistent; parameter names and literals are left untouched.
+    return normalizeFunctionNames(trimmed);
   };
 
   /** Save when focus leaves the entire WidthField component. */

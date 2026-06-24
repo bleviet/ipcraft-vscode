@@ -49,4 +49,66 @@ describe('evalWidthExpr (webview, no new Function)', () => {
   it('handles unary minus', () => {
     expect(evalWidthExpr('-(-32)', {})).toBe(32);
   });
+
+  describe('predefined functions', () => {
+    it('clog2 returns ceiling of log2', () => {
+      expect(evalWidthExpr('clog2(8)', {})).toBe(3);
+      expect(evalWidthExpr('clog2(1024)', {})).toBe(10);
+      expect(evalWidthExpr('clog2(256)', {})).toBe(8);
+    });
+
+    it('clog2(1) is 0 (matches SystemVerilog $clog2)', () => {
+      expect(evalWidthExpr('clog2(1)', {})).toBe(0);
+    });
+
+    it('clog2(0) is undefined (surfaces the error rather than a 0-bit port)', () => {
+      expect(evalWidthExpr('clog2(0)', {})).toBeUndefined();
+    });
+
+    it('clog2 of a parameter resolves with defaults', () => {
+      expect(evalWidthExpr('clog2(FIFO_DEPTH)', { FIFO_DEPTH: 1024 })).toBe(10);
+      expect(evalWidthExpr('clog2(NUM_CHANNELS)', { NUM_CHANNELS: 4 })).toBe(2);
+    });
+
+    it('log2 returns floor of log2', () => {
+      expect(evalWidthExpr('log2(8)', {})).toBe(3);
+      expect(evalWidthExpr('log2(9)', {})).toBe(3);
+    });
+
+    it('ceil rounds up a division', () => {
+      expect(evalWidthExpr('ceil(DATA_W/8)', { DATA_W: 33 })).toBe(5);
+      expect(evalWidthExpr('ceil(DATA_W/8)', { DATA_W: 32 })).toBe(4);
+    });
+
+    it('floor rounds down', () => {
+      expect(evalWidthExpr('floor(DATA_W/8)', { DATA_W: 33 })).toBe(4);
+    });
+
+    it('abs returns absolute value', () => {
+      expect(evalWidthExpr('abs(0-7)', {})).toBe(7);
+    });
+
+    it('max and min take two scalar arguments', () => {
+      expect(evalWidthExpr('max(A,B)', { A: 8, B: 16 })).toBe(16);
+      expect(evalWidthExpr('min(A,B)', { A: 8, B: 16 })).toBe(8);
+    });
+
+    it('supports nested function calls', () => {
+      expect(evalWidthExpr('clog2(max(A,B))', { A: 100, B: 200 })).toBe(8);
+    });
+
+    it('matches function names case-insensitively', () => {
+      expect(evalWidthExpr('CLOG2(8)', {})).toBe(3);
+      expect(evalWidthExpr('Ceil(DATA_W/8)', { DATA_W: 33 })).toBe(5);
+    });
+
+    it('returns undefined for an unknown function', () => {
+      expect(evalWidthExpr('frobnicate(8)', {})).toBeUndefined();
+    });
+
+    it('returns undefined for wrong arity', () => {
+      expect(evalWidthExpr('clog2(1, 2)', {})).toBeUndefined();
+      expect(evalWidthExpr('max(8)', {})).toBeUndefined();
+    });
+  });
 });

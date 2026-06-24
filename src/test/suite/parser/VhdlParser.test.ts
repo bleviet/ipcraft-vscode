@@ -178,6 +178,30 @@ describe('VhdlParser', () => {
     expect(toDir!.width).toBe('N_g');
   });
 
+  it('collapses the canonical clog2 expansion back to clog2(PARAM)', async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ipcraft-vhdl-'));
+    const filePath = path.join(tempDir, 'clog2.vhd');
+    const vhdl = `
+      entity fifo is
+        generic (
+          DEPTH : positive := 1024
+        );
+        port (
+          rd_ptr : out std_logic_vector((integer(ceil(log2(real(DEPTH)))))-1 downto 0)
+        );
+      end entity;
+    `;
+
+    await fs.writeFile(filePath, vhdl, 'utf8');
+    const result = await parseVhdlFile(filePath);
+    const parsed = yaml.load(result.yamlText) as Record<string, unknown>;
+    const ports = (parsed.ports as Array<Record<string, unknown>>) ?? [];
+
+    const rdPtr = ports.find((p) => p.name === 'rd_ptr');
+    expect(rdPtr).toBeDefined();
+    expect(rdPtr!.width).toBe('clog2(DEPTH)');
+  });
+
   it('strips IO_ prefix only once for logical port names', async () => {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ipcraft-vhdl-'));
     const filePath = path.join(tempDir, 'io_prefix.vhd');

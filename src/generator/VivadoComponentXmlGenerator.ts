@@ -4,6 +4,7 @@ import {
   expandBusInterfaces,
   normalizeBusType,
 } from './registerProcessor';
+import { parse, serialize, IPXACT_UNSUPPORTED } from '../shared/widthExprAst';
 import { detectVivadoVersion } from '../utils/detectVivadoVersion';
 import { parseVlnv, isValidVlnv } from '../utils/vlnv';
 import { BUS_VLNV } from '../shared/busVlnv';
@@ -982,18 +983,30 @@ function renderModelPort(
           `            <spirit:left spirit:format="long" spirit:resolve="dependent" spirit:dependency="(spirit:decode(id(&apos;MODELPARAM_VALUE.${paramUpper}&apos;)) - 1)">${width - 1}</spirit:left>`
         );
       } else {
-        // Complex arithmetic expression (e.g. "AxiDataWidth_g/8"): substitute each
-        // known parameter name with its spirit:decode(id('MODELPARAM_VALUE.NAME')) form.
+        // Complex expression (e.g. "AxiDataWidth_g/8" or "clog2(DEPTH)"): expand
+        // to an IP-XACT XPATH dependency, substituting each known parameter with
+        // its spirit:decode(id('MODELPARAM_VALUE.NAME')) form (UG1118).
         const upperParamNames = paramNames.map((p) => p.toUpperCase());
-        const dependency = widthParamName.replace(/\b([a-zA-Z_][a-zA-Z0-9_]*)\b/g, (match) => {
-          const upper = match.toUpperCase();
-          return upperParamNames.includes(upper)
-            ? `spirit:decode(id(&apos;MODELPARAM_VALUE.${upper}&apos;))`
-            : match;
-        });
-        lines.push(
-          `            <spirit:left spirit:format="long" spirit:resolve="dependent" spirit:dependency="(${dependency} - 1)">${width - 1}</spirit:left>`
-        );
+        const ast = parse(widthParamName);
+        const dependency = ast
+          ? serialize(ast, 'ipxact', {
+              paramRef: (name) => {
+                const upper = name.toUpperCase();
+                return upperParamNames.includes(upper)
+                  ? `spirit:decode(id(&apos;MODELPARAM_VALUE.${upper}&apos;))`
+                  : name;
+              },
+            }).code
+          : IPXACT_UNSUPPORTED;
+        if (dependency === IPXACT_UNSUPPORTED) {
+          // No parameterized XPATH form (e.g. max/min, or an unparseable
+          // expression) — fall back to the resolved literal width.
+          lines.push(`            <spirit:left spirit:format="long">${width - 1}</spirit:left>`);
+        } else {
+          lines.push(
+            `            <spirit:left spirit:format="long" spirit:resolve="dependent" spirit:dependency="(${dependency} - 1)">${width - 1}</spirit:left>`
+          );
+        }
       }
     } else {
       lines.push(`            <spirit:left spirit:format="long">${width - 1}</spirit:left>`);

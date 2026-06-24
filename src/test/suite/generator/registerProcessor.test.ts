@@ -328,6 +328,45 @@ describe('registerProcessor', () => {
       expect(byLogical['AWREADY'].name).toBe('S_AxiLite_AwReady');
       expect(byLogical['WDATA'].name).toBe('S_AxiLite_WData');
     });
+
+    it('expands a parameterized clog2 width override per dialect', () => {
+      const defPorts = [{ name: 'AWADDR', direction: 'out', presence: 'required', width: 32 }];
+      const params = [{ name: 'FIFO_DEPTH', value: 1024 }];
+      const result = getActiveBusPortsFromDefinition(
+        defPorts,
+        [],
+        's_',
+        'slave',
+        { AWADDR: 'clog2(FIFO_DEPTH)' },
+        params
+      );
+      const port = result[0];
+      expect(port.is_parameterized).toBe(true);
+      expect(port.width_expr).toBe('clog2(FIFO_DEPTH)');
+      expect(port.width).toBe(10); // clog2(1024)
+      expect(port.default_width).toBe(9);
+      expect(port.type).toBe(
+        'std_logic_vector((integer(ceil(log2(real(FIFO_DEPTH)))))-1 downto 0)'
+      );
+      expect(port.sv_type).toBe('logic [($clog2(FIFO_DEPTH))-1:0]');
+    });
+
+    it('constant-folds a non-parameterized clog2 width to a static literal', () => {
+      const defPorts = [{ name: 'AWADDR', direction: 'out', presence: 'required', width: 32 }];
+      const result = getActiveBusPortsFromDefinition(
+        defPorts,
+        [],
+        's_',
+        'slave',
+        { AWADDR: 'clog2(8)' },
+        []
+      );
+      const port = result[0];
+      expect(port.is_parameterized).toBe(false);
+      expect(port.width_expr).toBeNull();
+      expect(port.width).toBe(3);
+      expect(port.type).toBe('std_logic_vector(2 downto 0)');
+    });
   });
 
   describe('prepareRegisters (Integrative)', () => {

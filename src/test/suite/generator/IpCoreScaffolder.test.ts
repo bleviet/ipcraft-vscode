@@ -190,6 +190,50 @@ describe('IpCoreScaffolder', () => {
     expect(vhdlContent).not.toContain('use work.sample_core_pkg.all');
   });
 
+  it('expands a clog2 port width across VHDL, SystemVerilog, Tcl, and IP-XACT', async () => {
+    const inputPath = path.resolve(__dirname, '../../fixtures/clog2-ipcore.yml');
+    const writeMock = fs.writeFile as unknown as jest.Mock;
+    const findContent = (needle: string): string =>
+      writeMock.mock.calls.find((call) => call[0].includes(needle))?.[1] as string;
+
+    // VHDL run — also emits the vendor Tcl and IP-XACT packaging.
+    const vhdlResult = await scaffolder.generateAll(inputPath, '/tmp/test-clog2-vhdl', {
+      includeRegs: false,
+      includeTestbench: false,
+      targets: ['vivado', 'quartus'],
+      scaffoldPack: 'builtin-ipcraft',
+    });
+    expect(vhdlResult.success).toBe(true);
+
+    // VHDL: math_real expansion in the entity port, plus the conditional context clause.
+    const vhdl = findContent('rtl/clog2_fifo.vhd');
+    expect(vhdl).toContain('use ieee.math_real.all;');
+    expect(vhdl).toContain('(integer(ceil(log2(real(FIFO_DEPTH)))))-1 downto 0');
+
+    // Altera Tcl elaborate proc: natural-log clog2 expansion with get_parameter_value.
+    const tcl = findContent('altera/clog2_fifo_hw.tcl');
+    expect(tcl).toContain('int(ceil(log([get_parameter_value FIFO_DEPTH])/log(2)))');
+
+    // Vivado IP-XACT: XPATH ceiling(log(2, ...)) dependency.
+    const xml = findContent('xilinx/component.xml');
+    expect(xml).toContain(
+      'ceiling(log(2, spirit:decode(id(&apos;MODELPARAM_VALUE.FIFO_DEPTH&apos;))))'
+    );
+
+    // SystemVerilog run — $clog2 built-in.
+    writeMock.mockClear();
+    const svResult = await scaffolder.generateAll(inputPath, '/tmp/test-clog2-sv', {
+      includeRegs: false,
+      includeTestbench: false,
+      targets: [],
+      scaffoldPack: 'builtin-ipcraft',
+      hdlLanguage: 'systemverilog',
+    });
+    expect(svResult.success).toBe(true);
+    const sv = findContent('rtl/clog2_fifo.sv');
+    expect(sv).toContain('($clog2(FIFO_DEPTH))-1:0');
+  });
+
   it('honors the testbench engine option in the scaffolded Makefile', async () => {
     // Scaffold bundles the testbench; the simulator (engine) chosen in settings
     // must reach the generated Makefile, not silently fall back to the default.

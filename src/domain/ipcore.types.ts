@@ -37,7 +37,7 @@ export type Logicalname = string;
  */
 export type PortDirection = 'in' | 'out' | 'inout';
 /**
- * Port width in bits or parameter name
+ * Port width in bits, a parameter name, or an arithmetic expression with predefined functions (clog2, log2, ceil, floor, abs, min, max), e.g. clog2(FIFO_DEPTH)
  */
 export type Width = number | string;
 /**
@@ -73,7 +73,7 @@ export type Logicalname1 = string | null;
  */
 export type PortDirection1 = 'in' | 'out' | 'inout';
 /**
- * Port width in bits or parameter name
+ * Port width in bits, a parameter name, or an arithmetic expression with predefined functions (clog2, log2, ceil, floor, abs, min, max), e.g. clog2(FIFO_DEPTH)
  */
 export type Width1 = number | string;
 /**
@@ -109,7 +109,7 @@ export type Logicalname2 = string;
  */
 export type PortDirection2 = 'in' | 'out' | 'inout';
 /**
- * Port width in bits or parameter name
+ * Port width in bits, a parameter name, or an arithmetic expression with predefined functions (clog2, log2, ceil, floor, abs, min, max), e.g. clog2(FIFO_DEPTH)
  */
 export type Width2 = number | string;
 /**
@@ -137,7 +137,7 @@ export type Logicalname3 = string;
  */
 export type PortDirection3 = 'in' | 'out' | 'inout';
 /**
- * Port width in bits or parameter name
+ * Port width in bits, a parameter name, or an arithmetic expression with predefined functions (clog2, log2, ceil, floor, abs, min, max), e.g. clog2(FIFO_DEPTH)
  */
 export type Width3 = number | string;
 /**
@@ -221,7 +221,7 @@ export type Name6 = string;
  */
 export type PortDirection4 = 'in' | 'out' | 'inout';
 /**
- * Port width in bits or parameter name
+ * Port width in bits, a parameter name, or an arithmetic expression with predefined functions (clog2, log2, ceil, floor, abs, min, max), e.g. clog2(FIFO_DEPTH)
  */
 export type Width4 = number | string;
 /**

@@ -41,6 +41,10 @@ export interface TemplateContext {
   reset_active_high: boolean;
   clocks_with_period: ClockWithPeriod[];
   memmap_relpath: string;
+  /**
+   * True when any parameterized port width uses a VHDL math_real function (clog2/log2/ceil/floor), so the entity context clause must add `use ieee.math_real.all;`.
+   */
+  uses_math_real?: boolean;
   vendor?: string;
   library?: string;
   version?: string;

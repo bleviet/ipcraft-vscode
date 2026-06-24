@@ -11388,6 +11388,23 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
+        <spirit:name>o_fifo_level</spirit:name>
+        <spirit:wire>
+          <spirit:direction>out</spirit:direction>
+          <spirit:vector>
+            <spirit:left spirit:format="long" spirit:resolve="dependent" spirit:dependency="(ceiling(log(2, spirit:decode(id(&apos;MODELPARAM_VALUE.FIFO_DEPTH&apos;)))) - 1)">8</spirit:left>
+            <spirit:right spirit:format="long">0</spirit:right>
+          </spirit:vector>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>wire</spirit:typeName>
+              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
         <spirit:name>o_irq</spirit:name>
         <spirit:wire>
           <spirit:direction>out</spirit:direction>
@@ -13566,6 +13583,23 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
+        <spirit:name>o_fifo_level</spirit:name>
+        <spirit:wire>
+          <spirit:direction>out</spirit:direction>
+          <spirit:vector>
+            <spirit:left spirit:format="long" spirit:resolve="dependent" spirit:dependency="(ceiling(log(2, spirit:decode(id(&apos;MODELPARAM_VALUE.FIFO_DEPTH&apos;)))) - 1)">8</spirit:left>
+            <spirit:right spirit:format="long">0</spirit:right>
+          </spirit:vector>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>std_logic_vector</spirit:typeName>
+              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
         <spirit:name>o_irq</spirit:name>
         <spirit:wire>
           <spirit:direction>out</spirit:direction>
@@ -15217,6 +15251,23 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
+        <spirit:name>i_active_channel</spirit:name>
+        <spirit:wire>
+          <spirit:direction>in</spirit:direction>
+          <spirit:vector>
+            <spirit:left spirit:format="long" spirit:resolve="dependent" spirit:dependency="(ceiling(log(2, spirit:decode(id(&apos;MODELPARAM_VALUE.NUM_CHANNELS&apos;)))) - 1)">1</spirit:left>
+            <spirit:right spirit:format="long">0</spirit:right>
+          </spirit:vector>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>wire</spirit:typeName>
+              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
         <spirit:name>o_global_irq</spirit:name>
         <spirit:wire>
           <spirit:direction>out</spirit:direction>
@@ -16534,6 +16585,23 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           <spirit:wireTypeDefs>
             <spirit:wireTypeDef>
               <spirit:typeName>std_logic</spirit:typeName>
+              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
+        <spirit:name>i_active_channel</spirit:name>
+        <spirit:wire>
+          <spirit:direction>in</spirit:direction>
+          <spirit:vector>
+            <spirit:left spirit:format="long" spirit:resolve="dependent" spirit:dependency="(ceiling(log(2, spirit:decode(id(&apos;MODELPARAM_VALUE.NUM_CHANNELS&apos;)))) - 1)">1</spirit:left>
+            <spirit:right spirit:format="long">0</spirit:right>
+          </spirit:vector>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>std_logic_vector</spirit:typeName>
               <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
               <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
             </spirit:wireTypeDef>
@@ -25702,6 +25770,17 @@ set_interface_property o_led SVD_ADDRESS_GROUP ""
 
 add_interface_port o_led o_led o_led Output 1
 
+# Conduit interface for user port: o_fifo_level
+add_interface o_fifo_level conduit end
+set_interface_property o_fifo_level associatedClock clk
+set_interface_property o_fifo_level associatedReset reset
+set_interface_property o_fifo_level ENABLED true
+set_interface_property o_fifo_level EXPORT_OF ""
+set_interface_property o_fifo_level PORT_NAME_MAP ""
+set_interface_property o_fifo_level CMSIS_SVD_VARIABLES ""
+set_interface_property o_fifo_level SVD_ADDRESS_GROUP ""
+
+
 
 # -----------------------------------------------------------------------------
 # Interrupt Interface(s)
@@ -25729,6 +25808,7 @@ add_interface_port o_err_pulse o_err_pulse irq Output 1
 proc elaborate {} {
     add_interface_port DBG dbg_trace_data trace_data Output [get_parameter_value DATA_W]
     add_interface_port o_gpio o_gpio o_gpio Output [get_parameter_value DATA_W]
+    add_interface_port o_fifo_level o_fifo_level o_fifo_level Output [expr int(ceil(log([get_parameter_value FIFO_DEPTH])/log(2)))]
 }
 
 # -----------------------------------------------------------------------------
@@ -26067,6 +26147,17 @@ set_interface_property o_led SVD_ADDRESS_GROUP ""
 
 add_interface_port o_led o_led o_led Output 1
 
+# Conduit interface for user port: o_fifo_level
+add_interface o_fifo_level conduit end
+set_interface_property o_fifo_level associatedClock clk
+set_interface_property o_fifo_level associatedReset reset
+set_interface_property o_fifo_level ENABLED true
+set_interface_property o_fifo_level EXPORT_OF ""
+set_interface_property o_fifo_level PORT_NAME_MAP ""
+set_interface_property o_fifo_level CMSIS_SVD_VARIABLES ""
+set_interface_property o_fifo_level SVD_ADDRESS_GROUP ""
+
+
 
 # -----------------------------------------------------------------------------
 # Interrupt Interface(s)
@@ -26094,6 +26185,7 @@ add_interface_port o_err_pulse o_err_pulse irq Output 1
 proc elaborate {} {
     add_interface_port DBG dbg_trace_data trace_data Output [get_parameter_value DATA_W]
     add_interface_port o_gpio o_gpio o_gpio Output [get_parameter_value DATA_W]
+    add_interface_port o_fifo_level o_fifo_level o_fifo_level Output [expr int(ceil(log([get_parameter_value FIFO_DEPTH])/log(2)))]
 }
 
 # -----------------------------------------------------------------------------
@@ -26318,6 +26410,7 @@ set_module_property EDITABLE true
 set_module_property REPORT_TO_TALKBACK false
 set_module_property ALLOW_GREYBOX_GENERATION false
 set_module_property REPORT_HIERARCHY false
+set_module_property ELABORATION_CALLBACK elaborate
 
 # -----------------------------------------------------------------------------
 # Parameters
@@ -26494,6 +26587,17 @@ add_interface_port S_AXIS_IN s_axis_tvalid tvalid Input 1
 add_interface_port S_AXIS_IN s_axis_tready tready Output 1
 
 
+# Conduit interface for user port: i_active_channel
+add_interface i_active_channel conduit end
+set_interface_property i_active_channel associatedClock clk
+set_interface_property i_active_channel associatedReset reset
+set_interface_property i_active_channel ENABLED true
+set_interface_property i_active_channel EXPORT_OF ""
+set_interface_property i_active_channel PORT_NAME_MAP ""
+set_interface_property i_active_channel CMSIS_SVD_VARIABLES ""
+set_interface_property i_active_channel SVD_ADDRESS_GROUP ""
+
+
 
 # -----------------------------------------------------------------------------
 # Interrupt Interface(s)
@@ -26506,6 +26610,14 @@ set_interface_property o_global_irq ENABLED true
 add_interface_port o_global_irq o_global_irq irq Output 1
 
 
+# -----------------------------------------------------------------------------
+# Elaborate callback — declares parameterized ports with HDL generic widths.
+# add_interface_port with parameter-dependent widths must live here;
+# get_parameter_value is only valid during the elaboration phase.
+# -----------------------------------------------------------------------------
+proc elaborate {} {
+    add_interface_port i_active_channel i_active_channel i_active_channel Input [expr int(ceil(log([get_parameter_value NUM_CHANNELS])/log(2)))]
+}
 
 # -----------------------------------------------------------------------------
 # File Sets
@@ -26551,6 +26663,7 @@ set_module_property EDITABLE true
 set_module_property REPORT_TO_TALKBACK false
 set_module_property ALLOW_GREYBOX_GENERATION false
 set_module_property REPORT_HIERARCHY false
+set_module_property ELABORATION_CALLBACK elaborate
 
 # -----------------------------------------------------------------------------
 # Parameters
@@ -26727,6 +26840,17 @@ add_interface_port S_AXIS_IN s_axis_tvalid tvalid Input 1
 add_interface_port S_AXIS_IN s_axis_tready tready Output 1
 
 
+# Conduit interface for user port: i_active_channel
+add_interface i_active_channel conduit end
+set_interface_property i_active_channel associatedClock clk
+set_interface_property i_active_channel associatedReset reset
+set_interface_property i_active_channel ENABLED true
+set_interface_property i_active_channel EXPORT_OF ""
+set_interface_property i_active_channel PORT_NAME_MAP ""
+set_interface_property i_active_channel CMSIS_SVD_VARIABLES ""
+set_interface_property i_active_channel SVD_ADDRESS_GROUP ""
+
+
 
 # -----------------------------------------------------------------------------
 # Interrupt Interface(s)
@@ -26739,6 +26863,14 @@ set_interface_property o_global_irq ENABLED true
 add_interface_port o_global_irq o_global_irq irq Output 1
 
 
+# -----------------------------------------------------------------------------
+# Elaborate callback — declares parameterized ports with HDL generic widths.
+# add_interface_port with parameter-dependent widths must live here;
+# get_parameter_value is only valid during the elaboration phase.
+# -----------------------------------------------------------------------------
+proc elaborate {} {
+    add_interface_port i_active_channel i_active_channel i_active_channel Input [expr int(ceil(log([get_parameter_value NUM_CHANNELS])/log(2)))]
+}
 
 # -----------------------------------------------------------------------------
 # File Sets
