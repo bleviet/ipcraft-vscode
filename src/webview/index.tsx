@@ -40,7 +40,7 @@ import './index.css';
  * Main application component
  */
 const App = () => {
-  const [sidebarOpen, setSidebarOpen] = React.useState(false);
+  const [sidebarOpen, setSidebarOpen] = React.useState(true);
   const [sidebarWidth, setSidebarWidth] = useState(300);
   const sidebarResizingRef = useRef(false);
   const registerLayout = useLayoutToggle();
@@ -541,14 +541,19 @@ const App = () => {
    */
   return (
     <main className="flex-1 flex overflow-hidden relative">
-      <button
-        className="sidebar-toggle-btn p-2 rounded-md transition-colors vscode-icon-button absolute top-2 left-2 z-[110]"
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-        title="Toggle sidebar"
-        aria-label="Toggle sidebar"
-      >
-        <span className="codicon codicon-menu"></span>
-      </button>
+      {/* Toggle strip — always visible, never overlaps content */}
+      <div className="sidebar-toggle-strip">
+        <button
+          className="sidebar-toggle-btn p-2 rounded-md transition-colors vscode-icon-button"
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          title={sidebarOpen ? 'Hide outline' : 'Show outline'}
+          aria-label={sidebarOpen ? 'Hide outline' : 'Show outline'}
+        >
+          <span
+            className={`codicon text-base ${sidebarOpen ? 'codicon-layout-sidebar-left' : 'codicon-layout-sidebar-left-off'}`}
+          ></span>
+        </button>
+      </div>
 
       {/* Sidebar backdrop for mobile */}
       {sidebarOpen && (
@@ -579,7 +584,7 @@ const App = () => {
             if (!sidebarResizingRef.current) {
               return;
             }
-            setSidebarWidth(Math.min(600, Math.max(180, e.clientX)));
+            setSidebarWidth(Math.min(600, Math.max(260, e.clientX)));
           }}
           onPointerUp={() => {
             sidebarResizingRef.current = false;

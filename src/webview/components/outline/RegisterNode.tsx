@@ -36,7 +36,7 @@ const RegisterNode = ({
     >
       <div style={{ paddingLeft }} className="flex items-center gap-2 flex-grow min-w-0">
         <span
-          className={`codicon codicon-symbol-variable text-[16px] ${isSelected ? '' : 'opacity-70'}`}
+          className={`codicon codicon-symbol-variable text-[16px] shrink-0 ${isSelected ? '' : 'opacity-70'}`}
           title="Register"
           style={{ color: 'var(--vscode-symbolIcon-propertyForeground)' }}
         ></span>

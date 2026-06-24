@@ -38,10 +38,14 @@ const FieldNode = ({
       onContextMenu={onContextMenu}
     >
       <div style={{ paddingLeft }} className="flex items-center gap-2 flex-grow min-w-0">
-        <span className={iconClassName} title={iconTitle} style={{ ...iconStyle }}></span>
-        {label}
+        <span
+          className={`${iconClassName} shrink-0`}
+          title={iconTitle}
+          style={{ ...iconStyle }}
+        ></span>
+        <span className="truncate min-w-[1ch]">{label}</span>
       </div>
-      {suffix}
+      {suffix && <span className="text-[10px] vscode-muted font-mono shrink-0">{suffix}</span>}
       {actionButton}
     </div>
   );

@@ -227,6 +227,17 @@ body {
     min-height: 0;
 }
 
+.sidebar-toggle-strip {
+    width: 36px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 8px;
+    border-right: 1px solid var(--vscode-panel-border);
+    background-color: var(--vscode-sideBar-background);
+}
+
 .sidebar {
     width: var(--sidebar-width);
     flex-shrink: 0;
@@ -924,39 +935,11 @@ body {
         opacity: 1;
         pointer-events: all;
     }
-
-    .sidebar-toggle-btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: var(--touch-target-min);
-        height: var(--touch-target-min);
-        min-width: var(--touch-target-min);
-    }
 }
 
-/* Tablet: Narrower sidebar */
-@media (min-width: 641px) and (max-width: 900px) {
-    .sidebar {
-        width: var(--sidebar-width-tablet);
-    }
-
-    .sidebar-toggle-btn {
-        display: none;
-    }
-
-    .sidebar-backdrop {
-        display: none;
-    }
-}
-
-/* Desktop: Full width sidebar */
-@media (min-width: 901px) {
-    .sidebar {
-        width: var(--sidebar-width);
-    }
-
-    .sidebar-toggle-btn {
+/* Tablet + Desktop: Sidebar in normal flow, toggleable */
+@media (min-width: 641px) {
+    .sidebar:not(.sidebar-open) {
         display: none;
     }
 

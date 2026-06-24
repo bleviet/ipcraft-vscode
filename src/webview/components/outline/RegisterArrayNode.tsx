@@ -92,12 +92,12 @@ const RegisterArrayNode = ({
       >
         <div style={{ paddingLeft: '40px' }} className="flex items-center gap-2 flex-grow min-w-0">
           <span
-            className={`codicon codicon-chevron-${isExpanded ? 'down' : 'right'}`}
+            className={`codicon codicon-chevron-${isExpanded ? 'down' : 'right'} shrink-0`}
             onClick={(e) => onToggleExpand(id, e)}
             style={{ cursor: 'pointer' }}
           ></span>
           <span
-            className="codicon codicon-symbol-array"
+            className="codicon codicon-symbol-array shrink-0"
             title="Register Array"
             style={{ color: 'var(--vscode-symbolIcon-arrayForeground)' }}
           ></span>

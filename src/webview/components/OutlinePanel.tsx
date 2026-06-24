@@ -311,7 +311,7 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
           />
         );
       }
-      return <span className={className}>{name}</span>;
+      return <span className={`${className ?? ''} truncate min-w-[1ch]`}>{name}</span>;
     };
 
     const filteredBlocks = useMemo<Array<{ block: BlockModel; index: number }>>(() => {
@@ -422,13 +422,13 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
               onDoubleClick={() => startEditing(rootId, memoryMapName)}
             >
               <span
-                className={`codicon codicon-chevron-${isRootExpanded ? 'down' : 'right'} text-[16px] ${
+                className={`codicon codicon-chevron-${isRootExpanded ? 'down' : 'right'} text-[16px] shrink-0 ${
                   isRootSelected ? '' : 'opacity-70'
                 }`}
                 onClick={(e) => toggleExpand(rootId, e)}
               ></span>
               <span
-                className={`codicon codicon-map text-[16px] ${isRootSelected ? '' : 'opacity-70'}`}
+                className={`codicon codicon-map text-[16px] shrink-0 ${isRootSelected ? '' : 'opacity-70'}`}
                 title="Memory Map"
                 style={{ color: 'var(--vscode-symbolIcon-namespaceForeground)' }}
               ></span>

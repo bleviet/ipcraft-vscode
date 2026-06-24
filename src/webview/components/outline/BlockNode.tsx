@@ -46,12 +46,12 @@ const BlockNode = ({
       >
         <div style={{ paddingLeft: '20px' }} className="flex items-center gap-2 flex-grow min-w-0">
           <span
-            className={`codicon codicon-chevron-${isExpanded ? 'down' : 'right'}`}
+            className={`codicon codicon-chevron-${isExpanded ? 'down' : 'right'} shrink-0`}
             onClick={onToggleExpand}
             style={{ cursor: 'pointer' }}
           ></span>
           <span
-            className="codicon codicon-package"
+            className="codicon codicon-package shrink-0"
             title="Address Block"
             style={{ color: 'var(--vscode-symbolIcon-classForeground)' }}
           ></span>
