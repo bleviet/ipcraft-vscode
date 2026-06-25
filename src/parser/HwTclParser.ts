@@ -28,7 +28,7 @@ interface TclPort {
   portName: string;
   logicalName: string;
   direction: string;
-  width: number;
+  width: number | string;
 }
 
 interface TclFileSet {
@@ -270,11 +270,12 @@ export function parseHwTclContent(
       interfaces.get(ifaceName)?.properties.set(prop, value);
     } else if (cmd === 'add_interface_port' && args.length >= 5) {
       const [ifaceName, portName, logicalName, direction, widthStr] = args;
+      const parsedWidth = parseInt(widthStr, 10);
       interfaces.get(ifaceName)?.ports.push({
         portName,
         logicalName,
         direction,
-        width: parseInt(widthStr, 10) || 1,
+        width: Number.isNaN(parsedWidth) ? (widthStr ?? 1) : parsedWidth,
       });
     } else if (cmd === 'add_fileset' && args.length >= 1) {
       const fsName = args[0];
@@ -382,7 +383,7 @@ export function parseHwTclContent(
         name: p.portName,
         direction: mapDirection(p.direction),
       };
-      if (p.width > 1) {
+      if (typeof p.width === 'string' ? p.width.length > 0 : p.width > 1) {
         entry.width = p.width;
       }
       return entry;
@@ -431,15 +432,42 @@ export function parseHwTclContent(
       entry.associatedReset = resetPort;
     }
 
-    // Detect optional ports that are actually present in the hw.tcl
+    // Detect optional ports and portWidthOverrides from bus definition
     const busDef = lookupBusDef(BUS_TYPE_MAP[bi.type]);
     if (busDef) {
       const presentLogical = new Set(bi.ports.map((p) => p.logicalName.toLowerCase()));
       const useOptionalPorts = busDef
         .filter((def) => def.presence === 'optional' && presentLogical.has(def.name.toLowerCase()))
-        .map((def) => def.name.toLowerCase());
+        .map((def) => def.name);
       if (useOptionalPorts.length > 0) {
         entry.useOptionalPorts = useOptionalPorts;
+      }
+
+      // Emit portWidthOverrides for bus ports whose actual width differs from the
+      // bus-definition default (numeric mismatch) or is a parameter expression
+      // (string) — so the generator reproduces the original port sizes faithfully.
+      const defaultWidths = new Map(
+        busDef
+          .filter((def): def is typeof def & { width: number } => typeof def.width === 'number')
+          .map((def) => [def.name.toUpperCase(), def.width])
+      );
+      if (defaultWidths.size > 0) {
+        const portWidthOverrides: Record<string, number | string> = {};
+        for (const p of bi.ports) {
+          const logUpper = p.logicalName.toUpperCase();
+          const defaultWidth = defaultWidths.get(logUpper);
+          if (defaultWidth === undefined) {
+            continue;
+          }
+          if (typeof p.width === 'string') {
+            portWidthOverrides[logUpper] = p.width;
+          } else if (p.width !== defaultWidth) {
+            portWidthOverrides[logUpper] = p.width;
+          }
+        }
+        if (Object.keys(portWidthOverrides).length > 0) {
+          entry.portWidthOverrides = portWidthOverrides;
+        }
       }
     }
 

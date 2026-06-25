@@ -212,7 +212,7 @@ describe('HwTclParser', () => {
         busInterfaces: Array<Record<string, unknown>>;
       };
       const bi = doc.busInterfaces[0];
-      expect(bi.useOptionalPorts).toEqual(['awlen']);
+      expect(bi.useOptionalPorts).toEqual(['AWLEN']);
     });
 
     it('does not emit useOptionalPorts when only required ports are present', () => {
@@ -243,8 +243,8 @@ describe('HwTclParser', () => {
       };
       const bi = doc.busInterfaces[0];
       const optPorts = bi.useOptionalPorts as string[];
-      expect(optPorts).toContain('tlast');
-      expect(optPorts).toContain('tkeep');
+      expect(optPorts).toContain('TLAST');
+      expect(optPorts).toContain('TKEEP');
     });
   });
 
@@ -690,5 +690,106 @@ describe('parseHwTclFile (source directive)', () => {
     const clocks = doc.clocks as Array<Record<string, unknown>>;
     expect(clocks).toHaveLength(1);
     expect(clocks[0].name).toBe('s_axi_aclk');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Parameter-based and expression-based port widths
+// ---------------------------------------------------------------------------
+
+describe('parameter-expression port widths', () => {
+  const TCL_PARAM_WIDTHS = `
+set_module_property NAME param_test
+set_module_property VERSION 1.0
+
+add_parameter DATA_WIDTH INTEGER 32
+add_parameter ADDR_WIDTH INTEGER 16
+
+add_interface conduit_in conduit end
+add_interface_port conduit_in in_data   data  Input  DATA_WIDTH
+add_interface_port conduit_in in_strobe strb  Input  DATA_WIDTH/8
+add_interface_port conduit_in in_addr   addr  Input  ADDR_WIDTH
+add_interface_port conduit_in in_valid  valid Input  1
+add_interface_port conduit_in in_wide   wide  Input  "DATA_WIDTH * 2"
+add_interface_port conduit_in in_plus   plus  Input  DATA_WIDTH+4
+`;
+
+  it('preserves a bare parameter name as the port width', () => {
+    const { yamlText } = parse(TCL_PARAM_WIDTHS);
+    const doc = parseYaml(yamlText);
+    const ports = doc.ports as Array<Record<string, unknown>>;
+    const p = ports.find((x) => x.name === 'in_data');
+    expect(p?.width).toBe('DATA_WIDTH');
+  });
+
+  it('preserves a division expression (DATA_WIDTH/8) as the port width', () => {
+    const { yamlText } = parse(TCL_PARAM_WIDTHS);
+    const ports = parseYaml(yamlText).ports as Array<Record<string, unknown>>;
+    expect(ports.find((x) => x.name === 'in_strobe')?.width).toBe('DATA_WIDTH/8');
+  });
+
+  it('preserves an addition expression (DATA_WIDTH+4) as the port width', () => {
+    const { yamlText } = parse(TCL_PARAM_WIDTHS);
+    const ports = parseYaml(yamlText).ports as Array<Record<string, unknown>>;
+    expect(ports.find((x) => x.name === 'in_plus')?.width).toBe('DATA_WIDTH+4');
+  });
+
+  it('preserves a quoted spaced expression ("DATA_WIDTH * 2") as the port width', () => {
+    const { yamlText } = parse(TCL_PARAM_WIDTHS);
+    const ports = parseYaml(yamlText).ports as Array<Record<string, unknown>>;
+    expect(ports.find((x) => x.name === 'in_wide')?.width).toBe('DATA_WIDTH * 2');
+  });
+
+  it('still omits width for literal 1-bit ports', () => {
+    const { yamlText } = parse(TCL_PARAM_WIDTHS);
+    const ports = parseYaml(yamlText).ports as Array<Record<string, unknown>>;
+    expect(ports.find((x) => x.name === 'in_valid')?.width).toBeUndefined();
+  });
+
+  it('still emits width for literal multi-bit ports', () => {
+    const tcl = `
+set_module_property NAME literal_test
+add_interface c conduit end
+add_interface_port c out_bus bus Output 64
+`;
+    const { yamlText } = parse(tcl);
+    const ports = parseYaml(yamlText).ports as Array<Record<string, unknown>>;
+    expect(ports.find((x) => x.name === 'out_bus')?.width).toBe(64);
+  });
+});
+
+describe('bus interface portWidthOverrides from parameter-width ports', () => {
+  const TCL_BUS_PARAM = `
+set_module_property NAME axi_narrow
+set_module_property VERSION 1.0
+
+add_parameter C_ADDR_WIDTH INTEGER 16
+
+add_interface s_axi axi4lite slave
+add_interface_port s_axi s_axi_awaddr awaddr Input  C_ADDR_WIDTH
+add_interface_port s_axi s_axi_araddr araddr Input  C_ADDR_WIDTH
+add_interface_port s_axi s_axi_wdata  wdata  Input  32
+add_interface_port s_axi s_axi_rdata  rdata  Output 32
+`;
+
+  it('emits portWidthOverrides for bus ports with a parameter-name width', () => {
+    const { yamlText } = parse(TCL_BUS_PARAM);
+    const doc = parseYaml(yamlText);
+    const busIfaces = doc.busInterfaces as Array<Record<string, unknown>>;
+    const iface = busIfaces.find((b) => b.name === 's_axi');
+    expect(iface).toBeDefined();
+    const overrides = iface!.portWidthOverrides as Record<string, unknown>;
+    expect(overrides).toBeDefined();
+    expect(overrides['AWADDR']).toBe('C_ADDR_WIDTH');
+    expect(overrides['ARADDR']).toBe('C_ADDR_WIDTH');
+  });
+
+  it('does not emit portWidthOverrides for ports that match bus-definition defaults', () => {
+    const { yamlText } = parse(TCL_BUS_PARAM);
+    const busIfaces = parseYaml(yamlText).busInterfaces as Array<Record<string, unknown>>;
+    const iface = busIfaces.find((b) => b.name === 's_axi');
+    const overrides = iface?.portWidthOverrides as Record<string, unknown> | undefined;
+    expect(overrides?.['WDATA']).toBeUndefined();
+    expect(overrides?.['RDATA']).toBeUndefined();
   });
 });
