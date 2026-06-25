@@ -247,8 +247,9 @@ describe('HwTclParser', () => {
       expect(optPorts).toContain('TKEEP');
     });
 
-    it('emits absentPorts for required Avalon MM ports missing from hw.tcl', () => {
-      // Read-only Avalon MM slave — no write or writedata ports declared
+    it('omits write and writedata from useOptionalPorts for a read-only Avalon MM slave', () => {
+      // All Avalon MM ports are optional per spec; the parser must only include
+      // ports that are actually present in the hw.tcl in useOptionalPorts.
       const tcl = `
         add_interface avl avalon end
         add_interface_port avl avl_address  address  Input  8
@@ -258,51 +259,14 @@ describe('HwTclParser', () => {
       const doc = parseYaml(parse(tcl).yamlText) as {
         busInterfaces: Array<Record<string, unknown>>;
       };
-      const absentPorts = doc.busInterfaces[0].absentPorts as string[];
-      expect(absentPorts).toContain('WRITE');
-      expect(absentPorts).toContain('WRITEDATA');
-      // present ports must not appear in absentPorts
-      expect(absentPorts).not.toContain('ADDRESS');
-      expect(absentPorts).not.toContain('READ');
-      expect(absentPorts).not.toContain('READDATA');
-    });
-
-    it('does not emit absentPorts when all required Avalon MM ports are present', () => {
-      const tcl = `
-        add_interface avl avalon end
-        add_interface_port avl avl_address  address  Input  8
-        add_interface_port avl avl_read     read     Input  1
-        add_interface_port avl avl_write    write    Input  1
-        add_interface_port avl avl_wdata    writedata Input 32
-        add_interface_port avl avl_rdata    readdata Output 32
-      `;
-      const doc = parseYaml(parse(tcl).yamlText) as {
-        busInterfaces: Array<Record<string, unknown>>;
-      };
-      expect(doc.busInterfaces[0].absentPorts).toBeUndefined();
-    });
-
-    it('does not include clock/reset role signals in absentPorts', () => {
-      // The clk and reset signals in the Avalon MM bus def have role:'clock'/'reset'
-      // and are handled via separate clock/reset interfaces — they must never appear in absentPorts.
-      const tcl = `
-        add_interface clk clock end
-        add_interface_port clk avl_clk clk Input 1
-        add_interface reset reset end
-        add_interface_port reset avl_rst reset Input 1
-        add_interface avl avalon end
-        set_interface_property avl associatedClock clk
-        set_interface_property avl associatedReset reset
-        add_interface_port avl avl_address address Input 8
-        add_interface_port avl avl_read    read     Input 1
-        add_interface_port avl avl_rdata   readdata Output 32
-      `;
-      const doc = parseYaml(parse(tcl).yamlText) as {
-        busInterfaces: Array<Record<string, unknown>>;
-      };
-      const absentPorts = doc.busInterfaces[0].absentPorts as string[] | undefined;
-      expect(absentPorts).not.toContain('CLK');
-      expect(absentPorts).not.toContain('RESET');
+      const bi = doc.busInterfaces[0];
+      const useOptionalPorts = bi.useOptionalPorts as string[];
+      expect(useOptionalPorts).toContain('address');
+      expect(useOptionalPorts).toContain('read');
+      expect(useOptionalPorts).toContain('readdata');
+      expect(useOptionalPorts).not.toContain('write');
+      expect(useOptionalPorts).not.toContain('writedata');
+      expect(bi.absentPorts).toBeUndefined();
     });
   });
 
