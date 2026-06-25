@@ -417,6 +417,47 @@ describe('IpCoreScaffolder', () => {
     }
   });
 
+  it('accepts hand-written HDL parameter types and emits them as natural (issue #24)', async () => {
+    // A user-authored `dataType: positive` must not fail schema validation; it is
+    // canonicalised to `natural` and surfaces as a `natural` VHDL generic.
+    const tmpPath = path.join(os.tmpdir(), `ipcraft_positive_${Date.now()}.ip.yml`);
+    const yaml = [
+      'vlnv:',
+      '  vendor: test',
+      '  library: lib',
+      '  name: positive_core',
+      '  version: 1.0.0',
+      'parameters:',
+      '  - name: PDA_DATA_WIDTH',
+      '    dataType: positive',
+      '    value: 64',
+      'clocks:',
+      '  - name: Clk',
+      '    direction: in',
+      'busInterfaces: []',
+    ].join('\n');
+
+    const realFs = jest.requireActual('fs/promises') as typeof import('fs/promises');
+    await realFs.writeFile(tmpPath, yaml, 'utf-8');
+
+    try {
+      const result = await scaffolder.generateAll(tmpPath, '/tmp/positive-out', {
+        includeRegs: false,
+        includeTestbench: false,
+        targets: [],
+      });
+
+      expect(result.success).toBe(true);
+
+      const vhdlContent = (fs.writeFile as unknown as jest.Mock).mock.calls.find((call) =>
+        String(call[0]).includes('rtl/positive_core.vhd')
+      )?.[1] as string;
+      expect(vhdlContent).toContain('PDA_DATA_WIDTH : natural := 64');
+    } finally {
+      await realFs.unlink(tmpPath).catch(() => {});
+    }
+  });
+
   it('generates _hw.tcl with parameterized conduit interfaces correctly', async () => {
     // BusLibraryService mock returns xcvr bus definition with string-width ports
     (BusLibraryService as jest.Mock).mockImplementation(() => ({

@@ -16,6 +16,7 @@ import {
   resolveMemoryMaps,
   projectMemoryMapsForTemplate,
 } from './registerProcessor';
+import { normalizeParameterDataType } from '../parser/paramDataType';
 import { sortByCompilationOrder } from '../utils/compilationOrder';
 import { getToolchain } from '../services/toolchains/registry';
 import { generateTestbenchFiles, DEFAULT_FRAMEWORK, DEFAULT_ENGINE } from './testbench';
@@ -338,6 +339,18 @@ export class IpCoreScaffolder {
     const parsed = yaml.load(content);
     if (!parsed || typeof parsed !== 'object') {
       throw new Error('Invalid IP core YAML');
+    }
+    // Canonicalise HDL parameter types (e.g. `positive` -> `natural`) so that
+    // hand-written specs validate and the generator emits a valid HDL generic
+    // type. Importers already normalise; this covers the direct-YAML path.
+    const params = (parsed as Record<string, unknown>).parameters;
+    if (Array.isArray(params)) {
+      for (const p of params) {
+        if (p && typeof p === 'object' && 'dataType' in p) {
+          const param = p as Record<string, unknown>;
+          param.dataType = normalizeParameterDataType(param.dataType as string | undefined);
+        }
+      }
     }
     const schemaPath = path.join(this.resourceRoots.schemasDir, 'ip_core.schema.json');
     const schemaResult = this.validator.validateAgainstSchema(parsed, schemaPath);

@@ -430,7 +430,7 @@ export type Name12 = string;
 /**
  * Data type
  */
-export type ParameterType = 'integer' | 'boolean' | 'string';
+export type ParameterType = 'integer' | 'natural' | 'boolean' | 'string';
 /**
  * Parameter description
  */
