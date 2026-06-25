@@ -443,6 +443,18 @@ export function parseHwTclContent(
         entry.useOptionalPorts = useOptionalPorts;
       }
 
+      // Collect required ports from the bus definition that are absent in the hw.tcl.
+      // The canvas uses absentPorts to show the "!" badge and exclude them from generation.
+      const absentPorts = busDef
+        .filter(
+          (def) =>
+            def.presence === 'required' && !def.role && !presentLogical.has(def.name.toLowerCase())
+        )
+        .map((def) => def.name.toUpperCase());
+      if (absentPorts.length > 0) {
+        entry.absentPorts = absentPorts;
+      }
+
       // Emit portWidthOverrides for bus ports whose actual width differs from the
       // bus-definition default (numeric mismatch) or is a parameter expression
       // (string) — so the generator reproduces the original port sizes faithfully.
