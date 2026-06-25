@@ -792,4 +792,30 @@ add_interface_port s_axi s_axi_rdata  rdata  Output 32
     expect(overrides?.['WDATA']).toBeUndefined();
     expect(overrides?.['RDATA']).toBeUndefined();
   });
+
+  it('uses bus-definition case for portWidthOverrides keys (lowercase for Avalon)', () => {
+    const tcl = `
+set_module_property NAME avl_narrow
+add_parameter DATA_WIDTH INTEGER 8
+add_interface avl avalon end
+add_interface_port avl avl_address  address   Input  8
+add_interface_port avl avl_read     read      Input  1
+add_interface_port avl avl_write    write     Input  1
+add_interface_port avl avl_wdata    writedata Input  DATA_WIDTH
+add_interface_port avl avl_rdata    readdata  Output DATA_WIDTH
+`;
+    const { yamlText } = parse(tcl);
+    const busIfaces = parseYaml(yamlText).busInterfaces as Array<Record<string, unknown>>;
+    const iface = busIfaces.find((b) => b.name === 'avl');
+    const overrides = iface?.portWidthOverrides as Record<string, unknown> | undefined;
+    expect(overrides).toBeDefined();
+    // Avalon bus def names are lowercase — keys must match so canvas lookup works
+    expect(overrides?.['writedata']).toBe('DATA_WIDTH');
+    expect(overrides?.['readdata']).toBe('DATA_WIDTH');
+    // address default is 32, we wire 8 => numeric override with lowercase key
+    expect(overrides?.['address']).toBe(8);
+    // Uppercase variants must NOT appear
+    expect(overrides?.['WRITEDATA']).toBeUndefined();
+    expect(overrides?.['READDATA']).toBeUndefined();
+  });
 });

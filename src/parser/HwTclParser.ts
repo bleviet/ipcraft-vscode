@@ -446,23 +446,23 @@ export function parseHwTclContent(
       // Emit portWidthOverrides for bus ports whose actual width differs from the
       // bus-definition default (numeric mismatch) or is a parameter expression
       // (string) — so the generator reproduces the original port sizes faithfully.
-      const defaultWidths = new Map(
-        busDef
-          .filter((def): def is typeof def & { width: number } => typeof def.width === 'number')
-          .map((def) => [def.name.toUpperCase(), def.width])
-      );
-      if (defaultWidths.size > 0) {
+      // Keys use the bus definition's original case (e.g. uppercase for AXI, lowercase
+      // for Avalon) so the canvas lookup `overrides[portDef.name]` matches directly.
+      const defByUpper = new Map(busDef.map((def) => [def.name.toUpperCase(), def]));
+      const hasWidthDefs = busDef.some((def) => typeof def.width === 'number');
+      if (hasWidthDefs) {
         const portWidthOverrides: Record<string, number | string> = {};
         for (const p of bi.ports) {
           const logUpper = p.logicalName.toUpperCase();
-          const defaultWidth = defaultWidths.get(logUpper);
-          if (defaultWidth === undefined) {
+          const def = defByUpper.get(logUpper);
+          if (!def || typeof def.width !== 'number') {
             continue;
           }
+          const canonicalKey = def.name;
           if (typeof p.width === 'string') {
-            portWidthOverrides[logUpper] = p.width;
-          } else if (p.width !== defaultWidth) {
-            portWidthOverrides[logUpper] = p.width;
+            portWidthOverrides[canonicalKey] = p.width;
+          } else if (p.width !== def.width) {
+            portWidthOverrides[canonicalKey] = p.width;
           }
         }
         if (Object.keys(portWidthOverrides).length > 0) {
