@@ -90,30 +90,38 @@ export function useCanvasSelection() {
 
   /** Toggle membership of an element in the multi-selection.
    *  Only port/interrupt kinds are accepted; others are silently ignored. */
-  const shiftSelect = useCallback((id: string) => {
-    const element = parseCanvasId(id);
-    if (!element || !GROUPABLE_KINDS.has(element.kind)) {
-      return;
-    }
-
-    setMultiMap((prev) => {
-      const next = new Map(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.set(id, element);
+  const shiftSelect = useCallback(
+    (id: string) => {
+      const element = parseCanvasId(id);
+      if (!element || !GROUPABLE_KINDS.has(element.kind)) {
+        return;
       }
-      return next;
-    });
 
-    // Ensure the primary single selection is also in the multi-set.
-    setSelected((prev) => {
-      if (!prev && element) {
-        return element;
-      }
-      return prev;
-    });
-  }, []);
+      setMultiMap((prev) => {
+        const next = new Map(prev);
+        // On the first Shift+Click after a plain click, auto-include the
+        // anchor so it doesn't need to be Shift+Clicked separately.
+        if (next.size === 0 && selected && GROUPABLE_KINDS.has(selected.kind)) {
+          next.set(selected.id, selected);
+        }
+        if (next.has(id)) {
+          next.delete(id);
+        } else {
+          next.set(id, element);
+        }
+        return next;
+      });
+
+      // Ensure the primary single selection is also in the multi-set.
+      setSelected((prev) => {
+        if (!prev && element) {
+          return element;
+        }
+        return prev;
+      });
+    },
+    [selected]
+  );
 
   const deselect = useCallback(() => {
     setSelected(null);
