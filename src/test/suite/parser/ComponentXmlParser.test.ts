@@ -922,3 +922,183 @@ describe('unknown bus type VLNV preservation', () => {
     ]);
   });
 });
+
+// ---------------------------------------------------------------------------
+// portWidthOverrides extraction — round-trip fidelity
+//
+// When a canonical component.xml has port widths that differ from the bus
+// definition defaults (e.g. AWADDR=16 instead of 32, TDATA=64 instead of 32),
+// the parser must capture them as portWidthOverrides so the generator can
+// reproduce those sizes faithfully on re-export.
+// ---------------------------------------------------------------------------
+
+const NARROW_ADDR_AXI_XML = `<?xml version="1.0" encoding="UTF-8"?>
+<spirit:component xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009">
+  <spirit:vendor>user</spirit:vendor>
+  <spirit:library>ip</spirit:library>
+  <spirit:name>narrow_axi_ip</spirit:name>
+  <spirit:version>1.0</spirit:version>
+  <spirit:busInterfaces>
+    <spirit:busInterface>
+      <spirit:name>S_AXI</spirit:name>
+      <spirit:busType spirit:vendor="xilinx.com" spirit:library="interface" spirit:name="aximm" spirit:version="1.0"/>
+      <spirit:slave/>
+      <spirit:portMaps>
+        <spirit:portMap>
+          <spirit:logicalPort><spirit:name>AWADDR</spirit:name></spirit:logicalPort>
+          <spirit:physicalPort><spirit:name>s_axi_awaddr</spirit:name></spirit:physicalPort>
+        </spirit:portMap>
+        <spirit:portMap>
+          <spirit:logicalPort><spirit:name>ARADDR</spirit:name></spirit:logicalPort>
+          <spirit:physicalPort><spirit:name>s_axi_araddr</spirit:name></spirit:physicalPort>
+        </spirit:portMap>
+        <spirit:portMap>
+          <spirit:logicalPort><spirit:name>WDATA</spirit:name></spirit:logicalPort>
+          <spirit:physicalPort><spirit:name>s_axi_wdata</spirit:name></spirit:physicalPort>
+        </spirit:portMap>
+        <spirit:portMap>
+          <spirit:logicalPort><spirit:name>RDATA</spirit:name></spirit:logicalPort>
+          <spirit:physicalPort><spirit:name>s_axi_rdata</spirit:name></spirit:physicalPort>
+        </spirit:portMap>
+      </spirit:portMaps>
+    </spirit:busInterface>
+  </spirit:busInterfaces>
+  <spirit:model>
+    <spirit:ports>
+      <spirit:port>
+        <spirit:name>s_axi_awaddr</spirit:name>
+        <spirit:wire>
+          <spirit:direction>in</spirit:direction>
+          <spirit:vector><spirit:left>15</spirit:left><spirit:right>0</spirit:right></spirit:vector>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
+        <spirit:name>s_axi_araddr</spirit:name>
+        <spirit:wire>
+          <spirit:direction>in</spirit:direction>
+          <spirit:vector><spirit:left>15</spirit:left><spirit:right>0</spirit:right></spirit:vector>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
+        <spirit:name>s_axi_wdata</spirit:name>
+        <spirit:wire>
+          <spirit:direction>in</spirit:direction>
+          <spirit:vector><spirit:left>31</spirit:left><spirit:right>0</spirit:right></spirit:vector>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
+        <spirit:name>s_axi_rdata</spirit:name>
+        <spirit:wire>
+          <spirit:direction>out</spirit:direction>
+          <spirit:vector><spirit:left>31</spirit:left><spirit:right>0</spirit:right></spirit:vector>
+        </spirit:wire>
+      </spirit:port>
+    </spirit:ports>
+  </spirit:model>
+</spirit:component>`;
+
+const WIDE_TDATA_AXIS_XML = `<?xml version="1.0" encoding="UTF-8"?>
+<spirit:component xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009">
+  <spirit:vendor>user</spirit:vendor>
+  <spirit:library>ip</spirit:library>
+  <spirit:name>wide_axis_ip</spirit:name>
+  <spirit:version>1.0</spirit:version>
+  <spirit:busInterfaces>
+    <spirit:busInterface>
+      <spirit:name>S_AXIS</spirit:name>
+      <spirit:busType spirit:vendor="xilinx.com" spirit:library="interface" spirit:name="axis" spirit:version="1.0"/>
+      <spirit:slave/>
+      <spirit:portMaps>
+        <spirit:portMap>
+          <spirit:logicalPort><spirit:name>TDATA</spirit:name></spirit:logicalPort>
+          <spirit:physicalPort><spirit:name>s_axis_tdata</spirit:name></spirit:physicalPort>
+        </spirit:portMap>
+        <spirit:portMap>
+          <spirit:logicalPort><spirit:name>TVALID</spirit:name></spirit:logicalPort>
+          <spirit:physicalPort><spirit:name>s_axis_tvalid</spirit:name></spirit:physicalPort>
+        </spirit:portMap>
+        <spirit:portMap>
+          <spirit:logicalPort><spirit:name>TREADY</spirit:name></spirit:logicalPort>
+          <spirit:physicalPort><spirit:name>s_axis_tready</spirit:name></spirit:physicalPort>
+        </spirit:portMap>
+        <spirit:portMap>
+          <spirit:logicalPort><spirit:name>TLAST</spirit:name></spirit:logicalPort>
+          <spirit:physicalPort><spirit:name>s_axis_tlast</spirit:name></spirit:physicalPort>
+        </spirit:portMap>
+      </spirit:portMaps>
+    </spirit:busInterface>
+  </spirit:busInterfaces>
+  <spirit:model>
+    <spirit:ports>
+      <spirit:port>
+        <spirit:name>s_axis_tdata</spirit:name>
+        <spirit:wire>
+          <spirit:direction>in</spirit:direction>
+          <spirit:vector><spirit:left>63</spirit:left><spirit:right>0</spirit:right></spirit:vector>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
+        <spirit:name>s_axis_tvalid</spirit:name>
+        <spirit:wire><spirit:direction>in</spirit:direction></spirit:wire>
+      </spirit:port>
+      <spirit:port>
+        <spirit:name>s_axis_tready</spirit:name>
+        <spirit:wire><spirit:direction>out</spirit:direction></spirit:wire>
+      </spirit:port>
+      <spirit:port>
+        <spirit:name>s_axis_tlast</spirit:name>
+        <spirit:wire><spirit:direction>in</spirit:direction></spirit:wire>
+      </spirit:port>
+    </spirit:ports>
+  </spirit:model>
+</spirit:component>`;
+
+describe('portWidthOverrides extraction', () => {
+  type BusIf = {
+    name: string;
+    portWidthOverrides?: Record<string, number>;
+    useOptionalPorts?: string[];
+  };
+
+  it('emits portWidthOverrides for AXI address ports narrower than the bus-definition default', () => {
+    const { ipYamlText } = parseComponentXmlText(NARROW_ADDR_AXI_XML);
+    const ip = parseYaml(ipYamlText) as { busInterfaces?: BusIf[] };
+    const iface = ip.busInterfaces?.find((b) => b.name === 'S_AXI');
+    expect(iface).toBeDefined();
+    expect(iface!.portWidthOverrides).toBeDefined();
+    expect(iface!.portWidthOverrides!['AWADDR']).toBe(16);
+    expect(iface!.portWidthOverrides!['ARADDR']).toBe(16);
+  });
+
+  it('omits portWidthOverrides for ports that match bus-definition defaults', () => {
+    const { ipYamlText } = parseComponentXmlText(NARROW_ADDR_AXI_XML);
+    const ip = parseYaml(ipYamlText) as { busInterfaces?: BusIf[] };
+    const iface = ip.busInterfaces?.find((b) => b.name === 'S_AXI');
+    expect(iface!.portWidthOverrides!['WDATA']).toBeUndefined();
+    expect(iface!.portWidthOverrides!['RDATA']).toBeUndefined();
+  });
+
+  it('emits portWidthOverrides for AXI-Stream TDATA wider than bus-definition default', () => {
+    const { ipYamlText } = parseComponentXmlText(WIDE_TDATA_AXIS_XML);
+    const ip = parseYaml(ipYamlText) as { busInterfaces?: BusIf[] };
+    const iface = ip.busInterfaces?.find((b) => b.name === 'S_AXIS');
+    expect(iface).toBeDefined();
+    expect(iface!.portWidthOverrides).toBeDefined();
+    expect(iface!.portWidthOverrides!['TDATA']).toBe(64);
+  });
+
+  it('emits useOptionalPorts with bus-definition case (uppercase) for TLAST', () => {
+    const { ipYamlText } = parseComponentXmlText(WIDE_TDATA_AXIS_XML);
+    const ip = parseYaml(ipYamlText) as { busInterfaces?: BusIf[] };
+    const iface = ip.busInterfaces?.find((b) => b.name === 'S_AXIS');
+    expect(iface?.useOptionalPorts).toContain('TLAST');
+    expect(iface?.useOptionalPorts).not.toContain('tlast');
+  });
+
+  it('omits portWidthOverrides entirely when all widths match bus-definition defaults', () => {
+    const { ipYamlText } = parseComponentXmlText(AXIS_XML);
+    const ip = parseYaml(ipYamlText) as { busInterfaces?: BusIf[] };
+    const iface = ip.busInterfaces?.find((b) => b.name === 'S_AXIS');
+    expect(iface?.portWidthOverrides).toBeUndefined();
+  });
+});

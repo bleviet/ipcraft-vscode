@@ -295,6 +295,7 @@ export function parseComponentXmlText(
     associatedReset?: string;
     memoryMapRef?: string;
     useOptionalPorts?: string[];
+    portWidthOverrides?: Record<string, number>;
   }
   // Build a lookup of physical port name → direction/width from spirit:model/spirit:ports.
   // Used to annotate rawPortMaps for unknown bus types so the generator can emit
@@ -418,9 +419,42 @@ export function parseComponentXmlText(
       const logPorts = logicalPortNames(busIf);
       const useOptionalPorts = busDef
         .filter((def) => def.presence === 'optional' && logPorts.has(def.name.toUpperCase()))
-        .map((def) => def.name.toLowerCase());
+        .map((def) => def.name);
       if (useOptionalPorts.length > 0) {
         entry.useOptionalPorts = useOptionalPorts;
+      }
+
+      // Extract portWidthOverrides: where the actual port width in <spirit:ports>
+      // differs from the bus-definition default, record the actual width so the
+      // generator reproduces the original port sizes faithfully on re-export.
+      const defaultWidths = new Map(
+        busDef
+          .filter((def): def is typeof def & { width: number } => typeof def.width === 'number')
+          .map((def) => [def.name.toUpperCase(), def.width])
+      );
+      if (defaultWidths.size > 0) {
+        const portMapsEl = childEl(busIf, 'portMaps');
+        if (portMapsEl) {
+          const portWidthOverrides: Record<string, number> = {};
+          for (const portMap of childEls(portMapsEl, 'portMap')) {
+            const logName = text(childEl(portMap, 'logicalPort') ?? portMap, 'name');
+            const physName = text(childEl(portMap, 'physicalPort') ?? portMap, 'name');
+            if (!logName || !physName) {
+              continue;
+            }
+            const attrs = modelPortAttrs.get(physName);
+            if (!attrs) {
+              continue;
+            }
+            const defaultWidth = defaultWidths.get(logName.toUpperCase());
+            if (defaultWidth !== undefined && attrs.width !== defaultWidth) {
+              portWidthOverrides[logName] = attrs.width;
+            }
+          }
+          if (Object.keys(portWidthOverrides).length > 0) {
+            entry.portWidthOverrides = portWidthOverrides;
+          }
+        }
       }
     }
 
