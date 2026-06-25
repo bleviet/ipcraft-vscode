@@ -124,6 +124,9 @@ const webviewConfig = {
   resolve: commonResolve,
   module: webviewModuleRules,
   plugins: [new MiniCssExtractPlugin({ filename: "[name].css" })],
+  // Bundle size limits are intended for browser pages loaded over the network;
+  // VS Code extension webviews are served locally so the warnings are noise.
+  performance: { hints: false },
 };
 
 module.exports = [extensionConfig, webviewConfig];
