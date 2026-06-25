@@ -146,6 +146,25 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
   /** True when the last mousedown turned into a drag; prevents onClick from deselecting */
   const hasDraggedRef = useRef(false);
 
+  /** True while Space is held — enables pan-by-drag mode */
+  const spaceDownRef = useRef(false);
+  const [spaceDown, setSpaceDown] = useState(false);
+
+  /** Active marquee drag state; null when no marquee is in progress */
+  const marqueeRef = useRef<{
+    startX: number;
+    startY: number;
+    endX: number;
+    endY: number;
+    active: boolean;
+  } | null>(null);
+  const [marqueeRect, setMarqueeRect] = useState<{
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  } | null>(null);
+
   // ── Port pointer-drag state ──────────────────────────────────────────────
   // HTML5 DnD on SVG <g> elements is unreliable in VS Code webviews, so
   // port-to-bus movement uses pointer events instead.
@@ -197,26 +216,44 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
     return () => container.removeEventListener('wheel', handleWheel);
   }, [triggerZoomIndicator]);
 
-  // Middle-mouse-button drag + left-button drag on canvas background → pan
+  // Space key → pan-by-drag mode; suppress Space scroll in canvas
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+      if (e.code === 'Space' && !e.repeat) {
+        spaceDownRef.current = true;
+        setSpaceDown(true);
+        e.preventDefault();
+      }
+    };
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        spaceDownRef.current = false;
+        setSpaceDown(false);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+    };
+  }, []);
+
+  // Middle-mouse-button drag + Space+left-drag on canvas background → pan
   useEffect(() => {
     const container = containerRef.current;
     if (!container) {
       return;
     }
 
-    const isBackgroundTarget = (target: EventTarget | null): boolean => {
-      if (!target || !(target instanceof Element)) {
-        return false;
-      }
-      return (
-        target.classList.contains('ip-canvas-background') || target.tagName.toLowerCase() === 'svg'
-      );
-    };
-
     const onMouseDown = (e: MouseEvent) => {
       const isMiddle = e.button === 1;
-      const isLeftBackground = e.button === 0 && isBackgroundTarget(e.target);
-      if (!isMiddle && !isLeftBackground) {
+      const isSpaceLeftBackground =
+        e.button === 0 && spaceDownRef.current && isCanvasBackground(e.target);
+      if (!isMiddle && !isSpaceLeftBackground) {
         return;
       }
       if (isMiddle) {
@@ -267,6 +304,96 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
       window.removeEventListener('mouseup', onMouseUp);
     };
   }, []);
+
+  // Left-drag on canvas background (no Space) → marquee selection
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) {
+      return;
+    }
+    const MARQUEE_THRESHOLD = 4;
+
+    const onMouseDown = (e: MouseEvent) => {
+      if (e.button !== 0 || !isCanvasBackground(e.target) || spaceDownRef.current) {
+        return;
+      }
+      marqueeRef.current = {
+        startX: e.clientX,
+        startY: e.clientY,
+        endX: e.clientX,
+        endY: e.clientY,
+        active: false,
+      };
+    };
+
+    const onMouseMove = (e: MouseEvent) => {
+      if (!marqueeRef.current) {
+        return;
+      }
+      marqueeRef.current.endX = e.clientX;
+      marqueeRef.current.endY = e.clientY;
+      const dx = marqueeRef.current.endX - marqueeRef.current.startX;
+      const dy = marqueeRef.current.endY - marqueeRef.current.startY;
+      if (!marqueeRef.current.active && Math.abs(dx) + Math.abs(dy) > MARQUEE_THRESHOLD) {
+        marqueeRef.current.active = true;
+        hasDraggedRef.current = true;
+      }
+      if (marqueeRef.current.active) {
+        const containerRect = container.getBoundingClientRect();
+        setMarqueeRect({
+          left: Math.min(marqueeRef.current.startX, marqueeRef.current.endX) - containerRect.left,
+          top: Math.min(marqueeRef.current.startY, marqueeRef.current.endY) - containerRect.top,
+          width: Math.abs(dx),
+          height: Math.abs(dy),
+        });
+      }
+    };
+
+    const onMouseUp = () => {
+      const m = marqueeRef.current;
+      if (!m?.active) {
+        marqueeRef.current = null;
+        setMarqueeRect(null);
+        return;
+      }
+      const minX = Math.min(m.startX, m.endX);
+      const maxX = Math.max(m.startX, m.endX);
+      const minY = Math.min(m.startY, m.endY);
+      const maxY = Math.max(m.startY, m.endY);
+      const portEls = container.querySelectorAll(
+        '[data-port-id^="port:"], [data-port-id^="interrupt:"]'
+      );
+      portEls.forEach((el) => {
+        const rect = el.getBoundingClientRect();
+        if (rect.left < maxX && rect.right > minX && rect.top < maxY && rect.bottom > minY) {
+          const portId = el.getAttribute('data-port-id');
+          if (portId) {
+            onShiftSelect?.(portId);
+          }
+        }
+      });
+      marqueeRef.current = null;
+      setMarqueeRect(null);
+    };
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && marqueeRef.current) {
+        marqueeRef.current = null;
+        setMarqueeRect(null);
+      }
+    };
+
+    container.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      container.removeEventListener('mousedown', onMouseDown);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [onShiftSelect]);
 
   // ── Pointer-event drag: port → bus bundle ───────────────────────────────
   const handlePortPointerDragStart = useCallback(
@@ -789,6 +916,8 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
         dragActive ? 'ip-canvas-container--drag-active' : '',
         isPanning ? 'ip-canvas-container--panning' : '',
         portDragActive ? 'ip-canvas-container--port-dragging' : '',
+        spaceDown ? 'ip-canvas-container--space-down' : '',
+        marqueeRect ? 'ip-canvas-container--marquee' : '',
       ]
         .filter(Boolean)
         .join(' ')}
@@ -1319,6 +1448,19 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
         )}
       </svg>
 
+      {/* Marquee selection rectangle */}
+      {marqueeRect && (
+        <div
+          className="ip-canvas-marquee"
+          style={{
+            left: marqueeRect.left,
+            top: marqueeRect.top,
+            width: marqueeRect.width,
+            height: marqueeRect.height,
+          }}
+        />
+      )}
+
       {/* Hover tooltip */}
       {hoveredId && <PortTooltip portId={hoveredId} ports={ports} />}
 
@@ -1440,6 +1582,14 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
                     <td>Pan view</td>
                   </tr>
                   <tr>
+                    <td className="ip-canvas-help__key">Space + drag</td>
+                    <td>Pan view</td>
+                  </tr>
+                  <tr>
+                    <td className="ip-canvas-help__key">Drag on background</td>
+                    <td>Select ports in region</td>
+                  </tr>
+                  <tr>
                     <td className="ip-canvas-help__key">Ctrl + 0</td>
                     <td>Reset zoom &amp; position</td>
                   </tr>
@@ -1523,6 +1673,18 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
     </div>
   );
 };
+
+// --- Module helpers ---
+
+/** Returns true when the event target is the inert SVG background (not a port or UI element). */
+function isCanvasBackground(target: EventTarget | null): boolean {
+  if (!target || !(target instanceof Element)) {
+    return false;
+  }
+  return (
+    target.classList.contains('ip-canvas-background') || target.tagName.toLowerCase() === 'svg'
+  );
+}
 
 // --- Helper sub-components ---
 

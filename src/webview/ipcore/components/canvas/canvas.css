@@ -10,7 +10,7 @@
   height: 100%;
   overflow: hidden;
   background: var(--vscode-editor-background);
-  cursor: grab;
+  cursor: default;
   /* Prevent browser text selection — canvas labels are decorative, not selectable text */
   user-select: none;
 }
@@ -185,13 +185,37 @@
   cursor: grabbing;
 }
 
-/* The grab cursor only shows on the background, not over interactive elements */
-.ip-canvas-background {
+/* Space held = ready to pan */
+.ip-canvas-container--space-down {
   cursor: grab;
+}
+
+.ip-canvas-container--space-down .ip-canvas-background {
+  cursor: grab;
+}
+
+/* Marquee drag in progress */
+.ip-canvas-container--marquee,
+.ip-canvas-container--marquee .ip-canvas-background {
+  cursor: crosshair;
+}
+
+/* The crosshair cursor shows on the background to hint that drag-to-select is available */
+.ip-canvas-background {
+  cursor: crosshair;
 }
 
 .ip-canvas-container--panning .ip-canvas-background {
   cursor: grabbing;
+}
+
+/* Marquee selection rectangle overlay */
+.ip-canvas-marquee {
+  position: absolute;
+  pointer-events: none;
+  background: rgba(0, 120, 212, 0.1);
+  border: 1px dashed var(--vscode-focusBorder, #0078d4);
+  z-index: 10;
 }
 
 .ip-canvas-svg {
