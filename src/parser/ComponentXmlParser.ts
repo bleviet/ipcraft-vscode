@@ -188,12 +188,40 @@ export async function parseComponentXmlFile(
   return parseComponentXmlText(xmlText, options);
 }
 
+/**
+ * Normalize the XML prolog so @xmldom/xmldom accepts real-world files.
+ *
+ * Strict XML requires the `<?xml ...?>` declaration to be the very first thing
+ * in the document. Tools such as Vivado/AMD routinely emit a license comment
+ * (and BOM/whitespace) before it, which makes xmldom throw "...xml declaration
+ * which is only at the start of the document". Since `xmlText` is already a
+ * decoded string, the declaration's `encoding` attribute is redundant:
+ *   - drop a leading byte-order mark,
+ *   - if only whitespace precedes the declaration, trim it so the declaration
+ *     sits at offset 0,
+ *   - if real content (e.g. a comment) precedes it, drop the declaration —
+ *     a document that opens with a comment before its root element is valid.
+ */
+function normalizeXmlProlog(xmlText: string): string {
+  const text = xmlText.charCodeAt(0) === 0xfeff ? xmlText.slice(1) : xmlText;
+  const decl = text.match(/<\?xml\b[^>]*\?>/i);
+  // No declaration, or it is already at offset 0: nothing to normalize.
+  if (!decl?.index) {
+    return text;
+  }
+  const before = text.slice(0, decl.index);
+  if (before.trim() === '') {
+    return text.slice(decl.index);
+  }
+  return before + text.slice(decl.index + decl[0].length);
+}
+
 export function parseComponentXmlText(
   xmlText: string,
   options: ComponentXmlParseOptions = {}
 ): ComponentXmlParseResult {
   const parser = new DOMParser();
-  const doc = parser.parseFromString(xmlText, 'text/xml');
+  const doc = parser.parseFromString(normalizeXmlProlog(xmlText), 'text/xml');
   const root = doc.documentElement as unknown as Element;
 
   // ---- VLNV ---------------------------------------------------------------

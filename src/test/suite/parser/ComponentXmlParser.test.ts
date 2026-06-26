@@ -1102,3 +1102,36 @@ describe('portWidthOverrides extraction', () => {
     expect(iface?.portWidthOverrides).toBeUndefined();
   });
 });
+
+describe('XML prolog normalization', () => {
+  const BODY = `<spirit:component xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009">
+  <spirit:vendor>xilinx.com</spirit:vendor>
+  <spirit:library>ip</spirit:library>
+  <spirit:name>axi_prolog</spirit:name>
+  <spirit:version>1.0</spirit:version>
+</spirit:component>`;
+
+  it('parses a declaration preceded by a license comment (Vivado/AMD style)', () => {
+    const xml = `<!--\n  Copyright (C) 2023, AMD. SPDX-License-Identifier: MIT\n-->\n<?xml version="1.0" encoding="UTF-8"?>\n${BODY}`;
+    const result = parseComponentXmlText(xml);
+    expect(result.componentName).toBe('axi_prolog');
+  });
+
+  it('parses a declaration preceded by leading whitespace', () => {
+    const xml = `\n  <?xml version="1.0" encoding="UTF-8"?>\n${BODY}`;
+    const result = parseComponentXmlText(xml);
+    expect(result.componentName).toBe('axi_prolog');
+  });
+
+  it('parses a document carrying a UTF-8 byte-order mark', () => {
+    const xml = `﻿<?xml version="1.0" encoding="UTF-8"?>\n${BODY}`;
+    const result = parseComponentXmlText(xml);
+    expect(result.componentName).toBe('axi_prolog');
+  });
+
+  it('still parses a normal declaration at offset 0', () => {
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>\n${BODY}`;
+    const result = parseComponentXmlText(xml);
+    expect(result.componentName).toBe('axi_prolog');
+  });
+});
