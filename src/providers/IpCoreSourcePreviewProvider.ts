@@ -12,6 +12,7 @@ import { IpCoreScaffolder } from '../generator/IpCoreScaffolder';
 import { TemplateLoader } from '../generator/TemplateLoader';
 import { ResourceRoots } from '../services/ResourceRoots';
 import { resolveVendor } from '../utils/resolveVendor';
+import { writeImportedFile, describeOutcome } from '../utils/importWrite';
 import { legacyVendorToTargets } from '../utils/migrateIpCore';
 import type { GenerateOptionsMessage } from './IpCoreGenerateHandler';
 
@@ -22,6 +23,10 @@ type SourceKind = 'hwTcl' | 'componentXml' | 'vhdl' | 'verilog';
 interface ParsedSource {
   yamlText: string;
   name: string;
+  /** Memory map YAML, when the source carried register definitions. */
+  mmYamlText?: string;
+  /** Filename the .ip.yml's `memoryMaps.import` points at (e.g. core.mm.yml). */
+  mmFileName?: string;
 }
 
 interface GenerateMessage {
@@ -58,7 +63,12 @@ async function parseSource(fsPath: string, kind: SourceKind): Promise<ParsedSour
       const result = await parseComponentXmlFile(fsPath, {
         library: cfg.get<string>('library'),
       });
-      return { yamlText: result.ipYamlText, name: result.componentName };
+      return {
+        yamlText: result.ipYamlText,
+        name: result.componentName,
+        mmYamlText: result.mmYamlText,
+        mmFileName: result.mmFileName,
+      };
     }
     case 'vhdl': {
       const result = await parseVhdlFile(fsPath, {
@@ -122,6 +132,10 @@ export class IpCoreSourcePreviewProvider implements vscode.CustomTextEditorProvi
     // Track the latest YAML — seeded from the parsed source, updated by webview edits
     let currentYaml = '';
     let componentName = path.basename(document.uri.fsPath, path.extname(document.uri.fsPath));
+    // Memory map extracted alongside the .ip.yml (component.xml with registers).
+    // The .ip.yml references it via `memoryMaps.import`, so it must be written too.
+    let currentMmYaml: string | undefined;
+    let currentMmFileName: string | undefined;
 
     const router = new WebviewRouter({
       webviewPanel,
@@ -140,6 +154,8 @@ export class IpCoreSourcePreviewProvider implements vscode.CustomTextEditorProvi
         const parsed = await parseSource(document.uri.fsPath, kind);
         currentYaml = parsed.yamlText;
         componentName = parsed.name;
+        currentMmYaml = parsed.mmYamlText;
+        currentMmFileName = parsed.mmFileName;
         router.postUpdate({
           text: currentYaml,
           fileName: path.basename(document.uri.fsPath),
@@ -167,11 +183,17 @@ export class IpCoreSourcePreviewProvider implements vscode.CustomTextEditorProvi
     });
 
     router.on('generate', async (message: GenerateMessage) => {
-      await this.handleGenerate(message, currentYaml, webviewPanel.webview);
+      await this.handleGenerate(message, currentYaml, webviewPanel.webview, {
+        mmYamlText: currentMmYaml,
+        mmFileName: currentMmFileName,
+      });
     });
 
     router.on('saveAsIpYml', async () => {
-      await this.handleSaveAsIpYml(document.uri, currentYaml, componentName);
+      await this.handleSaveAsIpYml(document.uri, currentYaml, componentName, {
+        mmYamlText: currentMmYaml,
+        mmFileName: currentMmFileName,
+      });
     });
 
     webviewPanel.onDidDispose(() => {
@@ -184,7 +206,8 @@ export class IpCoreSourcePreviewProvider implements vscode.CustomTextEditorProvi
   private async handleGenerate(
     message: GenerateMessage,
     currentYaml: string,
-    webview: vscode.Webview
+    webview: vscode.Webview,
+    memoryMap?: { mmYamlText?: string; mmFileName?: string }
   ): Promise<void> {
     const folderUris = await vscode.window.showOpenDialog({
       canSelectFiles: false,
@@ -204,8 +227,15 @@ export class IpCoreSourcePreviewProvider implements vscode.CustomTextEditorProvi
     }
     const outputDir = folderUris[0].fsPath;
 
-    const tmpFile = path.join(os.tmpdir(), `ipcraft_preview_${Date.now()}.ip.yml`);
+    // Use a unique temp directory so the memory map can sit beside the .ip.yml
+    // under the exact name its `memoryMaps.import` references — otherwise the
+    // scaffolder cannot resolve registers and silently skips the register file.
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ipcraft_preview_'));
+    const tmpFile = path.join(tmpDir, 'preview.ip.yml');
     await fs.writeFile(tmpFile, currentYaml, 'utf-8');
+    if (memoryMap?.mmYamlText && memoryMap.mmFileName) {
+      await fs.writeFile(path.join(tmpDir, memoryMap.mmFileName), memoryMap.mmYamlText, 'utf-8');
+    }
 
     try {
       const generator = new IpCoreScaffolder(
@@ -241,19 +271,32 @@ export class IpCoreSourcePreviewProvider implements vscode.CustomTextEditorProvi
         await vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(outputDir));
       }
     } finally {
-      await fs.unlink(tmpFile).catch(() => {});
+      await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => {});
     }
   }
 
   private async handleSaveAsIpYml(
     sourceUri: vscode.Uri,
     currentYaml: string,
-    componentName: string
+    componentName: string,
+    memoryMap?: { mmYamlText?: string; mmFileName?: string }
   ): Promise<void> {
     const dir = path.dirname(sourceUri.fsPath);
     const outputPath = path.join(dir, `${componentName}.ip.yml`);
     const outputUri = vscode.Uri.file(outputPath);
-    await vscode.workspace.fs.writeFile(outputUri, Buffer.from(currentYaml, 'utf-8'));
+    const ipOutcome = await writeImportedFile(outputUri, currentYaml);
+
+    // The .ip.yml references the memory map via `memoryMaps.import`, so it must
+    // be written alongside or the reference dangles. Never clobber user edits.
+    if (memoryMap?.mmYamlText && memoryMap.mmFileName) {
+      const mmUri = vscode.Uri.file(path.join(dir, memoryMap.mmFileName));
+      const mmOutcome = await writeImportedFile(mmUri, memoryMap.mmYamlText);
+      void vscode.window.showInformationMessage(
+        `${describeOutcome(`${componentName}.ip.yml`, ipOutcome)}, ` +
+          `${describeOutcome(memoryMap.mmFileName, mmOutcome)}.`
+      );
+    }
+
     await vscode.commands.executeCommand('vscode.openWith', outputUri, 'fpgaIpCore.editor');
   }
 
