@@ -764,7 +764,11 @@ export function parseComponentXmlText(
   }
 
   // ---- Build .ip.yml object -----------------------------------------------
-  const hasMemMaps = memMaps.some((mm) => mm.addressBlocks.some((ab) => ab.registers.length > 0));
+  // A memory map is emitted whenever it declares an address block — even one
+  // with no registers (Vivado often models the register space purely via
+  // address parameters). Otherwise a bus interface's memoryMapRef would point
+  // at a map that was never written, producing an "unknown memory map" error.
+  const hasMemMaps = memMaps.some((mm) => mm.addressBlocks.length > 0);
   const mmFileName = hasMemMaps ? `${componentName}.mm.yml` : undefined;
 
   // Build memoryMaps section
@@ -971,9 +975,6 @@ export function parseComponentXmlText(
     for (const mm of memMaps) {
       const blocksOut: Record<string, unknown>[] = [];
       for (const ab of mm.addressBlocks) {
-        if (ab.registers.length === 0) {
-          continue;
-        }
         const regsOut = ab.registers.map((reg) => {
           const regOut: Record<string, unknown> = {
             name: reg.name,

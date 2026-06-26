@@ -477,9 +477,67 @@ describe('ComponentXmlParser', () => {
       expect(mmFileName).toBe('axi_gpio.mm.yml');
     });
 
-    it('does not generate mm.yml when no registers', () => {
+    it('does not generate mm.yml when there is no memory map', () => {
       const { mmYamlText } = parseComponentXmlText(MINIMAL_XML);
       expect(mmYamlText).toBeUndefined();
+    });
+
+    it('generates a resolvable mm.yml for a register-less memory map', () => {
+      // Vivado often models the register space via address parameters, so the
+      // address block carries baseAddress/range but no <spirit:register>. The
+      // map must still be emitted, or the bus interface's memoryMapRef dangles.
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<spirit:component xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009">
+  <spirit:vendor>acme.com</spirit:vendor>
+  <spirit:library>ip</spirit:library>
+  <spirit:name>pwm</spirit:name>
+  <spirit:version>2.0</spirit:version>
+  <spirit:busInterfaces>
+    <spirit:busInterface>
+      <spirit:name>PWM_AXI</spirit:name>
+      <spirit:busType spirit:vendor="xilinx.com" spirit:library="interface" spirit:name="aximm" spirit:version="1.0"/>
+      <spirit:slave><spirit:memoryMapRef spirit:memoryMapRef="PWM_AXI"/></spirit:slave>
+    </spirit:busInterface>
+  </spirit:busInterfaces>
+  <spirit:memoryMaps>
+    <spirit:memoryMap>
+      <spirit:name>PWM_AXI</spirit:name>
+      <spirit:addressBlock>
+        <spirit:name>PWM_AXI_reg</spirit:name>
+        <spirit:baseAddress>0</spirit:baseAddress>
+        <spirit:range>4096</spirit:range>
+        <spirit:width>32</spirit:width>
+        <spirit:usage>register</spirit:usage>
+      </spirit:addressBlock>
+    </spirit:memoryMap>
+  </spirit:memoryMaps>
+</spirit:component>`;
+      const { mmYamlText, ipYamlText } = parseComponentXmlText(xml);
+      expect(mmYamlText).toBeTruthy();
+      const mm = parseYaml(mmYamlText!) as unknown as Array<{
+        name: string;
+        addressBlocks: Array<{
+          name: string;
+          baseAddress: number;
+          range: number;
+          registers: unknown[];
+        }>;
+      }>;
+      expect(mm[0].name).toBe('PWM_AXI');
+      expect(mm[0].addressBlocks[0]).toMatchObject({
+        name: 'PWM_AXI_reg',
+        baseAddress: 0,
+        range: 4096,
+      });
+      expect(mm[0].addressBlocks[0].registers).toEqual([]);
+
+      // The bus interface reference resolves to the emitted map.
+      const ip = parseYaml(ipYamlText) as {
+        busInterfaces?: Array<{ memoryMapRef?: string }>;
+        memoryMaps?: { import?: string };
+      };
+      expect(ip.memoryMaps?.import).toBe('pwm.mm.yml');
+      expect(ip.busInterfaces?.[0].memoryMapRef).toBe('PWM_AXI');
     });
 
     it('includes import reference in ip.yml when mm.yml generated', () => {
