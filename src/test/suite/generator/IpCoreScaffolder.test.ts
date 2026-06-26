@@ -190,6 +190,40 @@ describe('IpCoreScaffolder', () => {
     expect(vhdlContent).not.toContain('use work.sample_core_pkg.all');
   });
 
+  it('emits secondary clocks/resets across VHDL, SystemVerilog, and Quartus hw.tcl', async () => {
+    const inputPath = path.resolve(__dirname, '../../fixtures/multiclock-ipcore.yml');
+    const writeMock = fs.writeFile as unknown as jest.Mock;
+    const findContent = (needle: string): string =>
+      writeMock.mock.calls.find((call) => call[0].includes(needle))?.[1] as string;
+
+    // VHDL + Quartus hw.tcl
+    const vhdlResult = await scaffolder.generateAll(inputPath, '/tmp/test-mc-vhdl', {
+      includeTestbench: false,
+      targets: ['quartus'],
+      scaffoldPack: 'builtin-minimal',
+    });
+    expect(vhdlResult.success).toBe(true);
+    const vhdl = findContent('rtl/mc_core.vhd');
+    expect(vhdl).toContain('ddr_clk : in std_logic');
+    expect(vhdl).toContain('ddr_rst_n : in std_logic');
+    const tcl = findContent('altera/mc_core_hw.tcl');
+    expect(tcl).toContain('add_interface ddr_clk clock end');
+    expect(tcl).toContain('add_interface ddr_rst_n reset end');
+
+    // SystemVerilog
+    writeMock.mockClear();
+    const svResult = await scaffolder.generateAll(inputPath, '/tmp/test-mc-sv', {
+      includeTestbench: false,
+      targets: [],
+      scaffoldPack: 'builtin-minimal',
+      hdlLanguage: 'systemverilog',
+    });
+    expect(svResult.success).toBe(true);
+    const sv = findContent('rtl/mc_core.sv');
+    expect(sv).toMatch(/input\s+logic\s+ddr_clk/);
+    expect(sv).toMatch(/input\s+logic\s+ddr_rst_n/);
+  });
+
   it('emits interrupt ports on the top-level entity and module (VHDL + SV)', async () => {
     const inputPath = path.resolve(__dirname, '../../fixtures/interrupt-ipcore.yml');
     const writeMock = fs.writeFile as unknown as jest.Mock;

@@ -35,6 +35,8 @@
     "reset_port",
     "reset_active_high",
     "clocks_with_period",
+    "secondary_clocks",
+    "secondary_resets",
     "memmap_relpath",
     "description",
     "display_name"
@@ -91,6 +93,14 @@
     "clocks_with_period": {
       "type": "array",
       "items": { "$ref": "#/definitions/ClockWithPeriod" }
+    },
+    "secondary_clocks": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/SecondaryClock" }
+    },
+    "secondary_resets": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/SecondaryReset" }
     },
 
     "memmap_relpath": { "type": "string" },
@@ -402,6 +412,23 @@
         "name": { "type": "string" },
         "frequency": { "type": ["string", "null"] },
         "period_ns": { "type": ["string", "null"] }
+      }
+    },
+    "SecondaryClock": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" }
+      }
+    },
+    "SecondaryReset": {
+      "type": "object",
+      "required": ["name", "active_high"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "active_high": { "type": "boolean" }
       }
     },
     "MemoryMapField": {

@@ -81,6 +81,22 @@ set_interface_property reset SVD_ADDRESS_GROUP ""
 
 add_interface_port reset {{ reset_port }} {% if reset_active_high %}reset{% else %}reset_n{% endif %} Input 1
 
+{% for clk in secondary_clocks %}
+# Secondary clock: {{ clk.name }}
+add_interface {{ clk.name }} clock end
+set_interface_property {{ clk.name }} clockRate 0
+set_interface_property {{ clk.name }} ENABLED true
+add_interface_port {{ clk.name }} {{ clk.name }} clk Input 1
+
+{% endfor %}
+{% for rst in secondary_resets %}
+# Secondary reset: {{ rst.name }}
+add_interface {{ rst.name }} reset end
+set_interface_property {{ rst.name }} synchronousEdges DEASSERT
+set_interface_property {{ rst.name }} ENABLED true
+add_interface_port {{ rst.name }} {{ rst.name }} {% if rst.active_high %}reset{% else %}reset_n{% endif %} Input 1
+
+{% endfor %}
 # -----------------------------------------------------------------------------
 # Bus Interfaces (Generic)
 # -----------------------------------------------------------------------------

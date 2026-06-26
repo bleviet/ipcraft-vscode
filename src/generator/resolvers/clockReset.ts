@@ -41,11 +41,23 @@ export const clockResetResolver: ContextResolver = {
       period_ns: parseClockPeriodNs(clock.frequency),
     }));
 
+    // Clocks/resets beyond the primary become additional top-level input ports.
+    // The primary (index 0) drives the bus wrapper / core / register file.
+    const secondaryClocks = clocks.slice(1).map((clock) => ({ name: clock.name ?? '' }));
+    const secondaryResets = resets.slice(1).map((reset) => ({
+      name: reset.name ?? '',
+      active_high: String(reset.polarity ?? 'activeHigh')
+        .toLowerCase()
+        .includes('high'),
+    }));
+
     return {
       clock_port: clockPort,
       reset_port: resetPort,
       reset_active_high: resetActiveHigh,
       clocks_with_period: clocksWithPeriod,
+      secondary_clocks: secondaryClocks,
+      secondary_resets: secondaryResets,
     };
   },
 };

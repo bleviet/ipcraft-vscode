@@ -27,7 +27,13 @@ entity {{ entity_name }} is
   port (
     -- Clock and reset
     {{ clock_port }} : in std_logic;
-    {{ reset_port }} : in std_logic{{ ";" if bus_ports | length or secondary_bus_ports | length or user_ports | length or interrupt_ports | length else "" }}
+    {{ reset_port }} : in std_logic{{ ";" if secondary_clocks | length or secondary_resets | length or bus_ports | length or secondary_bus_ports | length or user_ports | length or interrupt_ports | length else "" }}
+{% for clk in secondary_clocks %}
+    {{ clk.name }} : in std_logic{{ ";" if not loop.last or secondary_resets | length or bus_ports | length or secondary_bus_ports | length or user_ports | length or interrupt_ports | length else "" }}
+{% endfor %}
+{% for rst in secondary_resets %}
+    {{ rst.name }} : in std_logic{{ ";" if not loop.last or bus_ports | length or secondary_bus_ports | length or user_ports | length or interrupt_ports | length else "" }}
+{% endfor %}
 
 {% for iface in expanded_bus_interfaces %}{% set iface_loop = loop %}
 {% if iface.ports %}

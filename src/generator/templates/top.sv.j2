@@ -16,7 +16,13 @@ module {{ entity_name }}{% if has_memory_mapped_slave %} import {{ entity_name }
 ){% endif %} (
   // Clock and reset
   input  logic {{ clock_port }},
-  input  logic {{ reset_port }}{{ "," if bus_ports | length or secondary_bus_ports | length or user_ports | length or interrupt_ports | length else "" }}
+  input  logic {{ reset_port }}{{ "," if secondary_clocks | length or secondary_resets | length or bus_ports | length or secondary_bus_ports | length or user_ports | length or interrupt_ports | length else "" }}
+{% for clk in secondary_clocks %}
+  input  logic {{ clk.name }}{{ "," if not loop.last or secondary_resets | length or bus_ports | length or secondary_bus_ports | length or user_ports | length or interrupt_ports | length else "" }}
+{% endfor %}
+{% for rst in secondary_resets %}
+  input  logic {{ rst.name }}{{ "," if not loop.last or bus_ports | length or secondary_bus_ports | length or user_ports | length or interrupt_ports | length else "" }}
+{% endfor %}
 {% for iface in expanded_bus_interfaces %}{% set iface_loop = loop %}
 {% if iface.ports %}
 

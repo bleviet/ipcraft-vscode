@@ -1,0 +1,22 @@
+apiVersion: '1.0'
+vlnv:
+  vendor: test.com
+  library: unit
+  name: mc_core
+  version: 1.0.0
+description: Fixture exercising secondary clock/reset emission in generated outputs
+clocks:
+- name: clk
+  direction: in
+- name: ddr_clk
+  direction: in
+resets:
+- name: rst
+  direction: in
+  polarity: activeHigh
+- name: ddr_rst_n
+  direction: in
+  polarity: activeLow
+ports:
+- name: led
+  direction: out

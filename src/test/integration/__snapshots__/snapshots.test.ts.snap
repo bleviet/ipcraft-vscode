@@ -27316,6 +27316,18 @@ set_interface_property reset SVD_ADDRESS_GROUP ""
 
 add_interface_port reset i_rstn_axi reset_n Input 1
 
+# Secondary clock: i_clk_proc
+add_interface i_clk_proc clock end
+set_interface_property i_clk_proc clockRate 0
+set_interface_property i_clk_proc ENABLED true
+add_interface_port i_clk_proc i_clk_proc clk Input 1
+
+# Secondary reset: i_rst_proc
+add_interface i_rst_proc reset end
+set_interface_property i_rst_proc synchronousEdges DEASSERT
+set_interface_property i_rst_proc ENABLED true
+add_interface_port i_rst_proc i_rst_proc reset Input 1
+
 # -----------------------------------------------------------------------------
 # Bus Interfaces (Generic)
 # -----------------------------------------------------------------------------
@@ -27692,6 +27704,18 @@ set_interface_property reset CMSIS_SVD_VARIABLES ""
 set_interface_property reset SVD_ADDRESS_GROUP ""
 
 add_interface_port reset i_rstn_axi reset_n Input 1
+
+# Secondary clock: i_clk_proc
+add_interface i_clk_proc clock end
+set_interface_property i_clk_proc clockRate 0
+set_interface_property i_clk_proc ENABLED true
+add_interface_port i_clk_proc i_clk_proc clk Input 1
+
+# Secondary reset: i_rst_proc
+add_interface i_rst_proc reset end
+set_interface_property i_rst_proc synchronousEdges DEASSERT
+set_interface_property i_rst_proc ENABLED true
+add_interface_port i_rst_proc i_rst_proc reset Input 1
 
 # -----------------------------------------------------------------------------
 # Bus Interfaces (Generic)
@@ -28198,6 +28222,18 @@ set_interface_property reset SVD_ADDRESS_GROUP ""
 
 add_interface_port reset i_rst_n_sys reset_n Input 1
 
+# Secondary clock: i_clk_reg
+add_interface i_clk_reg clock end
+set_interface_property i_clk_reg clockRate 0
+set_interface_property i_clk_reg ENABLED true
+add_interface_port i_clk_reg i_clk_reg clk Input 1
+
+# Secondary reset: i_rst_p_reg
+add_interface i_rst_p_reg reset end
+set_interface_property i_rst_p_reg synchronousEdges DEASSERT
+set_interface_property i_rst_p_reg ENABLED true
+add_interface_port i_rst_p_reg i_rst_p_reg reset Input 1
+
 # -----------------------------------------------------------------------------
 # Bus Interfaces (Generic)
 # -----------------------------------------------------------------------------
@@ -28450,6 +28486,18 @@ set_interface_property reset CMSIS_SVD_VARIABLES ""
 set_interface_property reset SVD_ADDRESS_GROUP ""
 
 add_interface_port reset i_rst_n_sys reset_n Input 1
+
+# Secondary clock: i_clk_reg
+add_interface i_clk_reg clock end
+set_interface_property i_clk_reg clockRate 0
+set_interface_property i_clk_reg ENABLED true
+add_interface_port i_clk_reg i_clk_reg clk Input 1
+
+# Secondary reset: i_rst_p_reg
+add_interface i_rst_p_reg reset end
+set_interface_property i_rst_p_reg synchronousEdges DEASSERT
+set_interface_property i_rst_p_reg ENABLED true
+add_interface_port i_rst_p_reg i_rst_p_reg reset Input 1
 
 # -----------------------------------------------------------------------------
 # Bus Interfaces (Generic)
@@ -28733,6 +28781,72 @@ set_interface_property reset CMSIS_SVD_VARIABLES ""
 set_interface_property reset SVD_ADDRESS_GROUP ""
 
 add_interface_port reset RST_SYS reset_n Input 1
+
+# Secondary clock: CLK_AXI
+add_interface CLK_AXI clock end
+set_interface_property CLK_AXI clockRate 0
+set_interface_property CLK_AXI ENABLED true
+add_interface_port CLK_AXI CLK_AXI clk Input 1
+
+# Secondary clock: CLK_DDR
+add_interface CLK_DDR clock end
+set_interface_property CLK_DDR clockRate 0
+set_interface_property CLK_DDR ENABLED true
+add_interface_port CLK_DDR CLK_DDR clk Input 1
+
+# Secondary clock: CLK_ETH
+add_interface CLK_ETH clock end
+set_interface_property CLK_ETH clockRate 0
+set_interface_property CLK_ETH ENABLED true
+add_interface_port CLK_ETH CLK_ETH clk Input 1
+
+# Secondary clock: CLK_PCIE
+add_interface CLK_PCIE clock end
+set_interface_property CLK_PCIE clockRate 0
+set_interface_property CLK_PCIE ENABLED true
+add_interface_port CLK_PCIE CLK_PCIE clk Input 1
+
+# Secondary clock: CLK_USB
+add_interface CLK_USB clock end
+set_interface_property CLK_USB clockRate 0
+set_interface_property CLK_USB ENABLED true
+add_interface_port CLK_USB CLK_USB clk Input 1
+
+# Secondary clock: CLK_AUX
+add_interface CLK_AUX clock end
+set_interface_property CLK_AUX clockRate 0
+set_interface_property CLK_AUX ENABLED true
+add_interface_port CLK_AUX CLK_AUX clk Input 1
+
+# Secondary reset: RST_AXI
+add_interface RST_AXI reset end
+set_interface_property RST_AXI synchronousEdges DEASSERT
+set_interface_property RST_AXI ENABLED true
+add_interface_port RST_AXI RST_AXI reset_n Input 1
+
+# Secondary reset: RST_DDR
+add_interface RST_DDR reset end
+set_interface_property RST_DDR synchronousEdges DEASSERT
+set_interface_property RST_DDR ENABLED true
+add_interface_port RST_DDR RST_DDR reset Input 1
+
+# Secondary reset: RST_ETH
+add_interface RST_ETH reset end
+set_interface_property RST_ETH synchronousEdges DEASSERT
+set_interface_property RST_ETH ENABLED true
+add_interface_port RST_ETH RST_ETH reset_n Input 1
+
+# Secondary reset: RST_PCIE
+add_interface RST_PCIE reset end
+set_interface_property RST_PCIE synchronousEdges DEASSERT
+set_interface_property RST_PCIE ENABLED true
+add_interface_port RST_PCIE RST_PCIE reset Input 1
+
+# Secondary reset: RST_AUX
+add_interface RST_AUX reset end
+set_interface_property RST_AUX synchronousEdges DEASSERT
+set_interface_property RST_AUX ENABLED true
+add_interface_port RST_AUX RST_AUX reset Input 1
 
 # -----------------------------------------------------------------------------
 # Bus Interfaces (Generic)
@@ -29073,6 +29187,72 @@ set_interface_property reset CMSIS_SVD_VARIABLES ""
 set_interface_property reset SVD_ADDRESS_GROUP ""
 
 add_interface_port reset RST_SYS reset_n Input 1
+
+# Secondary clock: CLK_AXI
+add_interface CLK_AXI clock end
+set_interface_property CLK_AXI clockRate 0
+set_interface_property CLK_AXI ENABLED true
+add_interface_port CLK_AXI CLK_AXI clk Input 1
+
+# Secondary clock: CLK_DDR
+add_interface CLK_DDR clock end
+set_interface_property CLK_DDR clockRate 0
+set_interface_property CLK_DDR ENABLED true
+add_interface_port CLK_DDR CLK_DDR clk Input 1
+
+# Secondary clock: CLK_ETH
+add_interface CLK_ETH clock end
+set_interface_property CLK_ETH clockRate 0
+set_interface_property CLK_ETH ENABLED true
+add_interface_port CLK_ETH CLK_ETH clk Input 1
+
+# Secondary clock: CLK_PCIE
+add_interface CLK_PCIE clock end
+set_interface_property CLK_PCIE clockRate 0
+set_interface_property CLK_PCIE ENABLED true
+add_interface_port CLK_PCIE CLK_PCIE clk Input 1
+
+# Secondary clock: CLK_USB
+add_interface CLK_USB clock end
+set_interface_property CLK_USB clockRate 0
+set_interface_property CLK_USB ENABLED true
+add_interface_port CLK_USB CLK_USB clk Input 1
+
+# Secondary clock: CLK_AUX
+add_interface CLK_AUX clock end
+set_interface_property CLK_AUX clockRate 0
+set_interface_property CLK_AUX ENABLED true
+add_interface_port CLK_AUX CLK_AUX clk Input 1
+
+# Secondary reset: RST_AXI
+add_interface RST_AXI reset end
+set_interface_property RST_AXI synchronousEdges DEASSERT
+set_interface_property RST_AXI ENABLED true
+add_interface_port RST_AXI RST_AXI reset_n Input 1
+
+# Secondary reset: RST_DDR
+add_interface RST_DDR reset end
+set_interface_property RST_DDR synchronousEdges DEASSERT
+set_interface_property RST_DDR ENABLED true
+add_interface_port RST_DDR RST_DDR reset Input 1
+
+# Secondary reset: RST_ETH
+add_interface RST_ETH reset end
+set_interface_property RST_ETH synchronousEdges DEASSERT
+set_interface_property RST_ETH ENABLED true
+add_interface_port RST_ETH RST_ETH reset_n Input 1
+
+# Secondary reset: RST_PCIE
+add_interface RST_PCIE reset end
+set_interface_property RST_PCIE synchronousEdges DEASSERT
+set_interface_property RST_PCIE ENABLED true
+add_interface_port RST_PCIE RST_PCIE reset Input 1
+
+# Secondary reset: RST_AUX
+add_interface RST_AUX reset end
+set_interface_property RST_AUX synchronousEdges DEASSERT
+set_interface_property RST_AUX ENABLED true
+add_interface_port RST_AUX RST_AUX reset Input 1
 
 # -----------------------------------------------------------------------------
 # Bus Interfaces (Generic)

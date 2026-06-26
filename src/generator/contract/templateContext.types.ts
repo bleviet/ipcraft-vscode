@@ -40,6 +40,10 @@ export interface TemplateContext {
   reset_port: string;
   reset_active_high: boolean;
   clocks_with_period: ClockWithPeriod[];
+  /** Additional clocks beyond the primary, emitted as extra input ports. */
+  secondary_clocks: SecondaryClock[];
+  /** Additional resets beyond the primary, emitted as extra input ports. */
+  secondary_resets: SecondaryReset[];
   memmap_relpath: string;
   /**
    * True when any parameterized port width uses a VHDL math_real function (clog2/log2/ceil/floor), so the entity context clause must add `use ieee.math_real.all;`.
@@ -275,4 +279,11 @@ export interface ClockWithPeriod {
   name: string;
   frequency: string | null;
   period_ns: string | null;
+}
+export interface SecondaryClock {
+  name: string;
+}
+export interface SecondaryReset {
+  name: string;
+  active_high: boolean;
 }
