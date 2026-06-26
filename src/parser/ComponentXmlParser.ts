@@ -960,24 +960,24 @@ export function parseComponentXmlText(
 
   const ipYamlText = yaml.dump(ipObj, { lineWidth: 120, noRefs: true });
 
-  // ---- Build .mm.yml object -----------------------------------------------
+  // ---- Build .mm.yml content ----------------------------------------------
+  // A .mm.yml is a top-level array of memory maps (MemoryMap[]). The map's
+  // `name` is what a bus interface's `memoryMapRef` resolves against, so it
+  // must preserve the component's original memory-map name (e.g. s_axi_ctrl),
+  // never the IP core name. Each map nests its own address blocks.
   let mmYamlText: string | undefined;
   if (hasMemMaps) {
-    const mmObj: Record<string, unknown> = {
-      apiVersion: '1.0',
-      vlnv: { vendor, library, name: componentName, version },
-    };
-    const mmSections: Record<string, unknown>[] = [];
+    const mmList: Record<string, unknown>[] = [];
     for (const mm of memMaps) {
+      const blocksOut: Record<string, unknown>[] = [];
       for (const ab of mm.addressBlocks) {
         if (ab.registers.length === 0) {
           continue;
         }
-        const regsOut: Record<string, unknown>[] = [];
-        for (const reg of ab.registers) {
+        const regsOut = ab.registers.map((reg) => {
           const regOut: Record<string, unknown> = {
             name: reg.name,
-            addressOffset: `0x${reg.addressOffset.toString(16).toUpperCase().padStart(2, '0')}`,
+            offset: reg.addressOffset,
             size: reg.size,
             access: reg.access,
           };
@@ -986,35 +986,35 @@ export function parseComponentXmlText(
           }
           if (reg.fields.length > 0) {
             regOut.fields = reg.fields.map((f) => {
+              const msb = f.bitOffset + Math.max(1, f.bitWidth) - 1;
               const fOut: Record<string, unknown> = {
                 name: f.name,
-                bitOffset: f.bitOffset,
-                bitWidth: f.bitWidth,
+                bits: `[${msb}:${f.bitOffset}]`,
                 access: f.access,
               };
+              if (f.reset !== undefined) {
+                fOut.resetValue = f.reset;
+              }
               if (f.description) {
                 fOut.description = f.description;
-              }
-              if (f.reset !== undefined) {
-                fOut.reset = f.reset;
               }
               return fOut;
             });
           }
-          regsOut.push(regOut);
-        }
-        mmSections.push({
+          return regOut;
+        });
+        blocksOut.push({
           name: ab.name,
-          memoryMapRef: mm.name,
-          baseAddress: `0x${ab.baseAddress.toString(16).toUpperCase().padStart(8, '0')}`,
+          baseAddress: ab.baseAddress,
           range: ab.range,
-          width: ab.width,
           registers: regsOut,
         });
       }
+      if (blocksOut.length > 0) {
+        mmList.push({ name: mm.name || componentName, addressBlocks: blocksOut });
+      }
     }
-    mmObj.addressBlocks = mmSections;
-    mmYamlText = yaml.dump(mmObj, { lineWidth: 120, noRefs: true });
+    mmYamlText = yaml.dump(mmList, { lineWidth: 120, noRefs: true });
   }
 
   return { componentName, ipYamlText, mmYamlText, mmFileName };

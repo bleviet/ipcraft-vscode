@@ -63,20 +63,21 @@ describeIf('ComponentXmlParser — real Vivado files', () => {
       expect(result.mmFileName).toMatch(/\.mm\.yml$/);
     });
 
-    it('mm.yml is valid YAML with address blocks', () => {
-      const doc = yaml.load(result.mmYamlText!) as AnyRecord;
-      const blocks: AnyRecord[] = doc.addressBlocks ?? [];
+    it('mm.yml is a memory-map array with address blocks', () => {
+      const maps = yaml.load(result.mmYamlText!) as AnyRecord[];
+      expect(Array.isArray(maps)).toBe(true);
+      const blocks: AnyRecord[] = (maps[0]?.addressBlocks as AnyRecord[]) ?? [];
       expect(blocks.length).toBeGreaterThan(0);
     });
 
-    it('mm.yml registers have names and offsets', () => {
-      const doc = yaml.load(result.mmYamlText!) as AnyRecord;
-      const block = (doc.addressBlocks as AnyRecord[])[0];
-      const regs: AnyRecord[] = block?.registers ?? [];
+    it('mm.yml registers have names and integer offsets', () => {
+      const maps = yaml.load(result.mmYamlText!) as AnyRecord[];
+      const block = (maps[0]?.addressBlocks as AnyRecord[])[0];
+      const regs: AnyRecord[] = (block?.registers as AnyRecord[]) ?? [];
       expect(regs.length).toBeGreaterThan(0);
       for (const reg of regs) {
         expect(reg.name).toBeTruthy();
-        expect(reg.addressOffset).toBeTruthy();
+        expect(typeof reg.offset).toBe('number');
       }
     });
 
@@ -132,9 +133,9 @@ describeIf('ComponentXmlParser — real Vivado files', () => {
     });
 
     it('mm.yml address blocks have registers with fields', () => {
-      const doc = yaml.load(result.mmYamlText!) as AnyRecord;
-      const block = (doc.addressBlocks as AnyRecord[])?.[0];
-      const regs: AnyRecord[] = block?.registers ?? [];
+      const maps = yaml.load(result.mmYamlText!) as AnyRecord[];
+      const block = (maps[0]?.addressBlocks as AnyRecord[])?.[0];
+      const regs: AnyRecord[] = (block?.registers as AnyRecord[]) ?? [];
       const withFields = regs.filter((r) => Array.isArray(r.fields) && r.fields.length > 0);
       expect(withFields.length).toBeGreaterThan(0);
     });
@@ -186,8 +187,8 @@ describeIf('ComponentXmlParser — real Vivado files', () => {
 
     it('generates mm.yml with registers', () => {
       expect(result.mmYamlText).toBeTruthy();
-      const doc = yaml.load(result.mmYamlText!) as AnyRecord;
-      const block = (doc.addressBlocks as AnyRecord[])?.[0];
+      const maps = yaml.load(result.mmYamlText!) as AnyRecord[];
+      const block = (maps[0]?.addressBlocks as AnyRecord[])?.[0];
       expect((block?.registers as AnyRecord[]).length).toBeGreaterThan(0);
     });
 

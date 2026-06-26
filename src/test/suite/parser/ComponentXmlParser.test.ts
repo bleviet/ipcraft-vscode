@@ -488,69 +488,86 @@ describe('ComponentXmlParser', () => {
       expect(doc.memoryMaps?.import).toBe('axi_gpio.mm.yml');
     });
 
-    it('extracts register names and address offsets', () => {
-      const { mmYamlText } = parseComponentXmlText(AXI4LITE_XML);
-      const mm = parseYaml(mmYamlText!) as {
-        addressBlocks: Array<{ registers: Array<{ name: string; addressOffset: string }> }>;
+    // The .mm.yml is a top-level array of memory maps (MemoryMap[]). Each map's
+    // `name` is what a bus interface's `memoryMapRef` resolves against.
+    interface MmField {
+      name: string;
+      bits: string;
+      access: string;
+      resetValue?: number;
+      description?: string;
+    }
+    interface MmRegister {
+      name: string;
+      offset: number;
+      size: number;
+      access: string;
+      description?: string;
+      fields?: MmField[];
+    }
+    interface MmBlock {
+      name: string;
+      baseAddress: number;
+      range: number;
+      registers: MmRegister[];
+    }
+    interface MmEntry {
+      name: string;
+      addressBlocks: MmBlock[];
+    }
+    const loadMm = (text: string) => parseYaml(text) as unknown as MmEntry[];
+
+    it('preserves the original memory map name (not the IP core name)', () => {
+      const { mmYamlText, ipYamlText } = parseComponentXmlText(AXI4LITE_XML);
+      const mm = loadMm(mmYamlText!);
+      expect(Array.isArray(mm)).toBe(true);
+      // Component is "axi_gpio"; the memory map is "S_AXI" — keep the map name.
+      expect(mm[0].name).toBe('S_AXI');
+
+      // ...and the .ip.yml bus interface reference resolves to that map.
+      const ip = parseYaml(ipYamlText) as {
+        busInterfaces?: Array<{ memoryMapRef?: string }>;
       };
-      const regs = mm.addressBlocks[0].registers;
-      expect(regs.find((r) => r.name === 'GPIO_DATA')).toBeDefined();
-      expect(regs.find((r) => r.name === 'GPIO_TRI')).toBeDefined();
-      expect(regs.find((r) => r.name === 'GPIO_DATA')!.addressOffset).toBe('0x00');
-      expect(regs.find((r) => r.name === 'GPIO_TRI')!.addressOffset).toBe('0x04');
+      const refs = (ip.busInterfaces ?? []).map((b) => b.memoryMapRef).filter(Boolean);
+      const mapNames = mm.map((m) => m.name);
+      expect(refs).toContain('S_AXI');
+      expect(refs.every((r) => mapNames.includes(r!))).toBe(true);
     });
 
-    it('extracts field definitions with bitOffset and bitWidth', () => {
-      const { mmYamlText } = parseComponentXmlText(AXI4LITE_XML);
-      const mm = parseYaml(mmYamlText!) as {
-        addressBlocks: Array<{
-          registers: Array<{
-            name: string;
-            fields: Array<{ name: string; bitOffset: number; bitWidth: number }>;
-          }>;
-        }>;
-      };
-      const gpioReg = mm.addressBlocks[0].registers.find((r) => r.name === 'GPIO_DATA')!;
-      expect(gpioReg.fields[0].name).toBe('DATA');
-      expect(gpioReg.fields[0].bitOffset).toBe(0);
-      expect(gpioReg.fields[0].bitWidth).toBe(32);
+    it('extracts register names and integer offsets', () => {
+      const mm = loadMm(parseComponentXmlText(AXI4LITE_XML).mmYamlText!);
+      const regs = mm[0].addressBlocks[0].registers;
+      expect(regs.find((r) => r.name === 'GPIO_DATA')).toBeDefined();
+      expect(regs.find((r) => r.name === 'GPIO_TRI')).toBeDefined();
+      expect(regs.find((r) => r.name === 'GPIO_DATA')!.offset).toBe(0);
+      expect(regs.find((r) => r.name === 'GPIO_TRI')!.offset).toBe(4);
+    });
+
+    it('extracts field definitions as a bits range', () => {
+      const mm = loadMm(parseComponentXmlText(AXI4LITE_XML).mmYamlText!);
+      const gpioReg = mm[0].addressBlocks[0].registers.find((r) => r.name === 'GPIO_DATA')!;
+      expect(gpioReg.fields![0].name).toBe('DATA');
+      expect(gpioReg.fields![0].bits).toBe('[31:0]');
     });
 
     it('includes reset value when present', () => {
-      const { mmYamlText } = parseComponentXmlText(AXI4LITE_XML);
-      const mm = parseYaml(mmYamlText!) as {
-        addressBlocks: Array<{
-          registers: Array<{
-            name: string;
-            fields: Array<{ name: string; reset?: number }>;
-          }>;
-        }>;
-      };
-      const triReg = mm.addressBlocks[0].registers.find((r) => r.name === 'GPIO_TRI')!;
-      expect(triReg.fields[0].reset).toBe(0xffffffff);
+      const mm = loadMm(parseComponentXmlText(AXI4LITE_XML).mmYamlText!);
+      const triReg = mm[0].addressBlocks[0].registers.find((r) => r.name === 'GPIO_TRI')!;
+      expect(triReg.fields![0].resetValue).toBe(0xffffffff);
     });
 
     it('includes description in registers', () => {
-      const { mmYamlText } = parseComponentXmlText(AXI4LITE_XML);
-      const mm = parseYaml(mmYamlText!) as {
-        addressBlocks: Array<{
-          registers: Array<{ name: string; description?: string }>;
-        }>;
-      };
-      const gpioReg = mm.addressBlocks[0].registers.find((r) => r.name === 'GPIO_DATA')!;
+      const mm = loadMm(parseComponentXmlText(AXI4LITE_XML).mmYamlText!);
+      const gpioReg = mm[0].addressBlocks[0].registers.find((r) => r.name === 'GPIO_DATA')!;
       expect(gpioReg.description).toBe('GPIO Data Register');
     });
 
     it('extracts address block metadata', () => {
-      const { mmYamlText } = parseComponentXmlText(AXI4LITE_XML);
-      const mm = parseYaml(mmYamlText!) as {
-        addressBlocks: Array<{ name: string; baseAddress: string; range: number; width: number }>;
-      };
-      const ab = mm.addressBlocks[0];
+      const mm = loadMm(parseComponentXmlText(AXI4LITE_XML).mmYamlText!);
+      const ab = mm[0].addressBlocks[0];
       expect(ab.name).toBe('Reg');
-      expect(ab.baseAddress).toBe('0x00000000');
+      expect(ab.baseAddress).toBe(0);
       expect(ab.range).toBe(4096);
-      expect(ab.width).toBe(32);
     });
   });
 });
