@@ -423,6 +423,28 @@ describe('HwTclParser', () => {
       };
       expect(doc.parameters[0].description).toBe('The width of the data bus');
     });
+
+    it('normalizes non-canonical numeric parameter types to schema-allowed dataTypes', () => {
+      const tcl = `
+        add_parameter CLOCK_DIV INTEGER 2
+        add_parameter ADDR_WIDTH POSITIVE 8
+        add_parameter DATA_WIDTH NATURAL 16
+        add_parameter ENABLE BOOLEAN true
+        add_parameter NAME STRING foo
+      `;
+      const doc = parseYaml(parse(tcl).yamlText) as {
+        parameters: Array<Record<string, unknown>>;
+      };
+      // POSITIVE/NATURAL collapse to the non-negative canonical type `natural`;
+      // the schema's ParameterType enum has no `positive`.
+      expect(doc.parameters.map((p) => p.dataType)).toEqual([
+        'integer',
+        'natural',
+        'natural',
+        'boolean',
+        'string',
+      ]);
+    });
   });
 
   describe('full pio_core_axil example', () => {

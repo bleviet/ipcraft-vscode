@@ -4,6 +4,7 @@ import * as yaml from 'js-yaml';
 import { lookupBusDef } from '../webview/ipcore/data/busDefinitions';
 import { resolveVendor } from '../utils/resolveVendor';
 import { BUS_VLNV } from '../shared/busVlnv';
+import { normalizeParameterDataType } from './paramDataType';
 
 export interface HwTclParseOptions {
   library?: string;
@@ -483,7 +484,7 @@ export function parseHwTclContent(
     yamlData.parameters = parameters.map((p) => ({
       name: p.name,
       value: parseParamValue(p.defaultValue),
-      dataType: p.type.toLowerCase(),
+      dataType: normalizeParameterDataType(p.type),
       description: p.description ?? '',
     }));
   }
