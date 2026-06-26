@@ -580,16 +580,30 @@ function parseTclTokens(line: string): string[] {
     }
 
     if (ch === '[') {
-      // Command substitution — skip entirely
+      // Command substitution. Capture the bracket body so we can recover the
+      // one form that carries port information: `[get_parameter_value PARAM]`,
+      // which Quartus (and our own generator) use for parameter-dependent port
+      // widths inside the elaborate callback. Any other substitution (e.g.
+      // `[file join ...]`) is skipped, preserving prior behaviour.
       let depth = 1;
       i++;
+      let body = '';
       while (i < line.length && depth > 0) {
         if (line[i] === '[') {
           depth++;
         } else if (line[i] === ']') {
           depth--;
+          if (depth === 0) {
+            break;
+          }
         }
+        body += line[i];
         i++;
+      }
+      i++; // closing bracket
+      const paramRef = /^\s*get_parameter_value\s+(\S+)\s*$/.exec(body);
+      if (paramRef) {
+        tokens.push(paramRef[1]);
       }
       continue;
     }

@@ -296,6 +296,27 @@ describe('HwTclParser', () => {
       };
       expect(doc.ports[0].direction).toBe('inout');
     });
+
+    it('parses a parameter-dependent width declared via [get_parameter_value PARAM]', () => {
+      // Quartus (and our own generator) place parameter-width ports inside the
+      // elaborate callback: `add_interface_port iface port logical Input [get_parameter_value W]`.
+      const tcl = `
+        add_interface data conduit end
+        add_parameter DATA_WIDTH INTEGER 32
+        proc elaborate {} {
+            add_interface_port data data data Input [get_parameter_value DATA_WIDTH]
+        }
+      `;
+      const doc = parseYaml(parse(tcl).yamlText) as {
+        ports: Array<Record<string, unknown>>;
+      };
+      expect(doc.ports).toHaveLength(1);
+      expect(doc.ports[0]).toMatchObject({
+        name: 'data',
+        direction: 'in',
+        width: 'DATA_WIDTH',
+      });
+    });
   });
 
   describe('interrupts', () => {
