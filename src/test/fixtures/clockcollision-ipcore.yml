@@ -1,0 +1,21 @@
+apiVersion: '1.0'
+vlnv:
+  vendor: test.com
+  library: unit
+  name: col_core
+  version: 1.0.0
+description: >
+  Fixture where a secondary clock/reset is named exactly "clk"/"reset", which
+  would collide with a hardcoded primary interface name in the Quartus hw.tcl.
+clocks:
+- name: s_axi_aclk
+  direction: in
+- name: clk
+  direction: in
+resets:
+- name: s_axi_aresetn
+  direction: in
+  polarity: activeLow
+- name: reset
+  direction: in
+  polarity: activeHigh

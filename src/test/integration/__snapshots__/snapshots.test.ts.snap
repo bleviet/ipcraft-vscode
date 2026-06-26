@@ -25993,16 +25993,16 @@ add_interface_port clk clk clk Input 1
 # -----------------------------------------------------------------------------
 # Reset Interface
 # -----------------------------------------------------------------------------
-add_interface reset reset end
-set_interface_property reset associatedClock clk
-set_interface_property reset synchronousEdges DEASSERT
-set_interface_property reset ENABLED true
-set_interface_property reset EXPORT_OF ""
-set_interface_property reset PORT_NAME_MAP ""
-set_interface_property reset CMSIS_SVD_VARIABLES ""
-set_interface_property reset SVD_ADDRESS_GROUP ""
+add_interface reset_n reset end
+set_interface_property reset_n associatedClock clk
+set_interface_property reset_n synchronousEdges DEASSERT
+set_interface_property reset_n ENABLED true
+set_interface_property reset_n EXPORT_OF ""
+set_interface_property reset_n PORT_NAME_MAP ""
+set_interface_property reset_n CMSIS_SVD_VARIABLES ""
+set_interface_property reset_n SVD_ADDRESS_GROUP ""
 
-add_interface_port reset reset_n reset_n Input 1
+add_interface_port reset_n reset_n reset_n Input 1
 
 # -----------------------------------------------------------------------------
 # Bus Interfaces (Generic)
@@ -26011,7 +26011,7 @@ add_interface_port reset reset_n reset_n Input 1
 # Interface: s_axi_lite (ipcraft:busif:axi4_lite:1.0)
 add_interface s_axi_lite axi4lite end
 set_interface_property s_axi_lite associatedClock clk
-set_interface_property s_axi_lite associatedReset reset
+set_interface_property s_axi_lite associatedReset reset_n
 set_interface_property s_axi_lite ENABLED true
 set_interface_property s_axi_lite EXPORT_OF ""
 set_interface_property s_axi_lite PORT_NAME_MAP ""
@@ -26112,16 +26112,16 @@ add_interface_port clk clk clk Input 1
 # -----------------------------------------------------------------------------
 # Reset Interface
 # -----------------------------------------------------------------------------
-add_interface reset reset end
-set_interface_property reset associatedClock clk
-set_interface_property reset synchronousEdges DEASSERT
-set_interface_property reset ENABLED true
-set_interface_property reset EXPORT_OF ""
-set_interface_property reset PORT_NAME_MAP ""
-set_interface_property reset CMSIS_SVD_VARIABLES ""
-set_interface_property reset SVD_ADDRESS_GROUP ""
+add_interface reset_n reset end
+set_interface_property reset_n associatedClock clk
+set_interface_property reset_n synchronousEdges DEASSERT
+set_interface_property reset_n ENABLED true
+set_interface_property reset_n EXPORT_OF ""
+set_interface_property reset_n PORT_NAME_MAP ""
+set_interface_property reset_n CMSIS_SVD_VARIABLES ""
+set_interface_property reset_n SVD_ADDRESS_GROUP ""
 
-add_interface_port reset reset_n reset_n Input 1
+add_interface_port reset_n reset_n reset_n Input 1
 
 # -----------------------------------------------------------------------------
 # Bus Interfaces (Generic)
@@ -26130,7 +26130,7 @@ add_interface_port reset reset_n reset_n Input 1
 # Interface: s_axi_lite (ipcraft:busif:axi4_lite:1.0)
 add_interface s_axi_lite axi4lite end
 set_interface_property s_axi_lite associatedClock clk
-set_interface_property s_axi_lite associatedReset reset
+set_interface_property s_axi_lite associatedReset reset_n
 set_interface_property s_axi_lite ENABLED true
 set_interface_property s_axi_lite EXPORT_OF ""
 set_interface_property s_axi_lite PORT_NAME_MAP ""
@@ -26231,16 +26231,16 @@ add_interface_port clk clk clk Input 1
 # -----------------------------------------------------------------------------
 # Reset Interface
 # -----------------------------------------------------------------------------
-add_interface reset reset end
-set_interface_property reset associatedClock clk
-set_interface_property reset synchronousEdges DEASSERT
-set_interface_property reset ENABLED true
-set_interface_property reset EXPORT_OF ""
-set_interface_property reset PORT_NAME_MAP ""
-set_interface_property reset CMSIS_SVD_VARIABLES ""
-set_interface_property reset SVD_ADDRESS_GROUP ""
+add_interface reset_n reset end
+set_interface_property reset_n associatedClock clk
+set_interface_property reset_n synchronousEdges DEASSERT
+set_interface_property reset_n ENABLED true
+set_interface_property reset_n EXPORT_OF ""
+set_interface_property reset_n PORT_NAME_MAP ""
+set_interface_property reset_n CMSIS_SVD_VARIABLES ""
+set_interface_property reset_n SVD_ADDRESS_GROUP ""
 
-add_interface_port reset reset_n reset_n Input 1
+add_interface_port reset_n reset_n reset_n Input 1
 
 # -----------------------------------------------------------------------------
 # Bus Interfaces (Generic)
@@ -26249,7 +26249,7 @@ add_interface_port reset reset_n reset_n Input 1
 # Conduit interface for user port: o_enable
 add_interface o_enable conduit end
 set_interface_property o_enable associatedClock clk
-set_interface_property o_enable associatedReset reset
+set_interface_property o_enable associatedReset reset_n
 set_interface_property o_enable ENABLED true
 set_interface_property o_enable EXPORT_OF ""
 set_interface_property o_enable PORT_NAME_MAP ""
@@ -26328,16 +26328,16 @@ add_interface_port clk clk clk Input 1
 # -----------------------------------------------------------------------------
 # Reset Interface
 # -----------------------------------------------------------------------------
-add_interface reset reset end
-set_interface_property reset associatedClock clk
-set_interface_property reset synchronousEdges DEASSERT
-set_interface_property reset ENABLED true
-set_interface_property reset EXPORT_OF ""
-set_interface_property reset PORT_NAME_MAP ""
-set_interface_property reset CMSIS_SVD_VARIABLES ""
-set_interface_property reset SVD_ADDRESS_GROUP ""
+add_interface reset_n reset end
+set_interface_property reset_n associatedClock clk
+set_interface_property reset_n synchronousEdges DEASSERT
+set_interface_property reset_n ENABLED true
+set_interface_property reset_n EXPORT_OF ""
+set_interface_property reset_n PORT_NAME_MAP ""
+set_interface_property reset_n CMSIS_SVD_VARIABLES ""
+set_interface_property reset_n SVD_ADDRESS_GROUP ""
 
-add_interface_port reset reset_n reset_n Input 1
+add_interface_port reset_n reset_n reset_n Input 1
 
 # -----------------------------------------------------------------------------
 # Bus Interfaces (Generic)
@@ -26346,7 +26346,7 @@ add_interface_port reset reset_n reset_n Input 1
 # Conduit interface for user port: o_enable
 add_interface o_enable conduit end
 set_interface_property o_enable associatedClock clk
-set_interface_property o_enable associatedReset reset
+set_interface_property o_enable associatedReset reset_n
 set_interface_property o_enable ENABLED true
 set_interface_property o_enable EXPORT_OF ""
 set_interface_property o_enable PORT_NAME_MAP ""
@@ -26490,16 +26490,16 @@ add_interface_port clk clk clk Input 1
 # -----------------------------------------------------------------------------
 # Reset Interface
 # -----------------------------------------------------------------------------
-add_interface reset reset end
-set_interface_property reset associatedClock clk
-set_interface_property reset synchronousEdges DEASSERT
-set_interface_property reset ENABLED true
-set_interface_property reset EXPORT_OF ""
-set_interface_property reset PORT_NAME_MAP ""
-set_interface_property reset CMSIS_SVD_VARIABLES ""
-set_interface_property reset SVD_ADDRESS_GROUP ""
+add_interface reset_n reset end
+set_interface_property reset_n associatedClock clk
+set_interface_property reset_n synchronousEdges DEASSERT
+set_interface_property reset_n ENABLED true
+set_interface_property reset_n EXPORT_OF ""
+set_interface_property reset_n PORT_NAME_MAP ""
+set_interface_property reset_n CMSIS_SVD_VARIABLES ""
+set_interface_property reset_n SVD_ADDRESS_GROUP ""
 
-add_interface_port reset reset_n reset_n Input 1
+add_interface_port reset_n reset_n reset_n Input 1
 
 # -----------------------------------------------------------------------------
 # Bus Interfaces (Generic)
@@ -26508,7 +26508,7 @@ add_interface_port reset reset_n reset_n Input 1
 # Interface: S_AXI_LITE (ipcraft:busif:axi4_lite:1.0)
 add_interface S_AXI_LITE axi4lite end
 set_interface_property S_AXI_LITE associatedClock clk
-set_interface_property S_AXI_LITE associatedReset reset
+set_interface_property S_AXI_LITE associatedReset reset_n
 set_interface_property S_AXI_LITE ENABLED true
 set_interface_property S_AXI_LITE EXPORT_OF ""
 set_interface_property S_AXI_LITE PORT_NAME_MAP ""
@@ -26542,7 +26542,7 @@ add_interface_port S_AXI_LITE s_axil_rready rready Input 1
 # Conduit interface for user port: o_data
 add_interface o_data conduit end
 set_interface_property o_data associatedClock clk
-set_interface_property o_data associatedReset reset
+set_interface_property o_data associatedReset reset_n
 set_interface_property o_data ENABLED true
 set_interface_property o_data EXPORT_OF ""
 set_interface_property o_data PORT_NAME_MAP ""
@@ -26700,16 +26700,16 @@ add_interface_port clk clk clk Input 1
 # -----------------------------------------------------------------------------
 # Reset Interface
 # -----------------------------------------------------------------------------
-add_interface reset reset end
-set_interface_property reset associatedClock clk
-set_interface_property reset synchronousEdges DEASSERT
-set_interface_property reset ENABLED true
-set_interface_property reset EXPORT_OF ""
-set_interface_property reset PORT_NAME_MAP ""
-set_interface_property reset CMSIS_SVD_VARIABLES ""
-set_interface_property reset SVD_ADDRESS_GROUP ""
+add_interface reset_n reset end
+set_interface_property reset_n associatedClock clk
+set_interface_property reset_n synchronousEdges DEASSERT
+set_interface_property reset_n ENABLED true
+set_interface_property reset_n EXPORT_OF ""
+set_interface_property reset_n PORT_NAME_MAP ""
+set_interface_property reset_n CMSIS_SVD_VARIABLES ""
+set_interface_property reset_n SVD_ADDRESS_GROUP ""
 
-add_interface_port reset reset_n reset_n Input 1
+add_interface_port reset_n reset_n reset_n Input 1
 
 # -----------------------------------------------------------------------------
 # Bus Interfaces (Generic)
@@ -26718,7 +26718,7 @@ add_interface_port reset reset_n reset_n Input 1
 # Interface: S_AXI_LITE (ipcraft:busif:axi4_lite:1.0)
 add_interface S_AXI_LITE axi4lite end
 set_interface_property S_AXI_LITE associatedClock clk
-set_interface_property S_AXI_LITE associatedReset reset
+set_interface_property S_AXI_LITE associatedReset reset_n
 set_interface_property S_AXI_LITE ENABLED true
 set_interface_property S_AXI_LITE EXPORT_OF ""
 set_interface_property S_AXI_LITE PORT_NAME_MAP ""
@@ -26752,7 +26752,7 @@ add_interface_port S_AXI_LITE s_axil_rready rready Input 1
 # Conduit interface for user port: o_data
 add_interface o_data conduit end
 set_interface_property o_data associatedClock clk
-set_interface_property o_data associatedReset reset
+set_interface_property o_data associatedReset reset_n
 set_interface_property o_data ENABLED true
 set_interface_property o_data EXPORT_OF ""
 set_interface_property o_data PORT_NAME_MAP ""
@@ -26857,16 +26857,16 @@ add_interface_port clk clk clk Input 1
 # -----------------------------------------------------------------------------
 # Reset Interface
 # -----------------------------------------------------------------------------
-add_interface reset reset end
-set_interface_property reset associatedClock clk
-set_interface_property reset synchronousEdges DEASSERT
-set_interface_property reset ENABLED true
-set_interface_property reset EXPORT_OF ""
-set_interface_property reset PORT_NAME_MAP ""
-set_interface_property reset CMSIS_SVD_VARIABLES ""
-set_interface_property reset SVD_ADDRESS_GROUP ""
+add_interface rst reset end
+set_interface_property rst associatedClock clk
+set_interface_property rst synchronousEdges DEASSERT
+set_interface_property rst ENABLED true
+set_interface_property rst EXPORT_OF ""
+set_interface_property rst PORT_NAME_MAP ""
+set_interface_property rst CMSIS_SVD_VARIABLES ""
+set_interface_property rst SVD_ADDRESS_GROUP ""
 
-add_interface_port reset rst reset Input 1
+add_interface_port rst rst reset Input 1
 
 # -----------------------------------------------------------------------------
 # Bus Interfaces (Generic)
@@ -26875,7 +26875,7 @@ add_interface_port reset rst reset Input 1
 # Interface: S_AVMM (ipcraft:busif:avalon_mm:1.0)
 add_interface S_AVMM avalon end
 set_interface_property S_AVMM associatedClock clk
-set_interface_property S_AVMM associatedReset reset
+set_interface_property S_AVMM associatedReset rst
 set_interface_property S_AVMM ENABLED true
 set_interface_property S_AVMM EXPORT_OF ""
 set_interface_property S_AVMM PORT_NAME_MAP ""
@@ -26900,7 +26900,7 @@ add_interface_port S_AVMM avs_waitrequest waitrequest Output 1
 # Interface: SRC_ST (ipcraft:busif:avalon_st:1.0)
 add_interface SRC_ST avalon_streaming start
 set_interface_property SRC_ST associatedClock clk
-set_interface_property SRC_ST associatedReset reset
+set_interface_property SRC_ST associatedReset rst
 set_interface_property SRC_ST ENABLED true
 set_interface_property SRC_ST EXPORT_OF ""
 set_interface_property SRC_ST PORT_NAME_MAP ""
@@ -26922,7 +26922,7 @@ add_interface_port SRC_ST aso_error error Output 2
 # Interface: SNK_ST (ipcraft:busif:avalon_st:1.0)
 add_interface SNK_ST avalon_streaming end
 set_interface_property SNK_ST associatedClock clk
-set_interface_property SNK_ST associatedReset reset
+set_interface_property SNK_ST associatedReset rst
 set_interface_property SNK_ST ENABLED true
 set_interface_property SNK_ST EXPORT_OF ""
 set_interface_property SNK_ST PORT_NAME_MAP ""
@@ -26940,7 +26940,7 @@ add_interface_port SNK_ST asi_rx_ready ready Output 1
 # Conduit interface for user port: i_sync
 add_interface i_sync conduit end
 set_interface_property i_sync associatedClock clk
-set_interface_property i_sync associatedReset reset
+set_interface_property i_sync associatedReset rst
 set_interface_property i_sync ENABLED true
 set_interface_property i_sync EXPORT_OF ""
 set_interface_property i_sync PORT_NAME_MAP ""
@@ -27061,16 +27061,16 @@ add_interface_port clk clk clk Input 1
 # -----------------------------------------------------------------------------
 # Reset Interface
 # -----------------------------------------------------------------------------
-add_interface reset reset end
-set_interface_property reset associatedClock clk
-set_interface_property reset synchronousEdges DEASSERT
-set_interface_property reset ENABLED true
-set_interface_property reset EXPORT_OF ""
-set_interface_property reset PORT_NAME_MAP ""
-set_interface_property reset CMSIS_SVD_VARIABLES ""
-set_interface_property reset SVD_ADDRESS_GROUP ""
+add_interface rst reset end
+set_interface_property rst associatedClock clk
+set_interface_property rst synchronousEdges DEASSERT
+set_interface_property rst ENABLED true
+set_interface_property rst EXPORT_OF ""
+set_interface_property rst PORT_NAME_MAP ""
+set_interface_property rst CMSIS_SVD_VARIABLES ""
+set_interface_property rst SVD_ADDRESS_GROUP ""
 
-add_interface_port reset rst reset Input 1
+add_interface_port rst rst reset Input 1
 
 # -----------------------------------------------------------------------------
 # Bus Interfaces (Generic)
@@ -27079,7 +27079,7 @@ add_interface_port reset rst reset Input 1
 # Interface: S_AVMM (ipcraft:busif:avalon_mm:1.0)
 add_interface S_AVMM avalon end
 set_interface_property S_AVMM associatedClock clk
-set_interface_property S_AVMM associatedReset reset
+set_interface_property S_AVMM associatedReset rst
 set_interface_property S_AVMM ENABLED true
 set_interface_property S_AVMM EXPORT_OF ""
 set_interface_property S_AVMM PORT_NAME_MAP ""
@@ -27104,7 +27104,7 @@ add_interface_port S_AVMM avs_waitrequest waitrequest Output 1
 # Interface: SRC_ST (ipcraft:busif:avalon_st:1.0)
 add_interface SRC_ST avalon_streaming start
 set_interface_property SRC_ST associatedClock clk
-set_interface_property SRC_ST associatedReset reset
+set_interface_property SRC_ST associatedReset rst
 set_interface_property SRC_ST ENABLED true
 set_interface_property SRC_ST EXPORT_OF ""
 set_interface_property SRC_ST PORT_NAME_MAP ""
@@ -27126,7 +27126,7 @@ add_interface_port SRC_ST aso_error error Output 2
 # Interface: SNK_ST (ipcraft:busif:avalon_st:1.0)
 add_interface SNK_ST avalon_streaming end
 set_interface_property SNK_ST associatedClock clk
-set_interface_property SNK_ST associatedReset reset
+set_interface_property SNK_ST associatedReset rst
 set_interface_property SNK_ST ENABLED true
 set_interface_property SNK_ST EXPORT_OF ""
 set_interface_property SNK_ST PORT_NAME_MAP ""
@@ -27144,7 +27144,7 @@ add_interface_port SNK_ST asi_rx_ready ready Output 1
 # Conduit interface for user port: i_sync
 add_interface i_sync conduit end
 set_interface_property i_sync associatedClock clk
-set_interface_property i_sync associatedReset reset
+set_interface_property i_sync associatedReset rst
 set_interface_property i_sync ENABLED true
 set_interface_property i_sync EXPORT_OF ""
 set_interface_property i_sync PORT_NAME_MAP ""
@@ -27292,29 +27292,29 @@ set_parameter_property DEVICE_TAG AFFECTS_ELABORATION true
 # -----------------------------------------------------------------------------
 # Clock Interface
 # -----------------------------------------------------------------------------
-add_interface clk clock end
-set_interface_property clk clockRate 0
-set_interface_property clk ENABLED true
-set_interface_property clk EXPORT_OF ""
-set_interface_property clk PORT_NAME_MAP ""
-set_interface_property clk CMSIS_SVD_VARIABLES ""
-set_interface_property clk SVD_ADDRESS_GROUP ""
+add_interface i_clk_axi clock end
+set_interface_property i_clk_axi clockRate 0
+set_interface_property i_clk_axi ENABLED true
+set_interface_property i_clk_axi EXPORT_OF ""
+set_interface_property i_clk_axi PORT_NAME_MAP ""
+set_interface_property i_clk_axi CMSIS_SVD_VARIABLES ""
+set_interface_property i_clk_axi SVD_ADDRESS_GROUP ""
 
-add_interface_port clk i_clk_axi clk Input 1
+add_interface_port i_clk_axi i_clk_axi clk Input 1
 
 # -----------------------------------------------------------------------------
 # Reset Interface
 # -----------------------------------------------------------------------------
-add_interface reset reset end
-set_interface_property reset associatedClock clk
-set_interface_property reset synchronousEdges DEASSERT
-set_interface_property reset ENABLED true
-set_interface_property reset EXPORT_OF ""
-set_interface_property reset PORT_NAME_MAP ""
-set_interface_property reset CMSIS_SVD_VARIABLES ""
-set_interface_property reset SVD_ADDRESS_GROUP ""
+add_interface i_rstn_axi reset end
+set_interface_property i_rstn_axi associatedClock i_clk_axi
+set_interface_property i_rstn_axi synchronousEdges DEASSERT
+set_interface_property i_rstn_axi ENABLED true
+set_interface_property i_rstn_axi EXPORT_OF ""
+set_interface_property i_rstn_axi PORT_NAME_MAP ""
+set_interface_property i_rstn_axi CMSIS_SVD_VARIABLES ""
+set_interface_property i_rstn_axi SVD_ADDRESS_GROUP ""
 
-add_interface_port reset i_rstn_axi reset_n Input 1
+add_interface_port i_rstn_axi i_rstn_axi reset_n Input 1
 
 # Secondary clock: i_clk_proc
 add_interface i_clk_proc clock end
@@ -27334,8 +27334,8 @@ add_interface_port i_rst_proc i_rst_proc reset Input 1
 
 # Interface: S_AXI (ipcraft:busif:axi4_lite:1.0)
 add_interface S_AXI axi4lite end
-set_interface_property S_AXI associatedClock clk
-set_interface_property S_AXI associatedReset reset
+set_interface_property S_AXI associatedClock i_clk_axi
+set_interface_property S_AXI associatedReset i_rstn_axi
 set_interface_property S_AXI ENABLED true
 set_interface_property S_AXI EXPORT_OF ""
 set_interface_property S_AXI PORT_NAME_MAP ""
@@ -27368,8 +27368,8 @@ add_interface_port S_AXI s_axi_rready rready Input 1
 
 # Interface: M_AXI (ipcraft:busif:axi4_full:1.0)
 add_interface M_AXI axi4 start
-set_interface_property M_AXI associatedClock clk
-set_interface_property M_AXI associatedReset reset
+set_interface_property M_AXI associatedClock i_clk_axi
+set_interface_property M_AXI associatedReset i_rstn_axi
 set_interface_property M_AXI ENABLED true
 set_interface_property M_AXI EXPORT_OF ""
 set_interface_property M_AXI PORT_NAME_MAP ""
@@ -27418,8 +27418,8 @@ add_interface_port M_AXI m_axi_rready rready Output 1
 
 # Interface: M_AXIS_CH1 (ipcraft:busif:axi_stream:1.0)
 add_interface M_AXIS_CH1 axi4stream start
-set_interface_property M_AXIS_CH1 associatedClock clk
-set_interface_property M_AXIS_CH1 associatedReset reset
+set_interface_property M_AXIS_CH1 associatedClock i_clk_axi
+set_interface_property M_AXIS_CH1 associatedReset i_rstn_axi
 set_interface_property M_AXIS_CH1 ENABLED true
 set_interface_property M_AXIS_CH1 EXPORT_OF ""
 set_interface_property M_AXIS_CH1 PORT_NAME_MAP ""
@@ -27439,8 +27439,8 @@ add_interface_port M_AXIS_CH1 m_axis_ch1_tuser tuser Output 4
 
 # Interface: M_AXIS_CH2 (ipcraft:busif:axi_stream:1.0)
 add_interface M_AXIS_CH2 axi4stream start
-set_interface_property M_AXIS_CH2 associatedClock clk
-set_interface_property M_AXIS_CH2 associatedReset reset
+set_interface_property M_AXIS_CH2 associatedClock i_clk_axi
+set_interface_property M_AXIS_CH2 associatedReset i_rstn_axi
 set_interface_property M_AXIS_CH2 ENABLED true
 set_interface_property M_AXIS_CH2 EXPORT_OF ""
 set_interface_property M_AXIS_CH2 PORT_NAME_MAP ""
@@ -27460,8 +27460,8 @@ add_interface_port M_AXIS_CH2 m_axis_ch2_tuser tuser Output 4
 
 # Interface: S_AXIS (ipcraft:busif:axi_stream:1.0)
 add_interface S_AXIS axi4stream end
-set_interface_property S_AXIS associatedClock clk
-set_interface_property S_AXIS associatedReset reset
+set_interface_property S_AXIS associatedClock i_clk_axi
+set_interface_property S_AXIS associatedReset i_rstn_axi
 set_interface_property S_AXIS ENABLED true
 set_interface_property S_AXIS EXPORT_OF ""
 set_interface_property S_AXIS PORT_NAME_MAP ""
@@ -27479,8 +27479,8 @@ add_interface_port S_AXIS s_axis_tlast tlast Input 1
 
 # Interface: DBG (ipcraft:busif:conduit:1.0)
 add_interface DBG conduit end
-set_interface_property DBG associatedClock clk
-set_interface_property DBG associatedReset reset
+set_interface_property DBG associatedClock i_clk_axi
+set_interface_property DBG associatedReset i_rstn_axi
 set_interface_property DBG ENABLED true
 set_interface_property DBG EXPORT_OF ""
 set_interface_property DBG PORT_NAME_MAP ""
@@ -27496,8 +27496,8 @@ add_interface_port DBG dbg_trigger trigger Input 4
 
 # Conduit interface for user port: i_gpio
 add_interface i_gpio conduit end
-set_interface_property i_gpio associatedClock clk
-set_interface_property i_gpio associatedReset reset
+set_interface_property i_gpio associatedClock i_clk_axi
+set_interface_property i_gpio associatedReset i_rstn_axi
 set_interface_property i_gpio ENABLED true
 set_interface_property i_gpio EXPORT_OF ""
 set_interface_property i_gpio PORT_NAME_MAP ""
@@ -27508,8 +27508,8 @@ add_interface_port i_gpio i_gpio i_gpio Input 8
 
 # Conduit interface for user port: o_gpio
 add_interface o_gpio conduit end
-set_interface_property o_gpio associatedClock clk
-set_interface_property o_gpio associatedReset reset
+set_interface_property o_gpio associatedClock i_clk_axi
+set_interface_property o_gpio associatedReset i_rstn_axi
 set_interface_property o_gpio ENABLED true
 set_interface_property o_gpio EXPORT_OF ""
 set_interface_property o_gpio PORT_NAME_MAP ""
@@ -27519,8 +27519,8 @@ set_interface_property o_gpio SVD_ADDRESS_GROUP ""
 
 # Conduit interface for user port: o_led
 add_interface o_led conduit end
-set_interface_property o_led associatedClock clk
-set_interface_property o_led associatedReset reset
+set_interface_property o_led associatedClock i_clk_axi
+set_interface_property o_led associatedReset i_rstn_axi
 set_interface_property o_led ENABLED true
 set_interface_property o_led EXPORT_OF ""
 set_interface_property o_led PORT_NAME_MAP ""
@@ -27531,8 +27531,8 @@ add_interface_port o_led o_led o_led Output 1
 
 # Conduit interface for user port: o_fifo_level
 add_interface o_fifo_level conduit end
-set_interface_property o_fifo_level associatedClock clk
-set_interface_property o_fifo_level associatedReset reset
+set_interface_property o_fifo_level associatedClock i_clk_axi
+set_interface_property o_fifo_level associatedReset i_rstn_axi
 set_interface_property o_fifo_level ENABLED true
 set_interface_property o_fifo_level EXPORT_OF ""
 set_interface_property o_fifo_level PORT_NAME_MAP ""
@@ -27681,29 +27681,29 @@ set_parameter_property DEVICE_TAG AFFECTS_ELABORATION true
 # -----------------------------------------------------------------------------
 # Clock Interface
 # -----------------------------------------------------------------------------
-add_interface clk clock end
-set_interface_property clk clockRate 0
-set_interface_property clk ENABLED true
-set_interface_property clk EXPORT_OF ""
-set_interface_property clk PORT_NAME_MAP ""
-set_interface_property clk CMSIS_SVD_VARIABLES ""
-set_interface_property clk SVD_ADDRESS_GROUP ""
+add_interface i_clk_axi clock end
+set_interface_property i_clk_axi clockRate 0
+set_interface_property i_clk_axi ENABLED true
+set_interface_property i_clk_axi EXPORT_OF ""
+set_interface_property i_clk_axi PORT_NAME_MAP ""
+set_interface_property i_clk_axi CMSIS_SVD_VARIABLES ""
+set_interface_property i_clk_axi SVD_ADDRESS_GROUP ""
 
-add_interface_port clk i_clk_axi clk Input 1
+add_interface_port i_clk_axi i_clk_axi clk Input 1
 
 # -----------------------------------------------------------------------------
 # Reset Interface
 # -----------------------------------------------------------------------------
-add_interface reset reset end
-set_interface_property reset associatedClock clk
-set_interface_property reset synchronousEdges DEASSERT
-set_interface_property reset ENABLED true
-set_interface_property reset EXPORT_OF ""
-set_interface_property reset PORT_NAME_MAP ""
-set_interface_property reset CMSIS_SVD_VARIABLES ""
-set_interface_property reset SVD_ADDRESS_GROUP ""
+add_interface i_rstn_axi reset end
+set_interface_property i_rstn_axi associatedClock i_clk_axi
+set_interface_property i_rstn_axi synchronousEdges DEASSERT
+set_interface_property i_rstn_axi ENABLED true
+set_interface_property i_rstn_axi EXPORT_OF ""
+set_interface_property i_rstn_axi PORT_NAME_MAP ""
+set_interface_property i_rstn_axi CMSIS_SVD_VARIABLES ""
+set_interface_property i_rstn_axi SVD_ADDRESS_GROUP ""
 
-add_interface_port reset i_rstn_axi reset_n Input 1
+add_interface_port i_rstn_axi i_rstn_axi reset_n Input 1
 
 # Secondary clock: i_clk_proc
 add_interface i_clk_proc clock end
@@ -27723,8 +27723,8 @@ add_interface_port i_rst_proc i_rst_proc reset Input 1
 
 # Interface: S_AXI (ipcraft:busif:axi4_lite:1.0)
 add_interface S_AXI axi4lite end
-set_interface_property S_AXI associatedClock clk
-set_interface_property S_AXI associatedReset reset
+set_interface_property S_AXI associatedClock i_clk_axi
+set_interface_property S_AXI associatedReset i_rstn_axi
 set_interface_property S_AXI ENABLED true
 set_interface_property S_AXI EXPORT_OF ""
 set_interface_property S_AXI PORT_NAME_MAP ""
@@ -27757,8 +27757,8 @@ add_interface_port S_AXI s_axi_rready rready Input 1
 
 # Interface: M_AXI (ipcraft:busif:axi4_full:1.0)
 add_interface M_AXI axi4 start
-set_interface_property M_AXI associatedClock clk
-set_interface_property M_AXI associatedReset reset
+set_interface_property M_AXI associatedClock i_clk_axi
+set_interface_property M_AXI associatedReset i_rstn_axi
 set_interface_property M_AXI ENABLED true
 set_interface_property M_AXI EXPORT_OF ""
 set_interface_property M_AXI PORT_NAME_MAP ""
@@ -27807,8 +27807,8 @@ add_interface_port M_AXI m_axi_rready rready Output 1
 
 # Interface: M_AXIS_CH1 (ipcraft:busif:axi_stream:1.0)
 add_interface M_AXIS_CH1 axi4stream start
-set_interface_property M_AXIS_CH1 associatedClock clk
-set_interface_property M_AXIS_CH1 associatedReset reset
+set_interface_property M_AXIS_CH1 associatedClock i_clk_axi
+set_interface_property M_AXIS_CH1 associatedReset i_rstn_axi
 set_interface_property M_AXIS_CH1 ENABLED true
 set_interface_property M_AXIS_CH1 EXPORT_OF ""
 set_interface_property M_AXIS_CH1 PORT_NAME_MAP ""
@@ -27828,8 +27828,8 @@ add_interface_port M_AXIS_CH1 m_axis_ch1_tuser tuser Output 4
 
 # Interface: M_AXIS_CH2 (ipcraft:busif:axi_stream:1.0)
 add_interface M_AXIS_CH2 axi4stream start
-set_interface_property M_AXIS_CH2 associatedClock clk
-set_interface_property M_AXIS_CH2 associatedReset reset
+set_interface_property M_AXIS_CH2 associatedClock i_clk_axi
+set_interface_property M_AXIS_CH2 associatedReset i_rstn_axi
 set_interface_property M_AXIS_CH2 ENABLED true
 set_interface_property M_AXIS_CH2 EXPORT_OF ""
 set_interface_property M_AXIS_CH2 PORT_NAME_MAP ""
@@ -27849,8 +27849,8 @@ add_interface_port M_AXIS_CH2 m_axis_ch2_tuser tuser Output 4
 
 # Interface: S_AXIS (ipcraft:busif:axi_stream:1.0)
 add_interface S_AXIS axi4stream end
-set_interface_property S_AXIS associatedClock clk
-set_interface_property S_AXIS associatedReset reset
+set_interface_property S_AXIS associatedClock i_clk_axi
+set_interface_property S_AXIS associatedReset i_rstn_axi
 set_interface_property S_AXIS ENABLED true
 set_interface_property S_AXIS EXPORT_OF ""
 set_interface_property S_AXIS PORT_NAME_MAP ""
@@ -27868,8 +27868,8 @@ add_interface_port S_AXIS s_axis_tlast tlast Input 1
 
 # Interface: DBG (ipcraft:busif:conduit:1.0)
 add_interface DBG conduit end
-set_interface_property DBG associatedClock clk
-set_interface_property DBG associatedReset reset
+set_interface_property DBG associatedClock i_clk_axi
+set_interface_property DBG associatedReset i_rstn_axi
 set_interface_property DBG ENABLED true
 set_interface_property DBG EXPORT_OF ""
 set_interface_property DBG PORT_NAME_MAP ""
@@ -27885,8 +27885,8 @@ add_interface_port DBG dbg_trigger trigger Input 4
 
 # Conduit interface for user port: i_gpio
 add_interface i_gpio conduit end
-set_interface_property i_gpio associatedClock clk
-set_interface_property i_gpio associatedReset reset
+set_interface_property i_gpio associatedClock i_clk_axi
+set_interface_property i_gpio associatedReset i_rstn_axi
 set_interface_property i_gpio ENABLED true
 set_interface_property i_gpio EXPORT_OF ""
 set_interface_property i_gpio PORT_NAME_MAP ""
@@ -27897,8 +27897,8 @@ add_interface_port i_gpio i_gpio i_gpio Input 8
 
 # Conduit interface for user port: o_gpio
 add_interface o_gpio conduit end
-set_interface_property o_gpio associatedClock clk
-set_interface_property o_gpio associatedReset reset
+set_interface_property o_gpio associatedClock i_clk_axi
+set_interface_property o_gpio associatedReset i_rstn_axi
 set_interface_property o_gpio ENABLED true
 set_interface_property o_gpio EXPORT_OF ""
 set_interface_property o_gpio PORT_NAME_MAP ""
@@ -27908,8 +27908,8 @@ set_interface_property o_gpio SVD_ADDRESS_GROUP ""
 
 # Conduit interface for user port: o_led
 add_interface o_led conduit end
-set_interface_property o_led associatedClock clk
-set_interface_property o_led associatedReset reset
+set_interface_property o_led associatedClock i_clk_axi
+set_interface_property o_led associatedReset i_rstn_axi
 set_interface_property o_led ENABLED true
 set_interface_property o_led EXPORT_OF ""
 set_interface_property o_led PORT_NAME_MAP ""
@@ -27920,8 +27920,8 @@ add_interface_port o_led o_led o_led Output 1
 
 # Conduit interface for user port: o_fifo_level
 add_interface o_fifo_level conduit end
-set_interface_property o_fifo_level associatedClock clk
-set_interface_property o_fifo_level associatedReset reset
+set_interface_property o_fifo_level associatedClock i_clk_axi
+set_interface_property o_fifo_level associatedReset i_rstn_axi
 set_interface_property o_fifo_level ENABLED true
 set_interface_property o_fifo_level EXPORT_OF ""
 set_interface_property o_fifo_level PORT_NAME_MAP ""
@@ -28031,16 +28031,16 @@ add_interface_port clk clk clk Input 1
 # -----------------------------------------------------------------------------
 # Reset Interface
 # -----------------------------------------------------------------------------
-add_interface reset reset end
-set_interface_property reset associatedClock clk
-set_interface_property reset synchronousEdges DEASSERT
-set_interface_property reset ENABLED true
-set_interface_property reset EXPORT_OF ""
-set_interface_property reset PORT_NAME_MAP ""
-set_interface_property reset CMSIS_SVD_VARIABLES ""
-set_interface_property reset SVD_ADDRESS_GROUP ""
+add_interface rst reset end
+set_interface_property rst associatedClock clk
+set_interface_property rst synchronousEdges DEASSERT
+set_interface_property rst ENABLED true
+set_interface_property rst EXPORT_OF ""
+set_interface_property rst PORT_NAME_MAP ""
+set_interface_property rst CMSIS_SVD_VARIABLES ""
+set_interface_property rst SVD_ADDRESS_GROUP ""
 
-add_interface_port reset rst reset Input 1
+add_interface_port rst rst reset Input 1
 
 # -----------------------------------------------------------------------------
 # Bus Interfaces (Generic)
@@ -28116,16 +28116,16 @@ add_interface_port clk clk clk Input 1
 # -----------------------------------------------------------------------------
 # Reset Interface
 # -----------------------------------------------------------------------------
-add_interface reset reset end
-set_interface_property reset associatedClock clk
-set_interface_property reset synchronousEdges DEASSERT
-set_interface_property reset ENABLED true
-set_interface_property reset EXPORT_OF ""
-set_interface_property reset PORT_NAME_MAP ""
-set_interface_property reset CMSIS_SVD_VARIABLES ""
-set_interface_property reset SVD_ADDRESS_GROUP ""
+add_interface rst reset end
+set_interface_property rst associatedClock clk
+set_interface_property rst synchronousEdges DEASSERT
+set_interface_property rst ENABLED true
+set_interface_property rst EXPORT_OF ""
+set_interface_property rst PORT_NAME_MAP ""
+set_interface_property rst CMSIS_SVD_VARIABLES ""
+set_interface_property rst SVD_ADDRESS_GROUP ""
 
-add_interface_port reset rst reset Input 1
+add_interface_port rst rst reset Input 1
 
 # -----------------------------------------------------------------------------
 # Bus Interfaces (Generic)
@@ -28198,29 +28198,29 @@ set_parameter_property NUM_CHANNELS AFFECTS_ELABORATION true
 # -----------------------------------------------------------------------------
 # Clock Interface
 # -----------------------------------------------------------------------------
-add_interface clk clock end
-set_interface_property clk clockRate 0
-set_interface_property clk ENABLED true
-set_interface_property clk EXPORT_OF ""
-set_interface_property clk PORT_NAME_MAP ""
-set_interface_property clk CMSIS_SVD_VARIABLES ""
-set_interface_property clk SVD_ADDRESS_GROUP ""
+add_interface i_clk_sys clock end
+set_interface_property i_clk_sys clockRate 0
+set_interface_property i_clk_sys ENABLED true
+set_interface_property i_clk_sys EXPORT_OF ""
+set_interface_property i_clk_sys PORT_NAME_MAP ""
+set_interface_property i_clk_sys CMSIS_SVD_VARIABLES ""
+set_interface_property i_clk_sys SVD_ADDRESS_GROUP ""
 
-add_interface_port clk i_clk_sys clk Input 1
+add_interface_port i_clk_sys i_clk_sys clk Input 1
 
 # -----------------------------------------------------------------------------
 # Reset Interface
 # -----------------------------------------------------------------------------
-add_interface reset reset end
-set_interface_property reset associatedClock clk
-set_interface_property reset synchronousEdges DEASSERT
-set_interface_property reset ENABLED true
-set_interface_property reset EXPORT_OF ""
-set_interface_property reset PORT_NAME_MAP ""
-set_interface_property reset CMSIS_SVD_VARIABLES ""
-set_interface_property reset SVD_ADDRESS_GROUP ""
+add_interface i_rst_n_sys reset end
+set_interface_property i_rst_n_sys associatedClock i_clk_sys
+set_interface_property i_rst_n_sys synchronousEdges DEASSERT
+set_interface_property i_rst_n_sys ENABLED true
+set_interface_property i_rst_n_sys EXPORT_OF ""
+set_interface_property i_rst_n_sys PORT_NAME_MAP ""
+set_interface_property i_rst_n_sys CMSIS_SVD_VARIABLES ""
+set_interface_property i_rst_n_sys SVD_ADDRESS_GROUP ""
 
-add_interface_port reset i_rst_n_sys reset_n Input 1
+add_interface_port i_rst_n_sys i_rst_n_sys reset_n Input 1
 
 # Secondary clock: i_clk_reg
 add_interface i_clk_reg clock end
@@ -28240,8 +28240,8 @@ add_interface_port i_rst_p_reg i_rst_p_reg reset Input 1
 
 # Interface: S_AXI_LITE (ipcraft:busif:axi4_lite:1.0)
 add_interface S_AXI_LITE axi4lite end
-set_interface_property S_AXI_LITE associatedClock clk
-set_interface_property S_AXI_LITE associatedReset reset
+set_interface_property S_AXI_LITE associatedClock i_clk_sys
+set_interface_property S_AXI_LITE associatedReset i_rst_n_sys
 set_interface_property S_AXI_LITE ENABLED true
 set_interface_property S_AXI_LITE EXPORT_OF ""
 set_interface_property S_AXI_LITE PORT_NAME_MAP ""
@@ -28274,8 +28274,8 @@ add_interface_port S_AXI_LITE s_axi_rready rready Input 1
 
 # Interface: M_AXIS_CH0_OUT (ipcraft:busif:axi_stream:1.0)
 add_interface M_AXIS_CH0_OUT axi4stream start
-set_interface_property M_AXIS_CH0_OUT associatedClock clk
-set_interface_property M_AXIS_CH0_OUT associatedReset reset
+set_interface_property M_AXIS_CH0_OUT associatedClock i_clk_sys
+set_interface_property M_AXIS_CH0_OUT associatedReset i_rst_n_sys
 set_interface_property M_AXIS_CH0_OUT ENABLED true
 set_interface_property M_AXIS_CH0_OUT EXPORT_OF ""
 set_interface_property M_AXIS_CH0_OUT PORT_NAME_MAP ""
@@ -28294,8 +28294,8 @@ add_interface_port M_AXIS_CH0_OUT m_axis_ch0_tuser tuser Output 1
 
 # Interface: M_AXIS_CH1_OUT (ipcraft:busif:axi_stream:1.0)
 add_interface M_AXIS_CH1_OUT axi4stream start
-set_interface_property M_AXIS_CH1_OUT associatedClock clk
-set_interface_property M_AXIS_CH1_OUT associatedReset reset
+set_interface_property M_AXIS_CH1_OUT associatedClock i_clk_sys
+set_interface_property M_AXIS_CH1_OUT associatedReset i_rst_n_sys
 set_interface_property M_AXIS_CH1_OUT ENABLED true
 set_interface_property M_AXIS_CH1_OUT EXPORT_OF ""
 set_interface_property M_AXIS_CH1_OUT PORT_NAME_MAP ""
@@ -28314,8 +28314,8 @@ add_interface_port M_AXIS_CH1_OUT m_axis_ch1_tuser tuser Output 1
 
 # Interface: M_AXIS_CH2_OUT (ipcraft:busif:axi_stream:1.0)
 add_interface M_AXIS_CH2_OUT axi4stream start
-set_interface_property M_AXIS_CH2_OUT associatedClock clk
-set_interface_property M_AXIS_CH2_OUT associatedReset reset
+set_interface_property M_AXIS_CH2_OUT associatedClock i_clk_sys
+set_interface_property M_AXIS_CH2_OUT associatedReset i_rst_n_sys
 set_interface_property M_AXIS_CH2_OUT ENABLED true
 set_interface_property M_AXIS_CH2_OUT EXPORT_OF ""
 set_interface_property M_AXIS_CH2_OUT PORT_NAME_MAP ""
@@ -28334,8 +28334,8 @@ add_interface_port M_AXIS_CH2_OUT m_axis_ch2_tuser tuser Output 1
 
 # Interface: M_AXIS_CH3_OUT (ipcraft:busif:axi_stream:1.0)
 add_interface M_AXIS_CH3_OUT axi4stream start
-set_interface_property M_AXIS_CH3_OUT associatedClock clk
-set_interface_property M_AXIS_CH3_OUT associatedReset reset
+set_interface_property M_AXIS_CH3_OUT associatedClock i_clk_sys
+set_interface_property M_AXIS_CH3_OUT associatedReset i_rst_n_sys
 set_interface_property M_AXIS_CH3_OUT ENABLED true
 set_interface_property M_AXIS_CH3_OUT EXPORT_OF ""
 set_interface_property M_AXIS_CH3_OUT PORT_NAME_MAP ""
@@ -28354,8 +28354,8 @@ add_interface_port M_AXIS_CH3_OUT m_axis_ch3_tuser tuser Output 1
 
 # Interface: S_AXIS_IN (ipcraft:busif:axi_stream:1.0)
 add_interface S_AXIS_IN axi4stream end
-set_interface_property S_AXIS_IN associatedClock clk
-set_interface_property S_AXIS_IN associatedReset reset
+set_interface_property S_AXIS_IN associatedClock i_clk_sys
+set_interface_property S_AXIS_IN associatedReset i_rst_n_sys
 set_interface_property S_AXIS_IN ENABLED true
 set_interface_property S_AXIS_IN EXPORT_OF ""
 set_interface_property S_AXIS_IN PORT_NAME_MAP ""
@@ -28372,8 +28372,8 @@ add_interface_port S_AXIS_IN s_axis_tready tready Output 1
 
 # Conduit interface for user port: i_active_channel
 add_interface i_active_channel conduit end
-set_interface_property i_active_channel associatedClock clk
-set_interface_property i_active_channel associatedReset reset
+set_interface_property i_active_channel associatedClock i_clk_sys
+set_interface_property i_active_channel associatedReset i_rst_n_sys
 set_interface_property i_active_channel ENABLED true
 set_interface_property i_active_channel EXPORT_OF ""
 set_interface_property i_active_channel PORT_NAME_MAP ""
@@ -28463,29 +28463,29 @@ set_parameter_property NUM_CHANNELS AFFECTS_ELABORATION true
 # -----------------------------------------------------------------------------
 # Clock Interface
 # -----------------------------------------------------------------------------
-add_interface clk clock end
-set_interface_property clk clockRate 0
-set_interface_property clk ENABLED true
-set_interface_property clk EXPORT_OF ""
-set_interface_property clk PORT_NAME_MAP ""
-set_interface_property clk CMSIS_SVD_VARIABLES ""
-set_interface_property clk SVD_ADDRESS_GROUP ""
+add_interface i_clk_sys clock end
+set_interface_property i_clk_sys clockRate 0
+set_interface_property i_clk_sys ENABLED true
+set_interface_property i_clk_sys EXPORT_OF ""
+set_interface_property i_clk_sys PORT_NAME_MAP ""
+set_interface_property i_clk_sys CMSIS_SVD_VARIABLES ""
+set_interface_property i_clk_sys SVD_ADDRESS_GROUP ""
 
-add_interface_port clk i_clk_sys clk Input 1
+add_interface_port i_clk_sys i_clk_sys clk Input 1
 
 # -----------------------------------------------------------------------------
 # Reset Interface
 # -----------------------------------------------------------------------------
-add_interface reset reset end
-set_interface_property reset associatedClock clk
-set_interface_property reset synchronousEdges DEASSERT
-set_interface_property reset ENABLED true
-set_interface_property reset EXPORT_OF ""
-set_interface_property reset PORT_NAME_MAP ""
-set_interface_property reset CMSIS_SVD_VARIABLES ""
-set_interface_property reset SVD_ADDRESS_GROUP ""
+add_interface i_rst_n_sys reset end
+set_interface_property i_rst_n_sys associatedClock i_clk_sys
+set_interface_property i_rst_n_sys synchronousEdges DEASSERT
+set_interface_property i_rst_n_sys ENABLED true
+set_interface_property i_rst_n_sys EXPORT_OF ""
+set_interface_property i_rst_n_sys PORT_NAME_MAP ""
+set_interface_property i_rst_n_sys CMSIS_SVD_VARIABLES ""
+set_interface_property i_rst_n_sys SVD_ADDRESS_GROUP ""
 
-add_interface_port reset i_rst_n_sys reset_n Input 1
+add_interface_port i_rst_n_sys i_rst_n_sys reset_n Input 1
 
 # Secondary clock: i_clk_reg
 add_interface i_clk_reg clock end
@@ -28505,8 +28505,8 @@ add_interface_port i_rst_p_reg i_rst_p_reg reset Input 1
 
 # Interface: S_AXI_LITE (ipcraft:busif:axi4_lite:1.0)
 add_interface S_AXI_LITE axi4lite end
-set_interface_property S_AXI_LITE associatedClock clk
-set_interface_property S_AXI_LITE associatedReset reset
+set_interface_property S_AXI_LITE associatedClock i_clk_sys
+set_interface_property S_AXI_LITE associatedReset i_rst_n_sys
 set_interface_property S_AXI_LITE ENABLED true
 set_interface_property S_AXI_LITE EXPORT_OF ""
 set_interface_property S_AXI_LITE PORT_NAME_MAP ""
@@ -28539,8 +28539,8 @@ add_interface_port S_AXI_LITE s_axi_rready rready Input 1
 
 # Interface: M_AXIS_CH0_OUT (ipcraft:busif:axi_stream:1.0)
 add_interface M_AXIS_CH0_OUT axi4stream start
-set_interface_property M_AXIS_CH0_OUT associatedClock clk
-set_interface_property M_AXIS_CH0_OUT associatedReset reset
+set_interface_property M_AXIS_CH0_OUT associatedClock i_clk_sys
+set_interface_property M_AXIS_CH0_OUT associatedReset i_rst_n_sys
 set_interface_property M_AXIS_CH0_OUT ENABLED true
 set_interface_property M_AXIS_CH0_OUT EXPORT_OF ""
 set_interface_property M_AXIS_CH0_OUT PORT_NAME_MAP ""
@@ -28559,8 +28559,8 @@ add_interface_port M_AXIS_CH0_OUT m_axis_ch0_tuser tuser Output 1
 
 # Interface: M_AXIS_CH1_OUT (ipcraft:busif:axi_stream:1.0)
 add_interface M_AXIS_CH1_OUT axi4stream start
-set_interface_property M_AXIS_CH1_OUT associatedClock clk
-set_interface_property M_AXIS_CH1_OUT associatedReset reset
+set_interface_property M_AXIS_CH1_OUT associatedClock i_clk_sys
+set_interface_property M_AXIS_CH1_OUT associatedReset i_rst_n_sys
 set_interface_property M_AXIS_CH1_OUT ENABLED true
 set_interface_property M_AXIS_CH1_OUT EXPORT_OF ""
 set_interface_property M_AXIS_CH1_OUT PORT_NAME_MAP ""
@@ -28579,8 +28579,8 @@ add_interface_port M_AXIS_CH1_OUT m_axis_ch1_tuser tuser Output 1
 
 # Interface: M_AXIS_CH2_OUT (ipcraft:busif:axi_stream:1.0)
 add_interface M_AXIS_CH2_OUT axi4stream start
-set_interface_property M_AXIS_CH2_OUT associatedClock clk
-set_interface_property M_AXIS_CH2_OUT associatedReset reset
+set_interface_property M_AXIS_CH2_OUT associatedClock i_clk_sys
+set_interface_property M_AXIS_CH2_OUT associatedReset i_rst_n_sys
 set_interface_property M_AXIS_CH2_OUT ENABLED true
 set_interface_property M_AXIS_CH2_OUT EXPORT_OF ""
 set_interface_property M_AXIS_CH2_OUT PORT_NAME_MAP ""
@@ -28599,8 +28599,8 @@ add_interface_port M_AXIS_CH2_OUT m_axis_ch2_tuser tuser Output 1
 
 # Interface: M_AXIS_CH3_OUT (ipcraft:busif:axi_stream:1.0)
 add_interface M_AXIS_CH3_OUT axi4stream start
-set_interface_property M_AXIS_CH3_OUT associatedClock clk
-set_interface_property M_AXIS_CH3_OUT associatedReset reset
+set_interface_property M_AXIS_CH3_OUT associatedClock i_clk_sys
+set_interface_property M_AXIS_CH3_OUT associatedReset i_rst_n_sys
 set_interface_property M_AXIS_CH3_OUT ENABLED true
 set_interface_property M_AXIS_CH3_OUT EXPORT_OF ""
 set_interface_property M_AXIS_CH3_OUT PORT_NAME_MAP ""
@@ -28619,8 +28619,8 @@ add_interface_port M_AXIS_CH3_OUT m_axis_ch3_tuser tuser Output 1
 
 # Interface: S_AXIS_IN (ipcraft:busif:axi_stream:1.0)
 add_interface S_AXIS_IN axi4stream end
-set_interface_property S_AXIS_IN associatedClock clk
-set_interface_property S_AXIS_IN associatedReset reset
+set_interface_property S_AXIS_IN associatedClock i_clk_sys
+set_interface_property S_AXIS_IN associatedReset i_rst_n_sys
 set_interface_property S_AXIS_IN ENABLED true
 set_interface_property S_AXIS_IN EXPORT_OF ""
 set_interface_property S_AXIS_IN PORT_NAME_MAP ""
@@ -28637,8 +28637,8 @@ add_interface_port S_AXIS_IN s_axis_tready tready Output 1
 
 # Conduit interface for user port: i_active_channel
 add_interface i_active_channel conduit end
-set_interface_property i_active_channel associatedClock clk
-set_interface_property i_active_channel associatedReset reset
+set_interface_property i_active_channel associatedClock i_clk_sys
+set_interface_property i_active_channel associatedReset i_rst_n_sys
 set_interface_property i_active_channel ENABLED true
 set_interface_property i_active_channel EXPORT_OF ""
 set_interface_property i_active_channel PORT_NAME_MAP ""
@@ -28758,29 +28758,29 @@ set_parameter_property ENABLE_DMA AFFECTS_ELABORATION true
 # -----------------------------------------------------------------------------
 # Clock Interface
 # -----------------------------------------------------------------------------
-add_interface clk clock end
-set_interface_property clk clockRate 0
-set_interface_property clk ENABLED true
-set_interface_property clk EXPORT_OF ""
-set_interface_property clk PORT_NAME_MAP ""
-set_interface_property clk CMSIS_SVD_VARIABLES ""
-set_interface_property clk SVD_ADDRESS_GROUP ""
+add_interface CLK_SYS clock end
+set_interface_property CLK_SYS clockRate 0
+set_interface_property CLK_SYS ENABLED true
+set_interface_property CLK_SYS EXPORT_OF ""
+set_interface_property CLK_SYS PORT_NAME_MAP ""
+set_interface_property CLK_SYS CMSIS_SVD_VARIABLES ""
+set_interface_property CLK_SYS SVD_ADDRESS_GROUP ""
 
-add_interface_port clk CLK_SYS clk Input 1
+add_interface_port CLK_SYS CLK_SYS clk Input 1
 
 # -----------------------------------------------------------------------------
 # Reset Interface
 # -----------------------------------------------------------------------------
-add_interface reset reset end
-set_interface_property reset associatedClock clk
-set_interface_property reset synchronousEdges DEASSERT
-set_interface_property reset ENABLED true
-set_interface_property reset EXPORT_OF ""
-set_interface_property reset PORT_NAME_MAP ""
-set_interface_property reset CMSIS_SVD_VARIABLES ""
-set_interface_property reset SVD_ADDRESS_GROUP ""
+add_interface RST_SYS reset end
+set_interface_property RST_SYS associatedClock CLK_SYS
+set_interface_property RST_SYS synchronousEdges DEASSERT
+set_interface_property RST_SYS ENABLED true
+set_interface_property RST_SYS EXPORT_OF ""
+set_interface_property RST_SYS PORT_NAME_MAP ""
+set_interface_property RST_SYS CMSIS_SVD_VARIABLES ""
+set_interface_property RST_SYS SVD_ADDRESS_GROUP ""
 
-add_interface_port reset RST_SYS reset_n Input 1
+add_interface_port RST_SYS RST_SYS reset_n Input 1
 
 # Secondary clock: CLK_AXI
 add_interface CLK_AXI clock end
@@ -28854,8 +28854,8 @@ add_interface_port RST_AUX RST_AUX reset Input 1
 
 # Interface: control_reg (ipcraft:busif:axi4_lite:1.0)
 add_interface control_reg axi4lite end
-set_interface_property control_reg associatedClock clk
-set_interface_property control_reg associatedReset reset
+set_interface_property control_reg associatedClock CLK_SYS
+set_interface_property control_reg associatedReset RST_SYS
 set_interface_property control_reg ENABLED true
 set_interface_property control_reg EXPORT_OF ""
 set_interface_property control_reg PORT_NAME_MAP ""
@@ -28888,8 +28888,8 @@ add_interface_port control_reg s_axi_ctrl_rready rready Input 1
 
 # Interface: dma_control (ipcraft:busif:axi4_lite:1.0)
 add_interface dma_control axi4lite end
-set_interface_property dma_control associatedClock clk
-set_interface_property dma_control associatedReset reset
+set_interface_property dma_control associatedClock CLK_SYS
+set_interface_property dma_control associatedReset RST_SYS
 set_interface_property dma_control ENABLED true
 set_interface_property dma_control EXPORT_OF ""
 set_interface_property dma_control PORT_NAME_MAP ""
@@ -28922,8 +28922,8 @@ add_interface_port dma_control s_axi_dma_rready rready Input 1
 
 # Interface: memory_port (ipcraft:busif:axi4_lite:1.0)
 add_interface memory_port axi4lite start
-set_interface_property memory_port associatedClock clk
-set_interface_property memory_port associatedReset reset
+set_interface_property memory_port associatedClock CLK_SYS
+set_interface_property memory_port associatedReset RST_SYS
 set_interface_property memory_port ENABLED true
 set_interface_property memory_port EXPORT_OF ""
 set_interface_property memory_port PORT_NAME_MAP ""
@@ -28956,8 +28956,8 @@ add_interface_port memory_port m_axi_mem_rready rready Output 1
 
 # Interface: data_stream_in (ipcraft:busif:axi_stream:1.0)
 add_interface data_stream_in axi4stream end
-set_interface_property data_stream_in associatedClock clk
-set_interface_property data_stream_in associatedReset reset
+set_interface_property data_stream_in associatedClock CLK_SYS
+set_interface_property data_stream_in associatedReset RST_SYS
 set_interface_property data_stream_in ENABLED true
 set_interface_property data_stream_in EXPORT_OF ""
 set_interface_property data_stream_in PORT_NAME_MAP ""
@@ -28974,8 +28974,8 @@ add_interface_port data_stream_in s_axis_data_tready tready Output 1
 
 # Interface: data_stream_out (ipcraft:busif:axi_stream:1.0)
 add_interface data_stream_out axi4stream start
-set_interface_property data_stream_out associatedClock clk
-set_interface_property data_stream_out associatedReset reset
+set_interface_property data_stream_out associatedClock CLK_SYS
+set_interface_property data_stream_out associatedReset RST_SYS
 set_interface_property data_stream_out ENABLED true
 set_interface_property data_stream_out EXPORT_OF ""
 set_interface_property data_stream_out PORT_NAME_MAP ""
@@ -28992,8 +28992,8 @@ add_interface_port data_stream_out m_axis_data_tready tready Input 1
 
 # Interface: pcie_interface (ipcraft:busif:axi4_lite:1.0)
 add_interface pcie_interface axi4lite start
-set_interface_property pcie_interface associatedClock clk
-set_interface_property pcie_interface associatedReset reset
+set_interface_property pcie_interface associatedClock CLK_SYS
+set_interface_property pcie_interface associatedReset RST_SYS
 set_interface_property pcie_interface ENABLED true
 set_interface_property pcie_interface EXPORT_OF ""
 set_interface_property pcie_interface PORT_NAME_MAP ""
@@ -29026,8 +29026,8 @@ add_interface_port pcie_interface m_axi_pcie_rready rready Output 1
 
 # Interface: usb_data_in (ipcraft:busif:axi_stream:1.0)
 add_interface usb_data_in axi4stream end
-set_interface_property usb_data_in associatedClock clk
-set_interface_property usb_data_in associatedReset reset
+set_interface_property usb_data_in associatedClock CLK_SYS
+set_interface_property usb_data_in associatedReset RST_SYS
 set_interface_property usb_data_in ENABLED true
 set_interface_property usb_data_in EXPORT_OF ""
 set_interface_property usb_data_in PORT_NAME_MAP ""
@@ -29044,8 +29044,8 @@ add_interface_port usb_data_in s_axis_usb_tready tready Output 1
 
 # Interface: usb_data_out (ipcraft:busif:axi_stream:1.0)
 add_interface usb_data_out axi4stream start
-set_interface_property usb_data_out associatedClock clk
-set_interface_property usb_data_out associatedReset reset
+set_interface_property usb_data_out associatedClock CLK_SYS
+set_interface_property usb_data_out associatedReset RST_SYS
 set_interface_property usb_data_out ENABLED true
 set_interface_property usb_data_out EXPORT_OF ""
 set_interface_property usb_data_out PORT_NAME_MAP ""
@@ -29164,29 +29164,29 @@ set_parameter_property ENABLE_DMA AFFECTS_ELABORATION true
 # -----------------------------------------------------------------------------
 # Clock Interface
 # -----------------------------------------------------------------------------
-add_interface clk clock end
-set_interface_property clk clockRate 0
-set_interface_property clk ENABLED true
-set_interface_property clk EXPORT_OF ""
-set_interface_property clk PORT_NAME_MAP ""
-set_interface_property clk CMSIS_SVD_VARIABLES ""
-set_interface_property clk SVD_ADDRESS_GROUP ""
+add_interface CLK_SYS clock end
+set_interface_property CLK_SYS clockRate 0
+set_interface_property CLK_SYS ENABLED true
+set_interface_property CLK_SYS EXPORT_OF ""
+set_interface_property CLK_SYS PORT_NAME_MAP ""
+set_interface_property CLK_SYS CMSIS_SVD_VARIABLES ""
+set_interface_property CLK_SYS SVD_ADDRESS_GROUP ""
 
-add_interface_port clk CLK_SYS clk Input 1
+add_interface_port CLK_SYS CLK_SYS clk Input 1
 
 # -----------------------------------------------------------------------------
 # Reset Interface
 # -----------------------------------------------------------------------------
-add_interface reset reset end
-set_interface_property reset associatedClock clk
-set_interface_property reset synchronousEdges DEASSERT
-set_interface_property reset ENABLED true
-set_interface_property reset EXPORT_OF ""
-set_interface_property reset PORT_NAME_MAP ""
-set_interface_property reset CMSIS_SVD_VARIABLES ""
-set_interface_property reset SVD_ADDRESS_GROUP ""
+add_interface RST_SYS reset end
+set_interface_property RST_SYS associatedClock CLK_SYS
+set_interface_property RST_SYS synchronousEdges DEASSERT
+set_interface_property RST_SYS ENABLED true
+set_interface_property RST_SYS EXPORT_OF ""
+set_interface_property RST_SYS PORT_NAME_MAP ""
+set_interface_property RST_SYS CMSIS_SVD_VARIABLES ""
+set_interface_property RST_SYS SVD_ADDRESS_GROUP ""
 
-add_interface_port reset RST_SYS reset_n Input 1
+add_interface_port RST_SYS RST_SYS reset_n Input 1
 
 # Secondary clock: CLK_AXI
 add_interface CLK_AXI clock end
@@ -29260,8 +29260,8 @@ add_interface_port RST_AUX RST_AUX reset Input 1
 
 # Interface: control_reg (ipcraft:busif:axi4_lite:1.0)
 add_interface control_reg axi4lite end
-set_interface_property control_reg associatedClock clk
-set_interface_property control_reg associatedReset reset
+set_interface_property control_reg associatedClock CLK_SYS
+set_interface_property control_reg associatedReset RST_SYS
 set_interface_property control_reg ENABLED true
 set_interface_property control_reg EXPORT_OF ""
 set_interface_property control_reg PORT_NAME_MAP ""
@@ -29294,8 +29294,8 @@ add_interface_port control_reg s_axi_ctrl_rready rready Input 1
 
 # Interface: dma_control (ipcraft:busif:axi4_lite:1.0)
 add_interface dma_control axi4lite end
-set_interface_property dma_control associatedClock clk
-set_interface_property dma_control associatedReset reset
+set_interface_property dma_control associatedClock CLK_SYS
+set_interface_property dma_control associatedReset RST_SYS
 set_interface_property dma_control ENABLED true
 set_interface_property dma_control EXPORT_OF ""
 set_interface_property dma_control PORT_NAME_MAP ""
@@ -29328,8 +29328,8 @@ add_interface_port dma_control s_axi_dma_rready rready Input 1
 
 # Interface: memory_port (ipcraft:busif:axi4_lite:1.0)
 add_interface memory_port axi4lite start
-set_interface_property memory_port associatedClock clk
-set_interface_property memory_port associatedReset reset
+set_interface_property memory_port associatedClock CLK_SYS
+set_interface_property memory_port associatedReset RST_SYS
 set_interface_property memory_port ENABLED true
 set_interface_property memory_port EXPORT_OF ""
 set_interface_property memory_port PORT_NAME_MAP ""
@@ -29362,8 +29362,8 @@ add_interface_port memory_port m_axi_mem_rready rready Output 1
 
 # Interface: data_stream_in (ipcraft:busif:axi_stream:1.0)
 add_interface data_stream_in axi4stream end
-set_interface_property data_stream_in associatedClock clk
-set_interface_property data_stream_in associatedReset reset
+set_interface_property data_stream_in associatedClock CLK_SYS
+set_interface_property data_stream_in associatedReset RST_SYS
 set_interface_property data_stream_in ENABLED true
 set_interface_property data_stream_in EXPORT_OF ""
 set_interface_property data_stream_in PORT_NAME_MAP ""
@@ -29380,8 +29380,8 @@ add_interface_port data_stream_in s_axis_data_tready tready Output 1
 
 # Interface: data_stream_out (ipcraft:busif:axi_stream:1.0)
 add_interface data_stream_out axi4stream start
-set_interface_property data_stream_out associatedClock clk
-set_interface_property data_stream_out associatedReset reset
+set_interface_property data_stream_out associatedClock CLK_SYS
+set_interface_property data_stream_out associatedReset RST_SYS
 set_interface_property data_stream_out ENABLED true
 set_interface_property data_stream_out EXPORT_OF ""
 set_interface_property data_stream_out PORT_NAME_MAP ""
@@ -29398,8 +29398,8 @@ add_interface_port data_stream_out m_axis_data_tready tready Input 1
 
 # Interface: pcie_interface (ipcraft:busif:axi4_lite:1.0)
 add_interface pcie_interface axi4lite start
-set_interface_property pcie_interface associatedClock clk
-set_interface_property pcie_interface associatedReset reset
+set_interface_property pcie_interface associatedClock CLK_SYS
+set_interface_property pcie_interface associatedReset RST_SYS
 set_interface_property pcie_interface ENABLED true
 set_interface_property pcie_interface EXPORT_OF ""
 set_interface_property pcie_interface PORT_NAME_MAP ""
@@ -29432,8 +29432,8 @@ add_interface_port pcie_interface m_axi_pcie_rready rready Output 1
 
 # Interface: usb_data_in (ipcraft:busif:axi_stream:1.0)
 add_interface usb_data_in axi4stream end
-set_interface_property usb_data_in associatedClock clk
-set_interface_property usb_data_in associatedReset reset
+set_interface_property usb_data_in associatedClock CLK_SYS
+set_interface_property usb_data_in associatedReset RST_SYS
 set_interface_property usb_data_in ENABLED true
 set_interface_property usb_data_in EXPORT_OF ""
 set_interface_property usb_data_in PORT_NAME_MAP ""
@@ -29450,8 +29450,8 @@ add_interface_port usb_data_in s_axis_usb_tready tready Output 1
 
 # Interface: usb_data_out (ipcraft:busif:axi_stream:1.0)
 add_interface usb_data_out axi4stream start
-set_interface_property usb_data_out associatedClock clk
-set_interface_property usb_data_out associatedReset reset
+set_interface_property usb_data_out associatedClock CLK_SYS
+set_interface_property usb_data_out associatedReset RST_SYS
 set_interface_property usb_data_out ENABLED true
 set_interface_property usb_data_out EXPORT_OF ""
 set_interface_property usb_data_out PORT_NAME_MAP ""
@@ -29565,16 +29565,16 @@ add_interface_port clk clk clk Input 1
 # -----------------------------------------------------------------------------
 # Reset Interface
 # -----------------------------------------------------------------------------
-add_interface reset reset end
-set_interface_property reset associatedClock clk
-set_interface_property reset synchronousEdges DEASSERT
-set_interface_property reset ENABLED true
-set_interface_property reset EXPORT_OF ""
-set_interface_property reset PORT_NAME_MAP ""
-set_interface_property reset CMSIS_SVD_VARIABLES ""
-set_interface_property reset SVD_ADDRESS_GROUP ""
+add_interface reset_n reset end
+set_interface_property reset_n associatedClock clk
+set_interface_property reset_n synchronousEdges DEASSERT
+set_interface_property reset_n ENABLED true
+set_interface_property reset_n EXPORT_OF ""
+set_interface_property reset_n PORT_NAME_MAP ""
+set_interface_property reset_n CMSIS_SVD_VARIABLES ""
+set_interface_property reset_n SVD_ADDRESS_GROUP ""
 
-add_interface_port reset reset_n reset_n Input 1
+add_interface_port reset_n reset_n reset_n Input 1
 
 # -----------------------------------------------------------------------------
 # Bus Interfaces (Generic)
@@ -29583,7 +29583,7 @@ add_interface_port reset reset_n reset_n Input 1
 # Interface: xcvr_in (user:busif:xcvr:1.0)
 add_interface xcvr_in conduit end
 set_interface_property xcvr_in associatedClock clk
-set_interface_property xcvr_in associatedReset reset
+set_interface_property xcvr_in associatedReset reset_n
 set_interface_property xcvr_in ENABLED true
 set_interface_property xcvr_in EXPORT_OF ""
 set_interface_property xcvr_in PORT_NAME_MAP ""
@@ -29598,7 +29598,7 @@ set_interface_property xcvr_in SVD_ADDRESS_GROUP ""
 # Interface: xcvr_out (user:busif:xcvr:1.0)
 add_interface xcvr_out conduit end
 set_interface_property xcvr_out associatedClock clk
-set_interface_property xcvr_out associatedReset reset
+set_interface_property xcvr_out associatedReset reset_n
 set_interface_property xcvr_out ENABLED true
 set_interface_property xcvr_out EXPORT_OF ""
 set_interface_property xcvr_out PORT_NAME_MAP ""
@@ -29717,16 +29717,16 @@ add_interface_port clk clk clk Input 1
 # -----------------------------------------------------------------------------
 # Reset Interface
 # -----------------------------------------------------------------------------
-add_interface reset reset end
-set_interface_property reset associatedClock clk
-set_interface_property reset synchronousEdges DEASSERT
-set_interface_property reset ENABLED true
-set_interface_property reset EXPORT_OF ""
-set_interface_property reset PORT_NAME_MAP ""
-set_interface_property reset CMSIS_SVD_VARIABLES ""
-set_interface_property reset SVD_ADDRESS_GROUP ""
+add_interface reset_n reset end
+set_interface_property reset_n associatedClock clk
+set_interface_property reset_n synchronousEdges DEASSERT
+set_interface_property reset_n ENABLED true
+set_interface_property reset_n EXPORT_OF ""
+set_interface_property reset_n PORT_NAME_MAP ""
+set_interface_property reset_n CMSIS_SVD_VARIABLES ""
+set_interface_property reset_n SVD_ADDRESS_GROUP ""
 
-add_interface_port reset reset_n reset_n Input 1
+add_interface_port reset_n reset_n reset_n Input 1
 
 # -----------------------------------------------------------------------------
 # Bus Interfaces (Generic)
@@ -29735,7 +29735,7 @@ add_interface_port reset reset_n reset_n Input 1
 # Interface: xcvr_in (user:busif:xcvr:1.0)
 add_interface xcvr_in conduit end
 set_interface_property xcvr_in associatedClock clk
-set_interface_property xcvr_in associatedReset reset
+set_interface_property xcvr_in associatedReset reset_n
 set_interface_property xcvr_in ENABLED true
 set_interface_property xcvr_in EXPORT_OF ""
 set_interface_property xcvr_in PORT_NAME_MAP ""
@@ -29750,7 +29750,7 @@ set_interface_property xcvr_in SVD_ADDRESS_GROUP ""
 # Interface: xcvr_out (user:busif:xcvr:1.0)
 add_interface xcvr_out conduit end
 set_interface_property xcvr_out associatedClock clk
-set_interface_property xcvr_out associatedReset reset
+set_interface_property xcvr_out associatedReset reset_n
 set_interface_property xcvr_out ENABLED true
 set_interface_property xcvr_out EXPORT_OF ""
 set_interface_property xcvr_out PORT_NAME_MAP ""
@@ -29847,16 +29847,16 @@ add_interface_port clk clk clk Input 1
 # -----------------------------------------------------------------------------
 # Reset Interface
 # -----------------------------------------------------------------------------
-add_interface reset reset end
-set_interface_property reset associatedClock clk
-set_interface_property reset synchronousEdges DEASSERT
-set_interface_property reset ENABLED true
-set_interface_property reset EXPORT_OF ""
-set_interface_property reset PORT_NAME_MAP ""
-set_interface_property reset CMSIS_SVD_VARIABLES ""
-set_interface_property reset SVD_ADDRESS_GROUP ""
+add_interface rst reset end
+set_interface_property rst associatedClock clk
+set_interface_property rst synchronousEdges DEASSERT
+set_interface_property rst ENABLED true
+set_interface_property rst EXPORT_OF ""
+set_interface_property rst PORT_NAME_MAP ""
+set_interface_property rst CMSIS_SVD_VARIABLES ""
+set_interface_property rst SVD_ADDRESS_GROUP ""
 
-add_interface_port reset rst reset Input 1
+add_interface_port rst rst reset Input 1
 
 # -----------------------------------------------------------------------------
 # Bus Interfaces (Generic)
@@ -29932,16 +29932,16 @@ add_interface_port clk clk clk Input 1
 # -----------------------------------------------------------------------------
 # Reset Interface
 # -----------------------------------------------------------------------------
-add_interface reset reset end
-set_interface_property reset associatedClock clk
-set_interface_property reset synchronousEdges DEASSERT
-set_interface_property reset ENABLED true
-set_interface_property reset EXPORT_OF ""
-set_interface_property reset PORT_NAME_MAP ""
-set_interface_property reset CMSIS_SVD_VARIABLES ""
-set_interface_property reset SVD_ADDRESS_GROUP ""
+add_interface rst reset end
+set_interface_property rst associatedClock clk
+set_interface_property rst synchronousEdges DEASSERT
+set_interface_property rst ENABLED true
+set_interface_property rst EXPORT_OF ""
+set_interface_property rst PORT_NAME_MAP ""
+set_interface_property rst CMSIS_SVD_VARIABLES ""
+set_interface_property rst SVD_ADDRESS_GROUP ""
 
-add_interface_port reset rst reset Input 1
+add_interface_port rst rst reset Input 1
 
 # -----------------------------------------------------------------------------
 # Bus Interfaces (Generic)

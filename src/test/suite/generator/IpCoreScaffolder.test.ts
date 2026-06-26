@@ -224,6 +224,31 @@ describe('IpCoreScaffolder', () => {
     expect(sv).toMatch(/input\s+logic\s+ddr_rst_n/);
   });
 
+  it('names the primary Quartus clock/reset interfaces after their ports to avoid name collisions', async () => {
+    const inputPath = path.resolve(__dirname, '../../fixtures/clockcollision-ipcore.yml');
+    const writeMock = fs.writeFile as unknown as jest.Mock;
+    const findContent = (needle: string): string =>
+      writeMock.mock.calls.find((call) => call[0].includes(needle))?.[1] as string;
+
+    const result = await scaffolder.generateAll(inputPath, '/tmp/test-col', {
+      includeTestbench: false,
+      targets: ['quartus'],
+      scaffoldPack: 'builtin-minimal',
+    });
+    expect(result.success).toBe(true);
+    const tcl = findContent('altera/col_core_hw.tcl');
+
+    // Primary clock/reset interfaces are named after their ports, so a secondary
+    // clock/reset literally named "clk"/"reset" does not collide with them.
+    expect(tcl).toContain('add_interface s_axi_aclk clock end');
+    expect(tcl).toContain('add_interface clk clock end');
+    expect(tcl).toContain('add_interface s_axi_aresetn reset end');
+    expect(tcl).toContain('add_interface reset reset end');
+    // Exactly one clock interface declaration per clock (no duplicate "clk").
+    expect((tcl.match(/^add_interface clk clock end$/gm) ?? []).length).toBe(1);
+    expect(tcl).toContain('associatedClock s_axi_aclk');
+  });
+
   it('emits interrupt ports on the top-level entity and module (VHDL + SV)', async () => {
     const inputPath = path.resolve(__dirname, '../../fixtures/interrupt-ipcore.yml');
     const writeMock = fs.writeFile as unknown as jest.Mock;

@@ -57,29 +57,29 @@ set_parameter_property {{ generic.name | upper }} AFFECTS_ELABORATION true
 # -----------------------------------------------------------------------------
 # Clock Interface
 # -----------------------------------------------------------------------------
-add_interface clk clock end
-set_interface_property clk clockRate 0
-set_interface_property clk ENABLED true
-set_interface_property clk EXPORT_OF ""
-set_interface_property clk PORT_NAME_MAP ""
-set_interface_property clk CMSIS_SVD_VARIABLES ""
-set_interface_property clk SVD_ADDRESS_GROUP ""
+add_interface {{ clock_port }} clock end
+set_interface_property {{ clock_port }} clockRate 0
+set_interface_property {{ clock_port }} ENABLED true
+set_interface_property {{ clock_port }} EXPORT_OF ""
+set_interface_property {{ clock_port }} PORT_NAME_MAP ""
+set_interface_property {{ clock_port }} CMSIS_SVD_VARIABLES ""
+set_interface_property {{ clock_port }} SVD_ADDRESS_GROUP ""
 
-add_interface_port clk {{ clock_port }} clk Input 1
+add_interface_port {{ clock_port }} {{ clock_port }} clk Input 1
 
 # -----------------------------------------------------------------------------
 # Reset Interface
 # -----------------------------------------------------------------------------
-add_interface reset reset end
-set_interface_property reset associatedClock clk
-set_interface_property reset synchronousEdges DEASSERT
-set_interface_property reset ENABLED true
-set_interface_property reset EXPORT_OF ""
-set_interface_property reset PORT_NAME_MAP ""
-set_interface_property reset CMSIS_SVD_VARIABLES ""
-set_interface_property reset SVD_ADDRESS_GROUP ""
+add_interface {{ reset_port }} reset end
+set_interface_property {{ reset_port }} associatedClock {{ clock_port }}
+set_interface_property {{ reset_port }} synchronousEdges DEASSERT
+set_interface_property {{ reset_port }} ENABLED true
+set_interface_property {{ reset_port }} EXPORT_OF ""
+set_interface_property {{ reset_port }} PORT_NAME_MAP ""
+set_interface_property {{ reset_port }} CMSIS_SVD_VARIABLES ""
+set_interface_property {{ reset_port }} SVD_ADDRESS_GROUP ""
 
-add_interface_port reset {{ reset_port }} {% if reset_active_high %}reset{% else %}reset_n{% endif %} Input 1
+add_interface_port {{ reset_port }} {{ reset_port }} {% if reset_active_high %}reset{% else %}reset_n{% endif %} Input 1
 
 {% for clk in secondary_clocks %}
 # Secondary clock: {{ clk.name }}
@@ -106,8 +106,8 @@ add_interface_port {{ rst.name }} {{ rst.name }} {% if rst.active_high %}reset{%
 
 # Interface: {{ iface.name }} ({{ iface.type }})
 add_interface {{ iface.name }} {{ altera_type }} {{ end_type }}
-set_interface_property {{ iface.name }} associatedClock clk
-set_interface_property {{ iface.name }} associatedReset reset
+set_interface_property {{ iface.name }} associatedClock {{ clock_port }}
+set_interface_property {{ iface.name }} associatedReset {{ reset_port }}
 set_interface_property {{ iface.name }} ENABLED true
 set_interface_property {{ iface.name }} EXPORT_OF ""
 set_interface_property {{ iface.name }} PORT_NAME_MAP ""
@@ -133,8 +133,8 @@ else 'Output' }} {{ port.width }}
 {% for port in user_ports %}
 # Conduit interface for user port: {{ port.name }}
 add_interface {{ port.name }} conduit end
-set_interface_property {{ port.name }} associatedClock clk
-set_interface_property {{ port.name }} associatedReset reset
+set_interface_property {{ port.name }} associatedClock {{ clock_port }}
+set_interface_property {{ port.name }} associatedReset {{ reset_port }}
 set_interface_property {{ port.name }} ENABLED true
 set_interface_property {{ port.name }} EXPORT_OF ""
 set_interface_property {{ port.name }} PORT_NAME_MAP ""
