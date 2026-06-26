@@ -23,6 +23,10 @@ export const workspace = {
   getConfiguration: jest.fn(() => ({
     get: jest.fn((_key: string, defaultValue?: unknown) => defaultValue),
   })),
+  fs: {
+    readFile: jest.fn(),
+    writeFile: jest.fn(),
+  },
   workspaceFolders: undefined as undefined | Array<{ uri: { fsPath: string } }>,
 };
 
@@ -39,6 +43,11 @@ export const commands = {
 
 export const Uri = {
   file: jest.fn((path: string) => ({ fsPath: path, toString: () => path })),
+  from: jest.fn((parts: { scheme?: string; path?: string }) => ({
+    scheme: parts.scheme,
+    path: parts.path,
+    toString: () => `${parts.scheme ?? ''}:${parts.path ?? ''}`,
+  })),
   joinPath: jest.fn((...paths: unknown[]) => ({
     fsPath: paths.join('/'),
     toString: () => paths.join('/'),

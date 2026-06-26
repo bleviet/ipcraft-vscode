@@ -20,6 +20,7 @@ import { safeRegisterCommand } from '../utils/vscodeHelpers';
 import { updateFileSets } from '../services/FileSetUpdater';
 import { resolveVendor } from '../utils/resolveVendor';
 import { rebaseIpYamlPaths } from '../utils/rebaseYamlPaths';
+import { writeImportedFile, describeOutcome } from '../utils/importWrite';
 import type { GenerateOptions } from '../generator/types';
 import { createVivadoProject, createQuartusProject } from './projectCreator';
 import { getBuildOutputChannel } from './BuildCommands';
@@ -870,18 +871,12 @@ async function parseVHDL(
           }
         }
 
-        const encoder = new TextEncoder();
-        await vscode.workspace.fs.writeFile(
-          vscode.Uri.file(defaultOutput),
-          encoder.encode(result.yamlText)
-        );
+        const outcome = await writeImportedFile(vscode.Uri.file(defaultOutput), result.yamlText);
 
         const summary = buildParseSummary(result.yamlText);
-        if (summary) {
-          void vscode.window.showInformationMessage(
-            `Imported (experimental) — ${summary}. Review the .ip.yml carefully before generating code.`
-          );
-        }
+        void vscode.window.showInformationMessage(
+          `Imported (experimental) — ${summary ? `${summary}; ` : ''}${describeOutcome(path.basename(defaultOutput), outcome)}. Review the .ip.yml carefully before generating code.`
+        );
 
         await vscode.commands.executeCommand(
           'vscode.openWith',
@@ -952,18 +947,12 @@ async function parseHwTcl(
           vendor: resolveVendor(cfg.get<string>('vendor')),
         });
 
-        const encoder = new TextEncoder();
-        await vscode.workspace.fs.writeFile(
-          vscode.Uri.file(outputPath),
-          encoder.encode(result.yamlText)
-        );
+        const outcome = await writeImportedFile(vscode.Uri.file(outputPath), result.yamlText);
 
         const summary = buildParseSummary(result.yamlText);
-        if (summary) {
-          void vscode.window.showInformationMessage(
-            `Imported (experimental) — ${summary}. Review the .ip.yml carefully before generating code.`
-          );
-        }
+        void vscode.window.showInformationMessage(
+          `Imported (experimental) — ${summary ? `${summary}; ` : ''}${describeOutcome(path.basename(outputPath), outcome)}. Review the .ip.yml carefully before generating code.`
+        );
 
         await vscode.commands.executeCommand(
           'vscode.openWith',
@@ -1033,34 +1022,30 @@ async function parseComponentXml(
           library: cfg.get<string>('library'),
         });
 
-        const encoder = new TextEncoder();
         const ipYamlText =
           isVendorSubdir && outputDir !== xmlDir
             ? rebaseIpYamlPaths(result.ipYamlText, xmlDir, outputDir)
             : result.ipYamlText;
-        const ipOutputPath = path.join(outputDir, `${result.componentName}.ip.yml`);
-        await vscode.workspace.fs.writeFile(
-          vscode.Uri.file(ipOutputPath),
-          encoder.encode(ipYamlText)
-        );
+        const ipFileName = `${result.componentName}.ip.yml`;
+        const ipOutputPath = path.join(outputDir, ipFileName);
+        const ipOutcome = await writeImportedFile(vscode.Uri.file(ipOutputPath), ipYamlText);
 
         const ipSummary = buildParseSummary(ipYamlText);
 
-        // Write memory map file if register data was found
+        // Write the memory map file alongside, if the component carried registers.
+        const outcomes = [describeOutcome(ipFileName, ipOutcome)];
         if (result.mmYamlText && result.mmFileName) {
           const mmOutputPath = path.join(outputDir, result.mmFileName);
-          await vscode.workspace.fs.writeFile(
+          const mmOutcome = await writeImportedFile(
             vscode.Uri.file(mmOutputPath),
-            encoder.encode(result.mmYamlText)
+            result.mmYamlText
           );
-          void vscode.window.showInformationMessage(
-            `Imported (experimental) — ${ipSummary ? `${ipSummary}; ` : ''}memory map saved to ${result.mmFileName}. Review carefully before generating code.`
-          );
-        } else if (ipSummary) {
-          void vscode.window.showInformationMessage(
-            `Imported (experimental) — ${ipSummary}. Review the .ip.yml carefully before generating code.`
-          );
+          outcomes.push(describeOutcome(result.mmFileName, mmOutcome));
         }
+
+        void vscode.window.showInformationMessage(
+          `Imported (experimental) — ${ipSummary ? `${ipSummary}; ` : ''}${outcomes.join(', ')}. Review carefully before generating code.`
+        );
 
         await vscode.commands.executeCommand(
           'vscode.openWith',

@@ -1,6 +1,16 @@
 /* eslint-disable */
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
 import '@testing-library/jest-dom';
+import { TextEncoder, TextDecoder } from 'util';
+
+// jsdom omits TextEncoder/TextDecoder, but the extension runs in Node where they
+// are global. Provide them so extension-side modules behave as they do at runtime.
+if (typeof (global as any).TextEncoder === 'undefined') {
+  (global as any).TextEncoder = TextEncoder;
+}
+if (typeof (global as any).TextDecoder === 'undefined') {
+  (global as any).TextDecoder = TextDecoder;
+}
 
 // Mock VS Code API for webview tests
 (global as any).acquireVsCodeApi = () => ({
