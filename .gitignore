@@ -12,3 +12,9 @@ site/
 test-results/
 *.jou
 *.log
+
+# Real-world parser fixtures — fetched at test time, never committed.
+.test-fixtures/
+# Belt-and-braces: block loose specimens anywhere in the tree.
+**/*_hw.tcl
+**/component.xml

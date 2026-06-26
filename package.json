@@ -1425,6 +1425,9 @@
     "test:integration:parser-roundtrip": "jest --config config/jest.integration.js --testPathPatterns=parser-roundtrip",
     "test:integration:snapshots": "jest --config config/jest.integration.js --testPathPatterns=snapshots",
     "test:integration:roundtrip": "jest --config config/jest.integration.js --testPathPatterns=roundtrip",
+    "fetch-fixtures": "node scripts/fetchFixtures.js",
+    "test:realworld": "SKIP_FETCH=0 jest --config config/jest.integration.js --testPathPatterns=realworld",
+    "test:realworld:offline": "SKIP_FETCH=1 jest --config config/jest.integration.js --testPathPatterns=realworld",
     "test:all": "npm run test:unit && npm run test:e2e && npm run test:browser",
     "generate-types": "node scripts/generate-types.js",
     "prepare": "husky install"
