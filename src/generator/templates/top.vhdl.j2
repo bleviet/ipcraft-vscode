@@ -27,14 +27,14 @@ entity {{ entity_name }} is
   port (
     -- Clock and reset
     {{ clock_port }} : in std_logic;
-    {{ reset_port }} : in std_logic{{ ";" if bus_ports | length or secondary_bus_ports | length or user_ports | length else "" }}
+    {{ reset_port }} : in std_logic{{ ";" if bus_ports | length or secondary_bus_ports | length or user_ports | length or interrupt_ports | length else "" }}
 
 {% for iface in expanded_bus_interfaces %}{% set iface_loop = loop %}
 {% if iface.ports %}
 
     -- {{ iface.name }} ({{ iface.mode | upper }})
 {% for port in iface.ports %}
-    {{ "%-14s"|format(port.name) }} : {{ "%-3s"|format(port.direction) }} {{ port.type }}{{ ";" if not loop.last or not iface_loop.last or user_ports | length else "" }}
+    {{ "%-14s"|format(port.name) }} : {{ "%-3s"|format(port.direction) }} {{ port.type }}{{ ";" if not loop.last or not iface_loop.last or user_ports | length or interrupt_ports | length else "" }}
 {% endfor %}
 {% endif %}
 {% endfor %}
@@ -42,7 +42,14 @@ entity {{ entity_name }} is
 
     -- User ports
 {% for port in user_ports %}
-    {{ port.name }} : {{ port.direction }} {{ port.type }}{{ ";" if not loop.last else "" }}
+    {{ port.name }} : {{ port.direction }} {{ port.type }}{{ ";" if not loop.last or interrupt_ports | length else "" }}
+{% endfor %}
+{% endif %}
+{% if interrupt_ports | length %}
+
+    -- Interrupts
+{% for port in interrupt_ports %}
+    {{ port.name }} : {{ port.direction }} std_logic{{ ";" if not loop.last else "" }}
 {% endfor %}
 {% endif %}
     );

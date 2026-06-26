@@ -190,6 +190,35 @@ describe('IpCoreScaffolder', () => {
     expect(vhdlContent).not.toContain('use work.sample_core_pkg.all');
   });
 
+  it('emits interrupt ports on the top-level entity and module (VHDL + SV)', async () => {
+    const inputPath = path.resolve(__dirname, '../../fixtures/interrupt-ipcore.yml');
+    const writeMock = fs.writeFile as unknown as jest.Mock;
+    const findContent = (needle: string): string =>
+      writeMock.mock.calls.find((call) => call[0].includes(needle))?.[1] as string;
+
+    const vhdlResult = await scaffolder.generateAll(inputPath, '/tmp/test-irq-vhdl', {
+      includeTestbench: false,
+      targets: [],
+      scaffoldPack: 'builtin-minimal',
+    });
+    expect(vhdlResult.success).toBe(true);
+    const vhdl = findContent('rtl/irq_core.vhd');
+    expect(vhdl).toContain('-- Interrupts');
+    expect(vhdl).toContain('irq : out std_logic');
+
+    writeMock.mockClear();
+    const svResult = await scaffolder.generateAll(inputPath, '/tmp/test-irq-sv', {
+      includeTestbench: false,
+      targets: [],
+      scaffoldPack: 'builtin-minimal',
+      hdlLanguage: 'systemverilog',
+    });
+    expect(svResult.success).toBe(true);
+    const sv = findContent('rtl/irq_core.sv');
+    expect(sv).toContain('// Interrupts');
+    expect(sv).toMatch(/output\s+logic\s+irq/);
+  });
+
   it('expands a clog2 port width across VHDL, SystemVerilog, Tcl, and IP-XACT', async () => {
     const inputPath = path.resolve(__dirname, '../../fixtures/clog2-ipcore.yml');
     const writeMock = fs.writeFile as unknown as jest.Mock;

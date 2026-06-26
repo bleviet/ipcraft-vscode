@@ -16,13 +16,13 @@ module {{ entity_name }}{% if has_memory_mapped_slave %} import {{ entity_name }
 ){% endif %} (
   // Clock and reset
   input  logic {{ clock_port }},
-  input  logic {{ reset_port }}{{ "," if bus_ports | length or secondary_bus_ports | length or user_ports | length else "" }}
+  input  logic {{ reset_port }}{{ "," if bus_ports | length or secondary_bus_ports | length or user_ports | length or interrupt_ports | length else "" }}
 {% for iface in expanded_bus_interfaces %}{% set iface_loop = loop %}
 {% if iface.ports %}
 
   // {{ iface.name }} ({{ iface.mode | upper }})
 {% for port in iface.ports %}
-  {{ "%-6s"|format(port.sv_direction) }} {{ "%-34s"|format(port.sv_type) }} {{ port.name }}{{ "," if not loop.last or not iface_loop.last or user_ports | length else "" }}
+  {{ "%-6s"|format(port.sv_direction) }} {{ "%-34s"|format(port.sv_type) }} {{ port.name }}{{ "," if not loop.last or not iface_loop.last or user_ports | length or interrupt_ports | length else "" }}
 {% endfor %}
 {% endif %}
 {% endfor %}
@@ -30,7 +30,15 @@ module {{ entity_name }}{% if has_memory_mapped_slave %} import {{ entity_name }
 
   // User ports
 {% for port in user_ports %}
-  {{ "%-6s"|format(port.sv_direction) }} {{ "%-34s"|format(port.sv_type) }} {{ port.name }}{{ "," if not loop.last else "" }}
+  {{ "%-6s"|format(port.sv_direction) }} {{ "%-34s"|format(port.sv_type) }} {{ port.name }}{{ "," if not loop.last or interrupt_ports | length else "" }}
+{% endfor %}
+{% endif %}
+{% if interrupt_ports | length %}
+
+  // Interrupts
+{% for port in interrupt_ports %}
+  {% set irq_dir = "input" if port.direction == "in" else "output" %}
+  {{ "%-6s"|format(irq_dir) }} {{ "%-34s"|format("logic") }} {{ port.name }}{{ "," if not loop.last else "" }}
 {% endfor %}
 {% endif %}
 );
