@@ -219,7 +219,7 @@ const RegisterMapVisualizerInner: React.FC<RegisterMapVisualizerProps> = ({
             <div
               key={group.idx}
               data-viz-row={group.idx}
-              title={cardDoubleClickHint}
+              data-tooltip={cardDoubleClickHint}
               className={`flex items-stretch ${isDragging ? 'opacity-50' : ''}`}
               style={{
                 minHeight: heightFor(group),
@@ -430,7 +430,7 @@ const RegisterMapVisualizerInner: React.FC<RegisterMapVisualizerProps> = ({
               <div
                 key={group.idx}
                 data-viz-row={group.idx}
-                title={cardDoubleClickHint}
+                data-tooltip={cardDoubleClickHint}
                 className={`relative flex-1 flex flex-col items-center justify-end select-none min-w-[120px] ${accent ? 'z-10' : ''} ${isDragging ? 'opacity-50' : ''}`}
                 style={{
                   cursor: ctrlDrag.active

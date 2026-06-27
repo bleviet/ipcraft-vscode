@@ -124,7 +124,6 @@ export function RegisterTableRow({
     <tr
       data-row-id={rowId}
       data-reg-idx={idx}
-      title={onRowDoubleClick ? 'Double-click to open' : undefined}
       className={`group vscode-row-solid transition-colors border-l-4 border-transparent border-b vscode-border h-12 ${
         isDragSource
           ? 'opacity-40'
@@ -284,7 +283,10 @@ export function RegisterTableRow({
       </EditableCell>
 
       {/* ADDRESS RANGE (read-only) */}
-      <td className="px-4 py-2 font-mono text-sm vscode-muted">
+      <td
+        className="px-4 py-2 font-mono text-sm vscode-muted"
+        data-tooltip={onRowDoubleClick ? 'Double-click to open' : undefined}
+      >
         {toHex(absStart)}
         <span className="mx-1 opacity-50">→</span>
         {toHex(absEnd)}

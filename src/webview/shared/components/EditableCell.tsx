@@ -29,8 +29,8 @@ export function EditableCell({
   return (
     <td
       data-col-key={columnKey}
-      title="Double-click to edit"
-      className={`align-middle ${isActive ? 'vscode-cell-active' : ''} ${className}`}
+      data-tooltip="Double-click to edit"
+      className={`relative align-middle ${isActive ? 'vscode-cell-active' : ''} ${className}`}
       style={style}
       onClick={(e) => {
         e.stopPropagation();
