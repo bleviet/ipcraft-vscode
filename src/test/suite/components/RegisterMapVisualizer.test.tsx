@@ -21,6 +21,20 @@ describe('RegisterMapVisualizer — vertical register ruler', () => {
     expect(screen.getByText('CH_GAIN')).toBeInTheDocument();
   });
 
+  it('constrains the card name so it does not overflow into the REG/array badges', () => {
+    // A long name must shrink within its column (min-w-0) so line-clamp clips it
+    // instead of pushing into the badges — mirroring the outline panel's name.
+    const longRegs: VisualizerRegister[] = [
+      { name: 'A_VERY_LONG_REGISTER_NAME_THAT_WOULD_OVERFLOW', offset: 0x0 },
+    ];
+    render(<RegisterMapVisualizer registers={longRegs} layout="vertical" />);
+    const nameSpan = screen.getByText('A_VERY_LONG_REGISTER_NAME_THAT_WOULD_OVERFLOW');
+    expect(nameSpan.className).toContain('min-w-0');
+    // The name column clips any overflow (incl. the offset range) so the gap to
+    // the badges is always preserved, even when the panel is resized narrow.
+    expect(nameSpan.parentElement?.className).toContain('overflow-hidden');
+  });
+
   it('renders block-relative offset ranges', () => {
     render(<RegisterMapVisualizer registers={registers} layout="vertical" />);
     // Range text is split across nodes, so match the row container.

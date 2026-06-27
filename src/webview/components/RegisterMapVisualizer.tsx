@@ -84,6 +84,8 @@ interface RegisterCardProps {
   isDragging: boolean;
   isDropTarget: boolean;
   minHeight: number;
+  /** Narrow-panel mode: drops the decorative swatch/handle so the name keeps room. */
+  compact: boolean;
   axisColor: string;
   cardDoubleClickHint?: string;
   ctrlDragActive: boolean;
@@ -123,6 +125,7 @@ const RegisterCard: React.FC<RegisterCardProps> = ({
   isDragging,
   isDropTarget,
   minHeight,
+  compact,
   axisColor,
   cardDoubleClickHint,
   ctrlDragActive,
@@ -239,7 +242,9 @@ const RegisterCard: React.FC<RegisterCardProps> = ({
 
       {/* Register card */}
       <div
-        className="relative flex-1 min-w-0 flex flex-col my-1 ml-3 rounded-xl border px-3 py-2 transition-colors"
+        className={`relative flex-1 min-w-0 flex flex-col my-1 ml-3 rounded-xl border ${
+          compact ? 'px-2' : 'px-3'
+        } py-2 transition-colors overflow-hidden`}
         style={{
           borderColor: 'var(--vscode-panel-border)',
           background: accent
@@ -261,9 +266,11 @@ const RegisterCard: React.FC<RegisterCardProps> = ({
           />
         )}
 
-        <div className="flex items-stretch gap-3">
-          {/* Drag handle — drag to reorder (Ctrl + drag also works on the card body) */}
-          {canReorder && (
+        <div className={`flex items-stretch min-w-0 ${compact ? 'gap-2' : 'gap-3'}`}>
+          {/* Drag handle — drag to reorder (Ctrl + drag also works on the card body).
+              Hidden in compact mode to reserve width for the name; Ctrl+drag on the
+              card body still reorders. */}
+          {canReorder && !compact && (
             <div
               className="flex items-center justify-center w-4 shrink-0 opacity-0 group-hover:opacity-40 hover:!opacity-90 transition-opacity"
               style={{ cursor: ctrlDragActive ? 'grabbing' : 'grab' }}
@@ -276,26 +283,29 @@ const RegisterCard: React.FC<RegisterCardProps> = ({
               <span className="codicon codicon-gripper text-sm vscode-muted" />
             </div>
           )}
-          {/* Color swatch (stacked sheets for arrays) */}
-          <div
-            className={`relative w-12 shrink-0 self-stretch rounded-lg ${group.isArray ? 'border-2 border-dashed' : ''}`}
-            style={{
-              backgroundColor: color,
-              borderColor: group.isArray ? 'var(--ipcraft-pattern-border)' : undefined,
-              filter: accent ? 'saturate(1.15) brightness(1.05)' : undefined,
-              minHeight: 40,
-            }}
-          >
-            {group.isArray && (
-              <>
-                <div className="absolute left-1 right-1 bottom-1.5 h-[3px] rounded-sm bg-black/25" />
-                <div className="absolute left-1 right-1 bottom-3 h-[3px] rounded-sm bg-black/15" />
-              </>
-            )}
-          </div>
+          {/* Color swatch (stacked sheets for arrays). Dropped in compact mode so
+              the name keeps room; array identity is still shown by the [N] badge. */}
+          {!compact && (
+            <div
+              className={`relative w-12 shrink-0 self-stretch rounded-lg ${group.isArray ? 'border-2 border-dashed' : ''}`}
+              style={{
+                backgroundColor: color,
+                borderColor: group.isArray ? 'var(--ipcraft-pattern-border)' : undefined,
+                filter: accent ? 'saturate(1.15) brightness(1.05)' : undefined,
+                minHeight: 40,
+              }}
+            >
+              {group.isArray && (
+                <>
+                  <div className="absolute left-1 right-1 bottom-1.5 h-[3px] rounded-sm bg-black/25" />
+                  <div className="absolute left-1 right-1 bottom-3 h-[3px] rounded-sm bg-black/15" />
+                </>
+              )}
+            </div>
+          )}
 
           {/* Name + offset range */}
-          <div className="flex-1 min-w-0 flex flex-col justify-center leading-tight">
+          <div className="flex-1 min-w-0 flex flex-col justify-center leading-tight overflow-hidden">
             {editable && editingKey === 'name' ? (
               <CellInput
                 editKey="name"
@@ -312,7 +322,7 @@ const RegisterCard: React.FC<RegisterCardProps> = ({
               />
             ) : (
               <span
-                className={`font-mono font-bold text-sm line-clamp-2 break-words ${
+                className={`font-mono font-bold text-sm line-clamp-2 break-words min-w-0 w-full ${
                   editable ? 'cursor-text' : ''
                 }`}
                 data-tooltip={editable ? 'Double-click to edit' : undefined}
@@ -355,22 +365,17 @@ const RegisterCard: React.FC<RegisterCardProps> = ({
           </div>
 
           {/* Badges */}
-          <div className="flex items-center gap-1.5 self-center shrink-0">
+          <div className="flex items-center gap-1.5 self-center shrink-0 ml-2">
             {group.isArray ? (
-              <>
-                <span
-                  className="px-2 py-0.5 rounded-md border text-[11px] font-mono font-semibold"
-                  style={{ color, borderColor: color }}
-                >
-                  &times;{String(group.count ?? 1)}
-                </span>
-                <span
-                  className="px-2 py-0.5 rounded-md border text-[11px] font-mono font-semibold"
-                  style={{ color, borderColor: color }}
-                >
-                  [N]
-                </span>
-              </>
+              // Single compact pill so the two array markers never overflow the
+              // card; the count and [N] stay as separate text nodes.
+              <span
+                className="flex items-center gap-1 px-2 py-0.5 rounded-md border text-[11px] font-mono font-semibold whitespace-nowrap"
+                style={{ color, borderColor: color }}
+              >
+                <span>&times;{String(group.count ?? 1)}</span>
+                <span className="opacity-70">[N]</span>
+              </span>
             ) : (
               <span
                 className="px-2 py-0.5 rounded-md border text-[11px] font-mono font-semibold"
@@ -459,12 +464,31 @@ const RegisterMapVisualizerInner: React.FC<RegisterMapVisualizerProps> = ({
   // before React has flushed the state update.
   const ctrlDragRef = useRef(false);
   const [ctrlPressed, setCtrlPressed] = useState(false);
+  // Compact mode for narrow panels: measured from the container so cards can drop
+  // their decorative swatch/handle before the name column collapses to nothing.
+  const [compact, setCompact] = useState(false);
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
     regIndex: number;
   } | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+
+  // Switch cards to compact layout when the panel is too narrow for the full
+  // swatch + name + badges row. ResizeObserver is unavailable in jsdom, so tests
+  // exercise the default (full) layout.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') {
+      return;
+    }
+    const ro = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect.width ?? 0;
+      setCompact(width > 0 && width < 280);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   // Track whether Ctrl/Cmd is held so reorderable cards can show a grab cursor
   // before the drag actually starts (and a grabbing cursor while dragging).
@@ -668,6 +692,7 @@ const RegisterMapVisualizerInner: React.FC<RegisterMapVisualizerProps> = ({
               isDragging={isDragging}
               isDropTarget={isDropTarget}
               minHeight={heightFor(group)}
+              compact={compact}
               axisColor={axisColor}
               cardDoubleClickHint={cardDoubleClickHint}
               ctrlDragActive={ctrlDrag.active}
