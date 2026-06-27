@@ -4,6 +4,16 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-06-27
+
+### Added
+- **Master-detail block editor**: the address-block screen now shows the register map alongside an inline register editor, so registers can be edited in place without leaving the block.
+- **Drag-to-reorder in the outline**: address blocks, top-level registers, and registers inside a register array can now be reordered by dragging their gripper handle. Moves are confined to the same sibling group and repack offsets automatically.
+- **Live reorder preview**: dragging a bit field or an outline node reflows the list into the prospective drop position in real time, with a theme-aware focus ring marking the item being moved (replaces the previous drop-line indicators).
+
+### Fixed
+- **Register map visualizer**: register name labels stay visible when the panel is resized narrow, the register-array badges no longer crop, and the side-by-side panes are resizable.
+
 ## [0.3.0] - 2026-06-13
 
 ### Fixed
