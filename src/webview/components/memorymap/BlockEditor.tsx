@@ -456,6 +456,7 @@ export function BlockEditor({
       baseAddress={baseAddress}
       onReorderRegisters={(newRegs) => onUpdate(['registers'], newRegs as unknown[])}
       onRegisterClick={onNavigateToRegister}
+      cardDoubleClickHint={onNavigateToRegister ? 'Double-click to open' : undefined}
       onInsertAtGap={insertAtGap}
       onDeleteReg={(idx) => {
         const rowId = wrappedRegisters[idx]?.rowId;

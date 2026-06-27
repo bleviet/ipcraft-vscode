@@ -29,6 +29,7 @@ export function EditableCell({
   return (
     <td
       data-col-key={columnKey}
+      title="Double-click to edit"
       className={`align-middle ${isActive ? 'vscode-cell-active' : ''} ${className}`}
       style={style}
       onClick={(e) => {

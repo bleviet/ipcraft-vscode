@@ -124,6 +124,7 @@ export function RegisterTableRow({
     <tr
       data-row-id={rowId}
       data-reg-idx={idx}
+      title={onRowDoubleClick ? 'Double-click to open' : undefined}
       className={`group vscode-row-solid transition-colors border-l-4 border-transparent border-b vscode-border h-12 ${
         isDragSource
           ? 'opacity-40'

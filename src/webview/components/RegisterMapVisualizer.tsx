@@ -28,6 +28,8 @@ interface RegisterMapVisualizerProps {
   onInsertAtGap?: (gapIndex: number, kind: 'register' | 'flat-array' | 'array') => void;
   onDeleteReg?: (regIndex: number) => void;
   layout?: 'horizontal' | 'vertical';
+  /** Tooltip shown on each card when double-click navigates somewhere (e.g. "Double-click to open"). */
+  cardDoubleClickHint?: string;
 }
 
 function getRegColor(idx: number) {
@@ -59,6 +61,7 @@ const RegisterMapVisualizerInner: React.FC<RegisterMapVisualizerProps> = ({
   onInsertAtGap,
   onDeleteReg,
   layout = 'horizontal',
+  cardDoubleClickHint,
 }) => {
   const [ctrlDrag, setCtrlDrag] = useState<CtrlDragState>(CTRL_DRAG_INITIAL);
   const [contextMenu, setContextMenu] = useState<{
@@ -216,6 +219,7 @@ const RegisterMapVisualizerInner: React.FC<RegisterMapVisualizerProps> = ({
             <div
               key={group.idx}
               data-viz-row={group.idx}
+              title={cardDoubleClickHint}
               className={`flex items-stretch ${isDragging ? 'opacity-50' : ''}`}
               style={{
                 minHeight: heightFor(group),
@@ -426,6 +430,7 @@ const RegisterMapVisualizerInner: React.FC<RegisterMapVisualizerProps> = ({
               <div
                 key={group.idx}
                 data-viz-row={group.idx}
+                title={cardDoubleClickHint}
                 className={`relative flex-1 flex flex-col items-center justify-end select-none min-w-[120px] ${accent ? 'z-10' : ''} ${isDragging ? 'opacity-50' : ''}`}
                 style={{
                   cursor: ctrlDrag.active
@@ -525,7 +530,8 @@ const RegisterMapVisualizer = React.memo(
     prev.onRegisterClick === next.onRegisterClick &&
     prev.onInsertAtGap === next.onInsertAtGap &&
     prev.onDeleteReg === next.onDeleteReg &&
-    prev.layout === next.layout
+    prev.layout === next.layout &&
+    prev.cardDoubleClickHint === next.cardDoubleClickHint
 );
 
 export default RegisterMapVisualizer;
