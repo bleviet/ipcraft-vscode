@@ -35,3 +35,19 @@ export type RenderNameOrEdit = (
   path: YamlPath,
   className?: string
 ) => ReactNode;
+
+/**
+ * A drag-to-reorder request emitted by the outline tree. `position` is relative
+ * to `toIdx` ('before' = insert above, 'after' = insert below). Only same-kind,
+ * same-sibling-group moves are emitted (blocks among blocks, registers among
+ * the same block's top-level registers).
+ */
+export type OutlineReorder =
+  | { kind: 'block'; fromIdx: number; toIdx: number; position: 'before' | 'after' }
+  | {
+      kind: 'register';
+      blockIndex: number;
+      fromIdx: number;
+      toIdx: number;
+      position: 'before' | 'after';
+    };

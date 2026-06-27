@@ -11,6 +11,7 @@ import {
   isArrayNode,
 } from './types';
 import { blockId, registerId, arrayRegisterId } from './outlineIds';
+import type { OutlineDragProps } from './useOutlineDragReorder';
 
 interface OutlineTreeNodesProps {
   memoryMap: NormalizedMemoryMap;
@@ -33,6 +34,7 @@ interface OutlineTreeNodesProps {
     parentRegIndex?: number
   ) => void;
   onBlockContextMenu?: (blockIndex: number, x: number, y: number) => void;
+  getDragProps?: (id: string) => OutlineDragProps;
 }
 
 function renderLeafRegister(
@@ -53,7 +55,8 @@ function renderLeafRegister(
     x: number,
     y: number,
     parentRegIndex?: number
-  ) => void
+  ) => void,
+  getDragProps?: (id: string) => OutlineDragProps
 ) {
   const id = registerId(blockIndex, regIndex);
   const isSelected = selectedId === id;
@@ -121,6 +124,7 @@ function renderLeafRegister(
             }
           : undefined
       }
+      drag={getDragProps?.(id)}
     />
   );
 }
@@ -140,6 +144,7 @@ const OutlineTreeNodes = ({
   startEditing,
   onRegisterContextMenu,
   onBlockContextMenu,
+  getDragProps,
 }: OutlineTreeNodesProps) => {
   const overlappingBlockIndices = React.useMemo(() => {
     const blocks = memoryMap.addressBlocks ?? [];
@@ -230,6 +235,7 @@ const OutlineTreeNodes = ({
                   }
                 : undefined
             }
+            drag={getDragProps?.(id)}
           >
             {regsAny.map((node, idx) => {
               if (!blockMatches) {
@@ -269,6 +275,7 @@ const OutlineTreeNodes = ({
                     renderNameOrEdit={renderNameOrEdit}
                     startEditing={startEditing}
                     onRegisterContextMenu={onRegisterContextMenu}
+                    drag={getDragProps?.(arrayRegisterId(blockIndex, idx))}
                   />
                 );
               }
@@ -284,7 +291,8 @@ const OutlineTreeNodes = ({
                 blockIndex,
                 idx,
                 '40px',
-                onRegisterContextMenu
+                onRegisterContextMenu,
+                getDragProps
               );
             })}
           </OutlineBlockNode>

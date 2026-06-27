@@ -5,12 +5,14 @@ import { OutlineHeader } from './outline/index';
 import {
   type BlockNode as BlockModel,
   type OutlineSelection,
+  type OutlineReorder,
   type YamlPath,
   isArrayNode,
 } from './outline/types';
 import { ROOT_ID, arrayRegisterId, blockId } from './outline/outlineIds';
 import { buildVisibleSelections } from './outline/buildVisibleSelections';
 import { useOutlineKeyboard } from './outline/useOutlineKeyboard';
+import { useOutlineDragReorder } from './outline/useOutlineDragReorder';
 import OutlineTreeNodes from './outline/OutlineTreeNodes';
 import { useClampedMenuPosition } from '../shared/hooks/useClampedMenuPosition';
 
@@ -63,6 +65,7 @@ interface OutlineProps {
     action: 'insertBefore' | 'insertAfter' | 'delete',
     kind?: 'block' | 'ram'
   ) => void;
+  onReorder?: (p: OutlineReorder) => void;
 }
 
 export type OutlineHandle = {
@@ -70,7 +73,10 @@ export type OutlineHandle = {
 };
 
 const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
-  ({ memoryMap, selectedId, onSelect, onRename, onRegisterAction, onBlockAction }, ref) => {
+  (
+    { memoryMap, selectedId, onSelect, onRename, onRegisterAction, onBlockAction, onReorder },
+    ref
+  ) => {
     const memoryMapName = memoryMap.name || 'Memory Map';
 
     const allIds = useMemo(() => {
@@ -381,6 +387,8 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
       setExpanded,
     });
 
+    const { getDragProps } = useOutlineDragReorder(onReorder);
+
     return (
       <>
         <OutlineHeader
@@ -469,6 +477,7 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
                     ? (bi, x, y) => setOutlineContextMenu({ x, y, blockIndex: bi })
                     : undefined
                 }
+                getDragProps={getDragProps}
               />
             )}
           </div>

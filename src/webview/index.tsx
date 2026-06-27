@@ -8,6 +8,7 @@ import {
   arrayRegisterId,
   arrayElementRegisterId,
 } from './components/outline/outlineIds';
+import type { OutlineReorder } from './components/outline/types';
 import DetailsPanel, { type DetailsPanelHandle } from './components/DetailsPanel';
 import { vscode } from './vscode';
 import { useMemoryMapState } from './hooks/useMemoryMapState';
@@ -383,6 +384,101 @@ const App = () => {
     }
   };
 
+  // Outline drag-to-reorder. Reuses the same YAML write path as the insert
+  // actions (applyPathEdits + recomputeRegisterLayout for offset repack on
+  // register moves). Only same-sibling-group moves reach here (see
+  // useOutlineDragReorder).
+  const handleReorder = (p: OutlineReorder) => {
+    const rootObj = YamlService.safeParse(rawTextRef.current);
+    if (!rootObj) {
+      return;
+    }
+    const { root, selectionRootPath } = YamlPathResolver.getMapRootInfo(rootObj);
+    const mapName =
+      (YamlPathResolver.getAtPath(root, selectionRootPath) as LayoutMemoryMap | undefined)?.name ??
+      'Memory Map';
+
+    const computeInsertIdx = (fromIdx: number, toIdx: number) => {
+      let insertIdx = toIdx;
+      if (p.position === 'after') {
+        insertIdx++;
+      }
+      if (fromIdx < insertIdx) {
+        insertIdx--;
+      }
+      return insertIdx;
+    };
+
+    if (p.kind === 'block') {
+      const blocks = (YamlPathResolver.getAtPath(root, [...selectionRootPath, 'addressBlocks']) ??
+        []) as Record<string, unknown>[];
+      if (p.fromIdx < 0 || p.fromIdx >= blocks.length || p.toIdx < 0 || p.toIdx >= blocks.length) {
+        return;
+      }
+      const newBlocks = [...blocks];
+      const insertIdx = computeInsertIdx(p.fromIdx, p.toIdx);
+      const [moved] = newBlocks.splice(p.fromIdx, 1);
+      newBlocks.splice(insertIdx, 0, moved);
+      const sanitized = newBlocks.map((b) => serializeValue(b) as Record<string, unknown>);
+      const newText = YamlService.applyPathEdits(rawTextRef.current, [
+        { path: [...selectionRootPath, 'addressBlocks'], value: sanitized },
+      ]);
+      if (newText !== rawTextRef.current) {
+        updateRawText(newText);
+        sendUpdate(newText);
+        const movedBlock = newBlocks[insertIdx];
+        handleSelect({
+          id: blockId(insertIdx),
+          type: 'block',
+          object: movedBlock,
+          breadcrumbs: [mapName, String(movedBlock?.name ?? '')],
+          path: ['addressBlocks', insertIdx],
+        });
+      }
+      return;
+    }
+
+    // register reorder within a block
+    const blockPath = [...selectionRootPath, 'addressBlocks', p.blockIndex];
+    const block = YamlPathResolver.getAtPath(root, blockPath) as
+      | Record<string, unknown>
+      | undefined;
+    const regs = (block?.registers ?? []) as Record<string, unknown>[];
+    if (p.fromIdx < 0 || p.fromIdx >= regs.length || p.toIdx < 0 || p.toIdx >= regs.length) {
+      return;
+    }
+    const newRegs = [...regs];
+    const insertIdx = computeInsertIdx(p.fromIdx, p.toIdx);
+    const [movedReg] = newRegs.splice(p.fromIdx, 1);
+    newRegs.splice(insertIdx, 0, movedReg);
+
+    const width = blockRegWidth(block);
+    const laidOut = recomputeRegisterLayout(newRegs as LayoutRegister[], width);
+    const sanitizedRegs = laidOut.map(
+      (r) => serializeValue(r as Record<string, unknown>, width) as Record<string, unknown>
+    );
+    const newText = YamlService.applyPathEdits(rawTextRef.current, [
+      { path: [...blockPath, 'registers'], value: sanitizedRegs },
+    ]);
+    if (newText !== rawTextRef.current) {
+      updateRawText(newText);
+      sendUpdate(newText);
+      const movedIsArray =
+        (newRegs[insertIdx] as Record<string, unknown> | undefined)?.__kind === 'array';
+      const id = movedIsArray
+        ? arrayRegisterId(p.blockIndex, insertIdx)
+        : registerId(p.blockIndex, insertIdx);
+      handleSelect({
+        id,
+        type: 'block',
+        object: block,
+        breadcrumbs: [mapName, String(block?.name ?? ''), String(movedReg?.name ?? '')],
+        path: ['addressBlocks', p.blockIndex],
+        meta: { activeRegisterIndex: insertIdx, focusDetails: true },
+      });
+    }
+  };
+
   // Wraps handleUpdate for array-level structure changes (insert/delete/
   // reorder from BlockEditor or MemoryMapEditor). The structural edit, the
   // layout repack and schema sanitization are applied in a single pass
@@ -571,6 +667,7 @@ const App = () => {
           onRename={handleOutlineRename}
           onRegisterAction={handleRegisterAction}
           onBlockAction={handleBlockAction}
+          onReorder={handleReorder}
         />
         <div
           className="sidebar-resize-handle"

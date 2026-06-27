@@ -1,5 +1,6 @@
 import React from 'react';
 import type { NormalizedAddressBlock } from '../../../domain/internal.types';
+import type { OutlineDragProps } from './useOutlineDragReorder';
 
 interface BlockNodeProps {
   id: string;
@@ -15,6 +16,7 @@ interface BlockNodeProps {
   onContextMenu?: (e: React.MouseEvent) => void;
   isOverlapping?: boolean;
   baseAddress?: React.ReactNode;
+  drag?: OutlineDragProps;
 }
 
 const BlockNode = ({
@@ -31,20 +33,33 @@ const BlockNode = ({
   onContextMenu,
   isOverlapping,
   baseAddress,
+  drag,
 }: BlockNodeProps) => {
   return (
     <div key={id}>
       <div
         data-outline-id={id}
-        className={`tree-item ${isSelected ? 'selected' : ''} gap-2 text-sm group`}
+        className={`tree-item ${isSelected ? 'selected' : ''} gap-2 text-sm group ${
+          drag?.isDragging ? 'opacity-50' : ''
+        }`}
         role="treeitem"
         aria-expanded={isExpanded}
         aria-selected={isSelected}
         onClick={onClick}
         onDoubleClick={onDoubleClick}
         onContextMenu={onContextMenu}
+        onPointerMove={drag?.onRowPointerMove}
+        onPointerEnter={drag?.onRowPointerEnter}
+        style={{
+          boxShadow: drag?.isDropTarget
+            ? drag.dropPosition === 'before'
+              ? 'inset 0 2px 0 var(--vscode-focusBorder)'
+              : 'inset 0 -2px 0 var(--vscode-focusBorder)'
+            : undefined,
+        }}
       >
         <div style={{ paddingLeft: '20px' }} className="flex items-center gap-2 flex-grow min-w-0">
+          {drag?.dragHandle}
           <span
             className={`codicon codicon-chevron-${isExpanded ? 'down' : 'right'} shrink-0`}
             onClick={onToggleExpand}

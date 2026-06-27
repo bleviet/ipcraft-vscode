@@ -3,6 +3,7 @@ import type { NormalizedAddressBlock, NormalizedRegister } from '../../../domain
 import { toHex } from '../../utils/formatUtils';
 import FieldNode from './FieldNode';
 import RegisterNode from './RegisterNode';
+import type { OutlineDragProps } from './useOutlineDragReorder';
 import {
   OutlineSelection,
   RegisterArrayNode as RegisterArrayNodeModel,
@@ -31,6 +32,7 @@ interface RegisterArrayNodeProps {
     y: number,
     parentRegIndex?: number
   ) => void;
+  drag?: OutlineDragProps;
 }
 
 const RegisterArrayNode = ({
@@ -48,6 +50,7 @@ const RegisterArrayNode = ({
   renderNameOrEdit,
   startEditing,
   onRegisterContextMenu,
+  drag,
 }: RegisterArrayNodeProps) => {
   const id = `block-${blockIndex}-arrreg-${regIndex}`;
   const isSelected = selectedId === id;
@@ -62,7 +65,9 @@ const RegisterArrayNode = ({
     <div key={id}>
       <div
         data-outline-id={id}
-        className={`tree-item ${isSelected ? 'selected' : ''} gap-2 text-sm group`}
+        className={`tree-item ${isSelected ? 'selected' : ''} gap-2 text-sm group ${
+          drag?.isDragging ? 'opacity-50' : ''
+        }`}
         role="treeitem"
         aria-expanded={isExpanded}
         aria-selected={isSelected}
@@ -89,8 +94,18 @@ const RegisterArrayNode = ({
               }
             : undefined
         }
+        onPointerMove={drag?.onRowPointerMove}
+        onPointerEnter={drag?.onRowPointerEnter}
+        style={{
+          boxShadow: drag?.isDropTarget
+            ? drag.dropPosition === 'before'
+              ? 'inset 0 2px 0 var(--vscode-focusBorder)'
+              : 'inset 0 -2px 0 var(--vscode-focusBorder)'
+            : undefined,
+        }}
       >
         <div style={{ paddingLeft: '40px' }} className="flex items-center gap-2 flex-grow min-w-0">
+          {drag?.dragHandle}
           <span
             className={`codicon codicon-chevron-${isExpanded ? 'down' : 'right'} shrink-0`}
             onClick={(e) => onToggleExpand(id, e)}
