@@ -167,7 +167,7 @@ export function CellInput({
     <VSCodeTextField
       data-edit-key={editKey}
       className={`vscode-field-bare ${className}`}
-      style={style}
+      style={pointerStyle}
       value={draft}
       onFocus={() => {
         markFocused();
