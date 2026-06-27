@@ -237,6 +237,32 @@ export function BlockEditor({
     }
   }, [wrappedRegisters, editor]);
 
+  // Scroll the selected register row into view, accounting for the sticky thead.
+  // Using getBoundingClientRect avoids the sticky header occluding the top row.
+  useEffect(() => {
+    if (!editor.selectedRowId) {
+      return;
+    }
+    const container = (editor.containerRef as React.RefObject<HTMLDivElement>).current;
+    const row = container?.querySelector(
+      `tr[data-row-id="${editor.selectedRowId}"]`
+    ) as HTMLElement | null;
+    if (!row || !container) {
+      return;
+    }
+    const containerRect = container.getBoundingClientRect();
+    const rowRect = row.getBoundingClientRect();
+    const headerHeight =
+      (container.querySelector('thead') as HTMLElement | null)?.getBoundingClientRect().height ?? 0;
+    const visibleTop = containerRect.top + headerHeight;
+    const visibleBottom = containerRect.bottom;
+    if (rowRect.top < visibleTop) {
+      container.scrollTop -= visibleTop - rowRect.top;
+    } else if (rowRect.bottom > visibleBottom) {
+      container.scrollTop += rowRect.bottom - visibleBottom;
+    }
+  }, [editor.selectedRowId]);
+
   const getRegColor = (idx: number) => FIELD_COLOR_KEYS[idx % FIELD_COLOR_KEYS.length];
 
   useAutoFocus(
@@ -425,6 +451,8 @@ export function BlockEditor({
       registers={registers}
       hoveredRegIndex={editor.hoveredIndex}
       setHoveredRegIndex={editor.setHoveredFieldIndex}
+      selectedRegIndex={editor.selectedIndex}
+      onSelectRegister={editor.selectRow}
       baseAddress={baseAddress}
       onReorderRegisters={(newRegs) => onUpdate(['registers'], newRegs as unknown[])}
       onRegisterClick={onNavigateToRegister}

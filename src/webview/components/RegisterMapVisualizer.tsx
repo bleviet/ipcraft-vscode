@@ -18,6 +18,10 @@ interface RegisterMapVisualizerProps {
   registers: VisualizerRegister[];
   hoveredRegIndex?: number | null;
   setHoveredRegIndex?: (idx: number | null) => void;
+  /** Index of the register currently selected in the table (highlighted persistently). */
+  selectedRegIndex?: number | null;
+  /** Selects a register, keeping the table editor in sync (single click). */
+  onSelectRegister?: (regIndex: number) => void;
   baseAddress?: number;
   onReorderRegisters?: (newRegisters: VisualizerRegister[]) => void;
   onRegisterClick?: (regIndex: number) => void;
@@ -47,6 +51,8 @@ const RegisterMapVisualizerInner: React.FC<RegisterMapVisualizerProps> = ({
   registers,
   hoveredRegIndex = null,
   setHoveredRegIndex = () => undefined,
+  selectedRegIndex = null,
+  onSelectRegister,
   baseAddress = 0,
   onReorderRegisters,
   onRegisterClick,
@@ -61,6 +67,15 @@ const RegisterMapVisualizerInner: React.FC<RegisterMapVisualizerProps> = ({
     regIndex: number;
   } | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+
+  // Scroll the selected register card into view (table-driven selection sync).
+  useEffect(() => {
+    if (selectedRegIndex === null || selectedRegIndex < 0) {
+      return;
+    }
+    const el = containerRef.current?.querySelector(`[data-viz-row="${selectedRegIndex}"]`);
+    el?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }, [selectedRegIndex]);
 
   // Ctrl-drag: cleanup on pointer up
   useEffect(() => {
@@ -188,12 +203,14 @@ const RegisterMapVisualizerInner: React.FC<RegisterMapVisualizerProps> = ({
       <div ref={containerRef} className="flex flex-col w-full relative select-none pt-3 pb-6">
         {displayGroups.map((group, displayIdx) => {
           const isHovered = hoveredRegIndex === group.idx;
+          const isSelected = selectedRegIndex === group.idx;
           const isDragging = ctrlDrag.active && ctrlDrag.draggedRegIndex === group.idx;
           const isDropTarget =
             ctrlDrag.active &&
             ctrlDrag.targetIndex === displayIdx &&
             ctrlDrag.draggedRegIndex !== displayIdx;
           const color = FIELD_COLORS[group.color];
+          const accent = isHovered || isSelected;
 
           return (
             <div
@@ -204,12 +221,18 @@ const RegisterMapVisualizerInner: React.FC<RegisterMapVisualizerProps> = ({
                 minHeight: heightFor(group),
                 cursor: ctrlDrag.active
                   ? 'grabbing'
-                  : onRegisterClick || onReorderRegisters
+                  : onRegisterClick || onReorderRegisters || onSelectRegister
                     ? 'pointer'
                     : 'default',
               }}
               onMouseEnter={() => setHoveredRegIndex(group.idx)}
               onMouseLeave={() => setHoveredRegIndex(null)}
+              onClick={(e) => {
+                if (!ctrlDrag.active && onSelectRegister) {
+                  e.stopPropagation();
+                  onSelectRegister(group.idx);
+                }
+              }}
               onDoubleClick={(e) => {
                 if (!ctrlDrag.active && onRegisterClick) {
                   e.stopPropagation();
@@ -254,20 +277,22 @@ const RegisterMapVisualizerInner: React.FC<RegisterMapVisualizerProps> = ({
                 className="relative flex-1 min-w-0 flex items-stretch gap-3 my-1 ml-3 rounded-xl border px-3 py-2 transition-colors"
                 style={{
                   borderColor: 'var(--vscode-panel-border)',
-                  background: isHovered
+                  background: accent
                     ? `color-mix(in srgb, ${color} 9%, var(--vscode-editor-background))`
                     : 'var(--vscode-editor-background)',
                   boxShadow: isDropTarget
                     ? '0 0 0 2px var(--vscode-focusBorder) inset'
-                    : isHovered
-                      ? `0 0 0 2px ${color} inset`
-                      : undefined,
+                    : isSelected
+                      ? '0 0 0 2px var(--vscode-focusBorder) inset'
+                      : isHovered
+                        ? `0 0 0 2px ${color} inset`
+                        : undefined,
                 }}
               >
-                {isHovered && (
+                {accent && (
                   <div
                     className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl"
-                    style={{ background: color }}
+                    style={{ background: isSelected ? 'var(--vscode-focusBorder)' : color }}
                   />
                 )}
 
@@ -277,7 +302,7 @@ const RegisterMapVisualizerInner: React.FC<RegisterMapVisualizerProps> = ({
                   style={{
                     backgroundColor: color,
                     borderColor: group.isArray ? 'var(--ipcraft-pattern-border)' : undefined,
-                    filter: isHovered ? 'saturate(1.15) brightness(1.05)' : undefined,
+                    filter: accent ? 'saturate(1.15) brightness(1.05)' : undefined,
                   }}
                 >
                   {group.isArray && (
@@ -329,7 +354,7 @@ const RegisterMapVisualizerInner: React.FC<RegisterMapVisualizerProps> = ({
                 {(onInsertAtGap ?? onDeleteReg) && (
                   <button
                     className="self-center shrink-0 p-0.5 rounded hover:bg-[var(--vscode-toolbar-hoverBackground)] text-[var(--vscode-foreground)] flex items-center justify-center transition-opacity"
-                    style={{ opacity: isHovered ? 1 : 0.35 }}
+                    style={{ opacity: accent ? 1 : 0.35 }}
                     onClick={(e) => {
                       e.stopPropagation();
                       setContextMenu({ x: e.clientX, y: e.clientY, regIndex: group.idx });
@@ -382,12 +407,14 @@ const RegisterMapVisualizerInner: React.FC<RegisterMapVisualizerProps> = ({
   }
 
   return (
-    <div className="w-full">
+    <div ref={containerRef} className="w-full">
       <div className="relative w-full flex items-start overflow-x-auto pb-2">
         {/* Register grid background */}
         <div className="relative flex flex-row items-end gap-0 pl-4 pr-2 pt-12 pb-2 min-h-[64px] w-full">
           {displayGroups.map((group, displayIdx) => {
             const isHovered = hoveredRegIndex === group.idx;
+            const isSelected = selectedRegIndex === group.idx;
+            const accent = isHovered || isSelected;
             const isDragging = ctrlDrag.active && ctrlDrag.draggedRegIndex === group.idx;
             const isDropTarget =
               ctrlDrag.active &&
@@ -398,16 +425,23 @@ const RegisterMapVisualizerInner: React.FC<RegisterMapVisualizerProps> = ({
             return (
               <div
                 key={group.idx}
-                className={`relative flex-1 flex flex-col items-center justify-end select-none min-w-[120px] ${isHovered ? 'z-10' : ''} ${isDragging ? 'opacity-50' : ''}`}
+                data-viz-row={group.idx}
+                className={`relative flex-1 flex flex-col items-center justify-end select-none min-w-[120px] ${accent ? 'z-10' : ''} ${isDragging ? 'opacity-50' : ''}`}
                 style={{
                   cursor: ctrlDrag.active
                     ? 'grabbing'
-                    : onRegisterClick || onReorderRegisters
+                    : onRegisterClick || onReorderRegisters || onSelectRegister
                       ? 'pointer'
                       : 'default',
                 }}
                 onMouseEnter={() => setHoveredRegIndex(group.idx)}
                 onMouseLeave={() => setHoveredRegIndex(null)}
+                onClick={(e) => {
+                  if (!ctrlDrag.active && onSelectRegister) {
+                    e.stopPropagation();
+                    onSelectRegister(group.idx);
+                  }
+                }}
                 onDoubleClick={(e) => {
                   if (!ctrlDrag.active && onRegisterClick) {
                     e.stopPropagation();
@@ -428,13 +462,15 @@ const RegisterMapVisualizerInner: React.FC<RegisterMapVisualizerProps> = ({
                     backgroundColor: FIELD_COLORS[group.color],
                     opacity: 1,
                     borderColor: group.isArray ? 'var(--ipcraft-pattern-border)' : undefined,
-                    transform: isHovered ? 'translateY(-2px)' : undefined,
-                    filter: isHovered ? 'saturate(1.15) brightness(1.05)' : undefined,
+                    transform: accent ? 'translateY(-2px)' : undefined,
+                    filter: accent ? 'saturate(1.15) brightness(1.05)' : undefined,
                     boxShadow: isDropTarget
                       ? `${separatorShadow}, 0 0 0 3px var(--vscode-focusBorder), 0 0 12px var(--vscode-focusBorder)`
-                      : isHovered
-                        ? `${separatorShadow}, 0 0 0 2px var(--vscode-focusBorder), 0 10px 20px color-mix(in srgb, var(--vscode-foreground) 22%, transparent)`
-                        : separatorShadow,
+                      : isSelected
+                        ? `${separatorShadow}, 0 0 0 3px var(--vscode-focusBorder), 0 10px 20px color-mix(in srgb, var(--vscode-foreground) 22%, transparent)`
+                        : isHovered
+                          ? `${separatorShadow}, 0 0 0 2px var(--vscode-focusBorder), 0 10px 20px color-mix(in srgb, var(--vscode-foreground) 22%, transparent)`
+                          : separatorShadow,
                   }}
                 >
                   <div className="flex flex-col items-center gap-0.5">
@@ -482,6 +518,8 @@ const RegisterMapVisualizer = React.memo(
     prev.registers === next.registers &&
     prev.hoveredRegIndex === next.hoveredRegIndex &&
     prev.setHoveredRegIndex === next.setHoveredRegIndex &&
+    prev.selectedRegIndex === next.selectedRegIndex &&
+    prev.onSelectRegister === next.onSelectRegister &&
     prev.baseAddress === next.baseAddress &&
     prev.onReorderRegisters === next.onReorderRegisters &&
     prev.onRegisterClick === next.onRegisterClick &&

@@ -66,6 +66,23 @@ describe('RegisterMapVisualizer — vertical register ruler', () => {
     expect(screen.getAllByLabelText('More Actions...')).toHaveLength(registers.length);
   });
 
+  it('calls onSelectRegister with the clicked register index (vertical)', () => {
+    const onSelectRegister = jest.fn();
+    render(
+      <RegisterMapVisualizer
+        registers={registers}
+        layout="vertical"
+        onSelectRegister={onSelectRegister}
+      />
+    );
+
+    fireEvent.click(screen.getByText('CTRL').closest('[data-viz-row]') as HTMLElement);
+    expect(onSelectRegister).toHaveBeenCalledWith(1);
+
+    fireEvent.click(screen.getByText('CH_GAIN').closest('[data-viz-row]') as HTMLElement);
+    expect(onSelectRegister).toHaveBeenCalledWith(3);
+  });
+
   it('opens the actions menu and routes insert above/below and delete', () => {
     const onInsertAtGap = jest.fn();
     const onDeleteReg = jest.fn();
