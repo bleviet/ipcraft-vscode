@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import type { YamlUpdateHandler } from '../../types/editor';
 import { VSCodeDropdown, VSCodeOption } from '@vscode/webview-ui-toolkit/react';
 import { ACCESS_OPTIONS } from '../../shared/constants';
@@ -84,6 +84,15 @@ const FieldTableRow = ({
   } = fieldEditor;
 
   const [nameError, setNameError] = useState<string | null>(null);
+  const [editingKey, setEditingKey] = useState<EditKey | null>(null);
+
+  const isRowSelected = activeCell.rowId === rowId;
+
+  useEffect(() => {
+    if (!isRowSelected) {
+      setEditingKey(null);
+    }
+  }, [isRowSelected]);
 
   const W1C_ACCESS = new Set(['write-1-to-clear', 'read-write-1-to-clear']);
   const isW1C = W1C_ACCESS.has(field.access ?? '');
@@ -410,6 +419,11 @@ const FieldTableRow = ({
       onMouseEnter={() => setHoveredFieldIndex(index)}
       onMouseLeave={() => setHoveredFieldIndex(null)}
       onClick={() => onRowClick(index)}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+          setEditingKey(null);
+        }
+      }}
       onContextMenu={onContextMenu}
       onPointerEnter={onPointerEnterRow}
       onPointerMove={(e) => {
@@ -455,8 +469,12 @@ const FieldTableRow = ({
               <CellInput
                 editKey="name"
                 className="flex-1"
+                isEditing={editingKey === 'name'}
                 value={field.name ?? ''}
-                onFocus={onCellFocus(index, 'name')}
+                onFocus={() => {
+                  onCellFocus(index, 'name')();
+                  setEditingKey('name');
+                }}
                 cancelEditRef={fieldEditor.cancelEditRef}
                 onInput={(value) => {
                   const next = value ?? '';
@@ -506,13 +524,17 @@ const FieldTableRow = ({
                 <VectorBoundingInput
                   editKey="bits"
                   className="w-full font-mono"
+                  isEditing={editingKey === 'bits'}
                   value={bitsValue}
                   registerSize={registerSize}
                   maxWidth={maxWidth}
                   minBit={lsbFloor}
                   maxBit={msbCeiling}
                   hasError={!!bitsErr}
-                  onFocus={onCellFocus(index, 'bits')}
+                  onFocus={() => {
+                    onCellFocus(index, 'bits')();
+                    setEditingKey('bits');
+                  }}
                   cancelEditRef={fieldEditor.cancelEditRef}
                   onInput={handleBitsInput}
                   onBlur={handleBitsCommit}
@@ -521,8 +543,12 @@ const FieldTableRow = ({
                 <CellInput
                   editKey="bits"
                   className="w-full font-mono"
+                  isEditing={editingKey === 'bits'}
                   value={bitsValue}
-                  onFocus={onCellFocus(index, 'bits')}
+                  onFocus={() => {
+                    onCellFocus(index, 'bits')();
+                    setEditingKey('bits');
+                  }}
                   cancelEditRef={fieldEditor.cancelEditRef}
                   onInput={handleBitsInput}
                   onBlur={handleBitsCommit}
@@ -545,10 +571,14 @@ const FieldTableRow = ({
               <CellInput
                 editKey="access"
                 variant="dropdown"
+                isEditing={editingKey === 'access'}
                 value={field.access ?? 'read-write'}
                 className="w-full"
                 options={ACCESS_OPTIONS}
-                onFocus={onCellFocus(index, 'access')}
+                onFocus={() => {
+                  onCellFocus(index, 'access')();
+                  setEditingKey('access');
+                }}
                 cancelEditRef={fieldEditor.cancelEditRef}
                 onInput={(value) => {
                   const next = value;
@@ -597,8 +627,12 @@ const FieldTableRow = ({
             <CellInput
               editKey="reset"
               className="w-full font-mono"
+              isEditing={editingKey === 'reset'}
               value={resetValue}
-              onFocus={onCellFocus(index, 'reset')}
+              onFocus={() => {
+                onCellFocus(index, 'reset')();
+                setEditingKey('reset');
+              }}
               cancelEditRef={fieldEditor.cancelEditRef}
               onInput={(value) => {
                 const raw = value ?? '';
@@ -644,12 +678,16 @@ const FieldTableRow = ({
               editKey="description"
               variant="textarea"
               className="w-full"
+              isEditing={editingKey === 'description'}
               style={{
                 minHeight: '40px',
                 resize: 'none',
               }}
               value={field.description ?? ''}
-              onFocus={onCellFocus(index, 'description', { initializeDrafts: false })}
+              onFocus={() => {
+                onCellFocus(index, 'description', { initializeDrafts: false })();
+                setEditingKey('description');
+              }}
               cancelEditRef={fieldEditor.cancelEditRef}
               onInput={(value) => onUpdate(['fields', index, 'description'], value)}
               onBlur={(value) => onUpdate(['fields', index, 'description'], value)}

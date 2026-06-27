@@ -13,6 +13,8 @@ export interface VectorBoundingInputProps {
   onFocus?: () => void;
   cancelEditRef?: React.MutableRefObject<boolean>;
   className?: string;
+  /** When false (default) pointer events are blocked so single click only selects the row. */
+  isEditing?: boolean;
 }
 
 export const VectorBoundingInput: React.FC<VectorBoundingInputProps> = ({
@@ -28,6 +30,7 @@ export const VectorBoundingInput: React.FC<VectorBoundingInputProps> = ({
   onFocus,
   cancelEditRef,
   className = '',
+  isEditing = false,
 }) => {
   const [localMsb, setLocalMsb] = useState('');
   const [localLsb, setLocalLsb] = useState('');
@@ -357,6 +360,7 @@ export const VectorBoundingInput: React.FC<VectorBoundingInputProps> = ({
       style={{
         boxSizing: 'border-box',
         verticalAlign: 'middle',
+        pointerEvents: isEditing ? 'auto' : 'none',
       }}
     >
       <span className="opacity-80 px-0.5 select-none text-[var(--vscode-input-foreground)]">[</span>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { FIELD_COLORS } from '../../shared/colors';
 import { toHex } from '../../utils/formatUtils';
 import type { YamlUpdateHandler } from '../../types/editor';
@@ -87,6 +87,13 @@ export function RegisterTableRow({
   baseAddress = 0,
 }: RegisterTableRowProps) {
   const [nameError, setNameError] = useState<string | null>(null);
+  const [editingKey, setEditingKey] = useState<RegEditKey | null>(null);
+
+  useEffect(() => {
+    if (!isSelected) {
+      setEditingKey(null);
+    }
+  }, [isSelected]);
 
   // Visual type: nested array (__kind), flat array (count/stride), or plain register.
   const isNestedArray = reg.__kind === 'array';
@@ -156,6 +163,11 @@ export function RegisterTableRow({
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       onClick={onRowClick}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+          setEditingKey(null);
+        }
+      }}
       onDoubleClick={(e) => {
         if (!onRowDoubleClick) {
           return;
@@ -216,8 +228,12 @@ export function RegisterTableRow({
             <CellInput
               editKey="name"
               className="flex-1 min-w-0"
+              isEditing={editingKey === 'name'}
               value={reg.name ?? ''}
-              onFocus={captureEditSnapshot}
+              onFocus={() => {
+                captureEditSnapshot();
+                setEditingKey('name');
+              }}
               cancelEditRef={cancelEditRef}
               onInput={(value) => {
                 const err = validateUniqueName(value, siblingNames ?? [], reg.name ?? '');
@@ -251,8 +267,12 @@ export function RegisterTableRow({
         <CellInput
           editKey="offset"
           className="w-full font-mono"
+          isEditing={editingKey === 'offset'}
           value={toHex(absStart)}
-          onFocus={captureEditSnapshot}
+          onFocus={() => {
+            captureEditSnapshot();
+            setEditingKey('offset');
+          }}
           onInput={(value) => {
             const val = Number(value);
             if (!Number.isNaN(val)) {
@@ -282,9 +302,13 @@ export function RegisterTableRow({
             editKey="description"
             variant="textarea"
             className="flex-1 min-w-0"
+            isEditing={editingKey === 'description'}
             style={{ minHeight: '40px', resize: 'none' }}
             value={reg.description ?? ''}
-            onFocus={captureEditSnapshot}
+            onFocus={() => {
+              captureEditSnapshot();
+              setEditingKey('description');
+            }}
             onInput={(value) => onUpdate(['registers', idx, 'description'], value)}
           />
           {onActionsMenu && (

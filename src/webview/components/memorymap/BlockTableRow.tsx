@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { FIELD_COLORS } from '../../shared/colors';
 import { calculateBlockSize } from '../../utils/blockSize';
 import { toHex } from '../../utils/formatUtils';
@@ -102,6 +102,14 @@ export function BlockTableRow({
   siblingNames,
 }: BlockTableRowProps) {
   const [nameError, setNameError] = useState<string | null>(null);
+  const [editingKey, setEditingKey] = useState<BlockEditKey | null>(null);
+
+  useEffect(() => {
+    if (!isSelected) {
+      setEditingKey(null);
+    }
+  }, [isSelected]);
+
   const base = block.baseAddress ?? 0;
   const size = calculateBlockSize(block);
 
@@ -151,6 +159,11 @@ export function BlockTableRow({
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       onClick={onRowClick}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+          setEditingKey(null);
+        }
+      }}
       onContextMenu={onContextMenu}
       onPointerEnter={onPointerEnterRow}
       onPointerMove={(e) => {
@@ -185,8 +198,12 @@ export function BlockTableRow({
             <CellInput
               editKey="name"
               className="flex-1"
+              isEditing={editingKey === 'name'}
               value={block.name || ''}
-              onFocus={captureEditSnapshot}
+              onFocus={() => {
+                captureEditSnapshot();
+                setEditingKey('name');
+              }}
               cancelEditRef={cancelEditRef}
               onInput={(value) => {
                 const err = validateUniqueName(value, siblingNames ?? [], block.name ?? '');
@@ -220,8 +237,12 @@ export function BlockTableRow({
         <CellInput
           editKey="base"
           className="w-full font-mono"
+          isEditing={editingKey === 'base'}
           value={toHex(base)}
-          onFocus={captureEditSnapshot}
+          onFocus={() => {
+            captureEditSnapshot();
+            setEditingKey('base');
+          }}
           onInput={(value) => {
             const val = Number(value);
             if (!Number.isNaN(val)) {
@@ -280,9 +301,13 @@ export function BlockTableRow({
           editKey="description"
           variant="textarea"
           className="w-full"
+          isEditing={editingKey === 'description'}
           style={{ minHeight: '40px', resize: 'none' }}
           value={block.description ?? ''}
-          onFocus={captureEditSnapshot}
+          onFocus={() => {
+            captureEditSnapshot();
+            setEditingKey('description');
+          }}
           onInput={(value) => onUpdate(['addressBlocks', idx, 'description'], value)}
         />
       </EditableCell>

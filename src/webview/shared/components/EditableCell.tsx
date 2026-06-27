@@ -35,6 +35,11 @@ export function EditableCell({
         e.stopPropagation();
         onCellClick(e);
       }}
+      onDoubleClick={(e) => {
+        e.stopPropagation();
+        const input = e.currentTarget.querySelector(`[data-edit-key="${columnKey}"]`);
+        (input as HTMLElement | null)?.focus();
+      }}
     >
       {children}
     </td>

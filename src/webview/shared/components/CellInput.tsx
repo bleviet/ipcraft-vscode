@@ -28,6 +28,8 @@ export interface CellInputProps {
   style?: React.CSSProperties;
   /** Options for dropdown variant. */
   options?: readonly string[];
+  /** When false (default) pointer events are blocked so single click only selects the row; double-click or keyboard (e/Enter) triggers editing. */
+  isEditing?: boolean;
 }
 
 /**
@@ -45,7 +47,12 @@ export function CellInput({
   className = '',
   style,
   options = [],
+  isEditing = false,
 }: CellInputProps) {
+  const pointerStyle: React.CSSProperties = {
+    ...style,
+    pointerEvents: isEditing ? 'auto' : 'none',
+  };
   const isTextArea = variant === 'textarea';
   // Text and textarea inputs have a caret; the dropdown does not.
   const usesDraft = variant !== 'dropdown';
@@ -115,7 +122,7 @@ export function CellInput({
       <VSCodeDropdown
         data-edit-key={editKey}
         className={`vscode-field-bare ${className}`}
-        style={style}
+        style={pointerStyle}
         value={value}
         onFocus={onFocus}
         onChange={handleInput}
@@ -138,7 +145,7 @@ export function CellInput({
         }}
         data-edit-key={editKey}
         className={`vscode-field-bare ${className}`}
-        style={style}
+        style={pointerStyle}
         rows={1}
         value={draft}
         onFocus={() => {
