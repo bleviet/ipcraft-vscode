@@ -12,6 +12,16 @@ if (typeof (global as any).TextDecoder === 'undefined') {
   (global as any).TextDecoder = TextDecoder;
 }
 
+// jsdom does not implement ResizeObserver, but webview components (e.g. the
+// address-map ruler, GeneratorPanel) use it. Provide a no-op stub.
+if (typeof (global as any).ResizeObserver === 'undefined') {
+  (global as any).ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+}
+
 // Mock VS Code API for webview tests
 (global as any).acquireVsCodeApi = () => ({
   postMessage: jest.fn(),

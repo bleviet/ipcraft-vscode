@@ -45,6 +45,19 @@ function formatSize(bytes: number): string {
   return `${Number.isInteger(mb) ? mb : mb.toFixed(1)}MB`;
 }
 
+// Zero-padded 8-digit hex (e.g. 0x00000027) used by the to-scale ruler labels.
+function toHex8(n: number): string {
+  return `0x${Math.max(0, n).toString(16).toUpperCase().padStart(8, '0')}`;
+}
+
+// Pick a "nice" power-of-two tick step that yields roughly `target` ticks across `span`.
+function niceTickStep(span: number, target = 16): number {
+  if (span <= 0) {
+    return 1;
+  }
+  return Math.max(1, Math.pow(2, Math.round(Math.log2(span / target))));
+}
+
 // ---------------------------------------------------------------------------
 // Segment types
 // ---------------------------------------------------------------------------
@@ -173,6 +186,22 @@ const AddressMapVisualizerInner: React.FC<AddressMapVisualizerProps> = ({
     contextMenu ? { x: contextMenu.x, y: contextMenu.y } : null
   );
 
+  // Measured height of the vertical ruler track so it fills the available pane
+  // height instead of a fixed size that leaves empty space below.
+  const rulerRef = useRef<HTMLDivElement | null>(null);
+  const [rulerHeight, setRulerHeight] = useState(560);
+  useEffect(() => {
+    const el = rulerRef.current;
+    if (!el) {
+      return;
+    }
+    const update = () => setRulerHeight(Math.max(el.clientHeight, 240));
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [layout, blocks.length]);
+
   const { segments, totalEnd, overlapSet, displayPcts } = useSegments(blocks);
 
   // First and last block segment indices — used for tooltip edge-pinning.
@@ -208,7 +237,12 @@ const AddressMapVisualizerInner: React.FC<AddressMapVisualizerProps> = ({
   }, [contextMenu]);
 
   // ---------------------------------------------------------------------------
-  // Vertical proportional layout (side-by-side mode)
+  // Vertical to-scale address ruler (side-by-side mode)
+  //
+  // An address axis on the left with evenly-spaced tick labels, a single
+  // unified track (gaps shown as light gray) and colored blocks positioned at
+  // their true proportional offset, with name / address-range / size labels on
+  // the right.
   // ---------------------------------------------------------------------------
 
   if (layout === 'vertical') {
@@ -220,15 +254,43 @@ const AddressMapVisualizerInner: React.FC<AddressMapVisualizerProps> = ({
       );
     }
 
+    const TRACK_HEIGHT = rulerHeight;
+    const MIN_BLOCK_PX = 5;
+
+    const blockSegs = segments.filter((s): s is BlockSegment => s.type === 'block');
+    const axisStart = Math.min(...blockSegs.map((s) => s.start));
+    const span = Math.max(1, totalEnd - axisStart);
+    const maxEndInclusive = totalEnd - 1;
+
+    const toY = (addr: number) => ((addr - axisStart) / span) * TRACK_HEIGHT;
+
+    // Tick values: nice power-of-two steps, plus the top and bottom endpoints.
+    const step = niceTickStep(span);
+    const tickValues = new Set<number>([axisStart, maxEndInclusive]);
+    for (let v = Math.ceil(axisStart / step) * step; v < totalEnd; v += step) {
+      tickValues.add(v);
+    }
+    const ticks = [...tickValues].sort((a, b) => a - b);
+
+    // Declutter label stack: keep each label aligned to its block, but nudge it
+    // down so a three-line label never overlaps the one above it.
+    const LABEL_MIN_GAP = 44;
+    let lastLabelTop = -Infinity;
+    const labelTops = blockSegs.map((seg) => {
+      const top = Math.max(toY(seg.start), lastLabelTop + LABEL_MIN_GAP);
+      lastLabelTop = top;
+      return top;
+    });
+
     return (
       <div
         ref={containerRef}
-        className="w-full relative select-none"
+        className="w-full h-full min-h-0 flex flex-col relative select-none px-2 pt-3 pb-12"
         onMouseLeave={() => setHoveredBlockIndex(null)}
       >
         {overlapSet.size > 0 && (
           <div
-            className="mx-2 mt-2 mb-1 text-xs px-2 py-1 rounded flex items-center gap-1.5"
+            className="mb-2 text-xs px-2 py-1 rounded flex items-center gap-1.5"
             style={{
               background: 'color-mix(in srgb, var(--vscode-errorForeground) 12%, transparent)',
               color: 'var(--vscode-errorForeground)',
@@ -241,99 +303,98 @@ const AddressMapVisualizerInner: React.FC<AddressMapVisualizerProps> = ({
           </div>
         )}
 
-        {/* Proportional rows: flex-grow proportional to size, min-height as floor */}
-        <div className="flex flex-col px-2 py-2" style={{ minHeight: '260px' }}>
-          {segments.map((seg, i) => {
-            const flexGrow = displayPcts[i];
+        <div ref={rulerRef} className="flex flex-1 min-h-0">
+          {/* Address axis with tick labels */}
+          <div className="relative shrink-0" style={{ width: 60 }}>
+            <div className="absolute top-0 bottom-0 right-0 w-px bg-[var(--vscode-foreground)] opacity-30" />
+            {ticks.map((value) => (
+              <div
+                key={`tick-${value}`}
+                className="absolute right-0 flex items-center gap-1 pr-px"
+                style={{ top: toY(value), transform: 'translateY(-50%)' }}
+              >
+                <span className="text-[10px] font-mono vscode-muted whitespace-nowrap leading-none">
+                  {toHex(value)}
+                </span>
+                <span className="block h-px w-2 bg-[var(--vscode-foreground)] opacity-50" />
+              </div>
+            ))}
+          </div>
 
-            if (seg.type === 'gap') {
+          {/* Unified track — gaps remain the gray background, blocks sit on top */}
+          <div
+            className="relative shrink-0 ml-1 rounded-sm overflow-hidden"
+            style={{
+              width: 88,
+              background: 'color-mix(in srgb, var(--vscode-foreground) 9%, transparent)',
+              border: '1px solid var(--vscode-panel-border)',
+            }}
+          >
+            {blockSegs.map((seg) => {
+              const isHovered = hoveredBlockIndex === seg.idx;
+              const isOverlap = overlapSet.has(seg.idx);
+              const top = toY(seg.start);
+              const height = Math.max(toY(seg.end + 1) - top, MIN_BLOCK_PX);
               return (
                 <div
-                  key={`gap-${seg.start}`}
-                  className="relative flex items-center overflow-hidden rounded-sm"
+                  key={`block-${seg.idx}`}
+                  data-viz-row
+                  className="absolute left-0 right-0"
                   style={{
-                    flexGrow,
-                    minHeight: '20px',
-                    background: 'var(--vscode-editor-background)',
-                    backgroundImage: STRIPE_BG,
-                    backgroundSize: '7px 7px',
-                    opacity: 0.6,
-                    marginBottom: '2px',
+                    top,
+                    height,
+                    backgroundColor: FIELD_COLORS[seg.color],
+                    cursor: onBlockClick ? 'pointer' : 'default',
+                    outline: isOverlap ? '2px solid var(--vscode-errorForeground)' : undefined,
+                    outlineOffset: '-2px',
+                    filter: isHovered ? 'saturate(1.15) brightness(1.08)' : undefined,
+                    boxShadow: isHovered ? 'inset 0 0 0 2px var(--vscode-focusBorder)' : undefined,
+                    zIndex: isHovered ? 5 : 1,
                   }}
-                  title={`Unallocated: ${toHex(seg.start)} → ${toHex(seg.end)} (${formatSize(seg.size)})`}
+                  onMouseEnter={() => setHoveredBlockIndex(seg.idx)}
+                  onClick={() => onBlockClick?.(seg.idx)}
+                  onContextMenu={(e) => {
+                    if (!onInsertAtGap && !onDeleteBlock) {
+                      return;
+                    }
+                    e.preventDefault();
+                    setContextMenu({ x: e.clientX, y: e.clientY, blockIndex: seg.idx });
+                  }}
+                  title={`${seg.name} • ${toHex8(seg.start)} – ${toHex8(seg.end)} • ${formatSize(seg.size)}`}
+                />
+              );
+            })}
+          </div>
+
+          {/* Block labels — name / address range / size, aligned to block tops */}
+          <div className="relative flex-1 ml-3 min-w-0">
+            {blockSegs.map((seg, li) => {
+              const isHovered = hoveredBlockIndex === seg.idx;
+              return (
+                <div
+                  key={`label-${seg.idx}`}
+                  className="absolute left-0 right-0 leading-tight"
+                  style={{ top: labelTops[li], cursor: onBlockClick ? 'pointer' : 'default' }}
+                  onMouseEnter={() => setHoveredBlockIndex(seg.idx)}
+                  onClick={() => onBlockClick?.(seg.idx)}
                 >
-                  <span className="text-[9px] font-mono vscode-muted opacity-70 px-2 py-0.5 leading-tight truncate">
-                    {formatSize(seg.size)} free
-                  </span>
+                  <div
+                    className="font-mono font-semibold text-[12px] truncate"
+                    style={{
+                      color: FIELD_COLORS[seg.color],
+                      textDecoration: isHovered ? 'underline' : undefined,
+                    }}
+                  >
+                    {seg.name}
+                  </div>
+                  <div className="font-mono text-[10px] vscode-muted whitespace-nowrap">
+                    {toHex8(seg.start)} – {toHex8(seg.end)}
+                  </div>
+                  <div className="font-mono text-[10px] vscode-muted">({formatSize(seg.size)})</div>
                 </div>
               );
-            }
-
-            // Block row
-            const isHovered = hoveredBlockIndex === seg.idx;
-            const isOverlap = overlapSet.has(seg.idx);
-
-            return (
-              <div
-                key={`block-${seg.idx}`}
-                data-viz-row
-                className="relative flex items-center gap-2 overflow-hidden rounded-md transition-[filter,opacity]"
-                style={{
-                  flexGrow,
-                  minHeight: '36px',
-                  backgroundColor: FIELD_COLORS[seg.color],
-                  cursor: onBlockClick ? 'pointer' : 'default',
-                  marginBottom: '2px',
-                  filter: isHovered ? 'saturate(1.15) brightness(1.07)' : undefined,
-                  outline: isOverlap ? '2px solid var(--vscode-errorForeground)' : undefined,
-                  outlineOffset: '-2px',
-                  boxShadow: isHovered
-                    ? '0 0 0 2px var(--vscode-focusBorder)'
-                    : 'inset 0 0 0 1px var(--vscode-panel-border)',
-                }}
-                onMouseEnter={() => setHoveredBlockIndex(seg.idx)}
-                onClick={() => onBlockClick?.(seg.idx)}
-                onContextMenu={(e) => {
-                  if (!onInsertAtGap && !onDeleteBlock) {
-                    return;
-                  }
-                  e.preventDefault();
-                  setContextMenu({ x: e.clientX, y: e.clientY, blockIndex: seg.idx });
-                }}
-                title={`${seg.name} • ${toHex(seg.start)} → ${toHex(seg.end)} • ${formatSize(seg.size)}`}
-              >
-                {isHovered && (
-                  <div className="absolute inset-0 bg-white/10 pointer-events-none rounded-md" />
-                )}
-                <div className="flex flex-col justify-center px-2 py-1 min-w-0 overflow-hidden leading-tight">
-                  <span className="font-mono font-semibold text-[11px] truncate">{seg.name}</span>
-                  <span className="font-mono text-[9px] opacity-70 truncate">
-                    {toHex(seg.start)} → {toHex(seg.end)}
-                  </span>
-                  {flexGrow > 8 && (
-                    <span className="font-mono text-[9px] opacity-60">{formatSize(seg.size)}</span>
-                  )}
-                </div>
-                <div className="shrink-0 ml-auto pr-2">
-                  <span className="ipcraft-pattern-label text-[9px] font-mono">
-                    {seg.usage === 'memory' ? 'MEM' : 'REG'}
-                  </span>
-                </div>
-                {/* Address tick on the right edge */}
-                <div
-                  className="absolute right-0 top-0 text-[8px] font-mono opacity-50 pr-1 pt-0.5 pointer-events-none"
-                  style={{ color: 'inherit' }}
-                >
-                  {toHex(seg.start)}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* End address */}
-        <div className="px-2 pb-1 text-right">
-          <span className="text-[9px] font-mono vscode-muted opacity-60">{toHex(totalEnd)}</span>
+            })}
+          </div>
         </div>
 
         {/* Context menu */}
