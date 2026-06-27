@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 
 export interface TwoPanelEditorLayoutProps {
   /** Header bar (use EditorHeader). */
@@ -7,15 +7,20 @@ export interface TwoPanelEditorLayoutProps {
   visualizer: React.ReactNode;
   /** Main table / editing area. */
   table: React.ReactNode;
-  /** Fixed/absolute-position overlays: KeyboardShortcutsButton, context menus, etc. */
+  /** Fixed/absolute-positioned overlays: KeyboardShortcutsButton, context menus, etc. */
   footer?: React.ReactNode;
   layout: 'stacked' | 'side-by-side';
 }
 
+const MIN_VIZ_WIDTH = 240;
+const MIN_TABLE_WIDTH = 240;
+
 /**
  * Shared two-panel layout shell used by all editors.
  *
- * Side-by-side: visualizer pane on the left, table on the right.
+ * Side-by-side: visualizer pane on the left, table on the right, with a drag
+ * handle between them so the user can widen the visualizer (e.g. to read long
+ * register/array names that would otherwise be clipped at the default width).
  * Stacked: visualizer above the table.
  */
 export function TwoPanelEditorLayout({
@@ -25,16 +30,74 @@ export function TwoPanelEditorLayout({
   footer,
   layout,
 }: TwoPanelEditorLayoutProps) {
+  // null = use the CSS default width (.register-visualizer-pane); a number is
+  // the user-driven pixel width.
+  const [vizWidth, setVizWidth] = useState<number | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const draggingRef = useRef(false);
+
+  const onHandlePointerDown = useCallback((e: React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    draggingRef.current = true;
+    const el = e.currentTarget as HTMLElement;
+    try {
+      el.setPointerCapture?.(e.pointerId);
+    } catch {
+      // setPointerCapture not supported (e.g. jsdom) — drag still works via
+      // pointermove/pointerup on the handle.
+    }
+  }, []);
+
+  const onHandlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (!draggingRef.current || !containerRef.current) {
+      return;
+    }
+    const rect = containerRef.current.getBoundingClientRect();
+    const w = e.clientX - rect.left;
+    const clamped = Math.min(Math.max(w, MIN_VIZ_WIDTH), rect.width - MIN_TABLE_WIDTH);
+    setVizWidth(clamped);
+  }, []);
+
+  const onHandlePointerUp = useCallback((e: React.PointerEvent) => {
+    draggingRef.current = false;
+    try {
+      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch {
+      // pointerId already released
+    }
+  }, []);
+
   return (
     <div className="flex flex-col w-full h-full min-h-0">
       {header}
 
       {layout === 'side-by-side' ? (
-        <div className="flex-1 flex overflow-hidden min-h-0">
-          <div className="register-visualizer-pane shrink-0 overflow-y-auto border-r vscode-border">
+        <div ref={containerRef} className="flex-1 flex overflow-hidden min-h-0 relative">
+          <div
+            className="register-visualizer-pane overflow-y-auto border-r vscode-border"
+            style={
+              vizWidth
+                ? { width: vizWidth, flex: '0 0 auto', maxWidth: 'none', minWidth: 0 }
+                : undefined
+            }
+          >
             {visualizer}
           </div>
-          <div className="flex-1 vscode-surface min-h-0 flex flex-col overflow-hidden">{table}</div>
+          <div
+            className="panel-resize-handle"
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize visualizer pane"
+            title="Drag to resize"
+            onPointerDown={onHandlePointerDown}
+            onPointerMove={onHandlePointerMove}
+            onPointerUp={onHandlePointerUp}
+            onPointerCancel={onHandlePointerUp}
+          />
+          <div className="flex-1 vscode-surface min-h-0 flex flex-col overflow-hidden min-w-0">
+            {table}
+          </div>
         </div>
       ) : (
         <>

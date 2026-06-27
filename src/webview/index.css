@@ -265,6 +265,22 @@ body {
     opacity: 0.6;
 }
 
+/* Drag handle between the two panes of TwoPanelEditorLayout (side-by-side). */
+.panel-resize-handle {
+    flex: 0 0 6px;
+    width: 6px;
+    align-self: stretch;
+    cursor: col-resize;
+    background: transparent;
+    transition: background 0.15s;
+    z-index: 5;
+}
+.panel-resize-handle:hover,
+.panel-resize-handle:active {
+    background: var(--vscode-focusBorder);
+    opacity: 0.6;
+}
+
 .main-content {
     flex: 1;
     display: flex;

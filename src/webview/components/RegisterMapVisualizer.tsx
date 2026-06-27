@@ -312,7 +312,9 @@ const RegisterCard: React.FC<RegisterCardProps> = ({
               />
             ) : (
               <span
-                className={`font-mono font-bold text-sm truncate ${editable ? 'cursor-text' : ''}`}
+                className={`font-mono font-bold text-sm line-clamp-2 break-words ${
+                  editable ? 'cursor-text' : ''
+                }`}
                 data-tooltip={editable ? 'Double-click to edit' : undefined}
                 onDoubleClick={editable ? startEdit('name') : undefined}
               >
