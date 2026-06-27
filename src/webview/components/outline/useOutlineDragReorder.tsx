@@ -9,7 +9,16 @@ import type { OutlineReorder } from './types';
  */
 export type OutlinePreviewMove =
   | { kind: 'block'; fromIdx: number; toIdx: number; after: boolean }
-  | { kind: 'register'; blockIndex: number; fromIdx: number; toIdx: number; after: boolean };
+  | { kind: 'register'; blockIndex: number; fromIdx: number; toIdx: number; after: boolean }
+  | {
+      kind: 'arrayRegister';
+      blockIndex: number;
+      arrayIndex: number;
+      elementIndex: number;
+      fromIdx: number;
+      toIdx: number;
+      after: boolean;
+    };
 
 /**
  * Drag-to-reorder props wired onto a single outline row. The node renders
@@ -92,6 +101,24 @@ export function useOutlineDragReorder(onReorder?: (p: OutlineReorder) => void) {
         const to = parseOutlineId(toId);
         if (from.kind === 'block' && to.kind === 'block') {
           onReorder({ kind: 'block', fromIdx: from.blockIndex, toIdx: to.blockIndex, position });
+        } else if (
+          from.kind === 'arrayElementRegister' &&
+          to.kind === 'arrayElementRegister' &&
+          from.blockIndex === to.blockIndex &&
+          from.registerIndex === to.registerIndex &&
+          from.elementIndex === to.elementIndex
+        ) {
+          // Reorder a register within a register array's child template. The
+          // move is expressed by child index; dragging is confined to one
+          // element's list but the commit reorders the shared template.
+          onReorder({
+            kind: 'arrayRegister',
+            blockIndex: from.blockIndex,
+            arrayIndex: from.registerIndex,
+            fromIdx: from.childIndex,
+            toIdx: to.childIndex,
+            position,
+          });
         } else {
           const fromRegIdx =
             from.kind === 'register'
@@ -172,6 +199,23 @@ export function useOutlineDragReorder(onReorder?: (p: OutlineReorder) => void) {
     const after = drag.position === 'after';
     if (from.kind === 'block' && to.kind === 'block') {
       return { kind: 'block', fromIdx: from.blockIndex, toIdx: to.blockIndex, after };
+    }
+    if (
+      from.kind === 'arrayElementRegister' &&
+      to.kind === 'arrayElementRegister' &&
+      from.blockIndex === to.blockIndex &&
+      from.registerIndex === to.registerIndex &&
+      from.elementIndex === to.elementIndex
+    ) {
+      return {
+        kind: 'arrayRegister',
+        blockIndex: from.blockIndex,
+        arrayIndex: from.registerIndex,
+        elementIndex: from.elementIndex,
+        fromIdx: from.childIndex,
+        toIdx: to.childIndex,
+        after,
+      };
     }
     const fromReg = regIndexOf(from);
     const toReg = regIndexOf(to);

@@ -307,6 +307,8 @@ const OutlineTreeNodes = ({
                     startEditing={startEditing}
                     onRegisterContextMenu={onRegisterContextMenu}
                     drag={getDragProps?.(arrayRegisterId(blockIndex, idx))}
+                    getDragProps={getDragProps}
+                    previewMove={previewMove}
                   />
                 );
               }

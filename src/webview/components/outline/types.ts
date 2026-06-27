@@ -40,13 +40,24 @@ export type RenderNameOrEdit = (
  * A drag-to-reorder request emitted by the outline tree. `position` is relative
  * to `toIdx` ('before' = insert above, 'after' = insert below). Only same-kind,
  * same-sibling-group moves are emitted (blocks among blocks, registers among
- * the same block's top-level registers).
+ * the same block's top-level registers, or registers within the same register
+ * array's template).
  */
 export type OutlineReorder =
   | { kind: 'block'; fromIdx: number; toIdx: number; position: 'before' | 'after' }
   | {
       kind: 'register';
       blockIndex: number;
+      fromIdx: number;
+      toIdx: number;
+      position: 'before' | 'after';
+    }
+  | {
+      kind: 'arrayRegister';
+      blockIndex: number;
+      /** Index of the register array within the block's registers. */
+      arrayIndex: number;
+      /** Indices into the array's child-register template. */
       fromIdx: number;
       toIdx: number;
       position: 'before' | 'after';

@@ -34,6 +34,19 @@ function Harness({ onReorder }: { onReorder: (p: OutlineReorder) => void }) {
   );
 }
 
+// Register-array child registers: two children in element 0 plus the same
+// child in element 1 (to exercise the same-element restriction).
+function ArrayHarness({ onReorder }: { onReorder: (p: OutlineReorder) => void }) {
+  const { getDragProps } = useOutlineDragReorder(onReorder);
+  return (
+    <div>
+      <Row id="block-0-arrreg-0-el-0-reg-0" getDragProps={getDragProps} />
+      <Row id="block-0-arrreg-0-el-0-reg-1" getDragProps={getDragProps} />
+      <Row id="block-0-arrreg-0-el-1-reg-0" getDragProps={getDragProps} />
+    </div>
+  );
+}
+
 // jsdom returns all-zero rects; give the row a real height so the top/bottom
 // half split in onDragMove is meaningful.
 function mockRect(el: HTMLElement, top: number, height: number) {
@@ -113,6 +126,59 @@ describe('useOutlineDragReorder', () => {
       toIdx: 1,
       position: 'after',
     });
+  });
+
+  it('reorders registers within a register array (same element)', () => {
+    const onReorder = jest.fn();
+    const { container } = render(<ArrayHarness onReorder={onReorder} />);
+
+    const handle = container.querySelector('[aria-label="Drag to reorder"]') as HTMLElement; // el-0-reg-0
+    const target = container.querySelector(
+      '[data-testid="row-block-0-arrreg-0-el-0-reg-1"]'
+    ) as HTMLElement;
+    mockRect(target, 0, 40);
+
+    act(() => {
+      fireEvent.pointerDown(handle, { button: 0 });
+    });
+    act(() => {
+      fireEvent.pointerMove(target, { clientY: 35 }); // bottom half -> 'after'
+    });
+    act(() => {
+      fireEvent.pointerUp(window);
+    });
+
+    expect(onReorder).toHaveBeenCalledWith({
+      kind: 'arrayRegister',
+      blockIndex: 0,
+      arrayIndex: 0,
+      fromIdx: 0,
+      toIdx: 1,
+      position: 'after',
+    });
+  });
+
+  it('does not reorder array registers across different elements', () => {
+    const onReorder = jest.fn();
+    const { container } = render(<ArrayHarness onReorder={onReorder} />);
+
+    const handle = container.querySelector('[aria-label="Drag to reorder"]') as HTMLElement; // el-0-reg-0
+    const target = container.querySelector(
+      '[data-testid="row-block-0-arrreg-0-el-1-reg-0"]'
+    ) as HTMLElement;
+    mockRect(target, 0, 40);
+
+    act(() => {
+      fireEvent.pointerDown(handle, { button: 0 });
+    });
+    act(() => {
+      fireEvent.pointerMove(target, { clientY: 5 });
+    });
+    act(() => {
+      fireEvent.pointerUp(window);
+    });
+
+    expect(onReorder).not.toHaveBeenCalled();
   });
 
   it('does not emit a reorder across different kinds (block -> register)', () => {

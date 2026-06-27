@@ -1,9 +1,10 @@
 import React from 'react';
-import type { NormalizedAddressBlock, NormalizedRegister } from '../../../domain/internal.types';
+import type { NormalizedAddressBlock } from '../../../domain/internal.types';
 import { toHex } from '../../utils/formatUtils';
 import FieldNode from './FieldNode';
 import RegisterNode from './RegisterNode';
-import type { OutlineDragProps } from './useOutlineDragReorder';
+import type { OutlineDragProps, OutlinePreviewMove } from './useOutlineDragReorder';
+import { computeReorderPreview } from '../../utils/reorderPreview';
 import {
   OutlineSelection,
   RegisterArrayNode as RegisterArrayNodeModel,
@@ -33,6 +34,10 @@ interface RegisterArrayNodeProps {
     parentRegIndex?: number
   ) => void;
   drag?: OutlineDragProps;
+  /** Drag props factory so the array's child registers become reorderable. */
+  getDragProps?: (id: string) => OutlineDragProps;
+  /** Live drag-reorder preview; reflows the array's child registers. */
+  previewMove?: OutlinePreviewMove | null;
 }
 
 const RegisterArrayNode = ({
@@ -51,10 +56,13 @@ const RegisterArrayNode = ({
   startEditing,
   onRegisterContextMenu,
   drag,
+  getDragProps,
+  previewMove,
 }: RegisterArrayNodeProps) => {
   const id = `block-${blockIndex}-arrreg-${regIndex}`;
   const isSelected = selectedId === id;
   const isExpanded = expanded.has(id);
+  const childRegs = arrayNode.registers ?? [];
 
   const blockBase = block.baseAddress;
   const arrOff = arrayNode.offset;
@@ -223,7 +231,19 @@ const RegisterArrayNode = ({
                   }
                 />
 
-                {arrayNode.registers?.map((reg: NormalizedRegister, childIndex: number) => {
+                {(previewMove?.kind === 'arrayRegister' &&
+                previewMove.blockIndex === blockIndex &&
+                previewMove.arrayIndex === regIndex &&
+                previewMove.elementIndex === elementIndex
+                  ? computeReorderPreview(
+                      childRegs.length,
+                      previewMove.fromIdx,
+                      previewMove.toIdx,
+                      previewMove.after
+                    )
+                  : childRegs.map((_, i) => i)
+                ).map((childIndex: number) => {
+                  const reg = childRegs[childIndex];
                   const childId = `${elementId}-reg-${childIndex}`;
                   const isChildSelected = selectedId === childId;
                   const absolute = elementBase + reg.offset;
@@ -266,6 +286,7 @@ const RegisterArrayNode = ({
                     <RegisterNode
                       key={childId}
                       id={childId}
+                      drag={getDragProps?.(childId)}
                       isSelected={isChildSelected}
                       onClick={() => {
                         onFocusTree();

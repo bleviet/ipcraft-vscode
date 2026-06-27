@@ -438,6 +438,63 @@ const App = () => {
       return;
     }
 
+    if (p.kind === 'arrayRegister') {
+      // Reorder a register within a register array's child template. Offsets
+      // repack within the array element (its own width), then the array's
+      // footprint is unchanged so sibling registers stay put.
+      const arrayPath = [
+        ...selectionRootPath,
+        'addressBlocks',
+        p.blockIndex,
+        'registers',
+        p.arrayIndex,
+      ];
+      const arrayNode = YamlPathResolver.getAtPath(root, arrayPath) as
+        | Record<string, unknown>
+        | undefined;
+      const childRegs = (arrayNode?.registers ?? []) as Record<string, unknown>[];
+      if (
+        p.fromIdx < 0 ||
+        p.fromIdx >= childRegs.length ||
+        p.toIdx < 0 ||
+        p.toIdx >= childRegs.length
+      ) {
+        return;
+      }
+      const newChildRegs = [...childRegs];
+      const insertIdx = computeInsertIdx(p.fromIdx, p.toIdx);
+      const [movedChild] = newChildRegs.splice(p.fromIdx, 1);
+      newChildRegs.splice(insertIdx, 0, movedChild);
+
+      const width = blockRegWidth(arrayNode);
+      const laidOut = recomputeRegisterLayout(newChildRegs as LayoutRegister[], width);
+      const sanitizedRegs = laidOut.map(
+        (r) => serializeValue(r as Record<string, unknown>, width) as Record<string, unknown>
+      );
+      const newText = YamlService.applyPathEdits(rawTextRef.current, [
+        { path: [...arrayPath, 'registers'], value: sanitizedRegs },
+      ]);
+      if (newText !== rawTextRef.current) {
+        updateRawText(newText);
+        sendUpdate(newText);
+        const block = YamlPathResolver.getAtPath(root, [
+          ...selectionRootPath,
+          'addressBlocks',
+          p.blockIndex,
+        ]) as Record<string, unknown> | undefined;
+        const base = Number(block?.baseAddress ?? 0) + Number(arrayNode?.offset ?? 0);
+        handleSelect({
+          id: arrayRegisterId(p.blockIndex, p.arrayIndex),
+          type: 'array',
+          object: { ...arrayNode, registers: sanitizedRegs },
+          breadcrumbs: [mapName, String(block?.name ?? ''), String(arrayNode?.name ?? '')],
+          path: ['addressBlocks', p.blockIndex, 'registers', p.arrayIndex],
+          meta: { absoluteAddress: base, relativeOffset: Number(arrayNode?.offset ?? 0) },
+        });
+      }
+      return;
+    }
+
     // register reorder within a block
     const blockPath = [...selectionRootPath, 'addressBlocks', p.blockIndex];
     const block = YamlPathResolver.getAtPath(root, blockPath) as
