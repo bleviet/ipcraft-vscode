@@ -61,7 +61,11 @@ function renderLeafRegister(
   const blockBase = Number(block?.baseAddress ?? 0);
   const regOff = Number(reg.offset ?? 0);
   const absolute = blockBase + regOff;
+  // The register name cell still edits at the register path.
   const path: YamlPath = ['addressBlocks', blockIndex, 'registers', regIndex];
+  // Selecting a register opens its owning block's master-detail with the
+  // register pre-selected, rather than a separate full-page register view.
+  const blockPath: YamlPath = ['addressBlocks', blockIndex];
 
   const actionButton = onRegisterContextMenu ? (
     <button
@@ -92,13 +96,15 @@ function renderLeafRegister(
         onFocusTree();
         onSelect({
           id,
-          type: 'register',
-          object: reg,
+          type: 'block',
+          object: block,
           breadcrumbs: [memoryMapName, memoryMap.addressBlocks?.[blockIndex]?.name ?? '', reg.name],
-          path,
+          path: blockPath,
           meta: {
             absoluteAddress: absolute,
             relativeOffset: reg.offset,
+            activeRegisterIndex: regIndex,
+            focusDetails: true,
           },
         });
       }}

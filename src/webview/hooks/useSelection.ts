@@ -18,6 +18,8 @@ export interface Selection {
     absoluteAddress?: number;
     relativeOffset?: number;
     focusDetails?: boolean;
+    /** When a block is selected, the register within it to open in the detail pane. */
+    activeRegisterIndex?: number;
   };
 }
 

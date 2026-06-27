@@ -25,6 +25,7 @@ export interface OutlineSelection {
     absoluteAddress?: number;
     relativeOffset?: number;
     focusDetails?: boolean;
+    activeRegisterIndex?: number;
   };
 }
 

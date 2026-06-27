@@ -188,3 +188,89 @@ describe('FieldOperationService -- routing', () => {
     expect(apply(root, 'field-delete', { index: 0 })).toBe(true);
   });
 });
+
+// ---------------------------------------------------------------------------
+// registerSubPath — master-detail block selection
+// When a block is selected, the active register is addressed out-of-band via
+// registerSubPath instead of selection.path.
+// ---------------------------------------------------------------------------
+
+function makeBlockRoot() {
+  return {
+    addressBlocks: [
+      {
+        name: 'BLOCK',
+        registers: [
+          { name: 'REG0', fields: [{ name: 'A', bits: '[0:0]', access: 'read-write' }] },
+          { name: 'REG1', fields: [{ name: 'B', bits: '[0:0]', access: 'read-write' }] },
+        ],
+      },
+    ],
+  };
+}
+
+const blockSelection = { path: ['addressBlocks', 0] };
+
+function applyBlock(
+  root: Record<string, unknown>,
+  op: string,
+  regIndex: number,
+  payload: Record<string, unknown> = {}
+) {
+  return applyFieldOperation({
+    path: ['__op', op],
+    value: payload,
+    root,
+    selectionRootPath,
+    selection: blockSelection as never,
+    registerSubPath: ['addressBlocks', 0, 'registers', regIndex],
+  });
+}
+
+function getBlockFields(root: Record<string, unknown>, regIndex: number) {
+  const blocks = root.addressBlocks as Record<string, unknown>[];
+  const regs = blocks[0].registers as Record<string, unknown>[];
+  return regs[regIndex].fields as Record<string, unknown>[];
+}
+
+describe('FieldOperationService -- registerSubPath (master-detail block)', () => {
+  it('targets the register named by registerSubPath, not selection.path', () => {
+    const root = makeBlockRoot();
+    // selection.path points at the block; registerSubPath points at REG1.
+    applyBlock(root, 'field-add', 1, { name: 'C', afterIndex: 0 });
+
+    const reg0Fields = getBlockFields(root, 0);
+    const reg1Fields = getBlockFields(root, 1);
+    // REG0 (the block's first register) is untouched.
+    expect(reg0Fields).toHaveLength(1);
+    expect(reg0Fields[0].name).toBe('A');
+    // REG1 received the new field at the end.
+    expect(reg1Fields).toHaveLength(2);
+    expect(reg1Fields[1].name).toBe('C');
+  });
+
+  it('respects the targeted register index for field-delete', () => {
+    const root = makeBlockRoot();
+    applyBlock(root, 'field-delete', 0, { index: 0 });
+
+    expect(getBlockFields(root, 0)).toHaveLength(0);
+    // REG1 is untouched when REG0 is the target.
+    expect(getBlockFields(root, 1)).toHaveLength(1);
+  });
+
+  it('falls back to selection.path when registerSubPath is omitted', () => {
+    // Backward-compatible: a register-level selection (no registerSubPath)
+    // still resolves through selection.path exactly as before.
+    const root = makeRoot([{ name: 'A', bits: '[0:0]' }]);
+    applyFieldOperation({
+      path: ['__op', 'field-add'],
+      value: { name: 'Z', afterIndex: 0 },
+      root,
+      selectionRootPath,
+      selection: { path: ['addressBlocks', 0, 'registers', 0] } as never,
+    });
+    const fields = getFields(root);
+    expect(fields).toHaveLength(2);
+    expect(fields[1].name).toBe('Z');
+  });
+});

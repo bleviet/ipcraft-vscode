@@ -33,6 +33,7 @@ export interface DetailsPanelProps {
     absoluteAddress?: number;
     relativeOffset?: number;
     focusDetails?: boolean;
+    activeRegisterIndex?: number;
   };
   onUpdate: YamlUpdateHandler;
   onNavigateToRegister?: (regIndex: number) => void;
@@ -54,8 +55,6 @@ const DetailsPanel = React.forwardRef<DetailsPanelHandle, DetailsPanelProps>((pr
     selectionMeta: rawSelectionMeta,
     registerLayout,
     toggleRegisterLayout,
-    blockLayout,
-    toggleBlockLayout,
     memoryMapLayout,
     toggleMemoryMapLayout,
     arrayLayout,
@@ -207,8 +206,8 @@ const DetailsPanel = React.forwardRef<DetailsPanelHandle, DetailsPanelProps>((pr
       <div ref={wrapperRef} className="h-full">
         <BlockEditor
           block={selectedObject as Parameters<typeof BlockEditor>[0]['block']}
-          blockLayout={blockLayout}
-          toggleBlockLayout={toggleBlockLayout}
+          registerLayout={registerLayout}
+          toggleRegisterLayout={toggleRegisterLayout}
           selectionMeta={selectionMeta}
           onUpdate={onUpdate}
           onNavigateToRegister={onNavigateToRegister}

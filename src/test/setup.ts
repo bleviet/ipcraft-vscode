@@ -22,6 +22,37 @@ if (typeof (global as any).ResizeObserver === 'undefined') {
   };
 }
 
+// jsdom does not implement Element.scrollIntoView, but the rail/tables scroll
+// the selected row into view. Provide a no-op stub so selection-driven effects
+// do not throw.
+if (typeof (Element.prototype as any).scrollIntoView !== 'function') {
+  (Element.prototype as any).scrollIntoView = function noopScrollIntoView() {};
+}
+
+// jsdom does not implement PointerEvent. Provide a minimal polyfill extending
+// MouseEvent so components using onPointerDown/onPointerMove (e.g. the register
+// rail's drag-to-reorder) can be exercised with fireEvent.pointerDown, including
+// modifier keys (ctrlKey) and button.
+if (typeof (global as any).PointerEvent === 'undefined') {
+  class PointerEventPolyfill extends window.MouseEvent {
+    pointerId: number;
+    pointerType: string;
+    width: number;
+    height: number;
+    isPrimary: boolean;
+    constructor(type: string, init: any = {}) {
+      super(type, init);
+      this.pointerId = init.pointerId ?? 0;
+      this.pointerType = init.pointerType ?? 'mouse';
+      this.width = init.width ?? 1;
+      this.height = init.height ?? 1;
+      this.isPrimary = init.isPrimary ?? true;
+    }
+  }
+  (global as any).PointerEvent = PointerEventPolyfill;
+  (window as any).PointerEvent = PointerEventPolyfill;
+}
+
 // Mock VS Code API for webview tests
 (global as any).acquireVsCodeApi = () => ({
   postMessage: jest.fn(),
@@ -69,12 +100,14 @@ jest.mock('@vscode/webview-ui-toolkit/react', () => {
         onInput: (e: any) => onInput?.(e),
         onChange: (e: any) => onInput?.(e),
       }),
-    VSCodeTextArea: ({ onInput, ...props }: any) =>
+    VSCodeTextArea: React.forwardRef(({ onInput, ...props }: any, ref: any) =>
       React.createElement('textarea', {
+        ref,
         ...props,
         onInput: (e: any) => onInput?.(e),
         onChange: (e: any) => onInput?.(e),
-      }),
+      })
+    ),
     VSCodeCheckbox: ({ onChange, checked, children, ...props }: any) =>
       React.createElement('label', { key: props.id || props.name }, [
         React.createElement('input', {

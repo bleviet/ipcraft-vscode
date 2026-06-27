@@ -35,20 +35,42 @@ export function useYamlUpdateHandler({
 
       const { root, selectionRootPath } = YamlPathResolver.getMapRootInfo(rootObj);
 
-      // Flat register arrays expose the same bit-field editor as registers, so
-      // their field operations are routed through the same fields-array writer.
-      if (path[0] === '__op' && (selection.type === 'register' || selection.type === 'array')) {
+      // Flat register arrays and registers expose the same bit-field editor, so
+      // their field operations route through the same fields-array writer. When
+      // a block is selected (master-detail), the operation carries a
+      // `__regIndex` pointing at the active register within the block.
+      const opPayload = (value ?? {}) as Record<string, unknown>;
+      const hasRegIndex = typeof opPayload.__regIndex === 'number';
+      if (
+        path[0] === '__op' &&
+        (selection.type === 'register' ||
+          selection.type === 'array' ||
+          (selection.type === 'block' && hasRegIndex))
+      ) {
+        // The register the fields belong to: either the selection itself, or a
+        // register nested under the selected block.
+        const regSubPath: YamlPath = hasRegIndex
+          ? [...selection.path, 'registers', opPayload.__regIndex as number]
+          : selection.path;
+        // Strip the routing-only __regIndex before the operation reads payload.
+        const opValue = hasRegIndex
+          ? (() => {
+              const { __regIndex: _ignored, ...rest } = opPayload;
+              return rest;
+            })()
+          : value;
         // Compute the resulting fields array on the plain object, then write
         // only that array back so the rest of the document keeps its
         // formatting and comments.
         applyFieldOperation({
           path,
-          value,
+          value: opValue,
           root,
           selectionRootPath,
           selection,
+          registerSubPath: regSubPath,
         });
-        const registerPath = [...selectionRootPath, ...selection.path];
+        const registerPath = [...selectionRootPath, ...regSubPath];
         const reg = YamlPathResolver.getAtPath(root, registerPath) as
           | Record<string, unknown>
           | undefined;
@@ -57,7 +79,7 @@ export function useYamlUpdateHandler({
         // preserving gaps, rather than packing contiguously.
         if (String(path[1] ?? '') === 'field-move' && fields.length > 0) {
           const regWidth = typeof reg?.size === 'number' && reg.size > 0 ? reg.size : 32;
-          const payload = value as { index?: number; delta?: number } | null;
+          const payload = opValue as { index?: number; delta?: number } | null;
           const fromIdx = typeof payload?.index === 'number' ? payload.index : -1;
           const delta = typeof payload?.delta === 'number' ? payload.delta : 0;
           const movedIdx = fromIdx + delta;

@@ -13,6 +13,7 @@ import { render, screen } from '@testing-library/react';
 // ---------------------------------------------------------------------------
 
 let lastRegisterEditorProps: unknown = null;
+let lastBlockEditorProps: unknown = null;
 
 jest.mock('../../../webview/components/register/RegisterEditor', () => ({
   RegisterEditor: React.forwardRef((props: unknown, _ref: unknown) => {
@@ -28,7 +29,10 @@ jest.mock('../../../webview/components/memorymap/MemoryMapEditor', () => ({
 }));
 
 jest.mock('../../../webview/components/memorymap/BlockEditor', () => ({
-  BlockEditor: (_props: unknown) => <div data-testid="mock-block-editor">BlockEditor</div>,
+  BlockEditor: (props: unknown) => {
+    lastBlockEditorProps = props;
+    return <div data-testid="mock-block-editor">BlockEditor</div>;
+  },
 }));
 
 jest.mock('../../../webview/components/memorymap/RegisterArrayEditor', () => ({
@@ -67,6 +71,7 @@ const baseProps = {
 describe('DetailsPanel — routing', () => {
   beforeEach(() => {
     lastRegisterEditorProps = null;
+    lastBlockEditorProps = null;
   });
 
   it('renders the empty-state when selectedObject is null', () => {
@@ -118,6 +123,40 @@ describe('DetailsPanel — routing', () => {
       />
     );
     expect(screen.getByTestId('mock-block-editor')).toBeInTheDocument();
+  });
+
+  it('forwards selectionMeta.activeRegisterIndex to BlockEditor for a block selection', () => {
+    // Master-detail: the Outline emits a block selection carrying the register
+    // to pre-select in the detail pane. DetailsPanel must pass it straight
+    // through to BlockEditor.
+    const mockBlock = { name: 'APB', registers: [{ name: 'REG0', fields: [] }] };
+    render(
+      <DetailsPanel
+        selectedType="block"
+        selectedObject={mockBlock}
+        selectionMeta={{
+          activeRegisterIndex: 1,
+          focusDetails: true,
+          absoluteAddress: 0x100,
+        }}
+        onUpdate={noop}
+        {...baseProps}
+      />
+    );
+    expect(screen.getByTestId('mock-block-editor')).toBeInTheDocument();
+    const props = lastBlockEditorProps as {
+      selectionMeta?: {
+        activeRegisterIndex?: number;
+        focusDetails?: boolean;
+        absoluteAddress?: number;
+      };
+      registerLayout?: string;
+      toggleRegisterLayout?: unknown;
+    } | null;
+    expect(props?.selectionMeta?.activeRegisterIndex).toBe(1);
+    expect(props?.selectionMeta?.focusDetails).toBe(true);
+    expect(props?.registerLayout).toBe('side-by-side');
+    expect(props?.toggleRegisterLayout).toBe(noop);
   });
 
   it('renders RegisterArrayEditor for selectedType="array"', () => {

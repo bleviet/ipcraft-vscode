@@ -9,6 +9,12 @@ interface FieldOperationContext {
   root: unknown;
   selectionRootPath: YamlPath;
   selection: Selection;
+  /**
+   * Path from the selection root to the register owning the fields, replacing
+   * `selection.path`. Used when the selection is a block but the operation
+   * targets a specific register within it (master-detail).
+   */
+  registerSubPath?: YamlPath;
 }
 
 function normalizeFieldWidth(field: Record<string, unknown>): number {
@@ -91,10 +97,11 @@ export function applyFieldOperation({
   root,
   selectionRootPath,
   selection,
+  registerSubPath,
 }: FieldOperationContext): boolean {
   const operationType = String(path[1] ?? '');
   const payload = (value ?? {}) as Record<string, unknown>;
-  const registerYamlPath: YamlPath = [...selectionRootPath, ...selection.path];
+  const registerYamlPath: YamlPath = [...selectionRootPath, ...(registerSubPath ?? selection.path)];
   const fieldsPath: YamlPath = [...registerYamlPath, 'fields'];
 
   const current = YamlPathResolver.getAtPath(root, fieldsPath);

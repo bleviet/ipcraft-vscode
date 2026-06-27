@@ -35,6 +35,12 @@ export interface RegisterEditorProps {
   headerChildren?: React.ReactNode;
   /** Keyboard-shortcuts context for the footer (defaults to 'register'). */
   footerContext?: 'register' | 'array';
+  /**
+   * When true, render only the bit-field visualizer + fields table (no header,
+   * no footer). Used when embedded as the detail pane of a block master-detail,
+   * where the register's identity is shown/edited in the surrounding rail.
+   */
+  embedded?: boolean;
 }
 
 export type RegisterEditorHandle = {
@@ -65,6 +71,7 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
       title,
       headerChildren,
       footerContext = 'register',
+      embedded = false,
     },
     ref
   ) => {
@@ -250,14 +257,16 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
     return (
       <TwoPanelEditorLayout
         header={
-          <EditorHeader
-            title={title ?? register.name ?? ''}
-            description={register.description}
-            layout={registerLayout}
-            onToggleLayout={toggleRegisterLayout}
-          >
-            {headerChildren}
-          </EditorHeader>
+          embedded ? null : (
+            <EditorHeader
+              title={title ?? register.name ?? ''}
+              description={register.description}
+              layout={registerLayout}
+              onToggleLayout={toggleRegisterLayout}
+            >
+              {headerChildren}
+            </EditorHeader>
+          )
         }
         visualizer={
           <BitFieldVisualizer
@@ -273,7 +282,7 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
             fieldEditor={fieldEditor}
           />
         }
-        footer={<KeyboardShortcutsButton context={footerContext} />}
+        footer={embedded ? undefined : <KeyboardShortcutsButton context={footerContext} />}
         layout={registerLayout}
       />
     );
