@@ -40,8 +40,6 @@ interface FieldTableRowProps {
     options?: { initializeDrafts?: boolean }
   ) => () => void;
   isDragSource?: boolean;
-  isDragTarget?: boolean;
-  dragTargetPosition?: 'top' | 'bottom' | 'center' | null;
   onDragHandlePointerDown?: (e: React.PointerEvent<HTMLTableCellElement>) => void;
   onPointerEnterRow?: () => void;
   onDragMove?: (rowId: string, e: React.PointerEvent) => void;
@@ -60,8 +58,6 @@ const FieldTableRow = ({
   onCellClick,
   onCellFocus,
   isDragSource = false,
-  isDragTarget = false,
-  dragTargetPosition = null,
   onDragHandlePointerDown,
   onPointerEnterRow,
   onDragMove,
@@ -381,40 +377,28 @@ const FieldTableRow = ({
       data-row-id={rowId}
       className={`group vscode-row-solid transition-colors border-l-4 border-transparent h-12 ${
         isDragSource
-          ? 'opacity-40'
-          : isDragTarget && dragTargetPosition === 'center'
-            ? 'vscode-focus-border'
-            : index === selectedFieldIndex
-              ? 'vscode-focus-border vscode-row-selected'
-              : index === hoveredFieldIndex
-                ? 'vscode-focus-border vscode-row-hover'
-                : ''
+          ? ''
+          : index === selectedFieldIndex
+            ? 'vscode-focus-border vscode-row-selected'
+            : index === hoveredFieldIndex
+              ? 'vscode-focus-border vscode-row-hover'
+              : ''
       }`}
       style={{
         position: 'relative',
-        ...(isDragTarget
-          ? dragTargetPosition === 'top'
-            ? {
-                backgroundImage: 'linear-gradient(to right, #f97316, #f43f5e)',
-                backgroundSize: '100% 2px',
-                backgroundPosition: 'top',
-                backgroundRepeat: 'no-repeat',
-              }
-            : dragTargetPosition === 'bottom'
-              ? {
-                  backgroundImage: 'linear-gradient(to right, #f97316, #f43f5e)',
-                  backgroundSize: '100% 2px',
-                  backgroundPosition: 'bottom',
-                  backgroundRepeat: 'no-repeat',
-                }
-              : {
-                  backgroundImage:
-                    'linear-gradient(to right, #f97316, #f43f5e), linear-gradient(to right, #f97316, #f43f5e), linear-gradient(to bottom, #f97316, #f97316), linear-gradient(to bottom, #f43f5e, #f43f5e)',
-                  backgroundSize: '100% 2px, 100% 2px, 2px 100%, 2px 100%',
-                  backgroundPosition: 'top, bottom, left, right',
-                  backgroundRepeat: 'no-repeat',
-                }
-          : undefined),
+        ...(isDragSource
+          ? {
+              // Theme-aware ring (focusBorder is defined for both dark and light
+              // themes) so the row being dragged stays clearly visible while the
+              // list reflows around it. The cells are transparent, so the inset
+              // ring shows through — same technique as .vscode-cell-active.
+              boxShadow: 'inset 0 0 0 2px var(--vscode-focusBorder)',
+              opacity: 0.85,
+              // The dragged row must not capture pointer events, or it would flip
+              // the drop target as the reordered list slides it under the cursor.
+              pointerEvents: 'none' as const,
+            }
+          : {}),
       }}
       onMouseEnter={() => setHoveredFieldIndex(index)}
       onMouseLeave={() => setHoveredFieldIndex(null)}

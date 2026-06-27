@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import type { YamlUpdateHandler } from '../../types/editor';
 import { EditableTable, TableContextMenu } from '../../shared/components';
+import { computeReorderPreview } from '../../utils/reorderPreview';
 import type { EditKey, FieldEditorState } from '../../hooks/useFieldEditor';
 import FieldTableRow from './FieldTableRow';
 
@@ -79,6 +80,21 @@ export function FieldsTable({ fields, registerSize, onUpdate, fieldEditor }: Fie
   } | null>(null);
 
   const closeContextMenu = () => setContextMenu(null);
+
+  // Live drag-reorder preview: reflow the rendered rows into the prospective
+  // drop order while a drag is in progress, mirroring the register-map
+  // visualizer. Each row keeps its real index so editing/commit are unaffected.
+  const displayFields = useMemo(() => {
+    const base = wrappedFields.map((wrapped, index) => ({ wrapped, index }));
+    if (!dragState.active || !dragState.fromRowId || !dragState.toRowId) {
+      return base;
+    }
+    const fromIdx = wrappedFields.findIndex((w) => w.rowId === dragState.fromRowId);
+    const toIdx = wrappedFields.findIndex((w) => w.rowId === dragState.toRowId);
+    return computeReorderPreview(base.length, fromIdx, toIdx, dragState.position === 'bottom').map(
+      (realIdx) => base[realIdx]
+    );
+  }, [wrappedFields, dragState]);
 
   const handleRowContextMenu = (rowId: string, e: React.MouseEvent) => {
     e.preventDefault();
@@ -242,7 +258,7 @@ export function FieldsTable({ fields, registerSize, onUpdate, fieldEditor }: Fie
                       </tr>
                     </thead>
                     <tbody className="divide-y vscode-border text-sm">
-                      {wrappedFields.map((wrapped, index) => (
+                      {displayFields.map(({ wrapped, index }) => (
                         <FieldTableRow
                           key={wrapped.rowId}
                           field={wrapped.model}
@@ -260,18 +276,6 @@ export function FieldsTable({ fields, registerSize, onUpdate, fieldEditor }: Fie
                             handleCellFocus(idx, wrapped.rowId, key, opt)
                           }
                           isDragSource={dragState.active && dragState.fromRowId === wrapped.rowId}
-                          isDragTarget={
-                            dragState.active &&
-                            dragState.fromRowId !== wrapped.rowId &&
-                            dragState.toRowId === wrapped.rowId
-                          }
-                          dragTargetPosition={
-                            dragState.active &&
-                            dragState.fromRowId !== wrapped.rowId &&
-                            dragState.toRowId === wrapped.rowId
-                              ? dragState.position
-                              : null
-                          }
                           onDragHandlePointerDown={(e) => onDragHandlePointerDown(wrapped.rowId, e)}
                           onPointerEnterRow={() => onPointerEnterRow(wrapped.rowId)}
                           onDragMove={onDragMove}

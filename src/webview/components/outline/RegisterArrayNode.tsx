@@ -65,9 +65,7 @@ const RegisterArrayNode = ({
     <div key={id}>
       <div
         data-outline-id={id}
-        className={`tree-item ${isSelected ? 'selected' : ''} gap-2 text-sm group ${
-          drag?.isDragging ? 'opacity-50' : ''
-        }`}
+        className={`tree-item ${isSelected ? 'selected' : ''} gap-2 text-sm group`}
         role="treeitem"
         aria-expanded={isExpanded}
         aria-selected={isSelected}
@@ -97,11 +95,18 @@ const RegisterArrayNode = ({
         onPointerMove={drag?.onRowPointerMove}
         onPointerEnter={drag?.onRowPointerEnter}
         style={{
-          boxShadow: drag?.isDropTarget
-            ? drag.dropPosition === 'before'
-              ? 'inset 0 2px 0 var(--vscode-focusBorder)'
-              : 'inset 0 -2px 0 var(--vscode-focusBorder)'
-            : undefined,
+          ...(drag?.isDragging
+            ? {
+                // Theme-aware ring (focusBorder is defined for both dark and light
+                // themes) so the dragged node stays clearly visible while the tree
+                // reflows around it.
+                boxShadow: 'inset 0 0 0 2px var(--vscode-focusBorder)',
+                opacity: 0.85,
+                // The dragged row must not capture pointer events, or it would flip
+                // the drop target as the reordered list slides it under the cursor.
+                pointerEvents: 'none' as const,
+              }
+            : {}),
         }}
       >
         <div style={{ paddingLeft: '40px' }} className="flex items-center gap-2 flex-grow min-w-0">

@@ -11,7 +11,8 @@ import {
   isArrayNode,
 } from './types';
 import { blockId, registerId, arrayRegisterId } from './outlineIds';
-import type { OutlineDragProps } from './useOutlineDragReorder';
+import type { OutlineDragProps, OutlinePreviewMove } from './useOutlineDragReorder';
+import { computeReorderPreview } from '../../utils/reorderPreview';
 
 interface OutlineTreeNodesProps {
   memoryMap: NormalizedMemoryMap;
@@ -35,6 +36,8 @@ interface OutlineTreeNodesProps {
   ) => void;
   onBlockContextMenu?: (blockIndex: number, x: number, y: number) => void;
   getDragProps?: (id: string) => OutlineDragProps;
+  /** Live drag-reorder preview; reflows the affected sibling group's order. */
+  previewMove?: OutlinePreviewMove | null;
 }
 
 function renderLeafRegister(
@@ -145,6 +148,7 @@ const OutlineTreeNodes = ({
   onRegisterContextMenu,
   onBlockContextMenu,
   getDragProps,
+  previewMove,
 }: OutlineTreeNodesProps) => {
   const overlappingBlockIndices = React.useMemo(() => {
     const blocks = memoryMap.addressBlocks ?? [];
@@ -170,15 +174,41 @@ const OutlineTreeNodes = ({
     return overlaps;
   }, [memoryMap]);
 
+  const q = query.trim().toLowerCase();
+
+  // Live drag-reorder preview: while a block is being dragged (and no search
+  // filter is narrowing the list), reflow the blocks into the prospective drop
+  // order. Each block keeps its real index, so ids/selection/commit are intact.
+  const blockDisplay = React.useMemo(() => {
+    if (q || previewMove?.kind !== 'block') {
+      return filteredBlocks;
+    }
+    return computeReorderPreview(
+      filteredBlocks.length,
+      previewMove.fromIdx,
+      previewMove.toIdx,
+      previewMove.after
+    ).map((i) => filteredBlocks[i]);
+  }, [filteredBlocks, previewMove, q]);
+
   return (
     <>
-      {filteredBlocks.map(({ block, index: blockIndex }) => {
+      {blockDisplay.map(({ block, index: blockIndex }) => {
         const id = blockId(blockIndex);
         const isExpanded = expanded.has(id);
         const isSelected = selectedId === id;
         const regsAny = block.registers ?? [];
-        const q = query.trim().toLowerCase();
         const blockMatches = !q || (block.name ?? '').toLowerCase().includes(q);
+        // Reflow this block's registers when one of them is being dragged.
+        const regOrder =
+          !q && previewMove?.kind === 'register' && previewMove.blockIndex === blockIndex
+            ? computeReorderPreview(
+                regsAny.length,
+                previewMove.fromIdx,
+                previewMove.toIdx,
+                previewMove.after
+              )
+            : regsAny.map((_, i) => i);
 
         const actionButton = onBlockContextMenu ? (
           <button
@@ -237,7 +267,8 @@ const OutlineTreeNodes = ({
             }
             drag={getDragProps?.(id)}
           >
-            {regsAny.map((node, idx) => {
+            {regOrder.map((idx) => {
+              const node = regsAny[idx];
               if (!blockMatches) {
                 const nodeMatches = isArrayNode(node)
                   ? String(node.name ?? '')

@@ -387,7 +387,7 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
       setExpanded,
     });
 
-    const { getDragProps } = useOutlineDragReorder(onReorder);
+    const { getDragProps, previewMove } = useOutlineDragReorder(onReorder);
 
     return (
       <>
@@ -478,6 +478,7 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
                     : undefined
                 }
                 getDragProps={getDragProps}
+                previewMove={previewMove}
               />
             )}
           </div>
