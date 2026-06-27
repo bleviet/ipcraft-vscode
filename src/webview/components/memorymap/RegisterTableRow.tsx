@@ -34,6 +34,8 @@ export interface RegisterTableRowProps {
   captureEditSnapshot: () => void;
   onUpdate: YamlUpdateHandler;
   onRowClick: () => void;
+  /** Navigates into the register (e.g. opens its field editor), triggered by double-click. */
+  onRowDoubleClick?: () => void;
   onCellClick: (key: RegEditKey) => void;
   onMouseEnter: () => void;
   onMouseLeave: () => void;
@@ -69,6 +71,7 @@ export function RegisterTableRow({
   captureEditSnapshot,
   onUpdate,
   onRowClick,
+  onRowDoubleClick,
   onCellClick,
   onMouseEnter,
   onMouseLeave,
@@ -84,10 +87,18 @@ export function RegisterTableRow({
   baseAddress = 0,
 }: RegisterTableRowProps) {
   const [nameError, setNameError] = useState<string | null>(null);
+
+  // Visual type: nested array (__kind), flat array (count/stride), or plain register.
+  const isNestedArray = reg.__kind === 'array';
+  const isFlatArray =
+    !isNestedArray && typeof reg.count === 'number' && typeof reg.stride === 'number';
+  const isArrayLike = isNestedArray || isFlatArray;
+  const swatchColor = FIELD_COLORS[color] || color;
+
   const offset = reg.offset ?? reg.address_offset ?? 0;
   const absStart = baseAddress + Number(offset);
   const absEnd =
-    reg.__kind === 'array' && reg.count && reg.stride
+    isArrayLike && reg.count && reg.stride
       ? absStart + Number(reg.count) * Number(reg.stride) - 1
       : absStart +
         Math.max(1, Math.floor(Number((reg as Record<string, unknown>).size ?? 32) / 8)) -
@@ -95,6 +106,12 @@ export function RegisterTableRow({
 
   const isCellActive = (key: RegEditKey) =>
     regActiveCell.rowId === rowId && regActiveCell.key === key;
+
+  const typeBadge = isNestedArray
+    ? { icon: 'codicon-symbol-struct', label: `×${reg.count ?? 1}`, title: 'Nested register array' }
+    : isFlatArray
+      ? { icon: 'codicon-symbol-array', label: `×${reg.count ?? 1}`, title: 'Flat register array' }
+      : { icon: 'codicon-symbol-field', label: 'REG', title: 'Register' };
 
   return (
     <tr
@@ -139,6 +156,21 @@ export function RegisterTableRow({
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       onClick={onRowClick}
+      onDoubleClick={(e) => {
+        if (!onRowDoubleClick) {
+          return;
+        }
+        // Let double-click select text inside editable fields rather than navigate.
+        const target = e.target as HTMLElement | null;
+        const isEditable = !!target?.closest(
+          'input, textarea, [contenteditable="true"], vscode-text-field, vscode-text-area, vscode-dropdown'
+        );
+        if (isEditable) {
+          return;
+        }
+        e.stopPropagation();
+        onRowDoubleClick();
+      }}
       onContextMenu={onContextMenu}
       onPointerEnter={onPointerEnterRow}
       onPointerMove={(e) => {
@@ -167,12 +199,23 @@ export function RegisterTableRow({
         <div className="flex flex-col justify-center">
           <div className="flex items-center gap-2 h-10">
             <div
-              className="w-2.5 h-2.5 rounded-sm shrink-0"
-              style={{ backgroundColor: FIELD_COLORS[color] || color }}
+              className={`w-2.5 h-2.5 rounded-sm shrink-0 ${isArrayLike ? 'border border-dashed' : ''}`}
+              style={{
+                backgroundColor: swatchColor,
+                borderColor: isArrayLike ? 'var(--ipcraft-pattern-border)' : undefined,
+              }}
             />
+            <span
+              className="inline-flex items-center gap-1 shrink-0 px-1.5 py-0.5 rounded border text-[10px] font-mono font-semibold leading-none"
+              style={{ color: swatchColor, borderColor: swatchColor }}
+              title={typeBadge.title}
+            >
+              <span className={`codicon ${typeBadge.icon} text-[11px]`} />
+              {typeBadge.label}
+            </span>
             <CellInput
               editKey="name"
-              className="flex-1"
+              className="flex-1 min-w-0"
               value={reg.name ?? ''}
               onFocus={captureEditSnapshot}
               cancelEditRef={cancelEditRef}

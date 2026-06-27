@@ -479,6 +479,7 @@ export function BlockEditor({
               captureEditSnapshot={editor.captureEditSnapshot}
               onUpdate={onUpdate}
               onRowClick={() => editor.selectRow(idx)}
+              onRowDoubleClick={onNavigateToRegister ? () => onNavigateToRegister(idx) : undefined}
               onCellClick={(key) => editor.selectRow(idx, key)}
               onMouseEnter={() => editor.setHoveredRowId(wrapped.rowId)}
               onMouseLeave={() => editor.setHoveredRowId(null)}

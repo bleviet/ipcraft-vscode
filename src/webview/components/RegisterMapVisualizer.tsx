@@ -210,7 +210,7 @@ const RegisterMapVisualizerInner: React.FC<RegisterMapVisualizerProps> = ({
               }}
               onMouseEnter={() => setHoveredRegIndex(group.idx)}
               onMouseLeave={() => setHoveredRegIndex(null)}
-              onClick={(e) => {
+              onDoubleClick={(e) => {
                 if (!ctrlDrag.active && onRegisterClick) {
                   e.stopPropagation();
                   onRegisterClick(group.idx);
@@ -408,7 +408,7 @@ const RegisterMapVisualizerInner: React.FC<RegisterMapVisualizerProps> = ({
                 }}
                 onMouseEnter={() => setHoveredRegIndex(group.idx)}
                 onMouseLeave={() => setHoveredRegIndex(null)}
-                onClick={(e) => {
+                onDoubleClick={(e) => {
                   if (!ctrlDrag.active && onRegisterClick) {
                     e.stopPropagation();
                     onRegisterClick(group.idx);
