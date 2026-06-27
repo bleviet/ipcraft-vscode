@@ -85,6 +85,23 @@ Both refs are checked in the same `useEffect([wrappedRows, editor])`. Never use 
 **Move (`onMove`) selection rule** — `useTableNavigation` calls `onMove(rowId, delta)` and immediately sets `activeCell` to the moved row's stable `rowId`. The `onMove` callback must only perform the array swap and `onUpdate`; it must **not** call `editor.selectRow` in a `setTimeout`. Selection follows the moved item via its `rowId` after `reconcileRowIds` re-matches it in the new position.
 
 
+### Drag-to-reorder — separate UIs, one ordering invariant
+
+Reordering by dragging exists in four independent surfaces, each with its own drag-state hook and commit, but they all agree on the same destination math:
+
+| Surface | Drag state | Commit |
+|---|---|---|
+| Bit-field table (`FieldsTable`/`FieldTableRow`) | `useFieldEditor` | `['__op', 'field-move']` step ops |
+| Outline tree (`src/webview/components/outline/`) | `useOutlineDragReorder` → `OutlineReorder` (`block` \| `register` \| `arrayRegister`) | `handleReorder` in `src/webview/index.tsx` |
+| Memory Map block/register tables | `useTableEditorState` `onMove` | `onUpdate` array swap |
+| Register map visualizer (`RegisterMapVisualizer.tsx`) | Ctrl/handle drag of register cards | `onReorderRegisters` |
+
+`src/webview/utils/reorderPreview.ts` `computeReorderPreview(length, fromIdx, toIdx, after)` is the **single source of truth for where a dragged item lands** (insert-after, then decrement when moving downward). Its index math must stay identical to every commit path above. The **live-reorder preview** reflows the rendered list through this helper *during* the drag while keeping each row's real index; two conventions go with it — the dragged row gets `pointer-events: none` (so the reflowed list can't slide it under the cursor and flip the drop target) and an `inset 0 0 0 2px var(--vscode-focusBorder)` ring (theme-aware, defined for dark and light) marks the item being moved.
+
+### The Memory Map webview commit hub
+
+`src/webview/index.tsx` is where Memory Map structural gestures become document writes. `handleReorder` and `handleUpdateWithRepack` turn one gesture into **exactly one document update**: structural splice → `recomputeRegisterLayout` (offset repack) → `serializeValue` (schema sanitize) → `YamlService.applyPathEdits`. Never split a structural edit into multiple `sendUpdate` calls — a second update can race the first in the extension host and corrupt the file (this is why the repack and the edit are fused into a single pass).
+
 ### Layout computation
 
 `src/webview/algorithms/LayoutEngine.ts` is the canonical pure-function module for bit-field layout:
