@@ -67,9 +67,15 @@ export async function writeImportedFile(
   // editor registered as its default, which would otherwise hijack the diff
   // pane and hide the textual changes.
   const filename = path.basename(targetUri.fsPath);
+  // The diff URIs must NOT match the .ip.yml/.mm.yml custom-editor selectors
+  // (filenamePattern "*.ip.yml" / "*.mm.yml", priority "default"). VS Code
+  // matches those by filename regardless of URI scheme, so a staging URI ending
+  // in .mm.yml would still open the visual editor inside the diff. Use a .yaml
+  // suffix: YAML syntax highlighting, but unmatched by those patterns.
+  const diffName = filename.replace(/\.ya?ml$/i, '.yaml');
   const token = (diffSeq += 1);
-  const currentKey = `/import/${token}/current/${filename}`;
-  const proposedKey = `/import/${token}/imported/${filename}`;
+  const currentKey = `/import/${token}/current/${diffName}`;
+  const proposedKey = `/import/${token}/imported/${diffName}`;
   setStagingContent(currentKey, existing);
   setStagingContent(proposedKey, newContent);
   await vscode.commands.executeCommand(

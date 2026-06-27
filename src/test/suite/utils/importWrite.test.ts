@@ -50,12 +50,17 @@ describe('writeImportedFile', () => {
 
     expect(outcome).toBe('overwritten');
     // A diff of current vs. imported was opened before asking. Both sides use the
-    // plain-text staging scheme so the file's custom editor cannot hijack the
-    // diff pane (which would hide the textual changes).
+    // plain-text staging scheme AND a .yaml (not .mm.yml/.ip.yml) path, so the
+    // file's custom visual editor cannot hijack the diff pane and hide the
+    // textual changes.
+    const stagingYaml = expect.objectContaining({
+      scheme: 'ipcraft-staging',
+      path: expect.stringMatching(/\.yaml$/),
+    });
     expect(executeCommand).toHaveBeenCalledWith(
       'vscode.diff',
-      expect.objectContaining({ scheme: 'ipcraft-staging' }),
-      expect.objectContaining({ scheme: 'ipcraft-staging' }),
+      stagingYaml,
+      stagingYaml,
       expect.stringContaining('Current'),
       expect.anything()
     );
