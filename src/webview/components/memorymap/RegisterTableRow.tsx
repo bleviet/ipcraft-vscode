@@ -38,6 +38,8 @@ export interface RegisterTableRowProps {
   onMouseEnter: () => void;
   onMouseLeave: () => void;
   onContextMenu?: (e: React.MouseEvent) => void;
+  /** Opens the kebab actions menu (insert/delete) anchored at the click position. */
+  onActionsMenu?: (e: React.MouseEvent) => void;
   isDragSource?: boolean;
   isDragTarget?: boolean;
   dragTargetPosition?: 'top' | 'bottom' | 'center' | null;
@@ -71,6 +73,7 @@ export function RegisterTableRow({
   onMouseEnter,
   onMouseLeave,
   onContextMenu,
+  onActionsMenu,
   isDragSource = false,
   isDragTarget = false,
   dragTargetPosition = null,
@@ -231,15 +234,36 @@ export function RegisterTableRow({
         className="px-6 py-2 vscode-muted"
         style={{ width: '35%' }}
       >
-        <CellInput
-          editKey="description"
-          variant="textarea"
-          className="w-full"
-          style={{ minHeight: '40px', resize: 'none' }}
-          value={reg.description ?? ''}
-          onFocus={captureEditSnapshot}
-          onInput={(value) => onUpdate(['registers', idx, 'description'], value)}
-        />
+        <div className="flex items-start gap-1">
+          <CellInput
+            editKey="description"
+            variant="textarea"
+            className="flex-1 min-w-0"
+            style={{ minHeight: '40px', resize: 'none' }}
+            value={reg.description ?? ''}
+            onFocus={captureEditSnapshot}
+            onInput={(value) => onUpdate(['registers', idx, 'description'], value)}
+          />
+          {onActionsMenu && (
+            <button
+              className={`${
+                isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+              } self-center shrink-0 p-0.5 rounded hover:bg-[var(--vscode-toolbar-hoverBackground)] text-[var(--vscode-foreground)] flex items-center justify-center transition-opacity`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onActionsMenu(e);
+              }}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              title="More Actions..."
+              aria-label="More Actions..."
+            >
+              <span className="codicon codicon-kebab-vertical text-sm" />
+            </button>
+          )}
+        </div>
       </EditableCell>
     </tr>
   );

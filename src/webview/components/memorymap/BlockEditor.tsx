@@ -5,7 +5,7 @@ import {
   EditorHeader,
   TwoPanelEditorLayout,
   HoverInsertBar,
-  TableContextMenu,
+  RegisterActionsMenu,
 } from '../../shared/components';
 import RegisterMapVisualizer from '../RegisterMapVisualizer';
 import { FIELD_COLOR_KEYS } from '../../shared/colors';
@@ -486,6 +486,9 @@ export function BlockEditor({
                 e.preventDefault();
                 setContextMenu({ x: e.clientX, y: e.clientY, regId: wrapped.rowId });
               }}
+              onActionsMenu={(e) =>
+                setContextMenu({ x: e.clientX, y: e.clientY, regId: wrapped.rowId })
+              }
               isDragSource={dragState.active && dragState.fromRowId === wrapped.rowId}
               isDragTarget={
                 dragState.active &&
@@ -535,15 +538,11 @@ export function BlockEditor({
       footer={
         <>
           <KeyboardShortcutsButton context="block" />
-          <TableContextMenu
+          <RegisterActionsMenu
             position={contextMenu ? { x: contextMenu.x, y: contextMenu.y } : null}
-            onInsertAbove={() => {
+            onInsert={(where, kind) => {
               const idx = wrappedRegisters.findIndex((w) => w.rowId === contextMenu!.regId);
-              insertAtGap(idx);
-            }}
-            onInsertBelow={() => {
-              const idx = wrappedRegisters.findIndex((w) => w.rowId === contextMenu!.regId);
-              insertAtGap(idx + 1);
+              insertAtGap(where === 'above' ? idx : idx + 1, kind);
             }}
             onDelete={() => deleteReg(contextMenu!.regId)}
             onClose={closeContextMenu}

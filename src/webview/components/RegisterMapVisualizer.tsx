@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { FIELD_COLORS, FIELD_COLOR_KEYS } from '../shared/colors';
 import { toHex } from '../utils/formatUtils';
-import { useClampedMenuPosition } from '../shared/hooks/useClampedMenuPosition';
+import { RegisterActionsMenu } from '../shared/components';
 
 export interface VisualizerRegister {
   name?: string;
@@ -55,87 +55,12 @@ const RegisterMapVisualizerInner: React.FC<RegisterMapVisualizerProps> = ({
   layout = 'horizontal',
 }) => {
   const [ctrlDrag, setCtrlDrag] = useState<CtrlDragState>(CTRL_DRAG_INITIAL);
-  const [insertHoverGap, setInsertHoverGap] = useState<number | null>(null);
-  const [insertBarScrollY, setInsertBarScrollY] = useState<number | null>(null);
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
     regIndex: number;
   } | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const insertClearRef = useRef<number | null>(null);
-  const contextMenuPos = useClampedMenuPosition(
-    contextMenu ? { x: contextMenu.x, y: contextMenu.y } : null
-  );
-
-  const scheduleInsertClear = () => {
-    if (insertClearRef.current) {
-      clearTimeout(insertClearRef.current);
-    }
-    insertClearRef.current = window.setTimeout(() => {
-      setInsertHoverGap(null);
-      setInsertBarScrollY(null);
-    }, 150);
-  };
-
-  const cancelInsertClear = () => {
-    if (insertClearRef.current) {
-      clearTimeout(insertClearRef.current);
-      insertClearRef.current = null;
-    }
-  };
-
-  const handleContainerMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!onInsertAtGap || ctrlDrag.active) {
-      return;
-    }
-    cancelInsertClear();
-    const rows = Array.from(e.currentTarget.querySelectorAll<HTMLElement>('[data-viz-row]'));
-    if (rows.length === 0) {
-      return;
-    }
-    const THRESHOLD = 12;
-    const mouseY = e.clientY;
-    for (let i = 0; i <= rows.length; i++) {
-      const gapViewportY =
-        i === 0 ? rows[0].getBoundingClientRect().top : rows[i - 1].getBoundingClientRect().bottom;
-      if (Math.abs(mouseY - gapViewportY) < THRESHOLD) {
-        const containerEl = containerRef.current;
-        if (containerEl) {
-          const cRect = containerEl.getBoundingClientRect();
-          setInsertHoverGap(i);
-          setInsertBarScrollY(gapViewportY - cRect.top + containerEl.scrollTop);
-        }
-        return;
-      }
-    }
-    scheduleInsertClear();
-  };
-
-  useEffect(() => {
-    if (!contextMenu) {
-      return;
-    }
-    const handlePointerDown = (e: PointerEvent) => {
-      if (
-        contextMenuPos.menuRef.current &&
-        !contextMenuPos.menuRef.current.contains(e.target as Node)
-      ) {
-        setContextMenu(null);
-      }
-    };
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setContextMenu(null);
-      }
-    };
-    document.addEventListener('pointerdown', handlePointerDown);
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [contextMenu]);
 
   // Ctrl-drag: cleanup on pointer up
   useEffect(() => {
@@ -249,13 +174,18 @@ const RegisterMapVisualizerInner: React.FC<RegisterMapVisualizerProps> = ({
   }, [groups, ctrlDrag]);
 
   if (layout === 'vertical') {
+    // To-scale row heights: regular registers share a base height, arrays grow
+    // with their byte footprint (capped) to read as a taller stacked block.
+    const ROW_H = 64;
+    const heightFor = (g: { isArray: boolean; size: number }) =>
+      g.isArray ? Math.min(Math.max(ROW_H * (g.size / 4), ROW_H * 1.6), ROW_H * 3) : ROW_H;
+
+    const lastGroup = displayGroups[displayGroups.length - 1];
+    const bottomAddr = lastGroup ? lastGroup.offset + lastGroup.size - 1 : 0;
+    const axisColor = 'color-mix(in srgb, var(--vscode-foreground) 35%, transparent)';
+
     return (
-      <div
-        ref={containerRef}
-        className="flex flex-col w-full relative"
-        onMouseMove={handleContainerMouseMove}
-        onMouseLeave={scheduleInsertClear}
-      >
+      <div ref={containerRef} className="flex flex-col w-full relative select-none pt-3 pb-6">
         {displayGroups.map((group, displayIdx) => {
           const isHovered = hoveredRegIndex === group.idx;
           const isDragging = ctrlDrag.active && ctrlDrag.draggedRegIndex === group.idx;
@@ -263,21 +193,20 @@ const RegisterMapVisualizerInner: React.FC<RegisterMapVisualizerProps> = ({
             ctrlDrag.active &&
             ctrlDrag.targetIndex === displayIdx &&
             ctrlDrag.draggedRegIndex !== displayIdx;
+          const color = FIELD_COLORS[group.color];
 
           return (
             <div
               key={group.idx}
               data-viz-row={group.idx}
-              className={`flex items-center gap-3 px-3 py-2 border-b vscode-border select-none transition-colors ${
-                isHovered ? 'vscode-row-hover' : ''
-              } ${isDragging ? 'opacity-50' : ''}`}
+              className={`flex items-stretch ${isDragging ? 'opacity-50' : ''}`}
               style={{
+                minHeight: heightFor(group),
                 cursor: ctrlDrag.active
                   ? 'grabbing'
                   : onRegisterClick || onReorderRegisters
                     ? 'pointer'
                     : 'default',
-                boxShadow: isDropTarget ? '0 0 0 2px var(--vscode-focusBorder) inset' : undefined,
               }}
               onMouseEnter={() => setHoveredRegIndex(group.idx)}
               onMouseLeave={() => setHoveredRegIndex(null)}
@@ -302,194 +231,151 @@ const RegisterMapVisualizerInner: React.FC<RegisterMapVisualizerProps> = ({
                 }
               }}
             >
-              {/* Color swatch */}
+              {/* Address axis cell — tick at the register's start offset */}
               <div
-                className={`w-3 shrink-0 self-stretch rounded-sm ${group.isArray ? 'border-2 border-dashed' : ''}`}
-                style={{
-                  backgroundColor: FIELD_COLORS[group.color],
-                  borderColor: group.isArray ? 'var(--ipcraft-pattern-border)' : undefined,
-                  filter: isHovered ? 'saturate(1.15) brightness(1.05)' : undefined,
-                }}
-              />
-              {/* Info */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="font-mono font-semibold text-sm truncate">{group.name}</span>
-                  <span className="ipcraft-pattern-label text-[10px] font-mono shrink-0">
-                    {group.isArray ? `[${String(group.count)}]` : 'REG'}
+                className="relative w-12 shrink-0"
+                style={{ borderRight: `1px ${group.isArray ? 'dashed' : 'solid'} ${axisColor}` }}
+              >
+                <div className="absolute right-0 top-0 -translate-y-1/2 flex items-center gap-1 pr-px">
+                  <span className="text-[11px] font-mono vscode-muted whitespace-nowrap leading-none">
+                    {toHex(group.offset)}
                   </span>
-                </div>
-                <div className="text-[11px] vscode-muted font-mono">
-                  {toHex(group.absoluteAddress)}
-                  <span className="mx-1 opacity-50">→</span>
-                  {toHex(Number(group.absoluteAddress) + Number(group.size) - 1)}
-                  <span className="ml-2 opacity-60">[{group.size}B]</span>
+                  <span
+                    className="block h-px w-2"
+                    style={{
+                      background: 'color-mix(in srgb, var(--vscode-foreground) 55%, transparent)',
+                    }}
+                  />
                 </div>
               </div>
-              {/* Absolute address */}
-              <div className="text-[11px] vscode-muted font-mono shrink-0">
-                @ {toHex(group.absoluteAddress)}
+
+              {/* Register card */}
+              <div
+                className="relative flex-1 min-w-0 flex items-stretch gap-3 my-1 ml-3 rounded-xl border px-3 py-2 transition-colors"
+                style={{
+                  borderColor: 'var(--vscode-panel-border)',
+                  background: isHovered
+                    ? `color-mix(in srgb, ${color} 9%, var(--vscode-editor-background))`
+                    : 'var(--vscode-editor-background)',
+                  boxShadow: isDropTarget
+                    ? '0 0 0 2px var(--vscode-focusBorder) inset'
+                    : isHovered
+                      ? `0 0 0 2px ${color} inset`
+                      : undefined,
+                }}
+              >
+                {isHovered && (
+                  <div
+                    className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl"
+                    style={{ background: color }}
+                  />
+                )}
+
+                {/* Color swatch (stacked sheets for arrays) */}
+                <div
+                  className={`relative w-12 shrink-0 self-stretch rounded-lg ${group.isArray ? 'border-2 border-dashed' : ''}`}
+                  style={{
+                    backgroundColor: color,
+                    borderColor: group.isArray ? 'var(--ipcraft-pattern-border)' : undefined,
+                    filter: isHovered ? 'saturate(1.15) brightness(1.05)' : undefined,
+                  }}
+                >
+                  {group.isArray && (
+                    <>
+                      <div className="absolute left-1 right-1 bottom-1.5 h-[3px] rounded-sm bg-black/25" />
+                      <div className="absolute left-1 right-1 bottom-3 h-[3px] rounded-sm bg-black/15" />
+                    </>
+                  )}
+                </div>
+
+                {/* Name + offset range */}
+                <div className="flex-1 min-w-0 flex flex-col justify-center leading-tight">
+                  <span className="font-mono font-bold text-sm truncate">{group.name}</span>
+                  <span className="text-[12px] vscode-muted font-mono">
+                    {toHex(group.offset)}
+                    <span className="mx-1 opacity-60">&rarr;</span>
+                    {toHex(group.offset + group.size - 1)}
+                  </span>
+                </div>
+
+                {/* Badges */}
+                <div className="flex items-center gap-1.5 self-center shrink-0">
+                  {group.isArray ? (
+                    <>
+                      <span
+                        className="px-2 py-0.5 rounded-md border text-[11px] font-mono font-semibold"
+                        style={{ color, borderColor: color }}
+                      >
+                        &times;{String(group.count ?? 1)}
+                      </span>
+                      <span
+                        className="px-2 py-0.5 rounded-md border text-[11px] font-mono font-semibold"
+                        style={{ color, borderColor: color }}
+                      >
+                        [N]
+                      </span>
+                    </>
+                  ) : (
+                    <span
+                      className="px-2 py-0.5 rounded-md border text-[11px] font-mono font-semibold"
+                      style={{ color, borderColor: color }}
+                    >
+                      REG
+                    </span>
+                  )}
+                </div>
+
+                {/* Kebab actions menu */}
+                {(onInsertAtGap ?? onDeleteReg) && (
+                  <button
+                    className="self-center shrink-0 p-0.5 rounded hover:bg-[var(--vscode-toolbar-hoverBackground)] text-[var(--vscode-foreground)] flex items-center justify-center transition-opacity"
+                    style={{ opacity: isHovered ? 1 : 0.35 }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setContextMenu({ x: e.clientX, y: e.clientY, regIndex: group.idx });
+                    }}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    title="More Actions..."
+                    aria-label="More Actions..."
+                  >
+                    <span className="codicon codicon-kebab-vertical text-sm" />
+                  </button>
+                )}
               </div>
             </div>
           );
         })}
-        {onInsertAtGap && insertHoverGap !== null && insertBarScrollY !== null && (
-          <div
-            className="absolute left-0 right-0 z-20 flex items-center px-3 pointer-events-none"
-            style={{ top: insertBarScrollY, transform: 'translateY(-50%)' }}
-            onMouseEnter={cancelInsertClear}
-            onMouseLeave={scheduleInsertClear}
-          >
-            <div
-              className="flex-1 h-[2px] rounded-full"
-              style={{ background: 'linear-gradient(to right, #f97316, #f43f5e)' }}
-            />
-            <div className="flex gap-1 mx-2 pointer-events-auto">
-              <button
-                className="px-2 py-0.5 rounded-full text-white text-[10px] font-bold flex items-center justify-center hover:scale-105 transition-transform shadow"
-                style={{ background: 'linear-gradient(135deg, #f97316, #f43f5e)' }}
-                title={`Insert Register at position ${insertHoverGap}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onInsertAtGap(insertHoverGap, 'register');
-                  setInsertHoverGap(null);
-                  setInsertBarScrollY(null);
-                }}
-              >
-                + REG
-              </button>
-              <button
-                className="px-2 py-0.5 rounded-full text-white text-[10px] font-bold flex items-center justify-center hover:scale-105 transition-transform shadow"
-                style={{ background: 'linear-gradient(135deg, #f97316, #f43f5e)' }}
-                title={`Insert Flat Array at position ${insertHoverGap}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onInsertAtGap(insertHoverGap, 'flat-array');
-                  setInsertHoverGap(null);
-                  setInsertBarScrollY(null);
-                }}
-              >
-                + FLAT ARR
-              </button>
-              <button
-                className="px-2 py-0.5 rounded-full text-white text-[10px] font-bold flex items-center justify-center hover:scale-105 transition-transform shadow"
-                style={{ background: 'linear-gradient(135deg, #f97316, #f43f5e)' }}
-                title={`Insert Register Array at position ${insertHoverGap}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onInsertAtGap(insertHoverGap, 'array');
-                  setInsertHoverGap(null);
-                  setInsertBarScrollY(null);
-                }}
-              >
-                + NESTED ARR
-              </button>
+
+        {/* Bottom axis tick — last register's end address */}
+        {lastGroup && (
+          <div className="flex">
+            <div className="relative w-12 shrink-0">
+              <div className="absolute right-0 top-0 -translate-y-1/2 flex items-center gap-1 pr-px">
+                <span className="text-[11px] font-mono vscode-muted whitespace-nowrap leading-none">
+                  {toHex(bottomAddr)}
+                </span>
+                <span
+                  className="block h-px w-2"
+                  style={{
+                    background: 'color-mix(in srgb, var(--vscode-foreground) 55%, transparent)',
+                  }}
+                />
+              </div>
             </div>
-            <div
-              className="flex-1 h-[2px] rounded-full"
-              style={{ background: 'linear-gradient(to left, #f97316, #f43f5e)' }}
-            />
           </div>
         )}
         {contextMenu && (onInsertAtGap ?? onDeleteReg) && (
-          <div
-            ref={contextMenuPos.menuRef}
-            className="fixed z-[200] min-w-[160px] rounded-lg shadow-xl border vscode-border vscode-surface overflow-hidden text-sm"
-            style={{
-              left: (contextMenuPos.adjusted ?? contextMenu).x,
-              top: (contextMenuPos.adjusted ?? contextMenu).y,
+          <RegisterActionsMenu
+            position={{ x: contextMenu.x, y: contextMenu.y }}
+            onInsert={(where, kind) => {
+              onInsertAtGap?.(
+                where === 'above' ? contextMenu.regIndex : contextMenu.regIndex + 1,
+                kind
+              );
             }}
-            onPointerDown={(e) => e.stopPropagation()}
-          >
-            {onInsertAtGap && (
-              <>
-                <div className="px-3 py-1 text-xs font-semibold vscode-muted bg-[var(--vscode-editorWidget-background)] uppercase tracking-wider">
-                  Insert Above
-                </div>
-                <button
-                  className="w-full text-left px-4 py-1.5 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
-                  onClick={() => {
-                    onInsertAtGap(contextMenu.regIndex, 'register');
-                    setContextMenu(null);
-                  }}
-                >
-                  <span className="codicon codicon-symbol-field text-xs" />
-                  Register
-                </button>
-                <button
-                  className="w-full text-left px-4 py-1.5 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
-                  onClick={() => {
-                    onInsertAtGap(contextMenu.regIndex, 'flat-array');
-                    setContextMenu(null);
-                  }}
-                >
-                  <span className="codicon codicon-symbol-array text-xs" />
-                  Flat Array
-                </button>
-                <button
-                  className="w-full text-left px-4 py-1.5 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
-                  onClick={() => {
-                    onInsertAtGap(contextMenu.regIndex, 'array');
-                    setContextMenu(null);
-                  }}
-                >
-                  <span className="codicon codicon-symbol-struct text-xs" />
-                  Nested Array
-                </button>
-
-                <div className="border-t vscode-border my-1" />
-                <div className="px-3 py-1 text-xs font-semibold vscode-muted bg-[var(--vscode-editorWidget-background)] uppercase tracking-wider">
-                  Insert Below
-                </div>
-                <button
-                  className="w-full text-left px-4 py-1.5 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
-                  onClick={() => {
-                    onInsertAtGap(contextMenu.regIndex + 1, 'register');
-                    setContextMenu(null);
-                  }}
-                >
-                  <span className="codicon codicon-symbol-field text-xs" />
-                  Register
-                </button>
-                <button
-                  className="w-full text-left px-4 py-1.5 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
-                  onClick={() => {
-                    onInsertAtGap(contextMenu.regIndex + 1, 'flat-array');
-                    setContextMenu(null);
-                  }}
-                >
-                  <span className="codicon codicon-symbol-array text-xs" />
-                  Flat Array
-                </button>
-                <button
-                  className="w-full text-left px-4 py-1.5 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
-                  onClick={() => {
-                    onInsertAtGap(contextMenu.regIndex + 1, 'array');
-                    setContextMenu(null);
-                  }}
-                >
-                  <span className="codicon codicon-symbol-struct text-xs" />
-                  Nested Array
-                </button>
-              </>
-            )}
-            {onDeleteReg && (
-              <>
-                <div className="border-t vscode-border my-0.5" />
-                <button
-                  className="w-full text-left px-4 py-2 flex items-center gap-2 cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] transition-colors"
-                  style={{ color: 'var(--vscode-errorForeground)' }}
-                  onClick={() => {
-                    onDeleteReg(contextMenu.regIndex);
-                    setContextMenu(null);
-                  }}
-                >
-                  <span className="codicon codicon-trash text-xs" />
-                  Delete
-                </button>
-              </>
-            )}
-          </div>
+            onDelete={() => onDeleteReg?.(contextMenu.regIndex)}
+            onClose={() => setContextMenu(null)}
+          />
         )}
       </div>
     );
