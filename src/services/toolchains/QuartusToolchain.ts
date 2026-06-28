@@ -289,6 +289,8 @@ export class QuartusToolchain implements SynthesisToolchain {
       rtl_files: rtlFileEntries,
     });
 
+    files[`altera/test.qsys`] = templates.render('altera_test_system.qsys.j2', templateContext);
+
     if (opts.includeProject) {
       const targetDevice = opts.quartusDevice ?? '5CSEBA6U23I7';
       const deviceFamily = quartusDeviceFamily(targetDevice);

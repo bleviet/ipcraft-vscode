@@ -1430,6 +1430,7 @@
     "test:realworld:offline": "SKIP_FETCH=1 jest --config config/jest.integration.js --testPathPatterns=realworld",
     "test:all": "npm run test:unit && npm run test:e2e && npm run test:browser",
     "generate-types": "node scripts/generate-types.js",
+    "test:qsys": "node scripts/validate-examples-qsys.js",
     "prepare": "husky install"
   },
   "devDependencies": {

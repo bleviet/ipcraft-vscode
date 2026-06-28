@@ -12376,6 +12376,14 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
+            <spirit:name>TSTRB</spirit:name>
+          </spirit:logicalPort>
+          <spirit:physicalPort>
+            <spirit:name>m_axis_ch1_tstrb</spirit:name>
+          </spirit:physicalPort>
+        </spirit:portMap>
+        <spirit:portMap>
+          <spirit:logicalPort>
             <spirit:name>TKEEP</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
@@ -12388,6 +12396,22 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>m_axis_ch1_tlast</spirit:name>
+          </spirit:physicalPort>
+        </spirit:portMap>
+        <spirit:portMap>
+          <spirit:logicalPort>
+            <spirit:name>TID</spirit:name>
+          </spirit:logicalPort>
+          <spirit:physicalPort>
+            <spirit:name>m_axis_ch1_tid</spirit:name>
+          </spirit:physicalPort>
+        </spirit:portMap>
+        <spirit:portMap>
+          <spirit:logicalPort>
+            <spirit:name>TDEST</spirit:name>
+          </spirit:logicalPort>
+          <spirit:physicalPort>
+            <spirit:name>m_axis_ch1_tdest</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
@@ -12432,6 +12456,14 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
+            <spirit:name>TSTRB</spirit:name>
+          </spirit:logicalPort>
+          <spirit:physicalPort>
+            <spirit:name>m_axis_ch2_tstrb</spirit:name>
+          </spirit:physicalPort>
+        </spirit:portMap>
+        <spirit:portMap>
+          <spirit:logicalPort>
             <spirit:name>TKEEP</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
@@ -12444,6 +12476,22 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>m_axis_ch2_tlast</spirit:name>
+          </spirit:physicalPort>
+        </spirit:portMap>
+        <spirit:portMap>
+          <spirit:logicalPort>
+            <spirit:name>TID</spirit:name>
+          </spirit:logicalPort>
+          <spirit:physicalPort>
+            <spirit:name>m_axis_ch2_tid</spirit:name>
+          </spirit:physicalPort>
+        </spirit:portMap>
+        <spirit:portMap>
+          <spirit:logicalPort>
+            <spirit:name>TDEST</spirit:name>
+          </spirit:logicalPort>
+          <spirit:physicalPort>
+            <spirit:name>m_axis_ch2_tdest</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
@@ -12488,10 +12536,50 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
+            <spirit:name>TSTRB</spirit:name>
+          </spirit:logicalPort>
+          <spirit:physicalPort>
+            <spirit:name>s_axis_tstrb</spirit:name>
+          </spirit:physicalPort>
+        </spirit:portMap>
+        <spirit:portMap>
+          <spirit:logicalPort>
+            <spirit:name>TKEEP</spirit:name>
+          </spirit:logicalPort>
+          <spirit:physicalPort>
+            <spirit:name>s_axis_tkeep</spirit:name>
+          </spirit:physicalPort>
+        </spirit:portMap>
+        <spirit:portMap>
+          <spirit:logicalPort>
             <spirit:name>TLAST</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>s_axis_tlast</spirit:name>
+          </spirit:physicalPort>
+        </spirit:portMap>
+        <spirit:portMap>
+          <spirit:logicalPort>
+            <spirit:name>TID</spirit:name>
+          </spirit:logicalPort>
+          <spirit:physicalPort>
+            <spirit:name>s_axis_tid</spirit:name>
+          </spirit:physicalPort>
+        </spirit:portMap>
+        <spirit:portMap>
+          <spirit:logicalPort>
+            <spirit:name>TDEST</spirit:name>
+          </spirit:logicalPort>
+          <spirit:physicalPort>
+            <spirit:name>s_axis_tdest</spirit:name>
+          </spirit:physicalPort>
+        </spirit:portMap>
+        <spirit:portMap>
+          <spirit:logicalPort>
+            <spirit:name>TUSER</spirit:name>
+          </spirit:logicalPort>
+          <spirit:physicalPort>
+            <spirit:name>s_axis_tuser</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
       </spirit:portMaps>
@@ -14030,6 +14118,23 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
+        <spirit:name>m_axis_ch1_tstrb</spirit:name>
+        <spirit:wire>
+          <spirit:direction>out</spirit:direction>
+          <spirit:vector>
+            <spirit:left spirit:format="long">7</spirit:left>
+            <spirit:right spirit:format="long">0</spirit:right>
+          </spirit:vector>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>wire</spirit:typeName>
+              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
         <spirit:name>m_axis_ch1_tkeep</spirit:name>
         <spirit:wire>
           <spirit:direction>out</spirit:direction>
@@ -14050,6 +14155,40 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         <spirit:name>m_axis_ch1_tlast</spirit:name>
         <spirit:wire>
           <spirit:direction>out</spirit:direction>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>wire</spirit:typeName>
+              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
+        <spirit:name>m_axis_ch1_tid</spirit:name>
+        <spirit:wire>
+          <spirit:direction>out</spirit:direction>
+          <spirit:vector>
+            <spirit:left spirit:format="long">7</spirit:left>
+            <spirit:right spirit:format="long">0</spirit:right>
+          </spirit:vector>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>wire</spirit:typeName>
+              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
+        <spirit:name>m_axis_ch1_tdest</spirit:name>
+        <spirit:wire>
+          <spirit:direction>out</spirit:direction>
+          <spirit:vector>
+            <spirit:left spirit:format="long">3</spirit:left>
+            <spirit:right spirit:format="long">0</spirit:right>
+          </spirit:vector>
           <spirit:wireTypeDefs>
             <spirit:wireTypeDef>
               <spirit:typeName>wire</spirit:typeName>
@@ -14120,6 +14259,23 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
+        <spirit:name>m_axis_ch2_tstrb</spirit:name>
+        <spirit:wire>
+          <spirit:direction>out</spirit:direction>
+          <spirit:vector>
+            <spirit:left spirit:format="long">7</spirit:left>
+            <spirit:right spirit:format="long">0</spirit:right>
+          </spirit:vector>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>wire</spirit:typeName>
+              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
         <spirit:name>m_axis_ch2_tkeep</spirit:name>
         <spirit:wire>
           <spirit:direction>out</spirit:direction>
@@ -14140,6 +14296,40 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         <spirit:name>m_axis_ch2_tlast</spirit:name>
         <spirit:wire>
           <spirit:direction>out</spirit:direction>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>wire</spirit:typeName>
+              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
+        <spirit:name>m_axis_ch2_tid</spirit:name>
+        <spirit:wire>
+          <spirit:direction>out</spirit:direction>
+          <spirit:vector>
+            <spirit:left spirit:format="long">7</spirit:left>
+            <spirit:right spirit:format="long">0</spirit:right>
+          </spirit:vector>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>wire</spirit:typeName>
+              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
+        <spirit:name>m_axis_ch2_tdest</spirit:name>
+        <spirit:wire>
+          <spirit:direction>out</spirit:direction>
+          <spirit:vector>
+            <spirit:left spirit:format="long">3</spirit:left>
+            <spirit:right spirit:format="long">0</spirit:right>
+          </spirit:vector>
           <spirit:wireTypeDefs>
             <spirit:wireTypeDef>
               <spirit:typeName>wire</spirit:typeName>
@@ -14210,9 +14400,94 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
+        <spirit:name>s_axis_tstrb</spirit:name>
+        <spirit:wire>
+          <spirit:direction>in</spirit:direction>
+          <spirit:vector>
+            <spirit:left spirit:format="long">7</spirit:left>
+            <spirit:right spirit:format="long">0</spirit:right>
+          </spirit:vector>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>wire</spirit:typeName>
+              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
+        <spirit:name>s_axis_tkeep</spirit:name>
+        <spirit:wire>
+          <spirit:direction>in</spirit:direction>
+          <spirit:vector>
+            <spirit:left spirit:format="long">7</spirit:left>
+            <spirit:right spirit:format="long">0</spirit:right>
+          </spirit:vector>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>wire</spirit:typeName>
+              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
         <spirit:name>s_axis_tlast</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>wire</spirit:typeName>
+              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
+        <spirit:name>s_axis_tid</spirit:name>
+        <spirit:wire>
+          <spirit:direction>in</spirit:direction>
+          <spirit:vector>
+            <spirit:left spirit:format="long">7</spirit:left>
+            <spirit:right spirit:format="long">0</spirit:right>
+          </spirit:vector>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>wire</spirit:typeName>
+              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
+        <spirit:name>s_axis_tdest</spirit:name>
+        <spirit:wire>
+          <spirit:direction>in</spirit:direction>
+          <spirit:vector>
+            <spirit:left spirit:format="long">3</spirit:left>
+            <spirit:right spirit:format="long">0</spirit:right>
+          </spirit:vector>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>wire</spirit:typeName>
+              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
+        <spirit:name>s_axis_tuser</spirit:name>
+        <spirit:wire>
+          <spirit:direction>in</spirit:direction>
+          <spirit:vector>
+            <spirit:left spirit:format="long">3</spirit:left>
+            <spirit:right spirit:format="long">0</spirit:right>
+          </spirit:vector>
           <spirit:wireTypeDefs>
             <spirit:wireTypeDef>
               <spirit:typeName>wire</spirit:typeName>
@@ -14986,6 +15261,14 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
+            <spirit:name>TSTRB</spirit:name>
+          </spirit:logicalPort>
+          <spirit:physicalPort>
+            <spirit:name>m_axis_ch1_tstrb</spirit:name>
+          </spirit:physicalPort>
+        </spirit:portMap>
+        <spirit:portMap>
+          <spirit:logicalPort>
             <spirit:name>TKEEP</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
@@ -14998,6 +15281,22 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>m_axis_ch1_tlast</spirit:name>
+          </spirit:physicalPort>
+        </spirit:portMap>
+        <spirit:portMap>
+          <spirit:logicalPort>
+            <spirit:name>TID</spirit:name>
+          </spirit:logicalPort>
+          <spirit:physicalPort>
+            <spirit:name>m_axis_ch1_tid</spirit:name>
+          </spirit:physicalPort>
+        </spirit:portMap>
+        <spirit:portMap>
+          <spirit:logicalPort>
+            <spirit:name>TDEST</spirit:name>
+          </spirit:logicalPort>
+          <spirit:physicalPort>
+            <spirit:name>m_axis_ch1_tdest</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
@@ -15042,6 +15341,14 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
+            <spirit:name>TSTRB</spirit:name>
+          </spirit:logicalPort>
+          <spirit:physicalPort>
+            <spirit:name>m_axis_ch2_tstrb</spirit:name>
+          </spirit:physicalPort>
+        </spirit:portMap>
+        <spirit:portMap>
+          <spirit:logicalPort>
             <spirit:name>TKEEP</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
@@ -15054,6 +15361,22 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>m_axis_ch2_tlast</spirit:name>
+          </spirit:physicalPort>
+        </spirit:portMap>
+        <spirit:portMap>
+          <spirit:logicalPort>
+            <spirit:name>TID</spirit:name>
+          </spirit:logicalPort>
+          <spirit:physicalPort>
+            <spirit:name>m_axis_ch2_tid</spirit:name>
+          </spirit:physicalPort>
+        </spirit:portMap>
+        <spirit:portMap>
+          <spirit:logicalPort>
+            <spirit:name>TDEST</spirit:name>
+          </spirit:logicalPort>
+          <spirit:physicalPort>
+            <spirit:name>m_axis_ch2_tdest</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
@@ -15098,10 +15421,50 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
+            <spirit:name>TSTRB</spirit:name>
+          </spirit:logicalPort>
+          <spirit:physicalPort>
+            <spirit:name>s_axis_tstrb</spirit:name>
+          </spirit:physicalPort>
+        </spirit:portMap>
+        <spirit:portMap>
+          <spirit:logicalPort>
+            <spirit:name>TKEEP</spirit:name>
+          </spirit:logicalPort>
+          <spirit:physicalPort>
+            <spirit:name>s_axis_tkeep</spirit:name>
+          </spirit:physicalPort>
+        </spirit:portMap>
+        <spirit:portMap>
+          <spirit:logicalPort>
             <spirit:name>TLAST</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>s_axis_tlast</spirit:name>
+          </spirit:physicalPort>
+        </spirit:portMap>
+        <spirit:portMap>
+          <spirit:logicalPort>
+            <spirit:name>TID</spirit:name>
+          </spirit:logicalPort>
+          <spirit:physicalPort>
+            <spirit:name>s_axis_tid</spirit:name>
+          </spirit:physicalPort>
+        </spirit:portMap>
+        <spirit:portMap>
+          <spirit:logicalPort>
+            <spirit:name>TDEST</spirit:name>
+          </spirit:logicalPort>
+          <spirit:physicalPort>
+            <spirit:name>s_axis_tdest</spirit:name>
+          </spirit:physicalPort>
+        </spirit:portMap>
+        <spirit:portMap>
+          <spirit:logicalPort>
+            <spirit:name>TUSER</spirit:name>
+          </spirit:logicalPort>
+          <spirit:physicalPort>
+            <spirit:name>s_axis_tuser</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
       </spirit:portMaps>
@@ -16640,6 +17003,23 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
+        <spirit:name>m_axis_ch1_tstrb</spirit:name>
+        <spirit:wire>
+          <spirit:direction>out</spirit:direction>
+          <spirit:vector>
+            <spirit:left spirit:format="long">7</spirit:left>
+            <spirit:right spirit:format="long">0</spirit:right>
+          </spirit:vector>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>std_logic_vector</spirit:typeName>
+              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
         <spirit:name>m_axis_ch1_tkeep</spirit:name>
         <spirit:wire>
           <spirit:direction>out</spirit:direction>
@@ -16663,6 +17043,40 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           <spirit:wireTypeDefs>
             <spirit:wireTypeDef>
               <spirit:typeName>std_logic</spirit:typeName>
+              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
+        <spirit:name>m_axis_ch1_tid</spirit:name>
+        <spirit:wire>
+          <spirit:direction>out</spirit:direction>
+          <spirit:vector>
+            <spirit:left spirit:format="long">7</spirit:left>
+            <spirit:right spirit:format="long">0</spirit:right>
+          </spirit:vector>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>std_logic_vector</spirit:typeName>
+              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
+        <spirit:name>m_axis_ch1_tdest</spirit:name>
+        <spirit:wire>
+          <spirit:direction>out</spirit:direction>
+          <spirit:vector>
+            <spirit:left spirit:format="long">3</spirit:left>
+            <spirit:right spirit:format="long">0</spirit:right>
+          </spirit:vector>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>std_logic_vector</spirit:typeName>
               <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
               <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
             </spirit:wireTypeDef>
@@ -16730,6 +17144,23 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
+        <spirit:name>m_axis_ch2_tstrb</spirit:name>
+        <spirit:wire>
+          <spirit:direction>out</spirit:direction>
+          <spirit:vector>
+            <spirit:left spirit:format="long">7</spirit:left>
+            <spirit:right spirit:format="long">0</spirit:right>
+          </spirit:vector>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>std_logic_vector</spirit:typeName>
+              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
         <spirit:name>m_axis_ch2_tkeep</spirit:name>
         <spirit:wire>
           <spirit:direction>out</spirit:direction>
@@ -16753,6 +17184,40 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           <spirit:wireTypeDefs>
             <spirit:wireTypeDef>
               <spirit:typeName>std_logic</spirit:typeName>
+              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
+        <spirit:name>m_axis_ch2_tid</spirit:name>
+        <spirit:wire>
+          <spirit:direction>out</spirit:direction>
+          <spirit:vector>
+            <spirit:left spirit:format="long">7</spirit:left>
+            <spirit:right spirit:format="long">0</spirit:right>
+          </spirit:vector>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>std_logic_vector</spirit:typeName>
+              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
+        <spirit:name>m_axis_ch2_tdest</spirit:name>
+        <spirit:wire>
+          <spirit:direction>out</spirit:direction>
+          <spirit:vector>
+            <spirit:left spirit:format="long">3</spirit:left>
+            <spirit:right spirit:format="long">0</spirit:right>
+          </spirit:vector>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>std_logic_vector</spirit:typeName>
               <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
               <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
             </spirit:wireTypeDef>
@@ -16820,12 +17285,97 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
+        <spirit:name>s_axis_tstrb</spirit:name>
+        <spirit:wire>
+          <spirit:direction>in</spirit:direction>
+          <spirit:vector>
+            <spirit:left spirit:format="long">7</spirit:left>
+            <spirit:right spirit:format="long">0</spirit:right>
+          </spirit:vector>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>std_logic_vector</spirit:typeName>
+              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
+        <spirit:name>s_axis_tkeep</spirit:name>
+        <spirit:wire>
+          <spirit:direction>in</spirit:direction>
+          <spirit:vector>
+            <spirit:left spirit:format="long">7</spirit:left>
+            <spirit:right spirit:format="long">0</spirit:right>
+          </spirit:vector>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>std_logic_vector</spirit:typeName>
+              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
         <spirit:name>s_axis_tlast</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
           <spirit:wireTypeDefs>
             <spirit:wireTypeDef>
               <spirit:typeName>std_logic</spirit:typeName>
+              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
+        <spirit:name>s_axis_tid</spirit:name>
+        <spirit:wire>
+          <spirit:direction>in</spirit:direction>
+          <spirit:vector>
+            <spirit:left spirit:format="long">7</spirit:left>
+            <spirit:right spirit:format="long">0</spirit:right>
+          </spirit:vector>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>std_logic_vector</spirit:typeName>
+              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
+        <spirit:name>s_axis_tdest</spirit:name>
+        <spirit:wire>
+          <spirit:direction>in</spirit:direction>
+          <spirit:vector>
+            <spirit:left spirit:format="long">3</spirit:left>
+            <spirit:right spirit:format="long">0</spirit:right>
+          </spirit:vector>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>std_logic_vector</spirit:typeName>
+              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
+        <spirit:name>s_axis_tuser</spirit:name>
+        <spirit:wire>
+          <spirit:direction>in</spirit:direction>
+          <spirit:vector>
+            <spirit:left spirit:format="long">3</spirit:left>
+            <spirit:right spirit:format="long">0</spirit:right>
+          </spirit:vector>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>std_logic_vector</spirit:typeName>
               <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
               <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
             </spirit:wireTypeDef>
@@ -27381,6 +27931,7 @@ exports[`file list matches snapshot for every fixture 1`] = `
     "altera/avalon_peripheral.sdc",
     "altera/avalon_peripheral_hw.tcl",
     "altera/avalon_peripheral_project.tcl",
+    "altera/test.qsys",
     "rtl/avalon_peripheral.sv",
     "tb/Makefile",
     "tb/avalon_peripheral_test.py",
@@ -27401,6 +27952,7 @@ exports[`file list matches snapshot for every fixture 1`] = `
     "altera/avalon_peripheral.sdc",
     "altera/avalon_peripheral_hw.tcl",
     "altera/avalon_peripheral_project.tcl",
+    "altera/test.qsys",
     "rtl/avalon_peripheral.vhd",
     "tb/Makefile",
     "tb/avalon_peripheral_test.py",
@@ -27420,6 +27972,7 @@ exports[`file list matches snapshot for every fixture 1`] = `
     "altera/axi_slave_core.sdc",
     "altera/axi_slave_core_hw.tcl",
     "altera/axi_slave_core_project.tcl",
+    "altera/test.qsys",
     "rtl/axi_slave_core.sv",
     "tb/Makefile",
     "tb/axi_slave_core_test.py",
@@ -27438,6 +27991,7 @@ exports[`file list matches snapshot for every fixture 1`] = `
     "altera/axi_slave_core.sdc",
     "altera/axi_slave_core_hw.tcl",
     "altera/axi_slave_core_project.tcl",
+    "altera/test.qsys",
     "rtl/axi_slave_core.vhd",
     "tb/Makefile",
     "tb/axi_slave_core_test.py",
@@ -27455,6 +28009,7 @@ exports[`file list matches snapshot for every fixture 1`] = `
     "altera/basic_core.sdc",
     "altera/basic_core_hw.tcl",
     "altera/basic_core_project.tcl",
+    "altera/test.qsys",
     "rtl/basic_core.sv",
     "tb/Makefile",
     "tb/basic_core_test.py",
@@ -27473,6 +28028,7 @@ exports[`file list matches snapshot for every fixture 1`] = `
     "altera/basic_core.sdc",
     "altera/basic_core_hw.tcl",
     "altera/basic_core_project.tcl",
+    "altera/test.qsys",
     "rtl/basic_core.vhd",
     "tb/Makefile",
     "tb/basic_core_test.py",
@@ -27490,6 +28046,7 @@ exports[`file list matches snapshot for every fixture 1`] = `
     "altera/basic_peripheral.sdc",
     "altera/basic_peripheral_hw.tcl",
     "altera/basic_peripheral_project.tcl",
+    "altera/test.qsys",
     "rtl/basic_peripheral.sv",
     "tb/Makefile",
     "tb/basic_peripheral_test.py",
@@ -27508,6 +28065,7 @@ exports[`file list matches snapshot for every fixture 1`] = `
     "altera/basic_peripheral.sdc",
     "altera/basic_peripheral_hw.tcl",
     "altera/basic_peripheral_project.tcl",
+    "altera/test.qsys",
     "rtl/basic_peripheral.vhd",
     "tb/Makefile",
     "tb/basic_peripheral_test.py",
@@ -27525,6 +28083,7 @@ exports[`file list matches snapshot for every fixture 1`] = `
     "altera/comprehensive_avalon.sdc",
     "altera/comprehensive_avalon_hw.tcl",
     "altera/comprehensive_avalon_project.tcl",
+    "altera/test.qsys",
     "rtl/comprehensive_avalon.sv",
     "rtl/comprehensive_avalon_avmm.sv",
     "rtl/comprehensive_avalon_core.sv",
@@ -27550,6 +28109,7 @@ exports[`file list matches snapshot for every fixture 1`] = `
     "altera/comprehensive_avalon.sdc",
     "altera/comprehensive_avalon_hw.tcl",
     "altera/comprehensive_avalon_project.tcl",
+    "altera/test.qsys",
     "rtl/comprehensive_avalon.vhd",
     "rtl/comprehensive_avalon_avmm.vhd",
     "rtl/comprehensive_avalon_core.vhd",
@@ -27574,6 +28134,7 @@ exports[`file list matches snapshot for every fixture 1`] = `
     "altera/comprehensive_axi.sdc",
     "altera/comprehensive_axi_hw.tcl",
     "altera/comprehensive_axi_project.tcl",
+    "altera/test.qsys",
     "rtl/comprehensive_axi.sv",
     "rtl/comprehensive_axi_axil.sv",
     "rtl/comprehensive_axi_core.sv",
@@ -27597,6 +28158,7 @@ exports[`file list matches snapshot for every fixture 1`] = `
     "altera/comprehensive_axi.sdc",
     "altera/comprehensive_axi_hw.tcl",
     "altera/comprehensive_axi_project.tcl",
+    "altera/test.qsys",
     "rtl/comprehensive_axi.vhd",
     "rtl/comprehensive_axi_axil.vhd",
     "rtl/comprehensive_axi_core.vhd",
@@ -27619,6 +28181,7 @@ exports[`file list matches snapshot for every fixture 1`] = `
     "altera/minimal_ip.sdc",
     "altera/minimal_ip_hw.tcl",
     "altera/minimal_ip_project.tcl",
+    "altera/test.qsys",
     "rtl/minimal_ip.sv",
     "tb/Makefile",
     "tb/conftest.py",
@@ -27637,6 +28200,7 @@ exports[`file list matches snapshot for every fixture 1`] = `
     "altera/minimal_ip.sdc",
     "altera/minimal_ip_hw.tcl",
     "altera/minimal_ip_project.tcl",
+    "altera/test.qsys",
     "rtl/minimal_ip.vhd",
     "tb/Makefile",
     "tb/conftest.py",
@@ -27654,6 +28218,7 @@ exports[`file list matches snapshot for every fixture 1`] = `
     "altera/multi_interface_accelerator.sdc",
     "altera/multi_interface_accelerator_hw.tcl",
     "altera/multi_interface_accelerator_project.tcl",
+    "altera/test.qsys",
     "rtl/multi_interface_accelerator.sv",
     "tb/Makefile",
     "tb/conftest.py",
@@ -27672,6 +28237,7 @@ exports[`file list matches snapshot for every fixture 1`] = `
     "altera/multi_interface_accelerator.sdc",
     "altera/multi_interface_accelerator_hw.tcl",
     "altera/multi_interface_accelerator_project.tcl",
+    "altera/test.qsys",
     "rtl/multi_interface_accelerator.vhd",
     "tb/Makefile",
     "tb/conftest.py",
@@ -27689,6 +28255,7 @@ exports[`file list matches snapshot for every fixture 1`] = `
     "altera/system_controller.sdc",
     "altera/system_controller_hw.tcl",
     "altera/system_controller_project.tcl",
+    "altera/test.qsys",
     "rtl/system_controller.sv",
     "tb/Makefile",
     "tb/conftest.py",
@@ -27707,6 +28274,7 @@ exports[`file list matches snapshot for every fixture 1`] = `
     "altera/system_controller.sdc",
     "altera/system_controller_hw.tcl",
     "altera/system_controller_project.tcl",
+    "altera/test.qsys",
     "rtl/system_controller.vhd",
     "tb/Makefile",
     "tb/conftest.py",
@@ -27721,6 +28289,7 @@ exports[`file list matches snapshot for every fixture 1`] = `
   ],
   "examples/xcvr_loopback_sv": [
     ".vscode/settings.json",
+    "altera/test.qsys",
     "altera/xcvr_loopback.sdc",
     "altera/xcvr_loopback_hw.tcl",
     "altera/xcvr_loopback_project.tcl",
@@ -27741,6 +28310,7 @@ exports[`file list matches snapshot for every fixture 1`] = `
   ],
   "examples/xcvr_loopback_vhdl": [
     ".vscode/settings.json",
+    "altera/test.qsys",
     "altera/xcvr_loopback.sdc",
     "altera/xcvr_loopback_hw.tcl",
     "altera/xcvr_loopback_project.tcl",
@@ -27763,6 +28333,7 @@ exports[`file list matches snapshot for every fixture 1`] = `
     "altera/minimal_core.sdc",
     "altera/minimal_core_hw.tcl",
     "altera/minimal_core_project.tcl",
+    "altera/test.qsys",
     "rtl/minimal_core.sv",
     "tb/Makefile",
     "tb/conftest.py",
@@ -27781,6 +28352,7 @@ exports[`file list matches snapshot for every fixture 1`] = `
     "altera/minimal_core.sdc",
     "altera/minimal_core_hw.tcl",
     "altera/minimal_core_project.tcl",
+    "altera/test.qsys",
     "rtl/minimal_core.vhd",
     "tb/Makefile",
     "tb/conftest.py",
@@ -29581,8 +30153,11 @@ set_interface_property M_AXIS_CH1 SVD_ADDRESS_GROUP ""
 add_interface_port M_AXIS_CH1 m_axis_ch1_tdata tdata Output 64
 add_interface_port M_AXIS_CH1 m_axis_ch1_tvalid tvalid Output 1
 add_interface_port M_AXIS_CH1 m_axis_ch1_tready tready Input 1
+add_interface_port M_AXIS_CH1 m_axis_ch1_tstrb tstrb Output 8
 add_interface_port M_AXIS_CH1 m_axis_ch1_tkeep tkeep Output 8
 add_interface_port M_AXIS_CH1 m_axis_ch1_tlast tlast Output 1
+add_interface_port M_AXIS_CH1 m_axis_ch1_tid tid Output 8
+add_interface_port M_AXIS_CH1 m_axis_ch1_tdest tdest Output 4
 add_interface_port M_AXIS_CH1 m_axis_ch1_tuser tuser Output 4
 
 
@@ -29602,8 +30177,11 @@ set_interface_property M_AXIS_CH2 SVD_ADDRESS_GROUP ""
 add_interface_port M_AXIS_CH2 m_axis_ch2_tdata tdata Output 64
 add_interface_port M_AXIS_CH2 m_axis_ch2_tvalid tvalid Output 1
 add_interface_port M_AXIS_CH2 m_axis_ch2_tready tready Input 1
+add_interface_port M_AXIS_CH2 m_axis_ch2_tstrb tstrb Output 8
 add_interface_port M_AXIS_CH2 m_axis_ch2_tkeep tkeep Output 8
 add_interface_port M_AXIS_CH2 m_axis_ch2_tlast tlast Output 1
+add_interface_port M_AXIS_CH2 m_axis_ch2_tid tid Output 8
+add_interface_port M_AXIS_CH2 m_axis_ch2_tdest tdest Output 4
 add_interface_port M_AXIS_CH2 m_axis_ch2_tuser tuser Output 4
 
 
@@ -29623,7 +30201,12 @@ set_interface_property S_AXIS SVD_ADDRESS_GROUP ""
 add_interface_port S_AXIS s_axis_tdata tdata Input 32
 add_interface_port S_AXIS s_axis_tvalid tvalid Input 1
 add_interface_port S_AXIS s_axis_tready tready Output 1
+add_interface_port S_AXIS s_axis_tstrb tstrb Input 4
+add_interface_port S_AXIS s_axis_tkeep tkeep Input 4
 add_interface_port S_AXIS s_axis_tlast tlast Input 1
+add_interface_port S_AXIS s_axis_tid tid Input 8
+add_interface_port S_AXIS s_axis_tdest tdest Input 4
+add_interface_port S_AXIS s_axis_tuser tuser Input 1
 
 
 # Interface: DBG (ipcraft:busif:conduit:1.0)
@@ -29971,8 +30554,11 @@ set_interface_property M_AXIS_CH1 SVD_ADDRESS_GROUP ""
 add_interface_port M_AXIS_CH1 m_axis_ch1_tdata tdata Output 64
 add_interface_port M_AXIS_CH1 m_axis_ch1_tvalid tvalid Output 1
 add_interface_port M_AXIS_CH1 m_axis_ch1_tready tready Input 1
+add_interface_port M_AXIS_CH1 m_axis_ch1_tstrb tstrb Output 8
 add_interface_port M_AXIS_CH1 m_axis_ch1_tkeep tkeep Output 8
 add_interface_port M_AXIS_CH1 m_axis_ch1_tlast tlast Output 1
+add_interface_port M_AXIS_CH1 m_axis_ch1_tid tid Output 8
+add_interface_port M_AXIS_CH1 m_axis_ch1_tdest tdest Output 4
 add_interface_port M_AXIS_CH1 m_axis_ch1_tuser tuser Output 4
 
 
@@ -29992,8 +30578,11 @@ set_interface_property M_AXIS_CH2 SVD_ADDRESS_GROUP ""
 add_interface_port M_AXIS_CH2 m_axis_ch2_tdata tdata Output 64
 add_interface_port M_AXIS_CH2 m_axis_ch2_tvalid tvalid Output 1
 add_interface_port M_AXIS_CH2 m_axis_ch2_tready tready Input 1
+add_interface_port M_AXIS_CH2 m_axis_ch2_tstrb tstrb Output 8
 add_interface_port M_AXIS_CH2 m_axis_ch2_tkeep tkeep Output 8
 add_interface_port M_AXIS_CH2 m_axis_ch2_tlast tlast Output 1
+add_interface_port M_AXIS_CH2 m_axis_ch2_tid tid Output 8
+add_interface_port M_AXIS_CH2 m_axis_ch2_tdest tdest Output 4
 add_interface_port M_AXIS_CH2 m_axis_ch2_tuser tuser Output 4
 
 
@@ -30013,7 +30602,12 @@ set_interface_property S_AXIS SVD_ADDRESS_GROUP ""
 add_interface_port S_AXIS s_axis_tdata tdata Input 32
 add_interface_port S_AXIS s_axis_tvalid tvalid Input 1
 add_interface_port S_AXIS s_axis_tready tready Output 1
+add_interface_port S_AXIS s_axis_tstrb tstrb Input 4
+add_interface_port S_AXIS s_axis_tkeep tkeep Input 4
 add_interface_port S_AXIS s_axis_tlast tlast Input 1
+add_interface_port S_AXIS s_axis_tid tid Input 8
+add_interface_port S_AXIS s_axis_tdest tdest Input 4
+add_interface_port S_AXIS s_axis_tuser tuser Input 1
 
 
 # Interface: DBG (ipcraft:busif:conduit:1.0)
@@ -30182,7 +30776,7 @@ add_interface_port clk clk clk Input 1
 # Reset Interface
 # -----------------------------------------------------------------------------
 add_interface rst reset end
-set_interface_property rst associatedClock 
+set_interface_property rst associatedClock clk
 set_interface_property rst synchronousEdges DEASSERT
 set_interface_property rst ENABLED true
 set_interface_property rst EXPORT_OF ""
@@ -30267,7 +30861,7 @@ add_interface_port clk clk clk Input 1
 # Reset Interface
 # -----------------------------------------------------------------------------
 add_interface rst reset end
-set_interface_property rst associatedClock 
+set_interface_property rst associatedClock clk
 set_interface_property rst synchronousEdges DEASSERT
 set_interface_property rst ENABLED true
 set_interface_property rst EXPORT_OF ""
@@ -32010,7 +32604,7 @@ add_interface_port clk clk clk Input 1
 # Reset Interface
 # -----------------------------------------------------------------------------
 add_interface rst reset end
-set_interface_property rst associatedClock 
+set_interface_property rst associatedClock clk
 set_interface_property rst synchronousEdges DEASSERT
 set_interface_property rst ENABLED true
 set_interface_property rst EXPORT_OF ""
@@ -32095,7 +32689,7 @@ add_interface_port clk clk clk Input 1
 # Reset Interface
 # -----------------------------------------------------------------------------
 add_interface rst reset end
-set_interface_property rst associatedClock 
+set_interface_property rst associatedClock clk
 set_interface_property rst synchronousEdges DEASSERT
 set_interface_property rst ENABLED true
 set_interface_property rst EXPORT_OF ""
