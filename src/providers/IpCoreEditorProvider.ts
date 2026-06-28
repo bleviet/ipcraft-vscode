@@ -22,6 +22,7 @@ import {
   GenerateOptionsMessage,
 } from '../shared/messages/ipCore';
 import { WebviewStagingBridge } from './WebviewStagingBridge';
+import { mergeStagedFile } from './StagingPanel';
 import { STAGING_SCHEME } from './StagingContentProvider';
 import { editInIpPackagerCommand } from '../commands/editInIpPackager';
 import { editInPlatformDesignerCommand } from '../commands/editInPlatformDesigner';
@@ -459,6 +460,17 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
         });
         if (editor.viewColumn !== undefined) {
           stagingSideColumn = editor.viewColumn;
+        }
+      } else if (message.action === 'merge') {
+        // Reconcile this one file in the 3-way merge editor. On success it is
+        // marked merged so the bulk apply skips it (the merge editor writes it),
+        // and the webview marks the row.
+        if (await mergeStagedFile(file)) {
+          WebviewStagingBridge.getInstance().markMerged(document.uri.fsPath, file.relativePath);
+          void webviewPanel.webview.postMessage({
+            type: 'stagingFileMerged',
+            relativePath: file.relativePath,
+          });
         }
       }
     });

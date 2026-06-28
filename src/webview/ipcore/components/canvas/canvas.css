@@ -2266,6 +2266,26 @@
   background: var(--vscode-button-secondaryHoverBackground);
 }
 
+.staging-btn-merge {
+  font-size: 11px;
+  padding: 2px 8px;
+  background: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+}
+
+.staging-btn-merge:hover {
+  background: var(--vscode-button-secondaryHoverBackground);
+}
+
+/* Persistent (not hover-gated) marker for a file already sent to the merge editor. */
+.staging-merged-tag {
+  flex-shrink: 0;
+  font-size: 11px;
+  padding: 2px 6px;
+  color: var(--vscode-charts-green, #4ea44e);
+  white-space: nowrap;
+}
+
 .staging-btn-preview {
   display: flex;
   align-items: center;

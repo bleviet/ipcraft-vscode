@@ -10,6 +10,9 @@ export interface StagedFileView {
 interface StagingOverlayProps {
   files: StagedFileView[];
   rootLabel?: string;
+  /** Files already opened in the merge editor — shown as "merging", skipped by Apply. */
+  mergedPaths: Set<string>;
+  onMerge: (relativePath: string) => void;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -152,10 +155,12 @@ const TreeNodeView: React.FC<{
   node: TreeNode;
   depth: number;
   collapsed: Set<string>;
+  mergedPaths: Set<string>;
   onToggle: (path: string) => void;
   onViewDiff: (path: string) => void;
   onViewPreview: (path: string) => void;
-}> = ({ node, depth, collapsed, onToggle, onViewDiff, onViewPreview }) => {
+  onMerge: (path: string) => void;
+}> = ({ node, depth, collapsed, mergedPaths, onToggle, onViewDiff, onViewPreview, onMerge }) => {
   if (node.isDir && !node.name) {
     return (
       <>
@@ -165,9 +170,11 @@ const TreeNodeView: React.FC<{
             node={c}
             depth={depth}
             collapsed={collapsed}
+            mergedPaths={mergedPaths}
             onToggle={onToggle}
             onViewDiff={onViewDiff}
             onViewPreview={onViewPreview}
+            onMerge={onMerge}
           />
         ))}
       </>
@@ -204,9 +211,11 @@ const TreeNodeView: React.FC<{
                 node={c}
                 depth={depth + 1}
                 collapsed={collapsed}
+                mergedPaths={mergedPaths}
                 onToggle={onToggle}
                 onViewDiff={onViewDiff}
                 onViewPreview={onViewPreview}
+                onMerge={onMerge}
               />
             ))}
           </div>
@@ -219,6 +228,9 @@ const TreeNodeView: React.FC<{
   const isMuted = file.status === 'unchanged' || file.protected;
   const showDiff = file.status === 'modified' || file.protected;
   const showPreview = file.status === 'new';
+  // Merge only applies to a real conflict: a modified, writable file.
+  const showMerge = file.status === 'modified' && !file.protected;
+  const isMerged = mergedPaths.has(file.relativePath);
 
   return (
     <div
@@ -243,6 +255,20 @@ const TreeNodeView: React.FC<{
           View Diff
         </button>
       )}
+      {showMerge &&
+        (isMerged ? (
+          <span className="staging-merged-tag" title="Reconcile in the merge editor, then save">
+            ✓ Merging
+          </span>
+        ) : (
+          <button
+            className="staging-btn-action staging-btn-merge"
+            onClick={() => onMerge(file.relativePath)}
+            title="Reconcile this file in the 3-way merge editor (excluded from Apply)"
+          >
+            Merge
+          </button>
+        ))}
       {showPreview && (
         <button
           className="staging-btn-action staging-btn-preview"
@@ -259,6 +285,8 @@ const TreeNodeView: React.FC<{
 export const StagingOverlay: React.FC<StagingOverlayProps> = ({
   files,
   rootLabel,
+  mergedPaths,
+  onMerge,
   onConfirm,
   onCancel,
 }) => {
@@ -450,9 +478,11 @@ export const StagingOverlay: React.FC<StagingOverlayProps> = ({
                 node={tree}
                 depth={1}
                 collapsed={collapsed}
+                mergedPaths={mergedPaths}
                 onToggle={toggleDir}
                 onViewDiff={handleViewDiff}
                 onViewPreview={handleViewPreview}
+                onMerge={onMerge}
               />
             </div>
           </>
@@ -461,9 +491,11 @@ export const StagingOverlay: React.FC<StagingOverlayProps> = ({
             node={tree}
             depth={0}
             collapsed={collapsed}
+            mergedPaths={mergedPaths}
             onToggle={toggleDir}
             onViewDiff={handleViewDiff}
             onViewPreview={handleViewPreview}
+            onMerge={onMerge}
           />
         )}
       </div>

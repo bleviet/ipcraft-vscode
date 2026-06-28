@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { randomBytes } from 'crypto';
 import { STAGING_SCHEME, setStagingContent, clearStagingContent } from './StagingContentProvider';
+import { openMergeEditorForConflict } from '../utils/importWrite';
 import {
   renderFileTree,
   escHtml,
@@ -18,18 +19,47 @@ export interface StagedFile {
   diskPath: string;
 }
 
+/**
+ * The user's decision from the staging UI.
+ *
+ * `mergedPaths` are files the user chose to reconcile in the 3-way merge editor;
+ * the merge editor writes them on completion, so the bulk apply must exclude them
+ * to avoid clobbering the merge result.
+ */
+export interface StagingDecision {
+  confirmed: boolean;
+  mergedPaths: string[];
+}
+
+/**
+ * Opens the 3-way merge editor for one staged file (current on disk vs. the
+ * generated content). Shared by both staging UIs. Returns true if it opened.
+ */
+export async function mergeStagedFile(file: StagedFile): Promise<boolean> {
+  const diskUri = vscode.Uri.file(file.diskPath);
+  let current = '';
+  try {
+    current = new TextDecoder().decode(await vscode.workspace.fs.readFile(diskUri));
+  } catch {
+    current = ''; // file vanished since categorization — treat as empty base
+  }
+  return openMergeEditorForConflict(diskUri, current, file.content, 'Generated');
+}
+
 export class StagingPanel {
   /**
    * Show the staging dashboard and return true if the user confirmed, false if cancelled.
    * The panel is opened beside the current active editor.
    */
-  static async show(files: StagedFile[]): Promise<boolean> {
-    return new Promise<boolean>((resolve) => {
+  static async show(files: StagedFile[]): Promise<StagingDecision> {
+    return new Promise<StagingDecision>((resolve) => {
       let resolved = false;
-      const resolveOnce = (value: boolean) => {
+      // Files the user reconciled in the merge editor — excluded from bulk apply.
+      const mergedPaths = new Set<string>();
+      const resolveOnce = (confirmed: boolean) => {
         if (!resolved) {
           resolved = true;
-          resolve(value);
+          resolve({ confirmed, mergedPaths: [...mergedPaths] });
         }
       };
 
@@ -98,6 +128,18 @@ export class StagingPanel {
             if (editor.viewColumn !== undefined) {
               sideColumn = editor.viewColumn;
             }
+          } else if (message.type === 'merge' && message.relativePath) {
+            const file = files.find((f) => f.relativePath === message.relativePath);
+            if (!file) {
+              return;
+            }
+            if (await mergeStagedFile(file)) {
+              mergedPaths.add(file.relativePath);
+              void panel.webview.postMessage({
+                type: 'fileMerged',
+                relativePath: file.relativePath,
+              });
+            }
           } else if (message.type === 'apply') {
             resolveOnce(true);
             panel.dispose();
@@ -146,11 +188,17 @@ export class StagingPanel {
         f.status === 'modified' || f.protected
           ? `<button class="btn-action btn-diff" data-diff="${dataPath}">View Diff</button>`
           : '';
+      // Merge is only meaningful for a modified, writable file (a real conflict
+      // between the generated content and what is already on disk).
+      const mergeBtn =
+        f.status === 'modified' && !f.protected
+          ? `<button class="btn-action btn-merge" data-merge="${dataPath}" title="Reconcile this file in the 3-way merge editor (excluded from Apply)">Merge</button>`
+          : '';
       const previewBtn =
         f.status === 'new'
           ? `<button class="btn-action btn-preview" data-preview="${dataPath}" title="Preview generated file">${StagingPanel.eyeSvg}</button>`
           : '';
-      return diffBtn + previewBtn;
+      return diffBtn + mergeBtn + previewBtn;
     },
   };
 
@@ -230,6 +278,9 @@ ${TREE_CSS}
 .tree-row:hover .btn-action{opacity:1}
 .btn-diff{font-size:11px;padding:2px 8px;background:var(--vscode-button-secondaryBackground);color:var(--vscode-button-secondaryForeground)}
 .btn-diff:hover{background:var(--vscode-button-secondaryHoverBackground)}
+.btn-merge{font-size:11px;padding:2px 8px;background:var(--vscode-button-secondaryBackground);color:var(--vscode-button-secondaryForeground)}
+.btn-merge:hover{background:var(--vscode-button-secondaryHoverBackground)}
+.btn-merge.btn-merged{opacity:1;background:transparent;color:var(--vscode-charts-green,#4ea44e);cursor:default}
 .btn-preview{display:flex;align-items:center;justify-content:center;padding:3px 5px;background:transparent;color:var(--vscode-descriptionForeground)}
 .btn-preview:hover{background:var(--vscode-button-secondaryBackground);color:var(--vscode-button-secondaryForeground)}
 /* footer / banner */
@@ -265,12 +316,26 @@ function toggleDir(id){
 }
 // Single delegated, nonce-gated click handler — no inline JS anywhere in markup.
 document.addEventListener('click', (e) => {
-  const t = e.target.closest('[data-toggle],[data-diff],[data-preview],[data-action]');
+  const t = e.target.closest('[data-toggle],[data-diff],[data-merge],[data-preview],[data-action]');
   if (!t) return;
   if (t.dataset.toggle !== undefined) { toggleDir(t.dataset.toggle); return; }
   if (t.dataset.diff !== undefined) { vscode.postMessage({ type: 'viewDiff', relativePath: t.dataset.diff }); return; }
+  if (t.dataset.merge !== undefined) { vscode.postMessage({ type: 'merge', relativePath: t.dataset.merge }); return; }
   if (t.dataset.preview !== undefined) { vscode.postMessage({ type: 'viewPreview', relativePath: t.dataset.preview }); return; }
   if (t.dataset.action) { vscode.postMessage({ type: t.dataset.action }); }
+});
+// Mark a file's Merge button once its merge editor has opened — it is now
+// excluded from Apply.
+window.addEventListener('message', (e) => {
+  const m = e.data;
+  if (!m || m.type !== 'fileMerged' || !m.relativePath) return;
+  document.querySelectorAll('[data-merge]').forEach((b) => {
+    if (b.dataset.merge === m.relativePath) {
+      b.textContent = '✓ Merging';
+      b.classList.add('btn-merged');
+      b.removeAttribute('data-merge');
+    }
+  });
 });
 </script>
 </body>

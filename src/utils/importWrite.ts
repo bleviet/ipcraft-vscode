@@ -67,42 +67,50 @@ export async function writeImportedFile(
   }
 
   // Conflict — never silently overwrite. Open the 3-way merge editor directly.
-  return openMergeEditor(targetUri, existing, newContent);
+  const opened = await openMergeEditorForConflict(targetUri, existing, newContent, 'Imported');
+  return opened ? 'merged' : 'kept';
 }
 
 /**
- * Opens VS Code's built-in 3-way merge editor on an import conflict so the user
- * can accept the imported content per change region instead of all-or-nothing.
+ * Opens VS Code's built-in 3-way merge editor on a file conflict so the user can
+ * accept the incoming content per change region instead of all-or-nothing.
  *
- * An import has no real common ancestor, so `base` is seeded with the on-disk
- * content. That makes every imported change a non-conflicting "incoming" block:
- * accepted by default (-> imported value), un-accept to keep the current value
- * (which equals base). The merge editor writes the resolved result to the real
- * file on disk (`output`) when the user completes the merge, so this function
- * does not write the file itself.
+ * Shared by import (incoming = imported content) and code-generation staging
+ * (incoming = generated content). There is no real common ancestor, so `base` is
+ * seeded with the current on-disk content. That makes every incoming change a
+ * non-conflicting block: accepted by default (-> incoming value), un-accept to
+ * keep the current value (which equals base). The merge editor writes the
+ * resolved result to the real file on disk (`output`) when the user completes
+ * the merge, so this function does not write the file itself.
  *
- * If the merge editor cannot be opened (e.g. the internal command is missing),
- * the file is left untouched and the user is told the import did not apply.
+ * Returns true when the merge editor opened, false when it could not (e.g. the
+ * internal command is missing) — in which case the file is left untouched and
+ * the user is shown an error.
+ *
+ * @param incomingLabel pane title for the incoming side ('Imported' / 'Generated').
  */
-async function openMergeEditor(
+export async function openMergeEditorForConflict(
   targetUri: vscode.Uri,
-  existing: string,
-  newContent: string
-): Promise<ImportWriteOutcome> {
+  current: string,
+  incoming: string,
+  incomingLabel: string
+): Promise<boolean> {
   const filename = path.basename(targetUri.fsPath);
   // The staging URIs feeding the merge panes must NOT match the .ip.yml/.mm.yml
   // custom-editor selectors (filenamePattern "*.ip.yml" / "*.mm.yml", priority
   // "default"). VS Code matches those by filename regardless of URI scheme, so a
   // staging URI ending in .mm.yml could pull the visual editor into a merge pane.
   // Use a .yaml suffix: YAML highlighting, but unmatched by those patterns.
+  // Non-YAML generated files (.vhd/.sv/...) have no custom editor, so this is a
+  // no-op for them.
   const mergeName = filename.replace(/\.ya?ml$/i, '.yaml');
   const token = (diffSeq += 1);
-  const baseKey = `/import/${token}/base/${mergeName}`;
-  const currentKey = `/import/${token}/current/${mergeName}`;
-  const importedKey = `/import/${token}/imported/${mergeName}`;
-  setStagingContent(baseKey, existing);
-  setStagingContent(currentKey, existing);
-  setStagingContent(importedKey, newContent);
+  const baseKey = `/merge/${token}/base/${mergeName}`;
+  const currentKey = `/merge/${token}/current/${mergeName}`;
+  const incomingKey = `/merge/${token}/incoming/${mergeName}`;
+  setStagingContent(baseKey, current);
+  setStagingContent(currentKey, current);
+  setStagingContent(incomingKey, incoming);
 
   const staged = (key: string) => vscode.Uri.from({ scheme: STAGING_SCHEME, path: key });
 
@@ -113,16 +121,16 @@ async function openMergeEditor(
     await vscode.commands.executeCommand('_open.mergeEditor', {
       base: staged(baseKey),
       input1: { uri: staged(currentKey), title: 'Current (on disk)', detail: filename },
-      input2: { uri: staged(importedKey), title: 'Imported', detail: filename },
+      input2: { uri: staged(incomingKey), title: incomingLabel, detail: filename },
       output: targetUri,
     });
-    return 'merged';
+    return true;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     void vscode.window.showErrorMessage(
       `Could not open the merge editor for ${filename}: ${message}. ` +
-        `The file was left unchanged and the import was not applied.`
+        `The file was left unchanged.`
     );
-    return 'kept';
+    return false;
   }
 }

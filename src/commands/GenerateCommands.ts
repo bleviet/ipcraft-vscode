@@ -684,6 +684,9 @@ async function runGenerator(
   // Phase 3: Show the staging overlay in the canvas webview when possible; fall back to
   // a separate StagingPanel when the canvas webview is not registered (e.g. command run
   // while the editor is not open, or from the Source Control / Explorer view).
+  // Files the user reconciled in the merge editor — the merge editor writes them
+  // on completion, so the bulk write below must skip them.
+  let mergedPaths = new Set<string>();
   if (staged.length > 0) {
     const bridge = WebviewStagingBridge.getInstance();
     const bridgeResult = await bridge.showInWebview(
@@ -691,18 +694,23 @@ async function runGenerator(
       staged,
       path.basename(outputDir)
     );
-    const confirmed = bridgeResult ?? (await StagingPanel.show(staged));
-    if (!confirmed) {
+    const decision = bridgeResult ?? (await StagingPanel.show(staged));
+    if (!decision.confirmed) {
       return false;
     }
+    mergedPaths = new Set(decision.mergedPaths);
   }
 
-  // Phase 4: Write new + modified files; skip unchanged and protected-existing files.
-  // Pre-compute the write list so we only show the progress notification when there
-  // is real disk work to do — avoiding a misleading "Generating…" flash otherwise.
+  // Phase 4: Write new + modified files; skip unchanged, protected-existing, and
+  // merged files. Pre-compute the write list so we only show the progress
+  // notification when there is real disk work to do — avoiding a misleading
+  // "Generating…" flash otherwise.
   const protectedExisting = new Set(dryResult.protectedPaths ?? []);
   const filesToWrite = staged.filter(
-    (f) => f.status !== 'unchanged' && !(f.protected && protectedExisting.has(f.relativePath))
+    (f) =>
+      f.status !== 'unchanged' &&
+      !(f.protected && protectedExisting.has(f.relativePath)) &&
+      !mergedPaths.has(f.relativePath)
   );
   const writtenRelPaths: string[] = [];
   let writeError: string | undefined;
@@ -739,8 +747,12 @@ async function runGenerator(
   }
 
   if (!options.silent) {
+    const mergeNote =
+      mergedPaths.size > 0
+        ? `; ${mergedPaths.size} opened in the merge editor (resolve and save)`
+        : '';
     const action = await vscode.window.showInformationMessage(
-      `✓ Generated ${writtenRelPaths.length} file(s)`,
+      `✓ Generated ${writtenRelPaths.length} file(s)${mergeNote}`,
       'Open Folder'
     );
     if (action === 'Open Folder') {

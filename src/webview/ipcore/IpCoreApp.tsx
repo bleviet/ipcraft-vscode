@@ -471,6 +471,9 @@ const IpCoreApp: React.FC = () => {
     files: StagedFileView[];
     rootLabel?: string;
   } | null>(null);
+  // Files the user opened in the merge editor during the current staging — shown
+  // as "merging" in the overlay and excluded from the bulk apply by the extension.
+  const [stagingMergedPaths, setStagingMergedPaths] = useState<Set<string>>(new Set());
 
   // Transient toast notification
   const [toast, setToast] = useState<string | null>(null);
@@ -764,6 +767,7 @@ const IpCoreApp: React.FC = () => {
         isPreview?: boolean;
         files?: StagedFileView[];
         rootLabel?: string;
+        relativePath?: string;
       };
 
       switch (message.type) {
@@ -787,9 +791,20 @@ const IpCoreApp: React.FC = () => {
           setIsPreview(message.isPreview ?? false);
           break;
         case 'stagingStart':
+          setStagingMergedPaths(new Set());
           setStagingData(
             message.files ? { files: message.files, rootLabel: message.rootLabel } : null
           );
+          break;
+        case 'stagingFileMerged':
+          if (message.relativePath) {
+            const merged = message.relativePath;
+            setStagingMergedPaths((prev) => {
+              const next = new Set(prev);
+              next.add(merged);
+              return next;
+            });
+          }
           break;
       }
     };
@@ -1166,6 +1181,10 @@ const IpCoreApp: React.FC = () => {
               <StagingOverlay
                 files={stagingData.files}
                 rootLabel={stagingData.rootLabel}
+                mergedPaths={stagingMergedPaths}
+                onMerge={(relativePath) => {
+                  vscode?.postMessage({ type: 'stagingAction', action: 'merge', relativePath });
+                }}
                 onConfirm={() => {
                   vscode?.postMessage({ type: 'stagingResult', confirmed: true });
                   setStagingData(null);

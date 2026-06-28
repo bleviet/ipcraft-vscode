@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { STAGING_SCHEME, setStagingContent, clearStagingContent } from './StagingContentProvider';
-import type { StagedFile } from './StagingPanel';
+import type { StagedFile, StagingDecision } from './StagingPanel';
 
 /**
  * Singleton bridge between GenerateCommands (extension host) and the active canvas webview.
@@ -14,8 +14,11 @@ export class WebviewStagingBridge {
   }
 
   private readonly panels = new Map<string, vscode.WebviewPanel>();
-  private readonly resolvers = new Map<string, (confirmed: boolean) => void>();
+  private readonly resolvers = new Map<string, (decision: StagingDecision) => void>();
   private readonly stagedFiles = new Map<string, StagedFile[]>();
+  // Files the user reconciled in the merge editor for an in-progress staging —
+  // excluded from the bulk apply so the merge result is not clobbered.
+  private readonly mergedPaths = new Map<string, Set<string>>();
 
   register(fsPath: string, panel: vscode.WebviewPanel): void {
     this.panels.set(fsPath, panel);
@@ -24,9 +27,10 @@ export class WebviewStagingBridge {
       // Cancel any in-progress staging for this panel
       const resolver = this.resolvers.get(fsPath);
       if (resolver) {
-        resolver(false);
+        resolver({ confirmed: false, mergedPaths: [] });
         this.resolvers.delete(fsPath);
         this.stagedFiles.delete(fsPath);
+        this.mergedPaths.delete(fsPath);
       }
     });
   }
@@ -40,7 +44,7 @@ export class WebviewStagingBridge {
     fsPath: string,
     files: StagedFile[],
     rootLabel?: string
-  ): Promise<boolean | null> {
+  ): Promise<StagingDecision | null> {
     const panel = this.panels.get(fsPath);
     if (!panel) {
       return null;
@@ -52,6 +56,7 @@ export class WebviewStagingBridge {
       setStagingContent(`/${f.relativePath}`, f.content);
     }
     this.stagedFiles.set(fsPath, files);
+    this.mergedPaths.set(fsPath, new Set());
 
     // Only send display data to the webview — content can be large and isn't needed there
     const fileViews = files.map(({ relativePath, status, protected: prot }) => ({
@@ -60,18 +65,24 @@ export class WebviewStagingBridge {
       protected: prot,
     }));
 
-    return new Promise<boolean>((resolve) => {
+    return new Promise<StagingDecision>((resolve) => {
       this.resolvers.set(fsPath, resolve);
       void panel.webview.postMessage({ type: 'stagingStart', files: fileViews, rootLabel });
     });
   }
 
+  /** Records that the user opened `relativePath` in the merge editor. */
+  markMerged(fsPath: string, relativePath: string): void {
+    this.mergedPaths.get(fsPath)?.add(relativePath);
+  }
+
   resolveStaging(fsPath: string, confirmed: boolean): void {
     const resolver = this.resolvers.get(fsPath);
     if (resolver) {
-      resolver(confirmed);
+      resolver({ confirmed, mergedPaths: [...(this.mergedPaths.get(fsPath) ?? [])] });
       this.resolvers.delete(fsPath);
       this.stagedFiles.delete(fsPath);
+      this.mergedPaths.delete(fsPath);
     }
   }
 
