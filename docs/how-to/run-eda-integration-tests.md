@@ -84,6 +84,7 @@ Setting `SKIP_QUARTUS=1` or `SKIP_VIVADO=1` causes the corresponding tests to pa
 | `VIVADO_BIN` | `/home/balevision/tools/Xilinx/Vivado/2024.2/bin/vivado` | Full path to the `vivado` binary |
 | `SKIP_QUARTUS` | *(unset)* | Set to `1` to skip all Quartus tests without failing |
 | `SKIP_VIVADO` | *(unset)* | Set to `1` to skip all Vivado tests without failing |
+| `REQUIRE_QSYS_GENERATE` | *(unset)* | Set to `1` to fail (instead of skip) when `qsys-generate` is absent from the Docker image |
 
 ---
 
@@ -96,6 +97,8 @@ Setting `SKIP_QUARTUS=1` or `SKIP_VIVADO=1` causes the corresponding tests to pa
    ✓ generates at least one Altera fixture with _hw.tcl (8192 ms)
    ✓ all Altera _hw.tcl files pass Platform Designer stub validation (36109 ms)
      PASS: 3 hw.tcl file(s) validated
+   ✓ all Altera _hw.tcl files pass Platform Designer BFM testbench validation (120034 ms)
+     PASS: 3 hw.tcl file(s) validated via BFM testbench
 
  PASS  src/test/integration/vivado.test.ts (78.1 s)
    ✓ generates at least one AMD fixture with component.xml (8212 ms)
@@ -104,9 +107,9 @@ Setting `SKIP_QUARTUS=1` or `SKIP_VIVADO=1` causes the corresponding tests to pa
      PASS: axi_lite_slave
 ```
 
-### Failing run (Quartus)
+### Failing run (Quartus — stub validation)
 
-When a `_hw.tcl` file contains a structural error, the validator prints the Tcl output and the specific check that failed:
+When a `_hw.tcl` file contains a structural error, the stub validator prints the Tcl output and the specific check that failed:
 
 ```
 ● all Altera _hw.tcl files pass Platform Designer stub validation
@@ -118,6 +121,35 @@ When a `_hw.tcl` file contains a structural error, the validator prints the Tcl 
   PD-ERROR: add_interface 'data_in': unknown type 'avalon_lite'
   ...
   OVERALL FAIL: 1 error(s) across all files
+```
+
+### Failing run (Quartus — BFM testbench validation)
+
+When a `_hw.tcl` has an interface-level error that only Platform Designer's full validator can catch (such as an AXI-Stream port role mismatch), the BFM testbench test reports it:
+
+```
+● all Altera _hw.tcl files pass Platform Designer BFM testbench validation
+
+  Platform Designer qsys-generate validation FAILED (exit 1)
+  stdout:
+  ======================================================
+  === Validating via Platform Designer BFM testbench: comprehensive_axi_hw.tcl
+  ======================================================
+  Found IP component name: comprehensive_axi
+  2026.06.28.23:29:05 Error: Master axi_stream port role mismatch: tstrb
+  FAIL: comprehensive_axi has component-level errors:
+  2026.06.28.23:29:05 Error: Master axi_stream port role mismatch: tstrb
+  ...
+  OVERALL FAIL: 1 error(s) across all files
+```
+
+### Skipped BFM testbench validation
+
+When `qsys-generate` is not present in the Docker image, the BFM testbench test is skipped rather than failed (unless `REQUIRE_QSYS_GENERATE=1` is set):
+
+```
+[tier 2] SKIPPING qsys_generate: qsys-generate not available in cvsoc/quartus:23.1.
+  Set REQUIRE_QSYS_GENERATE=1 to fail instead of skipping.
 ```
 
 ### Failing run (Vivado)

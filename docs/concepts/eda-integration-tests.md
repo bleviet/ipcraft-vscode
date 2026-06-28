@@ -43,6 +43,7 @@ The output directory for each fixture mirrors what a real user would get:
   simple_gpio/
     altera/
       simple_gpio_hw.tcl
+      test.qsys            # companion system with all interfaces exported
     amd/
       component.xml
       busdef/
@@ -50,6 +51,7 @@ The output directory for each fixture mirrors what a real user would get:
   axi_lite_slave/
     altera/
       axi_lite_slave_hw.tcl
+      test.qsys
     amd/
       component.xml
 ```
@@ -68,7 +70,9 @@ The Jest test mounts the repository root at `/work` inside the container and pas
 
 #### What the validation does
 
-Rather than running a full Quartus synthesis, the tests use a lightweight Tcl-based stub validator at `scripts/integration/quartus/stub_platform_designer.tcl`. The stub:
+There are two levels of validation for each `_hw.tcl`, run in sequence.
+
+**Stub validation** uses a lightweight Tcl-based validator at `scripts/integration/quartus/stub_platform_designer.tcl`. The stub:
 
 1. Defines no-op implementations of all Platform Designer commands (`add_interface`, `add_interface_port`, `set_module_property`, `add_fileset`, etc.) so the `_hw.tcl` can be sourced without a live Platform Designer session.
 2. Records every `add_interface` and `add_interface_port` call in an in-memory state object.
@@ -80,7 +84,15 @@ After the `_hw.tcl` is loaded, the outer validator (`scripts/integration/quartus
 - `set_module_property NAME` must have been called.
 - Every non-clock/reset interface must have at least one port.
 
-The validator iterates over all `_hw.tcl` files passed as command-line arguments, accumulates errors, and exits 0 only if every file passes, printing `OVERALL PASS`.
+The stub validator iterates over all `_hw.tcl` files passed as command-line arguments, accumulates errors, and exits 0 only if every file passes, printing `OVERALL PASS`.
+
+**BFM testbench validation** uses Platform Designer's own `qsys-generate --testbench=STANDARD` tool, driven by `scripts/integration/quartus/validate_pd.sh`. This catches interface-level errors — such as AXI-Stream port role mismatches — that the stub validator cannot detect because the stub only records interface declarations without interpreting their semantics.
+
+The approach relies on a companion `test.qsys` file that IPCraft generates alongside each `_hw.tcl` (via the `altera_test_system.qsys.j2` Nunjucks template in the generator). This file instantiates the component with **all interfaces exported to the system boundary**. With every interface promoted to an export, Platform Designer's system-level validator is fully satisfied — there are no "port must be connected" false positives — and `qsys-generate` can automatically connect BFMs (Bus Functional Models) for each exported clock, reset, Avalon, AXI, and conduit interface. If any interface declaration in the `_hw.tcl` is structurally wrong (wrong port roles, mismatched directions, bad type), `qsys-generate` reports a component-level error.
+
+The script deduplicates validation across VHDL and SV fixture variants of the same IP name, since both produce the identical Platform Designer component structure. It exits with code 0 on full pass, 1 on any component error, and 2 when `qsys-generate` is not found in the image (which the Jest test treats as a tier-2 skip rather than a failure, unless `REQUIRE_QSYS_GENERATE=1` is set).
+
+Both validation levels run inside the same `cvsoc/quartus:23.1` Docker container. Stub validation takes roughly milliseconds per file; BFM testbench validation takes roughly 30 seconds per unique IP component.
 
 ### Step 3: Vivado validation
 
@@ -114,6 +126,12 @@ EDA validation is slow (Vivado can take 30–60 seconds per fixture to start) an
 ### Why Tcl stubs instead of a real Platform Designer session?
 
 A real Platform Designer session requires a licensed Quartus installation and a GUI environment. The stub approach lets contributors who only have `tclsh` (available inside the Docker image without a license) validate the structural correctness of `_hw.tcl` files. It is not a full functional test — it does not simulate routing or timing — but it catches the class of errors that IPCraft is likely to introduce: malformed interface definitions, missing module names, invalid interface types, or ports with zero width.
+
+### Why add BFM testbench validation on top of the stub?
+
+The Tcl stub validator only replays and records interface declarations. It cannot catch semantic errors that require Platform Designer to interpret the interface specification — for example, when a port is listed under an AXI-Stream interface with the wrong role (`tstrb` assigned as a master port on what should be a slave interface). Such errors are invisible to a Tcl stub but cause `qsys-generate` to abort with a component-level error.
+
+The BFM testbench approach solves this by running the actual Platform Designer tool against a purpose-built `test.qsys` that exports every interface to the system boundary. The export strategy is the key insight: a bare system with unconnected interfaces would trigger "must be connected" errors that are not real bugs — they are just artifacts of the test harness. Exporting everything to the boundary satisfies Platform Designer's connectivity rules so that only genuine interface errors surface. This makes the test highly specific: false positives from the test setup are eliminated, and only real component defects cause a failure.
 
 ### Why cache fixtures in memory?
 
