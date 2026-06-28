@@ -42,62 +42,39 @@ describe('writeImportedFile', () => {
     expect(showWarning).not.toHaveBeenCalled();
   });
 
-  it('shows a diff and overwrites only when the user confirms', async () => {
+  it('opens the 3-way merge editor directly on a conflict (no blocking prompt)', async () => {
     fsMock.readFile.mockResolvedValue(bytes('old: edited by user'));
-    showWarning.mockResolvedValue('Overwrite');
-
-    const outcome = await writeImportedFile(uri('/out/core.mm.yml'), 'new: imported');
-
-    expect(outcome).toBe('overwritten');
-    // A diff of current vs. imported was opened before asking. Both sides use the
-    // plain-text staging scheme AND a .yaml (not .mm.yml/.ip.yml) path, so the
-    // file's custom visual editor cannot hijack the diff pane and hide the
-    // textual changes.
-    const stagingYaml = expect.objectContaining({
-      scheme: 'ipcraft-staging',
-      path: expect.stringMatching(/\.yaml$/),
-    });
-    expect(executeCommand).toHaveBeenCalledWith(
-      'vscode.diff',
-      stagingYaml,
-      stagingYaml,
-      expect.stringContaining('Current'),
-      expect.anything()
-    );
-    expect(fsMock.writeFile).toHaveBeenCalledTimes(1);
-    expect(writtenText(fsMock.writeFile.mock.calls[0] as unknown[])).toBe('new: imported');
-  });
-
-  it('opens the 3-way merge editor when the user chooses Merge...', async () => {
-    fsMock.readFile.mockResolvedValue(bytes('old: edited by user'));
-    showWarning.mockResolvedValue('Merge...');
 
     const target = uri('/out/core.mm.yml');
     const outcome = await writeImportedFile(target, 'new: imported');
 
     expect(outcome).toBe('merged');
-    // The merge editor is opened with the real file as the writable `output`;
-    // base/current/imported sides are served through the staging scheme.
+    // No read-only diff tab and no Overwrite/Keep-Existing warning — the merge
+    // editor opens straight away.
+    expect(showWarning).not.toHaveBeenCalled();
+    expect(executeCommand).not.toHaveBeenCalledWith('vscode.diff', expect.anything());
+    // The merge editor opens with the real file as the writable `output`;
+    // base/current/imported sides are served through the staging scheme on a
+    // .yaml path so the file's custom visual editor cannot hijack a merge pane.
+    const stagingYaml = expect.objectContaining({
+      scheme: 'ipcraft-staging',
+      path: expect.stringMatching(/\.yaml$/),
+    });
     expect(executeCommand).toHaveBeenCalledWith(
       '_open.mergeEditor',
       expect.objectContaining({
         output: target,
-        base: expect.objectContaining({ scheme: 'ipcraft-staging' }),
-        input1: expect.objectContaining({
-          uri: expect.objectContaining({ scheme: 'ipcraft-staging' }),
-        }),
-        input2: expect.objectContaining({
-          uri: expect.objectContaining({ scheme: 'ipcraft-staging' }),
-        }),
+        base: stagingYaml,
+        input1: expect.objectContaining({ uri: stagingYaml }),
+        input2: expect.objectContaining({ uri: stagingYaml }),
       })
     );
     // The merge editor writes the resolved result on completion — not us.
     expect(fsMock.writeFile).not.toHaveBeenCalled();
   });
 
-  it('keeps the file and warns when the merge editor cannot open', async () => {
+  it('leaves the file unchanged and warns when the merge editor cannot open', async () => {
     fsMock.readFile.mockResolvedValue(bytes('old: edited by user'));
-    showWarning.mockResolvedValue('Merge...');
     executeCommand.mockImplementation(async (command: string) => {
       if (command === '_open.mergeEditor') {
         throw new Error('command not found');
@@ -108,27 +85,6 @@ describe('writeImportedFile', () => {
 
     expect(outcome).toBe('kept');
     expect(fsMock.writeFile).not.toHaveBeenCalled();
-    expect(vscode.window.showWarningMessage).toHaveBeenCalled();
     expect(vscode.window.showErrorMessage).toHaveBeenCalled();
-  });
-
-  it('keeps the user version when the user declines', async () => {
-    fsMock.readFile.mockResolvedValue(bytes('old: edited by user'));
-    showWarning.mockResolvedValue('Keep Existing');
-
-    const outcome = await writeImportedFile(uri('/out/core.mm.yml'), 'new: imported');
-
-    expect(outcome).toBe('kept');
-    expect(fsMock.writeFile).not.toHaveBeenCalled();
-  });
-
-  it('keeps the user version when the prompt is dismissed', async () => {
-    fsMock.readFile.mockResolvedValue(bytes('old: edited by user'));
-    showWarning.mockResolvedValue(undefined);
-
-    const outcome = await writeImportedFile(uri('/out/core.mm.yml'), 'new: imported');
-
-    expect(outcome).toBe('kept');
-    expect(fsMock.writeFile).not.toHaveBeenCalled();
   });
 });
