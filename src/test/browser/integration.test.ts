@@ -82,21 +82,24 @@ addressBlocks:
   test('should render, edit and post message correctly', async ({ page }) => {
     await expect(page.locator('section')).toContainText('REGS', { timeout: 15000 });
 
-    const ctrlItem = page.locator('[role="treeitem"] >> text=CTRL').first();
-    await expect(ctrlItem).toBeVisible();
-
+    // Clicking a register opens the master-detail block editor: the header shows
+    // the block name (REGS) and the detail pane shows the selected register's
+    // inline field table (an embedded RegisterEditor).
+    const ctrlItem = page.locator('[data-outline-id="block-0-reg-0"]');
     await ctrlItem.click();
 
-    const editorHeader = page.locator('h2:has-text("CTRL")');
-    await expect(editorHeader).toBeVisible();
-
-    const msbInput = page.getByPlaceholder('MSB').first();
-    await expect(msbInput).toBeVisible();
+    await expect(page.locator('h2:has-text("REGS")')).toBeVisible();
+    await expect(page.locator('td[data-col-key="name"] input').first()).toHaveValue('ENABLE');
 
     await page.evaluate(() => {
       (window as any).__last_message = null;
     });
 
+    // Fields require a double-click to enter edit mode; that focuses the MSB
+    // input. Widen ENABLE from [0:0] to [1:0] by setting MSB to 1.
+    await page.locator('td[data-col-key="bits"]').first().dblclick();
+    const msbInput = page.getByPlaceholder('MSB').first();
+    await expect(msbInput).toBeVisible();
     await msbInput.click();
     await page.keyboard.press('Control+A');
     await page.keyboard.press('Backspace');
@@ -149,15 +152,19 @@ addressBlocks:
     await expect(regItem).toContainText('CTRL');
   });
 
-  test('should show register editor when CTRL tree item is clicked', async ({ page }) => {
+  test('should show the block editor with the register fields when CTRL is clicked', async ({
+    page,
+  }) => {
     const ctrlItem = page.locator('[data-outline-id="block-0-reg-0"]');
     await ctrlItem.click();
 
-    const header = page.locator('h2:has-text("CTRL")');
-    await expect(header).toBeVisible({ timeout: 5000 });
-
-    const msbInput = page.getByPlaceholder('MSB');
-    await expect(msbInput.first()).toBeVisible({ timeout: 5000 });
+    // Master-detail block screen: block header + CTRL's inline field table.
+    await expect(page.locator('h2:has-text("REGS")')).toBeVisible({ timeout: 5000 });
+    await expect(ctrlItem).toHaveClass(/selected/);
+    await expect(page.locator('td[data-col-key="name"] input').first()).toHaveValue('ENABLE', {
+      timeout: 5000,
+    });
+    await expect(page.getByPlaceholder('MSB').first()).toBeVisible({ timeout: 5000 });
   });
 
   test('should update details panel when selecting different tree nodes', async ({ page }) => {
@@ -187,13 +194,18 @@ addressBlocks:
 
     await page.waitForTimeout(500);
 
+    // Both registers live under one block, so the header stays "REGS"; the detail
+    // pane swaps to show the selected register's fields. CTRL has field ENABLE,
+    // STATUS has field READY — assert the detail follows the outline selection.
+    const fieldName = page.locator('td[data-col-key="name"] input').first();
+
     const ctrlItem = page.locator('[data-outline-id="block-0-reg-0"]');
     await ctrlItem.click();
-    await expect(page.locator('h2:has-text("CTRL")')).toBeVisible({ timeout: 5000 });
+    await expect(fieldName).toHaveValue('ENABLE', { timeout: 5000 });
 
     const statusItem = page.locator('[data-outline-id="block-0-reg-1"]');
     await statusItem.click();
-    await expect(page.locator('h2:has-text("STATUS")')).toBeVisible({ timeout: 5000 });
+    await expect(fieldName).toHaveValue('READY', { timeout: 5000 });
   });
 
   test('should show block editor when address block tree node is clicked', async ({ page }) => {
@@ -336,31 +348,34 @@ addressBlocks:
     const ctrlItem = page.locator('[data-outline-id="block-0-reg-0"]');
     await ctrlItem.click();
 
-    await expect(page.locator('h2:has-text("CTRL")')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('td[data-col-key="name"] input').first()).toHaveValue('ENABLE', {
+      timeout: 5000,
+    });
 
     await page.evaluate(() => {
       (window as any).__last_message = null;
     });
 
-    const resetInput = page.getByPlaceholder('Reset').first();
-    if (await resetInput.isVisible()) {
-      await resetInput.click();
-      await page.keyboard.press('Control+A');
-      await page.keyboard.press('Backspace');
-      await page.keyboard.type('0x1');
-      await page.keyboard.press('Enter');
+    // Double-click the Reset cell to enter edit mode, then set 0x1.
+    await page.locator('td[data-col-key="reset"]').first().dblclick();
+    const resetInput = page.locator('td[data-col-key="reset"] [data-edit-key="reset"]').first();
+    await expect(resetInput).toBeVisible();
+    await resetInput.click();
+    await page.keyboard.press('Control+A');
+    await page.keyboard.press('Backspace');
+    await page.keyboard.type('0x1');
+    await page.keyboard.press('Enter');
 
-      await page.waitForFunction(
-        () => {
-          const msg = (window as any).__last_message;
-          return msg && msg.type === 'update';
-        },
-        { timeout: 10000 }
-      );
+    await page.waitForFunction(
+      () => {
+        const msg = (window as any).__last_message;
+        return msg && msg.type === 'update';
+      },
+      { timeout: 10000 }
+    );
 
-      const lastMsg = await page.evaluate(() => (window as any).__last_message);
-      expect(lastMsg.type).toBe('update');
-    }
+    const lastMsg = await page.evaluate(() => (window as any).__last_message);
+    expect(lastMsg.type).toBe('update');
   });
 
   test('should collapse all and expand all via toggle button', async ({ page }) => {
