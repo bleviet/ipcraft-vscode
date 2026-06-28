@@ -49,12 +49,20 @@ export const clockResetResolver: ContextResolver = {
       active_high: String(reset.polarity ?? 'activeHigh')
         .toLowerCase()
         .includes('high'),
+      associated_clock:
+        reset.associatedClock && reset.associatedClock.trim() !== ''
+          ? reset.associatedClock
+          : clockPort,
     }));
 
     return {
       clock_port: clockPort,
       reset_port: resetPort,
       reset_active_high: resetActiveHigh,
+      reset_associated_clock:
+        resets[0]?.associatedClock && resets[0].associatedClock.trim() !== ''
+          ? resets[0].associatedClock
+          : clockPort,
       clocks_with_period: clocksWithPeriod,
       secondary_clocks: secondaryClocks,
       secondary_resets: secondaryResets,

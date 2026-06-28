@@ -39,10 +39,9 @@ export interface TemplateContext {
   clock_port: string;
   reset_port: string;
   reset_active_high: boolean;
+  reset_associated_clock?: string | null;
   clocks_with_period: ClockWithPeriod[];
-  /** Additional clocks beyond the primary, emitted as extra input ports. */
   secondary_clocks: SecondaryClock[];
-  /** Additional resets beyond the primary, emitted as extra input ports. */
   secondary_resets: SecondaryReset[];
   memmap_relpath: string;
   /**
@@ -286,4 +285,5 @@ export interface SecondaryClock {
 export interface SecondaryReset {
   name: string;
   active_high: boolean;
+  associated_clock?: string | null;
 }

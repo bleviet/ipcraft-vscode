@@ -90,6 +90,7 @@
     "clock_port": { "type": "string" },
     "reset_port": { "type": "string" },
     "reset_active_high": { "type": "boolean" },
+    "reset_associated_clock": { "type": ["string", "null"] },
     "clocks_with_period": {
       "type": "array",
       "items": { "$ref": "#/definitions/ClockWithPeriod" }
@@ -428,7 +429,8 @@
       "additionalProperties": false,
       "properties": {
         "name": { "type": "string" },
-        "active_high": { "type": "boolean" }
+        "active_high": { "type": "boolean" },
+        "associated_clock": { "type": ["string", "null"] }
       }
     },
     "MemoryMapField": {

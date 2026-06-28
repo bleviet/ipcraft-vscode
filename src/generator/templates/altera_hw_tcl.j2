@@ -71,7 +71,7 @@ add_interface_port {{ clock_port }} {{ clock_port }} clk Input 1
 # Reset Interface
 # -----------------------------------------------------------------------------
 add_interface {{ reset_port }} reset end
-set_interface_property {{ reset_port }} associatedClock {{ clock_port }}
+set_interface_property {{ reset_port }} associatedClock {{ reset_associated_clock }}
 set_interface_property {{ reset_port }} synchronousEdges DEASSERT
 set_interface_property {{ reset_port }} ENABLED true
 set_interface_property {{ reset_port }} EXPORT_OF ""
@@ -92,6 +92,7 @@ add_interface_port {{ clk.name }} {{ clk.name }} clk Input 1
 {% for rst in secondary_resets %}
 # Secondary reset: {{ rst.name }}
 add_interface {{ rst.name }} reset end
+set_interface_property {{ rst.name }} associatedClock {{ rst.associated_clock }}
 set_interface_property {{ rst.name }} synchronousEdges DEASSERT
 set_interface_property {{ rst.name }} ENABLED true
 add_interface_port {{ rst.name }} {{ rst.name }} {% if rst.active_high %}reset{% else %}reset_n{% endif %} Input 1
