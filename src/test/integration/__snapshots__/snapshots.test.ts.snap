@@ -5052,7 +5052,9 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       <spirit:name>avalon_mm_slave</spirit:name>
       <spirit:busType spirit:vendor="xilinx.com" spirit:library="interface" spirit:name="avalon" spirit:version="1.0" />
       <spirit:abstractionType spirit:vendor="xilinx.com" spirit:library="interface" spirit:name="avalon_rtl" spirit:version="1.0" />
-      <spirit:slave />
+      <spirit:slave>
+        <spirit:memoryMapRef spirit:memoryMapRef="CSR_MAP" />
+      </spirit:slave>
       <spirit:portMaps>
         <spirit:portMap>
           <spirit:logicalPort>
@@ -5261,6 +5263,72 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       </spirit:parameters>
     </spirit:busInterface>
   </spirit:busInterfaces>
+  <spirit:memoryMaps>
+    <spirit:memoryMap>
+      <spirit:name>CSR_MAP</spirit:name>
+      <spirit:addressBlock>
+        <spirit:name>CONTROL_REGS</spirit:name>
+        <spirit:baseAddress spirit:format="long">0</spirit:baseAddress>
+        <spirit:range spirit:format="long">8</spirit:range>
+        <spirit:width spirit:format="long">32</spirit:width>
+        <spirit:usage>register</spirit:usage>
+        <spirit:register>
+          <spirit:name>CTRL</spirit:name>
+          <spirit:description>Control register with multiple fields</spirit:description>
+          <spirit:addressOffset>0x0</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>ENABLE</spirit:name>
+            <spirit:description>Global enable</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>MODE</spirit:name>
+            <spirit:description>Operating mode (2 bits)</spirit:description>
+            <spirit:bitOffset>1</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">2</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>IRQ_EN</spirit:name>
+            <spirit:description>Interrupt enable</spirit:description>
+            <spirit:bitOffset>3</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>RESERVED</spirit:name>
+            <spirit:bitOffset>4</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">28</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>STATUS</spirit:name>
+          <spirit:description>Status register</spirit:description>
+          <spirit:addressOffset>0x4</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-only</spirit:access>
+          <spirit:field>
+            <spirit:name>READY</spirit:name>
+            <spirit:description>Ready flag</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>RESERVED</spirit:name>
+            <spirit:bitOffset>1</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">31</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+          </spirit:field>
+        </spirit:register>
+      </spirit:addressBlock>
+    </spirit:memoryMap>
+  </spirit:memoryMaps>
   <spirit:model>
     <spirit:views>
       <spirit:view>
@@ -5660,7 +5728,9 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       <spirit:name>avalon_mm_slave</spirit:name>
       <spirit:busType spirit:vendor="xilinx.com" spirit:library="interface" spirit:name="avalon" spirit:version="1.0" />
       <spirit:abstractionType spirit:vendor="xilinx.com" spirit:library="interface" spirit:name="avalon_rtl" spirit:version="1.0" />
-      <spirit:slave />
+      <spirit:slave>
+        <spirit:memoryMapRef spirit:memoryMapRef="CSR_MAP" />
+      </spirit:slave>
       <spirit:portMaps>
         <spirit:portMap>
           <spirit:logicalPort>
@@ -5869,6 +5939,72 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       </spirit:parameters>
     </spirit:busInterface>
   </spirit:busInterfaces>
+  <spirit:memoryMaps>
+    <spirit:memoryMap>
+      <spirit:name>CSR_MAP</spirit:name>
+      <spirit:addressBlock>
+        <spirit:name>CONTROL_REGS</spirit:name>
+        <spirit:baseAddress spirit:format="long">0</spirit:baseAddress>
+        <spirit:range spirit:format="long">8</spirit:range>
+        <spirit:width spirit:format="long">32</spirit:width>
+        <spirit:usage>register</spirit:usage>
+        <spirit:register>
+          <spirit:name>CTRL</spirit:name>
+          <spirit:description>Control register with multiple fields</spirit:description>
+          <spirit:addressOffset>0x0</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>ENABLE</spirit:name>
+            <spirit:description>Global enable</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>MODE</spirit:name>
+            <spirit:description>Operating mode (2 bits)</spirit:description>
+            <spirit:bitOffset>1</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">2</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>IRQ_EN</spirit:name>
+            <spirit:description>Interrupt enable</spirit:description>
+            <spirit:bitOffset>3</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>RESERVED</spirit:name>
+            <spirit:bitOffset>4</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">28</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>STATUS</spirit:name>
+          <spirit:description>Status register</spirit:description>
+          <spirit:addressOffset>0x4</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-only</spirit:access>
+          <spirit:field>
+            <spirit:name>READY</spirit:name>
+            <spirit:description>Ready flag</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>RESERVED</spirit:name>
+            <spirit:bitOffset>1</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">31</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+          </spirit:field>
+        </spirit:register>
+      </spirit:addressBlock>
+    </spirit:memoryMap>
+  </spirit:memoryMaps>
   <spirit:model>
     <spirit:views>
       <spirit:view>
@@ -6268,7 +6404,9 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       <spirit:name>s_axi_lite</spirit:name>
       <spirit:busType spirit:vendor="xilinx.com" spirit:library="interface" spirit:name="aximm" spirit:version="1.0" />
       <spirit:abstractionType spirit:vendor="xilinx.com" spirit:library="interface" spirit:name="aximm_rtl" spirit:version="1.0" />
-      <spirit:slave />
+      <spirit:slave>
+        <spirit:memoryMapRef spirit:memoryMapRef="CSR_MAP" />
+      </spirit:slave>
       <spirit:portMaps>
         <spirit:portMap>
           <spirit:logicalPort>
@@ -6483,6 +6621,72 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       </spirit:parameters>
     </spirit:busInterface>
   </spirit:busInterfaces>
+  <spirit:memoryMaps>
+    <spirit:memoryMap>
+      <spirit:name>CSR_MAP</spirit:name>
+      <spirit:addressBlock>
+        <spirit:name>CONTROL_REGS</spirit:name>
+        <spirit:baseAddress spirit:format="long">0</spirit:baseAddress>
+        <spirit:range spirit:format="long">8</spirit:range>
+        <spirit:width spirit:format="long">32</spirit:width>
+        <spirit:usage>register</spirit:usage>
+        <spirit:register>
+          <spirit:name>CTRL</spirit:name>
+          <spirit:description>Control register</spirit:description>
+          <spirit:addressOffset>0x0</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>ENABLE</spirit:name>
+            <spirit:description>Global enable</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>MODE</spirit:name>
+            <spirit:description>Operating mode</spirit:description>
+            <spirit:bitOffset>1</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">2</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>RESERVED</spirit:name>
+            <spirit:bitOffset>3</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">29</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>STATUS</spirit:name>
+          <spirit:description>Status register</spirit:description>
+          <spirit:addressOffset>0x4</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-only</spirit:access>
+          <spirit:field>
+            <spirit:name>READY</spirit:name>
+            <spirit:description>Ready flag</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>BUSY</spirit:name>
+            <spirit:description>Busy flag</spirit:description>
+            <spirit:bitOffset>1</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>RESERVED</spirit:name>
+            <spirit:bitOffset>2</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">30</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+          </spirit:field>
+        </spirit:register>
+      </spirit:addressBlock>
+    </spirit:memoryMap>
+  </spirit:memoryMaps>
   <spirit:model>
     <spirit:views>
       <spirit:view>
@@ -6924,7 +7128,9 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       <spirit:name>s_axi_lite</spirit:name>
       <spirit:busType spirit:vendor="xilinx.com" spirit:library="interface" spirit:name="aximm" spirit:version="1.0" />
       <spirit:abstractionType spirit:vendor="xilinx.com" spirit:library="interface" spirit:name="aximm_rtl" spirit:version="1.0" />
-      <spirit:slave />
+      <spirit:slave>
+        <spirit:memoryMapRef spirit:memoryMapRef="CSR_MAP" />
+      </spirit:slave>
       <spirit:portMaps>
         <spirit:portMap>
           <spirit:logicalPort>
@@ -7139,6 +7345,72 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       </spirit:parameters>
     </spirit:busInterface>
   </spirit:busInterfaces>
+  <spirit:memoryMaps>
+    <spirit:memoryMap>
+      <spirit:name>CSR_MAP</spirit:name>
+      <spirit:addressBlock>
+        <spirit:name>CONTROL_REGS</spirit:name>
+        <spirit:baseAddress spirit:format="long">0</spirit:baseAddress>
+        <spirit:range spirit:format="long">8</spirit:range>
+        <spirit:width spirit:format="long">32</spirit:width>
+        <spirit:usage>register</spirit:usage>
+        <spirit:register>
+          <spirit:name>CTRL</spirit:name>
+          <spirit:description>Control register</spirit:description>
+          <spirit:addressOffset>0x0</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>ENABLE</spirit:name>
+            <spirit:description>Global enable</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>MODE</spirit:name>
+            <spirit:description>Operating mode</spirit:description>
+            <spirit:bitOffset>1</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">2</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>RESERVED</spirit:name>
+            <spirit:bitOffset>3</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">29</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>STATUS</spirit:name>
+          <spirit:description>Status register</spirit:description>
+          <spirit:addressOffset>0x4</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-only</spirit:access>
+          <spirit:field>
+            <spirit:name>READY</spirit:name>
+            <spirit:description>Ready flag</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>BUSY</spirit:name>
+            <spirit:description>Busy flag</spirit:description>
+            <spirit:bitOffset>1</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>RESERVED</spirit:name>
+            <spirit:bitOffset>2</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">30</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+          </spirit:field>
+        </spirit:register>
+      </spirit:addressBlock>
+    </spirit:memoryMap>
+  </spirit:memoryMaps>
   <spirit:model>
     <spirit:views>
       <spirit:view>
@@ -8012,7 +8284,9 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       <spirit:name>S_AXI_LITE</spirit:name>
       <spirit:busType spirit:vendor="xilinx.com" spirit:library="interface" spirit:name="aximm" spirit:version="1.0" />
       <spirit:abstractionType spirit:vendor="xilinx.com" spirit:library="interface" spirit:name="aximm_rtl" spirit:version="1.0" />
-      <spirit:slave />
+      <spirit:slave>
+        <spirit:memoryMapRef spirit:memoryMapRef="CSR_MAP" />
+      </spirit:slave>
       <spirit:portMaps>
         <spirit:portMap>
           <spirit:logicalPort>
@@ -8249,6 +8523,86 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       </spirit:parameters>
     </spirit:busInterface>
   </spirit:busInterfaces>
+  <spirit:memoryMaps>
+    <spirit:memoryMap>
+      <spirit:name>CSR_MAP</spirit:name>
+      <spirit:addressBlock>
+        <spirit:name>CONTROL_STATUS_REGS</spirit:name>
+        <spirit:baseAddress spirit:format="long">0</spirit:baseAddress>
+        <spirit:range spirit:format="long">12</spirit:range>
+        <spirit:width spirit:format="long">32</spirit:width>
+        <spirit:usage>register</spirit:usage>
+        <spirit:register>
+          <spirit:name>CONTROL</spirit:name>
+          <spirit:description>Global peripheral control register</spirit:description>
+          <spirit:addressOffset>0x0</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>ENABLE</spirit:name>
+            <spirit:description>Global enable</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>IRQ_ENABLE</spirit:name>
+            <spirit:description>Enable interrupt generation</spirit:description>
+            <spirit:bitOffset>3</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>RESERVED</spirit:name>
+            <spirit:bitOffset>4</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">28</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>STATUS</spirit:name>
+          <spirit:description>Peripheral status register</spirit:description>
+          <spirit:addressOffset>0x4</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-only</spirit:access>
+          <spirit:field>
+            <spirit:name>READY</spirit:name>
+            <spirit:description>Peripheral is ready</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>ERROR</spirit:name>
+            <spirit:description>Error condition detected</spirit:description>
+            <spirit:bitOffset>1</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>RESERVED</spirit:name>
+            <spirit:bitOffset>2</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">30</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>DATA_OUT</spirit:name>
+          <spirit:description>Direct data output control</spirit:description>
+          <spirit:addressOffset>0x8</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>DATA</spirit:name>
+            <spirit:description>Data output state</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">32</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+      </spirit:addressBlock>
+    </spirit:memoryMap>
+  </spirit:memoryMaps>
   <spirit:model>
     <spirit:views>
       <spirit:view>
@@ -8794,7 +9148,9 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       <spirit:name>S_AXI_LITE</spirit:name>
       <spirit:busType spirit:vendor="xilinx.com" spirit:library="interface" spirit:name="aximm" spirit:version="1.0" />
       <spirit:abstractionType spirit:vendor="xilinx.com" spirit:library="interface" spirit:name="aximm_rtl" spirit:version="1.0" />
-      <spirit:slave />
+      <spirit:slave>
+        <spirit:memoryMapRef spirit:memoryMapRef="CSR_MAP" />
+      </spirit:slave>
       <spirit:portMaps>
         <spirit:portMap>
           <spirit:logicalPort>
@@ -9031,6 +9387,86 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       </spirit:parameters>
     </spirit:busInterface>
   </spirit:busInterfaces>
+  <spirit:memoryMaps>
+    <spirit:memoryMap>
+      <spirit:name>CSR_MAP</spirit:name>
+      <spirit:addressBlock>
+        <spirit:name>CONTROL_STATUS_REGS</spirit:name>
+        <spirit:baseAddress spirit:format="long">0</spirit:baseAddress>
+        <spirit:range spirit:format="long">12</spirit:range>
+        <spirit:width spirit:format="long">32</spirit:width>
+        <spirit:usage>register</spirit:usage>
+        <spirit:register>
+          <spirit:name>CONTROL</spirit:name>
+          <spirit:description>Global peripheral control register</spirit:description>
+          <spirit:addressOffset>0x0</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>ENABLE</spirit:name>
+            <spirit:description>Global enable</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>IRQ_ENABLE</spirit:name>
+            <spirit:description>Enable interrupt generation</spirit:description>
+            <spirit:bitOffset>3</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>RESERVED</spirit:name>
+            <spirit:bitOffset>4</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">28</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>STATUS</spirit:name>
+          <spirit:description>Peripheral status register</spirit:description>
+          <spirit:addressOffset>0x4</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-only</spirit:access>
+          <spirit:field>
+            <spirit:name>READY</spirit:name>
+            <spirit:description>Peripheral is ready</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>ERROR</spirit:name>
+            <spirit:description>Error condition detected</spirit:description>
+            <spirit:bitOffset>1</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>RESERVED</spirit:name>
+            <spirit:bitOffset>2</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">30</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>DATA_OUT</spirit:name>
+          <spirit:description>Direct data output control</spirit:description>
+          <spirit:addressOffset>0x8</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>DATA</spirit:name>
+            <spirit:description>Data output state</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">32</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+      </spirit:addressBlock>
+    </spirit:memoryMap>
+  </spirit:memoryMaps>
   <spirit:model>
     <spirit:views>
       <spirit:view>
@@ -9576,7 +10012,9 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       <spirit:name>S_AVMM</spirit:name>
       <spirit:busType spirit:vendor="xilinx.com" spirit:library="interface" spirit:name="avalon" spirit:version="1.0" />
       <spirit:abstractionType spirit:vendor="xilinx.com" spirit:library="interface" spirit:name="avalon_rtl" spirit:version="1.0" />
-      <spirit:slave />
+      <spirit:slave>
+        <spirit:memoryMapRef spirit:memoryMapRef="AVMM_CSR" />
+      </spirit:slave>
       <spirit:portMaps>
         <spirit:portMap>
           <spirit:logicalPort>
@@ -9845,6 +10283,146 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       </spirit:parameters>
     </spirit:busInterface>
   </spirit:busInterfaces>
+  <spirit:memoryMaps>
+    <spirit:memoryMap>
+      <spirit:name>AVMM_CSR</spirit:name>
+      <spirit:addressBlock>
+        <spirit:name>CSR</spirit:name>
+        <spirit:baseAddress spirit:format="long">0</spirit:baseAddress>
+        <spirit:range spirit:format="long">20</spirit:range>
+        <spirit:width spirit:format="long">32</spirit:width>
+        <spirit:usage>register</spirit:usage>
+        <spirit:register>
+          <spirit:name>VERSION</spirit:name>
+          <spirit:description>IP version</spirit:description>
+          <spirit:addressOffset>0x0</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-only</spirit:access>
+          <spirit:field>
+            <spirit:name>MINOR</spirit:name>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">8</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+            <spirit:reset>0x2</spirit:reset>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>MAJOR</spirit:name>
+            <spirit:bitOffset>8</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">8</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+            <spirit:reset>0x1</spirit:reset>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>CONTROL</spirit:name>
+          <spirit:description>Run control</spirit:description>
+          <spirit:addressOffset>0x4</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>RUN</spirit:name>
+            <spirit:description>Start/stop the stream engine</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>STOP_ON_ERR</spirit:name>
+            <spirit:description>Halt on first stream error</spirit:description>
+            <spirit:bitOffset>1</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+            <spirit:reset>0x1</spirit:reset>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>LOG_LEVEL</spirit:name>
+            <spirit:description>Diagnostic verbosity</spirit:description>
+            <spirit:bitOffset>4</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">4</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>CLEAR_STATS</spirit:name>
+            <spirit:description>Pulse to clear the sample counters</spirit:description>
+            <spirit:bitOffset>31</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>write-only</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>EVENTS</spirit:name>
+          <spirit:description>Sticky events. OVERRUN/UNDERRUN set by hardware pulses; SRC_TOGGLED auto-sets when SRC_ACTIVE changes (monitorChangeOf through the Avalon-MM wrapper).
+</spirit:description>
+          <spirit:addressOffset>0x8</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>OVERRUN</spirit:name>
+            <spirit:description>Sink FIFO overrun (sticky, W1C)</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>UNDERRUN</spirit:name>
+            <spirit:description>Source FIFO underrun (sticky, W1C)</spirit:description>
+            <spirit:bitOffset>1</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>SRC_ACTIVE</spirit:name>
+            <spirit:description>Live source-channel activity flag</spirit:description>
+            <spirit:bitOffset>8</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>SRC_TOGGLED</spirit:name>
+            <spirit:description>Sticky change-of-state flag for SRC_ACTIVE</spirit:description>
+            <spirit:bitOffset>9</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>SAMPLE_CNT_0</spirit:name>
+          <spirit:description>Per-direction sample counters (flat array)</spirit:description>
+          <spirit:addressOffset>0xC</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-only</spirit:access>
+          <spirit:field>
+            <spirit:name>VALUE</spirit:name>
+            <spirit:description>Free-running sample count</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">32</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>SAMPLE_CNT_1</spirit:name>
+          <spirit:description>Per-direction sample counters (flat array)</spirit:description>
+          <spirit:addressOffset>0x10</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-only</spirit:access>
+          <spirit:field>
+            <spirit:name>VALUE</spirit:name>
+            <spirit:description>Free-running sample count</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">32</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+          </spirit:field>
+        </spirit:register>
+      </spirit:addressBlock>
+      <spirit:addressBlock>
+        <spirit:name>MAILBOX</spirit:name>
+        <spirit:baseAddress spirit:format="long">1024</spirit:baseAddress>
+        <spirit:range spirit:format="long">4</spirit:range>
+        <spirit:width spirit:format="long">32</spirit:width>
+        <spirit:usage>memory</spirit:usage>
+      </spirit:addressBlock>
+    </spirit:memoryMap>
+  </spirit:memoryMaps>
   <spirit:model>
     <spirit:views>
       <spirit:view>
@@ -10371,7 +10949,9 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       <spirit:name>S_AVMM</spirit:name>
       <spirit:busType spirit:vendor="xilinx.com" spirit:library="interface" spirit:name="avalon" spirit:version="1.0" />
       <spirit:abstractionType spirit:vendor="xilinx.com" spirit:library="interface" spirit:name="avalon_rtl" spirit:version="1.0" />
-      <spirit:slave />
+      <spirit:slave>
+        <spirit:memoryMapRef spirit:memoryMapRef="AVMM_CSR" />
+      </spirit:slave>
       <spirit:portMaps>
         <spirit:portMap>
           <spirit:logicalPort>
@@ -10640,6 +11220,146 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       </spirit:parameters>
     </spirit:busInterface>
   </spirit:busInterfaces>
+  <spirit:memoryMaps>
+    <spirit:memoryMap>
+      <spirit:name>AVMM_CSR</spirit:name>
+      <spirit:addressBlock>
+        <spirit:name>CSR</spirit:name>
+        <spirit:baseAddress spirit:format="long">0</spirit:baseAddress>
+        <spirit:range spirit:format="long">20</spirit:range>
+        <spirit:width spirit:format="long">32</spirit:width>
+        <spirit:usage>register</spirit:usage>
+        <spirit:register>
+          <spirit:name>VERSION</spirit:name>
+          <spirit:description>IP version</spirit:description>
+          <spirit:addressOffset>0x0</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-only</spirit:access>
+          <spirit:field>
+            <spirit:name>MINOR</spirit:name>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">8</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+            <spirit:reset>0x2</spirit:reset>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>MAJOR</spirit:name>
+            <spirit:bitOffset>8</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">8</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+            <spirit:reset>0x1</spirit:reset>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>CONTROL</spirit:name>
+          <spirit:description>Run control</spirit:description>
+          <spirit:addressOffset>0x4</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>RUN</spirit:name>
+            <spirit:description>Start/stop the stream engine</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>STOP_ON_ERR</spirit:name>
+            <spirit:description>Halt on first stream error</spirit:description>
+            <spirit:bitOffset>1</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+            <spirit:reset>0x1</spirit:reset>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>LOG_LEVEL</spirit:name>
+            <spirit:description>Diagnostic verbosity</spirit:description>
+            <spirit:bitOffset>4</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">4</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>CLEAR_STATS</spirit:name>
+            <spirit:description>Pulse to clear the sample counters</spirit:description>
+            <spirit:bitOffset>31</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>write-only</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>EVENTS</spirit:name>
+          <spirit:description>Sticky events. OVERRUN/UNDERRUN set by hardware pulses; SRC_TOGGLED auto-sets when SRC_ACTIVE changes (monitorChangeOf through the Avalon-MM wrapper).
+</spirit:description>
+          <spirit:addressOffset>0x8</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>OVERRUN</spirit:name>
+            <spirit:description>Sink FIFO overrun (sticky, W1C)</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>UNDERRUN</spirit:name>
+            <spirit:description>Source FIFO underrun (sticky, W1C)</spirit:description>
+            <spirit:bitOffset>1</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>SRC_ACTIVE</spirit:name>
+            <spirit:description>Live source-channel activity flag</spirit:description>
+            <spirit:bitOffset>8</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>SRC_TOGGLED</spirit:name>
+            <spirit:description>Sticky change-of-state flag for SRC_ACTIVE</spirit:description>
+            <spirit:bitOffset>9</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>SAMPLE_CNT_0</spirit:name>
+          <spirit:description>Per-direction sample counters (flat array)</spirit:description>
+          <spirit:addressOffset>0xC</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-only</spirit:access>
+          <spirit:field>
+            <spirit:name>VALUE</spirit:name>
+            <spirit:description>Free-running sample count</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">32</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>SAMPLE_CNT_1</spirit:name>
+          <spirit:description>Per-direction sample counters (flat array)</spirit:description>
+          <spirit:addressOffset>0x10</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-only</spirit:access>
+          <spirit:field>
+            <spirit:name>VALUE</spirit:name>
+            <spirit:description>Free-running sample count</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">32</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+          </spirit:field>
+        </spirit:register>
+      </spirit:addressBlock>
+      <spirit:addressBlock>
+        <spirit:name>MAILBOX</spirit:name>
+        <spirit:baseAddress spirit:format="long">1024</spirit:baseAddress>
+        <spirit:range spirit:format="long">4</spirit:range>
+        <spirit:width spirit:format="long">32</spirit:width>
+        <spirit:usage>memory</spirit:usage>
+      </spirit:addressBlock>
+    </spirit:memoryMap>
+  </spirit:memoryMaps>
   <spirit:model>
     <spirit:views>
       <spirit:view>
@@ -11166,7 +11886,9 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       <spirit:name>S_AXI</spirit:name>
       <spirit:busType spirit:vendor="xilinx.com" spirit:library="interface" spirit:name="aximm" spirit:version="1.0" />
       <spirit:abstractionType spirit:vendor="xilinx.com" spirit:library="interface" spirit:name="aximm_rtl" spirit:version="1.0" />
-      <spirit:slave />
+      <spirit:slave>
+        <spirit:memoryMapRef spirit:memoryMapRef="CSR" />
+      </spirit:slave>
       <spirit:portMaps>
         <spirit:portMap>
           <spirit:logicalPort>
@@ -11955,6 +12677,419 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       </spirit:parameters>
     </spirit:busInterface>
   </spirit:busInterfaces>
+  <spirit:memoryMaps>
+    <spirit:memoryMap>
+      <spirit:name>CSR</spirit:name>
+      <spirit:addressBlock>
+        <spirit:name>CORE_REGS</spirit:name>
+        <spirit:baseAddress spirit:format="long">0</spirit:baseAddress>
+        <spirit:range spirit:format="long">256</spirit:range>
+        <spirit:width spirit:format="long">32</spirit:width>
+        <spirit:usage>register</spirit:usage>
+        <spirit:register>
+          <spirit:name>ID</spirit:name>
+          <spirit:description>Device identification (read-only with field reset values)</spirit:description>
+          <spirit:addressOffset>0x0</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-only</spirit:access>
+          <spirit:field>
+            <spirit:name>REVISION</spirit:name>
+            <spirit:description>Silicon revision</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">8</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+            <spirit:reset>0x1</spirit:reset>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>DEVICE_ID</spirit:name>
+            <spirit:description>Device identifier</spirit:description>
+            <spirit:bitOffset>8</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">24</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+            <spirit:reset>0xC0FFEE</spirit:reset>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>CTRL</spirit:name>
+          <spirit:description>Main control register (mixed field syntax and access)</spirit:description>
+          <spirit:addressOffset>0x4</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>ENABLE</spirit:name>
+            <spirit:description>Global enable (offset/width syntax)</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>MODE</spirit:name>
+            <spirit:description>Operating mode (enumerated values)</spirit:description>
+            <spirit:bitOffset>1</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">2</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>PRESCALE</spirit:name>
+            <spirit:description>Clock prescaler</spirit:description>
+            <spirit:bitOffset>4</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">8</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+            <spirit:reset>0xA</spirit:reset>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>SOFT_RST</spirit:name>
+            <spirit:description>Self-clearing software reset strobe</spirit:description>
+            <spirit:bitOffset>31</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>STATUS</spirit:name>
+          <spirit:description>Status register (auto-assigned offset)</spirit:description>
+          <spirit:addressOffset>0x8</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-only</spirit:access>
+          <spirit:field>
+            <spirit:name>BUSY</spirit:name>
+            <spirit:description>Datapath busy flag</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>FIFO_LEVEL</spirit:name>
+            <spirit:description>Current FIFO fill level</spirit:description>
+            <spirit:bitOffset>4</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">12</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>FSM_STATE</spirit:name>
+            <spirit:description>Datapath FSM state (enumerated)</spirit:description>
+            <spirit:bitOffset>16</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">3</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>CMD</spirit:name>
+          <spirit:description>Command register (write-only)</spirit:description>
+          <spirit:addressOffset>0xC</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>write-only</spirit:access>
+          <spirit:field>
+            <spirit:name>OPCODE</spirit:name>
+            <spirit:description>Command opcode</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">8</spirit:bitWidth>
+            <spirit:access>write-only</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>ARG</spirit:name>
+            <spirit:description>Command argument</spirit:description>
+            <spirit:bitOffset>8</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">24</spirit:bitWidth>
+            <spirit:access>write-only</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>SCRATCH</spirit:name>
+          <spirit:description>Scratch register with register-level reset value</spirit:description>
+          <spirit:addressOffset>0x10</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>VALUE</spirit:name>
+            <spirit:description>Software scratch value</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">32</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>IRQ_EVENT</spirit:name>
+          <spirit:description>Sticky event register. DONE/ERR set by hardware pulses; LINK_TOGGLED auto-sets when LINK_STATE changes (monitorChangeOf).
+</spirit:description>
+          <spirit:addressOffset>0x14</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>DONE</spirit:name>
+            <spirit:description>Operation done (sticky, W1C)</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>ERR</spirit:name>
+            <spirit:description>Operation error (sticky, W1C)</spirit:description>
+            <spirit:bitOffset>1</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>LINK_STATE</spirit:name>
+            <spirit:description>Live link state from the PHY</spirit:description>
+            <spirit:bitOffset>4</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>LINK_TOGGLED</spirit:name>
+            <spirit:description>Sticky change-of-state flag for LINK_STATE</spirit:description>
+            <spirit:bitOffset>5</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>CH_GAIN_0</spirit:name>
+          <spirit:description>Per-channel gain (flat register array, count/stride)</spirit:description>
+          <spirit:addressOffset>0x18</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>GAIN</spirit:name>
+            <spirit:description>Fixed-point channel gain</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">12</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+            <spirit:reset>0x100</spirit:reset>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>MUTE</spirit:name>
+            <spirit:description>Channel mute</spirit:description>
+            <spirit:bitOffset>16</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>CH_GAIN_1</spirit:name>
+          <spirit:description>Per-channel gain (flat register array, count/stride)</spirit:description>
+          <spirit:addressOffset>0x1C</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>GAIN</spirit:name>
+            <spirit:description>Fixed-point channel gain</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">12</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+            <spirit:reset>0x100</spirit:reset>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>MUTE</spirit:name>
+            <spirit:description>Channel mute</spirit:description>
+            <spirit:bitOffset>16</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>CH_GAIN_2</spirit:name>
+          <spirit:description>Per-channel gain (flat register array, count/stride)</spirit:description>
+          <spirit:addressOffset>0x20</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>GAIN</spirit:name>
+            <spirit:description>Fixed-point channel gain</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">12</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+            <spirit:reset>0x100</spirit:reset>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>MUTE</spirit:name>
+            <spirit:description>Channel mute</spirit:description>
+            <spirit:bitOffset>16</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>CH_GAIN_3</spirit:name>
+          <spirit:description>Per-channel gain (flat register array, count/stride)</spirit:description>
+          <spirit:addressOffset>0x24</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>GAIN</spirit:name>
+            <spirit:description>Fixed-point channel gain</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">12</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+            <spirit:reset>0x100</spirit:reset>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>MUTE</spirit:name>
+            <spirit:description>Channel mute</spirit:description>
+            <spirit:bitOffset>16</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+      </spirit:addressBlock>
+      <spirit:addressBlock>
+        <spirit:name>DMA_REGS</spirit:name>
+        <spirit:baseAddress spirit:format="long">512</spirit:baseAddress>
+        <spirit:range spirit:format="long">48</spirit:range>
+        <spirit:width spirit:format="long">32</spirit:width>
+        <spirit:usage>register</spirit:usage>
+        <spirit:register>
+          <spirit:name>DMA_0_SRC</spirit:name>
+          <spirit:description>Source address</spirit:description>
+          <spirit:addressOffset>0x0</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>ADDR</spirit:name>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">32</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>DMA_0_DST</spirit:name>
+          <spirit:description>Destination address</spirit:description>
+          <spirit:addressOffset>0x4</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>ADDR</spirit:name>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">32</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>DMA_0_LEN</spirit:name>
+          <spirit:description>Transfer length in bytes</spirit:description>
+          <spirit:addressOffset>0x8</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>BYTES</spirit:name>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">24</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>DMA_0_CTRL</spirit:name>
+          <spirit:description>Channel control and sticky completion flag</spirit:description>
+          <spirit:addressOffset>0xC</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>START</spirit:name>
+            <spirit:description>Start strobe</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>write-only</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>IE</spirit:name>
+            <spirit:description>Interrupt enable</spirit:description>
+            <spirit:bitOffset>1</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>DONE</spirit:name>
+            <spirit:description>Transfer complete (sticky, W1C)</spirit:description>
+            <spirit:bitOffset>8</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>DMA_1_SRC</spirit:name>
+          <spirit:description>Source address</spirit:description>
+          <spirit:addressOffset>0x20</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>ADDR</spirit:name>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">32</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>DMA_1_DST</spirit:name>
+          <spirit:description>Destination address</spirit:description>
+          <spirit:addressOffset>0x24</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>ADDR</spirit:name>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">32</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>DMA_1_LEN</spirit:name>
+          <spirit:description>Transfer length in bytes</spirit:description>
+          <spirit:addressOffset>0x28</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>BYTES</spirit:name>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">24</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>DMA_1_CTRL</spirit:name>
+          <spirit:description>Channel control and sticky completion flag</spirit:description>
+          <spirit:addressOffset>0x2C</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>START</spirit:name>
+            <spirit:description>Start strobe</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>write-only</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>IE</spirit:name>
+            <spirit:description>Interrupt enable</spirit:description>
+            <spirit:bitOffset>1</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>DONE</spirit:name>
+            <spirit:description>Transfer complete (sticky, W1C)</spirit:description>
+            <spirit:bitOffset>8</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+      </spirit:addressBlock>
+      <spirit:addressBlock>
+        <spirit:name>BUF_RAM</spirit:name>
+        <spirit:baseAddress spirit:format="long">4096</spirit:baseAddress>
+        <spirit:range spirit:format="long">4</spirit:range>
+        <spirit:width spirit:format="long">32</spirit:width>
+        <spirit:usage>memory</spirit:usage>
+      </spirit:addressBlock>
+      <spirit:addressBlock>
+        <spirit:name>RSVD</spirit:name>
+        <spirit:baseAddress spirit:format="long">8192</spirit:baseAddress>
+        <spirit:range spirit:format="long">1024</spirit:range>
+        <spirit:width spirit:format="long">32</spirit:width>
+        <spirit:usage>reserved</spirit:usage>
+      </spirit:addressBlock>
+    </spirit:memoryMap>
+  </spirit:memoryMaps>
   <spirit:model>
     <spirit:views>
       <spirit:view>
@@ -13361,7 +14496,9 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       <spirit:name>S_AXI</spirit:name>
       <spirit:busType spirit:vendor="xilinx.com" spirit:library="interface" spirit:name="aximm" spirit:version="1.0" />
       <spirit:abstractionType spirit:vendor="xilinx.com" spirit:library="interface" spirit:name="aximm_rtl" spirit:version="1.0" />
-      <spirit:slave />
+      <spirit:slave>
+        <spirit:memoryMapRef spirit:memoryMapRef="CSR" />
+      </spirit:slave>
       <spirit:portMaps>
         <spirit:portMap>
           <spirit:logicalPort>
@@ -14150,6 +15287,419 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       </spirit:parameters>
     </spirit:busInterface>
   </spirit:busInterfaces>
+  <spirit:memoryMaps>
+    <spirit:memoryMap>
+      <spirit:name>CSR</spirit:name>
+      <spirit:addressBlock>
+        <spirit:name>CORE_REGS</spirit:name>
+        <spirit:baseAddress spirit:format="long">0</spirit:baseAddress>
+        <spirit:range spirit:format="long">256</spirit:range>
+        <spirit:width spirit:format="long">32</spirit:width>
+        <spirit:usage>register</spirit:usage>
+        <spirit:register>
+          <spirit:name>ID</spirit:name>
+          <spirit:description>Device identification (read-only with field reset values)</spirit:description>
+          <spirit:addressOffset>0x0</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-only</spirit:access>
+          <spirit:field>
+            <spirit:name>REVISION</spirit:name>
+            <spirit:description>Silicon revision</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">8</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+            <spirit:reset>0x1</spirit:reset>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>DEVICE_ID</spirit:name>
+            <spirit:description>Device identifier</spirit:description>
+            <spirit:bitOffset>8</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">24</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+            <spirit:reset>0xC0FFEE</spirit:reset>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>CTRL</spirit:name>
+          <spirit:description>Main control register (mixed field syntax and access)</spirit:description>
+          <spirit:addressOffset>0x4</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>ENABLE</spirit:name>
+            <spirit:description>Global enable (offset/width syntax)</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>MODE</spirit:name>
+            <spirit:description>Operating mode (enumerated values)</spirit:description>
+            <spirit:bitOffset>1</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">2</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>PRESCALE</spirit:name>
+            <spirit:description>Clock prescaler</spirit:description>
+            <spirit:bitOffset>4</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">8</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+            <spirit:reset>0xA</spirit:reset>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>SOFT_RST</spirit:name>
+            <spirit:description>Self-clearing software reset strobe</spirit:description>
+            <spirit:bitOffset>31</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>STATUS</spirit:name>
+          <spirit:description>Status register (auto-assigned offset)</spirit:description>
+          <spirit:addressOffset>0x8</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-only</spirit:access>
+          <spirit:field>
+            <spirit:name>BUSY</spirit:name>
+            <spirit:description>Datapath busy flag</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>FIFO_LEVEL</spirit:name>
+            <spirit:description>Current FIFO fill level</spirit:description>
+            <spirit:bitOffset>4</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">12</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>FSM_STATE</spirit:name>
+            <spirit:description>Datapath FSM state (enumerated)</spirit:description>
+            <spirit:bitOffset>16</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">3</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>CMD</spirit:name>
+          <spirit:description>Command register (write-only)</spirit:description>
+          <spirit:addressOffset>0xC</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>write-only</spirit:access>
+          <spirit:field>
+            <spirit:name>OPCODE</spirit:name>
+            <spirit:description>Command opcode</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">8</spirit:bitWidth>
+            <spirit:access>write-only</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>ARG</spirit:name>
+            <spirit:description>Command argument</spirit:description>
+            <spirit:bitOffset>8</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">24</spirit:bitWidth>
+            <spirit:access>write-only</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>SCRATCH</spirit:name>
+          <spirit:description>Scratch register with register-level reset value</spirit:description>
+          <spirit:addressOffset>0x10</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>VALUE</spirit:name>
+            <spirit:description>Software scratch value</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">32</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>IRQ_EVENT</spirit:name>
+          <spirit:description>Sticky event register. DONE/ERR set by hardware pulses; LINK_TOGGLED auto-sets when LINK_STATE changes (monitorChangeOf).
+</spirit:description>
+          <spirit:addressOffset>0x14</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>DONE</spirit:name>
+            <spirit:description>Operation done (sticky, W1C)</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>ERR</spirit:name>
+            <spirit:description>Operation error (sticky, W1C)</spirit:description>
+            <spirit:bitOffset>1</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>LINK_STATE</spirit:name>
+            <spirit:description>Live link state from the PHY</spirit:description>
+            <spirit:bitOffset>4</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>LINK_TOGGLED</spirit:name>
+            <spirit:description>Sticky change-of-state flag for LINK_STATE</spirit:description>
+            <spirit:bitOffset>5</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>CH_GAIN_0</spirit:name>
+          <spirit:description>Per-channel gain (flat register array, count/stride)</spirit:description>
+          <spirit:addressOffset>0x18</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>GAIN</spirit:name>
+            <spirit:description>Fixed-point channel gain</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">12</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+            <spirit:reset>0x100</spirit:reset>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>MUTE</spirit:name>
+            <spirit:description>Channel mute</spirit:description>
+            <spirit:bitOffset>16</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>CH_GAIN_1</spirit:name>
+          <spirit:description>Per-channel gain (flat register array, count/stride)</spirit:description>
+          <spirit:addressOffset>0x1C</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>GAIN</spirit:name>
+            <spirit:description>Fixed-point channel gain</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">12</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+            <spirit:reset>0x100</spirit:reset>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>MUTE</spirit:name>
+            <spirit:description>Channel mute</spirit:description>
+            <spirit:bitOffset>16</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>CH_GAIN_2</spirit:name>
+          <spirit:description>Per-channel gain (flat register array, count/stride)</spirit:description>
+          <spirit:addressOffset>0x20</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>GAIN</spirit:name>
+            <spirit:description>Fixed-point channel gain</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">12</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+            <spirit:reset>0x100</spirit:reset>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>MUTE</spirit:name>
+            <spirit:description>Channel mute</spirit:description>
+            <spirit:bitOffset>16</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>CH_GAIN_3</spirit:name>
+          <spirit:description>Per-channel gain (flat register array, count/stride)</spirit:description>
+          <spirit:addressOffset>0x24</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>GAIN</spirit:name>
+            <spirit:description>Fixed-point channel gain</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">12</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+            <spirit:reset>0x100</spirit:reset>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>MUTE</spirit:name>
+            <spirit:description>Channel mute</spirit:description>
+            <spirit:bitOffset>16</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+      </spirit:addressBlock>
+      <spirit:addressBlock>
+        <spirit:name>DMA_REGS</spirit:name>
+        <spirit:baseAddress spirit:format="long">512</spirit:baseAddress>
+        <spirit:range spirit:format="long">48</spirit:range>
+        <spirit:width spirit:format="long">32</spirit:width>
+        <spirit:usage>register</spirit:usage>
+        <spirit:register>
+          <spirit:name>DMA_0_SRC</spirit:name>
+          <spirit:description>Source address</spirit:description>
+          <spirit:addressOffset>0x0</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>ADDR</spirit:name>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">32</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>DMA_0_DST</spirit:name>
+          <spirit:description>Destination address</spirit:description>
+          <spirit:addressOffset>0x4</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>ADDR</spirit:name>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">32</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>DMA_0_LEN</spirit:name>
+          <spirit:description>Transfer length in bytes</spirit:description>
+          <spirit:addressOffset>0x8</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>BYTES</spirit:name>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">24</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>DMA_0_CTRL</spirit:name>
+          <spirit:description>Channel control and sticky completion flag</spirit:description>
+          <spirit:addressOffset>0xC</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>START</spirit:name>
+            <spirit:description>Start strobe</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>write-only</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>IE</spirit:name>
+            <spirit:description>Interrupt enable</spirit:description>
+            <spirit:bitOffset>1</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>DONE</spirit:name>
+            <spirit:description>Transfer complete (sticky, W1C)</spirit:description>
+            <spirit:bitOffset>8</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>DMA_1_SRC</spirit:name>
+          <spirit:description>Source address</spirit:description>
+          <spirit:addressOffset>0x20</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>ADDR</spirit:name>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">32</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>DMA_1_DST</spirit:name>
+          <spirit:description>Destination address</spirit:description>
+          <spirit:addressOffset>0x24</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>ADDR</spirit:name>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">32</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>DMA_1_LEN</spirit:name>
+          <spirit:description>Transfer length in bytes</spirit:description>
+          <spirit:addressOffset>0x28</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>BYTES</spirit:name>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">24</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>DMA_1_CTRL</spirit:name>
+          <spirit:description>Channel control and sticky completion flag</spirit:description>
+          <spirit:addressOffset>0x2C</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>START</spirit:name>
+            <spirit:description>Start strobe</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>write-only</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>IE</spirit:name>
+            <spirit:description>Interrupt enable</spirit:description>
+            <spirit:bitOffset>1</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>DONE</spirit:name>
+            <spirit:description>Transfer complete (sticky, W1C)</spirit:description>
+            <spirit:bitOffset>8</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+      </spirit:addressBlock>
+      <spirit:addressBlock>
+        <spirit:name>BUF_RAM</spirit:name>
+        <spirit:baseAddress spirit:format="long">4096</spirit:baseAddress>
+        <spirit:range spirit:format="long">4</spirit:range>
+        <spirit:width spirit:format="long">32</spirit:width>
+        <spirit:usage>memory</spirit:usage>
+      </spirit:addressBlock>
+      <spirit:addressBlock>
+        <spirit:name>RSVD</spirit:name>
+        <spirit:baseAddress spirit:format="long">8192</spirit:baseAddress>
+        <spirit:range spirit:format="long">1024</spirit:range>
+        <spirit:width spirit:format="long">32</spirit:width>
+        <spirit:usage>reserved</spirit:usage>
+      </spirit:addressBlock>
+    </spirit:memoryMap>
+  </spirit:memoryMaps>
   <spirit:model>
     <spirit:views>
       <spirit:view>
@@ -15792,7 +17342,9 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       <spirit:name>S_AXI_LITE</spirit:name>
       <spirit:busType spirit:vendor="xilinx.com" spirit:library="interface" spirit:name="aximm" spirit:version="1.0" />
       <spirit:abstractionType spirit:vendor="xilinx.com" spirit:library="interface" spirit:name="aximm_rtl" spirit:version="1.0" />
-      <spirit:slave />
+      <spirit:slave>
+        <spirit:memoryMapRef spirit:memoryMapRef="CSR_MAP" />
+      </spirit:slave>
       <spirit:portMaps>
         <spirit:portMap>
           <spirit:logicalPort>
@@ -16305,6 +17857,305 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       </spirit:parameters>
     </spirit:busInterface>
   </spirit:busInterfaces>
+  <spirit:memoryMaps>
+    <spirit:memoryMap>
+      <spirit:name>CSR_MAP</spirit:name>
+      <spirit:addressBlock>
+        <spirit:name>GLOBAL_REGS</spirit:name>
+        <spirit:baseAddress spirit:format="long">0</spirit:baseAddress>
+        <spirit:range spirit:format="long">8</spirit:range>
+        <spirit:width spirit:format="long">32</spirit:width>
+        <spirit:usage>register</spirit:usage>
+        <spirit:register>
+          <spirit:name>GLOBAL_CTRL</spirit:name>
+          <spirit:description>Global control register</spirit:description>
+          <spirit:addressOffset>0x0</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>ENABLE_ALL</spirit:name>
+            <spirit:description>Enable all processing units</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>MODE</spirit:name>
+            <spirit:description>Operating mode select</spirit:description>
+            <spirit:bitOffset>1</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">2</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>RESET_ALL</spirit:name>
+            <spirit:description>Software reset for all logic</spirit:description>
+            <spirit:bitOffset>8</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>write-only</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>RESERVED</spirit:name>
+            <spirit:bitOffset>9</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">23</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>GLOBAL_STATUS</spirit:name>
+          <spirit:description>Global status register</spirit:description>
+          <spirit:addressOffset>0x4</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-only</spirit:access>
+          <spirit:field>
+            <spirit:name>IRQ_PENDING</spirit:name>
+            <spirit:description>Global interrupt pending flag</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>RESERVED</spirit:name>
+            <spirit:bitOffset>1</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">31</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+          </spirit:field>
+        </spirit:register>
+      </spirit:addressBlock>
+      <spirit:addressBlock>
+        <spirit:name>CHANNEL_CONFIG</spirit:name>
+        <spirit:baseAddress spirit:format="long">1024</spirit:baseAddress>
+        <spirit:range spirit:format="long">60</spirit:range>
+        <spirit:width spirit:format="long">32</spirit:width>
+        <spirit:usage>register</spirit:usage>
+        <spirit:register>
+          <spirit:name>CHANNEL_0_CTRL</spirit:name>
+          <spirit:description>Channel Control Register</spirit:description>
+          <spirit:addressOffset>0x0</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>ENABLE</spirit:name>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>IE</spirit:name>
+            <spirit:description>Interrupt enable</spirit:description>
+            <spirit:bitOffset>2</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>CHANNEL_0_STATUS</spirit:name>
+          <spirit:description>Channel Status Register</spirit:description>
+          <spirit:addressOffset>0x4</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>IRQ_PENDING</spirit:name>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>CHANNEL_0_PARAMETER</spirit:name>
+          <spirit:description>Channel-specific parameter</spirit:description>
+          <spirit:addressOffset>0x8</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>VALUE</spirit:name>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">32</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>CHANNEL_1_CTRL</spirit:name>
+          <spirit:description>Channel Control Register</spirit:description>
+          <spirit:addressOffset>0x10</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>ENABLE</spirit:name>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>IE</spirit:name>
+            <spirit:description>Interrupt enable</spirit:description>
+            <spirit:bitOffset>2</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>CHANNEL_1_STATUS</spirit:name>
+          <spirit:description>Channel Status Register</spirit:description>
+          <spirit:addressOffset>0x14</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>IRQ_PENDING</spirit:name>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>CHANNEL_1_PARAMETER</spirit:name>
+          <spirit:description>Channel-specific parameter</spirit:description>
+          <spirit:addressOffset>0x18</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>VALUE</spirit:name>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">32</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>CHANNEL_2_CTRL</spirit:name>
+          <spirit:description>Channel Control Register</spirit:description>
+          <spirit:addressOffset>0x20</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>ENABLE</spirit:name>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>IE</spirit:name>
+            <spirit:description>Interrupt enable</spirit:description>
+            <spirit:bitOffset>2</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>CHANNEL_2_STATUS</spirit:name>
+          <spirit:description>Channel Status Register</spirit:description>
+          <spirit:addressOffset>0x24</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>IRQ_PENDING</spirit:name>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>CHANNEL_2_PARAMETER</spirit:name>
+          <spirit:description>Channel-specific parameter</spirit:description>
+          <spirit:addressOffset>0x28</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>VALUE</spirit:name>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">32</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>CHANNEL_3_CTRL</spirit:name>
+          <spirit:description>Channel Control Register</spirit:description>
+          <spirit:addressOffset>0x30</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>ENABLE</spirit:name>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>IE</spirit:name>
+            <spirit:description>Interrupt enable</spirit:description>
+            <spirit:bitOffset>2</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>CHANNEL_3_STATUS</spirit:name>
+          <spirit:description>Channel Status Register</spirit:description>
+          <spirit:addressOffset>0x34</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>IRQ_PENDING</spirit:name>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>CHANNEL_3_PARAMETER</spirit:name>
+          <spirit:description>Channel-specific parameter</spirit:description>
+          <spirit:addressOffset>0x38</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>VALUE</spirit:name>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">32</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+      </spirit:addressBlock>
+      <spirit:addressBlock>
+        <spirit:name>SENSOR_BLOCK</spirit:name>
+        <spirit:baseAddress spirit:format="long">256</spirit:baseAddress>
+        <spirit:range spirit:format="long">4</spirit:range>
+        <spirit:width spirit:format="long">32</spirit:width>
+        <spirit:usage>register</spirit:usage>
+        <spirit:register>
+          <spirit:name>SENSOR_STATUS</spirit:name>
+          <spirit:description>Sensor status with automatic change detection</spirit:description>
+          <spirit:addressOffset>0x0</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>FIFO_OVERFLOW</spirit:name>
+            <spirit:description>Sticky bit — set by external FIFO overflow pulse.</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>TEMP_VALUE</spirit:name>
+            <spirit:description>Live 12-bit ADC temperature reading.</spirit:description>
+            <spirit:bitOffset>4</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">12</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>TEMP_UPDATED</spirit:name>
+            <spirit:description>Sticky bit — auto-sets when TEMP_VALUE changes. No pulse port needed.</spirit:description>
+            <spirit:bitOffset>16</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+      </spirit:addressBlock>
+      <spirit:addressBlock>
+        <spirit:name>LOCAL_RAM</spirit:name>
+        <spirit:baseAddress spirit:format="long">4096</spirit:baseAddress>
+        <spirit:range spirit:format="long">4</spirit:range>
+        <spirit:width spirit:format="long">32</spirit:width>
+        <spirit:usage>memory</spirit:usage>
+      </spirit:addressBlock>
+    </spirit:memoryMap>
+  </spirit:memoryMaps>
   <spirit:model>
     <spirit:views>
       <spirit:view>
@@ -17133,7 +18984,9 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       <spirit:name>S_AXI_LITE</spirit:name>
       <spirit:busType spirit:vendor="xilinx.com" spirit:library="interface" spirit:name="aximm" spirit:version="1.0" />
       <spirit:abstractionType spirit:vendor="xilinx.com" spirit:library="interface" spirit:name="aximm_rtl" spirit:version="1.0" />
-      <spirit:slave />
+      <spirit:slave>
+        <spirit:memoryMapRef spirit:memoryMapRef="CSR_MAP" />
+      </spirit:slave>
       <spirit:portMaps>
         <spirit:portMap>
           <spirit:logicalPort>
@@ -17646,6 +19499,305 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       </spirit:parameters>
     </spirit:busInterface>
   </spirit:busInterfaces>
+  <spirit:memoryMaps>
+    <spirit:memoryMap>
+      <spirit:name>CSR_MAP</spirit:name>
+      <spirit:addressBlock>
+        <spirit:name>GLOBAL_REGS</spirit:name>
+        <spirit:baseAddress spirit:format="long">0</spirit:baseAddress>
+        <spirit:range spirit:format="long">8</spirit:range>
+        <spirit:width spirit:format="long">32</spirit:width>
+        <spirit:usage>register</spirit:usage>
+        <spirit:register>
+          <spirit:name>GLOBAL_CTRL</spirit:name>
+          <spirit:description>Global control register</spirit:description>
+          <spirit:addressOffset>0x0</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>ENABLE_ALL</spirit:name>
+            <spirit:description>Enable all processing units</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>MODE</spirit:name>
+            <spirit:description>Operating mode select</spirit:description>
+            <spirit:bitOffset>1</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">2</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>RESET_ALL</spirit:name>
+            <spirit:description>Software reset for all logic</spirit:description>
+            <spirit:bitOffset>8</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>write-only</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>RESERVED</spirit:name>
+            <spirit:bitOffset>9</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">23</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>GLOBAL_STATUS</spirit:name>
+          <spirit:description>Global status register</spirit:description>
+          <spirit:addressOffset>0x4</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-only</spirit:access>
+          <spirit:field>
+            <spirit:name>IRQ_PENDING</spirit:name>
+            <spirit:description>Global interrupt pending flag</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>RESERVED</spirit:name>
+            <spirit:bitOffset>1</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">31</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+          </spirit:field>
+        </spirit:register>
+      </spirit:addressBlock>
+      <spirit:addressBlock>
+        <spirit:name>CHANNEL_CONFIG</spirit:name>
+        <spirit:baseAddress spirit:format="long">1024</spirit:baseAddress>
+        <spirit:range spirit:format="long">60</spirit:range>
+        <spirit:width spirit:format="long">32</spirit:width>
+        <spirit:usage>register</spirit:usage>
+        <spirit:register>
+          <spirit:name>CHANNEL_0_CTRL</spirit:name>
+          <spirit:description>Channel Control Register</spirit:description>
+          <spirit:addressOffset>0x0</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>ENABLE</spirit:name>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>IE</spirit:name>
+            <spirit:description>Interrupt enable</spirit:description>
+            <spirit:bitOffset>2</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>CHANNEL_0_STATUS</spirit:name>
+          <spirit:description>Channel Status Register</spirit:description>
+          <spirit:addressOffset>0x4</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>IRQ_PENDING</spirit:name>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>CHANNEL_0_PARAMETER</spirit:name>
+          <spirit:description>Channel-specific parameter</spirit:description>
+          <spirit:addressOffset>0x8</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>VALUE</spirit:name>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">32</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>CHANNEL_1_CTRL</spirit:name>
+          <spirit:description>Channel Control Register</spirit:description>
+          <spirit:addressOffset>0x10</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>ENABLE</spirit:name>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>IE</spirit:name>
+            <spirit:description>Interrupt enable</spirit:description>
+            <spirit:bitOffset>2</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>CHANNEL_1_STATUS</spirit:name>
+          <spirit:description>Channel Status Register</spirit:description>
+          <spirit:addressOffset>0x14</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>IRQ_PENDING</spirit:name>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>CHANNEL_1_PARAMETER</spirit:name>
+          <spirit:description>Channel-specific parameter</spirit:description>
+          <spirit:addressOffset>0x18</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>VALUE</spirit:name>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">32</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>CHANNEL_2_CTRL</spirit:name>
+          <spirit:description>Channel Control Register</spirit:description>
+          <spirit:addressOffset>0x20</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>ENABLE</spirit:name>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>IE</spirit:name>
+            <spirit:description>Interrupt enable</spirit:description>
+            <spirit:bitOffset>2</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>CHANNEL_2_STATUS</spirit:name>
+          <spirit:description>Channel Status Register</spirit:description>
+          <spirit:addressOffset>0x24</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>IRQ_PENDING</spirit:name>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>CHANNEL_2_PARAMETER</spirit:name>
+          <spirit:description>Channel-specific parameter</spirit:description>
+          <spirit:addressOffset>0x28</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>VALUE</spirit:name>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">32</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>CHANNEL_3_CTRL</spirit:name>
+          <spirit:description>Channel Control Register</spirit:description>
+          <spirit:addressOffset>0x30</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>ENABLE</spirit:name>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>IE</spirit:name>
+            <spirit:description>Interrupt enable</spirit:description>
+            <spirit:bitOffset>2</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>CHANNEL_3_STATUS</spirit:name>
+          <spirit:description>Channel Status Register</spirit:description>
+          <spirit:addressOffset>0x34</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>IRQ_PENDING</spirit:name>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+        <spirit:register>
+          <spirit:name>CHANNEL_3_PARAMETER</spirit:name>
+          <spirit:description>Channel-specific parameter</spirit:description>
+          <spirit:addressOffset>0x38</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>VALUE</spirit:name>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">32</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+      </spirit:addressBlock>
+      <spirit:addressBlock>
+        <spirit:name>SENSOR_BLOCK</spirit:name>
+        <spirit:baseAddress spirit:format="long">256</spirit:baseAddress>
+        <spirit:range spirit:format="long">4</spirit:range>
+        <spirit:width spirit:format="long">32</spirit:width>
+        <spirit:usage>register</spirit:usage>
+        <spirit:register>
+          <spirit:name>SENSOR_STATUS</spirit:name>
+          <spirit:description>Sensor status with automatic change detection</spirit:description>
+          <spirit:addressOffset>0x0</spirit:addressOffset>
+          <spirit:size spirit:format="long">32</spirit:size>
+          <spirit:access>read-write</spirit:access>
+          <spirit:field>
+            <spirit:name>FIFO_OVERFLOW</spirit:name>
+            <spirit:description>Sticky bit — set by external FIFO overflow pulse.</spirit:description>
+            <spirit:bitOffset>0</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>TEMP_VALUE</spirit:name>
+            <spirit:description>Live 12-bit ADC temperature reading.</spirit:description>
+            <spirit:bitOffset>4</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">12</spirit:bitWidth>
+            <spirit:access>read-only</spirit:access>
+          </spirit:field>
+          <spirit:field>
+            <spirit:name>TEMP_UPDATED</spirit:name>
+            <spirit:description>Sticky bit — auto-sets when TEMP_VALUE changes. No pulse port needed.</spirit:description>
+            <spirit:bitOffset>16</spirit:bitOffset>
+            <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
+            <spirit:access>read-write</spirit:access>
+          </spirit:field>
+        </spirit:register>
+      </spirit:addressBlock>
+      <spirit:addressBlock>
+        <spirit:name>LOCAL_RAM</spirit:name>
+        <spirit:baseAddress spirit:format="long">4096</spirit:baseAddress>
+        <spirit:range spirit:format="long">4</spirit:range>
+        <spirit:width spirit:format="long">32</spirit:width>
+        <spirit:usage>memory</spirit:usage>
+      </spirit:addressBlock>
+    </spirit:memoryMap>
+  </spirit:memoryMaps>
   <spirit:model>
     <spirit:views>
       <spirit:view>
@@ -25722,8 +27874,7 @@ set_interface_property avalon_mm_slave SVD_ADDRESS_GROUP ""
 
 # Type-specific properties
 set_interface_property avalon_mm_slave addressUnits WORDS
-set_interface_property avalon_mm_slave maximumPendingReadTransactions 0
-
+set_interface_property avalon_mm_slave maximumPendingReadTransactions 1
 # Ports
 add_interface_port avalon_mm_slave s_avmm_address address Input 32
 add_interface_port avalon_mm_slave s_avmm_read read Input 1
@@ -25871,8 +28022,7 @@ set_interface_property avalon_mm_slave SVD_ADDRESS_GROUP ""
 
 # Type-specific properties
 set_interface_property avalon_mm_slave addressUnits WORDS
-set_interface_property avalon_mm_slave maximumPendingReadTransactions 0
-
+set_interface_property avalon_mm_slave maximumPendingReadTransactions 1
 # Ports
 add_interface_port avalon_mm_slave s_avmm_address address Input 32
 add_interface_port avalon_mm_slave s_avmm_read read Input 1
@@ -26884,8 +29034,7 @@ set_interface_property S_AVMM SVD_ADDRESS_GROUP ""
 
 # Type-specific properties
 set_interface_property S_AVMM addressUnits WORDS
-set_interface_property S_AVMM maximumPendingReadTransactions 0
-
+set_interface_property S_AVMM maximumPendingReadTransactions 1
 # Ports
 add_interface_port S_AVMM avs_address address Input 12
 add_interface_port S_AVMM avs_read read Input 1
@@ -27088,8 +29237,7 @@ set_interface_property S_AVMM SVD_ADDRESS_GROUP ""
 
 # Type-specific properties
 set_interface_property S_AVMM addressUnits WORDS
-set_interface_property S_AVMM maximumPendingReadTransactions 0
-
+set_interface_property S_AVMM maximumPendingReadTransactions 1
 # Ports
 add_interface_port S_AVMM avs_address address Input 12
 add_interface_port S_AVMM avs_read read Input 1
