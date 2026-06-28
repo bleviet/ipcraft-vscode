@@ -62,7 +62,7 @@ export class VivadoToolchain implements SynthesisToolchain {
   }
 
   scaffold(ctx: ScaffoldContext, opts: ScaffoldOptions): Record<string, string> {
-    const { name, templateContext, templates, ipCoreData, busDefinitions, isSv } = ctx;
+    const { name, templateContext, templates, ipCoreData, busDefinitions, isSv, memoryMaps } = ctx;
     const files: Record<string, string> = {};
 
     const versionStr = String(ipCoreData?.vlnv?.version ?? '1.0').replace(/\./g, '_');
@@ -75,6 +75,7 @@ export class VivadoToolchain implements SynthesisToolchain {
       xguiFile,
       xguiChecksum,
       isSv,
+      memoryMaps,
     });
 
     const customBusDefs = generateCustomBusDefs(ipCoreData, busDefinitions);

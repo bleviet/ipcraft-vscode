@@ -152,6 +152,8 @@ export interface BusInterfaceDef {
   absentPorts?: string[];
   associatedClock?: string;
   associatedReset?: string;
+  /** Name of the memory map this (slave) interface exposes — matches a map's `name`. */
+  memoryMapRef?: string;
   array?: BusInterfaceArrayDef;
   /** User-defined signals for conduit (custom) interfaces. */
   conduitPorts?: Array<Record<string, unknown>>;

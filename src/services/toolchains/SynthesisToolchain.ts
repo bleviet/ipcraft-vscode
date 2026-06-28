@@ -1,6 +1,7 @@
 import type * as vscode from 'vscode';
 import type { BuildReports } from '../ReportParser';
 import type { BusDefinitions, IpCoreData } from '../../generator/types';
+import type { NormalizedMemoryMap } from '../../domain/internal.types';
 import type { TemplateLoader } from '../../generator/TemplateLoader';
 import type { LaunchableTool } from './LaunchableTool';
 
@@ -12,6 +13,8 @@ export interface ScaffoldContext {
   ipCoreData: IpCoreData;
   busDefinitions: BusDefinitions;
   isSv: boolean;
+  /** Resolved memory maps from the IP's `.mm.yml`, for vendor packaging that emits register definitions. */
+  memoryMaps: NormalizedMemoryMap[];
 }
 
 /** Per-toolchain scaffold options (superset; each toolchain uses what it needs). */

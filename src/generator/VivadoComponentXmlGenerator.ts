@@ -9,6 +9,12 @@ import { detectVivadoVersion } from '../utils/detectVivadoVersion';
 import { parseVlnv, isValidVlnv } from '../utils/vlnv';
 import { BUS_VLNV } from '../shared/busVlnv';
 import type {
+  NormalizedAddressBlock,
+  NormalizedField,
+  NormalizedMemoryMap,
+  NormalizedRegister,
+} from '../domain/internal.types';
+import type {
   BusDefinitions,
   BusInterfaceDef,
   BusPortDefinition,
@@ -277,6 +283,12 @@ export interface ComponentXmlOptions {
   xguiChecksum?: string;
   displayName?: string;
   isSv?: boolean;
+  /**
+   * Resolved memory maps (from the IP's `.mm.yml`) to serialize into the
+   * `<spirit:memoryMaps>` section. When absent or empty, no memory-map section
+   * is emitted (the Spirit XSD allows it to be omitted).
+   */
+  memoryMaps?: NormalizedMemoryMap[];
 }
 
 /**
@@ -308,6 +320,7 @@ export function generateComponentXml(
     xguiChecksum,
     displayName,
     isSv = false,
+    memoryMaps,
   } = options;
 
   const vendor = String(ipCore.vlnv?.vendor ?? 'user');
@@ -394,6 +407,14 @@ export function generateComponentXml(
     lines.push('  <spirit:busInterfaces>');
     lines.push(...busIfLines);
     lines.push('  </spirit:busInterfaces>');
+  }
+
+  // ── memoryMaps ────────────────────────────────────────────────────────────
+  // IP-XACT places <spirit:memoryMaps> after busInterfaces and before model.
+  // Omit the element entirely when there is nothing to emit (XSD requires it
+  // to be absent rather than empty).
+  if (memoryMaps?.some((m) => (m.addressBlocks ?? []).length > 0)) {
+    lines.push(...renderMemoryMaps(memoryMaps));
   }
 
   // ── model ─────────────────────────────────────────────────────────────────
@@ -508,7 +529,18 @@ function renderBusInterface(iface: BusInterfaceDef, busDefinitions: BusDefinitio
     );
   }
 
-  lines.push(`      <spirit:${modeToXmlTag(mode)} />`);
+  // A slave that exposes a memory map must reference it here, otherwise Vivado
+  // reports the map as orphaned (IP_Flow 19-1980). The referenced name matches
+  // the <spirit:memoryMap><spirit:name> emitted in renderMemoryMaps.
+  const xmlMode = modeToXmlTag(mode);
+  const memoryMapRef = typeof iface.memoryMapRef === 'string' ? iface.memoryMapRef : undefined;
+  if (xmlMode === 'slave' && memoryMapRef) {
+    lines.push('      <spirit:slave>');
+    lines.push(`        <spirit:memoryMapRef spirit:memoryMapRef="${x(memoryMapRef)}" />`);
+    lines.push('      </spirit:slave>');
+  } else {
+    lines.push(`      <spirit:${xmlMode} />`);
+  }
 
   // portMaps
   if (vivadoType) {
@@ -696,6 +728,231 @@ function renderInterruptInterface(intr: {
   lines.push('        </spirit:parameter>');
   lines.push('      </spirit:parameters>');
   lines.push('    </spirit:busInterface>');
+  return lines;
+}
+
+// ── Memory map rendering ──────────────────────────────────────────────────────
+
+/** A register flattened to a single emittable entry with a block-relative byte offset. */
+interface FlatRegister {
+  name: string;
+  offset: number;
+  size: number;
+  access?: string;
+  resetValue: number;
+  description: string;
+  fields: NormalizedField[];
+}
+
+/**
+ * Map an `.mm.yml` access token to one of the IP-XACT 1685-2009 `<spirit:access>`
+ * enum values. The `.mm.yml` vocabulary is richer (e.g. write-1-to-clear,
+ * self-clearing); IP-XACT models those nuances elsewhere, so here we collapse
+ * each to its closest software read/write capability.
+ */
+function toSpiritAccess(access: string | undefined): string {
+  switch ((access ?? 'read-write').toLowerCase()) {
+    case 'read-only':
+    case 'ro':
+      return 'read-only';
+    case 'write-only':
+    case 'wo':
+    case 'write-self-clearing':
+      return 'write-only';
+    case 'write-once':
+    case 'writeonce':
+      return 'writeOnce';
+    case 'read-writeonce':
+    case 'read-write-once':
+      return 'read-writeOnce';
+    default:
+      // read-write, rw, read-write-1-to-clear, write-1-to-clear,
+      // read-write-self-clearing and any unknown token are software-accessible
+      // for both read and write.
+      return 'read-write';
+  }
+}
+
+/**
+ * Register-level access: use the register's own access when set, otherwise
+ * derive it from its fields (read-only iff every field is read-only, etc.).
+ */
+function registerSpiritAccess(reg: FlatRegister): string {
+  if (reg.access) {
+    return toSpiritAccess(reg.access);
+  }
+  const fieldAccesses = reg.fields.map((f) => toSpiritAccess(f.access));
+  if (fieldAccesses.length === 0) {
+    return 'read-write';
+  }
+  if (fieldAccesses.every((a) => a === 'read-only')) {
+    return 'read-only';
+  }
+  if (fieldAccesses.every((a) => a === 'write-only')) {
+    return 'write-only';
+  }
+  return 'read-write';
+}
+
+/**
+ * Flatten a register tree (expanding register arrays into individual instances)
+ * into emittable entries with block-relative byte offsets. Mirrors the flat
+ * register shape that ComponentXmlParser reads back on import, so a generated
+ * memory map round-trips through the parser.
+ */
+function flattenRegisters(
+  registers: NormalizedRegister[],
+  baseOffset: number,
+  prefix: string,
+  defaultRegBytes: number,
+  out: FlatRegister[]
+): void {
+  for (const reg of registers) {
+    const regName = reg.name || 'REG';
+    const regOffset = baseOffset + reg.offset;
+
+    if (reg.__kind === 'array') {
+      const count = Math.max(1, reg.count ?? 1);
+      const stride = reg.stride ?? defaultRegBytes;
+      const children = reg.registers ?? [];
+      for (let i = 0; i < count; i += 1) {
+        const instanceOffset = regOffset + i * stride;
+        if (children.length > 0) {
+          const instancePrefix = count > 1 ? `${prefix}${regName}_${i}_` : `${prefix}${regName}_`;
+          flattenRegisters(children, instanceOffset, instancePrefix, defaultRegBytes, out);
+        } else {
+          out.push({
+            name: `${prefix}${regName}_${i}`,
+            offset: instanceOffset,
+            size: reg.size,
+            access: reg.access,
+            resetValue: reg.resetValue,
+            description: reg.description,
+            fields: reg.fields,
+          });
+        }
+      }
+      continue;
+    }
+
+    out.push({
+      name: `${prefix}${regName}`,
+      offset: regOffset,
+      size: reg.size,
+      access: reg.access,
+      resetValue: reg.resetValue,
+      description: reg.description,
+      fields: reg.fields,
+    });
+  }
+}
+
+/**
+ * Determine an address block's `<spirit:range>` (mandatory in IP-XACT). Prefer
+ * the authored range; otherwise compute the byte extent spanned by its
+ * registers so the block is at least large enough to hold them.
+ */
+function resolveBlockRange(
+  block: NormalizedAddressBlock,
+  flat: FlatRegister[],
+  defaultRegBytes: number
+): number {
+  if (typeof block.range === 'number' && block.range > 0) {
+    return block.range;
+  }
+  if (typeof block.range === 'string') {
+    const parsed = Number(block.range);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return parsed;
+    }
+  }
+  let extent = 0;
+  for (const reg of flat) {
+    const regBytes = reg.size > 0 ? Math.max(1, Math.floor(reg.size / 8)) : defaultRegBytes;
+    extent = Math.max(extent, reg.offset + regBytes);
+  }
+  return extent > 0 ? extent : defaultRegBytes;
+}
+
+function renderMemoryMaps(maps: NormalizedMemoryMap[]): string[] {
+  const lines: string[] = [];
+  lines.push('  <spirit:memoryMaps>');
+  for (const map of maps) {
+    if ((map.addressBlocks ?? []).length === 0) {
+      continue;
+    }
+    lines.push('    <spirit:memoryMap>');
+    lines.push(`      <spirit:name>${x(map.name)}</spirit:name>`);
+    for (const block of map.addressBlocks) {
+      lines.push(...renderAddressBlock(block));
+    }
+    lines.push('    </spirit:memoryMap>');
+  }
+  lines.push('  </spirit:memoryMaps>');
+  return lines;
+}
+
+function renderAddressBlock(block: NormalizedAddressBlock): string[] {
+  const regWidth = block.defaultRegWidth > 0 ? block.defaultRegWidth : 32;
+  const defaultRegBytes = Math.max(1, Math.floor(regWidth / 8));
+
+  const flat: FlatRegister[] = [];
+  flattenRegisters(block.registers ?? [], 0, '', defaultRegBytes, flat);
+
+  const range = resolveBlockRange(block, flat, defaultRegBytes);
+
+  const lines: string[] = [];
+  lines.push('      <spirit:addressBlock>');
+  lines.push(`        <spirit:name>${x(block.name)}</spirit:name>`);
+  lines.push(
+    `        <spirit:baseAddress spirit:format="long">${block.baseAddress}</spirit:baseAddress>`
+  );
+  lines.push(`        <spirit:range spirit:format="long">${range}</spirit:range>`);
+  lines.push(`        <spirit:width spirit:format="long">${regWidth}</spirit:width>`);
+  lines.push(`        <spirit:usage>${x(block.usage || 'register')}</spirit:usage>`);
+  for (const reg of flat) {
+    lines.push(...renderRegister(reg, regWidth));
+  }
+  lines.push('      </spirit:addressBlock>');
+  return lines;
+}
+
+function renderRegister(reg: FlatRegister, regWidth: number): string[] {
+  const size = reg.size > 0 ? reg.size : regWidth;
+  const offsetHex = `0x${reg.offset.toString(16).toUpperCase()}`;
+  const lines: string[] = [];
+  lines.push('        <spirit:register>');
+  lines.push(`          <spirit:name>${x(reg.name)}</spirit:name>`);
+  if (reg.description) {
+    lines.push(`          <spirit:description>${x(reg.description)}</spirit:description>`);
+  }
+  lines.push(`          <spirit:addressOffset>${offsetHex}</spirit:addressOffset>`);
+  lines.push(`          <spirit:size spirit:format="long">${size}</spirit:size>`);
+  lines.push(`          <spirit:access>${registerSpiritAccess(reg)}</spirit:access>`);
+  for (const field of reg.fields) {
+    lines.push(...renderField(field));
+  }
+  lines.push('        </spirit:register>');
+  return lines;
+}
+
+function renderField(field: NormalizedField): string[] {
+  const width = field.width > 0 ? field.width : 1;
+  const lines: string[] = [];
+  lines.push('          <spirit:field>');
+  lines.push(`            <spirit:name>${x(field.name)}</spirit:name>`);
+  if (field.description) {
+    lines.push(`            <spirit:description>${x(field.description)}</spirit:description>`);
+  }
+  lines.push(`            <spirit:bitOffset>${field.offset}</spirit:bitOffset>`);
+  lines.push(`            <spirit:bitWidth spirit:format="long">${width}</spirit:bitWidth>`);
+  lines.push(`            <spirit:access>${toSpiritAccess(field.access)}</spirit:access>`);
+  if (field.resetValue) {
+    lines.push(
+      `            <spirit:reset>0x${field.resetValue.toString(16).toUpperCase()}</spirit:reset>`
+    );
+  }
+  lines.push('          </spirit:field>');
   return lines;
 }
 

@@ -30,6 +30,7 @@ import { addressingResolver } from './resolvers/addressing';
 import { busResolver } from './resolvers/bus';
 import { shadowRegistersResolver } from './resolvers/shadowRegisters';
 import type { ResolverInput } from './resolvers/types';
+import type { NormalizedMemoryMap } from '../domain/internal.types';
 import type {
   BusDefinitions,
   GenerateOptions,
@@ -72,7 +73,15 @@ export class IpCoreScaffolder {
 
       const busType = getBusTypeForTemplate(ipCoreData);
       const hasMmSlave = hasMemoryMappedSlaveInterface(ipCoreData);
-      const context = await this.buildTemplateContext(ipCoreData, busType, inputPath);
+      // Resolve memory maps once: shared by the template context (RTL/testbench)
+      // and the vendor packaging step (component.xml <spirit:memoryMaps>).
+      const resolvedMemoryMaps = await resolveMemoryMaps(ipCoreData, inputPath);
+      const context = await this.buildTemplateContext(
+        ipCoreData,
+        busType,
+        inputPath,
+        resolvedMemoryMaps
+      );
       context.has_memory_mapped_slave = hasMmSlave;
       const memmapRelpath = resolveMemmapRelpath(ipCoreData, inputPath, outputDir);
       if (memmapRelpath !== undefined) {
@@ -196,6 +205,7 @@ export class IpCoreScaffolder {
             ipCoreData,
             busDefinitions: this.busDefinitions ?? {},
             isSv,
+            memoryMaps: resolvedMemoryMaps,
           },
           {
             includeProject,
@@ -378,7 +388,8 @@ export class IpCoreScaffolder {
   private async buildTemplateContext(
     ipCore: IpCoreData,
     busType: string,
-    inputPath: string
+    inputPath: string,
+    resolvedMemoryMaps?: NormalizedMemoryMap[]
   ): Promise<Record<string, unknown>> {
     const name = String(ipCore?.vlnv?.name ?? 'ip_core').toLowerCase();
     const registers = await prepareRegisters(ipCore, inputPath);
@@ -397,7 +408,7 @@ export class IpCoreScaffolder {
     const addressing = addressingResolver.resolve(resolverInput);
 
     const memoryMaps = projectMemoryMapsForTemplate(
-      (await resolveMemoryMaps(ipCore, inputPath)) ?? []
+      resolvedMemoryMaps ?? (await resolveMemoryMaps(ipCore, inputPath)) ?? []
     );
 
     return {

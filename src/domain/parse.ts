@@ -348,6 +348,7 @@ export function normalizeIpCore(rootObj: Record<string, unknown>): IpCore {
             },
           }
         : {}),
+      ...(bus.memoryMapRef ? { memoryMapRef: String(bus.memoryMapRef) } : {}),
       ports: Array.isArray(bus.ports) ? bus.ports : undefined,
       ...(bus.busTypeVlnv ? { busTypeVlnv: bus.busTypeVlnv } : {}),
       ...(bus.rawPortMaps ? { rawPortMaps: bus.rawPortMaps } : {}),

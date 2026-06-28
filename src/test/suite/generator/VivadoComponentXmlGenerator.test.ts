@@ -1,9 +1,12 @@
+import * as yaml from 'js-yaml';
 import {
   crc32Hex,
   generateComponentXml,
   generateCustomBusDefs,
 } from '../../../generator/VivadoComponentXmlGenerator';
+import { parseComponentXmlText } from '../../../parser/ComponentXmlParser';
 import type { BusDefinitions, IpCoreData } from '../../../generator/types';
+import type { NormalizedMemoryMap } from '../../../domain/internal.types';
 
 // ── Fixtures ─────────────────────────────────────────────────────────────────
 
@@ -1315,6 +1318,251 @@ describe('generateCustomBusDefs', () => {
     expect(Object.keys(files)).toContain('busdef/my_proto.xml');
     expect(Object.keys(files)).toContain('busdef/other_bus.xml');
     expect(Object.keys(files)).toHaveLength(4); // two bus def pairs
+  });
+});
+
+// ── Memory maps ─────────────────────────────────────────────────────────────
+
+describe('generateComponentXml memory maps', () => {
+  function map(overrides: Partial<NormalizedMemoryMap> = {}): NormalizedMemoryMap {
+    return {
+      name: 'S_AXI',
+      description: '',
+      addressBlocks: [
+        {
+          rowId: 'ab1',
+          name: 'Reg',
+          baseAddress: 0,
+          range: 4096,
+          usage: 'register',
+          description: '',
+          defaultRegWidth: 32,
+          registers: [
+            {
+              rowId: 'r1',
+              name: 'CTRL',
+              offset: 0,
+              size: 32,
+              resetValue: 0,
+              description: 'Control register',
+              fields: [
+                {
+                  rowId: 'f1',
+                  name: 'ENABLE',
+                  bits: '[0:0]',
+                  offset: 0,
+                  width: 1,
+                  access: 'read-write',
+                  resetValue: 0,
+                  description: 'Global enable',
+                },
+                {
+                  rowId: 'f2',
+                  name: 'STATE',
+                  bits: '[2:1]',
+                  offset: 1,
+                  width: 2,
+                  access: 'read-only',
+                  resetValue: 0,
+                  description: '',
+                },
+              ],
+            },
+            {
+              rowId: 'r2',
+              name: 'MASK',
+              offset: 4,
+              size: 32,
+              resetValue: 0,
+              description: '',
+              fields: [
+                {
+                  rowId: 'f3',
+                  name: 'BITS',
+                  bits: '[31:0]',
+                  offset: 0,
+                  width: 32,
+                  access: 'read-write',
+                  resetValue: 0xffffffff,
+                  description: '',
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      ...overrides,
+    };
+  }
+
+  it('emits a <spirit:memoryMaps> tree between busInterfaces and model', () => {
+    const xml = gen({}, { memoryMaps: [map()] });
+    expect(xml).toContain('<spirit:memoryMaps>');
+    expect(xml).toContain('<spirit:memoryMap>');
+    expect(xml).toContain('<spirit:name>S_AXI</spirit:name>');
+    expect(xml).toContain('<spirit:addressBlock>');
+    expect(xml).toContain('<spirit:name>Reg</spirit:name>');
+    expect(xml).toContain('<spirit:baseAddress spirit:format="long">0</spirit:baseAddress>');
+    expect(xml).toContain('<spirit:range spirit:format="long">4096</spirit:range>');
+    expect(xml).toContain('<spirit:width spirit:format="long">32</spirit:width>');
+    // Ordering: memoryMaps after busInterfaces, before model.
+    expect(xml.indexOf('<spirit:busInterfaces>')).toBeLessThan(xml.indexOf('<spirit:memoryMaps>'));
+    expect(xml.indexOf('<spirit:memoryMaps>')).toBeLessThan(xml.indexOf('<spirit:model>'));
+  });
+
+  it('references the map from its owning slave interface so it is not orphaned', () => {
+    // IP_Flow 19-1980: a memory map must be referenced by a bus interface.
+    const ip = makeIp({
+      busInterfaces: [
+        {
+          name: 's_axi',
+          type: 'ipcraft:busif:axi4_lite:1.0',
+          mode: 'slave',
+          memoryMapRef: 'S_AXI',
+          useOptionalPorts: [],
+          portWidthOverrides: {},
+        },
+      ],
+    });
+    const xml = generateComponentXml(ip, BUS_DEFS, { memoryMaps: [map()] });
+    expect(xml).toContain('<spirit:slave>');
+    expect(xml).toContain('<spirit:memoryMapRef spirit:memoryMapRef="S_AXI" />');
+    // The referenced name matches the emitted <spirit:memoryMap><spirit:name>.
+    expect(xml).toContain('<spirit:name>S_AXI</spirit:name>');
+    expect(xml.indexOf('<spirit:memoryMapRef')).toBeLessThan(xml.indexOf('<spirit:memoryMaps>'));
+  });
+
+  it('keeps a self-closing slave when the interface declares no memoryMapRef', () => {
+    // Default fixture's slave has no memoryMapRef.
+    expect(gen({}, { memoryMaps: [map()] })).toContain('<spirit:slave />');
+  });
+
+  it('does not add a memoryMapRef to master interfaces', () => {
+    const ip = makeIp({
+      busInterfaces: [
+        {
+          name: 'm_axi',
+          type: 'ipcraft:busif:axi4_lite:1.0',
+          mode: 'master',
+          memoryMapRef: 'S_AXI',
+          useOptionalPorts: [],
+          portWidthOverrides: {},
+        },
+      ],
+    });
+    const xml = generateComponentXml(ip, BUS_DEFS, { memoryMaps: [map()] });
+    expect(xml).toContain('<spirit:master />');
+    expect(xml).not.toContain('<spirit:memoryMapRef');
+  });
+
+  it('emits registers with offset, size, access and description', () => {
+    const xml = gen({}, { memoryMaps: [map()] });
+    expect(xml).toContain('<spirit:name>CTRL</spirit:name>');
+    expect(xml).toContain('<spirit:description>Control register</spirit:description>');
+    expect(xml).toContain('<spirit:addressOffset>0x0</spirit:addressOffset>');
+    expect(xml).toContain('<spirit:addressOffset>0x4</spirit:addressOffset>');
+    expect(xml).toContain('<spirit:size spirit:format="long">32</spirit:size>');
+  });
+
+  it('emits fields with bitOffset, bitWidth, access and a non-zero reset', () => {
+    const xml = gen({}, { memoryMaps: [map()] });
+    expect(xml).toContain('<spirit:name>ENABLE</spirit:name>');
+    expect(xml).toContain('<spirit:bitOffset>0</spirit:bitOffset>');
+    expect(xml).toContain('<spirit:bitOffset>1</spirit:bitOffset>');
+    expect(xml).toContain('<spirit:bitWidth spirit:format="long">2</spirit:bitWidth>');
+    // Only the non-zero reset is emitted.
+    expect(xml).toContain('<spirit:reset>0xFFFFFFFF</spirit:reset>');
+    expect(xml).not.toContain('<spirit:reset>0x0</spirit:reset>');
+  });
+
+  it('derives register access from fields when the register has no explicit access', () => {
+    const xml = gen({}, { memoryMaps: [map()] });
+    // CTRL mixes read-write + read-only fields -> read-write at register level.
+    const ctrl = xml.slice(
+      xml.indexOf('<spirit:name>CTRL</spirit:name>'),
+      xml.indexOf('</spirit:register>', xml.indexOf('CTRL'))
+    );
+    expect(ctrl).toContain('<spirit:access>read-write</spirit:access>');
+  });
+
+  it('omits the section entirely when there are no memory maps', () => {
+    expect(gen()).not.toContain('<spirit:memoryMaps>');
+    expect(gen({}, { memoryMaps: [] })).not.toContain('<spirit:memoryMaps>');
+    // A map with only empty blocks is also omitted.
+    const empty = map({ addressBlocks: [] });
+    expect(gen({}, { memoryMaps: [empty] })).not.toContain('<spirit:memoryMaps>');
+  });
+
+  it('expands register arrays into individual flat registers', () => {
+    const arrayMap = map({
+      addressBlocks: [
+        {
+          rowId: 'ab1',
+          name: 'CHANNELS',
+          baseAddress: 0,
+          range: null,
+          usage: 'register',
+          description: '',
+          defaultRegWidth: 32,
+          registers: [
+            {
+              rowId: 'ra',
+              name: 'CHANNEL',
+              offset: 0,
+              size: 32,
+              resetValue: 0,
+              description: '',
+              fields: [],
+              __kind: 'array',
+              count: 2,
+              stride: 8,
+              registers: [
+                {
+                  rowId: 'rc',
+                  name: 'CTRL',
+                  offset: 0,
+                  size: 32,
+                  resetValue: 0,
+                  description: '',
+                  fields: [],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    const xml = gen({}, { memoryMaps: [arrayMap] });
+    expect(xml).toContain('<spirit:name>CHANNEL_0_CTRL</spirit:name>');
+    expect(xml).toContain('<spirit:name>CHANNEL_1_CTRL</spirit:name>');
+    // second instance sits at base + 1 * stride = 8 (0x8)
+    expect(xml).toContain('<spirit:addressOffset>0x8</spirit:addressOffset>');
+  });
+
+  it('round-trips through ComponentXmlParser (generate -> parse -> .mm.yml)', () => {
+    const xml = gen({}, { memoryMaps: [map()] });
+    const parsed = parseComponentXmlText(xml);
+    expect(parsed.mmYamlText).toBeTruthy();
+    const mm = yaml.load(parsed.mmYamlText as string) as Array<Record<string, unknown>>;
+    expect(Array.isArray(mm)).toBe(true);
+    expect(mm[0].name).toBe('S_AXI');
+
+    const blocks = mm[0].addressBlocks as Array<Record<string, unknown>>;
+    expect(blocks[0].name).toBe('Reg');
+    expect(blocks[0].baseAddress).toBe(0);
+
+    const regs = blocks[0].registers as Array<Record<string, unknown>>;
+    expect(regs.map((r) => r.name)).toEqual(['CTRL', 'MASK']);
+    expect(regs[0].offset).toBe(0);
+    expect(regs[1].offset).toBe(4);
+
+    const ctrlFields = regs[0].fields as Array<Record<string, unknown>>;
+    expect(ctrlFields.map((f) => f.name)).toEqual(['ENABLE', 'STATE']);
+    expect(ctrlFields[0].bits).toBe('[0:0]');
+    expect(ctrlFields[1].bits).toBe('[2:1]');
+
+    const maskFields = regs[1].fields as Array<Record<string, unknown>>;
+    expect(maskFields[0].resetValue).toBe(0xffffffff);
   });
 });
 

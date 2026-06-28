@@ -165,7 +165,127 @@ describe('Vivado component.xml round-trip', () => {
       throw new Error(`component.xml AXI bus round-trip failures:\n\n${failures.join('\n\n')}`);
     }
   });
+
+  it('memory-map registers survive generate -> parse (.mm.yml -> component.xml -> .mm.yml)', () => {
+    const xilinx = xilinxFixtures(allFixtures);
+    const failures: string[] = [];
+    let emittedCount = 0;
+
+    for (const fixture of xilinx) {
+      const original = loadOriginalYaml(fixture.yamlPath);
+      const memoryMaps = original.memoryMaps as Record<string, unknown> | undefined;
+      const importRel =
+        memoryMaps && typeof memoryMaps === 'object' ? memoryMaps.import : undefined;
+      if (typeof importRel !== 'string') {
+        continue;
+      }
+      const mmPath = path.join(path.dirname(fixture.yamlPath), importRel);
+      if (!fs.existsSync(mmPath)) {
+        continue;
+      }
+      const originalMaps = jsYaml.load(fs.readFileSync(mmPath, 'utf8')) as unknown[];
+      const expectedLeaves = leafRegisterNames(originalMaps);
+      if (expectedLeaves.length === 0) {
+        continue;
+      }
+
+      const xmlPath = path.join(fixture.outputDir, 'xilinx', 'component.xml');
+      const xmlText = fs.readFileSync(xmlPath, 'utf8');
+      if (xmlText.includes('<spirit:memoryMaps>')) {
+        emittedCount += 1;
+      }
+
+      const parsed = parseComponentXmlText(xmlText);
+      if (!parsed.mmYamlText) {
+        failures.push(`${fixture.name}: expected a non-empty memory map, parsed none`);
+        continue;
+      }
+      const parsedNames = parsedRegisterNames(jsYaml.load(parsed.mmYamlText) as unknown[]);
+      const missing = expectedLeaves.filter(
+        (leaf) => !parsedNames.some((parsedName) => parsedName.includes(leaf))
+      );
+      if (missing.length > 0) {
+        failures.push(
+          `${fixture.name}: registers missing after round-trip: [${missing.join(', ')}]\n` +
+            `  parsed: [${parsedNames.join(', ')}]`
+        );
+      }
+
+      // No orphaned maps: every emitted <spirit:memoryMap> must be referenced by
+      // a slave interface (Vivado IP_Flow 19-1980).
+      const parsedIp = jsYaml.load(parsed.ipYamlText) as Record<string, unknown>;
+      const referencedMaps = new Set(
+        ((parsedIp.busInterfaces as Array<Record<string, unknown>>) ?? [])
+          .map((b) => b.memoryMapRef)
+          .filter((ref): ref is string => typeof ref === 'string')
+      );
+      const emittedMaps = ((jsYaml.load(parsed.mmYamlText) as Array<Record<string, unknown>>) ?? [])
+        .map((m) => m.name)
+        .filter((n): n is string => typeof n === 'string');
+      const orphans = emittedMaps.filter((m) => !referencedMaps.has(m));
+      if (orphans.length > 0) {
+        failures.push(
+          `${fixture.name}: memory maps not referenced by any bus interface: [${orphans.join(', ')}]`
+        );
+      }
+    }
+
+    expect(emittedCount).toBeGreaterThan(0);
+    if (failures.length > 0) {
+      throw new Error(`component.xml memory-map round-trip failures:\n\n${failures.join('\n\n')}`);
+    }
+  });
 });
+
+/**
+ * Collect the names of every leaf register (the ones that carry fields, i.e.
+ * the innermost register of a register array) across all maps/blocks. The
+ * generator expands arrays into instances named like `<ARRAY>_<i>_<LEAF>`, so a
+ * leaf name survives as a substring of at least one emitted register name.
+ */
+function leafRegisterNames(maps: unknown[]): string[] {
+  const names: string[] = [];
+  const visitReg = (reg: Record<string, unknown>): void => {
+    const nested = reg.registers as unknown[] | undefined;
+    if (Array.isArray(nested) && nested.length > 0) {
+      for (const child of nested) {
+        visitReg(child as Record<string, unknown>);
+      }
+      return;
+    }
+    if (typeof reg.name === 'string') {
+      names.push(reg.name);
+    }
+  };
+  for (const map of maps) {
+    const blocks = (map as Record<string, unknown>).addressBlocks as unknown[] | undefined;
+    for (const block of blocks ?? []) {
+      const regs = (block as Record<string, unknown>).registers as unknown[] | undefined;
+      for (const reg of regs ?? []) {
+        visitReg(reg as Record<string, unknown>);
+      }
+    }
+  }
+  return names;
+}
+
+/** Flat list of register names from a parsed .mm.yml (no nesting on this side). */
+function parsedRegisterNames(maps: unknown[]): string[] {
+  const names: string[] = [];
+  for (const map of maps) {
+    const blocks = (map as Record<string, unknown>).addressBlocks as unknown[] | undefined;
+    for (const block of blocks ?? []) {
+      const regs = (block as Record<string, unknown>).registers as unknown[] | undefined;
+      for (const reg of regs ?? []) {
+        const name = (reg as Record<string, unknown>).name;
+        if (typeof name === 'string') {
+          names.push(name);
+        }
+      }
+    }
+  }
+  return names;
+}
 
 // ---------------------------------------------------------------------------
 // hw.tcl round-trip
