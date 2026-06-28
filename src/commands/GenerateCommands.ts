@@ -878,11 +878,15 @@ async function parseVHDL(
           `Imported (experimental) — ${summary ? `${summary}; ` : ''}${describeOutcome(path.basename(defaultOutput), outcome)}. Review the .ip.yml carefully before generating code.`
         );
 
-        await vscode.commands.executeCommand(
-          'vscode.openWith',
-          vscode.Uri.file(defaultOutput),
-          'fpgaIpCore.editor'
-        );
+        // 'merged' means the merge editor is now open on this file; opening the
+        // custom visual editor would replace it before the user can resolve.
+        if (outcome !== 'merged') {
+          await vscode.commands.executeCommand(
+            'vscode.openWith',
+            vscode.Uri.file(defaultOutput),
+            'fpgaIpCore.editor'
+          );
+        }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         void vscode.window.showErrorMessage(`Parse failed: ${message}`);
@@ -954,11 +958,15 @@ async function parseHwTcl(
           `Imported (experimental) — ${summary ? `${summary}; ` : ''}${describeOutcome(path.basename(outputPath), outcome)}. Review the .ip.yml carefully before generating code.`
         );
 
-        await vscode.commands.executeCommand(
-          'vscode.openWith',
-          vscode.Uri.file(outputPath),
-          'fpgaIpCore.editor'
-        );
+        // 'merged' means the merge editor is now open on this file; opening the
+        // custom visual editor would replace it before the user can resolve.
+        if (outcome !== 'merged') {
+          await vscode.commands.executeCommand(
+            'vscode.openWith',
+            vscode.Uri.file(outputPath),
+            'fpgaIpCore.editor'
+          );
+        }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         void vscode.window.showErrorMessage(`Import failed: ${message}`);
@@ -1047,11 +1055,15 @@ async function parseComponentXml(
           `Imported (experimental) — ${ipSummary ? `${ipSummary}; ` : ''}${outcomes.join(', ')}. Review carefully before generating code.`
         );
 
-        await vscode.commands.executeCommand(
-          'vscode.openWith',
-          vscode.Uri.file(ipOutputPath),
-          'fpgaIpCore.editor'
-        );
+        // 'merged' means the merge editor is now open on the .ip.yml; opening the
+        // custom visual editor would replace it before the user can resolve.
+        if (ipOutcome !== 'merged') {
+          await vscode.commands.executeCommand(
+            'vscode.openWith',
+            vscode.Uri.file(ipOutputPath),
+            'fpgaIpCore.editor'
+          );
+        }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         void vscode.window.showErrorMessage(`Import failed: ${message}`);

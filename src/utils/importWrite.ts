@@ -3,7 +3,7 @@ import * as path from 'path';
 import { STAGING_SCHEME, setStagingContent } from '../providers/StagingContentProvider';
 
 /** What `writeImportedFile` did with the target on disk. */
-export type ImportWriteOutcome = 'created' | 'unchanged' | 'overwritten' | 'kept';
+export type ImportWriteOutcome = 'created' | 'unchanged' | 'overwritten' | 'kept' | 'merged';
 
 // Monotonic token so each conflict diff gets fresh content provider URIs — the
 // staging provider has no change event, so reused URIs would serve stale text.
@@ -20,6 +20,8 @@ export function describeOutcome(filename: string, outcome: ImportWriteOutcome): 
       return `${filename} left unchanged (kept your version)`;
     case 'unchanged':
       return `${filename} already up to date`;
+    case 'merged':
+      return `${filename} opened in the merge editor — resolve and save to apply`;
   }
 }
 
@@ -34,8 +36,11 @@ export function describeOutcome(filename: string, outcome: ImportWriteOutcome): 
  *   - target identical to import     -> no write, return 'unchanged'
  *   - target exists but differs      -> open a diff (current on disk vs. the
  *                                       imported content) and ask the user;
- *                                       'Overwrite' writes, anything else keeps
- *                                       their version ('kept').
+ *                                       'Overwrite' writes the whole import,
+ *                                       'Merge...' hands the conflict to VS
+ *                                       Code's 3-way merge editor for per-change
+ *                                       accept/reject ('merged'), anything else
+ *                                       keeps their version ('kept').
  *
  * The proposed content is served read-only through the shared
  * StagingContentProvider so the diff needs no temp file on disk.
@@ -90,11 +95,68 @@ export async function writeImportedFile(
     `${filename} already exists and differs from the imported version. ` +
       `Review the diff, then choose how to proceed.`,
     'Overwrite',
+    'Merge...',
     'Keep Existing'
   );
   if (choice === 'Overwrite') {
     await vscode.workspace.fs.writeFile(targetUri, encoder.encode(newContent));
     return 'overwritten';
   }
+  if (choice === 'Merge...') {
+    return openMergeEditor(targetUri, existing, newContent, filename, diffName, token);
+  }
   return 'kept';
+}
+
+/**
+ * Hands an import conflict to VS Code's built-in 3-way merge editor so the user
+ * can accept the imported content per change region instead of all-or-nothing.
+ *
+ * An import has no real common ancestor, so `base` is seeded with the on-disk
+ * content. That makes every imported change a non-conflicting "incoming" block:
+ * accepted by default (-> imported value), un-accept to keep the current value
+ * (which equals base). The merge editor writes the resolved result to the real
+ * file on disk (`output`) when the user completes the merge, so this function
+ * does not write the file itself.
+ *
+ * If the merge editor cannot be opened (e.g. the internal command is missing),
+ * the file is left untouched and the user is told to re-run with Overwrite /
+ * Keep Existing.
+ */
+async function openMergeEditor(
+  targetUri: vscode.Uri,
+  existing: string,
+  newContent: string,
+  filename: string,
+  diffName: string,
+  token: number
+): Promise<ImportWriteOutcome> {
+  const baseKey = `/import/${token}/base/${diffName}`;
+  const currentKey = `/import/${token}/mergeCurrent/${diffName}`;
+  const importedKey = `/import/${token}/mergeImported/${diffName}`;
+  setStagingContent(baseKey, existing);
+  setStagingContent(currentKey, existing);
+  setStagingContent(importedKey, newContent);
+
+  const staged = (key: string) => vscode.Uri.from({ scheme: STAGING_SCHEME, path: key });
+
+  try {
+    // `_open.mergeEditor` is the internal command the Git extension uses to open
+    // the 3-way merge editor with arbitrary inputs; there is no public API for
+    // it. `output` must be a writable document, so it is the real file on disk.
+    await vscode.commands.executeCommand('_open.mergeEditor', {
+      base: staged(baseKey),
+      input1: { uri: staged(currentKey), title: 'Current (on disk)', detail: filename },
+      input2: { uri: staged(importedKey), title: 'Imported', detail: filename },
+      output: targetUri,
+    });
+    return 'merged';
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    void vscode.window.showErrorMessage(
+      `Could not open the merge editor for ${filename}: ${message}. ` +
+        `The file was left unchanged — re-run the import and choose Overwrite or Keep Existing.`
+    );
+    return 'kept';
+  }
 }

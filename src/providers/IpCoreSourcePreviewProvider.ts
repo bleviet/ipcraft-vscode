@@ -297,7 +297,11 @@ export class IpCoreSourcePreviewProvider implements vscode.CustomTextEditorProvi
       );
     }
 
-    await vscode.commands.executeCommand('vscode.openWith', outputUri, 'fpgaIpCore.editor');
+    // 'merged' means the merge editor is now open on the .ip.yml; opening the
+    // custom visual editor would replace it before the user can resolve.
+    if (ipOutcome !== 'merged') {
+      await vscode.commands.executeCommand('vscode.openWith', outputUri, 'fpgaIpCore.editor');
+    }
   }
 
   private showExperimentalPreviewNotice(): void {

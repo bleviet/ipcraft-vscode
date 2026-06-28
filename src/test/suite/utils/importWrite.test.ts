@@ -68,6 +68,50 @@ describe('writeImportedFile', () => {
     expect(writtenText(fsMock.writeFile.mock.calls[0] as unknown[])).toBe('new: imported');
   });
 
+  it('opens the 3-way merge editor when the user chooses Merge...', async () => {
+    fsMock.readFile.mockResolvedValue(bytes('old: edited by user'));
+    showWarning.mockResolvedValue('Merge...');
+
+    const target = uri('/out/core.mm.yml');
+    const outcome = await writeImportedFile(target, 'new: imported');
+
+    expect(outcome).toBe('merged');
+    // The merge editor is opened with the real file as the writable `output`;
+    // base/current/imported sides are served through the staging scheme.
+    expect(executeCommand).toHaveBeenCalledWith(
+      '_open.mergeEditor',
+      expect.objectContaining({
+        output: target,
+        base: expect.objectContaining({ scheme: 'ipcraft-staging' }),
+        input1: expect.objectContaining({
+          uri: expect.objectContaining({ scheme: 'ipcraft-staging' }),
+        }),
+        input2: expect.objectContaining({
+          uri: expect.objectContaining({ scheme: 'ipcraft-staging' }),
+        }),
+      })
+    );
+    // The merge editor writes the resolved result on completion — not us.
+    expect(fsMock.writeFile).not.toHaveBeenCalled();
+  });
+
+  it('keeps the file and warns when the merge editor cannot open', async () => {
+    fsMock.readFile.mockResolvedValue(bytes('old: edited by user'));
+    showWarning.mockResolvedValue('Merge...');
+    executeCommand.mockImplementation(async (command: string) => {
+      if (command === '_open.mergeEditor') {
+        throw new Error('command not found');
+      }
+    });
+
+    const outcome = await writeImportedFile(uri('/out/core.mm.yml'), 'new: imported');
+
+    expect(outcome).toBe('kept');
+    expect(fsMock.writeFile).not.toHaveBeenCalled();
+    expect(vscode.window.showWarningMessage).toHaveBeenCalled();
+    expect(vscode.window.showErrorMessage).toHaveBeenCalled();
+  });
+
   it('keeps the user version when the user declines', async () => {
     fsMock.readFile.mockResolvedValue(bytes('old: edited by user'));
     showWarning.mockResolvedValue('Keep Existing');
