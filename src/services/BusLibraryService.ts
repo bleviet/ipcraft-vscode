@@ -1,6 +1,9 @@
+import * as fs from 'fs/promises';
+import type { Dirent } from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import * as yaml from 'js-yaml';
+import { mapWithConcurrency } from '../utils/concurrency';
 import { Logger } from '../utils/Logger';
 
 /**
@@ -123,43 +126,70 @@ export class BusLibraryService {
    * Recursively scan a directory for bus definition YAML files.
    * Skips files ending in .ip.yml or .mm.yml.
    * Warns on errors rather than throwing.
+   *
+   * Uses Node's `fs.promises` directly (not `vscode.workspace.fs`) and reads
+   * candidates with bounded concurrency. The Vivado interface cache directory
+   * holds well over a hundred small YAML files; reading them one at a time over
+   * the extension-host -> filesystem-provider IPC channel took ~10s, which
+   * stalled both the IP Core editor open and the "Generate" dry-run. Direct
+   * `fs` reads fanned out 16-at-a-time bring that to ~100ms (see issue #25).
    */
   private async scanDirectory(dirPath: string, merged: Record<string, unknown>): Promise<void> {
     // called by loadFromUserPaths and loadFromDirectories
-    const dirUri = vscode.Uri.file(dirPath);
-    let entries: [string, vscode.FileType][];
+    const files = await this.collectBusDefFiles(dirPath);
+
+    // Read+parse with bounded concurrency, preserving input order so the merge
+    // below stays deterministic (later files win on key collisions, matching
+    // the previous sequential behaviour).
+    const records = await mapWithConcurrency(files, 16, async (filePath) => {
+      try {
+        const content = await fs.readFile(filePath, 'utf8');
+        const parsed = yaml.load(content);
+        return isBusDefRecord(parsed) ? parsed : null;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        this.logger.warn(`Skipping bus definition file '${filePath}': ${message}`);
+        return null;
+      }
+    });
+
+    for (const record of records) {
+      if (record) {
+        Object.assign(merged, record);
+      }
+    }
+  }
+
+  /**
+   * Recursively collects candidate bus definition file paths under `dirPath`,
+   * skipping `.ip.yml`/`.mm.yml` specs. Directory enumeration uses Node's `fs`
+   * (no VS Code IPC). Unreadable directories are warned about, not thrown.
+   */
+  private async collectBusDefFiles(dirPath: string): Promise<string[]> {
+    let entries: Dirent[];
     try {
-      entries = await vscode.workspace.fs.readDirectory(dirUri);
+      entries = await fs.readdir(dirPath, { withFileTypes: true });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.logger.warn(`Could not read bus library directory '${dirPath}': ${message}`);
-      return;
+      return [];
     }
 
-    for (const [name, type] of entries) {
-      if (type === vscode.FileType.Directory) {
-        await this.scanDirectory(path.join(dirPath, name), merged);
+    const files: string[] = [];
+    for (const entry of entries) {
+      const fullPath = path.join(dirPath, entry.name);
+      if (entry.isDirectory()) {
+        files.push(...(await this.collectBusDefFiles(fullPath)));
       } else if (
-        type === vscode.FileType.File &&
-        (name.endsWith('.yml') || name.endsWith('.yaml')) &&
-        !name.endsWith('.ip.yml') &&
-        !name.endsWith('.mm.yml')
+        entry.isFile() &&
+        (entry.name.endsWith('.yml') || entry.name.endsWith('.yaml')) &&
+        !entry.name.endsWith('.ip.yml') &&
+        !entry.name.endsWith('.mm.yml')
       ) {
-        const filePath = path.join(dirPath, name);
-        try {
-          const fileUri = vscode.Uri.file(filePath);
-          const fileData = await vscode.workspace.fs.readFile(fileUri);
-          const content = Buffer.from(fileData).toString('utf8');
-          const parsed = yaml.load(content);
-          if (isBusDefRecord(parsed)) {
-            Object.assign(merged, parsed);
-          }
-        } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
-          this.logger.warn(`Skipping bus definition file '${filePath}': ${message}`);
-        }
+        files.push(fullPath);
       }
     }
+    return files;
   }
 
   /**

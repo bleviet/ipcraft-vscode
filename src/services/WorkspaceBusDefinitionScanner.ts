@@ -6,6 +6,7 @@ import { isBusDefRecord } from './BusLibraryService';
 import { vivadoInterfaceToBusDefEntry } from './VivadoInterfaceScanner';
 import { parseVivadoInterfaceFiles } from '../parser/VivadoInterfaceXmlParser';
 import { BusDefScanCache, BusDefScanCacheEntry } from './BusDefScanCache';
+import { mapWithConcurrency } from '../utils/concurrency';
 import { Logger } from '../utils/Logger';
 
 const logger = new Logger('WorkspaceBusDefinitionScanner');
@@ -106,27 +107,6 @@ function buildExcludeGlob(): string {
     }
   }
   return `**/{${Array.from(dirNames).join(',')}}/**`;
-}
-
-/** Runs `fn` over `items` with at most `limit` calls in flight at once. */
-async function mapWithConcurrency<T, R>(
-  items: T[],
-  limit: number,
-  fn: (item: T) => Promise<R>
-): Promise<R[]> {
-  const results: R[] = new Array<R>(items.length);
-  let next = 0;
-  async function worker(): Promise<void> {
-    for (;;) {
-      const i = next++;
-      if (i >= items.length) {
-        return;
-      }
-      results[i] = await fn(items[i]);
-    }
-  }
-  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
-  return results;
 }
 
 /**
