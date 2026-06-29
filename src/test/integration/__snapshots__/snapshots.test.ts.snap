@@ -10298,19 +10298,20 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           <spirit:addressOffset>0x0</spirit:addressOffset>
           <spirit:size spirit:format="long">32</spirit:size>
           <spirit:access>read-only</spirit:access>
+          <spirit:reset>
+            <spirit:value spirit:format="long">0x102</spirit:value>
+          </spirit:reset>
           <spirit:field>
             <spirit:name>MINOR</spirit:name>
             <spirit:bitOffset>0</spirit:bitOffset>
             <spirit:bitWidth spirit:format="long">8</spirit:bitWidth>
             <spirit:access>read-only</spirit:access>
-            <spirit:reset>0x2</spirit:reset>
           </spirit:field>
           <spirit:field>
             <spirit:name>MAJOR</spirit:name>
             <spirit:bitOffset>8</spirit:bitOffset>
             <spirit:bitWidth spirit:format="long">8</spirit:bitWidth>
             <spirit:access>read-only</spirit:access>
-            <spirit:reset>0x1</spirit:reset>
           </spirit:field>
         </spirit:register>
         <spirit:register>
@@ -10319,6 +10320,9 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           <spirit:addressOffset>0x4</spirit:addressOffset>
           <spirit:size spirit:format="long">32</spirit:size>
           <spirit:access>read-write</spirit:access>
+          <spirit:reset>
+            <spirit:value spirit:format="long">0x2</spirit:value>
+          </spirit:reset>
           <spirit:field>
             <spirit:name>RUN</spirit:name>
             <spirit:description>Start/stop the stream engine</spirit:description>
@@ -10332,7 +10336,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
             <spirit:bitOffset>1</spirit:bitOffset>
             <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
             <spirit:access>read-write</spirit:access>
-            <spirit:reset>0x1</spirit:reset>
           </spirit:field>
           <spirit:field>
             <spirit:name>LOG_LEVEL</spirit:name>
@@ -11235,19 +11238,20 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           <spirit:addressOffset>0x0</spirit:addressOffset>
           <spirit:size spirit:format="long">32</spirit:size>
           <spirit:access>read-only</spirit:access>
+          <spirit:reset>
+            <spirit:value spirit:format="long">0x102</spirit:value>
+          </spirit:reset>
           <spirit:field>
             <spirit:name>MINOR</spirit:name>
             <spirit:bitOffset>0</spirit:bitOffset>
             <spirit:bitWidth spirit:format="long">8</spirit:bitWidth>
             <spirit:access>read-only</spirit:access>
-            <spirit:reset>0x2</spirit:reset>
           </spirit:field>
           <spirit:field>
             <spirit:name>MAJOR</spirit:name>
             <spirit:bitOffset>8</spirit:bitOffset>
             <spirit:bitWidth spirit:format="long">8</spirit:bitWidth>
             <spirit:access>read-only</spirit:access>
-            <spirit:reset>0x1</spirit:reset>
           </spirit:field>
         </spirit:register>
         <spirit:register>
@@ -11256,6 +11260,9 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           <spirit:addressOffset>0x4</spirit:addressOffset>
           <spirit:size spirit:format="long">32</spirit:size>
           <spirit:access>read-write</spirit:access>
+          <spirit:reset>
+            <spirit:value spirit:format="long">0x2</spirit:value>
+          </spirit:reset>
           <spirit:field>
             <spirit:name>RUN</spirit:name>
             <spirit:description>Start/stop the stream engine</spirit:description>
@@ -11269,7 +11276,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
             <spirit:bitOffset>1</spirit:bitOffset>
             <spirit:bitWidth spirit:format="long">1</spirit:bitWidth>
             <spirit:access>read-write</spirit:access>
-            <spirit:reset>0x1</spirit:reset>
           </spirit:field>
           <spirit:field>
             <spirit:name>LOG_LEVEL</spirit:name>
@@ -12780,13 +12786,15 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           <spirit:addressOffset>0x0</spirit:addressOffset>
           <spirit:size spirit:format="long">32</spirit:size>
           <spirit:access>read-only</spirit:access>
+          <spirit:reset>
+            <spirit:value spirit:format="long">0xC0FFEE01</spirit:value>
+          </spirit:reset>
           <spirit:field>
             <spirit:name>REVISION</spirit:name>
             <spirit:description>Silicon revision</spirit:description>
             <spirit:bitOffset>0</spirit:bitOffset>
             <spirit:bitWidth spirit:format="long">8</spirit:bitWidth>
             <spirit:access>read-only</spirit:access>
-            <spirit:reset>0x1</spirit:reset>
           </spirit:field>
           <spirit:field>
             <spirit:name>DEVICE_ID</spirit:name>
@@ -12794,7 +12802,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
             <spirit:bitOffset>8</spirit:bitOffset>
             <spirit:bitWidth spirit:format="long">24</spirit:bitWidth>
             <spirit:access>read-only</spirit:access>
-            <spirit:reset>0xC0FFEE</spirit:reset>
           </spirit:field>
         </spirit:register>
         <spirit:register>
@@ -12803,6 +12810,9 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           <spirit:addressOffset>0x4</spirit:addressOffset>
           <spirit:size spirit:format="long">32</spirit:size>
           <spirit:access>read-write</spirit:access>
+          <spirit:reset>
+            <spirit:value spirit:format="long">0xA0</spirit:value>
+          </spirit:reset>
           <spirit:field>
             <spirit:name>ENABLE</spirit:name>
             <spirit:description>Global enable (offset/width syntax)</spirit:description>
@@ -12823,7 +12833,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
             <spirit:bitOffset>4</spirit:bitOffset>
             <spirit:bitWidth spirit:format="long">8</spirit:bitWidth>
             <spirit:access>read-write</spirit:access>
-            <spirit:reset>0xA</spirit:reset>
           </spirit:field>
           <spirit:field>
             <spirit:name>SOFT_RST</spirit:name>
@@ -12888,6 +12897,9 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           <spirit:addressOffset>0x10</spirit:addressOffset>
           <spirit:size spirit:format="long">32</spirit:size>
           <spirit:access>read-write</spirit:access>
+          <spirit:reset>
+            <spirit:value spirit:format="long">0xDEADBEEF</spirit:value>
+          </spirit:reset>
           <spirit:field>
             <spirit:name>VALUE</spirit:name>
             <spirit:description>Software scratch value</spirit:description>
@@ -12938,13 +12950,15 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           <spirit:addressOffset>0x18</spirit:addressOffset>
           <spirit:size spirit:format="long">32</spirit:size>
           <spirit:access>read-write</spirit:access>
+          <spirit:reset>
+            <spirit:value spirit:format="long">0x100</spirit:value>
+          </spirit:reset>
           <spirit:field>
             <spirit:name>GAIN</spirit:name>
             <spirit:description>Fixed-point channel gain</spirit:description>
             <spirit:bitOffset>0</spirit:bitOffset>
             <spirit:bitWidth spirit:format="long">12</spirit:bitWidth>
             <spirit:access>read-write</spirit:access>
-            <spirit:reset>0x100</spirit:reset>
           </spirit:field>
           <spirit:field>
             <spirit:name>MUTE</spirit:name>
@@ -12960,13 +12974,15 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           <spirit:addressOffset>0x1C</spirit:addressOffset>
           <spirit:size spirit:format="long">32</spirit:size>
           <spirit:access>read-write</spirit:access>
+          <spirit:reset>
+            <spirit:value spirit:format="long">0x100</spirit:value>
+          </spirit:reset>
           <spirit:field>
             <spirit:name>GAIN</spirit:name>
             <spirit:description>Fixed-point channel gain</spirit:description>
             <spirit:bitOffset>0</spirit:bitOffset>
             <spirit:bitWidth spirit:format="long">12</spirit:bitWidth>
             <spirit:access>read-write</spirit:access>
-            <spirit:reset>0x100</spirit:reset>
           </spirit:field>
           <spirit:field>
             <spirit:name>MUTE</spirit:name>
@@ -12982,13 +12998,15 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           <spirit:addressOffset>0x20</spirit:addressOffset>
           <spirit:size spirit:format="long">32</spirit:size>
           <spirit:access>read-write</spirit:access>
+          <spirit:reset>
+            <spirit:value spirit:format="long">0x100</spirit:value>
+          </spirit:reset>
           <spirit:field>
             <spirit:name>GAIN</spirit:name>
             <spirit:description>Fixed-point channel gain</spirit:description>
             <spirit:bitOffset>0</spirit:bitOffset>
             <spirit:bitWidth spirit:format="long">12</spirit:bitWidth>
             <spirit:access>read-write</spirit:access>
-            <spirit:reset>0x100</spirit:reset>
           </spirit:field>
           <spirit:field>
             <spirit:name>MUTE</spirit:name>
@@ -13004,13 +13022,15 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           <spirit:addressOffset>0x24</spirit:addressOffset>
           <spirit:size spirit:format="long">32</spirit:size>
           <spirit:access>read-write</spirit:access>
+          <spirit:reset>
+            <spirit:value spirit:format="long">0x100</spirit:value>
+          </spirit:reset>
           <spirit:field>
             <spirit:name>GAIN</spirit:name>
             <spirit:description>Fixed-point channel gain</spirit:description>
             <spirit:bitOffset>0</spirit:bitOffset>
             <spirit:bitWidth spirit:format="long">12</spirit:bitWidth>
             <spirit:access>read-write</spirit:access>
-            <spirit:reset>0x100</spirit:reset>
           </spirit:field>
           <spirit:field>
             <spirit:name>MUTE</spirit:name>
@@ -15665,13 +15685,15 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           <spirit:addressOffset>0x0</spirit:addressOffset>
           <spirit:size spirit:format="long">32</spirit:size>
           <spirit:access>read-only</spirit:access>
+          <spirit:reset>
+            <spirit:value spirit:format="long">0xC0FFEE01</spirit:value>
+          </spirit:reset>
           <spirit:field>
             <spirit:name>REVISION</spirit:name>
             <spirit:description>Silicon revision</spirit:description>
             <spirit:bitOffset>0</spirit:bitOffset>
             <spirit:bitWidth spirit:format="long">8</spirit:bitWidth>
             <spirit:access>read-only</spirit:access>
-            <spirit:reset>0x1</spirit:reset>
           </spirit:field>
           <spirit:field>
             <spirit:name>DEVICE_ID</spirit:name>
@@ -15679,7 +15701,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
             <spirit:bitOffset>8</spirit:bitOffset>
             <spirit:bitWidth spirit:format="long">24</spirit:bitWidth>
             <spirit:access>read-only</spirit:access>
-            <spirit:reset>0xC0FFEE</spirit:reset>
           </spirit:field>
         </spirit:register>
         <spirit:register>
@@ -15688,6 +15709,9 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           <spirit:addressOffset>0x4</spirit:addressOffset>
           <spirit:size spirit:format="long">32</spirit:size>
           <spirit:access>read-write</spirit:access>
+          <spirit:reset>
+            <spirit:value spirit:format="long">0xA0</spirit:value>
+          </spirit:reset>
           <spirit:field>
             <spirit:name>ENABLE</spirit:name>
             <spirit:description>Global enable (offset/width syntax)</spirit:description>
@@ -15708,7 +15732,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
             <spirit:bitOffset>4</spirit:bitOffset>
             <spirit:bitWidth spirit:format="long">8</spirit:bitWidth>
             <spirit:access>read-write</spirit:access>
-            <spirit:reset>0xA</spirit:reset>
           </spirit:field>
           <spirit:field>
             <spirit:name>SOFT_RST</spirit:name>
@@ -15773,6 +15796,9 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           <spirit:addressOffset>0x10</spirit:addressOffset>
           <spirit:size spirit:format="long">32</spirit:size>
           <spirit:access>read-write</spirit:access>
+          <spirit:reset>
+            <spirit:value spirit:format="long">0xDEADBEEF</spirit:value>
+          </spirit:reset>
           <spirit:field>
             <spirit:name>VALUE</spirit:name>
             <spirit:description>Software scratch value</spirit:description>
@@ -15823,13 +15849,15 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           <spirit:addressOffset>0x18</spirit:addressOffset>
           <spirit:size spirit:format="long">32</spirit:size>
           <spirit:access>read-write</spirit:access>
+          <spirit:reset>
+            <spirit:value spirit:format="long">0x100</spirit:value>
+          </spirit:reset>
           <spirit:field>
             <spirit:name>GAIN</spirit:name>
             <spirit:description>Fixed-point channel gain</spirit:description>
             <spirit:bitOffset>0</spirit:bitOffset>
             <spirit:bitWidth spirit:format="long">12</spirit:bitWidth>
             <spirit:access>read-write</spirit:access>
-            <spirit:reset>0x100</spirit:reset>
           </spirit:field>
           <spirit:field>
             <spirit:name>MUTE</spirit:name>
@@ -15845,13 +15873,15 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           <spirit:addressOffset>0x1C</spirit:addressOffset>
           <spirit:size spirit:format="long">32</spirit:size>
           <spirit:access>read-write</spirit:access>
+          <spirit:reset>
+            <spirit:value spirit:format="long">0x100</spirit:value>
+          </spirit:reset>
           <spirit:field>
             <spirit:name>GAIN</spirit:name>
             <spirit:description>Fixed-point channel gain</spirit:description>
             <spirit:bitOffset>0</spirit:bitOffset>
             <spirit:bitWidth spirit:format="long">12</spirit:bitWidth>
             <spirit:access>read-write</spirit:access>
-            <spirit:reset>0x100</spirit:reset>
           </spirit:field>
           <spirit:field>
             <spirit:name>MUTE</spirit:name>
@@ -15867,13 +15897,15 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           <spirit:addressOffset>0x20</spirit:addressOffset>
           <spirit:size spirit:format="long">32</spirit:size>
           <spirit:access>read-write</spirit:access>
+          <spirit:reset>
+            <spirit:value spirit:format="long">0x100</spirit:value>
+          </spirit:reset>
           <spirit:field>
             <spirit:name>GAIN</spirit:name>
             <spirit:description>Fixed-point channel gain</spirit:description>
             <spirit:bitOffset>0</spirit:bitOffset>
             <spirit:bitWidth spirit:format="long">12</spirit:bitWidth>
             <spirit:access>read-write</spirit:access>
-            <spirit:reset>0x100</spirit:reset>
           </spirit:field>
           <spirit:field>
             <spirit:name>MUTE</spirit:name>
@@ -15889,13 +15921,15 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           <spirit:addressOffset>0x24</spirit:addressOffset>
           <spirit:size spirit:format="long">32</spirit:size>
           <spirit:access>read-write</spirit:access>
+          <spirit:reset>
+            <spirit:value spirit:format="long">0x100</spirit:value>
+          </spirit:reset>
           <spirit:field>
             <spirit:name>GAIN</spirit:name>
             <spirit:description>Fixed-point channel gain</spirit:description>
             <spirit:bitOffset>0</spirit:bitOffset>
             <spirit:bitWidth spirit:format="long">12</spirit:bitWidth>
             <spirit:access>read-write</spirit:access>
-            <spirit:reset>0x100</spirit:reset>
           </spirit:field>
           <spirit:field>
             <spirit:name>MUTE</spirit:name>

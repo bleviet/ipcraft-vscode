@@ -929,11 +929,40 @@ function renderRegister(reg: FlatRegister, regWidth: number): string[] {
   lines.push(`          <spirit:addressOffset>${offsetHex}</spirit:addressOffset>`);
   lines.push(`          <spirit:size spirit:format="long">${size}</spirit:size>`);
   lines.push(`          <spirit:access>${registerSpiritAccess(reg)}</spirit:access>`);
+  // IP-XACT 1685-2009 expresses reset at the register level only (field-level
+  // reset is a 1685-2014 feature). Compose the register reset word from the
+  // register's own reset value OR'd with each field reset shifted to its bit
+  // offset. <spirit:reset> sits after <spirit:access> and before the fields.
+  const resetValue = composeRegisterReset(reg);
+  if (resetValue !== 0) {
+    lines.push('          <spirit:reset>');
+    lines.push(
+      `            <spirit:value spirit:format="long">0x${resetValue.toString(16).toUpperCase()}</spirit:value>`
+    );
+    lines.push('          </spirit:reset>');
+  }
   for (const field of reg.fields) {
     lines.push(...renderField(field));
   }
   lines.push('        </spirit:register>');
   return lines;
+}
+
+/**
+ * Combine a register's reset value with its fields' reset values into a single
+ * reset word. Field resets are shifted to their bit offsets and OR'd in, on top
+ * of any register-level reset; OR (not add) keeps it idempotent when the
+ * register-level value already encodes the field bits. Computed as an unsigned
+ * 32-bit word, which covers the standard register widths.
+ */
+function composeRegisterReset(reg: FlatRegister): number {
+  let reset = reg.resetValue > 0 ? reg.resetValue >>> 0 : 0;
+  for (const field of reg.fields) {
+    if (field.resetValue) {
+      reset = (reset | (field.resetValue << field.offset)) >>> 0;
+    }
+  }
+  return reset;
 }
 
 function renderField(field: NormalizedField): string[] {
@@ -947,11 +976,6 @@ function renderField(field: NormalizedField): string[] {
   lines.push(`            <spirit:bitOffset>${field.offset}</spirit:bitOffset>`);
   lines.push(`            <spirit:bitWidth spirit:format="long">${width}</spirit:bitWidth>`);
   lines.push(`            <spirit:access>${toSpiritAccess(field.access)}</spirit:access>`);
-  if (field.resetValue) {
-    lines.push(
-      `            <spirit:reset>0x${field.resetValue.toString(16).toUpperCase()}</spirit:reset>`
-    );
-  }
   lines.push('          </spirit:field>');
   return lines;
 }

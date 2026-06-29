@@ -1464,15 +1464,33 @@ describe('generateComponentXml memory maps', () => {
     expect(xml).toContain('<spirit:size spirit:format="long">32</spirit:size>');
   });
 
-  it('emits fields with bitOffset, bitWidth, access and a non-zero reset', () => {
+  it('emits fields with bitOffset, bitWidth and access (no field-level reset)', () => {
     const xml = gen({}, { memoryMaps: [map()] });
     expect(xml).toContain('<spirit:name>ENABLE</spirit:name>');
     expect(xml).toContain('<spirit:bitOffset>0</spirit:bitOffset>');
     expect(xml).toContain('<spirit:bitOffset>1</spirit:bitOffset>');
     expect(xml).toContain('<spirit:bitWidth spirit:format="long">2</spirit:bitWidth>');
-    // Only the non-zero reset is emitted.
-    expect(xml).toContain('<spirit:reset>0xFFFFFFFF</spirit:reset>');
-    expect(xml).not.toContain('<spirit:reset>0x0</spirit:reset>');
+    // IP-XACT 1685-2009 has no field-level reset. A field-level reset would be
+    // indented 12 spaces (a field child); the legal register-level reset is at
+    // 10 spaces. Assert no reset appears at field indentation.
+    expect(xml).not.toContain('            <spirit:reset>');
+  });
+
+  it('emits a register-level <spirit:reset> composed from field resets, after access and before fields', () => {
+    const xml = gen({}, { memoryMaps: [map()] });
+    // MASK register: field BITS resets to 0xFFFFFFFF at offset 0 -> register reset word.
+    expect(xml).toContain(
+      '<spirit:reset>\n            <spirit:value spirit:format="long">0xFFFFFFFF</spirit:value>\n          </spirit:reset>'
+    );
+    // CTRL register: all field resets are 0 -> no reset element emitted for it.
+    expect(xml).not.toContain('0x0</spirit:value>');
+    // Ordering inside the MASK register: access before reset before the first field.
+    const mask = xml.slice(xml.indexOf('<spirit:name>MASK</spirit:name>'));
+    const accessIdx = mask.indexOf('<spirit:access>');
+    const resetIdx = mask.indexOf('<spirit:reset>');
+    const fieldIdx = mask.indexOf('<spirit:field>');
+    expect(accessIdx).toBeLessThan(resetIdx);
+    expect(resetIdx).toBeLessThan(fieldIdx);
   });
 
   it('derives register access from fields when the register has no explicit access', () => {

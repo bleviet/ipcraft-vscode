@@ -720,6 +720,15 @@ export function parseComponentXmlText(
           const sizeStr = text(regEl, 'size');
           const regAccess = text(regEl, 'access') || 'read-write';
 
+          // Register-level reset word (IP-XACT 1685-2009 expresses reset here, not
+          // on the field). Its bits are distributed back to the individual fields
+          // below so .mm.yml round-trips field reset values.
+          const regResetEl = childEl(regEl, 'reset');
+          const regResetStr = regResetEl
+            ? text(regResetEl, 'value') || regResetEl.textContent?.trim() || ''
+            : '';
+          const regReset = regResetStr ? parseHexOrDec(regResetStr) : 0;
+
           const fields: FieldDef[] = [];
           // IP-XACT allows fields as direct children of register OR inside a
           // <spirit:fields> wrapper. Vivado omits the wrapper element.
@@ -728,22 +737,31 @@ export function parseComponentXmlText(
           for (const fieldEl of fieldEls) {
             const fieldName = text(fieldEl, 'name');
             const fieldDesc = text(fieldEl, 'description') || undefined;
-            const bitOffsetStr = text(fieldEl, 'bitOffset');
-            const bitWidthStr = text(fieldEl, 'bitWidth');
+            const bitOffset = parseHexOrDec(text(fieldEl, 'bitOffset'));
+            const bitWidth = parseHexOrDec(text(fieldEl, 'bitWidth')) || 1;
             const fieldAccess = text(fieldEl, 'access') || regAccess;
-            // IP-XACT 2009: <spirit:reset>0x0</spirit:reset> (plain text)
-            // Vivado extension: <spirit:reset><spirit:value>0x0</spirit:value></spirit:reset>
+            // Field-level reset (1685-2014 / Vivado extension) takes precedence
+            // when present; otherwise derive this field's slice from the
+            // register-level reset word.
             const resetEl = childEl(fieldEl, 'reset');
             const resetStr = resetEl
               ? text(resetEl, 'value') || resetEl.textContent?.trim() || ''
               : text(fieldEl, 'resetValue');
+            let reset = resetStr ? parseHexOrDec(resetStr) : undefined;
+            if (reset === undefined && regReset) {
+              const mask = bitWidth >= 32 ? 0xffffffff : (1 << bitWidth) - 1;
+              const slice = ((regReset >>> bitOffset) & mask) >>> 0;
+              if (slice !== 0) {
+                reset = slice;
+              }
+            }
             fields.push({
               name: fieldName,
               description: fieldDesc,
-              bitOffset: parseHexOrDec(bitOffsetStr),
-              bitWidth: parseHexOrDec(bitWidthStr) || 1,
+              bitOffset,
+              bitWidth,
               access: normalizeAccess(fieldAccess),
-              reset: resetStr ? parseHexOrDec(resetStr) : undefined,
+              reset,
             });
           }
 
