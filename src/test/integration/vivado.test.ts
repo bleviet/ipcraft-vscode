@@ -25,6 +25,11 @@ const VIVADO_BIN =
 
 const VALIDATE_TCL = path.resolve(__dirname, '../../../scripts/integration/vivado/validate.tcl');
 
+const VALIDATE_BD_TCL = path.resolve(
+  __dirname,
+  '../../../scripts/integration/vivado/validate_bd.tcl'
+);
+
 let xilinxes: Fixture[] = [];
 
 beforeAll(async () => {
@@ -86,6 +91,60 @@ it('all Xilinx fixtures pass Vivado ipx::check_integrity', () => {
   if (failures.length > 0) {
     throw new Error(
       `Vivado validation failed for ${failures.length} of ${xilinxes.length} fixture(s):\n\n` +
+        failures.join('\n\n---\n\n')
+    );
+  }
+});
+
+it('all Xilinx fixtures pass Vivado block-design instantiation + export (validate_bd_design)', () => {
+  if (
+    guardTier2(
+      'vivado',
+      () => fs.existsSync(VIVADO_BIN),
+      `not found at ${VIVADO_BIN} (set VIVADO_BIN or REQUIRE_VIVADO=1)`
+    )
+  ) {
+    return;
+  }
+
+  if (xilinxes.length === 0) {
+    throw new Error('No Xilinx fixtures were generated — check generator output');
+  }
+
+  const failures: string[] = [];
+
+  for (const fixture of xilinxes) {
+    const xilinxDir = path.join(fixture.outputDir, 'xilinx');
+
+    const result = spawnSync(
+      VIVADO_BIN,
+      ['-mode', 'batch', '-source', VALIDATE_BD_TCL, '-tclargs', xilinxDir],
+      { encoding: 'utf8', timeout: 120_000 }
+    );
+
+    if (result.error) {
+      failures.push(`${fixture.name}: failed to spawn Vivado — ${result.error.message}`);
+      continue;
+    }
+
+    // validate_bd.tcl exits 0 on success; it also prints "PASS: <vlnv>"
+    if (result.status === 0) {
+      // eslint-disable-next-line no-console
+      console.log(`  PASS: ${fixture.name}`);
+    } else {
+      failures.push(
+        [
+          `${fixture.name}: block-design validation FAIL (exit ${result.status})`,
+          `stdout:\n${result.stdout}`,
+          `stderr:\n${result.stderr}`,
+        ].join('\n')
+      );
+    }
+  }
+
+  if (failures.length > 0) {
+    throw new Error(
+      `Vivado block-design validation failed for ${failures.length} of ${xilinxes.length} fixture(s):\n\n` +
         failures.join('\n\n---\n\n')
     );
   }

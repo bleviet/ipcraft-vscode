@@ -104,7 +104,9 @@ Vivado's licensing requirements and the complexity of running its binary inside 
 
 #### What the validation does
 
-The test runs Vivado in batch mode (`-mode batch`) with `scripts/integration/vivado/validate.tcl`. For each fixture, the script:
+There are two levels of validation for each `component.xml`, each its own `spawnSync` invocation of Vivado in batch mode (`-mode batch`).
+
+**Integrity validation** uses `scripts/integration/vivado/validate.tcl`. For each fixture, the script:
 
 1. Creates an in-memory Vivado project (no disk artefacts) targeting a representative Zynq-7000 part.
 2. If a `busdef/` subdirectory exists alongside `component.xml`, registers it as an IP repository and rebuilds the IP catalogue so Vivado can resolve any custom bus interface VLNVs.
@@ -112,6 +114,17 @@ The test runs Vivado in batch mode (`-mode batch`) with `scripts/integration/viv
 4. Asserts the VLNV property is non-empty — a non-empty VLNV confirms the file was parsed as a valid IP-XACT document.
 5. Calls `ipx::check_integrity -quiet` to run Vivado's built-in integrity check.
 6. Exits 0 if the error count is 0; exits 1 otherwise.
+
+**Block-design validation** uses `scripts/integration/vivado/validate_bd.tcl`. This catches errors that the static integrity check cannot detect — wrong bus-interface inference, broken `portMaps`, port-direction mismatches, and unresolved custom-interface VLNVs — because those only surface when Vivado's IP integrator actually wires the IP-XACT bus interfaces into a design. For each fixture, the script:
+
+1. Creates an in-memory project and registers the generated directory (and any `busdef/`) as an IP repository, then rebuilds the catalogue.
+2. Parses the four top-level `<spirit:vendor>` / `library` / `name` / `version` fields from `component.xml` to form the component VLNV.
+3. Creates a block design and instantiates the packaged IP by VLNV (`create_bd_cell -type ip -vlnv …`). A failure here alone proves the catalogue rejected the packaged IP.
+4. Exports **every interface and scalar port** of the instance to the design boundary (`make_bd_intf_pins_external` / `make_bd_pins_external`), so the validator exercises the full IP-XACT interface surface without "required-but-unconnected" false positives from a bare instance.
+5. Runs `validate_bd_design` and counts tool-level ERROR messages.
+6. Exits 0 if the error count is 0; exits 1 otherwise.
+
+This is the Vivado analogue of the Quartus BFM testbench method: instantiate the component with everything exported to the boundary, then let the real tool validate the wiring. Unlike Platform Designer, Vivado's Tcl API can instantiate any IP by VLNV and export pins programmatically, so no companion design file needs to be generated into the user's output. The check is structural only (no out-of-context synthesis) — RTL elaboration coverage is provided separately by the `_run_ooc.tcl` raw-RTL synthesis test in the same suite.
 
 Each fixture is validated as a separate `spawnSync` invocation. Failures are collected and reported together so a single bad fixture does not abort validation of the others.
 
@@ -132,6 +145,10 @@ A real Platform Designer session requires a licensed Quartus installation and a 
 The Tcl stub validator only replays and records interface declarations. It cannot catch semantic errors that require Platform Designer to interpret the interface specification — for example, when a port is listed under an AXI-Stream interface with the wrong role (`tstrb` assigned as a master port on what should be a slave interface). Such errors are invisible to a Tcl stub but cause `qsys-generate` to abort with a component-level error.
 
 The BFM testbench approach solves this by running the actual Platform Designer tool against a purpose-built `test.qsys` that exports every interface to the system boundary. The export strategy is the key insight: a bare system with unconnected interfaces would trigger "must be connected" errors that are not real bugs — they are just artifacts of the test harness. Exporting everything to the boundary satisfies Platform Designer's connectivity rules so that only genuine interface errors surface. This makes the test highly specific: false positives from the test setup are eliminated, and only real component defects cause a failure.
+
+### Why add block-design validation on top of `ipx::check_integrity`?
+
+`ipx::check_integrity` validates the `component.xml` against the IP-XACT schema, but it never asks Vivado's IP integrator to *consume* the IP. A component can pass the integrity check yet still be unusable in a real design — for example, a bus interface whose `portMaps` name physical ports that conflict with the inferred direction, or a custom-interface VLNV that the catalogue cannot resolve when an instance is actually elaborated. The block-design validator closes that gap by instantiating the packaged IP exactly as an end user would. The same export-everything insight applies: promoting every interface and scalar port to the design boundary satisfies the IP integrator's connectivity rules, so only genuine component defects — not test-harness artifacts — cause `validate_bd_design` to report an error.
 
 ### Why cache fixtures in memory?
 
