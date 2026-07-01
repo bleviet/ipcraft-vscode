@@ -901,6 +901,7 @@ export function parseComponentXmlText(
       managed: boolean;
       logicalName?: string;
       isIncludeFile?: boolean;
+      version?: string;
     }
     interface Bucket {
       description: string;
@@ -946,11 +947,19 @@ export function parseComponentXmlText(
         }
         bucket.seenPaths.add(filePath);
 
+        const userFileTypes = childEls(fileEl, 'userFileType')
+          .map((e) => e.textContent?.trim() ?? '')
+          .filter(Boolean);
+        const { type, version } = mapFileTypeAndVersion(text(fileEl, 'fileType'), userFileTypes);
+
         const entry: FileEntry = {
           path: filePath,
-          type: mapFileType(text(fileEl, 'fileType')),
+          type,
           managed: false,
         };
+        if (version) {
+          entry.version = version;
+        }
 
         const logicalName = text(fileEl, 'logicalName');
         if (logicalName) {
@@ -1086,6 +1095,58 @@ function vivadoFilesetCanonicalName(name: string): { name: string; description: 
   }
   // Non-Vivado or unrecognised: keep original name without a description
   return { name, description: '' };
+}
+
+const VHDL_VERSION_RE = /^vhdlSource-(87|93|2002|2008|2019)$/;
+const VERILOG_VERSION_RE = /^verilogSource-(95|2001)$/;
+const LEGACY_VHDL_VERSION_RE = /^vhdl[ ]?(2008|2019)$/i;
+
+/**
+ * Resolves both file type and HDL standard version from spirit:fileType plus all
+ * spirit:userFileType values on a file element. Vivado marks per-file VHDL versions as
+ * userFileType (e.g. "vhdlSource-2008") since versioned fileType enum values don't exist
+ * in the spirit-1685-2009 schema; some hand-authored component.xml also use the legacy
+ * "VHDL 2008" spelling alongside a plain vhdlSource fileType.
+ */
+function mapFileTypeAndVersion(
+  fileTypeStr: string,
+  userFileTypes: string[]
+): { type: string; version?: string } {
+  const vhdlDirect = fileTypeStr.match(VHDL_VERSION_RE);
+  if (vhdlDirect) {
+    return { type: 'vhdl', version: vhdlDirect[1] };
+  }
+  const verilogDirect = fileTypeStr.match(VERILOG_VERSION_RE);
+  if (verilogDirect) {
+    return { type: 'verilog', version: verilogDirect[1] };
+  }
+
+  let type = mapFileType(fileTypeStr);
+  let version: string | undefined;
+
+  for (const uft of userFileTypes) {
+    const vhdlMatch = uft.match(VHDL_VERSION_RE);
+    if (vhdlMatch) {
+      type = 'vhdl';
+      version = vhdlMatch[1];
+      continue;
+    }
+    const verilogMatch = uft.match(VERILOG_VERSION_RE);
+    if (verilogMatch) {
+      type = 'verilog';
+      version = verilogMatch[1];
+      continue;
+    }
+    const legacyMatch = uft.match(LEGACY_VHDL_VERSION_RE);
+    if (legacyMatch) {
+      if (type === 'unknown') {
+        type = 'vhdl';
+      }
+      version = legacyMatch[1];
+    }
+  }
+
+  return { type, version };
 }
 
 function mapFileType(fileTypeStr: string): string {

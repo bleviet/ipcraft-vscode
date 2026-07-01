@@ -7,6 +7,7 @@ interface FileEntry {
   type: string;
   managed?: boolean;
   description?: string;
+  version?: string;
 }
 
 interface FileSet {
@@ -299,6 +300,7 @@ export const FileSetsPanel: React.FC<FileSetsProps> = ({ fileSets: rawFileSets, 
                           }}
                         >
                           {TYPE_LABELS[file.type] ?? file.type}
+                          {file.type === 'vhdl' ? ` ${file.version ?? '2008'}` : ''}
                         </span>
                         {missing && (
                           <span

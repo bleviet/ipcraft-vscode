@@ -1815,6 +1815,24 @@
   text-decoration-color: inherit;
 }
 
+.ci-fileset__version {
+  flex-shrink: 0;
+  background: var(--vscode-dropdown-background);
+  color: var(--vscode-dropdown-foreground);
+  border: 1px solid var(--vscode-dropdown-border, var(--vscode-panel-border));
+  border-radius: 2px;
+  padding: 1px 2px;
+  font-family: var(--vscode-font-family);
+  font-size: 10px;
+  outline: none;
+  cursor: pointer;
+  opacity: 0.55;
+}
+.ci-fileset__version:hover,
+.ci-fileset__version:focus {
+  opacity: 1;
+}
+
 .ci-fileset__rm {
   display: inline-flex;
   align-items: center;

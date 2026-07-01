@@ -780,6 +780,41 @@ const FILESETS_XML = `<?xml version="1.0" encoding="UTF-8"?>
   </spirit:fileSets>
 </spirit:component>`;
 
+// ---------------------------------------------------------------------------
+// Component with per-file VHDL version markers, in the forms real Vivado and
+// hand-authored component.xml files use.
+// ---------------------------------------------------------------------------
+const FILESETS_VHDL_VERSION_XML = `<?xml version="1.0" encoding="UTF-8"?>
+<spirit:component xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009">
+  <spirit:vendor>acme.com</spirit:vendor>
+  <spirit:library>ip</spirit:library>
+  <spirit:name>my_core</spirit:name>
+  <spirit:version>1.0</spirit:version>
+  <spirit:fileSets>
+    <spirit:fileSet>
+      <spirit:name>xilinx_vhdlsynthesis_view_fileset</spirit:name>
+      <spirit:file>
+        <spirit:name>hdl/vivado_2008.vhd</spirit:name>
+        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
+        <spirit:userFileType>CHECKSUM_06f4c67a</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>hdl/versioned_filetype_93.vhd</spirit:name>
+        <spirit:fileType>vhdlSource-93</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>hdl/legacy_2008.vhd</spirit:name>
+        <spirit:fileType>vhdlSource</spirit:fileType>
+        <spirit:userFileType>VHDL 2008</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>hdl/plain_93.vhd</spirit:name>
+        <spirit:fileType>vhdlSource</spirit:fileType>
+      </spirit:file>
+    </spirit:fileSet>
+  </spirit:fileSets>
+</spirit:component>`;
+
 describe('fileSets extraction', () => {
   it('maps xilinx_vhdlsynthesis_view_fileset to RTL_Sources', () => {
     const { ipYamlText } = parseComponentXmlText(FILESETS_XML);
@@ -884,6 +919,43 @@ describe('fileSets extraction', () => {
     const { ipYamlText } = parseComponentXmlText(MINIMAL_XML);
     const doc = parseYaml(ipYamlText) as { fileSets?: unknown };
     expect(doc.fileSets).toBeUndefined();
+  });
+});
+
+describe('fileSets VHDL version extraction', () => {
+  function rtlFiles() {
+    const { ipYamlText } = parseComponentXmlText(FILESETS_VHDL_VERSION_XML);
+    const doc = parseYaml(ipYamlText) as {
+      fileSets: Array<{
+        name: string;
+        files: Array<{ path: string; type: string; version?: string }>;
+      }>;
+    };
+    return doc.fileSets.find((f) => f.name === 'RTL_Sources')!.files;
+  }
+
+  it('reads a Vivado-native userFileType-only vhdlSource-2008 marker (with CHECKSUM sibling)', () => {
+    const file = rtlFiles().find((f) => f.path === 'hdl/vivado_2008.vhd');
+    expect(file?.type).toBe('vhdl');
+    expect(file?.version).toBe('2008');
+  });
+
+  it('reads a versioned fileType value (vhdlSource-93)', () => {
+    const file = rtlFiles().find((f) => f.path === 'hdl/versioned_filetype_93.vhd');
+    expect(file?.type).toBe('vhdl');
+    expect(file?.version).toBe('93');
+  });
+
+  it('reads the legacy fileType vhdlSource + userFileType "VHDL 2008" spelling', () => {
+    const file = rtlFiles().find((f) => f.path === 'hdl/legacy_2008.vhd');
+    expect(file?.type).toBe('vhdl');
+    expect(file?.version).toBe('2008');
+  });
+
+  it('leaves version unset for a plain vhdlSource file with no version marker', () => {
+    const file = rtlFiles().find((f) => f.path === 'hdl/plain_93.vhd');
+    expect(file?.type).toBe('vhdl');
+    expect(file?.version).toBeUndefined();
   });
 });
 
