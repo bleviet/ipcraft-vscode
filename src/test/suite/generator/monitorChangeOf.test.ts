@@ -91,6 +91,7 @@ function buildMixedContext() {
         offset: 4,
         access: 'read-write-1-to-clear',
         has_cos_fields: true,
+        has_mixed_fields: true,
         fields: [FIELD_FIFO_OVERFLOW, FIELD_TEMP_VALUE, FIELD_TEMP_UPDATED],
       },
     ],
@@ -125,6 +126,14 @@ function buildMixedContext() {
         val_fields: [FIELD_TEMP_VALUE],
       },
     ],
+    mixed_registers: [
+      {
+        name: 'SENSOR_STATUS',
+        access: 'read-write-1-to-clear',
+        fields: [FIELD_FIFO_OVERFLOW, FIELD_TEMP_VALUE, FIELD_TEMP_UPDATED],
+        val_fields: [FIELD_TEMP_VALUE],
+      },
+    ],
   };
 }
 
@@ -145,6 +154,7 @@ function buildAllCosContext() {
         offset: 0,
         access: 'read-write-1-to-clear',
         has_cos_fields: true,
+        has_mixed_fields: true,
         fields: [FIELD_LEVEL_RO, FIELD_LEVEL_CROSS],
       },
     ],
@@ -170,6 +180,13 @@ function buildAllCosContext() {
         name: 'THRESHOLD',
         fields: [FIELD_LEVEL_RO, FIELD_LEVEL_CROSS],
         cos_fields: [cosField],
+        val_fields: [FIELD_LEVEL_RO],
+      },
+    ],
+    mixed_registers: [
+      {
+        name: 'THRESHOLD',
+        fields: [FIELD_LEVEL_RO, FIELD_LEVEL_CROSS],
         val_fields: [FIELD_LEVEL_RO],
       },
     ],

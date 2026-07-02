@@ -59,6 +59,7 @@ export const addressingResolver: ContextResolver = {
       data_width: dataWidth,
       reg_width: regWidth,
       addr_width: addrWidth,
+      addr_map_size: lastOffsetEnd,
     };
   },
 };

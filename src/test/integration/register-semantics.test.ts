@@ -13,12 +13,6 @@
  * fixture the tutorial's YAML is included from, so this suite is what keeps
  * the tutorial's claims honest as the generator changes.
  *
- * The SystemVerilog run additionally encodes a known generator limitation:
- * SystemVerilog resets all register storage to zero regardless of a field's
- * `resetValue` (ipcraft-vscode#30), while VHDL honors it correctly. That
- * single check is written as `it.failing` — remove `.failing` there once
- * #30 is fixed; Jest will then tell you if it isn't.
- *
  * Skip with SKIP_GHDL=1 / SKIP_IVERILOG=1; each half self-skips when its
  * tool is not on PATH (see tier.ts).
  */
@@ -103,16 +97,9 @@ describe('daq_controller register semantics (behavioral)', () => {
   });
 
   describe('SystemVerilog — Icarus Verilog simulation', () => {
-    // Shared across both `it`s below so the simulation runs exactly once.
-    let checks: Record<string, 'PASS' | 'FAIL'> = {};
-    let simRan = false;
-
-    function runSimOnce(): boolean {
+    it('every access-type idiom behaves as documented', () => {
       if (guardTier1('iverilog', () => toolOnPath('iverilog'))) {
-        return false;
-      }
-      if (simRan) {
-        return true;
+        return;
       }
 
       const fixture = findFixture('examples/daq_controller_sv');
@@ -132,29 +119,10 @@ describe('daq_controller register semantics (behavioral)', () => {
       const run = spawnSync('vvp', [out], { encoding: 'utf8', timeout: 60_000 });
       fs.rmSync(out, { force: true });
 
-      checks = parseChecks(run.stdout + run.stderr);
-      simRan = true;
-      return true;
-    }
-
-    it('every access-type idiom behaves as documented, except the known reset-value gap', () => {
-      if (!runSimOnce()) {
-        return;
-      }
-      const relevant = Object.entries(checks).filter(([name]) => name !== 'CONTROL_RESET');
-      const failed = relevant.filter(([, status]) => status === 'FAIL');
-      expect(relevant.length).toBeGreaterThan(0);
+      const checks = parseChecks(run.stdout + run.stderr);
+      const failed = Object.entries(checks).filter(([, status]) => status === 'FAIL');
+      expect(Object.keys(checks).length).toBeGreaterThan(0);
       expect(failed).toEqual([]);
     });
-
-    it.failing(
-      'honors CONTROL reset value (regression for ipcraft-vscode#30 — remove .failing once fixed)',
-      () => {
-        if (!runSimOnce()) {
-          throw new Error('tool unavailable'); // keep it.failing meaningful even when skipped
-        }
-        expect(checks['CONTROL_RESET']).toBe('PASS');
-      }
-    );
   });
 });

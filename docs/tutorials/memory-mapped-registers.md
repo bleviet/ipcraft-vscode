@@ -190,18 +190,12 @@ registers:
       - { name: PRESCALER, bits: '[15:8]', access: read-write, resetValue: 0x04 }
 ```
 
-!!! warning "Reset values live on fields"
+!!! note "Reset values live on fields"
     The effective reset comes from each field's `resetValue`, assembled into
-    the register's reset constant. Prefer setting `resetValue` on the fields
-    that need a non-zero default rather than relying on the register-level
-    `resetValue`, which the generator does not currently apply.
-
-    Non-zero field reset values are honored correctly in the generated
-    **VHDL**. The **SystemVerilog** generator currently resets all storage to
-    zero regardless of `resetValue` — a known limitation
-    ([ipcraft-vscode#30](https://github.com/bleviet/ipcraft-vscode/issues/30)).
-    Until it is fixed, don't rely on non-zero SystemVerilog reset values in
-    simulation or hardware.
+    the register's reset constant, and is honored correctly in both the
+    generated **VHDL** and **SystemVerilog**. A register-level `resetValue`
+    is also honored, but only for a register with no fields at all — it does
+    not fill the gaps between fields in a register that has some.
 
 ---
 
@@ -369,18 +363,11 @@ This exact `LINK_STATUS` pattern is in the `daq_controller` fixture (at
 offset `0x50`) and is verified behaviorally: changing `SPEED` auto-sets
 `SPEED_CHANGED` with no external pulse, and a write of `1` clears it.
 
-!!! warning "Shadow register has no explicit reset"
-    The internal shadow register that backs `monitorChangeOf` is not reset
-    by `rst` in either generated language, and its *simulation* initial
-    value differs between them: VHDL happens to initialize it to `0`;
-    SystemVerilog does not initialize it at all, so simulators start it as
-    unknown (`X`), which the comparator treats as a mismatch — causing a
-    spurious one-cycle change-of-state event immediately after reset in
-    SystemVerilog builds
-    ([ipcraft-vscode#33](https://github.com/bleviet/ipcraft-vscode/issues/33)).
-    Neither language guarantees a defined power-up state on real hardware
-    either. Until this is fixed, read and clear a `monitorChangeOf` flag
-    once after reset before relying on its steady-state value.
+!!! note "Shadow register reset"
+    The internal shadow register that backs `monitorChangeOf` is synchronously
+    reset by `rst` in both generated languages, initialized to the monitored
+    field's own `resetValue`. The first post-reset comparison is therefore
+    always a match — no spurious change-of-state event on either language.
 
 ---
 
@@ -496,18 +483,14 @@ to the register width.
 
 ### Alignment guidance
 
-!!! warning "Keep register blocks contiguous and word-aligned"
-    Author registers so that consecutive registers sit at consecutive word
-    offsets (`0x00`, `0x04`, `0x08`, …) and array `stride` matches the packed
-    size of the group. For 32-bit registers, use a 4-byte stride per word.
-
-    The generated RTL currently decodes register addresses by **declaration
-    order**, not by each register's `offset` — a non-contiguous gap is
-    silently collapsed, and the RTL will disagree with the address the
-    generated `component.xml` reports for the register after the gap
-    ([ipcraft-vscode#29](https://github.com/bleviet/ipcraft-vscode/issues/29)).
-    Until that is fixed, contiguous, word-aligned layout is not just tidy —
-    it is required for the RTL and the IP-XACT metadata to agree.
+!!! note "Addresses are decoded from each register's offset"
+    The generated RTL decodes register addresses from each register's
+    resolved `offset`, matching the address the generated `component.xml`
+    reports — non-contiguous layouts (reserved gaps, hand-chosen addresses)
+    work correctly. Even so, prefer keeping register blocks contiguous and
+    word-aligned (consecutive offsets `0x00`, `0x04`, `0x08`, …, with array
+    `stride` matching the packed size of the group) — it keeps the map easy
+    to read and avoids wasting address space.
 
 ---
 
@@ -637,13 +620,10 @@ and verified on every test run:
   arbitration), write-self-clearing (not readable) and readable
   read-write-self-clearing, register-array addressing, and the CoS shadow
   register auto-setting on a real change and clearing on a software write
-  (`src/test/integration/register-semantics.test.ts`). Two known generator
-  gaps are encoded as expected outcomes rather than hidden: the SystemVerilog
-  reset-value gap ([#30](https://github.com/bleviet/ipcraft-vscode/issues/30))
-  is an explicit `it.failing`, and the CoS shadow register's missing reset
-  ([#33](https://github.com/bleviet/ipcraft-vscode/issues/33)) is worked
-  around with a documented defensive clear. This page will stop warning
-  about either the moment its issue is fixed.
+  (`src/test/integration/register-semantics.test.ts`). A companion suite
+  (`src/test/integration/mixed-and-multibit.test.ts`) covers the same
+  idioms at multi-bit field widths, plus a hardware-driven read-only field
+  mixed into an otherwise SW-writable register with no `monitorChangeOf`.
 
 If you change the `daq_controller` memory map to try something from this
 tutorial yourself, these are the tests that will tell you whether the
@@ -656,7 +636,7 @@ generator still agrees with what is written here.
 - [ ] Split responsibilities: component in `.ip.yml`, layout in `.mm.yml`, linked by `memoryMapRef` + `memoryMaps.import`.
 - [ ] Give each `register` block a `baseAddress` and keep its registers contiguous and word-aligned.
 - [ ] Choose the access type per field from the seven-type table — it is the single most consequential decision.
-- [ ] Set `resetValue` on the fields that need a non-zero default (VHDL honors it today; SystemVerilog does not yet — [#30](https://github.com/bleviet/ipcraft-vscode/issues/30)).
+- [ ] Set `resetValue` on the fields that need a non-zero default (honored in both VHDL and SystemVerilog).
 - [ ] Use `read-write-1-to-clear` for readable interrupt flags; `write-self-clearing` for one-shot commands.
 - [ ] Reach for `count`/`stride` register arrays instead of copy-pasting per-channel registers.
 - [ ] Model RAM/FIFO windows as `usage: memory` blocks; pad with `usage: reserved`.

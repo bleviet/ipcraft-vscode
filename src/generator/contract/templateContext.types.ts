@@ -18,12 +18,20 @@ export interface TemplateContext {
   data_width: number;
   addr_width: number;
   reg_width: number;
+  /**
+   * Exclusive upper bound, in bytes, of the mapped register address space (one past the last register's byte offset).
+   */
+  addr_map_size: number;
   registers: AnnotatedRegister[];
   sw_registers: Register[];
   hw_registers: Register[];
   w1c_registers: W1CRegister[];
   sc_registers: Register[];
   cos_registers: CosRegister[];
+  /**
+   * Registers needing per-field read composition because they mix SW-writable fields with hardware-driven read-only fields (a superset of cos_registers).
+   */
+  mixed_registers: MixedRegister[];
   generics: Generic[];
   xgui_pages: XguiPage[];
   user_ports: UserPort[];
@@ -60,8 +68,13 @@ export interface AnnotatedRegister {
   offset: number;
   access: string;
   description: string;
+  reset_value: number | null;
   fields: Field[];
   has_cos_fields: boolean;
+  /**
+   * True when this register needs per-field read composition (appears in mixed_registers), whether or not it also uses monitorChangeOf.
+   */
+  has_mixed_fields: boolean;
 }
 export interface Field {
   name: string;
@@ -77,6 +90,7 @@ export interface Register {
   offset: number;
   access: string;
   description: string;
+  reset_value: number | null;
   fields: Field[];
 }
 export interface W1CRegister {
@@ -84,6 +98,7 @@ export interface W1CRegister {
   offset: number;
   access: string;
   description: string;
+  reset_value: number | null;
   fields: W1CField[];
 }
 export interface W1CField {
@@ -101,6 +116,7 @@ export interface CosRegister {
   offset: number;
   access: string;
   description: string;
+  reset_value: number | null;
   fields: Field[];
   cos_fields: CosField[];
   val_fields: Field[];
@@ -114,6 +130,18 @@ export interface CosField {
   description: string;
   monitorChangeOf: string | null;
   monitored_field: Field;
+}
+export interface MixedRegister {
+  name: string;
+  offset: number;
+  access: string;
+  description: string;
+  reset_value: number | null;
+  fields: Field[];
+  /**
+   * Hardware-driven read-only fields sourced from regs_in.<reg>_val at read time instead of internal SW storage.
+   */
+  val_fields: Field[];
 }
 export interface Generic {
   name: string;

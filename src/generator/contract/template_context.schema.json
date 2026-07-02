@@ -13,12 +13,14 @@
     "data_width",
     "addr_width",
     "reg_width",
+    "addr_map_size",
     "registers",
     "sw_registers",
     "hw_registers",
     "w1c_registers",
     "sc_registers",
     "cos_registers",
+    "mixed_registers",
     "generics",
     "xgui_pages",
     "user_ports",
@@ -54,6 +56,11 @@
     "data_width": { "type": "integer", "minimum": 1 },
     "addr_width": { "type": "integer", "minimum": 1 },
     "reg_width": { "type": "integer", "minimum": 1 },
+    "addr_map_size": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Exclusive upper bound, in bytes, of the mapped register address space (one past the last register's byte offset)."
+    },
 
     "registers": { "type": "array", "items": { "$ref": "#/definitions/AnnotatedRegister" } },
     "sw_registers": { "type": "array", "items": { "$ref": "#/definitions/Register" } },
@@ -61,6 +68,11 @@
     "w1c_registers": { "type": "array", "items": { "$ref": "#/definitions/W1cRegister" } },
     "sc_registers": { "type": "array", "items": { "$ref": "#/definitions/Register" } },
     "cos_registers": { "type": "array", "items": { "$ref": "#/definitions/CosRegister" } },
+    "mixed_registers": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/MixedRegister" },
+      "description": "Registers needing per-field read composition because they mix SW-writable fields with hardware-driven read-only fields (a superset of cos_registers)."
+    },
 
     "generics": { "type": "array", "items": { "$ref": "#/definitions/Generic" } },
     "xgui_pages": { "type": "array", "items": { "$ref": "#/definitions/XguiPage" } },
@@ -135,27 +147,33 @@
     },
     "Register": {
       "type": "object",
-      "required": ["name", "offset", "access", "description", "fields"],
+      "required": ["name", "offset", "access", "description", "reset_value", "fields"],
       "additionalProperties": false,
       "properties": {
         "name": { "type": "string" },
         "offset": { "type": "integer" },
         "access": { "type": "string" },
         "description": { "type": "string" },
+        "reset_value": { "type": ["integer", "null"] },
         "fields": { "type": "array", "items": { "$ref": "#/definitions/Field" } }
       }
     },
     "AnnotatedRegister": {
       "type": "object",
-      "required": ["name", "offset", "access", "description", "fields", "has_cos_fields"],
+      "required": ["name", "offset", "access", "description", "reset_value", "fields", "has_cos_fields", "has_mixed_fields"],
       "additionalProperties": false,
       "properties": {
         "name": { "type": "string" },
         "offset": { "type": "integer" },
         "access": { "type": "string" },
         "description": { "type": "string" },
+        "reset_value": { "type": ["integer", "null"] },
         "fields": { "type": "array", "items": { "$ref": "#/definitions/Field" } },
-        "has_cos_fields": { "type": "boolean" }
+        "has_cos_fields": { "type": "boolean" },
+        "has_mixed_fields": {
+          "type": "boolean",
+          "description": "True when this register needs per-field read composition (appears in mixed_registers), whether or not it also uses monitorChangeOf."
+        }
       }
     },
     "W1cField": {
@@ -175,13 +193,14 @@
     },
     "W1cRegister": {
       "type": "object",
-      "required": ["name", "offset", "access", "description", "fields"],
+      "required": ["name", "offset", "access", "description", "reset_value", "fields"],
       "additionalProperties": false,
       "properties": {
         "name": { "type": "string" },
         "offset": { "type": "integer" },
         "access": { "type": "string" },
         "description": { "type": "string" },
+        "reset_value": { "type": ["integer", "null"] },
         "fields": { "type": "array", "items": { "$ref": "#/definitions/W1cField" } }
       }
     },
@@ -202,16 +221,35 @@
     },
     "CosRegister": {
       "type": "object",
-      "required": ["name", "offset", "access", "description", "fields", "cos_fields", "val_fields"],
+      "required": ["name", "offset", "access", "description", "reset_value", "fields", "cos_fields", "val_fields"],
       "additionalProperties": false,
       "properties": {
         "name": { "type": "string" },
         "offset": { "type": "integer" },
         "access": { "type": "string" },
         "description": { "type": "string" },
+        "reset_value": { "type": ["integer", "null"] },
         "fields": { "type": "array", "items": { "$ref": "#/definitions/Field" } },
         "cos_fields": { "type": "array", "items": { "$ref": "#/definitions/CosField" } },
         "val_fields": { "type": "array", "items": { "$ref": "#/definitions/Field" } }
+      }
+    },
+    "MixedRegister": {
+      "type": "object",
+      "required": ["name", "offset", "access", "description", "reset_value", "fields", "val_fields"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "offset": { "type": "integer" },
+        "access": { "type": "string" },
+        "description": { "type": "string" },
+        "reset_value": { "type": ["integer", "null"] },
+        "fields": { "type": "array", "items": { "$ref": "#/definitions/Field" } },
+        "val_fields": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/Field" },
+          "description": "Hardware-driven read-only fields sourced from regs_in.<reg>_val at read time instead of internal SW storage."
+        }
       }
     },
     "Generic": {

@@ -167,12 +167,10 @@ begin
 
     -- Change-of-state: LINK_STATUS.SPEED_CHANGED auto-sets when SPEED changes,
     -- with no external pulse port -- the generator builds an internal shadow
-    -- register + comparator. The shadow register has no explicit synchronous
-    -- reset (ipcraft-vscode#33); VHDL's shadow happens to initialize to 0 in
-    -- simulation (unlike SystemVerilog's, which powers up unknown), so this
-    -- defensive clear is a harmless no-op here -- kept for symmetry with the
-    -- SV testbench, which genuinely needs it.
-    bus_write(16#50#, x"00000100");
+    -- register + comparator. The shadow register is synchronously reset to
+    -- SPEED's own reset value (ipcraft-vscode#33), so the first post-reset
+    -- read must show no spurious change-of-state event -- no defensive
+    -- write-1-to-clear needed here.
     bus_read(16#50#);
     chk("COS_initial", rd_data, x"00000000");
     regs_in.link_status_val.speed <= "0101"; -- change SPEED from 0 to 5

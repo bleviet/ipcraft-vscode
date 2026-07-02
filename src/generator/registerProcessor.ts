@@ -459,6 +459,7 @@ export async function prepareRegisters(
       offset: currentOffset,
       access: regAccess,
       description: reg.description ?? '',
+      reset_value: reg.resetValue,
       fields,
     });
   };

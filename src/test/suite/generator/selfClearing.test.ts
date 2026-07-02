@@ -207,10 +207,13 @@ describe('self-clearing access types', () => {
       expect(clearAt).toBeLessThan(setAt);
     });
 
-    it('generates a per-bit clear loop for a multi-bit SC field', () => {
-      expect(regs).toContain('for (int i = 0; i < 4; i++) begin');
-      expect(regs).toContain('if (regs_in.dma_ctrl_clear.chan_clear[i]) begin');
-      expect(regs).toContain("regs.dma_ctrl.chan[i] <= 1'b0;");
+    it('generates a whole-field masked clear for a multi-bit SC field (no variable index into a struct member, which Icarus Verilog rejects)', () => {
+      expect(regs).toContain('regs.dma_ctrl.chan <=');
+      expect(regs).toContain('| ((wr_en && wr_addr == REG_DMA_CTRL_ADDR)');
+      expect(regs).toContain('& ~regs_in.dma_ctrl_clear.chan_clear;');
+      expect(regs).not.toMatch(
+        /for \(int i = 0; i < 4; i\+\+\) begin\s*\n\s*if \(regs_in\.dma_ctrl_clear/
+      );
     });
   });
 });

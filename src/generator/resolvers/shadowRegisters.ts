@@ -21,6 +21,7 @@ export interface ShadowRegisterResult {
   w1c_registers: Array<Record<string, unknown>>;
   sc_registers: Array<Record<string, unknown>>;
   cos_registers: Array<Record<string, unknown>>;
+  mixed_registers: Array<Record<string, unknown>>;
   registers: Array<Record<string, unknown>>;
 }
 
@@ -121,6 +122,58 @@ export function buildShadowRegisters(
     cosRegisters.map((r) => getString((r as Record<string, unknown>).name))
   );
 
+  // A register needs per-field read composition (a "_val" struct sourced from
+  // regs_in for its RO fields at read time) whenever it mixes SW-writable
+  // fields with hardware-driven RO fields — not just when it uses
+  // monitorChangeOf. cos_registers is always a subset: a CoS-monitored field
+  // is (per validateShadowRegisters) read alongside the W1C flag field that
+  // watches it, so the monitored register is inherently mixed too.
+  const mixedRegNames = new Set<string>();
+  for (const reg of swRegisters) {
+    const fields = (reg.fields as Array<Record<string, unknown>>) ?? [];
+    if (fields.some((f) => hwAccess.has(getString(f.access) || 'read-write'))) {
+      mixedRegNames.add(getString(reg.name));
+    }
+  }
+  for (const name of cosRegNames) {
+    mixedRegNames.add(name);
+  }
+
+  const cosValFieldsByName = new Map<string, Array<Record<string, unknown>>>();
+  for (const reg of cosRegisters) {
+    const r = reg as Record<string, unknown>;
+    cosValFieldsByName.set(
+      getString(r.name),
+      (r.val_fields as Array<Record<string, unknown>>) ?? []
+    );
+  }
+
+  const mixedRegisters = registers
+    .filter((reg) => mixedRegNames.has(getString(reg.name)))
+    .map((reg) => {
+      const fields = (reg.fields as Array<Record<string, unknown>>) ?? [];
+      const roFields = fields.filter((f) => hwAccess.has(getString(f.access) || 'read-write'));
+      const cosValFields = cosValFieldsByName.get(getString(reg.name)) ?? [];
+      const seen = new Set<string>();
+      const valFields: Array<Record<string, unknown>> = [];
+      for (const f of [...roFields, ...cosValFields]) {
+        const n = getString(f.name);
+        if (!seen.has(n)) {
+          seen.add(n);
+          valFields.push(f);
+        }
+      }
+      return {
+        name: reg.name,
+        offset: reg.offset,
+        access: reg.access,
+        description: reg.description,
+        reset_value: reg.reset_value,
+        fields: reg.fields,
+        val_fields: valFields,
+      };
+    });
+
   const annotatedW1cRegisters = w1cRegisters.map((reg) => {
     const fields = (reg.fields as Array<Record<string, unknown>>) ?? [];
     return {
@@ -135,6 +188,7 @@ export function buildShadowRegisters(
   const annotatedRegisters = registers.map((reg) => ({
     ...reg,
     has_cos_fields: cosRegNames.has(getString(reg.name)),
+    has_mixed_fields: mixedRegNames.has(getString(reg.name)),
   }));
 
   return {
@@ -144,6 +198,7 @@ export function buildShadowRegisters(
     w1c_registers: annotatedW1cRegisters,
     sc_registers: scRegisters,
     cos_registers: cosRegisters,
+    mixed_registers: mixedRegisters,
   };
 }
 

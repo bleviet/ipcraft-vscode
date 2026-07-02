@@ -97,15 +97,59 @@ module {{ entity_name }}_regs
 {% endfor %}
 {% endif %}
 
+{% set multibit_arb_flds = [] %}
+{% for reg in w1c_registers %}
+{% set ext_flds = reg.fields | selectattr('access', 'in', ['write-1-to-clear', 'read-write-1-to-clear']) | selectattr('is_cos', 'equalto', false) %}
+{% for field in ext_flds %}
+{% if field.width > 1 %}
+{% set _ = multibit_arb_flds.push(field) %}
+{% endif %}
+{% endfor %}
+{% endfor %}
+{% for reg in sc_registers %}
+{% set sc_flds = reg.fields | selectattr('access', 'in', ['write-self-clearing', 'read-write-self-clearing']) %}
+{% for field in sc_flds %}
+{% if field.width > 1 %}
+{% set _ = multibit_arb_flds.push(field) %}
+{% endif %}
+{% endfor %}
+{% endfor %}
+{% for reg in cos_registers %}
+{% for cf in reg.cos_fields %}
+{% if cf.width > 1 %}
+{% set _ = multibit_arb_flds.push(cf) %}
+{% endif %}
+{% endfor %}
+{% endfor %}
   ////////////////////////////////////////////////////////////////////////////
   // Write Process
   ////////////////////////////////////////////////////////////////////////////
   always_ff @(posedge clk) begin : p_write
     if (rst) begin
 {% if sw_registers | length > 0 %}
-      regs <= '0;
+      regs <= C_REGS_SW2HW_RESET;
+{% endif %}
+{% if cos_registers | length %}
+      // Shadow registers reset to the monitored field's own reset value, so
+      // the first post-reset comparison is always a match (no spurious
+      // change-of-state event; also removes the undefined-power-up-state
+      // risk on real hardware, since this is now an explicit sync reset).
+{% for reg in cos_registers %}
+{% for cf in reg.cos_fields %}
+      {{ reg.name | lower }}_{{ cf.monitored_field.name | lower }}_shadow <= {{ cf.monitored_field.reset_value | default(0) }};
+{% endfor %}
+{% endfor %}
 {% endif %}
     end else begin
+{% if multibit_arb_flds | length %}
+      // Function calls cannot be part-selected directly (e.g. f(...)[3:0]) on
+      // all tools (Icarus Verilog); compute once into a temp variable instead.
+      // wr_data/wr_strb-strobed, zero-based -- byte lanes not covered by
+      // wr_strb read as 0, so any field slice below is exactly the bits the
+      // current write actually targets, or all-zero when wr_en is low.
+      logic [C_DATA_WIDTH-1:0] v_wstrb_masked;
+      v_wstrb_masked = apply_wstrb('0, wr_data, wr_strb);
+{% endif %}
 {% if cos_registers | length %}
       // Shadow register updates (capture monitored field values every clock)
 {% for reg in cos_registers %}
@@ -124,19 +168,22 @@ module {{ entity_name }}_regs
 {% if field.width == 1 %}
       if (regs_in.{{ reg.name | lower }}_pulse.{{ field.name | lower }}_pulse) begin
         regs.{{ reg.name | lower }}.{{ field.name | lower }} <= 1'b1;
-      end else if (wr_en && wr_addr[C_ADDR_WIDTH-1:2] == REG_{{ reg.name | upper }}_ADDR
+      end else if (wr_en && wr_addr == REG_{{ reg.name | upper }}_ADDR
                    && wr_strb[{{ (field.offset / 8) | int }}] && wr_data[{{ field.offset }}]) begin
         regs.{{ reg.name | lower }}.{{ field.name | lower }} <= 1'b0;
       end
 {% else %}
-      for (int i = 0; i < {{ field.width }}; i++) begin
-        if (regs_in.{{ reg.name | lower }}_pulse.{{ field.name | lower }}_pulse[i]) begin
-          regs.{{ reg.name | lower }}.{{ field.name | lower }}[i] <= 1'b1;
-        end else if (wr_en && wr_addr[C_ADDR_WIDTH-1:2] == REG_{{ reg.name | upper }}_ADDR
-                     && wr_strb[({{ field.offset }} + i) / 8] && wr_data[{{ field.offset }} + i]) begin
-          regs.{{ reg.name | lower }}.{{ field.name | lower }}[i] <= 1'b0;
-        end
-      end
+      // Whole-field vectorized form: a variable-indexed bit-select into a
+      // packed-struct member (e.g. regs.reg.field[i]) is rejected by Icarus
+      // Verilog inside a for-loop, so this composes the new value with masks
+      // instead. Hardware-set has priority: clear is applied first, then the
+      // hardware pulse mask is OR'd in.
+      regs.{{ reg.name | lower }}.{{ field.name | lower }} <=
+        (regs.{{ reg.name | lower }}.{{ field.name | lower }}
+         & ~((wr_en && wr_addr == REG_{{ reg.name | upper }}_ADDR)
+             ? v_wstrb_masked[{{ field.offset + field.width - 1 }}:{{ field.offset }}]
+             : '0))
+        | regs_in.{{ reg.name | lower }}_pulse.{{ field.name | lower }}_pulse;
 {% endif %}
 {% endfor %}
 {% endfor %}
@@ -150,19 +197,19 @@ module {{ entity_name }}_regs
 {% if field.width == 1 %}
       if (regs_in.{{ reg.name | lower }}_clear.{{ field.name | lower }}_clear) begin
         regs.{{ reg.name | lower }}.{{ field.name | lower }} <= 1'b0;
-      end else if (wr_en && wr_addr[C_ADDR_WIDTH-1:2] == REG_{{ reg.name | upper }}_ADDR
+      end else if (wr_en && wr_addr == REG_{{ reg.name | upper }}_ADDR
                    && wr_strb[{{ (field.offset / 8) | int }}] && wr_data[{{ field.offset }}]) begin
         regs.{{ reg.name | lower }}.{{ field.name | lower }} <= 1'b1;
       end
 {% else %}
-      for (int i = 0; i < {{ field.width }}; i++) begin
-        if (regs_in.{{ reg.name | lower }}_clear.{{ field.name | lower }}_clear[i]) begin
-          regs.{{ reg.name | lower }}.{{ field.name | lower }}[i] <= 1'b0;
-        end else if (wr_en && wr_addr[C_ADDR_WIDTH-1:2] == REG_{{ reg.name | upper }}_ADDR
-                     && wr_strb[({{ field.offset }} + i) / 8] && wr_data[{{ field.offset }} + i]) begin
-          regs.{{ reg.name | lower }}.{{ field.name | lower }}[i] <= 1'b1;
-        end
-      end
+      // Whole-field vectorized form (see W1C arbitration above for why): hardware-clear
+      // has priority over a concurrent CPU set.
+      regs.{{ reg.name | lower }}.{{ field.name | lower }} <=
+        (regs.{{ reg.name | lower }}.{{ field.name | lower }}
+         | ((wr_en && wr_addr == REG_{{ reg.name | upper }}_ADDR)
+            ? v_wstrb_masked[{{ field.offset + field.width - 1 }}:{{ field.offset }}]
+            : '0))
+        & ~regs_in.{{ reg.name | lower }}_clear.{{ field.name | lower }}_clear;
 {% endif %}
 {% endfor %}
 {% endfor %}
@@ -174,25 +221,26 @@ module {{ entity_name }}_regs
 {% if cf.width == 1 %}
       if ({{ reg.name | lower }}_{{ cf.name | lower }}_cos) begin
         regs.{{ reg.name | lower }}.{{ cf.name | lower }} <= 1'b1;
-      end else if (wr_en && wr_addr[C_ADDR_WIDTH-1:2] == REG_{{ reg.name | upper }}_ADDR
+      end else if (wr_en && wr_addr == REG_{{ reg.name | upper }}_ADDR
                    && wr_strb[{{ (cf.offset / 8) | int }}] && wr_data[{{ cf.offset }}]) begin
         regs.{{ reg.name | lower }}.{{ cf.name | lower }} <= 1'b0;
       end
 {% else %}
-      for (int i = 0; i < {{ cf.width }}; i++) begin
-        if ({{ reg.name | lower }}_{{ cf.name | lower }}_cos) begin
-          regs.{{ reg.name | lower }}.{{ cf.name | lower }}[i] <= 1'b1;
-        end else if (wr_en && wr_addr[C_ADDR_WIDTH-1:2] == REG_{{ reg.name | upper }}_ADDR
-                     && wr_strb[({{ cf.offset }} + i) / 8] && wr_data[{{ cf.offset }} + i]) begin
-          regs.{{ reg.name | lower }}.{{ cf.name | lower }}[i] <= 1'b0;
-        end
-      end
+      // Whole-field vectorized form (see W1C arbitration above for why): the CoS
+      // pulse is a single bit, replicated as an all-ones/all-zeros mask across
+      // the field so hardware-set still has priority over a concurrent CPU clear.
+      regs.{{ reg.name | lower }}.{{ cf.name | lower }} <=
+        (regs.{{ reg.name | lower }}.{{ cf.name | lower }}
+         & ~((wr_en && wr_addr == REG_{{ reg.name | upper }}_ADDR)
+             ? v_wstrb_masked[{{ cf.offset + cf.width - 1 }}:{{ cf.offset }}]
+             : '0))
+        | ({{ reg.name | lower }}_{{ cf.name | lower }}_cos ? '1 : '0);
 {% endif %}
 {% endfor %}
 {% endfor %}
 {% endif %}
       if (wr_en) begin
-        unique case (wr_addr[C_ADDR_WIDTH-1:2])
+        unique case (wr_addr)
 {% for reg in registers %}
 {% if reg.access in ['read-write', 'write-only', 'rw', 'wo', 'read_write', 'write_only'] %}
 {% set blocked_flds = reg.fields | selectattr('access', 'in', ['write-1-to-clear', 'read-write-1-to-clear', 'write-self-clearing', 'read-write-self-clearing', 'read-only', 'ro']) %}
@@ -229,9 +277,9 @@ module {{ entity_name }}_regs
       rd_valid_int <= 1'b0;
     end else if (rd_en) begin
       rd_valid_int <= 1'b1;
-      unique case (rd_addr[C_ADDR_WIDTH-1:2])
+      unique case (rd_addr)
 {% for reg in registers %}
-{% if not reg.has_cos_fields %}
+{% if not reg.has_mixed_fields %}
 {% if reg.access in ['read-only', 'ro', 'read_only'] %}
         REG_{{ reg.name | upper }}_ADDR: rd_data_int <= pack_{{ reg.name | lower }}(regs_in.{{ reg.name | lower }});
 {% elif reg.access in ['read-write', 'rw', 'read_write', 'read-write-1-to-clear', 'read-write-self-clearing'] %}
@@ -239,7 +287,7 @@ module {{ entity_name }}_regs
 {% endif %}
 {% endif %}
 {% endfor %}
-{% for reg in cos_registers %}
+{% for reg in mixed_registers %}
         REG_{{ reg.name | upper }}_ADDR: begin
           begin : blk_rd_{{ reg.name | lower }}
             logic [C_DATA_WIDTH-1:0] v;

@@ -69,9 +69,6 @@ module tb_daq_regs;
     @(posedge clk); rst = 0;
 
     // CONTROL reset value: enable=0, mode=1, irq_en=0, prescaler=4 => 0x0000_0402
-    // NOTE: SystemVerilog currently resets all storage to 0 regardless of
-    // resetValue (ipcraft-vscode#30). This check is expected to FAIL until
-    // that is fixed — see register-semantics.test.ts.
     bus_read('h00, rv);
     check("CONTROL_RESET", rv, 32'h0000_0402);
 
@@ -144,14 +141,10 @@ module tb_daq_regs;
 
     // Change-of-state: LINK_STATUS.SPEED_CHANGED auto-sets when SPEED changes,
     // with no external pulse port -- the generator builds an internal shadow
-    // register + comparator. The shadow register has no explicit synchronous
-    // reset (ipcraft-vscode#33): in SystemVerilog simulation it powers up as
-    // 'X, which the !== comparator treats as a mismatch against SPEED's
-    // known value, spuriously setting SPEED_CHANGED for one cycle after
-    // reset. Clear it defensively before asserting the steady-state
-    // contract; VHDL does not need this (its shadow happens to initialize
-    // to 0 in simulation) but the write is a harmless no-op there.
-    bus_write('h50, 32'h0000_0100);
+    // register + comparator. The shadow register is synchronously reset to
+    // SPEED's own reset value (ipcraft-vscode#33), so the first post-reset
+    // read must show no spurious change-of-state event -- no defensive
+    // write-1-to-clear needed here.
     bus_read('h50, rv);
     check("COS_initial", rv, 32'h0000_0000);
     regs_in_next.link_status_val.speed = 4'h5; // change SPEED from 0 to 5

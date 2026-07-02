@@ -18,10 +18,11 @@ package {{ entity_name }}_pkg;
 
 {% if registers | length %}
   ////////////////////////////////////////////////////////////////////////////
-  // Register Address Map (word index)
+  // Register Address Map (byte offset, matches the resolved memory map and
+  // the generated component.xml -- never derived from declaration order)
   ////////////////////////////////////////////////////////////////////////////
 {% for reg in registers %}
-  localparam logic [C_ADDR_WIDTH-3:0] REG_{{ reg.name | upper }}_ADDR = {{ loop.index0 }};  // byte offset {{ "0x%02X" | format(loop.index0 * reg_width | default(4)) }}
+  localparam logic [C_ADDR_WIDTH-1:0] REG_{{ reg.name | upper }}_ADDR = {{ reg.offset }};  // addr {{ "0x%02X" | format(reg.offset) }}
 {% endfor %}
 
 {% endif %}
@@ -41,6 +42,13 @@ package {{ entity_name }}_pkg;
 {% endif %}
 {% endfor %}
   } {{ reg.name | lower }}_t;
+
+  // {{ reg.name }} reset value
+  localparam {{ reg.name | lower }}_t C_REG_{{ reg.name | upper }}_RESET = '{
+{% for field in reg.fields %}
+    {{ field.reset_value | default(0) }}{{ "," if not loop.last else "" }}
+{% endfor %}
+  };
 
   // Pack {{ reg.name }} fields into a 32-bit bus word
   function automatic logic [C_DATA_WIDTH-1:0] pack_{{ reg.name | lower }}(input {{ reg.name | lower }}_t reg_in);
@@ -115,18 +123,20 @@ package {{ entity_name }}_pkg;
 {% endif %}
 {% endfor %}
 {% endif %}
-{% if cos_registers | length %}
-  // CoS value-port struct types (live hardware values for change-of-state monitoring)
-{% for reg in cos_registers %}
+{% if mixed_registers | length %}
+  // Hardware-driven value-port struct types: live values for read-only fields
+  // mixed into an otherwise SW-writable register (includes CoS-monitored
+  // fields, which are always mixed by construction).
+{% for reg in mixed_registers %}
 {% if reg.val_fields | length %}
 
-  // {{ reg.name }} monitored field values
+  // {{ reg.name }} hardware-driven field values
   typedef struct packed {
 {% for field in reg.val_fields %}
 {% if field.width == 1 %}
-    logic        {{ field.name | lower }};  // monitored by CoS field in {{ reg.name }}
+    logic        {{ field.name | lower }};  // hardware-driven, read-only in {{ reg.name }}
 {% else %}
-    logic [{{ field.width - 1 }}:0] {{ field.name | lower }};  // monitored by CoS field in {{ reg.name }}
+    logic [{{ field.width - 1 }}:0] {{ field.name | lower }};  // hardware-driven, read-only in {{ reg.name }}
 {% endif %}
 {% endfor %}
   } {{ reg.name | lower }}_val_t;
@@ -146,6 +156,12 @@ package {{ entity_name }}_pkg;
 {% endfor %}
   } regs_sw2hw_t;
 
+  localparam regs_sw2hw_t C_REGS_SW2HW_RESET = '{
+{% for reg in sw_registers %}
+    C_REG_{{ reg.name | upper }}_RESET{{ "," if not loop.last else "" }}
+{% endfor %}
+  };
+
 {% endif %}
 {% set ext_w1c_regs_sv = [] %}
 {% for reg in w1c_registers %}
@@ -154,8 +170,8 @@ package {{ entity_name }}_pkg;
 {% set _ = ext_w1c_regs_sv.push(reg) %}
 {% endif %}
 {% endfor %}
-{% if hw_registers | length or ext_w1c_regs_sv | length or sc_registers | length or cos_registers | length %}
-  // HW -> SW: Status registers (RO) + W1C/SC event pulses + CoS value ports
+{% if hw_registers | length or ext_w1c_regs_sv | length or sc_registers | length or mixed_registers | length %}
+  // HW -> SW: Status registers (RO) + W1C/SC event pulses + hardware-driven value ports
   typedef struct packed {
 {% for reg in hw_registers %}
     {{ reg.name | lower }}_t {{ reg.name | lower }};
@@ -171,9 +187,9 @@ package {{ entity_name }}_pkg;
     {{ reg.name | lower }}_clear_t {{ reg.name | lower }}_clear;  // SC event clear pulses for {{ reg.name }}
 {% endif %}
 {% endfor %}
-{% for reg in cos_registers %}
+{% for reg in mixed_registers %}
 {% if reg.val_fields | length %}
-    {{ reg.name | lower }}_val_t {{ reg.name | lower }}_val;  // live values monitored for CoS in {{ reg.name }}
+    {{ reg.name | lower }}_val_t {{ reg.name | lower }}_val;  // hardware-driven values for {{ reg.name }}
 {% endif %}
 {% endfor %}
   } regs_hw2sw_t;

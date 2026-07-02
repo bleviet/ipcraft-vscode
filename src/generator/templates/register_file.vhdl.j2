@@ -123,8 +123,23 @@ begin
 {% else %}
         null;
 {% endif %}
+{% if cos_registers | length %}
+        -- Shadow registers reset to the monitored field's own reset value, so
+        -- the first post-reset comparison is always a match (no spurious
+        -- change-of-state event; also removes the undefined-power-up-state
+        -- risk on real hardware, since this is now an explicit sync reset).
+{% for reg in cos_registers %}
+{% for cf in reg.cos_fields %}
+{% if cf.monitored_field.width == 1 %}
+        {{ reg.name | lower }}_{{ cf.monitored_field.name | lower }}_shadow <= '{{ cf.monitored_field.reset_value | default(0) }}';
+{% else %}
+        {{ reg.name | lower }}_{{ cf.monitored_field.name | lower }}_shadow <= {{ "(others => '0')" if not cf.monitored_field.reset_value else "std_logic_vector(to_unsigned(" ~ cf.monitored_field.reset_value ~ ", " ~ cf.monitored_field.width ~ "))" }};
+{% endif %}
+{% endfor %}
+{% endfor %}
+{% endif %}
       else
-        v_addr_index := to_integer(unsigned(wr_addr(C_ADDR_WIDTH-1 downto 2)));
+        v_addr_index := to_integer(unsigned(wr_addr(C_ADDR_WIDTH-1 downto 0)));
 
 {% if cos_registers | length %}
         -- Shadow register updates (capture monitored field values every clock)
@@ -144,7 +159,7 @@ begin
 {% if field.width == 1 %}
         if regs_in.{{ reg.name | lower }}_pulse.{{ field.name | lower }}_pulse = '1' then
           regs.{{ reg.name | lower }}.{{ field.name | lower }} <= '1';
-        elsif wr_en = '1' and v_addr_index = t_reg_index'pos(REG_{{ reg.name | upper }})
+        elsif wr_en = '1' and v_addr_index = C_REG_{{ reg.name | upper }}_ADDR
               and wr_strb({{ (field.offset / 8) | int }}) = '1' and wr_data({{ field.offset }}) = '1' then
           regs.{{ reg.name | lower }}.{{ field.name | lower }} <= '0';
         end if;
@@ -152,7 +167,7 @@ begin
         for i in 0 to {{ field.width - 1 }} loop
           if regs_in.{{ reg.name | lower }}_pulse.{{ field.name | lower }}_pulse(i) = '1' then
             regs.{{ reg.name | lower }}.{{ field.name | lower }}(i) <= '1';
-          elsif wr_en = '1' and v_addr_index = t_reg_index'pos(REG_{{ reg.name | upper }})
+          elsif wr_en = '1' and v_addr_index = C_REG_{{ reg.name | upper }}_ADDR
                 and wr_strb(({{ field.offset }} + i) / 8) = '1' and wr_data({{ field.offset }} + i) = '1' then
             regs.{{ reg.name | lower }}.{{ field.name | lower }}(i) <= '0';
           end if;
@@ -171,7 +186,7 @@ begin
 {% if field.width == 1 %}
         if regs_in.{{ reg.name | lower }}_clear.{{ field.name | lower }}_clear = '1' then
           regs.{{ reg.name | lower }}.{{ field.name | lower }} <= '0';
-        elsif wr_en = '1' and v_addr_index = t_reg_index'pos(REG_{{ reg.name | upper }})
+        elsif wr_en = '1' and v_addr_index = C_REG_{{ reg.name | upper }}_ADDR
               and wr_strb({{ (field.offset / 8) | int }}) = '1' and wr_data({{ field.offset }}) = '1' then
           regs.{{ reg.name | lower }}.{{ field.name | lower }} <= '1';
         end if;
@@ -179,7 +194,7 @@ begin
         for i in 0 to {{ field.width - 1 }} loop
           if regs_in.{{ reg.name | lower }}_clear.{{ field.name | lower }}_clear(i) = '1' then
             regs.{{ reg.name | lower }}.{{ field.name | lower }}(i) <= '0';
-          elsif wr_en = '1' and v_addr_index = t_reg_index'pos(REG_{{ reg.name | upper }})
+          elsif wr_en = '1' and v_addr_index = C_REG_{{ reg.name | upper }}_ADDR
                 and wr_strb(({{ field.offset }} + i) / 8) = '1' and wr_data({{ field.offset }} + i) = '1' then
             regs.{{ reg.name | lower }}.{{ field.name | lower }}(i) <= '1';
           end if;
@@ -196,7 +211,7 @@ begin
 {% if cf.width == 1 %}
         if {{ reg.name | lower }}_{{ cf.name | lower }}_cos = '1' then
           regs.{{ reg.name | lower }}.{{ cf.name | lower }} <= '1';
-        elsif wr_en = '1' and v_addr_index = t_reg_index'pos(REG_{{ reg.name | upper }})
+        elsif wr_en = '1' and v_addr_index = C_REG_{{ reg.name | upper }}_ADDR
               and wr_strb({{ (cf.offset / 8) | int }}) = '1' and wr_data({{ cf.offset }}) = '1' then
           regs.{{ reg.name | lower }}.{{ cf.name | lower }} <= '0';
         end if;
@@ -204,7 +219,7 @@ begin
         for i in 0 to {{ cf.width - 1 }} loop
           if {{ reg.name | lower }}_{{ cf.name | lower }}_cos = '1' then
             regs.{{ reg.name | lower }}.{{ cf.name | lower }}(i) <= '1';
-          elsif wr_en = '1' and v_addr_index = t_reg_index'pos(REG_{{ reg.name | upper }})
+          elsif wr_en = '1' and v_addr_index = C_REG_{{ reg.name | upper }}_ADDR
                 and wr_strb(({{ cf.offset }} + i) / 8) = '1' and wr_data({{ cf.offset }} + i) = '1' then
             regs.{{ reg.name | lower }}.{{ cf.name | lower }}(i) <= '0';
           end if;
@@ -219,7 +234,7 @@ begin
 {% for reg in registers %}
 {% if reg.access in ['read-write', 'write-only', 'rw', 'wo', 'read_write', 'write_only'] %}
 {% set blocked_flds = reg.fields | selectattr('access', 'in', ['write-1-to-clear', 'read-write-1-to-clear', 'write-self-clearing', 'read-write-self-clearing', 'read-only', 'ro']) %}
-          when t_reg_index'pos(REG_{{ reg.name | upper }}) =>
+          when C_REG_{{ reg.name | upper }}_ADDR =>
 {% if reg.fields | length %}
 {% if blocked_flds | length %}
             v_wdata := apply_wstrb(to_slv(regs.{{ reg.name | lower }}), wr_data, wr_strb);
@@ -250,7 +265,7 @@ begin
   ----------------------------------------------------------------------------
   p_read : process(clk)
     variable v_addr_index : natural;
-{% if cos_registers | length %}
+{% if mixed_registers | length %}
     variable v_rd_data    : std_logic_vector(C_DATA_WIDTH-1 downto 0);
 {% endif %}
   begin
@@ -261,20 +276,20 @@ begin
         rd_data_int  <= (others => '0');
         rd_valid_int <= '0';
       elsif rd_en = '1' then
-        v_addr_index := to_integer(unsigned(rd_addr(C_ADDR_WIDTH-1 downto 2)));
+        v_addr_index := to_integer(unsigned(rd_addr(C_ADDR_WIDTH-1 downto 0)));
 
         case v_addr_index is
 {% for reg in registers %}
-{% if not reg.has_cos_fields %}
+{% if not reg.has_mixed_fields %}
 {% if reg.access in ['read-only', 'ro', 'read_only'] %}
-          when t_reg_index'pos(REG_{{ reg.name | upper }}) =>
+          when C_REG_{{ reg.name | upper }}_ADDR =>
 {% if reg.fields | length %}
             rd_data_int <= to_slv(regs_in.{{ reg.name | lower }});
 {% else %}
             rd_data_int <= regs_in.{{ reg.name | lower }};
 {% endif %}
 {% elif reg.access in ['read-write', 'rw', 'read_write', 'read-write-1-to-clear', 'read-write-self-clearing'] %}
-          when t_reg_index'pos(REG_{{ reg.name | upper }}) =>
+          when C_REG_{{ reg.name | upper }}_ADDR =>
 {% if reg.fields | length %}
             rd_data_int <= to_slv(regs.{{ reg.name | lower }});
 {% else %}
@@ -283,8 +298,8 @@ begin
 {% endif %}
 {% endif %}
 {% endfor %}
-{% for reg in cos_registers %}
-          when t_reg_index'pos(REG_{{ reg.name | upper }}) =>
+{% for reg in mixed_registers %}
+          when C_REG_{{ reg.name | upper }}_ADDR =>
             v_rd_data := (others => '0');
 {% for field in reg.fields %}
 {% if field.access in ['write-1-to-clear', 'read-write-1-to-clear', 'write-self-clearing', 'read-write-self-clearing'] %}

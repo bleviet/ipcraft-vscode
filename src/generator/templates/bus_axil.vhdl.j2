@@ -9,7 +9,7 @@
 --
 -- Register Map:
 {% for reg in registers %}
---   {{ "0x%04X" | format(loop.index0 * reg_width) }} : {{ reg.name }} ({{ reg.access }})
+--   {{ "0x%04X" | format(reg.offset) }} : {{ reg.name }} ({{ reg.access }})
 {% endfor %}
 --------------------------------------------------------------------------------
 
@@ -293,7 +293,7 @@ begin
         if (write_txn.addr_received = '1' and write_txn.data_received = '1' and bvalid = '0') then
           -- Both address and data received, assert write response
           bvalid <= '1';
-          if to_integer(unsigned(awaddr(C_ADDR_WIDTH-1 downto 2))) < {{ registers | length }} then
+          if to_integer(unsigned(awaddr(C_ADDR_WIDTH-1 downto 0))) < {{ addr_map_size }} then
             bresp <= C_RESP_OKAY;
           else
             bresp <= C_RESP_SLVERR;
@@ -344,7 +344,7 @@ begin
       if rst = '1' then
         rd_invalid_d <= '0';
       else
-        if rd_en = '1' and to_integer(unsigned(rd_addr(C_ADDR_WIDTH-1 downto 2))) >= {{ registers | length }} then
+        if rd_en = '1' and to_integer(unsigned(rd_addr(C_ADDR_WIDTH-1 downto 0))) >= {{ addr_map_size }} then
           rd_invalid_d <= '1';
         else
           rd_invalid_d <= '0';

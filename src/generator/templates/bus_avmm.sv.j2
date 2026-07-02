@@ -7,7 +7,7 @@
 //
 // Register Map:
 {% for reg in registers %}
-//   {{ "0x%04X" | format(loop.index0 * reg_width) }} : {{ reg.name }} ({{ reg.access }})
+//   {{ "0x%04X" | format(reg.offset) }} : {{ reg.name }} ({{ reg.access }})
 {% endfor %}
 ////////////////////////////////////////////////////////////////////////////////
 `timescale 1ns / 1ps

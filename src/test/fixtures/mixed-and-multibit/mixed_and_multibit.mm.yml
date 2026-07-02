@@ -1,0 +1,46 @@
+- name: CSR_MAP
+  description: >
+    Memory map exercising multi-bit W1C/SC/CoS fields (ipcraft-vscode#31) and a
+    plain mixed register with a hardware-driven RO field but no monitorChangeOf
+    (ipcraft-vscode#32).
+  addressBlocks:
+  - name: REGS
+    baseAddress: 0
+    usage: register
+    registers:
+    - name: CTRL_STATUS
+      offset: 0x00
+      description: RW enable bit mixed with a hardware-driven multi-bit RO busy field, no CoS
+      fields:
+      - name: EN
+        bits: '[0:0]'
+        access: read-write
+        resetValue: 1
+      - name: BUSY
+        bits: '[5:2]'
+        access: read-only
+    - name: EVENTS
+      offset: 0x04
+      description: Multi-bit write-1-to-clear event flags
+      fields:
+      - name: FLAGS
+        bits: '[3:0]'
+        access: read-write-1-to-clear
+    - name: CMD
+      offset: 0x08
+      description: Multi-bit self-clearing command triggers
+      fields:
+      - name: TRIGGERS
+        bits: '[3:0]'
+        access: read-write-self-clearing
+    - name: WATCH
+      offset: 0x0C
+      description: Multi-bit change-of-state monitored value with a multi-bit sticky flag
+      fields:
+      - name: VAL
+        bits: '[3:0]'
+        access: read-only
+      - name: CHANGED
+        bits: '[7:4]'
+        access: read-write-1-to-clear
+        monitorChangeOf: VAL
