@@ -1,0 +1,2474 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Visual editor for FPGA IP Core and Memory Map specifications">
+      
+      
+        <meta name="author" content="Le Viet Bach">
+      
+      
+        <link rel="canonical" href="https://bleviet.github.io/ipcraft-vscode/architecture/vivado-interface-catalog/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Vivado Interface Catalog — Architecture - IPCraft for VS Code</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#vivado-interface-catalog-architecture" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="IPCraft for VS Code" class="md-header__button md-logo" aria-label="IPCraft for VS Code" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            IPCraft for VS Code
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Vivado Interface Catalog — Architecture
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/bleviet/ipcraft-vscode" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../getting-started/quickstart/" class="md-tabs__link">
+          
+  
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../tutorials/build-and-verify-a-scaffold-pack/" class="md-tabs__link">
+          
+  
+  
+  Tutorials
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../how-to/vhdl-import/" class="md-tabs__link">
+          
+  
+  
+  How-to Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../concepts/extension-model/" class="md-tabs__link">
+          
+  
+  
+  Concepts
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../overview/" class="md-tabs__link">
+          
+  
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../reference/commands/" class="md-tabs__link">
+          
+  
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../contributing/guidelines/" class="md-tabs__link">
+          
+  
+  
+  Contributing
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../blog/building-ipcraft/" class="md-tabs__link">
+          
+  
+  
+  Blog
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="IPCraft for VS Code" class="md-nav__button md-logo" aria-label="IPCraft for VS Code" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    IPCraft for VS Code
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/bleviet/ipcraft-vscode" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorials
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Tutorials
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/build-and-verify-a-scaffold-pack/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Build and Verify a Scaffold Pack
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/memory-mapped-registers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Memory-Mapped Registers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How-to Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    How-to Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/vhdl-import/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Importing from Existing Files
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/generating-a-project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generating a Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/scaffold-packs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Customising Code Generation (Scaffold Packs)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/building-a-project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building a Project (Headless)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/build-vsix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building a VSIX Package
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/ai-design-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI Design Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Concepts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/extension-model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VS Code Extension Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/yaml-data-flow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YAML Data Flow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/spatial-editing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spatial Editing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/responsive-design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Responsive Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../extension-host/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Extension Host
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../webview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Webview (React)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Commands & Settings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/keyboard-shortcuts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Keyboard Shortcuts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/generator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/ip-core-editor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IP Core Editor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/specification-schemas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Specification Schemas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/bitfield-interaction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bit Field Interaction
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/yaml-libraries/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YAML Libraries
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contributing
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/guidelines/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guidelines
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Blog
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Blog
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../blog/building-ipcraft/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building IPCraft
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#pipeline-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pipeline overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#module-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Module layout
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#vivadointerfacexmlparser" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        VivadoInterfaceXmlParser
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="VivadoInterfaceXmlParser">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#port-extraction-and-the-width-omission-rule" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Port extraction and the width-omission rule
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#vivadointerfacescanner" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        VivadoInterfaceScanner
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="VivadoInterfaceScanner">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#resolvevivadoinstalldir-extraction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        resolveVivadoInstallDir extraction
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-two-merge-points" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The two merge points
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#inspector-ui-fuzzyselect-interfacetypefield" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Inspector UI: FuzzySelect, InterfaceTypeField
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Inspector UI: FuzzySelect, InterfaceTypeField">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#conduitpanels-libraryportdefs-branch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ConduitPanel's libraryPortDefs branch
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mapconduittobusdialog-applymapconduittoknownbus" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MapConduitToBusDialog + applyMapConduitToKnownBus
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-port-widths-filter-bug" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Port Widths filter bug
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#generator-side-fixes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Generator-side fixes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Generator-side fixes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#conduitports-null" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        conduitPorts null → []
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#source-aware-generatecustombusdefs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Source-aware generateCustomBusDefs
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quick-actions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quick Actions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#domain-schema-change" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Domain schema change
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#test-coverage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test coverage
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#see-also" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        See also
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/bleviet/ipcraft-vscode/edit/main/docs/architecture/vivado-interface-catalog.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="vivado-interface-catalog-architecture">Vivado Interface Catalog — Architecture<a class="headerlink" href="#vivado-interface-catalog-architecture" title="Permanent link">&para;</a></h1>
+<p>How a local Vivado installation's IP-XACT interface files become entries in
+IPCraft's bus library, and how the inspector and generator each consume them.</p>
+<p>See <a href="../../concepts/vivado-interface-catalog/">The Vivado Interface Catalog</a>
+for the reasoning behind this design.</p>
+<hr />
+<h2 id="pipeline-overview">Pipeline overview<a class="headerlink" href="#pipeline-overview" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>&lt;vivado&gt;/data/ip/interfaces/**/*.xml         (Vivado&#39;s own IP-XACT files)
+      |
+      v
+VivadoInterfaceXmlParser.parseVivadoInterfaceFiles()
+      |  joins busDefinition + abstractionDefinition pairs by VLNV
+      v
+VivadoInterfaceScanner.scan()
+      |  writes one YAML file per interface, tagged source: &#39;vivado&#39;
+      v
+~/.config/ipcraft/vivado/bus_definitions/*.yml   (global cache, one per machine)
+      |
+      +---------------------------+---------------------------+
+      v                           v                           v
+ImportResolver                IpCoreScaffolder          (re-scan replaces
+(webview bus library)      .ensureBusDefinitions()       the whole cache dir)
+      |                           |
+      v                           v
+CanvasInspector                 generator/
+(Bus Type / Interface Type      VivadoComponentXmlGenerator.ts
+ dropdowns, Port Widths,        (busType/abstractionType + portMaps;
+ Map Signals dialog)             busdef/*.xml generation skipped
+                                  when source === &#39;vivado&#39;)
+</code></pre></div>
+<p>Entry points: <code>src/commands/scanVivadoInterfaces.ts</code> (user-triggered scan),
+<code>src/services/ImportResolver.ts</code> and <code>src/generator/IpCoreScaffolder.ts</code>
+(consumers, on every webview load / generation run).</p>
+<hr />
+<h2 id="module-layout">Module layout<a class="headerlink" href="#module-layout" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>src/parser/
+  VivadoInterfaceXmlParser.ts     parses Vivado&#39;s IP-XACT XML → VivadoInterfaceDef[]
+
+src/services/
+  VivadoInterfaceScanner.ts       walks the install dir, writes the YAML cache
+  ImportResolver.ts               (changed) merges the cache into the webview bus library
+  BusLibraryService.ts            (unchanged) generic YAML-directory loader, reused as-is
+
+src/utils/
+  vivadoResolver.ts               (changed) resolveVivadoInstallDir() extracted for reuse
+
+src/commands/
+  scanVivadoInterfaces.ts         &quot;Scan Vivado Interface Catalog&quot; command
+
+src/generator/
+  IpCoreScaffolder.ts             (changed) ensureBusDefinitions() merges the cache
+  VivadoComponentXmlGenerator.ts  (changed) source-aware generateCustomBusDefs()
+  registerProcessor.ts            (changed) conduitPorts null → [] in expandBusInterfaces
+  types.ts                        (changed) BusDefinition.source, CustomBusInfo.source
+
+src/webview/ipcore/
+  components/canvas/CanvasInspector.tsx        (changed) FuzzySelect, InterfaceTypeField,
+                                                ConduitPanel libraryPortDefs branch,
+                                                Port Widths filter fix
+  components/canvas/MapConduitToBusDialog.tsx  signal-mapping dialog
+  hooks/useGroupPorts.ts                       (changed) applyMapConduitToKnownBus()
+  data/busDefinitions.ts                       (unchanged) lookupBusDefFromLibrary(),
+                                                listLibraryBusTypes()
+
+src/sidebar/
+  IpCoreTreeDataProvider.ts       (changed) Quick Actions entries
+
+ipcraft-spec/                     (submodule bump) nullable-field schema change
+</code></pre></div>
+<hr />
+<h2 id="vivadointerfacexmlparser"><code>VivadoInterfaceXmlParser</code><a class="headerlink" href="#vivadointerfacexmlparser" title="Permanent link">&para;</a></h2>
+<p>Parses raw XML text using <code>@xmldom/xmldom</code>, namespaced to
+<code>http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009</code> (IP-XACT
+1685-2009, the same namespace <code>ComponentXmlParser.ts</code> already parses).</p>
+<p>Vivado ships a <code>busDefinition</code> and an <code>abstractionDefinition</code> as <strong>separate
+files</strong>, with no consistent filename convention (<code>fifo_write_rtl.xml</code> for the
+abstraction, <code>fifo_v1_0/component.xml</code>-adjacent files for the bus
+definition). <code>parseSingleFile()</code> therefore classifies by <strong>root element</strong>,
+not filename:</p>
+<table>
+<thead>
+<tr>
+<th>Root element</th>
+<th>Extracted into</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>spirit:busDefinition</code></td>
+<td><code>{ busType, description }</code></td>
+</tr>
+<tr>
+<td><code>spirit:abstractionDefinition</code></td>
+<td><code>{ busTypeKey, ports[] }</code></td>
+</tr>
+<tr>
+<td>anything else (e.g. Xilinx's proprietary <code>parameterAbstractionDefinition</code> for CHI/CPI/CXS/CXL)</td>
+<td>skipped</td>
+</tr>
+</tbody>
+</table>
+<p><code>parseVivadoInterfaceFiles(fileContents: string[])</code> is the public entry
+point: it parses every file in the input list (which may span many files
+across many directories — a single scan covers <code>data/ip/interfaces/</code>
+recursively), groups <code>abstractionDefinition</code>s by their declared <code>busType</code>
+VLNV, and joins each one to the <code>busDefinition</code> with the matching VLNV key.
+A <code>busDefinition</code> with no matching abstraction (or vice versa) contributes
+nothing — both halves are required to produce a usable interface.</p>
+<h3 id="port-extraction-and-the-width-omission-rule">Port extraction and the width-omission rule<a class="headerlink" href="#port-extraction-and-the-width-omission-rule" title="Permanent link">&para;</a></h3>
+<p>For each <code>&lt;spirit:port&gt;</code> inside an abstraction definition, the parser reads
+the <code>&lt;spirit:wire&gt;&lt;spirit:onMaster&gt;</code> block (only the master side; the slave
+side is the mechanical inverse and the rest of the system already knows how
+to flip direction). A port with no <code>&lt;spirit:wire&gt;</code> at all — only
+<code>&lt;spirit:transactional&gt;</code> — is a TLM/socket-level signal, not an RTL one, and
+is skipped. If <strong>every</strong> port in a file is transactional-only, the whole
+file is skipped (this is how <code>aximm_tlm.xml</code>-style files are excluded
+without a filename-based heuristic).</p>
+<div class="highlight"><pre><span></span><code><span class="kd">const</span><span class="w"> </span><span class="nx">port</span><span class="o">:</span><span class="w"> </span><span class="kt">VivadoBusPortDef</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="kt">logicalName</span><span class="w"> </span><span class="p">};</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">widthText</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">width</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">Number</span><span class="p">(</span><span class="nx">widthText</span><span class="p">);</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nb">Number</span><span class="p">.</span><span class="nb">isFinite</span><span class="p">(</span><span class="nx">width</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">port</span><span class="p">.</span><span class="nx">width</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">width</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<p><code>port.width</code> is left <code>undefined</code> when <code>&lt;spirit:width&gt;</code> is absent — this is
+not a parsing gap, it is what Vivado's own file says: some logical ports
+(notably <code>fifo_write</code>'s <code>WR_DATA</code>) are deliberately unconstrained because
+their real width depends on the FIFO core's configuration, not the
+protocol. <code>src/test/suite/parser/VivadoInterfaceXmlParser.test.ts</code> fixtures
+this exact shape, verified against a real Vivado 2024.2 install, and asserts
+<code>width</code> is <code>undefined</code> for that port — this is the seam the
+<a href="#the-port-widths-filter-bug">Port Widths filter bug</a> below was hiding.</p>
+<hr />
+<h2 id="vivadointerfacescanner"><code>VivadoInterfaceScanner</code><a class="headerlink" href="#vivadointerfacescanner" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="k">async</span><span class="w"> </span><span class="nx">scan</span><span class="p">()</span><span class="o">:</span><span class="w"> </span><span class="nb">Promise</span><span class="o">&lt;</span><span class="p">{</span><span class="w"> </span><span class="nx">count</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">;</span><span class="w"> </span><span class="nx">cacheDir</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w"> </span><span class="nx">version</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="p">}</span><span class="o">&gt;</span>
+</code></pre></div>
+<ol>
+<li>Reads <code>ipcraft.vivado.installDir</code> from VS Code configuration; throws if
+   unset.</li>
+<li>Resolves it to the actual version-specific install directory via
+   <code>resolveVivadoInstallDir()</code> (see below) — throws if nothing is found.</li>
+<li>Recursively reads every <code>.xml</code> file under <code>&lt;installDir&gt;/data/ip/interfaces/</code>.</li>
+<li>Hands the file contents to <code>parseVivadoInterfaceFiles()</code>.</li>
+<li>Wipes (<code>fs.rm({ recursive: true, force: true })</code>) and rewrites the cache
+   directory — a re-scan never leaves a stale entry behind.</li>
+</ol>
+<p>The cache directory is <code>getIpcraftConfigDir() + '/vivado/bus_definitions'</code>,
+resolved via <code>src/utils/configDir.ts</code> — <code>$XDG_CONFIG_HOME/ipcraft</code> (or
+<code>~/.config/ipcraft</code>) on Linux, <code>~/Library/Application Support/ipcraft</code> on
+macOS, <code>%APPDATA%/ipcraft</code> on Windows. This is a <strong>single global cache
+shared by every IP core on the machine</strong>, not written into any project —
+re-running the scan after a Vivado upgrade replaces it for every workspace
+at once.</p>
+<p>Each discovered interface is written as one YAML file, named from a
+filesystem-safe VLNV stem (<code>vlnvToFileStem</code>, e.g.
+<code>xilinx_com_interface_fifo_write_1_0.yml</code>), in the same shape as a
+hand-authored <code>.busdef.yml</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">XILINX_COM_INTERFACE_FIFO_WRITE_1_0</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">busType</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">vendor</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">xilinx.com</span>
+<span class="w">    </span><span class="nt">library</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">interface</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">fifo_write</span>
+<span class="w">    </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;1.0&#39;</span>
+<span class="w">  </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vivado</span>
+<span class="w">  </span><span class="nt">ports</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">WR_DATA</span>
+<span class="w">      </span><span class="nt">direction</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">out</span>
+<span class="w">      </span><span class="nt">presence</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">required</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">WR_EN</span>
+<span class="w">      </span><span class="nt">width</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<span class="w">      </span><span class="nt">direction</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">out</span>
+<span class="w">      </span><span class="nt">presence</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">required</span>
+</code></pre></div>
+<p><code>source: 'vivado'</code> is the only field that distinguishes this from a
+user-saved custom bus definition file — every other field uses the exact
+format <code>BusLibraryService</code> and <code>lookupBusDefFromLibrary</code> already understood
+before this feature existed. No new file format, no new loader.</p>
+<p><code>getVivadoInterfaceCacheDir()</code> and <code>pathExists()</code> are exported for reuse by
+the two merge points below.</p>
+<h3 id="resolvevivadoinstalldir-extraction"><code>resolveVivadoInstallDir</code> extraction<a class="headerlink" href="#resolvevivadoinstalldir-extraction" title="Permanent link">&para;</a></h3>
+<p><code>vivadoResolver.ts</code> already had logic to resolve a user-configured
+<code>installDir</code> into the real version-specific install directory (handling both
+"installDir is already version-specific" and "installDir is the Vivado
+family directory containing versioned subdirectories like <code>2024.2/</code>" — Xilinx
+installs typically look like the latter). That logic lived inline inside
+<code>findVivadoInInstallDir()</code> (used to locate the <code>vivado</code> launcher binary). It
+was extracted into a standalone exported function, <code>resolveVivadoInstallDir()</code>,
+because the scanner needs the same resolution to find
+<code>data/ip/interfaces/</code> — a directory that exists relative to the install root,
+not the launcher. <code>findVivadoInInstallDir()</code> now calls
+<code>resolveVivadoInstallDir()</code> first and locates the launcher relative to the
+result, so there is exactly one place that knows how to find "the Vivado
+install directory" regardless of which file inside it the caller actually
+wants.</p>
+<hr />
+<h2 id="the-two-merge-points">The two merge points<a class="headerlink" href="#the-two-merge-points" title="Permanent link">&para;</a></h2>
+<p>The cache is plain <code>BusLibraryService.loadFromUserPaths()</code> input — it is not
+given special treatment beyond being added to the list of paths to scan,
+once, in two places that each already had a <code>busLibraryPaths</code>-merging step:</p>
+<p><strong><code>ImportResolver.loadDefaultBusLibrary()</code></strong> (webview-facing — feeds the
+inspector's Bus Type / Interface Type dropdowns and Port Widths section):</p>
+<div class="highlight"><pre><span></span><code><span class="kd">const</span><span class="w"> </span><span class="nx">userPaths</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[...</span><span class="nx">config</span><span class="p">.</span><span class="nx">get</span><span class="o">&lt;</span><span class="kt">string</span><span class="p">[]</span><span class="o">&gt;</span><span class="p">(</span><span class="s1">&#39;busLibraryPaths&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">[])];</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">vivadoCacheDir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">getVivadoInterfaceCacheDir</span><span class="p">();</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="k">await</span><span class="w"> </span><span class="nx">pathExists</span><span class="p">(</span><span class="nx">vivadoCacheDir</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">userPaths</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">vivadoCacheDir</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div>
+<p><strong><code>IpCoreScaffolder.ensureBusDefinitions()</code></strong> (generator-facing — feeds
+<code>component.xml</code> and <code>_hw.tcl</code> generation):</p>
+<div class="highlight"><pre><span></span><code><span class="kd">const</span><span class="w"> </span><span class="nx">userPaths</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[...</span><span class="nx">config</span><span class="p">.</span><span class="nx">get</span><span class="o">&lt;</span><span class="kt">string</span><span class="p">[]</span><span class="o">&gt;</span><span class="p">(</span><span class="s1">&#39;busLibraryPaths&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">[])];</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">vivadoCacheDir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">getVivadoInterfaceCacheDir</span><span class="p">();</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="k">await</span><span class="w"> </span><span class="nx">pathExists</span><span class="p">(</span><span class="nx">vivadoCacheDir</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">userPaths</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">vivadoCacheDir</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Both check <code>pathExists()</code> first so a machine that has never run a scan
+behaves exactly as before — no cache directory, no extra path, no behavior
+change. Load order is: built-in library → <code>busLibraryPaths</code> setting →
+Vivado cache, so a user-configured custom definition with the same VLNV as a
+discovered one (unlikely, but possible) wins, since later entries in
+<code>Object.assign(merged, parsed)</code> overwrite earlier ones — see
+<code>BusLibraryService.scanDirectory()</code>.</p>
+<hr />
+<h2 id="inspector-ui-fuzzyselect-interfacetypefield">Inspector UI: <code>FuzzySelect</code>, <code>InterfaceTypeField</code><a class="headerlink" href="#inspector-ui-fuzzyselect-interfacetypefield" title="Permanent link">&para;</a></h2>
+<p>Two related but separate inspector problems, fixed with one shared
+component.</p>
+<p><strong><code>FuzzySelect</code></strong> (<code>CanvasInspector.tsx</code>) replaces a plain <code>&lt;select&gt;</code> with a
+text input that opens a filtered, keyboard-navigable dropdown on focus.
+Matching is a small subsequence-aware scorer with no external dependency:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">function</span><span class="w"> </span><span class="nx">fuzzyScore</span><span class="p">(</span><span class="nx">query</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">text</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">null</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="c1">// contiguous substring match always outranks a scattered one;</span>
+<span class="w">  </span><span class="c1">// among scattered matches, smaller total character-gap wins</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>It is used for both:</p>
+<ul>
+<li><strong><code>BusTypeField</code></strong>'s "preset" mode (the existing "Bus Type" dropdown for
+  standard interfaces) — this is what makes the dropdown searchable instead
+  of an alphabetical wall of options once Vivado-discovered entries are
+  added to <code>BUILTIN_BUS_TYPES ++ listLibraryBusTypes(busLibrary)</code>.</li>
+<li><strong><code>InterfaceTypeField</code></strong> (new) — gives custom/VLNV interfaces the same
+  dropdown-style selection "Bus Type" already had. Its preset list is
+  <code>listLibraryBusTypes(busLibrary)</code> (saved-custom + Vivado-discovered, no
+  built-ins — those already have their own field), and its manual mode keeps
+  the prior free-text behavior (<code>buildConduitType()</code> synthesizes a
+  <code>user:busif:&lt;name&gt;:1.0</code> VLNV from a short name; a pasted full VLNV is kept
+  as-is). The toggle button — and the field itself — is only shown when
+  <code>listLibraryBusTypes(busLibrary).length &gt; 0</code>, so a machine with no scan and
+  no saved custom buses sees exactly the old plain text field.</li>
+</ul>
+<h3 id="conduitpanels-libraryportdefs-branch"><code>ConduitPanel</code>'s <code>libraryPortDefs</code> branch<a class="headerlink" href="#conduitpanels-libraryportdefs-branch" title="Permanent link">&para;</a></h3>
+<p><code>ConduitPanel</code> (rendered whenever <code>isCustomBusInterface()</code> is true — mode is
+<code>conduit</code>, the type string contains <code>conduit</code>, <code>conduitPorts</code> is non-empty,
+or the type isn't one of the five hardcoded built-ins) now also looks the
+interface's type up in the loaded bus library:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">const</span><span class="w"> </span><span class="nx">libraryPortDefs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">busLibrary</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="nx">lookupBusDefFromLibrary</span><span class="p">(</span><span class="nx">bus</span><span class="p">.</span><span class="kr">type</span><span class="p">,</span><span class="w"> </span><span class="nx">busLibrary</span><span class="p">)</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="kc">null</span><span class="p">;</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">hasOwnConduitPorts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="nx">bus</span><span class="p">.</span><span class="nx">conduitPorts</span><span class="w"> </span><span class="o">??</span><span class="w"> </span><span class="p">[]).</span><span class="nx">length</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mf">0</span><span class="p">;</span>
+</code></pre></div>
+<ul>
+<li><code>libraryPortDefs &amp;&amp; !hasOwnConduitPorts</code> — the type is known (built-in
+  saved-custom, or Vivado-discovered) and there's no existing hand-authored
+  port list to preserve. Renders <code>PortWidthOverridesSection</code> directly, the
+  same component standard bus interfaces use — this is the path a freshly
+  created <code>fifo_write</code> interface (typed in via the new searchable
+  <code>InterfaceTypeField</code>, no signals yet) takes.</li>
+<li><code>libraryPortDefs &amp;&amp; hasOwnConduitPorts</code> — the type is known, but the user
+  already has physical signals wired up under <code>conduitPorts</code>. Switching
+  silently would orphan their HDL port names, so instead an info banner with
+  a <strong>"Map Signals"</strong> button appears, opening <code>MapConduitToBusDialog</code>.</li>
+<li>neither — falls through to the original free-form <code>ConduitSignalsSection</code>
+  (name/direction/width/presence table) unchanged.</li>
+</ul>
+<h3 id="mapconduittobusdialog-applymapconduittoknownbus"><code>MapConduitToBusDialog</code> + <code>applyMapConduitToKnownBus</code><a class="headerlink" href="#mapconduittobusdialog-applymapconduittoknownbus" title="Permanent link">&para;</a></h3>
+<p><code>MapConduitToBusDialog.tsx</code> renders the library's assignable logical ports
+(those without a <code>role</code> of <code>clock</code>/<code>reset</code>) against the interface's existing
+<code>conduitPorts</code>, filtered by expected direction for the selected mode, with a
+best-effort case-insensitive name auto-match seeding the initial assignment.
+Confirm is disabled while any <code>required</code> port is unassigned.</p>
+<p>On confirm, <code>useGroupPorts.applyMapConduitToKnownBus(ipCore, busIndex, result)</code>
+sets <code>mode</code>, <code>portNameOverrides</code>, <code>useOptionalPorts</code>, and clears
+<code>conduitPorts</code> (<code>null</code>) — producing exactly the shape shown in the
+<a href="../../concepts/vivado-interface-catalog/#the-map-signals-workflow-dont-discard-the-users-wiring">concepts doc's <code>fifo_write</code> example</a>.
+This is a pure function over <code>BusInterface[]</code>; <code>ConduitPanel</code> wires it to
+<code>onUpdate</code> via <code>useCallback</code>.</p>
+<hr />
+<h2 id="the-port-widths-filter-bug">The Port Widths filter bug<a class="headerlink" href="#the-port-widths-filter-bug" title="Permanent link">&para;</a></h2>
+<p><code>PortWidthOverridesSection</code> (<code>CanvasInspector.tsx</code>) decides which logical
+ports get an editable width override row. Before this fix:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">const</span><span class="w"> </span><span class="nx">configurableDefs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">enabledDefs</span><span class="p">.</span><span class="nx">filter</span><span class="p">((</span><span class="nx">p</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">(</span><span class="nx">p</span><span class="p">.</span><span class="nx">width</span><span class="w"> </span><span class="o">??</span><span class="w"> </span><span class="mf">1</span><span class="p">)</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mf">1</span><span class="p">);</span>
+</code></pre></div>
+<p>For built-in protocols this is correct: a signal with no declared width
+really is fixed at 1 bit by the spec (<code>AWVALID</code>, <code>WVALID</code>, ...), so there's
+nothing to override. For Vivado-discovered interfaces it is wrong: <code>width:
+undefined</code> means <em>parameterized, no default stated</em> (see the
+<a href="#port-extraction-and-the-width-omission-rule">parser section above</a>), not
+<em>fixed at 1 bit</em>. The <code>?? 1</code> coalescing collapsed both meanings into the same
+bucket, so <code>fifo_write</code>'s <code>WR_DATA</code> (and similarly shaped Vivado interfaces)
+had no width row at all — and consequently fell back to a hardcoded width of
+1 wherever the generator needed a default (<code>VivadoComponentXmlGenerator.ts</code>'s
+<code>port.width ?? 1</code>), silently producing a 1-bit data port unless the user
+happened to add a manual <code>portWidthOverrides</code> entry by editing YAML directly.</p>
+<p>Fix:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">const</span><span class="w"> </span><span class="nx">configurableDefs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">enabledDefs</span><span class="p">.</span><span class="nx">filter</span><span class="p">((</span><span class="nx">p</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nx">p</span><span class="p">.</span><span class="nx">width</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="kc">undefined</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nx">p</span><span class="p">.</span><span class="nx">width</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mf">1</span><span class="p">);</span>
+</code></pre></div>
+<p>Each row also now carries <code>hasFixedDefault: portDef.width !== undefined</code>,
+rendered as a small marker next to the signal name with a tooltip
+("no standard width; set to match your design") so a row with no real
+specification default isn't mistaken for a true 1-bit control signal.</p>
+<hr />
+<h2 id="generator-side-fixes">Generator-side fixes<a class="headerlink" href="#generator-side-fixes" title="Permanent link">&para;</a></h2>
+<h3 id="conduitports-null"><code>conduitPorts</code> null → <code>[]</code><a class="headerlink" href="#conduitports-null" title="Permanent link">&para;</a></h3>
+<p><code>expandBusInterfaces()</code> (<code>registerProcessor.ts</code>) passed <code>iface.conduitPorts</code>
+straight through into the template context. The domain type allows
+<code>ConduitPort[] | null</code>, and any interface using <code>portNameOverrides</code> instead
+of inline ports (every Vivado-discovered or Map-Signals-converted interface)
+carries <code>null</code>. The contract schema (<code>template_context.schema.json</code>)
+requires <code>conduitPorts</code> to be an array, so generation failed with:</p>
+<div class="highlight"><pre><span></span><code>Template context failed contract v1.0.0 validation:
+  - context/expanded_bus_interfaces/1/conduitPorts must be array
+</code></pre></div>
+<p>Fixed by defaulting like the adjacent fields already did:</p>
+<div class="highlight"><pre><span></span><code><span class="nx">conduitPorts</span><span class="o">:</span><span class="w"> </span><span class="kt">iface.conduitPorts</span><span class="w"> </span><span class="o">??</span><span class="w"> </span><span class="p">[],</span>
+</code></pre></div>
+<p>(<code>useOptionalPorts</code> and <code>portWidthOverrides</code> already followed this pattern;
+<code>conduitPorts</code> had simply been missed.)</p>
+<h3 id="source-aware-generatecustombusdefs">Source-aware <code>generateCustomBusDefs</code><a class="headerlink" href="#source-aware-generatecustombusdefs" title="Permanent link">&para;</a></h3>
+<p><code>findCustomBusDef()</code> (<code>VivadoComponentXmlGenerator.ts</code>) resolves a bus
+interface's VLNV against the loaded bus library when it isn't one of the
+five <code>resolveVivadoBusType()</code>-recognized protocols. Before this fix, any
+match — Vivado-discovered or user-saved — was treated identically:
+<code>generateCustomBusDefs()</code> wrote a <code>busdef/&lt;name&gt;.xml</code> +
+<code>busdef/&lt;name&gt;_rtl.xml</code> pair into the packaged output for every match,
+duplicating files Vivado already ships for a discovered interface.</p>
+<p><code>CustomBusInfo</code> now carries the library entry's <code>source</code> field through, and
+<code>generateCustomBusDefs()</code> skips file generation when it is <code>'vivado'</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">const</span><span class="w"> </span><span class="nx">custom</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">findCustomBusDef</span><span class="p">(</span><span class="nx">ifaceType</span><span class="p">,</span><span class="w"> </span><span class="nx">busDefinitions</span><span class="p">);</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="nx">custom</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nx">custom</span><span class="p">.</span><span class="nx">source</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="s1">&#39;vivado&#39;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">continue</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+<p><code>renderBusInterface()</code> — which emits the <code>&lt;spirit:busType&gt;</code> /
+<code>&lt;spirit:abstractionType&gt;</code> elements and <code>&lt;spirit:portMaps&gt;</code> inside
+<code>component.xml</code> — is <strong>not</strong> changed by this fix and did not need to be: it
+was already using the real <code>xilinx.com:interface:fifo_write:1.0</code> VLNV via
+the same <code>findCustomBusDef()</code> lookup, so the reference in <code>component.xml</code>
+stays correct; only the redundant file-writing step is skipped.</p>
+<p><code>BusDefinition.source</code> and <code>CustomBusInfo.source</code> (<code>types.ts</code>) are both
+<code>string | undefined</code> — absent for every pre-existing user-saved custom bus
+definition, so none of that behavior changes for them.</p>
+<hr />
+<h2 id="quick-actions">Quick Actions<a class="headerlink" href="#quick-actions" title="Permanent link">&para;</a></h2>
+<p><code>IpCoreTreeDataProvider.ts</code>'s Quick Actions section gained two entries,
+surfacing commands that already existed but previously required the command
+palette:</p>
+<table>
+<thead>
+<tr>
+<th>Label</th>
+<th>Command ID</th>
+<th>Title in <code>package.json</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Scan Vivado IP Catalog</td>
+<td><code>fpga-ip-core.scanVivadoCatalog</code></td>
+<td>Scan Vivado IP Catalog</td>
+</tr>
+<tr>
+<td>Scan Vivado Interface Catalog</td>
+<td><code>fpga-ip-core.scanVivadoInterfaces</code></td>
+<td>Scan Vivado Interface Catalog</td>
+</tr>
+</tbody>
+</table>
+<p>Both commands declare <code>"enablement": "ipcraft.vivadoFound"</code> in
+<code>package.json</code>, so they only run once a Vivado install is detected.</p>
+<hr />
+<h2 id="domain-schema-change">Domain schema change<a class="headerlink" href="#domain-schema-change" title="Permanent link">&para;</a></h2>
+<p><code>ipcraft-spec</code> (submodule) was bumped to allow <code>null</code> for <code>description</code>,
+<code>physicalPrefix</code>, <code>physicalPrefixPattern</code>, the clock/reset logical-name
+fields, and <code>Parameter.uiPage</code> / <code>Parameter.uiGroup</code>. <code>src/domain/ipcore.types.ts</code>
+and <code>src/webview/types/ipCore.d.ts</code> were regenerated from the updated schema
+(<code>npm run generate-types</code>) — neither file is hand-edited. This is what lets
+the editor write <code>physicalPrefix: null</code> for an interface like <code>fifo_write</code>
+that has no meaningful default prefix, instead of forcing an empty string.</p>
+<hr />
+<h2 id="test-coverage">Test coverage<a class="headerlink" href="#test-coverage" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Covers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>src/test/suite/parser/VivadoInterfaceXmlParser.test.ts</code></td>
+<td>busDefinition/abstractionDefinition joining, TLM-port skipping, width-omission semantics (fixture verified against a real Vivado 2024.2 install)</td>
+</tr>
+<tr>
+<td><code>src/test/suite/services/VivadoInterfaceScanner.test.ts</code></td>
+<td>cache directory wipe-and-rewrite, YAML shape, stale-file cleanup</td>
+</tr>
+<tr>
+<td><code>src/test/suite/utils/vivadoResolver.test.ts</code></td>
+<td><code>resolveVivadoInstallDir()</code> — version-specific dir vs. family dir with versioned subdirectories</td>
+</tr>
+<tr>
+<td><code>src/test/suite/services/ImportResolver.test.ts</code></td>
+<td>Vivado cache path merged into the webview bus library when present, absent when not scanned</td>
+</tr>
+<tr>
+<td><code>src/test/suite/generator/IpCoreScaffolder.test.ts</code></td>
+<td>same merge on the generator side</td>
+</tr>
+<tr>
+<td><code>src/test/suite/components/MapConduitToBusDialog.test.tsx</code></td>
+<td>mode-dependent direction filtering, required-port gating, auto-match seeding</td>
+</tr>
+<tr>
+<td><code>src/test/suite/webview/applyMapConduitToKnownBus.test.ts</code></td>
+<td><code>portNameOverrides</code>/<code>useOptionalPorts</code> production, <code>conduitPorts</code> clearing</td>
+</tr>
+<tr>
+<td><code>src/test/suite/generator/registerProcessor.test.ts</code></td>
+<td><code>conduitPorts</code> defaults to <code>[]</code></td>
+</tr>
+<tr>
+<td><code>src/test/suite/generator/VivadoComponentXmlGenerator.test.ts</code></td>
+<td><code>source: 'vivado'</code> entries skip <code>busdef/</code> generation; user-saved custom entries (no <code>source</code>) still generate it</td>
+</tr>
+<tr>
+<td><code>src/test/suite/services/YamlValidator.test.ts</code></td>
+<td>nullable-field schema acceptance</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="../overview/">Architecture Overview</a> — system-wide module map.</li>
+<li><a href="../extension-host/">Extension Host</a> — where <code>VivadoInterfaceScanner</code> and
+  <code>scanVivadoInterfaces</code> sit among the other services and commands.</li>
+<li><a href="../webview/">Webview</a> — where <code>MapConduitToBusDialog</code> sits among the other
+  IP Core components.</li>
+<li><a href="../../concepts/custom-interface/">Custom Interface</a> — the interface model
+  this feature extends rather than replaces.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2026 Le Viet Bach
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.expand", "navigation.tabs", "navigation.top", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

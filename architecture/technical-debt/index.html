@@ -1,0 +1,2227 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Visual editor for FPGA IP Core and Memory Map specifications">
+      
+      
+        <meta name="author" content="Le Viet Bach">
+      
+      
+        <link rel="canonical" href="https://bleviet.github.io/ipcraft-vscode/architecture/technical-debt/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Known Technical Debt - IPCraft for VS Code</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#known-technical-debt" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="IPCraft for VS Code" class="md-header__button md-logo" aria-label="IPCraft for VS Code" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            IPCraft for VS Code
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Known Technical Debt
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/bleviet/ipcraft-vscode" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../getting-started/quickstart/" class="md-tabs__link">
+          
+  
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../tutorials/build-and-verify-a-scaffold-pack/" class="md-tabs__link">
+          
+  
+  
+  Tutorials
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../how-to/vhdl-import/" class="md-tabs__link">
+          
+  
+  
+  How-to Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../concepts/extension-model/" class="md-tabs__link">
+          
+  
+  
+  Concepts
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../overview/" class="md-tabs__link">
+          
+  
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../reference/commands/" class="md-tabs__link">
+          
+  
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../contributing/guidelines/" class="md-tabs__link">
+          
+  
+  
+  Contributing
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../blog/building-ipcraft/" class="md-tabs__link">
+          
+  
+  
+  Blog
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="IPCraft for VS Code" class="md-nav__button md-logo" aria-label="IPCraft for VS Code" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    IPCraft for VS Code
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/bleviet/ipcraft-vscode" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorials
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Tutorials
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/build-and-verify-a-scaffold-pack/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Build and Verify a Scaffold Pack
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/memory-mapped-registers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Memory-Mapped Registers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How-to Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    How-to Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/vhdl-import/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Importing from Existing Files
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/generating-a-project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generating a Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/scaffold-packs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Customising Code Generation (Scaffold Packs)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/building-a-project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building a Project (Headless)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/build-vsix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building a VSIX Package
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/ai-design-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI Design Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Concepts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/extension-model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VS Code Extension Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/yaml-data-flow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YAML Data Flow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/spatial-editing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spatial Editing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/responsive-design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Responsive Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../extension-host/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Extension Host
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../webview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Webview (React)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Commands & Settings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/keyboard-shortcuts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Keyboard Shortcuts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/generator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/ip-core-editor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IP Core Editor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/specification-schemas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Specification Schemas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/bitfield-interaction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bit Field Interaction
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/yaml-libraries/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YAML Libraries
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contributing
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/guidelines/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guidelines
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Blog
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Blog
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../blog/building-ipcraft/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building IPCraft
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#td-1-projectcreatorts-branch-dispatches-on-vendor-string" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TD-1 — projectCreator.ts branch-dispatches on vendor string
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#td-2-template_type_to_altera-embedded-in-the-scaffolder" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TD-2 — TEMPLATE_TYPE_TO_ALTERA embedded in the scaffolder
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#td-3-simulationconfigcompileargs-simargs-env-silently-ignored-by-generator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TD-3 — SimulationConfig.compileArgs / simArgs / env silently ignored by generator
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#td-4-questaenginewaveargs-returns-a-flagvalue-as-one-string-element" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TD-4 — QuestaEngine.waveArgs returns a flag+value as one string element
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#td-5-duplicated-fileexists-utility" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TD-5 — Duplicated fileExists() utility
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/bleviet/ipcraft-vscode/edit/main/docs/architecture/technical-debt.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="known-technical-debt">Known Technical Debt<a class="headerlink" href="#known-technical-debt" title="Permanent link">&para;</a></h1>
+<p>Actionable items identified during the 2026-05-25 architecture review (post-refactor, at commit <code>2b2cbde</code>). Each item is independent and self-contained — any one can be shipped as a single PR.</p>
+<hr />
+<h2 id="td-1-projectcreatorts-branch-dispatches-on-vendor-string">TD-1 — <code>projectCreator.ts</code> branch-dispatches on vendor string<a class="headerlink" href="#td-1-projectcreatorts-branch-dispatches-on-vendor-string" title="Permanent link">&para;</a></h2>
+<p><code>src/commands/projectCreator.ts</code> (<code>createVendorProject</code>) uses an <code>if (toolchainId === 'vivado') ... else if (toolchainId === 'quartus')</code> dispatch to manually assemble the project-creation launch for each vendor. This is the last callsite that bypasses the <code>SynthesisToolchain</code> strategy.</p>
+<p><strong>Recommendation:</strong> Add a <code>createProject(name, ipDir, cfg, outputChannel)</code> method to the <code>SynthesisToolchain</code> interface. Both <code>VivadoToolchain</code> and <code>QuartusToolchain</code> implement it, and <code>projectCreator.ts</code> becomes a thin delegation:</p>
+<div class="highlight"><pre><span></span><code><span class="k">export</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="nx">createVendorProject</span><span class="p">(</span>
+<span class="w">  </span><span class="nx">toolchainId</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">ipDir</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">outputChannel</span><span class="o">:</span><span class="w"> </span><span class="kt">OutputChannel</span>
+<span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="nb">Promise</span><span class="o">&lt;</span><span class="kt">boolean</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">toolchain</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">getToolchain</span><span class="p">(</span><span class="nx">toolchainId</span><span class="p">);</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="nx">toolchain</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="kc">false</span><span class="p">;</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">cfg</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">vscode</span><span class="p">.</span><span class="nx">workspace</span><span class="p">.</span><span class="nx">getConfiguration</span><span class="p">(</span><span class="s1">&#39;ipcraft&#39;</span><span class="p">);</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nx">toolchain</span><span class="p">.</span><span class="nx">createProject</span><span class="p">(</span><span class="nx">name</span><span class="p">,</span><span class="w"> </span><span class="nx">ipDir</span><span class="p">,</span><span class="w"> </span><span class="nx">cfg</span><span class="p">,</span><span class="w"> </span><span class="nx">outputChannel</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div>
+<p><strong>Effort:</strong> ~60 LOC across 3 files. Extend existing <code>VivadoToolchain.test.ts</code> and <code>QuartusToolchain.test.ts</code>.</p>
+<hr />
+<h2 id="td-2-template_type_to_altera-embedded-in-the-scaffolder">TD-2 — <code>TEMPLATE_TYPE_TO_ALTERA</code> embedded in the scaffolder<a class="headerlink" href="#td-2-template_type_to_altera-embedded-in-the-scaffolder" title="Permanent link">&para;</a></h2>
+<p><code>src/generator/IpCoreScaffolder.ts</code> (~line 316) contains a bus-type translation table specific to the Altera <code>_hw.tcl</code> template:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">const</span><span class="w"> </span><span class="nx">TEMPLATE_TYPE_TO_ALTERA</span><span class="o">:</span><span class="w"> </span><span class="kt">Record</span><span class="o">&lt;</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">axil</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;axi4lite&#39;</span><span class="p">,</span><span class="w"> </span><span class="nx">axi4</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;axi4&#39;</span><span class="p">,</span><span class="w"> </span><span class="nx">axis</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;axi4stream&#39;</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">avmm</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;avalon&#39;</span><span class="p">,</span><span class="w">   </span><span class="nx">avst</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;avalon_streaming&#39;</span><span class="p">,</span>
+<span class="p">};</span>
+</code></pre></div>
+<p>This table is only consumed by the <code>altera_hw_tcl.j2</code> template context. A future Lattice/Microchip target would need a parallel <code>TEMPLATE_TYPE_TO_&lt;vendor&gt;</code> map, growing the scaffolder further.</p>
+<p><strong>Recommendation:</strong> Move the map to <code>QuartusToolchain.ts</code> as a <code>mapBusType(busType: string): string</code> method (matching the pattern of <code>quartusDeviceFamily()</code>). Have <code>QuartusToolchain.scaffold()</code> inject <code>altera_type</code> into the template context rather than the scaffolder doing it for all interfaces unconditionally.</p>
+<p><strong>Effort:</strong> ~30 LOC across 2 files.</p>
+<hr />
+<h2 id="td-3-simulationconfigcompileargs-simargs-env-silently-ignored-by-generator">TD-3 — <code>SimulationConfig.compileArgs</code> / <code>simArgs</code> / <code>env</code> silently ignored by generator<a class="headerlink" href="#td-3-simulationconfigcompileargs-simargs-env-silently-ignored-by-generator" title="Permanent link">&para;</a></h2>
+<p>The <code>SimulationConfig</code> type and JSON schema define <code>compileArgs</code>, <code>simArgs</code>, and <code>env</code> fields. <code>IpCoreScaffolder.generateAll()</code> reads <code>simulation.framework</code> and <code>simulation.engine</code> but ignores the rest — the fields are validated by AJV but never forwarded to the template context.</p>
+<p><strong>Recommendation:</strong> Forward <code>simCfg.compileArgs</code> and <code>simCfg.simArgs</code> into <code>TestbenchContext</code> and have <code>CocotbFramework</code> / <code>VUnitFramework</code> append them to the engine's default flag lists. Forward <code>simCfg.env</code> so <code>conftest.py</code> / <code>run.py</code> can set those variables before launching the simulator.</p>
+<p><strong>Effort:</strong> ~40 LOC across <code>Framework.ts</code>, <code>CocotbFramework.ts</code>, <code>VUnitFramework.ts</code>, and their templates.</p>
+<hr />
+<h2 id="td-4-questaenginewaveargs-returns-a-flagvalue-as-one-string-element">TD-4 — <code>QuestaEngine.waveArgs</code> returns a flag+value as one string element<a class="headerlink" href="#td-4-questaenginewaveargs-returns-a-flagvalue-as-one-string-element" title="Permanent link">&para;</a></h2>
+<p><code>src/generator/testbench/engines/QuestaEngine.ts</code> (~line 18):</p>
+<div class="highlight"><pre><span></span><code><span class="nx">waveArgs</span><span class="p">(</span><span class="nx">entityName</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">[]</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="p">[</span><span class="sb">`-wlf </span><span class="si">${</span><span class="nx">entityName</span><span class="si">}</span><span class="sb">.wlf`</span><span class="p">];</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>This returns a single string element containing a space-separated flag+value pair. <code>spawn()</code> consumers expect each flag and its value as separate array elements. It should return <code>['-wlf',</code>${entityName}.wlf<code>]</code>. If the intent is template-string interpolation rather than process args, that contract must be documented explicitly.</p>
+<p><strong>Effort:</strong> 1 line + 1 test assertion.</p>
+<hr />
+<h2 id="td-5-duplicated-fileexists-utility">TD-5 — Duplicated <code>fileExists()</code> utility<a class="headerlink" href="#td-5-duplicated-fileexists-utility" title="Permanent link">&para;</a></h2>
+<p>Three copies of the same async <code>fileExists</code> helper exist:</p>
+<ul>
+<li><code>src/commands/projectCreator.ts</code></li>
+<li><code>src/services/toolchains/QuartusToolchain.ts</code></li>
+<li><code>src/services/toolchains/VivadoToolchain.ts</code></li>
+</ul>
+<p><strong>Recommendation:</strong> Extract to <code>src/utils/fsHelpers.ts</code> (which already exists) and replace all three inline definitions with an import.</p>
+<p><strong>Effort:</strong> ~15 LOC — one new export + 3 import changes.</p>
+<hr />
+<h1 id="v-series-refactoring-review-findings-2026-06-13">V-Series Refactoring Review Findings (2026-06-13)<a class="headerlink" href="#v-series-refactoring-review-findings-2026-06-13" title="Permanent link">&para;</a></h1>
+<p>Correctness bugs and regressions found while reviewing the <code>refactor/foundations-resource-roots</code>
+branch (V-1…V-10, commit <code>41d8cfe</code>) against <code>main</code>. Unlike TD-1…TD-5 (mechanical cleanups), several
+of these are <strong>shipping bugs</strong>: two cause silent data / HDL loss and should be fixed before the branch
+merges. IDs are <code>RV-N</code>. Line numbers are as of <code>41d8cfe</code> — if they drift, search by the quoted symbol.</p>
+<p><strong>Priority legend:</strong> 🔴 blocker (silent data/output loss) · 🟠 high (wrong render or sync regression)
+· 🟡 medium · ⚪ lower / hardening.</p>
+<hr />
+<h2 id="rv-1-editing-a-hex-spelled-value-silently-reverts-it-fixed-2026-06-13">RV-1 🔴 — Editing a hex-spelled value silently reverts it ✅ Fixed 2026-06-13<a class="headerlink" href="#rv-1-editing-a-hex-spelled-value-silently-reverts-it-fixed-2026-06-13" title="Permanent link">&para;</a></h2>
+<p><strong>Where:</strong> <code>src/yamledit/applyPathEdits.ts:49</code>, <code>src/yamledit/restoreHexSpellings.ts:15</code></p>
+<p><code>collectHexSpellings(doc)</code> runs <strong>after</strong> <code>mergeNode</code> has already mutated the scalar
+(<code>current.value = value</code>), which leaves the node's <code>source</code> stale. The map is then keyed by the
+<strong>new</strong> rendered value (<code>0x${node.value.toString(16)}</code>) pointing at the <strong>old</strong> source, so
+<code>restoreHexSpellings</code> rewrites the freshly-edited value back to its original spelling. Every hex
+offset / base address / reset-value edit is discarded.</p>
+<p><strong>Fix:</strong> collect spellings from the parsed-but-unedited document, before the edit loop:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">const</span><span class="w"> </span><span class="nx">doc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">parseDocument</span><span class="p">(</span><span class="nx">text</span><span class="p">);</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">doc</span><span class="p">.</span><span class="nx">errors</span><span class="p">.</span><span class="nx">length</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mf">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* … */</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nx">text</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+
+<span class="kd">const</span><span class="w"> </span><span class="nx">hexFix</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">collectHexSpellings</span><span class="p">(</span><span class="nx">doc</span><span class="p">);</span><span class="w"> </span><span class="c1">// capture ORIGINAL spellings first</span>
+
+<span class="kd">let</span><span class="w"> </span><span class="nx">changed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span><span class="p">;</span>
+<span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kd">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">path</span><span class="p">,</span><span class="w"> </span><span class="nx">value</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="k">of</span><span class="w"> </span><span class="nx">edits</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* mergeNode … */</span><span class="w"> </span><span class="p">}</span>
+<span class="c1">// …</span>
+<span class="nx">out</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">restoreHexSpellings</span><span class="p">(</span><span class="nx">out</span><span class="p">,</span><span class="w"> </span><span class="nx">hexFix</span><span class="p">);</span>
+</code></pre></div>
+<p>With the map keyed on the original value→source, an edited scalar's new rendering is no longer a key,
+so the edit survives; untouched scalars still restore correctly.</p>
+<p><strong>Test:</strong> in <code>yamledit.test.ts</code>, edit <code>address: 0x04</code> → <code>8</code> and assert the output contains <code>0x8</code>
+(and not <code>0x04</code>).</p>
+<p><strong>Effort:</strong> ~3 LOC + 1 test.</p>
+<p><strong>What was done:</strong> Moved <code>collectHexSpellings(doc)</code> to before the edit loop in <code>applyPathEdits.ts</code>.
+Added a comment explaining the ordering invariant. Automated test remains to be written.</p>
+<hr />
+<h2 id="rv-2-flat-register-arrays-generate-one-register-instead-of-n-wrong-hdl-fixed-2026-06-13">RV-2 🔴 — Flat register arrays generate one register instead of N (wrong HDL) ✅ Fixed 2026-06-13<a class="headerlink" href="#rv-2-flat-register-arrays-generate-one-register-instead-of-n-wrong-hdl-fixed-2026-06-13" title="Permanent link">&para;</a></h2>
+<p><strong>Where:</strong> <code>src/domain/parse.ts:75</code> (<code>normalizeRegister</code>), <code>parse.ts:131-137</code> (<code>normalizeBlock</code> re-stamp)</p>
+<p><code>isArray = raw.count !== undefined &amp;&amp; raw.stride !== undefined &amp;&amp; Array.isArray(raw.registers)</code>.
+A <em>flat</em> array (<code>count</code>/<code>stride</code> + <code>fields</code>, <strong>no</strong> nested <code>registers:</code>) fails the
+<code>Array.isArray(raw.registers)</code> clause, so <code>count</code>/<code>stride</code> are dropped. The generator's flat-array
+branch (<code>registerProcessor.ts:394</code>, <code>flatCount = reg.count ?? 1</code>) then never expands, and the block
+offset re-stamp advances by <code>defaultRegBytes</code> instead of <code>count*stride</code>, corrupting all following
+register addresses.</p>
+<p><em>Reproduces with</em> <code>comprehensive_axi.mm.yml:135</code> (<code>CH_GAIN {count: 4, stride: 4}</code>, explicitly labeled
+"flat register array") → emits <code>CH_GAIN</code> instead of <code>CH_GAIN_0..3</code>; same for <code>comprehensive_avalon</code>
+<code>SAMPLE_CNT</code>.</p>
+<p><strong>Fix:</strong> make <code>count</code> the array discriminant and carry <code>count</code>/<code>stride</code> onto the normalized register
+whether or not nested <code>registers</code> are present; default <code>stride</code> to <code>regWidth/8</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">const</span><span class="w"> </span><span class="nx">isArray</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">raw</span><span class="p">.</span><span class="nx">count</span><span class="w"> </span><span class="o">!==</span><span class="w"> </span><span class="kc">undefined</span><span class="p">;</span><span class="w">              </span><span class="c1">// group OR flat</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">isArray</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">nested</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">Array</span><span class="p">.</span><span class="nx">isArray</span><span class="p">(</span><span class="nx">raw</span><span class="p">.</span><span class="nx">registers</span><span class="p">)</span>
+<span class="w">    </span><span class="o">?</span><span class="w"> </span><span class="nx">raw</span><span class="p">.</span><span class="nx">registers</span><span class="p">.</span><span class="nx">map</span><span class="p">((</span><span class="nx">r</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nx">normalizeRegister</span><span class="p">(</span><span class="nx">r</span><span class="w"> </span><span class="kr">as</span><span class="w"> </span><span class="nx">Record</span><span class="o">&lt;</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">unknown</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="nx">regWidth</span><span class="p">))</span>
+<span class="w">    </span><span class="o">:</span><span class="w"> </span><span class="p">[];</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="p">...</span><span class="nx">baseReg</span><span class="p">,</span><span class="w"> </span><span class="nx">__kind</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;array&#39;</span><span class="p">,</span>
+<span class="w">    </span><span class="nx">count</span><span class="o">:</span><span class="w">  </span><span class="kt">Math.max</span><span class="p">(</span><span class="mf">1</span><span class="p">,</span><span class="w"> </span><span class="nx">parseNumber</span><span class="p">(</span><span class="nx">raw</span><span class="p">.</span><span class="nx">count</span><span class="p">,</span><span class="w"> </span><span class="mf">1</span><span class="p">)),</span>
+<span class="w">    </span><span class="nx">stride</span><span class="o">:</span><span class="w"> </span><span class="kt">Math.max</span><span class="p">(</span><span class="mf">1</span><span class="p">,</span><span class="w"> </span><span class="nx">parseNumber</span><span class="p">(</span><span class="nx">raw</span><span class="p">.</span><span class="nx">stride</span><span class="p">,</span><span class="w"> </span><span class="nb">Math</span><span class="p">.</span><span class="nx">max</span><span class="p">(</span><span class="mf">1</span><span class="p">,</span><span class="w"> </span><span class="nb">Math</span><span class="p">.</span><span class="nx">floor</span><span class="p">(</span><span class="nx">regWidth</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">8</span><span class="p">)))),</span>
+<span class="w">    </span><span class="nx">registers</span><span class="o">:</span><span class="w"> </span><span class="kt">nested</span><span class="w"> </span><span class="kr">as</span><span class="w"> </span><span class="nx">NormalizedRegister</span><span class="p">[],</span>
+<span class="w">  </span><span class="p">};</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Then in <code>normalizeBlock</code>, re-stamp by <code>count*stride</code> for any <code>__kind === 'array'</code> (already the case);
+flat arrays now hit that branch.</p>
+<p><strong>Test:</strong> golden-output generation test asserting <code>CH_GAIN_0..3</code> (and the post-array register offset)
+for <code>comprehensive_axi</code>; round-trip test that a flat array survives parse→serialize.</p>
+<p><strong>Effort:</strong> ~15 LOC in <code>parse.ts</code> + 1 generation test. Verify <code>comprehensive_*</code> HDL still compiles.</p>
+<p><strong>What was done:</strong> Changed <code>isArray</code> discriminant to <code>raw.count !== undefined</code> in <code>normalizeRegister</code>.
+The existing <code>isArray</code> branch already handles the flat case correctly (produces an empty <code>registers: []</code>
+when <code>raw.registers</code> is absent). Per-register <code>size</code> is now used for the offset re-stamp advance
+(supersedes RV-12). Golden HDL test still to be written.</p>
+<hr />
+<h2 id="rv-3-address-map-overview-renders-every-block-at-base-0-fixed-2026-06-13">RV-3 🟠 — Address-map overview renders every block at base 0 ✅ Fixed 2026-06-13<a class="headerlink" href="#rv-3-address-map-overview-renders-every-block-at-base-0-fixed-2026-06-13" title="Permanent link">&para;</a></h2>
+<p><strong>Where:</strong> <code>src/webview/components/AddressMapVisualizer.tsx:123</code> (and the block interface at <code>:8</code>)</p>
+<p><code>const base = block.base_address ?? block.offset ?? 0;</code> — neither key exists on the now-camelCase
+<code>NormalizedAddressBlock</code> (only <code>baseAddress</code>). The component (rendered at <code>MemoryMapEditor.tsx:167</code>)
+is untouched by the diff but the V-1 migration re-exposed it: all blocks draw overlapping at <code>0x0</code>.</p>
+<p><strong>Fix:</strong> <code>const base = Number(block.baseAddress ?? block.base_address ?? block.offset ?? 0);</code> and add
+<code>baseAddress?: number | string;</code> to the local block interface. (<code>BlockEditor.tsx:64</code> already has this
+fallback — mirror it.)</p>
+<p><strong>Effort:</strong> ~2 LOC.</p>
+<p><strong>What was done:</strong> Added <code>baseAddress?</code> to <code>VisualizerAddressBlock</code> interface and updated the lookup
+chain to <code>block.baseAddress ?? block.base_address ?? block.offset ?? 0</code>.</p>
+<hr />
+<h2 id="rv-4-config-file-watcher-refreshes-are-silently-dropped-ip-core-stopgap-2026-06-13">RV-4 🟠 — Config / file-watcher refreshes are silently dropped (IP core) ⚠️ Stopgap 2026-06-13<a class="headerlink" href="#rv-4-config-file-watcher-refreshes-are-silently-dropped-ip-core-stopgap-2026-06-13" title="Permanent link">&para;</a></h2>
+<p><strong>Where:</strong> <code>src/providers/IpCoreEditorProvider.ts:466</code> + <code>:188-258</code>, <code>src/webview/sync/revisionFilter.ts:54</code></p>
+<p><code>updateWebview</code> stamps <code>docVersion = document.version</code>, but the config subscription
+(<code>hdlLanguage</code> / <code>toolbar.targets</code> / <code>scaffoldPack</code>) and the generated-file watcher call it with <strong>no
+document edit</strong>, so <code>docVersion</code> equals what the webview already saw. <code>shouldApplyUpdate</code> returns
+<code>false</code> and <code>useIpCoreSync:93</code> <code>stopImmediatePropagation</code>s the message. Toggling HDL language, changing
+toolbar targets, or generating <code>component.xml</code> no longer refreshes the toolbar / "Open in Vivado"
+state. These pushes were unconditional pre-refactor.</p>
+<p><strong>Root cause / altitude:</strong> one <code>update</code> message conflates document-text (revision-gated) with
+host-derived state (version-independent: <code>imports</code>, <code>hasComponentXml/Xpr/Qpf</code>, <code>hdlLanguage</code>,
+<code>toolbarTargets</code>, …).</p>
+<p><strong>Fix (preferred):</strong> split a <code>hostState</code> message that carries the non-text fields and bypasses the
+revision filter entirely; keep <code>update</code> for text only. <strong>Stopgap:</strong> mark non-edit refreshes so they
+always apply (e.g. pass <code>forceResync: true</code> from the config/watcher <code>updateWebview()</code> calls) — accept
+that this re-parses the unchanged YAML.</p>
+<p><strong>Effort:</strong> stopgap ~5 LOC; proper decoupling ~40 LOC across <code>WebviewRouter</code>, <code>useIpCoreSync</code>,
+<code>IpCoreApp</code>. Pairs with RV-6.</p>
+<p><strong>What was done (stopgap):</strong> All config-subscription and file-watcher branches in
+<code>IpCoreEditorProvider</code> now call <code>updateWebview(undefined, true)</code>, which threads <code>forceResync: true</code>
+into <code>router.postUpdate</code>. The webview's <code>shouldApplyUpdate</code> bypasses the version check and applies the
+update. The YAML is re-parsed on every config change, but correctness is restored.
+<strong>Remaining:</strong> the full <code>hostState</code> / <code>update</code> split (separate message type for version-independent
+state) to eliminate the re-parse overhead and make the intent explicit.</p>
+<hr />
+<h2 id="rv-5-the-webviews-own-pipelined-edits-are-rejected-as-stale-base-data-loss-false-warning-partially-mitigated-2026-06-13">RV-5 🟠 — The webview's own pipelined edits are rejected as "stale-base" (data loss + false warning) ⚠️ Partially mitigated 2026-06-13<a class="headerlink" href="#rv-5-the-webviews-own-pipelined-edits-are-rejected-as-stale-base-data-loss-false-warning-partially-mitigated-2026-06-13" title="Permanent link">&para;</a></h2>
+<p><strong>Where:</strong> <code>src/services/DocumentManager.ts:62</code>, <code>src/webview/sync/revisionFilter.ts:82</code> (<code>buildUpdateMessage</code>)</p>
+<p><code>buildUpdateMessage</code> stamps <code>baseDocVersion = seenDocVersion</code>, which lags the webview's own in-flight
+edits (it only advances on echo receipt). The memory-map path (<code>useYamlSync</code>) sends <strong>immediately,
+with no debounce</strong>. Two cell commits within one host round-trip: edit A applies (version V→V+1); edit B
+is sent with <code>baseDocVersion=V</code>; <code>performUpdate</code> sees <code>V !== V+1</code> → <code>rejected: stale-base</code> → a spurious
+"File has changed on disk. Visual editor has been reloaded." warning + <code>forceResync</code> that reverts B.
+The user's second edit is lost with no external change. (IP core partly dodges this via its 150 ms
+debounce — an undocumented asymmetry.)</p>
+<p><strong>Fix:</strong> enforce <strong>one in-flight edit</strong> in the send path. While an edit is pending (sent, echo not yet
+seen), buffer subsequent edits and flush the <strong>latest full text</strong> once the echo arrives. Each update is
+a whole-document snapshot, so coalescing is lossless. Implement once in a shared send helper used by
+both <code>useYamlSync</code> and <code>useIpCoreSync</code> (also fixes RV-7).</p>
+<p><strong>Effort:</strong> ~30 LOC in the shared send path + unit test in <code>syncProtocol.test.ts</code> simulating two rapid
+sends.</p>
+<p><strong>What was done:</strong> Added a 50 ms debounce to <code>useYamlSync.sendUpdate</code> with unmount flush, narrowing
+the race window significantly. This mirrors <code>useIpCoreSync</code>'s existing 150 ms debounce and removes the
+undocumented asymmetry between the two hooks.
+<strong>Remaining:</strong> the full fix — one-in-flight-edit coalescing where a second send is queued rather than
+just delayed. With debounce, two edits faster than 50 ms within the same burst still race; the only
+correct solution is to hold the second send until the first echo arrives. Implement in a shared helper
+used by both sync hooks.</p>
+<hr />
+<h2 id="rv-6-force-resync-resets-all-ip-core-derived-state-to-defaults-fixed-2026-06-13">RV-6 🟠 — Force-resync resets all IP-core-derived state to defaults ✅ Fixed 2026-06-13<a class="headerlink" href="#rv-6-force-resync-resets-all-ip-core-derived-state-to-defaults-fixed-2026-06-13" title="Permanent link">&para;</a></h2>
+<p><strong>Where:</strong> <code>src/services/WebviewRouter.ts:139-143</code></p>
+<p>On <code>stale-base</code>, <code>useStandardDocumentHandlers</code> posts a <strong>bare</strong> <code>{text, fileName, forceResync}</code>,
+omitting <code>imports</code>, <code>hasComponentXml/Xpr/Qpf</code>, <code>hdlLanguage</code>, <code>scaffoldPack</code>, <code>toolbarTargets</code>, etc.
+Because IP core uses <code>useStandardDocumentHandlers</code> (<code>IpCoreEditorProvider.ts:181</code>), <code>forceResync</code> forces
+the webview to apply it and <code>IpCoreApp</code> resets those flags to defaults until the next full update.</p>
+<p><strong>Fix:</strong> route the resync through the provider's full state assembler instead of the router's bare
+<code>postUpdate</code> — e.g. add an <code>onResync?: () =&gt; Promise&lt;void&gt;</code> to <code>RouterOptions</code> that calls
+<code>updateWebview()</code> (with <code>forceResync</code>). Resolves cleanly together with RV-4's <code>hostState</code> split.</p>
+<p><strong>Effort:</strong> ~15 LOC.</p>
+<p><strong>What was done:</strong> Added an <code>onForceResync?: () =&gt; void</code> parameter to
+<code>WebviewRouter.useStandardDocumentHandlers</code>. On stale-base rejection, if the callback is provided it
+is called exclusively (no bare <code>postUpdate</code>). <code>IpCoreEditorProvider</code> passes
+<code>() =&gt; void updateWebview(undefined, true)</code>, so a stale-base rejection now triggers the full
+import-resolution + state-assembly path with <code>forceResync: true</code>.</p>
+<hr />
+<h2 id="rv-7-self-echo-guard-only-checks-lastsenteditid-an-older-in-flight-echo-reverts-the-canvas-partially-fixed-2026-06-13">RV-7 🟠 — Self-echo guard only checks <code>lastSentEditId</code>; an older in-flight echo reverts the canvas ⚠️ Partially fixed 2026-06-13<a class="headerlink" href="#rv-7-self-echo-guard-only-checks-lastsenteditid-an-older-in-flight-echo-reverts-the-canvas-partially-fixed-2026-06-13" title="Permanent link">&para;</a></h2>
+<p><strong>Where:</strong> <code>src/webview/sync/revisionFilter.ts:60</code></p>
+<p><code>sourceEditId === state.lastSentEditId</code> drops only the <em>latest</em> edit's echo. With two memory-map edits
+in flight before the first echo, edit A's echo (<code>sourceEditId &lt; lastSentEditId</code>) passes both the
+version check (it is in-order) and the editId check, so <code>onUpdate(A)</code> re-parses and reverts the
+optimistic canvas to A; edit C's echo is then dropped — canvas stuck on A while the document is C. This
+is the t2 flicker V-3 set out to fix.</p>
+<p><strong>Fix:</strong> primarily covered by RV-5's one-in-flight coalescing. As defense-in-depth, drop echoes for
+<strong>any</strong> of our own pending editIds: track sent-but-unechoed ids in a <code>Set&lt;number&gt;</code> and drop when
+<code>sourceEditId</code> is in it (and remove it), instead of comparing only against the max.</p>
+<p><strong>Effort:</strong> ~10 LOC + test. Do alongside RV-5.</p>
+<p><strong>What was done:</strong> Changed the echo check in <code>revisionFilter.ts</code> from
+<code>sourceEditId === state.lastSentEditId</code> to <code>sourceEditId &gt; 0 &amp;&amp; sourceEditId &lt;= state.lastSentEditId</code>.
+Any echo of an edit we sent is now dropped, not just the latest one. This is sufficient defense-in-depth
+for the debounce mitigation in RV-5.
+<strong>Remaining:</strong> the <code>Set&lt;number&gt;</code> pending-id tracking described above — fully correct only once
+RV-5's one-in-flight coalescing is implemented, because that makes the pending set bounded to 1 entry.</p>
+<hr />
+<h2 id="rv-8-register-offset-edit-writes-the-dead-address_offset-key-fixed-2026-06-13">RV-8 🟡 — Register Offset edit writes the dead <code>address_offset</code> key ✅ Fixed 2026-06-13<a class="headerlink" href="#rv-8-register-offset-edit-writes-the-dead-address_offset-key-fixed-2026-06-13" title="Permanent link">&para;</a></h2>
+<p><strong>Where:</strong> <code>src/webview/components/memorymap/RegisterTableRow.tsx:127</code></p>
+<p><code>onUpdate(['registers', idx, 'address_offset'], val)</code> — path length 3 bypasses the repack/serialize
+path and writes a literal <code>address_offset:</code> key. On re-parse, <code>parse.ts:86/125</code> prefers the canonical
+<code>offset:</code> (which the serializer emits), so the edit is shadowed/lost and a schema-invalid
+<code>address_offset</code> is left in the file.</p>
+<p><strong>Fix:</strong> write the canonical key — <code>onUpdate(['registers', idx, 'offset'], val)</code>. Also normalize the
+read at <code>:67</code> to <code>reg.offset ?? reg.address_offset ?? 0</code>.</p>
+<p><strong>Effort:</strong> ~2 LOC.</p>
+<p><strong>What was done:</strong> Both changes applied in <code>RegisterTableRow.tsx</code>.</p>
+<hr />
+<h2 id="rv-9-one-bad-import-aborts-all-hdl-generation-editor-only-warns-fixed-2026-06-13">RV-9 🟡 — One bad import aborts all HDL generation (editor only warns) ✅ Fixed 2026-06-13<a class="headerlink" href="#rv-9-one-bad-import-aborts-all-hdl-generation-editor-only-warns-fixed-2026-06-13" title="Permanent link">&para;</a></h2>
+<p><strong>Where:</strong> <code>src/generator/registerProcessor.ts:360</code></p>
+<p><code>resolveMemoryMaps</code> does <code>if (errors.length &gt; 0) throw</code>, discarding successfully-resolved maps, while
+<code>ImportResolver</code> (editor display) only <code>logger.warn</code>s the same failure. The canvas renders the partial
+maps but generation hard-fails on a single missing <code>.mm.yml</code> — the canvas/RTL divergence V-7 set out
+to remove, inverted.</p>
+<p><strong>Fix:</strong> make generation tolerant and consistent with the editor — surface a non-fatal diagnostic and
+generate from the resolved maps, or unify both consumers on one error policy.</p>
+<p><strong>Effort:</strong> ~10 LOC + test covering a partially-resolvable <code>memoryMaps</code> list.</p>
+<p><strong>What was done:</strong> <code>resolveMemoryMaps</code> now <code>console.warn</code>s import errors and continues with the
+successfully-resolved maps, matching the editor's tolerance. Test still to be written.</p>
+<hr />
+<h2 id="rv-10-parser-fabricates-access-read-write-and-block-defaults-injected-into-yaml-on-every-structural-edit-fixed-2026-06-13">RV-10 🟡 — Parser fabricates <code>access: 'read-write'</code> (and block defaults) → injected into YAML on every structural edit ✅ Fixed 2026-06-13<a class="headerlink" href="#rv-10-parser-fabricates-access-read-write-and-block-defaults-injected-into-yaml-on-every-structural-edit-fixed-2026-06-13" title="Permanent link">&para;</a></h2>
+<p><strong>Where:</strong> <code>src/domain/parse.ts:59,88</code> (<code>normalizeField</code>/<code>normalizeRegister</code>), <code>:147,153</code>
+(<code>normalizeBlock</code> <code>usage</code>/<code>defaultRegWidth</code>); kept by <code>src/domain/serialize.ts:65,128</code></p>
+<p><code>normalizeRegister</code>/<code>normalizeField</code> set <code>access: String(raw.access ?? 'read-write')</code> (and blocks get
+<code>usage: 'register'</code>, <code>defaultRegWidth: 32</code>). <code>serializeValue</code> keeps non-nil <code>access</code>, so any
+insert/delete/reorder — which re-serializes the whole <code>registers</code>/<code>addressBlocks</code> array — injects
+<code>access: read-write</code> onto every sibling row that omitted it, plus <code>usage</code>/<code>defaultRegWidth</code> on blocks.
+The old <code>DataNormalizer</code> left <code>access</code> <code>undefined</code> and <code>YamlSanitizer.dropIfNil</code> stripped it; a
+one-register insert now rewrites every sibling line, violating V-2's "one edit, one changed line".</p>
+<p><strong>Fix:</strong> stop defaulting in the parser — keep absent values absent (<code>access?: string</code> etc. on the
+<code>Normalized*</code> types), apply display defaults at the point of render/layout (<code>access ?? 'read-write'</code>),
+and keep the serializer's <code>dropIfNil</code> so only authored values are written. (Avoid the alternative of
+"serializer drops <code>read-write</code>": that would erase a user's explicit <code>access: read-write</code>.)</p>
+<p><strong>Effort:</strong> ~40 LOC across <code>parse.ts</code>, <code>internal.types.ts</code>, and the render/layout readers + round-trip
+test asserting a register without <code>access</code> stays clean after an insert.</p>
+<p><strong>What was done:</strong> <code>NormalizedField.access</code> and <code>NormalizedRegister.access</code> changed to <code>string |
+undefined</code> in <code>internal.types.ts</code>. <code>normalizeField</code> and <code>normalizeRegister</code> in <code>parse.ts</code> now emit
+<code>access: raw.access !== undefined ? String(raw.access) : undefined</code> — no fabrication. All render/layout
+callers already guarded with <code>?? 'read-write'</code>; generator's <code>ProjectedRegister.access</code> widened to
+<code>string | undefined</code>. Block <code>usage</code>/<code>defaultRegWidth</code> defaults were not changed (they are structural,
+not schema noise). Round-trip test still to be written.</p>
+<hr />
+<h2 id="rv-11-register-array-base-offset-reads-the-dead-address_offset-fixed-2026-06-13">RV-11 🟡 — Register-array base offset reads the dead <code>address_offset</code> ✅ Fixed 2026-06-13<a class="headerlink" href="#rv-11-register-array-base-offset-reads-the-dead-address_offset-fixed-2026-06-13" title="Permanent link">&para;</a></h2>
+<p><strong>Where:</strong> <code>src/webview/components/memorymap/RegisterArrayEditor.tsx:45</code></p>
+<p><code>const baseOffset = arr?.address_offset ?? 0;</code> — no <code>.offset</code> fallback, so a non-zero array always
+shows "Base: 0x0" and a wrong address range.</p>
+<p><strong>Fix:</strong> <code>const baseOffset = Number(arr?.offset ?? arr?.address_offset ?? 0);</code></p>
+<p><strong>Effort:</strong> ~1 LOC.</p>
+<p><strong>What was done:</strong> Applied in <code>RegisterArrayEditor.tsx</code>.</p>
+<hr />
+<h2 id="rv-12-block-offset-re-stamp-ignores-per-register-size-fixed-2026-06-13">RV-12 🟡 — Block offset re-stamp ignores per-register <code>size</code> ✅ Fixed 2026-06-13<a class="headerlink" href="#rv-12-block-offset-re-stamp-ignores-per-register-size-fixed-2026-06-13" title="Permanent link">&para;</a></h2>
+<p><strong>Where:</strong> <code>src/domain/parse.ts:135</code></p>
+<p>For leaf registers <code>currentOffset = offset + defaultRegBytes</code>, ignoring the register's own <code>size</code>. A
+<code>size: 64</code> register with no explicit offset is followed by a register only <code>defaultRegBytes</code> (4) later
+→ overlapping addresses in the generated map.</p>
+<p><strong>Fix:</strong> advance by the register's own byte width:
+<code>currentOffset = offset + Math.max(defaultRegBytes, Math.ceil((reg.size || defaultRegWidth) / 8));</code></p>
+<p><strong>Effort:</strong> ~3 LOC + test.</p>
+<p><strong>What was done:</strong> The else-branch in <code>normalizeBlock</code>'s offset re-stamp now computes
+<code>regBytes = reg.size &gt; 0 ? Math.max(1, Math.floor(reg.size / 8)) : defaultRegBytes</code>. Test still to be
+written.</p>
+<hr />
+<h2 id="rv-13-hex-restore-collides-on-equal-values-and-rewrites-comments-partially-hardened-2026-06-13">RV-13 ⚪ — Hex restore collides on equal values and rewrites comments ⚠️ Partially hardened 2026-06-13<a class="headerlink" href="#rv-13-hex-restore-collides-on-equal-values-and-rewrites-comments-partially-hardened-2026-06-13" title="Permanent link">&para;</a></h2>
+<p><strong>Where:</strong> <code>src/yamledit/restoreHexSpellings.ts:15,29</code></p>
+<p>Two scalars with the same value but different spellings (<code>0x0A</code> / <code>0x0a</code>) collapse to one map entry, so
+an untouched scalar can be rewritten to the other's spelling; the <code>'gi'</code> regex also rewrites hex
+literals inside untouched comments/strings.</p>
+<p><strong>Fix (hardening, after RV-1):</strong> prefer per-node restoration via the AST over a global text
+replace; if keeping the text pass, drop <code>i</code> (match case-sensitively) and skip values with conflicting
+spellings rather than picking last-writer.</p>
+<p><strong>Effort:</strong> ~20 LOC + tests for the collision and comment cases.</p>
+<p><strong>What was done:</strong> Removed the <code>i</code> flag from the replacement regex so the match is case-sensitive.
+Since yaml always serializes hex as lowercase <code>0x…</code>, uppercase variants in comments/strings are no
+longer touched.
+<strong>Remaining:</strong> collision handling (two scalars with the same value but different spellings) and the
+full AST-based per-node restore that avoids false matches in comment text entirely.</p>
+<hr />
+<h2 id="rv-14-mergenode-assigns-an-objectarray-into-a-scalar-node-unserializable-throws-fixed-2026-06-13">RV-14 ⚪ — <code>mergeNode</code> assigns an object/array into a scalar node → unserializable, throws ✅ Fixed 2026-06-13<a class="headerlink" href="#rv-14-mergenode-assigns-an-objectarray-into-a-scalar-node-unserializable-throws-fixed-2026-06-13" title="Permanent link">&para;</a></h2>
+<p><strong>Where:</strong> <code>src/yamledit/mergeNode.ts:25</code></p>
+<p>When the existing node is a <code>Scalar</code> but the incoming value is an object/array,
+<code>current.value = value</code> produces a node <code>doc.toString()</code> cannot stringify, so <code>applyPathEdits</code> throws
+(e.g. a field gaining <code>enumeratedValues</code>).</p>
+<p><strong>Fix:</strong> only fast-path genuine scalar replacements; otherwise build a fresh node:</p>
+<div class="highlight"><pre><span></span><code><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">isScalar</span><span class="p">(</span><span class="nx">current</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="p">(</span><span class="nx">value</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="kc">null</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="ow">typeof</span><span class="w"> </span><span class="nx">value</span><span class="w"> </span><span class="o">!==</span><span class="w"> </span><span class="s1">&#39;object&#39;</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">current</span><span class="p">.</span><span class="nx">value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">value</span><span class="p">;</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nx">current</span><span class="p">;</span>
+<span class="p">}</span>
+<span class="c1">// fall through to doc.createNode(value) for structural replacements</span>
+</code></pre></div>
+<p><strong>Effort:</strong> ~3 LOC + test (scalar → map at the same path).</p>
+<p><strong>What was done:</strong> <code>mergeNode</code> now checks <code>typeof value !== 'object'</code> before mutating the scalar; if
+the value is an object or array, it falls through to <code>doc.createNode(value)</code>. Test still to be written.</p>
+<hr />
+<h2 id="rv-15-generate-types-is-not-wired-into-buildpackage-stale-types-vs-schema-not-done">RV-15 ⚪ — <code>generate-types</code> is not wired into build/package (stale types vs schema) ❌ Not done<a class="headerlink" href="#rv-15-generate-types-is-not-wired-into-buildpackage-stale-types-vs-schema-not-done" title="Permanent link">&para;</a></h2>
+<p><strong>Where:</strong> <code>scripts/generate-types.js</code>, <code>package.json</code>, <code>scripts/check-submodule.js</code></p>
+<p><code>generate-types</code> is a manual script; neither <code>package</code> / <code>vscode:prepublish</code> nor <code>pretest</code>
+regenerates <code>src/domain/*.types.ts</code>. Re-pinning the <code>ipcraft-spec</code> submodule (V-10) leaves the
+committed types stale against the schema — the silent drift V-10 is meant to prevent. (<code>check-submodule.js</code>
+also only verifies <code>ip_core.schema.json</code>, not <code>memory_map.schema.json</code>.)</p>
+<p><strong>Fix:</strong> add a CI/<code>pretest</code> <code>check-types-fresh</code> step that runs <code>generate-types</code> into a temp dir and
+fails if it differs from the committed output; extend <code>check-submodule.js</code> to assert both schema files.</p>
+<p><strong>Effort:</strong> ~20 LOC (one script + one <code>package.json</code> hook).</p>
+<p><strong>What was done:</strong> Nothing. This is a CI/tooling change with no code impact and was deferred.</p>
+<hr />
+<h2 id="implementation-task-list">Implementation task list<a class="headerlink" href="#implementation-task-list" title="Permanent link">&para;</a></h2>
+<p>Ordered by priority. Last updated 2026-06-13. Items implemented on 2026-06-13 are checked; remaining
+work and known gaps are called out inline.</p>
+<p><strong>Blockers (fix before the branch merges):</strong></p>
+<ul>
+<li>[x] <strong>RV-1</strong> Move <code>collectHexSpellings</code> before the edit loop in <code>applyPathEdits.ts</code>. <em>(test still needed)</em></li>
+<li>[x] <strong>RV-2</strong> Make <code>count</code> the array discriminant in <code>normalizeRegister</code>; re-stamp by <code>count*stride</code>.
+  <em>(golden <code>CH_GAIN_0..3</code> generation test still needed)</em></li>
+</ul>
+<p><strong>High (sync + render regressions):</strong></p>
+<ul>
+<li>[x] <strong>RV-3</strong> Added <code>baseAddress</code> fallback in <code>AddressMapVisualizer.tsx</code>.</li>
+<li>[x] <strong>RV-4</strong> Stopgap: config/watcher refreshes now pass <code>forceResync: true</code>.
+  — <strong>Remaining:</strong> full <code>hostState</code> / <code>update</code> split (~40 LOC) to avoid re-parsing YAML on every config change.</li>
+<li>[x] <strong>RV-6</strong> Stale-base resync in <code>WebviewRouter</code> now calls <code>onForceResync</code> (full provider update) instead of bare text push.</li>
+<li>[x] <strong>RV-5</strong> Added 50 ms debounce to <code>useYamlSync.sendUpdate</code> (matches <code>useIpCoreSync</code>; eliminates asymmetry).
+  — <strong>Remaining:</strong> full one-in-flight-edit coalescing (send held until echo arrives); debounce only narrows the window.</li>
+<li>[x] <strong>RV-7</strong> Echo check widened to <code>sourceEditId &lt;= lastSentEditId</code> (drops any in-flight echo, not just latest).
+  — <strong>Remaining:</strong> <code>Set&lt;number&gt;</code> pending-id tracking for exact accounting; superseded once RV-5 coalescing lands.</li>
+</ul>
+<p><strong>Medium:</strong></p>
+<ul>
+<li>[x] <strong>RV-8</strong> Write canonical <code>offset</code> in <code>RegisterTableRow.tsx</code>; read prefers <code>offset ?? address_offset</code>.</li>
+<li>[x] <strong>RV-9</strong> <code>resolveMemoryMaps</code> warns and continues on partial import errors. <em>(test still needed)</em></li>
+<li>[x] <strong>RV-10</strong> <code>access</code> on <code>NormalizedField</code>/<code>NormalizedRegister</code> is now <code>string | undefined</code>; parser no longer fabricates defaults. <em>(round-trip test still needed; block <code>usage</code>/<code>defaultRegWidth</code> defaults unchanged)</em></li>
+<li>[x] <strong>RV-11</strong> Added <code>offset ?? address_offset</code> fallback in <code>RegisterArrayEditor.tsx</code>.</li>
+<li>[x] <strong>RV-12</strong> Block offset re-stamp advances by per-register <code>size</code> bytes. <em>(test still needed)</em></li>
+</ul>
+<p><strong>Lower / hardening:</strong></p>
+<ul>
+<li>[x] <strong>RV-13</strong> Removed <code>i</code> flag from hex-restore regex (case-sensitive matching).
+  — <strong>Remaining:</strong> collision handling + AST-based per-node restore.</li>
+<li>[x] <strong>RV-14</strong> <code>mergeNode</code> no longer assigns objects/arrays to scalar nodes; falls through to <code>doc.createNode</code>. <em>(test still needed)</em></li>
+<li>[ ] <strong>RV-15</strong> Wire <code>generate-types</code> freshness + full schema check into CI. <em>(not started)</em></li>
+</ul>
+<p><strong>Bonus fix (not in original list):</strong></p>
+<ul>
+<li>[x] <strong>rowIdentity.ts</strong> Precompute JSON strings outside the O(n²) inner loop in pass 1 of <code>reconcileRowIds</code>.</li>
+</ul>
+<hr />
+<h2 id="out-of-scope-follow-ups">Out-of-scope follow-ups<a class="headerlink" href="#out-of-scope-follow-ups" title="Permanent link">&para;</a></h2>
+<p>These are lower-priority items that do not block current functionality:</p>
+<ul>
+<li><strong><code>xilinx/</code> / <code>altera/</code> directory names</strong> — <code>outputSubdir</code> on <code>SynthesisToolchain</code> is already the right home for configurable branding (e.g. <code>amd/</code> instead of <code>xilinx/</code>). No change needed until branding alignment is required.</li>
+<li><strong><code>ipcraft.toolbar.targets</code> multi-select</strong> — currently uses a three-value vendor enum. Needs to become a dynamic multi-select when vendor count exceeds two. Coupled with the <code>generate.targets</code> string[] setting already in use.</li>
+<li><strong>VUnit SystemVerilog testbench</strong> — <code>VUnitFramework.generate()</code> only emits a VHDL testbench (<code>_tb.vhd</code>). An SV variant is deferred; VUnit's SV simulator support is limited.</li>
+<li><strong><code>ToolDetector.ts</code> sub-tool detection</strong> — <code>qsys-edit</code> detection is still special-cased outside the generic toolchain loop. Consider adding a <code>subTools</code> property to <code>LaunchableTool</code> / <code>SynthesisToolchain</code> so each toolchain declares its own sub-tools and their VS Code context keys.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2026 Le Viet Bach
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.expand", "navigation.tabs", "navigation.top", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

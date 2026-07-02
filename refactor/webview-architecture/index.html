@@ -1,0 +1,3010 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Visual editor for FPGA IP Core and Memory Map specifications">
+      
+      
+        <meta name="author" content="Le Viet Bach">
+      
+      
+        <link rel="canonical" href="https://bleviet.github.io/ipcraft-vscode/refactor/webview-architecture/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Webview Architecture Review -- DRY Violations and Refactor Plan - IPCraft for VS Code</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#webview-architecture-review-dry-violations-and-refactor-plan" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="IPCraft for VS Code" class="md-header__button md-logo" aria-label="IPCraft for VS Code" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            IPCraft for VS Code
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Webview Architecture Review -- DRY Violations and Refactor Plan
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/bleviet/ipcraft-vscode" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../getting-started/quickstart/" class="md-tabs__link">
+          
+  
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../tutorials/build-and-verify-a-scaffold-pack/" class="md-tabs__link">
+          
+  
+  
+  Tutorials
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../how-to/vhdl-import/" class="md-tabs__link">
+          
+  
+  
+  How-to Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../concepts/extension-model/" class="md-tabs__link">
+          
+  
+  
+  Concepts
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../architecture/overview/" class="md-tabs__link">
+          
+  
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../reference/commands/" class="md-tabs__link">
+          
+  
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../contributing/guidelines/" class="md-tabs__link">
+          
+  
+  
+  Contributing
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../blog/building-ipcraft/" class="md-tabs__link">
+          
+  
+  
+  Blog
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="IPCraft for VS Code" class="md-nav__button md-logo" aria-label="IPCraft for VS Code" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    IPCraft for VS Code
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/bleviet/ipcraft-vscode" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorials
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Tutorials
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/build-and-verify-a-scaffold-pack/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Build and Verify a Scaffold Pack
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/memory-mapped-registers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Memory-Mapped Registers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How-to Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    How-to Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/vhdl-import/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Importing from Existing Files
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/generating-a-project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generating a Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/scaffold-packs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Customising Code Generation (Scaffold Packs)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/building-a-project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building a Project (Headless)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/build-vsix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building a VSIX Package
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/ai-design-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI Design Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Concepts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/extension-model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VS Code Extension Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/yaml-data-flow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YAML Data Flow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/spatial-editing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spatial Editing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/responsive-design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Responsive Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/extension-host/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Extension Host
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/webview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Webview (React)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Commands & Settings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/keyboard-shortcuts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Keyboard Shortcuts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/generator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/ip-core-editor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IP Core Editor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/specification-schemas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Specification Schemas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/bitfield-interaction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bit Field Interaction
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/yaml-libraries/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YAML Libraries
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contributing
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/guidelines/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guidelines
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Blog
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Blog
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../blog/building-ipcraft/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building IPCraft
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#executive-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Executive Summary
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#findings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Findings
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Findings">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#f1-duplicated-table-editor-orchestration-pattern" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        F1: Duplicated "Table Editor Orchestration" Pattern
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#f2-inconsistent-name-cell-commit-strategy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        F2: Inconsistent Name-Cell Commit Strategy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#f3-redundant-layout-toggle-boilerplate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        F3: Redundant Layout Toggle Boilerplate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#f4-memorymapeditor-has-inline-cell-rendering" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        F4: MemoryMapEditor Has Inline Cell Rendering
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#f5-missing-shared-editable-cell-abstraction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        F5: Missing Shared "Editable Cell" Abstraction
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#f6-usefieldeditor-is-a-god-object" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        F6: useFieldEditor Is a God Object
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#f7-duplicated-next-name-generation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        F7: Duplicated "Next Name" Generation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#f8-inconsistent-context-menu-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        F8: Inconsistent Context Menu Management
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#f9-two-independent-vs-code-message-bridges" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        F9: Two Independent VS Code Message Bridges
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#detailed-solution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Detailed Solution
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Detailed Solution">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#s1-usetableeditorstatetrow-tcolumnkey-shared-table-orchestration-hook" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        S1: useTableEditorState&lt;TRow, TColumnKey&gt; -- Shared Table Orchestration Hook
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#s2-uselayouttoggle-shared-layout-state-hook" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        S2: useLayoutToggle -- Shared Layout State Hook
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#s3-editablecell-shared-editable-cell-component" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        S3: &lt;EditableCell&gt; -- Shared Editable Cell Component
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#s4-generateuniquename-utility" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        S4: generateUniqueName Utility
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#s5-extract-blocktablerow-from-memorymapeditor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        S5: Extract BlockTableRow from MemoryMapEditor
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#s6-decompose-usefieldeditor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        S6: Decompose useFieldEditor
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#s7-shared-useextensionhost-hook-lower-priority" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        S7: Shared useExtensionHost Hook (Lower Priority)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-by-step-implementation-plan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step-by-Step Implementation Plan
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step-by-Step Implementation Plan">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#phase-0-infrastructure-no-visual-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 0: Infrastructure (no visual changes)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-1-extract-usetableeditorstate-core-deduplication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 1: Extract useTableEditorState (core deduplication)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-2-extract-blocktablerow-from-memorymapeditor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 2: Extract BlockTableRow from MemoryMapEditor
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-3-unify-name-cell-commit-strategy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 3: Unify Name-Cell Commit Strategy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-4-create-editablecell-and-cellinput-components" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 4: Create &lt;EditableCell&gt; and &lt;CellInput&gt; Components
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-5-decompose-usefieldeditor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 5: Decompose useFieldEditor
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-6-apply-uselayouttoggle-in-indextsx" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 6: Apply useLayoutToggle in index.tsx
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-7-replace-generateuniquename-calls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 7: Replace generateUniqueName Calls
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-8-optional-shared-useextensionhost" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 8 (Optional): Shared useExtensionHost
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#risk-assessment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Risk Assessment
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#files-changed-per-phase" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Files Changed per Phase
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Files Changed per Phase">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#phase-0" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 0
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 1
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 2
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 3
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 4
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 5
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 6
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 7
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#implementation-progress-completed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implementation Progress (Completed)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Implementation Progress (Completed)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#new-architecture-diagram" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        New Architecture Diagram
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#key-improvements-achieved" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Improvements Achieved
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/bleviet/ipcraft-vscode/edit/main/docs/refactor/webview-architecture.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="webview-architecture-review-dry-violations-and-refactor-plan">Webview Architecture Review -- DRY Violations and Refactor Plan<a class="headerlink" href="#webview-architecture-review-dry-violations-and-refactor-plan" title="Permanent link">&para;</a></h1>
+<h2 id="executive-summary">Executive Summary<a class="headerlink" href="#executive-summary" title="Permanent link">&para;</a></h2>
+<p>The <code>src/webview</code> directory contains two largely independent webview applications:
+the <strong>Memory Map Editor</strong> (entry: <code>index.tsx</code>) and the <strong>IP Core Editor</strong> (entry:
+<code>ipcore/IpCoreApp.tsx</code>). This review focuses on the Memory Map Editor side,
+where four structurally similar table-editing views --
+<code>BlockEditor</code>, <code>MemoryMapEditor</code>, <code>RegisterArrayEditor</code>, and <code>RegisterEditor</code> /
+<code>FieldsTable</code> -- duplicate large blocks of state management, event wiring, and
+rendering logic.</p>
+<p><strong>Commit history context.</strong> The 15 most recent webview commits reveal a clear
+pattern: bug fixes for cell-editing, blur-commit, and Enter/ESC behaviour had to
+be applied in parallel across <code>BlockEditor</code>, <code>MemoryMapEditor</code>,
+<code>RegisterArrayEditor</code>, and <code>FieldTableRow</code>. An extraction refactor (<code>d518cc4</code>,
+<code>09fcdc4</code>) pulled some common elements into shared components
+(<code>RegisterTableRow</code>, <code>EditorHeader</code>, <code>TwoPanelEditorLayout</code>, <code>HoverInsertBar</code>,
+<code>TableContextMenu</code>) and hooks (<code>useHoverInsertBar</code>, <code>useCellEditGuard</code>). However,
+the extraction was incomplete: it removed duplication for UI shells but left the
+"editor orchestration" logic -- row selection, active-cell tracking, insert/delete
+handlers, clamp-on-change effects, <code>useTableNavigation</code> wiring, and
+<code>useCellEditGuard</code> integration -- duplicated verbatim across all three parent
+editors.</p>
+<p>The <code>cancelEditRef</code> prop was removed from <code>RegisterTableRow</code> in <code>dfb66da</code>, then
+re-added in the very next commit <code>2fdd646</code>, and then the Name cell's commit
+strategy was changed from onBlur to onInput and back to onBlur (with guard)
+across <code>c75b246</code> and <code>b8c23e2</code>. This churn confirms that editing behaviour is
+not governed by a single source of truth: each editor independently wires the
+same protocol and each fix has to be replicated.</p>
+<hr />
+<h2 id="findings">Findings<a class="headerlink" href="#findings" title="Permanent link">&para;</a></h2>
+<h3 id="f1-duplicated-table-editor-orchestration-pattern">F1: Duplicated "Table Editor Orchestration" Pattern<a class="headerlink" href="#f1-duplicated-table-editor-orchestration-pattern" title="Permanent link">&para;</a></h3>
+<p>The following identical state + lifecycle block appears in three components:</p>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>File</th>
+<th>Lines</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>BlockEditor</code></td>
+<td><code>components/memorymap/BlockEditor.tsx</code></td>
+<td>71-113</td>
+</tr>
+<tr>
+<td><code>RegisterArrayEditor</code></td>
+<td><code>components/memorymap/RegisterArrayEditor.tsx</code></td>
+<td>46-178</td>
+</tr>
+<tr>
+<td><code>MemoryMapEditor</code></td>
+<td><code>components/memorymap/MemoryMapEditor.tsx</code></td>
+<td>79-119</td>
+</tr>
+</tbody>
+</table>
+<p>Each duplicates:</p>
+<ol>
+<li>
+<p><strong>Selection triplet</strong>: <code>useState&lt;number&gt;(-1)</code> for <code>selectedXIndex</code>,
+   <code>useState&lt;number | null&gt;(null)</code> for <code>hoveredXIndex</code>,
+   <code>useState&lt;ActiveCell&gt;({ rowIndex: -1, key: 'name' })</code> for <code>xActiveCell</code>.</p>
+</li>
+<li>
+<p><strong>Clamp-on-change effect</strong>: a <code>useEffect</code> that resets selection when the
+   data array changes length (identical logic, different variable names).</p>
+</li>
+<li>
+<p><strong><code>useCellEditGuard</code> integration</strong>: called identically in all three, returning
+   <code>{ cancelEditRef, captureEditSnapshot }</code>.</p>
+</li>
+<li>
+<p><strong><code>useHoverInsertBar</code> integration</strong>: called identically in <code>BlockEditor</code> and
+   <code>MemoryMapEditor</code> (missing from <code>RegisterArrayEditor</code>).</p>
+</li>
+<li>
+<p><strong><code>useTableNavigation</code> wiring</strong>: called with identical callback shapes
+   (<code>onEdit</code>, <code>onDelete</code>, <code>onMove</code>, <code>onInsertAfter/Before</code>) that differ only in
+   the data array name and the column-key type.</p>
+</li>
+<li>
+<p><strong>Insert/delete handlers</strong>: <code>tryInsertReg</code> / <code>tryInsertBlock</code> / <code>insertAtGap</code>
+   / <code>deleteReg</code> / <code>deleteBlock</code> follow the same structure:
+   <code>splice -&gt; onUpdate -&gt; setSelected -&gt; setHovered -&gt; setActiveCell -&gt; scrollIntoView</code>.</p>
+</li>
+<li>
+<p><strong>Row interaction callbacks</strong>: every <code>.map()</code> render passes the same
+   <code>onRowClick</code>, <code>onCellClick</code>, <code>onMouseEnter</code>, <code>onMouseLeave</code>, <code>onContextMenu</code>
+   lambdas that call <code>setSelectedXIndex(idx); setHoveredXIndex(idx); setXActiveCell(...)</code>.</p>
+</li>
+</ol>
+<p><strong>Impact</strong>: any behavioural fix (e.g. Enter/ESC, blur-commit guard, row key
+stability) must be applied in at least 3 places, as the commit history confirms.</p>
+<hr />
+<h3 id="f2-inconsistent-name-cell-commit-strategy">F2: Inconsistent Name-Cell Commit Strategy<a class="headerlink" href="#f2-inconsistent-name-cell-commit-strategy" title="Permanent link">&para;</a></h3>
+<p>The name cell's commit lifecycle is inconsistent across table row types:</p>
+<table>
+<thead>
+<tr>
+<th>Row Component</th>
+<th>Commit on</th>
+<th>Guard on ESC</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>RegisterTableRow</code> (registers)</td>
+<td><code>onInput</code> + <code>onBlur</code></td>
+<td><code>cancelEditRef</code></td>
+<td>Blur handler re-commits; causes flash on Enter</td>
+</tr>
+<tr>
+<td><code>MemoryMapEditor</code> (blocks inline)</td>
+<td><code>onInput</code> + <code>onBlur</code></td>
+<td><code>cancelEditRef</code></td>
+<td>Same pattern, inline in the component</td>
+</tr>
+<tr>
+<td><code>FieldTableRow</code> (fields)</td>
+<td><code>onInput</code> (draft) + <code>onBlur</code> (commit)</td>
+<td><code>cancelEditRef</code></td>
+<td>Draft-validated approach; different from above</td>
+</tr>
+</tbody>
+</table>
+<p>The recent commits <code>b8c23e2</code>, <code>c75b246</code>, <code>5e999d7</code>, <code>2fdd646</code>, <code>dfb66da</code> are
+all attempts to unify this behaviour. The commits oscillate between
+onInput-only and onInput+onBlur strategies across components, confirming there
+is no single canonical pattern.</p>
+<hr />
+<h3 id="f3-redundant-layout-toggle-boilerplate">F3: Redundant Layout Toggle Boilerplate<a class="headerlink" href="#f3-redundant-layout-toggle-boilerplate" title="Permanent link">&para;</a></h3>
+<p>In <code>index.tsx</code> (lines 34-80), four identical layout state + toggle pairs are
+declared:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">const</span><span class="w"> </span><span class="p">[</span><span class="nx">registerLayout</span><span class="p">,</span><span class="w"> </span><span class="nx">setRegisterLayout</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">useState</span><span class="o">&lt;</span><span class="nx">RegisterLayout</span><span class="o">&gt;</span><span class="p">(</span><span class="s1">&#39;side-by-side&#39;</span><span class="p">);</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">toggleRegisterLayout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">};</span>
+<span class="c1">// ... repeated for block, memoryMap, array</span>
+</code></pre></div>
+<p>These are threaded through <code>DetailsPanel</code> as eight separate props (four state
+values + four toggle functions). This is a classic sign of missing abstraction:
+the concept is "a panel layout preference", parameterised by panel name.</p>
+<hr />
+<h3 id="f4-memorymapeditor-has-inline-cell-rendering">F4: <code>MemoryMapEditor</code> Has Inline Cell Rendering<a class="headerlink" href="#f4-memorymapeditor-has-inline-cell-rendering" title="Permanent link">&para;</a></h3>
+<p><code>BlockEditor</code> and <code>RegisterArrayEditor</code> both use the extracted
+<code>RegisterTableRow</code> component. <code>MemoryMapEditor</code> still renders its block-row
+cells inline (lines 256-418), meaning its editable cells do not benefit from
+fixes applied to <code>RegisterTableRow</code>. This is the only view that still has
+inline cell rendering, and it contains its own <code>onBlur</code> / <code>onFocus</code> /
+<code>onInput</code> wiring patterns for each cell.</p>
+<hr />
+<h3 id="f5-missing-shared-editable-cell-abstraction">F5: Missing Shared "Editable Cell" Abstraction<a class="headerlink" href="#f5-missing-shared-editable-cell-abstraction" title="Permanent link">&para;</a></h3>
+<p>Every editable cell across the codebase manually wires:
+- <code>onFocus={() =&gt; captureEditSnapshot()}</code>
+- <code>onInput={(e) =&gt; onUpdate(path, value)}</code>
+- <code>onBlur</code> with <code>cancelEditRef</code> guard (sometimes)
+- <code>data-edit-key="..."</code> attribute
+- Active cell highlight class computation</p>
+<p>This 5-line pattern is written ad-hoc in:
+- <code>RegisterTableRow.tsx</code> (4 cells x 5 lines = 20 lines)
+- <code>MemoryMapEditor.tsx</code> (5 cells x 5 lines = 25 lines inline)
+- <code>FieldTableRow.tsx</code> (5 cells x 5+ lines = 25+ lines)</p>
+<p>There is no <code>&lt;EditableCell&gt;</code> component or <code>useCellEditor</code> hook that
+encapsulates this protocol.</p>
+<hr />
+<h3 id="f6-usefieldeditor-is-a-god-object">F6: <code>useFieldEditor</code> Is a God Object<a class="headerlink" href="#f6-usefieldeditor-is-a-god-object" title="Permanent link">&para;</a></h3>
+<p><code>useFieldEditor</code> (448 lines, 40+ returned values) manages:
+- Selection state (selected index, hovered index, active cell)
+- Draft state for name/bits/reset (6 state pairs)
+- Validation errors (3 state pairs)
+- Drag preview state
+- Insert error state
+- DOM refs
+- <code>useCellEditGuard</code> integration
+- <code>useTableNavigation</code> integration
+- Selection clamp effects
+- Draft pruning effects
+- Order-signature tracking effects</p>
+<p>It returns everything in a flat bag of ~40 values. Consumers destructure
+subsets and thread them through to <code>FieldTableRow</code>. The hook mixes concerns:
+table orchestration (identical to <code>BlockEditor</code>'s pattern), field-specific
+draft management, and validation.</p>
+<hr />
+<h3 id="f7-duplicated-next-name-generation">F7: Duplicated "Next Name" Generation<a class="headerlink" href="#f7-duplicated-next-name-generation" title="Permanent link">&para;</a></h3>
+<p>The pattern for generating a unique default name when inserting a new row is
+repeated:</p>
+<table>
+<thead>
+<tr>
+<th>Location</th>
+<th>Pattern</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>BlockEditor.tryInsertReg</code> (L132-144)</td>
+<td><code>for (const r of regs) { match /^reg(\d+)$/i }; name = reg${maxN+1}</code></td>
+</tr>
+<tr>
+<td><code>BlockEditor.insertAtGap</code> (L163-175)</td>
+<td>Identical to above</td>
+</tr>
+<tr>
+<td><code>BlockEditor</code> array insert (L306-313)</td>
+<td>Same pattern but <code>/^ARRAY_(\d+)$/i</code></td>
+</tr>
+<tr>
+<td><code>RegisterArrayEditor.insertNestedReg</code> (L73-80)</td>
+<td>Identical to <code>tryInsertReg</code></td>
+</tr>
+<tr>
+<td><code>RegisterEditor.onCreateField</code> (L151-158)</td>
+<td>Same pattern but <code>/^field(\d+)$/</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="f8-inconsistent-context-menu-management">F8: Inconsistent Context Menu Management<a class="headerlink" href="#f8-inconsistent-context-menu-management" title="Permanent link">&para;</a></h3>
+<p><code>BlockEditor</code> and <code>MemoryMapEditor</code> each independently manage <code>contextMenu</code>
+state and render <code>&lt;TableContextMenu&gt;</code>. The previous extraction (<code>d518cc4</code>)
+moved the context menu <em>component</em> to shared, but left the state management
+and the <code>useEffect</code> for outside-click dismissal inline in each editor.
+After <code>d518cc4</code> the <code>useEffect</code> was removed from <code>BlockEditor</code> but the
+context-menu state and the <code>closeContextMenu</code> handler remain duplicated.</p>
+<hr />
+<h3 id="f9-two-independent-vs-code-message-bridges">F9: Two Independent VS Code Message Bridges<a class="headerlink" href="#f9-two-independent-vs-code-message-bridges" title="Permanent link">&para;</a></h3>
+<p>The Memory Map Editor uses <code>useYamlSync</code> (a simple message listener + sender).
+The IP Core Editor uses <code>useIpCoreSync</code> + a raw <code>window.addEventListener</code> in
+<code>IpCoreApp.tsx</code> (lines 605-656). Both independently implement the same
+<code>ready</code> + <code>update</code> message protocol, with <code>IpCoreApp</code> also handling
+<code>stagingStart</code> and additional metadata fields. There is no shared
+<code>useExtensionHost</code> abstraction.</p>
+<hr />
+<h2 id="detailed-solution">Detailed Solution<a class="headerlink" href="#detailed-solution" title="Permanent link">&para;</a></h2>
+<h3 id="s1-usetableeditorstatetrow-tcolumnkey-shared-table-orchestration-hook">S1: <code>useTableEditorState&lt;TRow, TColumnKey&gt;</code> -- Shared Table Orchestration Hook<a class="headerlink" href="#s1-usetableeditorstatetrow-tcolumnkey-shared-table-orchestration-hook" title="Permanent link">&para;</a></h3>
+<p>Extract the duplicated state management from <code>BlockEditor</code>,
+<code>MemoryMapEditor</code>, and <code>RegisterArrayEditor</code> into a single generic hook.</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// hooks/useTableEditorState.ts</span>
+
+<span class="kd">interface</span><span class="w"> </span><span class="nx">UseTableEditorStateOptions</span><span class="o">&lt;</span><span class="nx">TRow</span><span class="p">,</span><span class="w"> </span><span class="nx">TColumnKey</span><span class="w"> </span><span class="k">extends</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="cm">/** The live rows array from the parent&#39;s data model. */</span>
+<span class="w">  </span><span class="nx">rows</span><span class="o">:</span><span class="w"> </span><span class="kt">TRow</span><span class="p">[];</span>
+<span class="w">  </span><span class="cm">/** Path fragment used in useCellEditGuard (e.g. [&#39;registers&#39;]). */</span>
+<span class="w">  </span><span class="nx">rowsPath</span><span class="o">:</span><span class="w"> </span><span class="p">(</span><span class="kt">string</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">number</span><span class="p">)[];</span>
+<span class="w">  </span><span class="cm">/** Ordered column keys for navigation. */</span>
+<span class="w">  </span><span class="nx">columnOrder</span><span class="o">:</span><span class="w"> </span><span class="kt">readonly</span><span class="w"> </span><span class="nx">TColumnKey</span><span class="p">[];</span>
+<span class="w">  </span><span class="cm">/** Callback to commit changes to the YAML document. */</span>
+<span class="w">  </span><span class="nx">onUpdate</span><span class="o">:</span><span class="w"> </span><span class="kt">YamlUpdateHandler</span><span class="p">;</span>
+<span class="w">  </span><span class="cm">/** Container ref for keyboard and focus management. */</span>
+<span class="w">  </span><span class="nx">containerRef</span><span class="o">:</span><span class="w"> </span><span class="kt">React.RefObject</span><span class="o">&lt;</span><span class="nx">HTMLElement</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="w">  </span><span class="cm">/** Optional data-attribute name for row selector (default: &#39;data-row-idx&#39;). */</span>
+<span class="w">  </span><span class="nx">rowSelectorAttr?</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="cm">/** Optional callbacks for custom insert logic. */</span>
+<span class="w">  </span><span class="nx">onInsertAfter</span><span class="o">?:</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ow">void</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">onInsertBefore</span><span class="o">?:</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ow">void</span><span class="p">;</span>
+<span class="w">  </span><span class="cm">/** Optional callback for custom move logic (swap). */</span>
+<span class="w">  </span><span class="nx">onMove</span><span class="o">?:</span><span class="w"> </span><span class="p">(</span><span class="nx">fromIndex</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">,</span><span class="w"> </span><span class="nx">delta</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ow">void</span><span class="p">;</span>
+<span class="w">  </span><span class="cm">/** Optional onAfterRevert callback forwarded to useCellEditGuard. */</span>
+<span class="w">  </span><span class="nx">onAfterRevert</span><span class="o">?:</span><span class="w"> </span><span class="p">(</span><span class="nx">snapshot</span><span class="o">:</span><span class="w"> </span><span class="kt">TRow</span><span class="p">[])</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ow">void</span><span class="p">;</span>
+<span class="w">  </span><span class="cm">/** Whether to enable HoverInsertBar tracking. Default: true. */</span>
+<span class="w">  </span><span class="nx">enableHoverInsert?</span><span class="o">:</span><span class="w"> </span><span class="kt">boolean</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kd">interface</span><span class="w"> </span><span class="nx">UseTableEditorStateReturn</span><span class="o">&lt;</span><span class="nx">TRow</span><span class="p">,</span><span class="w"> </span><span class="nx">TColumnKey</span><span class="w"> </span><span class="k">extends</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="c1">// Selection</span>
+<span class="w">  </span><span class="nx">selectedIndex</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">setSelectedIndex</span><span class="o">:</span><span class="w"> </span><span class="kt">React.Dispatch</span><span class="o">&lt;</span><span class="nx">React</span><span class="p">.</span><span class="nx">SetStateAction</span><span class="o">&lt;</span><span class="kt">number</span><span class="o">&gt;&gt;</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">hoveredIndex</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">null</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">setHoveredIndex</span><span class="o">:</span><span class="w"> </span><span class="kt">React.Dispatch</span><span class="o">&lt;</span><span class="nx">React</span><span class="p">.</span><span class="nx">SetStateAction</span><span class="o">&lt;</span><span class="kt">number</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">null</span><span class="o">&gt;&gt;</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">activeCell</span><span class="o">:</span><span class="w"> </span><span class="kt">ActiveCell</span><span class="o">&lt;</span><span class="nx">TColumnKey</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">setActiveCell</span><span class="o">:</span><span class="w"> </span><span class="kt">React.Dispatch</span><span class="o">&lt;</span><span class="nx">React</span><span class="p">.</span><span class="nx">SetStateAction</span><span class="o">&lt;</span><span class="nx">ActiveCell</span><span class="o">&lt;</span><span class="nx">TColumnKey</span><span class="o">&gt;&gt;&gt;</span><span class="p">;</span>
+
+<span class="w">  </span><span class="c1">// Cell edit guard</span>
+<span class="w">  </span><span class="nx">cancelEditRef</span><span class="o">:</span><span class="w"> </span><span class="kt">React.MutableRefObject</span><span class="o">&lt;</span><span class="kt">boolean</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">captureEditSnapshot</span><span class="o">:</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ow">void</span><span class="p">;</span>
+
+<span class="w">  </span><span class="c1">// Hover insert bar (if enabled)</span>
+<span class="w">  </span><span class="nx">insertHoverGap</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">null</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">insertBarScrollY</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">null</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">insertBarTbodyProps</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">onMouseMove</span><span class="o">:</span><span class="w"> </span><span class="kt">...</span><span class="p">;</span><span class="w"> </span><span class="nx">onMouseLeave</span><span class="o">:</span><span class="w"> </span><span class="kt">...</span><span class="w"> </span><span class="p">};</span>
+<span class="w">  </span><span class="nx">insertBarHoverProps</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">onMouseEnter</span><span class="o">:</span><span class="w"> </span><span class="kt">...</span><span class="p">;</span><span class="w"> </span><span class="nx">onMouseLeave</span><span class="o">:</span><span class="w"> </span><span class="kt">...</span><span class="w"> </span><span class="p">};</span>
+<span class="w">  </span><span class="nx">clearInsertBar</span><span class="o">:</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ow">void</span><span class="p">;</span>
+
+<span class="w">  </span><span class="c1">// Row interaction helpers</span>
+<span class="w">  </span><span class="nx">handleRowClick</span><span class="o">:</span><span class="w"> </span><span class="p">(</span><span class="nx">idx</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ow">void</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">handleCellClick</span><span class="o">:</span><span class="w"> </span><span class="p">(</span><span class="nx">idx</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">,</span><span class="w"> </span><span class="nx">key</span><span class="o">:</span><span class="w"> </span><span class="kt">TColumnKey</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ow">void</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">handleMouseEnter</span><span class="o">:</span><span class="w"> </span><span class="p">(</span><span class="nx">idx</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ow">void</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">handleMouseLeave</span><span class="o">:</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ow">void</span><span class="p">;</span>
+
+<span class="w">  </span><span class="c1">// Delete helper</span>
+<span class="w">  </span><span class="nx">deleteRow</span><span class="o">:</span><span class="w"> </span><span class="p">(</span><span class="nx">idx</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ow">void</span><span class="p">;</span>
+
+<span class="w">  </span><span class="c1">// Selection sync for external state</span>
+<span class="w">  </span><span class="nx">selectRow</span><span class="o">:</span><span class="w"> </span><span class="p">(</span><span class="nx">idx</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">,</span><span class="w"> </span><span class="nx">key?</span><span class="o">:</span><span class="w"> </span><span class="kt">TColumnKey</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ow">void</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>This hook internally composes <code>useCellEditGuard</code>, <code>useHoverInsertBar</code>, and
+<code>useTableNavigation</code>, and owns the clamp-on-change <code>useEffect</code>. The three
+editor components shrink to ~50 lines each: data derivation, insert logic,
+visualizer wiring, and <code>&lt;TwoPanelEditorLayout&gt;</code> assembly.</p>
+<hr />
+<h3 id="s2-uselayouttoggle-shared-layout-state-hook">S2: <code>useLayoutToggle</code> -- Shared Layout State Hook<a class="headerlink" href="#s2-uselayouttoggle-shared-layout-state-hook" title="Permanent link">&para;</a></h3>
+<p>Replace the four duplicated layout state pairs with a single hook factory.</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// hooks/useLayoutToggle.ts</span>
+
+<span class="kr">type</span><span class="w"> </span><span class="nx">PanelLayout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;stacked&#39;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;side-by-side&#39;</span><span class="p">;</span>
+
+<span class="kd">function</span><span class="w"> </span><span class="nx">useLayoutToggle</span><span class="p">(</span><span class="nx">initial</span><span class="o">:</span><span class="w"> </span><span class="kt">PanelLayout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;side-by-side&#39;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="p">[</span><span class="nx">layout</span><span class="p">,</span><span class="w"> </span><span class="nx">setLayout</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">useState</span><span class="o">&lt;</span><span class="nx">PanelLayout</span><span class="o">&gt;</span><span class="p">(</span><span class="nx">initial</span><span class="p">);</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">toggle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">useCallback</span><span class="p">(()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">setLayout</span><span class="p">((</span><span class="nx">prev</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">(</span><span class="nx">prev</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="s1">&#39;stacked&#39;</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="s1">&#39;side-by-side&#39;</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;stacked&#39;</span><span class="p">));</span>
+<span class="w">  </span><span class="p">},</span><span class="w"> </span><span class="p">[]);</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">layout</span><span class="p">,</span><span class="w"> </span><span class="nx">toggle</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">as</span><span class="w"> </span><span class="kd">const</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Usage in <code>index.tsx</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">const</span><span class="w"> </span><span class="nx">registerLayout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">useLayoutToggle</span><span class="p">();</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">blockLayout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">useLayoutToggle</span><span class="p">();</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">memoryMapLayout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">useLayoutToggle</span><span class="p">();</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">arrayLayout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">useLayoutToggle</span><span class="p">();</span>
+</code></pre></div>
+<p><code>DetailsPanel</code> receives a single <code>layouts: Record&lt;string, { layout, toggle }&gt;</code>
+prop (or four named pairs) instead of eight separate props.</p>
+<hr />
+<h3 id="s3-editablecell-shared-editable-cell-component">S3: <code>&lt;EditableCell&gt;</code> -- Shared Editable Cell Component<a class="headerlink" href="#s3-editablecell-shared-editable-cell-component" title="Permanent link">&para;</a></h3>
+<p>Encapsulate the 5-line cell wiring protocol:</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// shared/components/EditableCell.tsx</span>
+
+<span class="kd">interface</span><span class="w"> </span><span class="nx">EditableCellProps</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="cm">/** Column key for navigation and data-attributes. */</span>
+<span class="w">  </span><span class="nx">columnKey</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="cm">/** Whether this cell is the active cell. */</span>
+<span class="w">  </span><span class="nx">isActive</span><span class="o">:</span><span class="w"> </span><span class="kt">boolean</span><span class="p">;</span>
+<span class="w">  </span><span class="cm">/** Called when the cell is clicked. */</span>
+<span class="w">  </span><span class="nx">onCellClick</span><span class="o">:</span><span class="w"> </span><span class="p">(</span><span class="nx">e</span><span class="o">:</span><span class="w"> </span><span class="kt">React.MouseEvent</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ow">void</span><span class="p">;</span>
+<span class="w">  </span><span class="cm">/** CSS class for the &lt;td&gt;. */</span>
+<span class="w">  </span><span class="nx">className?</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="cm">/** Inline style overrides. */</span>
+<span class="w">  </span><span class="nx">style?</span><span class="o">:</span><span class="w"> </span><span class="kt">React.CSSProperties</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">children</span><span class="o">:</span><span class="w"> </span><span class="kt">React.ReactNode</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>And a companion for the input controls:</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// shared/components/CellInput.tsx</span>
+
+<span class="kd">interface</span><span class="w"> </span><span class="nx">CellInputProps</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="cm">/** Edit key for data-edit-key attribute. */</span>
+<span class="w">  </span><span class="nx">editKey</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="cm">/** Current display value. */</span>
+<span class="w">  </span><span class="nx">value</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="cm">/** Called on every input. */</span>
+<span class="w">  </span><span class="nx">onInput</span><span class="o">:</span><span class="w"> </span><span class="p">(</span><span class="nx">value</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ow">void</span><span class="p">;</span>
+<span class="w">  </span><span class="cm">/** Called on blur (commit). Optional -- not all cells use blur-commit. */</span>
+<span class="w">  </span><span class="nx">onBlur</span><span class="o">?:</span><span class="w"> </span><span class="p">(</span><span class="nx">value</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ow">void</span><span class="p">;</span>
+<span class="w">  </span><span class="cm">/** Called on focus (snapshot). */</span>
+<span class="w">  </span><span class="nx">onFocus</span><span class="o">:</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ow">void</span><span class="p">;</span>
+<span class="w">  </span><span class="cm">/** If true, blur-commit is skipped (ESC was pressed). */</span>
+<span class="w">  </span><span class="nx">cancelEditRef?</span><span class="o">:</span><span class="w"> </span><span class="kt">React.MutableRefObject</span><span class="o">&lt;</span><span class="kt">boolean</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="w">  </span><span class="cm">/** Variant: &#39;text&#39; | &#39;textarea&#39; | &#39;dropdown&#39;. Default: &#39;text&#39;. */</span>
+<span class="w">  </span><span class="nx">variant</span><span class="o">?:</span><span class="w"> </span><span class="s1">&#39;text&#39;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;textarea&#39;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;dropdown&#39;</span><span class="p">;</span>
+<span class="w">  </span><span class="cm">/** Additional class name. */</span>
+<span class="w">  </span><span class="nx">className?</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="cm">/** Options for dropdown variant. */</span>
+<span class="w">  </span><span class="nx">options?</span><span class="o">:</span><span class="w"> </span><span class="kt">readonly</span><span class="w"> </span><span class="kt">string</span><span class="p">[];</span>
+<span class="p">}</span>
+</code></pre></div>
+<hr />
+<h3 id="s4-generateuniquename-utility">S4: <code>generateUniqueName</code> Utility<a class="headerlink" href="#s4-generateuniquename-utility" title="Permanent link">&para;</a></h3>
+<p>Extract the duplicated name-generation logic:</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// utils/naming.ts</span>
+
+<span class="kd">function</span><span class="w"> </span><span class="nx">generateUniqueName</span><span class="p">(</span>
+<span class="w">  </span><span class="nx">existingItems</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">name?</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="p">}[],</span>
+<span class="w">  </span><span class="nx">prefix</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">pattern?</span><span class="o">:</span><span class="w"> </span><span class="kt">RegExp</span>
+<span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">re</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">pattern</span><span class="w"> </span><span class="o">??</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="nb">RegExp</span><span class="p">(</span><span class="sb">`^</span><span class="si">${</span><span class="nx">prefix</span><span class="si">}</span><span class="sb">(\\d+)$`</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;i&#39;</span><span class="p">);</span>
+<span class="w">  </span><span class="kd">let</span><span class="w"> </span><span class="nx">maxN</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0</span><span class="p">;</span>
+<span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kd">const</span><span class="w"> </span><span class="nx">item</span><span class="w"> </span><span class="k">of</span><span class="w"> </span><span class="nx">existingItems</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">const</span><span class="w"> </span><span class="nx">match</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">String</span><span class="p">(</span><span class="nx">item</span><span class="p">.</span><span class="nx">name</span><span class="w"> </span><span class="o">??</span><span class="w"> </span><span class="s1">&#39;&#39;</span><span class="p">).</span><span class="nx">match</span><span class="p">(</span><span class="nx">re</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">match</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nx">maxN</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">Math</span><span class="p">.</span><span class="nx">max</span><span class="p">(</span><span class="nx">maxN</span><span class="p">,</span><span class="w"> </span><span class="nb">parseInt</span><span class="p">(</span><span class="nx">match</span><span class="p">[</span><span class="mf">1</span><span class="p">],</span><span class="w"> </span><span class="mf">10</span><span class="p">));</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="sb">`</span><span class="si">${</span><span class="nx">prefix</span><span class="si">}${</span><span class="nx">maxN</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mf">1</span><span class="si">}</span><span class="sb">`</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+<hr />
+<h3 id="s5-extract-blocktablerow-from-memorymapeditor">S5: Extract <code>BlockTableRow</code> from <code>MemoryMapEditor</code><a class="headerlink" href="#s5-extract-blocktablerow-from-memorymapeditor" title="Permanent link">&para;</a></h3>
+<p><code>MemoryMapEditor</code> is the only editor that still renders its row cells inline.
+Extract a <code>BlockTableRow</code> component (analogous to <code>RegisterTableRow</code>) so that
+cell-editing fixes apply uniformly.</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// components/memorymap/BlockTableRow.tsx</span>
+
+<span class="kd">interface</span><span class="w"> </span><span class="nx">BlockTableRowProps</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">block</span><span class="o">:</span><span class="w"> </span><span class="kt">MemoryMapBlockDef</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">idx</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">isSelected</span><span class="o">:</span><span class="w"> </span><span class="kt">boolean</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">isHovered</span><span class="o">:</span><span class="w"> </span><span class="kt">boolean</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">blockActiveCell</span><span class="o">:</span><span class="w"> </span><span class="kt">BlockActiveCell</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">color</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">cancelEditRef</span><span class="o">:</span><span class="w"> </span><span class="kt">React.MutableRefObject</span><span class="o">&lt;</span><span class="kt">boolean</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">captureEditSnapshot</span><span class="o">:</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ow">void</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">onUpdate</span><span class="o">:</span><span class="w"> </span><span class="kt">YamlUpdateHandler</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">onRowClick</span><span class="o">:</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ow">void</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">onCellClick</span><span class="o">:</span><span class="w"> </span><span class="p">(</span><span class="nx">key</span><span class="o">:</span><span class="w"> </span><span class="kt">BlockEditKey</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ow">void</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">onMouseEnter</span><span class="o">:</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ow">void</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">onMouseLeave</span><span class="o">:</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ow">void</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">onContextMenu</span><span class="o">?:</span><span class="w"> </span><span class="p">(</span><span class="nx">e</span><span class="o">:</span><span class="w"> </span><span class="kt">React.MouseEvent</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ow">void</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+<hr />
+<h3 id="s6-decompose-usefieldeditor">S6: Decompose <code>useFieldEditor</code><a class="headerlink" href="#s6-decompose-usefieldeditor" title="Permanent link">&para;</a></h3>
+<p>Split the monolithic hook into composable parts:</p>
+<ol>
+<li><strong><code>useTableEditorState</code></strong> (from S1) handles selection, cell guard,
+   navigation, hover insert.</li>
+<li><strong><code>useFieldDrafts</code></strong> manages name/bits/reset draft state and validation.</li>
+<li><strong><code>useFieldEditor</code></strong> becomes a thin orchestration wrapper that composes the
+   two, adds field-specific insert/delete logic, and returns the combined API.</li>
+</ol>
+<p>This reduces <code>useFieldEditor</code> from ~448 lines to ~120 lines, and makes each
+concern independently testable.</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// hooks/useFieldDrafts.ts</span>
+
+<span class="kd">interface</span><span class="w"> </span><span class="nx">UseFieldDraftsOptions</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">fields</span><span class="o">:</span><span class="w"> </span><span class="kt">BitFieldRecord</span><span class="p">[];</span>
+<span class="w">  </span><span class="nx">registerSize</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kd">interface</span><span class="w"> </span><span class="nx">UseFieldDraftsReturn</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">nameDrafts</span><span class="o">:</span><span class="w"> </span><span class="kt">Record</span><span class="o">&lt;</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">setNameDrafts</span><span class="o">:</span><span class="w"> </span><span class="kt">...</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">nameErrors</span><span class="o">:</span><span class="w"> </span><span class="kt">Record</span><span class="o">&lt;</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">null</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">setNameErrors</span><span class="o">:</span><span class="w"> </span><span class="kt">...</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">bitsDrafts</span><span class="o">:</span><span class="w"> </span><span class="kt">Record</span><span class="o">&lt;</span><span class="kt">number</span><span class="p">,</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">setBitsDrafts</span><span class="o">:</span><span class="w"> </span><span class="kt">...</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">bitsErrors</span><span class="o">:</span><span class="w"> </span><span class="kt">Record</span><span class="o">&lt;</span><span class="kt">number</span><span class="p">,</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">null</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">setBitsErrors</span><span class="o">:</span><span class="w"> </span><span class="kt">...</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">dragPreviewRanges</span><span class="o">:</span><span class="w"> </span><span class="kt">Record</span><span class="o">&lt;</span><span class="kt">number</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="kt">number</span><span class="p">,</span><span class="w"> </span><span class="kt">number</span><span class="p">]</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">setDragPreviewRanges</span><span class="o">:</span><span class="w"> </span><span class="kt">...</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">resetDrafts</span><span class="o">:</span><span class="w"> </span><span class="kt">Record</span><span class="o">&lt;</span><span class="kt">number</span><span class="p">,</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">setResetDrafts</span><span class="o">:</span><span class="w"> </span><span class="kt">...</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">resetErrors</span><span class="o">:</span><span class="w"> </span><span class="kt">Record</span><span class="o">&lt;</span><span class="kt">number</span><span class="p">,</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">null</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">setResetErrors</span><span class="o">:</span><span class="w"> </span><span class="kt">...</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">ensureDraftsInitialized</span><span class="o">:</span><span class="w"> </span><span class="p">(</span><span class="nx">index</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ow">void</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">clearAllDrafts</span><span class="o">:</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ow">void</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+<hr />
+<h3 id="s7-shared-useextensionhost-hook-lower-priority">S7: Shared <code>useExtensionHost</code> Hook (Lower Priority)<a class="headerlink" href="#s7-shared-useextensionhost-hook-lower-priority" title="Permanent link">&para;</a></h3>
+<p>Unify the message-passing protocol for both webviews into a typed hook.
+This is lower priority because the two webviews are bundled separately and
+share minimal code, but it would prevent future divergence.</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// hooks/useExtensionHost.ts</span>
+
+<span class="kd">interface</span><span class="w"> </span><span class="nx">UseExtensionHostOptions</span><span class="o">&lt;</span><span class="nx">TIncoming</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">vscode</span><span class="o">:</span><span class="w"> </span><span class="kt">VsCodeApi</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">undefined</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">onMessage</span><span class="o">:</span><span class="w"> </span><span class="p">(</span><span class="nx">message</span><span class="o">:</span><span class="w"> </span><span class="kt">TIncoming</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ow">void</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kd">interface</span><span class="w"> </span><span class="nx">UseExtensionHostReturn</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">postMessage</span><span class="o">:</span><span class="w"> </span><span class="p">(</span><span class="nx">message</span><span class="o">:</span><span class="w"> </span><span class="kt">Record</span><span class="o">&lt;</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">unknown</span><span class="o">&gt;</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ow">void</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">sendUpdate</span><span class="o">:</span><span class="w"> </span><span class="p">(</span><span class="nx">text</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ow">void</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+<hr />
+<h2 id="step-by-step-implementation-plan">Step-by-Step Implementation Plan<a class="headerlink" href="#step-by-step-implementation-plan" title="Permanent link">&para;</a></h2>
+<h3 id="phase-0-infrastructure-no-visual-changes">Phase 0: Infrastructure (no visual changes)<a class="headerlink" href="#phase-0-infrastructure-no-visual-changes" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Create <code>utils/naming.ts</code> with <code>generateUniqueName</code>. Add unit tests.</li>
+<li>Create <code>hooks/useLayoutToggle.ts</code>. Unit test the toggle behaviour.</li>
+<li>Both are new files with no existing consumers yet -- zero risk.</li>
+</ol>
+<h3 id="phase-1-extract-usetableeditorstate-core-deduplication">Phase 1: Extract <code>useTableEditorState</code> (core deduplication)<a class="headerlink" href="#phase-1-extract-usetableeditorstate-core-deduplication" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Create <code>hooks/useTableEditorState.ts</code> implementing the interface from S1.
+   Internally compose <code>useCellEditGuard</code>, <code>useHoverInsertBar</code>, and
+   <code>useTableNavigation</code>.</li>
+<li>Write unit tests for selection clamping, delete-with-selection-adjust,
+   and hover-insert clearing.</li>
+<li>Refactor <code>BlockEditor</code> to use <code>useTableEditorState</code> instead of its
+   inline state. Verify: all keyboard navigation, insert, delete,
+   reorder, Enter/ESC behaviour is preserved.</li>
+<li>Refactor <code>RegisterArrayEditor</code> the same way.</li>
+<li>Refactor <code>MemoryMapEditor</code> the same way.</li>
+<li>Run the full test suite and manual smoke test after each editor.</li>
+</ol>
+<h3 id="phase-2-extract-blocktablerow-from-memorymapeditor">Phase 2: Extract <code>BlockTableRow</code> from <code>MemoryMapEditor</code><a class="headerlink" href="#phase-2-extract-blocktablerow-from-memorymapeditor" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Create <code>components/memorymap/BlockTableRow.tsx</code> following the pattern
+   of <code>RegisterTableRow</code>.</li>
+<li>Refactor <code>MemoryMapEditor</code> to use <code>BlockTableRow</code> instead of inline
+   cells.</li>
+<li>Verify all block-level editing (name, base address, usage,
+   description) still works.</li>
+</ol>
+<h3 id="phase-3-unify-name-cell-commit-strategy">Phase 3: Unify Name-Cell Commit Strategy<a class="headerlink" href="#phase-3-unify-name-cell-commit-strategy" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Decide on the canonical pattern: <strong><code>onInput</code> live-commit for all cells</strong>,
+   with <code>onBlur</code> used only as a fallback safety net (guarded by
+   <code>cancelEditRef</code>). Document this in the <code>useCellEditGuard</code> JSDoc.</li>
+<li>Apply this pattern consistently in <code>RegisterTableRow</code>, <code>BlockTableRow</code>,
+   and <code>FieldTableRow</code>.</li>
+<li>Remove the stale <code>nameDrafts</code> cleanup effect from <code>useFieldEditor</code> if
+   the name cell no longer uses draft state.</li>
+<li>Verify Enter/ESC behaviour across all editors (most critical
+   regression area).</li>
+</ol>
+<h3 id="phase-4-create-editablecell-and-cellinput-components">Phase 4: Create <code>&lt;EditableCell&gt;</code> and <code>&lt;CellInput&gt;</code> Components<a class="headerlink" href="#phase-4-create-editablecell-and-cellinput-components" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Create <code>shared/components/EditableCell.tsx</code> and
+   <code>shared/components/CellInput.tsx</code> as described in S3.</li>
+<li>Refactor <code>RegisterTableRow</code> to use <code>&lt;EditableCell&gt;</code> + <code>&lt;CellInput&gt;</code>.</li>
+<li>Refactor <code>BlockTableRow</code> the same way.</li>
+<li>Refactor <code>FieldTableRow</code> the same way.</li>
+<li>This phase is purely cosmetic (reduces line count) and should not
+   change behaviour.</li>
+</ol>
+<h3 id="phase-5-decompose-usefieldeditor">Phase 5: Decompose <code>useFieldEditor</code><a class="headerlink" href="#phase-5-decompose-usefieldeditor" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Create <code>hooks/useFieldDrafts.ts</code> (S6).</li>
+<li>Refactor <code>useFieldEditor</code> to compose <code>useTableEditorState</code> (from Phase 1)
+   and <code>useFieldDrafts</code>. The hook's public API does not change, so
+   <code>RegisterEditor</code> and <code>FieldsTable</code> do not need modifications.</li>
+<li>Verify field editing, bits validation, reset validation, drag preview,
+   and insert/delete.</li>
+</ol>
+<h3 id="phase-6-apply-uselayouttoggle-in-indextsx">Phase 6: Apply <code>useLayoutToggle</code> in <code>index.tsx</code><a class="headerlink" href="#phase-6-apply-uselayouttoggle-in-indextsx" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Replace the four layout state + toggle pairs in <code>index.tsx</code> with
+   <code>useLayoutToggle</code>.</li>
+<li>Simplify <code>DetailsPanel</code> props. This is a prop-threading cleanup with
+   no behavioural change.</li>
+</ol>
+<h3 id="phase-7-replace-generateuniquename-calls">Phase 7: Replace <code>generateUniqueName</code> Calls<a class="headerlink" href="#phase-7-replace-generateuniquename-calls" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Replace all inline <code>maxN</code> loops in <code>BlockEditor</code>, <code>RegisterArrayEditor</code>,
+   <code>RegisterEditor</code>, and <code>useFieldEditor</code> with <code>generateUniqueName</code> from
+   <code>utils/naming.ts</code>.</li>
+</ol>
+<h3 id="phase-8-optional-shared-useextensionhost">Phase 8 (Optional): Shared <code>useExtensionHost</code><a class="headerlink" href="#phase-8-optional-shared-useextensionhost" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Extract <code>useExtensionHost</code> from <code>useYamlSync</code> and <code>useIpCoreSync</code>.</li>
+<li>Both webview entry points use the shared hook.</li>
+<li>This phase can be deferred since the two webviews are independently
+   bundled.</li>
+</ol>
+<hr />
+<h2 id="risk-assessment">Risk Assessment<a class="headerlink" href="#risk-assessment" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Risk</th>
+<th>Mitigation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1 (useTableEditorState)</td>
+<td>Highest -- all keyboard/edit behaviour is consolidated</td>
+<td>Refactor one editor at a time; full manual test after each</td>
+</tr>
+<tr>
+<td>2 (BlockTableRow)</td>
+<td>Low -- extraction, no behaviour change</td>
+<td>Visual diff comparison</td>
+</tr>
+<tr>
+<td>3 (Commit strategy)</td>
+<td>Medium -- touches all blur handlers</td>
+<td>Focused test: Enter, ESC, Tab, click-away in every cell type</td>
+</tr>
+<tr>
+<td>4 (EditableCell)</td>
+<td>Low -- cosmetic</td>
+<td>Automated + visual regression</td>
+</tr>
+<tr>
+<td>5 (useFieldEditor decomp)</td>
+<td>Medium -- internal refactor of complex hook</td>
+<td>API stays the same; test field insert/delete/move/reorder</td>
+</tr>
+<tr>
+<td>6-7</td>
+<td>Negligible -- prop cleanup + utility swap</td>
+<td>Automated tests sufficient</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="files-changed-per-phase">Files Changed per Phase<a class="headerlink" href="#files-changed-per-phase" title="Permanent link">&para;</a></h2>
+<h3 id="phase-0">Phase 0<a class="headerlink" href="#phase-0" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>[NEW]</strong> <code>utils/naming.ts</code></li>
+<li><strong>[NEW]</strong> <code>hooks/useLayoutToggle.ts</code></li>
+</ul>
+<h3 id="phase-1">Phase 1<a class="headerlink" href="#phase-1" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>[NEW]</strong> <code>hooks/useTableEditorState.ts</code></li>
+<li><strong>[MODIFY]</strong> <code>components/memorymap/BlockEditor.tsx</code></li>
+<li><strong>[MODIFY]</strong> <code>components/memorymap/RegisterArrayEditor.tsx</code></li>
+<li><strong>[MODIFY]</strong> <code>components/memorymap/MemoryMapEditor.tsx</code></li>
+</ul>
+<h3 id="phase-2">Phase 2<a class="headerlink" href="#phase-2" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>[NEW]</strong> <code>components/memorymap/BlockTableRow.tsx</code></li>
+<li><strong>[MODIFY]</strong> <code>components/memorymap/MemoryMapEditor.tsx</code></li>
+</ul>
+<h3 id="phase-3">Phase 3<a class="headerlink" href="#phase-3" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>[MODIFY]</strong> <code>components/memorymap/RegisterTableRow.tsx</code></li>
+<li><strong>[MODIFY]</strong> <code>components/memorymap/BlockTableRow.tsx</code> (new from Phase 2)</li>
+<li><strong>[MODIFY]</strong> <code>components/register/FieldTableRow.tsx</code></li>
+</ul>
+<h3 id="phase-4">Phase 4<a class="headerlink" href="#phase-4" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>[NEW]</strong> <code>shared/components/EditableCell.tsx</code></li>
+<li><strong>[NEW]</strong> <code>shared/components/CellInput.tsx</code></li>
+<li><strong>[MODIFY]</strong> <code>shared/components/index.ts</code></li>
+<li><strong>[MODIFY]</strong> <code>components/memorymap/RegisterTableRow.tsx</code></li>
+<li><strong>[MODIFY]</strong> <code>components/memorymap/BlockTableRow.tsx</code></li>
+<li><strong>[MODIFY]</strong> <code>components/register/FieldTableRow.tsx</code></li>
+</ul>
+<h3 id="phase-5">Phase 5<a class="headerlink" href="#phase-5" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>[NEW]</strong> <code>hooks/useFieldDrafts.ts</code></li>
+<li><strong>[MODIFY]</strong> <code>hooks/useFieldEditor.ts</code></li>
+</ul>
+<h3 id="phase-6">Phase 6<a class="headerlink" href="#phase-6" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>[MODIFY]</strong> <code>index.tsx</code></li>
+<li><strong>[MODIFY]</strong> <code>components/DetailsPanel.tsx</code></li>
+</ul>
+<h3 id="phase-7">Phase 7<a class="headerlink" href="#phase-7" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>[MODIFY]</strong> <code>components/memorymap/BlockEditor.tsx</code></li>
+<li><strong>[MODIFY]</strong> <code>components/memorymap/RegisterArrayEditor.tsx</code></li>
+<li><strong>[MODIFY]</strong> <code>components/register/RegisterEditor.tsx</code></li>
+<li><strong>[MODIFY]</strong> <code>hooks/useFieldEditor.ts</code></li>
+</ul>
+<h2 id="implementation-progress-completed">Implementation Progress (Completed)<a class="headerlink" href="#implementation-progress-completed" title="Permanent link">&para;</a></h2>
+<p>All phases of the refactoring plan outlined above have been successfully executed and verified. The <code>src/webview</code> architecture has been transformed from having heavily duplicated editor components into a clean, composed architecture.</p>
+<h3 id="new-architecture-diagram">New Architecture Diagram<a class="headerlink" href="#new-architecture-diagram" title="Permanent link">&para;</a></h3>
+<pre class="mermaid"><code>graph TD
+    %% Core Orchestration
+    TES[useTableEditorState]:::hook
+    UFD[useFieldDrafts]:::hook
+    ULT[useLayoutToggle]:::hook
+
+    %% Sub-components of TES
+    CEG[useCellEditGuard]:::subhook
+    UHB[useHoverInsertBar]:::subhook
+    UTN[useTableNavigation]:::subhook
+
+    TES -.-&gt; CEG
+    TES -.-&gt; UHB
+    TES -.-&gt; UTN
+
+    %% Editors
+    BE[BlockEditor]:::editor
+    MME[MemoryMapEditor]:::editor
+    RAE[RegisterArrayEditor]:::editor
+    RE[useFieldEditor]:::hook
+
+    %% Editor to Orchestration links
+    BE -.-&gt; TES
+    MME -.-&gt; TES
+    RAE -.-&gt; TES
+    RE -.-&gt; TES
+    RE -.-&gt; UFD
+
+    %% Shared View Primitives
+    EC[EditableCell]:::comp
+    CI[CellInput]:::comp
+    EC -.-&gt; CI
+
+    %% Row Components
+    BTR[BlockTableRow]:::comp
+    RTR[RegisterTableRow]:::comp
+    FTR[FieldTableRow]:::comp
+
+    %% Row to Primitives
+    BTR -.-&gt; EC
+    RTR -.-&gt; EC
+    FTR -.-&gt; EC
+
+    %% Editor to Row links
+    BE --&gt; RTR
+    MME --&gt; BTR
+    RAE --&gt; RTR
+    RE --&gt; FTR
+
+    %% Utilities
+    GUN[generateUniqueName]:::util
+    SIS[SpatialInsertionService]:::util
+    MS[MutationService]:::util
+
+    SIS -.-&gt; GUN
+    MS -.-&gt; GUN
+    BE -.-&gt; GUN
+
+    classDef hook fill:transparent,stroke:#4facfe,stroke-width:2px;
+    classDef subhook fill:transparent,stroke:#4facfe,stroke-width:2px,stroke-dasharray: 5 5;
+    classDef editor fill:transparent,stroke:#da22ff,stroke-width:2px;
+    classDef comp fill:transparent,stroke:#f5576c,stroke-width:2px;
+    classDef util fill:transparent,stroke:#00f2fe,stroke-width:2px;</code></pre>
+<h3 id="key-improvements-achieved">Key Improvements Achieved<a class="headerlink" href="#key-improvements-achieved" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Orchestration Centralization</strong>: By introducing <code>useTableEditorState</code>, we eliminated ~300 lines of identical state, event wiring, and clamp-on-change effects across the top-level table editors.</li>
+<li><strong>Standardized Cell Editing</strong>: The creation of <code>EditableCell</code> and <code>CellInput</code> enforced a uniform "live-commit on input + guarded on blur" protocol across all row types (<code>BlockTableRow</code>, <code>RegisterTableRow</code>, <code>FieldTableRow</code>).</li>
+<li><strong>De-bloated God Object</strong>: <code>useFieldEditor</code> was decomposed. Draft state is now cleanly managed by <code>useFieldDrafts</code>, and table orchestration relies entirely on <code>useTableEditorState</code>.</li>
+<li><strong>Utility Hardening</strong>: Fragile, duplicated inline <code>maxN</code> logic was replaced universally with the <code>generateUniqueName</code> utility, making insertion naming robust.</li>
+<li><strong>No Verification Errors</strong>: The final refactored architecture compiles fully and passes the strict ESLint configuration with zero warnings.</li>
+</ol>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2026 Le Viet Bach
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.expand", "navigation.tabs", "navigation.top", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,0 +1,3400 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Visual editor for FPGA IP Core and Memory Map specifications">
+      
+      
+        <meta name="author" content="Le Viet Bach">
+      
+      
+        <link rel="canonical" href="https://bleviet.github.io/ipcraft-vscode/tutorials/memory-mapped-registers/">
+      
+      
+        <link rel="prev" href="../build-and-verify-a-scaffold-pack/">
+      
+      
+        <link rel="next" href="../../how-to/vhdl-import/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Memory-Mapped Registers - IPCraft for VS Code</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#memory-mapped-registers" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="IPCraft for VS Code" class="md-header__button md-logo" aria-label="IPCraft for VS Code" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            IPCraft for VS Code
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Memory-Mapped Registers
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/bleviet/ipcraft-vscode" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../getting-started/quickstart/" class="md-tabs__link">
+          
+  
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../build-and-verify-a-scaffold-pack/" class="md-tabs__link">
+          
+  
+  
+  Tutorials
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../how-to/vhdl-import/" class="md-tabs__link">
+          
+  
+  
+  How-to Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../concepts/extension-model/" class="md-tabs__link">
+          
+  
+  
+  Concepts
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../architecture/overview/" class="md-tabs__link">
+          
+  
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../reference/commands/" class="md-tabs__link">
+          
+  
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../contributing/guidelines/" class="md-tabs__link">
+          
+  
+  
+  Contributing
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../blog/building-ipcraft/" class="md-tabs__link">
+          
+  
+  
+  Blog
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="IPCraft for VS Code" class="md-nav__button md-logo" aria-label="IPCraft for VS Code" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    IPCraft for VS Code
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/bleviet/ipcraft-vscode" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorials
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Tutorials
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../build-and-verify-a-scaffold-pack/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Build and Verify a Scaffold Pack
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Memory-Mapped Registers
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Memory-Mapped Registers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#the-mental-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The mental model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#anatomy-of-a-memory-map" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Anatomy of a memory map
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#address-blocks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Address blocks
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Address blocks">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#usage-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Usage types
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#registers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Registers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bit-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bit fields
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#access-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Access types
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Access types">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#write-1-to-clear-interrupt-flags" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Write-1-to-clear (interrupt flags)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#self-clearing-command-go-bits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Self-clearing (command / "go" bits)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#change-of-state-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Change-of-state fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-generated-hardware-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The generated hardware contract
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#register-arrays" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Register arrays
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Register arrays">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#group-arrays-a-repeated-block-of-registers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Group arrays (a repeated block of registers)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#flat-arrays-a-repeated-single-register" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Flat arrays (a repeated single register)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#alignment-guidance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Alignment guidance
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#memory-regions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Memory regions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#worked-example-daq_controller" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Worked example: daq_controller
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Worked example: daq_controller">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#daq_controlleripyml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        daq_controller.ip.yml
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#daq_controllermmyml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        daq_controller.mm.yml
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resulting-address-map" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resulting address map
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#from-map-to-hardware-the-whole-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        From map to hardware — the whole flow
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#test-coverage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test coverage
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#checklist-for-authoring-a-memory-map" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Checklist for authoring a memory map
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How-to Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    How-to Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/vhdl-import/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Importing from Existing Files
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/generating-a-project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generating a Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/scaffold-packs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Customising Code Generation (Scaffold Packs)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/building-a-project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building a Project (Headless)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/build-vsix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building a VSIX Package
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/ai-design-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI Design Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Concepts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/extension-model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VS Code Extension Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/yaml-data-flow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YAML Data Flow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/spatial-editing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spatial Editing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/responsive-design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Responsive Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/extension-host/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Extension Host
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/webview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Webview (React)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Commands & Settings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/keyboard-shortcuts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Keyboard Shortcuts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/generator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/ip-core-editor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IP Core Editor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/specification-schemas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Specification Schemas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/bitfield-interaction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bit Field Interaction
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/yaml-libraries/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YAML Libraries
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contributing
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/guidelines/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guidelines
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Blog
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Blog
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../blog/building-ipcraft/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building IPCraft
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#the-mental-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The mental model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#anatomy-of-a-memory-map" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Anatomy of a memory map
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#address-blocks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Address blocks
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Address blocks">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#usage-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Usage types
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#registers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Registers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bit-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bit fields
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#access-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Access types
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Access types">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#write-1-to-clear-interrupt-flags" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Write-1-to-clear (interrupt flags)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#self-clearing-command-go-bits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Self-clearing (command / "go" bits)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#change-of-state-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Change-of-state fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-generated-hardware-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The generated hardware contract
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#register-arrays" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Register arrays
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Register arrays">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#group-arrays-a-repeated-block-of-registers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Group arrays (a repeated block of registers)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#flat-arrays-a-repeated-single-register" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Flat arrays (a repeated single register)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#alignment-guidance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Alignment guidance
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#memory-regions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Memory regions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#worked-example-daq_controller" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Worked example: daq_controller
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Worked example: daq_controller">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#daq_controlleripyml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        daq_controller.ip.yml
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#daq_controllermmyml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        daq_controller.mm.yml
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resulting-address-map" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resulting address map
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#from-map-to-hardware-the-whole-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        From map to hardware — the whole flow
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#test-coverage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test coverage
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#checklist-for-authoring-a-memory-map" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Checklist for authoring a memory map
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/bleviet/ipcraft-vscode/edit/main/docs/tutorials/memory-mapped-registers.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="memory-mapped-registers">Memory-Mapped Registers<a class="headerlink" href="#memory-mapped-registers" title="Permanent link">&para;</a></h1>
+<p>This tutorial explains the IPCraft methodology for describing a memory-mapped
+register interface and turning it into synthesizable HDL: address blocks,
+registers, register arrays, memory regions, bit fields, and the seven access
+types that govern how software and hardware share a register. Every concept is
+paired with a small YAML fragment, and the full worked example at the end is a
+<strong>real fixture in this repository</strong> — not a hypothetical.</p>
+<div class="admonition info">
+<p class="admonition-title">What you will learn</p>
+<ul>
+<li>How an <code>.ip.yml</code> and an <code>.mm.yml</code> divide responsibility, and how they link.</li>
+<li>The address-block / register / register-array / bit-field hierarchy.</li>
+<li>All seven field access types, and which one to reach for.</li>
+<li>The <code>regs_out</code> / <code>regs_in</code> hardware contract your logic connects to.</li>
+<li>How to model register arrays and non-register memory windows.</li>
+</ul>
+</div>
+<blockquote>
+<p><strong>Related reading:</strong> <a href="../../concepts/yaml-data-flow/">YAML Data Flow</a> for how
+files move through the editor, <a href="../../concepts/generator-backbone/">The Generator Backbone</a>
+for the template pipeline, and <a href="../../reference/specification-schemas/">Specification Schemas</a>
+for the authoritative field list.</p>
+</blockquote>
+<div class="admonition info">
+<p class="admonition-title">This tutorial is tested, not just described</p>
+<p>The worked example below —
+<a href="https://github.com/bleviet/ipcraft-spec/tree/main/examples/daq_controller"><code>daq_controller</code></a> —
+lives in the <code>ipcraft-spec</code> submodule and is exercised by this repository's
+integration tests on every run: it is generated in both VHDL and
+SystemVerilog, analyzed and elaborated with <strong>GHDL</strong>, compiled with
+<strong>Icarus Verilog</strong>, linted with <strong>Verilator</strong>, and round-tripped through
+IP-XACT (<code>component.xml</code>). The YAML shown in this page is included directly
+from that fixture, so what you read here is exactly what the test suite
+verifies.</p>
+</div>
+<hr />
+<h2 id="the-mental-model">The mental model<a class="headerlink" href="#the-mental-model" title="Permanent link">&para;</a></h2>
+<p>An IPCraft peripheral is described by <strong>two</strong> files with different jobs:</p>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Extension</th>
+<th>Responsibility</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>IP Core</td>
+<td><code>.ip.yml</code></td>
+<td>The component: its ports, clocks, resets, parameters, and <strong>bus interfaces</strong>. One bus interface <em>references</em> a memory map.</td>
+</tr>
+<tr>
+<td>Memory Map</td>
+<td><code>.mm.yml</code></td>
+<td>The register layout: address blocks, registers, and bit fields, with their access semantics.</td>
+</tr>
+</tbody>
+</table>
+<p>The IP core says <em>"this AXI4-Lite slave is controlled by the register set named
+<code>CSR_MAP</code>"</em>; the memory map says <em>"here is what <code>CSR_MAP</code> contains"</em>. Keeping
+them separate means one register layout can be reused across cores, and the
+layout can be imported, versioned, and diffed on its own.</p>
+<pre class="mermaid"><code>flowchart LR
+    subgraph Author["You author"]
+        IP[".ip.yml&lt;br/&gt;ports · clocks · bus interfaces"]
+        MM[".mm.yml&lt;br/&gt;blocks · registers · fields"]
+    end
+    IP -- "memoryMapRef" --&gt; MM
+    Author --&gt; GEN{{IPCraft generator}}
+    GEN --&gt; PKG["_pkg&lt;br/&gt;types + reset constants"]
+    GEN --&gt; REGS["_regs&lt;br/&gt;register file (decode + storage)"]
+    GEN --&gt; BUS["_axil / _avmm&lt;br/&gt;bus wrapper"]
+    GEN --&gt; CORE["_core&lt;br/&gt;your logic (stub, generated once)"]
+    GEN --&gt; TOP["top entity&lt;br/&gt;wires it together"]
+    GEN --&gt; XML["component.xml&lt;br/&gt;IP-XACT metadata"]</code></pre>
+<p>The generator emits a <strong>bus wrapper</strong> (protocol handshakes), a <strong>register
+file</strong> (address decode + storage), a <strong>package</strong> (record/struct types and
+reset values), a <strong>core stub</strong> (where your logic lives), and a <strong>top</strong> that
+connects them. The register file exposes your registers to your logic through
+two aggregate records — the heart of the contract, described in
+<a href="#the-generated-hardware-contract">The generated hardware contract</a>.</p>
+<hr />
+<h2 id="anatomy-of-a-memory-map">Anatomy of a memory map<a class="headerlink" href="#anatomy-of-a-memory-map" title="Permanent link">&para;</a></h2>
+<p>A memory map is a strict four-level hierarchy:</p>
+<pre class="mermaid"><code>flowchart TD
+    MM["Memory Map&lt;br/&gt;&lt;i&gt;CSR_MAP&lt;/i&gt;"]
+    MM --&gt; AB1["Address Block&lt;br/&gt;&lt;i&gt;usage: register&lt;/i&gt;"]
+    MM --&gt; AB2["Address Block&lt;br/&gt;&lt;i&gt;usage: memory&lt;/i&gt;"]
+    AB1 --&gt; R1["Register&lt;br/&gt;&lt;i&gt;offset, size, access&lt;/i&gt;"]
+    AB1 --&gt; R2["Register Array&lt;br/&gt;&lt;i&gt;count, stride&lt;/i&gt;"]
+    R1 --&gt; F1["Bit Field · [0:0]"]
+    R1 --&gt; F2["Bit Field · [2:1]"]
+    R1 --&gt; F3["Bit Field · [15:8]"]
+    R2 --&gt; RC["Child Registers&lt;br/&gt;&lt;i&gt;replicated per index&lt;/i&gt;"]</code></pre>
+<ul>
+<li>A <strong>memory map</strong> groups everything under one name and description.</li>
+<li>An <strong>address block</strong> is a contiguous span of the address space with a
+  <code>usage</code> (<code>register</code>, <code>memory</code>, or <code>reserved</code>) and a base address.</li>
+<li>A <strong>register</strong> is one addressable word inside a <code>register</code> block.</li>
+<li>A <strong>bit field</strong> is a named range of bits inside a register, carrying the
+  access semantics.</li>
+</ul>
+<p>The top-level <code>.mm.yml</code> document is a <strong>list</strong> of memory maps:</p>
+<div class="highlight"><pre><span></span><code><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CSR_MAP</span>
+<span class="w">  </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Control/status registers for the peripheral</span>
+<span class="w">  </span><span class="nt">addressBlocks</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">REGS</span>
+<span class="w">      </span><span class="nt">baseAddress</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0x0000</span>
+<span class="w">      </span><span class="nt">usage</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">register</span>
+<span class="w">      </span><span class="nt">defaultRegWidth</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">32</span>
+<span class="w">      </span><span class="nt">registers</span><span class="p">:</span>
+<span class="w">        </span><span class="c1"># ... registers go here</span>
+</code></pre></div>
+<hr />
+<h2 id="address-blocks">Address blocks<a class="headerlink" href="#address-blocks" title="Permanent link">&para;</a></h2>
+<p>An address block reserves a region of the peripheral's address space and
+declares what kind of thing lives there.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>name</code></td>
+<td>Block identifier.</td>
+</tr>
+<tr>
+<td><code>baseAddress</code></td>
+<td>Start address of the block (bytes). Accepts integers or <code>0x</code> hex.</td>
+</tr>
+<tr>
+<td><code>range</code></td>
+<td>Size of the block. Accepts a number of bytes or a suffix string (<code>4K</code>, <code>1M</code>).</td>
+</tr>
+<tr>
+<td><code>usage</code></td>
+<td><code>register</code>, <code>memory</code>, or <code>reserved</code>.</td>
+</tr>
+<tr>
+<td><code>defaultRegWidth</code></td>
+<td>Default register width in bits for registers in this block (typically 32).</td>
+</tr>
+</tbody>
+</table>
+<h3 id="usage-types">Usage types<a class="headerlink" href="#usage-types" title="Permanent link">&para;</a></h3>
+<pre class="mermaid"><code>flowchart LR
+    U{usage}
+    U --&gt; REG["register&lt;br/&gt;generates storage + address decode"]
+    U --&gt; MEM["memory&lt;br/&gt;reserves a window for a RAM/FIFO/BRAM"]
+    U --&gt; RES["reserved&lt;br/&gt;pads/aligns the map, no access"]</code></pre>
+<ul>
+<li><strong><code>register</code></strong> — the generator emits a register file: per-register storage,
+  an address decoder, read/write logic, and the hardware ports for your
+  fields. This is the block type this tutorial is mostly about.</li>
+<li><strong><code>memory</code></strong> — declares an address window backed by a separate memory (a
+  BRAM, FIFO, or external RAM), <em>not</em> by generated registers. No per-word
+  storage is generated; the window is surfaced in the IP-XACT metadata so
+  integration tools know the address space is occupied. Use it to reserve,
+  say, a sample buffer.</li>
+<li><strong><code>reserved</code></strong> — marks an address range as unavailable (padding, future
+  expansion). No access logic, no storage.</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="nt">addressBlocks</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">REGS</span>
+<span class="w">    </span><span class="nt">baseAddress</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0x0000</span>
+<span class="w">    </span><span class="nt">usage</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">register</span>
+<span class="w">    </span><span class="nt">defaultRegWidth</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">32</span>
+<span class="w">    </span><span class="nt">registers</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="w"> </span><span class="nv">...</span><span class="w"> </span><span class="p p-Indicator">]</span>
+
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SAMPLE_BUFFER</span>
+<span class="w">    </span><span class="nt">baseAddress</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0x1000</span>
+<span class="w">    </span><span class="nt">range</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4K</span>
+<span class="w">    </span><span class="nt">usage</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">memory</span><span class="w">        </span><span class="c1"># a 4 KB window for a separate BRAM, no registers here</span>
+</code></pre></div>
+<hr />
+<h2 id="registers">Registers<a class="headerlink" href="#registers" title="Permanent link">&para;</a></h2>
+<p>A register is one addressable location in a <code>register</code> block.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Default</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>name</code></td>
+<td>—</td>
+<td>Register identifier (becomes the field-record member name).</td>
+</tr>
+<tr>
+<td><code>offset</code></td>
+<td>—</td>
+<td>Byte offset from the block's <code>baseAddress</code>.</td>
+</tr>
+<tr>
+<td><code>size</code></td>
+<td>32</td>
+<td>Register width in bits.</td>
+</tr>
+<tr>
+<td><code>access</code></td>
+<td><code>read-write</code></td>
+<td>Default access for the register; individual fields can override.</td>
+</tr>
+<tr>
+<td><code>resetValue</code></td>
+<td>0</td>
+<td>Reset value for the whole register (see note below).</td>
+</tr>
+<tr>
+<td><code>description</code></td>
+<td>""</td>
+<td>Human-readable description.</td>
+</tr>
+<tr>
+<td><code>fields</code></td>
+<td>[]</td>
+<td>The bit fields (see next section).</td>
+</tr>
+</tbody>
+</table>
+<p>A register almost always carries <strong>fields</strong>; the fields' access types are what
+drive HDL generation. The register-level <code>access</code> is a convenience default
+when every field shares the same semantics.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">registers</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CONTROL</span>
+<span class="w">    </span><span class="nt">offset</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0x00</span>
+<span class="w">    </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Global control</span>
+<span class="w">    </span><span class="nt">fields</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> name</span><span class="p">:</span><span class="w"> </span><span class="nv">ENABLE</span><span class="p p-Indicator">,</span><span class="nt"> bits</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;[0:0]&#39;</span><span class="p p-Indicator">,</span><span class="nt">  access</span><span class="p">:</span><span class="w"> </span><span class="nv">read-write</span><span class="p p-Indicator">,</span><span class="nt"> resetValue</span><span class="p">:</span><span class="w"> </span><span class="nv">0</span><span class="w"> </span><span class="p p-Indicator">}</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> name</span><span class="p">:</span><span class="w"> </span><span class="nv">MODE</span><span class="p p-Indicator">,</span><span class="nt">   bits</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;[2:1]&#39;</span><span class="p p-Indicator">,</span><span class="nt">  access</span><span class="p">:</span><span class="w"> </span><span class="nv">read-write</span><span class="p p-Indicator">,</span><span class="nt"> resetValue</span><span class="p">:</span><span class="w"> </span><span class="nv">1</span><span class="w"> </span><span class="p p-Indicator">}</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> name</span><span class="p">:</span><span class="w"> </span><span class="nv">PRESCALER</span><span class="p p-Indicator">,</span><span class="nt"> bits</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;[15:8]&#39;</span><span class="p p-Indicator">,</span><span class="nt"> access</span><span class="p">:</span><span class="w"> </span><span class="nv">read-write</span><span class="p p-Indicator">,</span><span class="nt"> resetValue</span><span class="p">:</span><span class="w"> </span><span class="nv">0x04</span><span class="w"> </span><span class="p p-Indicator">}</span>
+</code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Reset values live on fields</p>
+<p>The effective reset comes from each field's <code>resetValue</code>, assembled into
+the register's reset constant, and is honored correctly in both the
+generated <strong>VHDL</strong> and <strong>SystemVerilog</strong>. A register-level <code>resetValue</code>
+is also honored, but only for a register with no fields at all — it does
+not fill the gaps between fields in a register that has some.</p>
+</div>
+<hr />
+<h2 id="bit-fields">Bit fields<a class="headerlink" href="#bit-fields" title="Permanent link">&para;</a></h2>
+<p>A bit field is a named range of bits within a register. Its <strong>access type</strong>
+determines the storage, the read behavior, and which hardware ports the
+generator produces.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>name</code></td>
+<td>Field identifier (becomes a record/struct member).</td>
+</tr>
+<tr>
+<td><code>bits</code></td>
+<td>Range string, MSB-first: <code>'[7:0]'</code>, <code>'[0:0]'</code>, <code>'[15:8]'</code>.</td>
+</tr>
+<tr>
+<td><code>offset</code> + <code>width</code></td>
+<td>Alternative to <code>bits</code>: LSB position + number of bits.</td>
+</tr>
+<tr>
+<td><code>access</code></td>
+<td>One of the seven access types (next section).</td>
+</tr>
+<tr>
+<td><code>resetValue</code></td>
+<td>Reset value for this field.</td>
+</tr>
+<tr>
+<td><code>description</code></td>
+<td>Human-readable description.</td>
+</tr>
+<tr>
+<td><code>enumeratedValues</code></td>
+<td><code>{ value: name }</code> map documenting named encodings. Descriptive metadata — it enriches the editor and IP-XACT output but does not change generated RTL logic.</td>
+</tr>
+<tr>
+<td><code>monitorChangeOf</code></td>
+<td>Change-of-state monitoring (see <a href="#change-of-state-fields">Change-of-state</a>).</td>
+</tr>
+</tbody>
+</table>
+<p>Two equivalent ways to place a field:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Range string (MSB-first) — most common</span>
+<span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> name</span><span class="p">:</span><span class="w"> </span><span class="nv">MODE</span><span class="p p-Indicator">,</span><span class="nt"> bits</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;[2:1]&#39;</span><span class="p p-Indicator">,</span><span class="nt"> access</span><span class="p">:</span><span class="w"> </span><span class="nv">read-write</span><span class="w"> </span><span class="p p-Indicator">}</span>
+
+<span class="c1"># Explicit offset + width (LSB position, bit count)</span>
+<span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> name</span><span class="p">:</span><span class="w"> </span><span class="nv">MODE</span><span class="p p-Indicator">,</span><span class="nt"> offset</span><span class="p">:</span><span class="w"> </span><span class="nv">1</span><span class="p p-Indicator">,</span><span class="nt"> width</span><span class="p">:</span><span class="w"> </span><span class="nv">2</span><span class="p p-Indicator">,</span><span class="nt"> access</span><span class="p">:</span><span class="w"> </span><span class="nv">read-write</span><span class="w"> </span><span class="p p-Indicator">}</span>
+</code></pre></div>
+<p>Fields within a register should not overlap, and bits not covered by any field
+typically read back as their reset value.</p>
+<hr />
+<h2 id="access-types">Access types<a class="headerlink" href="#access-types" title="Permanent link">&para;</a></h2>
+<p>Access type is the most important concept in the whole model. It answers
+three questions at once: <em>can software read it, what does a software write
+do, and what is hardware's role?</em> IPCraft supports seven access types.</p>
+<table>
+<thead>
+<tr>
+<th>Access token</th>
+<th>SW read</th>
+<th>SW write</th>
+<th>Hardware role</th>
+<th>Generated HW port</th>
+<th>Typical use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>read-only</code></td>
+<td>live HW value</td>
+<td>ignored</td>
+<td><strong>drives</strong> the value</td>
+<td><code>regs_in.&lt;reg&gt;</code></td>
+<td>Status bits</td>
+</tr>
+<tr>
+<td><code>write-only</code></td>
+<td>reads 0</td>
+<td>stores value</td>
+<td>reads the value</td>
+<td><code>regs_out.&lt;reg&gt;</code></td>
+<td>Latched controls not meant to read back</td>
+</tr>
+<tr>
+<td><code>read-write</code></td>
+<td>stored value</td>
+<td>stores value</td>
+<td>reads the value</td>
+<td><code>regs_out.&lt;reg&gt;</code></td>
+<td>Configuration</td>
+</tr>
+<tr>
+<td><code>write-1-to-clear</code></td>
+<td>reads 0</td>
+<td>writing <code>1</code> <strong>clears</strong> a bit</td>
+<td><strong>pulses to set</strong></td>
+<td><code>regs_out.&lt;reg&gt;</code> + <code>regs_in.&lt;reg&gt;_pulse</code></td>
+<td>Event flags (write-only)</td>
+</tr>
+<tr>
+<td><code>read-write-1-to-clear</code></td>
+<td>sticky value</td>
+<td>writing <code>1</code> <strong>clears</strong> a bit</td>
+<td><strong>pulses to set</strong></td>
+<td><code>regs_out.&lt;reg&gt;</code> + <code>regs_in.&lt;reg&gt;_pulse</code></td>
+<td>Interrupt status flags</td>
+</tr>
+<tr>
+<td><code>write-self-clearing</code></td>
+<td>reads 0</td>
+<td>writing <code>1</code> <strong>sets</strong> a bit</td>
+<td><strong>pulses to clear</strong></td>
+<td><code>regs_out.&lt;reg&gt;</code> + <code>regs_in.&lt;reg&gt;_clear</code></td>
+<td>Command / "go" strobes</td>
+</tr>
+<tr>
+<td><code>read-write-self-clearing</code></td>
+<td>value</td>
+<td>writing <code>1</code> <strong>sets</strong> a bit</td>
+<td><strong>pulses to clear</strong></td>
+<td><code>regs_out.&lt;reg&gt;</code> + <code>regs_in.&lt;reg&gt;_clear</code></td>
+<td>Busy/command with readback</td>
+</tr>
+</tbody>
+</table>
+<p>A few rules make this table easier to remember:</p>
+<ul>
+<li>The <code>read-</code> prefix decides <strong>readability</strong>. <code>write-only</code>,
+  <code>write-1-to-clear</code>, and <code>write-self-clearing</code> read back as <code>0</code>. Their
+  <code>read-write-…</code> counterparts read back the stored value.</li>
+<li><strong><code>…-1-to-clear</code></strong> is a <em>sticky flag set by hardware, cleared by the CPU
+  writing a 1</em> to the bit. It is the interrupt-flag idiom.</li>
+<li><strong><code>…-self-clearing</code></strong> is the mirror image: <em>set by the CPU writing a 1,
+  cleared by hardware</em>. It is the command/handshake idiom.</li>
+<li>When a hardware event and a CPU action land in the <strong>same cycle</strong>, the
+  hardware event wins. For W1C the set beats the clear (no event is lost);
+  for self-clearing the clear beats the set (the strobe cannot get stuck).</li>
+</ul>
+<p>This behavior — including the same-cycle arbitration rule — is verified
+behaviorally (not just compiled) against the <code>daq_controller</code> fixture; see
+<a href="#test-coverage">Test coverage</a> at the end of this page.</p>
+<h3 id="write-1-to-clear-interrupt-flags">Write-1-to-clear (interrupt flags)<a class="headerlink" href="#write-1-to-clear-interrupt-flags" title="Permanent link">&para;</a></h3>
+<p>Hardware raises a one-cycle pulse to <em>set</em> a sticky bit. The CPU later clears
+it by writing a <code>1</code> to that bit position. Writing <code>0</code> leaves the bit
+unchanged.</p>
+<pre class="mermaid"><code>sequenceDiagram
+    participant HW as Your core logic
+    participant RF as Register file
+    participant CPU as CPU / bus
+    HW-&gt;&gt;RF: irq_pulse = 1 (one cycle)
+    Note over RF: bit becomes 1 (sticky)
+    CPU-&gt;&gt;RF: read INT_STATUS → sees bit = 1
+    CPU-&gt;&gt;RF: write 1 to that bit
+    Note over RF: bit cleared to 0
+    Note over RF,HW: If pulse and clear-write&lt;br/&gt;coincide, bit stays 1</code></pre>
+<div class="highlight"><pre><span></span><code><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">INT_STATUS</span>
+<span class="w">  </span><span class="nt">offset</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0x08</span>
+<span class="w">  </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Interrupt status (write 1 to clear)</span>
+<span class="w">  </span><span class="nt">fields</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> name</span><span class="p">:</span><span class="w"> </span><span class="nv">SAMPLE_DONE</span><span class="p p-Indicator">,</span><span class="nt"> bits</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;[0:0]&#39;</span><span class="p p-Indicator">,</span><span class="nt"> access</span><span class="p">:</span><span class="w"> </span><span class="nv">read-write-1-to-clear</span><span class="w"> </span><span class="p p-Indicator">}</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> name</span><span class="p">:</span><span class="w"> </span><span class="nv">OVERFLOW</span><span class="p p-Indicator">,</span><span class="nt">    bits</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;[1:1]&#39;</span><span class="p p-Indicator">,</span><span class="nt"> access</span><span class="p">:</span><span class="w"> </span><span class="nv">read-write-1-to-clear</span><span class="w"> </span><span class="p p-Indicator">}</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> name</span><span class="p">:</span><span class="w"> </span><span class="nv">ERROR</span><span class="p p-Indicator">,</span><span class="nt">       bits</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;[2:2]&#39;</span><span class="p p-Indicator">,</span><span class="nt"> access</span><span class="p">:</span><span class="w"> </span><span class="nv">read-write-1-to-clear</span><span class="w"> </span><span class="p p-Indicator">}</span>
+</code></pre></div>
+<p>Your logic drives a <code>…_pulse</code> strobe for each flag; the field value is
+available on <code>regs_out</code> so your logic can also observe the current sticky
+state.</p>
+<h3 id="self-clearing-command-go-bits">Self-clearing (command / "go" bits)<a class="headerlink" href="#self-clearing-command-go-bits" title="Permanent link">&para;</a></h3>
+<p>The CPU sets a bit by writing a <code>1</code>; hardware clears it once the action is
+accepted. This models a fire-and-forget command whose bit auto-returns to
+<code>0</code>.</p>
+<pre class="mermaid"><code>sequenceDiagram
+    participant CPU as CPU / bus
+    participant RF as Register file
+    participant HW as Your core logic
+    CPU-&gt;&gt;RF: write 1 to COMMAND.START
+    Note over RF: bit becomes 1
+    RF-&gt;&gt;HW: regs_out.command.start = 1
+    HW-&gt;&gt;RF: start_clear = 1 (one cycle)
+    Note over RF: bit cleared to 0
+    Note over RF,CPU: If set-write and clear&lt;br/&gt;coincide, bit clears</code></pre>
+<div class="highlight"><pre><span></span><code><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">COMMAND</span>
+<span class="w">  </span><span class="nt">offset</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0x0C</span>
+<span class="w">  </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">One-shot commands (self-clearing)</span>
+<span class="w">  </span><span class="nt">fields</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> name</span><span class="p">:</span><span class="w"> </span><span class="nv">START</span><span class="p p-Indicator">,</span><span class="nt">      bits</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;[0:0]&#39;</span><span class="p p-Indicator">,</span><span class="nt"> access</span><span class="p">:</span><span class="w"> </span><span class="nv">write-self-clearing</span><span class="w"> </span><span class="p p-Indicator">}</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> name</span><span class="p">:</span><span class="w"> </span><span class="nv">STOP</span><span class="p p-Indicator">,</span><span class="nt">       bits</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;[1:1]&#39;</span><span class="p p-Indicator">,</span><span class="nt"> access</span><span class="p">:</span><span class="w"> </span><span class="nv">write-self-clearing</span><span class="w"> </span><span class="p p-Indicator">}</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> name</span><span class="p">:</span><span class="w"> </span><span class="nv">FIFO_RESET</span><span class="p p-Indicator">,</span><span class="nt"> bits</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;[2:2]&#39;</span><span class="p p-Indicator">,</span><span class="nt"> access</span><span class="p">:</span><span class="w"> </span><span class="nv">write-self-clearing</span><span class="w"> </span><span class="p p-Indicator">}</span>
+</code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Choosing field names</p>
+<p>Avoid field names that collide with reserved words in downstream tools —
+for example, <code>ABORT</code> triggers a <code>SYMRSVDWORD</code> lint warning in Verilator
+because it matches the C standard library's <code>abort()</code>. <code>STOP</code> above is the
+same concept, without the collision.</p>
+</div>
+<h3 id="change-of-state-fields">Change-of-state fields<a class="headerlink" href="#change-of-state-fields" title="Permanent link">&para;</a></h3>
+<p>A <code>write-1-to-clear</code> / <code>read-write-1-to-clear</code> field can automatically flag
+when <strong>another field in the same register changes</strong>, using
+<code>monitorChangeOf</code>. Instead of your logic driving an external pulse, the
+generator builds an internal shadow register and a comparator: whenever the
+monitored field's live value differs from its shadow, the flag is set (and
+cleared the usual W1C way).</p>
+<div class="highlight"><pre><span></span><code><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">LINK_STATUS</span>
+<span class="w">  </span><span class="nt">offset</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0x10</span>
+<span class="w">  </span><span class="nt">fields</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SPEED</span><span class="w">           </span><span class="c1"># the monitored value — driven by hardware</span>
+<span class="w">      </span><span class="nt">bits</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;[3:0]&#39;</span>
+<span class="w">      </span><span class="nt">access</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">read-only</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SPEED_CHANGED</span><span class="w">   </span><span class="c1"># flag raised whenever SPEED changes</span>
+<span class="w">      </span><span class="nt">bits</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;[8:8]&#39;</span>
+<span class="w">      </span><span class="nt">access</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">read-write-1-to-clear</span>
+<span class="w">      </span><span class="nt">monitorChangeOf</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SPEED</span>
+</code></pre></div>
+<p>The monitored field's live value is delivered to the register file on a
+dedicated <code>…_val</code> port; no external pulse port is generated for the
+change-of-state field. <code>monitorChangeOf</code> is only valid on a write-1-to-clear
+field, and must name a field in the same register.</p>
+<p>This exact <code>LINK_STATUS</code> pattern is in the <code>daq_controller</code> fixture (at
+offset <code>0x50</code>) and is verified behaviorally: changing <code>SPEED</code> auto-sets
+<code>SPEED_CHANGED</code> with no external pulse, and a write of <code>1</code> clears it.</p>
+<div class="admonition note">
+<p class="admonition-title">Shadow register reset</p>
+<p>The internal shadow register that backs <code>monitorChangeOf</code> is synchronously
+reset by <code>rst</code> in both generated languages, initialized to the monitored
+field's own <code>resetValue</code>. The first post-reset comparison is therefore
+always a match — no spurious change-of-state event on either language.</p>
+</div>
+<hr />
+<h2 id="the-generated-hardware-contract">The generated hardware contract<a class="headerlink" href="#the-generated-hardware-contract" title="Permanent link">&para;</a></h2>
+<p>The register file connects the bus to your logic through <strong>two aggregate
+records</strong> (VHDL) / <strong>packed structs</strong> (SystemVerilog):</p>
+<pre class="mermaid"><code>flowchart LR
+    CPU["AXI4-Lite / Avalon-MM&lt;br/&gt;host"] &lt;--&gt; BUS["_axil / _avmm&lt;br/&gt;bus wrapper"]
+    BUS &lt;--&gt; RF["_regs&lt;br/&gt;register file"]
+    RF -- "regs_out : sw2hw&lt;br/&gt;(RW/WO/W1C/SC values)" --&gt; CORE["_core&lt;br/&gt;your logic"]
+    CORE -- "regs_in : hw2sw&lt;br/&gt;(RO values · _pulse · _clear · _val)" --&gt; RF</code></pre>
+<ul>
+<li><strong><code>regs_out</code> (<code>sw2hw</code>)</strong> — everything software can write: <code>read-write</code>,
+  <code>write-only</code>, and the sticky value of <code>…-1-to-clear</code> / <code>…-self-clearing</code>
+  fields. Your logic <strong>reads</strong> these.</li>
+<li><strong><code>regs_in</code> (<code>hw2sw</code>)</strong> — everything hardware supplies:</li>
+<li><code>read-only</code> register values (your logic <strong>drives</strong> them),</li>
+<li><code>&lt;reg&gt;_pulse</code> — one-cycle <strong>set</strong> strobes for W1C fields,</li>
+<li><code>&lt;reg&gt;_clear</code> — one-cycle <strong>clear</strong> strobes for self-clearing fields,</li>
+<li><code>&lt;reg&gt;_val</code> — live values monitored by change-of-state fields.</li>
+</ul>
+<p>Concretely, for the <code>daq_controller</code> fixture below the generator produces
+members like:</p>
+<div class="highlight"><pre><span></span><code>regs_out.control.enable            -- read-write field, driven by SW, read by your logic
+regs_in.status.ready                -- read-only field, driven by your logic
+regs_in.int_status_pulse.error_pulse    -- pulse to set the W1C ERROR flag
+regs_out.int_status.error           -- current sticky value of that flag
+regs_in.command_clear.start_clear       -- pulse to clear the self-clearing START bit
+</code></pre></div>
+<p>Names are lower-cased; array instances and change-of-state ports follow the
+same pattern. Your editable logic lives in <code>_core</code>, which is generated
+<strong>once</strong> and then owned by you — regenerating the memory map updates <code>_pkg</code>
+and <code>_regs</code> without touching your <code>_core</code>.</p>
+<hr />
+<h2 id="register-arrays">Register arrays<a class="headerlink" href="#register-arrays" title="Permanent link">&para;</a></h2>
+<p>When you need many identical registers — one set per DMA channel, per port,
+per lane — describe the pattern once and replicate it with <code>count</code> and
+<code>stride</code>. There are two shapes.</p>
+<h3 id="group-arrays-a-repeated-block-of-registers">Group arrays (a repeated block of registers)<a class="headerlink" href="#group-arrays-a-repeated-block-of-registers" title="Permanent link">&para;</a></h3>
+<p>A register with <code>count</code>, <code>stride</code>, and <strong>child <code>registers</code></strong> replicates the
+whole group. Child offsets are relative to each instance's base; <code>stride</code> is
+the byte distance between instances.</p>
+<div class="highlight"><pre><span></span><code><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CHANNEL</span>
+<span class="w">  </span><span class="nt">count</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4</span><span class="w">          </span><span class="c1"># four channels</span>
+<span class="w">  </span><span class="nt">stride</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">16</span><span class="w">        </span><span class="c1"># each channel occupies 16 bytes</span>
+<span class="w">  </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Per-channel configuration</span>
+<span class="w">  </span><span class="nt">registers</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CONFIG</span>
+<span class="w">      </span><span class="nt">offset</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
+<span class="w">      </span><span class="nt">fields</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> name</span><span class="p">:</span><span class="w"> </span><span class="nv">GAIN</span><span class="p p-Indicator">,</span><span class="nt">   bits</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;[3:0]&#39;</span><span class="p p-Indicator">,</span><span class="nt">  access</span><span class="p">:</span><span class="w"> </span><span class="nv">read-write</span><span class="w"> </span><span class="p p-Indicator">}</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> name</span><span class="p">:</span><span class="w"> </span><span class="nv">OFFSET</span><span class="p p-Indicator">,</span><span class="nt"> bits</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;[15:8]&#39;</span><span class="p p-Indicator">,</span><span class="nt"> access</span><span class="p">:</span><span class="w"> </span><span class="nv">read-write</span><span class="w"> </span><span class="p p-Indicator">}</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">THRESHOLD</span>
+<span class="w">      </span><span class="nt">offset</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4</span>
+<span class="w">      </span><span class="nt">fields</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> name</span><span class="p">:</span><span class="w"> </span><span class="nv">VALUE</span><span class="p p-Indicator">,</span><span class="nt"> bits</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;[15:0]&#39;</span><span class="p p-Indicator">,</span><span class="nt"> access</span><span class="p">:</span><span class="w"> </span><span class="nv">read-write</span><span class="w"> </span><span class="p p-Indicator">}</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">COUNT</span>
+<span class="w">      </span><span class="nt">offset</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8</span>
+<span class="w">      </span><span class="nt">fields</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> name</span><span class="p">:</span><span class="w"> </span><span class="nv">SAMPLES</span><span class="p p-Indicator">,</span><span class="nt"> bits</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;[31:0]&#39;</span><span class="p p-Indicator">,</span><span class="nt"> access</span><span class="p">:</span><span class="w"> </span><span class="nv">read-only</span><span class="w"> </span><span class="p p-Indicator">}</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">FLAGS</span>
+<span class="w">      </span><span class="nt">offset</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">12</span>
+<span class="w">      </span><span class="nt">fields</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> name</span><span class="p">:</span><span class="w"> </span><span class="nv">TRIGGERED</span><span class="p p-Indicator">,</span><span class="nt"> bits</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;[0:0]&#39;</span><span class="p p-Indicator">,</span><span class="nt"> access</span><span class="p">:</span><span class="w"> </span><span class="nv">read-write-1-to-clear</span><span class="w"> </span><span class="p p-Indicator">}</span>
+</code></pre></div>
+<p>This expands to <code>CHANNEL_0_CONFIG</code>, <code>CHANNEL_0_THRESHOLD</code>, …
+<code>CHANNEL_3_FLAGS</code>, laid out like this:</p>
+<pre class="mermaid"><code>flowchart TD
+    subgraph base["CHANNEL array (base + 0x10, stride 0x10)"]
+        C0["CHANNEL_0&lt;br/&gt;+0x00 CONFIG · +0x04 THRESHOLD&lt;br/&gt;+0x08 COUNT · +0x0C FLAGS"]
+        C1["CHANNEL_1&lt;br/&gt;+0x10 …"]
+        C2["CHANNEL_2&lt;br/&gt;+0x20 …"]
+        C3["CHANNEL_3&lt;br/&gt;+0x30 …"]
+    end
+    C0 --&gt; C1 --&gt; C2 --&gt; C3</code></pre>
+<p>Each expanded register keeps its own access types, so a channel can mix
+configuration (<code>read-write</code>), status (<code>read-only</code>), and per-channel interrupt
+flags (<code>read-write-1-to-clear</code>) — exactly as if you had written all sixteen
+registers by hand.</p>
+<h3 id="flat-arrays-a-repeated-single-register">Flat arrays (a repeated single register)<a class="headerlink" href="#flat-arrays-a-repeated-single-register" title="Permanent link">&para;</a></h3>
+<p>A register with <code>count</code> but <strong>no child registers</strong> replicates just itself,
+producing <code>NAME_0</code>, <code>NAME_1</code>, … Each instance is one word; <code>stride</code> defaults
+to the register width.</p>
+<div class="highlight"><pre><span></span><code><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">LUT_ENTRY</span>
+<span class="w">  </span><span class="nt">count</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8</span>
+<span class="w">  </span><span class="nt">stride</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4</span>
+<span class="w">  </span><span class="nt">fields</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> name</span><span class="p">:</span><span class="w"> </span><span class="nv">VALUE</span><span class="p p-Indicator">,</span><span class="nt"> bits</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;[31:0]&#39;</span><span class="p p-Indicator">,</span><span class="nt"> access</span><span class="p">:</span><span class="w"> </span><span class="nv">read-write</span><span class="w"> </span><span class="p p-Indicator">}</span>
+</code></pre></div>
+<h3 id="alignment-guidance">Alignment guidance<a class="headerlink" href="#alignment-guidance" title="Permanent link">&para;</a></h3>
+<div class="admonition note">
+<p class="admonition-title">Addresses are decoded from each register's offset</p>
+<p>The generated RTL decodes register addresses from each register's
+resolved <code>offset</code>, matching the address the generated <code>component.xml</code>
+reports — non-contiguous layouts (reserved gaps, hand-chosen addresses)
+work correctly. Even so, prefer keeping register blocks contiguous and
+word-aligned (consecutive offsets <code>0x00</code>, <code>0x04</code>, <code>0x08</code>, …, with array
+<code>stride</code> matching the packed size of the group) — it keeps the map easy
+to read and avoids wasting address space.</p>
+</div>
+<hr />
+<h2 id="memory-regions">Memory regions<a class="headerlink" href="#memory-regions" title="Permanent link">&para;</a></h2>
+<p>Not every part of a peripheral's address space is registers. A block with
+<code>usage: memory</code> reserves a window for a memory that lives outside the
+register file — a sample buffer, a descriptor RAM, a scratchpad.</p>
+<div class="highlight"><pre><span></span><code><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SAMPLE_BUFFER</span>
+<span class="w">  </span><span class="nt">baseAddress</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0x1000</span>
+<span class="w">  </span><span class="nt">range</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4K</span>
+<span class="w">  </span><span class="nt">usage</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">memory</span>
+<span class="w">  </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1024-entry, 32-bit sample buffer (backed by a BRAM)</span>
+</code></pre></div>
+<p>The generator does <strong>not</strong> create per-word storage or field ports for a
+memory block; it records the window in the IP-XACT metadata so integration
+tools account for the address range. You connect the actual memory (a BRAM,
+a second AXI interface, etc.) in your own logic or system integration. Use
+<code>usage: reserved</code> similarly when you only need to <em>pad</em> the address map.</p>
+<hr />
+<h2 id="worked-example-daq_controller">Worked example: <code>daq_controller</code><a class="headerlink" href="#worked-example-daq_controller" title="Permanent link">&para;</a></h2>
+<p>A small but complete data-acquisition peripheral that exercises every
+concept above and <strong>all seven access types plus change-of-state</strong>: mixed
+RW/RO/enum config, a read-only status word, readable interrupt flags (RW1C),
+self-clearing commands, a four-instance channel array, a memory window, a
+write-only diagnostic register, a plain (non-readable) write-1-to-clear
+register, a readable self-clearing busy flag, and a change-of-state field
+built on <code>monitorChangeOf</code>.</p>
+<p>The files below are included directly from
+<a href="https://github.com/bleviet/ipcraft-spec/tree/main/examples/daq_controller"><code>ipcraft-spec/examples/daq_controller/</code></a>
+— the same fixture the automated test suite generates and simulates.</p>
+<h3 id="daq_controlleripyml"><code>daq_controller.ip.yml</code><a class="headerlink" href="#daq_controlleripyml" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nt">vlnv</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">vendor</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ipcraft</span>
+<span class="w">  </span><span class="nt">library</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">examples</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">daq_controller</span>
+<span class="w">  </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1.0.0</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;1.0&#39;</span>
+<span class="nt">scaffold_pack</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">builtin-ipcraft</span>
+<span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">&gt;</span>
+<span class="w">  </span><span class="no">Data-acquisition controller register bank. Tutorial fixture demonstrating</span>
+<span class="w">  </span><span class="no">the memory-mapped register methodology: read-write config with an</span>
+<span class="w">  </span><span class="no">enumerated field, read-only status, readable write-1-to-clear interrupt</span>
+<span class="w">  </span><span class="no">flags, self-clearing one-shot commands, a per-channel register array, and</span>
+<span class="w">  </span><span class="no">a memory-usage address block. See docs/tutorials/memory-mapped-registers.md.</span>
+<span class="nt">targets</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vivado</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">quartus</span>
+<span class="nt">clocks</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">clk</span>
+<span class="w">    </span><span class="nt">logicalName</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CLK</span>
+<span class="w">    </span><span class="nt">direction</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">in</span>
+<span class="w">    </span><span class="nt">associatedReset</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">reset_n</span>
+<span class="nt">resets</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">reset_n</span>
+<span class="w">    </span><span class="nt">logicalName</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">RESET_N</span>
+<span class="w">    </span><span class="nt">direction</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">in</span>
+<span class="w">    </span><span class="nt">polarity</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">activeLow</span>
+<span class="w">    </span><span class="nt">associatedClock</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">clk</span>
+<span class="nt">busInterfaces</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">S_AXI_LITE</span>
+<span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ipcraft:busif:axi4_lite:1.0</span>
+<span class="w">    </span><span class="nt">mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">slave</span>
+<span class="w">    </span><span class="nt">physicalPrefix</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">s_axil_</span>
+<span class="w">    </span><span class="nt">associatedClock</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">clk</span>
+<span class="w">    </span><span class="nt">associatedReset</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">reset_n</span>
+<span class="w">    </span><span class="nt">memoryMapRef</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CSR_MAP</span>
+<span class="w">    </span><span class="nt">portWidthOverrides</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">AWADDR</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">12</span>
+<span class="w">      </span><span class="nt">ARADDR</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">12</span>
+<span class="w">      </span><span class="nt">WDATA</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">32</span>
+<span class="w">      </span><span class="nt">RDATA</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">32</span>
+<span class="w">      </span><span class="nt">WSTRB</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4</span>
+<span class="nt">memoryMaps</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">import</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">daq_controller.mm.yml</span>
+</code></pre></div>
+<h3 id="daq_controllermmyml"><code>daq_controller.mm.yml</code><a class="headerlink" href="#daq_controllermmyml" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CSR_MAP</span>
+<span class="w">  </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Data-acquisition control/status registers</span>
+<span class="w">  </span><span class="nt">addressBlocks</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">REGS</span>
+<span class="w">      </span><span class="nt">baseAddress</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0x0000</span>
+<span class="w">      </span><span class="nt">usage</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">register</span>
+<span class="w">      </span><span class="nt">defaultRegWidth</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">32</span>
+<span class="w">      </span><span class="nt">registers</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CONTROL</span>
+<span class="w">          </span><span class="nt">offset</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0x00</span>
+<span class="w">          </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Global control</span>
+<span class="w">          </span><span class="nt">fields</span><span class="p">:</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ENABLE</span>
+<span class="w">              </span><span class="nt">bits</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;[0:0]&#39;</span>
+<span class="w">              </span><span class="nt">access</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">read-write</span>
+<span class="w">              </span><span class="nt">resetValue</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
+<span class="w">              </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Enable acquisition</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">MODE</span>
+<span class="w">              </span><span class="nt">bits</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;[2:1]&#39;</span>
+<span class="w">              </span><span class="nt">access</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">read-write</span>
+<span class="w">              </span><span class="nt">resetValue</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<span class="w">              </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Acquisition mode</span>
+<span class="w">              </span><span class="nt">enumeratedValues</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> 0</span><span class="p">:</span><span class="w"> </span><span class="nv">OFF</span><span class="p p-Indicator">,</span><span class="nt"> 1</span><span class="p">:</span><span class="w"> </span><span class="nv">SINGLE</span><span class="p p-Indicator">,</span><span class="nt"> 2</span><span class="p">:</span><span class="w"> </span><span class="nv">CONTINUOUS</span><span class="w"> </span><span class="p p-Indicator">}</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">IRQ_EN</span>
+<span class="w">              </span><span class="nt">bits</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;[3:3]&#39;</span>
+<span class="w">              </span><span class="nt">access</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">read-write</span>
+<span class="w">              </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Enable interrupt generation</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PRESCALER</span>
+<span class="w">              </span><span class="nt">bits</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;[15:8]&#39;</span>
+<span class="w">              </span><span class="nt">access</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">read-write</span>
+<span class="w">              </span><span class="nt">resetValue</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0x04</span>
+<span class="w">              </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Sample clock prescaler</span>
+
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">STATUS</span>
+<span class="w">          </span><span class="nt">offset</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0x04</span>
+<span class="w">          </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Peripheral status (hardware-driven)</span>
+<span class="w">          </span><span class="nt">access</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">read-only</span>
+<span class="w">          </span><span class="nt">fields</span><span class="p">:</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">READY</span>
+<span class="w">              </span><span class="nt">bits</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;[0:0]&#39;</span>
+<span class="w">              </span><span class="nt">access</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">read-only</span>
+<span class="w">              </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Peripheral is ready</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">RUNNING</span>
+<span class="w">              </span><span class="nt">bits</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;[1:1]&#39;</span>
+<span class="w">              </span><span class="nt">access</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">read-only</span>
+<span class="w">              </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Acquisition in progress</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">FIFO_LEVEL</span>
+<span class="w">              </span><span class="nt">bits</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;[15:8]&#39;</span>
+<span class="w">              </span><span class="nt">access</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">read-only</span>
+<span class="w">              </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Current FIFO occupancy</span>
+
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">INT_STATUS</span>
+<span class="w">          </span><span class="nt">offset</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0x08</span>
+<span class="w">          </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Interrupt status (write 1 to clear)</span>
+<span class="w">          </span><span class="nt">fields</span><span class="p">:</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SAMPLE_DONE</span>
+<span class="w">              </span><span class="nt">bits</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;[0:0]&#39;</span>
+<span class="w">              </span><span class="nt">access</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">read-write-1-to-clear</span>
+<span class="w">              </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">A sample completed</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">OVERFLOW</span>
+<span class="w">              </span><span class="nt">bits</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;[1:1]&#39;</span>
+<span class="w">              </span><span class="nt">access</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">read-write-1-to-clear</span>
+<span class="w">              </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">FIFO overflow occurred</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ERROR</span>
+<span class="w">              </span><span class="nt">bits</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;[2:2]&#39;</span>
+<span class="w">              </span><span class="nt">access</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">read-write-1-to-clear</span>
+<span class="w">              </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Acquisition error occurred</span>
+
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">COMMAND</span>
+<span class="w">          </span><span class="nt">offset</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0x0C</span>
+<span class="w">          </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">One-shot commands (self-clearing)</span>
+<span class="w">          </span><span class="nt">fields</span><span class="p">:</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">START</span>
+<span class="w">              </span><span class="nt">bits</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;[0:0]&#39;</span>
+<span class="w">              </span><span class="nt">access</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">write-self-clearing</span>
+<span class="w">              </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Start acquisition</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">STOP</span>
+<span class="w">              </span><span class="nt">bits</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;[1:1]&#39;</span>
+<span class="w">              </span><span class="nt">access</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">write-self-clearing</span>
+<span class="w">              </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Stop acquisition</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">FIFO_RESET</span>
+<span class="w">              </span><span class="nt">bits</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;[2:2]&#39;</span>
+<span class="w">              </span><span class="nt">access</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">write-self-clearing</span>
+<span class="w">              </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Reset the sample FIFO</span>
+
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CHANNEL</span>
+<span class="w">          </span><span class="nt">offset</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0x10</span>
+<span class="w">          </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Per-channel configuration and status</span>
+<span class="w">          </span><span class="nt">count</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4</span>
+<span class="w">          </span><span class="nt">stride</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">16</span>
+<span class="w">          </span><span class="nt">registers</span><span class="p">:</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CONFIG</span>
+<span class="w">              </span><span class="nt">offset</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
+<span class="w">              </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Channel configuration</span>
+<span class="w">              </span><span class="nt">fields</span><span class="p">:</span>
+<span class="w">                </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">GAIN</span>
+<span class="w">                  </span><span class="nt">bits</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;[3:0]&#39;</span>
+<span class="w">                  </span><span class="nt">access</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">read-write</span>
+<span class="w">                  </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Input gain setting</span>
+<span class="w">                </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">OFFSET</span>
+<span class="w">                  </span><span class="nt">bits</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;[15:8]&#39;</span>
+<span class="w">                  </span><span class="nt">access</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">read-write</span>
+<span class="w">                  </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">DC offset trim</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">THRESHOLD</span>
+<span class="w">              </span><span class="nt">offset</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4</span>
+<span class="w">              </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Trigger threshold</span>
+<span class="w">              </span><span class="nt">fields</span><span class="p">:</span>
+<span class="w">                </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">VALUE</span>
+<span class="w">                  </span><span class="nt">bits</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;[15:0]&#39;</span>
+<span class="w">                  </span><span class="nt">access</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">read-write</span>
+<span class="w">                  </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Trigger threshold value</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">COUNT</span>
+<span class="w">              </span><span class="nt">offset</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8</span>
+<span class="w">              </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Sample counter</span>
+<span class="w">              </span><span class="nt">fields</span><span class="p">:</span>
+<span class="w">                </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SAMPLES</span>
+<span class="w">                  </span><span class="nt">bits</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;[31:0]&#39;</span>
+<span class="w">                  </span><span class="nt">access</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">read-only</span>
+<span class="w">                  </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Samples captured on this channel</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">FLAGS</span>
+<span class="w">              </span><span class="nt">offset</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">12</span>
+<span class="w">              </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Per-channel interrupt flag (write 1 to clear)</span>
+<span class="w">              </span><span class="nt">fields</span><span class="p">:</span>
+<span class="w">                </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">TRIGGERED</span>
+<span class="w">                  </span><span class="nt">bits</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;[0:0]&#39;</span>
+<span class="w">                  </span><span class="nt">access</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">read-write-1-to-clear</span>
+<span class="w">                  </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Channel trigger fired</span>
+
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">LINK_STATUS</span>
+<span class="w">          </span><span class="nt">offset</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0x50</span>
+<span class="w">          </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Link status with change-of-state monitoring</span>
+<span class="w">          </span><span class="nt">fields</span><span class="p">:</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SPEED</span>
+<span class="w">              </span><span class="nt">bits</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;[3:0]&#39;</span>
+<span class="w">              </span><span class="nt">access</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">read-only</span>
+<span class="w">              </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Detected sample-clock speed grade (hardware-driven)</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SPEED_CHANGED</span>
+<span class="w">              </span><span class="nt">bits</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;[8:8]&#39;</span>
+<span class="w">              </span><span class="nt">access</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">read-write-1-to-clear</span>
+<span class="w">              </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Set whenever SPEED changes value; write 1 to clear</span>
+<span class="w">              </span><span class="nt">monitorChangeOf</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SPEED</span>
+
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">DIAG</span>
+<span class="w">          </span><span class="nt">offset</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0x54</span>
+<span class="w">          </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Write-only diagnostic scratch register</span>
+<span class="w">          </span><span class="nt">fields</span><span class="p">:</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SCRATCH</span>
+<span class="w">              </span><span class="nt">bits</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;[7:0]&#39;</span>
+<span class="w">              </span><span class="nt">access</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">write-only</span>
+<span class="w">              </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Diagnostic value latched for hardware, not readable by software</span>
+
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">IRQ_LEGACY</span>
+<span class="w">          </span><span class="nt">offset</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0x58</span>
+<span class="w">          </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Legacy write-only interrupt clear (write 1 to clear, not readable)</span>
+<span class="w">          </span><span class="nt">fields</span><span class="p">:</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">LEGACY_IRQ_CLR</span>
+<span class="w">              </span><span class="nt">bits</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;[0:0]&#39;</span>
+<span class="w">              </span><span class="nt">access</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">write-1-to-clear</span>
+<span class="w">              </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Hardware-set legacy interrupt flag; write 1 to clear</span>
+
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">BUSY_STATUS</span>
+<span class="w">          </span><span class="nt">offset</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0x5C</span>
+<span class="w">          </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Readable self-clearing busy flag</span>
+<span class="w">          </span><span class="nt">fields</span><span class="p">:</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">BUSY</span>
+<span class="w">              </span><span class="nt">bits</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;[0:0]&#39;</span>
+<span class="w">              </span><span class="nt">access</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">read-write-self-clearing</span>
+<span class="w">              </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Set by software, cleared by hardware, and readable while set</span>
+
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SAMPLE_BUFFER</span>
+<span class="w">      </span><span class="nt">baseAddress</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0x1000</span>
+<span class="w">      </span><span class="nt">range</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4K</span>
+<span class="w">      </span><span class="nt">usage</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">memory</span>
+<span class="w">      </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1024 x 32-bit sample buffer, backed by a separate BRAM</span>
+</code></pre></div>
+<h3 id="resulting-address-map">Resulting address map<a class="headerlink" href="#resulting-address-map" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Offset</th>
+<th>Register</th>
+<th>Access</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>0x00</code></td>
+<td><code>CONTROL</code></td>
+<td>RW</td>
+<td><code>ENABLE</code>, <code>MODE</code> (enum), <code>IRQ_EN</code>, <code>PRESCALER</code></td>
+</tr>
+<tr>
+<td><code>0x04</code></td>
+<td><code>STATUS</code></td>
+<td>RO</td>
+<td>hardware-driven status</td>
+</tr>
+<tr>
+<td><code>0x08</code></td>
+<td><code>INT_STATUS</code></td>
+<td>RW1C</td>
+<td>readable interrupt flags</td>
+</tr>
+<tr>
+<td><code>0x0C</code></td>
+<td><code>COMMAND</code></td>
+<td>self-clearing</td>
+<td>one-shot commands</td>
+</tr>
+<tr>
+<td><code>0x10</code>–<code>0x1F</code></td>
+<td><code>CHANNEL_0</code></td>
+<td>mixed</td>
+<td>CONFIG / THRESHOLD / COUNT / FLAGS</td>
+</tr>
+<tr>
+<td><code>0x20</code>–<code>0x2F</code></td>
+<td><code>CHANNEL_1</code></td>
+<td>mixed</td>
+<td>"</td>
+</tr>
+<tr>
+<td><code>0x30</code>–<code>0x3F</code></td>
+<td><code>CHANNEL_2</code></td>
+<td>mixed</td>
+<td>"</td>
+</tr>
+<tr>
+<td><code>0x40</code>–<code>0x4F</code></td>
+<td><code>CHANNEL_3</code></td>
+<td>mixed</td>
+<td>"</td>
+</tr>
+<tr>
+<td><code>0x50</code></td>
+<td><code>LINK_STATUS</code></td>
+<td>RO + RW1C/CoS</td>
+<td><code>SPEED</code> (RO), <code>SPEED_CHANGED</code> (change-of-state)</td>
+</tr>
+<tr>
+<td><code>0x54</code></td>
+<td><code>DIAG</code></td>
+<td>write-only</td>
+<td><code>SCRATCH</code> — reads back as 0</td>
+</tr>
+<tr>
+<td><code>0x58</code></td>
+<td><code>IRQ_LEGACY</code></td>
+<td>write-1-to-clear</td>
+<td>plain W1C, not readable (unlike <code>INT_STATUS</code>)</td>
+</tr>
+<tr>
+<td><code>0x5C</code></td>
+<td><code>BUSY_STATUS</code></td>
+<td>read-write-self-clearing</td>
+<td>readable while set (unlike <code>COMMAND</code>)</td>
+</tr>
+<tr>
+<td><code>0x1000</code>–<code>0x1FFF</code></td>
+<td><code>SAMPLE_BUFFER</code></td>
+<td>memory</td>
+<td>separate BRAM window</td>
+</tr>
+</tbody>
+</table>
+<p>Between them, <code>CONTROL</code>, <code>STATUS</code>, <code>INT_STATUS</code>, <code>COMMAND</code>, <code>LINK_STATUS</code>,
+<code>DIAG</code>, <code>IRQ_LEGACY</code>, and <code>BUSY_STATUS</code> exercise all seven access types plus
+change-of-state — every idiom in the <a href="#access-types">access-type table</a> has a
+live, simulated instance in this one fixture.</p>
+<p>Everything in <code>REGS</code> is contiguous and word-aligned, so the generated RTL
+decode, the <code>component.xml</code> offsets, and any software header stay consistent
+(see the <a href="#alignment-guidance">alignment guidance</a> above).</p>
+<hr />
+<h2 id="from-map-to-hardware-the-whole-flow">From map to hardware — the whole flow<a class="headerlink" href="#from-map-to-hardware-the-whole-flow" title="Permanent link">&para;</a></h2>
+<pre class="mermaid"><code>flowchart TD
+    A[".mm.yml + .ip.yml"] --&gt; B["Normalize + resolve imports"]
+    B --&gt; C["Classify fields by access type&lt;br/&gt;(sw2hw / hw2sw / pulse / clear / val)"]
+    C --&gt; D["Render _pkg&lt;br/&gt;types + reset constants"]
+    C --&gt; E["Render _regs&lt;br/&gt;decode · storage · W1C/SC arbitration"]
+    C --&gt; F["Render bus wrapper + top"]
+    B --&gt; G["Render component.xml&lt;br/&gt;IP-XACT memory map"]
+    D --&gt; H["Synthesizable HDL&lt;br/&gt;(VHDL or SystemVerilog)"]
+    E --&gt; H
+    F --&gt; H</code></pre>
+<p>The classification step (C) is where access types become hardware: it splits
+your fields into the <code>sw2hw</code>/<code>hw2sw</code> records, decides which registers are
+readable, and wires the <code>_pulse</code>, <code>_clear</code>, and <code>_val</code> ports for the sticky
+and change-of-state semantics. Once you understand the access-type table,
+you can predict exactly which ports the generator will hand your logic.</p>
+<hr />
+<h2 id="test-coverage">Test coverage<a class="headerlink" href="#test-coverage" title="Permanent link">&para;</a></h2>
+<p>The <code>daq_controller</code> fixture is not just an illustration — it is regenerated
+and verified on every test run:</p>
+<ul>
+<li><strong>Generation</strong> — <code>daq_controller</code> is picked up automatically from
+  <code>ipcraft-spec/examples/</code> by the integration test fixture generator and
+  built for both VHDL and SystemVerilog with the layered <code>builtin-ipcraft</code>
+  scaffold pack, so the standalone <code>_pkg</code> / <code>_regs</code> / <code>_core</code> / bus-wrapper
+  / top files described in this tutorial are all produced
+  (<code>src/test/integration/generator.ts</code>).</li>
+<li><strong>Compilation</strong> — the VHDL output is analyzed, elaborated, and
+  <code>--synth</code>-checked with <strong>GHDL</strong>; the SystemVerilog output is compiled with
+  <strong>Icarus Verilog</strong> and linted with <strong>Verilator</strong>
+  (<code>src/test/integration/hdl.test.ts</code>).</li>
+<li><strong>IP-XACT round-trip</strong> — the generated <code>component.xml</code> is parsed back and
+  compared against the source memory map (<code>src/test/integration/ipxact.test.ts</code>).</li>
+<li><strong>Behavioral correctness</strong> — a dedicated register-semantics test drives
+  the standalone <code>_regs</code> module on both GHDL and Icarus Verilog and checks,
+  by simulation, <strong>every access type and change-of-state</strong> in this tutorial:
+  reset values, RW read/write, partial byte-strobe writes, RO status,
+  write-only (reads as 0), plain write-1-to-clear (not readable) and
+  readable read-write-1-to-clear (both with same-cycle hardware-priority
+  arbitration), write-self-clearing (not readable) and readable
+  read-write-self-clearing, register-array addressing, and the CoS shadow
+  register auto-setting on a real change and clearing on a software write
+  (<code>src/test/integration/register-semantics.test.ts</code>). A companion suite
+  (<code>src/test/integration/mixed-and-multibit.test.ts</code>) covers the same
+  idioms at multi-bit field widths, plus a hardware-driven read-only field
+  mixed into an otherwise SW-writable register with no <code>monitorChangeOf</code>.</li>
+</ul>
+<p>If you change the <code>daq_controller</code> memory map to try something from this
+tutorial yourself, these are the tests that will tell you whether the
+generator still agrees with what is written here.</p>
+<hr />
+<h2 id="checklist-for-authoring-a-memory-map">Checklist for authoring a memory map<a class="headerlink" href="#checklist-for-authoring-a-memory-map" title="Permanent link">&para;</a></h2>
+<ul>
+<li>[ ] Split responsibilities: component in <code>.ip.yml</code>, layout in <code>.mm.yml</code>, linked by <code>memoryMapRef</code> + <code>memoryMaps.import</code>.</li>
+<li>[ ] Give each <code>register</code> block a <code>baseAddress</code> and keep its registers contiguous and word-aligned.</li>
+<li>[ ] Choose the access type per field from the seven-type table — it is the single most consequential decision.</li>
+<li>[ ] Set <code>resetValue</code> on the fields that need a non-zero default (honored in both VHDL and SystemVerilog).</li>
+<li>[ ] Use <code>read-write-1-to-clear</code> for readable interrupt flags; <code>write-self-clearing</code> for one-shot commands.</li>
+<li>[ ] Reach for <code>count</code>/<code>stride</code> register arrays instead of copy-pasting per-channel registers.</li>
+<li>[ ] Model RAM/FIFO windows as <code>usage: memory</code> blocks; pad with <code>usage: reserved</code>.</li>
+<li>[ ] Connect your logic to <code>regs_out</code> (read config/commands) and <code>regs_in</code> (drive status, pulse flags, clear commands).</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2026 Le Viet Bach
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.expand", "navigation.tabs", "navigation.top", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

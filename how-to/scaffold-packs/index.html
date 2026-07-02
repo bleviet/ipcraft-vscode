@@ -1,0 +1,3027 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Visual editor for FPGA IP Core and Memory Map specifications">
+      
+      
+        <meta name="author" content="Le Viet Bach">
+      
+      
+        <link rel="canonical" href="https://bleviet.github.io/ipcraft-vscode/how-to/scaffold-packs/">
+      
+      
+        <link rel="prev" href="../generating-a-project/">
+      
+      
+        <link rel="next" href="../building-a-project/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Customising Code Generation (Scaffold Packs) - IPCraft for VS Code</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#customising-code-generation-with-scaffold-packs" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="IPCraft for VS Code" class="md-header__button md-logo" aria-label="IPCraft for VS Code" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            IPCraft for VS Code
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Customising Code Generation (Scaffold Packs)
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/bleviet/ipcraft-vscode" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../getting-started/quickstart/" class="md-tabs__link">
+          
+  
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../tutorials/build-and-verify-a-scaffold-pack/" class="md-tabs__link">
+          
+  
+  
+  Tutorials
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../vhdl-import/" class="md-tabs__link">
+          
+  
+  
+  How-to Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../concepts/extension-model/" class="md-tabs__link">
+          
+  
+  
+  Concepts
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../architecture/overview/" class="md-tabs__link">
+          
+  
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../reference/commands/" class="md-tabs__link">
+          
+  
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../contributing/guidelines/" class="md-tabs__link">
+          
+  
+  
+  Contributing
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../blog/building-ipcraft/" class="md-tabs__link">
+          
+  
+  
+  Blog
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="IPCraft for VS Code" class="md-nav__button md-logo" aria-label="IPCraft for VS Code" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    IPCraft for VS Code
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/bleviet/ipcraft-vscode" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorials
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Tutorials
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/build-and-verify-a-scaffold-pack/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Build and Verify a Scaffold Pack
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/memory-mapped-registers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Memory-Mapped Registers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How-to Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    How-to Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vhdl-import/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Importing from Existing Files
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../generating-a-project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generating a Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Customising Code Generation (Scaffold Packs)
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Customising Code Generation (Scaffold Packs)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#selecting-a-scaffold-pack" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Selecting a Scaffold Pack
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#previewing-a-template-side-by-side" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Previewing a Template Side by Side
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exporting-a-built-in-pack-to-customise-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exporting a Built-in Pack to Customise It
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#understanding-the-live-file-tree-panel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Understanding the Live File Tree Panel
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#writing-a-scaffold-pack-from-scratch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Writing a Scaffold Pack from Scratch
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Writing a Scaffold Pack from Scratch">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#directory-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Directory layout
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scaffoldyml-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        scaffold.yml format
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fullgeneration-flag" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        fullGeneration flag
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#managed-flag" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        managed flag
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#overriding-testbench-templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overriding Testbench Templates
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#overriding-vendor-project-templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overriding Vendor Project Templates
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#template-context-variables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Template Context Variables
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Template Context Variables">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#core-identity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Core identity
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hdl-language" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HDL language
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bus-interface" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bus interface
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#registers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Registers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#clocks-and-resets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Clocks and resets
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ports-and-generics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ports and generics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#condition-shorthand-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Condition shorthand reference
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example-minimal-custom-pack" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example: Minimal Custom Pack
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example-full-pack-with-extra-artifacts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example: Full Pack with Extra Artifacts
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Troubleshooting
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../building-a-project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building a Project (Headless)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../build-vsix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building a VSIX Package
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ai-design-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI Design Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Concepts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/extension-model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VS Code Extension Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/yaml-data-flow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YAML Data Flow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/spatial-editing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spatial Editing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/responsive-design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Responsive Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/extension-host/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Extension Host
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/webview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Webview (React)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Commands & Settings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/keyboard-shortcuts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Keyboard Shortcuts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/generator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/ip-core-editor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IP Core Editor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/specification-schemas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Specification Schemas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/bitfield-interaction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bit Field Interaction
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/yaml-libraries/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YAML Libraries
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contributing
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/guidelines/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guidelines
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Blog
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Blog
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../blog/building-ipcraft/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building IPCraft
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#selecting-a-scaffold-pack" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Selecting a Scaffold Pack
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#previewing-a-template-side-by-side" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Previewing a Template Side by Side
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exporting-a-built-in-pack-to-customise-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exporting a Built-in Pack to Customise It
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#understanding-the-live-file-tree-panel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Understanding the Live File Tree Panel
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#writing-a-scaffold-pack-from-scratch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Writing a Scaffold Pack from Scratch
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Writing a Scaffold Pack from Scratch">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#directory-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Directory layout
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scaffoldyml-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        scaffold.yml format
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fullgeneration-flag" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        fullGeneration flag
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#managed-flag" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        managed flag
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#overriding-testbench-templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overriding Testbench Templates
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#overriding-vendor-project-templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overriding Vendor Project Templates
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#template-context-variables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Template Context Variables
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Template Context Variables">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#core-identity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Core identity
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hdl-language" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HDL language
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bus-interface" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bus interface
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#registers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Registers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#clocks-and-resets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Clocks and resets
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ports-and-generics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ports and generics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#condition-shorthand-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Condition shorthand reference
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example-minimal-custom-pack" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example: Minimal Custom Pack
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example-full-pack-with-extra-artifacts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example: Full Pack with Extra Artifacts
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Troubleshooting
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/bleviet/ipcraft-vscode/edit/main/docs/how-to/scaffold-packs.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="customising-code-generation-with-scaffold-packs">Customising Code Generation with Scaffold Packs<a class="headerlink" href="#customising-code-generation-with-scaffold-packs" title="Permanent link">&para;</a></h1>
+<p>How to change the file layout, naming, and structure of generated RTL code by creating or modifying a scaffold pack.</p>
+<p>A <strong>scaffold pack</strong> is a folder containing a <code>scaffold.yml</code> manifest and optional Nunjucks (<code>.j2</code>) template overrides.
+It tells the generator which files to produce, from which templates, under which conditions.
+Five packs ship with IPCraft — two production-ready and three annotated examples:</p>
+<table>
+<thead>
+<tr>
+<th>Pack</th>
+<th>Category</th>
+<th>What it generates</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>builtin-minimal</code></td>
+<td>Built-in</td>
+<td>One top-level stub per IP core (entity/module, empty body)</td>
+</tr>
+<tr>
+<td><code>builtin-ipcraft</code></td>
+<td>Built-in</td>
+<td>Full layered set: package, top, core, bus wrapper, register file</td>
+</tr>
+<tr>
+<td><code>example-register-only</code></td>
+<td>Example</td>
+<td>Only the register file decoder — for IPs with existing RTL</td>
+</tr>
+<tr>
+<td><code>example-no-regfile</code></td>
+<td>Example</td>
+<td>Full layered set without the register file — write your own decode</td>
+</tr>
+<tr>
+<td><code>example-with-docs</code></td>
+<td>Example</td>
+<td>Full layered set plus a Markdown register reference document</td>
+</tr>
+</tbody>
+</table>
+<p>The example packs have extensively commented <code>scaffold.yml</code> files that explain every
+field, making them useful learning material even if you do not use them directly.</p>
+<p>The generator uses <code>builtin-minimal</code> as the default scaffold pack unless you override it.</p>
+<div class="admonition tip">
+<p class="admonition-title">Interactive walkthrough</p>
+<p>Open the VS Code <strong>Get Started</strong> tab and search for <strong>Get Started with Scaffold Packs</strong>
+for a step-by-step interactive guide through the full workflow.</p>
+</div>
+<hr />
+<h2 id="selecting-a-scaffold-pack">Selecting a Scaffold Pack<a class="headerlink" href="#selecting-a-scaffold-pack" title="Permanent link">&para;</a></h2>
+<p>The active pack is a workspace setting — it applies to all IP cores in the workspace
+and is independent of the <code>.ip.yml</code> spec file.</p>
+<p><strong>Option A — Canvas dropdown (recommended)</strong></p>
+<p>Open any <code>.ip.yml</code> in the visual editor. The <strong>Scaffold Template</strong> dropdown
+in the toolbar lists every detected pack, grouped by category. Selecting a pack saves
+it to <code>ipcraft.generate.scaffoldPack</code> immediately.</p>
+<p><strong>Option B — VS Code settings</strong></p>
+<p>Set <code>ipcraft.generate.scaffoldPack</code> in your workspace <code>settings.json</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;ipcraft.generate.scaffoldPack&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;my-aurora-layout&quot;</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>The generator looks for the pack in this order:</p>
+<ol>
+<li><code>.vscode/ipcraft/packs/&lt;name&gt;/scaffold.yml</code> (workspace-local pack)</li>
+<li>Built-in packs shipped with the extension (<code>builtin-minimal</code>, <code>builtin-ipcraft</code>)</li>
+</ol>
+<p>When <code>ipcraft.generate.scaffoldPack</code> is empty, <code>builtin-minimal</code> is used as a fallback.</p>
+<hr />
+<h2 id="previewing-a-template-side-by-side">Previewing a Template Side by Side<a class="headerlink" href="#previewing-a-template-side-by-side" title="Permanent link">&para;</a></h2>
+<p>Before editing a template you can see the rendered output next to the source.</p>
+<ol>
+<li>Open any <code>.j2</code> file in the editor (built-in or from a custom pack).</li>
+<li>Click the <strong>$(open-preview) Preview Template Output</strong> icon in the editor title bar,
+   or run <strong>IPCraft: Preview Template Output</strong> from the Command Palette.</li>
+<li>A read-only preview document opens beside the editor showing the rendered result.</li>
+<li>Save the <code>.j2</code> file — the preview refreshes automatically.</li>
+</ol>
+<p>The preview needs an IP core file to render against. On first use IPCraft scans the workspace
+for <code>.ip.yml</code> files:</p>
+<ul>
+<li>If exactly one file is found it is used automatically.</li>
+<li>If several are found a quick-pick lets you choose one.</li>
+<li>Select <strong>Always use this file</strong> in the follow-up prompt to pin it for all future previews.</li>
+</ul>
+<p>You can change the pinned file at any time with <strong>IPCraft: Pin Preview IP Core</strong>.</p>
+<div class="admonition note">
+<p class="admonition-title">Preview language highlighting</p>
+<p>The preview document's filename is derived from the template name with <code>.j2</code> stripped
+(e.g. <code>top.vhdl.j2</code> → <code>top.vhd</code>), so VS Code applies the correct syntax highlighting.</p>
+</div>
+<hr />
+<h2 id="exporting-a-built-in-pack-to-customise-it">Exporting a Built-in Pack to Customise It<a class="headerlink" href="#exporting-a-built-in-pack-to-customise-it" title="Permanent link">&para;</a></h2>
+<p>The quickest way to create a custom pack is to start from a built-in one.</p>
+<ol>
+<li>Open the Command Palette and run <strong>IPCraft: Export Built-in Scaffold Pack</strong>.</li>
+<li>A grouped list shows <strong>Built-in</strong> packs and <strong>Examples</strong> with their descriptions.
+   Select the one closest to your goal.</li>
+<li>Enter a name for your copy (e.g. <code>aurora-rtl</code>). The <code>builtin-</code> / <code>example-</code> prefix is stripped automatically.</li>
+<li>IPCraft copies the pack to <code>.vscode/ipcraft/packs/&lt;name&gt;/</code> in your workspace,
+   <strong>including all <code>.j2</code> template files</strong> referenced by the pack so you can edit
+   them immediately.</li>
+<li>Click <strong>Open scaffold.yml</strong> in the confirmation notification.</li>
+</ol>
+<p>The scaffold.yml opens in the editor and the <strong>Scaffold Pack Preview</strong> panel appears
+beside it showing which files would be generated.</p>
+<p>The exported directory contains everything you need:</p>
+<div class="highlight"><pre><span></span><code>.vscode/ipcraft/packs/aurora-rtl/
+  scaffold.yml
+  top.vhdl.j2
+  top.sv.j2
+  package.vhdl.j2
+  pkg.sv.j2
+  core.vhdl.j2          ← edit this to change the logic skeleton
+  core.sv.j2
+  bus_axil.vhdl.j2      ← edit this to change the AXI-Lite wrapper
+  bus_axil.sv.j2
+  bus_avmm.vhdl.j2
+  bus_avmm.sv.j2
+  register_file.vhdl.j2
+  register_file.sv.j2
+</code></pre></div>
+<p>From here:</p>
+<ul>
+<li>Edit any <code>.j2</code> file directly — the side-by-side preview updates on save.</li>
+<li>Edit <code>scaffold.yml</code> to add, remove, or rename output files.</li>
+<li>Delete template files you do not need to customise — the generator falls back
+  to the built-in version for any template not found in the pack directory.</li>
+</ul>
+<p>Activate the pack by selecting it in the canvas <strong>Scaffold Template</strong> dropdown,
+or by setting <code>ipcraft.generate.scaffoldPack: "aurora-rtl"</code> in workspace settings.</p>
+<hr />
+<h2 id="understanding-the-live-file-tree-panel">Understanding the Live File Tree Panel<a class="headerlink" href="#understanding-the-live-file-tree-panel" title="Permanent link">&para;</a></h2>
+<p>Whenever you open or save a <code>scaffold.yml</code> file the <strong>Scaffold Pack Preview</strong> panel
+(titled <em>IPCraft — Scaffold Pack Preview</em>) shows a live file tree of what the pack
+would generate against the pinned IP core.</p>
+<div class="highlight"><pre><span></span><code>Scaffold Pack: aurora-rtl
+.vscode/ipcraft/packs/aurora-rtl
+
+● 6 generated  ○ 2 skipped  🔒 1 user-owned
+
+rtl/
+  ● spi_controller_pkg.vhd
+  ● spi_controller.vhd
+  🔒 spi_controller_core.vhd              user-owned
+  ● spi_controller_axil.vhd
+  ● spi_controller_regs.vhd
+  ○ spi_controller_regs.sv    condition false
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Green dot</td>
+<td>File would be generated</td>
+</tr>
+<tr>
+<td>Grey dot + <em>condition false</em></td>
+<td>File is skipped because its <code>condition</code> evaluated to false</td>
+</tr>
+<tr>
+<td>Lock icon + <em>user-owned</em></td>
+<td><code>managed: false</code> — written only on first generation, never overwritten</td>
+</tr>
+</tbody>
+</table>
+<p>If no <code>.ip.yml</code> is found in the workspace the panel shows the unevaluated rule targets and
+a banner explaining that conditions were not evaluated.</p>
+<hr />
+<h2 id="writing-a-scaffold-pack-from-scratch">Writing a Scaffold Pack from Scratch<a class="headerlink" href="#writing-a-scaffold-pack-from-scratch" title="Permanent link">&para;</a></h2>
+<h3 id="directory-layout">Directory layout<a class="headerlink" href="#directory-layout" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>.vscode/ipcraft/packs/my-pack/
+  scaffold.yml          ← required manifest
+  top.vhdl.j2           ← optional: overrides the built-in template of the same name
+  core.vhdl.j2          ← optional: same
+  custom_header.vhdl.j2 ← optional: new template only used by this pack
+</code></pre></div>
+<p>Templates placed in the pack directory shadow the extension's built-in templates of the
+same name. Templates not overridden are resolved from the built-in library automatically.</p>
+<h3 id="scaffoldyml-format"><code>scaffold.yml</code> format<a class="headerlink" href="#scaffoldyml-format" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-pack&quot;</span>
+<span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Brief</span><span class="nv"> </span><span class="s">description</span><span class="nv"> </span><span class="s">shown</span><span class="nv"> </span><span class="s">in</span><span class="nv"> </span><span class="s">the</span><span class="nv"> </span><span class="s">Scaffold</span><span class="nv"> </span><span class="s">Pack</span><span class="nv"> </span><span class="s">Preview</span><span class="nv"> </span><span class="s">panel&quot;</span>
+<span class="nt">fullGeneration</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">     </span><span class="c1"># true → testbench gets register/bus context; false → minimal stub</span>
+
+<span class="nt">files</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;top.vhdl.j2&quot;</span><span class="w">           </span><span class="c1"># template filename (or Nunjucks expression)</span>
+<span class="w">    </span><span class="nt">target</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;rtl/{{</span><span class="nv"> </span><span class="s">name</span><span class="nv"> </span><span class="s">}}.vhd&quot;</span><span class="w">    </span><span class="c1"># output path relative to the output directory</span>
+<span class="w">    </span><span class="nt">condition</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;not</span><span class="nv"> </span><span class="s">is_systemverilog&quot;</span>
+
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;custom_header.vhdl.j2&quot;</span>
+<span class="w">    </span><span class="nt">target</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;rtl/{{</span><span class="nv"> </span><span class="s">name</span><span class="nv"> </span><span class="s">}}_header.vhd&quot;</span>
+
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;core.vhdl.j2&quot;</span>
+<span class="w">    </span><span class="nt">target</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;rtl/{{</span><span class="nv"> </span><span class="s">name</span><span class="nv"> </span><span class="s">}}_core.vhd&quot;</span>
+<span class="w">    </span><span class="nt">managed</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span><span class="w">         </span><span class="c1"># user-owned: written once, never overwritten</span>
+</code></pre></div>
+<p>Both <code>source</code> and <code>target</code> are Nunjucks expressions rendered against the template context,
+so you can use variables anywhere in the path:</p>
+<div class="highlight"><pre><span></span><code><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;bus_{{</span><span class="nv"> </span><span class="s">bus_type</span><span class="nv"> </span><span class="s">}}.vhdl.j2&quot;</span><span class="w">     </span><span class="c1"># resolves to bus_axil.vhdl.j2, bus_avmm.vhdl.j2, …</span>
+<span class="w">  </span><span class="nt">target</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;rtl/{{</span><span class="nv"> </span><span class="s">name</span><span class="nv"> </span><span class="s">}}_{{</span><span class="nv"> </span><span class="s">bus_type</span><span class="nv"> </span><span class="s">}}.vhd&quot;</span>
+<span class="w">  </span><span class="nt">condition</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;has_memory_mapped_slave</span><span class="nv"> </span><span class="s">and</span><span class="nv"> </span><span class="s">not</span><span class="nv"> </span><span class="s">is_systemverilog&quot;</span>
+</code></pre></div>
+<h3 id="fullgeneration-flag"><code>fullGeneration</code> flag<a class="headerlink" href="#fullgeneration-flag" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Testbench context</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>true</code></td>
+<td>Testbench receives full register and bus interface context (registers, bus_ports, etc.) — suitable for packs that generate a bus wrapper and register file</td>
+</tr>
+<tr>
+<td><code>false</code></td>
+<td>Testbench receives a minimal context with <code>has_memory_mapped_slave</code> cleared — suitable for packs that produce only a top-level stub</td>
+</tr>
+</tbody>
+</table>
+<h3 id="managed-flag"><code>managed</code> flag<a class="headerlink" href="#managed-flag" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Behaviour</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>true</code> (default)</td>
+<td>IPCraft regenerates the file on every run</td>
+</tr>
+<tr>
+<td><code>false</code></td>
+<td>The file is written on first generation; subsequent runs leave it untouched if it already exists on disk</td>
+</tr>
+</tbody>
+</table>
+<p>Use <code>managed: false</code> for user logic stubs (e.g. the core file) so that edits are never
+accidentally overwritten.</p>
+<hr />
+<h2 id="overriding-testbench-templates">Overriding Testbench Templates<a class="headerlink" href="#overriding-testbench-templates" title="Permanent link">&para;</a></h2>
+<p>The same shadowing rule applies to testbench generation (<strong>Generate CocoTB Testbench</strong> /
+the testbench step of <strong>Generate Scaffold Project</strong>): drop a <code>.j2</code> file with the same
+name as a built-in testbench template directly in the pack directory, no <code>scaffold.yml</code>
+entry required. The active scaffold pack is checked first; the built-in template is used
+only when the pack does not provide an override.</p>
+<p>The overridable built-in CocoTB templates (in <code>src/generator/templates/</code>) are:</p>
+<table>
+<thead>
+<tr>
+<th>Template</th>
+<th>Output</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>cocotb_test.py.j2</code></td>
+<td><code>tb/{{ name }}_test.py</code></td>
+</tr>
+<tr>
+<td><code>cocotb_conftest.py.j2</code></td>
+<td><code>tb/conftest.py</code></td>
+</tr>
+<tr>
+<td><code>cocotb_pytest.py.j2</code></td>
+<td><code>tb/test_{{ name }}_sim.py</code></td>
+</tr>
+<tr>
+<td><code>cocotb_makefile.j2</code></td>
+<td><code>tb/Makefile</code> (VHDL)</td>
+</tr>
+<tr>
+<td><code>cocotb_makefile.sv.j2</code></td>
+<td><code>tb/Makefile</code> (SystemVerilog)</td>
+</tr>
+<tr>
+<td><code>cocotb_dump.v.j2</code></td>
+<td><code>tb/dump.v</code> (SystemVerilog only)</td>
+</tr>
+<tr>
+<td><code>mm_loader.py.j2</code></td>
+<td><code>tb/mm_loader.py</code> (memory-mapped slave only)</td>
+</tr>
+<tr>
+<td><code>vscode_settings.json.j2</code></td>
+<td><code>.vscode/settings.json</code></td>
+</tr>
+</tbody>
+</table>
+<div class="highlight"><pre><span></span><code>.vscode/ipcraft/packs/my-pack/
+  scaffold.yml
+  cocotb_test.py.j2      ← optional: overrides the built-in CocoTB test stub
+</code></pre></div>
+<hr />
+<h2 id="overriding-vendor-project-templates">Overriding Vendor Project Templates<a class="headerlink" href="#overriding-vendor-project-templates" title="Permanent link">&para;</a></h2>
+<p>Vendor toolchain output that is template-driven follows the same shadowing rule too —
+overridable via every command that scaffolds a Vivado/Quartus target (<strong>Generate
+Scaffold Project</strong>, <strong>Export Altera/Xilinx Component</strong>, <strong>Generate Vivado/Quartus
+Project</strong>, and the build variants):</p>
+<table>
+<thead>
+<tr>
+<th>Template</th>
+<th>Output</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>altera_hw_tcl.j2</code></td>
+<td><code>altera/{{ name }}_hw.tcl</code></td>
+</tr>
+<tr>
+<td><code>quartus_project.tcl.j2</code></td>
+<td><code>altera/{{ name }}_project.tcl</code> (project generation only)</td>
+</tr>
+<tr>
+<td><code>quartus_sdc.j2</code></td>
+<td><code>altera/{{ name }}.sdc</code> (project generation only)</td>
+</tr>
+<tr>
+<td><code>amd_xgui.j2</code></td>
+<td><code>xilinx/xgui/{{ name }}_v{{ version }}.tcl</code></td>
+</tr>
+<tr>
+<td><code>vivado_project.tcl.j2</code></td>
+<td><code>xilinx/{{ name }}_project.tcl</code> (project generation only)</td>
+</tr>
+<tr>
+<td><code>vivado_ooc.xdc.j2</code></td>
+<td><code>xilinx/{{ name }}.xdc</code> (project generation only)</td>
+</tr>
+<tr>
+<td><code>vivado_run_ooc.tcl.j2</code> / <code>vivado_run_xpr.tcl.j2</code></td>
+<td><code>xilinx/{{ name }}_run_ooc.tcl</code> / <code>_run_xpr.tcl</code> (project generation only)</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">component.xml is not template-based</p>
+<p>Vivado's <code>component.xml</code> is generated programmatically, not from a <code>.j2</code> template,
+so it cannot currently be overridden by a scaffold pack.</p>
+</div>
+<hr />
+<h2 id="template-context-variables">Template Context Variables<a class="headerlink" href="#template-context-variables" title="Permanent link">&para;</a></h2>
+<p>The following variables are available inside every <code>.j2</code> template and in
+<code>condition</code>, <code>source</code>, and <code>target</code> expressions:</p>
+<h3 id="core-identity">Core identity<a class="headerlink" href="#core-identity" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Type</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>name</code></td>
+<td><code>string</code></td>
+<td><code>"spi_controller"</code></td>
+</tr>
+<tr>
+<td><code>entity_name</code></td>
+<td><code>string</code></td>
+<td>same as <code>name</code></td>
+</tr>
+<tr>
+<td><code>vendor</code></td>
+<td><code>string \| undefined</code></td>
+<td><code>"acme"</code></td>
+</tr>
+<tr>
+<td><code>library</code></td>
+<td><code>string \| undefined</code></td>
+<td><code>"user"</code></td>
+</tr>
+<tr>
+<td><code>version</code></td>
+<td><code>string \| undefined</code></td>
+<td><code>"1.0"</code></td>
+</tr>
+<tr>
+<td><code>description</code></td>
+<td><code>string</code></td>
+<td><code>""</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="hdl-language">HDL language<a class="headerlink" href="#hdl-language" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Type</th>
+<th>Values</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>hdl_language</code></td>
+<td><code>string</code></td>
+<td><code>"vhdl"</code> or <code>"systemverilog"</code></td>
+</tr>
+<tr>
+<td><code>is_systemverilog</code></td>
+<td><code>boolean</code></td>
+<td><code>true</code> when generating SV</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bus-interface">Bus interface<a class="headerlink" href="#bus-interface" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Type</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>bus_type</code></td>
+<td><code>string</code></td>
+<td><code>"axil"</code>, <code>"avmm"</code>, <code>"axi4"</code>, <code>"axis"</code></td>
+</tr>
+<tr>
+<td><code>has_memory_mapped_slave</code></td>
+<td><code>boolean</code></td>
+<td><code>true</code> when a memory-mapped slave interface exists</td>
+</tr>
+<tr>
+<td><code>bus_ports</code></td>
+<td><code>Port[]</code></td>
+<td>Active ports of the primary bus interface</td>
+</tr>
+<tr>
+<td><code>secondary_bus_ports</code></td>
+<td><code>Port[]</code></td>
+<td>Ports of additional bus interfaces</td>
+</tr>
+<tr>
+<td><code>bus_prefix</code></td>
+<td><code>string</code></td>
+<td>Physical signal prefix of the primary bus (e.g. <code>"s_axi"</code>)</td>
+</tr>
+<tr>
+<td><code>expanded_bus_interfaces</code></td>
+<td><code>BusInterface[]</code></td>
+<td>All bus interfaces after array expansion</td>
+</tr>
+</tbody>
+</table>
+<h3 id="registers">Registers<a class="headerlink" href="#registers" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Type</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>registers</code></td>
+<td><code>Register[]</code></td>
+<td>Flattened register list, sorted by address offset</td>
+</tr>
+<tr>
+<td><code>sw_registers</code></td>
+<td><code>Register[]</code></td>
+<td>Registers with software write access</td>
+</tr>
+<tr>
+<td><code>hw_registers</code></td>
+<td><code>Register[]</code></td>
+<td>Registers with hardware read-only access</td>
+</tr>
+<tr>
+<td><code>includeRegs</code></td>
+<td><code>boolean</code></td>
+<td><code>true</code> when register file generation is enabled</td>
+</tr>
+</tbody>
+</table>
+<h3 id="clocks-and-resets">Clocks and resets<a class="headerlink" href="#clocks-and-resets" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Type</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>clock_port</code></td>
+<td><code>string</code></td>
+<td><code>"clk"</code></td>
+</tr>
+<tr>
+<td><code>reset_port</code></td>
+<td><code>string</code></td>
+<td><code>"rst_n"</code></td>
+</tr>
+<tr>
+<td><code>reset_active_high</code></td>
+<td><code>boolean</code></td>
+<td><code>false</code> for active-low reset</td>
+</tr>
+<tr>
+<td><code>clocks_with_period</code></td>
+<td><code>Clock[]</code></td>
+<td>Clocks with resolved period in ns</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ports-and-generics">Ports and generics<a class="headerlink" href="#ports-and-generics" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Type</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>user_ports</code></td>
+<td><code>Port[]</code></td>
+<td>Ports not belonging to a bus interface</td>
+</tr>
+<tr>
+<td><code>generics</code></td>
+<td><code>Generic[]</code></td>
+<td>IP core parameters</td>
+</tr>
+<tr>
+<td><code>interrupt_ports</code></td>
+<td><code>Port[]</code></td>
+<td>Declared interrupt ports</td>
+</tr>
+</tbody>
+</table>
+<h3 id="condition-shorthand-reference">Condition shorthand reference<a class="headerlink" href="#condition-shorthand-reference" title="Permanent link">&para;</a></h3>
+<p>Common condition expressions used in <code>scaffold.yml</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">condition</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;not</span><span class="nv"> </span><span class="s">is_systemverilog&quot;</span><span class="w">          </span><span class="c1"># VHDL only</span>
+<span class="nt">condition</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;is_systemverilog&quot;</span><span class="w">              </span><span class="c1"># SV only</span>
+<span class="nt">condition</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;has_memory_mapped_slave&quot;</span><span class="w">       </span><span class="c1"># bus wrapper / register file</span>
+<span class="nt">condition</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;has_memory_mapped_slave</span><span class="nv"> </span><span class="s">and</span><span class="nv"> </span><span class="s">not</span><span class="nv"> </span><span class="s">is_systemverilog&quot;</span>
+<span class="nt">condition</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;includeRegs</span><span class="nv"> </span><span class="s">and</span><span class="nv"> </span><span class="s">has_memory_mapped_slave&quot;</span>
+</code></pre></div>
+<hr />
+<h2 id="example-minimal-custom-pack">Example: Minimal Custom Pack<a class="headerlink" href="#example-minimal-custom-pack" title="Permanent link">&para;</a></h2>
+<p>This pack generates a single VHDL or SV file with a company-specific file header
+provided by a custom template:</p>
+<div class="highlight"><pre><span></span><code>.vscode/ipcraft/packs/acme-minimal/
+  scaffold.yml
+  top.vhdl.j2          ← company header + entity (overrides built-in)
+  top.sv.j2            ← company header + module (overrides built-in)
+</code></pre></div>
+<div class="highlight"><span class="filename">.vscode/ipcraft/packs/acme-minimal/scaffold.yml</span><pre><span></span><code><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;acme-minimal&quot;</span>
+<span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;ACME</span><span class="nv"> </span><span class="s">Corp</span><span class="nv"> </span><span class="s">single-file</span><span class="nv"> </span><span class="s">stub</span><span class="nv"> </span><span class="s">with</span><span class="nv"> </span><span class="s">company</span><span class="nv"> </span><span class="s">header&quot;</span>
+<span class="nt">fullGeneration</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+
+<span class="nt">files</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;top.vhdl.j2&quot;</span>
+<span class="w">    </span><span class="nt">target</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;rtl/{{</span><span class="nv"> </span><span class="s">name</span><span class="nv"> </span><span class="s">}}.vhd&quot;</span>
+<span class="w">    </span><span class="nt">condition</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;not</span><span class="nv"> </span><span class="s">is_systemverilog&quot;</span>
+
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;top.sv.j2&quot;</span>
+<span class="w">    </span><span class="nt">target</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;rtl/{{</span><span class="nv"> </span><span class="s">name</span><span class="nv"> </span><span class="s">}}.sv&quot;</span>
+<span class="w">    </span><span class="nt">condition</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;is_systemverilog&quot;</span>
+</code></pre></div>
+<div class="highlight"><span class="filename">.vscode/settings.json</span><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;ipcraft.generate.scaffoldPack&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;acme-minimal&quot;</span>
+<span class="p">}</span>
+</code></pre></div>
+<hr />
+<h2 id="example-full-pack-with-extra-artifacts">Example: Full Pack with Extra Artifacts<a class="headerlink" href="#example-full-pack-with-extra-artifacts" title="Permanent link">&para;</a></h2>
+<p>This pack extends <code>builtin-ipcraft</code> with an additional Markdown stub for
+register documentation placed next to the RTL:</p>
+<div class="highlight"><span class="filename">.vscode/ipcraft/packs/doc-aware/scaffold.yml</span><pre><span></span><code><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;doc-aware&quot;</span>
+<span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Full</span><span class="nv"> </span><span class="s">layered</span><span class="nv"> </span><span class="s">generation</span><span class="nv"> </span><span class="s">plus</span><span class="nv"> </span><span class="s">per-IP</span><span class="nv"> </span><span class="s">register</span><span class="nv"> </span><span class="s">documentation</span><span class="nv"> </span><span class="s">stub&quot;</span>
+<span class="nt">fullGeneration</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+
+<span class="nt">files</span><span class="p">:</span>
+<span class="w">  </span><span class="c1"># ── VHDL ──────────────────────────────────────────────────────────────────</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;package.vhdl.j2&quot;</span>
+<span class="w">    </span><span class="nt">target</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;rtl/{{</span><span class="nv"> </span><span class="s">name</span><span class="nv"> </span><span class="s">}}_pkg.vhd&quot;</span>
+<span class="w">    </span><span class="nt">condition</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;not</span><span class="nv"> </span><span class="s">is_systemverilog</span><span class="nv"> </span><span class="s">and</span><span class="nv"> </span><span class="s">has_memory_mapped_slave&quot;</span>
+
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;top.vhdl.j2&quot;</span>
+<span class="w">    </span><span class="nt">target</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;rtl/{{</span><span class="nv"> </span><span class="s">name</span><span class="nv"> </span><span class="s">}}.vhd&quot;</span>
+<span class="w">    </span><span class="nt">condition</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;not</span><span class="nv"> </span><span class="s">is_systemverilog&quot;</span>
+
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;core.vhdl.j2&quot;</span>
+<span class="w">    </span><span class="nt">target</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;rtl/{{</span><span class="nv"> </span><span class="s">name</span><span class="nv"> </span><span class="s">}}_core.vhd&quot;</span>
+<span class="w">    </span><span class="nt">condition</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;not</span><span class="nv"> </span><span class="s">is_systemverilog</span><span class="nv"> </span><span class="s">and</span><span class="nv"> </span><span class="s">has_memory_mapped_slave&quot;</span>
+<span class="w">    </span><span class="nt">managed</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;bus_{{</span><span class="nv"> </span><span class="s">bus_type</span><span class="nv"> </span><span class="s">}}.vhdl.j2&quot;</span>
+<span class="w">    </span><span class="nt">target</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;rtl/{{</span><span class="nv"> </span><span class="s">name</span><span class="nv"> </span><span class="s">}}_{{</span><span class="nv"> </span><span class="s">bus_type</span><span class="nv"> </span><span class="s">}}.vhd&quot;</span>
+<span class="w">    </span><span class="nt">condition</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;not</span><span class="nv"> </span><span class="s">is_systemverilog</span><span class="nv"> </span><span class="s">and</span><span class="nv"> </span><span class="s">has_memory_mapped_slave&quot;</span>
+
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;register_file.vhdl.j2&quot;</span>
+<span class="w">    </span><span class="nt">target</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;rtl/{{</span><span class="nv"> </span><span class="s">name</span><span class="nv"> </span><span class="s">}}_regs.vhd&quot;</span>
+<span class="w">    </span><span class="nt">condition</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;not</span><span class="nv"> </span><span class="s">is_systemverilog</span><span class="nv"> </span><span class="s">and</span><span class="nv"> </span><span class="s">includeRegs</span><span class="nv"> </span><span class="s">and</span><span class="nv"> </span><span class="s">has_memory_mapped_slave&quot;</span>
+
+<span class="w">  </span><span class="c1"># ── Documentation stub ────────────────────────────────────────────────────</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;register_doc.md.j2&quot;</span><span class="w">    </span><span class="c1"># pack-local template, not in built-in library</span>
+<span class="w">    </span><span class="nt">target</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;docs/{{</span><span class="nv"> </span><span class="s">name</span><span class="nv"> </span><span class="s">}}_registers.md&quot;</span>
+<span class="w">    </span><span class="nt">condition</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;has_memory_mapped_slave&quot;</span>
+<span class="w">    </span><span class="nt">managed</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+</code></pre></div>
+<p>The <code>register_doc.md.j2</code> template is a new file in the pack directory — it has no
+built-in equivalent so it must be provided by the pack.</p>
+<hr />
+<h2 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Solution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><em>Scaffold pack '…' not found</em></td>
+<td>Check the pack folder name matches <code>ipcraft.generate.scaffoldPack</code> exactly; workspace packs must be under <code>.vscode/ipcraft/packs/</code></td>
+</tr>
+<tr>
+<td><em>template not found: …</em></td>
+<td>The <code>source</code> expression resolved to a template name that exists in neither the pack directory nor the built-in library; check spelling</td>
+</tr>
+<tr>
+<td>Condition never passes</td>
+<td>Use the <strong>Scaffold Pack Preview</strong> panel to see which conditions evaluate to true/false for your IP core</td>
+</tr>
+<tr>
+<td>Preview shows "No .ip.yml found"</td>
+<td>There is no IP core file in the workspace; create one or use <strong>IPCraft: Pin Preview IP Core</strong> to point to one elsewhere</td>
+</tr>
+<tr>
+<td>Preview not refreshing</td>
+<td>Verify <code>auto-save</code> is off and the <code>.j2</code> file is saved explicitly (<code>Ctrl+S</code>)</td>
+</tr>
+<tr>
+<td><code>managed: false</code> file keeps being regenerated</td>
+<td>The file must exist on disk for the protection to activate; run generation once to create it</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2026 Le Viet Bach
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.expand", "navigation.tabs", "navigation.top", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

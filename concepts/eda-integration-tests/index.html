@@ -1,0 +1,2146 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Visual editor for FPGA IP Core and Memory Map specifications">
+      
+      
+        <meta name="author" content="Le Viet Bach">
+      
+      
+        <link rel="canonical" href="https://bleviet.github.io/ipcraft-vscode/concepts/eda-integration-tests/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>EDA Integration Tests - IPCraft for VS Code</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#eda-integration-tests" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="IPCraft for VS Code" class="md-header__button md-logo" aria-label="IPCraft for VS Code" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            IPCraft for VS Code
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              EDA Integration Tests
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/bleviet/ipcraft-vscode" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../getting-started/quickstart/" class="md-tabs__link">
+          
+  
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../tutorials/build-and-verify-a-scaffold-pack/" class="md-tabs__link">
+          
+  
+  
+  Tutorials
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../how-to/vhdl-import/" class="md-tabs__link">
+          
+  
+  
+  How-to Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../extension-model/" class="md-tabs__link">
+          
+  
+  
+  Concepts
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../architecture/overview/" class="md-tabs__link">
+          
+  
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../reference/commands/" class="md-tabs__link">
+          
+  
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../contributing/guidelines/" class="md-tabs__link">
+          
+  
+  
+  Contributing
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../blog/building-ipcraft/" class="md-tabs__link">
+          
+  
+  
+  Blog
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="IPCraft for VS Code" class="md-nav__button md-logo" aria-label="IPCraft for VS Code" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    IPCraft for VS Code
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/bleviet/ipcraft-vscode" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorials
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Tutorials
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/build-and-verify-a-scaffold-pack/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Build and Verify a Scaffold Pack
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/memory-mapped-registers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Memory-Mapped Registers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How-to Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    How-to Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/vhdl-import/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Importing from Existing Files
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/generating-a-project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generating a Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/scaffold-packs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Customising Code Generation (Scaffold Packs)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/building-a-project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building a Project (Headless)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/build-vsix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building a VSIX Package
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/ai-design-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI Design Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Concepts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../extension-model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VS Code Extension Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../yaml-data-flow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YAML Data Flow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../spatial-editing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spatial Editing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../responsive-design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Responsive Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/extension-host/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Extension Host
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/webview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Webview (React)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Commands & Settings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/keyboard-shortcuts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Keyboard Shortcuts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/generator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/ip-core-editor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IP Core Editor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/specification-schemas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Specification Schemas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/bitfield-interaction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bit Field Interaction
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/yaml-libraries/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YAML Libraries
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contributing
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/guidelines/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guidelines
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Blog
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Blog
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../blog/building-ipcraft/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building IPCraft
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#the-problem-generated-files-must-be-vendor-valid" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Problem: Generated Files Must Be Vendor-Valid
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-sixth-test-tier" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Sixth Test Tier
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-the-test-suite-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How the Test Suite Works
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="How the Test Suite Works">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-1-fixture-generation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1: Fixture generation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-2-quartus-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2: Quartus validation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 2: Quartus validation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#why-docker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why Docker?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-the-validation-does" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What the validation does
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-3-vivado-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3: Vivado validation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 3: Vivado validation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#why-host-installed-not-docker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why host-installed, not Docker?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-the-validation-does_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What the validation does
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#design-decisions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Design Decisions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Design Decisions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#why-separate-from-unit-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why separate from unit tests?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#why-tcl-stubs-instead-of-a-real-platform-designer-session" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why Tcl stubs instead of a real Platform Designer session?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#why-add-bfm-testbench-validation-on-top-of-the-stub" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why add BFM testbench validation on top of the stub?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#why-add-block-design-validation-on-top-of-ipxcheck_integrity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why add block-design validation on top of ipx::check_integrity?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#why-cache-fixtures-in-memory" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why cache fixtures in memory?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#skipping-individual-tools" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Skipping individual tools
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/bleviet/ipcraft-vscode/edit/main/docs/concepts/eda-integration-tests.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="eda-integration-tests">EDA Integration Tests<a class="headerlink" href="#eda-integration-tests" title="Permanent link">&para;</a></h1>
+<h2 id="the-problem-generated-files-must-be-vendor-valid">The Problem: Generated Files Must Be Vendor-Valid<a class="headerlink" href="#the-problem-generated-files-must-be-vendor-valid" title="Permanent link">&para;</a></h2>
+<p>IPCraft's generator produces files that are consumed directly by EDA (Electronic Design Automation) tools: Intel Quartus Platform Designer reads <code>_hw.tcl</code> scripts; AMD Vivado reads <code>component.xml</code> IP-XACT descriptors. These files must not only parse without errors — they must satisfy structural rules enforced by the tool's own validation engine.</p>
+<p>Unit tests can verify that the generator <em>produces output</em> and that the YAML input maps to expected string patterns. They cannot verify that a generated <code>_hw.tcl</code> conforms to Platform Designer's expected schema, or that a generated <code>component.xml</code> satisfies the IP-XACT standard as Vivado interprets it.</p>
+<p>The EDA integration tests close that gap.</p>
+<hr />
+<h2 id="the-sixth-test-tier">The Sixth Test Tier<a class="headerlink" href="#the-sixth-test-tier" title="Permanent link">&para;</a></h2>
+<p>The EDA integration tests form a sixth tier in the repository's test architecture, sitting above the five tiers described in the <a href="../../testing/">Testing Guide</a>:</p>
+<table>
+<thead>
+<tr>
+<th>Tier</th>
+<th>Runner</th>
+<th>What it tests</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1–3</td>
+<td>Jest</td>
+<td>Pure logic, React components, VS Code API calls</td>
+</tr>
+<tr>
+<td>4</td>
+<td>@vscode/test-electron</td>
+<td>VS Code extension activation and file resolution</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Playwright</td>
+<td>Compiled React webview UI in a real browser</td>
+</tr>
+<tr>
+<td><strong>6</strong></td>
+<td><strong>Jest + EDA tools</strong></td>
+<td><strong>Generated EDA files accepted by the real vendor tools</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Tier 6 tests are deliberately <strong>not</strong> part of <code>npm run test:all</code>. They require external tooling (Docker or a Vivado installation) that is not present in the standard developer or CI environment. They run on demand, or in a dedicated CI job that provisions the required tools.</p>
+<hr />
+<h2 id="how-the-test-suite-works">How the Test Suite Works<a class="headerlink" href="#how-the-test-suite-works" title="Permanent link">&para;</a></h2>
+<h3 id="step-1-fixture-generation">Step 1: Fixture generation<a class="headerlink" href="#step-1-fixture-generation" title="Permanent link">&para;</a></h3>
+<p>Both the Quartus and Vivado test files share a common setup step implemented in <code>src/test/integration/generator.ts</code>. Before any assertions run, <code>generateFixtures()</code>:</p>
+<ol>
+<li>Reads every <code>*.ip.yml</code> template from <code>ipcraft-spec/templates/</code>.</li>
+<li>Calls <code>IpCoreScaffolder.generateAll()</code> with <code>vendor: 'both'</code> and <code>includeRegs: true</code>.</li>
+<li>Writes the output files to a stable directory under <code>os.tmpdir()</code> (<code>ipcraft-integration-fixtures/&lt;name&gt;/</code>).</li>
+<li>Caches the result in memory so the generation step runs only once per Jest process, even when multiple test files import it.</li>
+</ol>
+<p>The output directory for each fixture mirrors what a real user would get:</p>
+<div class="highlight"><pre><span></span><code>/tmp/ipcraft-integration-fixtures/
+  simple_gpio/
+    altera/
+      simple_gpio_hw.tcl
+      test.qsys            # companion system with all interfaces exported
+    amd/
+      component.xml
+      busdef/
+        ...
+  axi_lite_slave/
+    altera/
+      axi_lite_slave_hw.tcl
+      test.qsys
+    amd/
+      component.xml
+</code></pre></div>
+<p>The <code>alteraFixtures()</code> and <code>amdFixtures()</code> helper functions filter the full list to fixtures that actually produced <code>_hw.tcl</code> files (Quartus path) or <code>component.xml</code> files (Vivado path), respectively.</p>
+<h3 id="step-2-quartus-validation">Step 2: Quartus validation<a class="headerlink" href="#step-2-quartus-validation" title="Permanent link">&para;</a></h3>
+<p>The Quartus tests (<code>src/test/integration/quartus.test.ts</code>) validate every fixture that produced a <code>_hw.tcl</code>.</p>
+<h4 id="why-docker">Why Docker?<a class="headerlink" href="#why-docker" title="Permanent link">&para;</a></h4>
+<p>Quartus Prime is a multi-gigabyte installation that is rarely present on a developer's laptop and is difficult to install in standard CI. However, Quartus ships <code>tclsh</code> — a standard Tcl interpreter — inside its installation. The test suite uses a published Docker image (<code>cvsoc/quartus:23.1</code>) that provides exactly that: a Quartus installation accessible as a container, without a GUI or a license.</p>
+<p>The Jest test mounts the repository root at <code>/work</code> inside the container and passes the generated <code>_hw.tcl</code> paths (translated to container-internal paths) to the validation script.</p>
+<h4 id="what-the-validation-does">What the validation does<a class="headerlink" href="#what-the-validation-does" title="Permanent link">&para;</a></h4>
+<p>There are two levels of validation for each <code>_hw.tcl</code>, run in sequence.</p>
+<p><strong>Stub validation</strong> uses a lightweight Tcl-based validator at <code>scripts/integration/quartus/stub_platform_designer.tcl</code>. The stub:</p>
+<ol>
+<li>Defines no-op implementations of all Platform Designer commands (<code>add_interface</code>, <code>add_interface_port</code>, <code>set_module_property</code>, <code>add_fileset</code>, etc.) so the <code>_hw.tcl</code> can be sourced without a live Platform Designer session.</li>
+<li>Records every <code>add_interface</code> and <code>add_interface_port</code> call in an in-memory state object.</li>
+<li>Intercepts <code>package require qsys</code> and returns a fake success so the <code>_hw.tcl</code> does not abort on startup.</li>
+</ol>
+<p>After the <code>_hw.tcl</code> is loaded, the outer validator (<code>scripts/integration/quartus/validate.tcl</code>) calls its <code>elaborate</code> procedure — and <code>validate</code>, if defined — then runs these structural checks:</p>
+<ul>
+<li>At least one interface must be registered.</li>
+<li><code>set_module_property NAME</code> must have been called.</li>
+<li>Every non-clock/reset interface must have at least one port.</li>
+</ul>
+<p>The stub validator iterates over all <code>_hw.tcl</code> files passed as command-line arguments, accumulates errors, and exits 0 only if every file passes, printing <code>OVERALL PASS</code>.</p>
+<p><strong>BFM testbench validation</strong> uses Platform Designer's own <code>qsys-generate --testbench=STANDARD</code> tool, driven by <code>scripts/integration/quartus/validate_pd.sh</code>. This catches interface-level errors — such as AXI-Stream port role mismatches — that the stub validator cannot detect because the stub only records interface declarations without interpreting their semantics.</p>
+<p>The approach relies on a companion <code>test.qsys</code> file that IPCraft generates alongside each <code>_hw.tcl</code> (via the <code>altera_test_system.qsys.j2</code> Nunjucks template in the generator). This file instantiates the component with <strong>all interfaces exported to the system boundary</strong>. With every interface promoted to an export, Platform Designer's system-level validator is fully satisfied — there are no "port must be connected" false positives — and <code>qsys-generate</code> can automatically connect BFMs (Bus Functional Models) for each exported clock, reset, Avalon, AXI, and conduit interface. If any interface declaration in the <code>_hw.tcl</code> is structurally wrong (wrong port roles, mismatched directions, bad type), <code>qsys-generate</code> reports a component-level error.</p>
+<p>The script deduplicates validation across VHDL and SV fixture variants of the same IP name, since both produce the identical Platform Designer component structure. It exits with code 0 on full pass, 1 on any component error, and 2 when <code>qsys-generate</code> is not found in the image (which the Jest test treats as a tier-2 skip rather than a failure, unless <code>REQUIRE_QSYS_GENERATE=1</code> is set).</p>
+<p>Both validation levels run inside the same <code>cvsoc/quartus:23.1</code> Docker container. Stub validation takes roughly milliseconds per file; BFM testbench validation takes roughly 30 seconds per unique IP component.</p>
+<h3 id="step-3-vivado-validation">Step 3: Vivado validation<a class="headerlink" href="#step-3-vivado-validation" title="Permanent link">&para;</a></h3>
+<p>The Vivado tests (<code>src/test/integration/vivado.test.ts</code>) validate every fixture that produced a <code>component.xml</code>.</p>
+<h4 id="why-host-installed-not-docker">Why host-installed, not Docker?<a class="headerlink" href="#why-host-installed-not-docker" title="Permanent link">&para;</a></h4>
+<p>Vivado's licensing requirements and the complexity of running its binary inside a container make Dockerisation impractical for this use case. The tests instead assume Vivado is installed on the developer's machine or CI runner and locate the binary via the <code>VIVADO_BIN</code> environment variable (defaulting to the path of the developer machine where the tests were originally authored).</p>
+<h4 id="what-the-validation-does_1">What the validation does<a class="headerlink" href="#what-the-validation-does_1" title="Permanent link">&para;</a></h4>
+<p>There are two levels of validation for each <code>component.xml</code>, each its own <code>spawnSync</code> invocation of Vivado in batch mode (<code>-mode batch</code>).</p>
+<p><strong>Integrity validation</strong> uses <code>scripts/integration/vivado/validate.tcl</code>. For each fixture, the script:</p>
+<ol>
+<li>Creates an in-memory Vivado project (no disk artefacts) targeting a representative Zynq-7000 part.</li>
+<li>If a <code>busdef/</code> subdirectory exists alongside <code>component.xml</code>, registers it as an IP repository and rebuilds the IP catalogue so Vivado can resolve any custom bus interface VLNVs.</li>
+<li>Calls <code>ipx::open_core</code> to parse the <code>component.xml</code>.</li>
+<li>Asserts the VLNV property is non-empty — a non-empty VLNV confirms the file was parsed as a valid IP-XACT document.</li>
+<li>Calls <code>ipx::check_integrity -quiet</code> to run Vivado's built-in integrity check.</li>
+<li>Exits 0 if the error count is 0; exits 1 otherwise.</li>
+</ol>
+<p><strong>Block-design validation</strong> uses <code>scripts/integration/vivado/validate_bd.tcl</code>. This catches errors that the static integrity check cannot detect — wrong bus-interface inference, broken <code>portMaps</code>, port-direction mismatches, and unresolved custom-interface VLNVs — because those only surface when Vivado's IP integrator actually wires the IP-XACT bus interfaces into a design. For each fixture, the script:</p>
+<ol>
+<li>Creates an in-memory project and registers the generated directory (and any <code>busdef/</code>) as an IP repository, then rebuilds the catalogue.</li>
+<li>Parses the four top-level <code>&lt;spirit:vendor&gt;</code> / <code>library</code> / <code>name</code> / <code>version</code> fields from <code>component.xml</code> to form the component VLNV.</li>
+<li>Creates a block design and instantiates the packaged IP by VLNV (<code>create_bd_cell -type ip -vlnv …</code>). A failure here alone proves the catalogue rejected the packaged IP.</li>
+<li>Exports <strong>every interface and scalar port</strong> of the instance to the design boundary (<code>make_bd_intf_pins_external</code> / <code>make_bd_pins_external</code>), so the validator exercises the full IP-XACT interface surface without "required-but-unconnected" false positives from a bare instance.</li>
+<li>Runs <code>validate_bd_design</code> and counts tool-level ERROR messages.</li>
+<li>Exits 0 if the error count is 0; exits 1 otherwise.</li>
+</ol>
+<p>This is the Vivado analogue of the Quartus BFM testbench method: instantiate the component with everything exported to the boundary, then let the real tool validate the wiring. Unlike Platform Designer, Vivado's Tcl API can instantiate any IP by VLNV and export pins programmatically, so no companion design file needs to be generated into the user's output. The check is structural only (no out-of-context synthesis) — RTL elaboration coverage is provided separately by the <code>_run_ooc.tcl</code> raw-RTL synthesis test in the same suite.</p>
+<p>Each fixture is validated as a separate <code>spawnSync</code> invocation. Failures are collected and reported together so a single bad fixture does not abort validation of the others.</p>
+<hr />
+<h2 id="design-decisions">Design Decisions<a class="headerlink" href="#design-decisions" title="Permanent link">&para;</a></h2>
+<h3 id="why-separate-from-unit-tests">Why separate from unit tests?<a class="headerlink" href="#why-separate-from-unit-tests" title="Permanent link">&para;</a></h3>
+<p>EDA validation is slow (Vivado can take 30–60 seconds per fixture to start) and requires tools that are not universally available. Bundling them with the unit test suite would make <code>npm run test:unit</code> fragile and slow for all contributors. The integration tests are deliberately opt-in.</p>
+<h3 id="why-tcl-stubs-instead-of-a-real-platform-designer-session">Why Tcl stubs instead of a real Platform Designer session?<a class="headerlink" href="#why-tcl-stubs-instead-of-a-real-platform-designer-session" title="Permanent link">&para;</a></h3>
+<p>A real Platform Designer session requires a licensed Quartus installation and a GUI environment. The stub approach lets contributors who only have <code>tclsh</code> (available inside the Docker image without a license) validate the structural correctness of <code>_hw.tcl</code> files. It is not a full functional test — it does not simulate routing or timing — but it catches the class of errors that IPCraft is likely to introduce: malformed interface definitions, missing module names, invalid interface types, or ports with zero width.</p>
+<h3 id="why-add-bfm-testbench-validation-on-top-of-the-stub">Why add BFM testbench validation on top of the stub?<a class="headerlink" href="#why-add-bfm-testbench-validation-on-top-of-the-stub" title="Permanent link">&para;</a></h3>
+<p>The Tcl stub validator only replays and records interface declarations. It cannot catch semantic errors that require Platform Designer to interpret the interface specification — for example, when a port is listed under an AXI-Stream interface with the wrong role (<code>tstrb</code> assigned as a master port on what should be a slave interface). Such errors are invisible to a Tcl stub but cause <code>qsys-generate</code> to abort with a component-level error.</p>
+<p>The BFM testbench approach solves this by running the actual Platform Designer tool against a purpose-built <code>test.qsys</code> that exports every interface to the system boundary. The export strategy is the key insight: a bare system with unconnected interfaces would trigger "must be connected" errors that are not real bugs — they are just artifacts of the test harness. Exporting everything to the boundary satisfies Platform Designer's connectivity rules so that only genuine interface errors surface. This makes the test highly specific: false positives from the test setup are eliminated, and only real component defects cause a failure.</p>
+<h3 id="why-add-block-design-validation-on-top-of-ipxcheck_integrity">Why add block-design validation on top of <code>ipx::check_integrity</code>?<a class="headerlink" href="#why-add-block-design-validation-on-top-of-ipxcheck_integrity" title="Permanent link">&para;</a></h3>
+<p><code>ipx::check_integrity</code> validates the <code>component.xml</code> against the IP-XACT schema, but it never asks Vivado's IP integrator to <em>consume</em> the IP. A component can pass the integrity check yet still be unusable in a real design — for example, a bus interface whose <code>portMaps</code> name physical ports that conflict with the inferred direction, or a custom-interface VLNV that the catalogue cannot resolve when an instance is actually elaborated. The block-design validator closes that gap by instantiating the packaged IP exactly as an end user would. The same export-everything insight applies: promoting every interface and scalar port to the design boundary satisfies the IP integrator's connectivity rules, so only genuine component defects — not test-harness artifacts — cause <code>validate_bd_design</code> to report an error.</p>
+<h3 id="why-cache-fixtures-in-memory">Why cache fixtures in memory?<a class="headerlink" href="#why-cache-fixtures-in-memory" title="Permanent link">&para;</a></h3>
+<p><code>generateFixtures()</code> caches its result so both the Quartus and Vivado test files can import it without triggering two separate generation passes. Generation runs <code>IpCoreScaffolder.generateAll()</code> for every template IP core, which is I/O-intensive. The cache is process-scoped: when the two integration test files are run together via <code>npm run test:integration</code>, Jest reuses the same worker process and the generation runs only once.</p>
+<h3 id="skipping-individual-tools">Skipping individual tools<a class="headerlink" href="#skipping-individual-tools" title="Permanent link">&para;</a></h3>
+<p>Setting <code>SKIP_QUARTUS=1</code> or <code>SKIP_VIVADO=1</code> causes all tests for that tool to pass trivially rather than fail. This is useful in environments where only one EDA tool is available.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2026 Le Viet Bach
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.expand", "navigation.tabs", "navigation.top", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

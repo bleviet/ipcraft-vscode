@@ -1,0 +1,2533 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Visual editor for FPGA IP Core and Memory Map specifications">
+      
+      
+        <meta name="author" content="Le Viet Bach">
+      
+      
+        <link rel="canonical" href="https://bleviet.github.io/ipcraft-vscode/width-arith-functions/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Plan: Predefined arithmetic functions for port widths - IPCraft for VS Code</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#plan-predefined-arithmetic-functions-for-port-widths" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="IPCraft for VS Code" class="md-header__button md-logo" aria-label="IPCraft for VS Code" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            IPCraft for VS Code
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Plan: Predefined arithmetic functions for port widths
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/bleviet/ipcraft-vscode" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../getting-started/quickstart/" class="md-tabs__link">
+          
+  
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../tutorials/build-and-verify-a-scaffold-pack/" class="md-tabs__link">
+          
+  
+  
+  Tutorials
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../how-to/vhdl-import/" class="md-tabs__link">
+          
+  
+  
+  How-to Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../concepts/extension-model/" class="md-tabs__link">
+          
+  
+  
+  Concepts
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../architecture/overview/" class="md-tabs__link">
+          
+  
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../reference/commands/" class="md-tabs__link">
+          
+  
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../contributing/guidelines/" class="md-tabs__link">
+          
+  
+  
+  Contributing
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../blog/building-ipcraft/" class="md-tabs__link">
+          
+  
+  
+  Blog
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="IPCraft for VS Code" class="md-nav__button md-logo" aria-label="IPCraft for VS Code" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    IPCraft for VS Code
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/bleviet/ipcraft-vscode" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorials
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Tutorials
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorials/build-and-verify-a-scaffold-pack/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Build and Verify a Scaffold Pack
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorials/memory-mapped-registers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Memory-Mapped Registers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How-to Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    How-to Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how-to/vhdl-import/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Importing from Existing Files
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how-to/generating-a-project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generating a Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how-to/scaffold-packs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Customising Code Generation (Scaffold Packs)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how-to/building-a-project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building a Project (Headless)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how-to/build-vsix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building a VSIX Package
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how-to/ai-design-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI Design Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Concepts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/extension-model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VS Code Extension Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/yaml-data-flow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YAML Data Flow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/spatial-editing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spatial Editing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/responsive-design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Responsive Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/extension-host/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Extension Host
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/webview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Webview (React)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Commands & Settings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/keyboard-shortcuts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Keyboard Shortcuts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/generator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ip-core-editor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IP Core Editor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/specification-schemas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Specification Schemas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/bitfield-interaction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bit Field Interaction
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/yaml-libraries/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YAML Libraries
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contributing
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../contributing/guidelines/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guidelines
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Blog
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Blog
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../blog/building-ipcraft/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building IPCraft
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#current-state-evidence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Current state (evidence)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#use-cases-in-this-project" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Use cases in this project
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-core-design-challenge" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The core design challenge
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#open-decisions-need-maintainer-sign-off" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Open decisions (need maintainer sign-off)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#proposed-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Proposed architecture
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Proposed architecture">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#a-ast-based-expression-core-new" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A. AST-based expression core (new)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#b-resolver-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        B. Resolver integration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#c-templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        C. Templates
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#d-webview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        D. Webview
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#e-parsers-optional-phase-4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        E. Parsers (optional, Phase 4)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#f-schema-docs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        F. Schema / docs
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phased-rollout-de-risked" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phased rollout (de-risked)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#test-plan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test plan
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#files-to-touch-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Files to touch (summary)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#risks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Risks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#out-of-scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Out of scope
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/bleviet/ipcraft-vscode/edit/main/docs/width-arith-functions.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="plan-predefined-arithmetic-functions-for-port-widths">Plan: Predefined arithmetic functions for port widths<a class="headerlink" href="#plan-predefined-arithmetic-functions-for-port-widths" title="Permanent link">&para;</a></h1>
+<p>Issue: https://github.com/bleviet/ipcraft-vscode/issues/17
+Title: <code>[PORTS Feature]: Allow having predefined functions for ports width</code>
+Goal: When a port width is defined via generics, allow predefined arithmetic
+functions such as <code>Log2</code>, <code>Ceil</code> in the width expression (e.g.
+<code>width: clog2(DEPTH)</code>).</p>
+<p>Status: <strong>IMPLEMENTED</strong> (Phases 1-4). The AST core, per-dialect serializers,
+resolver/generator wiring, parser recognition, tests, schema description, and
+the how-to (<code>docs/how-to/port-width-functions.md</code>) are in place. One deviation
+from the original design: IP-XACT is emitted by the active TypeScript generator
+<code>src/generator/VivadoComponentXmlGenerator.ts</code> (which uses <code>MODELPARAM_VALUE</code>),
+not the <code>amd_component_xml.j2</code> template — that template is not wired into any
+toolchain or scaffold pack and was left untouched.</p>
+<h2 id="current-state-evidence">Current state (evidence)<a class="headerlink" href="#current-state-evidence" title="Permanent link">&para;</a></h2>
+<p>The codebase is already expression-aware end to end. There is a single
+canonical width-expression evaluator:</p>
+<ul>
+<li><code>src/shared/evalWidthExpr.ts</code> — hand-rolled recursive-descent parser,
+  no <code>eval</code>/<code>new Function</code> (CSP-safe for webview and extension host).
+  Supports <code>+ - * /</code>, parentheses, unary minus, and parameter-name
+  substitution. Rejects anything else by returning <code>undefined</code>.
+  Allow-regex gate at <code>src/shared/evalWidthExpr.ts:27</code>:
+  <code>^[0-9\s+\-*/().]+$</code>.</li>
+</ul>
+<p>It is consumed in four places (and re-exported for the webview at
+<code>src/webview/shared/utils/evalWidthExpr.ts:1</code>):</p>
+<ol>
+<li><code>src/generator/registerProcessor.ts:210-318</code> <code>getActiveBusPortsFromDefinition</code>
+   — bus port width resolution. Compound-expression detection at
+   <code>registerProcessor.ts:293</code> is a regex <code>/[+\-*/]/</code> used to decide
+   parenthesization of <code>widthExpr</code> inside <code>std_logic_vector(...-1 downto 0)</code>
+   and <code>logic[...-1:0]</code> (lines 294-296).</li>
+<li><code>src/generator/resolvers/bus.ts:96-145</code> <code>buildUserPorts</code> — user-port
+   width resolution; Tcl translation via <code>toTclWidthExpression</code>
+   (<code>bus.ts:31-48</code>) and <code>toTclWidth</code> (<code>bus.ts:50-62</code>), which wraps params as
+   <code>[get_parameter_value NAME]</code> and compound forms as <code>[expr ...]</code>.</li>
+<li><code>src/generator/VivadoComponentXmlGenerator.ts:800-823</code> <code>resolveWidth</code> and
+   <code>renderPorts</code> (<code>825-926</code>), which feeds <code>port.width_expr</code> into the template.</li>
+<li>Webview live preview: <code>src/webview/shared/components/WidthField.tsx:82</code>
+   and <code>src/webview/ipcore/components/canvas/CanvasInspector.tsx</code>
+   (lines 2406, 2798, 3441).</li>
+</ol>
+<p>Templates that embed width expressions:</p>
+<ul>
+<li><code>src/generator/templates/amd_component_xml.j2:262-264</code> and <code>292-294</code> —
+  emits <code>&lt;spirit:left spirit:resolve="dependent"
+  spirit:dependency="(spirit:decode(id('PARAM_VALUE.{{ port.width_expr }}')) - 1)"&gt;</code>.
+  <strong>This assumes <code>width_expr</code> is a bare param reference or plain arithmetic.</strong>
+  A function call breaks this assumption.</li>
+<li><code>src/generator/templates/altera_hw_tcl.j2:149-160</code> — defers parameterized
+  widths to an <code>elaborate {}</code> proc using <code>ep.tcl_width</code> and
+  <code>get_parameter_value</code>.</li>
+<li><code>core.sv.j2</code>, <code>top.sv.j2</code>, <code>core.vhdl.j2</code>, <code>top.vhdl.j2</code>,
+  <code>bus_axil.sv.j2</code> — consume pre-baked <code>port.sv_type</code> / <code>port.type</code> strings
+  built in <code>registerProcessor.ts:290-300</code>.</li>
+</ul>
+<p>Schema: <code>ipcraft-spec/schemas/ip_core.schema.json</code> <code>$defs.Port.width</code>
+(lines 824-875) is already <code>integer | string</code>. Same for <code>ConduitPort.width</code>
+and <code>BusInterface.portWidthOverrides</code>. <strong>No schema change is required</strong> to
+accept function expressions; they are just strings.</p>
+<p>Parsers (reverse path, RTL -&gt; YAML): <code>src/parser/VerilogParser.ts:340-362</code>
+<code>extractWidth</code> only handles <code>PARAM-1:0</code> and <code>PARAM:0</code>; returns <code>undefined</code>
+for anything else. <code>src/parser/VhdlParser.ts:273-323</code> <code>extractWidthFromType</code>
+already captures compound forms like <code>AxiDataWidth_g/8</code>.</p>
+<h2 id="use-cases-in-this-project">Use cases in this project<a class="headerlink" href="#use-cases-in-this-project" title="Permanent link">&para;</a></h2>
+<p>These are real instances of the gap, found in the repo's own fixtures and
+examples — not hypothetical scenarios. They are the concrete motivation for
+shipping this feature.</p>
+<ul>
+<li><strong>FIFO read/write pointer or fill-level width from FIFO depth.</strong> Three
+  real fixtures declare a <code>FIFO_DEPTH</code> parameter with no port deriving its
+  width from it — today the address/pointer width must be a second,
+  independently maintained parameter that can silently drift out of sync:</li>
+<li><code>src/test/fixtures/cornercase-ipcore.yml:42-53</code> — <code>ADDR_WIDTH=12</code> and
+    <code>FIFO_DEPTH=256</code> declared as unrelated siblings (<code>clog2(256)=8</code>, but
+    <code>ADDR_WIDTH</code> is hand-set to 12).</li>
+<li><code>ipcraft-spec/examples/system_controller/system_controller.ip.yml:133-144</code>
+    — same pattern: <code>ADDR_WIDTH=32</code>, <code>FIFO_DEPTH=1024</code> (<code>clog2(1024)=10</code>).</li>
+<li><code>ipcraft-spec/examples/comprehensive_axi/comprehensive_axi.ip.yml:23-26</code>
+    — <code>FIFO_DEPTH</code> parameter ("Internal buffer depth in words") with no port
+    in the file deriving a width from it at all.</li>
+<li>With this feature, a FIFO pointer/level port could be declared as
+    <code>width: clog2(FIFO_DEPTH)</code> and stay correct automatically as
+    <code>FIFO_DEPTH</code> changes — no second parameter to keep in sync.</li>
+<li><strong>Channel-select width from a channel count.</strong>
+  <code>ipcraft-spec/examples/multi_interface_accelerator/accelerator.ip.yml:75</code>
+  declares <code>NUM_CHANNELS=4</code> with no corresponding select-line port. A
+  <code>width: clog2(NUM_CHANNELS)</code> port (e.g. an active-channel index) becomes
+  expressible without a hand-maintained constant.</li>
+<li><strong>FIFO fill-level status field sizing (related, out of scope).</strong>
+  <code>ipcraft-spec/examples/comprehensive_axi/comprehensive_axi.mm.yml:77-80</code>
+  hand-picks <code>FIFO_LEVEL</code> as bits <code>[15:4]</code> (12 bits) in a status register,
+  with no link back to <code>FIFO_DEPTH=1024</code> (which needs <code>clog2(1024)+1 = 11</code>
+  bits to represent depth-inclusive of "full"). This is a <strong>memory-map
+  register field</strong>, not a port, so it stays out of scope per "Out of scope"
+  below — called out here so a future ask for the same functions on
+  register/field widths isn't a surprise.</li>
+<li><strong>Byte-enable/strobe width — the <code>ceil</code> edge case, not just <code>clog2</code>.</strong>
+  <code>src/generator/registerProcessor.ts:279-281</code> already derives WSTRB width
+  as <code>DATA_WIDTH/8</code> via plain division + truncation
+  (<code>src/test/fixtures/expr-ipcore.yml:21</code> exercises the identical pattern,
+  <code>AxiDataWidth_g/8</code>). This works silently <em>only</em> because example data
+  widths are byte-aligned (32, 64). The moment a non-byte-aligned
+  <code>DATA_WIDTH</code> is used (e.g. 33), today's truncating division undercounts by
+  one byte (<code>33/8 -&gt; 4</code>, should be <code>5</code>). Once <code>ceil</code> ships, document
+  <code>ceil(DATA_WIDTH/8)</code> as the forward-looking idiom for strobe widths
+  (Phase 4 docs/example work); the existing truncating behavior is a latent
+  rounding bug worth a separate follow-up issue.</li>
+<li><strong>AXI address width from register-map size (longer-term, out of scope for
+  Phase 1-4).</strong> <code>ipcraft-spec/examples/comprehensive_axi/comprehensive_axi.ip.yml</code>
+  and <code>ipcraft-spec/templates/axi_slave.ip.yml</code> hardcode <code>AWADDR</code>/<code>ARADDR</code>
+  widths via <code>portWidthOverrides</code> (literal integers like 12/16/40) rather
+  than deriving them from the addressable register-map span. A motivating
+  case for <code>clog2</code>, but it requires cross-referencing <code>memoryMaps</code> size into
+  the port resolver — noted here only as forward context.</li>
+</ul>
+<h2 id="the-core-design-challenge">The core design challenge<a class="headerlink" href="#the-core-design-challenge" title="Permanent link">&para;</a></h2>
+<p>The same width-expression string must be translatable into <strong>four distinct
+output dialects</strong>, each with different function-name conventions and
+availability:</p>
+<table>
+<thead>
+<tr>
+<th>Dialect</th>
+<th>Where</th>
+<th>Function support</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SystemVerilog</td>
+<td><code>port.sv_type</code></td>
+<td><code>$clog2(x)</code> built-in. No <code>ceil</code>/<code>floor</code>/<code>log2</code> built-in.</td>
+</tr>
+<tr>
+<td>VHDL</td>
+<td><code>port.type</code></td>
+<td><code>ieee.math_real.all</code> provides <code>log2</code>, <code>ceil</code>, <code>floor</code>, <code>real</code>. <code>clog2(N)</code> serializes to <code>integer(ceil(log2(real(N))))</code>. Standard library, no custom function needed.</td>
+</tr>
+<tr>
+<td>Tcl (<code>expr</code>)</td>
+<td><code>port.tcl_width</code></td>
+<td><code>ceil</code>/<code>floor</code>/<code>log</code>/<code>pow</code> via <code>tcl::mathfunc</code>; no <code>log2</code>/<code>clog2</code> (must expand).</td>
+</tr>
+<tr>
+<td>IP-XACT (<code>spirit:dependency</code>)</td>
+<td><code>amd_component_xml.j2</code></td>
+<td>XPATH functions (per Vivado UG1118): <code>ceiling</code>, <code>floor</code>, <code>log(base,num)</code>, <code>pow</code>, <code>abs</code>, <code>round</code>, <code>max</code>, <code>min</code>, <code>sum</code>. <code>clog2(N)</code> -&gt; <code>ceiling(log(2, N))</code> (the doc's canonical example). Param refs wrapped as <code>spirit:decode(id('PARAM_VALUE.NAME'))</code>.</td>
+</tr>
+</tbody>
+</table>
+<p>Because the current code uses <strong>string-level</strong> substitution for Tcl and
+<strong>string embedding</strong> for SV/VHDL/IP-XACT, adding functions cleanly requires
+moving to an <strong>AST</strong>: parse once into a tree, evaluate numerically for
+defaults, and serialize per dialect. This also fixes the brittle
+regex-based compound detection and the allow-regex gate.</p>
+<h2 id="open-decisions-need-maintainer-sign-off">Open decisions (need maintainer sign-off)<a class="headerlink" href="#open-decisions-need-maintainer-sign-off" title="Permanent link">&para;</a></h2>
+<p><strong>Decision 1 — function semantics of <code>log2</code>.</strong>
+In hardware the dominant need is "address width = ceil(log2(N))" (the SV
+<code>$clog2</code> idiom). A bare <code>log2</code> is ambiguous (floor vs ceil). Recommended:
+ship <strong>two</strong> distinct functions to remove ambiguity:</p>
+<ul>
+<li><code>clog2(x)</code> — ceiling of log2(x); maps to SV <code>$clog2</code>, the recommended
+  width function. <code>clog2(1)=0</code>, <code>clog2(2)=1</code>, <code>clog2(3)=2</code>, <code>clog2(4)=2</code>.</li>
+<li><code>log2(x)</code> — floor of log2(x) (exact when power of two).</li>
+</ul>
+<p>Also include: <code>ceil</code>, <code>floor</code>, <code>abs</code>, <code>min(a,b)</code>, <code>max(a,b)</code>, <code>exp2</code>.</p>
+<p><strong>Decision 2 — canonical casing.</strong> The issue writes "Log2, Ceil". VHDL is
+case-insensitive; SV is case-sensitive. Recommended: canonical
+<strong>lowercase</strong> (<code>clog2</code>, <code>ceil</code>, ...), with <strong>case-insensitive matching at
+parse time</strong> for ergonomics, then serialize to the dialect's required
+spelling (<code>$clog2</code> in SV, <code>clog2</code> in VHDL, etc.). This keeps YAML friendly
+without breaking SV.</p>
+<p><strong>Decision 3 — function set for Phase 1.</strong> Recommended minimal set:
+<code>clog2</code>, <code>ceil</code>, <code>floor</code>, <code>abs</code>, <code>max</code>, <code>min</code>. Defer <code>exp2</code>/<code>pow</code> together
+(<code>exp2(N) = pow(2,N)</code>; SV/VHDL have no synthesizable <code>pow</code> for bit-widths,
+so both are equally hard — defer as a pair unless requested).</p>
+<p><strong>Decision 4 — IP-XACT emission.</strong> RESOLVED. Vivado UG1118 documents that
+the IP packager supports XPATH functions in <code>spirit:dependency</code>
+(<code>ceiling</code>, <code>floor</code>, <code>log(base,num)</code>, <code>pow</code>, <code>abs</code>, <code>round</code>, <code>max</code>, <code>min</code>).
+<code>clog2(N)</code> maps to <code>ceiling(log(2, N))</code> — the doc's own example for a
+<code>ceil_log2(max_count)</code> port. So function-based widths stay fully
+parameterized in <code>component.xml</code>; no literal-fallback needed. Caveat:
+Vivado does not support custom HDL functions on ports, but our generator
+emits the XPATH form directly into <code>spirit:dependency</code>, which is exactly
+the recommended mechanism. <strong><code>max</code>/<code>min</code> omitted from IP-XACT dialect</strong>
+(UG1118 lists them as <code>max(node-set)</code>/<code>min(node-set)</code> — no two-scalar form);
+the serializer returns a sentinel and the resolver falls back to a literal
+default width or warns. <code>max</code>/<code>min</code> remain available in SV/VHDL/Tcl.</p>
+<p><strong>Decision 5 — <code>log2</code> (floor) and edge values.</strong>
+- <code>log2</code> (floor) has <strong>no SystemVerilog built-in</strong> (only <code>$clog2</code> exists).
+  Ship <code>log2</code> as numeric-eval-only; its SV/VHDL serialization is deferred
+  until a <code>localparam</code>/macro helper is added (or omit <code>log2</code> from the
+  Phase-1 set entirely). <code>clog2</code> is the recommended width function.
+- <code>clog2(0)</code>: mathematically undefined. Define as <code>undefined</code> (evaluator
+  returns <code>undefined</code> -&gt; caller falls back to default), NOT 0, to surface
+  the error rather than emit a 0-bit port silently.
+- <code>clog2(1) = 0</code> (matches SV <code>$clog2</code>). Document that a 1-deep structure
+  yields a 0-bit address; some tools handle this oddly — flagged in docs.</p>
+<h2 id="proposed-architecture">Proposed architecture<a class="headerlink" href="#proposed-architecture" title="Permanent link">&para;</a></h2>
+<h3 id="a-ast-based-expression-core-new">A. AST-based expression core (new)<a class="headerlink" href="#a-ast-based-expression-core-new" title="Permanent link">&para;</a></h3>
+<p>Introduce a small parser module that produces an AST, replacing the
+inline parser inside <code>evalWidthExpr.ts</code>. Nodes:</p>
+<div class="highlight"><pre><span></span><code>Number(value)
+ParamRef(name)
+Unary(op, operand)
+Binary(op, left, right)
+Call(fnName, args[])
+</code></pre></div>
+<p>Two operations on the AST:</p>
+<ul>
+<li><code>evaluate(ast, paramDefaults): number | undefined</code> — JS evaluation.
+  Function table: <code>clog2</code>, <code>log2</code>, <code>ceil</code>, <code>floor</code>, <code>abs</code>, <code>min</code>, <code>max</code>.
+  Define <code>clog2(n)</code> = <code>n &lt;= 1 ? 0 : Math.ceil(Math.log2(n))</code>
+  with the special case <code>clog2(0) -&gt; undefined</code> (per Decision 5);
+  <code>clog2(1)=0</code>.</li>
+<li><code>serialize(ast, dialect, ctx): { code: string; usedFunction: boolean }</code> —
+  dialect emitters. The returned <code>ctx.usedFunction</code> flags whether any
+  <code>Call</code> node was emitted, so the resolver can inject
+  <code>use ieee.math_real.all;</code> in one pass (no separate
+  <code>containsFunctionCall</code> walk).</li>
+<li><strong>Constant-folding:</strong> if <code>evaluate(ast, {})</code> returns a number (no
+    unresolved <code>ParamRef</code> anywhere in the tree), <code>serialize</code> emits that
+    literal directly in every dialect — <code>clog2(8)</code> becomes <code>3</code>, not
+    <code>$clog2(8)</code> / <code>ceiling(log(2,8))</code>. This makes <code>is_parameterized=false</code>
+    for constant functions and routes them through the existing static
+    <code>port.width - 1</code> template branch.</li>
+<li><code>systemverilog</code> — <code>clog2</code> -&gt; <code>$clog2</code> (IEEE 1800-2012; supported by
+    Vivado and Quartus synthesis — add a target-dependency note in the
+    serializer). <strong><code>log2</code> (floor) has no SV built-in</strong>: defer its SV
+    emission unless a <code>localparam</code>/macro helper is added; for Phase 1-2,
+    <code>log2</code> is numeric-eval-only and errors at SV serialization.</li>
+<li><code>vhdl</code> — <code>clog2(x)</code> -&gt; <code>integer(ceil(log2(real(x))))</code> via
+    <code>ieee.math_real.all</code>; <code>log2(x)</code> -&gt; <code>integer(floor(log2(real(x))))</code>;
+    <code>ceil(x)</code> -&gt; <code>integer(ceil(real(x)))</code>; <code>floor(x)</code> -&gt;
+    <code>integer(floor(real(x)))</code>. <strong>Note:</strong> <code>math_real</code> is a simulation
+    library but synthesizable for constant generics (the expected use
+    case here) in Vivado/Quartus — document this.</li>
+<li><code>tcl</code> — <code>clog2(x)</code> -&gt; <code>int(ceil(log(x)/log(2)))</code> (Tcl <code>log</code> is natural
+    log), params -&gt; <code>[get_parameter_value NAME]</code>, wrap in <code>[expr ...]</code> when
+    parameterized. Verify both Vivado and Quartus Tcl <code>expr</code> expose the
+    same math functions (Phase 3).</li>
+<li><code>ipxact</code> — XPATH (Vivado UG1118). <code>clog2(x)</code> -&gt; <code>ceiling(log(2, x))</code>;
+    <code>log2(x)</code> -&gt; <code>floor(log(2, x))</code>; <code>ceil</code>/<code>floor</code>/<code>abs</code>/<code>round</code> map
+    verbatim. <strong><code>max</code>/<code>min</code> are OMITTED from the IP-XACT dialect</strong> — UG1118
+    documents them as <code>max(node-set)</code> / <code>min(node-set)</code>, which do not
+    accept two scalar arguments; silently emitting <code>max(A,B)</code> would let
+    Vivado reject packaging. The serializer returns an error/sentinel for
+    <code>max</code>/<code>min</code> in IP-XACT so the resolver can fall back to a literal
+    width or warn. Each <code>ParamRef</code> serializes recursively as
+    <code>spirit:decode(id('PARAM_VALUE.NAME'))</code>.</li>
+<li><code>js</code> — for the webview preview path (reuses <code>evaluate</code>).</li>
+</ul>
+<p><strong>Public API:</strong> <code>src/shared/widthExprAst.ts</code> exports the node types,
+<code>parse()</code>, <code>evaluate()</code>, <code>serialize()</code>, and <code>containsParamRef(ast)</code> for
+direct consumption by tests and resolvers. <code>containsParamRef</code> returns true
+iff any <code>ParamRef</code> exists at any depth (including inside <code>Call</code> args) —
+this drives <code>is_parameterized</code>, so <code>clog2(8)</code> is not parameterized while
+<code>clog2(DEPTH)</code> and <code>max(8, DATA_W)</code> are.</p>
+<p><code>evalWidthExpr(expr, defaults)</code> becomes a thin wrapper: parse -&gt; evaluate.
+Backward compatible; existing tests stay green.</p>
+<p>The allow-regex gate at <code>evalWidthExpr.ts:27</code> is removed — the parser
+itself rejects unknown identifiers/functions, which is stricter and
+correct.</p>
+<h3 id="b-resolver-integration">B. Resolver integration<a class="headerlink" href="#b-resolver-integration" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>registerProcessor.ts</code> lines 267-300: replace regex compound detection
+  (<code>/^[+\-*/]/</code>) with an AST-based parenthesization rule: parenthesize any
+  top-level node that is <strong>not a leaf</strong> (<code>ast.type !== 'Number' &amp;&amp;
+  ast.type !== 'ParamRef'</code>), i.e. include <code>Binary</code>, <code>Unary</code>, and <code>Call</code>.
+  This is <strong>conservative</strong> — standard operator precedence already makes
+  <code>expr-1</code> bind correctly for both arithmetic and bare function calls
+  (function application binds tighter than <code>-</code>), so the parens are
+  defensive, not correctness-critical — but a uniform non-leaf rule avoids
+  edge cases across dialects. Keep emitting <code>width_expr</code> as the
+  <strong>original</strong> user string so YAML round-trips unchanged; build HDL
+  <code>type</code>/<code>sv_type</code> via <code>serialize(ast, 'vhdl'|'systemverilog')</code>.</li>
+<li><code>bus.ts</code> <code>toTclWidthExpression</code>/<code>toTclWidth</code>: replace regex
+  identifier-substitution with <code>serialize(ast, 'tcl')</code>. Keep the
+  <code>[get_parameter_value X]</code> and <code>[expr ...]</code> wrapping behavior.</li>
+<li><code>VivadoComponentXmlGenerator.ts</code> <code>resolveWidth</code>: unchanged (still calls
+  <code>evalWidthExpr</code> for the numeric default). Add a new precomputed
+  <code>port.width_expr_ipxact</code> field on the emitted <code>TemplatePort</code>: built by
+  <code>serialize(ast, 'ipxact')</code> when <code>is_parameterized</code> is true, else
+  <code>null</code>/omitted. <strong>Invariant:</strong> <code>width_expr_ipxact</code> is the WIDTH (not
+  <code>width-1</code>) — the <code>- 1</code> subtraction stays in the template
+  (<code>amd_component_xml.j2:263</code>), matching current bare-param behavior.
+  The existing <code>{% if port.is_parameterized %}</code> gate (line 261) already
+  guards access, so no Jinja null-rendering risk; define the contract as
+  "set iff <code>is_parameterized</code>". Mirror the field in
+  <code>src/generator/contract/templateContext.types.ts</code> (regenerate via
+  <code>npm run generate-types</code> if the contract schema is updated, or extend
+  the hand-written <code>UserPort</code>/<code>BusPort</code> interfaces).</li>
+<li><code>buildUserPorts</code> (<code>bus.ts</code>): same AST path; the hardcoded <code>?? 32</code>
+  fallback stays; also emit <code>width_expr_ipxact</code> for consistency.</li>
+</ul>
+<h3 id="c-templates">C. Templates<a class="headerlink" href="#c-templates" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>amd_component_xml.j2</code> lines 259-267 / 291-294: the current template
+  wraps the whole <code>port.width_expr</code> in
+  <code>spirit:decode(id('PARAM_VALUE.{{ port.width_expr }}'))</code>, which only
+  works for a bare param name. Replace with a precomputed
+  <code>port.width_expr_ipxact</code> field produced by <code>serialize(ast, 'ipxact')</code>
+  (full XPATH, e.g. <code>ceiling(log(2, spirit:decode(id('PARAM_VALUE.DEPTH'))))</code>),
+  and emit <code>spirit:dependency="({{ port.width_expr_ipxact }} - 1)"</code>. The
+  resolver computes this field; no Jinja-side parsing. For non-function
+  bare-param widths, <code>width_expr_ipxact</code> is just
+  <code>spirit:decode(id('PARAM_VALUE.NAME'))</code>, preserving current behavior.
+  <strong>Off-by-one invariant:</strong> <code>width_expr_ipxact</code> is the WIDTH; the
+  <code>- 1</code> stays in the template (verified against <code>amd_component_xml.j2:263</code>).</li>
+<li><code>altera_hw_tcl.j2</code> elaborate proc (lines 149-160): already uses
+  <code>ep.tcl_width</code>; the AST Tcl serializer output drops in unchanged.</li>
+<li>SV/VHDL templates: no change to port lines — they consume
+  <code>port.sv_type</code>/<code>port.type</code> which are now function-correct.</li>
+<li><strong>VHDL <code>math_real</code> context clause:</strong> add <code>use ieee.math_real.all;</code>
+  <strong>in the entity context clause</strong> (<code>core.vhdl.j2</code> lines 9-13, right after
+  <code>use ieee.numeric_std.all;</code>) — conditionally, only when any port width
+  uses a function. This is the correct visibility point because the
+  expanded <code>integer(ceil(log2(real(...))))</code> expression is emitted in the
+  <strong>entity port declaration</strong> (<code>core.vhdl.j2:43, 51</code>), so <code>math_real</code> must
+  be visible at the entity (not the architecture declarative region). A
+  <code>usedFunction</code> flag carried from <code>serialize()</code> drives the conditional
+  injection in one pass. No custom <code>clog2</code> function declaration is needed.
+  Apply the same conditional clause to <code>top.vhdl.j2</code>.</li>
+</ul>
+<h3 id="d-webview">D. Webview<a class="headerlink" href="#d-webview" title="Permanent link">&para;</a></h3>
+<p>Numeric preview needs no change — <code>WidthField.tsx:82</code> and
+<code>CanvasInspector.tsx</code> call <code>evalWidthExpr</code>, which picks up function support
+automatically; live preview of <code>clog2(DEPTH)</code> shows the resolved default.</p>
+<p><strong>UX caveat (verified):</strong> <code>WidthField.tsx:81,134</code> renders the <strong>raw user
+string</strong> in the input field (e.g. <code>CLOG2(DEPTH)</code> is shown verbatim), while
+<code>:220</code> shows the numeric <code>= N</code> preview. To avoid git-history noise and
+divergent spellings, normalize function-name tokens to the canonical
+lowercase form (<code>clog2</code>) on <strong>save</strong> — in the webview commit path
+(<code>onSaveWithValue</code> / postMessage) or the <code>src/yamledit/</code> write-back, before
+the YAML is persisted. Do not mutate the user's literal numbers or
+parameter names; lowercase only recognized function identifiers.</p>
+<h3 id="e-parsers-optional-phase-4">E. Parsers (optional, Phase 4)<a class="headerlink" href="#e-parsers-optional-phase-4" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>VerilogParser.ts</code> <code>extractWidth</code>: extend to recognize
+  <code>$clog2(PARAM)-1:0</code> and <code>$clog2(PARAM):0</code> -&gt; width_expr <code>clog2(PARAM)</code>.
+  Enables importing existing RTL that uses <code>$clog2</code>.</li>
+<li><code>VhdlParser.ts</code> <code>extractWidthFromType</code>: already handles compound
+  expressions; add function-call capture.</li>
+</ul>
+<h3 id="f-schema-docs">F. Schema / docs<a class="headerlink" href="#f-schema-docs" title="Permanent link">&para;</a></h3>
+<ul>
+<li>No <code>ip_core.schema.json</code> type change required (<code>width</code> is already
+  <code>integer | string</code>). <strong>Do</strong> update the <code>width</code> <code>description</code> text at all
+  four sites (<code>Port.width</code>, <code>ConduitPort.width</code>, <code>BusInterface</code> user-port
+  width, and the bus-port equivalent — currently "Port width in bits or
+  parameter name" with no mention of functions) to list the supported
+  functions (<code>clog2</code>, <code>ceil</code>, <code>floor</code>, <code>min</code>, <code>max</code>) and point at the "Use
+  cases in this project" section above. This is a text-only change (no type
+  change, so <code>npm run generate-types</code> is not required for it), low risk, and
+  is exactly what a new IP author needs surfaced at the point of typing
+  <code>width:</code> — do this unconditionally as part of Phase 4, not only "if schema
+  text changes" for other reasons.</li>
+<li>Add a <code>docs/how-to/</code> entry and a worked example <code>.ip.yml</code> using
+  <code>width: clog2(FIFO_DEPTH)</code>.</li>
+<li>Run <code>npm run generate-types</code> only if schema text changes — no type
+  regeneration needed for the string-valued <code>width</code>.</li>
+</ul>
+<h2 id="phased-rollout-de-risked">Phased rollout (de-risked)<a class="headerlink" href="#phased-rollout-de-risked" title="Permanent link">&para;</a></h2>
+<p><strong>Phase 1 — Numeric resolution (core value, low risk; NOT released standalone).</strong>
+AST refactor of <code>evalWidthExpr</code>; implement <code>evaluate()</code> for <code>clog2</code>, <code>ceil</code>,
+<code>floor</code>, <code>abs</code>, <code>min</code>, <code>max</code>. All four consumers now compute correct
+<strong>numeric default widths</strong> for function expressions. Deliverable: live
+preview and default widths correct; existing tests green; new unit tests
+for functions. <strong>Generation guard (verified necessary):</strong> the current
+<code>registerProcessor.ts:293-296</code> emits the raw <code>width_expr</code> into
+<code>sv_type</code>/<code>type</code>, so <code>clog2(DEPTH)</code> would produce invalid SV
+(<code>logic [clog2(DEPTH)-1:0]</code> — <code>clog2</code> is not a built-in, only <code>$clog2</code>).
+Until Phase 2 serializers land, the scaffolder must <strong>block or hard-error</strong>
+on any function-based width (detect via <code>containsCall(ast)</code>) with a message
+pointing to the Phase 2 work. Do not release Phase 1 to users without
+Phase 2, OR ship them together as one unit.</p>
+<p><strong>Phase 2 — HDL + Tcl + IP-XACT serialization.</strong>
+Implement <code>serialize()</code> for all four dialects: <code>systemverilog</code> (<code>$clog2</code>),
+<code>vhdl</code> (<code>integer(ceil(log2(real(x))))</code> via <code>math_real</code>), <code>tcl</code> (expansion),
+<code>ipxact</code> (XPATH <code>ceiling(log(2, x))</code> with <code>spirit:decode(id('PARAM_VALUE.X'))</code>
+param refs; <code>max</code>/<code>min</code> omitted with literal/warn fallback). Update
+<code>registerProcessor.ts</code> and <code>bus.ts</code> to build
+<code>type</code>/<code>sv_type</code>/<code>tcl_width</code>/<code>width_expr_ipxact</code> from the AST. Add the
+conditional <code>use ieee.math_real.all;</code> clause to VHDL entity context.
+Update <code>amd_component_xml.j2</code> to consume <code>port.width_expr_ipxact</code>. Remove
+the Phase 1 generation guard. Deliverable: generated <code>core.sv</code>/<code>top.sv</code>
+use <code>$clog2</code>; <code>core.vhdl</code>/<code>top.vhdl</code> use <code>math_real</code>; Altera Tcl
+<code>elaborate</code> and Vivado <code>component.xml</code> <code>spirit:dependency</code> compute
+correctly.</p>
+<p><strong>Phase 3 — Validation.</strong>
+Verify Tcl <code>expr</code> math functions match across Vivado and Quartus. Run
+end-to-end packaging in Vivado/Quartus on a <code>clog2(DEPTH)</code> port, including
+an <strong>IP-XACT round-trip</strong>: generate <code>component.xml</code>, re-import into Vivado
+IP Catalog, confirm the parameter-to-port-width dependency resolves at
+elaboration. No new features.</p>
+<p><strong>Phase 4 — Polish.</strong>
+Verilog/VHDL parser recognition of <code>$clog2</code>; docs + example; optional
+<code>exp2</code>/<code>pow</code>.</p>
+<h2 id="test-plan">Test plan<a class="headerlink" href="#test-plan" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Extend <code>src/test/suite/shared/evalWidthExpr.test.ts</code>: add cases for
+  <code>clog2(8)==3</code>, <code>clog2(1)==0</code>, <code>clog2(0)==undefined</code>, <code>ceil(DATA_W/8)</code>,
+  <code>floor(...)</code>, <code>max(A,B)</code>, <code>min(A,B)</code>, nested <code>clog2(max(A,B))</code>, unknown
+  function -&gt; <code>undefined</code>, case-insensitivity (<code>CLOG2(8)</code>).</li>
+<li><strong><code>containsParamRef</code> cases:</strong> <code>clog2(8)</code> -&gt; false (constant, folds to
+  literal); <code>clog2(DEPTH)</code> -&gt; true; <strong>mixed args</strong> <code>max(8, DATA_W)</code> -&gt;
+  true (one literal + one param). Assert <code>is_parameterized</code> follows.</li>
+<li>New <code>src/test/suite/shared/widthExprSerialize.test.ts</code> (or alongside):
+  assert per-dialect serialization for each function, including
+  <code>serialize(ast,'ipxact')</code> == <code>ceiling(log(2, spirit:decode(id('PARAM_VALUE.DEPTH'))))</code>
+  for <code>clog2(DEPTH)</code>; assert <code>max</code>/<code>min</code> in <code>ipxact</code> returns the
+  sentinel/fallback; assert constant-folding (<code>clog2(8)</code> serializes to
+  <code>3</code>, not <code>$clog2(8)</code>).</li>
+<li>Extend <code>src/test/suite/generator/registerProcessor.test.ts</code>: add a port
+  with <code>width: clog2(DEPTH)</code> and assert <code>sv_type</code>/<code>type</code>/<code>tcl_width</code>/
+  <code>width_expr_ipxact</code> and <code>is_parameterized=true</code>; add a constant
+  <code>width: clog2(8)</code> case asserting <code>is_parameterized=false</code> and static
+  width <code>3</code>.</li>
+<li>Add a generator fixture test (<code>src/test/suite/generator/</code>) that runs the
+  scaffolder on an <code>.ip.yml</code> using <code>clog2</code> and snapshots <code>core.sv</code> /
+  <code>amd_component_xml</code> / <code>altera_hw_tcl</code> outputs; assert the VHDL output
+  contains <code>use ieee.math_real.all;</code> only when a function width is used.
+  Base this fixture on one of the grounded "Use cases in this project"
+  examples above (e.g. a <code>FIFO_DEPTH</code> parameter with a pointer port set to
+  <code>width: clog2(FIFO_DEPTH)</code>) rather than an arbitrary expression, so the
+  fixture doubles as a regression guard for the motivating use case.</li>
+<li><strong>Phase 3 integration:</strong> IP-XACT round-trip — generate <code>component.xml</code>,
+  re-import into Vivado IP Catalog, confirm the param-to-port-width
+  <code>spirit:dependency</code> resolves (manual/CI gate).</li>
+<li>Regression: all existing <code>evalWidthExpr</code> and <code>registerProcessor</code> tests
+  must stay green (backward compatible).</li>
+</ul>
+<h2 id="files-to-touch-summary">Files to touch (summary)<a class="headerlink" href="#files-to-touch-summary" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Phase</th>
+<th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>src/shared/evalWidthExpr.ts</code></td>
+<td>1</td>
+<td>AST parser + <code>evaluate()</code> + function table; keep public signature.</td>
+</tr>
+<tr>
+<td><code>src/shared/widthExprAst.ts</code> (new)</td>
+<td>1</td>
+<td>AST node types + <code>parse()</code>, <code>evaluate()</code>, <code>serialize()</code>.</td>
+</tr>
+<tr>
+<td><code>src/test/suite/shared/evalWidthExpr.test.ts</code></td>
+<td>1</td>
+<td>Function cases.</td>
+</tr>
+<tr>
+<td><code>src/test/suite/shared/widthExprSerialize.test.ts</code> (new)</td>
+<td>2</td>
+<td>Dialect serialization cases.</td>
+</tr>
+<tr>
+<td><code>src/generator/registerProcessor.ts</code></td>
+<td>1+2</td>
+<td>AST compound detection; <code>serialize</code> for <code>type</code>/<code>sv_type</code>.</td>
+</tr>
+<tr>
+<td><code>src/generator/resolvers/bus.ts</code></td>
+<td>2</td>
+<td><code>toTclWidth*</code> -&gt; AST <code>serialize(ast,'tcl')</code>.</td>
+</tr>
+<tr>
+<td><code>src/generator/templates/amd_component_xml.j2</code></td>
+<td>2</td>
+<td>Consume <code>port.width_expr_ipxact</code> for <code>spirit:dependency</code>.</td>
+</tr>
+<tr>
+<td><code>src/generator/templates/altera_hw_tcl.j2</code></td>
+<td>2</td>
+<td>No change expected (consumes <code>tcl_width</code>).</td>
+</tr>
+<tr>
+<td><code>src/generator/templates/core.vhdl.j2</code> / <code>top.vhdl.j2</code></td>
+<td>2</td>
+<td>Add <code>use ieee.math_real.all;</code> when a function width is used.</td>
+</tr>
+<tr>
+<td><code>src/parser/VerilogParser.ts</code></td>
+<td>4</td>
+<td>Recognize <code>$clog2(PARAM)-1:0</code>.</td>
+</tr>
+<tr>
+<td><code>src/parser/VhdlParser.ts</code></td>
+<td>4</td>
+<td>Function-call capture.</td>
+</tr>
+<tr>
+<td><code>docs/how-to/</code> + example <code>.ip.yml</code></td>
+<td>4</td>
+<td>Documentation.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="risks">Risks<a class="headerlink" href="#risks" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Vivado IP-XACT function support:</strong> RESOLVED — UG1118 documents XPATH
+  support (<code>ceiling</code>, <code>floor</code>, <code>log(base,num)</code>, etc.). <code>max</code>/<code>min</code> are
+  listed as node-set functions with no two-scalar form, so they are
+  <strong>omitted from the IP-XACT dialect</strong> (sentinel + literal/warn fallback);
+  still available in SV/VHDL/Tcl.</li>
+<li><strong>Partial-generation hazard (verified):</strong> shipping Phase 1 without Phase 2
+  would emit raw <code>clog2(DEPTH)</code> into SV/VHDL port declarations (compile
+  errors — <code>clog2</code> is not a built-in). Mitigated by the Phase 1 generation
+  guard (<code>containsCall</code> check that hard-errors) and by not releasing
+  Phase 1 standalone.</li>
+<li><strong>AST refactor of a working evaluator</strong> could regress existing width
+  expressions. Mitigated by keeping the public <code>evalWidthExpr</code> signature
+  and the full existing test suite as a contract.</li>
+<li><strong>VHDL <code>math_real</code> visibility:</strong> resolved by using the standard
+  <code>ieee.math_real.all</code> (no custom function, no clash). Must be injected in
+  the <strong>entity context clause</strong> (<code>core.vhdl.j2:9-13</code>) since the expanded
+  expression appears in the entity port declaration; driven by the
+  <code>usedFunction</code> flag from <code>serialize()</code>.</li>
+<li><strong>Tcl <code>log</code> is natural-log</strong> — <code>clog2</code> expansion <code>ceil(log(x)/log(2))</code>
+  must use <code>log(2)</code> constant correctly; verify Vivado and Quartus Tcl
+  <code>expr</code> expose the same math functions (Phase 3).</li>
+<li><strong><code>is_parameterized</code> semantics:</strong> a function of a bare number
+  (<code>clog2(8)</code>) is not parameterized; a function of a param
+  (<code>clog2(DEPTH)</code>) is. The AST makes this a simple
+  <code>containsParamRef(ast)</code> check.</li>
+<li><strong>Contract/types regeneration:</strong> adding <code>width_expr_ipxact</code> to the port
+  shape touches <code>src/generator/contract/templateContext.types.ts</code>; follow
+  the <code>npm run generate-types</code> flow or extend the hand-written interfaces
+  consistently (do not hand-edit generated regions).</li>
+</ul>
+<h2 id="out-of-scope">Out of scope<a class="headerlink" href="#out-of-scope" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Bitwise operators (<code>&lt;&lt;</code>, <code>&gt;&gt;</code>, <code>&amp;</code>, <code>|</code>), modulo <code>%</code>, ternary <code>?:</code>.</li>
+<li>VHDL attribute syntax (<code>X'length</code>).</li>
+<li>User-defined functions (only the predefined table).</li>
+<li><code>exp2</code>/<code>pow</code> (deferred as a pair — SV/VHDL have no synthesizable <code>pow</code>
+  for bit-widths; revisit together if requested).</li>
+<li><code>log2</code> (floor) SystemVerilog/VHDL serialization — numeric-eval-only
+  until a <code>localparam</code>/macro helper is added (<code>$clog2</code> is the only SV
+  built-in).</li>
+<li>Memory-map register width functions (issue is specifically about ports).</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2026 Le Viet Bach
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.expand", "navigation.tabs", "navigation.top", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

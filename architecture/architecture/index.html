@@ -1,0 +1,2827 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Visual editor for FPGA IP Core and Memory Map specifications">
+      
+      
+        <meta name="author" content="Le Viet Bach">
+      
+      
+        <link rel="canonical" href="https://bleviet.github.io/ipcraft-vscode/architecture/architecture/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>IPCraft for VS Code — Software Architecture Document - IPCraft for VS Code</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#ipcraft-for-vs-code-software-architecture-document" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="IPCraft for VS Code" class="md-header__button md-logo" aria-label="IPCraft for VS Code" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            IPCraft for VS Code
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              IPCraft for VS Code — Software Architecture Document
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/bleviet/ipcraft-vscode" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../getting-started/quickstart/" class="md-tabs__link">
+          
+  
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../tutorials/build-and-verify-a-scaffold-pack/" class="md-tabs__link">
+          
+  
+  
+  Tutorials
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../how-to/vhdl-import/" class="md-tabs__link">
+          
+  
+  
+  How-to Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../concepts/extension-model/" class="md-tabs__link">
+          
+  
+  
+  Concepts
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../overview/" class="md-tabs__link">
+          
+  
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../reference/commands/" class="md-tabs__link">
+          
+  
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../contributing/guidelines/" class="md-tabs__link">
+          
+  
+  
+  Contributing
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../blog/building-ipcraft/" class="md-tabs__link">
+          
+  
+  
+  Blog
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="IPCraft for VS Code" class="md-nav__button md-logo" aria-label="IPCraft for VS Code" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    IPCraft for VS Code
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/bleviet/ipcraft-vscode" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorials
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Tutorials
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/build-and-verify-a-scaffold-pack/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Build and Verify a Scaffold Pack
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/memory-mapped-registers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Memory-Mapped Registers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How-to Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    How-to Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/vhdl-import/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Importing from Existing Files
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/generating-a-project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generating a Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/scaffold-packs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Customising Code Generation (Scaffold Packs)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/building-a-project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building a Project (Headless)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/build-vsix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building a VSIX Package
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/ai-design-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI Design Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Concepts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/extension-model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VS Code Extension Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/yaml-data-flow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YAML Data Flow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/spatial-editing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spatial Editing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/responsive-design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Responsive Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../extension-host/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Extension Host
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../webview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Webview (React)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Commands & Settings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/keyboard-shortcuts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Keyboard Shortcuts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/generator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/ip-core-editor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IP Core Editor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/specification-schemas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Specification Schemas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/bitfield-interaction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bit Field Interaction
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/yaml-libraries/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YAML Libraries
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contributing
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/guidelines/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guidelines
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Blog
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Blog
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../blog/building-ipcraft/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building IPCraft
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-executive-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Executive Summary
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-domain-data-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Domain Data Model
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Domain Data Model">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-ipyml-ip-core-definition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 .ip.yml — IP core definition
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-mmyml-memory-map" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 .mm.yml — memory map
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23-er-diagram-mmyml-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 ER diagram (mm.yml structure)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#24-the-dual-spelling-problem-schema-vs-webview-internals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.4 The dual-spelling problem (schema vs. webview internals)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-system-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. System Architecture
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. System Architecture">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-c4-system-context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 C4 system context
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-boundaries-and-ownership" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 Boundaries and ownership
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-component-diagram" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 Component diagram
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-data-flow-state-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Data Flow &amp; State Management
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Data Flow &amp; State Management">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-the-authoritative-loop" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 The authoritative loop
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-the-two-editors-implement-this-loop-differently" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 The two editors implement this loop differently
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-race-condition-mitigations-that-exist-and-what-they-tell-us" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 Race-condition mitigations that exist (and what they tell us)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#44-auxiliary-data-flows" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4 Auxiliary data flows
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-code-generation-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Code Generation Pipeline
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Code Generation Pipeline">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-trigger-surface" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 Trigger surface
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-four-phase-execution-rungenerator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2 Four-phase execution (runGenerator)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#53-inside-ipcorescaffoldergenerateall" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.3 Inside IpCoreScaffolder.generateAll
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#54-build-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.4 Build integration
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-module-inventory-where-to-look" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Module Inventory (where to look)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-technical-debt-vibe-code-assessment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Technical Debt &amp; "Vibe Code" Assessment
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. Technical Debt &amp; &#34;Vibe Code&#34; Assessment">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#v-1-three-key-vocabularies-for-the-same-domain-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        V-1 — Three key vocabularies for the same domain model
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#v-2-two-divergent-yaml-write-paths" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        V-2 — Two divergent YAML write paths
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#v-3-echo-loop-is-convention-not-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        V-3 — Echo loop is convention, not contract
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#v-4-ip-core-debounced-full-text-push-can-drop-concurrent-external-edits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        V-4 — IP core debounced full-text push can drop concurrent external edits
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#v-5-dual-message-dispatch-mechanisms-on-the-host" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        V-5 — Dual message-dispatch mechanisms on the host
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#v-6-handshake-belt-and-suspenders" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        V-6 — Handshake belt-and-suspenders
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#v-7-import-resolution-duplicated-host-side" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        V-7 — Import resolution duplicated host-side
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#v-8-index-and-name-keyed-draft-state-in-the-field-editor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        V-8 — Index- and name-keyed draft state in the field editor
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#v-9-path-resolution-heuristics-for-packaged-vs-dev-vs-test-runtime" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        V-9 — Path-resolution heuristics for packaged vs dev vs test runtime
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#v-10-ipcraft-spec-is-an-untracked-nested-repo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        V-10 — ipcraft-spec is an untracked nested repo
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-is-genuinely-solid" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What is genuinely solid
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/bleviet/ipcraft-vscode/edit/main/docs/architecture/architecture.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="ipcraft-for-vs-code-software-architecture-document">IPCraft for VS Code — Software Architecture Document<a class="headerlink" href="#ipcraft-for-vs-code-software-architecture-document" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p>Reverse-engineered from the codebase at version 0.2.0 (June 2026). Every statement in this
+document is derived from reading the actual source; where the implementation diverges from
+the ideal architecture, the divergence is documented as-is and flagged in
+<a href="#7-technical-debt--vibe-code-assessment">§7 Technical Debt</a>.</p>
+<p>Companion documents: <a href="../overview/">overview.md</a>, <a href="../extension-host/">extension-host.md</a>,
+<a href="../webview/">webview.md</a>, <a href="../technical-debt/">technical-debt.md</a> (actionable TD items TD-1…TD-5).</p>
+</blockquote>
+<hr />
+<h2 id="1-executive-summary">1. Executive Summary<a class="headerlink" href="#1-executive-summary" title="Permanent link">&para;</a></h2>
+<p><code>ipcraft-vscode</code> is a VS Code extension for designing FPGA IP cores. It treats two YAML file
+types as the <strong>Single Source of Truth (SSOT)</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Content</th>
+<th>Custom editor</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>*.ip.yml</code></td>
+<td>IP core definition: VLNV identity, clocks, resets, ports, bus interfaces, parameters, file sets, simulation config</td>
+<td><code>fpgaIpCore.editor</code> (canvas-based React app, <code>ipcore.js</code> bundle)</td>
+</tr>
+<tr>
+<td><code>*.mm.yml</code></td>
+<td>Memory map: memory maps → address blocks → registers / register arrays → bit fields</td>
+<td><code>fpgaMemoryMap.editor</code> (outline + details React app, <code>webview.js</code> bundle)</td>
+</tr>
+</tbody>
+</table>
+<p>Around these files the extension provides:</p>
+<ol>
+<li><strong>Two-way-synced visual editing.</strong> Each custom editor is a React webview that renders the
+   parsed YAML and writes edits back to the <code>TextDocument</code> through <code>postMessage</code>. The text
+   document remains authoritative; the user can switch to the raw text editor at any time
+   (<code>fpga-ip-core.openAsText</code>) and both views stay consistent.</li>
+<li><strong>Code generation.</strong> A scaffold-pack-driven Nunjucks pipeline turns <code>.ip.yml</code> (+ referenced
+   <code>.mm.yml</code>) into RTL (VHDL/SystemVerilog), register files, testbenches (CocoTB/VUnit),
+   vendor packaging (<code>component.xml</code> for Vivado, <code>*_hw.tcl</code> for Quartus Platform Designer),
+   and project/build scripts.</li>
+<li><strong>Toolchain integration.</strong> Detection and launching of Vivado/Quartus (native or Docker),
+   OOC synthesis builds, report parsing into a tree view, and experimental importers
+   (VHDL, <code>_hw.tcl</code>, <code>component.xml</code> → <code>.ip.yml</code>).</li>
+</ol>
+<p>The architecture has three hard process boundaries: the <strong>extension host</strong> (Node.js),
+the <strong>webviews</strong> (browser sandbox, one per open editor), and <strong>external EDA tools</strong>
+(child processes). All cross-boundary communication is asynchronous message passing or
+file I/O — there is no shared memory.</p>
+<hr />
+<h2 id="2-domain-data-model">2. Domain Data Model<a class="headerlink" href="#2-domain-data-model" title="Permanent link">&para;</a></h2>
+<h3 id="21-ipyml-ip-core-definition">2.1 <code>.ip.yml</code> — IP core definition<a class="headerlink" href="#21-ipyml-ip-core-definition" title="Permanent link">&para;</a></h3>
+<p>JSON Schema: <code>ipcraft-spec/schemas/ip_core.schema.json</code> (copied into <code>dist/resources/schemas/</code>
+at build time; AJV-validated in <code>IpCoreScaffolder.loadIpCore</code>). Root keys:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">vlnv</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="w"> </span><span class="nv">vendor</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">library</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">name</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">version</span><span class="w"> </span><span class="p p-Indicator">}</span><span class="w">   </span><span class="c1"># identity — REQUIRED; presence of `vlnv` is how</span>
+<span class="w">                                           </span><span class="c1"># IpCoreEditorProvider detects an IP core file</span>
+<span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">...</span>
+<span class="nt">scaffold_pack</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">builtin-ipcraft</span><span class="w">            </span><span class="c1"># per-file generator pack selection (round-trips)</span>
+<span class="nt">clocks</span><span class="p">:</span><span class="w">      </span><span class="p p-Indicator">[{</span><span class="w"> </span><span class="nv">name</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">logicalName</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">direction</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">frequency</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">associatedReset</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">...</span><span class="w"> </span><span class="p p-Indicator">}]</span>
+<span class="nt">resets</span><span class="p">:</span><span class="w">      </span><span class="p p-Indicator">[{</span><span class="w"> </span><span class="nv">name</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">polarity</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">associatedClock</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">...</span><span class="w"> </span><span class="p p-Indicator">}]</span>
+<span class="nt">interrupts</span><span class="p">:</span><span class="w">  </span><span class="p p-Indicator">[{</span><span class="w"> </span><span class="nv">name</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">logicalName</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">...</span><span class="w"> </span><span class="p p-Indicator">}]</span>
+<span class="nt">ports</span><span class="p">:</span><span class="w">       </span><span class="p p-Indicator">[{</span><span class="w"> </span><span class="nv">name</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">direction</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">width</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">type</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">...</span><span class="w"> </span><span class="p p-Indicator">}]</span><span class="w">          </span><span class="c1"># raw conduit ports</span>
+<span class="nt">busInterfaces</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">s_axi</span>
+<span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">axi4lite</span><span class="w">                         </span><span class="c1"># resolved against the bus definition library</span>
+<span class="w">    </span><span class="nt">mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">slave</span>
+<span class="w">    </span><span class="nt">physicalPrefix</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">s_axi_</span>
+<span class="w">    </span><span class="nt">associatedClock</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">clk</span>
+<span class="w">    </span><span class="nt">associatedReset</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">rst_n</span>
+<span class="w">    </span><span class="nt">memoryMapRef</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CSR_MAP</span><span class="w">                  </span><span class="c1"># cross-file link into a memory map by NAME</span>
+<span class="w">    </span><span class="nt">array</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="w"> </span><span class="nv">count</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">indexStart</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">namingPattern</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">physicalPrefixPattern</span><span class="w"> </span><span class="p p-Indicator">}</span><span class="w">   </span><span class="c1"># replicated interfaces</span>
+<span class="nt">memoryMaps</span><span class="p">:</span><span class="w">                                </span><span class="c1"># inline maps OR per-entry { import: file.mm.yml }</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">import</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./regs.mm.yml</span>
+<span class="nt">parameters</span><span class="p">:</span><span class="w">  </span><span class="p p-Indicator">[{</span><span class="w"> </span><span class="nv">name</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">value</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">dataType</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">...</span><span class="w"> </span><span class="p p-Indicator">}]</span>
+<span class="nt">fileSets</span><span class="p">:</span><span class="w">    </span><span class="p p-Indicator">[{</span><span class="w"> </span><span class="nv">name</span><span class="p p-Indicator">,</span><span class="nt"> files</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[{</span><span class="w"> </span><span class="nv">path</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">type</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">managed</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">...</span><span class="w"> </span><span class="p p-Indicator">}]</span><span class="w"> </span><span class="p p-Indicator">}]</span><span class="w">   </span><span class="c1"># generator writes back here</span>
+<span class="nt">subcores</span><span class="p">:</span><span class="w">    </span><span class="p p-Indicator">[</span><span class="nv">...</span><span class="p p-Indicator">]</span><span class="w">                         </span><span class="c1"># hierarchical composition</span>
+<span class="nt">simulation</span><span class="p">:</span><span class="w">  </span><span class="p p-Indicator">{</span><span class="w"> </span><span class="nv">framework</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">engine</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">compileArgs</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">simArgs</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">env</span><span class="w"> </span><span class="p p-Indicator">}</span>
+<span class="nt">targets</span><span class="p">:</span><span class="w">     </span><span class="p p-Indicator">[</span><span class="nv">...</span><span class="p p-Indicator">]</span><span class="w">                         </span><span class="c1"># replaces legacy `vendor:` (migration command exists)</span>
+<span class="nt">useBusLibrary</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./bus_defs</span><span class="w">                  </span><span class="c1"># per-IP custom bus definition directory</span>
+</code></pre></div>
+<p>Key relationship: <code>busInterfaces[].memoryMapRef</code> refers to <code>memoryMaps[].name</code>. The referenced
+entry may itself be an <code>import:</code> pointing at a <code>.mm.yml</code> file — <code>ImportResolver</code> (editor display)
+and <code>registerProcessor.resolveMemoryMaps</code> (generation) both follow the import and merge
+entry-level overrides (e.g. <code>name</code>) over the imported file's content.</p>
+<h3 id="22-mmyml-memory-map">2.2 <code>.mm.yml</code> — memory map<a class="headerlink" href="#22-mmyml-memory-map" title="Permanent link">&para;</a></h3>
+<p>JSON Schema: <code>ipcraft-spec/schemas/memory_map.schema.json</code>. The document root is a <strong>list</strong> of
+memory maps (the webview also tolerates a single object or a <code>memory_maps:</code> wrapper —
+see <code>useMemoryMapState.parseAndNormalize</code> and <code>YamlPathResolver.getMapRootInfo</code>).</p>
+<p>Hierarchy:</p>
+<div class="highlight"><pre><span></span><code><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CSR_MAP</span><span class="w">                  </span><span class="c1"># MemoryMap</span>
+<span class="w">  </span><span class="nt">addressBlocks</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CONTROL_REGS</span><span class="w">         </span><span class="c1"># AddressBlock</span>
+<span class="w">      </span><span class="nt">baseAddress</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
+<span class="w">      </span><span class="nt">range</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4K</span><span class="w">                  </span><span class="c1"># int or &quot;4K&quot;/&quot;1M&quot; strings</span>
+<span class="w">      </span><span class="nt">usage</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">register</span><span class="w">            </span><span class="c1"># register | memory | reserved</span>
+<span class="w">      </span><span class="nt">defaultRegWidth</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">32</span>
+<span class="w">      </span><span class="nt">registers</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CTRL</span><span class="w">             </span><span class="c1"># RegisterDef (single register)</span>
+<span class="w">          </span><span class="nt">offset</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
+<span class="w">          </span><span class="nt">access</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">read-write</span>
+<span class="w">          </span><span class="nt">fields</span><span class="p">:</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ENABLE</span><span class="w">       </span><span class="c1"># BitFieldDef</span>
+<span class="w">              </span><span class="nt">bits</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;[0:0]&#39;</span><span class="w">      </span><span class="c1"># OR offset+width — both spellings in the schema</span>
+<span class="w">              </span><span class="nt">access</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">read-write</span>
+<span class="w">              </span><span class="nt">resetValue</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CHANNEL</span><span class="w">          </span><span class="c1"># RegisterDef used as a REGISTER ARRAY:</span>
+<span class="w">          </span><span class="nt">count</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4</span><span class="w">               </span><span class="c1"># count + stride + nested `registers:` =</span>
+<span class="w">          </span><span class="nt">stride</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">64</span><span class="w">             </span><span class="c1"># array of register groups</span>
+<span class="w">          </span><span class="nt">registers</span><span class="p">:</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> name</span><span class="p">:</span><span class="w"> </span><span class="nv">CTRL</span><span class="p p-Indicator">,</span><span class="nt"> offset</span><span class="p">:</span><span class="w"> </span><span class="nv">0</span><span class="p p-Indicator">,</span><span class="nt"> fields</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">...</span><span class="p p-Indicator">]</span><span class="w"> </span><span class="p p-Indicator">}</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> name</span><span class="p">:</span><span class="w"> </span><span class="nv">STATUS</span><span class="p p-Indicator">,</span><span class="nt"> offset</span><span class="p">:</span><span class="w"> </span><span class="nv">4</span><span class="p p-Indicator">,</span><span class="nt"> fields</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">...</span><span class="p p-Indicator">]</span><span class="w"> </span><span class="p p-Indicator">}</span>
+</code></pre></div>
+<p>A <code>RegisterDef</code> is polymorphic: with <code>count</code>/<code>stride</code>/nested <code>registers</code> it represents an
+array of register groups; without them it is a single register with <code>fields</code>.</p>
+<p>Access types: <code>read-only</code>, <code>write-only</code>, <code>read-write</code>, <code>write-1-to-clear</code>,
+<code>read-write-1-to-clear</code>. W1C fields may carry <code>monitorChangeOf</code> (change-of-state monitoring,
+extension-specific).</p>
+<h3 id="23-er-diagram-mmyml-structure">2.3 ER diagram (mm.yml structure)<a class="headerlink" href="#23-er-diagram-mmyml-structure" title="Permanent link">&para;</a></h3>
+<pre class="mermaid"><code>erDiagram
+    MM_YML_FILE ||--|{ MEMORY_MAP : "root list"
+    MEMORY_MAP ||--o{ ADDRESS_BLOCK : addressBlocks
+    ADDRESS_BLOCK ||--o{ REGISTER_DEF : registers
+    REGISTER_DEF ||--o{ BIT_FIELD : "fields (single register)"
+    REGISTER_DEF ||--o{ REGISTER_DEF : "registers (array: count+stride)"
+    IP_YML_FILE ||--o{ BUS_INTERFACE : busInterfaces
+    IP_YML_FILE ||--o{ MEMORY_MAP : "memoryMaps (inline or import)"
+    BUS_INTERFACE }o--o| MEMORY_MAP : "memoryMapRef (by name)"
+
+    MEMORY_MAP {
+        string name PK
+        string description
+        string import "optional file reference"
+    }
+    ADDRESS_BLOCK {
+        string name
+        int baseAddress
+        string range "int or 4K/1M"
+        enum usage "register|memory|reserved"
+        int defaultRegWidth
+    }
+    REGISTER_DEF {
+        string name
+        int offset
+        int size
+        enum access
+        int resetValue
+        int count "array only"
+        int stride "array only"
+    }
+    BIT_FIELD {
+        string name
+        string bits "[msb:lsb]"
+        enum access
+        int resetValue
+        object enumeratedValues
+    }
+    BUS_INTERFACE {
+        string name
+        string type
+        enum mode
+        string physicalPrefix
+        string memoryMapRef FK
+    }</code></pre>
+<h3 id="24-the-dual-spelling-problem-schema-vs-webview-internals">2.4 The dual-spelling problem (schema vs. webview internals)<a class="headerlink" href="#24-the-dual-spelling-problem-schema-vs-webview-internals" title="Permanent link">&para;</a></h3>
+<p>The schemas use <strong>camelCase</strong> (<code>addressBlocks</code>, <code>resetValue</code>, <code>defaultRegWidth</code>) but the memory
+map webview internally normalizes to <strong>snake_case</strong> (<code>address_blocks</code>, <code>reset_value</code>,
+<code>bit_offset</code>/<code>bit_width</code> instead of <code>bits</code>). Conversion happens in three places:</p>
+<ul>
+<li><code>DataNormalizer</code> (webview): YAML → normalized internal model on every update.</li>
+<li><code>YamlSanitizer</code> + <code>YamlService.cleanForYaml</code> (webview): internal model → schema keys before
+  writing back (<code>bit_offset</code>+<code>bit_width</code> recombined into a <code>bits: '[msb:lsb]'</code> string).</li>
+<li><code>YamlPathResolver.KEY_ALIASES</code>: path navigation falls back from <code>addressBlocks</code> to
+  <code>address_blocks</code> so both spellings in user files keep working.</li>
+</ul>
+<p>This is a deliberate tolerance for hand-written files, but it means <strong>three different key
+vocabularies coexist</strong> (schema camelCase, legacy snake_case in user files, internal normalized
+form) — see TD note V-1.</p>
+<hr />
+<h2 id="3-system-architecture">3. System Architecture<a class="headerlink" href="#3-system-architecture" title="Permanent link">&para;</a></h2>
+<h3 id="31-c4-system-context">3.1 C4 system context<a class="headerlink" href="#31-c4-system-context" title="Permanent link">&para;</a></h3>
+<pre class="mermaid"><code>C4Context
+    title IPCraft VS Code Extension — System Context
+    Person(user, "FPGA Engineer", "Designs IP cores and register maps")
+    System_Boundary(vscode, "VS Code") {
+        System(ext, "IPCraft Extension Host", "Node.js: providers, commands, generator, toolchain services")
+        System(wv_mm, "Memory Map Webview", "React app (webview.js), sandboxed")
+        System(wv_ip, "IP Core Webview", "React canvas app (ipcore.js), sandboxed")
+    }
+    SystemDb(fs, "File System (SSOT)", ".ip.yml / .mm.yml + generated RTL, TB, vendor packaging")
+    System_Ext(vivado, "AMD Vivado", "component.xml packaging, OOC synthesis, .xpr projects")
+    System_Ext(quartus, "Intel Quartus / Platform Designer", "_hw.tcl, .qpf projects")
+    System_Ext(sim, "Simulators", "GHDL / Questa / Verilator via CocoTB or VUnit")
+
+    Rel(user, wv_mm, "edits registers/fields visually")
+    Rel(user, wv_ip, "edits IP core on canvas")
+    Rel(user, ext, "runs commands (generate, build, import)")
+    BiRel(wv_mm, ext, "postMessage: update / command")
+    BiRel(wv_ip, ext, "postMessage: update / generate / staging")
+    BiRel(ext, fs, "TextDocument edits, file generation, watchers")
+    Rel(ext, vivado, "spawn (native or Docker)")
+    Rel(ext, quartus, "spawn (native or Docker)")
+    Rel(fs, sim, "generated testbench drives")</code></pre>
+<h3 id="32-boundaries-and-ownership">3.2 Boundaries and ownership<a class="headerlink" href="#32-boundaries-and-ownership" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Boundary</th>
+<th>Owns</th>
+<th>Must not</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Extension host</strong> (<code>src/</code> minus <code>src/webview/</code>)</td>
+<td><code>TextDocument</code> lifecycle, file I/O, YAML validation (AJV), import resolution, generation, toolchain spawning, VS Code UI (commands, trees, status bar)</td>
+<td>Render editor UI</td>
+</tr>
+<tr>
+<td><strong>Webviews</strong> (<code>src/webview/</code>)</td>
+<td>Parsing/normalizing YAML text for display, editing state (drafts, selection, undo), serializing edits back to full YAML text</td>
+<td>Touch the file system, run commands directly (the <code>command</code> message is allow-listed host-side)</td>
+</tr>
+<tr>
+<td><strong>File system</strong></td>
+<td>The authoritative content; generated artifacts</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>Generators</strong> (<code>src/generator/</code>)</td>
+<td>Pure(ish) text-in/text-out rendering; dry-run produces an in-memory <code>Record&lt;relativePath, content&gt;</code></td>
+<td>Write to disk during dry run</td>
+</tr>
+</tbody>
+</table>
+<p>Security posture worth noting (both deliberate, post-hoc hardening): the IP Core provider
+restricts <code>localResourceRoots</code> to <code>dist/</code> + codicons, and the generic <code>command</code> message from
+the webview is checked against <code>WEBVIEW_COMMAND_ALLOWLIST</code>
+(<code>IpCoreEditorProvider.ts:48</code>).</p>
+<h3 id="33-component-diagram">3.3 Component diagram<a class="headerlink" href="#33-component-diagram" title="Permanent link">&para;</a></h3>
+<pre class="mermaid"><code>graph TB
+    subgraph host["Extension Host (Node)"]
+        EXT[extension.ts&lt;br/&gt;activate: registers everything]
+        subgraph providers["Providers"]
+            MMP[MemoryMapEditorProvider]
+            IPP[IpCoreEditorProvider&lt;br/&gt;own messageHandlers table + watchers]
+            SPP[IpCoreSourcePreviewProvider]
+            SB[WebviewStagingBridge&lt;br/&gt;singleton]
+            SCP[StagingContentProvider&lt;br/&gt;virtual staging:// docs]
+            TPP[TemplatePreviewProvider&lt;br/&gt;.j2 live preview]
+        end
+        subgraph services["Services"]
+            MH[MessageHandler&lt;br/&gt;update/command dispatch]
+            DM[DocumentManager&lt;br/&gt;serialized WorkspaceEdit queue]
+            YV[YamlValidator AJV]
+            IR[ImportResolver&lt;br/&gt;mm.yml + fileset + bus lib]
+            HG[HtmlGenerator]
+            TD2[ToolDetector / BuildRunner / ReportParser]
+        end
+        subgraph generator["Generator"]
+            SC[IpCoreScaffolder.generateAll]
+            SPL[ScaffoldPackLoader&lt;br/&gt;scaffold.yml manifests]
+            TL[TemplateLoader&lt;br/&gt;Nunjucks, multi-root search]
+            RP[registerProcessor&lt;br/&gt;bus expansion, register prep]
+            TB[testbench/&lt;br/&gt;Framework x Engine strategies]
+            TCH[toolchains/&lt;br/&gt;Vivado + Quartus strategies]
+        end
+        CMD[commands/&lt;br/&gt;GenerateCommands.runGenerator&lt;br/&gt;BuildCommands, importers]
+    end
+
+    subgraph wvmm["Memory Map Webview (webview.js)"]
+        MMAPP[index.tsx App]
+        MMSTATE[useMemoryMapState&lt;br/&gt;rawTextRef + normalized model]
+        MMSYNC[useYamlSync&lt;br/&gt;window message listener]
+        MMUPD[useYamlUpdateHandler&lt;br/&gt;path edits]
+        YS[YamlService.applyPathEdits&lt;br/&gt;comment-preserving merge]
+        DN[DataNormalizer / YamlSanitizer]
+        ALG[algorithms/&lt;br/&gt;LayoutEngine, Repackers, MutationService]
+    end
+
+    subgraph wvip["IP Core Webview (ipcore.js)"]
+        IPAPP[IpCoreApp.tsx]
+        IPSTATE[useIpCoreState&lt;br/&gt;doc.setIn full reserialize]
+        IPSYNC[useIpCoreSync&lt;br/&gt;500ms debounced full-text push]
+        UNDO[useCanvasUndo]
+    end
+
+    EXT --&gt; providers
+    EXT --&gt; CMD
+    MMP --&gt; MH --&gt; DM
+    MMP --&gt; HG
+    IPP --&gt; MH
+    IPP --&gt; IR
+    IPP --&gt; SB
+    CMD --&gt; SC
+    SC --&gt; SPL &amp; TL &amp; RP &amp; TB &amp; TCH
+    CMD --&gt; SB
+    SB --&gt; SCP
+    MMP &lt;--&gt;|postMessage| MMAPP
+    IPP &lt;--&gt;|postMessage| IPAPP
+    MMAPP --&gt; MMSTATE &amp; MMSYNC &amp; MMUPD
+    MMUPD --&gt; YS
+    MMSTATE --&gt; DN
+    MMAPP --&gt; ALG
+    IPAPP --&gt; IPSTATE &amp; IPSYNC &amp; UNDO</code></pre>
+<p>Bundling: webpack builds three entries — <code>dist/extension.js</code> (Node target), <code>dist/webview.js</code>
+(memory map app), <code>dist/ipcore.js</code> (IP core app). <code>HtmlGenerator</code> selects the script per
+editor type. Webviews use <code>retainContextWhenHidden: true</code>.</p>
+<hr />
+<h2 id="4-data-flow-state-management">4. Data Flow &amp; State Management<a class="headerlink" href="#4-data-flow-state-management" title="Permanent link">&para;</a></h2>
+<h3 id="41-the-authoritative-loop">4.1 The authoritative loop<a class="headerlink" href="#41-the-authoritative-loop" title="Permanent link">&para;</a></h3>
+<p>The <code>TextDocument</code> (in-memory VS Code buffer of the YAML file) is the single source of truth.
+Webviews never hold a divergent model for long — every edit is immediately serialized to full
+YAML text and pushed to the host, and every document change is echoed back to the webview.</p>
+<p><strong>Exact lifecycle of one memory map edit</strong> (e.g. user renames a bit field and presses Enter):</p>
+<pre class="mermaid"><code>sequenceDiagram
+    participant U as User
+    participant C as Cell component&lt;br/&gt;(FieldTableRow)
+    participant H as useYamlUpdateHandler
+    participant Y as YamlService.applyPathEdits
+    participant S as useMemoryMapState
+    participant B as postMessage bridge
+    participant MH as MessageHandler (host)
+    participant DM as DocumentManager
+    participant DOC as TextDocument (SSOT)
+    participant P as MemoryMapEditorProvider
+
+    U-&gt;&gt;C: types, Enter (blur commits)
+    C-&gt;&gt;H: onUpdate(['fields', i, 'name'], value)
+    H-&gt;&gt;Y: applyPathEdits(rawTextRef.current, [{path, value}])
+    Note over Y: parseDocument + node-reuse merge —&lt;br/&gt;untouched lines keep comments,&lt;br/&gt;hex spellings, formatting
+    Y--&gt;&gt;H: newText (or identical text on no-op)
+    H-&gt;&gt;S: updateRawText(newText)
+    Note over S: optimistic local update:&lt;br/&gt;rawTextRef + re-parse + re-render
+    H-&gt;&gt;B: postMessage {type:'update', text:newText}
+    B-&gt;&gt;MH: handleUpdate
+    MH-&gt;&gt;DM: updateDocument(document, text)
+    Note over DM: per-URI promise chain serializes&lt;br/&gt;concurrent edits, full-range replace
+    DM-&gt;&gt;DOC: WorkspaceEdit.replace(entire range)
+    DOC--&gt;&gt;P: onDidChangeTextDocument
+    P-&gt;&gt;B: postMessage {type:'update', text}
+    B-&gt;&gt;S: useYamlSync → updateFromYaml(text)
+    Note over S: echo re-parse, idempotent if&lt;br/&gt;text matches optimistic state
+    Note over DOC: file stays DIRTY —&lt;br/&gt;user saves via Ctrl+S as usual</code></pre>
+<p>Saving is the standard VS Code dirty-document flow; the webview can also request it via
+<code>{type:'command', command:'save'}</code>.</p>
+<h3 id="42-the-two-editors-implement-this-loop-differently">4.2 The two editors implement this loop differently<a class="headerlink" href="#42-the-two-editors-implement-this-loop-differently" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Memory Map editor</th>
+<th>IP Core editor</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Local model</td>
+<td>Normalized snake_case model + <code>rawTextRef</code> (text is primary)</td>
+<td>Parsed JS object + <code>rawYaml</code> string in one state</td>
+</tr>
+<tr>
+<td>Edit serialization</td>
+<td><code>YamlService.applyPathEdits</code> — surgical node-reuse merge, preserves comments/hex/format of untouched nodes, restores hex spellings post-stringify</td>
+<td><code>yaml.parseDocument</code> + <code>doc.setIn(path)</code> + full <code>toString</code> per edit (<code>useIpCoreState.updateIpCore</code>)</td>
+</tr>
+<tr>
+<td>Push to host</td>
+<td>Immediate, per edit</td>
+<td><strong>Debounced 500 ms</strong> full-text push (<code>useIpCoreSync</code> effect on <code>rawYaml</code>)</td>
+</tr>
+<tr>
+<td>Undo</td>
+<td>VS Code text-document undo only</td>
+<td><code>useCanvasUndo</code> snapshot stack <strong>plus</strong> VS Code undo</td>
+</tr>
+<tr>
+<td>Host message dispatch</td>
+<td>Generic <code>MessageHandler</code> (<code>update</code>/<code>command</code>)</td>
+<td>Provider-local <code>messageHandlers</code> table (~20 message types) with <code>MessageHandler</code> as fallback</td>
+</tr>
+<tr>
+<td>Initial handshake</td>
+<td>Webview sends <code>ready</code>, provider replies</td>
+<td><code>ready</code> handler <strong>and</strong> an unconditional <code>setTimeout(100)</code> initial push</td>
+</tr>
+</tbody>
+</table>
+<p>Both providers re-push the full document on <code>onDidChangeTextDocument</code>, so external edits
+(raw text editor, git checkout) propagate into open webviews automatically. The IP core
+provider additionally re-pushes on config changes (HDL language, scaffold pack, toolbar
+targets, bus library paths) and on file-watcher events for generated artifacts
+(<code>component.xml</code>, <code>*_hw.tcl</code>, <code>.xpr</code>, <code>.qpf</code>) so toolbar button enablement stays current.</p>
+<h3 id="43-race-condition-mitigations-that-exist-and-what-they-tell-us">4.3 Race-condition mitigations that exist (and what they tell us)<a class="headerlink" href="#43-race-condition-mitigations-that-exist-and-what-they-tell-us" title="Permanent link">&para;</a></h3>
+<p>These mitigations were each added in response to an observed corruption/glitch (visible in
+git history) — they are load-bearing:</p>
+<ul>
+<li><strong><code>DocumentManager.updateQueues</code></strong> — per-document promise chain. Reason documented in
+  source: a full-range replace computed against a stale document leaves "a tail of the
+  previous content behind."</li>
+<li><strong>Single-pass structural edits</strong> — <code>index.tsx handleUpdateWithRepack</code> merges structural
+  edit + layout repack + sanitize into <em>one</em> document update, with a comment stating that
+  two back-to-back updates "can corrupt the file when the second edit races the first one
+  in the extension host."</li>
+<li><strong>No-op suppression</strong> — <code>applyPathEdits</code> returns the identical string when nothing changed;
+  callers compare by identity before sending. <code>DocumentManager.performUpdate</code> also skips
+  when text is equal, which breaks echo loops.</li>
+<li><strong>Draft state in cells</strong> — editable cells keep keystrokes in local draft maps
+  (<code>nameDrafts</code>, <code>bitsDrafts</code>, …) so the echo re-render does not clobber in-progress typing;
+  <code>useCellEditGuard</code> snapshots rows on focus for ESC-revert and blur-commit on Enter.</li>
+</ul>
+<h3 id="44-auxiliary-data-flows">4.4 Auxiliary data flows<a class="headerlink" href="#44-auxiliary-data-flows" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Import resolution (display):</strong> on every IP core webview update, <code>ImportResolver</code> follows
+  <code>memoryMaps[].import</code>, <code>fileSets[].import</code>, and <code>useBusLibrary</code> relative to the document and
+  ships the resolved objects alongside the raw text, so the canvas can render register counts
+  and validate <code>memoryMapRef</code> without file access.</li>
+<li><strong>Staging bridge:</strong> generation results are staged in memory; <code>WebviewStagingBridge</code>
+  (singleton, keyed by <code>.ip.yml</code> fsPath) shows the confirm overlay inside the canvas webview
+  when one is open, else falls back to a standalone <code>StagingPanel</code>. Diff/preview use virtual
+  documents under the <code>staging://</code> scheme fed by <code>StagingContentProvider</code>.</li>
+</ul>
+<hr />
+<h2 id="5-code-generation-pipeline">5. Code Generation Pipeline<a class="headerlink" href="#5-code-generation-pipeline" title="Permanent link">&para;</a></h2>
+<h3 id="51-trigger-surface">5.1 Trigger surface<a class="headerlink" href="#51-trigger-surface" title="Permanent link">&para;</a></h3>
+<p>All generation funnels into <code>GenerateCommands.runGenerator()</code>. Triggers: command palette /
+explorer context menu commands (<code>generateHdl</code>, <code>scaffoldProject</code>, <code>exportXilinx</code>,
+<code>exportAltera</code>, <code>generateTestbench</code>, <code>generateVivadoProject</code>, …) and toolbar buttons inside
+the IP core webview, which post <code>{type:'command', command:'fpga-ip-core.*'}</code> through the
+allow-list, or <code>{type:'generate'}</code> handled by <code>IpCoreGenerateHandler</code>.</p>
+<h3 id="52-four-phase-execution-rungenerator">5.2 Four-phase execution (<code>runGenerator</code>)<a class="headerlink" href="#52-four-phase-execution-rungenerator" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Dry run.</strong> <code>new IpCoreScaffolder(...).generateAll(inputPath, outputDir, {dryRun: true})</code>
+   produces <code>generatedContents: Record&lt;relativePath, string&gt;</code> entirely in memory.</li>
+<li><strong>Categorize.</strong> Each generated file is compared against disk → <code>new</code> / <code>modified</code> /
+   <code>unchanged</code>, with <code>protectedPaths</code> flagged (pack rules with <code>managed: false</code> — user-owned
+   files the generator must not overwrite once they exist).</li>
+<li><strong>Confirm.</strong> Staged list shown in the canvas overlay (via <code>WebviewStagingBridge</code>) or the
+   standalone <code>StagingPanel</code>; user can inspect per-file diffs before accepting.</li>
+<li><strong>Write.</strong> Only <code>new</code>+<code>modified</code>, minus protected-existing. Optionally writes back
+   <code>fileSets:</code> and <code>scaffold_pack:</code> into the <code>.ip.yml</code> (<code>updateYaml</code> option) so the SSOT
+   records what was generated.</li>
+</ol>
+<h3 id="53-inside-ipcorescaffoldergenerateall">5.3 Inside <code>IpCoreScaffolder.generateAll</code><a class="headerlink" href="#53-inside-ipcorescaffoldergenerateall" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>load .ip.yml ──► AJV validate (ip_core.schema.json)
+              ──► normalizeIpCoreData (registerProcessor)
+              ──► bus expansion: busInterfaces[].array → N concrete interfaces;
+                  port lists resolved from the bus definition library
+                  (built-in dist/resources/bus_definitions + useBusLibrary overrides)
+              ──► resolveMemoryMaps: follow mm.yml imports, prepareRegisters
+                  (flatten arrays, compute offsets/widths for templates)
+              ──► resolve scaffold pack:
+                  options.scaffoldPack &gt; .ip.yml scaffold_pack &gt; legacy IPCraft flag
+                  search: .vscode/ipcraft/packs/&lt;name&gt;/ then built-in dist/packs/&lt;name&gt;/
+              ──► for each pack file rule {source, target, condition, managed}:
+                  Nunjucks-render condition + source/target names + template content
+              ──► testbench files: Framework (CocoTB|VUnit) × Engine (GHDL|Questa|Verilator…)
+                  strategy classes under generator/testbench/
+              ──► per-target vendor packaging via toolchain strategies
+                  (VivadoToolchain → component.xml + TCL; QuartusToolchain → _hw.tcl)
+</code></pre></div>
+<p><strong>Scaffold packs</strong> are the extensibility mechanism: a pack is a directory with a
+<code>scaffold.yml</code> manifest (<code>files[]</code> rules, <code>fullGeneration</code> flag) plus <code>.j2</code> templates that
+shadow the built-in template directory via <code>TemplateLoader</code>'s ordered multi-root search.
+Built-ins: <code>builtin-minimal</code>, <code>builtin-ipcraft</code>, plus example packs. Workspace packs live in
+<code>.vscode/ipcraft/packs/</code> and can be exported from built-ins
+(<code>fpga-ip-core.exportScaffoldPack</code>). <code>TemplatePreviewProvider</code> renders <code>.j2</code> files live
+against a pinned IP core. Conditions in <code>scaffold.yml</code> are Nunjucks boolean expressions
+evaluated in the sandbox (<code>TemplateLoader.evaluateCondition</code>), not <code>eval</code>.</p>
+<p><code>fullGeneration: false</code> packs deliberately suppress the bus/register context
+(<code>has_memory_mapped_slave</code> forced false) so the rendered top-level has an empty architecture
+and the testbench doesn't import a register package that was never generated.</p>
+<h3 id="54-build-integration">5.4 Build integration<a class="headerlink" href="#54-build-integration" title="Permanent link">&para;</a></h3>
+<p><code>BuildCommands</code> + <code>BuildRunner</code> spawn the vendor tools (native install dir or Docker image,
+per <code>ipcraft.{vivado,quartus}.runner</code> settings). <code>ToolDetector</code> probes installs and sets
+context keys (<code>ipcraft.vivadoFound</code>, …) that grey out commands. <code>ReportParser</code> +
+<code>ReportsTreeProvider</code> surface timing/utilization reports in a tree view.</p>
+<hr />
+<h2 id="6-module-inventory-where-to-look">6. Module Inventory (where to look)<a class="headerlink" href="#6-module-inventory-where-to-look" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Concern</th>
+<th>Location</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Activation, command registry</td>
+<td><code>src/extension.ts</code></td>
+</tr>
+<tr>
+<td>Custom editor providers</td>
+<td><code>src/providers/{MemoryMap,IpCore}EditorProvider.ts</code></td>
+</tr>
+<tr>
+<td>Host-side message dispatch</td>
+<td><code>src/services/MessageHandler.ts</code> + provider-local table in <code>IpCoreEditorProvider</code></td>
+</tr>
+<tr>
+<td>Serialized document writes</td>
+<td><code>src/services/DocumentManager.ts</code></td>
+</tr>
+<tr>
+<td>Comment-preserving YAML edits (webview)</td>
+<td><code>src/webview/services/YamlService.ts</code> (<code>applyPathEdits</code>, <code>mergeNode</code>)</td>
+</tr>
+<tr>
+<td>MM normalization / sanitization</td>
+<td><code>src/webview/services/{DataNormalizer,YamlSanitizer}.ts</code></td>
+</tr>
+<tr>
+<td>MM layout invariants (bit/register/block packing)</td>
+<td><code>src/webview/algorithms/</code> — see <code>docs/refactor/memory_layout_invariants.md</code></td>
+</tr>
+<tr>
+<td>IP core canvas state</td>
+<td><code>src/webview/ipcore/hooks/useIpCoreState.ts</code>, <code>useCanvasUndo.ts</code></td>
+</tr>
+<tr>
+<td>Generation orchestration</td>
+<td><code>src/commands/GenerateCommands.ts</code> (<code>runGenerator</code>)</td>
+</tr>
+<tr>
+<td>Generator core</td>
+<td><code>src/generator/IpCoreScaffolder.ts</code>, <code>registerProcessor.ts</code></td>
+</tr>
+<tr>
+<td>Scaffold packs</td>
+<td><code>src/generator/ScaffoldPackLoader.ts</code>, <code>src/generator/packs/</code></td>
+</tr>
+<tr>
+<td>Templates</td>
+<td><code>src/generator/templates/*.j2</code> (Nunjucks via <code>TemplateLoader</code>)</td>
+</tr>
+<tr>
+<td>Testbench strategies</td>
+<td><code>src/generator/testbench/{frameworks,engines}/</code></td>
+</tr>
+<tr>
+<td>Vendor toolchains</td>
+<td><code>src/services/toolchains/</code></td>
+</tr>
+<tr>
+<td>Importers (experimental)</td>
+<td><code>src/parser/{Vhdl,HwTcl,ComponentXml,Verilog}Parser.ts</code></td>
+</tr>
+<tr>
+<td>Schemas / spec</td>
+<td><code>ipcraft-spec/</code> (nested repo; schemas copied to <code>dist/resources/schemas/</code>)</td>
+</tr>
+<tr>
+<td>Vivado interface catalog scan</td>
+<td><code>src/services/VivadoInterfaceScanner.ts</code>, <code>src/parser/VivadoInterfaceXmlParser.ts</code>, <code>src/commands/scanVivadoInterfaces.ts</code> — see <a href="../vivado-interface-catalog/">Vivado Interface Catalog</a></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="7-technical-debt-vibe-code-assessment">7. Technical Debt &amp; "Vibe Code" Assessment<a class="headerlink" href="#7-technical-debt-vibe-code-assessment" title="Permanent link">&para;</a></h2>
+<p>The existing <a href="../technical-debt/">technical-debt.md</a> tracks five scoped items (TD-1…TD-5).
+The items below are <strong>architectural</strong> observations from this review, labelled V-*. Each is
+documented as currently implemented — none of these block current functionality, but they
+shape where bugs keep appearing.</p>
+<h3 id="v-1-three-key-vocabularies-for-the-same-domain-model">V-1 — Three key vocabularies for the same domain model<a class="headerlink" href="#v-1-three-key-vocabularies-for-the-same-domain-model" title="Permanent link">&para;</a></h3>
+<p>Schema camelCase (<code>addressBlocks</code>, <code>resetValue</code>), legacy snake_case accepted in user files,
+and the webview's internal normalized form (<code>bit_offset</code>/<code>bit_width</code>) coexist. Conversions
+are scattered across <code>DataNormalizer</code>, <code>YamlSanitizer</code>, <code>YamlService.cleanForYaml</code>, and
+<code>YamlPathResolver.KEY_ALIASES</code>. Symptom: every new feature that touches fields must remember
+both spellings (<code>reset_value ?? resetValue ?? reset</code> appears verbatim in <code>DataNormalizer</code>).
+<strong>Recommendation:</strong> define one internal TypeScript domain model (generated from the JSON
+schemas — a <code>generate-types</code> npm script already exists) and confine all alias handling to a
+single parse/serialize boundary module.</p>
+<h3 id="v-2-two-divergent-yaml-write-paths">V-2 — Two divergent YAML write paths<a class="headerlink" href="#v-2-two-divergent-yaml-write-paths" title="Permanent link">&para;</a></h3>
+<p>The MM editor's <code>applyPathEdits</code> (node-reuse merge, comment/hex preservation, indentSeq
+detection) is markedly more careful than the IP core editor's <code>doc.setIn</code> + full restringify.
+Both also contain <strong>independent, slightly different <code>detectIndentSeq</code> implementations</strong>
+(<code>YamlService.ts:15</code> regex-based vs <code>useIpCoreState.ts:13</code> line-scanning). Formatting fidelity
+therefore differs between editors. <strong>Recommendation:</strong> extract one shared YAML-edit module
+used by both webviews.</p>
+<h3 id="v-3-echo-loop-is-convention-not-contract">V-3 — Echo loop is convention, not contract<a class="headerlink" href="#v-3-echo-loop-is-convention-not-contract" title="Permanent link">&para;</a></h3>
+<p>The webview optimistically updates local state, then relies on the host echo being byte-equal
+to suppress churn. There is no version/sequence number on messages: a slow echo arriving after
+a newer local edit re-parses stale text. The MM editor's draft maps and the IP core editor's
+500 ms debounce both paper over this. Recent git history (stale <code>nameDrafts</code> flashes, blur/Enter
+commit glitches) is the visible symptom — UI drafts and the echo cycle interact non-obviously.
+<strong>Recommendation:</strong> tag <code>update</code> messages with a monotonic revision; webview drops echoes older
+than its last sent revision.</p>
+<h3 id="v-4-ip-core-debounced-full-text-push-can-drop-concurrent-external-edits">V-4 — IP core debounced full-text push can drop concurrent external edits<a class="headerlink" href="#v-4-ip-core-debounced-full-text-push-can-drop-concurrent-external-edits" title="Permanent link">&para;</a></h3>
+<p><code>useIpCoreSync</code> pushes the entire <code>rawYaml</code> 500 ms after any change. If the document changes
+externally (git, text editor) inside that window, the webview's push overwrites it — last
+writer wins on whole-file granularity. The MM editor has the same whole-file write but without
+the delay window. Low probability, silent-data-loss severity.</p>
+<h3 id="v-5-dual-message-dispatch-mechanisms-on-the-host">V-5 — Dual message-dispatch mechanisms on the host<a class="headerlink" href="#v-5-dual-message-dispatch-mechanisms-on-the-host" title="Permanent link">&para;</a></h3>
+<p><code>MessageHandler</code> is the "official" dispatcher, but <code>IpCoreEditorProvider</code> grew its own ~20-entry
+<code>messageHandlers</code> table and uses <code>MessageHandler</code> only as a fallback. The MM provider also
+duplicates the <code>ready</code> handshake inline rather than through <code>MessageHandler</code>. Organic growth:
+each new webview feature added a new message type to the nearest table. <strong>Recommendation:</strong>
+a typed message-routing layer shared by both providers (the message interfaces in
+<code>MessageHandler.ts</code> already sketch the shape).</p>
+<h3 id="v-6-handshake-belt-and-suspenders">V-6 — Handshake belt-and-suspenders<a class="headerlink" href="#v-6-handshake-belt-and-suspenders" title="Permanent link">&para;</a></h3>
+<p><code>IpCoreEditorProvider.resolveCustomTextEditor</code> both implements the <code>ready</code> handshake <strong>and</strong>
+fires an unconditional <code>setTimeout(100)</code> initial update — a leftover race fix that masks
+whether the handshake actually works. The MM provider implements <code>ready</code> correctly with an
+<code>isReady</code> flag and no timer.</p>
+<h3 id="v-7-import-resolution-duplicated-host-side">V-7 — Import resolution duplicated host-side<a class="headerlink" href="#v-7-import-resolution-duplicated-host-side" title="Permanent link">&para;</a></h3>
+<p><code>ImportResolver</code> (editor display path) and <code>registerProcessor.resolveMemoryMaps</code> (generation
+path) independently implement <code>.mm.yml</code> import following and merging. They can drift —
+entry-level override semantics live in both.</p>
+<h3 id="v-8-index-and-name-keyed-draft-state-in-the-field-editor">V-8 — Index- and name-keyed draft state in the field editor<a class="headerlink" href="#v-8-index-and-name-keyed-draft-state-in-the-field-editor" title="Permanent link">&para;</a></h3>
+<p><code>useFieldEditor</code> keys <code>nameDrafts</code> by field <strong>name</strong> but <code>bitsDrafts</code>/<code>resetDrafts</code> by row
+<strong>index</strong>, with two separate cleanup effects (order-signature reset for index-keyed, stale-key
+pruning for name-keyed). Renames, moves, and inserts must keep both schemes coherent; the
+last several fix commits all touched this area. <strong>Recommendation:</strong> one stable per-row ID
+(generated on normalize) keying all draft maps.</p>
+<h3 id="v-9-path-resolution-heuristics-for-packaged-vs-dev-vs-test-runtime">V-9 — Path-resolution heuristics for packaged vs dev vs test runtime<a class="headerlink" href="#v-9-path-resolution-heuristics-for-packaged-vs-dev-vs-test-runtime" title="Permanent link">&para;</a></h3>
+<p><code>IP_CORE_SCHEMA_PATH</code> (3 fallbacks), <code>ScaffoldPackLoader.BUILTIN_PACKS_DIR</code> (2 fallbacks), and
+<code>TemplateLoader.resolveTemplatesPath</code> (falls back to <code>process.cwd()</code>!) each re-derive where
+resources live relative to <code>__dirname</code> under webpack/ts-jest/VSIX. A wrong fallback fails at
+generation time, not load time. <strong>Recommendation:</strong> resolve all resource roots once at
+activation from <code>context.extensionPath</code> and inject them.</p>
+<h3 id="v-10-ipcraft-spec-is-an-untracked-nested-repo">V-10 — <code>ipcraft-spec</code> is an untracked nested repo<a class="headerlink" href="#v-10-ipcraft-spec-is-an-untracked-nested-repo" title="Permanent link">&para;</a></h3>
+<p>The schema/spec directory sits inside the extension repo but is not tracked by it (appears as
+<code>?</code> in git status). Schema and code can silently diverge; the build copies schemas into
+<code>dist/</code> at pack time. <strong>Recommendation:</strong> make it a proper git submodule or vendored versioned
+dependency.</p>
+<h3 id="what-is-genuinely-solid">What is genuinely solid<a class="headerlink" href="#what-is-genuinely-solid" title="Permanent link">&para;</a></h3>
+<p>Worth preserving through any refactor: the four-phase staged generation with dry-run +
+diff confirmation; the scaffold-pack design (data-driven file rules, sandboxed conditions,
+workspace shadowing); <code>DocumentManager</code>'s serialized edit queue; <code>applyPathEdits</code>' minimal-diff
+merge; the toolchain strategy registry; and the webview command allow-list.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2026 Le Viet Bach
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.expand", "navigation.tabs", "navigation.top", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

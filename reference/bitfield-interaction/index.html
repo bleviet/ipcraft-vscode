@@ -1,0 +1,2918 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Visual editor for FPGA IP Core and Memory Map specifications">
+      
+      
+        <meta name="author" content="Le Viet Bach">
+      
+      
+        <link rel="canonical" href="https://bleviet.github.io/ipcraft-vscode/reference/bitfield-interaction/">
+      
+      
+        <link rel="prev" href="../specification-schemas/">
+      
+      
+        <link rel="next" href="../yaml-libraries/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Bit Field Interaction - IPCraft for VS Code</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#bit-field-interaction-reference" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="IPCraft for VS Code" class="md-header__button md-logo" aria-label="IPCraft for VS Code" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            IPCraft for VS Code
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Bit Field Interaction
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/bleviet/ipcraft-vscode" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../getting-started/quickstart/" class="md-tabs__link">
+          
+  
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../tutorials/build-and-verify-a-scaffold-pack/" class="md-tabs__link">
+          
+  
+  
+  Tutorials
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../how-to/vhdl-import/" class="md-tabs__link">
+          
+  
+  
+  How-to Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../concepts/extension-model/" class="md-tabs__link">
+          
+  
+  
+  Concepts
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../architecture/overview/" class="md-tabs__link">
+          
+  
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../commands/" class="md-tabs__link">
+          
+  
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../contributing/guidelines/" class="md-tabs__link">
+          
+  
+  
+  Contributing
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../blog/building-ipcraft/" class="md-tabs__link">
+          
+  
+  
+  Blog
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="IPCraft for VS Code" class="md-nav__button md-logo" aria-label="IPCraft for VS Code" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    IPCraft for VS Code
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/bleviet/ipcraft-vscode" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorials
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Tutorials
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/build-and-verify-a-scaffold-pack/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Build and Verify a Scaffold Pack
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/memory-mapped-registers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Memory-Mapped Registers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How-to Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    How-to Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/vhdl-import/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Importing from Existing Files
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/generating-a-project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generating a Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/scaffold-packs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Customising Code Generation (Scaffold Packs)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/building-a-project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building a Project (Headless)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/build-vsix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building a VSIX Package
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/ai-design-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI Design Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Concepts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/extension-model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VS Code Extension Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/yaml-data-flow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YAML Data Flow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/spatial-editing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spatial Editing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/responsive-design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Responsive Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/extension-host/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Extension Host
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/webview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Webview (React)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Commands & Settings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../keyboard-shortcuts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Keyboard Shortcuts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../generator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ip-core-editor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IP Core Editor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../specification-schemas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Specification Schemas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bit Field Interaction
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bit Field Interaction
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#data-shapes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data shapes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Data shapes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prosegment-bitfieldtypests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ProSegment (bitfield/types.ts)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bit-ownership-array" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bit-ownership array
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#keyboard-shortcuts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Keyboard shortcuts
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Keyboard shortcuts">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#visualizer-focused-bit-field-cell" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Visualizer (focused bit-field cell)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#field-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Field table
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pointer-gestures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pointer gestures
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#callback-contracts-registereditor-bitfieldvisualizer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Callback contracts (RegisterEditor &lt;- BitFieldVisualizer)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#function-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Function reference
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Function reference">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#parse-format-utilsbitfieldutilsts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parse / format (utils/BitFieldUtils.ts)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#validation-sharedutilsfieldvalidationts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Validation (shared/utils/fieldValidation.ts)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#layout-algorithmslayoutenginets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Layout (algorithms/LayoutEngine.ts)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#segments-and-ownership-bitfieldutilsts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Segments and ownership (bitfield/utils.ts)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reorder-resize-helpers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reorder / resize helpers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reset-register-value-bitfieldutilsts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reset / register value (bitfield/utils.ts)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#insertion-servicesspatialinsertionservicets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Insertion (services/SpatialInsertionService.ts)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#field-operations-servicesfieldoperationservicets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Field operations (services/FieldOperationService.ts)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#table-draft-layers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Table draft layers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#inline-bits-editing-with-cascade" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Inline bits editing with cascade
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#layout-views" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Layout views
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#commit-path" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Commit path
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#test-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test files
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../yaml-libraries/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YAML Libraries
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contributing
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/guidelines/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guidelines
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Blog
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Blog
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../blog/building-ipcraft/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building IPCraft
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#data-shapes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data shapes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Data shapes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prosegment-bitfieldtypests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ProSegment (bitfield/types.ts)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bit-ownership-array" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bit-ownership array
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#keyboard-shortcuts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Keyboard shortcuts
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Keyboard shortcuts">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#visualizer-focused-bit-field-cell" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Visualizer (focused bit-field cell)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#field-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Field table
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pointer-gestures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pointer gestures
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#callback-contracts-registereditor-bitfieldvisualizer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Callback contracts (RegisterEditor &lt;- BitFieldVisualizer)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#function-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Function reference
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Function reference">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#parse-format-utilsbitfieldutilsts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parse / format (utils/BitFieldUtils.ts)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#validation-sharedutilsfieldvalidationts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Validation (shared/utils/fieldValidation.ts)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#layout-algorithmslayoutenginets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Layout (algorithms/LayoutEngine.ts)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#segments-and-ownership-bitfieldutilsts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Segments and ownership (bitfield/utils.ts)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reorder-resize-helpers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reorder / resize helpers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reset-register-value-bitfieldutilsts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reset / register value (bitfield/utils.ts)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#insertion-servicesspatialinsertionservicets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Insertion (services/SpatialInsertionService.ts)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#field-operations-servicesfieldoperationservicets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Field operations (services/FieldOperationService.ts)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#table-draft-layers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Table draft layers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#inline-bits-editing-with-cascade" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Inline bits editing with cascade
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#layout-views" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Layout views
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#commit-path" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Commit path
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#test-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test files
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/bleviet/ipcraft-vscode/edit/main/docs/reference/bitfield-interaction.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="bit-field-interaction-reference">Bit Field Interaction Reference<a class="headerlink" href="#bit-field-interaction-reference" title="Permanent link">&para;</a></h1>
+<p>A lookup reference for bit-field editing in the Memory Map register editor:
+keyboard shortcuts, gesture inputs/outputs, callback contracts, data shapes, and
+function signatures.</p>
+<p>For the mental model see <a href="../../concepts/spatial-editing/">Spatial Editing</a>; for
+how the pieces fit together see
+<a href="../../architecture/bit-field-handling/">Bit Field Handling</a>.</p>
+<h2 id="data-shapes">Data shapes<a class="headerlink" href="#data-shapes" title="Permanent link">&para;</a></h2>
+<p>Runtime position properties on a field (all camelCase; none are persisted):</p>
+<div class="highlight"><pre><span></span><code>bitRange : [hi, lo]        // canonical [MSB, LSB] tuple
+offset   : lo              // LSB index
+width    : hi - lo + 1     // field width in bits
+</code></pre></div>
+<p>Persisted field keys: <code>name</code>, <code>bits</code>, <code>access</code>, <code>resetValue</code>, <code>description</code>, and
+optional <code>enumeratedValues</code> / <code>monitorChangeOf</code>.</p>
+<h3 id="prosegment-bitfieldtypests"><code>ProSegment</code> (<code>bitfield/types.ts</code>)<a class="headerlink" href="#prosegment-bitfieldtypests" title="Permanent link">&para;</a></h3>
+<p>A tagged union; the segment list tiles the register bit space MSB-first.</p>
+<div class="highlight"><pre><span></span><code><span class="kr">type</span><span class="w"> </span><span class="nx">ProSegment</span><span class="w"> </span><span class="o">=</span>
+<span class="w">  </span><span class="o">|</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="kr">type</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;field&#39;</span><span class="p">;</span><span class="w"> </span><span class="nx">idx</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">;</span><span class="w"> </span><span class="nx">start</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">;</span><span class="w"> </span><span class="nx">end</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">;</span><span class="w"> </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w"> </span><span class="nx">color</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="p">}</span>
+<span class="w">  </span><span class="o">|</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="kr">type</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;gap&#39;</span><span class="p">;</span><span class="w"> </span><span class="nx">start</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">;</span><span class="w"> </span><span class="nx">end</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="w"> </span><span class="p">};</span>
+</code></pre></div>
+<p><code>start</code> is the LSB of the span, <code>end</code> the MSB.</p>
+<h3 id="bit-ownership-array">Bit-ownership array<a class="headerlink" href="#bit-ownership-array" title="Permanent link">&para;</a></h3>
+<p><code>buildBitOwnerArray(fields, registerSize)</code> returns an array of length
+<code>registerSize</code> where <code>owners[bit] = fieldIndex | null</code>. Drives hit testing,
+resize-boundary calculation, and gap detection.</p>
+<h2 id="keyboard-shortcuts">Keyboard shortcuts<a class="headerlink" href="#keyboard-shortcuts" title="Permanent link">&para;</a></h2>
+<h3 id="visualizer-focused-bit-field-cell">Visualizer (focused bit-field cell)<a class="headerlink" href="#visualizer-focused-bit-field-cell" title="Permanent link">&para;</a></h3>
+<p>Direction maps to the layout's orientation.</p>
+<table>
+<thead>
+<tr>
+<th>Layout</th>
+<th>Reorder (swap with neighbour)</th>
+<th>Resize (grow/shrink an edge)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pro</code> (horizontal)</td>
+<td><code>Alt+Left</code> toward MSB, <code>Alt+Right</code> toward LSB</td>
+<td><code>Shift+Left</code> / <code>Shift+Right</code></td>
+</tr>
+<tr>
+<td><code>vertical</code> (stacked)</td>
+<td><code>Alt+Up</code> toward LSB, <code>Alt+Down</code> toward MSB</td>
+<td><code>Shift+Up</code> / <code>Shift+Down</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="field-table">Field table<a class="headerlink" href="#field-table" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Arrow</code> keys / <code>h</code> <code>j</code> <code>k</code> <code>l</code></td>
+<td>Move the active cell</td>
+</tr>
+<tr>
+<td><code>Alt+Up</code> / <code>Alt+Down</code></td>
+<td>Move the selected field up/down (focus follows the field)</td>
+</tr>
+<tr>
+<td><code>F2</code> / <code>Enter</code> / <code>e</code></td>
+<td>Edit the active cell</td>
+</tr>
+<tr>
+<td><code>d</code> / <code>Delete</code></td>
+<td>Delete the selected field</td>
+</tr>
+<tr>
+<td><code>o</code></td>
+<td>Insert field after</td>
+</tr>
+<tr>
+<td><code>O</code> (<code>Shift+o</code>)</td>
+<td>Insert field before</td>
+</tr>
+</tbody>
+</table>
+<p><code>Ctrl</code> / <code>Cmd</code> chords are not hijacked by table navigation.</p>
+<h2 id="pointer-gestures">Pointer gestures<a class="headerlink" href="#pointer-gestures" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Gesture</th>
+<th>Trigger</th>
+<th>Result</th>
+<th>Commit callback</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Resize</td>
+<td><code>Shift</code> + drag an edge of a field</td>
+<td>New field range, clamped to neighbours</td>
+<td><code>onUpdateFieldRange</code></td>
+</tr>
+<tr>
+<td>Create</td>
+<td><code>Shift</code> + drag inside a gap</td>
+<td>New field over the dragged span</td>
+<td><code>onCreateField</code></td>
+</tr>
+<tr>
+<td>Relocate</td>
+<td><code>Ctrl</code>/<code>Cmd</code> + drag a field</td>
+<td>Field moved; others part to receive it (live preview)</td>
+<td><code>onBatchUpdateFields</code></td>
+</tr>
+<tr>
+<td>Toggle reset bit</td>
+<td>Click a bit cell</td>
+<td>Flip that bit of the owning field's <code>resetValue</code></td>
+<td><code>onUpdateFieldReset</code></td>
+</tr>
+</tbody>
+</table>
+<p>Relocate commits atomically through <code>onBatchUpdateFields</code>; sequential per-field
+updates would pass through overlapping intermediate states.</p>
+<h2 id="callback-contracts-registereditor-bitfieldvisualizer">Callback contracts (<code>RegisterEditor</code> &lt;- <code>BitFieldVisualizer</code>)<a class="headerlink" href="#callback-contracts-registereditor-bitfieldvisualizer" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Callback</th>
+<th>Signature</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>onUpdateFieldRange</code></td>
+<td><code>(idx: number, [hi, lo]: [number, number])</code></td>
+<td>One field's range changed</td>
+</tr>
+<tr>
+<td><code>onBatchUpdateFields</code></td>
+<td><code>(updates: { idx: number; range: [hi, lo] }[])</code></td>
+<td>Many ranges changed atomically</td>
+</tr>
+<tr>
+<td><code>onCreateField</code></td>
+<td><code>({ bitRange: [hi, lo]; name: string })</code></td>
+<td>New field from a gap drag</td>
+</tr>
+<tr>
+<td><code>onUpdateFieldReset</code></td>
+<td><code>(idx: number, value: number \| null)</code></td>
+<td>A reset bit toggled</td>
+</tr>
+<tr>
+<td><code>onDragPreview</code></td>
+<td><code>(updates \| null)</code></td>
+<td>Transient Ctrl-drag preview (no YAML write)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="function-reference">Function reference<a class="headerlink" href="#function-reference" title="Permanent link">&para;</a></h2>
+<h3 id="parse-format-utilsbitfieldutilsts">Parse / format (<code>utils/BitFieldUtils.ts</code>)<a class="headerlink" href="#parse-format-utilsbitfieldutilsts" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Signature</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>parseBitsRange</code></td>
+<td><code>(bits: string) =&gt; [hi, lo] \| null</code></td>
+<td>Strict bracketed parse</td>
+</tr>
+<tr>
+<td><code>parseBitsLike</code></td>
+<td><code>(text: string) =&gt; { offset, width } \| null</code></td>
+<td>Tolerant (accepts <code>7:0</code>)</td>
+</tr>
+<tr>
+<td><code>formatBitsRange</code></td>
+<td><code>(hi: number, lo: number) =&gt; string</code></td>
+<td>Builds <code>'[hi:lo]'</code></td>
+</tr>
+<tr>
+<td><code>fieldToBitsString</code></td>
+<td><code>(field) =&gt; string</code></td>
+<td>Prefers <code>offset</code>/<code>width</code>, falls back to <code>bits</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="validation-sharedutilsfieldvalidationts">Validation (<code>shared/utils/fieldValidation.ts</code>)<a class="headerlink" href="#validation-sharedutilsfieldvalidationts" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Signature</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>validateBitsString</code></td>
+<td><code>(bits: string) =&gt; string \| null</code> (error message or null)</td>
+</tr>
+<tr>
+<td><code>parseBitsInput</code></td>
+<td><code>(text: string) =&gt; { offset, width, ... }</code></td>
+</tr>
+<tr>
+<td><code>parseBitsWidth</code></td>
+<td><code>(bits: string) =&gt; number \| null</code></td>
+</tr>
+<tr>
+<td><code>parseReset</code></td>
+<td><code>(text: string) =&gt; number \| null</code></td>
+</tr>
+<tr>
+<td><code>validateResetForField</code></td>
+<td>reset-value bounds check against field width</td>
+</tr>
+</tbody>
+</table>
+<h3 id="layout-algorithmslayoutenginets">Layout (<code>algorithms/LayoutEngine.ts</code>)<a class="headerlink" href="#layout-algorithmslayoutenginets" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Signature</th>
+<th>Gaps</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>recomputeBitfieldLayout</code></td>
+<td><code>(fields, regWidth) =&gt; LayoutField[]</code></td>
+<td>Removed (compact pack from bit 0)</td>
+</tr>
+<tr>
+<td><code>reorderBitfieldLayout</code></td>
+<td><code>(fields, movedIdx, direction: 'lsb' \| 'msb', regWidth) =&gt; LayoutField[]</code></td>
+<td>Preserved; skips gap segments to swap the moved field with the next field</td>
+</tr>
+</tbody>
+</table>
+<h3 id="segments-and-ownership-bitfieldutilsts">Segments and ownership (<code>bitfield/utils.ts</code>)<a class="headerlink" href="#segments-and-ownership-bitfieldutilsts" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Signature</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>getFieldRange</code></td>
+<td><code>(field) =&gt; { lo, hi } \| null</code></td>
+</tr>
+<tr>
+<td><code>groupFields</code></td>
+<td><code>(fields) =&gt; { idx, start, end, name, color }[]</code></td>
+</tr>
+<tr>
+<td><code>buildProLayoutSegments</code></td>
+<td><code>(fields, registerSize) =&gt; ProSegment[]</code></td>
+</tr>
+<tr>
+<td><code>repackSegments</code></td>
+<td><code>(segments: ProSegment[]) =&gt; ProSegment[]</code> (gap-preserving)</td>
+</tr>
+<tr>
+<td><code>toFieldRangeUpdates</code></td>
+<td><code>(segments) =&gt; { idx, range: [hi, lo] }[]</code></td>
+</tr>
+<tr>
+<td><code>buildBitOwnerArray</code></td>
+<td><code>(fields, registerSize) =&gt; (number \| null)[]</code></td>
+</tr>
+<tr>
+<td><code>findResizeBoundary</code></td>
+<td>resize clamp bounds from neighbours</td>
+</tr>
+<tr>
+<td><code>findGapBoundaries</code></td>
+<td>extent of the empty run under the cursor</td>
+</tr>
+</tbody>
+</table>
+<h3 id="reorder-resize-helpers">Reorder / resize helpers<a class="headerlink" href="#reorder-resize-helpers" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>File</th>
+<th>Signature</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>computeCtrlDragPreview</code></td>
+<td><code>bitfield/reorderAlgorithm.ts</code></td>
+<td>Ctrl-drag preview segments</td>
+</tr>
+<tr>
+<td><code>getKeyboardReorderUpdates</code></td>
+<td><code>bitfield/keyboardOperations.ts</code></td>
+<td>Gap-preserving reorder range updates</td>
+</tr>
+<tr>
+<td><code>getKeyboardResizeRange</code></td>
+<td><code>bitfield/keyboardOperations.ts</code></td>
+<td>One-bit edge grow/shrink, bounded</td>
+</tr>
+</tbody>
+</table>
+<h3 id="reset-register-value-bitfieldutilsts">Reset / register value (<code>bitfield/utils.ts</code>)<a class="headerlink" href="#reset-register-value-bitfieldutilsts" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Signature</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>bitAt</code></td>
+<td><code>(value, bitIndex) =&gt; 0 \| 1</code></td>
+<td>Read one bit</td>
+</tr>
+<tr>
+<td><code>setBit</code></td>
+<td><code>(value, bitIndex, desired: 0 \| 1) =&gt; number</code></td>
+<td>Write one bit</td>
+</tr>
+<tr>
+<td><code>extractBits</code></td>
+<td><code>(value, lo, width) =&gt; number</code></td>
+<td>Slice a sub-value</td>
+</tr>
+<tr>
+<td><code>maxForBits</code></td>
+<td><code>(bitCount) =&gt; number</code></td>
+<td>Max value for a width</td>
+</tr>
+<tr>
+<td><code>applyRegisterValueToFields</code></td>
+<td>decompose a register value onto each field</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>Value math uses <code>Math.pow(2, n)</code> arithmetic (safe to 53 bits), avoiding 32-bit
+bitwise truncation. Masks at width &gt;= 53 fall back to <code>Number.MAX_SAFE_INTEGER</code>.</p>
+<h3 id="insertion-servicesspatialinsertionservicets">Insertion (<code>services/SpatialInsertionService.ts</code>)<a class="headerlink" href="#insertion-servicesspatialinsertionservicets" title="Permanent link">&para;</a></h3>
+<p>All methods are static and side-effect free, returning <code>InsertionResult&lt;T&gt;</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">interface</span><span class="w"> </span><span class="nx">InsertionResult</span><span class="o">&lt;</span><span class="nx">T</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">items</span><span class="o">:</span><span class="w"> </span><span class="kt">T</span><span class="p">[];</span><span class="w">        </span><span class="c1">// updated array (unchanged on error)</span>
+<span class="w">  </span><span class="nx">newIndex</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">;</span><span class="w">  </span><span class="c1">// index of the new item (-1 on error)</span>
+<span class="w">  </span><span class="nx">error?</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span><span class="w">    </span><span class="c1">// human-readable reason (only on failure)</span>
+<span class="p">}</span>
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>insertField(dir, fields, selectedIndex, registerSize)</code></td>
+<td>Insert a 1-bit field after/before the selection</td>
+</tr>
+<tr>
+<td><code>insertFieldAfter</code> / <code>insertFieldBefore</code></td>
+<td>Directional variants</td>
+</tr>
+<tr>
+<td><code>insertRegister</code> / <code>insertRegisterAfter</code> / <code>insertRegisterBefore</code></td>
+<td>Insert a default 4-byte register</td>
+</tr>
+<tr>
+<td><code>insertBlock</code> / <code>insertBlockAfter</code> / <code>insertBlockBefore</code></td>
+<td>Insert a block with one register</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Repacker</th>
+<th>File</th>
+<th>Functions</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Field</td>
+<td><code>algorithms/BitFieldRepacker.ts</code></td>
+<td><code>repackFieldsForward</code>, <code>repackFieldsBackward</code></td>
+</tr>
+<tr>
+<td>Register</td>
+<td><code>algorithms/RegisterRepacker.ts</code></td>
+<td><code>repackRegistersForward</code>, <code>repackRegistersBackward</code></td>
+</tr>
+<tr>
+<td>Block</td>
+<td><code>algorithms/AddressBlockRepacker.ts</code></td>
+<td><code>repackBlocksForward</code>, <code>repackBlocksBackward</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="field-operations-servicesfieldoperationservicets">Field operations (<code>services/FieldOperationService.ts</code>)<a class="headerlink" href="#field-operations-servicesfieldoperationservicets" title="Permanent link">&para;</a></h3>
+<p><code>applyFieldOperation</code> dispatches the <code>__op</code> ops used by the table:</p>
+<table>
+<thead>
+<tr>
+<th>Op</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>field-move</code></td>
+<td>Swap <code>fields[index]</code> and <code>fields[index+delta]</code> (positions recomputed afterwards by <code>reorderBitfieldLayout</code>)</td>
+</tr>
+<tr>
+<td>add / delete</td>
+<td>Add a field at the first free bit / remove by index</td>
+</tr>
+</tbody>
+</table>
+<h2 id="table-draft-layers">Table draft layers<a class="headerlink" href="#table-draft-layers" title="Permanent link">&para;</a></h2>
+<p><code>FieldsTable</code> resolves a row's displayed bit range in priority order:</p>
+<ol>
+<li><code>dragPreviewRanges[index]</code> -- live Ctrl-drag preview (highest)</li>
+<li><code>bitsDrafts[rowId]</code> -- the user's uncommitted text edit</li>
+<li><code>fieldToBitsString(field)</code> -- the committed data-model value</li>
+</ol>
+<p>Draft maps (<code>nameDrafts</code>, <code>bitsDrafts</code>, <code>resetDrafts</code> and their error maps) are
+<strong>keyed by <code>rowId</code></strong>, not by array index (<code>useFieldDrafts.ts</code>). On a reorder or
+other structural change <code>useFieldEditor</code> calls <code>clearAllDrafts()</code>.</p>
+<h2 id="inline-bits-editing-with-cascade">Inline bits editing with cascade<a class="headerlink" href="#inline-bits-editing-with-cascade" title="Permanent link">&para;</a></h2>
+<p>When the user edits a bit range in the table:</p>
+<ol>
+<li>Parse the new bits string (<code>parseBitsInput</code>).</li>
+<li>Validate format and total register usage (<code>validateBitsString</code>).</li>
+<li>Update the edited field's <code>offset</code> / <code>width</code> / <code>bitRange</code>.</li>
+<li>Cascade fields below upward to stay non-overlapping (widths preserved).</li>
+<li>Commit the full updated field array.</li>
+</ol>
+<h2 id="layout-views">Layout views<a class="headerlink" href="#layout-views" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>View</th>
+<th>File</th>
+<th>Orientation</th>
+<th>Used by <code>RegisterEditor</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pro</code></td>
+<td><code>bitfield/ProLayoutView.tsx</code></td>
+<td>Horizontal, MSB left, per-bit value cells</td>
+<td>Yes (stacked register layout)</td>
+</tr>
+<tr>
+<td><code>vertical</code></td>
+<td><code>bitfield/VerticalLayoutView.tsx</code></td>
+<td>Stacked rows</td>
+<td>Yes (side-by-side register layout)</td>
+</tr>
+<tr>
+<td><code>default</code></td>
+<td><code>bitfield/DefaultLayoutView.tsx</code></td>
+<td>Legacy grid</td>
+<td>No (fallback branch only)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="commit-path">Commit path<a class="headerlink" href="#commit-path" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>User interaction
+  -&gt; BitFieldVisualizer callback
+  -&gt; RegisterEditor handler (compute derived fields, sort by offset)
+  -&gt; onUpdate -&gt; useYamlUpdateHandler
+  -&gt; YamlService.applyPathEdits (yaml v2, comment-preserving)
+  -&gt; serializeValue (strip rowId / offset / width)
+  -&gt; updateRawText -&gt; useYamlSync.sendUpdate (revisioned V-3/V-4)
+  -&gt; postMessage -&gt; extension DocumentManager -&gt; VS Code document
+</code></pre></div>
+<h2 id="test-files">Test files<a class="headerlink" href="#test-files" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Test file</th>
+<th>Covers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>algorithms/LayoutEngine.test.ts</code></td>
+<td>Compact + gap-preserving + gap-skipping layout</td>
+</tr>
+<tr>
+<td><code>algorithms/BitFieldRepacker.test.ts</code></td>
+<td>Forward/backward field repacking, edge clamping</td>
+</tr>
+<tr>
+<td><code>algorithms/RegisterRepacker.test.ts</code></td>
+<td>Register repacking</td>
+</tr>
+<tr>
+<td><code>algorithms/AddressBlockRepacker.test.ts</code></td>
+<td>Block repacking</td>
+</tr>
+<tr>
+<td><code>services/SpatialInsertionService.test.ts</code></td>
+<td>Field/register/block insertion pipeline</td>
+</tr>
+<tr>
+<td><code>services/FieldOperationService.test.ts</code></td>
+<td><code>field-move</code> array mutation</td>
+</tr>
+<tr>
+<td><code>hooks/useFieldEditor.test.ts</code></td>
+<td>Draft management, selection, insertion, reorder</td>
+</tr>
+<tr>
+<td><code>hooks/useTableNavigation.test.tsx</code></td>
+<td>Navigation, Alt+arrow move, focus-follows-field</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2026 Le Viet Bach
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.expand", "navigation.tabs", "navigation.top", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
