@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } from 'react';
 import type {
   IpCore,
   Clock,
@@ -26,6 +26,9 @@ import {
 } from '../../data/busDefinitions';
 import { vscode } from '../../../vscode';
 import { evalWidthExpr } from '../../../shared/utils/evalWidthExpr';
+import { WidthFunctionHelpMenu } from '../../../shared/components';
+import { WIDTH_FUNCTION_HELP } from '../../../shared/utils/widthFunctionHelp';
+import { getIdentifierTokenAtCursor } from '../../../shared/utils/widthExprToken';
 import { BUS_VLNV, busSupportsMemoryMap } from '../../../../shared/busVlnv';
 import { isValidVlnv } from '../../../../utils/vlnv';
 import { MapConduitToBusDialog, type MapConduitToBusResult } from './MapConduitToBusDialog';
@@ -2324,6 +2327,352 @@ const ConduitSignalsSection: React.FC<ConduitSignalsSectionProps> = ({
   );
 };
 
+// ─────────────────────────────────────────────────────
+//  WidthExprControl — shared number/parameter-expression width input
+//
+//  Consolidates what used to be three copy-pasted implementations
+//  (PropWidthField, ConduitSignalRow, PortWidthRow): the number/expr mode
+//  toggle, the input itself, the codicon-info help popover, the as-you-type
+//  function/parameter autocomplete dropdown, and the resolved-value preview.
+//  Callers keep their own outer wrapper markup (label, compact row, reset
+//  button) and render this for just the input sub-block.
+// ─────────────────────────────────────────────────────
+
+type WidthSuggestion =
+  | { kind: 'function'; name: string; signature: string }
+  | { kind: 'param'; name: string };
+
+const MAX_WIDTH_SUGGESTIONS = 8;
+
+function getWidthSuggestions(
+  text: string,
+  cursor: number,
+  paramNames: string[]
+): { token: { start: number; end: number }; items: WidthSuggestion[] } | null {
+  const token = getIdentifierTokenAtCursor(text, cursor);
+  if (!token) {
+    return null;
+  }
+  const query = token.text.toLowerCase();
+  const functionNames = (
+    Object.keys(WIDTH_FUNCTION_HELP) as Array<keyof typeof WIDTH_FUNCTION_HELP>
+  )
+    .filter((name) => name.toLowerCase().startsWith(query))
+    .sort();
+  const paramMatches = paramNames.filter((name) => name.toLowerCase().startsWith(query)).sort();
+
+  const items: WidthSuggestion[] = [
+    ...functionNames.map(
+      (name): WidthSuggestion => ({
+        kind: 'function',
+        name,
+        signature: WIDTH_FUNCTION_HELP[name].signature,
+      })
+    ),
+    ...paramMatches.map((name): WidthSuggestion => ({ kind: 'param', name })),
+  ].slice(0, MAX_WIDTH_SUGGESTIONS);
+
+  return items.length > 0 ? { token, items } : null;
+}
+
+interface WidthExprControlProps {
+  value: number | string;
+  /** Fallback for revert-to-number and empty-expr commit. Defaults to 1. */
+  defaultWidth?: number;
+  paramNames: string[];
+  paramValues?: Record<string, number>;
+  onSave: (value: number | string) => void;
+  /** Class for the wrapping row div — differs per call site's layout (compact
+   *  row vs. labeled field row). */
+  rowClassName: string;
+  /** Base class for the input; an `--expr` modifier variant is appended in
+   *  expr mode (a no-op unless the base class defines one). */
+  inputClassName: string;
+  /** Class for the mode-toggle and info buttons. */
+  toggleClassName?: string;
+  /** 'inline': resolved-value badge sits inside the row (compact rows).
+   *  'below': resolved-value line sits below the row (labeled field). */
+  previewStyle?: 'inline' | 'below';
+}
+
+const WidthExprControl: React.FC<WidthExprControlProps> = ({
+  value,
+  defaultWidth = 1,
+  paramNames,
+  paramValues = {},
+  onSave,
+  rowClassName,
+  inputClassName,
+  toggleClassName = 'ci-pw-mode-toggle',
+  previewStyle = 'inline',
+}) => {
+  const [mode, setMode] = useState<'number' | 'expr'>(() =>
+    typeof value === 'string' ? 'expr' : 'number'
+  );
+  const [draft, setDraft] = useState<string>(() =>
+    typeof value === 'string' ? value : String(value)
+  );
+  const [focused, setFocused] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [helpPosition, setHelpPosition] = useState<{ x: number; y: number } | null>(null);
+  const helpButtonRef = useRef<HTMLButtonElement>(null);
+
+  const [suggestOpen, setSuggestOpen] = useState(false);
+  const [suggestions, setSuggestions] = useState<WidthSuggestion[]>([]);
+  const [activeSuggestion, setActiveSuggestion] = useState(0);
+  const [activeToken, setActiveToken] = useState<{ start: number; end: number } | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const comboboxRef = useRef<HTMLDivElement>(null);
+  const pendingCaretRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (typeof value === 'string') {
+      setMode('expr');
+      if (!focused) {
+        setDraft(value);
+      }
+    } else {
+      setMode('number');
+      if (!focused) {
+        setDraft(String(value));
+      }
+    }
+  }, [value, focused]);
+
+  useEffect(() => {
+    if (!suggestOpen) {
+      return;
+    }
+    const onDocMouseDown = (e: MouseEvent) => {
+      if (comboboxRef.current && !comboboxRef.current.contains(e.target as Node)) {
+        setSuggestOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onDocMouseDown);
+    return () => document.removeEventListener('mousedown', onDocMouseDown);
+  }, [suggestOpen]);
+
+  useLayoutEffect(() => {
+    if (pendingCaretRef.current !== null && inputRef.current) {
+      const pos = pendingCaretRef.current;
+      pendingCaretRef.current = null;
+      inputRef.current.focus();
+      inputRef.current.setSelectionRange(pos, pos);
+    }
+  }, [draft]);
+
+  const hasParams = paramNames.length > 0;
+
+  const coerceExpr = (raw: string): number | string => {
+    const trimmed = raw.trim();
+    if (!trimmed) {
+      return defaultWidth;
+    }
+    const asInt = parseInt(trimmed, 10);
+    if (!isNaN(asInt) && asInt > 0 && String(asInt) === trimmed) {
+      return asInt;
+    }
+    return trimmed;
+  };
+
+  const commit = (raw: string) => {
+    if (mode === 'expr') {
+      onSave(coerceExpr(raw));
+    } else {
+      const n = parseInt(raw.trim(), 10);
+      onSave(!isNaN(n) && n > 0 ? n : defaultWidth);
+    }
+  };
+
+  const toggleMode = () => {
+    if (mode === 'expr') {
+      const fallback = resolved ?? defaultWidth;
+      setMode('number');
+      setDraft(String(fallback));
+      onSave(fallback);
+    } else {
+      const initial = hasParams ? paramNames[0] : '';
+      setMode('expr');
+      setDraft(initial);
+      onSave(initial || defaultWidth);
+    }
+    setSuggestOpen(false);
+  };
+
+  const valueDisplay = focused ? draft : typeof value === 'string' ? value : String(value);
+  const resolved =
+    mode === 'expr' && valueDisplay.trim() ? evalWidthExpr(valueDisplay, paramValues) : undefined;
+
+  const acceptSuggestion = (item: WidthSuggestion) => {
+    if (!activeToken) {
+      return;
+    }
+    const insertText = item.kind === 'function' ? `${item.name}()` : item.name;
+    const caretOffset = item.kind === 'function' ? item.name.length + 1 : item.name.length;
+    const newValue = draft.slice(0, activeToken.start) + insertText + draft.slice(activeToken.end);
+    pendingCaretRef.current = activeToken.start + caretOffset;
+    setDraft(newValue);
+    setSuggestOpen(false);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setDraft(newValue);
+    if (mode !== 'expr') {
+      return;
+    }
+    const cursor = e.target.selectionStart ?? newValue.length;
+    const result = getWidthSuggestions(newValue, cursor, paramNames);
+    if (result) {
+      setActiveToken(result.token);
+      setSuggestions(result.items);
+      setActiveSuggestion(0);
+      setSuggestOpen(true);
+    } else {
+      setSuggestOpen(false);
+    }
+  };
+
+  const displayValueForEdit = typeof value === 'string' ? value : String(value);
+
+  return (
+    <>
+      <div className={rowClassName}>
+        <div
+          className={`ci-combobox${mode === 'expr' ? ' ci-combobox--expr' : ''}`}
+          ref={comboboxRef}
+        >
+          <input
+            ref={inputRef}
+            className={`${inputClassName}${mode === 'expr' ? ` ${inputClassName}--expr` : ''}`}
+            value={valueDisplay}
+            placeholder={
+              mode === 'expr' ? (hasParams ? paramNames[0] : 'expr…') : String(defaultWidth)
+            }
+            onChange={handleChange}
+            onFocus={() => {
+              setFocused(true);
+              setDraft(displayValueForEdit);
+            }}
+            onBlur={() => {
+              setFocused(false);
+              setSuggestOpen(false);
+              commit(draft);
+            }}
+            onKeyDown={(e) => {
+              if (suggestOpen && suggestions.length > 0) {
+                if (e.key === 'ArrowDown') {
+                  e.preventDefault();
+                  setActiveSuggestion((i) => Math.min(i + 1, suggestions.length - 1));
+                  return;
+                }
+                if (e.key === 'ArrowUp') {
+                  e.preventDefault();
+                  setActiveSuggestion((i) => Math.max(i - 1, 0));
+                  return;
+                }
+                if (e.key === 'Enter' || e.key === 'Tab') {
+                  e.preventDefault();
+                  acceptSuggestion(suggestions[activeSuggestion]);
+                  return;
+                }
+                if (e.key === 'Escape') {
+                  e.preventDefault();
+                  setSuggestOpen(false);
+                  return;
+                }
+              }
+              if (e.key === 'Enter') {
+                e.currentTarget.blur();
+              } else if (e.key === 'Escape') {
+                setDraft(displayValueForEdit);
+                setFocused(false);
+                e.currentTarget.blur();
+              }
+            }}
+            title={
+              mode === 'expr' && resolved !== undefined
+                ? `= ${resolved}`
+                : mode === 'expr' && valueDisplay.trim()
+                  ? '= ? (unresolved)'
+                  : undefined
+            }
+            style={
+              inputClassName === 'ci-field__input'
+                ? { fontFamily: 'var(--vscode-editor-font-family, monospace)' }
+                : undefined
+            }
+          />
+          {suggestOpen && suggestions.length > 0 && (
+            <div className="ci-combobox__list">
+              {suggestions.map((item, i) => (
+                <div
+                  key={`${item.kind}-${item.name}`}
+                  className={`ci-combobox__option${i === activeSuggestion ? ' ci-combobox__option--active' : ''}`}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    acceptSuggestion(item);
+                  }}
+                  onMouseEnter={() => setActiveSuggestion(i)}
+                >
+                  {item.kind === 'function' ? item.signature : item.name}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <button
+          className={toggleClassName}
+          onClick={toggleMode}
+          title={mode === 'expr' ? 'Use a literal number' : 'Use a parameter or expression'}
+          type="button"
+        >
+          {mode === 'expr' ? (
+            '123'
+          ) : (
+            <span style={{ fontFamily: 'var(--vscode-editor-font-family, monospace)' }}>ƒ(x)</span>
+          )}
+        </button>
+        {mode === 'expr' && (
+          <button
+            ref={helpButtonRef}
+            type="button"
+            className={toggleClassName}
+            title="Show width expression functions"
+            onClick={() => {
+              const rect = helpButtonRef.current?.getBoundingClientRect();
+              if (rect) {
+                setHelpPosition({ x: rect.left, y: rect.bottom + 4 });
+              }
+              setHelpOpen((open) => !open);
+            }}
+          >
+            <span className="codicon codicon-info" />
+          </button>
+        )}
+        {previewStyle === 'inline' && mode === 'expr' && valueDisplay.trim() && (
+          <span
+            className={`ci-pw-expr-preview${resolved === undefined ? ' ci-pw-expr-preview--invalid' : ''}`}
+          >
+            ={resolved ?? '?'}
+          </span>
+        )}
+      </div>
+      <WidthFunctionHelpMenu
+        position={helpOpen ? helpPosition : null}
+        onClose={() => setHelpOpen(false)}
+      />
+      {previewStyle === 'below' && mode === 'expr' && valueDisplay.trim() && (
+        <div
+          className={`ci-field__expr-preview${resolved === undefined ? ' ci-field__expr-preview--invalid' : ''}`}
+        >
+          = {resolved ?? '?'}
+        </div>
+      )}
+    </>
+  );
+};
+
 interface ConduitSignalRowProps {
   port: ConduitPort;
   paramNames: string[];
@@ -2350,75 +2699,7 @@ const ConduitSignalRow: React.FC<ConduitSignalRowProps> = ({
     }
   }, [port.name, nameFocused]);
 
-  const currentWidth: number | string = port.width ?? 1;
-  const [widthMode, setWidthMode] = useState<'number' | 'expr'>(() =>
-    typeof currentWidth === 'string' ? 'expr' : 'number'
-  );
-  const [widthDraft, setWidthDraft] = useState<string>(() =>
-    typeof currentWidth === 'string' ? currentWidth : String(currentWidth)
-  );
-  const [widthFocused, setWidthFocused] = useState(false);
-
-  useEffect(() => {
-    if (typeof currentWidth === 'string') {
-      setWidthMode('expr');
-      if (!widthFocused) {
-        setWidthDraft(currentWidth);
-      }
-    } else {
-      setWidthMode('number');
-      if (!widthFocused) {
-        setWidthDraft(String(currentWidth));
-      }
-    }
-  }, [currentWidth, widthFocused]);
-
-  const coerceWidthExpr = (raw: string): number | string => {
-    const trimmed = raw.trim();
-    if (!trimmed) {
-      return 1;
-    }
-    const asInt = parseInt(trimmed, 10);
-    if (!isNaN(asInt) && asInt > 0 && String(asInt) === trimmed) {
-      return asInt;
-    }
-    return trimmed;
-  };
-
-  const commitWidth = (raw: string) => {
-    if (widthMode === 'expr') {
-      onChange({ width: coerceWidthExpr(raw) });
-    } else {
-      const n = parseInt(raw.trim(), 10);
-      onChange({ width: !isNaN(n) && n > 0 ? n : 1 });
-    }
-  };
-
-  const hasParams = paramNames.length > 0;
   const presence = port.presence ?? 'required';
-  const widthDisplay = widthFocused
-    ? widthDraft
-    : typeof currentWidth === 'string'
-      ? currentWidth
-      : String(currentWidth);
-  const resolved =
-    widthMode === 'expr' && widthDisplay.trim()
-      ? evalWidthExpr(widthDisplay, paramValues)
-      : undefined;
-
-  const toggleWidthMode = () => {
-    if (widthMode === 'expr') {
-      const fallback = resolved ?? (typeof currentWidth === 'number' ? currentWidth : 1);
-      setWidthMode('number');
-      setWidthDraft(String(fallback));
-      onChange({ width: fallback });
-    } else {
-      const initial = paramNames.length > 0 ? paramNames[0] : '';
-      setWidthMode('expr');
-      setWidthDraft(initial);
-      onChange({ width: initial || 1 });
-    }
-  };
 
   return (
     <div className="ci-conduit-row">
@@ -2457,56 +2738,15 @@ const ConduitSignalRow: React.FC<ConduitSignalRowProps> = ({
         <option value="out">out</option>
         <option value="inout">inout</option>
       </select>
-      <div className="ci-pw-field">
-        <input
-          className={`ci-pw-input${widthMode === 'expr' ? ' ci-pw-input--expr' : ''}`}
-          value={widthDisplay}
-          placeholder={widthMode === 'expr' ? (hasParams ? paramNames[0] : 'expr…') : '1'}
-          onChange={(e) => setWidthDraft(e.target.value)}
-          onFocus={() => {
-            setWidthFocused(true);
-            setWidthDraft(typeof currentWidth === 'string' ? currentWidth : String(currentWidth));
-          }}
-          onBlur={() => {
-            setWidthFocused(false);
-            commitWidth(widthDraft);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.currentTarget.blur();
-            } else if (e.key === 'Escape') {
-              setWidthDraft(typeof currentWidth === 'string' ? currentWidth : String(currentWidth));
-              setWidthFocused(false);
-              e.currentTarget.blur();
-            }
-          }}
-          title={
-            widthMode === 'expr' && resolved !== undefined
-              ? `= ${resolved}`
-              : widthMode === 'expr' && widthDisplay.trim()
-                ? '= ? (unresolved)'
-                : undefined
-          }
-        />
-        <button
-          className="ci-pw-mode-toggle"
-          onClick={toggleWidthMode}
-          title={widthMode === 'expr' ? 'Use a literal number' : 'Use a parameter or expression'}
-        >
-          {widthMode === 'expr' ? (
-            '123'
-          ) : (
-            <span style={{ fontFamily: 'var(--vscode-editor-font-family, monospace)' }}>ƒ(x)</span>
-          )}
-        </button>
-        {widthMode === 'expr' && widthDisplay.trim() && (
-          <span
-            className={`ci-pw-expr-preview${resolved === undefined ? ' ci-pw-expr-preview--invalid' : ''}`}
-          >
-            ={resolved ?? '?'}
-          </span>
-        )}
-      </div>
+      <WidthExprControl
+        value={port.width ?? 1}
+        paramNames={paramNames}
+        paramValues={paramValues}
+        onSave={(width) => onChange({ width })}
+        rowClassName="ci-pw-field"
+        inputClassName="ci-pw-input"
+        previewStyle="inline"
+      />
       <button
         className={`ci-conduit-presence ci-conduit-presence--${presence}`}
         onClick={() => onChange({ presence: presence === 'required' ? 'optional' : 'required' })}
@@ -2752,73 +2992,7 @@ const PortWidthRow: React.FC<PortWidthRowProps> = ({
   onSave,
   onReset,
 }) => {
-  const [mode, setMode] = useState<'number' | 'expr'>(() =>
-    typeof currentValue === 'string' ? 'expr' : 'number'
-  );
-  const [draft, setDraft] = useState<string>(() =>
-    typeof currentValue === 'string' ? currentValue : String(currentValue)
-  );
-  const [focused, setFocused] = useState(false);
-
-  useEffect(() => {
-    if (typeof currentValue === 'string') {
-      setMode('expr');
-      if (!focused) {
-        setDraft(currentValue);
-      }
-    } else {
-      setMode('number');
-      if (!focused) {
-        setDraft(String(currentValue));
-      }
-    }
-  }, [currentValue, focused]);
-
   const dirSymbol = direction === 'out' ? '›' : direction === 'in' ? '‹' : ' ';
-  const hasParams = paramNames.length > 0;
-
-  const coerceExpr = (raw: string): number | string => {
-    const trimmed = raw.trim();
-    if (!trimmed) {
-      return defaultWidth;
-    }
-    const asInt = parseInt(trimmed, 10);
-    if (!isNaN(asInt) && asInt > 0 && String(asInt) === trimmed) {
-      return asInt;
-    }
-    return trimmed;
-  };
-
-  const valueDisplay = focused
-    ? draft
-    : typeof currentValue === 'string'
-      ? currentValue
-      : String(currentValue);
-  const resolved =
-    mode === 'expr' && valueDisplay.trim() ? evalWidthExpr(valueDisplay, paramValues) : undefined;
-
-  const commit = (raw: string) => {
-    if (mode === 'expr') {
-      onSave(coerceExpr(raw));
-    } else {
-      const n = parseInt(raw.trim(), 10);
-      onSave(!isNaN(n) && n > 0 ? n : defaultWidth);
-    }
-  };
-
-  const toggleMode = () => {
-    if (mode === 'expr') {
-      const fallback = resolved ?? defaultWidth;
-      setMode('number');
-      setDraft(String(fallback));
-      onSave(fallback);
-    } else {
-      const initial = hasParams ? paramNames[0] : '';
-      setMode('expr');
-      setDraft(initial);
-      onSave(initial || defaultWidth);
-    }
-  };
 
   return (
     <div className={`ci-pw-row${hasOverride ? ' ci-pw-row--overridden' : ''}`}>
@@ -2832,58 +3006,16 @@ const PortWidthRow: React.FC<PortWidthRowProps> = ({
         {signal}
         {!hasFixedDefault && <span className="ci-pw-unconstrained">*</span>}
       </span>
-      <div className="ci-pw-field">
-        <input
-          className={`ci-pw-input${mode === 'expr' ? ' ci-pw-input--expr' : ''}`}
-          value={valueDisplay}
-          placeholder={
-            mode === 'expr' ? (hasParams ? paramNames[0] : 'expr…') : String(defaultWidth)
-          }
-          onChange={(e) => setDraft(e.target.value)}
-          onFocus={() => {
-            setFocused(true);
-            setDraft(typeof currentValue === 'string' ? currentValue : String(currentValue));
-          }}
-          onBlur={() => {
-            setFocused(false);
-            commit(draft);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.currentTarget.blur();
-            } else if (e.key === 'Escape') {
-              setDraft(typeof currentValue === 'string' ? currentValue : String(currentValue));
-              setFocused(false);
-              e.currentTarget.blur();
-            }
-          }}
-          title={
-            mode === 'expr' && resolved !== undefined
-              ? `= ${resolved}`
-              : mode === 'expr' && valueDisplay.trim()
-                ? '= ? (unresolved)'
-                : undefined
-          }
-        />
-        <button
-          className="ci-pw-mode-toggle"
-          onClick={toggleMode}
-          title={mode === 'expr' ? 'Use a literal number' : 'Use a parameter or expression'}
-        >
-          {mode === 'expr' ? (
-            '123'
-          ) : (
-            <span style={{ fontFamily: 'var(--vscode-editor-font-family, monospace)' }}>ƒ(x)</span>
-          )}
-        </button>
-        {mode === 'expr' && valueDisplay.trim() && (
-          <span
-            className={`ci-pw-expr-preview${resolved === undefined ? ' ci-pw-expr-preview--invalid' : ''}`}
-          >
-            ={resolved ?? '?'}
-          </span>
-        )}
-      </div>
+      <WidthExprControl
+        value={currentValue}
+        defaultWidth={defaultWidth}
+        paramNames={paramNames}
+        paramValues={paramValues}
+        onSave={onSave}
+        rowClassName="ci-pw-field"
+        inputClassName="ci-pw-input"
+        previewStyle="inline"
+      />
       {hasOverride ? (
         <button className="ci-pw-reset" onClick={onReset} title="Reset to default">
           <span className="codicon codicon-discard" />
@@ -3379,141 +3511,19 @@ const PropWidthField: React.FC<PropWidthFieldProps> = ({
   paramValues = {},
   onSave,
 }) => {
-  const [mode, setMode] = useState<'number' | 'expr'>(() =>
-    typeof value === 'string' ? 'expr' : 'number'
-  );
-  const [numDraft, setNumDraft] = useState(typeof value === 'number' ? String(value) : '1');
-  const [exprDraft, setExprDraft] = useState(typeof value === 'string' ? value : '');
-  const [focused, setFocused] = useState(false);
-
-  useEffect(() => {
-    if (typeof value === 'string') {
-      setMode('expr');
-      if (!focused) {
-        setExprDraft(value);
-      }
-    } else {
-      setMode('number');
-      if (!focused) {
-        setNumDraft(String(value));
-      }
-    }
-  }, [value, focused]);
-
-  const hasParams = paramNames.length > 0;
-
-  const commitNumber = (raw: string) => {
-    const n = parseInt(raw, 10);
-    onSave(!isNaN(n) && n > 0 ? n : 1);
-  };
-
-  const commitExpr = (raw: string) => {
-    const trimmed = raw.trim();
-    if (!trimmed) {
-      onSave(1);
-      return;
-    }
-    // Save as integer if the expression is a pure positive integer literal
-    const asInt = parseInt(trimmed, 10);
-    if (!isNaN(asInt) && asInt > 0 && String(asInt) === trimmed) {
-      onSave(asInt);
-    } else {
-      onSave(trimmed);
-    }
-  };
-
-  const toggleMode = () => {
-    if (mode === 'expr') {
-      // Use the resolved numeric value when available, so the field starts at a meaningful number
-      const fallback = resolved ?? (typeof value === 'number' ? value : 1);
-      setMode('number');
-      setNumDraft(String(fallback));
-      onSave(fallback);
-    } else {
-      const initial = hasParams ? paramNames[0] : '';
-      setMode('expr');
-      setExprDraft(initial);
-      onSave(initial || 1);
-    }
-  };
-
-  const exprDisplay = focused ? exprDraft : typeof value === 'string' ? value : exprDraft;
-  const resolved = exprDisplay.trim() ? evalWidthExpr(exprDisplay, paramValues) : undefined;
-
   return (
     <div className="ci-field">
       <label className="ci-field__label">{label}</label>
-      <div className="ci-field__input-row">
-        {mode === 'expr' ? (
-          <input
-            className="ci-field__input"
-            value={exprDisplay}
-            placeholder={hasParams ? paramNames[0] : 'expression…'}
-            onChange={(e) => setExprDraft(e.target.value)}
-            onFocus={() => {
-              setFocused(true);
-              setExprDraft(typeof value === 'string' ? value : exprDraft);
-            }}
-            onBlur={() => {
-              setFocused(false);
-              commitExpr(exprDraft);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.currentTarget.blur();
-              } else if (e.key === 'Escape') {
-                setExprDraft(typeof value === 'string' ? value : '');
-                setFocused(false);
-                e.currentTarget.blur();
-              }
-            }}
-            style={{ fontFamily: 'var(--vscode-editor-font-family, monospace)' }}
-          />
-        ) : (
-          <input
-            className="ci-field__input"
-            value={focused ? numDraft : typeof value === 'number' ? String(value) : '1'}
-            placeholder="1"
-            onChange={(e) => setNumDraft(e.target.value)}
-            onFocus={() => {
-              setFocused(true);
-              setNumDraft(typeof value === 'number' ? String(value) : '1');
-            }}
-            onBlur={() => {
-              setFocused(false);
-              commitNumber(numDraft);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.currentTarget.blur();
-              } else if (e.key === 'Escape') {
-                setNumDraft(typeof value === 'number' ? String(value) : '1');
-                setFocused(false);
-                e.currentTarget.blur();
-              }
-            }}
-            style={{ fontFamily: 'var(--vscode-editor-font-family, monospace)' }}
-          />
-        )}
-        <button
-          className="ci-pw-mode-toggle ci-field__mode-toggle"
-          onClick={toggleMode}
-          title={mode === 'expr' ? 'Use a literal number' : 'Use a parameter or expression'}
-        >
-          {mode === 'expr' ? (
-            '123'
-          ) : (
-            <span style={{ fontFamily: 'var(--vscode-editor-font-family, monospace)' }}>ƒ(x)</span>
-          )}
-        </button>
-      </div>
-      {mode === 'expr' && exprDisplay.trim() && (
-        <div
-          className={`ci-field__expr-preview${resolved === undefined ? ' ci-field__expr-preview--invalid' : ''}`}
-        >
-          = {resolved ?? '?'}
-        </div>
-      )}
+      <WidthExprControl
+        value={value}
+        paramNames={paramNames}
+        paramValues={paramValues}
+        onSave={onSave}
+        rowClassName="ci-field__input-row"
+        inputClassName="ci-field__input"
+        toggleClassName="ci-pw-mode-toggle ci-field__mode-toggle"
+        previewStyle="below"
+      />
     </div>
   );
 };
