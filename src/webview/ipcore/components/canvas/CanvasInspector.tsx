@@ -329,7 +329,10 @@ interface FsFileEntry {
   path: string;
   type: string;
   managed?: boolean;
+  version?: string;
 }
+
+const VHDL_VERSION_OPTIONS = ['', '87', '93', '2002', '2008', '2019'];
 
 interface FsFileSet {
   name: string;
@@ -406,6 +409,19 @@ const FileSetsSection: React.FC<{ ipCore: IpCore; onUpdate: YamlUpdateHandler }>
     onUpdate(['fileSets', setIdx, 'files'], updatedFiles);
   };
 
+  const handleSetVersion = (setIdx: number, fileIdx: number, version: string) => {
+    const files = fileSets[setIdx].files ?? [];
+    const updatedFile: FsFileEntry = { ...files[fileIdx] };
+    if (version) {
+      updatedFile.version = version;
+    } else {
+      delete updatedFile.version;
+    }
+    const updatedFiles = [...files];
+    updatedFiles[fileIdx] = updatedFile;
+    onUpdate(['fileSets', setIdx, 'files'], updatedFiles);
+  };
+
   const allFiles = fileSets.flatMap((fs) => fs.files ?? []);
   const allLocked = allFiles.length > 0 && allFiles.every((f) => f.managed === false);
 
@@ -474,6 +490,21 @@ const FileSetsSection: React.FC<{ ipCore: IpCore; onUpdate: YamlUpdateHandler }>
                 >
                   {filename}
                 </span>
+                {file.type === 'vhdl' && (
+                  <select
+                    className="ci-fileset__version"
+                    value={file.version ?? ''}
+                    onChange={(e) => handleSetVersion(setIdx, fileIdx, e.target.value)}
+                    onClick={(e) => e.stopPropagation()}
+                    title="VHDL standard used by Vivado packaging"
+                  >
+                    {VHDL_VERSION_OPTIONS.map((v) => (
+                      <option key={v} value={v}>
+                        {v ? v : '2008 (default)'}
+                      </option>
+                    ))}
+                  </select>
+                )}
                 <button
                   className="ci-fileset__rm"
                   onClick={() => handleToggleManaged(setIdx, fileIdx)}

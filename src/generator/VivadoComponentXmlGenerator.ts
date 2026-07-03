@@ -455,7 +455,8 @@ export function generateComponentXml(
       derivedXguiFile,
       ipCore.subcores ?? [],
       isSv,
-      xguiChecksum
+      xguiChecksum,
+      buildVhdlVersionLookup(ipCore)
     )
   );
 
@@ -1369,11 +1370,12 @@ function renderFileSets(
   xguiFile: string,
   subcores: SubcoreRef[] = [],
   isSv = false,
-  xguiChecksum?: string
+  xguiChecksum?: string,
+  getVhdlVersion?: (filePath: string) => string | undefined
 ): string[] {
   const synthViewName = 'xilinx_anylanguagesynthesis';
   const simViewName = 'xilinx_anylanguagebehavioralsimulation';
-  const renderFile = isSv ? renderSvFile : renderVhdlFile;
+  const renderFile = isSv ? renderSvFile : (f: string) => renderVhdlFile(f, getVhdlVersion?.(f));
 
   const lines: string[] = [];
   lines.push('  <spirit:fileSets>');
@@ -1427,13 +1429,21 @@ function renderFileSets(
   return lines;
 }
 
-function renderVhdlFile(filePath: string): string[] {
-  return [
-    '      <spirit:file>',
-    `        <spirit:name>${x(filePath)}</spirit:name>`,
-    '        <spirit:fileType>vhdlSource</spirit:fileType>',
-    '      </spirit:file>',
-  ];
+function renderVhdlFile(filePath: string, version?: string): string[] {
+  const lines = ['      <spirit:file>', `        <spirit:name>${x(filePath)}</spirit:name>`];
+  if (version === '93' || version === '87') {
+    // Explicit opt-out of VHDL-2008 — register as plain vhdlSource (Vivado's VHDL-93 default).
+    lines.push('        <spirit:fileType>vhdlSource</spirit:fileType>');
+  } else {
+    // Vivado-native per-file version marker (spirit-1685-2009 has no versioned fileType
+    // enum values, so the version lives in userFileType). Unset version defaults to 2008,
+    // matching the VHDL standard IPCraft's own generated RTL and OOC synthesis already use.
+    lines.push(
+      `        <spirit:userFileType>vhdlSource-${version ?? '2008'}</spirit:userFileType>`
+    );
+  }
+  lines.push('      </spirit:file>');
+  return lines;
 }
 
 function renderSvFile(filePath: string): string[] {
@@ -1631,6 +1641,27 @@ function modeToXmlTag(mode: string): string {
     default:
       return 'slave';
   }
+}
+
+function normalizeFilePath(p: string): string {
+  return p.replace(/^(\.\.?\/)+/, '');
+}
+
+function buildVhdlVersionLookup(ipCore: IpCoreData): (filePath: string) => string | undefined {
+  const fileSets = (ipCore as Record<string, unknown>).fileSets as
+    | Array<{ files?: Array<{ path?: string; type?: string; version?: string }> }>
+    | undefined;
+  const versionByPath = new Map<string, string>();
+  if (Array.isArray(fileSets)) {
+    for (const fs of fileSets) {
+      for (const f of fs.files ?? []) {
+        if (f.type === 'vhdl' && f.path && f.version) {
+          versionByPath.set(normalizeFilePath(f.path), String(f.version));
+        }
+      }
+    }
+  }
+  return (filePath: string) => versionByPath.get(normalizeFilePath(filePath));
 }
 
 function getFileSetPaths(ipCore: IpCoreData, fileSetName: string, prefix: string): string[] | null {

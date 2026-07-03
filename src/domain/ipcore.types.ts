@@ -448,6 +448,10 @@ export type Isincludefile = boolean;
  */
 export type Logicalname4 = string;
 /**
+ * HDL language standard version. For type 'vhdl': '87', '93', '2002', '2008', '2019' (unset defaults to '2008' in generated Vivado packaging). For type 'verilog': '95', '2001'. Quote the value in YAML.
+ */
+export type Version1 = string;
+/**
  * Files in this set
  */
 export type Files = File[];
@@ -813,5 +817,6 @@ export interface File {
   description?: Description13;
   isIncludeFile?: Isincludefile;
   logicalName?: Logicalname4;
+  version?: Version1;
   [k: string]: unknown;
 }

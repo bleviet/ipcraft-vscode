@@ -778,7 +778,6 @@ describe('generateComponentXml', () => {
         '<spirit:name>xilinx_anylanguagebehavioralsimulation_view_fileset</spirit:name>'
       );
       expect(xml).toContain('<spirit:name>../rtl/my_core.vhd</spirit:name>');
-      expect(xml).toContain('<spirit:fileType>vhdlSource</spirit:fileType>');
     });
 
     it('uses simFiles option for simulation fileset when provided', () => {
@@ -819,6 +818,72 @@ describe('generateComponentXml', () => {
         { filePathPrefix: '../' }
       );
       expect(xml).toContain('<spirit:name>../rtl/my_core.vhd</spirit:name>');
+    });
+
+    describe('VHDL version', () => {
+      it('defaults unspecified VHDL files to userFileType vhdlSource-2008', () => {
+        const xml = gen({}, { rtlFiles: ['../rtl/my_core.vhd'] });
+        expect(xml).toContain('<spirit:userFileType>vhdlSource-2008</spirit:userFileType>');
+        expect(xml).not.toContain('<spirit:fileType>vhdlSource</spirit:fileType>');
+      });
+
+      it('registers a file marked version 93 as plain vhdlSource', () => {
+        const xml = generateComponentXml(
+          {
+            ...makeIp(),
+            fileSets: [
+              {
+                name: 'RTL_Sources',
+                files: [{ path: 'rtl/my_core.vhd', type: 'vhdl', version: '93' }],
+              },
+            ],
+          } as IpCoreData,
+          BUS_DEFS,
+          { filePathPrefix: '../', rtlFiles: ['../rtl/my_core.vhd'] }
+        );
+        expect(xml).toContain('<spirit:fileType>vhdlSource</spirit:fileType>');
+        expect(xml).not.toContain('vhdlSource-93');
+      });
+
+      it('registers a file marked version 2002 as userFileType vhdlSource-2002', () => {
+        const xml = generateComponentXml(
+          {
+            ...makeIp(),
+            fileSets: [
+              {
+                name: 'RTL_Sources',
+                files: [{ path: 'rtl/my_core.vhd', type: 'vhdl', version: '2002' }],
+              },
+            ],
+          } as IpCoreData,
+          BUS_DEFS,
+          { filePathPrefix: '../', rtlFiles: ['../rtl/my_core.vhd'] }
+        );
+        expect(xml).toContain('<spirit:userFileType>vhdlSource-2002</spirit:userFileType>');
+      });
+
+      it('resolves per-file version from ip.yml fileSets when rtlFiles not provided', () => {
+        const xml = generateComponentXml(
+          {
+            ...makeIp(),
+            fileSets: [
+              {
+                name: 'RTL_Sources',
+                files: [{ path: 'rtl/my_core.vhd', type: 'vhdl', version: '93' }],
+              },
+            ],
+          } as IpCoreData,
+          BUS_DEFS,
+          { filePathPrefix: '../' }
+        );
+        expect(xml).toContain('<spirit:fileType>vhdlSource</spirit:fileType>');
+      });
+
+      it('does not apply VHDL version markers to SystemVerilog files', () => {
+        const xml = gen({}, { rtlFiles: ['../rtl/my_core.sv'], isSv: true });
+        expect(xml).toContain('<spirit:fileType>systemVerilogSource</spirit:fileType>');
+        expect(xml).not.toContain('vhdlSource');
+      });
     });
   });
 
