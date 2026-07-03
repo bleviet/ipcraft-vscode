@@ -19,6 +19,7 @@
     /* Pattern/readability contrast tokens */
     --ipcraft-pattern-line: color-mix(in srgb, var(--vscode-foreground) 34%, transparent);
     --ipcraft-pattern-label-fg: color-mix(in srgb, white 96%, var(--vscode-foreground) 4%);
+    --ipcraft-pattern-label-inactive-fg: color-mix(in srgb, var(--ipcraft-pattern-label-fg) 55%, transparent);
     --ipcraft-pattern-label-shadow: color-mix(in srgb, black 55%, transparent);
     --ipcraft-pattern-border: color-mix(in srgb, white 48%, transparent);
     --ipcraft-pattern-ring: color-mix(in srgb, white 78%, transparent);
@@ -30,6 +31,7 @@
     :root {
         --ipcraft-pattern-line: color-mix(in srgb, var(--vscode-foreground) 70%, transparent);
         --ipcraft-pattern-label-fg: var(--vscode-foreground);
+        --ipcraft-pattern-label-inactive-fg: var(--vscode-foreground);
         --ipcraft-pattern-label-shadow: transparent;
         --ipcraft-pattern-border: var(--vscode-foreground);
         --ipcraft-pattern-ring: var(--vscode-foreground);
@@ -38,8 +40,15 @@
 }
 
 .ipcraft-pattern-label {
-    color: var(--ipcraft-pattern-label-fg);
     text-shadow: 0 1px 2px var(--ipcraft-pattern-label-shadow);
+}
+
+.ipcraft-pattern-label--active {
+    color: var(--ipcraft-pattern-label-fg);
+}
+
+.ipcraft-pattern-label--inactive {
+    color: var(--ipcraft-pattern-label-inactive-fg);
 }
 
 html,

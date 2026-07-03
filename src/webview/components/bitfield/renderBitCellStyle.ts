@@ -41,7 +41,7 @@ export function renderBitCellStyle({
 
   return {
     cellClassName: bitValue === 1 && !isOutOfNewRange ? 'ring-1 ring-white/70 ring-inset' : '',
-    labelClassName: `ipcraft-pattern-label ${labelSizeClass} font-mono select-none ${bitValue === 1 ? 'font-bold' : 'font-normal'}`,
+    labelClassName: `ipcraft-pattern-label ${bitValue === 1 ? 'ipcraft-pattern-label--active' : 'ipcraft-pattern-label--inactive'} ${labelSizeClass} font-mono select-none ${bitValue === 1 ? 'font-bold' : 'font-normal'}`,
     style: {
       backgroundColor: isOutOfNewRange ? 'var(--vscode-editor-background)' : resolvedColor,
       opacity: isOutOfNewRange

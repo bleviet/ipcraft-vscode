@@ -133,7 +133,11 @@ const DefaultLayoutView = ({
               }}
             >
               <span className="text-[10px] vscode-muted font-mono">{bit}</span>
-              <span className="text-[11px] font-mono mb-1">{bitValues[bit]}</span>
+              <span
+                className={`ipcraft-pattern-label ${bitValues[bit] === 1 ? 'ipcraft-pattern-label--active font-bold' : 'ipcraft-pattern-label--inactive font-normal'} text-[11px] font-mono mb-1`}
+              >
+                {bitValues[bit]}
+              </span>
             </div>
           );
         })}
