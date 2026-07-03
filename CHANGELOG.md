@@ -4,6 +4,11 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [0.8.2] - 2026-07-04
+
+### Fixed
+- **Vivado VHDL-93/2008 misclassification**: generated `component.xml` registered every VHDL file as plain `vhdlSource`, which Vivado treats as VHDL-93 when the IP is instantiated in a block design, rejecting VHDL-2008 constructs during synthesis. VHDL files now default to VHDL-2008 (`userFileType vhdlSource-2008`, matching Vivado's own packaging), and each file in a `fileSets` entry can set an explicit `version` (`87`/`93`/`2002`/`2008`/`2019`) via a new dropdown in the Source Files editor. ([#28](https://github.com/bleviet/ipcraft-vscode/issues/28))
+
 ## [0.8.0] - 2026-06-27
 
 ### Added
