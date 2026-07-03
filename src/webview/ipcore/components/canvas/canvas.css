@@ -1502,6 +1502,19 @@
   gap: 2px;
 }
 
+/* WidthExprControl's autocomplete wrapper (.ci-combobox), nested inside a
+ * compact ci-pw-field row: make it — not the raw <input> — the flexible
+ * layout participant, matching the sizing the bare input used to have before
+ * it was wrapped for the autocomplete dropdown. */
+.ci-pw-field .ci-combobox {
+  display: inline-flex;
+  min-width: 0;
+}
+.ci-pw-field .ci-combobox--expr {
+  flex: 1 1 60px;
+  max-width: 130px;
+}
+
 .ci-pw-input {
   font-family: var(--vscode-editor-font-family, monospace);
   font-size: 10px;

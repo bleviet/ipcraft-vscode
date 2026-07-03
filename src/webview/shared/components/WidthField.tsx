@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { VSCodeTextField } from '@vscode/webview-ui-toolkit/react';
 import { evalWidthExpr, normalizeFunctionNames } from '../utils/evalWidthExpr';
+import { WidthFunctionHelpMenu } from './WidthFunctionHelpMenu';
 
 const NUMERIC_PARAM_TYPES = new Set(['integer']);
 
@@ -68,6 +69,10 @@ export const WidthField: React.FC<WidthFieldProps> = ({
     typeof value === 'number' ? String(value) : String(defaultWidth)
   );
   const exprRef = useRef<string>(typeof value === 'string' ? value : '');
+
+  const [helpMenuOpen, setHelpMenuOpen] = useState(false);
+  const [helpMenuPosition, setHelpMenuPosition] = useState<{ x: number; y: number } | null>(null);
+  const helpButtonRef = useRef<HTMLButtonElement>(null);
 
   const commit = (v: number | string) => {
     if (onSaveWithValue) {
@@ -206,7 +211,39 @@ export const WidthField: React.FC<WidthFieldProps> = ({
         >
           {mode === 'expr' ? '123' : 'ƒ(x)'}
         </button>
+
+        {mode === 'expr' && (
+          <button
+            ref={helpButtonRef}
+            type="button"
+            title="Show width expression functions"
+            onClick={() => {
+              const rect = helpButtonRef.current?.getBoundingClientRect();
+              if (rect) {
+                setHelpMenuPosition({ x: rect.left, y: rect.bottom + 4 });
+              }
+              setHelpMenuOpen((open) => !open);
+            }}
+            // Same guard as the mode-toggle button: without it, opening the popover
+            // would fire handleBlur's commit-on-blur before the click is processed.
+            onMouseDown={(e) => e.preventDefault()}
+            disabled={disabled}
+            className="shrink-0 rounded px-1 py-0.5 text-xs transition-opacity vscode-muted hover:opacity-100"
+            style={{ opacity: 0.7 }}
+          >
+            <span className="codicon codicon-info" />
+          </button>
+        )}
       </div>
+
+      {/* Mounted inside the wrapper (not a portal/sibling) so handleBlur's
+          e.currentTarget.contains(e.relatedTarget) check treats interacting with
+          the popover as focus staying within the field, avoiding a spurious
+          commit/cancel of the in-progress width edit. */}
+      <WidthFunctionHelpMenu
+        position={helpMenuOpen ? helpMenuPosition : null}
+        onClose={() => setHelpMenuOpen(false)}
+      />
 
       {mode === 'expr' && exprDisplay.trim() && (
         <div
