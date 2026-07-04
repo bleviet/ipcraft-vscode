@@ -24,6 +24,9 @@ if {![file exists $qpf_path]} {
     exit 1
 }
 
+# project_open searches by name in the current directory, so cd first.
+cd $altera_dir
+
 puts "======================================================"
 puts "=== Quartus compile: $project_name"
 puts "=== Project: $qpf_path"
