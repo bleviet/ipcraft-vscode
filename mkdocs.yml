@@ -57,6 +57,12 @@ nav:
   - Tutorials:
       - Build and Verify a Scaffold Pack: tutorials/build-and-verify-a-scaffold-pack.md
       - Memory-Mapped Registers: tutorials/memory-mapped-registers.md
+      - LED Controller on Real Hardware:
+          - 1. Authoring the Peripheral: tutorials/led-controller-avmm-authoring.md
+          - 2. Simulating Before Hardware: tutorials/led-controller-avmm-simulation.md
+          - 3. Importing an Existing Peripheral: tutorials/importing-avalon-mm-peripherals.md
+          - 4. Headless Quartus Build: tutorials/headless-quartus-build.md
+          - 5. Programming the Board: tutorials/led-controller-avmm-on-hardware.md
   - How-to Guides:
       - Importing from Existing Files: how-to/vhdl-import.md
       - Generating a Project: how-to/generating-a-project.md
