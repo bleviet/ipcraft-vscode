@@ -1,0 +1,59 @@
+name: Vendor integration (self-hosted)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Only one run at a time on the self-hosted runner; cancel any in-progress
+# run when a new push arrives so we always test the latest commit.
+concurrency:
+  group: vendor-integration
+  cancel-in-progress: true
+
+jobs:
+  vendor-integration:
+    name: Vivado + Quartus integration tests
+    runs-on: [self-hosted, Linux, X64, vivado, quartus]
+    timeout-minutes: 90
+
+    env:
+      VIVADO_BIN: /home/bale/tools/Xilinx/2026.1/Vivado/bin/vivado
+      QUARTUS_TCLSH_BIN: /home/bale/tools/altera_lite/25.1std/quartus/bin/tclsh
+      QUARTUS_SH_BIN: /home/bale/tools/altera_lite/25.1std/quartus/bin/quartus_sh
+      # Fail if Vivado is not found (it should always be on this host)
+      REQUIRE_VIVADO: 1
+      # No Docker on this host; native Quartus takes over (QUARTUS_TCLSH_BIN set above)
+      SKIP_DOCKER: 1
+      # Record tier-2 skips (qsys-generate absent) for visibility
+      SKIP_TELEMETRY_FILE: ${{ github.workspace }}/skip-telemetry.ndjson
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build
+        run: npm run compile
+
+      - name: Vivado integration tests
+        run: npx jest --config config/jest.integration.js --testPathPatterns=vivado
+
+      - name: Quartus integration tests (native)
+        run: npx jest --config config/jest.integration.js --testPathPatterns=quartus
+
+      - name: Upload skip telemetry
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: skip-telemetry-${{ github.run_id }}
+          path: skip-telemetry.ndjson
+          retention-days: 90
+          if-no-files-found: ignore
