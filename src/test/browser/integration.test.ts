@@ -410,6 +410,193 @@ addressBlocks:
     await expect(footer).toBeVisible();
     await expect(footer).toContainText('1 Items');
   });
+
+  test('should keyboard insert register after selection with o key', async ({ page }) => {
+    const ctrlItem = page.locator('[data-outline-id="block-0-reg-0"]');
+    await ctrlItem.click();
+
+    const regsTable = page.locator('[data-regs-table]');
+    await expect(regsTable).toBeVisible({ timeout: 5000 });
+
+    // Click the register card to ensure selectedIndex is set before pressing o
+    await regsTable.locator('[data-viz-row="0"]').click();
+    await regsTable.focus();
+
+    await page.evaluate(() => {
+      (window as any).__last_message = null;
+    });
+
+    await page.keyboard.press('o');
+
+    await expect(page.locator('[role="treeitem"]', { hasText: 'reg1' })).toBeVisible({
+      timeout: 5000,
+    });
+
+    await page.waitForFunction(
+      () => {
+        const msg = (window as any).__last_message;
+        return msg && msg.type === 'update' && msg.text.includes('reg1');
+      },
+      { timeout: 10000 }
+    );
+
+    const lastMsg = await page.evaluate(() => (window as any).__last_message);
+    expect(lastMsg.type).toBe('update');
+    expect(lastMsg.text).toContain('reg1');
+  });
+
+  test('should keyboard insert register before selection with shift+o key', async ({ page }) => {
+    const ctrlItem = page.locator('[data-outline-id="block-0-reg-0"]');
+    await ctrlItem.click();
+
+    const regsTable = page.locator('[data-regs-table]');
+    await expect(regsTable).toBeVisible({ timeout: 5000 });
+
+    await regsTable.locator('[data-viz-row="0"]').click();
+    await regsTable.focus();
+
+    await page.keyboard.press('Shift+o');
+
+    // reg1 is inserted at index 0; CTRL shifts to index 1
+    await expect(page.locator('[role="treeitem"]', { hasText: 'reg1' })).toBeVisible({
+      timeout: 5000,
+    });
+    await expect(page.locator('[role="treeitem"]', { hasText: 'CTRL' })).toBeVisible({
+      timeout: 5000,
+    });
+  });
+
+  test('should keyboard delete selected register with d key', async ({ page }) => {
+    const ctrlItem = page.locator('[data-outline-id="block-0-reg-0"]');
+    await ctrlItem.click();
+
+    const regsTable = page.locator('[data-regs-table]');
+    await expect(regsTable).toBeVisible({ timeout: 5000 });
+
+    await regsTable.locator('[data-viz-row="0"]').click();
+    await regsTable.focus();
+
+    await page.evaluate(() => {
+      (window as any).__last_message = null;
+    });
+
+    await page.keyboard.press('d');
+
+    await expect(ctrlItem).not.toBeVisible({ timeout: 5000 });
+
+    await page.waitForFunction(
+      () => {
+        const msg = (window as any).__last_message;
+        return msg && msg.type === 'update';
+      },
+      { timeout: 10000 }
+    );
+
+    const lastMsg = await page.evaluate(() => (window as any).__last_message);
+    expect(lastMsg.type).toBe('update');
+    expect(lastMsg.text).not.toContain('name: CTRL');
+  });
+
+  test('should keyboard insert address block after selection with o key', async ({ page }) => {
+    const rootItem = page.locator('[data-outline-id="root"]');
+    await rootItem.click();
+
+    const blocksTable = page.locator('[data-blocks-table]');
+    await expect(blocksTable).toBeVisible({ timeout: 5000 });
+
+    // Click the REGS block row to select it before pressing o
+    await blocksTable.locator('tr[data-row-id]').first().click();
+    await blocksTable.focus();
+
+    await page.evaluate(() => {
+      (window as any).__last_message = null;
+    });
+
+    await page.keyboard.press('o');
+
+    await expect(page.locator('[role="treeitem"]', { hasText: 'block1' })).toBeVisible({
+      timeout: 5000,
+    });
+
+    await page.waitForFunction(
+      () => {
+        const msg = (window as any).__last_message;
+        return msg && msg.type === 'update' && msg.text.includes('block1');
+      },
+      { timeout: 10000 }
+    );
+
+    const lastMsg = await page.evaluate(() => (window as any).__last_message);
+    expect(lastMsg.type).toBe('update');
+    expect(lastMsg.text).toContain('block1');
+  });
+
+  test('should keyboard delete selected address block with d key', async ({ page }) => {
+    const twoBlockYaml = `
+addressBlocks:
+  - name: REGS_A
+    base_address: 0
+    registers:
+      - name: CTRL
+        address_offset: 0
+        fields:
+          - name: ENABLE
+            bits: "[0:0]"
+  - name: REGS_B
+    base_address: 256
+    registers:
+      - name: STATUS
+        address_offset: 0
+        fields:
+          - name: READY
+            bits: "[0:0]"
+`;
+    await page.evaluate((yaml) => {
+      (window as any).__RENDER__(yaml);
+    }, twoBlockYaml);
+
+    await expect(page.locator('[role="treeitem"]', { hasText: 'REGS_A' })).toBeVisible({
+      timeout: 5000,
+    });
+    await expect(page.locator('[role="treeitem"]', { hasText: 'REGS_B' })).toBeVisible({
+      timeout: 5000,
+    });
+
+    const rootItem = page.locator('[data-outline-id="root"]');
+    await rootItem.click();
+
+    const blocksTable = page.locator('[data-blocks-table]');
+    await expect(blocksTable).toBeVisible({ timeout: 5000 });
+
+    // Select REGS_B (second row) and delete it
+    await blocksTable.locator('tr[data-row-id]').nth(1).click();
+    await blocksTable.focus();
+
+    await page.evaluate(() => {
+      (window as any).__last_message = null;
+    });
+
+    await page.keyboard.press('d');
+
+    await expect(page.locator('[role="treeitem"]', { hasText: 'REGS_B' })).not.toBeVisible({
+      timeout: 5000,
+    });
+    await expect(page.locator('[role="treeitem"]', { hasText: 'REGS_A' })).toBeVisible({
+      timeout: 5000,
+    });
+
+    await page.waitForFunction(
+      () => {
+        const msg = (window as any).__last_message;
+        return msg && msg.type === 'update';
+      },
+      { timeout: 10000 }
+    );
+
+    const lastMsg = await page.evaluate(() => (window as any).__last_message);
+    expect(lastMsg.type).toBe('update');
+    expect(lastMsg.text).not.toContain('REGS_B');
+  });
 });
 
 test.describe('IPCraft IP Core Webview Integration', () => {
@@ -665,5 +852,70 @@ resets:
     await readyPromise;
 
     await expect(page.getByText('No IP core loaded')).toBeVisible({ timeout: 10000 });
+  });
+
+  test('should undo and redo vendor edits via toolbar buttons', async ({ page }) => {
+    await setupIpCore(page, sampleIpCoreYaml);
+
+    const bodyRect = page.locator('.ip-block-body');
+    await bodyRect.click();
+
+    const inspector = page.locator('.canvas-inspector');
+    await expect(inspector).toBeVisible({ timeout: 5000 });
+
+    const vendorField = inspector.locator('input').first();
+    await vendorField.click();
+    await page.keyboard.press('Control+A');
+    await page.keyboard.press('Backspace');
+    await page.keyboard.type('edited-vendor.com');
+    await page.keyboard.press('Enter');
+
+    // Wait for postMessage with the edited vendor value
+    await page.waitForFunction(
+      () => {
+        const msg = (window as any).__last_message;
+        return msg && msg.type === 'update' && msg.text.includes('edited-vendor.com');
+      },
+      { timeout: 10000 }
+    );
+
+    // Undo: vendor reverts to test.com
+    await page.evaluate(() => {
+      (window as any).__last_message = null;
+    });
+    const undoBtn = page.locator('button[aria-label="Undo"]');
+    await expect(undoBtn).not.toBeDisabled({ timeout: 3000 });
+    await undoBtn.click();
+
+    await page.waitForFunction(
+      () => {
+        const msg = (window as any).__last_message;
+        return msg && msg.type === 'update' && msg.text.includes('test.com');
+      },
+      { timeout: 10000 }
+    );
+
+    const afterUndo = await page.evaluate(() => (window as any).__last_message);
+    expect(afterUndo.text).toContain('test.com');
+    expect(afterUndo.text).not.toContain('edited-vendor.com');
+
+    // Redo: vendor goes back to edited-vendor.com
+    await page.evaluate(() => {
+      (window as any).__last_message = null;
+    });
+    const redoBtn = page.locator('button[aria-label="Redo"]');
+    await expect(redoBtn).not.toBeDisabled({ timeout: 3000 });
+    await redoBtn.click();
+
+    await page.waitForFunction(
+      () => {
+        const msg = (window as any).__last_message;
+        return msg && msg.type === 'update' && msg.text.includes('edited-vendor.com');
+      },
+      { timeout: 10000 }
+    );
+
+    const afterRedo = await page.evaluate(() => (window as any).__last_message);
+    expect(afterRedo.text).toContain('edited-vendor.com');
   });
 });
