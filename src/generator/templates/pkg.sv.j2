@@ -43,13 +43,6 @@ package {{ entity_name }}_pkg;
 {% endfor %}
   } {{ reg.name | lower }}_t;
 
-  // {{ reg.name }} reset value
-  localparam {{ reg.name | lower }}_t C_REG_{{ reg.name | upper }}_RESET = '{
-{% for field in reg.fields %}
-    {{ field.reset_value | default(0) }}{{ "," if not loop.last else "" }}
-{% endfor %}
-  };
-
   // Pack {{ reg.name }} fields into a 32-bit bus word
   function automatic logic [C_DATA_WIDTH-1:0] pack_{{ reg.name | lower }}(input {{ reg.name | lower }}_t reg_in);
     logic [C_DATA_WIDTH-1:0] slv;

@@ -1581,12 +1581,6 @@ package comprehensive_avalon_pkg;
     logic [7:0] major;  // bits 15:8
   } version_t;
 
-  // VERSION reset value
-  localparam version_t C_REG_VERSION_RESET = '{
-    2,
-    1
-  };
-
   // Pack VERSION fields into a 32-bit bus word
   function automatic logic [C_DATA_WIDTH-1:0] pack_version(input version_t reg_in);
     logic [C_DATA_WIDTH-1:0] slv;
@@ -1611,14 +1605,6 @@ package comprehensive_avalon_pkg;
     logic [3:0] log_level;  // bits 7:4
     logic        clear_stats;  // bit 31
   } control_t;
-
-  // CONTROL reset value
-  localparam control_t C_REG_CONTROL_RESET = '{
-    0,
-    1,
-    0,
-    0
-  };
 
   // Pack CONTROL fields into a 32-bit bus word
   function automatic logic [C_DATA_WIDTH-1:0] pack_control(input control_t reg_in);
@@ -1649,14 +1635,6 @@ package comprehensive_avalon_pkg;
     logic        src_toggled;  // bit 9
   } events_t;
 
-  // EVENTS reset value
-  localparam events_t C_REG_EVENTS_RESET = '{
-    0,
-    0,
-    0,
-    0
-  };
-
   // Pack EVENTS fields into a 32-bit bus word
   function automatic logic [C_DATA_WIDTH-1:0] pack_events(input events_t reg_in);
     logic [C_DATA_WIDTH-1:0] slv;
@@ -1683,11 +1661,6 @@ package comprehensive_avalon_pkg;
     logic [31:0] value;  // bits 31:0
   } sample_cnt_0_t;
 
-  // SAMPLE_CNT_0 reset value
-  localparam sample_cnt_0_t C_REG_SAMPLE_CNT_0_RESET = '{
-    0
-  };
-
   // Pack SAMPLE_CNT_0 fields into a 32-bit bus word
   function automatic logic [C_DATA_WIDTH-1:0] pack_sample_cnt_0(input sample_cnt_0_t reg_in);
     logic [C_DATA_WIDTH-1:0] slv;
@@ -1707,11 +1680,6 @@ package comprehensive_avalon_pkg;
   typedef struct packed {
     logic [31:0] value;  // bits 31:0
   } sample_cnt_1_t;
-
-  // SAMPLE_CNT_1 reset value
-  localparam sample_cnt_1_t C_REG_SAMPLE_CNT_1_RESET = '{
-    0
-  };
 
   // Pack SAMPLE_CNT_1 fields into a 32-bit bus word
   function automatic logic [C_DATA_WIDTH-1:0] pack_sample_cnt_1(input sample_cnt_1_t reg_in);
@@ -1825,12 +1793,6 @@ package comprehensive_axi_pkg;
     logic [23:0] device_id;  // bits 31:8
   } id_t;
 
-  // ID reset value
-  localparam id_t C_REG_ID_RESET = '{
-    1,
-    12648430
-  };
-
   // Pack ID fields into a 32-bit bus word
   function automatic logic [C_DATA_WIDTH-1:0] pack_id(input id_t reg_in);
     logic [C_DATA_WIDTH-1:0] slv;
@@ -1855,14 +1817,6 @@ package comprehensive_axi_pkg;
     logic [7:0] prescale;  // bits 11:4
     logic        soft_rst;  // bit 31
   } ctrl_t;
-
-  // CTRL reset value
-  localparam ctrl_t C_REG_CTRL_RESET = '{
-    0,
-    0,
-    10,
-    0
-  };
 
   // Pack CTRL fields into a 32-bit bus word
   function automatic logic [C_DATA_WIDTH-1:0] pack_ctrl(input ctrl_t reg_in);
@@ -1892,13 +1846,6 @@ package comprehensive_axi_pkg;
     logic [2:0] fsm_state;  // bits 18:16
   } status_t;
 
-  // STATUS reset value
-  localparam status_t C_REG_STATUS_RESET = '{
-    0,
-    0,
-    0
-  };
-
   // Pack STATUS fields into a 32-bit bus word
   function automatic logic [C_DATA_WIDTH-1:0] pack_status(input status_t reg_in);
     logic [C_DATA_WIDTH-1:0] slv;
@@ -1924,12 +1871,6 @@ package comprehensive_axi_pkg;
     logic [23:0] arg;  // bits 31:8
   } cmd_t;
 
-  // CMD reset value
-  localparam cmd_t C_REG_CMD_RESET = '{
-    0,
-    0
-  };
-
   // Pack CMD fields into a 32-bit bus word
   function automatic logic [C_DATA_WIDTH-1:0] pack_cmd(input cmd_t reg_in);
     logic [C_DATA_WIDTH-1:0] slv;
@@ -1951,11 +1892,6 @@ package comprehensive_axi_pkg;
   typedef struct packed {
     logic [31:0] value;  // bits 31:0
   } scratch_t;
-
-  // SCRATCH reset value
-  localparam scratch_t C_REG_SCRATCH_RESET = '{
-    0
-  };
 
   // Pack SCRATCH fields into a 32-bit bus word
   function automatic logic [C_DATA_WIDTH-1:0] pack_scratch(input scratch_t reg_in);
@@ -1979,14 +1915,6 @@ package comprehensive_axi_pkg;
     logic        link_state;  // bit 4
     logic        link_toggled;  // bit 5
   } irq_event_t;
-
-  // IRQ_EVENT reset value
-  localparam irq_event_t C_REG_IRQ_EVENT_RESET = '{
-    0,
-    0,
-    0,
-    0
-  };
 
   // Pack IRQ_EVENT fields into a 32-bit bus word
   function automatic logic [C_DATA_WIDTH-1:0] pack_irq_event(input irq_event_t reg_in);
@@ -2015,12 +1943,6 @@ package comprehensive_axi_pkg;
     logic        mute;  // bit 16
   } ch_gain_0_t;
 
-  // CH_GAIN_0 reset value
-  localparam ch_gain_0_t C_REG_CH_GAIN_0_RESET = '{
-    256,
-    0
-  };
-
   // Pack CH_GAIN_0 fields into a 32-bit bus word
   function automatic logic [C_DATA_WIDTH-1:0] pack_ch_gain_0(input ch_gain_0_t reg_in);
     logic [C_DATA_WIDTH-1:0] slv;
@@ -2043,12 +1965,6 @@ package comprehensive_axi_pkg;
     logic [11:0] gain;  // bits 11:0
     logic        mute;  // bit 16
   } ch_gain_1_t;
-
-  // CH_GAIN_1 reset value
-  localparam ch_gain_1_t C_REG_CH_GAIN_1_RESET = '{
-    256,
-    0
-  };
 
   // Pack CH_GAIN_1 fields into a 32-bit bus word
   function automatic logic [C_DATA_WIDTH-1:0] pack_ch_gain_1(input ch_gain_1_t reg_in);
@@ -2073,12 +1989,6 @@ package comprehensive_axi_pkg;
     logic        mute;  // bit 16
   } ch_gain_2_t;
 
-  // CH_GAIN_2 reset value
-  localparam ch_gain_2_t C_REG_CH_GAIN_2_RESET = '{
-    256,
-    0
-  };
-
   // Pack CH_GAIN_2 fields into a 32-bit bus word
   function automatic logic [C_DATA_WIDTH-1:0] pack_ch_gain_2(input ch_gain_2_t reg_in);
     logic [C_DATA_WIDTH-1:0] slv;
@@ -2102,12 +2012,6 @@ package comprehensive_axi_pkg;
     logic        mute;  // bit 16
   } ch_gain_3_t;
 
-  // CH_GAIN_3 reset value
-  localparam ch_gain_3_t C_REG_CH_GAIN_3_RESET = '{
-    256,
-    0
-  };
-
   // Pack CH_GAIN_3 fields into a 32-bit bus word
   function automatic logic [C_DATA_WIDTH-1:0] pack_ch_gain_3(input ch_gain_3_t reg_in);
     logic [C_DATA_WIDTH-1:0] slv;
@@ -2130,11 +2034,6 @@ package comprehensive_axi_pkg;
     logic [31:0] addr;  // bits 31:0
   } dma_0_src_t;
 
-  // DMA_0_SRC reset value
-  localparam dma_0_src_t C_REG_DMA_0_SRC_RESET = '{
-    0
-  };
-
   // Pack DMA_0_SRC fields into a 32-bit bus word
   function automatic logic [C_DATA_WIDTH-1:0] pack_dma_0_src(input dma_0_src_t reg_in);
     logic [C_DATA_WIDTH-1:0] slv;
@@ -2155,11 +2054,6 @@ package comprehensive_axi_pkg;
     logic [31:0] addr;  // bits 31:0
   } dma_0_dst_t;
 
-  // DMA_0_DST reset value
-  localparam dma_0_dst_t C_REG_DMA_0_DST_RESET = '{
-    0
-  };
-
   // Pack DMA_0_DST fields into a 32-bit bus word
   function automatic logic [C_DATA_WIDTH-1:0] pack_dma_0_dst(input dma_0_dst_t reg_in);
     logic [C_DATA_WIDTH-1:0] slv;
@@ -2179,11 +2073,6 @@ package comprehensive_axi_pkg;
   typedef struct packed {
     logic [23:0] bytes;  // bits 23:0
   } dma_0_len_t;
-
-  // DMA_0_LEN reset value
-  localparam dma_0_len_t C_REG_DMA_0_LEN_RESET = '{
-    0
-  };
 
   // Pack DMA_0_LEN fields into a 32-bit bus word
   function automatic logic [C_DATA_WIDTH-1:0] pack_dma_0_len(input dma_0_len_t reg_in);
@@ -2206,13 +2095,6 @@ package comprehensive_axi_pkg;
     logic        ie;  // bit 1
     logic        done;  // bit 8
   } dma_0_ctrl_t;
-
-  // DMA_0_CTRL reset value
-  localparam dma_0_ctrl_t C_REG_DMA_0_CTRL_RESET = '{
-    0,
-    0,
-    0
-  };
 
   // Pack DMA_0_CTRL fields into a 32-bit bus word
   function automatic logic [C_DATA_WIDTH-1:0] pack_dma_0_ctrl(input dma_0_ctrl_t reg_in);
@@ -2238,11 +2120,6 @@ package comprehensive_axi_pkg;
     logic [31:0] addr;  // bits 31:0
   } dma_1_src_t;
 
-  // DMA_1_SRC reset value
-  localparam dma_1_src_t C_REG_DMA_1_SRC_RESET = '{
-    0
-  };
-
   // Pack DMA_1_SRC fields into a 32-bit bus word
   function automatic logic [C_DATA_WIDTH-1:0] pack_dma_1_src(input dma_1_src_t reg_in);
     logic [C_DATA_WIDTH-1:0] slv;
@@ -2263,11 +2140,6 @@ package comprehensive_axi_pkg;
     logic [31:0] addr;  // bits 31:0
   } dma_1_dst_t;
 
-  // DMA_1_DST reset value
-  localparam dma_1_dst_t C_REG_DMA_1_DST_RESET = '{
-    0
-  };
-
   // Pack DMA_1_DST fields into a 32-bit bus word
   function automatic logic [C_DATA_WIDTH-1:0] pack_dma_1_dst(input dma_1_dst_t reg_in);
     logic [C_DATA_WIDTH-1:0] slv;
@@ -2287,11 +2159,6 @@ package comprehensive_axi_pkg;
   typedef struct packed {
     logic [23:0] bytes;  // bits 23:0
   } dma_1_len_t;
-
-  // DMA_1_LEN reset value
-  localparam dma_1_len_t C_REG_DMA_1_LEN_RESET = '{
-    0
-  };
 
   // Pack DMA_1_LEN fields into a 32-bit bus word
   function automatic logic [C_DATA_WIDTH-1:0] pack_dma_1_len(input dma_1_len_t reg_in);
@@ -2314,13 +2181,6 @@ package comprehensive_axi_pkg;
     logic        ie;  // bit 1
     logic        done;  // bit 8
   } dma_1_ctrl_t;
-
-  // DMA_1_CTRL reset value
-  localparam dma_1_ctrl_t C_REG_DMA_1_CTRL_RESET = '{
-    0,
-    0,
-    0
-  };
 
   // Pack DMA_1_CTRL fields into a 32-bit bus word
   function automatic logic [C_DATA_WIDTH-1:0] pack_dma_1_ctrl(input dma_1_ctrl_t reg_in);
@@ -2473,14 +2333,6 @@ package daq_controller_pkg;
     logic [7:0] prescaler;  // bits 15:8
   } control_t;
 
-  // CONTROL reset value
-  localparam control_t C_REG_CONTROL_RESET = '{
-    0,
-    1,
-    0,
-    4
-  };
-
   // Pack CONTROL fields into a 32-bit bus word
   function automatic logic [C_DATA_WIDTH-1:0] pack_control(input control_t reg_in);
     logic [C_DATA_WIDTH-1:0] slv;
@@ -2509,13 +2361,6 @@ package daq_controller_pkg;
     logic [7:0] fifo_level;  // bits 15:8
   } status_t;
 
-  // STATUS reset value
-  localparam status_t C_REG_STATUS_RESET = '{
-    0,
-    0,
-    0
-  };
-
   // Pack STATUS fields into a 32-bit bus word
   function automatic logic [C_DATA_WIDTH-1:0] pack_status(input status_t reg_in);
     logic [C_DATA_WIDTH-1:0] slv;
@@ -2541,13 +2386,6 @@ package daq_controller_pkg;
     logic        overflow;  // bit 1
     logic        error;  // bit 2
   } int_status_t;
-
-  // INT_STATUS reset value
-  localparam int_status_t C_REG_INT_STATUS_RESET = '{
-    0,
-    0,
-    0
-  };
 
   // Pack INT_STATUS fields into a 32-bit bus word
   function automatic logic [C_DATA_WIDTH-1:0] pack_int_status(input int_status_t reg_in);
@@ -2575,13 +2413,6 @@ package daq_controller_pkg;
     logic        fifo_reset;  // bit 2
   } command_t;
 
-  // COMMAND reset value
-  localparam command_t C_REG_COMMAND_RESET = '{
-    0,
-    0,
-    0
-  };
-
   // Pack COMMAND fields into a 32-bit bus word
   function automatic logic [C_DATA_WIDTH-1:0] pack_command(input command_t reg_in);
     logic [C_DATA_WIDTH-1:0] slv;
@@ -2607,12 +2438,6 @@ package daq_controller_pkg;
     logic [7:0] offset;  // bits 15:8
   } channel_0_config_t;
 
-  // CHANNEL_0_CONFIG reset value
-  localparam channel_0_config_t C_REG_CHANNEL_0_CONFIG_RESET = '{
-    0,
-    0
-  };
-
   // Pack CHANNEL_0_CONFIG fields into a 32-bit bus word
   function automatic logic [C_DATA_WIDTH-1:0] pack_channel_0_config(input channel_0_config_t reg_in);
     logic [C_DATA_WIDTH-1:0] slv;
@@ -2635,11 +2460,6 @@ package daq_controller_pkg;
     logic [15:0] value;  // bits 15:0
   } channel_0_threshold_t;
 
-  // CHANNEL_0_THRESHOLD reset value
-  localparam channel_0_threshold_t C_REG_CHANNEL_0_THRESHOLD_RESET = '{
-    0
-  };
-
   // Pack CHANNEL_0_THRESHOLD fields into a 32-bit bus word
   function automatic logic [C_DATA_WIDTH-1:0] pack_channel_0_threshold(input channel_0_threshold_t reg_in);
     logic [C_DATA_WIDTH-1:0] slv;
@@ -2659,11 +2479,6 @@ package daq_controller_pkg;
   typedef struct packed {
     logic [31:0] samples;  // bits 31:0
   } channel_0_count_t;
-
-  // CHANNEL_0_COUNT reset value
-  localparam channel_0_count_t C_REG_CHANNEL_0_COUNT_RESET = '{
-    0
-  };
 
   // Pack CHANNEL_0_COUNT fields into a 32-bit bus word
   function automatic logic [C_DATA_WIDTH-1:0] pack_channel_0_count(input channel_0_count_t reg_in);
@@ -2685,11 +2500,6 @@ package daq_controller_pkg;
     logic        triggered;  // bit 0
   } channel_0_flags_t;
 
-  // CHANNEL_0_FLAGS reset value
-  localparam channel_0_flags_t C_REG_CHANNEL_0_FLAGS_RESET = '{
-    0
-  };
-
   // Pack CHANNEL_0_FLAGS fields into a 32-bit bus word
   function automatic logic [C_DATA_WIDTH-1:0] pack_channel_0_flags(input channel_0_flags_t reg_in);
     logic [C_DATA_WIDTH-1:0] slv;
@@ -2710,12 +2520,6 @@ package daq_controller_pkg;
     logic [3:0] gain;  // bits 3:0
     logic [7:0] offset;  // bits 15:8
   } channel_1_config_t;
-
-  // CHANNEL_1_CONFIG reset value
-  localparam channel_1_config_t C_REG_CHANNEL_1_CONFIG_RESET = '{
-    0,
-    0
-  };
 
   // Pack CHANNEL_1_CONFIG fields into a 32-bit bus word
   function automatic logic [C_DATA_WIDTH-1:0] pack_channel_1_config(input channel_1_config_t reg_in);
@@ -2739,11 +2543,6 @@ package daq_controller_pkg;
     logic [15:0] value;  // bits 15:0
   } channel_1_threshold_t;
 
-  // CHANNEL_1_THRESHOLD reset value
-  localparam channel_1_threshold_t C_REG_CHANNEL_1_THRESHOLD_RESET = '{
-    0
-  };
-
   // Pack CHANNEL_1_THRESHOLD fields into a 32-bit bus word
   function automatic logic [C_DATA_WIDTH-1:0] pack_channel_1_threshold(input channel_1_threshold_t reg_in);
     logic [C_DATA_WIDTH-1:0] slv;
@@ -2763,11 +2562,6 @@ package daq_controller_pkg;
   typedef struct packed {
     logic [31:0] samples;  // bits 31:0
   } channel_1_count_t;
-
-  // CHANNEL_1_COUNT reset value
-  localparam channel_1_count_t C_REG_CHANNEL_1_COUNT_RESET = '{
-    0
-  };
 
   // Pack CHANNEL_1_COUNT fields into a 32-bit bus word
   function automatic logic [C_DATA_WIDTH-1:0] pack_channel_1_count(input channel_1_count_t reg_in);
@@ -2789,11 +2583,6 @@ package daq_controller_pkg;
     logic        triggered;  // bit 0
   } channel_1_flags_t;
 
-  // CHANNEL_1_FLAGS reset value
-  localparam channel_1_flags_t C_REG_CHANNEL_1_FLAGS_RESET = '{
-    0
-  };
-
   // Pack CHANNEL_1_FLAGS fields into a 32-bit bus word
   function automatic logic [C_DATA_WIDTH-1:0] pack_channel_1_flags(input channel_1_flags_t reg_in);
     logic [C_DATA_WIDTH-1:0] slv;
@@ -2814,12 +2603,6 @@ package daq_controller_pkg;
     logic [3:0] gain;  // bits 3:0
     logic [7:0] offset;  // bits 15:8
   } channel_2_config_t;
-
-  // CHANNEL_2_CONFIG reset value
-  localparam channel_2_config_t C_REG_CHANNEL_2_CONFIG_RESET = '{
-    0,
-    0
-  };
 
   // Pack CHANNEL_2_CONFIG fields into a 32-bit bus word
   function automatic logic [C_DATA_WIDTH-1:0] pack_channel_2_config(input channel_2_config_t reg_in);
@@ -2843,11 +2626,6 @@ package daq_controller_pkg;
     logic [15:0] value;  // bits 15:0
   } channel_2_threshold_t;
 
-  // CHANNEL_2_THRESHOLD reset value
-  localparam channel_2_threshold_t C_REG_CHANNEL_2_THRESHOLD_RESET = '{
-    0
-  };
-
   // Pack CHANNEL_2_THRESHOLD fields into a 32-bit bus word
   function automatic logic [C_DATA_WIDTH-1:0] pack_channel_2_threshold(input channel_2_threshold_t reg_in);
     logic [C_DATA_WIDTH-1:0] slv;
@@ -2867,11 +2645,6 @@ package daq_controller_pkg;
   typedef struct packed {
     logic [31:0] samples;  // bits 31:0
   } channel_2_count_t;
-
-  // CHANNEL_2_COUNT reset value
-  localparam channel_2_count_t C_REG_CHANNEL_2_COUNT_RESET = '{
-    0
-  };
 
   // Pack CHANNEL_2_COUNT fields into a 32-bit bus word
   function automatic logic [C_DATA_WIDTH-1:0] pack_channel_2_count(input channel_2_count_t reg_in);
@@ -2893,11 +2666,6 @@ package daq_controller_pkg;
     logic        triggered;  // bit 0
   } channel_2_flags_t;
 
-  // CHANNEL_2_FLAGS reset value
-  localparam channel_2_flags_t C_REG_CHANNEL_2_FLAGS_RESET = '{
-    0
-  };
-
   // Pack CHANNEL_2_FLAGS fields into a 32-bit bus word
   function automatic logic [C_DATA_WIDTH-1:0] pack_channel_2_flags(input channel_2_flags_t reg_in);
     logic [C_DATA_WIDTH-1:0] slv;
@@ -2918,12 +2686,6 @@ package daq_controller_pkg;
     logic [3:0] gain;  // bits 3:0
     logic [7:0] offset;  // bits 15:8
   } channel_3_config_t;
-
-  // CHANNEL_3_CONFIG reset value
-  localparam channel_3_config_t C_REG_CHANNEL_3_CONFIG_RESET = '{
-    0,
-    0
-  };
 
   // Pack CHANNEL_3_CONFIG fields into a 32-bit bus word
   function automatic logic [C_DATA_WIDTH-1:0] pack_channel_3_config(input channel_3_config_t reg_in);
@@ -2947,11 +2709,6 @@ package daq_controller_pkg;
     logic [15:0] value;  // bits 15:0
   } channel_3_threshold_t;
 
-  // CHANNEL_3_THRESHOLD reset value
-  localparam channel_3_threshold_t C_REG_CHANNEL_3_THRESHOLD_RESET = '{
-    0
-  };
-
   // Pack CHANNEL_3_THRESHOLD fields into a 32-bit bus word
   function automatic logic [C_DATA_WIDTH-1:0] pack_channel_3_threshold(input channel_3_threshold_t reg_in);
     logic [C_DATA_WIDTH-1:0] slv;
@@ -2971,11 +2728,6 @@ package daq_controller_pkg;
   typedef struct packed {
     logic [31:0] samples;  // bits 31:0
   } channel_3_count_t;
-
-  // CHANNEL_3_COUNT reset value
-  localparam channel_3_count_t C_REG_CHANNEL_3_COUNT_RESET = '{
-    0
-  };
 
   // Pack CHANNEL_3_COUNT fields into a 32-bit bus word
   function automatic logic [C_DATA_WIDTH-1:0] pack_channel_3_count(input channel_3_count_t reg_in);
@@ -2997,11 +2749,6 @@ package daq_controller_pkg;
     logic        triggered;  // bit 0
   } channel_3_flags_t;
 
-  // CHANNEL_3_FLAGS reset value
-  localparam channel_3_flags_t C_REG_CHANNEL_3_FLAGS_RESET = '{
-    0
-  };
-
   // Pack CHANNEL_3_FLAGS fields into a 32-bit bus word
   function automatic logic [C_DATA_WIDTH-1:0] pack_channel_3_flags(input channel_3_flags_t reg_in);
     logic [C_DATA_WIDTH-1:0] slv;
@@ -3022,12 +2769,6 @@ package daq_controller_pkg;
     logic [3:0] speed;  // bits 3:0
     logic        speed_changed;  // bit 8
   } link_status_t;
-
-  // LINK_STATUS reset value
-  localparam link_status_t C_REG_LINK_STATUS_RESET = '{
-    0,
-    0
-  };
 
   // Pack LINK_STATUS fields into a 32-bit bus word
   function automatic logic [C_DATA_WIDTH-1:0] pack_link_status(input link_status_t reg_in);
@@ -3051,11 +2792,6 @@ package daq_controller_pkg;
     logic [7:0] scratch;  // bits 7:0
   } diag_t;
 
-  // DIAG reset value
-  localparam diag_t C_REG_DIAG_RESET = '{
-    0
-  };
-
   // Pack DIAG fields into a 32-bit bus word
   function automatic logic [C_DATA_WIDTH-1:0] pack_diag(input diag_t reg_in);
     logic [C_DATA_WIDTH-1:0] slv;
@@ -3076,11 +2812,6 @@ package daq_controller_pkg;
     logic        legacy_irq_clr;  // bit 0
   } irq_legacy_t;
 
-  // IRQ_LEGACY reset value
-  localparam irq_legacy_t C_REG_IRQ_LEGACY_RESET = '{
-    0
-  };
-
   // Pack IRQ_LEGACY fields into a 32-bit bus word
   function automatic logic [C_DATA_WIDTH-1:0] pack_irq_legacy(input irq_legacy_t reg_in);
     logic [C_DATA_WIDTH-1:0] slv;
@@ -3100,11 +2831,6 @@ package daq_controller_pkg;
   typedef struct packed {
     logic        busy;  // bit 0
   } busy_status_t;
-
-  // BUSY_STATUS reset value
-  localparam busy_status_t C_REG_BUSY_STATUS_RESET = '{
-    0
-  };
 
   // Pack BUSY_STATUS fields into a 32-bit bus word
   function automatic logic [C_DATA_WIDTH-1:0] pack_busy_status(input busy_status_t reg_in);

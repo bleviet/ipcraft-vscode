@@ -127,7 +127,9 @@ module {{ entity_name }}_regs
   always_ff @(posedge clk) begin : p_write
     if (rst) begin
 {% for reg in sw_registers %}
-      regs.{{ reg.name | lower }} <= C_REG_{{ reg.name | upper }}_RESET;
+{% for field in reg.fields %}
+      regs.{{ reg.name | lower }}.{{ field.name | lower }} <= {{ field.reset_value | default(0) }};
+{% endfor %}
 {% endfor %}
 {% if cos_registers | length %}
       // Shadow registers reset to the monitored field's own reset value, so
