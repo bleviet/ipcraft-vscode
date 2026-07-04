@@ -393,6 +393,50 @@ describe('IpCoreScaffolder', () => {
     }
   });
 
+  it('lets a scaffold pack override Vivado component.xml generation (issue #4)', async () => {
+    // component.xml is built programmatically (VivadoComponentXmlGenerator), not from a
+    // .j2 template, so it can't be shadowed by the usual same-named-template convention.
+    // A pack-supplied component.xml.j2 should fully replace the generated file instead.
+    const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-scaffolder-pack-'));
+    const workspaceRoot = path.join(tmp, 'workspace');
+    const packDir = path.join(workspaceRoot, '.vscode', 'ipcraft', 'packs', 'my-vivado-pack');
+    fs2.mkdirSync(packDir, { recursive: true });
+    fs2.writeFileSync(
+      path.join(packDir, 'scaffold.yml'),
+      'name: "my-vivado-pack"\nfullGeneration: true\nfiles: []\n'
+    );
+    fs2.writeFileSync(
+      path.join(packDir, 'component.xml.j2'),
+      '<?xml version="1.0"?>\n<!-- CUSTOM COMPONENT XML OVERRIDE for {{ name }} -->\n'
+    );
+
+    const originalWorkspaceFolders = (vscode.workspace as any).workspaceFolders;
+    (vscode.workspace as any).workspaceFolders = [{ uri: { fsPath: workspaceRoot } }];
+
+    try {
+      const inputPath = path.resolve(__dirname, '../../fixtures/sample-ipcore.yml');
+      const outputDir = '/tmp/test-pack-override-vivado-output';
+
+      const result = await scaffolder.generateAll(inputPath, outputDir, {
+        includeRegs: true,
+        includeTestbench: false,
+        targets: ['vivado'],
+        scaffoldPack: 'my-vivado-pack',
+      });
+
+      expect(result.success).toBe(true);
+
+      const componentXml = (fs.writeFile as unknown as jest.Mock).mock.calls.find(
+        (call: string[]) => call[0].includes('xilinx/component.xml')
+      )?.[1] as string;
+      expect(componentXml).toContain('CUSTOM COMPONENT XML OVERRIDE');
+      expect(componentXml).not.toContain('spirit:busInterfaces');
+    } finally {
+      (vscode.workspace as any).workspaceFolders = originalWorkspaceFolders;
+      fs2.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
   it('does not add simulation sources to Vivado/Quartus project TCLs', async () => {
     // When includeVhdl: false, collectRtlFiles falls back to reading fileSets.
     // Simulation files (in tb/) must be excluded even when their type is vhdl/sv.

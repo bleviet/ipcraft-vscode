@@ -70,13 +70,28 @@ export class VivadoToolchain implements SynthesisToolchain {
     const xguiContent = templates.render('amd_xgui.j2', templateContext);
     const xguiChecksum = crc32Hex(xguiContent);
 
-    files[`xilinx/component.xml`] = generateComponentXml(ipCoreData, busDefinitions, {
-      rtlFiles: opts.rtlFiles,
-      xguiFile,
-      xguiChecksum,
-      isSv,
-      memoryMaps,
-    });
+    // component.xml is built programmatically rather than from a template, so it can't
+    // be shadowed by dropping a same-named .j2 into the pack dir the way every other
+    // vendor file can. Support a narrower override instead: if the pack supplies a full
+    // component.xml.j2, render that instead of running the built-in generator.
+    files[`xilinx/component.xml`] = templates.hasTemplate('component.xml.j2')
+      ? templates.render('component.xml.j2', {
+          ...templateContext,
+          ip_core: ipCoreData,
+          bus_definitions: busDefinitions,
+          rtl_files: opts.rtlFiles ?? [],
+          xgui_file: xguiFile,
+          xgui_checksum: xguiChecksum,
+          is_systemverilog: isSv,
+          memory_maps: memoryMaps,
+        })
+      : generateComponentXml(ipCoreData, busDefinitions, {
+          rtlFiles: opts.rtlFiles,
+          xguiFile,
+          xguiChecksum,
+          isSv,
+          memoryMaps,
+        });
 
     const customBusDefs = generateCustomBusDefs(ipCoreData, busDefinitions);
     for (const [relPath, content] of Object.entries(customBusDefs)) {

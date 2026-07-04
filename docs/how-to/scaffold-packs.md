@@ -267,10 +267,16 @@ Project**, and the build variants):
 | `vivado_project.tcl.j2` | `xilinx/{{ name }}_project.tcl` (project generation only) |
 | `vivado_ooc.xdc.j2` | `xilinx/{{ name }}.xdc` (project generation only) |
 | `vivado_run_ooc.tcl.j2` / `vivado_run_xpr.tcl.j2` | `xilinx/{{ name }}_run_ooc.tcl` / `_run_xpr.tcl` (project generation only) |
+| `component.xml.j2` | `xilinx/component.xml` — full-file override only, see below |
 
-!!! note "component.xml is not template-based"
-    Vivado's `component.xml` is generated programmatically, not from a `.j2` template,
-    so it cannot currently be overridden by a scaffold pack.
+!!! note "component.xml override is all-or-nothing"
+    Vivado's `component.xml` is built programmatically (`VivadoComponentXmlGenerator`), not
+    rendered from a built-in `.j2` template, so there's no built-in template for a pack file
+    to shadow piece-by-piece. Instead, if the pack directory contains a `component.xml.j2`,
+    it fully replaces the generated file — there's no partial override. The template receives
+    the same context as other `.j2` templates in the pack, plus `ip_core`, `bus_definitions`,
+    `rtl_files`, `xgui_file`, `xgui_checksum`, `is_systemverilog`, and `memory_maps`. Omit
+    the file and the built-in generator runs as before.
 
 ---
 

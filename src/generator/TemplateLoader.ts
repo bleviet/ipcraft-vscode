@@ -1,3 +1,4 @@
+import * as fs from 'fs';
 import * as path from 'path';
 import * as nunjucks from 'nunjucks';
 import { Logger } from '../utils/Logger';
@@ -6,6 +7,7 @@ export class TemplateLoader {
   private readonly logger: Logger;
   private readonly env: nunjucks.Environment;
   private readonly templatesPath: string;
+  private readonly searchPaths: string[];
 
   /**
    * @param templatesPath  Single path or ordered list of search paths.
@@ -16,6 +18,7 @@ export class TemplateLoader {
     this.logger = logger;
 
     const paths: string[] = Array.isArray(templatesPath) ? templatesPath : [templatesPath];
+    this.searchPaths = paths;
 
     // Canonical path used for logging; multi-root shows all paths joined.
     this.templatesPath = paths.join(path.delimiter);
@@ -88,6 +91,20 @@ export class TemplateLoader {
 
   getTemplatesPath(): string {
     return this.templatesPath;
+  }
+
+  /**
+   * True when `templateName` resolves to a file somewhere in the search paths
+   * (pack dir first, built-in dir last — same order `render` uses). Lets
+   * callers whose output isn't itself template-driven (e.g. component.xml,
+   * built programmatically) still support the "drop a same-named .j2 in the
+   * pack directory" override convention: check this first, and if true,
+   * render the override instead of running the built-in generator.
+   */
+  hasTemplate(templateName: string): boolean {
+    return this.searchPaths.some((searchPath) =>
+      fs.existsSync(path.join(searchPath, templateName))
+    );
   }
 
   render(templateName: string, context: Record<string, unknown>): string {

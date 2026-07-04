@@ -67,4 +67,29 @@ describe('TemplateLoader', () => {
     const result = loader.render('register_file.vhdl.j2', context);
     expect(result).toBeDefined();
   });
+
+  describe('hasTemplate', () => {
+    it('returns true for a template that exists in the built-in dir', () => {
+      expect(loader.hasTemplate('architecture.vhdl.j2')).toBe(true);
+    });
+
+    it('returns false for a template that does not exist anywhere on the search path', () => {
+      expect(loader.hasTemplate('component.xml.j2')).toBe(false);
+    });
+
+    it('returns true when a pack dir (searched first) supplies a template with no built-in equivalent', () => {
+      const fs = require('fs');
+      const os = require('os');
+      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-template-loader-'));
+      try {
+        fs.writeFileSync(path.join(tmp, 'component.xml.j2'), '<custom/>');
+        const multiRootLoader = new TemplateLoader(logger, [tmp, templatesPath]);
+        // component.xml.j2 has no built-in equivalent — hasTemplate must still find
+        // it via the pack search path so callers know to render the pack's override.
+        expect(multiRootLoader.hasTemplate('component.xml.j2')).toBe(true);
+      } finally {
+        fs.rmSync(tmp, { recursive: true, force: true });
+      }
+    });
+  });
 });
