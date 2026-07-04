@@ -23,7 +23,7 @@ entity {{ entity_name }}_avmm is
     clk : in std_logic;
     rst : in std_logic;
 
-{% if bus_ports %}
+{% if bus_ports | length > 0 %}
     -- Avalon-MM Slave Interface
 {% for port in bus_ports %}
     {{ "%-16s"|format(port.name) }} : {{ "%-3s"|format(port.direction) }} {{ port.type }}{{ ";" if not loop.last else "" }}

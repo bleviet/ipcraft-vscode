@@ -290,6 +290,73 @@ describe('CocotbFramework — fileset-driven sources', () => {
     expect(lines[4]).toContain('dut.vhd');
   });
 
+  it('avmm cocotb test drives the raw byte address, matching the register file decode (regression)', () => {
+    // register_file.vhdl.j2 decodes wr_addr/rd_addr as raw byte offsets
+    // (matching .mm.yml `offset:` values directly, e.g. a register at
+    // offset 8 is compared against `v_addr_index = 8`); bus_avmm.vhdl.j2's
+    // wrapper does a plain bit-slice of the address port with no
+    // word-to-byte shift. cocotb_test.py.j2 previously wrote
+    // `dut.<prefix>_address.value = addr >> 2`, assuming a word-indexed
+    // Avalon-MM convention that does not match the generated RTL -- every
+    // register access in the generated test silently landed at the wrong
+    // offset. This was invisible because the generated test only logs
+    // read-back values, never asserts on them.
+    const ctx = makeCtx({
+      hasMmSlave: true,
+      templateContext: {
+        entity_name: 'test_core',
+        clock_port: 'clk',
+        reset_port: 'rst_n',
+        reset_active_high: false,
+        bus_type: 'avmm',
+        bus_prefix: 'avs',
+        has_memory_mapped_slave: true,
+        memmap_relpath: '../test_core.mmap.yml',
+        ports: [],
+        parameters: [],
+      },
+    });
+    const testPy = framework.generate(ctx, new GhdlEngine())['tb/test_core_test.py'];
+    expect(testPy).toContain('dut.avs_address.value = addr');
+    expect(testPy).not.toContain('addr >> 2');
+  });
+
+  it('avmm cocotb _read_reg waits an extra cycle for a fixed-latency slave (regression)', () => {
+    // register_file.vhdl.j2's read path is registered (readdata is driven
+    // from a signal set inside a clocked process), so for a slave with no
+    // readdatavalid handshake, readdata is only valid one cycle after
+    // `read` is sampled -- not in the same cycle `_read_reg` deasserts
+    // `read`. Confirmed by running the generated testbench end-to-end
+    // against a real GHDL simulation: every register read returned the
+    // *previous* bus access's result until this extra RisingEdge was added.
+    const ctx = makeCtx({
+      hasMmSlave: true,
+      templateContext: {
+        entity_name: 'test_core',
+        clock_port: 'clk',
+        reset_port: 'rst_n',
+        reset_active_high: false,
+        bus_type: 'avmm',
+        bus_prefix: 'avs',
+        has_memory_mapped_slave: true,
+        memmap_relpath: '../test_core.mmap.yml',
+        ports: [],
+        parameters: [],
+      },
+    });
+    const testPy = framework.generate(ctx, new GhdlEngine())['tb/test_core_test.py'];
+    const readFn = testPy.slice(testPy.indexOf('async def _read_reg'));
+    const deassertIdx = readFn.indexOf('avs_read.value = 0');
+    // Old (buggy) code returned readdata right after this point whenever no
+    // readdatavalid port exists -- no unconditional extra edge afterward.
+    const elseIdx = readFn.indexOf('\n    else:\n', deassertIdx);
+    expect(elseIdx).toBeGreaterThan(deassertIdx);
+    const returnIdx = readFn.indexOf('return int(');
+    const settleEdgeIdx = readFn.indexOf('await RisingEdge', elseIdx);
+    expect(settleEdgeIdx).toBeGreaterThan(elseIdx);
+    expect(settleEdgeIdx).toBeLessThan(returnIdx);
+  });
+
   it('falls back to entity-name VHDL logic when fileSets is empty', () => {
     const mk = framework.generate(makeCtx({ fileSets: [] }), new GhdlEngine())['tb/Makefile'];
     expect(mk).toContain('VHDL_SOURCES += $(BASE_DIR)/rtl/test_core.vhd');

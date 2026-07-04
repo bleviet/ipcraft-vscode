@@ -28,7 +28,7 @@ async def _read_reg(master, addr: int) -> int:
 
 async def _write_reg(dut, addr: int, value: int) -> None:
     """Write a 32-bit register over Avalon-MM."""
-    dut.{{ bus_prefix }}_address.value = addr >> 2
+    dut.{{ bus_prefix }}_address.value = addr
     dut.{{ bus_prefix }}_writedata.value = value
     if hasattr(dut, "{{ bus_prefix }}_byteenable"):
         dut.{{ bus_prefix }}_byteenable.value = 0xF
@@ -42,7 +42,7 @@ async def _write_reg(dut, addr: int, value: int) -> None:
 
 async def _read_reg(dut, addr: int) -> int:
     """Read a 32-bit register over Avalon-MM."""
-    dut.{{ bus_prefix }}_address.value = addr >> 2
+    dut.{{ bus_prefix }}_address.value = addr
     dut.{{ bus_prefix }}_read.value = 1
     await RisingEdge(dut.{{ clock_port }})
     if hasattr(dut, "{{ bus_prefix }}_waitrequest"):
@@ -52,6 +52,13 @@ async def _read_reg(dut, addr: int) -> int:
     if hasattr(dut, "{{ bus_prefix }}_readdatavalid"):
         while not dut.{{ bus_prefix }}_readdatavalid.value:
             await RisingEdge(dut.{{ clock_port }})
+    else:
+        # Fixed-latency Avalon-MM slave (no readdatavalid handshake): the
+        # generated register file's read path is registered (readdata is
+        # driven combinationally from a signal set inside a clocked
+        # process), so it becomes valid one cycle after `read` is sampled,
+        # not in the same cycle it is deasserted.
+        await RisingEdge(dut.{{ clock_port }})
     return int(dut.{{ bus_prefix }}_readdata.value)
 {% endif %}
 

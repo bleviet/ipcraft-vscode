@@ -1,0 +1,17 @@
+- name: MAP
+  description: Minimal register map
+  addressBlocks:
+    - name: CSR
+      baseAddress: 0
+      usage: register
+      access: read-write
+      defaultRegWidth: 32
+      registers:
+        - name: STATUS
+          offset: 0
+          access: read-only
+          description: Status register
+          fields:
+            - name: READY
+              bits: '[0:0]'
+              access: read-only

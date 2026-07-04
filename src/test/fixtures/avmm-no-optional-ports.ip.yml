@@ -1,0 +1,27 @@
+apiVersion: '1.0'
+vlnv:
+  vendor: test.com
+  library: unit
+  name: avmm_no_optional_ports
+  version: 1.0.0
+description: >
+  Regression fixture for bus_avmm.vhdl.j2: an Avalon-MM slave with no
+  useOptionalPorts specified at all (every port in the avalon_mm bus
+  definition is presence:optional, so this yields an empty bus_ports list).
+clocks:
+- name: clk
+  direction: in
+resets:
+- name: rst
+  direction: in
+  polarity: activeHigh
+busInterfaces:
+- name: S_AVMM
+  type: ipcraft:busif:avalon_mm:1.0
+  mode: slave
+  physicalPrefix: avs_
+  associatedClock: clk
+  associatedReset: rst
+  memoryMapRef: MAP
+memoryMaps:
+  import: avmm-no-optional-ports.mm.yml

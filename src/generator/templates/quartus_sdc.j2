@@ -16,7 +16,8 @@ derive_clock_uncertainty
 {% if clocks_with_period %}
 {% for clock in clocks_with_period %}
 {% if clock.period_ns %}
-# {{ clock.name }}{% if clock.frequency %} — {{ clock.frequency }}{% endif %}
+{% set freq_suffix = " — " + clock.frequency if clock.frequency else "" %}
+# {{ clock.name }}{{ freq_suffix }}
 create_clock -period {{ clock.period_ns }} -name {{ clock.name }} [get_ports { {{ clock.name }} }]
 {% else %}
 # {{ clock.name }} — frequency not defined; update the period below (ns)

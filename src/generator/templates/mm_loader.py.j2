@@ -177,6 +177,8 @@ def _parse_bits(bits_str):
     if bits_str is None:
         return 0, 1
     s = str(bits_str).strip()
+    if s.startswith("[") and s.endswith("]"):
+        s = s[1:-1]
     if ":" in s:
         parts = s.split(":")
         high, low = int(parts[0].strip()), int(parts[1].strip())
@@ -190,18 +192,14 @@ def _process_register(reg: dict, base_offset: int, prefix: str, out: list):
     if "registers" in reg:
         count = int(reg.get("count", 1))
         stride = _parse_number(reg.get("stride", 0))
-        array_base = base_offset + _parse_number(
-            reg.get("base_address", reg.get("address_offset", 0))
-        )
+        array_base = base_offset + _parse_number(reg.get("offset", 0))
         for i in range(count):
             inst_prefix = f"{name}_{i}_" if count > 1 else f"{name}_"
             for child in reg["registers"]:
                 _process_register(child, array_base + i * stride, inst_prefix, out)
         return
 
-    offset = base_offset + _parse_number(
-        reg.get("address_offset", reg.get("addressOffset", reg.get("offset", 0)))
-    )
+    offset = base_offset + _parse_number(reg.get("offset", 0))
     access = str(reg.get("access", "read-write")).lower()
 
     fields = []
@@ -251,8 +249,8 @@ def load_registers(mm_yml_path: str) -> list:
     mm_list = data if isinstance(data, list) else [data]
     registers: list = []
     for mm in mm_list:
-        for block in (mm or {}).get("address_blocks", []):
-            block_base = _parse_number(block.get("base_address", 0))
+        for block in (mm or {}).get("addressBlocks", []):
+            block_base = _parse_number(block.get("baseAddress", 0))
             for reg in block.get("registers", []):
                 _process_register(reg, block_base, "", registers)
 

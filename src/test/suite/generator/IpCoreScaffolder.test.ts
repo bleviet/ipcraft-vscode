@@ -521,6 +521,138 @@ describe('IpCoreScaffolder', () => {
     expect(logger.error).toHaveBeenCalled();
   });
 
+  it('emits syntactically valid VHDL for an Avalon-MM slave with no useOptionalPorts (regression)', async () => {
+    // Every port in avalon_mm.yml is presence:optional (no mandatory ports), so
+    // omitting useOptionalPorts entirely yields an empty bus_ports list for the
+    // template context. bus_avmm.vhdl.j2 used `{% if bus_ports %}` to guard the
+    // port-list block; Nunjucks treats an empty array as truthy (JS semantics,
+    // unlike Jinja2/Python), so the guard fired anyway, the for-loop rendered
+    // nothing, and the block's static trailing `;` was emitted with no port
+    // declarations before it -- invalid VHDL (a bare `;` inside the entity's
+    // port list).
+    const inputPath = path.resolve(__dirname, '../../fixtures/avmm-no-optional-ports.ip.yml');
+    const outputDir = '/tmp/test-output-avmm-no-optional-ports';
+
+    const result = await scaffolder.generateAll(inputPath, outputDir, {
+      includeRegs: true,
+      includeTestbench: false,
+      targets: [],
+      hdlLanguage: 'vhdl',
+      scaffoldPack: 'builtin-ipcraft',
+    });
+
+    expect(result.success).toBe(true);
+
+    const vhdlContent = (fs.writeFile as unknown as jest.Mock).mock.calls.find((call) =>
+      call[0].includes('_avmm.vhd')
+    )?.[1];
+    expect(vhdlContent).toBeDefined();
+    // No line may consist solely of a semicolon -- the exact shape of the bug.
+    expect(vhdlContent).not.toMatch(/^\s*;\s*$/m);
+    // With zero bus ports the whole guarded block (including its header
+    // comment) must be suppressed, not just the for-loop body.
+    expect(vhdlContent).not.toContain('-- Avalon-MM Slave Interface');
+  });
+
+  it('generates a cocotb mm_loader.py that reads camelCase addressBlocks/baseAddress (regression)', async () => {
+    // mm_loader.py.j2 (the generated cocotb helper for iterating a .mm.yml's
+    // registers) used to look up snake_case `address_blocks`/`base_address`,
+    // but the memory-map schema only ever defines camelCase `addressBlocks`/
+    // `baseAddress` (this repo's own convention: "Strict camelCase, no
+    // dual-state fallbacks"). Every `for block in mm.get("address_blocks",
+    // [])` therefore silently found nothing, so `load_regmap()` always
+    // returned an empty register list -- invisible because generated cocotb
+    // tests only log read-back values, never assert on them.
+    //
+    // A second, compounding bug in the same file: `_parse_bits` split a
+    // `bits` string on ":" without first stripping the schema's literal
+    // `[`/`]` brackets (the documented format is e.g. "[7:0]"), so
+    // `int("[7")` raised ValueError for every real bit field the moment the
+    // addressBlocks fix above let execution reach it.
+    const inputPath = path.resolve(__dirname, '../../fixtures/sample-ipcore.yml');
+    const outputDir = '/tmp/test-output-mm-loader';
+
+    const result = await scaffolder.generateAll(inputPath, outputDir, {
+      includeRegs: true,
+      includeTestbench: true,
+      targets: [],
+      scaffoldPack: 'builtin-ipcraft',
+    });
+
+    expect(result.success).toBe(true);
+
+    const mmLoaderContent = (fs.writeFile as unknown as jest.Mock).mock.calls.find((call) =>
+      call[0].includes('mm_loader.py')
+    )?.[1];
+    expect(mmLoaderContent).toBeDefined();
+    expect(mmLoaderContent).toContain('"addressBlocks"');
+    expect(mmLoaderContent).toContain('"baseAddress"');
+    expect(mmLoaderContent).not.toContain('address_blocks');
+    expect(mmLoaderContent).not.toContain('base_address');
+    expect(mmLoaderContent).toContain('s.startswith("[") and s.endswith("]")');
+  });
+
+  it('generates a Quartus .sdc with create_clock on its own line (regression)', async () => {
+    // quartus_sdc.j2's clock-comment line used an inline
+    // `{% if clock.frequency %} — {{ clock.frequency }}{% endif %}` whose
+    // trailing `{% endif %}` had its newline consumed by trimBlocks: true
+    // (this repo's own documented gotcha, see CLAUDE.md) -- the following
+    // `create_clock ...` line was merged onto the same (comment) line and
+    // silently swallowed as part of the Tcl comment, so the constraint was
+    // never actually applied. Confirmed on a real Quartus 25.1std run: the
+    // affected project reported "Design is not fully constrained for setup
+    // requirements" and negative timing slack.
+    const tmpPath = require('path').join(
+      require('os').tmpdir(),
+      `ipcraft_sdc_test_${Date.now()}.ip.yml`
+    );
+    const yaml = [
+      'vlnv:',
+      '  vendor: test',
+      '  library: lib',
+      '  name: sdc_core',
+      '  version: 1.0.0',
+      'clocks:',
+      '  - name: clk',
+      '    direction: in',
+      '    frequency: 50MHz',
+    ].join('\n');
+
+    const realFs = jest.requireActual('fs/promises') as typeof import('fs/promises');
+    await realFs.writeFile(tmpPath, yaml, 'utf-8');
+
+    try {
+      const result = await scaffolder.generateAll(tmpPath, '/tmp/test-output-sdc', {
+        targets: ['quartus'],
+        includeQuartusProject: true,
+        quartusDevice: '5CSEBA6U23I7',
+      });
+      expect(result.success).toBe(true);
+
+      const sdcContent = (fs.writeFile as unknown as jest.Mock).mock.calls.find((call) =>
+        call[0].endsWith('.sdc')
+      )?.[1];
+      expect(sdcContent).toBeDefined();
+      expect(sdcContent).toMatch(/^create_clock -period 20\.000 -name clk/m);
+      expect(sdcContent).not.toContain('50MHzcreate_clock');
+
+      // Second, related bug: quartus_project.tcl.j2 wrapped SDC_FILE in the
+      // same `[file join .. ...]` used for rtl_files, but the .sdc is
+      // written as a sibling of project.tcl in altera/ (rtl files live one
+      // level up in ../rtl/) -- the extra ".." made Quartus report
+      // "Synopsys Design Constraints File file not found", confirmed on a
+      // real Quartus 25.1std run.
+      const projectTclContent = (fs.writeFile as unknown as jest.Mock).mock.calls.find((call) =>
+        call[0].endsWith('_project.tcl')
+      )?.[1];
+      expect(projectTclContent).toBeDefined();
+      expect(projectTclContent).toContain('set_global_assignment -name SDC_FILE sdc_core.sdc');
+      expect(projectTclContent).not.toContain('SDC_FILE [file join');
+    } finally {
+      await realFs.unlink(tmpPath).catch(() => {});
+    }
+  });
+
   it('surfaces ajv schema error when simulation.engine is invalid', async () => {
     // Write a temp fixture with an invalid simulation.engine value
     const tmpPath = require('path').join(
