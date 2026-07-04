@@ -126,9 +126,9 @@ module {{ entity_name }}_regs
   ////////////////////////////////////////////////////////////////////////////
   always_ff @(posedge clk) begin : p_write
     if (rst) begin
-{% if sw_registers | length > 0 %}
-      regs <= C_REGS_SW2HW_RESET;
-{% endif %}
+{% for reg in sw_registers %}
+      regs.{{ reg.name | lower }} <= C_REG_{{ reg.name | upper }}_RESET;
+{% endfor %}
 {% if cos_registers | length %}
       // Shadow registers reset to the monitored field's own reset value, so
       // the first post-reset comparison is always a match (no spurious

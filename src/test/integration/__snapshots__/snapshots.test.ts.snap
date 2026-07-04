@@ -1762,11 +1762,6 @@ package comprehensive_avalon_pkg;
     events_t events;
   } regs_sw2hw_t;
 
-  localparam regs_sw2hw_t C_REGS_SW2HW_RESET = '{
-    C_REG_CONTROL_RESET,
-    C_REG_EVENTS_RESET
-  };
-
   // HW -> SW: Status registers (RO) + W1C/SC event pulses + hardware-driven value ports
   typedef struct packed {
     version_t version;
@@ -2405,25 +2400,6 @@ package comprehensive_axi_pkg;
     dma_1_len_t dma_1_len;
     dma_1_ctrl_t dma_1_ctrl;
   } regs_sw2hw_t;
-
-  localparam regs_sw2hw_t C_REGS_SW2HW_RESET = '{
-    C_REG_CTRL_RESET,
-    C_REG_CMD_RESET,
-    C_REG_SCRATCH_RESET,
-    C_REG_IRQ_EVENT_RESET,
-    C_REG_CH_GAIN_0_RESET,
-    C_REG_CH_GAIN_1_RESET,
-    C_REG_CH_GAIN_2_RESET,
-    C_REG_CH_GAIN_3_RESET,
-    C_REG_DMA_0_SRC_RESET,
-    C_REG_DMA_0_DST_RESET,
-    C_REG_DMA_0_LEN_RESET,
-    C_REG_DMA_0_CTRL_RESET,
-    C_REG_DMA_1_SRC_RESET,
-    C_REG_DMA_1_DST_RESET,
-    C_REG_DMA_1_LEN_RESET,
-    C_REG_DMA_1_CTRL_RESET
-  };
 
   // HW -> SW: Status registers (RO) + W1C/SC event pulses + hardware-driven value ports
   typedef struct packed {
@@ -3234,28 +3210,6 @@ package daq_controller_pkg;
     irq_legacy_t irq_legacy;
     busy_status_t busy_status;
   } regs_sw2hw_t;
-
-  localparam regs_sw2hw_t C_REGS_SW2HW_RESET = '{
-    C_REG_CONTROL_RESET,
-    C_REG_INT_STATUS_RESET,
-    C_REG_COMMAND_RESET,
-    C_REG_CHANNEL_0_CONFIG_RESET,
-    C_REG_CHANNEL_0_THRESHOLD_RESET,
-    C_REG_CHANNEL_0_FLAGS_RESET,
-    C_REG_CHANNEL_1_CONFIG_RESET,
-    C_REG_CHANNEL_1_THRESHOLD_RESET,
-    C_REG_CHANNEL_1_FLAGS_RESET,
-    C_REG_CHANNEL_2_CONFIG_RESET,
-    C_REG_CHANNEL_2_THRESHOLD_RESET,
-    C_REG_CHANNEL_2_FLAGS_RESET,
-    C_REG_CHANNEL_3_CONFIG_RESET,
-    C_REG_CHANNEL_3_THRESHOLD_RESET,
-    C_REG_CHANNEL_3_FLAGS_RESET,
-    C_REG_LINK_STATUS_RESET,
-    C_REG_DIAG_RESET,
-    C_REG_IRQ_LEGACY_RESET,
-    C_REG_BUSY_STATUS_RESET
-  };
 
   // HW -> SW: Status registers (RO) + W1C/SC event pulses + hardware-driven value ports
   typedef struct packed {

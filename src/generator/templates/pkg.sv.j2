@@ -156,12 +156,6 @@ package {{ entity_name }}_pkg;
 {% endfor %}
   } regs_sw2hw_t;
 
-  localparam regs_sw2hw_t C_REGS_SW2HW_RESET = '{
-{% for reg in sw_registers %}
-    C_REG_{{ reg.name | upper }}_RESET{{ "," if not loop.last else "" }}
-{% endfor %}
-  };
-
 {% endif %}
 {% set ext_w1c_regs_sv = [] %}
 {% for reg in w1c_registers %}
