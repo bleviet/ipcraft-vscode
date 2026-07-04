@@ -122,11 +122,74 @@ describe('useCanvasValidation', () => {
     const annotations = useCanvasValidation(ipCore);
     const bus0Msgs = annotations['bus:0']?.map((a) => a.message) ?? [];
     const bus1Msgs = annotations['bus:1']?.map((a) => a.message) ?? [];
-    expect(bus0Msgs.some((m) => m.includes('Duplicate physicalPrefix'))).toBe(true);
-    expect(bus1Msgs.some((m) => m.includes('Duplicate physicalPrefix'))).toBe(true);
+    // Both interfaces reconstruct to identical physical port names (same prefix, no
+    // portNameOverrides to disambiguate them) — a genuine collision, still flagged.
+    expect(bus0Msgs.some((m) => m.includes('collides with another bus interface'))).toBe(true);
+    expect(bus1Msgs.some((m) => m.includes('collides with another bus interface'))).toBe(true);
     expect(
-      annotations['bus:0'].find((a) => a.message.includes('Duplicate physicalPrefix'))?.severity
+      annotations['bus:0'].find((a) => a.message.includes('collides with another bus interface'))
+        ?.severity
     ).toBe('warning');
+  });
+
+  it('should not flag two same-protocol interfaces sharing a physicalPrefix when disjoint portNameOverrides disambiguate them', () => {
+    const ipCore: IpCore = {
+      vlnv: { vendor: 'test', library: 'lib', name: 'TestCore', version: '1.0' },
+      clocks: [{ name: 'clk' }],
+      busInterfaces: [
+        {
+          name: 'sink_0',
+          type: 'avalon_st',
+          mode: 'sink',
+          physicalPrefix: 'asi_',
+          associatedClock: 'clk',
+          portNameOverrides: { data: 'data_0_i', valid: 'valid_0_i' },
+        },
+        {
+          name: 'sink_1',
+          type: 'avalon_st',
+          mode: 'sink',
+          physicalPrefix: 'asi_',
+          associatedClock: 'clk',
+          portNameOverrides: { data: 'data_1_i', valid: 'valid_1_i' },
+        },
+      ] as any,
+    };
+
+    const annotations = useCanvasValidation(ipCore);
+    const bus0Msgs = annotations['bus:0']?.map((a) => a.message) ?? [];
+    const bus1Msgs = annotations['bus:1']?.map((a) => a.message) ?? [];
+    expect(bus0Msgs.some((m) => m.includes('collides with another bus interface'))).toBe(false);
+    expect(bus1Msgs.some((m) => m.includes('collides with another bus interface'))).toBe(false);
+  });
+
+  it('should flag two same-protocol interfaces sharing a physicalPrefix when overrides are identical (or absent)', () => {
+    const ipCore: IpCore = {
+      vlnv: { vendor: 'test', library: 'lib', name: 'TestCore', version: '1.0' },
+      clocks: [{ name: 'clk' }],
+      busInterfaces: [
+        {
+          name: 'sink_0',
+          type: 'avalon_st',
+          mode: 'sink',
+          physicalPrefix: 'asi_',
+          associatedClock: 'clk',
+        },
+        {
+          name: 'sink_1',
+          type: 'avalon_st',
+          mode: 'sink',
+          physicalPrefix: 'asi_',
+          associatedClock: 'clk',
+        },
+      ] as any,
+    };
+
+    const annotations = useCanvasValidation(ipCore);
+    const bus0Msgs = annotations['bus:0']?.map((a) => a.message) ?? [];
+    const bus1Msgs = annotations['bus:1']?.map((a) => a.message) ?? [];
+    expect(bus0Msgs.some((m) => m.includes('collides with another bus interface'))).toBe(true);
+    expect(bus1Msgs.some((m) => m.includes('collides with another bus interface'))).toBe(true);
   });
 
   it('should detect duplicate conduit port names within the same bus interface', () => {

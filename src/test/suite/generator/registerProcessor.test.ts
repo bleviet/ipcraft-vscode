@@ -191,6 +191,26 @@ describe('registerProcessor', () => {
       expect(byName['ready']).toBe('out');
     });
 
+    it('reconstructs multi-instance Avalon-ST physical port names from physicalPrefix + portNameOverrides', () => {
+      const defPorts = [
+        { name: 'data', direction: 'out', presence: 'required', width: 32 },
+        { name: 'valid', direction: 'out', presence: 'required', width: 1 },
+      ];
+
+      const sink0 = getActiveBusPortsFromDefinition(defPorts, [], 'asi_', 'sink', {}, undefined, {
+        data: 'data_0_i',
+        valid: 'valid_0_i',
+      });
+      expect(sink0.map((p) => p.name).sort()).toEqual(['asi_data_0_i', 'asi_valid_0_i']);
+      expect(sink0.every((p) => p.direction === 'in')).toBe(true);
+
+      const sink1 = getActiveBusPortsFromDefinition(defPorts, [], 'asi_', 'sink', {}, undefined, {
+        data: 'data_1_i',
+        valid: 'valid_1_i',
+      });
+      expect(sink1.map((p) => p.name).sort()).toEqual(['asi_data_1_i', 'asi_valid_1_i']);
+    });
+
     it('resolves parameter-name widths in bus definition using IP core defaults', () => {
       const defPorts = [
         { name: 'tx_data', direction: 'out', presence: 'required', width: 'XCVR_DW' },
@@ -520,6 +540,58 @@ describe('registerProcessor', () => {
         ],
       });
       expect(checkDuplicatePhysicalPrefixes(ipCore)).toBeNull();
+    });
+
+    it('returns null for two Avalon-ST interfaces sharing physicalPrefix when portNameOverrides disambiguate them', () => {
+      const ipCore = normalizeIpCoreData({
+        busInterfaces: [
+          {
+            name: 'sink_0',
+            type: 'avalon_st',
+            mode: 'sink',
+            physicalPrefix: 'asi_',
+            portNameOverrides: { data: 'data_0_i', valid: 'valid_0_i' },
+          },
+          {
+            name: 'sink_1',
+            type: 'avalon_st',
+            mode: 'sink',
+            physicalPrefix: 'asi_',
+            portNameOverrides: { data: 'data_1_i', valid: 'valid_1_i' },
+          },
+        ],
+      });
+      expect(checkDuplicatePhysicalPrefixes(ipCore)).toBeNull();
+    });
+
+    it('returns error string for two Avalon-ST interfaces sharing physicalPrefix with identical (or no) overrides', () => {
+      const ipCore = normalizeIpCoreData({
+        busInterfaces: [
+          { name: 'sink_0', type: 'avalon_st', mode: 'sink', physicalPrefix: 'asi_' },
+          { name: 'sink_1', type: 'avalon_st', mode: 'sink', physicalPrefix: 'asi_' },
+        ],
+      });
+      const result = checkDuplicatePhysicalPrefixes(ipCore);
+      expect(result).not.toBeNull();
+      expect(result).toContain('asi_');
+    });
+
+    it('still flags a conduit interface sharing a manual prefix with another interface (legacy fallback)', () => {
+      const ipCore = normalizeIpCoreData({
+        busInterfaces: [
+          {
+            name: 'custom_if',
+            type: 'ipcraft:busif:conduit:1.0',
+            mode: 'conduit',
+            physicalPrefix: 'shared_',
+            conduitPorts: [{ name: 'sig', direction: 'in' }],
+          },
+          { name: 'bus_b', type: 'AXI4-Lite', mode: 'slave', physicalPrefix: 'shared_' },
+        ],
+      });
+      const result = checkDuplicatePhysicalPrefixes(ipCore);
+      expect(result).not.toBeNull();
+      expect(result).toContain('shared_');
     });
   });
 

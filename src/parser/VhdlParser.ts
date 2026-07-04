@@ -2,6 +2,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
 import { BUS_VLNV } from '../shared/busVlnv';
+import { lookupBusDef } from '../webview/ipcore/data/busDefinitions';
 
 export interface ParsedPort {
   name: string;
@@ -125,6 +126,9 @@ export async function parseVhdlFile(
       }
       if (bus.absentPorts && bus.absentPorts.length > 0) {
         entry.absentPorts = bus.absentPorts;
+      }
+      if (bus.useOptionalPorts && bus.useOptionalPorts.length > 0) {
+        entry.useOptionalPorts = bus.useOptionalPorts;
       }
       return entry;
     });
@@ -571,6 +575,61 @@ const BUS_DEFINITIONS: readonly BusDef[] = [
   },
 ];
 
+/** Direction-tag tokens that decorate a physical port without identifying a distinct
+ *  bus instance (e.g. "asi_valid_0_i" and "asi_ready_0_o" are the same instance "0"). */
+const DIRECTION_TAGS = new Set(['i', 'o', 'in', 'out']);
+
+/** True at the end of the string, or at an underscore/digit — the only characters
+ *  allowed to immediately follow a matched signal name (or precede its start). */
+function isBoundaryChar(c: string | undefined): boolean {
+  return c === undefined || c === '_' || /[0-9]/.test(c);
+}
+
+/**
+ * Matches a bus signal anchored at the start of `rest` (the portion of a lowercased
+ * port name after a candidate prefix). Tries signal names longest-first so a longer
+ * signal (e.g. "readdatavalid") is preferred over a shorter one it contains
+ * ("readdata"). Returns the matched signal and the trailing decoration (e.g. "_0_i"),
+ * or null when nothing matches.
+ */
+function matchSignalAt(
+  sortedSignals: readonly BusSignalDef[],
+  rest: string
+): { sig: BusSignalDef; decoration: string } | null {
+  for (const sig of sortedSignals) {
+    if (rest.startsWith(sig.name) && isBoundaryChar(rest[sig.name.length])) {
+      return { sig, decoration: rest.slice(sig.name.length) };
+    }
+  }
+  return null;
+}
+
+/**
+ * Reduces a matched signal's trailing decoration to the instance discriminator that
+ * distinguishes multiple interfaces of the same protocol sharing one prefix (e.g.
+ * "_0_i" -> "0", "_i" -> "", "" -> ""). Direction-tag tokens are dropped since they
+ * decorate every signal of an instance without identifying it.
+ */
+function instanceKeyFromDecoration(decoration: string): string {
+  const tokens = decoration.split('_').filter((t) => t.length > 0);
+  return tokens.filter((t) => !DIRECTION_TAGS.has(t)).join('_');
+}
+
+/** All positions in `name` where `sigName` occurs (overlap-tolerant). */
+function findOccurrences(name: string, sigName: string): number[] {
+  const indices: number[] = [];
+  let start = 0;
+  for (;;) {
+    const idx = name.indexOf(sigName, start);
+    if (idx === -1) {
+      break;
+    }
+    indices.push(idx);
+    start = idx + 1;
+  }
+  return indices;
+}
+
 export function detectBusInterfaces(
   ports: ParsedPort[],
   clockReset: { clocks: Array<{ name: string }>; resets: Array<{ name: string; polarity: string }> }
@@ -585,113 +644,171 @@ export function detectBusInterfaces(
     portWidthOverrides?: Record<string, string | number>;
     portNameOverrides?: Record<string, string>;
     absentPorts?: string[];
+    useOptionalPorts?: string[];
   }>;
   busPortNames: Set<string>;
 } {
   const portMap = new Map<string, ParsedPort>();
   ports.forEach((p) => portMap.set(p.name.toLowerCase(), p));
 
-  // Collect candidate prefixes: the portion of each port name before a known signal suffix.
-  // Always include '' so unprefixed entities (e.g. bare TDATA/TVALID) are also evaluated.
+  // Collect candidate prefixes: the portion of each port name before a known signal,
+  // for every boundary-valid occurrence (not just a trailing suffix). Always include
+  // '' so unprefixed entities (e.g. bare TDATA/TVALID) are also evaluated.
   const candidatePrefixes = new Set<string>(['']);
   for (const busDef of BUS_DEFINITIONS) {
     for (const sig of busDef.signals) {
       for (const lowerName of portMap.keys()) {
-        if (lowerName.endsWith(sig.name) && lowerName.length > sig.name.length) {
-          const prefix = lowerName.slice(0, lowerName.length - sig.name.length);
-          if (prefix.endsWith('_')) {
-            candidatePrefixes.add(prefix);
+        for (const i of findOccurrences(lowerName, sig.name)) {
+          const before = i === 0 ? undefined : lowerName[i - 1];
+          const after = lowerName[i + sig.name.length];
+          if ((i === 0 || before === '_') && isBoundaryChar(after)) {
+            const prefix = lowerName.slice(0, i);
+            if (prefix === '' || prefix.endsWith('_')) {
+              candidatePrefixes.add(prefix);
+            }
           }
         }
       }
     }
   }
 
-  const candidates: Array<{
+  interface Candidate {
     prefix: string;
     busDef: BusDef;
+    instanceKey: string;
     requiredCount: number;
     totalCount: number;
     mode: 'master' | 'slave';
     matchedPorts: Set<string>;
-  }> = [];
+    sigByName: Map<string, ParsedPort>;
+  }
 
-  for (const prefix of candidatePrefixes) {
-    for (const busDef of BUS_DEFINITIONS) {
-      // Require at least one exclusive signal to prevent misclassifying a less-specific
-      // protocol as a more-specific one (e.g. AXI4-Lite ports matching AXI4-Full).
-      if (busDef.exclusiveSignals) {
-        const hasExclusive = busDef.exclusiveSignals.some((s) => portMap.has(prefix + s));
-        if (!hasExclusive) {
+  const candidates: Candidate[] = [];
+
+  for (const busDef of BUS_DEFINITIONS) {
+    const sortedSignals = [...busDef.signals].sort((a, b) => b.name.length - a.name.length);
+
+    for (const prefix of candidatePrefixes) {
+      // Group ports sharing this prefix by instance (distinguished by any index/token
+      // in the decoration after direction tags are stripped out).
+      const groups = new Map<
+        string,
+        { sigByName: Map<string, ParsedPort>; matchedPorts: Set<string> }
+      >();
+
+      for (const [lowerName, port] of portMap) {
+        if (!lowerName.startsWith(prefix)) {
           continue;
         }
-      }
-
-      let requiredCount = 0;
-      let totalCount = 0;
-      let masterVotes = 0;
-      let slaveVotes = 0;
-      const matchedPorts = new Set<string>();
-
-      for (const sig of busDef.signals) {
-        const port = portMap.get(prefix + sig.name);
-        if (!port) {
+        const rest = lowerName.slice(prefix.length);
+        const match = matchSignalAt(sortedSignals, rest);
+        if (!match) {
           continue;
         }
-        matchedPorts.add(port.name);
-        totalCount++;
-        if (sig.presence === 'required') {
-          requiredCount++;
+        const instanceKey = instanceKeyFromDecoration(match.decoration);
+        let group = groups.get(instanceKey);
+        if (!group) {
+          group = { sigByName: new Map(), matchedPorts: new Set() };
+          groups.set(instanceKey, group);
         }
-        if (port.direction === sig.direction) {
-          masterVotes++;
-        } else if (port.direction !== 'inout') {
-          slaveVotes++;
+        if (!group.sigByName.has(match.sig.name)) {
+          group.sigByName.set(match.sig.name, port);
+          group.matchedPorts.add(port.name);
         }
       }
 
-      if (requiredCount < busDef.minRequired) {
-        continue;
-      }
-      // For prefixed groups, reject the candidate when the number of same-prefix
-      // ports that the bus definition does NOT explain is at least as large as the
-      // number it does explain.  This prevents generic suffixes like "data"/"valid"
-      // from triggering Avalon-ST (or similar) on a plain register-bank interface
-      // that happens to have rd_data / rd_valid alongside rd_en / rd_addr.
-      if (prefix) {
-        const samePrefixCount = [...portMap.keys()].filter((k) => k.startsWith(prefix)).length;
-        const unrecognizedCount = samePrefixCount - matchedPorts.size;
-        if (unrecognizedCount >= matchedPorts.size) {
+      for (const [instanceKey, group] of groups) {
+        // Require at least one exclusive signal to prevent misclassifying a less-specific
+        // protocol as a more-specific one (e.g. AXI4-Lite ports matching AXI4-Full).
+        if (busDef.exclusiveSignals) {
+          const hasExclusive = busDef.exclusiveSignals.some((s) => group.sigByName.has(s));
+          if (!hasExclusive) {
+            continue;
+          }
+        }
+
+        let requiredCount = 0;
+        let totalCount = 0;
+        let masterVotes = 0;
+        let slaveVotes = 0;
+        for (const sig of busDef.signals) {
+          const port = group.sigByName.get(sig.name);
+          if (!port) {
+            continue;
+          }
+          totalCount++;
+          if (sig.presence === 'required') {
+            requiredCount++;
+          }
+          if (port.direction === sig.direction) {
+            masterVotes++;
+          } else if (port.direction !== 'inout') {
+            slaveVotes++;
+          }
+        }
+
+        if (requiredCount < busDef.minRequired) {
           continue;
         }
+
+        // For prefixed groups, reject the candidate when the number of same-prefix,
+        // same-instance ports that the bus definition does NOT explain is at least as
+        // large as the number it does explain. This prevents generic suffixes like
+        // "data"/"valid" from triggering Avalon-ST on a plain register-bank interface
+        // that happens to have rd_data / rd_valid alongside rd_en / rd_addr, while still
+        // allowing a genuine sibling instance (a different index) to coexist under the
+        // same prefix without counting against this one.
+        if (prefix) {
+          const relevant = [...portMap.keys()].filter((k) => {
+            if (!k.startsWith(prefix)) {
+              return false;
+            }
+            const indexTokens: string[] = k.slice(prefix.length).match(/\d+/g) ?? [];
+            return instanceKey === ''
+              ? indexTokens.length === 0
+              : indexTokens.includes(instanceKey);
+          });
+          const unrecognizedCount = relevant.length - group.matchedPorts.size;
+          if (unrecognizedCount >= group.matchedPorts.size) {
+            continue;
+          }
+        }
+
+        candidates.push({
+          prefix,
+          busDef,
+          instanceKey,
+          requiredCount,
+          totalCount,
+          mode: slaveVotes >= masterVotes ? 'slave' : 'master',
+          matchedPorts: group.matchedPorts,
+          sigByName: group.sigByName,
+        });
       }
-      candidates.push({
-        prefix,
-        busDef,
-        requiredCount,
-        totalCount,
-        mode: slaveVotes >= masterVotes ? 'slave' : 'master',
-        matchedPorts,
-      });
     }
   }
 
-  // Per prefix, keep only the best-scoring bus definition.
-  const byPrefix = new Map<string, (typeof candidates)[number]>();
+  // Per (prefix, instance), keep only the best-scoring bus definition.
+  const byPrefixInstance = new Map<string, Candidate>();
   for (const c of candidates) {
-    const existing = byPrefix.get(c.prefix);
+    const dedupKey = `${c.prefix} ${c.instanceKey}`;
+    const existing = byPrefixInstance.get(dedupKey);
     if (
       !existing ||
       c.requiredCount > existing.requiredCount ||
       (c.requiredCount === existing.requiredCount && c.totalCount > existing.totalCount)
     ) {
-      byPrefix.set(c.prefix, c);
+      byPrefixInstance.set(dedupKey, c);
     }
   }
 
-  // Longer (more specific) prefix first, then higher required count.
-  const sorted = [...byPrefix.values()].sort(
-    (a, b) => b.prefix.length - a.prefix.length || b.requiredCount - a.requiredCount
+  // Longer (more specific) prefix first, then higher required count, then instance key
+  // for deterministic ordering across sibling instances of the same interface.
+  const sorted = [...byPrefixInstance.values()].sort(
+    (a, b) =>
+      b.prefix.length - a.prefix.length ||
+      b.requiredCount - a.requiredCount ||
+      a.instanceKey.localeCompare(b.instanceKey)
   );
 
   // Greedy assignment: skip a candidate if the majority of its matched ports are
@@ -707,30 +824,25 @@ export function detectBusInterfaces(
     portWidthOverrides?: Record<string, string | number>;
     portNameOverrides?: Record<string, string>;
     absentPorts?: string[];
+    useOptionalPorts?: string[];
   }> = [];
   const busPortNames = new Set<string>();
 
-  for (const { prefix, busDef, matchedPorts, mode } of sorted) {
+  for (const { prefix, busDef, instanceKey, matchedPorts, mode, sigByName } of sorted) {
     const overlap = [...matchedPorts].filter((n) => claimedPorts.has(n)).length;
     if (overlap * 2 > matchedPorts.size) {
       continue;
     }
 
-    if (prefix) {
-      ports.forEach((p) => {
-        if (p.name.toLowerCase().startsWith(prefix)) {
-          claimedPorts.add(p.name);
-          busPortNames.add(p.name);
-        }
-      });
-    } else {
-      matchedPorts.forEach((n) => {
-        claimedPorts.add(n);
-        busPortNames.add(n);
-      });
-    }
+    // Claim only the ports this instance actually matched — not every port sharing the
+    // prefix — so a sibling instance under the same prefix isn't swallowed.
+    matchedPorts.forEach((n) => {
+      claimedPorts.add(n);
+      busPortNames.add(n);
+    });
 
-    const busName = prefix.replace(/_+$/, '') || busDef.id.split(':')[2] || 'bus';
+    const base = prefix.replace(/_+$/, '') || busDef.id.split(':')[2] || 'bus';
+    const busName = instanceKey ? `${base}_${instanceKey}` : base;
 
     const associatedClock =
       clockReset.clocks.find((c) => c.name.toLowerCase().startsWith(prefix))?.name ??
@@ -739,33 +851,43 @@ export function detectBusInterfaces(
       clockReset.resets.find((r) => r.name.toLowerCase().startsWith(prefix))?.name ??
       (clockReset.resets.length === 1 ? clockReset.resets[0].name : undefined);
 
-    // Recover original-case prefix from the first matched port (port names are case-preserved
+    // Recover original-case prefix from a matched port (port names are case-preserved
     // in portMap values even though keys are lowercased for matching).
     let originalPrefix = prefix;
-    for (const sig of busDef.signals) {
-      const port = portMap.get(prefix + sig.name);
-      if (port && prefix.length > 0) {
-        originalPrefix = port.name.slice(0, prefix.length);
-        break;
+    if (prefix.length > 0) {
+      const anyPort = sigByName.values().next().value;
+      if (anyPort) {
+        originalPrefix = anyPort.name.slice(0, prefix.length);
       }
     }
+
+    // Canonical logical-name casing (uppercase for AXI, lowercase for Avalon) comes from
+    // the shared bus definitions the generator itself resolves against, so overrides key
+    // exactly the way registerProcessor.ts looks them up.
+    const canonDef = lookupBusDef(busDef.id);
+    const canonByLower = new Map<string, string>(
+      (canonDef ?? []).map((d) => [d.name.toLowerCase(), d.name])
+    );
+    const canonicalKey = (sigName: string): string =>
+      canonByLower.get(sigName) ?? sigName.toUpperCase();
 
     const portWidthOverrides: Record<string, string | number> = {};
     const portNameOverrides: Record<string, string> = {};
     const absentPorts: string[] = [];
+    const useOptionalPorts: string[] = [];
     for (const sig of busDef.signals) {
-      const port = portMap.get(prefix + sig.name);
+      const port = sigByName.get(sig.name);
       if (!port) {
         if (sig.presence === 'required') {
           absentPorts.push(sig.name.toUpperCase());
         }
         continue;
       }
-      const logicalName = sig.name.toUpperCase();
+      const key = canonicalKey(sig.name);
 
       if (typeof port.width === 'string') {
         let overrideExpr = port.width;
-        if (logicalName === 'WSTRB') {
+        if (key.toUpperCase() === 'WSTRB') {
           // Generator applies /8 automatically for WSTRB; strip the trailing /N from
           // the extracted VHDL expression so the override stores the data-width param.
           overrideExpr = overrideExpr.replace(/\s*\/\s*\d+\s*$/, '').trim();
@@ -773,14 +895,18 @@ export function detectBusInterfaces(
             continue;
           }
         }
-        portWidthOverrides[logicalName] = overrideExpr;
+        portWidthOverrides[key] = overrideExpr;
       }
 
       // Record a suffix override when the actual physical suffix differs from the
       // conventional lowercase form (sig.name), preserving the original casing.
       const actualSuffix = port.name.slice(prefix.length);
       if (actualSuffix !== sig.name) {
-        portNameOverrides[logicalName] = actualSuffix;
+        portNameOverrides[key] = actualSuffix;
+      }
+
+      if (sig.presence === 'optional') {
+        useOptionalPorts.push(key);
       }
     }
 
@@ -795,6 +921,7 @@ export function detectBusInterfaces(
         Object.keys(portWidthOverrides).length > 0 ? portWidthOverrides : undefined,
       portNameOverrides: Object.keys(portNameOverrides).length > 0 ? portNameOverrides : undefined,
       absentPorts: absentPorts.length > 0 ? absentPorts : undefined,
+      useOptionalPorts: useOptionalPorts.length > 0 ? useOptionalPorts : undefined,
     });
   }
 

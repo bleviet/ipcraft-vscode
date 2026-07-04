@@ -470,6 +470,27 @@ export function parseHwTclContent(
           entry.portWidthOverrides = portWidthOverrides;
         }
       }
+
+      // Emit portNameOverrides for any physical port whose suffix (after the shared
+      // physicalPrefix) does not match the conventional lowercase logical name. This
+      // is lossless: physicalPrefix + suffix always reconstructs the original portName,
+      // even when multiple interfaces of the same protocol share one physicalPrefix
+      // (e.g. two Avalon-ST sinks both prefixed "asi_" but distinguished by an index/
+      // direction-tag suffix like "_0_i" / "_1_i").
+      const portNameOverrides: Record<string, string> = {};
+      for (const p of bi.ports) {
+        const suffix = p.portName.startsWith(physicalPrefix)
+          ? p.portName.slice(physicalPrefix.length)
+          : p.portName;
+        if (suffix !== p.logicalName.toLowerCase()) {
+          const def = defByUpper.get(p.logicalName.toUpperCase());
+          const canonicalKey = def ? def.name : p.logicalName;
+          portNameOverrides[canonicalKey] = suffix;
+        }
+      }
+      if (Object.keys(portNameOverrides).length > 0) {
+        entry.portNameOverrides = portNameOverrides;
+      }
     }
 
     return entry;

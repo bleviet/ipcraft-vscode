@@ -141,6 +141,32 @@ describe('HwTclParser', () => {
       expect(doc.busInterfaces[0].type).toBe('ipcraft:busif:avalon_mm:1.0');
     });
 
+    it('emits portNameOverrides for two Avalon-ST sinks sharing one physicalPrefix (multi-instance)', () => {
+      const tcl = `
+        add_interface asi_0 avalon_streaming end
+        add_interface_port asi_0 asi_valid_0_i valid Input 1
+        add_interface_port asi_0 asi_data_0_i data Input 32
+        add_interface asi_1 avalon_streaming end
+        add_interface_port asi_1 asi_valid_1_i valid Input 1
+        add_interface_port asi_1 asi_data_1_i data Input 32
+      `;
+      const doc = parseYaml(parse(tcl).yamlText) as {
+        busInterfaces: Array<Record<string, unknown>>;
+      };
+
+      expect(doc.busInterfaces).toHaveLength(2);
+      const [sink0, sink1] = doc.busInterfaces;
+
+      expect(sink0.type).toBe('ipcraft:busif:avalon_st:1.0');
+      expect(sink0.physicalPrefix).toBe('asi_');
+      expect(sink1.physicalPrefix).toBe('asi_');
+
+      // Lossless suffix overrides let physicalPrefix + suffix reconstruct the exact
+      // physical port name, keyed in Avalon-ST's canonical lowercase casing.
+      expect(sink0.portNameOverrides).toEqual({ valid: 'valid_0_i', data: 'data_0_i' });
+      expect(sink1.portNameOverrides).toEqual({ valid: 'valid_1_i', data: 'data_1_i' });
+    });
+
     it('maps start mode to master', () => {
       const tcl = `
         add_interface m_axi axi4lite start

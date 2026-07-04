@@ -1,4 +1,5 @@
 import { IpCore, Clock, Reset, Port, BusInterface } from '../../types/ipCore';
+import { reconstructBusPortNameSet } from '../../../shared/busPortNameSet';
 
 export type ValidationSeverity = 'warning' | 'error';
 
@@ -53,19 +54,32 @@ export const useCanvasValidation = (ipCore: IpCore): CanvasAnnotations => {
     }
   });
 
-  // Collect duplicate physicalPrefix values across all bus interfaces
-  const prefixCount = new Map<string, number>();
-  ipCore.busInterfaces?.forEach((bus: BusInterface) => {
-    const p = (bus.physicalPrefix ?? '').toLowerCase();
-    if (p) {
-      prefixCount.set(p, (prefixCount.get(p) ?? 0) + 1);
-    }
-  });
-  const duplicatePrefixSet = new Set(
-    Array.from(prefixCount.entries())
-      .filter(([, count]) => count > 1)
-      .map(([prefix]) => prefix)
+  // Detect bus interfaces whose reconstructed physical port names actually collide —
+  // mirroring the generator's own physicalPrefix + portNameOverrides formula. Distinct
+  // instances of the same protocol (e.g. two Avalon-ST sinks) may legitimately share a
+  // physicalPrefix as long as portNameOverrides fully disambiguate them; only a real
+  // name collision is flagged.
+  const busList = ipCore.busInterfaces ?? [];
+  const reconstructedSets = busList.map((bus) =>
+    bus.physicalPrefix ? reconstructBusPortNameSet(bus) : null
   );
+  const collisionMessages = new Map<number, string[]>();
+  for (let i = 0; i < busList.length; i++) {
+    for (let j = i + 1; j < busList.length; j++) {
+      const setI = reconstructedSets[i];
+      const setJ = reconstructedSets[j];
+      if (!setI || !setJ) {
+        continue;
+      }
+      const collidingNames = [...setI].filter((n) => setJ.has(n)).sort();
+      if (collidingNames.length === 0) {
+        continue;
+      }
+      const message = `Port name "${collidingNames[0]}" collides with another bus interface`;
+      collisionMessages.set(i, [...(collisionMessages.get(i) ?? []), message]);
+      collisionMessages.set(j, [...(collisionMessages.get(j) ?? []), message]);
+    }
+  }
 
   // Check bus interfaces
   ipCore.busInterfaces?.forEach((bus: BusInterface, idx: number) => {
@@ -114,15 +128,10 @@ export const useCanvasValidation = (ipCore: IpCore): CanvasAnnotations => {
       }
     }
 
-    // Warn when this interface's physicalPrefix collides with another interface
-    const prefix = bus.physicalPrefix ?? '';
-    if (prefix && duplicatePrefixSet.has(prefix.toLowerCase())) {
-      addAnnotation(
-        id,
-        'warning',
-        `Duplicate physicalPrefix "${prefix}" — will produce conflicting port names in generated HDL`
-      );
-    }
+    // Warn when this interface's reconstructed physical port names collide with another
+    (collisionMessages.get(idx) ?? []).forEach((message) => {
+      addAnnotation(id, 'warning', message);
+    });
 
     // Check conduit ports for duplicate names within the same bus interface
     if (Array.isArray(bus.conduitPorts)) {

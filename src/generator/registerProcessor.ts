@@ -8,6 +8,7 @@ import { BUS_REGISTRY } from './buses/builtin';
 
 import { evalWidthExpr } from '../shared/evalWidthExpr';
 import { parse, serialize, containsParamRef } from '../shared/widthExprAst';
+import { reconstructBusPortNameSet } from '../shared/busPortNameSet';
 export { evalWidthExpr };
 
 /**
@@ -149,25 +150,34 @@ export function hasMemoryMappedSlaveInterface(ipCore: IpCoreData): boolean {
 }
 
 /**
- * Checks whether any two expanded bus interfaces share the same physicalPrefix,
- * which would produce duplicate port names in generated HDL.
- * Returns a descriptive error string on collision, or null when all prefixes are unique.
+ * Checks whether any two expanded bus interfaces would emit conflicting physical
+ * port names in generated HDL. Two interfaces sharing the same physicalPrefix are
+ * only a real conflict when their reconstructed physical port names actually
+ * intersect — distinct instances of the same protocol (e.g. two Avalon-ST sinks)
+ * can legitimately share a prefix as long as portNameOverrides disambiguate them.
+ * When an interface can't be reconstructed (conduit / unrecognized bus type),
+ * falls back to the legacy raw-prefix comparison for that pair.
+ * Returns a descriptive error string on collision, or null when there is none.
  */
 export function checkDuplicatePhysicalPrefixes(ipCore: IpCoreData): string | null {
-  const expanded = expandBusInterfaces(ipCore);
-  const seen = new Map<string, string>(); // prefix → first interface name
+  const expanded = expandBusInterfaces(ipCore).filter((iface) => Boolean(iface.physicalPrefix));
+  const nameSets = expanded.map((iface) => reconstructBusPortNameSet(iface));
   const duplicates: string[] = [];
 
-  for (const iface of expanded) {
-    const prefix = iface.physicalPrefix ?? '';
-    if (!prefix) {
-      continue;
-    }
-    const key = prefix.toLowerCase();
-    if (seen.has(key)) {
-      duplicates.push(`'${prefix}' (shared by '${seen.get(key)}' and '${iface.name ?? ''}')`);
-    } else {
-      seen.set(key, iface.name ?? '');
+  for (let i = 0; i < expanded.length; i++) {
+    for (let j = i + 1; j < expanded.length; j++) {
+      const setI = nameSets[i];
+      const setJ = nameSets[j];
+      const collides =
+        setI && setJ
+          ? [...setI].some((n) => setJ.has(n))
+          : (expanded[i].physicalPrefix ?? '').toLowerCase() ===
+            (expanded[j].physicalPrefix ?? '').toLowerCase();
+      if (collides) {
+        duplicates.push(
+          `'${expanded[i].physicalPrefix ?? ''}' (shared by '${expanded[i].name ?? ''}' and '${expanded[j].name ?? ''}')`
+        );
+      }
     }
   }
 

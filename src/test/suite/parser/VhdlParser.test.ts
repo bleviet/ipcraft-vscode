@@ -52,6 +52,109 @@ describe('VhdlParser', () => {
     expect((parsed.busInterfaces as unknown[] | undefined)?.length ?? 0).toBeGreaterThan(0);
   });
 
+  it('splits two Avalon-ST sinks sharing one physicalPrefix into separate instances', async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ipcraft-vhdl-'));
+    const filePath = path.join(tempDir, 'asi_sink.vhd');
+    const vhdl = `
+      entity asi_sink is
+        port (
+          clk           : in  std_logic;
+          reset         : in  std_logic;
+          asi_valid_0_i : in  std_logic;
+          asi_data_0_i  : in  std_logic_vector(31 downto 0);
+          asi_valid_1_i : in  std_logic;
+          asi_data_1_i  : in  std_logic_vector(31 downto 0)
+        );
+      end entity asi_sink;
+    `;
+
+    await fs.writeFile(filePath, vhdl, 'utf8');
+    const result = await parseVhdlFile(filePath, { detectBus: true });
+    const parsed = yaml.load(result.yamlText) as Record<string, unknown>;
+
+    const ifaces = parsed.busInterfaces as Array<Record<string, unknown>>;
+    expect(ifaces).toHaveLength(2);
+
+    const byName = Object.fromEntries(ifaces.map((i) => [i.name, i]));
+    expect(byName.asi_0).toBeDefined();
+    expect(byName.asi_1).toBeDefined();
+
+    expect(byName.asi_0.physicalPrefix).toBe('asi_');
+    expect(byName.asi_1.physicalPrefix).toBe('asi_');
+    expect(byName.asi_0.mode).toBe('slave');
+
+    // Lossless, canonically lowercase (Avalon-ST) suffix overrides — this is the fix:
+    // physicalPrefix + suffix reconstructs each instance's exact physical port names.
+    expect(byName.asi_0.portNameOverrides).toEqual({ valid: 'valid_0_i', data: 'data_0_i' });
+    expect(byName.asi_1.portNameOverrides).toEqual({ valid: 'valid_1_i', data: 'data_1_i' });
+
+    // No user ports left over — both instances' ports were fully claimed.
+    expect(parsed.ports).toBeUndefined();
+  });
+
+  it('groups a signal appearing with a different direction tag (_o) into the same instance as _i signals', async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ipcraft-vhdl-'));
+    const filePath = path.join(tempDir, 'asi_sink_ready.vhd');
+    const vhdl = `
+      entity asi_sink_ready is
+        port (
+          clk           : in  std_logic;
+          reset         : in  std_logic;
+          asi_valid_0_i : in  std_logic;
+          asi_data_0_i  : in  std_logic_vector(31 downto 0);
+          asi_ready_0_o : out std_logic;
+          asi_valid_1_i : in  std_logic;
+          asi_data_1_i  : in  std_logic_vector(31 downto 0);
+          asi_ready_1_o : out std_logic
+        );
+      end entity asi_sink_ready;
+    `;
+
+    await fs.writeFile(filePath, vhdl, 'utf8');
+    const result = await parseVhdlFile(filePath, { detectBus: true });
+    const parsed = yaml.load(result.yamlText) as Record<string, unknown>;
+
+    const ifaces = parsed.busInterfaces as Array<Record<string, unknown>>;
+    expect(ifaces).toHaveLength(2);
+    const byName = Object.fromEntries(ifaces.map((i) => [i.name, i]));
+
+    // "ready" groups with "valid"/"data" under the same index despite the _o vs _i
+    // direction tag, and is emitted as a selected optional port (not dropped).
+    expect(byName.asi_0.portNameOverrides).toEqual({
+      valid: 'valid_0_i',
+      data: 'data_0_i',
+      ready: 'ready_0_o',
+    });
+    expect(byName.asi_0.useOptionalPorts).toEqual(['ready']);
+    expect(byName.asi_1.useOptionalPorts).toEqual(['ready']);
+  });
+
+  it('does not misdetect a plain register-bank interface as Avalon-ST', async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ipcraft-vhdl-'));
+    const filePath = path.join(tempDir, 'reg_bank.vhd');
+    const vhdl = `
+      entity reg_bank is
+        port (
+          clk      : in  std_logic;
+          rd_en    : in  std_logic;
+          rd_addr  : in  std_logic_vector(7 downto 0);
+          rd_data  : out std_logic_vector(31 downto 0);
+          rd_valid : out std_logic
+        );
+      end entity reg_bank;
+    `;
+
+    await fs.writeFile(filePath, vhdl, 'utf8');
+    const result = await parseVhdlFile(filePath, { detectBus: true });
+    const parsed = yaml.load(result.yamlText) as Record<string, unknown>;
+
+    expect((parsed.busInterfaces as unknown[] | undefined) ?? []).toHaveLength(0);
+    const ports = (parsed.ports as Array<Record<string, unknown>>) ?? [];
+    expect(ports.map((p) => p.name)).toEqual(
+      expect.arrayContaining(['rd_en', 'rd_addr', 'rd_data', 'rd_valid'])
+    );
+  });
+
   it('parses generic default values', async () => {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ipcraft-vhdl-'));
     const filePath = path.join(tempDir, 'generics.vhd');
