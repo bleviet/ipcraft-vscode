@@ -89,7 +89,7 @@ Project` (pointed at the phase directory itself, so `rtl/`, `tb/`, and
 folders) generates the full layered set: package, register file, bus
 wrapper, core stub, and top entity.
 
-## Two real bugs, found by using it for something real
+## Three real bugs, found by using it for something real
 
 This is the point of the whole series: a real target surfaces problems a
 synthetic fixture doesn't.
@@ -106,21 +106,37 @@ very first scaffold. Fixed upstream: `{% if bus_ports | length > 0 %}`, with
 a regression test (`IpCoreScaffolder.test.ts`) that fails without the fix
 and passes with it.
 
-**Bug 2 (authoring mistake, not a generator bug) — narrowing the address
-port breaks decode.** The register file decodes raw **byte** offsets
-internally, matching `.mm.yml` `offset:` values directly (`EVENTS` at byte
-offset `8`); the bus wrapper does a plain bit-slice
-`avs_address(C_ADDR_WIDTH-1 downto 0)` with no word-to-byte shift.
-`portWidthOverrides.address: 2` (assuming a word-indexed Avalon-MM
-convention) produced a GHDL bounds warning and broken decode. The fix: leave
-`address` at its default 32-bit width in `useOptionalPorts` and let the
-wrapper slice it down — the safe default.
+**Bug 2 — `altera_hw_tcl.j2` generated `addressUnits WORDS` but the RTL
+decodes byte offsets.** The register file compares the address signal against
+`.mm.yml` byte offsets directly (`C_REG_LED_PATTERN_ADDR = 4`,
+`C_REG_EVENTS_ADDR = 8`). With `addressUnits WORDS`, Platform Designer
+divides the CPU's byte offset by 4 before driving `avs_address` — so a
+write to LED\_PATTERN at byte offset `0x04` arrives as word address `1`, not
+`4`, and the decode never matches. Only the first register (VERSION, offset
+`0`) was reachable in hardware. Fixed in `altera_hw_tcl.j2`:
+`addressUnits BYTES`. With BYTES, Platform Designer passes byte offsets
+directly to the port, the `C_ADDR_WIDTH-1 downto 0` slice picks up the right
+bits, and all three registers decode correctly. `C_ADDR_WIDTH` stays at `4`
+(computed by `addressingResolver` as `ceil(log2(span=16 bytes))`) and the
+address port remains at its default 32-bit width — no `portWidthOverrides`
+needed.
+
+**Bug 3 — `printf` pulls newlib's full vfprintf into a 32 KB on-chip RAM.**
+`main.c` used `printf` with `%08lX`. Newlib's `printf` always links
+`vfprintf`, `dtoa`, `mprec`, and a heap of locale/reent infrastructure
+regardless of the format specifiers used — about 24 KB of `.text` alone,
+which overflows the 32 KB on-chip RAM at link time. The fix: switch to
+`alt_printf` from `sys/alt_stdio.h`, which supports `%x`, `%s`, and `%c`
+with a ~1 KB footprint. Format strings are adjusted to use `%x` (no
+zero-padding or uppercase) — the version self-test still catches a mismatch,
+it just prints `0x100` instead of `0x00000100`.
 
 ## Verification
 
 - `IPCraft: Scaffold Project` completes without error.
 - GHDL `-a`/`-e` (VHDL-2008) analyzes and elaborates the full generated +
-  hand-edited RTL cleanly — zero warnings once both bugs above were fixed.
+  hand-edited RTL cleanly — zero warnings once all three bugs above were
+  fixed.
 - `rtl/led_controller_avmm_core.vhd` and `tb/led_controller_avmm_test.py` are
   marked `managed: false` in `fileSets`, verified to survive a re-scaffold.
 

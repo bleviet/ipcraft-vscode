@@ -51,7 +51,13 @@ set_global_assignment -name TOP_LEVEL_ENTITY avalon_peripheral
 set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/avalon_peripheral.sv]
 
 # ---- Timing constraints -----------------------------------------------------
-set_global_assignment -name SDC_FILE [file join .. avalon_peripheral.sdc]
+# sdc_file is a bare filename (the .sdc is written as a sibling of this
+# project.tcl in altera/, unlike rtl_files which live one level up in
+# ../rtl/) -- no [file join ..] wrapper needed. Confirmed on a real Quartus
+# run: wrapping it the same way as rtl_files produced
+# "Synopsys Design Constraints File file not found" and unconstrained
+# (negative-slack) timing analysis.
+set_global_assignment -name SDC_FILE avalon_peripheral.sdc
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus
@@ -114,7 +120,13 @@ set_global_assignment -name TOP_LEVEL_ENTITY avalon_peripheral
 set_global_assignment -name VHDL_FILE [file join .. ../rtl/avalon_peripheral.vhd]
 
 # ---- Timing constraints -----------------------------------------------------
-set_global_assignment -name SDC_FILE [file join .. avalon_peripheral.sdc]
+# sdc_file is a bare filename (the .sdc is written as a sibling of this
+# project.tcl in altera/, unlike rtl_files which live one level up in
+# ../rtl/) -- no [file join ..] wrapper needed. Confirmed on a real Quartus
+# run: wrapping it the same way as rtl_files produced
+# "Synopsys Design Constraints File file not found" and unconstrained
+# (negative-slack) timing analysis.
+set_global_assignment -name SDC_FILE avalon_peripheral.sdc
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus
@@ -177,7 +189,13 @@ set_global_assignment -name TOP_LEVEL_ENTITY axi_slave_core
 set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/axi_slave_core.sv]
 
 # ---- Timing constraints -----------------------------------------------------
-set_global_assignment -name SDC_FILE [file join .. axi_slave_core.sdc]
+# sdc_file is a bare filename (the .sdc is written as a sibling of this
+# project.tcl in altera/, unlike rtl_files which live one level up in
+# ../rtl/) -- no [file join ..] wrapper needed. Confirmed on a real Quartus
+# run: wrapping it the same way as rtl_files produced
+# "Synopsys Design Constraints File file not found" and unconstrained
+# (negative-slack) timing analysis.
+set_global_assignment -name SDC_FILE axi_slave_core.sdc
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus
@@ -240,7 +258,13 @@ set_global_assignment -name TOP_LEVEL_ENTITY axi_slave_core
 set_global_assignment -name VHDL_FILE [file join .. ../rtl/axi_slave_core.vhd]
 
 # ---- Timing constraints -----------------------------------------------------
-set_global_assignment -name SDC_FILE [file join .. axi_slave_core.sdc]
+# sdc_file is a bare filename (the .sdc is written as a sibling of this
+# project.tcl in altera/, unlike rtl_files which live one level up in
+# ../rtl/) -- no [file join ..] wrapper needed. Confirmed on a real Quartus
+# run: wrapping it the same way as rtl_files produced
+# "Synopsys Design Constraints File file not found" and unconstrained
+# (negative-slack) timing analysis.
+set_global_assignment -name SDC_FILE axi_slave_core.sdc
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus
@@ -303,7 +327,13 @@ set_global_assignment -name TOP_LEVEL_ENTITY basic_core
 set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/basic_core.sv]
 
 # ---- Timing constraints -----------------------------------------------------
-set_global_assignment -name SDC_FILE [file join .. basic_core.sdc]
+# sdc_file is a bare filename (the .sdc is written as a sibling of this
+# project.tcl in altera/, unlike rtl_files which live one level up in
+# ../rtl/) -- no [file join ..] wrapper needed. Confirmed on a real Quartus
+# run: wrapping it the same way as rtl_files produced
+# "Synopsys Design Constraints File file not found" and unconstrained
+# (negative-slack) timing analysis.
+set_global_assignment -name SDC_FILE basic_core.sdc
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus
@@ -366,7 +396,13 @@ set_global_assignment -name TOP_LEVEL_ENTITY basic_core
 set_global_assignment -name VHDL_FILE [file join .. ../rtl/basic_core.vhd]
 
 # ---- Timing constraints -----------------------------------------------------
-set_global_assignment -name SDC_FILE [file join .. basic_core.sdc]
+# sdc_file is a bare filename (the .sdc is written as a sibling of this
+# project.tcl in altera/, unlike rtl_files which live one level up in
+# ../rtl/) -- no [file join ..] wrapper needed. Confirmed on a real Quartus
+# run: wrapping it the same way as rtl_files produced
+# "Synopsys Design Constraints File file not found" and unconstrained
+# (negative-slack) timing analysis.
+set_global_assignment -name SDC_FILE basic_core.sdc
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus
@@ -429,7 +465,13 @@ set_global_assignment -name TOP_LEVEL_ENTITY basic_peripheral
 set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/basic_peripheral.sv]
 
 # ---- Timing constraints -----------------------------------------------------
-set_global_assignment -name SDC_FILE [file join .. basic_peripheral.sdc]
+# sdc_file is a bare filename (the .sdc is written as a sibling of this
+# project.tcl in altera/, unlike rtl_files which live one level up in
+# ../rtl/) -- no [file join ..] wrapper needed. Confirmed on a real Quartus
+# run: wrapping it the same way as rtl_files produced
+# "Synopsys Design Constraints File file not found" and unconstrained
+# (negative-slack) timing analysis.
+set_global_assignment -name SDC_FILE basic_peripheral.sdc
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus
@@ -492,7 +534,13 @@ set_global_assignment -name TOP_LEVEL_ENTITY basic_peripheral
 set_global_assignment -name VHDL_FILE [file join .. ../rtl/basic_peripheral.vhd]
 
 # ---- Timing constraints -----------------------------------------------------
-set_global_assignment -name SDC_FILE [file join .. basic_peripheral.sdc]
+# sdc_file is a bare filename (the .sdc is written as a sibling of this
+# project.tcl in altera/, unlike rtl_files which live one level up in
+# ../rtl/) -- no [file join ..] wrapper needed. Confirmed on a real Quartus
+# run: wrapping it the same way as rtl_files produced
+# "Synopsys Design Constraints File file not found" and unconstrained
+# (negative-slack) timing analysis.
+set_global_assignment -name SDC_FILE basic_peripheral.sdc
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus
@@ -559,7 +607,13 @@ set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/comprehensiv
 set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/comprehensive_avalon.sv]
 
 # ---- Timing constraints -----------------------------------------------------
-set_global_assignment -name SDC_FILE [file join .. comprehensive_avalon.sdc]
+# sdc_file is a bare filename (the .sdc is written as a sibling of this
+# project.tcl in altera/, unlike rtl_files which live one level up in
+# ../rtl/) -- no [file join ..] wrapper needed. Confirmed on a real Quartus
+# run: wrapping it the same way as rtl_files produced
+# "Synopsys Design Constraints File file not found" and unconstrained
+# (negative-slack) timing analysis.
+set_global_assignment -name SDC_FILE comprehensive_avalon.sdc
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus
@@ -626,7 +680,13 @@ set_global_assignment -name VHDL_FILE [file join .. ../rtl/comprehensive_avalon_
 set_global_assignment -name VHDL_FILE [file join .. ../rtl/comprehensive_avalon.vhd]
 
 # ---- Timing constraints -----------------------------------------------------
-set_global_assignment -name SDC_FILE [file join .. comprehensive_avalon.sdc]
+# sdc_file is a bare filename (the .sdc is written as a sibling of this
+# project.tcl in altera/, unlike rtl_files which live one level up in
+# ../rtl/) -- no [file join ..] wrapper needed. Confirmed on a real Quartus
+# run: wrapping it the same way as rtl_files produced
+# "Synopsys Design Constraints File file not found" and unconstrained
+# (negative-slack) timing analysis.
+set_global_assignment -name SDC_FILE comprehensive_avalon.sdc
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus
@@ -693,7 +753,13 @@ set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/comprehensiv
 set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/comprehensive_axi.sv]
 
 # ---- Timing constraints -----------------------------------------------------
-set_global_assignment -name SDC_FILE [file join .. comprehensive_axi.sdc]
+# sdc_file is a bare filename (the .sdc is written as a sibling of this
+# project.tcl in altera/, unlike rtl_files which live one level up in
+# ../rtl/) -- no [file join ..] wrapper needed. Confirmed on a real Quartus
+# run: wrapping it the same way as rtl_files produced
+# "Synopsys Design Constraints File file not found" and unconstrained
+# (negative-slack) timing analysis.
+set_global_assignment -name SDC_FILE comprehensive_axi.sdc
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus
@@ -760,7 +826,13 @@ set_global_assignment -name VHDL_FILE [file join .. ../rtl/comprehensive_axi_axi
 set_global_assignment -name VHDL_FILE [file join .. ../rtl/comprehensive_axi.vhd]
 
 # ---- Timing constraints -----------------------------------------------------
-set_global_assignment -name SDC_FILE [file join .. comprehensive_axi.sdc]
+# sdc_file is a bare filename (the .sdc is written as a sibling of this
+# project.tcl in altera/, unlike rtl_files which live one level up in
+# ../rtl/) -- no [file join ..] wrapper needed. Confirmed on a real Quartus
+# run: wrapping it the same way as rtl_files produced
+# "Synopsys Design Constraints File file not found" and unconstrained
+# (negative-slack) timing analysis.
+set_global_assignment -name SDC_FILE comprehensive_axi.sdc
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus
@@ -827,7 +899,13 @@ set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/daq_controll
 set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/daq_controller.sv]
 
 # ---- Timing constraints -----------------------------------------------------
-set_global_assignment -name SDC_FILE [file join .. daq_controller.sdc]
+# sdc_file is a bare filename (the .sdc is written as a sibling of this
+# project.tcl in altera/, unlike rtl_files which live one level up in
+# ../rtl/) -- no [file join ..] wrapper needed. Confirmed on a real Quartus
+# run: wrapping it the same way as rtl_files produced
+# "Synopsys Design Constraints File file not found" and unconstrained
+# (negative-slack) timing analysis.
+set_global_assignment -name SDC_FILE daq_controller.sdc
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus
@@ -894,7 +972,13 @@ set_global_assignment -name VHDL_FILE [file join .. ../rtl/daq_controller_axil.v
 set_global_assignment -name VHDL_FILE [file join .. ../rtl/daq_controller.vhd]
 
 # ---- Timing constraints -----------------------------------------------------
-set_global_assignment -name SDC_FILE [file join .. daq_controller.sdc]
+# sdc_file is a bare filename (the .sdc is written as a sibling of this
+# project.tcl in altera/, unlike rtl_files which live one level up in
+# ../rtl/) -- no [file join ..] wrapper needed. Confirmed on a real Quartus
+# run: wrapping it the same way as rtl_files produced
+# "Synopsys Design Constraints File file not found" and unconstrained
+# (negative-slack) timing analysis.
+set_global_assignment -name SDC_FILE daq_controller.sdc
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus
@@ -957,7 +1041,13 @@ set_global_assignment -name TOP_LEVEL_ENTITY minimal_ip
 set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/minimal_ip.sv]
 
 # ---- Timing constraints -----------------------------------------------------
-set_global_assignment -name SDC_FILE [file join .. minimal_ip.sdc]
+# sdc_file is a bare filename (the .sdc is written as a sibling of this
+# project.tcl in altera/, unlike rtl_files which live one level up in
+# ../rtl/) -- no [file join ..] wrapper needed. Confirmed on a real Quartus
+# run: wrapping it the same way as rtl_files produced
+# "Synopsys Design Constraints File file not found" and unconstrained
+# (negative-slack) timing analysis.
+set_global_assignment -name SDC_FILE minimal_ip.sdc
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus
@@ -1020,7 +1110,13 @@ set_global_assignment -name TOP_LEVEL_ENTITY minimal_ip
 set_global_assignment -name VHDL_FILE [file join .. ../rtl/minimal_ip.vhd]
 
 # ---- Timing constraints -----------------------------------------------------
-set_global_assignment -name SDC_FILE [file join .. minimal_ip.sdc]
+# sdc_file is a bare filename (the .sdc is written as a sibling of this
+# project.tcl in altera/, unlike rtl_files which live one level up in
+# ../rtl/) -- no [file join ..] wrapper needed. Confirmed on a real Quartus
+# run: wrapping it the same way as rtl_files produced
+# "Synopsys Design Constraints File file not found" and unconstrained
+# (negative-slack) timing analysis.
+set_global_assignment -name SDC_FILE minimal_ip.sdc
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus
@@ -1083,7 +1179,13 @@ set_global_assignment -name TOP_LEVEL_ENTITY multi_interface_accelerator
 set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/multi_interface_accelerator.sv]
 
 # ---- Timing constraints -----------------------------------------------------
-set_global_assignment -name SDC_FILE [file join .. multi_interface_accelerator.sdc]
+# sdc_file is a bare filename (the .sdc is written as a sibling of this
+# project.tcl in altera/, unlike rtl_files which live one level up in
+# ../rtl/) -- no [file join ..] wrapper needed. Confirmed on a real Quartus
+# run: wrapping it the same way as rtl_files produced
+# "Synopsys Design Constraints File file not found" and unconstrained
+# (negative-slack) timing analysis.
+set_global_assignment -name SDC_FILE multi_interface_accelerator.sdc
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus
@@ -1146,7 +1248,13 @@ set_global_assignment -name TOP_LEVEL_ENTITY multi_interface_accelerator
 set_global_assignment -name VHDL_FILE [file join .. ../rtl/multi_interface_accelerator.vhd]
 
 # ---- Timing constraints -----------------------------------------------------
-set_global_assignment -name SDC_FILE [file join .. multi_interface_accelerator.sdc]
+# sdc_file is a bare filename (the .sdc is written as a sibling of this
+# project.tcl in altera/, unlike rtl_files which live one level up in
+# ../rtl/) -- no [file join ..] wrapper needed. Confirmed on a real Quartus
+# run: wrapping it the same way as rtl_files produced
+# "Synopsys Design Constraints File file not found" and unconstrained
+# (negative-slack) timing analysis.
+set_global_assignment -name SDC_FILE multi_interface_accelerator.sdc
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus
@@ -1209,7 +1317,13 @@ set_global_assignment -name TOP_LEVEL_ENTITY system_controller
 set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/system_controller.sv]
 
 # ---- Timing constraints -----------------------------------------------------
-set_global_assignment -name SDC_FILE [file join .. system_controller.sdc]
+# sdc_file is a bare filename (the .sdc is written as a sibling of this
+# project.tcl in altera/, unlike rtl_files which live one level up in
+# ../rtl/) -- no [file join ..] wrapper needed. Confirmed on a real Quartus
+# run: wrapping it the same way as rtl_files produced
+# "Synopsys Design Constraints File file not found" and unconstrained
+# (negative-slack) timing analysis.
+set_global_assignment -name SDC_FILE system_controller.sdc
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus
@@ -1272,7 +1386,13 @@ set_global_assignment -name TOP_LEVEL_ENTITY system_controller
 set_global_assignment -name VHDL_FILE [file join .. ../rtl/system_controller.vhd]
 
 # ---- Timing constraints -----------------------------------------------------
-set_global_assignment -name SDC_FILE [file join .. system_controller.sdc]
+# sdc_file is a bare filename (the .sdc is written as a sibling of this
+# project.tcl in altera/, unlike rtl_files which live one level up in
+# ../rtl/) -- no [file join ..] wrapper needed. Confirmed on a real Quartus
+# run: wrapping it the same way as rtl_files produced
+# "Synopsys Design Constraints File file not found" and unconstrained
+# (negative-slack) timing analysis.
+set_global_assignment -name SDC_FILE system_controller.sdc
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus
@@ -1335,7 +1455,13 @@ set_global_assignment -name TOP_LEVEL_ENTITY xcvr_loopback
 set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/xcvr_loopback.sv]
 
 # ---- Timing constraints -----------------------------------------------------
-set_global_assignment -name SDC_FILE [file join .. xcvr_loopback.sdc]
+# sdc_file is a bare filename (the .sdc is written as a sibling of this
+# project.tcl in altera/, unlike rtl_files which live one level up in
+# ../rtl/) -- no [file join ..] wrapper needed. Confirmed on a real Quartus
+# run: wrapping it the same way as rtl_files produced
+# "Synopsys Design Constraints File file not found" and unconstrained
+# (negative-slack) timing analysis.
+set_global_assignment -name SDC_FILE xcvr_loopback.sdc
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus
@@ -1398,7 +1524,13 @@ set_global_assignment -name TOP_LEVEL_ENTITY xcvr_loopback
 set_global_assignment -name VHDL_FILE [file join .. ../rtl/xcvr_loopback.vhd]
 
 # ---- Timing constraints -----------------------------------------------------
-set_global_assignment -name SDC_FILE [file join .. xcvr_loopback.sdc]
+# sdc_file is a bare filename (the .sdc is written as a sibling of this
+# project.tcl in altera/, unlike rtl_files which live one level up in
+# ../rtl/) -- no [file join ..] wrapper needed. Confirmed on a real Quartus
+# run: wrapping it the same way as rtl_files produced
+# "Synopsys Design Constraints File file not found" and unconstrained
+# (negative-slack) timing analysis.
+set_global_assignment -name SDC_FILE xcvr_loopback.sdc
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus
@@ -1461,7 +1593,13 @@ set_global_assignment -name TOP_LEVEL_ENTITY minimal_core
 set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/minimal_core.sv]
 
 # ---- Timing constraints -----------------------------------------------------
-set_global_assignment -name SDC_FILE [file join .. minimal_core.sdc]
+# sdc_file is a bare filename (the .sdc is written as a sibling of this
+# project.tcl in altera/, unlike rtl_files which live one level up in
+# ../rtl/) -- no [file join ..] wrapper needed. Confirmed on a real Quartus
+# run: wrapping it the same way as rtl_files produced
+# "Synopsys Design Constraints File file not found" and unconstrained
+# (negative-slack) timing analysis.
+set_global_assignment -name SDC_FILE minimal_core.sdc
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus
@@ -1524,7 +1662,13 @@ set_global_assignment -name TOP_LEVEL_ENTITY minimal_core
 set_global_assignment -name VHDL_FILE [file join .. ../rtl/minimal_core.vhd]
 
 # ---- Timing constraints -----------------------------------------------------
-set_global_assignment -name SDC_FILE [file join .. minimal_core.sdc]
+# sdc_file is a bare filename (the .sdc is written as a sibling of this
+# project.tcl in altera/, unlike rtl_files which live one level up in
+# ../rtl/) -- no [file join ..] wrapper needed. Confirmed on a real Quartus
+# run: wrapping it the same way as rtl_files produced
+# "Synopsys Design Constraints File file not found" and unconstrained
+# (negative-slack) timing analysis.
+set_global_assignment -name SDC_FILE minimal_core.sdc
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus
@@ -32739,7 +32883,7 @@ set_interface_property avalon_mm_slave CMSIS_SVD_VARIABLES ""
 set_interface_property avalon_mm_slave SVD_ADDRESS_GROUP ""
 
 # Type-specific properties
-set_interface_property avalon_mm_slave addressUnits WORDS
+set_interface_property avalon_mm_slave addressUnits BYTES
 set_interface_property avalon_mm_slave maximumPendingReadTransactions 1
 # Ports
 add_interface_port avalon_mm_slave s_avmm_address address Input 32
@@ -32887,7 +33031,7 @@ set_interface_property avalon_mm_slave CMSIS_SVD_VARIABLES ""
 set_interface_property avalon_mm_slave SVD_ADDRESS_GROUP ""
 
 # Type-specific properties
-set_interface_property avalon_mm_slave addressUnits WORDS
+set_interface_property avalon_mm_slave addressUnits BYTES
 set_interface_property avalon_mm_slave maximumPendingReadTransactions 1
 # Ports
 add_interface_port avalon_mm_slave s_avmm_address address Input 32
@@ -33899,7 +34043,7 @@ set_interface_property S_AVMM CMSIS_SVD_VARIABLES ""
 set_interface_property S_AVMM SVD_ADDRESS_GROUP ""
 
 # Type-specific properties
-set_interface_property S_AVMM addressUnits WORDS
+set_interface_property S_AVMM addressUnits BYTES
 set_interface_property S_AVMM maximumPendingReadTransactions 1
 # Ports
 add_interface_port S_AVMM avs_address address Input 12
@@ -34102,7 +34246,7 @@ set_interface_property S_AVMM CMSIS_SVD_VARIABLES ""
 set_interface_property S_AVMM SVD_ADDRESS_GROUP ""
 
 # Type-specific properties
-set_interface_property S_AVMM addressUnits WORDS
+set_interface_property S_AVMM addressUnits BYTES
 set_interface_property S_AVMM maximumPendingReadTransactions 1
 # Ports
 add_interface_port S_AVMM avs_address address Input 12

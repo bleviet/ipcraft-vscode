@@ -23,7 +23,9 @@ in hand.
 `software/app/main.c` extends `04_nios2_led`'s pattern. A hand-authored
 Platform Designer component gets no auto-generated HAL macro header (unlike
 the stock `altera_avalon_pio`), so registers are poked directly by byte
-offset, matching `led_controller_avmm.mm.yml`:
+offset, matching `led_controller_avmm.mm.yml`. `alt_printf` (from
+`sys/alt_stdio.h`) replaces `printf` throughout — newlib's `printf` alone
+overflows the 32 KB on-chip RAM, as documented in Part 1's Bug 3:
 
 ```c
 /* Startup self-test: VERSION must match what IPCraft generated. */
@@ -31,7 +33,7 @@ uint32_t version = IORD_32DIRECT(LED_CTRL_BASE, 0x00);
 /* ... cycles LED_PATTERN through the same demo patterns as 04_nios2_led ... */
 uint32_t events = IORD_32DIRECT(LED_CTRL_BASE, 0x08);
 if (events & HEARTBEAT_TOGGLED) {
-    printf("heartbeat\n");
+    alt_putstr("heartbeat\n");
     IOWR_32DIRECT(LED_CTRL_BASE, 0x08, HEARTBEAT_TOGGLED); /* W1C */
 }
 ```
@@ -65,8 +67,9 @@ make terminal                    # JTAG UART — watch for "heartbeat"
 ```
 
 Expected: the same LED cycling pattern as `04_nios2_led`, now driven by an
-IPCraft-generated register file; `led_controller_avmm VERSION OK:
-0x00000100` at startup; `heartbeat` printed roughly once per second. If the
+IPCraft-generated register file; `led_controller_avmm VERSION OK: 0x100`
+at startup (`alt_printf` uses `%x` without zero-padding — `0x100` =
+`MAJOR=1, MINOR=0`); `heartbeat` printed roughly once per second. If the
 write-1-to-clear didn't actually work in real hardware, the print would
 either stop appearing correctly or the polling loop would misbehave — a
 behavioral proof, not just a visual LED check.
@@ -75,20 +78,26 @@ behavioral proof, not just a visual LED check.
 
 Across five parts, this series built one real peripheral — the exact one
 cvsoc's own roadmap called for and never built — entirely through IPCraft,
-and in doing so found and fixed **six confirmed bugs** across the generator:
+and in doing so found and fixed **eight confirmed bugs** across the generator:
 
 1. An Avalon-MM slave with no `useOptionalPorts` produced invalid VHDL
    (empty array truthiness in Nunjucks).
-2. `mm_loader.py.j2` read snake_case keys against a camelCase-only schema —
+2. `altera_hw_tcl.j2` generated `addressUnits WORDS` but the RTL decodes
+   byte offsets — only the first register was reachable in hardware. Fixed:
+   `addressUnits BYTES`.
+3. `mm_loader.py.j2` read snake_case keys against a camelCase-only schema —
    every generated cocotb test's register list was silently empty.
-3. `_parse_bits` never stripped the schema's `[`/`]` brackets.
-4. The generated Avalon-MM cocotb helpers shifted addresses by `>> 2`,
+4. `_parse_bits` never stripped the schema's `[`/`]` brackets.
+5. The generated Avalon-MM cocotb helpers shifted addresses by `>> 2`,
    mismatched against the generator's own byte-addressed register file.
-5. The generated `_read_reg` sampled one cycle too early for a
+6. The generated `_read_reg` sampled one cycle too early for a
    fixed-latency slave.
-6. `quartus_sdc.j2`'s clock constraint was silently swallowed into a
+7. `quartus_sdc.j2`'s clock constraint was silently swallowed into a
    Tcl comment; `quartus_project.tcl.j2`'s `SDC_FILE` path pointed one
    directory too high once that was fixed.
+8. `main.c` used `printf` with `%08lX`, pulling newlib's full vfprintf
+   chain (~24 KB) into a 32 KB on-chip RAM. Fixed: `alt_printf` from
+   `sys/alt_stdio.h`.
 
 Every one of these was invisible in `ipcraft-spec`'s own CI-exercised
 examples — because a synthetic fixture never has to actually work, and

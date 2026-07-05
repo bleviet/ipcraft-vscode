@@ -117,7 +117,7 @@ set_interface_property {{ iface.name }} SVD_ADDRESS_GROUP ""
 
 # Type-specific properties
 {% if altera_type == 'avalon' %}
-set_interface_property {{ iface.name }} addressUnits WORDS
+set_interface_property {{ iface.name }} addressUnits BYTES
 {% set readdatavalid_port = (iface.ports | selectattr('logical_name', 'equalto', 'readdatavalid') | list) %}
 set_interface_property {{ iface.name }} maximumPendingReadTransactions {% if readdatavalid_port | length > 0 %}1{% else %}0{% endif %}
 {% endif %}
