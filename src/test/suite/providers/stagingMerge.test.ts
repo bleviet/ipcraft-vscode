@@ -43,7 +43,11 @@ describe('WebviewStagingBridge merge tracking', () => {
     bridge.markMerged(fsPath, 'core_regs.vhd');
     bridge.resolveStaging(fsPath, true);
 
-    expect(await pending).toEqual({ confirmed: true, mergedPaths: ['core_regs.vhd'] });
+    expect(await pending).toEqual({
+      confirmed: true,
+      mergedPaths: ['core_regs.vhd'],
+      overwritePaths: [],
+    });
   });
 
   it('carries an empty merged set when nothing was merged', async () => {
@@ -54,7 +58,22 @@ describe('WebviewStagingBridge merge tracking', () => {
     const pending = bridge.showInWebview(fsPath, [file('x.vhd')]);
     bridge.resolveStaging(fsPath, false);
 
-    expect(await pending).toEqual({ confirmed: false, mergedPaths: [] });
+    expect(await pending).toEqual({ confirmed: false, mergedPaths: [], overwritePaths: [] });
+  });
+
+  it('carries overwritePaths through to the staging decision', async () => {
+    const bridge = WebviewStagingBridge.getInstance();
+    const fsPath = '/proj/c.ip.yml';
+    bridge.register(fsPath, fakePanel());
+
+    const pending = bridge.showInWebview(fsPath, [file('locked.vhd')]);
+    bridge.resolveStaging(fsPath, true, ['locked.vhd']);
+
+    expect(await pending).toEqual({
+      confirmed: true,
+      mergedPaths: [],
+      overwritePaths: ['locked.vhd'],
+    });
   });
 });
 

@@ -474,6 +474,10 @@ const IpCoreApp: React.FC = () => {
   // Files the user opened in the merge editor during the current staging — shown
   // as "merging" in the overlay and excluded from the bulk apply by the extension.
   const [stagingMergedPaths, setStagingMergedPaths] = useState<Set<string>>(new Set());
+  // Modified files that will be written for the current staging — defaults to
+  // every normal file, none of the protected (managed: false) ones; sent to
+  // the extension on confirm so the bulk apply writes exactly this set.
+  const [stagingOverwritePaths, setStagingOverwritePaths] = useState<Set<string>>(new Set());
 
   // Transient toast notification
   const [toast, setToast] = useState<string | null>(null);
@@ -838,6 +842,16 @@ const IpCoreApp: React.FC = () => {
           break;
         case 'stagingStart':
           setStagingMergedPaths(new Set());
+          // Every modified file defaults to "will be applied" except locked
+          // (managed: false) ones, matching today's implicit apply-everything
+          // / skip-locked-files behavior until the user toggles a row.
+          setStagingOverwritePaths(
+            new Set(
+              (message.files ?? [])
+                .filter((f) => f.status === 'modified' && !f.protected)
+                .map((f) => f.relativePath)
+            )
+          );
           setStagingData(
             message.files ? { files: message.files, rootLabel: message.rootLabel } : null
           );
@@ -1230,11 +1244,27 @@ const IpCoreApp: React.FC = () => {
                 files={stagingData.files}
                 rootLabel={stagingData.rootLabel}
                 mergedPaths={stagingMergedPaths}
+                overwritePaths={stagingOverwritePaths}
                 onMerge={(relativePath) => {
                   vscode?.postMessage({ type: 'stagingAction', action: 'merge', relativePath });
                 }}
+                onToggleOverwrite={(relativePath) => {
+                  setStagingOverwritePaths((prev) => {
+                    const next = new Set(prev);
+                    if (next.has(relativePath)) {
+                      next.delete(relativePath);
+                    } else {
+                      next.add(relativePath);
+                    }
+                    return next;
+                  });
+                }}
                 onConfirm={() => {
-                  vscode?.postMessage({ type: 'stagingResult', confirmed: true });
+                  vscode?.postMessage({
+                    type: 'stagingResult',
+                    confirmed: true,
+                    overwritePaths: [...stagingOverwritePaths],
+                  });
                   setStagingData(null);
                 }}
                 onCancel={() => {

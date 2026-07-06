@@ -2223,6 +2223,15 @@
   opacity: 0.55;
 }
 
+/* A locked+modified file can show three action buttons (View Diff, Merge,
+   Overwrite) at once — more than the container reliably fits at narrow panel
+   widths or deep nesting. The parent clips overflow-x, so without wrapping the
+   rightmost button (Overwrite) would be invisible rather than just squeezed. */
+.staging-tree-file {
+  flex-wrap: wrap;
+  row-gap: 2px;
+}
+
 .staging-tree-children {
   position: relative;
 }
@@ -2288,18 +2297,27 @@
   color: var(--vscode-foreground);
 }
 
+/* Lock icon for a protected file the user opted to overwrite this run. */
+.staging-status-lock--overridden {
+  color: var(--vscode-charts-orange, #d18616);
+}
+
 .staging-btn-action {
   border: none;
   border-radius: 3px;
   cursor: pointer;
   flex-shrink: 0;
-  opacity: 0;
-  transition: opacity 0.12s;
   font-family: var(--vscode-font-family);
+  /* display:none (not opacity:0) so a hidden action button reserves no row
+     width — otherwise the filename gets squeezed/truncated by buttons that
+     aren't even visible yet. */
+  display: none;
 }
 
 .staging-tree-row:hover .staging-btn-action {
-  opacity: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .staging-btn-diff {
@@ -2324,6 +2342,24 @@
   background: var(--vscode-button-secondaryHoverBackground);
 }
 
+.staging-btn-overwrite {
+  font-size: 11px;
+  padding: 2px 8px;
+  background: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+}
+
+.staging-btn-overwrite:hover {
+  background: var(--vscode-button-secondaryHoverBackground);
+}
+
+/* Same hover-only reveal as every other .staging-btn-action — only the color
+   differs to distinguish the on/off toggle state once visible. */
+.staging-btn-overwrite--active {
+  background: var(--vscode-inputValidation-warningBackground, #5a3d00);
+  color: var(--vscode-inputValidation-warningForeground, #fff);
+}
+
 /* Persistent (not hover-gated) marker for a file already sent to the merge editor. */
 .staging-merged-tag {
   flex-shrink: 0;
@@ -2334,9 +2370,6 @@
 }
 
 .staging-btn-preview {
-  display: flex;
-  align-items: center;
-  justify-content: center;
   padding: 3px 5px;
   background: transparent;
   color: var(--vscode-descriptionForeground);

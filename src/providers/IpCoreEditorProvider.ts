@@ -418,7 +418,11 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
 
     router.on('stagingResult', async (message) => {
       stagingSideColumn = undefined;
-      WebviewStagingBridge.getInstance().resolveStaging(document.uri.fsPath, message.confirmed);
+      WebviewStagingBridge.getInstance().resolveStaging(
+        document.uri.fsPath,
+        message.confirmed,
+        message.overwritePaths ?? []
+      );
     });
 
     router.on('stagingAction', async (message) => {

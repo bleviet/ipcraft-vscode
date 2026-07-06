@@ -687,6 +687,11 @@ async function runGenerator(
   // Files the user reconciled in the merge editor — the merge editor writes them
   // on completion, so the bulk write below must skip them.
   let mergedPaths = new Set<string>();
+  // Modified files that will actually be written — defaults to every normal
+  // modified file (today's implicit behavior) plus any protected (managed:
+  // false) file the user explicitly opted in; the lock in the .ip.yml itself
+  // is left untouched either way.
+  let overwritePaths = new Set<string>();
   if (staged.length > 0) {
     const bridge = WebviewStagingBridge.getInstance();
     const bridgeResult = await bridge.showInWebview(
@@ -699,18 +704,22 @@ async function runGenerator(
       return false;
     }
     mergedPaths = new Set(decision.mergedPaths);
+    overwritePaths = new Set(decision.overwritePaths);
   }
 
-  // Phase 4: Write new + modified files; skip unchanged, protected-existing, and
-  // merged files. Pre-compute the write list so we only show the progress
-  // notification when there is real disk work to do — avoiding a misleading
-  // "Generating…" flash otherwise.
+  // Phase 4: Write new files unconditionally; write modified files only when
+  // the user's per-file Overwrite toggle is on (defaults to on for normal
+  // files and off for locked ones — see the staging UI's default seeding) and
+  // the file wasn't sent to the merge editor instead. Skip unchanged files.
+  // Pre-compute the write list so we only show the progress notification when
+  // there is real disk work to do — avoiding a misleading "Generating…" flash
+  // otherwise.
   const protectedExisting = new Set(dryResult.protectedPaths ?? []);
   const filesToWrite = staged.filter(
     (f) =>
       f.status !== 'unchanged' &&
-      !(f.protected && protectedExisting.has(f.relativePath)) &&
-      !mergedPaths.has(f.relativePath)
+      !mergedPaths.has(f.relativePath) &&
+      (f.status === 'new' || overwritePaths.has(f.relativePath))
   );
   const writtenRelPaths: string[] = [];
   let writeError: string | undefined;
@@ -751,8 +760,16 @@ async function runGenerator(
       mergedPaths.size > 0
         ? `; ${mergedPaths.size} opened in the merge editor (resolve and save)`
         : '';
+    // Only count the meaningful case — a locked (managed: false) file the
+    // user explicitly opted to overwrite — not every normal file that was
+    // written because its default-on toggle was simply left alone.
+    const overwrittenCount = writtenRelPaths.filter(
+      (p) => protectedExisting.has(p) && overwritePaths.has(p)
+    ).length;
+    const overwriteNote =
+      overwrittenCount > 0 ? `; ${overwrittenCount} user-managed file(s) overwritten` : '';
     const action = await vscode.window.showInformationMessage(
-      `✓ Generated ${writtenRelPaths.length} file(s)${mergeNote}`,
+      `✓ Generated ${writtenRelPaths.length} file(s)${mergeNote}${overwriteNote}`,
       'Open Folder'
     );
     if (action === 'Open Folder') {

@@ -27,7 +27,7 @@ export class WebviewStagingBridge {
       // Cancel any in-progress staging for this panel
       const resolver = this.resolvers.get(fsPath);
       if (resolver) {
-        resolver({ confirmed: false, mergedPaths: [] });
+        resolver({ confirmed: false, mergedPaths: [], overwritePaths: [] });
         this.resolvers.delete(fsPath);
         this.stagedFiles.delete(fsPath);
         this.mergedPaths.delete(fsPath);
@@ -76,10 +76,14 @@ export class WebviewStagingBridge {
     this.mergedPaths.get(fsPath)?.add(relativePath);
   }
 
-  resolveStaging(fsPath: string, confirmed: boolean): void {
+  resolveStaging(fsPath: string, confirmed: boolean, overwritePaths: string[] = []): void {
     const resolver = this.resolvers.get(fsPath);
     if (resolver) {
-      resolver({ confirmed, mergedPaths: [...(this.mergedPaths.get(fsPath) ?? [])] });
+      resolver({
+        confirmed,
+        mergedPaths: [...(this.mergedPaths.get(fsPath) ?? [])],
+        overwritePaths,
+      });
       this.resolvers.delete(fsPath);
       this.stagedFiles.delete(fsPath);
       this.mergedPaths.delete(fsPath);

@@ -33,6 +33,6 @@ export type IpCoreWebviewMessage =
   | { type: 'editInPlatformDesigner' }
   | { type: 'openInVivado' }
   | { type: 'openInQuartus' }
-  | { type: 'stagingResult'; confirmed: boolean }
+  | { type: 'stagingResult'; confirmed: boolean; overwritePaths?: string[] }
   | { type: 'stagingAction'; action: 'viewDiff' | 'viewPreview' | 'merge'; relativePath: string }
   | { type: 'saveAsIpYml' };
