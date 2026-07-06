@@ -1,4 +1,4 @@
-import React, { useEffect, useImperativeHandle, useMemo } from 'react';
+import React, { useCallback, useEffect, useImperativeHandle, useMemo, useState } from 'react';
 import type { YamlUpdateHandler, BitFieldRecord } from '../../types/editor';
 import BitFieldVisualizer from '../BitFieldVisualizer';
 import {
@@ -8,6 +8,7 @@ import {
 } from '../../shared/components';
 import { FieldsTable } from './FieldsTable';
 import { useFieldEditor } from '../../hooks/useFieldEditor';
+import { useDebugMode } from '../../hooks/useDebugMode';
 import type { RegisterDef } from '../../types/memoryMap';
 import { generateUniqueName } from '../../utils/naming';
 import { formatBitsRange } from '../../utils/BitFieldUtils';
@@ -77,7 +78,43 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
   ) => {
     const registerSize = register?.size ?? 32;
 
-    const fieldEditor = useFieldEditor(fields, registerSize, onUpdate, true);
+    // Debug Mode: while on, register value exploration (bit clicks / typed
+    // reset values) is kept local to this component and never reaches
+    // `onUpdate`, so it can't accidentally end up in the .mm.yml file.
+    // See https://github.com/bleviet/ipcraft-vscode/issues/39.
+    const { debugMode } = useDebugMode();
+    const [debugOverrides, setDebugOverrides] = useState<Record<number, number | null>>({});
+
+    useEffect(() => {
+      setDebugOverrides({});
+    }, [debugMode, register?.name]);
+
+    const effectiveFields = useMemo(() => {
+      if (!debugMode || Object.keys(debugOverrides).length === 0) {
+        return fields;
+      }
+      return fields.map((f, i) =>
+        Object.prototype.hasOwnProperty.call(debugOverrides, i)
+          ? { ...f, resetValue: debugOverrides[i] }
+          : f
+      );
+    }, [fields, debugMode, debugOverrides]);
+
+    const debugAwareUpdate: YamlUpdateHandler = useCallback(
+      (path, value) => {
+        if (debugMode) {
+          const [seg0, seg1, seg2] = path;
+          if (seg0 === 'fields' && typeof seg1 === 'number' && seg2 === 'resetValue') {
+            setDebugOverrides((prev) => ({ ...prev, [seg1]: value as number | null }));
+          }
+          return;
+        }
+        onUpdate(path, value);
+      },
+      [debugMode, onUpdate]
+    );
+
+    const fieldEditor = useFieldEditor(effectiveFields, registerSize, debugAwareUpdate, true);
 
     const {
       hoveredFieldIndex,
@@ -111,10 +148,7 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
 
     // Normalise fields for BitFieldVisualizer (provide bitRange).
     const normalisedFields = useMemo(() => {
-      if (!register?.fields) {
-        return [];
-      }
-      return register.fields.map((f: BitFieldRecord) => {
+      return effectiveFields.map((f: BitFieldRecord) => {
         const mappedF = {
           ...f,
           name: f.name ?? undefined,
@@ -138,7 +172,7 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
         }
         return mappedF;
       });
-    }, [register?.fields]);
+    }, [effectiveFields]);
 
     const visualizerProps = {
       fields: normalisedFields,
@@ -146,7 +180,7 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
       setHoveredFieldIndex,
       registerSize,
       onUpdateFieldReset: (fieldIndex: number, resetValue: number | null) => {
-        onUpdate(['fields', fieldIndex, 'resetValue'], resetValue);
+        debugAwareUpdate(['fields', fieldIndex, 'resetValue'], resetValue);
       },
       onUpdateFieldRange: (fieldIndex: number, newRange: [number, number]) => {
         const [hi, lo] = newRange;
@@ -169,7 +203,7 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
           const bLo = b.offset ?? 0;
           return aLo - bLo;
         });
-        onUpdate(['fields'], newFields);
+        debugAwareUpdate(['fields'], newFields);
         setBitsDrafts((prev: Record<string, string>) => {
           const next = { ...prev };
           const rowId = fieldEditor.wrappedFields[fieldIndex]?.rowId;
@@ -199,7 +233,7 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
           const bLo = b.offset ?? 0;
           return aLo - bLo;
         });
-        onUpdate(['fields'], newFields);
+        debugAwareUpdate(['fields'], newFields);
         setBitsDrafts((prev: Record<string, string>) => {
           const next = { ...prev };
           updates.forEach(({ idx }) => {
@@ -230,7 +264,7 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
           const bLo = b.offset ?? 0;
           return aLo - bLo;
         });
-        onUpdate(['fields'], newFields);
+        debugAwareUpdate(['fields'], newFields);
       },
       onDragPreview: (preview: { idx: number; range: [number, number] }[] | null) => {
         if (preview === null) {
@@ -276,9 +310,9 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
         }
         table={
           <FieldsTable
-            fields={fields}
+            fields={effectiveFields}
             registerSize={registerSize}
-            onUpdate={onUpdate}
+            onUpdate={debugAwareUpdate}
             fieldEditor={fieldEditor}
           />
         }

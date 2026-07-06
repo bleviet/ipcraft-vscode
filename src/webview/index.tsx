@@ -20,6 +20,7 @@ import { useOutlineRename } from './hooks/useOutlineRename';
 import { useDetailsNavigation } from './hooks/useDetailsNavigation';
 import { useYamlUpdateHandler } from './hooks/useYamlUpdateHandler';
 import { useLayoutToggle } from './hooks/useLayoutToggle';
+import { DebugModeProvider } from './hooks/useDebugMode';
 import { insertElement, deleteElement } from './algorithms/MutationService';
 import { recomputeRegisterLayout } from './algorithms/LayoutEngine';
 import type { LayoutMemoryMap, LayoutRegister } from './algorithms/LayoutEngine';
@@ -818,7 +819,9 @@ if (rootElement) {
   const root = createRoot(rootElement);
   root.render(
     <ErrorBoundary>
-      <App />
+      <DebugModeProvider>
+        <App />
+      </DebugModeProvider>
     </ErrorBoundary>
   );
 }
