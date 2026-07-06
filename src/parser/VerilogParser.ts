@@ -8,6 +8,7 @@ import {
   portToDict,
   parseParameterValue,
 } from './VhdlParser';
+import { parse as parseWidthExpr, stripRedundantOuterParens } from '../shared/widthExprAst';
 
 interface VerilogParsedParameter extends ParsedParameter {
   isVector?: boolean;
@@ -346,31 +347,40 @@ function extractWidth(rangeStr: string): number | string | undefined {
     return Math.abs(parseInt(numeric[1], 10) - parseInt(numeric[2], 10)) + 1;
   }
 
-  // $clog2(PARAM)-1 : 0  →  width expression "clog2(PARAM)"
-  const clog2Minus1 = s.match(/^\$clog2\(\s*(\w+)\s*\)\s*-\s*1\s*:\s*0$/i);
-  if (clog2Minus1) {
-    return `clog2(${clog2Minus1[1]})`;
+  // <expr>-1 : 0  or  <expr> : 0  (the latter is treated the same as the
+  // former, matching this codebase's existing "N:0 means N bits" convention).
+  // Lazy (.+?) anchors to the last "-1:0"/":0" so it still finds the true
+  // prefix when the expression itself contains other characters.
+  const minus1Match = s.match(/^(.+?)\s*-\s*1\s*:\s*0$/);
+  const colon0Match = s.match(/^(.+?)\s*:\s*0$/);
+  const prefix = (minus1Match?.[1] ?? colon0Match?.[1])?.trim();
+  if (!prefix) {
+    return undefined; // complex expression — leave width unspecified
   }
 
-  // $clog2(PARAM) : 0  →  treat clog2(PARAM) as width
-  const clog2Colon0 = s.match(/^\$clog2\(\s*(\w+)\s*\)\s*:\s*0$/i);
-  if (clog2Colon0) {
-    return `clog2(${clog2Colon0[1]})`;
+  // Our own generator wraps any function-rooted or compound expression in a
+  // redundant outer paren before appending "-1" (e.g. "($clog2(DW/2))-1:0") —
+  // undo that before recognizing the expression underneath.
+  const unwrapped = stripRedundantOuterParens(prefix);
+
+  // $clog2(<expr>) → clog2(<expr>); <expr> may be an arbitrary arithmetic
+  // expression (e.g. "DW/2"), not just a bare parameter.
+  const clog2Open = unwrapped.match(/^\$clog2\s*\(/i);
+  if (clog2Open) {
+    const inner = extractParenBlock(unwrapped, clog2Open[0].length - 1);
+    const fullyConsumed =
+      inner !== null && clog2Open[0].length + inner.length + 1 === unwrapped.length;
+    if (fullyConsumed) {
+      const innerExpr = inner.trim();
+      if (parseWidthExpr(innerExpr)) {
+        return `clog2(${innerExpr})`;
+      }
+    }
+    return undefined;
   }
 
-  // PARAM-1 : 0  →  width = PARAM
-  const paramMinus1 = s.match(/^(\w+)\s*-\s*1\s*:\s*0$/);
-  if (paramMinus1) {
-    return paramMinus1[1];
-  }
-
-  // PARAM : 0  →  treat PARAM as width (less common but valid)
-  const paramColon0 = s.match(/^(\w+)\s*:\s*0$/);
-  if (paramColon0) {
-    return paramColon0[1];
-  }
-
-  return undefined; // complex expression — leave width unspecified
+  // Bare parameter or general arithmetic expression, e.g. "WIDTH" or "DW/2".
+  return parseWidthExpr(unwrapped) ? unwrapped : undefined;
 }
 
 // ---------------------------------------------------------------------------

@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as yaml from 'js-yaml';
 import { BUS_VLNV } from '../shared/busVlnv';
 import { lookupBusDef } from '../webview/ipcore/data/busDefinitions';
+import { collapseVhdlFunctionCall, stripRedundantOuterParens } from '../shared/widthExprAst';
 
 export interface ParsedPort {
   name: string;
@@ -286,19 +287,6 @@ function extractWidthFromType(type: string): number | string | undefined {
     if (paramMatch) {
       return paramMatch[1];
     }
-    // Canonical clog2 form: (integer(ceil(log2(real(DEPTH)))))-1 downto 0 →
-    // "clog2(DEPTH)" (collapses our own generated expansion back to the function).
-    const clog2Match = range.match(
-      /^\(?integer\(ceil\(log2\(real\(\s*(\w+)\s*\)\)\)\)\)?\s*-\s*1\s+downto\s+0$/i
-    );
-    if (clog2Match) {
-      return `clog2(${clog2Match[1]})`;
-    }
-    // Paren-wrapped expression: (AxiDataWidth_g/8) - 1 downto 0 → "AxiDataWidth_g/8"
-    const parenExprMatch = range.match(/^\((.+)\)\s*-\s*1\s+downto\s+0$/i);
-    if (parenExprMatch) {
-      return parenExprMatch[1].trim();
-    }
     // Numeric downto range: 31 downto 0 → 32
     const numericDowntoMatch = range.match(/^(\d+)\s+downto\s+(\d+)$/i);
     if (numericDowntoMatch) {
@@ -313,18 +301,26 @@ function extractWidthFromType(type: string): number | string | undefined {
       const b = Number(numericToMatch[2]);
       return Math.abs(a - b) + 1;
     }
+
     // General compound expression: N*2 - 1 downto 0 → "N*2", A + B - 1 downto 0 → "A + B"
     // Uses lazy (.+?) so the match anchors to the last "- 1 downto 0" sequence.
     const generalDowntoMatch = range.match(/^(.+?)\s*-\s*1\s+downto\s+0$/i);
-    if (generalDowntoMatch) {
-      return generalDowntoMatch[1].trim();
-    }
     // General to direction: 0 to N*2 - 1 → "N*2"
     const generalToMatch = range.match(/^0\s+to\s+(.+?)\s*-\s*1$/i);
-    if (generalToMatch) {
-      return generalToMatch[1].trim();
+    const rawExpr = (generalDowntoMatch?.[1] ?? generalToMatch?.[1])?.trim();
+    if (!rawExpr) {
+      return undefined;
     }
-    return undefined;
+
+    // Our own generator wraps any function-rooted or compound expression in a
+    // redundant outer paren before appending "-1" — undo that, then try to
+    // collapse the generator's canonical VHDL expansion of a predefined width
+    // function (e.g. "integer(ceil(log2(real(DW/2))))") back to its
+    // width-expression form ("clog2(DW/2)"), with the inner argument allowed
+    // to be an arbitrary arithmetic expression, not just a bare parameter.
+    // Falls back to the plain (already-canonical) expression text otherwise.
+    const unwrapped = stripRedundantOuterParens(rawExpr);
+    return collapseVhdlFunctionCall(unwrapped) ?? unwrapped;
   }
 
   if (/\bstd_logic\b/i.test(type)) {

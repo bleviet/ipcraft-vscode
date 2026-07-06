@@ -249,6 +249,51 @@ endmodule
       expect(rdPtr!.width).toBe('clog2(DEPTH)');
     });
 
+    it('extracts a clog2 width whose argument is an arithmetic expression', async () => {
+      // Regression test for https://github.com/bleviet/ipcraft-vscode/issues/37:
+      // the extraction regex used to require a bare parameter inside
+      // $clog2(...), so an arithmetic argument (DW/2) matched no pattern at
+      // all and the port silently lost its width entirely (fell back to a
+      // fixed default instead of referencing the generic).
+      const result = await writeAndParse(
+        'clog2div.v',
+        `
+module half_core #(
+  parameter DW = 32
+) (
+  output wire [$clog2(DW/2)-1:0] half_ptr
+);
+endmodule
+`
+      );
+      const parsed = yaml.load(result.yamlText) as Record<string, unknown>;
+      const ports = parsed.ports as Array<Record<string, unknown>>;
+      const halfPtr = ports.find((p) => p.name === 'half_ptr');
+
+      expect(halfPtr).toBeDefined();
+      expect(halfPtr!.width).toBe('clog2(DW/2)');
+    });
+
+    it('extracts a general arithmetic parameterized width with no predefined function', async () => {
+      const result = await writeAndParse(
+        'compound.v',
+        `
+module compound #(
+  parameter DW = 32
+) (
+  output wire [DW/2-1:0] half_word
+);
+endmodule
+`
+      );
+      const parsed = yaml.load(result.yamlText) as Record<string, unknown>;
+      const ports = parsed.ports as Array<Record<string, unknown>>;
+      const halfWord = ports.find((p) => p.name === 'half_word');
+
+      expect(halfWord).toBeDefined();
+      expect(halfWord!.width).toBe('DW/2');
+    });
+
     it('extracts width from [PARAM:0] range', async () => {
       const result = await writeAndParse(
         'param0.v',

@@ -5,6 +5,8 @@ import {
   containsCall,
   widthExprUsesMathReal,
   normalizeFunctionNames,
+  collapseVhdlFunctionCall,
+  stripRedundantOuterParens,
   IPXACT_UNSUPPORTED,
   type WidthExprNode,
 } from '../../../shared/widthExprAst';
@@ -142,6 +144,48 @@ describe('serialize — IP-XACT (XPATH)', () => {
   it('returns the unsupported sentinel for max/min', () => {
     expect(serialize(ast('max(A,B)'), 'ipxact').code).toBe(IPXACT_UNSUPPORTED);
     expect(serialize(ast('min(A,B)'), 'ipxact').code).toBe(IPXACT_UNSUPPORTED);
+  });
+});
+
+describe('stripRedundantOuterParens', () => {
+  it('strips a single paren pair wrapping the entire string', () => {
+    expect(stripRedundantOuterParens('(integer(ceil(log2(real(DEPTH)))))')).toBe(
+      'integer(ceil(log2(real(DEPTH))))'
+    );
+    expect(stripRedundantOuterParens('(AxiDataWidth_g/8)')).toBe('AxiDataWidth_g/8');
+  });
+
+  it('leaves the string unchanged when not fully wrapped', () => {
+    expect(stripRedundantOuterParens('N_g*2')).toBe('N_g*2');
+    expect(stripRedundantOuterParens('(A)*(B)')).toBe('(A)*(B)');
+  });
+});
+
+describe('collapseVhdlFunctionCall (reverse of serializeVhdlCall, drives VHDL import)', () => {
+  it('collapses clog2/log2 with a bare parameter argument', () => {
+    expect(collapseVhdlFunctionCall('integer(ceil(log2(real(DEPTH))))')).toBe('clog2(DEPTH)');
+    expect(collapseVhdlFunctionCall('integer(floor(log2(real(DEPTH))))')).toBe('log2(DEPTH)');
+  });
+
+  it('collapses clog2/log2 with an arithmetic argument (e.g. clog2(DW/2))', () => {
+    expect(collapseVhdlFunctionCall('integer(ceil(log2(real(DW/2))))')).toBe('clog2(DW/2)');
+    expect(collapseVhdlFunctionCall('integer(floor(log2(real(DW/2))))')).toBe('log2(DW/2)');
+  });
+
+  it('collapses ceil/floor with an arithmetic argument', () => {
+    expect(collapseVhdlFunctionCall('integer(ceil(real(DATA_W/8)))')).toBe('ceil(DATA_W/8)');
+    expect(collapseVhdlFunctionCall('integer(floor(real(DATA_W/8)))')).toBe('floor(DATA_W/8)');
+  });
+
+  it('collapses minimum/maximum to min/max', () => {
+    expect(collapseVhdlFunctionCall('minimum(A, B)')).toBe('min(A, B)');
+    expect(collapseVhdlFunctionCall('maximum(A, B)')).toBe('max(A, B)');
+  });
+
+  it('returns undefined for text that is not one of the known VHDL wrapper shapes', () => {
+    expect(collapseVhdlFunctionCall('AxiDataWidth_g/8')).toBeUndefined();
+    expect(collapseVhdlFunctionCall('abs(DW)')).toBeUndefined();
+    expect(collapseVhdlFunctionCall('integer(DW)')).toBeUndefined();
   });
 });
 

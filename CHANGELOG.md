@@ -4,6 +4,9 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+- **Parameterized port widths lost their function/generic on VHDL and Verilog import**: `extractWidthFromType`/`extractWidth` only recognized a predefined width function (`clog2`, `log2`, `ceil`, `floor`, `min`, `max`) when its argument was a bare parameter name. A function applied to an arithmetic expression on a generic — e.g. `clog2(DW/2)` — matched none of the import patterns: the Verilog importer dropped the width entirely (silently falling back to a fixed default, losing the generic reference altogether), and the VHDL importer fell back to re-storing the raw expanded VHDL text (`integer(ceil(log2(real(DW/2))))`) instead of the canonical `clog2(DW/2)`, which then failed to parse on the next regeneration and leaked VHDL-only syntax into SystemVerilog/Tcl output. Both importers now reverse-map the generator's own canonical VHDL/SystemVerilog expansions back to the width-expression form via the shared `widthExprAst` module, with the function argument allowed to be an arbitrary arithmetic expression. ([#37](https://github.com/bleviet/ipcraft-vscode/issues/37))
+
 ## [0.8.2] - 2026-07-04
 
 ### Fixed

@@ -305,6 +305,59 @@ describe('VhdlParser', () => {
     expect(rdPtr!.width).toBe('clog2(DEPTH)');
   });
 
+  it('collapses a clog2 expansion whose argument is itself an arithmetic expression', async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ipcraft-vhdl-'));
+    const filePath = path.join(tempDir, 'clog2div.vhd');
+    const vhdl = `
+      entity half_core is
+        generic (
+          DW : integer := 32
+        );
+        port (
+          half_ptr : out std_logic_vector((integer(ceil(log2(real(DW/2)))))-1 downto 0)
+        );
+      end entity;
+    `;
+
+    await fs.writeFile(filePath, vhdl, 'utf8');
+    const result = await parseVhdlFile(filePath);
+    const parsed = yaml.load(result.yamlText) as Record<string, unknown>;
+    const ports = (parsed.ports as Array<Record<string, unknown>>) ?? [];
+
+    const halfPtr = ports.find((p) => p.name === 'half_ptr');
+    expect(halfPtr).toBeDefined();
+    // Regression test for https://github.com/bleviet/ipcraft-vscode/issues/37:
+    // the collapse regex used to require a bare parameter inside real(...),
+    // so an arithmetic argument (DW/2) silently dropped the generic reference
+    // entirely and fell back to a raw, non-canonical VHDL expression string.
+    expect(halfPtr!.width).toBe('clog2(DW/2)');
+  });
+
+  it('collapses minimum/maximum expansions back to min/max', async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ipcraft-vhdl-'));
+    const filePath = path.join(tempDir, 'minmax.vhd');
+    const vhdl = `
+      entity minmax_core is
+        generic (
+          A : integer := 4;
+          B : integer := 8
+        );
+        port (
+          hi_bus : out std_logic_vector((maximum(A, B))-1 downto 0)
+        );
+      end entity;
+    `;
+
+    await fs.writeFile(filePath, vhdl, 'utf8');
+    const result = await parseVhdlFile(filePath);
+    const parsed = yaml.load(result.yamlText) as Record<string, unknown>;
+    const ports = (parsed.ports as Array<Record<string, unknown>>) ?? [];
+
+    const hiBus = ports.find((p) => p.name === 'hi_bus');
+    expect(hiBus).toBeDefined();
+    expect(hiBus!.width).toBe('max(A, B)');
+  });
+
   it('strips IO_ prefix only once for logical port names', async () => {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ipcraft-vhdl-'));
     const filePath = path.join(tempDir, 'io_prefix.vhd');

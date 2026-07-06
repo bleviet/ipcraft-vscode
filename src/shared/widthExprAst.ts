@@ -516,3 +516,132 @@ export function normalizeFunctionNames(expr: string): string {
     return isFunctionName(lower) ? `${lower}${paren}` : match;
   });
 }
+
+/**
+ * Strip a single outer paren pair that wraps the ENTIRE string (balanced from
+ * the first character to the last), or return the input unchanged if it isn't
+ * wrapped that way. `serialize`'s dialect output wraps any non-leaf (Call or
+ * Binary) width expression in one redundant pair before the caller appends
+ * "-1", e.g. "(integer(ceil(log2(real(DEPTH)))))" or "($clog2(DW/2))" — the
+ * VHDL/Verilog importers must undo that wrap before recognizing the
+ * expression underneath.
+ */
+export function stripRedundantOuterParens(s: string): string {
+  if (!s.startsWith('(') || !s.endsWith(')')) {
+    return s;
+  }
+  let depth = 0;
+  for (let i = 0; i < s.length; i++) {
+    if (s[i] === '(') {
+      depth++;
+    } else if (s[i] === ')') {
+      depth--;
+      if (depth === 0) {
+        return i === s.length - 1 ? s.slice(1, -1).trim() : s;
+      }
+    }
+  }
+  return s;
+}
+
+/**
+ * Extracts the argument of a `name(...)` call when `s` (trimmed) is exactly
+ * that call with balanced parens spanning to the end of the string.
+ */
+function unwrapCall(s: string, name: string): string | undefined {
+  const m = s.match(new RegExp(`^${name}\\s*\\(`, 'i'));
+  if (!m) {
+    return undefined;
+  }
+  const openIdx = m[0].length - 1;
+  let depth = 0;
+  for (let i = openIdx; i < s.length; i++) {
+    if (s[i] === '(') {
+      depth++;
+    } else if (s[i] === ')') {
+      depth--;
+      if (depth === 0) {
+        return i === s.length - 1 ? s.slice(openIdx + 1, i) : undefined;
+      }
+    }
+  }
+  return undefined;
+}
+
+/** Tries each candidate call name in turn against `s`; returns the first match. */
+function matchAnyCall(s: string, names: string[]): { fn: string; inner: string } | undefined {
+  for (const name of names) {
+    const inner = unwrapCall(s, name);
+    if (inner !== undefined) {
+      return { fn: name.toLowerCase(), inner };
+    }
+  }
+  return undefined;
+}
+
+/** Splits on top-level commas only (not ones nested inside parens). */
+function splitTopLevelArgs(s: string): string[] {
+  const parts: string[] = [];
+  let depth = 0;
+  let current = '';
+  for (const ch of s) {
+    if (ch === '(') {
+      depth++;
+    } else if (ch === ')') {
+      depth--;
+    }
+    if (ch === ',' && depth === 0) {
+      parts.push(current);
+      current = '';
+    } else {
+      current += ch;
+    }
+  }
+  parts.push(current);
+  return parts.map((p) => p.trim());
+}
+
+/**
+ * Reverse of `serializeVhdlCall`: recognizes the canonical VHDL expansion the
+ * generator emits for a predefined width function — e.g.
+ * "integer(ceil(log2(real(DW/2))))" — and recovers the width-expression form
+ * ("clog2(DW/2)"). `text` should already have any redundant outer-paren wrap
+ * stripped (see `stripRedundantOuterParens`). The inner argument may be an
+ * arbitrary arithmetic expression, not just a bare parameter name. Returns
+ * undefined when `text` isn't one of the known VHDL wrapper shapes, so the
+ * caller can fall back to treating it as an already-canonical expression.
+ */
+export function collapseVhdlFunctionCall(text: string): string | undefined {
+  const s = text.trim();
+
+  const outer = matchAnyCall(s, ['integer']);
+  if (outer) {
+    const ceilFloor = matchAnyCall(outer.inner, ['ceil', 'floor']);
+    if (!ceilFloor) {
+      return undefined;
+    }
+    const log2 = matchAnyCall(ceilFloor.inner, ['log2']);
+    const real = matchAnyCall((log2 ?? ceilFloor).inner, ['real']);
+    if (!real) {
+      return undefined;
+    }
+    const inner = real.inner.trim();
+    if (!parse(inner)) {
+      return undefined;
+    }
+    if (log2) {
+      return ceilFloor.fn === 'ceil' ? `clog2(${inner})` : `log2(${inner})`;
+    }
+    return `${ceilFloor.fn}(${inner})`;
+  }
+
+  const minMax = matchAnyCall(s, ['minimum', 'maximum']);
+  if (minMax) {
+    const args = splitTopLevelArgs(minMax.inner);
+    if (args.length === 2 && args.every((a) => parse(a) !== undefined)) {
+      return `${minMax.fn === 'minimum' ? 'min' : 'max'}(${args[0]}, ${args[1]})`;
+    }
+  }
+
+  return undefined;
+}
