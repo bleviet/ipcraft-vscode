@@ -523,6 +523,20 @@ const IpCoreApp: React.FC = () => {
   // Multi-selection IDs as a Set<string> for prop threading
   const multiSelectedIds = useMemo(() => new Set(multiSelection.all.keys()), [multiSelection.all]);
 
+  // ID of the individually selected bus signal (e.g. "bus:0:TLAST"), if any.
+  // Kept separate from canvasSelectedId (which stays on the parent bus interface
+  // so the inspector panel keeps showing it) so Delete can target just this one
+  // signal instead of the whole-element deletion below.
+  const [selectedSubPortId, setSelectedSubPortId] = useState<string | null>(null);
+
+  const handleCanvasSelect = useCallback(
+    (id: string | null) => {
+      setSelectedSubPortId(null);
+      canvasSelect(id);
+    },
+    [canvasSelect]
+  );
+
   // Dismissed suggestion chip IDs (ephemeral — not persisted to YAML)
   const [dismissedChipIds, setDismissedChipIds] = useState<Set<string>>(new Set());
 
@@ -543,7 +557,7 @@ const IpCoreApp: React.FC = () => {
   const { handleDragOver: onCanvasDragOver, handleDrop: onCanvasDrop } = useCanvasDrop({
     ipCore: ipCore as unknown as IpCore,
     onUpdate: updateIpCore,
-    onSelect: canvasSelect,
+    onSelect: handleCanvasSelect,
   });
 
   // Canvas drag-to-remove handling (Phase 4)
@@ -698,6 +712,7 @@ const IpCoreApp: React.FC = () => {
     const updated = currentArr.filter((_, i) => i !== canvasSelected.index);
     updateIpCore([key], updated);
     canvasDeselect();
+    setSelectedSubPortId(null);
   }, [canvasSelected, ipCore, updateIpCore, canvasDeselect]);
 
   // Ungroup a bus interface: restore its signals to ports[], remove the interface
@@ -709,6 +724,7 @@ const IpCoreApp: React.FC = () => {
     }
     ungroupBusInterface(canvasSelected.index);
     canvasDeselect();
+    setSelectedSubPortId(null);
   }, [canvasSelected, ungroupBusInterface, canvasDeselect]);
 
   const validationErrors = getValidationErrors();
@@ -719,8 +735,31 @@ const IpCoreApp: React.FC = () => {
       const activeTag = document.activeElement?.tagName.toLowerCase();
       const isTyping = activeTag === 'input' || activeTag === 'textarea';
 
+      // Delete: deactivate the selected optional bus signal, if one is selected —
+      // this must take priority over whole-element deletion below, since
+      // canvasSelected still points at the signal's parent bus interface.
+      if (e.key === 'Delete' && !isTyping && selectedSubPortId) {
+        e.preventDefault();
+        const parts = selectedSubPortId.split(':');
+        if (parts.length >= 3) {
+          const busIndex = parseInt(parts[1], 10);
+          const portName = parts.slice(2).join(':');
+          const ip = ipCore as unknown as IpCore;
+          const bus = ((ip.busInterfaces ?? []) as BusInterface[])[busIndex] as
+            | { useOptionalPorts?: string[] }
+            | undefined;
+          const current = bus?.useOptionalPorts ?? [];
+          const updated = current.filter((p) => p !== portName);
+          if (updated.length !== current.length) {
+            updateIpCore(
+              ['busInterfaces', busIndex, 'useOptionalPorts'],
+              updated.length > 0 ? updated : undefined
+            );
+          }
+        }
+      }
       // Delete: remove selected canvas element
-      if (e.key === 'Delete' && !isTyping && canvasSelected) {
+      else if (e.key === 'Delete' && !isTyping && canvasSelected) {
         e.preventDefault();
         handleInspectorDelete();
       }
@@ -738,7 +777,14 @@ const IpCoreApp: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [canvasSelected, handleInspectorDelete, handleDuplicate]);
+  }, [
+    canvasSelected,
+    handleInspectorDelete,
+    handleDuplicate,
+    selectedSubPortId,
+    ipCore,
+    updateIpCore,
+  ]);
 
   // Notify extension that webview is ready
   useEffect(() => {
@@ -1166,7 +1212,9 @@ const IpCoreApp: React.FC = () => {
               onUpdate={updateIpCore}
               isFocused={true}
               canvasSelectedId={canvasSelectedId}
-              onCanvasSelect={canvasSelect}
+              onCanvasSelect={handleCanvasSelect}
+              canvasSelectedSubPortId={selectedSubPortId}
+              onCanvasSelectSubPort={setSelectedSubPortId}
               onCanvasDragOver={onCanvasDragOver}
               onCanvasDrop={onCanvasDrop}
               onCanvasRemove={handleCanvasRemove}

@@ -9,6 +9,10 @@ interface CanvasBusSubPortProps {
   onActivate: (subPortId: string) => void;
   onDeactivate: (subPortId: string) => void;
   onSelect: (busId: string) => void;
+  /** Marks this specific signal as the selected one (for the ring + Delete-key target) */
+  onSelectSignal?: (subPortId: string) => void;
+  /** True when this signal is the one last selected (drives the selection ring) */
+  isSelected?: boolean;
   domainColor?: string;
   onRename?: (subPortId: string, newSuffix: string) => void;
   annotations?: ValidationAnnotation[];
@@ -28,8 +32,13 @@ const RENAME_INPUT_H = 14;
  * Physical port name (e.g. s_axi_awaddr[31:0]) is shown on the external stub.
  *
  * Required and active-optional ports show a solid stub.
- * Inactive optional ports show a dashed stub and are clickable to activate.
- * Clicking any signal selects the parent bus interface in the inspector.
+ * Inactive optional ports show a dashed stub.
+ * A single click only selects the signal (parent bus interface opens in the
+ * inspector, and this row gets the selection ring) — it never changes the
+ * port's active state, so inspecting a signal is always safe.
+ * Double-clicking an optional port activates/deactivates it. The selected
+ * signal can also be deactivated by pressing Delete (handled by the app-level
+ * keyboard shortcut, gated on the selection this component reports).
  * Right-clicking an active port starts inline renaming of its physical suffix.
  */
 export const CanvasBusSubPort: React.FC<CanvasBusSubPortProps> = ({
@@ -37,6 +46,8 @@ export const CanvasBusSubPort: React.FC<CanvasBusSubPortProps> = ({
   onActivate,
   onDeactivate,
   onSelect,
+  onSelectSignal,
+  isSelected = false,
   domainColor,
   onRename,
   annotations,
@@ -76,15 +87,22 @@ export const CanvasBusSubPort: React.FC<CanvasBusSubPortProps> = ({
     setIsRenaming(false);
   }, [onRename, subPort.id, renameValue]);
 
+  // A single click only selects — it never toggles the active state.
   const handleClick = (e: React.MouseEvent) => {
     if (isRenaming) {
       return;
     }
     e.stopPropagation();
     onSelect(subPort.parentBusId);
-    if (isAbsent) {
+    onSelectSignal?.(subPort.id);
+  };
+
+  // Double-click toggles an optional port's active state.
+  const handleDoubleClick = (e: React.MouseEvent) => {
+    if (isRenaming || isAbsent) {
       return;
     }
+    e.stopPropagation();
     if (isInactive) {
       onActivate(subPort.id);
     } else if (isOptional && subPort.active) {
@@ -109,8 +127,9 @@ export const CanvasBusSubPort: React.FC<CanvasBusSubPortProps> = ({
 
   return (
     <g
-      className={`canvas-bus-subport ${isAbsent ? 'canvas-bus-subport--absent' : isInactive ? 'canvas-bus-subport--inactive' : 'canvas-bus-subport--active'} ${isOptional ? 'canvas-bus-subport--optional' : ''} ${dimmed ? 'canvas-bus-subport--dimmed' : ''} ${highlighted ? 'canvas-bus-subport--highlighted' : ''}`}
+      className={`canvas-bus-subport ${isAbsent ? 'canvas-bus-subport--absent' : isInactive ? 'canvas-bus-subport--inactive' : 'canvas-bus-subport--active'} ${isOptional ? 'canvas-bus-subport--optional' : ''} ${dimmed ? 'canvas-bus-subport--dimmed' : ''} ${highlighted ? 'canvas-bus-subport--highlighted' : ''} ${isSelected ? 'canvas-bus-subport--selected' : ''}`}
       onClick={handleClick}
+      onDoubleClick={handleDoubleClick}
       onContextMenu={handleContextMenu}
       style={{ cursor: isRenaming ? 'default' : 'pointer' }}
       role="button"
@@ -220,30 +239,38 @@ export const CanvasBusSubPort: React.FC<CanvasBusSubPortProps> = ({
         </g>
       )}
 
-      {/* "+" badge for inactive optional ports — hint to activate */}
+      {/* "+" badge for inactive optional ports — hint to double-click to activate */}
       {isInactive && (
-        <text
-          x={subPort.x + stubDir * (STUB_LENGTH / 2)}
-          y={subPort.y - 9}
-          textAnchor="middle"
-          dominantBaseline="central"
-          className="canvas-bus-subport__activate-hint"
-        >
-          +
-        </text>
+        <g>
+          <text
+            x={subPort.x + stubDir * (STUB_LENGTH / 2)}
+            y={subPort.y - 9}
+            textAnchor="middle"
+            dominantBaseline="central"
+            className="canvas-bus-subport__activate-hint"
+          >
+            +
+          </text>
+          <title>Double-click to activate this optional signal</title>
+        </g>
       )}
 
-      {/* "×" badge for active optional ports — hint to deactivate */}
+      {/* "×" badge for active optional ports — hint to double-click to deactivate */}
       {isOptional && subPort.active && (
-        <text
-          x={subPort.x + stubDir * (STUB_LENGTH / 2)}
-          y={subPort.y - 9}
-          textAnchor="middle"
-          dominantBaseline="central"
-          className="canvas-bus-subport__deactivate-hint"
-        >
-          ×
-        </text>
+        <g>
+          <text
+            x={subPort.x + stubDir * (STUB_LENGTH / 2)}
+            y={subPort.y - 9}
+            textAnchor="middle"
+            dominantBaseline="central"
+            className="canvas-bus-subport__deactivate-hint"
+          >
+            ×
+          </text>
+          <title>
+            Double-click, or select and press Delete, to deactivate this optional signal
+          </title>
+        </g>
       )}
 
       {/* Validation error dot — mirrors CanvasPort behaviour */}

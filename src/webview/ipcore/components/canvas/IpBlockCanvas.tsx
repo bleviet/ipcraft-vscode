@@ -32,6 +32,10 @@ interface IpBlockCanvasProps {
   ipCore: IpCore;
   selectedId: string | null;
   onSelect: (id: string | null) => void;
+  /** ID of the individually selected bus signal (e.g. "bus:0:TLAST"), if any */
+  selectedSubPortId?: string | null;
+  /** Called when a bus signal is clicked, to mark it as the selected signal */
+  onSelectSubPort?: (subPortId: string) => void;
   onUpdate?: YamlUpdateHandler;
   /** Drag-over handler from useCanvasDrop (Phase 3) */
   onDragOver?: (e: React.DragEvent) => void;
@@ -66,6 +70,8 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
   ipCore,
   selectedId,
   onSelect,
+  selectedSubPortId = null,
+  onSelectSubPort,
   onUpdate,
   onDragOver,
   onDrop,
@@ -1418,6 +1424,8 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
             onActivate={handleSubPortActivate}
             onDeactivate={handleSubPortDeactivate}
             onSelect={onSelect}
+            onSelectSignal={onSelectSubPort}
+            isSelected={sp.id === selectedSubPortId}
             domainColor={getDomainColor(sp.clockDomainIdx)}
             onRename={handleSubPortRename}
             annotations={annotations[sp.id]}

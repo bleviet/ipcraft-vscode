@@ -2136,6 +2136,22 @@
   opacity: 1;
 }
 
+/* Selected signal — drives the Delete-key deactivate target */
+.canvas-bus-subport--selected .canvas-bus-subport__line {
+  stroke: var(--vscode-focusBorder);
+  stroke-width: 2.5;
+}
+
+.canvas-bus-subport--selected .canvas-bus-subport__dot {
+  fill: var(--vscode-focusBorder);
+  opacity: 1;
+}
+
+.canvas-bus-subport--selected .canvas-bus-subport__logical,
+.canvas-bus-subport--selected .canvas-bus-subport__label {
+  font-weight: 700;
+}
+
 /* Hover effect on inactive optional ports */
 .canvas-bus-subport--inactive:hover .canvas-bus-subport__line {
   stroke: color-mix(in srgb, var(--vscode-charts-green, #4ec9b0) 60%, transparent);

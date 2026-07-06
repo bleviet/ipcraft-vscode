@@ -14,6 +14,8 @@ interface EditorPanelProps {
   panelRef?: React.RefObject<HTMLDivElement>;
   canvasSelectedId?: string | null;
   onCanvasSelect?: (id: string | null) => void;
+  canvasSelectedSubPortId?: string | null;
+  onCanvasSelectSubPort?: (subPortId: string) => void;
   onCanvasDragOver?: (e: React.DragEvent) => void;
   onCanvasDrop?: (e: React.DragEvent) => void;
   onCanvasRemove?: (kind: string, id: string) => void;
@@ -34,6 +36,8 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
   panelRef,
   canvasSelectedId = null,
   onCanvasSelect,
+  canvasSelectedSubPortId = null,
+  onCanvasSelectSubPort,
   onCanvasDragOver,
   onCanvasDrop,
   onCanvasRemove,
@@ -69,6 +73,8 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
         ipCore={ipCore}
         selectedId={canvasSelectedId}
         onSelect={onCanvasSelect ?? (() => {})}
+        selectedSubPortId={canvasSelectedSubPortId}
+        onSelectSubPort={onCanvasSelectSubPort}
         onUpdate={onUpdate}
         onDragOver={onCanvasDragOver}
         onDrop={onCanvasDrop}
