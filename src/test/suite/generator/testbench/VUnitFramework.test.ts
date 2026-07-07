@@ -184,44 +184,24 @@ describe('VUnitFramework — SystemVerilog variant', () => {
   });
 });
 
-describe('VUnitFramework — fileset-driven sources', () => {
+describe('VUnitFramework — rtlSourceFiles-driven sources', () => {
   const framework = new VUnitFramework();
 
+  // The caller (IpCoreScaffolder) is responsible for resolving this list (generated files
+  // + fileSets extras, sim paths excluded, compile-ordered) before it reaches the framework
+  // — see IpCoreScaffolder's collectRtlAbsPaths and its own regression tests.
   function makeFilesetCtx(overrides: Partial<TestbenchContext> = {}): TestbenchContext {
     return makeCtx({
-      fileSets: [
-        {
-          name: 'RTL_Sources',
-          files: [
-            { path: 'rtl/my_core_pkg.vhd', type: 'vhdl' },
-            { path: 'rtl/my_core_regs.vhd', type: 'vhdl' },
-            { path: 'rtl/my_core.vhd', type: 'vhdl' },
-          ],
-        },
-        {
-          name: 'Simulation_Resources',
-          files: [
-            { path: 'tb/my_core_tb.vhd', type: 'vhdl' },
-            { path: 'tb/Makefile', type: 'unknown' },
-          ],
-        },
-      ],
+      rtlSourceFiles: ['rtl/my_core_pkg.vhd', 'rtl/my_core_regs.vhd', 'rtl/my_core.vhd'],
       ...overrides,
     });
   }
 
-  it('run.py lists each fileset RTL source file when fileSets is provided', () => {
+  it('run.py lists each rtlSourceFiles entry', () => {
     const runPy = framework.generate(makeFilesetCtx(), new GhdlEngine())['tb/run.py'];
     expect(runPy).toContain('BASE_DIR / "rtl/my_core_pkg.vhd"');
     expect(runPy).toContain('BASE_DIR / "rtl/my_core_regs.vhd"');
     expect(runPy).toContain('BASE_DIR / "rtl/my_core.vhd"');
-  });
-
-  it('run.py does not add tb/ files from fileSets as RTL sources', () => {
-    const runPy = framework.generate(makeFilesetCtx(), new GhdlEngine())['tb/run.py'];
-    // tb/my_core_tb.vhd is in Simulation_Resources — should not appear in lib.add_source_files twice
-    const matches = [...runPy.matchAll(/BASE_DIR \/ "tb\/my_core_tb\.vhd"/g)];
-    expect(matches.length).toBe(0);
   });
 
   it('run.py still adds the testbench file from TB_DIR explicitly', () => {
@@ -229,7 +209,7 @@ describe('VUnitFramework — fileset-driven sources', () => {
     expect(runPy).toContain('TB_DIR / "my_core_tb.vhd"');
   });
 
-  it('run.py skips hardcoded entity-name fallback when fileSets is provided', () => {
+  it('run.py skips hardcoded entity-name fallback when rtlSourceFiles is provided', () => {
     const runPy = framework.generate(makeFilesetCtx(), new GhdlEngine())['tb/run.py'];
     // Fallback pattern would produce this (no explicit pkg listed)
     expect(runPy).not.toContain('rtl/{{ entity_name }}');
@@ -240,13 +220,11 @@ describe('VUnitFramework — fileset-driven sources', () => {
   it('run.py adds verilog_include_dir for each SV include file parent dir', () => {
     const ctx = makeCtx({
       isSv: true,
+      rtlSourceFiles: ['rtl/my_core.sv'],
       fileSets: [
         {
           name: 'RTL_Sources',
-          files: [
-            { path: 'include/my_pkg.svh', type: 'systemverilog', isIncludeFile: true },
-            { path: 'rtl/my_core.sv', type: 'systemverilog' },
-          ],
+          files: [{ path: 'include/my_pkg.svh', type: 'systemverilog', isIncludeFile: true }],
         },
       ],
     });
@@ -257,8 +235,10 @@ describe('VUnitFramework — fileset-driven sources', () => {
     expect(runPy).not.toContain('BASE_DIR / "include/my_pkg.svh"');
   });
 
-  it('run.py falls back to entity-name logic when fileSets is empty', () => {
-    const runPy = framework.generate(makeCtx({ fileSets: [] }), new GhdlEngine())['tb/run.py'];
+  it('run.py falls back to entity-name logic when rtlSourceFiles is empty', () => {
+    const runPy = framework.generate(makeCtx({ rtlSourceFiles: [] }), new GhdlEngine())[
+      'tb/run.py'
+    ];
     expect(runPy).toContain('BASE_DIR / "rtl/my_core.vhd"');
   });
 

@@ -183,38 +183,26 @@ describe('CocotbFramework', () => {
   });
 });
 
-describe('CocotbFramework — fileset-driven sources', () => {
+describe('CocotbFramework — rtlSourceFiles-driven sources', () => {
   const framework = new CocotbFramework();
 
-  const VHDL_FILESETS = [
-    {
-      name: 'RTL_Sources',
-      files: [
-        { path: 'rtl/test_core_pkg.vhd', type: 'vhdl' },
-        { path: 'rtl/test_core.vhd', type: 'vhdl' },
-      ],
-    },
-    {
-      name: 'Simulation_Resources',
-      files: [
-        { path: 'tb/test_core_tb.vhd', type: 'vhdl' },
-        { path: 'tb/Makefile', type: 'unknown' },
-      ],
-    },
-  ];
+  // The caller (IpCoreScaffolder) is responsible for resolving and compile-ordering this
+  // list (generated files + fileSets extras, sim paths excluded) before it reaches the
+  // framework — see IpCoreScaffolder's collectRtlAbsPaths and its own regression tests.
+  const VHDL_RTL_SOURCES = ['rtl/test_core_pkg.vhd', 'rtl/test_core.vhd'];
 
   const SV_FILESETS = [
     {
       name: 'RTL_Sources',
-      files: [
-        { path: 'include/test_core_defs.svh', type: 'systemverilog', isIncludeFile: true },
-        { path: 'rtl/test_core.sv', type: 'systemverilog' },
-      ],
+      files: [{ path: 'include/test_core_defs.svh', type: 'systemverilog', isIncludeFile: true }],
     },
   ];
 
-  it('Makefile lists fileset VHDL sources via BASE_DIR', () => {
-    const files = framework.generate(makeCtx({ fileSets: VHDL_FILESETS }), new GhdlEngine());
+  it('Makefile lists rtlSourceFiles via BASE_DIR', () => {
+    const files = framework.generate(
+      makeCtx({ rtlSourceFiles: VHDL_RTL_SOURCES }),
+      new GhdlEngine()
+    );
     const mk = files['tb/Makefile'];
     expect(mk).toContain('BASE_DIR = $(CURDIR)/..');
     expect(mk).toContain('VHDL_SOURCES += $(BASE_DIR)/rtl/test_core_pkg.vhd');
@@ -222,15 +210,11 @@ describe('CocotbFramework — fileset-driven sources', () => {
     expect(mk).not.toContain('RTL_DIR');
   });
 
-  it('Makefile does not add tb/ files from fileSets as VHDL sources', () => {
-    const files = framework.generate(makeCtx({ fileSets: VHDL_FILESETS }), new GhdlEngine());
-    expect(files['tb/Makefile']).not.toContain('test_core_tb.vhd');
-  });
-
-  it('SV Makefile lists fileset SV sources and adds include dir', () => {
+  it('SV Makefile lists rtlSourceFiles and adds include dir from fileSets', () => {
     const ctx = makeCtx({
       isSv: true,
       fileSets: SV_FILESETS,
+      rtlSourceFiles: ['rtl/test_core.sv'],
       templateContext: {
         entity_name: 'test_core',
         clock_port: 'clk',
@@ -248,8 +232,11 @@ describe('CocotbFramework — fileset-driven sources', () => {
     expect(mk).not.toContain('RTL_DIR');
   });
 
-  it('conftest.py lists fileset sources as RTL_SOURCES via BASE_DIR', () => {
-    const files = framework.generate(makeCtx({ fileSets: VHDL_FILESETS }), new GhdlEngine());
+  it('conftest.py lists rtlSourceFiles as RTL_SOURCES via BASE_DIR', () => {
+    const files = framework.generate(
+      makeCtx({ rtlSourceFiles: VHDL_RTL_SOURCES }),
+      new GhdlEngine()
+    );
     const conf = files['tb/conftest.py'];
     expect(conf).toContain('BASE_DIR = TB_DIR.parent');
     expect(conf).toContain('BASE_DIR / "rtl/test_core_pkg.vhd"');
@@ -258,30 +245,21 @@ describe('CocotbFramework — fileset-driven sources', () => {
     expect(conf).not.toContain('RTL_DIR');
   });
 
-  it('conftest.py does not add tb/ simulation files as RTL_SOURCES', () => {
-    const conf = framework.generate(makeCtx({ fileSets: VHDL_FILESETS }), new GhdlEngine())[
-      'tb/conftest.py'
+  it('Makefile emits VHDL sources in the given rtlSourceFiles order', () => {
+    // Ordering (pkg before regs before core before bus before top) is the caller's
+    // responsibility (compile-order sort happens upstream); the framework must not
+    // reorder or drop entries on its way into the template.
+    const orderedRtlSourceFiles = [
+      'rtl/dut_pkg.vhd',
+      'rtl/dut_regs.vhd',
+      'rtl/dut_core.vhd',
+      'rtl/dut_axil.vhd',
+      'rtl/dut.vhd',
     ];
-    expect(conf).not.toContain('BASE_DIR / "tb/');
-  });
-
-  it('Makefile emits VHDL sources in compile order (pkg before regs before core before bus before top)', () => {
-    // Intentionally provide files in wrong order to verify the sort is applied
-    const wrongOrderFilesets = [
-      {
-        name: 'RTL_Sources',
-        files: [
-          { path: 'rtl/dut.vhd', type: 'vhdl' }, // top — rank 4
-          { path: 'rtl/dut_axil.vhd', type: 'vhdl' }, // bus wrapper — rank 3
-          { path: 'rtl/dut_core.vhd', type: 'vhdl' }, // core — rank 2
-          { path: 'rtl/dut_regs.vhd', type: 'vhdl' }, // reg file — rank 1
-          { path: 'rtl/dut_pkg.vhd', type: 'vhdl' }, // package — rank 0
-        ],
-      },
-    ];
-    const mk = framework.generate(makeCtx({ fileSets: wrongOrderFilesets }), new GhdlEngine())[
-      'tb/Makefile'
-    ];
+    const mk = framework.generate(
+      makeCtx({ rtlSourceFiles: orderedRtlSourceFiles }),
+      new GhdlEngine()
+    )['tb/Makefile'];
     const lines = mk.split('\n').filter((l) => l.includes('VHDL_SOURCES +='));
     expect(lines[0]).toContain('dut_pkg.vhd');
     expect(lines[1]).toContain('dut_regs.vhd');
@@ -357,15 +335,15 @@ describe('CocotbFramework — fileset-driven sources', () => {
     expect(settleEdgeIdx).toBeLessThan(returnIdx);
   });
 
-  it('falls back to entity-name VHDL logic when fileSets is empty', () => {
-    const mk = framework.generate(makeCtx({ fileSets: [] }), new GhdlEngine())['tb/Makefile'];
+  it('falls back to entity-name VHDL logic when rtlSourceFiles is empty', () => {
+    const mk = framework.generate(makeCtx({ rtlSourceFiles: [] }), new GhdlEngine())['tb/Makefile'];
     expect(mk).toContain('VHDL_SOURCES += $(BASE_DIR)/rtl/test_core.vhd');
   });
 
-  it('conftest.py falls back to entity-name SV logic for SV project with no fileSets', () => {
+  it('conftest.py falls back to entity-name SV logic for SV project with no rtlSourceFiles', () => {
     const ctx = makeCtx({
       isSv: true,
-      fileSets: [],
+      rtlSourceFiles: [],
       templateContext: {
         entity_name: 'test_core',
         clock_port: 'clk',
