@@ -8,8 +8,10 @@
  *
  * Calls IpCoreScaffolder.generateAll with real bus definitions loaded from
  * dist/resources/bus_definitions/ and any per-IP useBusLibrary paths.
- * Outputs files to a stable directory under os.tmpdir() so subsequent calls
- * within the same Jest run reuse the same files.
+ * Outputs files to a stable directory under the repo root (.test-fixtures/,
+ * gitignored) so subsequent calls within the same Jest run reuse the same
+ * files, and so RTL files referenced relative to ipcraft-spec/ (e.g. via
+ * fileSets) resolve to a machine-independent relative path.
  *
  * Output layout:
  *   <FIXTURE_BASE>/
@@ -18,7 +20,6 @@
  */
 
 import * as path from 'path';
-import * as os from 'os';
 import * as nodefs from 'fs';
 import * as nodefsp from 'fs/promises';
 import { IpCoreScaffolder } from '../../generator/IpCoreScaffolder';
@@ -34,7 +35,19 @@ const GENERATOR_TEMPLATES = path.join(REPO_ROOT, 'src/generator/templates');
 // Per-process directory: Jest runs suites in parallel worker processes, each
 // regenerating fixtures (rm -rf + rewrite). A shared path would let one worker
 // delete files while another is feeding them to an external tool.
-export const FIXTURE_BASE = path.join(os.tmpdir(), `ipcraft-integration-fixtures-${process.pid}`);
+//
+// Anchored under REPO_ROOT (not os.tmpdir()) so that RTL files referenced from
+// fileSets — resolved relative to the .ip.yml's directory inside ipcraft-spec/ —
+// sit a fixed, small number of directory levels away from this output dir on
+// every machine. os.tmpdir() varies in depth by OS (deep on macOS, shallow on
+// Linux), which would otherwise bake a machine-specific relative path (or even
+// the absolute checkout path) into generated component.xml/hw.tcl/project.tcl
+// content and the committed snapshot that compares against it.
+export const FIXTURE_BASE = path.join(
+  REPO_ROOT,
+  '.test-fixtures',
+  `integration-fixtures-${process.pid}`
+);
 
 export interface Fixture {
   name: string;

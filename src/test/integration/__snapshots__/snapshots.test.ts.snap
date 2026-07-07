@@ -463,6 +463,11 @@ set_global_assignment -name TOP_LEVEL_ENTITY basic_peripheral
 # Paths are relative to this QSF (in build/) so the project is portable across
 # host and Docker environments — no absolute paths are stored.
 set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/basic_peripheral.sv]
+set_global_assignment -name VHDL_FILE [file join .. ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_pkg.vhd]
+set_global_assignment -name VHDL_FILE [file join .. ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_regs.vhd]
+set_global_assignment -name VHDL_FILE [file join .. ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_core.vhd]
+set_global_assignment -name VHDL_FILE [file join .. ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_axil.vhd]
+set_global_assignment -name VHDL_FILE [file join .. ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral.vhd]
 
 # ---- Timing constraints -----------------------------------------------------
 # sdc_file is a bare filename (the .sdc is written as a sibling of this
@@ -532,6 +537,10 @@ set_global_assignment -name TOP_LEVEL_ENTITY basic_peripheral
 # Paths are relative to this QSF (in build/) so the project is portable across
 # host and Docker environments — no absolute paths are stored.
 set_global_assignment -name VHDL_FILE [file join .. ../rtl/basic_peripheral.vhd]
+set_global_assignment -name VHDL_FILE [file join .. ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_pkg.vhd]
+set_global_assignment -name VHDL_FILE [file join .. ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_regs.vhd]
+set_global_assignment -name VHDL_FILE [file join .. ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_core.vhd]
+set_global_assignment -name VHDL_FILE [file join .. ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_axil.vhd]
 
 # ---- Timing constraints -----------------------------------------------------
 # sdc_file is a bare filename (the .sdc is written as a sibling of this
@@ -1177,6 +1186,7 @@ set_global_assignment -name TOP_LEVEL_ENTITY multi_interface_accelerator
 # Paths are relative to this QSF (in build/) so the project is portable across
 # host and Docker environments — no absolute paths are stored.
 set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/multi_interface_accelerator.sv]
+set_global_assignment -name VHDL_FILE [file join .. ../../../../../ipcraft-spec/examples/multi_interface_accelerator/rtl/accelerator_top.vhd]
 
 # ---- Timing constraints -----------------------------------------------------
 # sdc_file is a bare filename (the .sdc is written as a sibling of this
@@ -1246,6 +1256,7 @@ set_global_assignment -name TOP_LEVEL_ENTITY multi_interface_accelerator
 # Paths are relative to this QSF (in build/) so the project is portable across
 # host and Docker environments — no absolute paths are stored.
 set_global_assignment -name VHDL_FILE [file join .. ../rtl/multi_interface_accelerator.vhd]
+set_global_assignment -name VHDL_FILE [file join .. ../../../../../ipcraft-spec/examples/multi_interface_accelerator/rtl/accelerator_top.vhd]
 
 # ---- Timing constraints -----------------------------------------------------
 # sdc_file is a bare filename (the .sdc is written as a sibling of this
@@ -1315,6 +1326,11 @@ set_global_assignment -name TOP_LEVEL_ENTITY system_controller
 # Paths are relative to this QSF (in build/) so the project is portable across
 # host and Docker environments — no absolute paths are stored.
 set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/system_controller.sv]
+set_global_assignment -name VHDL_FILE [file join .. ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_pkg.vhd]
+set_global_assignment -name VHDL_FILE [file join .. ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller.vhd]
+set_global_assignment -name VHDL_FILE [file join .. ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_regs.vhd]
+set_global_assignment -name VHDL_FILE [file join .. ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_core.vhd]
+set_global_assignment -name VHDL_FILE [file join .. ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_axil.vhd]
 
 # ---- Timing constraints -----------------------------------------------------
 # sdc_file is a bare filename (the .sdc is written as a sibling of this
@@ -1384,6 +1400,10 @@ set_global_assignment -name TOP_LEVEL_ENTITY system_controller
 # Paths are relative to this QSF (in build/) so the project is portable across
 # host and Docker environments — no absolute paths are stored.
 set_global_assignment -name VHDL_FILE [file join .. ../rtl/system_controller.vhd]
+set_global_assignment -name VHDL_FILE [file join .. ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_pkg.vhd]
+set_global_assignment -name VHDL_FILE [file join .. ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_regs.vhd]
+set_global_assignment -name VHDL_FILE [file join .. ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_core.vhd]
+set_global_assignment -name VHDL_FILE [file join .. ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_axil.vhd]
 
 # ---- Timing constraints -----------------------------------------------------
 # sdc_file is a bare filename (the .sdc is written as a sibling of this
@@ -5609,6 +5629,11 @@ update_ip_catalog -rebuild -quiet
 
 # ---- RTL sources --------------------------------------------------------
 add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../rtl/basic_peripheral.sv]]
+add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_pkg.vhd]]
+add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_regs.vhd]]
+add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_core.vhd]]
+add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_axil.vhd]]
+add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral.vhd]]
 
 # Use VHDL-2008 for VHDL source files (skipped when project contains only SystemVerilog)
 # Uses FILE_TYPE filter to capture both .vhd and .vhdl safely
@@ -5693,6 +5718,10 @@ update_ip_catalog -rebuild -quiet
 
 # ---- RTL sources --------------------------------------------------------
 add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../rtl/basic_peripheral.vhd]]
+add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_pkg.vhd]]
+add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_regs.vhd]]
+add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_core.vhd]]
+add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_axil.vhd]]
 
 # Use VHDL-2008 for VHDL source files (skipped when project contains only SystemVerilog)
 # Uses FILE_TYPE filter to capture both .vhd and .vhdl safely
@@ -6473,6 +6502,7 @@ update_ip_catalog -rebuild -quiet
 
 # ---- RTL sources --------------------------------------------------------
 add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../rtl/multi_interface_accelerator.sv]]
+add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../../../../../ipcraft-spec/examples/multi_interface_accelerator/rtl/accelerator_top.vhd]]
 
 # Use VHDL-2008 for VHDL source files (skipped when project contains only SystemVerilog)
 # Uses FILE_TYPE filter to capture both .vhd and .vhdl safely
@@ -6557,6 +6587,7 @@ update_ip_catalog -rebuild -quiet
 
 # ---- RTL sources --------------------------------------------------------
 add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../rtl/multi_interface_accelerator.vhd]]
+add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../../../../../ipcraft-spec/examples/multi_interface_accelerator/rtl/accelerator_top.vhd]]
 
 # Use VHDL-2008 for VHDL source files (skipped when project contains only SystemVerilog)
 # Uses FILE_TYPE filter to capture both .vhd and .vhdl safely
@@ -6641,6 +6672,11 @@ update_ip_catalog -rebuild -quiet
 
 # ---- RTL sources --------------------------------------------------------
 add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../rtl/system_controller.sv]]
+add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_pkg.vhd]]
+add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller.vhd]]
+add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_regs.vhd]]
+add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_core.vhd]]
+add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_axil.vhd]]
 
 # Use VHDL-2008 for VHDL source files (skipped when project contains only SystemVerilog)
 # Uses FILE_TYPE filter to capture both .vhd and .vhdl safely
@@ -6725,6 +6761,10 @@ update_ip_catalog -rebuild -quiet
 
 # ---- RTL sources --------------------------------------------------------
 add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../rtl/system_controller.vhd]]
+add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_pkg.vhd]]
+add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_regs.vhd]]
+add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_core.vhd]]
+add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_axil.vhd]]
 
 # Use VHDL-2008 for VHDL source files (skipped when project contains only SystemVerilog)
 # Uses FILE_TYPE filter to capture both .vhd and .vhdl safely
@@ -11047,32 +11087,32 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
     <spirit:modelParameters>
       <spirit:modelParameter xsi:type="spirit:nameValueTypeType" spirit:dataType="integer">
         <spirit:name>PARAM_CHOICES</spirit:name>
-        <spirit:displayName>Param Choices</spirit:displayName>
+        <spirit:displayName>PARAM_CHOICES</spirit:displayName>
         <spirit:value spirit:format="long" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.PARAM_CHOICES">32</spirit:value>
       </spirit:modelParameter>
       <spirit:modelParameter xsi:type="spirit:nameValueTypeType" spirit:dataType="integer">
         <spirit:name>PARAM_RANGE</spirit:name>
-        <spirit:displayName>Param Range</spirit:displayName>
+        <spirit:displayName>PARAM_RANGE</spirit:displayName>
         <spirit:value spirit:format="long" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.PARAM_RANGE" spirit:rangeType="long">0</spirit:value>
       </spirit:modelParameter>
       <spirit:modelParameter xsi:type="spirit:nameValueTypeType" spirit:dataType="integer">
         <spirit:name>PARAM_INTEGER</spirit:name>
-        <spirit:displayName>Param Integer</spirit:displayName>
+        <spirit:displayName>PARAM_INTEGER</spirit:displayName>
         <spirit:value spirit:format="long" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.PARAM_INTEGER" spirit:rangeType="long">0</spirit:value>
       </spirit:modelParameter>
       <spirit:modelParameter xsi:type="spirit:nameValueTypeType" spirit:dataType="boolean">
         <spirit:name>ENABLE</spirit:name>
-        <spirit:displayName>Enable</spirit:displayName>
+        <spirit:displayName>ENABLE</spirit:displayName>
         <spirit:value spirit:format="bool" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.ENABLE">false</spirit:value>
       </spirit:modelParameter>
       <spirit:modelParameter xsi:type="spirit:nameValueTypeType" spirit:dataType="string">
         <spirit:name>STR_CHOICES</spirit:name>
-        <spirit:displayName>Str Choices</spirit:displayName>
+        <spirit:displayName>STR_CHOICES</spirit:displayName>
         <spirit:value spirit:format="string" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.STR_CHOICES">XILINX</spirit:value>
       </spirit:modelParameter>
       <spirit:modelParameter xsi:type="spirit:nameValueTypeType" spirit:dataType="string">
         <spirit:name>STR</spirit:name>
-        <spirit:displayName>Str</spirit:displayName>
+        <spirit:displayName>STR</spirit:displayName>
         <spirit:value spirit:format="string" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.STR">BASIC</spirit:value>
       </spirit:modelParameter>
     </spirit:modelParameters>
@@ -11102,11 +11142,51 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         <spirit:name>../rtl/basic_peripheral.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
       </spirit:file>
+      <spirit:file>
+        <spirit:name>../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_pkg.vhd</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_regs.vhd</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_core.vhd</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_axil.vhd</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral.vhd</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+      </spirit:file>
     </spirit:fileSet>
     <spirit:fileSet>
       <spirit:name>xilinx_anylanguagebehavioralsimulation_view_fileset</spirit:name>
       <spirit:file>
         <spirit:name>../rtl/basic_peripheral.sv</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_pkg.vhd</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_regs.vhd</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_core.vhd</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_axil.vhd</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral.vhd</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
       </spirit:file>
     </spirit:fileSet>
@@ -11124,33 +11204,33 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   <spirit:parameters>
     <spirit:parameter>
       <spirit:name>PARAM_CHOICES</spirit:name>
-      <spirit:displayName>Param Choices</spirit:displayName>
+      <spirit:displayName>PARAM_CHOICES</spirit:displayName>
       <spirit:description>Width of the primary data port</spirit:description>
       <spirit:value spirit:format="long" spirit:resolve="user" spirit:id="PARAM_VALUE.PARAM_CHOICES" spirit:choiceRef="choice_PARAM_CHOICES">32</spirit:value>
     </spirit:parameter>
     <spirit:parameter>
       <spirit:name>PARAM_RANGE</spirit:name>
-      <spirit:displayName>Param Range</spirit:displayName>
+      <spirit:displayName>PARAM_RANGE</spirit:displayName>
       <spirit:value spirit:format="long" spirit:resolve="user" spirit:id="PARAM_VALUE.PARAM_RANGE" spirit:minimum="0" spirit:maximum="255" spirit:rangeType="long">0</spirit:value>
     </spirit:parameter>
     <spirit:parameter>
       <spirit:name>PARAM_INTEGER</spirit:name>
-      <spirit:displayName>Param Integer</spirit:displayName>
+      <spirit:displayName>PARAM_INTEGER</spirit:displayName>
       <spirit:value spirit:format="long" spirit:resolve="user" spirit:id="PARAM_VALUE.PARAM_INTEGER" spirit:rangeType="long">0</spirit:value>
     </spirit:parameter>
     <spirit:parameter>
       <spirit:name>ENABLE</spirit:name>
-      <spirit:displayName>Enable</spirit:displayName>
+      <spirit:displayName>ENABLE</spirit:displayName>
       <spirit:value spirit:format="bool" spirit:resolve="user" spirit:id="PARAM_VALUE.ENABLE">false</spirit:value>
     </spirit:parameter>
     <spirit:parameter>
       <spirit:name>STR_CHOICES</spirit:name>
-      <spirit:displayName>Str Choices</spirit:displayName>
+      <spirit:displayName>STR_CHOICES</spirit:displayName>
       <spirit:value spirit:format="string" spirit:resolve="user" spirit:id="PARAM_VALUE.STR_CHOICES" spirit:choiceRef="choice_STR_CHOICES">XILINX</spirit:value>
     </spirit:parameter>
     <spirit:parameter>
       <spirit:name>STR</spirit:name>
-      <spirit:displayName>Str</spirit:displayName>
+      <spirit:displayName>STR</spirit:displayName>
       <spirit:value spirit:format="string" spirit:resolve="user" spirit:id="PARAM_VALUE.STR">BASIC</spirit:value>
     </spirit:parameter>
     <spirit:parameter>
@@ -11911,32 +11991,32 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
     <spirit:modelParameters>
       <spirit:modelParameter xsi:type="spirit:nameValueTypeType" spirit:dataType="integer">
         <spirit:name>PARAM_CHOICES</spirit:name>
-        <spirit:displayName>Param Choices</spirit:displayName>
+        <spirit:displayName>PARAM_CHOICES</spirit:displayName>
         <spirit:value spirit:format="long" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.PARAM_CHOICES">32</spirit:value>
       </spirit:modelParameter>
       <spirit:modelParameter xsi:type="spirit:nameValueTypeType" spirit:dataType="integer">
         <spirit:name>PARAM_RANGE</spirit:name>
-        <spirit:displayName>Param Range</spirit:displayName>
+        <spirit:displayName>PARAM_RANGE</spirit:displayName>
         <spirit:value spirit:format="long" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.PARAM_RANGE" spirit:rangeType="long">0</spirit:value>
       </spirit:modelParameter>
       <spirit:modelParameter xsi:type="spirit:nameValueTypeType" spirit:dataType="integer">
         <spirit:name>PARAM_INTEGER</spirit:name>
-        <spirit:displayName>Param Integer</spirit:displayName>
+        <spirit:displayName>PARAM_INTEGER</spirit:displayName>
         <spirit:value spirit:format="long" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.PARAM_INTEGER" spirit:rangeType="long">0</spirit:value>
       </spirit:modelParameter>
       <spirit:modelParameter xsi:type="spirit:nameValueTypeType" spirit:dataType="boolean">
         <spirit:name>ENABLE</spirit:name>
-        <spirit:displayName>Enable</spirit:displayName>
+        <spirit:displayName>ENABLE</spirit:displayName>
         <spirit:value spirit:format="bool" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.ENABLE">false</spirit:value>
       </spirit:modelParameter>
       <spirit:modelParameter xsi:type="spirit:nameValueTypeType" spirit:dataType="string">
         <spirit:name>STR_CHOICES</spirit:name>
-        <spirit:displayName>Str Choices</spirit:displayName>
+        <spirit:displayName>STR_CHOICES</spirit:displayName>
         <spirit:value spirit:format="string" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.STR_CHOICES">XILINX</spirit:value>
       </spirit:modelParameter>
       <spirit:modelParameter xsi:type="spirit:nameValueTypeType" spirit:dataType="string">
         <spirit:name>STR</spirit:name>
-        <spirit:displayName>Str</spirit:displayName>
+        <spirit:displayName>STR</spirit:displayName>
         <spirit:value spirit:format="string" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.STR">BASIC</spirit:value>
       </spirit:modelParameter>
     </spirit:modelParameters>
@@ -11966,11 +12046,43 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         <spirit:name>../rtl/basic_peripheral.vhd</spirit:name>
         <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
       </spirit:file>
+      <spirit:file>
+        <spirit:name>../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_pkg.vhd</spirit:name>
+        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_regs.vhd</spirit:name>
+        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_core.vhd</spirit:name>
+        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_axil.vhd</spirit:name>
+        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
+      </spirit:file>
     </spirit:fileSet>
     <spirit:fileSet>
       <spirit:name>xilinx_anylanguagebehavioralsimulation_view_fileset</spirit:name>
       <spirit:file>
         <spirit:name>../rtl/basic_peripheral.vhd</spirit:name>
+        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_pkg.vhd</spirit:name>
+        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_regs.vhd</spirit:name>
+        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_core.vhd</spirit:name>
+        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_axil.vhd</spirit:name>
         <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
@@ -11988,33 +12100,33 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   <spirit:parameters>
     <spirit:parameter>
       <spirit:name>PARAM_CHOICES</spirit:name>
-      <spirit:displayName>Param Choices</spirit:displayName>
+      <spirit:displayName>PARAM_CHOICES</spirit:displayName>
       <spirit:description>Width of the primary data port</spirit:description>
       <spirit:value spirit:format="long" spirit:resolve="user" spirit:id="PARAM_VALUE.PARAM_CHOICES" spirit:choiceRef="choice_PARAM_CHOICES">32</spirit:value>
     </spirit:parameter>
     <spirit:parameter>
       <spirit:name>PARAM_RANGE</spirit:name>
-      <spirit:displayName>Param Range</spirit:displayName>
+      <spirit:displayName>PARAM_RANGE</spirit:displayName>
       <spirit:value spirit:format="long" spirit:resolve="user" spirit:id="PARAM_VALUE.PARAM_RANGE" spirit:minimum="0" spirit:maximum="255" spirit:rangeType="long">0</spirit:value>
     </spirit:parameter>
     <spirit:parameter>
       <spirit:name>PARAM_INTEGER</spirit:name>
-      <spirit:displayName>Param Integer</spirit:displayName>
+      <spirit:displayName>PARAM_INTEGER</spirit:displayName>
       <spirit:value spirit:format="long" spirit:resolve="user" spirit:id="PARAM_VALUE.PARAM_INTEGER" spirit:rangeType="long">0</spirit:value>
     </spirit:parameter>
     <spirit:parameter>
       <spirit:name>ENABLE</spirit:name>
-      <spirit:displayName>Enable</spirit:displayName>
+      <spirit:displayName>ENABLE</spirit:displayName>
       <spirit:value spirit:format="bool" spirit:resolve="user" spirit:id="PARAM_VALUE.ENABLE">false</spirit:value>
     </spirit:parameter>
     <spirit:parameter>
       <spirit:name>STR_CHOICES</spirit:name>
-      <spirit:displayName>Str Choices</spirit:displayName>
+      <spirit:displayName>STR_CHOICES</spirit:displayName>
       <spirit:value spirit:format="string" spirit:resolve="user" spirit:id="PARAM_VALUE.STR_CHOICES" spirit:choiceRef="choice_STR_CHOICES">XILINX</spirit:value>
     </spirit:parameter>
     <spirit:parameter>
       <spirit:name>STR</spirit:name>
-      <spirit:displayName>Str</spirit:displayName>
+      <spirit:displayName>STR</spirit:displayName>
       <spirit:value spirit:format="string" spirit:resolve="user" spirit:id="PARAM_VALUE.STR">BASIC</spirit:value>
     </spirit:parameter>
     <spirit:parameter>
@@ -12879,7 +12991,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
     <spirit:modelParameters>
       <spirit:modelParameter xsi:type="spirit:nameValueTypeType" spirit:dataType="integer">
         <spirit:name>ST_DATA_W</spirit:name>
-        <spirit:displayName>St Data W</spirit:displayName>
+        <spirit:displayName>ST_DATA_W</spirit:displayName>
         <spirit:value spirit:format="long" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.ST_DATA_W" spirit:rangeType="long">64</spirit:value>
       </spirit:modelParameter>
     </spirit:modelParameters>
@@ -12953,7 +13065,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   <spirit:parameters>
     <spirit:parameter>
       <spirit:name>ST_DATA_W</spirit:name>
-      <spirit:displayName>St Data W</spirit:displayName>
+      <spirit:displayName>ST_DATA_W</spirit:displayName>
       <spirit:description>Streaming data width in bits</spirit:description>
       <spirit:value spirit:format="long" spirit:resolve="user" spirit:id="PARAM_VALUE.ST_DATA_W" spirit:rangeType="long">64</spirit:value>
     </spirit:parameter>
@@ -13819,7 +13931,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
     <spirit:modelParameters>
       <spirit:modelParameter xsi:type="spirit:nameValueTypeType" spirit:dataType="integer">
         <spirit:name>ST_DATA_W</spirit:name>
-        <spirit:displayName>St Data W</spirit:displayName>
+        <spirit:displayName>ST_DATA_W</spirit:displayName>
         <spirit:value spirit:format="long" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.ST_DATA_W" spirit:rangeType="long">64</spirit:value>
       </spirit:modelParameter>
     </spirit:modelParameters>
@@ -13893,7 +14005,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   <spirit:parameters>
     <spirit:parameter>
       <spirit:name>ST_DATA_W</spirit:name>
-      <spirit:displayName>St Data W</spirit:displayName>
+      <spirit:displayName>ST_DATA_W</spirit:displayName>
       <spirit:description>Streaming data width in bits</spirit:description>
       <spirit:value spirit:format="long" spirit:resolve="user" spirit:id="PARAM_VALUE.ST_DATA_W" spirit:rangeType="long">64</spirit:value>
     </spirit:parameter>
@@ -16674,27 +16786,27 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
     <spirit:modelParameters>
       <spirit:modelParameter xsi:type="spirit:nameValueTypeType" spirit:dataType="integer">
         <spirit:name>DATA_W</spirit:name>
-        <spirit:displayName>Data W</spirit:displayName>
+        <spirit:displayName>DATA_W</spirit:displayName>
         <spirit:value spirit:format="long" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.DATA_W" spirit:rangeType="long">32</spirit:value>
       </spirit:modelParameter>
       <spirit:modelParameter xsi:type="spirit:nameValueTypeType" spirit:dataType="integer">
         <spirit:name>FIFO_DEPTH</spirit:name>
-        <spirit:displayName>Fifo Depth</spirit:displayName>
+        <spirit:displayName>FIFO_DEPTH</spirit:displayName>
         <spirit:value spirit:format="long" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.FIFO_DEPTH" spirit:rangeType="long">512</spirit:value>
       </spirit:modelParameter>
       <spirit:modelParameter xsi:type="spirit:nameValueTypeType" spirit:dataType="integer">
         <spirit:name>NUM_CH</spirit:name>
-        <spirit:displayName>Num Ch</spirit:displayName>
+        <spirit:displayName>NUM_CH</spirit:displayName>
         <spirit:value spirit:format="long" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.NUM_CH" spirit:rangeType="long">2</spirit:value>
       </spirit:modelParameter>
       <spirit:modelParameter xsi:type="spirit:nameValueTypeType" spirit:dataType="boolean">
         <spirit:name>ENABLE_DBG</spirit:name>
-        <spirit:displayName>Enable Dbg</spirit:displayName>
+        <spirit:displayName>ENABLE_DBG</spirit:displayName>
         <spirit:value spirit:format="bool" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.ENABLE_DBG">false</spirit:value>
       </spirit:modelParameter>
       <spirit:modelParameter xsi:type="spirit:nameValueTypeType" spirit:dataType="string">
         <spirit:name>DEVICE_TAG</spirit:name>
-        <spirit:displayName>Device Tag</spirit:displayName>
+        <spirit:displayName>DEVICE_TAG</spirit:displayName>
         <spirit:value spirit:format="string" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.DEVICE_TAG">&quot;COMP&quot;</spirit:value>
       </spirit:modelParameter>
     </spirit:modelParameters>
@@ -16768,31 +16880,31 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   <spirit:parameters>
     <spirit:parameter>
       <spirit:name>DATA_W</spirit:name>
-      <spirit:displayName>Data W</spirit:displayName>
+      <spirit:displayName>DATA_W</spirit:displayName>
       <spirit:description>Width of the parallel GPIO output port</spirit:description>
       <spirit:value spirit:format="long" spirit:resolve="user" spirit:id="PARAM_VALUE.DATA_W" spirit:rangeType="long">32</spirit:value>
     </spirit:parameter>
     <spirit:parameter>
       <spirit:name>FIFO_DEPTH</spirit:name>
-      <spirit:displayName>Fifo Depth</spirit:displayName>
+      <spirit:displayName>FIFO_DEPTH</spirit:displayName>
       <spirit:description>Internal buffer depth in words</spirit:description>
       <spirit:value spirit:format="long" spirit:resolve="user" spirit:id="PARAM_VALUE.FIFO_DEPTH" spirit:rangeType="long">512</spirit:value>
     </spirit:parameter>
     <spirit:parameter>
       <spirit:name>NUM_CH</spirit:name>
-      <spirit:displayName>Num Ch</spirit:displayName>
+      <spirit:displayName>NUM_CH</spirit:displayName>
       <spirit:description>Number of streaming output channels</spirit:description>
       <spirit:value spirit:format="long" spirit:resolve="user" spirit:id="PARAM_VALUE.NUM_CH" spirit:rangeType="long">2</spirit:value>
     </spirit:parameter>
     <spirit:parameter>
       <spirit:name>ENABLE_DBG</spirit:name>
-      <spirit:displayName>Enable Dbg</spirit:displayName>
+      <spirit:displayName>ENABLE_DBG</spirit:displayName>
       <spirit:description>Compile-time enable for the debug conduit logic</spirit:description>
       <spirit:value spirit:format="bool" spirit:resolve="user" spirit:id="PARAM_VALUE.ENABLE_DBG">false</spirit:value>
     </spirit:parameter>
     <spirit:parameter>
       <spirit:name>DEVICE_TAG</spirit:name>
-      <spirit:displayName>Device Tag</spirit:displayName>
+      <spirit:displayName>DEVICE_TAG</spirit:displayName>
       <spirit:description>Build tag embedded in the ID register logic</spirit:description>
       <spirit:value spirit:format="string" spirit:resolve="user" spirit:id="PARAM_VALUE.DEVICE_TAG">&quot;COMP&quot;</spirit:value>
     </spirit:parameter>
@@ -19573,27 +19685,27 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
     <spirit:modelParameters>
       <spirit:modelParameter xsi:type="spirit:nameValueTypeType" spirit:dataType="integer">
         <spirit:name>DATA_W</spirit:name>
-        <spirit:displayName>Data W</spirit:displayName>
+        <spirit:displayName>DATA_W</spirit:displayName>
         <spirit:value spirit:format="long" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.DATA_W" spirit:rangeType="long">32</spirit:value>
       </spirit:modelParameter>
       <spirit:modelParameter xsi:type="spirit:nameValueTypeType" spirit:dataType="integer">
         <spirit:name>FIFO_DEPTH</spirit:name>
-        <spirit:displayName>Fifo Depth</spirit:displayName>
+        <spirit:displayName>FIFO_DEPTH</spirit:displayName>
         <spirit:value spirit:format="long" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.FIFO_DEPTH" spirit:rangeType="long">512</spirit:value>
       </spirit:modelParameter>
       <spirit:modelParameter xsi:type="spirit:nameValueTypeType" spirit:dataType="integer">
         <spirit:name>NUM_CH</spirit:name>
-        <spirit:displayName>Num Ch</spirit:displayName>
+        <spirit:displayName>NUM_CH</spirit:displayName>
         <spirit:value spirit:format="long" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.NUM_CH" spirit:rangeType="long">2</spirit:value>
       </spirit:modelParameter>
       <spirit:modelParameter xsi:type="spirit:nameValueTypeType" spirit:dataType="boolean">
         <spirit:name>ENABLE_DBG</spirit:name>
-        <spirit:displayName>Enable Dbg</spirit:displayName>
+        <spirit:displayName>ENABLE_DBG</spirit:displayName>
         <spirit:value spirit:format="bool" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.ENABLE_DBG">false</spirit:value>
       </spirit:modelParameter>
       <spirit:modelParameter xsi:type="spirit:nameValueTypeType" spirit:dataType="string">
         <spirit:name>DEVICE_TAG</spirit:name>
-        <spirit:displayName>Device Tag</spirit:displayName>
+        <spirit:displayName>DEVICE_TAG</spirit:displayName>
         <spirit:value spirit:format="string" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.DEVICE_TAG">&quot;COMP&quot;</spirit:value>
       </spirit:modelParameter>
     </spirit:modelParameters>
@@ -19667,31 +19779,31 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   <spirit:parameters>
     <spirit:parameter>
       <spirit:name>DATA_W</spirit:name>
-      <spirit:displayName>Data W</spirit:displayName>
+      <spirit:displayName>DATA_W</spirit:displayName>
       <spirit:description>Width of the parallel GPIO output port</spirit:description>
       <spirit:value spirit:format="long" spirit:resolve="user" spirit:id="PARAM_VALUE.DATA_W" spirit:rangeType="long">32</spirit:value>
     </spirit:parameter>
     <spirit:parameter>
       <spirit:name>FIFO_DEPTH</spirit:name>
-      <spirit:displayName>Fifo Depth</spirit:displayName>
+      <spirit:displayName>FIFO_DEPTH</spirit:displayName>
       <spirit:description>Internal buffer depth in words</spirit:description>
       <spirit:value spirit:format="long" spirit:resolve="user" spirit:id="PARAM_VALUE.FIFO_DEPTH" spirit:rangeType="long">512</spirit:value>
     </spirit:parameter>
     <spirit:parameter>
       <spirit:name>NUM_CH</spirit:name>
-      <spirit:displayName>Num Ch</spirit:displayName>
+      <spirit:displayName>NUM_CH</spirit:displayName>
       <spirit:description>Number of streaming output channels</spirit:description>
       <spirit:value spirit:format="long" spirit:resolve="user" spirit:id="PARAM_VALUE.NUM_CH" spirit:rangeType="long">2</spirit:value>
     </spirit:parameter>
     <spirit:parameter>
       <spirit:name>ENABLE_DBG</spirit:name>
-      <spirit:displayName>Enable Dbg</spirit:displayName>
+      <spirit:displayName>ENABLE_DBG</spirit:displayName>
       <spirit:description>Compile-time enable for the debug conduit logic</spirit:description>
       <spirit:value spirit:format="bool" spirit:resolve="user" spirit:id="PARAM_VALUE.ENABLE_DBG">false</spirit:value>
     </spirit:parameter>
     <spirit:parameter>
       <spirit:name>DEVICE_TAG</spirit:name>
-      <spirit:displayName>Device Tag</spirit:displayName>
+      <spirit:displayName>DEVICE_TAG</spirit:displayName>
       <spirit:description>Build tag embedded in the ID register logic</spirit:description>
       <spirit:value spirit:format="string" spirit:resolve="user" spirit:id="PARAM_VALUE.DEVICE_TAG">&quot;COMP&quot;</spirit:value>
     </spirit:parameter>
@@ -23823,7 +23935,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
     <spirit:modelParameters>
       <spirit:modelParameter xsi:type="spirit:nameValueTypeType" spirit:dataType="integer">
         <spirit:name>NUM_CHANNELS</spirit:name>
-        <spirit:displayName>Num Channels</spirit:displayName>
+        <spirit:displayName>NUM_CHANNELS</spirit:displayName>
         <spirit:value spirit:format="long" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.NUM_CHANNELS" spirit:rangeType="long">4</spirit:value>
       </spirit:modelParameter>
     </spirit:modelParameters>
@@ -23842,11 +23954,19 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         <spirit:name>../rtl/multi_interface_accelerator.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
       </spirit:file>
+      <spirit:file>
+        <spirit:name>../../../../../ipcraft-spec/examples/multi_interface_accelerator/rtl/accelerator_top.vhd</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+      </spirit:file>
     </spirit:fileSet>
     <spirit:fileSet>
       <spirit:name>xilinx_anylanguagebehavioralsimulation_view_fileset</spirit:name>
       <spirit:file>
         <spirit:name>../rtl/multi_interface_accelerator.sv</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../../../../../ipcraft-spec/examples/multi_interface_accelerator/rtl/accelerator_top.vhd</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
       </spirit:file>
     </spirit:fileSet>
@@ -23864,7 +23984,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   <spirit:parameters>
     <spirit:parameter>
       <spirit:name>NUM_CHANNELS</spirit:name>
-      <spirit:displayName>Num Channels</spirit:displayName>
+      <spirit:displayName>NUM_CHANNELS</spirit:displayName>
       <spirit:value spirit:format="long" spirit:resolve="user" spirit:id="PARAM_VALUE.NUM_CHANNELS" spirit:rangeType="long">4</spirit:value>
     </spirit:parameter>
     <spirit:parameter>
@@ -25465,7 +25585,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
     <spirit:modelParameters>
       <spirit:modelParameter xsi:type="spirit:nameValueTypeType" spirit:dataType="integer">
         <spirit:name>NUM_CHANNELS</spirit:name>
-        <spirit:displayName>Num Channels</spirit:displayName>
+        <spirit:displayName>NUM_CHANNELS</spirit:displayName>
         <spirit:value spirit:format="long" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.NUM_CHANNELS" spirit:rangeType="long">4</spirit:value>
       </spirit:modelParameter>
     </spirit:modelParameters>
@@ -25484,11 +25604,19 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         <spirit:name>../rtl/multi_interface_accelerator.vhd</spirit:name>
         <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
       </spirit:file>
+      <spirit:file>
+        <spirit:name>../../../../../ipcraft-spec/examples/multi_interface_accelerator/rtl/accelerator_top.vhd</spirit:name>
+        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
+      </spirit:file>
     </spirit:fileSet>
     <spirit:fileSet>
       <spirit:name>xilinx_anylanguagebehavioralsimulation_view_fileset</spirit:name>
       <spirit:file>
         <spirit:name>../rtl/multi_interface_accelerator.vhd</spirit:name>
+        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../../../../../ipcraft-spec/examples/multi_interface_accelerator/rtl/accelerator_top.vhd</spirit:name>
         <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
@@ -25506,7 +25634,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   <spirit:parameters>
     <spirit:parameter>
       <spirit:name>NUM_CHANNELS</spirit:name>
-      <spirit:displayName>Num Channels</spirit:displayName>
+      <spirit:displayName>NUM_CHANNELS</spirit:displayName>
       <spirit:value spirit:format="long" spirit:resolve="user" spirit:id="PARAM_VALUE.NUM_CHANNELS" spirit:rangeType="long">4</spirit:value>
     </spirit:parameter>
     <spirit:parameter>
@@ -28244,22 +28372,22 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
     <spirit:modelParameters>
       <spirit:modelParameter xsi:type="spirit:nameValueTypeType" spirit:dataType="integer">
         <spirit:name>DATA_WIDTH</spirit:name>
-        <spirit:displayName>Data Width</spirit:displayName>
+        <spirit:displayName>DATA_WIDTH</spirit:displayName>
         <spirit:value spirit:format="long" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.DATA_WIDTH" spirit:rangeType="long">32</spirit:value>
       </spirit:modelParameter>
       <spirit:modelParameter xsi:type="spirit:nameValueTypeType" spirit:dataType="integer">
         <spirit:name>ADDR_WIDTH</spirit:name>
-        <spirit:displayName>Addr Width</spirit:displayName>
+        <spirit:displayName>ADDR_WIDTH</spirit:displayName>
         <spirit:value spirit:format="long" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.ADDR_WIDTH" spirit:rangeType="long">32</spirit:value>
       </spirit:modelParameter>
       <spirit:modelParameter xsi:type="spirit:nameValueTypeType" spirit:dataType="integer">
         <spirit:name>FIFO_DEPTH</spirit:name>
-        <spirit:displayName>Fifo Depth</spirit:displayName>
+        <spirit:displayName>FIFO_DEPTH</spirit:displayName>
         <spirit:value spirit:format="long" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.FIFO_DEPTH" spirit:rangeType="long">1024</spirit:value>
       </spirit:modelParameter>
       <spirit:modelParameter xsi:type="spirit:nameValueTypeType" spirit:dataType="boolean">
         <spirit:name>ENABLE_DMA</spirit:name>
-        <spirit:displayName>Enable Dma</spirit:displayName>
+        <spirit:displayName>ENABLE_DMA</spirit:displayName>
         <spirit:value spirit:format="bool" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.ENABLE_DMA">true</spirit:value>
       </spirit:modelParameter>
     </spirit:modelParameters>
@@ -28278,11 +28406,51 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         <spirit:name>../rtl/system_controller.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
       </spirit:file>
+      <spirit:file>
+        <spirit:name>../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_pkg.vhd</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller.vhd</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_regs.vhd</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_core.vhd</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_axil.vhd</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+      </spirit:file>
     </spirit:fileSet>
     <spirit:fileSet>
       <spirit:name>xilinx_anylanguagebehavioralsimulation_view_fileset</spirit:name>
       <spirit:file>
         <spirit:name>../rtl/system_controller.sv</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_pkg.vhd</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller.vhd</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_regs.vhd</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_core.vhd</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_axil.vhd</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
       </spirit:file>
     </spirit:fileSet>
@@ -28300,25 +28468,25 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   <spirit:parameters>
     <spirit:parameter>
       <spirit:name>DATA_WIDTH</spirit:name>
-      <spirit:displayName>Data Width</spirit:displayName>
+      <spirit:displayName>DATA_WIDTH</spirit:displayName>
       <spirit:description>Width of data bus</spirit:description>
       <spirit:value spirit:format="long" spirit:resolve="user" spirit:id="PARAM_VALUE.DATA_WIDTH" spirit:rangeType="long">32</spirit:value>
     </spirit:parameter>
     <spirit:parameter>
       <spirit:name>ADDR_WIDTH</spirit:name>
-      <spirit:displayName>Addr Width</spirit:displayName>
+      <spirit:displayName>ADDR_WIDTH</spirit:displayName>
       <spirit:description>Width of address bus</spirit:description>
       <spirit:value spirit:format="long" spirit:resolve="user" spirit:id="PARAM_VALUE.ADDR_WIDTH" spirit:rangeType="long">32</spirit:value>
     </spirit:parameter>
     <spirit:parameter>
       <spirit:name>FIFO_DEPTH</spirit:name>
-      <spirit:displayName>Fifo Depth</spirit:displayName>
+      <spirit:displayName>FIFO_DEPTH</spirit:displayName>
       <spirit:description>Depth of internal FIFO</spirit:description>
       <spirit:value spirit:format="long" spirit:resolve="user" spirit:id="PARAM_VALUE.FIFO_DEPTH" spirit:rangeType="long">1024</spirit:value>
     </spirit:parameter>
     <spirit:parameter>
       <spirit:name>ENABLE_DMA</spirit:name>
-      <spirit:displayName>Enable Dma</spirit:displayName>
+      <spirit:displayName>ENABLE_DMA</spirit:displayName>
       <spirit:description>Enable DMA functionality</spirit:description>
       <spirit:value spirit:format="bool" spirit:resolve="user" spirit:id="PARAM_VALUE.ENABLE_DMA">true</spirit:value>
     </spirit:parameter>
@@ -31057,22 +31225,22 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
     <spirit:modelParameters>
       <spirit:modelParameter xsi:type="spirit:nameValueTypeType" spirit:dataType="integer">
         <spirit:name>DATA_WIDTH</spirit:name>
-        <spirit:displayName>Data Width</spirit:displayName>
+        <spirit:displayName>DATA_WIDTH</spirit:displayName>
         <spirit:value spirit:format="long" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.DATA_WIDTH" spirit:rangeType="long">32</spirit:value>
       </spirit:modelParameter>
       <spirit:modelParameter xsi:type="spirit:nameValueTypeType" spirit:dataType="integer">
         <spirit:name>ADDR_WIDTH</spirit:name>
-        <spirit:displayName>Addr Width</spirit:displayName>
+        <spirit:displayName>ADDR_WIDTH</spirit:displayName>
         <spirit:value spirit:format="long" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.ADDR_WIDTH" spirit:rangeType="long">32</spirit:value>
       </spirit:modelParameter>
       <spirit:modelParameter xsi:type="spirit:nameValueTypeType" spirit:dataType="integer">
         <spirit:name>FIFO_DEPTH</spirit:name>
-        <spirit:displayName>Fifo Depth</spirit:displayName>
+        <spirit:displayName>FIFO_DEPTH</spirit:displayName>
         <spirit:value spirit:format="long" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.FIFO_DEPTH" spirit:rangeType="long">1024</spirit:value>
       </spirit:modelParameter>
       <spirit:modelParameter xsi:type="spirit:nameValueTypeType" spirit:dataType="boolean">
         <spirit:name>ENABLE_DMA</spirit:name>
-        <spirit:displayName>Enable Dma</spirit:displayName>
+        <spirit:displayName>ENABLE_DMA</spirit:displayName>
         <spirit:value spirit:format="bool" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.ENABLE_DMA">true</spirit:value>
       </spirit:modelParameter>
     </spirit:modelParameters>
@@ -31091,11 +31259,43 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         <spirit:name>../rtl/system_controller.vhd</spirit:name>
         <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
       </spirit:file>
+      <spirit:file>
+        <spirit:name>../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_pkg.vhd</spirit:name>
+        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_regs.vhd</spirit:name>
+        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_core.vhd</spirit:name>
+        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_axil.vhd</spirit:name>
+        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
+      </spirit:file>
     </spirit:fileSet>
     <spirit:fileSet>
       <spirit:name>xilinx_anylanguagebehavioralsimulation_view_fileset</spirit:name>
       <spirit:file>
         <spirit:name>../rtl/system_controller.vhd</spirit:name>
+        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_pkg.vhd</spirit:name>
+        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_regs.vhd</spirit:name>
+        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_core.vhd</spirit:name>
+        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_axil.vhd</spirit:name>
         <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
@@ -31113,25 +31313,25 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   <spirit:parameters>
     <spirit:parameter>
       <spirit:name>DATA_WIDTH</spirit:name>
-      <spirit:displayName>Data Width</spirit:displayName>
+      <spirit:displayName>DATA_WIDTH</spirit:displayName>
       <spirit:description>Width of data bus</spirit:description>
       <spirit:value spirit:format="long" spirit:resolve="user" spirit:id="PARAM_VALUE.DATA_WIDTH" spirit:rangeType="long">32</spirit:value>
     </spirit:parameter>
     <spirit:parameter>
       <spirit:name>ADDR_WIDTH</spirit:name>
-      <spirit:displayName>Addr Width</spirit:displayName>
+      <spirit:displayName>ADDR_WIDTH</spirit:displayName>
       <spirit:description>Width of address bus</spirit:description>
       <spirit:value spirit:format="long" spirit:resolve="user" spirit:id="PARAM_VALUE.ADDR_WIDTH" spirit:rangeType="long">32</spirit:value>
     </spirit:parameter>
     <spirit:parameter>
       <spirit:name>FIFO_DEPTH</spirit:name>
-      <spirit:displayName>Fifo Depth</spirit:displayName>
+      <spirit:displayName>FIFO_DEPTH</spirit:displayName>
       <spirit:description>Depth of internal FIFO</spirit:description>
       <spirit:value spirit:format="long" spirit:resolve="user" spirit:id="PARAM_VALUE.FIFO_DEPTH" spirit:rangeType="long">1024</spirit:value>
     </spirit:parameter>
     <spirit:parameter>
       <spirit:name>ENABLE_DMA</spirit:name>
-      <spirit:displayName>Enable Dma</spirit:displayName>
+      <spirit:displayName>ENABLE_DMA</spirit:displayName>
       <spirit:description>Enable DMA functionality</spirit:description>
       <spirit:value spirit:format="bool" spirit:resolve="user" spirit:id="PARAM_VALUE.ENABLE_DMA">true</spirit:value>
     </spirit:parameter>
@@ -31526,12 +31726,12 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
     <spirit:modelParameters>
       <spirit:modelParameter xsi:type="spirit:nameValueTypeType" spirit:dataType="integer">
         <spirit:name>XCVR_DW</spirit:name>
-        <spirit:displayName>Xcvr Dw</spirit:displayName>
+        <spirit:displayName>XCVR_DW</spirit:displayName>
         <spirit:value spirit:format="long" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.XCVR_DW" spirit:rangeType="long">16</spirit:value>
       </spirit:modelParameter>
       <spirit:modelParameter xsi:type="spirit:nameValueTypeType" spirit:dataType="integer">
         <spirit:name>XCVR_KW</spirit:name>
-        <spirit:displayName>Xcvr Kw</spirit:displayName>
+        <spirit:displayName>XCVR_KW</spirit:displayName>
         <spirit:value spirit:format="long" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.XCVR_KW" spirit:rangeType="long">2</spirit:value>
       </spirit:modelParameter>
     </spirit:modelParameters>
@@ -31573,13 +31773,13 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   <spirit:parameters>
     <spirit:parameter>
       <spirit:name>XCVR_DW</spirit:name>
-      <spirit:displayName>Xcvr Dw</spirit:displayName>
+      <spirit:displayName>XCVR_DW</spirit:displayName>
       <spirit:description>Transceiver data bus width in bits</spirit:description>
       <spirit:value spirit:format="long" spirit:resolve="user" spirit:id="PARAM_VALUE.XCVR_DW" spirit:rangeType="long">16</spirit:value>
     </spirit:parameter>
     <spirit:parameter>
       <spirit:name>XCVR_KW</spirit:name>
-      <spirit:displayName>Xcvr Kw</spirit:displayName>
+      <spirit:displayName>XCVR_KW</spirit:displayName>
       <spirit:description>Transceiver control (K) bus width in bits</spirit:description>
       <spirit:value spirit:format="long" spirit:resolve="user" spirit:id="PARAM_VALUE.XCVR_KW" spirit:rangeType="long">2</spirit:value>
     </spirit:parameter>
@@ -31974,12 +32174,12 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
     <spirit:modelParameters>
       <spirit:modelParameter xsi:type="spirit:nameValueTypeType" spirit:dataType="integer">
         <spirit:name>XCVR_DW</spirit:name>
-        <spirit:displayName>Xcvr Dw</spirit:displayName>
+        <spirit:displayName>XCVR_DW</spirit:displayName>
         <spirit:value spirit:format="long" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.XCVR_DW" spirit:rangeType="long">16</spirit:value>
       </spirit:modelParameter>
       <spirit:modelParameter xsi:type="spirit:nameValueTypeType" spirit:dataType="integer">
         <spirit:name>XCVR_KW</spirit:name>
-        <spirit:displayName>Xcvr Kw</spirit:displayName>
+        <spirit:displayName>XCVR_KW</spirit:displayName>
         <spirit:value spirit:format="long" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.XCVR_KW" spirit:rangeType="long">2</spirit:value>
       </spirit:modelParameter>
     </spirit:modelParameters>
@@ -32021,13 +32221,13 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   <spirit:parameters>
     <spirit:parameter>
       <spirit:name>XCVR_DW</spirit:name>
-      <spirit:displayName>Xcvr Dw</spirit:displayName>
+      <spirit:displayName>XCVR_DW</spirit:displayName>
       <spirit:description>Transceiver data bus width in bits</spirit:description>
       <spirit:value spirit:format="long" spirit:resolve="user" spirit:id="PARAM_VALUE.XCVR_DW" spirit:rangeType="long">16</spirit:value>
     </spirit:parameter>
     <spirit:parameter>
       <spirit:name>XCVR_KW</spirit:name>
-      <spirit:displayName>Xcvr Kw</spirit:displayName>
+      <spirit:displayName>XCVR_KW</spirit:displayName>
       <spirit:description>Transceiver control (K) bus width in bits</spirit:description>
       <spirit:value spirit:format="long" spirit:resolve="user" spirit:id="PARAM_VALUE.XCVR_KW" spirit:rangeType="long">2</spirit:value>
     </spirit:parameter>
@@ -33739,12 +33939,22 @@ set_fileset_property QUARTUS_SYNTH TOP_LEVEL basic_peripheral
 set_fileset_property QUARTUS_SYNTH ENABLE_RELATIVE_INCLUDE_PATHS false
 set_fileset_property QUARTUS_SYNTH ENABLE_FILE_OVERWRITE_MODE false
 add_fileset_file basic_peripheral.sv SYSTEM_VERILOG PATH ../rtl/basic_peripheral.sv TOP_LEVEL_FILE
+add_fileset_file basic_peripheral_pkg.vhd VHDL PATH ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_pkg.vhd
+add_fileset_file basic_peripheral_regs.vhd VHDL PATH ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_regs.vhd
+add_fileset_file basic_peripheral_core.vhd VHDL PATH ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_core.vhd
+add_fileset_file basic_peripheral_axil.vhd VHDL PATH ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_axil.vhd
+add_fileset_file basic_peripheral.vhd VHDL PATH ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral.vhd
 
 add_fileset SIM_VERILOG SIM_VERILOG "" ""
 set_fileset_property SIM_VERILOG TOP_LEVEL basic_peripheral
 set_fileset_property SIM_VERILOG ENABLE_RELATIVE_INCLUDE_PATHS false
 set_fileset_property SIM_VERILOG ENABLE_FILE_OVERWRITE_MODE false
 add_fileset_file basic_peripheral.sv SYSTEM_VERILOG PATH ../rtl/basic_peripheral.sv TOP_LEVEL_FILE
+add_fileset_file basic_peripheral_pkg.vhd VHDL PATH ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_pkg.vhd
+add_fileset_file basic_peripheral_regs.vhd VHDL PATH ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_regs.vhd
+add_fileset_file basic_peripheral_core.vhd VHDL PATH ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_core.vhd
+add_fileset_file basic_peripheral_axil.vhd VHDL PATH ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_axil.vhd
+add_fileset_file basic_peripheral.vhd VHDL PATH ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral.vhd
 ",
   "examples/basic_peripheral_vhdl/basic_peripheral_hw.tcl": "# basic_peripheral_hw.tcl - Altera Platform Designer Component Definition
 # Generated by ipcraft VHDL Generator
@@ -33949,12 +34159,20 @@ set_fileset_property QUARTUS_SYNTH TOP_LEVEL basic_peripheral
 set_fileset_property QUARTUS_SYNTH ENABLE_RELATIVE_INCLUDE_PATHS false
 set_fileset_property QUARTUS_SYNTH ENABLE_FILE_OVERWRITE_MODE false
 add_fileset_file basic_peripheral.vhd VHDL PATH ../rtl/basic_peripheral.vhd TOP_LEVEL_FILE
+add_fileset_file basic_peripheral_pkg.vhd VHDL PATH ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_pkg.vhd
+add_fileset_file basic_peripheral_regs.vhd VHDL PATH ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_regs.vhd
+add_fileset_file basic_peripheral_core.vhd VHDL PATH ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_core.vhd
+add_fileset_file basic_peripheral_axil.vhd VHDL PATH ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_axil.vhd
 
 add_fileset SIM_VHDL SIM_VHDL "" ""
 set_fileset_property SIM_VHDL TOP_LEVEL basic_peripheral
 set_fileset_property SIM_VHDL ENABLE_RELATIVE_INCLUDE_PATHS false
 set_fileset_property SIM_VHDL ENABLE_FILE_OVERWRITE_MODE false
 add_fileset_file basic_peripheral.vhd VHDL PATH ../rtl/basic_peripheral.vhd TOP_LEVEL_FILE
+add_fileset_file basic_peripheral_pkg.vhd VHDL PATH ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_pkg.vhd
+add_fileset_file basic_peripheral_regs.vhd VHDL PATH ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_regs.vhd
+add_fileset_file basic_peripheral_core.vhd VHDL PATH ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_core.vhd
+add_fileset_file basic_peripheral_axil.vhd VHDL PATH ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_axil.vhd
 ",
   "examples/comprehensive_avalon_sv/comprehensive_avalon_hw.tcl": "# comprehensive_avalon_hw.tcl - Altera Platform Designer Component Definition
 # Generated by ipcraft SystemVerilog Generator
@@ -35849,12 +36067,14 @@ set_fileset_property QUARTUS_SYNTH TOP_LEVEL multi_interface_accelerator
 set_fileset_property QUARTUS_SYNTH ENABLE_RELATIVE_INCLUDE_PATHS false
 set_fileset_property QUARTUS_SYNTH ENABLE_FILE_OVERWRITE_MODE false
 add_fileset_file multi_interface_accelerator.sv SYSTEM_VERILOG PATH ../rtl/multi_interface_accelerator.sv TOP_LEVEL_FILE
+add_fileset_file accelerator_top.vhd VHDL PATH ../../../../../ipcraft-spec/examples/multi_interface_accelerator/rtl/accelerator_top.vhd
 
 add_fileset SIM_VERILOG SIM_VERILOG "" ""
 set_fileset_property SIM_VERILOG TOP_LEVEL multi_interface_accelerator
 set_fileset_property SIM_VERILOG ENABLE_RELATIVE_INCLUDE_PATHS false
 set_fileset_property SIM_VERILOG ENABLE_FILE_OVERWRITE_MODE false
 add_fileset_file multi_interface_accelerator.sv SYSTEM_VERILOG PATH ../rtl/multi_interface_accelerator.sv TOP_LEVEL_FILE
+add_fileset_file accelerator_top.vhd VHDL PATH ../../../../../ipcraft-spec/examples/multi_interface_accelerator/rtl/accelerator_top.vhd
 ",
   "examples/multi_interface_accelerator_vhdl/multi_interface_accelerator_hw.tcl": "# multi_interface_accelerator_hw.tcl - Altera Platform Designer Component Definition
 # Generated by ipcraft VHDL Generator
@@ -36115,12 +36335,14 @@ set_fileset_property QUARTUS_SYNTH TOP_LEVEL multi_interface_accelerator
 set_fileset_property QUARTUS_SYNTH ENABLE_RELATIVE_INCLUDE_PATHS false
 set_fileset_property QUARTUS_SYNTH ENABLE_FILE_OVERWRITE_MODE false
 add_fileset_file multi_interface_accelerator.vhd VHDL PATH ../rtl/multi_interface_accelerator.vhd TOP_LEVEL_FILE
+add_fileset_file accelerator_top.vhd VHDL PATH ../../../../../ipcraft-spec/examples/multi_interface_accelerator/rtl/accelerator_top.vhd
 
 add_fileset SIM_VHDL SIM_VHDL "" ""
 set_fileset_property SIM_VHDL TOP_LEVEL multi_interface_accelerator
 set_fileset_property SIM_VHDL ENABLE_RELATIVE_INCLUDE_PATHS false
 set_fileset_property SIM_VHDL ENABLE_FILE_OVERWRITE_MODE false
 add_fileset_file multi_interface_accelerator.vhd VHDL PATH ../rtl/multi_interface_accelerator.vhd TOP_LEVEL_FILE
+add_fileset_file accelerator_top.vhd VHDL PATH ../../../../../ipcraft-spec/examples/multi_interface_accelerator/rtl/accelerator_top.vhd
 ",
   "examples/system_controller_sv/system_controller_hw.tcl": "# system_controller_hw.tcl - Altera Platform Designer Component Definition
 # Generated by ipcraft SystemVerilog Generator
@@ -36526,12 +36748,22 @@ set_fileset_property QUARTUS_SYNTH TOP_LEVEL system_controller
 set_fileset_property QUARTUS_SYNTH ENABLE_RELATIVE_INCLUDE_PATHS false
 set_fileset_property QUARTUS_SYNTH ENABLE_FILE_OVERWRITE_MODE false
 add_fileset_file system_controller.sv SYSTEM_VERILOG PATH ../rtl/system_controller.sv TOP_LEVEL_FILE
+add_fileset_file system_controller_pkg.vhd VHDL PATH ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_pkg.vhd
+add_fileset_file system_controller.vhd VHDL PATH ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller.vhd
+add_fileset_file system_controller_regs.vhd VHDL PATH ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_regs.vhd
+add_fileset_file system_controller_core.vhd VHDL PATH ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_core.vhd
+add_fileset_file system_controller_axil.vhd VHDL PATH ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_axil.vhd
 
 add_fileset SIM_VERILOG SIM_VERILOG "" ""
 set_fileset_property SIM_VERILOG TOP_LEVEL system_controller
 set_fileset_property SIM_VERILOG ENABLE_RELATIVE_INCLUDE_PATHS false
 set_fileset_property SIM_VERILOG ENABLE_FILE_OVERWRITE_MODE false
 add_fileset_file system_controller.sv SYSTEM_VERILOG PATH ../rtl/system_controller.sv TOP_LEVEL_FILE
+add_fileset_file system_controller_pkg.vhd VHDL PATH ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_pkg.vhd
+add_fileset_file system_controller.vhd VHDL PATH ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller.vhd
+add_fileset_file system_controller_regs.vhd VHDL PATH ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_regs.vhd
+add_fileset_file system_controller_core.vhd VHDL PATH ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_core.vhd
+add_fileset_file system_controller_axil.vhd VHDL PATH ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_axil.vhd
 ",
   "examples/system_controller_vhdl/system_controller_hw.tcl": "# system_controller_hw.tcl - Altera Platform Designer Component Definition
 # Generated by ipcraft VHDL Generator
@@ -36937,12 +37169,20 @@ set_fileset_property QUARTUS_SYNTH TOP_LEVEL system_controller
 set_fileset_property QUARTUS_SYNTH ENABLE_RELATIVE_INCLUDE_PATHS false
 set_fileset_property QUARTUS_SYNTH ENABLE_FILE_OVERWRITE_MODE false
 add_fileset_file system_controller.vhd VHDL PATH ../rtl/system_controller.vhd TOP_LEVEL_FILE
+add_fileset_file system_controller_pkg.vhd VHDL PATH ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_pkg.vhd
+add_fileset_file system_controller_regs.vhd VHDL PATH ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_regs.vhd
+add_fileset_file system_controller_core.vhd VHDL PATH ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_core.vhd
+add_fileset_file system_controller_axil.vhd VHDL PATH ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_axil.vhd
 
 add_fileset SIM_VHDL SIM_VHDL "" ""
 set_fileset_property SIM_VHDL TOP_LEVEL system_controller
 set_fileset_property SIM_VHDL ENABLE_RELATIVE_INCLUDE_PATHS false
 set_fileset_property SIM_VHDL ENABLE_FILE_OVERWRITE_MODE false
 add_fileset_file system_controller.vhd VHDL PATH ../rtl/system_controller.vhd TOP_LEVEL_FILE
+add_fileset_file system_controller_pkg.vhd VHDL PATH ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_pkg.vhd
+add_fileset_file system_controller_regs.vhd VHDL PATH ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_regs.vhd
+add_fileset_file system_controller_core.vhd VHDL PATH ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_core.vhd
+add_fileset_file system_controller_axil.vhd VHDL PATH ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_axil.vhd
 ",
   "examples/xcvr_loopback_sv/xcvr_loopback_hw.tcl": "# xcvr_loopback_hw.tcl - Altera Platform Designer Component Definition
 # Generated by ipcraft SystemVerilog Generator
@@ -37444,7 +37684,7 @@ TOPLEVEL_LANG ?= verilog
 
 # SystemVerilog source files (relative to tb/ directory)
 BASE_DIR = $(CURDIR)/..
-# Derived from entity structure
+# From ip.yml fileSets
 VERILOG_SOURCES += $(BASE_DIR)/rtl/avalon_peripheral.sv
 
 # Top-level module
@@ -37546,7 +37786,7 @@ TOPLEVEL_LANG ?= vhdl
 
 # VHDL source files (relative to tb/ directory)
 BASE_DIR = $(CURDIR)/..
-# Derived from entity structure
+# From ip.yml fileSets
 VHDL_SOURCES += $(BASE_DIR)/rtl/avalon_peripheral.vhd
 
 # Top-level module
@@ -37631,7 +37871,7 @@ TOPLEVEL_LANG ?= verilog
 
 # SystemVerilog source files (relative to tb/ directory)
 BASE_DIR = $(CURDIR)/..
-# Derived from entity structure
+# From ip.yml fileSets
 VERILOG_SOURCES += $(BASE_DIR)/rtl/axi_slave_core.sv
 
 # Top-level module
@@ -37734,7 +37974,7 @@ TOPLEVEL_LANG ?= vhdl
 
 # VHDL source files (relative to tb/ directory)
 BASE_DIR = $(CURDIR)/..
-# Derived from entity structure
+# From ip.yml fileSets
 VHDL_SOURCES += $(BASE_DIR)/rtl/axi_slave_core.vhd
 
 # Top-level module
@@ -37819,7 +38059,7 @@ TOPLEVEL_LANG ?= verilog
 
 # SystemVerilog source files (relative to tb/ directory)
 BASE_DIR = $(CURDIR)/..
-# Derived from entity structure
+# From ip.yml fileSets
 VERILOG_SOURCES += $(BASE_DIR)/rtl/basic_core.sv
 
 # Top-level module
@@ -37922,7 +38162,7 @@ TOPLEVEL_LANG ?= vhdl
 
 # VHDL source files (relative to tb/ directory)
 BASE_DIR = $(CURDIR)/..
-# Derived from entity structure
+# From ip.yml fileSets
 VHDL_SOURCES += $(BASE_DIR)/rtl/basic_core.vhd
 
 # Top-level module
@@ -38008,11 +38248,12 @@ TOPLEVEL_LANG ?= verilog
 # SystemVerilog source files (relative to tb/ directory)
 BASE_DIR = $(CURDIR)/..
 # From ip.yml fileSets
-VERILOG_SOURCES += $(BASE_DIR)/rtl/basic_peripheral_pkg.vhd
-VERILOG_SOURCES += $(BASE_DIR)/rtl/basic_peripheral_regs.vhd
-VERILOG_SOURCES += $(BASE_DIR)/rtl/basic_peripheral_core.vhd
-VERILOG_SOURCES += $(BASE_DIR)/rtl/basic_peripheral_axil.vhd
-VERILOG_SOURCES += $(BASE_DIR)/rtl/basic_peripheral.vhd
+VERILOG_SOURCES += $(BASE_DIR)/rtl/basic_peripheral.sv
+VERILOG_SOURCES += $(BASE_DIR)/../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_pkg.vhd
+VERILOG_SOURCES += $(BASE_DIR)/../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_regs.vhd
+VERILOG_SOURCES += $(BASE_DIR)/../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_core.vhd
+VERILOG_SOURCES += $(BASE_DIR)/../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_axil.vhd
+VERILOG_SOURCES += $(BASE_DIR)/../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral.vhd
 
 # Top-level module
 TOPLEVEL = basic_peripheral
@@ -38115,11 +38356,11 @@ TOPLEVEL_LANG ?= vhdl
 # VHDL source files (relative to tb/ directory)
 BASE_DIR = $(CURDIR)/..
 # From ip.yml fileSets
-VHDL_SOURCES += $(BASE_DIR)/rtl/basic_peripheral_pkg.vhd
-VHDL_SOURCES += $(BASE_DIR)/rtl/basic_peripheral_regs.vhd
-VHDL_SOURCES += $(BASE_DIR)/rtl/basic_peripheral_core.vhd
-VHDL_SOURCES += $(BASE_DIR)/rtl/basic_peripheral_axil.vhd
 VHDL_SOURCES += $(BASE_DIR)/rtl/basic_peripheral.vhd
+VHDL_SOURCES += $(BASE_DIR)/../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_pkg.vhd
+VHDL_SOURCES += $(BASE_DIR)/../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_regs.vhd
+VHDL_SOURCES += $(BASE_DIR)/../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_core.vhd
+VHDL_SOURCES += $(BASE_DIR)/../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_axil.vhd
 
 # Top-level module
 TOPLEVEL = basic_peripheral
@@ -38202,7 +38443,7 @@ TOPLEVEL_LANG ?= verilog
 
 # SystemVerilog source files (relative to tb/ directory)
 BASE_DIR = $(CURDIR)/..
-# Derived from entity structure
+# From ip.yml fileSets
 VERILOG_SOURCES += $(BASE_DIR)/rtl/comprehensive_avalon_pkg.sv
 VERILOG_SOURCES += $(BASE_DIR)/rtl/comprehensive_avalon_regs.sv
 VERILOG_SOURCES += $(BASE_DIR)/rtl/comprehensive_avalon_core.sv
@@ -38308,7 +38549,7 @@ TOPLEVEL_LANG ?= vhdl
 
 # VHDL source files (relative to tb/ directory)
 BASE_DIR = $(CURDIR)/..
-# Derived from entity structure
+# From ip.yml fileSets
 VHDL_SOURCES += $(BASE_DIR)/rtl/comprehensive_avalon_pkg.vhd
 VHDL_SOURCES += $(BASE_DIR)/rtl/comprehensive_avalon_regs.vhd
 VHDL_SOURCES += $(BASE_DIR)/rtl/comprehensive_avalon_core.vhd
@@ -38397,7 +38638,7 @@ TOPLEVEL_LANG ?= verilog
 
 # SystemVerilog source files (relative to tb/ directory)
 BASE_DIR = $(CURDIR)/..
-# Derived from entity structure
+# From ip.yml fileSets
 VERILOG_SOURCES += $(BASE_DIR)/rtl/comprehensive_axi_pkg.sv
 VERILOG_SOURCES += $(BASE_DIR)/rtl/comprehensive_axi_regs.sv
 VERILOG_SOURCES += $(BASE_DIR)/rtl/comprehensive_axi_core.sv
@@ -38504,7 +38745,7 @@ TOPLEVEL_LANG ?= vhdl
 
 # VHDL source files (relative to tb/ directory)
 BASE_DIR = $(CURDIR)/..
-# Derived from entity structure
+# From ip.yml fileSets
 VHDL_SOURCES += $(BASE_DIR)/rtl/comprehensive_axi_pkg.vhd
 VHDL_SOURCES += $(BASE_DIR)/rtl/comprehensive_axi_regs.vhd
 VHDL_SOURCES += $(BASE_DIR)/rtl/comprehensive_axi_core.vhd
@@ -38593,7 +38834,7 @@ TOPLEVEL_LANG ?= verilog
 
 # SystemVerilog source files (relative to tb/ directory)
 BASE_DIR = $(CURDIR)/..
-# Derived from entity structure
+# From ip.yml fileSets
 VERILOG_SOURCES += $(BASE_DIR)/rtl/daq_controller_pkg.sv
 VERILOG_SOURCES += $(BASE_DIR)/rtl/daq_controller_regs.sv
 VERILOG_SOURCES += $(BASE_DIR)/rtl/daq_controller_core.sv
@@ -38700,7 +38941,7 @@ TOPLEVEL_LANG ?= vhdl
 
 # VHDL source files (relative to tb/ directory)
 BASE_DIR = $(CURDIR)/..
-# Derived from entity structure
+# From ip.yml fileSets
 VHDL_SOURCES += $(BASE_DIR)/rtl/daq_controller_pkg.vhd
 VHDL_SOURCES += $(BASE_DIR)/rtl/daq_controller_regs.vhd
 VHDL_SOURCES += $(BASE_DIR)/rtl/daq_controller_core.vhd
@@ -38789,7 +39030,7 @@ TOPLEVEL_LANG ?= verilog
 
 # SystemVerilog source files (relative to tb/ directory)
 BASE_DIR = $(CURDIR)/..
-# Derived from entity structure
+# From ip.yml fileSets
 VERILOG_SOURCES += $(BASE_DIR)/rtl/minimal_ip.sv
 
 # Top-level module
@@ -38892,7 +39133,7 @@ TOPLEVEL_LANG ?= vhdl
 
 # VHDL source files (relative to tb/ directory)
 BASE_DIR = $(CURDIR)/..
-# Derived from entity structure
+# From ip.yml fileSets
 VHDL_SOURCES += $(BASE_DIR)/rtl/minimal_ip.vhd
 
 # Top-level module
@@ -38978,7 +39219,8 @@ TOPLEVEL_LANG ?= verilog
 # SystemVerilog source files (relative to tb/ directory)
 BASE_DIR = $(CURDIR)/..
 # From ip.yml fileSets
-VERILOG_SOURCES += $(BASE_DIR)/rtl/accelerator_top.vhd
+VERILOG_SOURCES += $(BASE_DIR)/rtl/multi_interface_accelerator.sv
+VERILOG_SOURCES += $(BASE_DIR)/../../../../ipcraft-spec/examples/multi_interface_accelerator/rtl/accelerator_top.vhd
 
 # Top-level module
 TOPLEVEL = multi_interface_accelerator
@@ -39081,7 +39323,8 @@ TOPLEVEL_LANG ?= vhdl
 # VHDL source files (relative to tb/ directory)
 BASE_DIR = $(CURDIR)/..
 # From ip.yml fileSets
-VHDL_SOURCES += $(BASE_DIR)/rtl/accelerator_top.vhd
+VHDL_SOURCES += $(BASE_DIR)/rtl/multi_interface_accelerator.vhd
+VHDL_SOURCES += $(BASE_DIR)/../../../../ipcraft-spec/examples/multi_interface_accelerator/rtl/accelerator_top.vhd
 
 # Top-level module
 TOPLEVEL = multi_interface_accelerator
@@ -39166,11 +39409,12 @@ TOPLEVEL_LANG ?= verilog
 # SystemVerilog source files (relative to tb/ directory)
 BASE_DIR = $(CURDIR)/..
 # From ip.yml fileSets
-VERILOG_SOURCES += $(BASE_DIR)/rtl/system_controller_pkg.vhd
-VERILOG_SOURCES += $(BASE_DIR)/rtl/system_controller_regs.vhd
-VERILOG_SOURCES += $(BASE_DIR)/rtl/system_controller_core.vhd
-VERILOG_SOURCES += $(BASE_DIR)/rtl/system_controller_axil.vhd
-VERILOG_SOURCES += $(BASE_DIR)/rtl/system_controller.vhd
+VERILOG_SOURCES += $(BASE_DIR)/rtl/system_controller.sv
+VERILOG_SOURCES += $(BASE_DIR)/../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_pkg.vhd
+VERILOG_SOURCES += $(BASE_DIR)/../../../../ipcraft-spec/examples/system_controller/rtl/system_controller.vhd
+VERILOG_SOURCES += $(BASE_DIR)/../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_regs.vhd
+VERILOG_SOURCES += $(BASE_DIR)/../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_core.vhd
+VERILOG_SOURCES += $(BASE_DIR)/../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_axil.vhd
 
 # Top-level module
 TOPLEVEL = system_controller
@@ -39273,11 +39517,11 @@ TOPLEVEL_LANG ?= vhdl
 # VHDL source files (relative to tb/ directory)
 BASE_DIR = $(CURDIR)/..
 # From ip.yml fileSets
-VHDL_SOURCES += $(BASE_DIR)/rtl/system_controller_pkg.vhd
-VHDL_SOURCES += $(BASE_DIR)/rtl/system_controller_regs.vhd
-VHDL_SOURCES += $(BASE_DIR)/rtl/system_controller_core.vhd
-VHDL_SOURCES += $(BASE_DIR)/rtl/system_controller_axil.vhd
 VHDL_SOURCES += $(BASE_DIR)/rtl/system_controller.vhd
+VHDL_SOURCES += $(BASE_DIR)/../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_pkg.vhd
+VHDL_SOURCES += $(BASE_DIR)/../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_regs.vhd
+VHDL_SOURCES += $(BASE_DIR)/../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_core.vhd
+VHDL_SOURCES += $(BASE_DIR)/../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_axil.vhd
 
 # Top-level module
 TOPLEVEL = system_controller
@@ -39360,7 +39604,7 @@ TOPLEVEL_LANG ?= verilog
 
 # SystemVerilog source files (relative to tb/ directory)
 BASE_DIR = $(CURDIR)/..
-# Derived from entity structure
+# From ip.yml fileSets
 VERILOG_SOURCES += $(BASE_DIR)/rtl/xcvr_loopback.sv
 
 # Top-level module
@@ -39462,7 +39706,7 @@ TOPLEVEL_LANG ?= vhdl
 
 # VHDL source files (relative to tb/ directory)
 BASE_DIR = $(CURDIR)/..
-# Derived from entity structure
+# From ip.yml fileSets
 VHDL_SOURCES += $(BASE_DIR)/rtl/xcvr_loopback.vhd
 
 # Top-level module
@@ -39547,7 +39791,7 @@ TOPLEVEL_LANG ?= verilog
 
 # SystemVerilog source files (relative to tb/ directory)
 BASE_DIR = $(CURDIR)/..
-# Derived from entity structure
+# From ip.yml fileSets
 VERILOG_SOURCES += $(BASE_DIR)/rtl/minimal_core.sv
 
 # Top-level module
@@ -39650,7 +39894,7 @@ TOPLEVEL_LANG ?= vhdl
 
 # VHDL source files (relative to tb/ directory)
 BASE_DIR = $(CURDIR)/..
-# Derived from entity structure
+# From ip.yml fileSets
 VHDL_SOURCES += $(BASE_DIR)/rtl/minimal_core.vhd
 
 # Top-level module
