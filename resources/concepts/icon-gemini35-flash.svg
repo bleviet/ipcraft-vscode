@@ -1,0 +1,51 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="brand-grad" x1="0" y1="0" x2="128" y2="128" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF512F"/>
+      <stop offset="1" stop-color="#DD2476"/>
+    </linearGradient>
+  </defs>
+
+  <!-- External IP Core Canvas Ports/Interfaces -->
+  <!-- Left Side Ports -->
+  <!-- Individual Port 1 (Clock/Reset) -->
+  <line x1="8" y1="36" x2="24" y2="36" stroke="url(#brand-grad)" stroke-width="4" stroke-linecap="round" />
+  
+  <!-- Bus Interface (AXI/Avalon) -->
+  <rect x="12" y="48" width="12" height="32" rx="3" fill="url(#brand-grad)" />
+  <line x1="18" y1="54" x2="18" y2="74" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-opacity="0.6" />
+
+  <!-- Individual Port 2 (Interrupt) -->
+  <line x1="8" y1="92" x2="24" y2="92" stroke="url(#brand-grad)" stroke-width="4" stroke-linecap="round" />
+
+  <!-- Right Side Ports -->
+  <!-- Individual Port 3 -->
+  <line x1="104" y1="36" x2="120" y2="36" stroke="url(#brand-grad)" stroke-width="4" stroke-linecap="round" />
+  
+  <!-- Bus Interface (AXI/Avalon) -->
+  <rect x="104" y="48" width="12" height="32" rx="3" fill="url(#brand-grad)" />
+  <line x1="110" y1="54" x2="110" y2="74" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-opacity="0.6" />
+
+  <!-- Individual Port 4 -->
+  <line x1="104" y1="92" x2="120" y2="92" stroke="url(#brand-grad)" stroke-width="4" stroke-linecap="round" />
+
+  <!-- Main IP Block / Chip Frame -->
+  <rect x="24" y="24" width="80" height="80" rx="12" stroke="url(#brand-grad)" stroke-width="6" fill="none" />
+
+  <!-- Internal Memory Map Registers -->
+  <!-- Register 1 (Top) -->
+  <rect x="36" y="36" width="56" height="12" rx="3" fill="url(#brand-grad)" fill-opacity="0.15" />
+  <line x1="52" y1="36" x2="52" y2="48" stroke="url(#brand-grad)" stroke-opacity="0.3" stroke-width="1.5" />
+  <line x1="72" y1="36" x2="72" y2="48" stroke="url(#brand-grad)" stroke-opacity="0.3" stroke-width="1.5" />
+
+  <!-- Register 2 (Middle - Active/Focused) -->
+  <rect x="36" y="54" width="56" height="20" rx="3" fill="url(#brand-grad)" fill-opacity="0.05" stroke="url(#brand-grad)" stroke-width="2" />
+  <!-- Active Bitfield -->
+  <rect x="37" y="55" width="18" height="18" rx="2" fill="url(#brand-grad)" />
+  <!-- Bitfield Divider in the remaining area -->
+  <line x1="73" y1="55" x2="73" y2="73" stroke="url(#brand-grad)" stroke-opacity="0.4" stroke-width="1.5" />
+
+  <!-- Register 3 (Bottom) -->
+  <rect x="36" y="80" width="56" height="12" rx="3" fill="url(#brand-grad)" fill-opacity="0.15" />
+  <line x1="60" y1="80" x2="60" y2="92" stroke="url(#brand-grad)" stroke-opacity="0.3" stroke-width="1.5" />
+</svg>
