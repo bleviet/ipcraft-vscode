@@ -816,6 +816,15 @@ class ErrorBoundary extends React.Component<
  */
 const rootElement = document.getElementById('root');
 if (rootElement) {
+  // Disable default right-click menu except on inputs
+  window.addEventListener('contextmenu', (e) => {
+    const target = e.target as HTMLElement;
+    const tag = target.tagName;
+    if (tag !== 'INPUT' && tag !== 'TEXTAREA' && !target.isContentEditable) {
+      e.preventDefault();
+    }
+  });
+
   const root = createRoot(rootElement);
   root.render(
     <ErrorBoundary>
