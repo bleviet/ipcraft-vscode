@@ -363,6 +363,7 @@ export function normalizeIpCore(rootObj: Record<string, unknown>): IpCore {
       const param = p as Record<string, unknown>;
       return {
         name: String(param.name ?? ''),
+        displayName: param.displayName ? String(param.displayName) : undefined,
         value: param.value ?? param.defaultValue,
         dataType: String(param.dataType ?? ''),
         description: param.description ? String(param.description) : undefined,

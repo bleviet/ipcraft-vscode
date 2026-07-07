@@ -1270,6 +1270,13 @@ const ParameterPanel: React.FC<ParameterPanelProps> = ({ param, index, ipCore, o
           placeholder="DATA_WIDTH"
           mono
         />
+        <PropField
+          label="Display Name"
+          value={param.displayName ? String(param.displayName) : ''}
+          onSave={(v) => onUpdate(['parameters', index, 'displayName'], v === '' ? null : v)}
+          placeholder={String(param.name ?? '')}
+          hint="Shown in vendor tools (e.g. Vivado IP Packager). Defaults to the parameter name."
+        />
         <PropSelect
           label="Data Type"
           value={dataType}

@@ -163,6 +163,7 @@ export interface BusInterfaceDef {
 
 export interface ParameterDef {
   name?: string;
+  displayName?: string | null;
   value?: number | string;
   dataType?: string;
   description?: string;

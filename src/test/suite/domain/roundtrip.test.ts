@@ -196,3 +196,32 @@ busInterfaces:
     expect(parsed2.busInterfaces?.[0]?.physicalPrefix).toBe('');
   });
 });
+
+describe('parseIpCore parameter displayName handling', () => {
+  it('should round-trip an explicit displayName through parse and serialize', () => {
+    const yamlStr = `
+vlnv: foo:bar:baz:1.0
+parameters:
+  - name: AXI_ID_WIDTH
+    displayName: AXI ID Width
+    value: 4
+`;
+    const parsed = parseIpCore(yamlStr);
+    expect(parsed.parameters?.[0]?.displayName).toBe('AXI ID Width');
+
+    const serialized = serializeIpCore(parsed) as Record<string, unknown>;
+    const params = serialized.parameters as Array<Record<string, unknown>>;
+    expect(params[0].displayName).toBe('AXI ID Width');
+  });
+
+  it('should leave displayName undefined when absent, not derive it from name', () => {
+    const yamlStr = `
+vlnv: foo:bar:baz:1.0
+parameters:
+  - name: AXI_ID_WIDTH
+    value: 4
+`;
+    const parsed = parseIpCore(yamlStr);
+    expect(parsed.parameters?.[0]?.displayName).toBeUndefined();
+  });
+});

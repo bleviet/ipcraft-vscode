@@ -1338,10 +1338,7 @@ function renderModelParameters(parameters: ParameterDef[]): string[] {
     const value =
       param.value !== undefined && param.value !== null ? String(param.value) : defaultValue;
     const isInteger = format === 'long';
-    const displayName = pName
-      .split('_')
-      .map((w) => w[0].toUpperCase() + w.slice(1).toLowerCase())
-      .join(' ');
+    const displayName = param.displayName ? String(param.displayName) : pName;
     lines.push(
       `      <spirit:modelParameter xsi:type="spirit:nameValueTypeType" spirit:dataType="${x(ipXactType)}">`
     );
@@ -1485,10 +1482,7 @@ function renderParameters(entityName: string, parameters: ParameterDef[]): strin
       param.value !== undefined && param.value !== null ? String(param.value) : defaultValue;
     const paramId = `PARAM_VALUE.${pName.toUpperCase()}`;
     const isInteger = format === 'long';
-    const displayName = pName
-      .split('_')
-      .map((w) => w[0].toUpperCase() + w.slice(1).toLowerCase())
-      .join(' ');
+    const displayName = param.displayName ? String(param.displayName) : pName;
     lines.push('    <spirit:parameter>');
     lines.push(`      <spirit:name>${x(pName)}</spirit:name>`);
     lines.push(`      <spirit:displayName>${x(displayName)}</spirit:displayName>`);

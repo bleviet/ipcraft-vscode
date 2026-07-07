@@ -384,6 +384,10 @@ export type Addressblocks = AddressBlock[];
  */
 export type Name11 = string;
 /**
+ * Human-friendly label shown in place of the parameter name in vendor tools (e.g. Vivado IP Packager). Defaults to the parameter name when unset.
+ */
+export type DisplayName = string | null;
+/**
  * Data type
  */
 export type ParameterType = 'integer' | 'natural' | 'boolean' | 'string';
@@ -745,6 +749,7 @@ export interface BitFieldDef {
  */
 export interface Parameter {
   name: Name11;
+  displayName?: DisplayName;
   value?: Value;
   dataType?: ParameterType;
   description?: Description11;

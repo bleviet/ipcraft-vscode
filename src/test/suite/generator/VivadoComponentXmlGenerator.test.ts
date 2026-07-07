@@ -967,6 +967,24 @@ describe('generateComponentXml', () => {
       expect(paramValueLine).toContain('spirit:maximum="512"');
       expect(paramValueLine).not.toContain('spirit:choiceRef');
     });
+
+    it('defaults spirit:displayName to the raw parameter name (no mangling)', () => {
+      const xml = gen({
+        parameters: [{ name: 'AXI_ID_WIDTH', value: 4, dataType: 'integer' }],
+      });
+      expect(xml).toContain('<spirit:displayName>AXI_ID_WIDTH</spirit:displayName>');
+      expect(xml).not.toContain('<spirit:displayName>Axi Id Width</spirit:displayName>');
+    });
+
+    it('uses an explicit displayName override for spirit:displayName when provided', () => {
+      const xml = gen({
+        parameters: [
+          { name: 'AXI_ID_WIDTH', value: 4, dataType: 'integer', displayName: 'AXI ID Width' },
+        ],
+      });
+      expect(xml).toContain('<spirit:displayName>AXI ID Width</spirit:displayName>');
+      expect(xml).not.toContain('<spirit:displayName>AXI_ID_WIDTH</spirit:displayName>');
+    });
   });
 
   describe('vendorExtensions', () => {
