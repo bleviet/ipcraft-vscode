@@ -29,8 +29,14 @@ export interface TestbenchContext {
   extraSimArgs?: string[];
   /** Extra environment variables from simulation.env. */
   extraEnv?: Record<string, string>;
-  /** File sets from the .ip.yml, used to enumerate RTL source files. */
+  /** File sets from the .ip.yml. Only consulted for include-file directories
+   *  (isIncludeFile entries) — RTL sources to compile come from rtlSourceFiles. */
   fileSets?: FileSetEntry[];
+  /** Final, compile-ordered RTL source paths (relative to the IP core root, e.g.
+   *  "rtl/foo_pkg.vhd") — the union of scaffold-pack-generated files and any
+   *  hand-authored ones declared in fileSets. Falls back to the framework's own
+   *  entity-name convention when empty/omitted. */
+  rtlSourceFiles?: string[];
 }
 
 /** Testbench framework abstraction — decides which files to emit. */

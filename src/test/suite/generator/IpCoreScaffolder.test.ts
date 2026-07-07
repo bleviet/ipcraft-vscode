@@ -512,6 +512,132 @@ describe('IpCoreScaffolder', () => {
     expect(svLine).not.toContain('TOP_LEVEL_FILE');
   });
 
+  it('includes hand-authored fileSets RTL files in component.xml on re-scaffold (issue #43)', async () => {
+    // Repro: (1) scaffold, (2) user implements their own logic in a separate file and
+    // declares it in .ip.yml's fileSets (managed: false so it is never overwritten),
+    // (3) scaffold again. The custom file must still be referenced in component.xml —
+    // previously collectRtlFiles() returned early as soon as the scaffold pack itself
+    // had generated any rtl/ file, silently dropping every fileSets-only entry.
+    const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-scaffolder-userfile-'));
+    try {
+      fs2.mkdirSync(path.join(tmp, 'rtl'), { recursive: true });
+      fs2.writeFileSync(
+        path.join(tmp, 'rtl', 'my_custom_logic.vhd'),
+        [
+          'entity my_custom_logic is',
+          'end entity my_custom_logic;',
+          'architecture rtl of my_custom_logic is',
+          'begin',
+          'end architecture rtl;',
+        ].join('\n')
+      );
+
+      const inputPath = path.join(tmp, 'user_core.ip.yml');
+      fs2.writeFileSync(
+        inputPath,
+        [
+          'vlnv:',
+          '  vendor: test',
+          '  library: lib',
+          '  name: user_core',
+          '  version: 1.0.0',
+          'clocks:',
+          '  - name: clk',
+          '    direction: in',
+          'busInterfaces: []',
+          'fileSets:',
+          '  - name: RTL_Sources',
+          '    files:',
+          '      - path: rtl/my_custom_logic.vhd',
+          '        type: vhdl',
+          '        managed: false',
+        ].join('\n')
+      );
+
+      const outputDir = '/tmp/test-output-userfile';
+      const result = await scaffolder.generateAll(inputPath, outputDir, {
+        includeRegs: false,
+        includeTestbench: false,
+        targets: ['vivado'],
+      });
+
+      expect(result.success).toBe(true);
+
+      const componentXml = (fs.writeFile as unknown as jest.Mock).mock.calls.find((call) =>
+        String(call[0]).includes('xilinx/component.xml')
+      )?.[1] as string;
+      expect(componentXml).toBeDefined();
+      expect(componentXml).toContain('rtl/my_custom_logic.vhd');
+      // The scaffold-pack-generated entity file must still be present alongside it.
+      expect(componentXml).toContain('rtl/user_core.vhd');
+    } finally {
+      fs2.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it('includes hand-authored fileSets RTL files in the testbench Makefile alongside generated ones', async () => {
+    // Same class of bug as issue #43, but in the cocotb Makefile: cocotb_makefile.j2's
+    // {% if rtl_source_files %} / {% else %} was all-or-nothing, so declaring even one
+    // custom file in fileSets (without also re-listing every generated file) used to make
+    // the Makefile drop the scaffold-pack-generated sources from the simulation build.
+    const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-scaffolder-tb-userfile-'));
+    try {
+      fs2.mkdirSync(path.join(tmp, 'rtl'), { recursive: true });
+      fs2.writeFileSync(
+        path.join(tmp, 'rtl', 'my_custom_logic.vhd'),
+        [
+          'entity my_custom_logic is',
+          'end entity my_custom_logic;',
+          'architecture rtl of my_custom_logic is',
+          'begin',
+          'end architecture rtl;',
+        ].join('\n')
+      );
+
+      const inputPath = path.join(tmp, 'tb_user_core.ip.yml');
+      fs2.writeFileSync(
+        inputPath,
+        [
+          'vlnv:',
+          '  vendor: test',
+          '  library: lib',
+          '  name: tb_user_core',
+          '  version: 1.0.0',
+          'clocks:',
+          '  - name: clk',
+          '    direction: in',
+          'busInterfaces: []',
+          'fileSets:',
+          '  - name: RTL_Sources',
+          '    files:',
+          '      - path: rtl/my_custom_logic.vhd',
+          '        type: vhdl',
+          '        managed: false',
+        ].join('\n')
+      );
+
+      // Scaffold into the same directory the .ip.yml and rtl/ live in (the common layout),
+      // so the fileSets-declared custom file's path is a simple sibling of the generated one.
+      const outputDir = tmp;
+      const result = await scaffolder.generateAll(inputPath, outputDir, {
+        includeRegs: false,
+        includeTestbench: true,
+        targets: [],
+      });
+
+      expect(result.success).toBe(true);
+
+      const makefile = (fs.writeFile as unknown as jest.Mock).mock.calls.find((call) =>
+        String(call[0]).includes('tb/Makefile')
+      )?.[1] as string;
+      expect(makefile).toBeDefined();
+      expect(makefile).toContain('VHDL_SOURCES += $(BASE_DIR)/rtl/my_custom_logic.vhd');
+      expect(makefile).toContain('VHDL_SOURCES += $(BASE_DIR)/rtl/tb_user_core.vhd');
+    } finally {
+      fs2.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
   it('handles generation failure gracefully', async () => {
     // Force an error by passing a non-existent input path
     const result = await scaffolder.generateAll('/non/existent.yml', '/out');

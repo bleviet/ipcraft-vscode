@@ -1,6 +1,5 @@
 import type { Engine } from '../Engine';
 import type { Framework, TestbenchContext } from '../Framework';
-import { hdlCompileRank } from '../../../utils/compilationOrder';
 
 const RTL_HDL_TYPES = new Set(['vhdl', 'systemverilog', 'verilog']);
 const SIM_PREFIXES = ['tb/', 'sim/', 'simulation/', 'testbench/', 'test/'];
@@ -20,19 +19,14 @@ export class CocotbFramework implements Framework {
     const extraEnv = ctx.extraEnv ?? {};
     const files: Record<string, string> = {};
 
-    // Derive RTL source file list from ip.yml fileSets when available.
-    const hdlFiles = (ctx.fileSets ?? [])
-      .flatMap((fs) => fs.files ?? [])
-      .filter((f) => RTL_HDL_TYPES.has(f.type) && !isSimPath(f.path));
-
-    const rtlSourceFiles = hdlFiles
-      .filter((f) => !f.isIncludeFile)
-      .slice()
-      .sort((a, b) => hdlCompileRank(a.path) - hdlCompileRank(b.path))
-      .map((f) => f.path);
+    // RTL sources to compile come from the caller-resolved rtlSourceFiles (the union of
+    // generated + hand-authored fileSets files, in compile order); fileSets is only
+    // consulted here for include-file search directories.
+    const rtlSourceFiles = ctx.rtlSourceFiles ?? [];
     const includeDirSet = new Set(
-      hdlFiles
-        .filter((f) => f.isIncludeFile)
+      (ctx.fileSets ?? [])
+        .flatMap((fs) => fs.files ?? [])
+        .filter((f) => RTL_HDL_TYPES.has(f.type) && f.isIncludeFile && !isSimPath(f.path))
         .map((f) => (f.path.includes('/') ? f.path.substring(0, f.path.lastIndexOf('/')) : '.'))
     );
     const rtlIncludeDirs = [...includeDirSet];
