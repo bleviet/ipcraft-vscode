@@ -1,0 +1,38 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="ipcraftBrand" x1="0" y1="0" x2="128" y2="128" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF512F"/>
+      <stop offset="1" stop-color="#DD2476"/>
+    </linearGradient>
+    <filter id="ipcraftLift" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-color="#5F0C26" flood-opacity="0.30"/>
+    </filter>
+  </defs>
+
+  <!-- Brand tile -->
+  <rect x="8" y="8" width="112" height="112" rx="28" fill="url(#ipcraftBrand)"/>
+
+  <!-- IP core module body + interface ports (unified white silhouette) -->
+  <g filter="url(#ipcraftLift)" fill="#FFFFFF">
+    <rect x="38" y="36" width="52" height="56" rx="11"/>
+    <rect x="22" y="46" width="18" height="8" rx="4"/>
+    <rect x="22" y="60" width="18" height="8" rx="4"/>
+    <rect x="22" y="74" width="18" height="8" rx="4"/>
+    <rect x="88" y="46" width="18" height="8" rx="4"/>
+    <rect x="88" y="60" width="18" height="8" rx="4"/>
+    <rect x="88" y="74" width="18" height="8" rx="4"/>
+  </g>
+
+  <!-- Register / bitfield structure knocked out of the module face -->
+  <g fill="url(#ipcraftBrand)">
+    <rect x="46" y="54" width="10" height="8" rx="1.5"/>
+    <rect x="58" y="54" width="12" height="8" rx="1.5"/>
+    <rect x="72" y="54" width="10" height="8" rx="1.5"/>
+    <rect x="46" y="66" width="16" height="8" rx="1.5"/>
+    <rect x="64" y="66" width="6"  height="8" rx="1.5"/>
+    <rect x="72" y="66" width="10" height="8" rx="1.5"/>
+  </g>
+
+  <!-- Highlighted bitfield (the active field being edited) -->
+  <rect x="58" y="54" width="12" height="8" rx="1.5" fill="#FFC24A"/>
+</svg>
