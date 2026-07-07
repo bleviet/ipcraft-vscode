@@ -1338,6 +1338,23 @@ const IpCoreApp: React.FC = () => {
 // Mount the app
 const container = document.getElementById('ipcore-root');
 if (container) {
+  // Disable default right-click menu except on inputs
+  document.addEventListener(
+    'contextmenu',
+    (e) => {
+      const target = e.target as HTMLElement | null;
+      if (
+        target?.tagName === 'INPUT' ||
+        target?.tagName === 'TEXTAREA' ||
+        target?.isContentEditable
+      ) {
+        return;
+      }
+      e.preventDefault();
+    },
+    { capture: true }
+  );
+
   const root = createRoot(container);
   root.render(<IpCoreApp />);
 }
