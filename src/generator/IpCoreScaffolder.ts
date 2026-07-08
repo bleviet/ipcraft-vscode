@@ -6,6 +6,7 @@ import { Logger } from '../utils/Logger';
 import { ResourceRoots } from '../services/ResourceRoots';
 import { BusLibraryService } from '../services/BusLibraryService';
 import { getVivadoInterfaceCacheDir, pathExists } from '../services/VivadoInterfaceScanner';
+import { getWorkspaceBusDefinitionScanner } from '../services/WorkspaceBusDefinitionScanner';
 import { TemplateLoader } from './TemplateLoader';
 import { ScaffoldPackLoader } from './ScaffoldPackLoader';
 import {
@@ -318,6 +319,7 @@ export class IpCoreScaffolder {
     const library = await this.busLibraryService.loadDefaultLibrary();
 
     let userLibrary: Record<string, unknown> = {};
+    let workspaceLibrary: Record<string, unknown> = {};
     try {
       const config = vscode.workspace.getConfiguration('ipcraft');
       const userPaths = [...config.get<string[]>('busLibraryPaths', [])];
@@ -336,7 +338,27 @@ export class IpCoreScaffolder {
       // VS Code workspace API unavailable (e.g. test environment)
     }
 
-    this.busDefinitions = { ...(library || {}), ...userLibrary } as BusDefinitions;
+    // Include bus definitions discovered in the workspace (via .busdef.yml files or
+    // IP-XACT bus/abstraction definition XML pairs) so that port maps are emitted
+    // for workspace-local custom bus types in component.xml, matching what the
+    // Inspector already shows via WorkspaceBusDefinitionScanner.
+    // Uses its own try/catch so a missing VS Code config block above does not
+    // prevent workspace-discovered definitions from reaching the generator.
+    try {
+      const wsScanResult = await getWorkspaceBusDefinitionScanner().scan();
+      workspaceLibrary = wsScanResult.library;
+    } catch {
+      // WorkspaceBusDefinitionScanner unavailable (e.g. test environment)
+    }
+
+    // Merge order: default library < workspace scan < explicitly configured user paths.
+    // Explicit user paths win over workspace-discovered definitions; workspace wins over
+    // the bundled defaults.
+    this.busDefinitions = {
+      ...(library || {}),
+      ...workspaceLibrary,
+      ...userLibrary,
+    } as BusDefinitions;
   }
 
   private async loadIpCore(inputPath: string): Promise<IpCoreData> {

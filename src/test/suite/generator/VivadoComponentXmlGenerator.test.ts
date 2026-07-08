@@ -550,6 +550,18 @@ describe('generateComponentXml', () => {
         expect(portXml).toContain('DATA_W');
       }
     });
+
+    it('builds portMaps for workspace-sourced bus definition (source: workspace)', () => {
+      // Verifies that a custom bus definition discovered via WorkspaceBusDefinitionScanner
+      // (tagged with source: 'workspace') still emits spirit:portMaps in component.xml.
+      const defsWithWorkspaceSource: BusDefinitions = {
+        ...CUSTOM_BUS_DEFS,
+        MY_PROTO: { ...CUSTOM_BUS_DEFS.MY_PROTO, source: 'workspace' },
+      };
+      const xml = generateComponentXml(makeCustomIp('slave'), defsWithWorkspaceSource);
+      expect(xml).toContain('<spirit:name>DATA</spirit:name>');
+      expect(xml).toContain('<spirit:name>data_in_data</spirit:name>');
+    });
   });
 
   describe('clock bus interface', () => {
@@ -1366,6 +1378,16 @@ describe('generateCustomBusDefs', () => {
     };
     const files = generateCustomBusDefs(ip, DEFS_WITH_CUSTOM);
     expect(Object.keys(files)).toContain('busdef/my_proto.xml');
+  });
+
+  it('generates busdef files for workspace-sourced custom types (source: workspace)', () => {
+    const defs: BusDefinitions = {
+      ...BUS_DEFS,
+      MY_PROTO: { ...DEFS_WITH_CUSTOM.MY_PROTO, source: 'workspace' },
+    };
+    const files = generateCustomBusDefs(IP_WITH_CUSTOM, defs);
+    expect(Object.keys(files)).toContain('busdef/my_proto.xml');
+    expect(Object.keys(files)).toContain('busdef/my_proto_rtl.xml');
   });
 
   it('generates separate busdef files for two different custom types', () => {
