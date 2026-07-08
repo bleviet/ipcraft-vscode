@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import type { ExtraMountSpec } from './toolchains/LaunchableTool';
 import { CONFIG_KEY_IPCRAFT } from '../utils/configKeys';
+import { handleErrorWithUserNotification } from '../utils/ErrorHandler';
 
 export interface DockerOptions {
   /** Docker image to run the tool inside (e.g. `cvsoc/quartus:23.1`). */
@@ -250,17 +251,25 @@ export function spawnGui(
   child.on('error', (err: Error & { code?: string }) => {
     if (err.code === 'ENOENT') {
       if (docker?.image) {
-        void vscode.window.showErrorMessage(
+        void handleErrorWithUserNotification(
+          err,
+          'spawnGui.docker',
           `Could not find 'docker'. Is Docker installed and in your PATH?`
         );
       } else {
-        void vscode.window.showErrorMessage(
+        void handleErrorWithUserNotification(
+          err,
+          'spawnGui',
           `Could not find ${toolDisplayName} executable '${executable}'. ` +
             `Check the IPCraft settings for ${toolDisplayName}.`
         );
       }
     } else {
-      void vscode.window.showErrorMessage(`Failed to start ${toolDisplayName}: ${err.message}`);
+      void handleErrorWithUserNotification(
+        err,
+        'spawnGui',
+        `Failed to start ${toolDisplayName}: ${err.message}`
+      );
     }
   });
 

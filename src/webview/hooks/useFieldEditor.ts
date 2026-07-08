@@ -6,6 +6,7 @@ import { fieldToBitsString, parseBitsRange } from '../utils/BitFieldUtils';
 import type { BitFieldRecord, YamlUpdateHandler } from '../types/editor';
 import { useFieldDrafts } from './useFieldDrafts';
 import { useTableEditorState } from './useTableEditorState';
+import { usePendingSelect, type PendingSelectTarget } from './usePendingSelect';
 import { reconcileRowIds, type TableRowWrapper } from '../utils/rowIdentity';
 
 // ---------------------------------------------------------------------------
@@ -266,20 +267,9 @@ export function useFieldEditor(
     };
   }, [dragState, wrappedFields, fields, onUpdate, clearAllDrafts]);
 
-  const pendingSelectRef = useRef<{ name: string; key: EditKey } | null>(null);
+  const pendingSelectRef = useRef<PendingSelectTarget<EditKey> | null>(null);
 
-  useEffect(() => {
-    if (pendingSelectRef.current) {
-      const { name, key } = pendingSelectRef.current;
-      const index = wrappedFields.findIndex((w) => w.model.name === name);
-      if (index >= 0) {
-        const rowId = wrappedFields[index].rowId;
-        editorState.selectRow(index, key);
-        document.querySelector(`tr[data-row-id="${rowId}"]`)?.scrollIntoView({ block: 'center' });
-        pendingSelectRef.current = null;
-      }
-    }
-  }, [wrappedFields, editorState]);
+  usePendingSelect<BitFieldRecord, EditKey>(wrappedFields, editorState, pendingSelectRef);
 
   // ---- Internal helpers ----
   const tryInsertField = useCallback(

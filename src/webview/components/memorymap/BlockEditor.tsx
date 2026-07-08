@@ -200,13 +200,7 @@ export function BlockEditor({
   });
 
   // ---- Select a freshly inserted register once it appears ----
-  usePendingSelect<RegisterModel, RegEditKey>(
-    wrappedRegisters,
-    editor,
-    pendingSelectRef,
-    undefined,
-    'data-viz-row'
-  );
+  usePendingSelect<RegisterModel, RegEditKey>(wrappedRegisters, editor, pendingSelectRef);
 
   // ---- Seed the active register from an out-of-band selection (Outline) ----
   const appliedActiveRegRef = useRef<number | null>(null);
