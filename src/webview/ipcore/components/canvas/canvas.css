@@ -682,7 +682,41 @@
   border-right: 1px solid var(--vscode-panel-border);
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.library-palette__resize-handle {
+  position: absolute;
+  top: 0;
+  right: -4px;
+  bottom: 0;
+  width: 8px;
+  cursor: col-resize;
+  z-index: 10;
+}
+
+.library-palette__resize-handle::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  bottom: 0;
+  width: 2px;
+  background: var(--vscode-focusBorder, #007fd4);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.library-palette__resize-handle:hover::after {
+  opacity: 0.7;
+}
+
+.library-palette__content {
+  flex: 1;
   overflow-y: auto;
+  min-height: 0;
 }
 
 .library-palette__header {

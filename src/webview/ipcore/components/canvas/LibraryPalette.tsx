@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, type DragEvent } from 'react';
+import React, { useState, useRef, useCallback, useMemo, type DragEvent } from 'react';
 import { BUS_VLNV } from '../../../../shared/busVlnv';
 
 /** Payload attached to drag events from the library palette */
@@ -233,6 +233,11 @@ function disambiguateLabels(items: LibraryDragPayload[]): LibraryDragPayload[] {
   });
 }
 
+const LIBRARY_WIDTH_KEY = 'ipcraft.libraryPaletteWidth';
+const LIBRARY_MIN_WIDTH = 180;
+const LIBRARY_MAX_WIDTH = 480;
+const LIBRARY_DEFAULT_WIDTH = 250;
+
 interface LibraryPaletteProps {
   onCollapse?: () => void;
   busLibrary?: Record<string, unknown>;
@@ -283,6 +288,53 @@ export const LibraryPalette: React.FC<LibraryPaletteProps> = ({ onCollapse, busL
   const [query, setQuery] = useState('');
   const isSearching = query.trim().length > 0;
 
+  const [panelWidth, setPanelWidth] = useState<number>(() => {
+    try {
+      const stored = sessionStorage.getItem(LIBRARY_WIDTH_KEY);
+      if (stored) {
+        const w = parseInt(stored, 10);
+        if (w >= LIBRARY_MIN_WIDTH && w <= LIBRARY_MAX_WIDTH) {
+          return w;
+        }
+      }
+    } catch {
+      // sessionStorage may be unavailable in some webview contexts
+    }
+    return LIBRARY_DEFAULT_WIDTH;
+  });
+  const panelWidthRef = useRef(panelWidth);
+
+  const handleResizeMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = panelWidthRef.current;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    const onMouseMove = (ev: MouseEvent) => {
+      // dragging right (larger clientX) widens the left-anchored panel
+      const delta = ev.clientX - startX;
+      const newWidth = Math.max(LIBRARY_MIN_WIDTH, Math.min(LIBRARY_MAX_WIDTH, startWidth + delta));
+      panelWidthRef.current = newWidth;
+      setPanelWidth(newWidth);
+    };
+
+    const onMouseUp = () => {
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      try {
+        sessionStorage.setItem(LIBRARY_WIDTH_KEY, String(panelWidthRef.current));
+      } catch {
+        // ignore
+      }
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  }, []);
+
   const toggleCategory = useCallback((title: string) => {
     setCollapsed((prev) => ({ ...prev, [title]: !prev[title] }));
   }, []);
@@ -320,8 +372,11 @@ export const LibraryPalette: React.FC<LibraryPaletteProps> = ({ onCollapse, busL
   const hasResults = visibleCategories.some((category) => category.items.length > 0);
 
   return (
-    <div className="library-palette">
-      {/* Header */}
+    <div className="library-palette" style={{ width: panelWidth }}>
+      {/* Resize handle on the right edge */}
+      <div className="library-palette__resize-handle" onMouseDown={handleResizeMouseDown} />
+
+      {/* Header — always visible */}
       <div className="library-palette__header">
         <span className="library-palette__title">Library</span>
         {onCollapse && (
@@ -337,7 +392,7 @@ export const LibraryPalette: React.FC<LibraryPaletteProps> = ({ onCollapse, busL
         )}
       </div>
 
-      {/* Search */}
+      {/* Search — always visible */}
       <div className="library-palette__search">
         <span className="codicon codicon-search library-palette__search-icon"></span>
         <input
@@ -361,52 +416,55 @@ export const LibraryPalette: React.FC<LibraryPaletteProps> = ({ onCollapse, busL
         )}
       </div>
 
-      {/* Hint */}
-      {!isSearching && (
-        <div className="library-palette__hint">Drag items onto the canvas to add them</div>
-      )}
+      {/* Scrollable content area */}
+      <div className="library-palette__content">
+        {/* Hint */}
+        {!isSearching && (
+          <div className="library-palette__hint">Drag items onto the canvas to add them</div>
+        )}
 
-      {isSearching && !hasResults ? (
-        <div className="library-palette__empty">
-          No interfaces match &ldquo;{query.trim()}&rdquo;
-        </div>
-      ) : (
-        visibleCategories.map((category) => {
-          // While searching, a matching category is always shown expanded —
-          // manual collapse state still applies once the search is cleared.
-          const isCollapsed = !isSearching && Boolean(collapsed[category.title]);
-          return (
-            <div key={category.title} className="library-palette__category">
-              <button
-                className="library-palette__category-header"
-                onClick={() => toggleCategory(category.title)}
-                type="button"
-              >
-                <span
-                  className={`codicon codicon-chevron-${isCollapsed ? 'right' : 'down'}`}
-                ></span>
-                <span>{category.title}</span>
-              </button>
+        {isSearching && !hasResults ? (
+          <div className="library-palette__empty">
+            No interfaces match &ldquo;{query.trim()}&rdquo;
+          </div>
+        ) : (
+          visibleCategories.map((category) => {
+            // While searching, a matching category is always shown expanded —
+            // manual collapse state still applies once the search is cleared.
+            const isCollapsed = !isSearching && Boolean(collapsed[category.title]);
+            return (
+              <div key={category.title} className="library-palette__category">
+                <button
+                  className="library-palette__category-header"
+                  onClick={() => toggleCategory(category.title)}
+                  type="button"
+                >
+                  <span
+                    className={`codicon codicon-chevron-${isCollapsed ? 'right' : 'down'}`}
+                  ></span>
+                  <span>{category.title}</span>
+                </button>
 
-              {!isCollapsed && (
-                <div className="library-palette__items">
-                  {category.items.map((item) => (
-                    <PaletteItem
-                      // `type` (VLNV) uniquely identifies bus items post-dedup; nameHint
-                      // alone collides for same-named items that differ only by version
-                      // (e.g. two Vivado-cached versions of "jtag").
-                      key={item.type ?? `${item.kind}-${item.nameHint}`}
-                      item={item}
-                      onDragStart={handleDragStart}
-                      onDragEnd={handleDragEnd}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })
-      )}
+                {!isCollapsed && (
+                  <div className="library-palette__items">
+                    {category.items.map((item) => (
+                      <PaletteItem
+                        // `type` (VLNV) uniquely identifies bus items post-dedup; nameHint
+                        // alone collides for same-named items that differ only by version
+                        // (e.g. two Vivado-cached versions of "jtag").
+                        key={item.type ?? `${item.kind}-${item.nameHint}`}
+                        item={item}
+                        onDragStart={handleDragStart}
+                        onDragEnd={handleDragEnd}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
     </div>
   );
 };
