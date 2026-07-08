@@ -142,7 +142,15 @@ export const MapConduitToBusDialog: React.FC<MapConduitToBusDialogProps> = ({
 
   const handleConfirm = () => {
     const portNameOverrides: Record<string, string> = {};
+    const portWidthOverrides: Record<string, number | string> = {};
     const useOptionalPorts: string[] = [];
+    // Build a quick lookup from conduit port name to width
+    const conduitWidthByName: Record<string, number | string> = {};
+    for (const cp of conduitPorts) {
+      if (cp.width !== undefined) {
+        conduitWidthByName[cp.name] = cp.width;
+      }
+    }
     for (const def of assignableDefs) {
       const assigned = assignments[def.name];
       if (!assigned) {
@@ -152,8 +160,20 @@ export const MapConduitToBusDialog: React.FC<MapConduitToBusDialogProps> = ({
       if (def.presence === 'optional') {
         useOptionalPorts.push(def.name);
       }
+      // Preserve the conduit port's width so it is not silently replaced by the
+      // bus definition's default width after conduitPorts are cleared.
+      const w = conduitWidthByName[assigned];
+      if (w !== undefined) {
+        portWidthOverrides[def.name] = w;
+      }
     }
-    onConfirm({ mode, portNameOverrides, useOptionalPorts });
+    onConfirm({
+      mode,
+      portNameOverrides,
+      portWidthOverrides:
+        Object.keys(portWidthOverrides).length > 0 ? portWidthOverrides : undefined,
+      useOptionalPorts,
+    });
   };
 
   return (

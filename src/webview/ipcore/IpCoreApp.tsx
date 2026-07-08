@@ -14,6 +14,7 @@ import { vscode } from '../vscode';
 import type { IpCore, BusInterface } from '../types/ipCore';
 import { useGroupPorts } from './hooks/useGroupPorts';
 import type { BatchUpdate } from './hooks/useGroupPorts';
+import { lookupBusDef, lookupBusDefFromLibrary } from './data/busDefinitions';
 import '@vscode/codicons/dist/codicon.css';
 import '../index.css';
 
@@ -720,7 +721,27 @@ const IpCoreApp: React.FC = () => {
   }, [canvasSelected, ipCore, updateIpCore, canvasDeselect]);
 
   // Ungroup a bus interface: restore its signals to ports[], remove the interface
-  const { ungroupBusInterface } = useGroupPorts(ipCore as unknown as IpCore, batchUpdateIpCore);
+  const busDefsForUngroup = useMemo(() => {
+    const lib = (imports as Record<string, unknown> | undefined)?.busLibrary as
+      | Record<string, unknown>
+      | undefined;
+    if (!lib) {
+      return lookupBusDef;
+    }
+    return (type: string) => {
+      const hardcoded = lookupBusDef(type);
+      if (hardcoded !== null) {
+        return hardcoded;
+      }
+      return lookupBusDefFromLibrary(type, lib);
+    };
+  }, [imports]);
+
+  const { ungroupBusInterface } = useGroupPorts(
+    ipCore as unknown as IpCore,
+    batchUpdateIpCore,
+    busDefsForUngroup
+  );
 
   const handleInspectorUngroup = React.useCallback(() => {
     if (canvasSelected?.kind !== 'busInterface') {

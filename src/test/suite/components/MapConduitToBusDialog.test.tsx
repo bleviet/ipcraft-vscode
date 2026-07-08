@@ -78,6 +78,7 @@ describe('MapConduitToBusDialog', () => {
     expect(onConfirm).toHaveBeenCalledWith({
       mode: 'master',
       portNameOverrides: { WR_DATA: 'fifo_wr_data', WR_EN: 'fifo_wr_en' },
+      portWidthOverrides: { WR_DATA: 8, WR_EN: 1 },
       useOptionalPorts: [],
     });
   });
@@ -99,6 +100,7 @@ describe('MapConduitToBusDialog', () => {
         WR_EN: 'fifo_wr_en',
         FULL: 'fifo_almost_full',
       },
+      portWidthOverrides: { WR_DATA: 8, WR_EN: 1, FULL: 1 },
       useOptionalPorts: ['FULL'],
     });
   });
@@ -132,6 +134,7 @@ describe('MapConduitToBusDialog', () => {
     expect(onConfirm).toHaveBeenCalledWith({
       mode: 'master',
       portNameOverrides: { WR_DATA: 'wr_data', WR_EN: 'wr_en' },
+      portWidthOverrides: { WR_DATA: 8, WR_EN: 1 },
       useOptionalPorts: [],
     });
   });
