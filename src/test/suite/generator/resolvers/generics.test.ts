@@ -61,6 +61,24 @@ describe('buildGenerics', () => {
     expect(g.default_value).toBe('false');
     expect(g.sv_default).toBe("1'b0");
   });
+
+  it('passes min and max through for ranged integer parameters', () => {
+    const ipCore = normalizeIpCoreData({
+      parameters: [{ name: 'ADDR_WIDTH', value: 32, dataType: 'integer', min: 16, max: 64 }],
+    });
+    const [g] = buildGenerics(ipCore);
+    expect(g.min).toBe(16);
+    expect(g.max).toBe(64);
+  });
+
+  it('sets min and max to null when not provided', () => {
+    const ipCore = normalizeIpCoreData({
+      parameters: [{ name: 'DATA_WIDTH', value: 32, dataType: 'integer' }],
+    });
+    const [g] = buildGenerics(ipCore);
+    expect(g.min).toBeNull();
+    expect(g.max).toBeNull();
+  });
 });
 
 describe('buildXguiPages', () => {

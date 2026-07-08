@@ -9,9 +9,9 @@ entity {{ entity_name }} is
     generic (
 {%- for generic in generics %}
 {%- if loop.last %}
-        {{ generic.name }} : {{ generic.type }}{% if generic.default_value is not none %} := {{ generic.default_value }}{% endif %}
+        {{ generic.name }} : {{ generic.type }}{% if generic.min is not none and generic.max is not none %} range {{ generic.min }} to {{ generic.max }}{% endif %}{% if generic.default_value is not none %} := {{ generic.default_value }}{% endif %}
 {%- else %}
-        {{ generic.name }} : {{ generic.type }}{% if generic.default_value is not none %} := {{ generic.default_value }}{% endif %};
+        {{ generic.name }} : {{ generic.type }}{% if generic.min is not none and generic.max is not none %} range {{ generic.min }} to {{ generic.max }}{% endif %}{% if generic.default_value is not none %} := {{ generic.default_value }}{% endif %};
 {%- endif %}
 {%- endfor %}
     );
