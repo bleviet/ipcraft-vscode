@@ -1118,19 +1118,6 @@ function renderPorts(
   const portLines: string[] = [];
   const paramNames = parameters.map((p) => String(p.name ?? ''));
 
-  // Aggregate portWidthOverrides across all interfaces of the same bus type.
-  // An interface with no overrides inherits from siblings of the same type, so
-  // e.g. a master and slave of xcvr both get parameterised port widths when only
-  // the slave carries explicit portWidthOverrides.
-  const typeOverrides: Record<string, Record<string, number | string>> = {};
-  for (const iface of busInterfaces) {
-    const overrides = iface.portWidthOverrides ?? {};
-    if (Object.keys(overrides).length > 0) {
-      const t = String(iface.type ?? '');
-      typeOverrides[t] = { ...(typeOverrides[t] ?? {}), ...overrides };
-    }
-  }
-
   for (const clock of clocks) {
     if (!clock.name) {
       continue;
@@ -1174,11 +1161,8 @@ function renderPorts(
           value: typeof v === 'number' || typeof v === 'string' ? v : undefined,
         };
       });
-    // Effective overrides: bus-type inherited overrides as base, interface-specific as override
-    const effectiveOverrides: Record<string, number | string> = {
-      ...(typeOverrides[ifaceType] ?? {}),
-      ...(iface.portWidthOverrides ?? {}),
-    };
+    // Each interface uses only its own portWidthOverrides; sibling interfaces are independent.
+    const effectiveOverrides: Record<string, number | string> = iface.portWidthOverrides ?? {};
     const activePorts = getActiveBusPortsFromDefinition(
       sourcePorts as Array<{
         name: string;

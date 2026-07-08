@@ -517,7 +517,7 @@ describe('generateComponentXml', () => {
       expect(portXml).toContain('>3<');
     });
 
-    it('master interface inherits portWidthOverrides from sibling slave of the same bus type', () => {
+    it('each interface uses its own portWidthOverrides independently — no cross-interface inheritance', () => {
       const ipWithBoth = makeIp({
         parameters: [{ name: 'DATA_W', value: 32 }],
         busInterfaces: [
@@ -541,14 +541,59 @@ describe('generateComponentXml', () => {
       });
       const xml = generateComponentXml(ipWithBoth, CUSTOM_BUS_DEFS);
       const portsSection = xml.slice(xml.indexOf('<spirit:ports>'), xml.indexOf('</spirit:ports>'));
-      // Both slave and master DATA ports should have DATA_W dependent expression
-      for (const physName of ['data_in_data', 'data_out_data']) {
-        const idx = portsSection.indexOf(`<spirit:name>${physName}</spirit:name>`);
-        expect(idx).toBeGreaterThan(-1);
-        const portXml = portsSection.slice(idx, idx + 500);
-        expect(portXml).toContain('<spirit:vector>');
-        expect(portXml).toContain('DATA_W');
-      }
+
+      // Slave has an explicit override: DATA_W expression must appear
+      const slaveIdx = portsSection.indexOf('<spirit:name>data_in_data</spirit:name>');
+      expect(slaveIdx).toBeGreaterThan(-1);
+      const slavePortXml = portsSection.slice(slaveIdx, slaveIdx + 500);
+      expect(slavePortXml).toContain('<spirit:vector>');
+      expect(slavePortXml).toContain('DATA_W');
+
+      // Master has no override: must use the bus definition's literal width (32), not the slave's expression
+      const masterIdx = portsSection.indexOf('<spirit:name>data_out_data</spirit:name>');
+      expect(masterIdx).toBeGreaterThan(-1);
+      const masterPortXml = portsSection.slice(masterIdx, masterIdx + 500);
+      expect(masterPortXml).toContain('<spirit:vector>');
+      expect(masterPortXml).not.toContain('DATA_W');
+      expect(masterPortXml).toContain('<spirit:left spirit:format="long">31</spirit:left>');
+    });
+
+    it('two sibling interfaces with independent portWidthOverrides each render their own widths', () => {
+      const ipWithBoth = makeIp({
+        parameters: [{ name: 'DATA_W', value: 32 }],
+        busInterfaces: [
+          {
+            name: 'data_in',
+            type: 'acme.com:interface:my_proto:1.0',
+            mode: 'slave',
+            physicalPrefix: 'data_in_',
+            useOptionalPorts: [],
+            portWidthOverrides: { DATA: 'DATA_W' },
+          },
+          {
+            name: 'data_out',
+            type: 'acme.com:interface:my_proto:1.0',
+            mode: 'master',
+            physicalPrefix: 'data_out_',
+            useOptionalPorts: [],
+            portWidthOverrides: { DATA: 8 },
+          },
+        ],
+      });
+      const xml = generateComponentXml(ipWithBoth, CUSTOM_BUS_DEFS);
+      const portsSection = xml.slice(xml.indexOf('<spirit:ports>'), xml.indexOf('</spirit:ports>'));
+
+      // Slave uses DATA_W expression
+      const slaveIdx = portsSection.indexOf('<spirit:name>data_in_data</spirit:name>');
+      expect(slaveIdx).toBeGreaterThan(-1);
+      expect(portsSection.slice(slaveIdx, slaveIdx + 500)).toContain('DATA_W');
+
+      // Master uses its own literal width 8 (left = 7), not the slave's DATA_W
+      const masterIdx = portsSection.indexOf('<spirit:name>data_out_data</spirit:name>');
+      expect(masterIdx).toBeGreaterThan(-1);
+      const masterPortXml = portsSection.slice(masterIdx, masterIdx + 500);
+      expect(masterPortXml).not.toContain('DATA_W');
+      expect(masterPortXml).toContain('<spirit:left spirit:format="long">7</spirit:left>');
     });
   });
 
