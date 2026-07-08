@@ -51,6 +51,12 @@ jest.mock('../../../services/VivadoInterfaceScanner', () => ({
   pathExists: (p: string) => mockVivadoPathExists(p),
 }));
 
+// Mock WorkspaceBusDefinitionScanner used by ensureBusDefinitions().
+const mockWorkspaceScan = jest.fn().mockResolvedValue({ library: {}, files: [], count: 0 });
+jest.mock('../../../services/WorkspaceBusDefinitionScanner', () => ({
+  getWorkspaceBusDefinitionScanner: () => ({ scan: mockWorkspaceScan }),
+}));
+
 describe('IpCoreScaffolder', () => {
   let scaffolder: any;
   const logger = new Logger('test');
@@ -70,6 +76,7 @@ describe('IpCoreScaffolder', () => {
       clearCache: jest.fn(),
     }));
     mockVivadoPathExists.mockResolvedValue(false);
+    mockWorkspaceScan.mockResolvedValue({ library: {}, files: [], count: 0 });
     scaffolder = new IpCoreScaffolder(logger, loader, resourceRoots);
     jest.clearAllMocks();
   });
@@ -1008,5 +1015,69 @@ describe('IpCoreScaffolder', () => {
     });
 
     expect(loadFromUserPaths).not.toHaveBeenCalled();
+  });
+
+  it('merges workspace bus definitions into component.xml port maps (issue #51)', async () => {
+    // When WorkspaceBusDefinitionScanner returns a bus definition, ensureBusDefinitions
+    // must include it in busDefinitions so renderBusInterface can emit spirit:portMaps.
+    const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-workspace-busdef-'));
+    try {
+      const inputPath = path.join(tmp, 'ws_core.ip.yml');
+      fs2.writeFileSync(
+        inputPath,
+        [
+          'vlnv:',
+          '  vendor: test',
+          '  library: lib',
+          '  name: ws_core',
+          '  version: 1.0.0',
+          'clocks:',
+          '  - name: clk',
+          '    direction: in',
+          'busInterfaces:',
+          '  - name: stream_in',
+          '    type: "acme.com:interface:my_proto:1.0"',
+          '    mode: slave',
+          '    physicalPrefix: "s_"',
+          '    useOptionalPorts: []',
+          '    portWidthOverrides: {}',
+        ].join('\n')
+      );
+
+      const workspaceBusDef = {
+        MY_PROTO: {
+          busType: { vendor: 'acme.com', library: 'interface', name: 'my_proto', version: '1.0' },
+          source: 'workspace' as const,
+          ports: [
+            { name: 'DATA', width: 32, direction: 'out' as const, presence: 'required' as const },
+          ],
+        },
+      };
+      mockWorkspaceScan.mockResolvedValue({ library: workspaceBusDef, files: [], count: 1 });
+
+      (BusLibraryService as jest.Mock).mockImplementation(() => ({
+        loadDefaultLibrary: jest.fn().mockResolvedValue({}),
+        loadFromUserPaths: jest.fn().mockResolvedValue({}),
+        clearCache: jest.fn(),
+      }));
+      scaffolder = new IpCoreScaffolder(logger, loader, resourceRoots);
+
+      const result = await scaffolder.generateAll(inputPath, '/tmp/ws-bus-out', {
+        includeRegs: false,
+        includeTestbench: false,
+        targets: ['vivado'],
+      });
+
+      expect(result.success).toBe(true);
+
+      const componentXml = (fs.writeFile as unknown as jest.Mock).mock.calls.find((call) =>
+        String(call[0]).includes('xilinx/component.xml')
+      )?.[1] as string;
+      expect(componentXml).toBeDefined();
+      // The bus interface must appear with port maps from the workspace bus definition
+      expect(componentXml).toContain('<spirit:name>DATA</spirit:name>');
+    } finally {
+      fs2.rmSync(tmp, { recursive: true, force: true });
+    }
   });
 });
