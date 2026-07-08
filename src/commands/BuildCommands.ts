@@ -6,6 +6,8 @@ import type { ReportsTreeProvider, BuildStatus } from '../providers/ReportsTreeP
 import type { IpCoreData } from '../generator/types';
 import { listAll } from '../services/toolchains/registry';
 import type { BuildMode } from '../services/toolchains/SynthesisToolchain';
+import { isIpCoreFile } from '../utils/fileExtensions';
+import { CONFIG_KEY_IPCRAFT } from '../utils/configKeys';
 
 let outputChannel: vscode.OutputChannel | undefined;
 
@@ -17,10 +19,6 @@ function getOutputChannel(): vscode.OutputChannel {
 /** Shared output channel used by both Build and Generate & Build commands. */
 export function getBuildOutputChannel(): vscode.OutputChannel {
   return getOutputChannel();
-}
-
-function isIpCoreFile(fsPath: string): boolean {
-  return fsPath.endsWith('.ip.yml') || fsPath.endsWith('.ip.yaml');
 }
 
 function getActiveIpCoreFile(): vscode.Uri | undefined {
@@ -81,7 +79,7 @@ type BuildTarget = {
 };
 
 async function detectTargets(name: string, ipDir: string): Promise<BuildTarget[]> {
-  const cfg = vscode.workspace.getConfiguration('ipcraft');
+  const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT);
   const ch = getOutputChannel();
   const targets: BuildTarget[] = [];
 

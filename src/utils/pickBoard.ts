@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { VIVADO_BOARDS, QUARTUS_BOARDS } from '../data/boardCatalog';
+import { CONFIG_KEY_IPCRAFT } from './configKeys';
 
 const LAST_VIVADO_KEY = 'ipcraft.lastVivadoPart';
 const LAST_QUARTUS_KEY = 'ipcraft.lastQuartusDevice';
@@ -28,7 +29,7 @@ export async function pickVivadoPart(
   context: vscode.ExtensionContext,
   fallbackDefault?: string
 ): Promise<string | undefined> {
-  const cfg = vscode.workspace.getConfiguration('ipcraft');
+  const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT);
   const pinnedPart = cfg.get<string>('vivado.pinnedPart', '').trim();
   if (pinnedPart) {
     return pinnedPart;
@@ -115,7 +116,9 @@ function offerPinVivado(part: string): void {
       choice === 'Save to Workspace'
         ? vscode.ConfigurationTarget.Workspace
         : vscode.ConfigurationTarget.Global;
-    await vscode.workspace.getConfiguration('ipcraft').update('vivado.pinnedPart', part, target);
+    await vscode.workspace
+      .getConfiguration(CONFIG_KEY_IPCRAFT)
+      .update('vivado.pinnedPart', part, target);
   })();
 }
 
@@ -123,7 +126,7 @@ export async function pickQuartusDevice(
   context: vscode.ExtensionContext,
   fallbackDefault?: string
 ): Promise<string | undefined> {
-  const cfg = vscode.workspace.getConfiguration('ipcraft');
+  const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT);
   const pinnedDevice = cfg.get<string>('quartus.pinnedDevice', '').trim();
   if (pinnedDevice) {
     return pinnedDevice;
@@ -211,7 +214,7 @@ function offerPinQuartus(device: string): void {
         ? vscode.ConfigurationTarget.Workspace
         : vscode.ConfigurationTarget.Global;
     await vscode.workspace
-      .getConfiguration('ipcraft')
+      .getConfiguration(CONFIG_KEY_IPCRAFT)
       .update('quartus.pinnedDevice', device, target);
   })();
 }

@@ -7,6 +7,7 @@ import { getIpcraftConfigDir } from '../utils/configDir';
 import { isValidVlnv } from '../utils/vlnv';
 import { Logger } from '../utils/Logger';
 import { getVivadoLauncher } from '../utils/vivadoResolver';
+import { CONFIG_KEY_IPCRAFT } from '../utils/configKeys';
 
 const logger = new Logger('VivadoCatalogScanner');
 
@@ -22,7 +23,7 @@ export class VivadoCatalogScanner {
   }
 
   async scan(): Promise<{ count: number; catalogPath: string }> {
-    const config = vscode.workspace.getConfiguration('ipcraft');
+    const config = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT);
     const launcher = getVivadoLauncher(config);
 
     const tmpDir = path.join(os.tmpdir(), `ipcraft-vivado-scan-${Date.now()}`);

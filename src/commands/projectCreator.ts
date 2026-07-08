@@ -6,6 +6,7 @@
 
 import * as vscode from 'vscode';
 import { getToolchain } from '../services/toolchains/registry';
+import { CONFIG_KEY_IPCRAFT } from '../utils/configKeys';
 
 /**
  * Run the vendor-specific project-creation TCL via the toolchain strategy.
@@ -24,7 +25,7 @@ export async function createVendorProject(
     return false;
   }
 
-  const cfg = vscode.workspace.getConfiguration('ipcraft');
+  const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT);
   return toolchain.createProject(name, ipDir, cfg, outputChannel);
 }
 

@@ -5,6 +5,7 @@ import { isValidVlnv } from '../utils/vlnv';
 import { Logger } from '../utils/Logger';
 import { VivadoCatalogScanner } from './VivadoCatalogScanner';
 import { XILINX_COMMON_IPS } from '../data/xilinxCatalog';
+import { CONFIG_KEY_IPCRAFT } from '../utils/configKeys';
 
 const logger = new Logger('SubcoreResolver');
 
@@ -120,7 +121,7 @@ export class SubcoreResolver {
 
   private async scanUserRepoPaths(): Promise<void> {
     const newIndex = new Map<string, string>();
-    const config = vscode.workspace.getConfiguration('ipcraft');
+    const config = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT);
     const repoPaths = config.get<string[]>('ipRepositoryPaths') ?? [];
 
     for (const repoPath of repoPaths) {

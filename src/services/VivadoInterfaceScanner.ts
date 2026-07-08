@@ -9,6 +9,7 @@ import {
   type VivadoInterfaceDef,
 } from '../parser/VivadoInterfaceXmlParser';
 import { Logger } from '../utils/Logger';
+import { CONFIG_KEY_IPCRAFT } from '../utils/configKeys';
 
 const logger = new Logger('VivadoInterfaceScanner');
 
@@ -77,7 +78,7 @@ export class VivadoInterfaceScanner {
    * or can't be located — callers (the command handler) surface this to the user.
    */
   async scan(): Promise<{ count: number; cacheDir: string; version: string }> {
-    const config = vscode.workspace.getConfiguration('ipcraft');
+    const config = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT);
     const installDirSetting = config.get<string>('vivado.installDir', '').trim();
     if (!installDirSetting) {
       throw new Error(

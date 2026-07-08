@@ -27,6 +27,14 @@ import { getBuildOutputChannel } from './BuildCommands';
 import { StagingPanel } from '../providers/StagingPanel';
 import type { StagedFile } from '../providers/StagingPanel';
 import { WebviewStagingBridge } from '../providers/WebviewStagingBridge';
+import { isIpCoreFile } from '../utils/fileExtensions';
+import { EDITOR_VIEW_TYPE_IP_CORE } from '../utils/editorViewTypes';
+import {
+  CONFIG_KEY_IPCRAFT,
+  CONFIG_KEY_IPCRAFT_GENERATE,
+  CONFIG_KEY_IPCRAFT_IMPORT,
+  CONFIG_KEY_IPCRAFT_TOOLBAR,
+} from '../utils/configKeys';
 
 const logger = new Logger('GenerateCommands');
 
@@ -156,10 +164,6 @@ async function viewBusDefinitions(): Promise<void> {
   }
 }
 
-function isIpCoreFile(fsPath: string): boolean {
-  return fsPath.endsWith('.ip.yml') || fsPath.endsWith('.ip.yaml');
-}
-
 function getActiveIpCoreFile(): vscode.Uri | undefined {
   // Text editor active (e.g. YAML opened as raw text)
   const editor = vscode.window.activeTextEditor;
@@ -192,7 +196,7 @@ async function generateHdl(
   if (!ipCoreUri) {
     return;
   }
-  const genCfg = vscode.workspace.getConfiguration('ipcraft.generate');
+  const genCfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT_GENERATE);
   const hdlLanguage = genCfg.get<'vhdl' | 'systemverilog'>('hdlLanguage', 'vhdl');
   const scaffoldPack = readScaffoldPackSetting(genCfg);
   const langLabel = hdlLanguage === 'systemverilog' ? 'SystemVerilog' : 'VHDL';
@@ -226,8 +230,8 @@ async function scaffoldProject(
 
   const outputDir = path.dirname(ipCoreUri.fsPath);
 
-  const cfg = vscode.workspace.getConfiguration('ipcraft');
-  const genCfg = vscode.workspace.getConfiguration('ipcraft.generate');
+  const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT);
+  const genCfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT_GENERATE);
   const includeTestbench = genCfg.get<boolean>('includeTestbench', true);
   const hdlLanguage = genCfg.get<'vhdl' | 'systemverilog'>('hdlLanguage', 'vhdl');
   const scaffoldPack = readScaffoldPackSetting(genCfg);
@@ -237,7 +241,7 @@ async function scaffoldProject(
   const engine = cfg.get<string>('testbench.engine', 'ghdl');
 
   const targets = vscode.workspace
-    .getConfiguration('ipcraft.toolbar')
+    .getConfiguration(CONFIG_KEY_IPCRAFT_TOOLBAR)
     .get<string[]>('targets', ['vivado', 'quartus']);
 
   let targetPart: string | undefined;
@@ -307,7 +311,7 @@ async function exportAltera(
   if (!ipCoreUri) {
     return;
   }
-  const genCfg = vscode.workspace.getConfiguration('ipcraft.generate');
+  const genCfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT_GENERATE);
   const scaffoldPack = readScaffoldPackSetting(genCfg);
   const outputDir = path.dirname(ipCoreUri.fsPath);
   await runGenerator(
@@ -334,7 +338,7 @@ async function exportXilinx(
   if (!ipCoreUri) {
     return;
   }
-  const genCfg = vscode.workspace.getConfiguration('ipcraft.generate');
+  const genCfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT_GENERATE);
   const scaffoldPack = readScaffoldPackSetting(genCfg);
   const outputDir = path.dirname(ipCoreUri.fsPath);
   await runGenerator(
@@ -361,8 +365,8 @@ async function generateTestbench(
   if (!ipCoreUri) {
     return;
   }
-  const cfg = vscode.workspace.getConfiguration('ipcraft');
-  const genCfg = vscode.workspace.getConfiguration('ipcraft.generate');
+  const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT);
+  const genCfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT_GENERATE);
   const framework = cfg.get<string>('testbench.framework', 'cocotb');
   const engine = cfg.get<string>('testbench.engine', 'ghdl');
   const scaffoldPack = readScaffoldPackSetting(genCfg);
@@ -394,8 +398,8 @@ async function generateVivadoProject(
     return;
   }
 
-  const cfg = vscode.workspace.getConfiguration('ipcraft');
-  const genCfg = vscode.workspace.getConfiguration('ipcraft.generate');
+  const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT);
+  const genCfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT_GENERATE);
   const scaffoldPack = readScaffoldPackSetting(genCfg);
   const targetPart = await pickVivadoPart(
     context,
@@ -442,8 +446,8 @@ async function generateQuartusProject(
     return;
   }
 
-  const cfg = vscode.workspace.getConfiguration('ipcraft');
-  const genCfg = vscode.workspace.getConfiguration('ipcraft.generate');
+  const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT);
+  const genCfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT_GENERATE);
   const scaffoldPack = readScaffoldPackSetting(genCfg);
   const quartusDevice = await pickQuartusDevice(
     context,
@@ -490,8 +494,8 @@ async function generateAndBuildVivado(
     return;
   }
 
-  const cfg = vscode.workspace.getConfiguration('ipcraft');
-  const genCfg = vscode.workspace.getConfiguration('ipcraft.generate');
+  const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT);
+  const genCfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT_GENERATE);
   const scaffoldPack = readScaffoldPackSetting(genCfg);
   const targetPart = await pickVivadoPart(
     context,
@@ -533,8 +537,8 @@ async function generateAndBuildQuartus(
     return;
   }
 
-  const cfg = vscode.workspace.getConfiguration('ipcraft');
-  const genCfg = vscode.workspace.getConfiguration('ipcraft.generate');
+  const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT);
+  const genCfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT_GENERATE);
   const scaffoldPack = readScaffoldPackSetting(genCfg);
   const quartusDevice = await pickQuartusDevice(
     context,
@@ -886,7 +890,7 @@ async function parseVHDL(
     },
     async () => {
       try {
-        const cfg = vscode.workspace.getConfiguration('ipcraft.import');
+        const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT_IMPORT);
         const result = await parseVhdlFile(vhdlPath, {
           detectBus: true,
           vendor: cfg.get<string>('vendor'),
@@ -913,7 +917,7 @@ async function parseVHDL(
           await vscode.commands.executeCommand(
             'vscode.openWith',
             vscode.Uri.file(defaultOutput),
-            'fpgaIpCore.editor'
+            EDITOR_VIEW_TYPE_IP_CORE
           );
         }
       } catch (error) {
@@ -974,7 +978,7 @@ async function parseHwTcl(
     },
     async () => {
       try {
-        const cfg = vscode.workspace.getConfiguration('ipcraft.import');
+        const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT_IMPORT);
         const result = await parseHwTclFile(tclPath, {
           library: cfg.get<string>('library'),
           vendor: resolveVendor(cfg.get<string>('vendor')),
@@ -993,7 +997,7 @@ async function parseHwTcl(
           await vscode.commands.executeCommand(
             'vscode.openWith',
             vscode.Uri.file(outputPath),
-            'fpgaIpCore.editor'
+            EDITOR_VIEW_TYPE_IP_CORE
           );
         }
       } catch (error) {
@@ -1054,7 +1058,7 @@ async function parseComponentXml(
     },
     async () => {
       try {
-        const cfg = vscode.workspace.getConfiguration('ipcraft.import');
+        const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT_IMPORT);
         const result = await parseComponentXmlFile(xmlPath, {
           library: cfg.get<string>('library'),
         });
@@ -1090,7 +1094,7 @@ async function parseComponentXml(
           await vscode.commands.executeCommand(
             'vscode.openWith',
             vscode.Uri.file(ipOutputPath),
-            'fpgaIpCore.editor'
+            EDITOR_VIEW_TYPE_IP_CORE
           );
         }
       } catch (error) {

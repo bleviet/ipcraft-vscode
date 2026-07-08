@@ -32,6 +32,7 @@ import { busResolver } from './resolvers/bus';
 import { shadowRegistersResolver } from './resolvers/shadowRegisters';
 import type { ResolverInput } from './resolvers/types';
 import type { NormalizedMemoryMap } from '../domain/internal.types';
+import { CONFIG_KEY_IPCRAFT } from '../utils/configKeys';
 import type {
   BusDefinitions,
   GenerateOptions,
@@ -321,7 +322,7 @@ export class IpCoreScaffolder {
     let userLibrary: Record<string, unknown> = {};
     let workspaceLibrary: Record<string, unknown> = {};
     try {
-      const config = vscode.workspace.getConfiguration('ipcraft');
+      const config = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT);
       const userPaths = [...config.get<string[]>('busLibraryPaths', [])];
       // Cached Vivado interface catalog (if "Scan Vivado Interface Catalog" has been
       // run) — a single global cache shared by every IP core, never duplicated per

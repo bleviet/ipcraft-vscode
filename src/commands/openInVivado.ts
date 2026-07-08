@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import { Logger } from '../utils/Logger';
 import { spawnGui } from '../services/BuildRunner';
 import { getToolchain } from '../services/toolchains/registry';
+import { CONFIG_KEY_IPCRAFT } from '../utils/configKeys';
 
 const logger = new Logger('OpenInVivado');
 
@@ -63,7 +64,7 @@ export async function openInVivadoCommand(uri?: vscode.Uri): Promise<void> {
   }
 
   const xprPath = targetUri.fsPath;
-  const cfg = vscode.workspace.getConfiguration('ipcraft');
+  const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT);
   const toolchain = getToolchain('vivado');
   if (!toolchain) {
     return;

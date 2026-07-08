@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { listAll } from './toolchains/registry';
+import { CONFIG_KEY_IPCRAFT } from '../utils/configKeys';
 
 /**
  * Probes all registered synthesis toolchains and writes VS Code context keys so
@@ -22,7 +23,7 @@ import { listAll } from './toolchains/registry';
 export function detectAndSetToolContext(): void {
   void Promise.resolve().then(() =>
     setImmediate(() => {
-      const cfg = vscode.workspace.getConfiguration('ipcraft');
+      const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT);
 
       for (const toolchain of listAll()) {
         const available = toolchain.isAvailable(cfg);

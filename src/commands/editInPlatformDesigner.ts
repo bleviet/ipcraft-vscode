@@ -5,6 +5,7 @@ import { Logger } from '../utils/Logger';
 import { spawnGui } from '../services/BuildRunner';
 import { getToolchain } from '../services/toolchains/registry';
 import { sourceDirsFromHwTcl } from '../utils/sourceFileMounts';
+import { CONFIG_KEY_IPCRAFT } from '../utils/configKeys';
 
 const logger = new Logger('EditInPlatformDesigner');
 
@@ -21,7 +22,7 @@ export async function editInPlatformDesignerCommand(uri?: vscode.Uri): Promise<v
   // Mount the IP root (parent of altera/) so relative paths like ../rtl/... in
   // the _hw.tcl resolve correctly inside Docker (/work/altera/../rtl → /work/rtl).
   const ipRootDir = path.dirname(alteraDir);
-  const cfg = vscode.workspace.getConfiguration('ipcraft');
+  const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT);
   const toolchain = getToolchain('quartus');
   if (!toolchain) {
     return;

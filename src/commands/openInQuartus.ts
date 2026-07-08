@@ -3,6 +3,7 @@ import * as path from 'path';
 import { Logger } from '../utils/Logger';
 import { spawnGui } from '../services/BuildRunner';
 import { getToolchain } from '../services/toolchains/registry';
+import { CONFIG_KEY_IPCRAFT } from '../utils/configKeys';
 
 const logger = new Logger('OpenInQuartus');
 
@@ -15,7 +16,7 @@ export async function openInQuartusCommand(uri?: vscode.Uri): Promise<void> {
   }
 
   const qpfPath = targetUri.fsPath;
-  const cfg = vscode.workspace.getConfiguration('ipcraft');
+  const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT);
   const toolchain = getToolchain('quartus');
   if (!toolchain) {
     return;

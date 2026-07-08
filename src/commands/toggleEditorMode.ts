@@ -1,4 +1,6 @@
 import * as vscode from 'vscode';
+import { EDITOR_VIEW_TYPE_MEMORY_MAP, EDITOR_VIEW_TYPE_IP_CORE } from '../utils/editorViewTypes';
+import { isMmFile } from '../utils/fileExtensions';
 
 export async function openAsTextCommand(): Promise<void> {
   const activeTab = vscode.window.tabGroups.activeTabGroup.activeTab;
@@ -18,8 +20,8 @@ export async function openAsVisualCommand(uri?: vscode.Uri): Promise<void> {
   if (!targetUri) {
     return;
   }
-  const viewType = targetUri.fsPath.endsWith('.mm.yml')
-    ? 'fpgaMemoryMap.editor'
-    : 'fpgaIpCore.editor';
+  const viewType = isMmFile(targetUri.fsPath)
+    ? EDITOR_VIEW_TYPE_MEMORY_MAP
+    : EDITOR_VIEW_TYPE_IP_CORE;
   await vscode.commands.executeCommand('vscode.openWith', targetUri, viewType);
 }

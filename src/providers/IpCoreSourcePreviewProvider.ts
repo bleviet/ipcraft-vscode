@@ -17,6 +17,8 @@ import { legacyVendorToTargets } from '../utils/migrateIpCore';
 import type { GenerateOptionsMessage } from './IpCoreGenerateHandler';
 
 import { WebviewRouter } from '../services/WebviewRouter';
+import { EDITOR_VIEW_TYPE_IP_CORE } from '../utils/editorViewTypes';
+import { CONFIG_KEY_IPCRAFT_IMPORT } from '../utils/configKeys';
 
 type SourceKind = 'hwTcl' | 'componentXml' | 'vhdl' | 'verilog';
 
@@ -50,7 +52,7 @@ function detectKind(fsPath: string): SourceKind | null {
 }
 
 async function parseSource(fsPath: string, kind: SourceKind): Promise<ParsedSource> {
-  const cfg = vscode.workspace.getConfiguration('ipcraft.import');
+  const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT_IMPORT);
   switch (kind) {
     case 'hwTcl': {
       const result = await parseHwTclFile(fsPath, {
@@ -300,7 +302,7 @@ export class IpCoreSourcePreviewProvider implements vscode.CustomTextEditorProvi
     // 'merged' means the merge editor is now open on the .ip.yml; opening the
     // custom visual editor would replace it before the user can resolve.
     if (ipOutcome !== 'merged') {
-      await vscode.commands.executeCommand('vscode.openWith', outputUri, 'fpgaIpCore.editor');
+      await vscode.commands.executeCommand('vscode.openWith', outputUri, EDITOR_VIEW_TYPE_IP_CORE);
     }
   }
 

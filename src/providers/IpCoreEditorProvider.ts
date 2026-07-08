@@ -31,6 +31,7 @@ import { openInQuartusCommand } from '../commands/openInQuartus';
 import { listAll } from '../services/toolchains/registry';
 import { ScaffoldPackLoader } from '../generator/ScaffoldPackLoader';
 import { ResourceRoots } from '../services/ResourceRoots';
+import { CONFIG_KEY_IPCRAFT_GENERATE, CONFIG_KEY_IPCRAFT_TOOLBAR } from '../utils/configKeys';
 
 interface IpcMessage {
   type: string;
@@ -335,7 +336,7 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
       if (lang !== 'vhdl' && lang !== 'systemverilog') {
         return;
       }
-      const cfg = vscode.workspace.getConfiguration('ipcraft.generate');
+      const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT_GENERATE);
       await cfg.update('hdlLanguage', lang, vscode.ConfigurationTarget.Global);
     });
 
@@ -344,7 +345,7 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
       if (!Array.isArray(raw) || !raw.every((t) => typeof t === 'string')) {
         return;
       }
-      const cfg = vscode.workspace.getConfiguration('ipcraft.toolbar');
+      const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT_TOOLBAR);
       await cfg.update('targets', raw, vscode.ConfigurationTarget.Global);
     });
 
@@ -354,7 +355,7 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
         return;
       }
       await this.writeScaffoldPackToDocument(document, packName);
-      const cfg = vscode.workspace.getConfiguration('ipcraft.generate');
+      const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT_GENERATE);
       await cfg.update('scaffoldPack', packName, vscode.ConfigurationTarget.Global);
     });
 
@@ -546,7 +547,7 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
         return;
       }
 
-      const generateCfg = vscode.workspace.getConfiguration('ipcraft.generate');
+      const generateCfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT_GENERATE);
       const hdlLanguage = generateCfg.get<string>('hdlLanguage', 'vhdl');
       // Cascade: .ip.yml scaffold_pack > workspace setting > default
       const yamlScaffoldPack =
@@ -558,7 +559,7 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
       );
 
       const toolbarTargets = vscode.workspace
-        .getConfiguration('ipcraft.toolbar')
+        .getConfiguration(CONFIG_KEY_IPCRAFT_TOOLBAR)
         .get<string[]>('targets', ['vivado', 'quartus']);
 
       const allToolchains = listAll().map((t) => ({ id: t.id, displayName: t.displayName }));

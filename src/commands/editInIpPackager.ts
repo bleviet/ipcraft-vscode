@@ -6,6 +6,7 @@ import { Logger } from '../utils/Logger';
 import { spawnGui } from '../services/BuildRunner';
 import { getToolchain } from '../services/toolchains/registry';
 import { sourceDirsFromComponentXml } from '../utils/sourceFileMounts';
+import { CONFIG_KEY_IPCRAFT } from '../utils/configKeys';
 
 const logger = new Logger('EditInIpPackager');
 
@@ -18,7 +19,7 @@ export async function editInIpPackagerCommand(uri?: vscode.Uri): Promise<void> {
   }
 
   const componentPath = targetUri.fsPath.replace(/\\/g, '/');
-  const cfg = vscode.workspace.getConfiguration('ipcraft');
+  const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT);
   const toolchain = getToolchain('vivado');
   if (!toolchain) {
     return;

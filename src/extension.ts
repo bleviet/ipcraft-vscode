@@ -43,6 +43,7 @@ import {
   TemplatePreviewProvider,
   TEMPLATE_PREVIEW_SCHEME,
 } from './providers/TemplatePreviewProvider';
+import { EDITOR_VIEW_TYPE_MEMORY_MAP, EDITOR_VIEW_TYPE_IP_CORE } from './utils/editorViewTypes';
 import { ScaffoldPackPanel } from './providers/ScaffoldPackPanel';
 import { registerScaffoldPackCommands } from './commands/ScaffoldPackCommands';
 
@@ -93,7 +94,7 @@ export function activate(context: vscode.ExtensionContext): void {
   registerCustomProvider(
     context,
     logger,
-    'fpgaMemoryMap.editor',
+    EDITOR_VIEW_TYPE_MEMORY_MAP,
     new MemoryMapEditorProvider(context),
     'Memory Map'
   );
@@ -101,7 +102,7 @@ export function activate(context: vscode.ExtensionContext): void {
   registerCustomProvider(
     context,
     logger,
-    'fpgaIpCore.editor',
+    EDITOR_VIEW_TYPE_IP_CORE,
     new IpCoreEditorProvider(context, resourceRoots),
     'IP Core'
   );

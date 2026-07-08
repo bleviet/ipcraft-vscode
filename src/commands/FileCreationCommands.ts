@@ -1,6 +1,9 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { resolveVendor } from '../utils/resolveVendor';
+import { isIpCoreFile } from '../utils/fileExtensions';
+import { EDITOR_VIEW_TYPE_IP_CORE, EDITOR_VIEW_TYPE_MEMORY_MAP } from '../utils/editorViewTypes';
+import { CONFIG_KEY_IPCRAFT_IMPORT } from '../utils/configKeys';
 
 function generateMemoryMapTemplate(name: string): string {
   return `- name: ${name}
@@ -24,7 +27,7 @@ function generateMemoryMapTemplate(name: string): string {
 }
 
 function resolveVendorFromSettings(): string {
-  const cfg = vscode.workspace.getConfiguration('ipcraft.import');
+  const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT_IMPORT);
   return resolveVendor(cfg.get<string>('vendor'));
 }
 
@@ -119,7 +122,7 @@ export async function createIpCoreCommand(): Promise<void> {
       uri,
       new Uint8Array(Buffer.from(generateIpCoreTemplate(vendor, name)))
     );
-    await vscode.commands.executeCommand('vscode.openWith', uri, 'fpgaIpCore.editor');
+    await vscode.commands.executeCommand('vscode.openWith', uri, EDITOR_VIEW_TYPE_IP_CORE);
   } catch (error) {
     void vscode.window.showErrorMessage(
       `Failed to create file: ${error instanceof Error ? error.message : String(error)}`
@@ -132,17 +135,18 @@ export async function createMemoryMapCommand(): Promise<void> {
   let defaultDir: vscode.Uri | undefined;
   let memoryMapName = 'NEW_MEMORY_MAP';
 
-  const isIpCore = (fsPath: string) => fsPath.endsWith('.ip.yml') || fsPath.endsWith('.ip.yaml');
-
   const editor = vscode.window.activeTextEditor;
-  if (editor && isIpCore(editor.document.fileName)) {
+  if (editor && isIpCoreFile(editor.document.fileName)) {
     const ipCoreName = nameFromFilePath(editor.document.fileName);
     defaultFileName = `${ipCoreName}.mm.yml`;
     defaultDir = vscode.Uri.file(path.dirname(editor.document.fileName));
     memoryMapName = `${ipCoreName.toUpperCase()}_MEMMAP`;
   } else {
     const activeTab = vscode.window.tabGroups.activeTabGroup.activeTab;
-    if (activeTab?.input instanceof vscode.TabInputCustom && isIpCore(activeTab.input.uri.fsPath)) {
+    if (
+      activeTab?.input instanceof vscode.TabInputCustom &&
+      isIpCoreFile(activeTab.input.uri.fsPath)
+    ) {
       const ipCoreName = nameFromFilePath(activeTab.input.uri.fsPath);
       defaultFileName = `${ipCoreName}.mm.yml`;
       defaultDir = vscode.Uri.file(path.dirname(activeTab.input.uri.fsPath));
@@ -206,7 +210,7 @@ export async function createIpCoreWithMemoryMapCommand(): Promise<void> {
     const ipCoreContent = generateIpCoreWithMemoryMapTemplate(vendor, name, memoryMapBaseName);
     await vscode.workspace.fs.writeFile(ipCoreUri, new Uint8Array(Buffer.from(ipCoreContent)));
 
-    await vscode.commands.executeCommand('vscode.openWith', ipCoreUri, 'fpgaIpCore.editor');
+    await vscode.commands.executeCommand('vscode.openWith', ipCoreUri, EDITOR_VIEW_TYPE_IP_CORE);
 
     void vscode.window.showInformationMessage(`Created ${ipCoreBaseName} and ${memoryMapBaseName}`);
   } catch (error) {
@@ -251,7 +255,7 @@ async function createFileWithTemplate(
     try {
       await vscode.workspace.fs.writeFile(uri, new Uint8Array(Buffer.from(template)));
       if (compoundExt === '.mm.yml') {
-        await vscode.commands.executeCommand('vscode.openWith', uri, 'fpgaMemoryMap.editor');
+        await vscode.commands.executeCommand('vscode.openWith', uri, EDITOR_VIEW_TYPE_MEMORY_MAP);
       } else {
         const document = await vscode.workspace.openTextDocument(uri);
         await vscode.window.showTextDocument(document);

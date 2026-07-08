@@ -13,6 +13,7 @@ import { toHex } from '../../utils/formatUtils';
 import { generateUniqueName } from '../../utils/naming';
 import { useAutoFocus } from '../../hooks/useAutoFocus';
 import { useTableEditorState } from '../../hooks/useTableEditorState';
+import { usePendingSelect, type PendingSelectTarget } from '../../hooks/usePendingSelect';
 import { REG_COLUMN_ORDER, type RegEditKey } from './RegisterTableRow';
 import { reconcileRowIds, type TableRowWrapper } from '../../utils/rowIdentity';
 import { RegisterEditor } from '../register/RegisterEditor';
@@ -95,7 +96,7 @@ export function BlockEditor({
     setWrappedRegisters((prev) => reconcileRowIds(prev, liveRegisters));
   }, [liveRegisters]);
 
-  const pendingSelectRef = useRef<{ name: string } | null>(null);
+  const pendingSelectRef = useRef<PendingSelectTarget<RegEditKey> | null>(null);
 
   const insertNewItem = (
     newIdx: number,
@@ -123,7 +124,7 @@ export function BlockEditor({
           },
         ],
       });
-      pendingSelectRef.current = { name: arrayName };
+      pendingSelectRef.current = { name: arrayName, key: 'name' };
     } else if (kind === 'flat-array') {
       const name = generateUniqueName(liveRegisters, 'regArray');
       newRegs.splice(newIdx, 0, {
@@ -134,7 +135,7 @@ export function BlockEditor({
         stride: 4,
         description: '',
       });
-      pendingSelectRef.current = { name };
+      pendingSelectRef.current = { name, key: 'name' };
     } else {
       const name = generateUniqueName(liveRegisters, 'reg');
       newRegs.splice(newIdx, 0, {
@@ -144,7 +145,7 @@ export function BlockEditor({
         address_offset: 0,
         fields: [{ name: 'data', bits: '[31:0]', access: 'read-write', description: '' }],
       });
-      pendingSelectRef.current = { name };
+      pendingSelectRef.current = { name, key: 'name' };
     }
     onUpdate(['registers'], newRegs as unknown[]);
   };
@@ -199,16 +200,13 @@ export function BlockEditor({
   });
 
   // ---- Select a freshly inserted register once it appears ----
-  useEffect(() => {
-    if (pendingSelectRef.current) {
-      const { name } = pendingSelectRef.current;
-      const index = wrappedRegisters.findIndex((w) => w.model.name === name);
-      if (index >= 0) {
-        editor.selectRow(index, 'name');
-        pendingSelectRef.current = null;
-      }
-    }
-  }, [wrappedRegisters, editor]);
+  usePendingSelect<RegisterModel, RegEditKey>(
+    wrappedRegisters,
+    editor,
+    pendingSelectRef,
+    undefined,
+    'data-viz-row'
+  );
 
   // ---- Seed the active register from an out-of-band selection (Outline) ----
   const appliedActiveRegRef = useRef<number | null>(null);
@@ -313,7 +311,7 @@ export function BlockEditor({
       } else {
         newRegs = [...liveRegisters.slice(0, selIdx), newArray, ...liveRegisters.slice(selIdx)];
       }
-      pendingSelectRef.current = { name: arrayName };
+      pendingSelectRef.current = { name: arrayName, key: 'name' };
       onUpdate(['registers'], newRegs as unknown[]);
     };
 

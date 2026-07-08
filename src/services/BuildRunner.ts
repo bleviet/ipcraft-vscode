@@ -2,6 +2,7 @@ import { spawn } from 'child_process';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import type { ExtraMountSpec } from './toolchains/LaunchableTool';
+import { CONFIG_KEY_IPCRAFT } from '../utils/configKeys';
 
 export interface DockerOptions {
   /** Docker image to run the tool inside (e.g. `cvsoc/quartus:23.1`). */
@@ -186,7 +187,7 @@ export function spawnGui(
 ): void {
   const { cwd, docker, env = {}, extraMounts = [], x11 = true } = options;
 
-  const cfg = vscode.workspace.getConfiguration('ipcraft');
+  const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT);
   // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
   const customDisplay = cfg.get<string>('gui.display') || process.env.DISPLAY;
   // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing

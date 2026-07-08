@@ -15,6 +15,7 @@ import { BusLibraryService } from './BusLibraryService';
 import { getWorkspaceBusDefinitionScanner } from './WorkspaceBusDefinitionScanner';
 import { resolveMemoryMapImports } from './imports/resolveMemoryMapImports';
 import { getVivadoInterfaceCacheDir, pathExists } from './VivadoInterfaceScanner';
+import { CONFIG_KEY_IPCRAFT } from '../utils/configKeys';
 
 export interface ResolvedImports {
   memoryMaps?: Record<string, unknown>[];
@@ -108,7 +109,7 @@ export class ImportResolver {
     const count = library ? Object.keys(library).length : 0;
     this.logger.info(`Loaded ${count} bus types from local library`);
 
-    const config = vscode.workspace.getConfiguration('ipcraft');
+    const config = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT);
     const userPaths = [...config.get<string[]>('busLibraryPaths', [])];
     const vivadoCacheDir = getVivadoInterfaceCacheDir();
     if (await pathExists(vivadoCacheDir)) {

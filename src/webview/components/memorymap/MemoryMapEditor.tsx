@@ -15,6 +15,7 @@ import {
 } from '../../services/SpatialInsertionService';
 import { useAutoFocus } from '../../hooks/useAutoFocus';
 import { useTableEditorState } from '../../hooks/useTableEditorState';
+import { usePendingSelect, type PendingSelectTarget } from '../../hooks/usePendingSelect';
 import { BlockTableRow, BLOCK_COLUMN_ORDER } from './BlockTableRow';
 import type { BlockEditKey } from './BlockTableRow';
 import { reconcileRowIds, type TableRowWrapper } from '../../utils/rowIdentity';
@@ -151,32 +152,15 @@ export function MemoryMapEditor({
     clampDeps: [memoryMap?.name],
   });
 
-  const pendingInsertFocusRef = useRef<{ name: string; key: BlockEditKey } | null>(null);
-  const pendingSelectRef = useRef<{ name: string; key: BlockEditKey } | null>(null);
+  const pendingInsertFocusRef = useRef<PendingSelectTarget<BlockEditKey> | null>(null);
+  const pendingSelectRef = useRef<PendingSelectTarget<BlockEditKey> | null>(null);
 
-  useEffect(() => {
-    if (pendingInsertFocusRef.current) {
-      const { name, key } = pendingInsertFocusRef.current;
-      const index = wrappedBlocks.findIndex((w) => w.model.name === name);
-      if (index >= 0) {
-        const rowId = wrappedBlocks[index].rowId;
-        editor.selectRow(index, key);
-        editor.focusCellEditor(rowId, key);
-        document.querySelector(`tr[data-row-id="${rowId}"]`)?.scrollIntoView({ block: 'center' });
-        pendingInsertFocusRef.current = null;
-      }
-    }
-    if (pendingSelectRef.current) {
-      const { name, key } = pendingSelectRef.current;
-      const index = wrappedBlocks.findIndex((w) => w.model.name === name);
-      if (index >= 0) {
-        const rowId = wrappedBlocks[index].rowId;
-        editor.selectRow(index, key);
-        document.querySelector(`tr[data-row-id="${rowId}"]`)?.scrollIntoView({ block: 'center' });
-        pendingSelectRef.current = null;
-      }
-    }
-  }, [wrappedBlocks, editor]);
+  usePendingSelect<MemoryMapBlockDef, BlockEditKey>(
+    wrappedBlocks,
+    editor,
+    pendingSelectRef,
+    pendingInsertFocusRef
+  );
 
   useAutoFocus(
     editor.containerRef as React.RefObject<HTMLDivElement>,
