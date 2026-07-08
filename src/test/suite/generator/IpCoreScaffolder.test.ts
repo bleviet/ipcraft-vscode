@@ -140,6 +140,11 @@ describe('IpCoreScaffolder', () => {
     expect(vhdlContent).toContain('VENDOR_ID : string := "ACME"');
     expect(vhdlContent).toContain('DEVICE_TAG : string := ""');
 
+    // Integer generics with min/max must include VHDL range constraint (issue #55)
+    expect(vhdlContent).toContain('ADDR_WIDTH : integer range 16 to 64 := 32');
+    // Integer generics without min/max must not have a range clause
+    expect(vhdlContent).toContain('DATA_WIDTH : integer := 32');
+
     // String generics: component.xml must use raw (unquoted) values
     expect(xmlContent).toContain('spirit:format="string"');
     const vendorIdValueMatch = xmlContent?.match(
