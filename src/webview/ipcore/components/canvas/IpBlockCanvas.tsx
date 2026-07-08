@@ -1143,7 +1143,13 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
 
         {/* ── Generic / parameter section inside block ── */}
         {parameters.length > 0 && (
-          <g style={{ pointerEvents: 'none' }}>
+          <g
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelect('generics');
+            }}
+            style={{ cursor: 'pointer' }}
+          >
             {/* Separator */}
             <line
               x1={blockRect.x + 8}
@@ -1151,6 +1157,16 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
               x2={blockRect.x + blockRect.width - 8}
               y2={paramSeparatorY}
               className="ip-block-param-separator"
+              style={{ pointerEvents: 'none' }}
+            />
+            {/* Hit + selection highlight */}
+            <rect
+              x={blockRect.x + 4}
+              y={paramSeparatorY + 3}
+              width={blockRect.width - 8}
+              height={16}
+              rx={3}
+              className={`ip-block-param-row-bg${selectedId === 'generics' ? ' ip-block-param-row-bg--selected' : ''}`}
             />
             {/* Section header */}
             <text
@@ -1159,6 +1175,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
               textAnchor="middle"
               dominantBaseline="central"
               className="ip-block-param-header"
+              style={{ pointerEvents: 'none' }}
             >
               Generics
             </text>

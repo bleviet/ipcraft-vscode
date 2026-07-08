@@ -1174,6 +1174,11 @@
   color: var(--vscode-charts-blue, #4fc1ff);
   border: 1px solid color-mix(in srgb, var(--vscode-charts-blue, #4fc1ff) 35%, transparent);
 }
+.ci-badge--generics {
+  background: color-mix(in srgb, var(--vscode-charts-yellow, #dcdcaa) 18%, transparent);
+  color: var(--vscode-charts-yellow, #dcdcaa);
+  border: 1px solid color-mix(in srgb, var(--vscode-charts-yellow, #dcdcaa) 35%, transparent);
+}
 
 /* Body */
 .ci-body {
@@ -1903,6 +1908,77 @@
 .ci-fileset__rm:hover {
   opacity: 1 !important;
   color: var(--vscode-errorForeground, #f14c4c);
+}
+
+/* Generics overview panel — one row per parameter with inline Page/Group selects */
+.ci-generics-header-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--vscode-descriptionForeground);
+  opacity: 0.65;
+  padding-bottom: 4px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid color-mix(in srgb, var(--vscode-panel-border) 60%, transparent);
+}
+.ci-generics-header-row__name {
+  flex: 1;
+  min-width: 0;
+}
+.ci-generics-header-row__page,
+.ci-generics-header-row__group {
+  width: 92px;
+  flex-shrink: 0;
+}
+
+.ci-generics-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--vscode-panel-border) 30%, transparent);
+}
+.ci-generics-row:last-child {
+  border-bottom: none;
+}
+
+.ci-generics-row__name {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: none;
+  padding: 2px 0;
+  color: var(--vscode-textLink-foreground);
+  font-family: var(--vscode-font-family);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ci-generics-row__name:hover {
+  text-decoration: underline;
+}
+
+.ci-generics-row__page,
+.ci-generics-row__group {
+  width: 92px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.ci-generics-row__group-empty {
+  padding-left: 4px;
+  color: var(--vscode-descriptionForeground);
+  opacity: 0.5;
+  font-size: 11px;
 }
 
 .ci-fileset__add {

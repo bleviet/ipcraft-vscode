@@ -43,6 +43,8 @@ interface CanvasInspectorProps {
   onDelete?: () => void;
   /** Dissolve a bus interface and restore its signals to the standalone ports list */
   onUngroup?: () => void;
+  /** Switch the canvas selection (e.g. drill from the Generics overview into a single parameter) */
+  onSelectElement?: (id: string) => void;
 }
 
 const INSPECTOR_WIDTH_KEY = 'ipcraft.inspectorWidth';
@@ -58,6 +60,7 @@ export const CanvasInspector: React.FC<CanvasInspectorProps> = ({
   onClose,
   onDelete,
   onUngroup,
+  onSelectElement,
 }) => {
   // Resize state — hooks must come before any early return
   const [panelWidth, setPanelWidth] = useState<number>(() => {
@@ -143,10 +146,12 @@ export const CanvasInspector: React.FC<CanvasInspectorProps> = ({
       </div>
 
       {/* ── Body ── */}
-      <div className="ci-body">{renderPanel(selected, ipCore, onUpdate, imports)}</div>
+      <div className="ci-body">
+        {renderPanel(selected, ipCore, onUpdate, imports, onSelectElement)}
+      </div>
 
       {/* ── Footer ── */}
-      {selected.kind !== 'body' && (onDelete ?? onUngroup) && (
+      {selected.kind !== 'body' && selected.kind !== 'generics' && (onDelete ?? onUngroup) && (
         <div className="ci-footer">
           {onUngroup && selected.kind === 'busInterface' && (
             <button
@@ -183,11 +188,20 @@ function renderPanel(
   element: CanvasElement,
   ipCore: IpCore,
   onUpdate: YamlUpdateHandler,
-  imports?: { busLibrary?: unknown; memoryMaps?: unknown[] }
+  imports?: { busLibrary?: unknown; memoryMaps?: unknown[] },
+  onSelectElement?: (id: string) => void
 ): React.ReactNode {
   switch (element.kind) {
     case 'body':
       return <BodyPanel ipCore={ipCore} onUpdate={onUpdate} />;
+    case 'generics':
+      return (
+        <GenericsOverviewPanel
+          ipCore={ipCore}
+          onUpdate={onUpdate}
+          onSelectElement={onSelectElement}
+        />
+      );
 
     case 'clock': {
       const clock = (ipCore.clocks ?? [])[element.index] as Clock | undefined;
@@ -890,6 +904,130 @@ const TagInput: React.FC<TagInputProps> = ({
   );
 };
 
+// ─── GUI Placement helpers (shared by ParameterPanel + GenericsOverviewPanel) ──
+
+/** All unique non-empty uiPage values already used by any parameter in this IP core. */
+function computeParamPages(params: Array<Record<string, unknown>>): string[] {
+  return [...new Set(params.map((p) => (p.uiPage ? String(p.uiPage) : '')).filter(Boolean))].sort();
+}
+
+/** All unique non-empty uiGroup values already used by parameters on the given page. */
+function computeParamGroups(params: Array<Record<string, unknown>>, page: string): string[] {
+  return [
+    ...new Set(
+      params
+        .filter((p) => p.uiPage && String(p.uiPage) === page)
+        .map((p) => (p.uiGroup ? String(p.uiGroup) : ''))
+        .filter(Boolean)
+    ),
+  ].sort();
+}
+
+const PLACEMENT_ADD_BTN_STYLE: React.CSSProperties = {
+  background: 'none',
+  border: 'none',
+  cursor: 'pointer',
+  padding: '0 2px',
+  color: 'var(--vscode-textLink-foreground)',
+  fontSize: 14,
+  lineHeight: 1,
+};
+
+const PLACEMENT_INLINE_INPUT_STYLE: React.CSSProperties = {
+  background: 'var(--vscode-input-background)',
+  color: 'var(--vscode-input-foreground)',
+  border: '1px solid var(--vscode-focusBorder)',
+  borderRadius: 2,
+  padding: '1px 4px',
+  fontSize: 11,
+  width: 120,
+  outline: 'none',
+};
+
+interface PlacementSelectFieldProps {
+  value: string;
+  options: string[];
+  onChange: (v: string) => void;
+  addTitle: string;
+  addPlaceholder: string;
+  selectStyle?: React.CSSProperties;
+}
+
+/**
+ * A <select> over existing uiPage/uiGroup values plus an inline "⊕" affordance
+ * to type a brand-new one. Shared by the single-parameter GUI Placement tree
+ * (UiPlacementTree) and the Generics overview rows (GenericsOverviewPanel) so
+ * both stay visually and behaviorally consistent.
+ */
+const PlacementSelectField: React.FC<PlacementSelectFieldProps> = ({
+  value,
+  options,
+  onChange,
+  addTitle,
+  addPlaceholder,
+  selectStyle,
+}) => {
+  const [adding, setAdding] = useState(false);
+  const [draft, setDraft] = useState('');
+
+  const commit = () => {
+    const v = draft.trim();
+    if (v) {
+      onChange(v);
+    }
+    setDraft('');
+    setAdding(false);
+  };
+
+  if (adding) {
+    return (
+      <input
+        autoFocus
+        style={PLACEMENT_INLINE_INPUT_STYLE}
+        value={draft}
+        placeholder={addPlaceholder}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            commit();
+          }
+          if (e.key === 'Escape') {
+            setAdding(false);
+            setDraft('');
+          }
+        }}
+        onBlur={commit}
+      />
+    );
+  }
+
+  return (
+    <>
+      <select
+        className="ci-field__select"
+        style={selectStyle ?? { flex: 1 }}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      >
+        <option value="">— none —</option>
+        {options.map((o) => (
+          <option key={o} value={o}>
+            {o}
+          </option>
+        ))}
+      </select>
+      <button
+        style={PLACEMENT_ADD_BTN_STYLE}
+        title={addTitle}
+        type="button"
+        onClick={() => setAdding(true)}
+      >
+        ⊕
+      </button>
+    </>
+  );
+};
+
 // ─── GUI Placement tree widget ────────────────────────────────────────────────
 
 interface UiPlacementTreeProps {
@@ -911,29 +1049,6 @@ const UiPlacementTree: React.FC<UiPlacementTreeProps> = ({
   onPageChange,
   onGroupChange,
 }) => {
-  const [addingPage, setAddingPage] = useState(false);
-  const [addingGroup, setAddingGroup] = useState(false);
-  const [newPageDraft, setNewPageDraft] = useState('');
-  const [newGroupDraft, setNewGroupDraft] = useState('');
-
-  const commitNewPage = () => {
-    const v = newPageDraft.trim();
-    if (v) {
-      onPageChange(v);
-    }
-    setNewPageDraft('');
-    setAddingPage(false);
-  };
-
-  const commitNewGroup = () => {
-    const v = newGroupDraft.trim();
-    if (v) {
-      onGroupChange(v);
-    }
-    setNewGroupDraft('');
-    setAddingGroup(false);
-  };
-
   const treeLineStyle: React.CSSProperties = {
     color: 'var(--vscode-editorLineNumber-foreground)',
     userSelect: 'none',
@@ -955,73 +1070,18 @@ const UiPlacementTree: React.FC<UiPlacementTreeProps> = ({
     marginBottom: 6,
   };
 
-  const addBtnStyle: React.CSSProperties = {
-    background: 'none',
-    border: 'none',
-    cursor: 'pointer',
-    padding: '0 2px',
-    color: 'var(--vscode-textLink-foreground)',
-    fontSize: 14,
-    lineHeight: 1,
-  };
-
-  const inlineInputStyle: React.CSSProperties = {
-    background: 'var(--vscode-input-background)',
-    color: 'var(--vscode-input-foreground)',
-    border: '1px solid var(--vscode-focusBorder)',
-    borderRadius: 2,
-    padding: '1px 4px',
-    fontSize: 11,
-    width: 120,
-    outline: 'none',
-  };
-
-  const pageOptions = allPages.map((p) => ({ value: p, label: p }));
-  const groupOptions = allGroups.map((g) => ({ value: g, label: g }));
-
   return (
     <div style={{ paddingLeft: 2 }}>
       {/* Page row */}
       <div style={rowStyle}>
         <span style={{ ...treeLineStyle, minWidth: 40, fontSize: 11 }}>Page</span>
-        {addingPage ? (
-          <input
-            autoFocus
-            style={inlineInputStyle}
-            value={newPageDraft}
-            placeholder="New page name…"
-            onChange={(e) => setNewPageDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                commitNewPage();
-              }
-              if (e.key === 'Escape') {
-                setAddingPage(false);
-                setNewPageDraft('');
-              }
-            }}
-            onBlur={commitNewPage}
-          />
-        ) : (
-          <>
-            <select
-              className="ci-field__select"
-              style={{ flex: 1 }}
-              value={uiPage}
-              onChange={(e) => onPageChange(e.target.value)}
-            >
-              <option value="">— none —</option>
-              {pageOptions.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-            <button style={addBtnStyle} title="New page" onClick={() => setAddingPage(true)}>
-              ⊕
-            </button>
-          </>
-        )}
+        <PlacementSelectField
+          value={uiPage}
+          options={allPages}
+          onChange={onPageChange}
+          addTitle="New page"
+          addPlaceholder="New page name…"
+        />
       </div>
 
       {/* Tree connector + group row (only when page is set) */}
@@ -1046,48 +1106,13 @@ const UiPlacementTree: React.FC<UiPlacementTreeProps> = ({
             <div style={{ flex: 1 }}>
               <div style={rowStyle}>
                 <span style={{ ...treeLineStyle, minWidth: 36, fontSize: 11 }}>Group</span>
-                {addingGroup ? (
-                  <input
-                    autoFocus
-                    style={inlineInputStyle}
-                    value={newGroupDraft}
-                    placeholder="New group name…"
-                    onChange={(e) => setNewGroupDraft(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        commitNewGroup();
-                      }
-                      if (e.key === 'Escape') {
-                        setAddingGroup(false);
-                        setNewGroupDraft('');
-                      }
-                    }}
-                    onBlur={commitNewGroup}
-                  />
-                ) : (
-                  <>
-                    <select
-                      className="ci-field__select"
-                      style={{ flex: 1 }}
-                      value={uiGroup}
-                      onChange={(e) => onGroupChange(e.target.value)}
-                    >
-                      <option value="">— none —</option>
-                      {groupOptions.map((o) => (
-                        <option key={o.value} value={o.value}>
-                          {o.label}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      style={addBtnStyle}
-                      title="New group"
-                      onClick={() => setAddingGroup(true)}
-                    >
-                      ⊕
-                    </button>
-                  </>
-                )}
+                <PlacementSelectField
+                  value={uiGroup}
+                  options={allGroups}
+                  onChange={onGroupChange}
+                  addTitle="New group"
+                  addPlaceholder="New group name…"
+                />
               </div>
 
               {/* Parameter leaf */}
@@ -1164,25 +1189,10 @@ const ParameterPanel: React.FC<ParameterPanelProps> = ({ param, index, ipCore, o
   const uiGroup = param.uiGroup ? String(param.uiGroup) : '';
 
   // All unique page names already used by other parameters in this IP core
-  const allPages = useMemo(
-    () =>
-      [...new Set(params.map((p) => (p.uiPage ? String(p.uiPage) : '')).filter(Boolean))].sort(),
-    [params]
-  );
+  const allPages = useMemo(() => computeParamPages(params), [params]);
 
   // All unique group names already used by other parameters on the same page
-  const allGroups = useMemo(
-    () =>
-      [
-        ...new Set(
-          params
-            .filter((p) => p.uiPage && String(p.uiPage) === uiPage)
-            .map((p) => (p.uiGroup ? String(p.uiGroup) : ''))
-            .filter(Boolean)
-        ),
-      ].sort(),
-    [params, uiPage]
-  );
+  const allGroups = useMemo(() => computeParamGroups(params, uiPage), [params, uiPage]);
 
   const defVal =
     param.defaultValue !== undefined
@@ -1391,6 +1401,107 @@ const ParameterPanel: React.FC<ParameterPanelProps> = ({ param, index, ipCore, o
         />
       </Section>
     </>
+  );
+};
+
+// ─────────────────────────────────────────────────────
+//  Generics overview panel — one row per parameter, with quick Page/Group
+//  reassignment. Value/range editing stays in the single-parameter
+//  ParameterPanel, opened by clicking a row's name.
+// ─────────────────────────────────────────────────────
+
+interface GenericsOverviewPanelProps {
+  ipCore: IpCore;
+  onUpdate: YamlUpdateHandler;
+  onSelectElement?: (id: string) => void;
+}
+
+const GenericsOverviewPanel: React.FC<GenericsOverviewPanelProps> = ({
+  ipCore,
+  onUpdate,
+  onSelectElement,
+}) => {
+  const params = (ipCore.parameters ?? []) as unknown as Array<Record<string, unknown>>;
+
+  const allPages = useMemo(() => computeParamPages(params), [params]);
+
+  if (params.length === 0) {
+    return <EmptyState label="No generics defined" />;
+  }
+
+  const handlePageChange = (index: number, v: string) => {
+    onUpdate(['parameters', index, 'uiPage'], v || null);
+    // clear group when page is cleared
+    if (!v) {
+      onUpdate(['parameters', index, 'uiGroup'], null);
+    }
+  };
+
+  const handleGroupChange = (index: number, v: string) => {
+    onUpdate(['parameters', index, 'uiGroup'], v || null);
+  };
+
+  return (
+    <Section title="Generics">
+      <div
+        style={{
+          fontSize: 11,
+          color: 'var(--vscode-descriptionForeground)',
+          marginBottom: 8,
+        }}
+      >
+        Click a name to edit its value and constraints. Page/Group control where it appears in the
+        Vivado / Platform Designer wizard.
+      </div>
+      <div className="ci-generics-header-row">
+        <span className="ci-generics-header-row__name">Name</span>
+        <span className="ci-generics-header-row__page">Page</span>
+        <span className="ci-generics-header-row__group">Group</span>
+      </div>
+      {params.map((param, index) => {
+        const name = String(param.name ?? '');
+        const uiPage = param.uiPage ? String(param.uiPage) : '';
+        const uiGroup = param.uiGroup ? String(param.uiGroup) : '';
+        const allGroups = computeParamGroups(params, uiPage);
+
+        return (
+          <div className="ci-generics-row" key={index}>
+            <button
+              className="ci-generics-row__name"
+              type="button"
+              title={`Open ${name || 'parameter'}`}
+              onClick={() => onSelectElement?.(`parameter:${index}`)}
+            >
+              {name || `(param ${index})`}
+            </button>
+            <div className="ci-generics-row__page">
+              <PlacementSelectField
+                value={uiPage}
+                options={allPages}
+                onChange={(v) => handlePageChange(index, v)}
+                addTitle="New page"
+                addPlaceholder="New page name…"
+                selectStyle={{ flex: 1, minWidth: 0 }}
+              />
+            </div>
+            <div className="ci-generics-row__group">
+              {uiPage ? (
+                <PlacementSelectField
+                  value={uiGroup}
+                  options={allGroups}
+                  onChange={(v) => handleGroupChange(index, v)}
+                  addTitle="New group"
+                  addPlaceholder="New group name…"
+                  selectStyle={{ flex: 1, minWidth: 0 }}
+                />
+              ) : (
+                <span className="ci-generics-row__group-empty">—</span>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </Section>
   );
 };
 
@@ -3768,6 +3879,8 @@ function getElementName(element: CanvasElement, ipCore: IpCore): string {
       const vlnv = typeof sub === 'string' ? sub : sub.vlnv;
       return vlnv.split(':')[2] ?? vlnv;
     }
+    case 'generics':
+      return '';
     default:
       return '';
   }
@@ -3791,6 +3904,8 @@ function kindLabel(kind: CanvasElementKind): string {
       return 'Interrupt';
     case 'subcore':
       return 'Dependency';
+    case 'generics':
+      return 'Generics';
     default:
       return kind;
   }

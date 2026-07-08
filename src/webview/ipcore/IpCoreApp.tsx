@@ -1302,6 +1302,7 @@ const IpCoreApp: React.FC = () => {
                 onClose={canvasDeselect}
                 onDelete={handleInspectorDelete}
                 onUngroup={handleInspectorUngroup}
+                onSelectElement={handleCanvasSelect}
               />
             ) : null}
           </>

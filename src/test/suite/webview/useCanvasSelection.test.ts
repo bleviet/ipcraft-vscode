@@ -1,5 +1,8 @@
 import { renderHook, act } from '@testing-library/react';
-import { useCanvasSelection } from '../../../webview/ipcore/hooks/useCanvasSelection';
+import {
+  useCanvasSelection,
+  parseCanvasId,
+} from '../../../webview/ipcore/hooks/useCanvasSelection';
 
 describe('useCanvasSelection', () => {
   describe('single selection', () => {
@@ -8,6 +11,17 @@ describe('useCanvasSelection', () => {
       act(() => result.current.select('port:0'));
       expect(result.current.selectedId).toBe('port:0');
       expect(result.current.multiSelection.isMulti).toBe(false);
+    });
+
+    it('parses the index-less "generics" id into a generics element', () => {
+      expect(parseCanvasId('generics')).toEqual({ kind: 'generics', index: 0, id: 'generics' });
+    });
+
+    it('selects the Generics overview element when select("generics") is called', () => {
+      const { result } = renderHook(() => useCanvasSelection());
+      act(() => result.current.select('generics'));
+      expect(result.current.selected).toEqual({ kind: 'generics', index: 0, id: 'generics' });
+      expect(result.current.selectedId).toBe('generics');
     });
 
     it('clears selection on select(null)', () => {

@@ -8,7 +8,8 @@ export type CanvasElementKind =
   | 'body'
   | 'parameter'
   | 'interrupt'
-  | 'subcore';
+  | 'subcore'
+  | 'generics';
 
 export interface CanvasElement {
   kind: CanvasElementKind;
@@ -35,6 +36,9 @@ const GROUPABLE_KINDS: ReadonlySet<CanvasElementKind> = new Set(['port', 'interr
 export function parseCanvasId(id: string): CanvasElement | null {
   if (id === 'body') {
     return { kind: 'body', index: 0, id: 'body' };
+  }
+  if (id === 'generics') {
+    return { kind: 'generics', index: 0, id: 'generics' };
   }
 
   const parts = id.split(':');
