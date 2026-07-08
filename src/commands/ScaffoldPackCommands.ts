@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as fs from 'fs/promises';
 import { sync as globSync } from 'glob';
 import { Logger } from '../utils/Logger';
+import { handleErrorWithUserNotification } from '../utils/ErrorHandler';
 import { TemplatePreviewProvider } from '../providers/TemplatePreviewProvider';
 import { ScaffoldPackPanel } from '../providers/ScaffoldPackPanel';
 import { ScaffoldPackLoader } from '../generator/ScaffoldPackLoader';
@@ -300,7 +301,7 @@ async function exportScaffoldPack(context: vscode.ExtensionContext): Promise<voi
       });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    void vscode.window.showErrorMessage(`Export failed: ${msg}`);
+    void handleErrorWithUserNotification(err, 'exportScaffoldPack', `Export failed: ${msg}`);
   }
 }
 

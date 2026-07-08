@@ -8,6 +8,7 @@ import { listAll } from '../services/toolchains/registry';
 import type { BuildMode } from '../services/toolchains/SynthesisToolchain';
 import { isIpCoreFile } from '../utils/fileExtensions';
 import { CONFIG_KEY_IPCRAFT } from '../utils/configKeys';
+import { handleErrorWithUserNotification } from '../utils/ErrorHandler';
 
 let outputChannel: vscode.OutputChannel | undefined;
 
@@ -65,7 +66,9 @@ async function resolveIpCore(
     }
     return { uri: ipUri, name, dir: path.dirname(ipUri.fsPath) };
   } catch (err) {
-    void vscode.window.showErrorMessage(
+    void handleErrorWithUserNotification(
+      err,
+      'resolveIpCore',
       `Cannot read IP core: ${err instanceof Error ? err.message : String(err)}`
     );
     return undefined;

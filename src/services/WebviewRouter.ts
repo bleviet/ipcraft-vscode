@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { Logger } from '../utils/Logger';
 import { DocumentManager } from './DocumentManager';
 import { YamlValidator } from './YamlValidator';
+import { handleErrorWithUserNotification } from '../utils/ErrorHandler';
 
 export interface RouterOptions {
   webviewPanel: vscode.WebviewPanel;
@@ -193,8 +194,11 @@ export class WebviewRouter<M extends { type: string } = { type: string }> {
               await vscode.commands.executeCommand('vscode.open', targetUri);
               this.logger.info('Opened file:', targetUri.toString());
             } catch (e) {
-              this.logger.error('Failed to open file', e as Error);
-              void vscode.window.showErrorMessage(`Failed to open file: ${msg.path}`);
+              void handleErrorWithUserNotification(
+                e,
+                'WebviewRouter.openFile',
+                `Failed to open file: ${msg.path}`
+              );
             }
           }
           break;

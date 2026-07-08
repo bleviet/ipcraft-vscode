@@ -526,6 +526,7 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
           const entries = await fs.readdir(dir);
           return entries.some((e) => pattern.test(e));
         } catch {
+          // readdir failure means the directory does not exist or is not accessible — treat as empty.
           return false;
         }
       };
@@ -860,6 +861,7 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
         await vscode.workspace.fs.stat(vscode.Uri.file(fullPath));
         results[filePath] = true;
       } catch {
+        // stat failure means the file does not exist — record as absent.
         results[filePath] = false;
       }
     }
@@ -929,6 +931,7 @@ function collectAvailableScaffoldPacks(builtinPacksDir: string): PackSummaryForW
     try {
       entries = fsSync.readdirSync(dir);
     } catch {
+      // Directory is not accessible (missing or permission denied) — skip it.
       return;
     }
     for (const entry of entries) {

@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { getWorkspaceBusDefinitionScanner } from '../services/WorkspaceBusDefinitionScanner';
+import { handleErrorWithUserNotification } from '../utils/ErrorHandler';
 
 /**
  * Command handler for "Scan Workspace Bus Definitions". Forces a re-scan of
@@ -36,8 +37,10 @@ export async function scanWorkspaceBusDefinitionsCommand(): Promise<void> {
           );
         }
       } catch (error) {
-        void vscode.window.showErrorMessage(
-          `Workspace bus definition scan failed: ${(error as Error).message}`
+        void handleErrorWithUserNotification(
+          error,
+          'scanWorkspaceBusDefinitions',
+          `Workspace bus definition scan failed: ${error instanceof Error ? error.message : String(error)}`
         );
       }
     }

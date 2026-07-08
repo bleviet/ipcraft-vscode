@@ -221,7 +221,7 @@ async function quickParseComponentXmlVlnv(filePath: string): Promise<string | nu
       }
     }
   } catch {
-    // ignore
+    // File read or XML parse error — cannot extract VLNV, return null.
   }
   return null;
 }

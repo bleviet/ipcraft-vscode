@@ -35,6 +35,7 @@ import {
   CONFIG_KEY_IPCRAFT_IMPORT,
   CONFIG_KEY_IPCRAFT_TOOLBAR,
 } from '../utils/configKeys';
+import { handleErrorWithUserNotification } from '../utils/ErrorHandler';
 
 const logger = new Logger('GenerateCommands');
 
@@ -125,7 +126,9 @@ async function viewBusDefinitions(): Promise<void> {
   try {
     entries = await vscode.workspace.fs.readDirectory(dirUri);
   } catch (error) {
-    void vscode.window.showErrorMessage(
+    void handleErrorWithUserNotification(
+      error,
+      'listBusDefinitions.readDirectory',
       `Failed to open bus definitions: ${error instanceof Error ? error.message : String(error)}`
     );
     return;
@@ -158,7 +161,9 @@ async function viewBusDefinitions(): Promise<void> {
       preserveFocus: false,
     });
   } catch (error) {
-    void vscode.window.showErrorMessage(
+    void handleErrorWithUserNotification(
+      error,
+      'listBusDefinitions.openDocument',
       `Failed to open bus definition: ${error instanceof Error ? error.message : String(error)}`
     );
   }
@@ -638,6 +643,7 @@ async function categorizeFiles(
         const status = existing === content ? 'unchanged' : 'modified';
         return { relativePath, status, content, diskPath, protected: isProtected } as StagedFile;
       } catch {
+        // File does not exist yet — treat it as a new file to be created.
         return { relativePath, status: 'new', content, diskPath, protected: false } as StagedFile;
       }
     })
@@ -833,6 +839,7 @@ function buildParseSummary(yamlText: string): string {
     const detail = parts.length > 0 ? parts.join(', ') : 'no items detected';
     return name ? `${name}: ${detail}` : detail;
   } catch {
+    // YAML parse or data access error in a UI description helper — return empty string.
     return '';
   }
 }
@@ -922,7 +929,7 @@ async function parseVHDL(
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        void vscode.window.showErrorMessage(`Parse failed: ${message}`);
+        void handleErrorWithUserNotification(error, 'parseVhdl', `Parse failed: ${message}`);
       }
     }
   );
@@ -1002,7 +1009,7 @@ async function parseHwTcl(
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        void vscode.window.showErrorMessage(`Import failed: ${message}`);
+        void handleErrorWithUserNotification(error, 'parseHwTcl', `Import failed: ${message}`);
       }
     }
   );
@@ -1099,7 +1106,11 @@ async function parseComponentXml(
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        void vscode.window.showErrorMessage(`Import failed: ${message}`);
+        void handleErrorWithUserNotification(
+          error,
+          'parseComponentXml',
+          `Import failed: ${message}`
+        );
       }
     }
   );

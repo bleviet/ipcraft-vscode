@@ -46,6 +46,7 @@ import {
 import { EDITOR_VIEW_TYPE_MEMORY_MAP, EDITOR_VIEW_TYPE_IP_CORE } from './utils/editorViewTypes';
 import { ScaffoldPackPanel } from './providers/ScaffoldPackPanel';
 import { registerScaffoldPackCommands } from './commands/ScaffoldPackCommands';
+import { handleErrorWithUserNotification } from './utils/ErrorHandler';
 
 const SHARED_EDITOR_OPTIONS = {
   webviewOptions: {
@@ -86,8 +87,11 @@ export function activate(context: vscode.ExtensionContext): void {
     resourceRoots = resolveResourceRoots(context.extensionPath);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    logger.error('Failed to resolve resource roots: ' + message);
-    void vscode.window.showErrorMessage('IPCraft extension activation failed: ' + message);
+    void handleErrorWithUserNotification(
+      error,
+      'extension.activate',
+      `IPCraft extension activation failed: ${message}`
+    );
     return;
   }
 

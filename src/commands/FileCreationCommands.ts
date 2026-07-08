@@ -4,6 +4,7 @@ import { resolveVendor } from '../utils/resolveVendor';
 import { isIpCoreFile } from '../utils/fileExtensions';
 import { EDITOR_VIEW_TYPE_IP_CORE, EDITOR_VIEW_TYPE_MEMORY_MAP } from '../utils/editorViewTypes';
 import { CONFIG_KEY_IPCRAFT_IMPORT } from '../utils/configKeys';
+import { handleErrorWithUserNotification } from '../utils/ErrorHandler';
 
 function generateMemoryMapTemplate(name: string): string {
   return `- name: ${name}
@@ -124,7 +125,9 @@ export async function createIpCoreCommand(): Promise<void> {
     );
     await vscode.commands.executeCommand('vscode.openWith', uri, EDITOR_VIEW_TYPE_IP_CORE);
   } catch (error) {
-    void vscode.window.showErrorMessage(
+    void handleErrorWithUserNotification(
+      error,
+      'createIpCoreCommand',
       `Failed to create file: ${error instanceof Error ? error.message : String(error)}`
     );
   }
@@ -214,7 +217,9 @@ export async function createIpCoreWithMemoryMapCommand(): Promise<void> {
 
     void vscode.window.showInformationMessage(`Created ${ipCoreBaseName} and ${memoryMapBaseName}`);
   } catch (error) {
-    void vscode.window.showErrorMessage(
+    void handleErrorWithUserNotification(
+      error,
+      'createIpCoreWithMemoryMapCommand',
       `Failed to create files: ${error instanceof Error ? error.message : String(error)}`
     );
   }
@@ -261,7 +266,9 @@ async function createFileWithTemplate(
         await vscode.window.showTextDocument(document);
       }
     } catch (error) {
-      void vscode.window.showErrorMessage(
+      void handleErrorWithUserNotification(
+        error,
+        'createFileWithTemplate',
         `Failed to create file: ${error instanceof Error ? error.message : String(error)}`
       );
     }

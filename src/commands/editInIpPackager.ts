@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as os from 'os';
 import * as fs from 'fs/promises';
 import { Logger } from '../utils/Logger';
+import { handleErrorWithUserNotification } from '../utils/ErrorHandler';
 import { spawnGui } from '../services/BuildRunner';
 import { getToolchain } from '../services/toolchains/registry';
 import { sourceDirsFromComponentXml } from '../utils/sourceFileMounts';
@@ -73,9 +74,10 @@ export async function editInIpPackagerCommand(uri?: vscode.Uri): Promise<void> {
       toolchain.displayName
     );
   } catch (error) {
-    logger.error('Error preparing Vivado IP Packager launch', error as Error);
-    void vscode.window.showErrorMessage(
-      `Failed to launch IP Packager: ${(error as Error).message}`
+    void handleErrorWithUserNotification(
+      error,
+      'editInIpPackager',
+      `Failed to launch IP Packager: ${error instanceof Error ? error.message : String(error)}`
     );
   }
 }

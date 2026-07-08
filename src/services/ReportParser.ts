@@ -1,5 +1,8 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { Logger } from '../utils/Logger';
+
+const logger = new Logger('ReportParser');
 
 export interface TimingResult {
   wns?: number;
@@ -45,22 +48,28 @@ export async function parseVivadoReports(
   try {
     const text = await fs.readFile(path.join(reportDir, 'timing.rpt'), 'utf8');
     result.timing = parseVivadoTiming(text);
-  } catch {
-    /* not yet written */
+  } catch (err) {
+    logger.debug(
+      `timing.rpt not found or unreadable in ${reportDir}: ${err instanceof Error ? err.message : String(err)}`
+    );
   }
 
   try {
     const text = await fs.readFile(path.join(reportDir, 'utilization.rpt'), 'utf8');
     result.utilization = parseVivadoUtilization(text);
-  } catch {
-    /* not yet written */
+  } catch (err) {
+    logger.debug(
+      `utilization.rpt not found or unreadable in ${reportDir}: ${err instanceof Error ? err.message : String(err)}`
+    );
   }
 
   try {
     const text = await fs.readFile(path.join(reportDir, 'cdc.rpt'), 'utf8');
     result.cdc = parseVivadoCdc(text);
-  } catch {
-    /* not yet written */
+  } catch (err) {
+    logger.debug(
+      `cdc.rpt not found or unreadable in ${reportDir}: ${err instanceof Error ? err.message : String(err)}`
+    );
   }
 
   return result;
@@ -76,15 +85,19 @@ export async function parseQuartusReports(
   try {
     const text = await fs.readFile(path.join(outputDir, `${projectName}.sta.summary`), 'utf8');
     result.timing = parseQuartusTiming(text);
-  } catch {
-    /* not yet written */
+  } catch (err) {
+    logger.debug(
+      `${projectName}.sta.summary not found or unreadable in ${outputDir}: ${err instanceof Error ? err.message : String(err)}`
+    );
   }
 
   try {
     const text = await fs.readFile(path.join(outputDir, `${projectName}.fit.summary`), 'utf8');
     result.utilization = parseQuartusUtilization(text);
-  } catch {
-    /* not yet written */
+  } catch (err) {
+    logger.debug(
+      `${projectName}.fit.summary not found or unreadable in ${outputDir}: ${err instanceof Error ? err.message : String(err)}`
+    );
   }
 
   return result;

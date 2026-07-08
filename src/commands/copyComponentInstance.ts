@@ -2,6 +2,7 @@ import * as fs from 'fs/promises';
 import * as vscode from 'vscode';
 import { extractVhdlInterface } from '../parser/VhdlParser';
 import { extractVerilogInterface } from '../parser/VerilogParser';
+import { handleErrorWithUserNotification } from '../utils/ErrorHandler';
 
 const COPIED_CONTEXT_KEY = 'ipcraft.instanceJustCopied';
 const FEEDBACK_DURATION_MS = 2000;
@@ -36,7 +37,9 @@ export async function copyComponentInstanceCommand(uri?: vscode.Uri): Promise<vo
       void vscode.commands.executeCommand('setContext', COPIED_CONTEXT_KEY, false);
     }, FEEDBACK_DURATION_MS);
   } catch (error) {
-    void vscode.window.showErrorMessage(
+    void handleErrorWithUserNotification(
+      error,
+      'copyComponentInstance',
       `Copy Component Instance failed: ${error instanceof Error ? error.message : String(error)}`
     );
   }

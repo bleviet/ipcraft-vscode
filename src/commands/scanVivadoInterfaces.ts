@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { VivadoInterfaceScanner } from '../services/VivadoInterfaceScanner';
+import { handleErrorWithUserNotification } from '../utils/ErrorHandler';
 
 export async function scanVivadoInterfacesCommand(): Promise<void> {
   await vscode.window.withProgress(
@@ -15,8 +16,10 @@ export async function scanVivadoInterfacesCommand(): Promise<void> {
           `Found ${result.count} interfaces (Vivado ${result.version}). Cached to ${result.cacheDir}`
         );
       } catch (error) {
-        void vscode.window.showErrorMessage(
-          `Vivado interface scan failed: ${(error as Error).message}`
+        void handleErrorWithUserNotification(
+          error,
+          'scanVivadoInterfaces',
+          `Vivado interface scan failed: ${error instanceof Error ? error.message : String(error)}`
         );
       }
     }
