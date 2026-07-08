@@ -9,6 +9,7 @@ export type BatchUpdate = (mutations: Array<[Array<string | number>, unknown]>) 
 export interface MapConduitToBusOptions {
   mode: 'slave' | 'master';
   portNameOverrides: Record<string, string>;
+  portWidthOverrides?: Record<string, number | string>;
   useOptionalPorts: string[];
 }
 
@@ -28,6 +29,7 @@ export function applyMapConduitToKnownBus(
   const buses = [...(ipCore.busInterfaces ?? [])] as Array<
     BusInterface & {
       portNameOverrides?: Record<string, string>;
+      portWidthOverrides?: Record<string, number | string>;
       useOptionalPorts?: string[];
     }
   >;
@@ -43,6 +45,9 @@ export function applyMapConduitToKnownBus(
   };
   if (Object.keys(opts.portNameOverrides).length > 0) {
     updated.portNameOverrides = opts.portNameOverrides;
+  }
+  if (opts.portWidthOverrides && Object.keys(opts.portWidthOverrides).length > 0) {
+    updated.portWidthOverrides = opts.portWidthOverrides;
   }
   if (opts.useOptionalPorts.length > 0) {
     updated.useOptionalPorts = opts.useOptionalPorts;
@@ -70,7 +75,11 @@ export interface GroupAsConduitOptions {
   physicalPrefix: string;
 }
 
-export function useGroupPorts(ipCore: IpCore, batchUpdate: BatchUpdate) {
+export function useGroupPorts(
+  ipCore: IpCore,
+  batchUpdate: BatchUpdate,
+  busDefs?: (type: string) => BusPortDef[] | null
+) {
   const groupAsStandard = useCallback(
     (opts: GroupAsStandardOptions) => {
       const ports: Port[] = [...(ipCore.ports ?? [])];
@@ -210,7 +219,7 @@ export function useGroupPorts(ipCore: IpCore, batchUpdate: BatchUpdate) {
         }
       } else {
         // ── Standard protocol: reconstruct ports from signal definitions ──
-        const signalDefs: BusPortDef[] | null = lookupBusDef(bus.type);
+        const signalDefs: BusPortDef[] | null = (busDefs ?? lookupBusDef)(bus.type);
         if (signalDefs) {
           const prefix = bus.physicalPrefix ?? '';
           const widthOverrides =

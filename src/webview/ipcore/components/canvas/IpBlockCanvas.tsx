@@ -470,7 +470,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
 
   // Group ports hook — only instantiated when batchUpdate is available
   const noopBatch: BatchUpdate = useCallback(() => {}, []);
-  const groupPorts = useGroupPorts(ipCore, batchUpdate ?? noopBatch);
+  const groupPorts = useGroupPorts(ipCore, batchUpdate ?? noopBatch, busDefs);
 
   const handlePortDropOnBus = useCallback(
     (portIndex: number, busIndex: number) => {

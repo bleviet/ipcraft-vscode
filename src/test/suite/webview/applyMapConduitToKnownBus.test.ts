@@ -124,4 +124,42 @@ describe('applyMapConduitToKnownBus', () => {
     });
     expect(result).toEqual([]);
   });
+
+  it('sets portWidthOverrides when provided', () => {
+    const ipCore = makeIpCore();
+    const result = applyMapConduitToKnownBus(ipCore, 0, {
+      mode: 'master',
+      portNameOverrides: { WR_EN: 'fifo_wr_en', WR_DATA: 'fifo_wr_data' },
+      portWidthOverrides: { WR_DATA: 8 },
+      useOptionalPorts: [],
+    });
+
+    const updated = result[0] as unknown as Record<string, unknown>;
+    expect(updated.portWidthOverrides).toEqual({ WR_DATA: 8 });
+  });
+
+  it('omits portWidthOverrides entirely when the provided object is empty', () => {
+    const ipCore = makeIpCore();
+    const result = applyMapConduitToKnownBus(ipCore, 0, {
+      mode: 'master',
+      portNameOverrides: {},
+      portWidthOverrides: {},
+      useOptionalPorts: [],
+    });
+
+    const updated = result[0] as unknown as Record<string, unknown>;
+    expect('portWidthOverrides' in updated).toBe(false);
+  });
+
+  it('omits portWidthOverrides entirely when not provided', () => {
+    const ipCore = makeIpCore();
+    const result = applyMapConduitToKnownBus(ipCore, 0, {
+      mode: 'master',
+      portNameOverrides: {},
+      useOptionalPorts: [],
+    });
+
+    const updated = result[0] as unknown as Record<string, unknown>;
+    expect('portWidthOverrides' in updated).toBe(false);
+  });
 });
