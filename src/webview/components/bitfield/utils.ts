@@ -42,16 +42,19 @@ export function setBit(value: number, bitIndex: number, desired: 0 | 1): number 
   return desired === 1 ? base + delta : Math.max(0, base - delta);
 }
 
-export function parseRegisterValue(text: string): number | null {
+export function parseRegisterValue(text: string, view: 'hex' | 'dec' = 'hex'): number | null {
   const s = text.trim();
   if (!s) {
     return null;
   }
-  const v = Number(s);
-  if (!Number.isFinite(v)) {
-    return null;
+  if (view === 'dec') {
+    return /^-?\d+$/.test(s) ? Number(s) : null;
   }
-  return v;
+  // Hex mode: digits are unambiguous even without a "0x" prefix (the UI shows
+  // "0x" as a static label, not part of the editable text), but a pasted
+  // "0x"/"0X" prefix is tolerated rather than rejected.
+  const cleaned = s.replace(/^0[xX]/, '');
+  return /^[0-9a-fA-F]+$/.test(cleaned) ? parseInt(cleaned, 16) : null;
 }
 
 export function maxForBits(bitCount: number): number {
@@ -62,6 +65,11 @@ export function maxForBits(bitCount: number): number {
     return Number.MAX_SAFE_INTEGER;
   }
   return Math.pow(2, bitCount) - 1;
+}
+
+/** Hex digit width that fully represents a register of `bitCount` bits, e.g. 32 -> 8 digits. */
+export function hexDigitsForBits(bitCount: number): number {
+  return Math.max(1, Math.ceil(bitCount / 4));
 }
 
 export function extractBits(value: number, lo: number, width: number): number {

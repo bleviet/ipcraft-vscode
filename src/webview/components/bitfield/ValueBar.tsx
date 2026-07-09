@@ -9,7 +9,7 @@ interface ValueBarProps {
   setValueEditing: (editing: boolean) => void;
   setValueError: (value: string | null) => void;
   setValueView: (updater: (view: 'hex' | 'dec') => 'hex' | 'dec') => void;
-  parseRegisterValue: (text: string) => number | null;
+  parseRegisterValue: (text: string, view: 'hex' | 'dec') => number | null;
   validateRegisterValue: (value: number | null) => string | null;
   commitRegisterValueDraft: () => void;
 }
@@ -32,32 +32,55 @@ const ValueBar = ({
       style={{ background: 'var(--vscode-editor-background)' }}
     >
       <div className="text-sm vscode-muted font-mono font-semibold">Value:</div>
-      <div className="min-w-[120px] text-base">
-        <VSCodeTextField
-          className="vscode-field-bare w-full"
-          value={valueDraft}
-          onFocus={() => setValueEditing(true)}
-          onBlur={() => {
-            setValueEditing(false);
-            commitRegisterValueDraft();
+      <div className="min-w-[160px] text-base">
+        <div
+          className="flex items-stretch rounded"
+          style={{
+            border: '1px solid var(--vscode-dropdown-border, var(--vscode-panel-border))',
+            background: 'var(--vscode-input-background)',
           }}
-          onInput={(event) => {
-            const next = String((event.target as HTMLInputElement).value ?? '');
-            setValueDraft(next);
-            const parsed = parseRegisterValue(next);
-            setValueError(validateRegisterValue(parsed));
-          }}
-          onKeyDown={(event) => {
-            if (event.key !== 'Enter') {
-              return;
-            }
-            event.preventDefault();
-            event.stopPropagation();
-            commitRegisterValueDraft();
-            setValueEditing(false);
-            (event.currentTarget as HTMLElement | null)?.blur?.();
-          }}
-        />
+        >
+          {valueView === 'hex' ? (
+            <span
+              className="flex items-center pl-2 font-mono select-none"
+              style={{
+                fontSize: 'var(--vscode-font-size, 13px)',
+                color: 'var(--vscode-input-foreground)',
+              }}
+              aria-hidden="true"
+            >
+              0x
+            </span>
+          ) : null}
+          <VSCodeTextField
+            className="vscode-field-bare flex-1 font-mono"
+            value={valueDraft}
+            onFocus={(event) => {
+              setValueEditing(true);
+              (event.target as HTMLInputElement).select?.();
+            }}
+            onBlur={() => {
+              setValueEditing(false);
+              commitRegisterValueDraft();
+            }}
+            onInput={(event) => {
+              const next = String((event.target as HTMLInputElement).value ?? '');
+              setValueDraft(next);
+              const parsed = parseRegisterValue(next, valueView);
+              setValueError(validateRegisterValue(parsed));
+            }}
+            onKeyDown={(event) => {
+              if (event.key !== 'Enter') {
+                return;
+              }
+              event.preventDefault();
+              event.stopPropagation();
+              commitRegisterValueDraft();
+              setValueEditing(false);
+              (event.currentTarget as HTMLElement | null)?.blur?.();
+            }}
+          />
+        </div>
         {valueError ? <div className="text-xs vscode-error mt-1">{valueError}</div> : null}
       </div>
       <button

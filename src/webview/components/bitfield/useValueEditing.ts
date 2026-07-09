@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { hexDigitsForBits } from './utils';
 
 interface UseValueEditingOptions {
   registerSize: number;
   registerValue: number;
-  parseRegisterValue: (text: string) => number | null;
+  parseRegisterValue: (text: string, view: 'hex' | 'dec') => number | null;
   maxForBits: (bitCount: number) => number;
   applyRegisterValue: (value: number) => void;
 }
@@ -20,12 +21,16 @@ export function useValueEditing({
   const [valueEditing, setValueEditing] = useState(false);
   const [valueError, setValueError] = useState<string | null>(null);
 
+  // The "0x" prefix is rendered as a static label next to the field (see
+  // ValueBar), so the editable draft holds bare digits: hex digits are
+  // zero-padded to the register width so e.g. a 32-bit register always
+  // reads "00000000" rather than "0", making it obvious which nibble to edit.
   const registerValueText = useMemo(() => {
     if (valueView === 'dec') {
       return registerValue.toString(10);
     }
-    return `0x${registerValue.toString(16).toUpperCase()}`;
-  }, [registerValue, valueView]);
+    return registerValue.toString(16).toUpperCase().padStart(hexDigitsForBits(registerSize), '0');
+  }, [registerValue, valueView, registerSize]);
 
   // This hook only writes registerValue on commit (blur/Enter in ValueBar),
   // never on every keystroke, and every commit flips `valueEditing` to false
@@ -67,7 +72,7 @@ export function useValueEditing({
   };
 
   const commitRegisterValueDraft = () => {
-    const parsed = parseRegisterValue(valueDraft);
+    const parsed = parseRegisterValue(valueDraft, valueView);
     const err = validateRegisterValue(parsed);
     setValueError(err);
     if (err || parsed === null) {
