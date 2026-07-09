@@ -23,16 +23,15 @@ entity {{ entity_name }}_avmm is
     clk : in std_logic;
     rst : in std_logic;
 
+{% set has_regs_in = hw_registers | length > 0 or w1c_registers | length > 0 or sc_registers | length > 0 or cos_registers | length > 0 %}
 {% if bus_ports | length > 0 %}
     -- Avalon-MM Slave Interface
 {% for port in bus_ports %}
-    {{ "%-16s"|format(port.name) }} : {{ "%-3s"|format(port.direction) }} {{ port.type }}{{ ";" if not loop.last else "" }}
+    {{ "%-16s"|format(port.name) }} : {{ "%-3s"|format(port.direction) }} {{ port.type }}{{ ";" if not loop.last or sw_registers | length > 0 or has_regs_in else "" }}
 {% endfor %}
-    ;
 {% endif %}
 
     -- Register interface
-{% set has_regs_in = hw_registers | length > 0 or w1c_registers | length > 0 or sc_registers | length > 0 or cos_registers | length > 0 %}
 {% if sw_registers | length > 0 %}
     regs_out : out t_regs_sw2hw{{ ";" if has_regs_in else "" }}  -- To core (SW-writable)
 {% endif %}
@@ -107,7 +106,7 @@ begin
       rd_en    => read,
       rd_addr  => address,
       rd_data  => readdata,
-      rd_valid => readdatavalid,
+      rd_valid => readdatavalid{{ "," if sw_registers | length > 0 or has_regs_in else "" }}
 {% if sw_registers | length > 0 %}
       regs_out => regs_out{{ "," if has_regs_in else "" }}
 {% endif %}

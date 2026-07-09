@@ -33,10 +33,11 @@ entity {{ entity_name }}_axil is
     clk : in std_logic;
     rst : in std_logic;
 
+{% set has_regs_in = hw_registers | length > 0 or w1c_registers | length > 0 or sc_registers | length > 0 or cos_registers | length > 0 %}
 {% if bus_ports | length > 0 %}
     -- AXI-Lite Slave Interface
 {% for port in bus_ports %}
-    {{ "%-14s"|format(port.name) }} : {{ "%-3s"|format(port.direction) }} {{ port.type }}{{ ";" }}
+    {{ "%-14s"|format(port.name) }} : {{ "%-3s"|format(port.direction) }} {{ port.type }}{{ ";" if not loop.last or pass_user_via_bus or sw_registers | length > 0 or has_regs_in else "" }}
 {% endfor %}
 {% endif %}
 {% if pass_user_via_bus %}
@@ -46,7 +47,6 @@ entity {{ entity_name }}_axil is
 {% endfor %}
 {% else %}
     -- Register interface
-{% set has_regs_in = hw_registers | length > 0 or w1c_registers | length > 0 or sc_registers | length > 0 or cos_registers | length > 0 %}
 {% if sw_registers | length > 0 %}
     regs_out : out t_regs_sw2hw{{ ";" if has_regs_in else "" }}  -- To core (SW-writable)
 {% endif %}
@@ -143,7 +143,7 @@ begin
       rd_en    => rd_en,
       rd_addr  => rd_addr,
       rd_data  => rd_data,
-      rd_valid => rd_valid,
+      rd_valid => rd_valid{{ "," if sw_registers | length > 0 or has_regs_in else "" }}
 {% if sw_registers | length > 0 %}
       regs_out => regs_out{{ "," if has_regs_in else "" }}
 {% endif %}

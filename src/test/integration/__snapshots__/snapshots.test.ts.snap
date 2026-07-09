@@ -462,6 +462,10 @@ set_global_assignment -name TOP_LEVEL_ENTITY basic_peripheral
 # ---- RTL source files -------------------------------------------------------
 # Paths are relative to this QSF (in build/) so the project is portable across
 # host and Docker environments — no absolute paths are stored.
+set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/basic_peripheral_pkg.sv]
+set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/basic_peripheral_regs.sv]
+set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/basic_peripheral_core.sv]
+set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/basic_peripheral_axil.sv]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/basic_peripheral.sv]
 set_global_assignment -name VHDL_FILE [file join .. ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_pkg.vhd]
 set_global_assignment -name VHDL_FILE [file join .. ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_regs.vhd]
@@ -536,11 +540,11 @@ set_global_assignment -name TOP_LEVEL_ENTITY basic_peripheral
 # ---- RTL source files -------------------------------------------------------
 # Paths are relative to this QSF (in build/) so the project is portable across
 # host and Docker environments — no absolute paths are stored.
+set_global_assignment -name VHDL_FILE [file join .. ../rtl/basic_peripheral_pkg.vhd]
+set_global_assignment -name VHDL_FILE [file join .. ../rtl/basic_peripheral_regs.vhd]
+set_global_assignment -name VHDL_FILE [file join .. ../rtl/basic_peripheral_core.vhd]
+set_global_assignment -name VHDL_FILE [file join .. ../rtl/basic_peripheral_axil.vhd]
 set_global_assignment -name VHDL_FILE [file join .. ../rtl/basic_peripheral.vhd]
-set_global_assignment -name VHDL_FILE [file join .. ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_pkg.vhd]
-set_global_assignment -name VHDL_FILE [file join .. ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_regs.vhd]
-set_global_assignment -name VHDL_FILE [file join .. ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_core.vhd]
-set_global_assignment -name VHDL_FILE [file join .. ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_axil.vhd]
 
 # ---- Timing constraints -----------------------------------------------------
 # sdc_file is a bare filename (the .sdc is written as a sibling of this
@@ -1185,6 +1189,10 @@ set_global_assignment -name TOP_LEVEL_ENTITY multi_interface_accelerator
 # ---- RTL source files -------------------------------------------------------
 # Paths are relative to this QSF (in build/) so the project is portable across
 # host and Docker environments — no absolute paths are stored.
+set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/multi_interface_accelerator_pkg.sv]
+set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/multi_interface_accelerator_regs.sv]
+set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/multi_interface_accelerator_core.sv]
+set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/multi_interface_accelerator_axil.sv]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/multi_interface_accelerator.sv]
 set_global_assignment -name VHDL_FILE [file join .. ../../../../../ipcraft-spec/examples/multi_interface_accelerator/rtl/accelerator_top.vhd]
 
@@ -1255,6 +1263,10 @@ set_global_assignment -name TOP_LEVEL_ENTITY multi_interface_accelerator
 # ---- RTL source files -------------------------------------------------------
 # Paths are relative to this QSF (in build/) so the project is portable across
 # host and Docker environments — no absolute paths are stored.
+set_global_assignment -name VHDL_FILE [file join .. ../rtl/multi_interface_accelerator_pkg.vhd]
+set_global_assignment -name VHDL_FILE [file join .. ../rtl/multi_interface_accelerator_regs.vhd]
+set_global_assignment -name VHDL_FILE [file join .. ../rtl/multi_interface_accelerator_core.vhd]
+set_global_assignment -name VHDL_FILE [file join .. ../rtl/multi_interface_accelerator_axil.vhd]
 set_global_assignment -name VHDL_FILE [file join .. ../rtl/multi_interface_accelerator.vhd]
 set_global_assignment -name VHDL_FILE [file join .. ../../../../../ipcraft-spec/examples/multi_interface_accelerator/rtl/accelerator_top.vhd]
 
@@ -1325,6 +1337,10 @@ set_global_assignment -name TOP_LEVEL_ENTITY system_controller
 # ---- RTL source files -------------------------------------------------------
 # Paths are relative to this QSF (in build/) so the project is portable across
 # host and Docker environments — no absolute paths are stored.
+set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/system_controller_pkg.sv]
+set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/system_controller_regs.sv]
+set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/system_controller_core.sv]
+set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/system_controller_axil.sv]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/system_controller.sv]
 set_global_assignment -name VHDL_FILE [file join .. ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_pkg.vhd]
 set_global_assignment -name VHDL_FILE [file join .. ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller.vhd]
@@ -1399,11 +1415,11 @@ set_global_assignment -name TOP_LEVEL_ENTITY system_controller
 # ---- RTL source files -------------------------------------------------------
 # Paths are relative to this QSF (in build/) so the project is portable across
 # host and Docker environments — no absolute paths are stored.
+set_global_assignment -name VHDL_FILE [file join .. ../rtl/system_controller_pkg.vhd]
+set_global_assignment -name VHDL_FILE [file join .. ../rtl/system_controller_regs.vhd]
+set_global_assignment -name VHDL_FILE [file join .. ../rtl/system_controller_core.vhd]
+set_global_assignment -name VHDL_FILE [file join .. ../rtl/system_controller_axil.vhd]
 set_global_assignment -name VHDL_FILE [file join .. ../rtl/system_controller.vhd]
-set_global_assignment -name VHDL_FILE [file join .. ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_pkg.vhd]
-set_global_assignment -name VHDL_FILE [file join .. ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_regs.vhd]
-set_global_assignment -name VHDL_FILE [file join .. ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_core.vhd]
-set_global_assignment -name VHDL_FILE [file join .. ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_axil.vhd]
 
 # ---- Timing constraints -----------------------------------------------------
 # sdc_file is a bare filename (the .sdc is written as a sibling of this
@@ -1707,6 +1723,135 @@ puts "Timing report will be written to output_files/\${project_name}.sta.summary
 
 exports[`SystemVerilog pkg file content matches snapshot 1`] = `
 {
+  "examples/basic_peripheral_sv/rtl/basic_peripheral_pkg.sv": "
+
+////////////////////////////////////////////////////////////////////////////////
+// Package: basic_peripheral_pkg
+// Generated by ipcraft SystemVerilog Generator
+////////////////////////////////////////////////////////////////////////////////
+
+\`timescale 1ns / 1ps
+
+package basic_peripheral_pkg;
+
+  ////////////////////////////////////////////////////////////////////////////
+  // Constants
+  ////////////////////////////////////////////////////////////////////////////
+  localparam int C_DATA_WIDTH = 32;
+  localparam int C_ADDR_WIDTH = 4;
+  localparam int C_REG_WIDTH  = 4;  // Bytes per register
+
+  ////////////////////////////////////////////////////////////////////////////
+  // Register Address Map (byte offset, matches the resolved memory map and
+  // the generated component.xml -- never derived from declaration order)
+  ////////////////////////////////////////////////////////////////////////////
+  localparam logic [C_ADDR_WIDTH-1:0] REG_CONTROL_ADDR = 0;  // addr 00
+  localparam logic [C_ADDR_WIDTH-1:0] REG_STATUS_ADDR = 4;  // addr 04
+  localparam logic [C_ADDR_WIDTH-1:0] REG_DATA_OUT_ADDR = 8;  // addr 08
+
+  ////////////////////////////////////////////////////////////////////////////
+  // Register Field Structs and Conversion Functions
+  ////////////////////////////////////////////////////////////////////////////
+
+  // CONTROL register fields
+  typedef struct packed {
+    logic        enable;  // bit 0
+    logic        irq_enable;  // bit 3
+    logic [27:0] reserved;  // bits 31:4
+  } control_t;
+
+  // Pack CONTROL fields into a 32-bit bus word
+  function automatic logic [C_DATA_WIDTH-1:0] pack_control(input control_t reg_in);
+    logic [C_DATA_WIDTH-1:0] slv;
+    slv = '0;
+    slv[0] = reg_in.enable;
+    slv[3] = reg_in.irq_enable;
+    slv[31:4] = reg_in.reserved;
+    return slv;
+  endfunction
+
+  // Unpack a 32-bit bus word into CONTROL fields
+  function automatic control_t unpack_control(input logic [C_DATA_WIDTH-1:0] slv);
+    control_t reg_out;
+    reg_out.enable = slv[0];
+    reg_out.irq_enable = slv[3];
+    reg_out.reserved = slv[31:4];
+    return reg_out;
+  endfunction
+
+  // STATUS register fields
+  typedef struct packed {
+    logic        ready;  // bit 0
+    logic        error;  // bit 1
+    logic [29:0] reserved;  // bits 31:2
+  } status_t;
+
+  // Pack STATUS fields into a 32-bit bus word
+  function automatic logic [C_DATA_WIDTH-1:0] pack_status(input status_t reg_in);
+    logic [C_DATA_WIDTH-1:0] slv;
+    slv = '0;
+    slv[0] = reg_in.ready;
+    slv[1] = reg_in.error;
+    slv[31:2] = reg_in.reserved;
+    return slv;
+  endfunction
+
+  // Unpack a 32-bit bus word into STATUS fields
+  function automatic status_t unpack_status(input logic [C_DATA_WIDTH-1:0] slv);
+    status_t reg_out;
+    reg_out.ready = slv[0];
+    reg_out.error = slv[1];
+    reg_out.reserved = slv[31:2];
+    return reg_out;
+  endfunction
+
+  // DATA_OUT register fields
+  typedef struct packed {
+    logic [31:0] data;  // bits 31:0
+  } data_out_t;
+
+  // Pack DATA_OUT fields into a 32-bit bus word
+  function automatic logic [C_DATA_WIDTH-1:0] pack_data_out(input data_out_t reg_in);
+    logic [C_DATA_WIDTH-1:0] slv;
+    slv = '0;
+    slv[31:0] = reg_in.data;
+    return slv;
+  endfunction
+
+  // Unpack a 32-bit bus word into DATA_OUT fields
+  function automatic data_out_t unpack_data_out(input logic [C_DATA_WIDTH-1:0] slv);
+    data_out_t reg_out;
+    reg_out.data = slv[31:0];
+    return reg_out;
+  endfunction
+
+  // Hardware-driven value-port struct types: live values for read-only fields
+  // mixed into an otherwise SW-writable register (includes CoS-monitored
+  // fields, which are always mixed by construction).
+
+  // CONTROL hardware-driven field values
+  typedef struct packed {
+    logic [27:0] reserved;  // hardware-driven, read-only in CONTROL
+  } control_val_t;
+
+  ////////////////////////////////////////////////////////////////////////////
+  // Aggregate Register Structs (for clean port interface)
+  ////////////////////////////////////////////////////////////////////////////
+
+  // SW -> HW: Registers written by software, read by hardware
+  typedef struct packed {
+    control_t control;
+    data_out_t data_out;
+  } regs_sw2hw_t;
+
+  // HW -> SW: Status registers (RO) + W1C/SC event pulses + hardware-driven value ports
+  typedef struct packed {
+    status_t status;
+    control_val_t control_val;  // hardware-driven values for CONTROL
+  } regs_hw2sw_t;
+
+endpackage : basic_peripheral_pkg
+",
   "examples/comprehensive_avalon_sv/rtl/comprehensive_avalon_pkg.sv": "
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -3121,11 +3266,667 @@ package daq_controller_pkg;
 
 endpackage : daq_controller_pkg
 ",
+  "examples/multi_interface_accelerator_sv/rtl/multi_interface_accelerator_pkg.sv": "
+
+////////////////////////////////////////////////////////////////////////////////
+// Package: multi_interface_accelerator_pkg
+// Generated by ipcraft SystemVerilog Generator
+////////////////////////////////////////////////////////////////////////////////
+
+\`timescale 1ns / 1ps
+
+package multi_interface_accelerator_pkg;
+
+  ////////////////////////////////////////////////////////////////////////////
+  // Constants
+  ////////////////////////////////////////////////////////////////////////////
+  localparam int C_DATA_WIDTH = 32;
+  localparam int C_ADDR_WIDTH = 11;
+  localparam int C_REG_WIDTH  = 4;  // Bytes per register
+
+  ////////////////////////////////////////////////////////////////////////////
+  // Register Address Map (byte offset, matches the resolved memory map and
+  // the generated component.xml -- never derived from declaration order)
+  ////////////////////////////////////////////////////////////////////////////
+  localparam logic [C_ADDR_WIDTH-1:0] REG_GLOBAL_CTRL_ADDR = 0;  // addr 00
+  localparam logic [C_ADDR_WIDTH-1:0] REG_GLOBAL_STATUS_ADDR = 4;  // addr 04
+  localparam logic [C_ADDR_WIDTH-1:0] REG_SENSOR_STATUS_ADDR = 256;  // addr 100
+  localparam logic [C_ADDR_WIDTH-1:0] REG_CHANNEL_0_CTRL_ADDR = 1024;  // addr 400
+  localparam logic [C_ADDR_WIDTH-1:0] REG_CHANNEL_0_STATUS_ADDR = 1028;  // addr 404
+  localparam logic [C_ADDR_WIDTH-1:0] REG_CHANNEL_0_PARAMETER_ADDR = 1032;  // addr 408
+  localparam logic [C_ADDR_WIDTH-1:0] REG_CHANNEL_1_CTRL_ADDR = 1040;  // addr 410
+  localparam logic [C_ADDR_WIDTH-1:0] REG_CHANNEL_1_STATUS_ADDR = 1044;  // addr 414
+  localparam logic [C_ADDR_WIDTH-1:0] REG_CHANNEL_1_PARAMETER_ADDR = 1048;  // addr 418
+  localparam logic [C_ADDR_WIDTH-1:0] REG_CHANNEL_2_CTRL_ADDR = 1056;  // addr 420
+  localparam logic [C_ADDR_WIDTH-1:0] REG_CHANNEL_2_STATUS_ADDR = 1060;  // addr 424
+  localparam logic [C_ADDR_WIDTH-1:0] REG_CHANNEL_2_PARAMETER_ADDR = 1064;  // addr 428
+  localparam logic [C_ADDR_WIDTH-1:0] REG_CHANNEL_3_CTRL_ADDR = 1072;  // addr 430
+  localparam logic [C_ADDR_WIDTH-1:0] REG_CHANNEL_3_STATUS_ADDR = 1076;  // addr 434
+  localparam logic [C_ADDR_WIDTH-1:0] REG_CHANNEL_3_PARAMETER_ADDR = 1080;  // addr 438
+
+  ////////////////////////////////////////////////////////////////////////////
+  // Register Field Structs and Conversion Functions
+  ////////////////////////////////////////////////////////////////////////////
+
+  // GLOBAL_CTRL register fields
+  typedef struct packed {
+    logic        enable_all;  // bit 0
+    logic [1:0] mode;  // bits 2:1
+    logic        reset_all;  // bit 8
+    logic [22:0] reserved;  // bits 31:9
+  } global_ctrl_t;
+
+  // Pack GLOBAL_CTRL fields into a 32-bit bus word
+  function automatic logic [C_DATA_WIDTH-1:0] pack_global_ctrl(input global_ctrl_t reg_in);
+    logic [C_DATA_WIDTH-1:0] slv;
+    slv = '0;
+    slv[0] = reg_in.enable_all;
+    slv[2:1] = reg_in.mode;
+    slv[8] = reg_in.reset_all;
+    slv[31:9] = reg_in.reserved;
+    return slv;
+  endfunction
+
+  // Unpack a 32-bit bus word into GLOBAL_CTRL fields
+  function automatic global_ctrl_t unpack_global_ctrl(input logic [C_DATA_WIDTH-1:0] slv);
+    global_ctrl_t reg_out;
+    reg_out.enable_all = slv[0];
+    reg_out.mode = slv[2:1];
+    reg_out.reset_all = slv[8];
+    reg_out.reserved = slv[31:9];
+    return reg_out;
+  endfunction
+
+  // GLOBAL_STATUS register fields
+  typedef struct packed {
+    logic        irq_pending;  // bit 0
+    logic [30:0] reserved;  // bits 31:1
+  } global_status_t;
+
+  // Pack GLOBAL_STATUS fields into a 32-bit bus word
+  function automatic logic [C_DATA_WIDTH-1:0] pack_global_status(input global_status_t reg_in);
+    logic [C_DATA_WIDTH-1:0] slv;
+    slv = '0;
+    slv[0] = reg_in.irq_pending;
+    slv[31:1] = reg_in.reserved;
+    return slv;
+  endfunction
+
+  // Unpack a 32-bit bus word into GLOBAL_STATUS fields
+  function automatic global_status_t unpack_global_status(input logic [C_DATA_WIDTH-1:0] slv);
+    global_status_t reg_out;
+    reg_out.irq_pending = slv[0];
+    reg_out.reserved = slv[31:1];
+    return reg_out;
+  endfunction
+
+  // SENSOR_STATUS register fields
+  typedef struct packed {
+    logic        fifo_overflow;  // bit 0
+    logic [11:0] temp_value;  // bits 15:4
+    logic        temp_updated;  // bit 16
+  } sensor_status_t;
+
+  // Pack SENSOR_STATUS fields into a 32-bit bus word
+  function automatic logic [C_DATA_WIDTH-1:0] pack_sensor_status(input sensor_status_t reg_in);
+    logic [C_DATA_WIDTH-1:0] slv;
+    slv = '0;
+    slv[0] = reg_in.fifo_overflow;
+    slv[15:4] = reg_in.temp_value;
+    slv[16] = reg_in.temp_updated;
+    return slv;
+  endfunction
+
+  // Unpack a 32-bit bus word into SENSOR_STATUS fields
+  function automatic sensor_status_t unpack_sensor_status(input logic [C_DATA_WIDTH-1:0] slv);
+    sensor_status_t reg_out;
+    reg_out.fifo_overflow = slv[0];
+    reg_out.temp_value = slv[15:4];
+    reg_out.temp_updated = slv[16];
+    return reg_out;
+  endfunction
+
+  // CHANNEL_0_CTRL register fields
+  typedef struct packed {
+    logic        enable;  // bit 0
+    logic        ie;  // bit 2
+  } channel_0_ctrl_t;
+
+  // Pack CHANNEL_0_CTRL fields into a 32-bit bus word
+  function automatic logic [C_DATA_WIDTH-1:0] pack_channel_0_ctrl(input channel_0_ctrl_t reg_in);
+    logic [C_DATA_WIDTH-1:0] slv;
+    slv = '0;
+    slv[0] = reg_in.enable;
+    slv[2] = reg_in.ie;
+    return slv;
+  endfunction
+
+  // Unpack a 32-bit bus word into CHANNEL_0_CTRL fields
+  function automatic channel_0_ctrl_t unpack_channel_0_ctrl(input logic [C_DATA_WIDTH-1:0] slv);
+    channel_0_ctrl_t reg_out;
+    reg_out.enable = slv[0];
+    reg_out.ie = slv[2];
+    return reg_out;
+  endfunction
+
+  // CHANNEL_0_STATUS register fields
+  typedef struct packed {
+    logic        irq_pending;  // bit 0
+  } channel_0_status_t;
+
+  // Pack CHANNEL_0_STATUS fields into a 32-bit bus word
+  function automatic logic [C_DATA_WIDTH-1:0] pack_channel_0_status(input channel_0_status_t reg_in);
+    logic [C_DATA_WIDTH-1:0] slv;
+    slv = '0;
+    slv[0] = reg_in.irq_pending;
+    return slv;
+  endfunction
+
+  // Unpack a 32-bit bus word into CHANNEL_0_STATUS fields
+  function automatic channel_0_status_t unpack_channel_0_status(input logic [C_DATA_WIDTH-1:0] slv);
+    channel_0_status_t reg_out;
+    reg_out.irq_pending = slv[0];
+    return reg_out;
+  endfunction
+
+  // CHANNEL_0_PARAMETER register fields
+  typedef struct packed {
+    logic [31:0] value;  // bits 31:0
+  } channel_0_parameter_t;
+
+  // Pack CHANNEL_0_PARAMETER fields into a 32-bit bus word
+  function automatic logic [C_DATA_WIDTH-1:0] pack_channel_0_parameter(input channel_0_parameter_t reg_in);
+    logic [C_DATA_WIDTH-1:0] slv;
+    slv = '0;
+    slv[31:0] = reg_in.value;
+    return slv;
+  endfunction
+
+  // Unpack a 32-bit bus word into CHANNEL_0_PARAMETER fields
+  function automatic channel_0_parameter_t unpack_channel_0_parameter(input logic [C_DATA_WIDTH-1:0] slv);
+    channel_0_parameter_t reg_out;
+    reg_out.value = slv[31:0];
+    return reg_out;
+  endfunction
+
+  // CHANNEL_1_CTRL register fields
+  typedef struct packed {
+    logic        enable;  // bit 0
+    logic        ie;  // bit 2
+  } channel_1_ctrl_t;
+
+  // Pack CHANNEL_1_CTRL fields into a 32-bit bus word
+  function automatic logic [C_DATA_WIDTH-1:0] pack_channel_1_ctrl(input channel_1_ctrl_t reg_in);
+    logic [C_DATA_WIDTH-1:0] slv;
+    slv = '0;
+    slv[0] = reg_in.enable;
+    slv[2] = reg_in.ie;
+    return slv;
+  endfunction
+
+  // Unpack a 32-bit bus word into CHANNEL_1_CTRL fields
+  function automatic channel_1_ctrl_t unpack_channel_1_ctrl(input logic [C_DATA_WIDTH-1:0] slv);
+    channel_1_ctrl_t reg_out;
+    reg_out.enable = slv[0];
+    reg_out.ie = slv[2];
+    return reg_out;
+  endfunction
+
+  // CHANNEL_1_STATUS register fields
+  typedef struct packed {
+    logic        irq_pending;  // bit 0
+  } channel_1_status_t;
+
+  // Pack CHANNEL_1_STATUS fields into a 32-bit bus word
+  function automatic logic [C_DATA_WIDTH-1:0] pack_channel_1_status(input channel_1_status_t reg_in);
+    logic [C_DATA_WIDTH-1:0] slv;
+    slv = '0;
+    slv[0] = reg_in.irq_pending;
+    return slv;
+  endfunction
+
+  // Unpack a 32-bit bus word into CHANNEL_1_STATUS fields
+  function automatic channel_1_status_t unpack_channel_1_status(input logic [C_DATA_WIDTH-1:0] slv);
+    channel_1_status_t reg_out;
+    reg_out.irq_pending = slv[0];
+    return reg_out;
+  endfunction
+
+  // CHANNEL_1_PARAMETER register fields
+  typedef struct packed {
+    logic [31:0] value;  // bits 31:0
+  } channel_1_parameter_t;
+
+  // Pack CHANNEL_1_PARAMETER fields into a 32-bit bus word
+  function automatic logic [C_DATA_WIDTH-1:0] pack_channel_1_parameter(input channel_1_parameter_t reg_in);
+    logic [C_DATA_WIDTH-1:0] slv;
+    slv = '0;
+    slv[31:0] = reg_in.value;
+    return slv;
+  endfunction
+
+  // Unpack a 32-bit bus word into CHANNEL_1_PARAMETER fields
+  function automatic channel_1_parameter_t unpack_channel_1_parameter(input logic [C_DATA_WIDTH-1:0] slv);
+    channel_1_parameter_t reg_out;
+    reg_out.value = slv[31:0];
+    return reg_out;
+  endfunction
+
+  // CHANNEL_2_CTRL register fields
+  typedef struct packed {
+    logic        enable;  // bit 0
+    logic        ie;  // bit 2
+  } channel_2_ctrl_t;
+
+  // Pack CHANNEL_2_CTRL fields into a 32-bit bus word
+  function automatic logic [C_DATA_WIDTH-1:0] pack_channel_2_ctrl(input channel_2_ctrl_t reg_in);
+    logic [C_DATA_WIDTH-1:0] slv;
+    slv = '0;
+    slv[0] = reg_in.enable;
+    slv[2] = reg_in.ie;
+    return slv;
+  endfunction
+
+  // Unpack a 32-bit bus word into CHANNEL_2_CTRL fields
+  function automatic channel_2_ctrl_t unpack_channel_2_ctrl(input logic [C_DATA_WIDTH-1:0] slv);
+    channel_2_ctrl_t reg_out;
+    reg_out.enable = slv[0];
+    reg_out.ie = slv[2];
+    return reg_out;
+  endfunction
+
+  // CHANNEL_2_STATUS register fields
+  typedef struct packed {
+    logic        irq_pending;  // bit 0
+  } channel_2_status_t;
+
+  // Pack CHANNEL_2_STATUS fields into a 32-bit bus word
+  function automatic logic [C_DATA_WIDTH-1:0] pack_channel_2_status(input channel_2_status_t reg_in);
+    logic [C_DATA_WIDTH-1:0] slv;
+    slv = '0;
+    slv[0] = reg_in.irq_pending;
+    return slv;
+  endfunction
+
+  // Unpack a 32-bit bus word into CHANNEL_2_STATUS fields
+  function automatic channel_2_status_t unpack_channel_2_status(input logic [C_DATA_WIDTH-1:0] slv);
+    channel_2_status_t reg_out;
+    reg_out.irq_pending = slv[0];
+    return reg_out;
+  endfunction
+
+  // CHANNEL_2_PARAMETER register fields
+  typedef struct packed {
+    logic [31:0] value;  // bits 31:0
+  } channel_2_parameter_t;
+
+  // Pack CHANNEL_2_PARAMETER fields into a 32-bit bus word
+  function automatic logic [C_DATA_WIDTH-1:0] pack_channel_2_parameter(input channel_2_parameter_t reg_in);
+    logic [C_DATA_WIDTH-1:0] slv;
+    slv = '0;
+    slv[31:0] = reg_in.value;
+    return slv;
+  endfunction
+
+  // Unpack a 32-bit bus word into CHANNEL_2_PARAMETER fields
+  function automatic channel_2_parameter_t unpack_channel_2_parameter(input logic [C_DATA_WIDTH-1:0] slv);
+    channel_2_parameter_t reg_out;
+    reg_out.value = slv[31:0];
+    return reg_out;
+  endfunction
+
+  // CHANNEL_3_CTRL register fields
+  typedef struct packed {
+    logic        enable;  // bit 0
+    logic        ie;  // bit 2
+  } channel_3_ctrl_t;
+
+  // Pack CHANNEL_3_CTRL fields into a 32-bit bus word
+  function automatic logic [C_DATA_WIDTH-1:0] pack_channel_3_ctrl(input channel_3_ctrl_t reg_in);
+    logic [C_DATA_WIDTH-1:0] slv;
+    slv = '0;
+    slv[0] = reg_in.enable;
+    slv[2] = reg_in.ie;
+    return slv;
+  endfunction
+
+  // Unpack a 32-bit bus word into CHANNEL_3_CTRL fields
+  function automatic channel_3_ctrl_t unpack_channel_3_ctrl(input logic [C_DATA_WIDTH-1:0] slv);
+    channel_3_ctrl_t reg_out;
+    reg_out.enable = slv[0];
+    reg_out.ie = slv[2];
+    return reg_out;
+  endfunction
+
+  // CHANNEL_3_STATUS register fields
+  typedef struct packed {
+    logic        irq_pending;  // bit 0
+  } channel_3_status_t;
+
+  // Pack CHANNEL_3_STATUS fields into a 32-bit bus word
+  function automatic logic [C_DATA_WIDTH-1:0] pack_channel_3_status(input channel_3_status_t reg_in);
+    logic [C_DATA_WIDTH-1:0] slv;
+    slv = '0;
+    slv[0] = reg_in.irq_pending;
+    return slv;
+  endfunction
+
+  // Unpack a 32-bit bus word into CHANNEL_3_STATUS fields
+  function automatic channel_3_status_t unpack_channel_3_status(input logic [C_DATA_WIDTH-1:0] slv);
+    channel_3_status_t reg_out;
+    reg_out.irq_pending = slv[0];
+    return reg_out;
+  endfunction
+
+  // CHANNEL_3_PARAMETER register fields
+  typedef struct packed {
+    logic [31:0] value;  // bits 31:0
+  } channel_3_parameter_t;
+
+  // Pack CHANNEL_3_PARAMETER fields into a 32-bit bus word
+  function automatic logic [C_DATA_WIDTH-1:0] pack_channel_3_parameter(input channel_3_parameter_t reg_in);
+    logic [C_DATA_WIDTH-1:0] slv;
+    slv = '0;
+    slv[31:0] = reg_in.value;
+    return slv;
+  endfunction
+
+  // Unpack a 32-bit bus word into CHANNEL_3_PARAMETER fields
+  function automatic channel_3_parameter_t unpack_channel_3_parameter(input logic [C_DATA_WIDTH-1:0] slv);
+    channel_3_parameter_t reg_out;
+    reg_out.value = slv[31:0];
+    return reg_out;
+  endfunction
+
+  // W1C event-pulse struct types (hardware drives a 1-cycle strobe to set a sticky bit)
+
+  // SENSOR_STATUS W1C event-pulse fields (external pulse only — CoS fields excluded)
+  typedef struct packed {
+    logic        fifo_overflow_pulse;  // event strobe → sets SENSOR_STATUS.fifo_overflow
+  } sensor_status_pulse_t;
+
+
+  // CHANNEL_0_STATUS W1C event-pulse fields (external pulse only — CoS fields excluded)
+  typedef struct packed {
+    logic        irq_pending_pulse;  // event strobe → sets CHANNEL_0_STATUS.irq_pending
+  } channel_0_status_pulse_t;
+
+
+  // CHANNEL_1_STATUS W1C event-pulse fields (external pulse only — CoS fields excluded)
+  typedef struct packed {
+    logic        irq_pending_pulse;  // event strobe → sets CHANNEL_1_STATUS.irq_pending
+  } channel_1_status_pulse_t;
+
+
+  // CHANNEL_2_STATUS W1C event-pulse fields (external pulse only — CoS fields excluded)
+  typedef struct packed {
+    logic        irq_pending_pulse;  // event strobe → sets CHANNEL_2_STATUS.irq_pending
+  } channel_2_status_pulse_t;
+
+
+  // CHANNEL_3_STATUS W1C event-pulse fields (external pulse only — CoS fields excluded)
+  typedef struct packed {
+    logic        irq_pending_pulse;  // event strobe → sets CHANNEL_3_STATUS.irq_pending
+  } channel_3_status_pulse_t;
+
+  // Hardware-driven value-port struct types: live values for read-only fields
+  // mixed into an otherwise SW-writable register (includes CoS-monitored
+  // fields, which are always mixed by construction).
+
+  // GLOBAL_CTRL hardware-driven field values
+  typedef struct packed {
+    logic [22:0] reserved;  // hardware-driven, read-only in GLOBAL_CTRL
+  } global_ctrl_val_t;
+
+
+  // SENSOR_STATUS hardware-driven field values
+  typedef struct packed {
+    logic [11:0] temp_value;  // hardware-driven, read-only in SENSOR_STATUS
+  } sensor_status_val_t;
+
+  ////////////////////////////////////////////////////////////////////////////
+  // Aggregate Register Structs (for clean port interface)
+  ////////////////////////////////////////////////////////////////////////////
+
+  // SW -> HW: Registers written by software, read by hardware
+  typedef struct packed {
+    global_ctrl_t global_ctrl;
+    sensor_status_t sensor_status;
+    channel_0_ctrl_t channel_0_ctrl;
+    channel_0_status_t channel_0_status;
+    channel_0_parameter_t channel_0_parameter;
+    channel_1_ctrl_t channel_1_ctrl;
+    channel_1_status_t channel_1_status;
+    channel_1_parameter_t channel_1_parameter;
+    channel_2_ctrl_t channel_2_ctrl;
+    channel_2_status_t channel_2_status;
+    channel_2_parameter_t channel_2_parameter;
+    channel_3_ctrl_t channel_3_ctrl;
+    channel_3_status_t channel_3_status;
+    channel_3_parameter_t channel_3_parameter;
+  } regs_sw2hw_t;
+
+  // HW -> SW: Status registers (RO) + W1C/SC event pulses + hardware-driven value ports
+  typedef struct packed {
+    global_status_t global_status;
+    sensor_status_pulse_t sensor_status_pulse;  // W1C event pulses for SENSOR_STATUS
+    channel_0_status_pulse_t channel_0_status_pulse;  // W1C event pulses for CHANNEL_0_STATUS
+    channel_1_status_pulse_t channel_1_status_pulse;  // W1C event pulses for CHANNEL_1_STATUS
+    channel_2_status_pulse_t channel_2_status_pulse;  // W1C event pulses for CHANNEL_2_STATUS
+    channel_3_status_pulse_t channel_3_status_pulse;  // W1C event pulses for CHANNEL_3_STATUS
+    global_ctrl_val_t global_ctrl_val;  // hardware-driven values for GLOBAL_CTRL
+    sensor_status_val_t sensor_status_val;  // hardware-driven values for SENSOR_STATUS
+  } regs_hw2sw_t;
+
+endpackage : multi_interface_accelerator_pkg
+",
+  "examples/system_controller_sv/rtl/system_controller_pkg.sv": "
+
+////////////////////////////////////////////////////////////////////////////////
+// Package: system_controller_pkg
+// Generated by ipcraft SystemVerilog Generator
+////////////////////////////////////////////////////////////////////////////////
+
+\`timescale 1ns / 1ps
+
+package system_controller_pkg;
+
+  ////////////////////////////////////////////////////////////////////////////
+  // Constants
+  ////////////////////////////////////////////////////////////////////////////
+  localparam int C_DATA_WIDTH = 32;
+  localparam int C_ADDR_WIDTH = 3;
+  localparam int C_REG_WIDTH  = 4;  // Bytes per register
+
+  ////////////////////////////////////////////////////////////////////////////
+  // Register Field Structs and Conversion Functions
+  ////////////////////////////////////////////////////////////////////////////
+
+endpackage : system_controller_pkg
+",
 }
 `;
 
 exports[`VHDL pkg file content matches snapshot 1`] = `
 {
+  "examples/basic_peripheral_vhdl/rtl/basic_peripheral_pkg.vhd": "
+
+--------------------------------------------------------------------------------
+-- Package: basic_peripheral_pkg
+-- Generated by ipcraft VHDL Generator
+--------------------------------------------------------------------------------
+
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+
+package basic_peripheral_pkg is
+
+  ----------------------------------------------------------------------------
+  -- Constants
+  ----------------------------------------------------------------------------
+  constant C_DATA_WIDTH : natural := 32;
+  constant C_ADDR_WIDTH : natural := 4;
+  constant C_REG_WIDTH  : natural := 4;  -- Bytes per register
+
+  ----------------------------------------------------------------------------
+  -- Register Address Map (byte offset, matches the resolved memory map and
+  -- the generated component.xml -- never derived from declaration order)
+  ----------------------------------------------------------------------------
+  constant C_REG_CONTROL_ADDR : natural := 0;  -- addr 00
+  constant C_REG_STATUS_ADDR : natural := 4;  -- addr 04
+  constant C_REG_DATA_OUT_ADDR : natural := 8;  -- addr 08
+
+  ----------------------------------------------------------------------------
+  -- Register Record Types
+  ----------------------------------------------------------------------------
+
+  -- CONTROL register fields
+  type t_reg_control is record
+    enable : std_logic;  -- bit 0
+    irq_enable : std_logic;  -- bit 3
+    reserved : std_logic_vector(27 downto 0);  -- bits 31:4
+  end record;
+
+  constant C_REG_CONTROL_RESET : t_reg_control := (
+    enable => '0',
+    irq_enable => '0',
+    reserved => (others => '0')
+  );
+
+  function to_slv(reg : t_reg_control) return std_logic_vector;
+  function to_control(slv : std_logic_vector(C_DATA_WIDTH-1 downto 0)) return t_reg_control;
+
+  -- STATUS register fields
+  type t_reg_status is record
+    ready : std_logic;  -- bit 0
+    error : std_logic;  -- bit 1
+    reserved : std_logic_vector(29 downto 0);  -- bits 31:2
+  end record;
+
+  constant C_REG_STATUS_RESET : t_reg_status := (
+    ready => '0',
+    error => '0',
+    reserved => (others => '0')
+  );
+
+  function to_slv(reg : t_reg_status) return std_logic_vector;
+  function to_status(slv : std_logic_vector(C_DATA_WIDTH-1 downto 0)) return t_reg_status;
+
+  -- DATA_OUT register fields
+  type t_reg_data_out is record
+    data : std_logic_vector(31 downto 0);  -- bits 31:0
+  end record;
+
+  constant C_REG_DATA_OUT_RESET : t_reg_data_out := (
+    data => (others => '0')
+  );
+
+  function to_slv(reg : t_reg_data_out) return std_logic_vector;
+  function to_data_out(slv : std_logic_vector(C_DATA_WIDTH-1 downto 0)) return t_reg_data_out;
+
+  -- Hardware-driven value-port record types: live values for read-only fields
+  -- mixed into an otherwise SW-writable register (includes CoS-monitored
+  -- fields, which are always mixed by construction).
+
+  type t_reg_control_val is record
+    reserved : std_logic_vector(27 downto 0);  -- hardware-driven, read-only in CONTROL
+  end record;
+
+  constant C_REG_CONTROL_VAL_RESET : t_reg_control_val := (
+    reserved => (others => '0')
+  );
+
+  ----------------------------------------------------------------------------
+  -- Aggregate Register Records (for clean port interface)
+  ----------------------------------------------------------------------------
+
+  -- SW -> HW: Registers written by software, read by hardware
+  type t_regs_sw2hw is record
+    control : t_reg_control;
+    data_out : t_reg_data_out;
+  end record;
+
+  constant C_REGS_SW2HW_RESET : t_regs_sw2hw := (
+    control => C_REG_CONTROL_RESET,
+    data_out => C_REG_DATA_OUT_RESET
+  );
+
+  -- HW -> SW: Status registers (RO) + W1C/SC event pulses + hardware-driven value ports
+  type t_regs_hw2sw is record
+    status : t_reg_status;
+    control_val : t_reg_control_val;  -- hardware-driven values for CONTROL
+  end record;
+
+  constant C_REGS_HW2SW_RESET : t_regs_hw2sw := (
+    status => C_REG_STATUS_RESET,
+    control_val => C_REG_CONTROL_VAL_RESET
+  );
+
+end package basic_peripheral_pkg;
+
+
+package body basic_peripheral_pkg is
+
+  ----------------------------------------------------------------------------
+  -- Conversion Functions
+  ----------------------------------------------------------------------------
+
+  -- CONTROL conversions
+  function to_slv(reg : t_reg_control) return std_logic_vector is
+    variable slv : std_logic_vector(C_DATA_WIDTH-1 downto 0) := (others => '0');
+  begin
+    slv(0) := reg.enable;
+    slv(3) := reg.irq_enable;
+    slv(31 downto 4) := reg.reserved;
+    return slv;
+  end function;
+
+  function to_control(slv : std_logic_vector(C_DATA_WIDTH-1 downto 0)) return t_reg_control is
+    variable reg : t_reg_control;
+  begin
+    reg.enable := slv(0);
+    reg.irq_enable := slv(3);
+    reg.reserved := slv(31 downto 4);
+    return reg;
+  end function;
+
+  -- STATUS conversions
+  function to_slv(reg : t_reg_status) return std_logic_vector is
+    variable slv : std_logic_vector(C_DATA_WIDTH-1 downto 0) := (others => '0');
+  begin
+    slv(0) := reg.ready;
+    slv(1) := reg.error;
+    slv(31 downto 2) := reg.reserved;
+    return slv;
+  end function;
+
+  function to_status(slv : std_logic_vector(C_DATA_WIDTH-1 downto 0)) return t_reg_status is
+    variable reg : t_reg_status;
+  begin
+    reg.ready := slv(0);
+    reg.error := slv(1);
+    reg.reserved := slv(31 downto 2);
+    return reg;
+  end function;
+
+  -- DATA_OUT conversions
+  function to_slv(reg : t_reg_data_out) return std_logic_vector is
+    variable slv : std_logic_vector(C_DATA_WIDTH-1 downto 0) := (others => '0');
+  begin
+    slv(31 downto 0) := reg.data;
+    return slv;
+  end function;
+
+  function to_data_out(slv : std_logic_vector(C_DATA_WIDTH-1 downto 0)) return t_reg_data_out is
+    variable reg : t_reg_data_out;
+  begin
+    reg.data := slv(31 downto 0);
+    return reg;
+  end function;
+
+end package body basic_peripheral_pkg;
+",
   "examples/comprehensive_avalon_vhdl/rtl/comprehensive_avalon_pkg.vhd": "
 
 --------------------------------------------------------------------------------
@@ -5072,6 +5873,667 @@ package body daq_controller_pkg is
 
 end package body daq_controller_pkg;
 ",
+  "examples/multi_interface_accelerator_vhdl/rtl/multi_interface_accelerator_pkg.vhd": "
+
+--------------------------------------------------------------------------------
+-- Package: multi_interface_accelerator_pkg
+-- Generated by ipcraft VHDL Generator
+--------------------------------------------------------------------------------
+
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+
+package multi_interface_accelerator_pkg is
+
+  ----------------------------------------------------------------------------
+  -- Constants
+  ----------------------------------------------------------------------------
+  constant C_DATA_WIDTH : natural := 32;
+  constant C_ADDR_WIDTH : natural := 11;
+  constant C_REG_WIDTH  : natural := 4;  -- Bytes per register
+
+  ----------------------------------------------------------------------------
+  -- Register Address Map (byte offset, matches the resolved memory map and
+  -- the generated component.xml -- never derived from declaration order)
+  ----------------------------------------------------------------------------
+  constant C_REG_GLOBAL_CTRL_ADDR : natural := 0;  -- addr 00
+  constant C_REG_GLOBAL_STATUS_ADDR : natural := 4;  -- addr 04
+  constant C_REG_SENSOR_STATUS_ADDR : natural := 256;  -- addr 100
+  constant C_REG_CHANNEL_0_CTRL_ADDR : natural := 1024;  -- addr 400
+  constant C_REG_CHANNEL_0_STATUS_ADDR : natural := 1028;  -- addr 404
+  constant C_REG_CHANNEL_0_PARAMETER_ADDR : natural := 1032;  -- addr 408
+  constant C_REG_CHANNEL_1_CTRL_ADDR : natural := 1040;  -- addr 410
+  constant C_REG_CHANNEL_1_STATUS_ADDR : natural := 1044;  -- addr 414
+  constant C_REG_CHANNEL_1_PARAMETER_ADDR : natural := 1048;  -- addr 418
+  constant C_REG_CHANNEL_2_CTRL_ADDR : natural := 1056;  -- addr 420
+  constant C_REG_CHANNEL_2_STATUS_ADDR : natural := 1060;  -- addr 424
+  constant C_REG_CHANNEL_2_PARAMETER_ADDR : natural := 1064;  -- addr 428
+  constant C_REG_CHANNEL_3_CTRL_ADDR : natural := 1072;  -- addr 430
+  constant C_REG_CHANNEL_3_STATUS_ADDR : natural := 1076;  -- addr 434
+  constant C_REG_CHANNEL_3_PARAMETER_ADDR : natural := 1080;  -- addr 438
+
+  ----------------------------------------------------------------------------
+  -- Register Record Types
+  ----------------------------------------------------------------------------
+
+  -- GLOBAL_CTRL register fields
+  type t_reg_global_ctrl is record
+    enable_all : std_logic;  -- bit 0
+    mode : std_logic_vector(1 downto 0);  -- bits 2:1
+    reset_all : std_logic;  -- bit 8
+    reserved : std_logic_vector(22 downto 0);  -- bits 31:9
+  end record;
+
+  constant C_REG_GLOBAL_CTRL_RESET : t_reg_global_ctrl := (
+    enable_all => '0',
+    mode => (others => '0'),
+    reset_all => '0',
+    reserved => (others => '0')
+  );
+
+  function to_slv(reg : t_reg_global_ctrl) return std_logic_vector;
+  function to_global_ctrl(slv : std_logic_vector(C_DATA_WIDTH-1 downto 0)) return t_reg_global_ctrl;
+
+  -- GLOBAL_STATUS register fields
+  type t_reg_global_status is record
+    irq_pending : std_logic;  -- bit 0
+    reserved : std_logic_vector(30 downto 0);  -- bits 31:1
+  end record;
+
+  constant C_REG_GLOBAL_STATUS_RESET : t_reg_global_status := (
+    irq_pending => '0',
+    reserved => (others => '0')
+  );
+
+  function to_slv(reg : t_reg_global_status) return std_logic_vector;
+  function to_global_status(slv : std_logic_vector(C_DATA_WIDTH-1 downto 0)) return t_reg_global_status;
+
+  -- SENSOR_STATUS register fields
+  type t_reg_sensor_status is record
+    fifo_overflow : std_logic;  -- bit 0
+    temp_value : std_logic_vector(11 downto 0);  -- bits 15:4
+    temp_updated : std_logic;  -- bit 16
+  end record;
+
+  constant C_REG_SENSOR_STATUS_RESET : t_reg_sensor_status := (
+    fifo_overflow => '0',
+    temp_value => (others => '0'),
+    temp_updated => '0'
+  );
+
+  function to_slv(reg : t_reg_sensor_status) return std_logic_vector;
+  function to_sensor_status(slv : std_logic_vector(C_DATA_WIDTH-1 downto 0)) return t_reg_sensor_status;
+
+  -- CHANNEL_0_CTRL register fields
+  type t_reg_channel_0_ctrl is record
+    enable : std_logic;  -- bit 0
+    ie : std_logic;  -- bit 2
+  end record;
+
+  constant C_REG_CHANNEL_0_CTRL_RESET : t_reg_channel_0_ctrl := (
+    enable => '0',
+    ie => '0'
+  );
+
+  function to_slv(reg : t_reg_channel_0_ctrl) return std_logic_vector;
+  function to_channel_0_ctrl(slv : std_logic_vector(C_DATA_WIDTH-1 downto 0)) return t_reg_channel_0_ctrl;
+
+  -- CHANNEL_0_STATUS register fields
+  type t_reg_channel_0_status is record
+    irq_pending : std_logic;  -- bit 0
+  end record;
+
+  constant C_REG_CHANNEL_0_STATUS_RESET : t_reg_channel_0_status := (
+    irq_pending => '0'
+  );
+
+  function to_slv(reg : t_reg_channel_0_status) return std_logic_vector;
+  function to_channel_0_status(slv : std_logic_vector(C_DATA_WIDTH-1 downto 0)) return t_reg_channel_0_status;
+
+  -- CHANNEL_0_PARAMETER register fields
+  type t_reg_channel_0_parameter is record
+    value : std_logic_vector(31 downto 0);  -- bits 31:0
+  end record;
+
+  constant C_REG_CHANNEL_0_PARAMETER_RESET : t_reg_channel_0_parameter := (
+    value => (others => '0')
+  );
+
+  function to_slv(reg : t_reg_channel_0_parameter) return std_logic_vector;
+  function to_channel_0_parameter(slv : std_logic_vector(C_DATA_WIDTH-1 downto 0)) return t_reg_channel_0_parameter;
+
+  -- CHANNEL_1_CTRL register fields
+  type t_reg_channel_1_ctrl is record
+    enable : std_logic;  -- bit 0
+    ie : std_logic;  -- bit 2
+  end record;
+
+  constant C_REG_CHANNEL_1_CTRL_RESET : t_reg_channel_1_ctrl := (
+    enable => '0',
+    ie => '0'
+  );
+
+  function to_slv(reg : t_reg_channel_1_ctrl) return std_logic_vector;
+  function to_channel_1_ctrl(slv : std_logic_vector(C_DATA_WIDTH-1 downto 0)) return t_reg_channel_1_ctrl;
+
+  -- CHANNEL_1_STATUS register fields
+  type t_reg_channel_1_status is record
+    irq_pending : std_logic;  -- bit 0
+  end record;
+
+  constant C_REG_CHANNEL_1_STATUS_RESET : t_reg_channel_1_status := (
+    irq_pending => '0'
+  );
+
+  function to_slv(reg : t_reg_channel_1_status) return std_logic_vector;
+  function to_channel_1_status(slv : std_logic_vector(C_DATA_WIDTH-1 downto 0)) return t_reg_channel_1_status;
+
+  -- CHANNEL_1_PARAMETER register fields
+  type t_reg_channel_1_parameter is record
+    value : std_logic_vector(31 downto 0);  -- bits 31:0
+  end record;
+
+  constant C_REG_CHANNEL_1_PARAMETER_RESET : t_reg_channel_1_parameter := (
+    value => (others => '0')
+  );
+
+  function to_slv(reg : t_reg_channel_1_parameter) return std_logic_vector;
+  function to_channel_1_parameter(slv : std_logic_vector(C_DATA_WIDTH-1 downto 0)) return t_reg_channel_1_parameter;
+
+  -- CHANNEL_2_CTRL register fields
+  type t_reg_channel_2_ctrl is record
+    enable : std_logic;  -- bit 0
+    ie : std_logic;  -- bit 2
+  end record;
+
+  constant C_REG_CHANNEL_2_CTRL_RESET : t_reg_channel_2_ctrl := (
+    enable => '0',
+    ie => '0'
+  );
+
+  function to_slv(reg : t_reg_channel_2_ctrl) return std_logic_vector;
+  function to_channel_2_ctrl(slv : std_logic_vector(C_DATA_WIDTH-1 downto 0)) return t_reg_channel_2_ctrl;
+
+  -- CHANNEL_2_STATUS register fields
+  type t_reg_channel_2_status is record
+    irq_pending : std_logic;  -- bit 0
+  end record;
+
+  constant C_REG_CHANNEL_2_STATUS_RESET : t_reg_channel_2_status := (
+    irq_pending => '0'
+  );
+
+  function to_slv(reg : t_reg_channel_2_status) return std_logic_vector;
+  function to_channel_2_status(slv : std_logic_vector(C_DATA_WIDTH-1 downto 0)) return t_reg_channel_2_status;
+
+  -- CHANNEL_2_PARAMETER register fields
+  type t_reg_channel_2_parameter is record
+    value : std_logic_vector(31 downto 0);  -- bits 31:0
+  end record;
+
+  constant C_REG_CHANNEL_2_PARAMETER_RESET : t_reg_channel_2_parameter := (
+    value => (others => '0')
+  );
+
+  function to_slv(reg : t_reg_channel_2_parameter) return std_logic_vector;
+  function to_channel_2_parameter(slv : std_logic_vector(C_DATA_WIDTH-1 downto 0)) return t_reg_channel_2_parameter;
+
+  -- CHANNEL_3_CTRL register fields
+  type t_reg_channel_3_ctrl is record
+    enable : std_logic;  -- bit 0
+    ie : std_logic;  -- bit 2
+  end record;
+
+  constant C_REG_CHANNEL_3_CTRL_RESET : t_reg_channel_3_ctrl := (
+    enable => '0',
+    ie => '0'
+  );
+
+  function to_slv(reg : t_reg_channel_3_ctrl) return std_logic_vector;
+  function to_channel_3_ctrl(slv : std_logic_vector(C_DATA_WIDTH-1 downto 0)) return t_reg_channel_3_ctrl;
+
+  -- CHANNEL_3_STATUS register fields
+  type t_reg_channel_3_status is record
+    irq_pending : std_logic;  -- bit 0
+  end record;
+
+  constant C_REG_CHANNEL_3_STATUS_RESET : t_reg_channel_3_status := (
+    irq_pending => '0'
+  );
+
+  function to_slv(reg : t_reg_channel_3_status) return std_logic_vector;
+  function to_channel_3_status(slv : std_logic_vector(C_DATA_WIDTH-1 downto 0)) return t_reg_channel_3_status;
+
+  -- CHANNEL_3_PARAMETER register fields
+  type t_reg_channel_3_parameter is record
+    value : std_logic_vector(31 downto 0);  -- bits 31:0
+  end record;
+
+  constant C_REG_CHANNEL_3_PARAMETER_RESET : t_reg_channel_3_parameter := (
+    value => (others => '0')
+  );
+
+  function to_slv(reg : t_reg_channel_3_parameter) return std_logic_vector;
+  function to_channel_3_parameter(slv : std_logic_vector(C_DATA_WIDTH-1 downto 0)) return t_reg_channel_3_parameter;
+
+  -- W1C event-pulse record types (hardware drives a 1-cycle strobe to set a sticky bit)
+
+  type t_reg_sensor_status_pulse is record
+    fifo_overflow_pulse : std_logic;  -- event strobe → sets SENSOR_STATUS.fifo_overflow
+  end record;
+
+  constant C_REG_SENSOR_STATUS_PULSE_RESET : t_reg_sensor_status_pulse := (
+    fifo_overflow_pulse => '0'
+  );
+
+  type t_reg_channel_0_status_pulse is record
+    irq_pending_pulse : std_logic;  -- event strobe → sets CHANNEL_0_STATUS.irq_pending
+  end record;
+
+  constant C_REG_CHANNEL_0_STATUS_PULSE_RESET : t_reg_channel_0_status_pulse := (
+    irq_pending_pulse => '0'
+  );
+
+  type t_reg_channel_1_status_pulse is record
+    irq_pending_pulse : std_logic;  -- event strobe → sets CHANNEL_1_STATUS.irq_pending
+  end record;
+
+  constant C_REG_CHANNEL_1_STATUS_PULSE_RESET : t_reg_channel_1_status_pulse := (
+    irq_pending_pulse => '0'
+  );
+
+  type t_reg_channel_2_status_pulse is record
+    irq_pending_pulse : std_logic;  -- event strobe → sets CHANNEL_2_STATUS.irq_pending
+  end record;
+
+  constant C_REG_CHANNEL_2_STATUS_PULSE_RESET : t_reg_channel_2_status_pulse := (
+    irq_pending_pulse => '0'
+  );
+
+  type t_reg_channel_3_status_pulse is record
+    irq_pending_pulse : std_logic;  -- event strobe → sets CHANNEL_3_STATUS.irq_pending
+  end record;
+
+  constant C_REG_CHANNEL_3_STATUS_PULSE_RESET : t_reg_channel_3_status_pulse := (
+    irq_pending_pulse => '0'
+  );
+
+  -- Hardware-driven value-port record types: live values for read-only fields
+  -- mixed into an otherwise SW-writable register (includes CoS-monitored
+  -- fields, which are always mixed by construction).
+
+  type t_reg_global_ctrl_val is record
+    reserved : std_logic_vector(22 downto 0);  -- hardware-driven, read-only in GLOBAL_CTRL
+  end record;
+
+  constant C_REG_GLOBAL_CTRL_VAL_RESET : t_reg_global_ctrl_val := (
+    reserved => (others => '0')
+  );
+
+  type t_reg_sensor_status_val is record
+    temp_value : std_logic_vector(11 downto 0);  -- hardware-driven, read-only in SENSOR_STATUS
+  end record;
+
+  constant C_REG_SENSOR_STATUS_VAL_RESET : t_reg_sensor_status_val := (
+    temp_value => (others => '0')
+  );
+
+  ----------------------------------------------------------------------------
+  -- Aggregate Register Records (for clean port interface)
+  ----------------------------------------------------------------------------
+
+  -- SW -> HW: Registers written by software, read by hardware
+  type t_regs_sw2hw is record
+    global_ctrl : t_reg_global_ctrl;
+    sensor_status : t_reg_sensor_status;
+    channel_0_ctrl : t_reg_channel_0_ctrl;
+    channel_0_status : t_reg_channel_0_status;
+    channel_0_parameter : t_reg_channel_0_parameter;
+    channel_1_ctrl : t_reg_channel_1_ctrl;
+    channel_1_status : t_reg_channel_1_status;
+    channel_1_parameter : t_reg_channel_1_parameter;
+    channel_2_ctrl : t_reg_channel_2_ctrl;
+    channel_2_status : t_reg_channel_2_status;
+    channel_2_parameter : t_reg_channel_2_parameter;
+    channel_3_ctrl : t_reg_channel_3_ctrl;
+    channel_3_status : t_reg_channel_3_status;
+    channel_3_parameter : t_reg_channel_3_parameter;
+  end record;
+
+  constant C_REGS_SW2HW_RESET : t_regs_sw2hw := (
+    global_ctrl => C_REG_GLOBAL_CTRL_RESET,
+    sensor_status => C_REG_SENSOR_STATUS_RESET,
+    channel_0_ctrl => C_REG_CHANNEL_0_CTRL_RESET,
+    channel_0_status => C_REG_CHANNEL_0_STATUS_RESET,
+    channel_0_parameter => C_REG_CHANNEL_0_PARAMETER_RESET,
+    channel_1_ctrl => C_REG_CHANNEL_1_CTRL_RESET,
+    channel_1_status => C_REG_CHANNEL_1_STATUS_RESET,
+    channel_1_parameter => C_REG_CHANNEL_1_PARAMETER_RESET,
+    channel_2_ctrl => C_REG_CHANNEL_2_CTRL_RESET,
+    channel_2_status => C_REG_CHANNEL_2_STATUS_RESET,
+    channel_2_parameter => C_REG_CHANNEL_2_PARAMETER_RESET,
+    channel_3_ctrl => C_REG_CHANNEL_3_CTRL_RESET,
+    channel_3_status => C_REG_CHANNEL_3_STATUS_RESET,
+    channel_3_parameter => C_REG_CHANNEL_3_PARAMETER_RESET
+  );
+
+  -- HW -> SW: Status registers (RO) + W1C/SC event pulses + hardware-driven value ports
+  type t_regs_hw2sw is record
+    global_status : t_reg_global_status;
+    sensor_status_pulse : t_reg_sensor_status_pulse;  -- W1C event pulses for SENSOR_STATUS
+    channel_0_status_pulse : t_reg_channel_0_status_pulse;  -- W1C event pulses for CHANNEL_0_STATUS
+    channel_1_status_pulse : t_reg_channel_1_status_pulse;  -- W1C event pulses for CHANNEL_1_STATUS
+    channel_2_status_pulse : t_reg_channel_2_status_pulse;  -- W1C event pulses for CHANNEL_2_STATUS
+    channel_3_status_pulse : t_reg_channel_3_status_pulse;  -- W1C event pulses for CHANNEL_3_STATUS
+    global_ctrl_val : t_reg_global_ctrl_val;  -- hardware-driven values for GLOBAL_CTRL
+    sensor_status_val : t_reg_sensor_status_val;  -- hardware-driven values for SENSOR_STATUS
+  end record;
+
+  constant C_REGS_HW2SW_RESET : t_regs_hw2sw := (
+    global_status => C_REG_GLOBAL_STATUS_RESET,
+    sensor_status_pulse => C_REG_SENSOR_STATUS_PULSE_RESET,
+    channel_0_status_pulse => C_REG_CHANNEL_0_STATUS_PULSE_RESET,
+    channel_1_status_pulse => C_REG_CHANNEL_1_STATUS_PULSE_RESET,
+    channel_2_status_pulse => C_REG_CHANNEL_2_STATUS_PULSE_RESET,
+    channel_3_status_pulse => C_REG_CHANNEL_3_STATUS_PULSE_RESET,
+    global_ctrl_val => C_REG_GLOBAL_CTRL_VAL_RESET,
+    sensor_status_val => C_REG_SENSOR_STATUS_VAL_RESET
+  );
+
+end package multi_interface_accelerator_pkg;
+
+
+package body multi_interface_accelerator_pkg is
+
+  ----------------------------------------------------------------------------
+  -- Conversion Functions
+  ----------------------------------------------------------------------------
+
+  -- GLOBAL_CTRL conversions
+  function to_slv(reg : t_reg_global_ctrl) return std_logic_vector is
+    variable slv : std_logic_vector(C_DATA_WIDTH-1 downto 0) := (others => '0');
+  begin
+    slv(0) := reg.enable_all;
+    slv(2 downto 1) := reg.mode;
+    slv(8) := reg.reset_all;
+    slv(31 downto 9) := reg.reserved;
+    return slv;
+  end function;
+
+  function to_global_ctrl(slv : std_logic_vector(C_DATA_WIDTH-1 downto 0)) return t_reg_global_ctrl is
+    variable reg : t_reg_global_ctrl;
+  begin
+    reg.enable_all := slv(0);
+    reg.mode := slv(2 downto 1);
+    reg.reset_all := slv(8);
+    reg.reserved := slv(31 downto 9);
+    return reg;
+  end function;
+
+  -- GLOBAL_STATUS conversions
+  function to_slv(reg : t_reg_global_status) return std_logic_vector is
+    variable slv : std_logic_vector(C_DATA_WIDTH-1 downto 0) := (others => '0');
+  begin
+    slv(0) := reg.irq_pending;
+    slv(31 downto 1) := reg.reserved;
+    return slv;
+  end function;
+
+  function to_global_status(slv : std_logic_vector(C_DATA_WIDTH-1 downto 0)) return t_reg_global_status is
+    variable reg : t_reg_global_status;
+  begin
+    reg.irq_pending := slv(0);
+    reg.reserved := slv(31 downto 1);
+    return reg;
+  end function;
+
+  -- SENSOR_STATUS conversions
+  function to_slv(reg : t_reg_sensor_status) return std_logic_vector is
+    variable slv : std_logic_vector(C_DATA_WIDTH-1 downto 0) := (others => '0');
+  begin
+    slv(0) := reg.fifo_overflow;
+    slv(15 downto 4) := reg.temp_value;
+    slv(16) := reg.temp_updated;
+    return slv;
+  end function;
+
+  function to_sensor_status(slv : std_logic_vector(C_DATA_WIDTH-1 downto 0)) return t_reg_sensor_status is
+    variable reg : t_reg_sensor_status;
+  begin
+    reg.fifo_overflow := slv(0);
+    reg.temp_value := slv(15 downto 4);
+    reg.temp_updated := slv(16);
+    return reg;
+  end function;
+
+  -- CHANNEL_0_CTRL conversions
+  function to_slv(reg : t_reg_channel_0_ctrl) return std_logic_vector is
+    variable slv : std_logic_vector(C_DATA_WIDTH-1 downto 0) := (others => '0');
+  begin
+    slv(0) := reg.enable;
+    slv(2) := reg.ie;
+    return slv;
+  end function;
+
+  function to_channel_0_ctrl(slv : std_logic_vector(C_DATA_WIDTH-1 downto 0)) return t_reg_channel_0_ctrl is
+    variable reg : t_reg_channel_0_ctrl;
+  begin
+    reg.enable := slv(0);
+    reg.ie := slv(2);
+    return reg;
+  end function;
+
+  -- CHANNEL_0_STATUS conversions
+  function to_slv(reg : t_reg_channel_0_status) return std_logic_vector is
+    variable slv : std_logic_vector(C_DATA_WIDTH-1 downto 0) := (others => '0');
+  begin
+    slv(0) := reg.irq_pending;
+    return slv;
+  end function;
+
+  function to_channel_0_status(slv : std_logic_vector(C_DATA_WIDTH-1 downto 0)) return t_reg_channel_0_status is
+    variable reg : t_reg_channel_0_status;
+  begin
+    reg.irq_pending := slv(0);
+    return reg;
+  end function;
+
+  -- CHANNEL_0_PARAMETER conversions
+  function to_slv(reg : t_reg_channel_0_parameter) return std_logic_vector is
+    variable slv : std_logic_vector(C_DATA_WIDTH-1 downto 0) := (others => '0');
+  begin
+    slv(31 downto 0) := reg.value;
+    return slv;
+  end function;
+
+  function to_channel_0_parameter(slv : std_logic_vector(C_DATA_WIDTH-1 downto 0)) return t_reg_channel_0_parameter is
+    variable reg : t_reg_channel_0_parameter;
+  begin
+    reg.value := slv(31 downto 0);
+    return reg;
+  end function;
+
+  -- CHANNEL_1_CTRL conversions
+  function to_slv(reg : t_reg_channel_1_ctrl) return std_logic_vector is
+    variable slv : std_logic_vector(C_DATA_WIDTH-1 downto 0) := (others => '0');
+  begin
+    slv(0) := reg.enable;
+    slv(2) := reg.ie;
+    return slv;
+  end function;
+
+  function to_channel_1_ctrl(slv : std_logic_vector(C_DATA_WIDTH-1 downto 0)) return t_reg_channel_1_ctrl is
+    variable reg : t_reg_channel_1_ctrl;
+  begin
+    reg.enable := slv(0);
+    reg.ie := slv(2);
+    return reg;
+  end function;
+
+  -- CHANNEL_1_STATUS conversions
+  function to_slv(reg : t_reg_channel_1_status) return std_logic_vector is
+    variable slv : std_logic_vector(C_DATA_WIDTH-1 downto 0) := (others => '0');
+  begin
+    slv(0) := reg.irq_pending;
+    return slv;
+  end function;
+
+  function to_channel_1_status(slv : std_logic_vector(C_DATA_WIDTH-1 downto 0)) return t_reg_channel_1_status is
+    variable reg : t_reg_channel_1_status;
+  begin
+    reg.irq_pending := slv(0);
+    return reg;
+  end function;
+
+  -- CHANNEL_1_PARAMETER conversions
+  function to_slv(reg : t_reg_channel_1_parameter) return std_logic_vector is
+    variable slv : std_logic_vector(C_DATA_WIDTH-1 downto 0) := (others => '0');
+  begin
+    slv(31 downto 0) := reg.value;
+    return slv;
+  end function;
+
+  function to_channel_1_parameter(slv : std_logic_vector(C_DATA_WIDTH-1 downto 0)) return t_reg_channel_1_parameter is
+    variable reg : t_reg_channel_1_parameter;
+  begin
+    reg.value := slv(31 downto 0);
+    return reg;
+  end function;
+
+  -- CHANNEL_2_CTRL conversions
+  function to_slv(reg : t_reg_channel_2_ctrl) return std_logic_vector is
+    variable slv : std_logic_vector(C_DATA_WIDTH-1 downto 0) := (others => '0');
+  begin
+    slv(0) := reg.enable;
+    slv(2) := reg.ie;
+    return slv;
+  end function;
+
+  function to_channel_2_ctrl(slv : std_logic_vector(C_DATA_WIDTH-1 downto 0)) return t_reg_channel_2_ctrl is
+    variable reg : t_reg_channel_2_ctrl;
+  begin
+    reg.enable := slv(0);
+    reg.ie := slv(2);
+    return reg;
+  end function;
+
+  -- CHANNEL_2_STATUS conversions
+  function to_slv(reg : t_reg_channel_2_status) return std_logic_vector is
+    variable slv : std_logic_vector(C_DATA_WIDTH-1 downto 0) := (others => '0');
+  begin
+    slv(0) := reg.irq_pending;
+    return slv;
+  end function;
+
+  function to_channel_2_status(slv : std_logic_vector(C_DATA_WIDTH-1 downto 0)) return t_reg_channel_2_status is
+    variable reg : t_reg_channel_2_status;
+  begin
+    reg.irq_pending := slv(0);
+    return reg;
+  end function;
+
+  -- CHANNEL_2_PARAMETER conversions
+  function to_slv(reg : t_reg_channel_2_parameter) return std_logic_vector is
+    variable slv : std_logic_vector(C_DATA_WIDTH-1 downto 0) := (others => '0');
+  begin
+    slv(31 downto 0) := reg.value;
+    return slv;
+  end function;
+
+  function to_channel_2_parameter(slv : std_logic_vector(C_DATA_WIDTH-1 downto 0)) return t_reg_channel_2_parameter is
+    variable reg : t_reg_channel_2_parameter;
+  begin
+    reg.value := slv(31 downto 0);
+    return reg;
+  end function;
+
+  -- CHANNEL_3_CTRL conversions
+  function to_slv(reg : t_reg_channel_3_ctrl) return std_logic_vector is
+    variable slv : std_logic_vector(C_DATA_WIDTH-1 downto 0) := (others => '0');
+  begin
+    slv(0) := reg.enable;
+    slv(2) := reg.ie;
+    return slv;
+  end function;
+
+  function to_channel_3_ctrl(slv : std_logic_vector(C_DATA_WIDTH-1 downto 0)) return t_reg_channel_3_ctrl is
+    variable reg : t_reg_channel_3_ctrl;
+  begin
+    reg.enable := slv(0);
+    reg.ie := slv(2);
+    return reg;
+  end function;
+
+  -- CHANNEL_3_STATUS conversions
+  function to_slv(reg : t_reg_channel_3_status) return std_logic_vector is
+    variable slv : std_logic_vector(C_DATA_WIDTH-1 downto 0) := (others => '0');
+  begin
+    slv(0) := reg.irq_pending;
+    return slv;
+  end function;
+
+  function to_channel_3_status(slv : std_logic_vector(C_DATA_WIDTH-1 downto 0)) return t_reg_channel_3_status is
+    variable reg : t_reg_channel_3_status;
+  begin
+    reg.irq_pending := slv(0);
+    return reg;
+  end function;
+
+  -- CHANNEL_3_PARAMETER conversions
+  function to_slv(reg : t_reg_channel_3_parameter) return std_logic_vector is
+    variable slv : std_logic_vector(C_DATA_WIDTH-1 downto 0) := (others => '0');
+  begin
+    slv(31 downto 0) := reg.value;
+    return slv;
+  end function;
+
+  function to_channel_3_parameter(slv : std_logic_vector(C_DATA_WIDTH-1 downto 0)) return t_reg_channel_3_parameter is
+    variable reg : t_reg_channel_3_parameter;
+  begin
+    reg.value := slv(31 downto 0);
+    return reg;
+  end function;
+
+end package body multi_interface_accelerator_pkg;
+",
+  "examples/system_controller_vhdl/rtl/system_controller_pkg.vhd": "
+
+--------------------------------------------------------------------------------
+-- Package: system_controller_pkg
+-- Generated by ipcraft VHDL Generator
+--------------------------------------------------------------------------------
+
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+
+package system_controller_pkg is
+
+  ----------------------------------------------------------------------------
+  -- Constants
+  ----------------------------------------------------------------------------
+  constant C_DATA_WIDTH : natural := 32;
+  constant C_ADDR_WIDTH : natural := 3;
+  constant C_REG_WIDTH  : natural := 4;  -- Bytes per register
+
+
+  ----------------------------------------------------------------------------
+  -- Register Record Types
+  ----------------------------------------------------------------------------
+
+
+end package system_controller_pkg;
+
+
+package body system_controller_pkg is
+
+  ----------------------------------------------------------------------------
+  -- Conversion Functions
+  ----------------------------------------------------------------------------
+
+end package body system_controller_pkg;
+",
 }
 `;
 
@@ -5628,6 +7090,10 @@ set_property IP_REPO_PATHS [list $script_dir] [current_project]
 update_ip_catalog -rebuild -quiet
 
 # ---- RTL sources --------------------------------------------------------
+add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../rtl/basic_peripheral_pkg.sv]]
+add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../rtl/basic_peripheral_regs.sv]]
+add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../rtl/basic_peripheral_core.sv]]
+add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../rtl/basic_peripheral_axil.sv]]
 add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../rtl/basic_peripheral.sv]]
 add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_pkg.vhd]]
 add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_regs.vhd]]
@@ -5717,11 +7183,11 @@ set_property IP_REPO_PATHS [list $script_dir] [current_project]
 update_ip_catalog -rebuild -quiet
 
 # ---- RTL sources --------------------------------------------------------
+add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../rtl/basic_peripheral_pkg.vhd]]
+add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../rtl/basic_peripheral_regs.vhd]]
+add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../rtl/basic_peripheral_core.vhd]]
+add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../rtl/basic_peripheral_axil.vhd]]
 add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../rtl/basic_peripheral.vhd]]
-add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_pkg.vhd]]
-add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_regs.vhd]]
-add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_core.vhd]]
-add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_axil.vhd]]
 
 # Use VHDL-2008 for VHDL source files (skipped when project contains only SystemVerilog)
 # Uses FILE_TYPE filter to capture both .vhd and .vhdl safely
@@ -6501,6 +7967,10 @@ set_property IP_REPO_PATHS [list $script_dir] [current_project]
 update_ip_catalog -rebuild -quiet
 
 # ---- RTL sources --------------------------------------------------------
+add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../rtl/multi_interface_accelerator_pkg.sv]]
+add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../rtl/multi_interface_accelerator_regs.sv]]
+add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../rtl/multi_interface_accelerator_core.sv]]
+add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../rtl/multi_interface_accelerator_axil.sv]]
 add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../rtl/multi_interface_accelerator.sv]]
 add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../../../../../ipcraft-spec/examples/multi_interface_accelerator/rtl/accelerator_top.vhd]]
 
@@ -6586,6 +8056,10 @@ set_property IP_REPO_PATHS [list $script_dir] [current_project]
 update_ip_catalog -rebuild -quiet
 
 # ---- RTL sources --------------------------------------------------------
+add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../rtl/multi_interface_accelerator_pkg.vhd]]
+add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../rtl/multi_interface_accelerator_regs.vhd]]
+add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../rtl/multi_interface_accelerator_core.vhd]]
+add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../rtl/multi_interface_accelerator_axil.vhd]]
 add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../rtl/multi_interface_accelerator.vhd]]
 add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../../../../../ipcraft-spec/examples/multi_interface_accelerator/rtl/accelerator_top.vhd]]
 
@@ -6671,6 +8145,10 @@ set_property IP_REPO_PATHS [list $script_dir] [current_project]
 update_ip_catalog -rebuild -quiet
 
 # ---- RTL sources --------------------------------------------------------
+add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../rtl/system_controller_pkg.sv]]
+add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../rtl/system_controller_regs.sv]]
+add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../rtl/system_controller_core.sv]]
+add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../rtl/system_controller_axil.sv]]
 add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../rtl/system_controller.sv]]
 add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_pkg.vhd]]
 add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller.vhd]]
@@ -6760,11 +8238,11 @@ set_property IP_REPO_PATHS [list $script_dir] [current_project]
 update_ip_catalog -rebuild -quiet
 
 # ---- RTL sources --------------------------------------------------------
+add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../rtl/system_controller_pkg.vhd]]
+add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../rtl/system_controller_regs.vhd]]
+add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../rtl/system_controller_core.vhd]]
+add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../rtl/system_controller_axil.vhd]]
 add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../rtl/system_controller.vhd]]
-add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_pkg.vhd]]
-add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_regs.vhd]]
-add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_core.vhd]]
-add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_axil.vhd]]
 
 # Use VHDL-2008 for VHDL source files (skipped when project contains only SystemVerilog)
 # Uses FILE_TYPE filter to capture both .vhd and .vhdl safely
@@ -11139,6 +12617,22 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
     <spirit:fileSet>
       <spirit:name>xilinx_anylanguagesynthesis_view_fileset</spirit:name>
       <spirit:file>
+        <spirit:name>../rtl/basic_peripheral_pkg.sv</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../rtl/basic_peripheral_regs.sv</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../rtl/basic_peripheral_core.sv</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../rtl/basic_peripheral_axil.sv</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
         <spirit:name>../rtl/basic_peripheral.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
       </spirit:file>
@@ -11165,6 +12659,22 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
     </spirit:fileSet>
     <spirit:fileSet>
       <spirit:name>xilinx_anylanguagebehavioralsimulation_view_fileset</spirit:name>
+      <spirit:file>
+        <spirit:name>../rtl/basic_peripheral_pkg.sv</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../rtl/basic_peripheral_regs.sv</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../rtl/basic_peripheral_core.sv</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../rtl/basic_peripheral_axil.sv</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+      </spirit:file>
       <spirit:file>
         <spirit:name>../rtl/basic_peripheral.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
@@ -12043,46 +13553,46 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
     <spirit:fileSet>
       <spirit:name>xilinx_anylanguagesynthesis_view_fileset</spirit:name>
       <spirit:file>
+        <spirit:name>../rtl/basic_peripheral_pkg.vhd</spirit:name>
+        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../rtl/basic_peripheral_regs.vhd</spirit:name>
+        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../rtl/basic_peripheral_core.vhd</spirit:name>
+        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../rtl/basic_peripheral_axil.vhd</spirit:name>
+        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
         <spirit:name>../rtl/basic_peripheral.vhd</spirit:name>
-        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_pkg.vhd</spirit:name>
-        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_regs.vhd</spirit:name>
-        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_core.vhd</spirit:name>
-        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_axil.vhd</spirit:name>
         <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
     <spirit:fileSet>
       <spirit:name>xilinx_anylanguagebehavioralsimulation_view_fileset</spirit:name>
       <spirit:file>
+        <spirit:name>../rtl/basic_peripheral_pkg.vhd</spirit:name>
+        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../rtl/basic_peripheral_regs.vhd</spirit:name>
+        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../rtl/basic_peripheral_core.vhd</spirit:name>
+        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../rtl/basic_peripheral_axil.vhd</spirit:name>
+        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
         <spirit:name>../rtl/basic_peripheral.vhd</spirit:name>
-        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_pkg.vhd</spirit:name>
-        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_regs.vhd</spirit:name>
-        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_core.vhd</spirit:name>
-        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_axil.vhd</spirit:name>
         <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
@@ -23943,6 +25453,22 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
     <spirit:fileSet>
       <spirit:name>xilinx_anylanguagesynthesis_view_fileset</spirit:name>
       <spirit:file>
+        <spirit:name>../rtl/multi_interface_accelerator_pkg.sv</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../rtl/multi_interface_accelerator_regs.sv</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../rtl/multi_interface_accelerator_core.sv</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../rtl/multi_interface_accelerator_axil.sv</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
         <spirit:name>../rtl/multi_interface_accelerator.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
       </spirit:file>
@@ -23953,6 +25479,22 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
     </spirit:fileSet>
     <spirit:fileSet>
       <spirit:name>xilinx_anylanguagebehavioralsimulation_view_fileset</spirit:name>
+      <spirit:file>
+        <spirit:name>../rtl/multi_interface_accelerator_pkg.sv</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../rtl/multi_interface_accelerator_regs.sv</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../rtl/multi_interface_accelerator_core.sv</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../rtl/multi_interface_accelerator_axil.sv</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+      </spirit:file>
       <spirit:file>
         <spirit:name>../rtl/multi_interface_accelerator.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
@@ -25593,6 +27135,22 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
     <spirit:fileSet>
       <spirit:name>xilinx_anylanguagesynthesis_view_fileset</spirit:name>
       <spirit:file>
+        <spirit:name>../rtl/multi_interface_accelerator_pkg.vhd</spirit:name>
+        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../rtl/multi_interface_accelerator_regs.vhd</spirit:name>
+        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../rtl/multi_interface_accelerator_core.vhd</spirit:name>
+        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../rtl/multi_interface_accelerator_axil.vhd</spirit:name>
+        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
         <spirit:name>../rtl/multi_interface_accelerator.vhd</spirit:name>
         <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
       </spirit:file>
@@ -25603,6 +27161,22 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
     </spirit:fileSet>
     <spirit:fileSet>
       <spirit:name>xilinx_anylanguagebehavioralsimulation_view_fileset</spirit:name>
+      <spirit:file>
+        <spirit:name>../rtl/multi_interface_accelerator_pkg.vhd</spirit:name>
+        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../rtl/multi_interface_accelerator_regs.vhd</spirit:name>
+        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../rtl/multi_interface_accelerator_core.vhd</spirit:name>
+        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../rtl/multi_interface_accelerator_axil.vhd</spirit:name>
+        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
+      </spirit:file>
       <spirit:file>
         <spirit:name>../rtl/multi_interface_accelerator.vhd</spirit:name>
         <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
@@ -28395,6 +29969,22 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
     <spirit:fileSet>
       <spirit:name>xilinx_anylanguagesynthesis_view_fileset</spirit:name>
       <spirit:file>
+        <spirit:name>../rtl/system_controller_pkg.sv</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../rtl/system_controller_regs.sv</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../rtl/system_controller_core.sv</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../rtl/system_controller_axil.sv</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
         <spirit:name>../rtl/system_controller.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
       </spirit:file>
@@ -28421,6 +30011,22 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
     </spirit:fileSet>
     <spirit:fileSet>
       <spirit:name>xilinx_anylanguagebehavioralsimulation_view_fileset</spirit:name>
+      <spirit:file>
+        <spirit:name>../rtl/system_controller_pkg.sv</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../rtl/system_controller_regs.sv</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../rtl/system_controller_core.sv</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../rtl/system_controller_axil.sv</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+      </spirit:file>
       <spirit:file>
         <spirit:name>../rtl/system_controller.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
@@ -31248,46 +32854,46 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
     <spirit:fileSet>
       <spirit:name>xilinx_anylanguagesynthesis_view_fileset</spirit:name>
       <spirit:file>
+        <spirit:name>../rtl/system_controller_pkg.vhd</spirit:name>
+        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../rtl/system_controller_regs.vhd</spirit:name>
+        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../rtl/system_controller_core.vhd</spirit:name>
+        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../rtl/system_controller_axil.vhd</spirit:name>
+        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
         <spirit:name>../rtl/system_controller.vhd</spirit:name>
-        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_pkg.vhd</spirit:name>
-        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_regs.vhd</spirit:name>
-        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_core.vhd</spirit:name>
-        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_axil.vhd</spirit:name>
         <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
     <spirit:fileSet>
       <spirit:name>xilinx_anylanguagebehavioralsimulation_view_fileset</spirit:name>
       <spirit:file>
+        <spirit:name>../rtl/system_controller_pkg.vhd</spirit:name>
+        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../rtl/system_controller_regs.vhd</spirit:name>
+        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../rtl/system_controller_core.vhd</spirit:name>
+        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../rtl/system_controller_axil.vhd</spirit:name>
+        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
         <spirit:name>../rtl/system_controller.vhd</spirit:name>
-        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_pkg.vhd</spirit:name>
-        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_regs.vhd</spirit:name>
-        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_core.vhd</spirit:name>
-        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_axil.vhd</spirit:name>
         <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
@@ -32631,10 +34237,15 @@ exports[`file list matches snapshot for every fixture 1`] = `
     "altera/basic_peripheral_project.tcl",
     "altera/test.qsys",
     "rtl/basic_peripheral.sv",
+    "rtl/basic_peripheral_axil.sv",
+    "rtl/basic_peripheral_core.sv",
+    "rtl/basic_peripheral_pkg.sv",
+    "rtl/basic_peripheral_regs.sv",
     "tb/Makefile",
     "tb/basic_peripheral_test.py",
     "tb/conftest.py",
     "tb/dump.v",
+    "tb/mm_loader.py",
     "tb/test_basic_peripheral_sim.py",
     "xilinx/basic_peripheral_ooc.xdc",
     "xilinx/basic_peripheral_project.tcl",
@@ -32650,9 +34261,14 @@ exports[`file list matches snapshot for every fixture 1`] = `
     "altera/basic_peripheral_project.tcl",
     "altera/test.qsys",
     "rtl/basic_peripheral.vhd",
+    "rtl/basic_peripheral_axil.vhd",
+    "rtl/basic_peripheral_core.vhd",
+    "rtl/basic_peripheral_pkg.vhd",
+    "rtl/basic_peripheral_regs.vhd",
     "tb/Makefile",
     "tb/basic_peripheral_test.py",
     "tb/conftest.py",
+    "tb/mm_loader.py",
     "tb/test_basic_peripheral_sim.py",
     "xilinx/basic_peripheral_ooc.xdc",
     "xilinx/basic_peripheral_project.tcl",
@@ -32850,9 +34466,14 @@ exports[`file list matches snapshot for every fixture 1`] = `
     "altera/multi_interface_accelerator_project.tcl",
     "altera/test.qsys",
     "rtl/multi_interface_accelerator.sv",
+    "rtl/multi_interface_accelerator_axil.sv",
+    "rtl/multi_interface_accelerator_core.sv",
+    "rtl/multi_interface_accelerator_pkg.sv",
+    "rtl/multi_interface_accelerator_regs.sv",
     "tb/Makefile",
     "tb/conftest.py",
     "tb/dump.v",
+    "tb/mm_loader.py",
     "tb/multi_interface_accelerator_test.py",
     "tb/test_multi_interface_accelerator_sim.py",
     "xilinx/component.xml",
@@ -32869,8 +34490,13 @@ exports[`file list matches snapshot for every fixture 1`] = `
     "altera/multi_interface_accelerator_project.tcl",
     "altera/test.qsys",
     "rtl/multi_interface_accelerator.vhd",
+    "rtl/multi_interface_accelerator_axil.vhd",
+    "rtl/multi_interface_accelerator_core.vhd",
+    "rtl/multi_interface_accelerator_pkg.vhd",
+    "rtl/multi_interface_accelerator_regs.vhd",
     "tb/Makefile",
     "tb/conftest.py",
+    "tb/mm_loader.py",
     "tb/multi_interface_accelerator_test.py",
     "tb/test_multi_interface_accelerator_sim.py",
     "xilinx/component.xml",
@@ -32887,9 +34513,14 @@ exports[`file list matches snapshot for every fixture 1`] = `
     "altera/system_controller_project.tcl",
     "altera/test.qsys",
     "rtl/system_controller.sv",
+    "rtl/system_controller_axil.sv",
+    "rtl/system_controller_core.sv",
+    "rtl/system_controller_pkg.sv",
+    "rtl/system_controller_regs.sv",
     "tb/Makefile",
     "tb/conftest.py",
     "tb/dump.v",
+    "tb/mm_loader.py",
     "tb/system_controller_test.py",
     "tb/test_system_controller_sim.py",
     "xilinx/component.xml",
@@ -32906,8 +34537,13 @@ exports[`file list matches snapshot for every fixture 1`] = `
     "altera/system_controller_project.tcl",
     "altera/test.qsys",
     "rtl/system_controller.vhd",
+    "rtl/system_controller_axil.vhd",
+    "rtl/system_controller_core.vhd",
+    "rtl/system_controller_pkg.vhd",
+    "rtl/system_controller_regs.vhd",
     "tb/Makefile",
     "tb/conftest.py",
+    "tb/mm_loader.py",
     "tb/system_controller_test.py",
     "tb/test_system_controller_sim.py",
     "xilinx/component.xml",
@@ -33930,6 +35566,10 @@ add_fileset QUARTUS_SYNTH QUARTUS_SYNTH "" ""
 set_fileset_property QUARTUS_SYNTH TOP_LEVEL basic_peripheral
 set_fileset_property QUARTUS_SYNTH ENABLE_RELATIVE_INCLUDE_PATHS false
 set_fileset_property QUARTUS_SYNTH ENABLE_FILE_OVERWRITE_MODE false
+add_fileset_file basic_peripheral_pkg.sv SYSTEM_VERILOG PATH ../rtl/basic_peripheral_pkg.sv
+add_fileset_file basic_peripheral_regs.sv SYSTEM_VERILOG PATH ../rtl/basic_peripheral_regs.sv
+add_fileset_file basic_peripheral_core.sv SYSTEM_VERILOG PATH ../rtl/basic_peripheral_core.sv
+add_fileset_file basic_peripheral_axil.sv SYSTEM_VERILOG PATH ../rtl/basic_peripheral_axil.sv
 add_fileset_file basic_peripheral.sv SYSTEM_VERILOG PATH ../rtl/basic_peripheral.sv TOP_LEVEL_FILE
 add_fileset_file basic_peripheral_pkg.vhd VHDL PATH ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_pkg.vhd
 add_fileset_file basic_peripheral_regs.vhd VHDL PATH ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_regs.vhd
@@ -33941,6 +35581,10 @@ add_fileset SIM_VERILOG SIM_VERILOG "" ""
 set_fileset_property SIM_VERILOG TOP_LEVEL basic_peripheral
 set_fileset_property SIM_VERILOG ENABLE_RELATIVE_INCLUDE_PATHS false
 set_fileset_property SIM_VERILOG ENABLE_FILE_OVERWRITE_MODE false
+add_fileset_file basic_peripheral_pkg.sv SYSTEM_VERILOG PATH ../rtl/basic_peripheral_pkg.sv
+add_fileset_file basic_peripheral_regs.sv SYSTEM_VERILOG PATH ../rtl/basic_peripheral_regs.sv
+add_fileset_file basic_peripheral_core.sv SYSTEM_VERILOG PATH ../rtl/basic_peripheral_core.sv
+add_fileset_file basic_peripheral_axil.sv SYSTEM_VERILOG PATH ../rtl/basic_peripheral_axil.sv
 add_fileset_file basic_peripheral.sv SYSTEM_VERILOG PATH ../rtl/basic_peripheral.sv TOP_LEVEL_FILE
 add_fileset_file basic_peripheral_pkg.vhd VHDL PATH ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_pkg.vhd
 add_fileset_file basic_peripheral_regs.vhd VHDL PATH ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_regs.vhd
@@ -34150,21 +35794,21 @@ add_fileset QUARTUS_SYNTH QUARTUS_SYNTH "" ""
 set_fileset_property QUARTUS_SYNTH TOP_LEVEL basic_peripheral
 set_fileset_property QUARTUS_SYNTH ENABLE_RELATIVE_INCLUDE_PATHS false
 set_fileset_property QUARTUS_SYNTH ENABLE_FILE_OVERWRITE_MODE false
+add_fileset_file basic_peripheral_pkg.vhd VHDL PATH ../rtl/basic_peripheral_pkg.vhd
+add_fileset_file basic_peripheral_regs.vhd VHDL PATH ../rtl/basic_peripheral_regs.vhd
+add_fileset_file basic_peripheral_core.vhd VHDL PATH ../rtl/basic_peripheral_core.vhd
+add_fileset_file basic_peripheral_axil.vhd VHDL PATH ../rtl/basic_peripheral_axil.vhd
 add_fileset_file basic_peripheral.vhd VHDL PATH ../rtl/basic_peripheral.vhd TOP_LEVEL_FILE
-add_fileset_file basic_peripheral_pkg.vhd VHDL PATH ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_pkg.vhd
-add_fileset_file basic_peripheral_regs.vhd VHDL PATH ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_regs.vhd
-add_fileset_file basic_peripheral_core.vhd VHDL PATH ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_core.vhd
-add_fileset_file basic_peripheral_axil.vhd VHDL PATH ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_axil.vhd
 
 add_fileset SIM_VHDL SIM_VHDL "" ""
 set_fileset_property SIM_VHDL TOP_LEVEL basic_peripheral
 set_fileset_property SIM_VHDL ENABLE_RELATIVE_INCLUDE_PATHS false
 set_fileset_property SIM_VHDL ENABLE_FILE_OVERWRITE_MODE false
+add_fileset_file basic_peripheral_pkg.vhd VHDL PATH ../rtl/basic_peripheral_pkg.vhd
+add_fileset_file basic_peripheral_regs.vhd VHDL PATH ../rtl/basic_peripheral_regs.vhd
+add_fileset_file basic_peripheral_core.vhd VHDL PATH ../rtl/basic_peripheral_core.vhd
+add_fileset_file basic_peripheral_axil.vhd VHDL PATH ../rtl/basic_peripheral_axil.vhd
 add_fileset_file basic_peripheral.vhd VHDL PATH ../rtl/basic_peripheral.vhd TOP_LEVEL_FILE
-add_fileset_file basic_peripheral_pkg.vhd VHDL PATH ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_pkg.vhd
-add_fileset_file basic_peripheral_regs.vhd VHDL PATH ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_regs.vhd
-add_fileset_file basic_peripheral_core.vhd VHDL PATH ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_core.vhd
-add_fileset_file basic_peripheral_axil.vhd VHDL PATH ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_axil.vhd
 ",
   "examples/comprehensive_avalon_sv/comprehensive_avalon_hw.tcl": "# comprehensive_avalon_hw.tcl - Altera Platform Designer Component Definition
 # Generated by ipcraft SystemVerilog Generator
@@ -36058,6 +37702,10 @@ add_fileset QUARTUS_SYNTH QUARTUS_SYNTH "" ""
 set_fileset_property QUARTUS_SYNTH TOP_LEVEL multi_interface_accelerator
 set_fileset_property QUARTUS_SYNTH ENABLE_RELATIVE_INCLUDE_PATHS false
 set_fileset_property QUARTUS_SYNTH ENABLE_FILE_OVERWRITE_MODE false
+add_fileset_file multi_interface_accelerator_pkg.sv SYSTEM_VERILOG PATH ../rtl/multi_interface_accelerator_pkg.sv
+add_fileset_file multi_interface_accelerator_regs.sv SYSTEM_VERILOG PATH ../rtl/multi_interface_accelerator_regs.sv
+add_fileset_file multi_interface_accelerator_core.sv SYSTEM_VERILOG PATH ../rtl/multi_interface_accelerator_core.sv
+add_fileset_file multi_interface_accelerator_axil.sv SYSTEM_VERILOG PATH ../rtl/multi_interface_accelerator_axil.sv
 add_fileset_file multi_interface_accelerator.sv SYSTEM_VERILOG PATH ../rtl/multi_interface_accelerator.sv TOP_LEVEL_FILE
 add_fileset_file accelerator_top.vhd VHDL PATH ../../../../../ipcraft-spec/examples/multi_interface_accelerator/rtl/accelerator_top.vhd
 
@@ -36065,6 +37713,10 @@ add_fileset SIM_VERILOG SIM_VERILOG "" ""
 set_fileset_property SIM_VERILOG TOP_LEVEL multi_interface_accelerator
 set_fileset_property SIM_VERILOG ENABLE_RELATIVE_INCLUDE_PATHS false
 set_fileset_property SIM_VERILOG ENABLE_FILE_OVERWRITE_MODE false
+add_fileset_file multi_interface_accelerator_pkg.sv SYSTEM_VERILOG PATH ../rtl/multi_interface_accelerator_pkg.sv
+add_fileset_file multi_interface_accelerator_regs.sv SYSTEM_VERILOG PATH ../rtl/multi_interface_accelerator_regs.sv
+add_fileset_file multi_interface_accelerator_core.sv SYSTEM_VERILOG PATH ../rtl/multi_interface_accelerator_core.sv
+add_fileset_file multi_interface_accelerator_axil.sv SYSTEM_VERILOG PATH ../rtl/multi_interface_accelerator_axil.sv
 add_fileset_file multi_interface_accelerator.sv SYSTEM_VERILOG PATH ../rtl/multi_interface_accelerator.sv TOP_LEVEL_FILE
 add_fileset_file accelerator_top.vhd VHDL PATH ../../../../../ipcraft-spec/examples/multi_interface_accelerator/rtl/accelerator_top.vhd
 ",
@@ -36326,6 +37978,10 @@ add_fileset QUARTUS_SYNTH QUARTUS_SYNTH "" ""
 set_fileset_property QUARTUS_SYNTH TOP_LEVEL multi_interface_accelerator
 set_fileset_property QUARTUS_SYNTH ENABLE_RELATIVE_INCLUDE_PATHS false
 set_fileset_property QUARTUS_SYNTH ENABLE_FILE_OVERWRITE_MODE false
+add_fileset_file multi_interface_accelerator_pkg.vhd VHDL PATH ../rtl/multi_interface_accelerator_pkg.vhd
+add_fileset_file multi_interface_accelerator_regs.vhd VHDL PATH ../rtl/multi_interface_accelerator_regs.vhd
+add_fileset_file multi_interface_accelerator_core.vhd VHDL PATH ../rtl/multi_interface_accelerator_core.vhd
+add_fileset_file multi_interface_accelerator_axil.vhd VHDL PATH ../rtl/multi_interface_accelerator_axil.vhd
 add_fileset_file multi_interface_accelerator.vhd VHDL PATH ../rtl/multi_interface_accelerator.vhd TOP_LEVEL_FILE
 add_fileset_file accelerator_top.vhd VHDL PATH ../../../../../ipcraft-spec/examples/multi_interface_accelerator/rtl/accelerator_top.vhd
 
@@ -36333,6 +37989,10 @@ add_fileset SIM_VHDL SIM_VHDL "" ""
 set_fileset_property SIM_VHDL TOP_LEVEL multi_interface_accelerator
 set_fileset_property SIM_VHDL ENABLE_RELATIVE_INCLUDE_PATHS false
 set_fileset_property SIM_VHDL ENABLE_FILE_OVERWRITE_MODE false
+add_fileset_file multi_interface_accelerator_pkg.vhd VHDL PATH ../rtl/multi_interface_accelerator_pkg.vhd
+add_fileset_file multi_interface_accelerator_regs.vhd VHDL PATH ../rtl/multi_interface_accelerator_regs.vhd
+add_fileset_file multi_interface_accelerator_core.vhd VHDL PATH ../rtl/multi_interface_accelerator_core.vhd
+add_fileset_file multi_interface_accelerator_axil.vhd VHDL PATH ../rtl/multi_interface_accelerator_axil.vhd
 add_fileset_file multi_interface_accelerator.vhd VHDL PATH ../rtl/multi_interface_accelerator.vhd TOP_LEVEL_FILE
 add_fileset_file accelerator_top.vhd VHDL PATH ../../../../../ipcraft-spec/examples/multi_interface_accelerator/rtl/accelerator_top.vhd
 ",
@@ -36739,6 +38399,10 @@ add_fileset QUARTUS_SYNTH QUARTUS_SYNTH "" ""
 set_fileset_property QUARTUS_SYNTH TOP_LEVEL system_controller
 set_fileset_property QUARTUS_SYNTH ENABLE_RELATIVE_INCLUDE_PATHS false
 set_fileset_property QUARTUS_SYNTH ENABLE_FILE_OVERWRITE_MODE false
+add_fileset_file system_controller_pkg.sv SYSTEM_VERILOG PATH ../rtl/system_controller_pkg.sv
+add_fileset_file system_controller_regs.sv SYSTEM_VERILOG PATH ../rtl/system_controller_regs.sv
+add_fileset_file system_controller_core.sv SYSTEM_VERILOG PATH ../rtl/system_controller_core.sv
+add_fileset_file system_controller_axil.sv SYSTEM_VERILOG PATH ../rtl/system_controller_axil.sv
 add_fileset_file system_controller.sv SYSTEM_VERILOG PATH ../rtl/system_controller.sv TOP_LEVEL_FILE
 add_fileset_file system_controller_pkg.vhd VHDL PATH ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_pkg.vhd
 add_fileset_file system_controller.vhd VHDL PATH ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller.vhd
@@ -36750,6 +38414,10 @@ add_fileset SIM_VERILOG SIM_VERILOG "" ""
 set_fileset_property SIM_VERILOG TOP_LEVEL system_controller
 set_fileset_property SIM_VERILOG ENABLE_RELATIVE_INCLUDE_PATHS false
 set_fileset_property SIM_VERILOG ENABLE_FILE_OVERWRITE_MODE false
+add_fileset_file system_controller_pkg.sv SYSTEM_VERILOG PATH ../rtl/system_controller_pkg.sv
+add_fileset_file system_controller_regs.sv SYSTEM_VERILOG PATH ../rtl/system_controller_regs.sv
+add_fileset_file system_controller_core.sv SYSTEM_VERILOG PATH ../rtl/system_controller_core.sv
+add_fileset_file system_controller_axil.sv SYSTEM_VERILOG PATH ../rtl/system_controller_axil.sv
 add_fileset_file system_controller.sv SYSTEM_VERILOG PATH ../rtl/system_controller.sv TOP_LEVEL_FILE
 add_fileset_file system_controller_pkg.vhd VHDL PATH ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_pkg.vhd
 add_fileset_file system_controller.vhd VHDL PATH ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller.vhd
@@ -37160,21 +38828,21 @@ add_fileset QUARTUS_SYNTH QUARTUS_SYNTH "" ""
 set_fileset_property QUARTUS_SYNTH TOP_LEVEL system_controller
 set_fileset_property QUARTUS_SYNTH ENABLE_RELATIVE_INCLUDE_PATHS false
 set_fileset_property QUARTUS_SYNTH ENABLE_FILE_OVERWRITE_MODE false
+add_fileset_file system_controller_pkg.vhd VHDL PATH ../rtl/system_controller_pkg.vhd
+add_fileset_file system_controller_regs.vhd VHDL PATH ../rtl/system_controller_regs.vhd
+add_fileset_file system_controller_core.vhd VHDL PATH ../rtl/system_controller_core.vhd
+add_fileset_file system_controller_axil.vhd VHDL PATH ../rtl/system_controller_axil.vhd
 add_fileset_file system_controller.vhd VHDL PATH ../rtl/system_controller.vhd TOP_LEVEL_FILE
-add_fileset_file system_controller_pkg.vhd VHDL PATH ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_pkg.vhd
-add_fileset_file system_controller_regs.vhd VHDL PATH ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_regs.vhd
-add_fileset_file system_controller_core.vhd VHDL PATH ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_core.vhd
-add_fileset_file system_controller_axil.vhd VHDL PATH ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_axil.vhd
 
 add_fileset SIM_VHDL SIM_VHDL "" ""
 set_fileset_property SIM_VHDL TOP_LEVEL system_controller
 set_fileset_property SIM_VHDL ENABLE_RELATIVE_INCLUDE_PATHS false
 set_fileset_property SIM_VHDL ENABLE_FILE_OVERWRITE_MODE false
+add_fileset_file system_controller_pkg.vhd VHDL PATH ../rtl/system_controller_pkg.vhd
+add_fileset_file system_controller_regs.vhd VHDL PATH ../rtl/system_controller_regs.vhd
+add_fileset_file system_controller_core.vhd VHDL PATH ../rtl/system_controller_core.vhd
+add_fileset_file system_controller_axil.vhd VHDL PATH ../rtl/system_controller_axil.vhd
 add_fileset_file system_controller.vhd VHDL PATH ../rtl/system_controller.vhd TOP_LEVEL_FILE
-add_fileset_file system_controller_pkg.vhd VHDL PATH ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_pkg.vhd
-add_fileset_file system_controller_regs.vhd VHDL PATH ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_regs.vhd
-add_fileset_file system_controller_core.vhd VHDL PATH ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_core.vhd
-add_fileset_file system_controller_axil.vhd VHDL PATH ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_axil.vhd
 ",
   "examples/xcvr_loopback_sv/xcvr_loopback_hw.tcl": "# xcvr_loopback_hw.tcl - Altera Platform Designer Component Definition
 # Generated by ipcraft SystemVerilog Generator
@@ -38240,6 +39908,10 @@ TOPLEVEL_LANG ?= verilog
 # SystemVerilog source files (relative to tb/ directory)
 BASE_DIR = $(CURDIR)/..
 # From ip.yml fileSets
+VERILOG_SOURCES += $(BASE_DIR)/rtl/basic_peripheral_pkg.sv
+VERILOG_SOURCES += $(BASE_DIR)/rtl/basic_peripheral_regs.sv
+VERILOG_SOURCES += $(BASE_DIR)/rtl/basic_peripheral_core.sv
+VERILOG_SOURCES += $(BASE_DIR)/rtl/basic_peripheral_axil.sv
 VERILOG_SOURCES += $(BASE_DIR)/rtl/basic_peripheral.sv
 VERILOG_SOURCES += $(BASE_DIR)/../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_pkg.vhd
 VERILOG_SOURCES += $(BASE_DIR)/../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_regs.vhd
@@ -38348,11 +40020,11 @@ TOPLEVEL_LANG ?= vhdl
 # VHDL source files (relative to tb/ directory)
 BASE_DIR = $(CURDIR)/..
 # From ip.yml fileSets
+VHDL_SOURCES += $(BASE_DIR)/rtl/basic_peripheral_pkg.vhd
+VHDL_SOURCES += $(BASE_DIR)/rtl/basic_peripheral_regs.vhd
+VHDL_SOURCES += $(BASE_DIR)/rtl/basic_peripheral_core.vhd
+VHDL_SOURCES += $(BASE_DIR)/rtl/basic_peripheral_axil.vhd
 VHDL_SOURCES += $(BASE_DIR)/rtl/basic_peripheral.vhd
-VHDL_SOURCES += $(BASE_DIR)/../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_pkg.vhd
-VHDL_SOURCES += $(BASE_DIR)/../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_regs.vhd
-VHDL_SOURCES += $(BASE_DIR)/../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_core.vhd
-VHDL_SOURCES += $(BASE_DIR)/../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_axil.vhd
 
 # Top-level module
 TOPLEVEL = basic_peripheral
@@ -39211,6 +40883,10 @@ TOPLEVEL_LANG ?= verilog
 # SystemVerilog source files (relative to tb/ directory)
 BASE_DIR = $(CURDIR)/..
 # From ip.yml fileSets
+VERILOG_SOURCES += $(BASE_DIR)/rtl/multi_interface_accelerator_pkg.sv
+VERILOG_SOURCES += $(BASE_DIR)/rtl/multi_interface_accelerator_regs.sv
+VERILOG_SOURCES += $(BASE_DIR)/rtl/multi_interface_accelerator_core.sv
+VERILOG_SOURCES += $(BASE_DIR)/rtl/multi_interface_accelerator_axil.sv
 VERILOG_SOURCES += $(BASE_DIR)/rtl/multi_interface_accelerator.sv
 VERILOG_SOURCES += $(BASE_DIR)/../../../../ipcraft-spec/examples/multi_interface_accelerator/rtl/accelerator_top.vhd
 
@@ -39315,6 +40991,10 @@ TOPLEVEL_LANG ?= vhdl
 # VHDL source files (relative to tb/ directory)
 BASE_DIR = $(CURDIR)/..
 # From ip.yml fileSets
+VHDL_SOURCES += $(BASE_DIR)/rtl/multi_interface_accelerator_pkg.vhd
+VHDL_SOURCES += $(BASE_DIR)/rtl/multi_interface_accelerator_regs.vhd
+VHDL_SOURCES += $(BASE_DIR)/rtl/multi_interface_accelerator_core.vhd
+VHDL_SOURCES += $(BASE_DIR)/rtl/multi_interface_accelerator_axil.vhd
 VHDL_SOURCES += $(BASE_DIR)/rtl/multi_interface_accelerator.vhd
 VHDL_SOURCES += $(BASE_DIR)/../../../../ipcraft-spec/examples/multi_interface_accelerator/rtl/accelerator_top.vhd
 
@@ -39401,6 +41081,10 @@ TOPLEVEL_LANG ?= verilog
 # SystemVerilog source files (relative to tb/ directory)
 BASE_DIR = $(CURDIR)/..
 # From ip.yml fileSets
+VERILOG_SOURCES += $(BASE_DIR)/rtl/system_controller_pkg.sv
+VERILOG_SOURCES += $(BASE_DIR)/rtl/system_controller_regs.sv
+VERILOG_SOURCES += $(BASE_DIR)/rtl/system_controller_core.sv
+VERILOG_SOURCES += $(BASE_DIR)/rtl/system_controller_axil.sv
 VERILOG_SOURCES += $(BASE_DIR)/rtl/system_controller.sv
 VERILOG_SOURCES += $(BASE_DIR)/../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_pkg.vhd
 VERILOG_SOURCES += $(BASE_DIR)/../../../../ipcraft-spec/examples/system_controller/rtl/system_controller.vhd
@@ -39509,11 +41193,11 @@ TOPLEVEL_LANG ?= vhdl
 # VHDL source files (relative to tb/ directory)
 BASE_DIR = $(CURDIR)/..
 # From ip.yml fileSets
+VHDL_SOURCES += $(BASE_DIR)/rtl/system_controller_pkg.vhd
+VHDL_SOURCES += $(BASE_DIR)/rtl/system_controller_regs.vhd
+VHDL_SOURCES += $(BASE_DIR)/rtl/system_controller_core.vhd
+VHDL_SOURCES += $(BASE_DIR)/rtl/system_controller_axil.vhd
 VHDL_SOURCES += $(BASE_DIR)/rtl/system_controller.vhd
-VHDL_SOURCES += $(BASE_DIR)/../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_pkg.vhd
-VHDL_SOURCES += $(BASE_DIR)/../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_regs.vhd
-VHDL_SOURCES += $(BASE_DIR)/../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_core.vhd
-VHDL_SOURCES += $(BASE_DIR)/../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_axil.vhd
 
 # Top-level module
 TOPLEVEL = system_controller
