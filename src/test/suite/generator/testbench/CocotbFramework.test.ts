@@ -102,7 +102,10 @@ describe('CocotbFramework', () => {
   it('injects engine_sim_var into the Makefile context (GHDL)', () => {
     const files = framework.generate(makeCtx(), new GhdlEngine());
     expect(files['tb/Makefile']).toContain('SIM ?= ghdl');
-    expect(files['tb/Makefile']).toContain('COMPILE_ARGS += --std=08 -frelaxed');
+    // GHDL's --std/-frelaxed flags are routed through EXTRA_ARGS (not COMPILE_ARGS) so
+    // they also reach the `ghdl -r` run step — see GhdlEngine.cocotbRunArgsVar.
+    expect(files['tb/Makefile']).toContain('EXTRA_ARGS += --std=08 -frelaxed');
+    expect(files['tb/Makefile']).not.toContain('COMPILE_ARGS += --std=08 -frelaxed');
   });
 
   it('generates correct Makefile for Questa / ModelSim', () => {

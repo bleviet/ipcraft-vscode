@@ -46,18 +46,21 @@ MODULE = {{ entity_name }}_test
 # Required for Questa/ModelSim: cocotb reads this env var directly inside vsim
 export COCOTB_TEST_MODULES = $(MODULE)
 
+{% if engine_cocotb_run_args_var %}
+# Simulator flags — routed through {{ engine_cocotb_run_args_var }} (not
+# {{ engine_cocotb_compile_var }}) because {{ engine_display_name }} must see these same
+# flags again at run time (not just at analyse time) or it can't locate the elaborated
+# design; {{ engine_cocotb_run_args_var }} feeds GHDL_ARGS, which cocotb's Makefile.ghdl
+# applies to both analyse and run
+{{ engine_cocotb_run_args_var }} += {{ engine_compile_args }}
+{% else %}
 # Simulator compile flags
 {{ engine_cocotb_compile_var }} += {{ engine_compile_args }}
+{% endif %}
 {% if engine_extra_compile_args %}
 
 # Extra compile flags from simulation.compileArgs in the .ip.yml
 {{ engine_cocotb_compile_var }} += {{ engine_extra_compile_args }}
-{% endif %}
-{% if engine_cocotb_run_args_var %}
-
-# {{ engine_display_name }} must see these same flags again at run time (not just at
-# analyse time) or it can't locate the elaborated design
-{{ engine_cocotb_run_args_var }} += {{ engine_compile_args }}
 {% endif %}
 
 {% if engine_wave_args %}

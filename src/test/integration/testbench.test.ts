@@ -18,6 +18,11 @@ import * as yaml from 'js-yaml';
 import { spawnSync } from 'child_process';
 import { generateFixtures, Fixture } from './generator';
 import { guardTier1, toolOnPath } from './tier';
+import {
+  hasMemoryMappedSlaveInterface,
+  resolveMemoryMaps,
+} from '../../generator/registerProcessor';
+import type { IpCoreData } from '../../generator/types';
 
 let allFixtures: Fixture[] = [];
 
@@ -60,6 +65,30 @@ function missingHandAuthoredRtl(fixture: Fixture): string | undefined {
   return undefined;
 }
 
+/**
+ * The cocotb test template always emits regmap-loading code (mm_loader.py + a
+ * `../{name}.mm.yml` path guess) whenever the .ip.yml declares a memory-mapped slave
+ * bus interface, regardless of whether any memoryMaps data actually backs it. An
+ * example that declares such an interface but never adds a memoryMaps section (or
+ * import) is incomplete data, not a generator bug: skip it rather than fail on a
+ * FileNotFoundError for a .mm.yml that was never meant to exist.
+ */
+async function missingMemoryMap(fixture: Fixture): Promise<string | undefined> {
+  let doc: IpCoreData;
+  try {
+    doc = yaml.load(fs.readFileSync(fixture.yamlPath, 'utf8')) as IpCoreData;
+  } catch {
+    return undefined;
+  }
+  if (!hasMemoryMappedSlaveInterface(doc)) {
+    return undefined;
+  }
+  const maps = await resolveMemoryMaps(doc, fixture.yamlPath);
+  return maps.length === 0
+    ? 'declares a memory-mapped slave interface but no memoryMaps data resolved'
+    : undefined;
+}
+
 function cocotbAvailable(): boolean {
   const result = spawnSync('python3', ['-c', 'import cocotb'], { encoding: 'utf8' });
   return !result.error && result.status === 0;
@@ -70,7 +99,7 @@ it('generates at least one fixture with tb/Makefile', () => {
   expect(withTb.length).toBeGreaterThan(0);
 });
 
-it('VHDL testbenches pass with GHDL simulator', () => {
+it('VHDL testbenches pass with GHDL simulator', async () => {
   const ghdlAvailable = toolOnPath('ghdl');
   if (guardTier1('ghdl', () => ghdlAvailable)) {
     return;
@@ -94,6 +123,11 @@ it('VHDL testbenches pass with GHDL simulator', () => {
     const missingRtl = missingHandAuthoredRtl(fixture);
     if (missingRtl) {
       console.warn(`  SKIP: ${fixture.name} — hand-authored RTL not on disk: ${missingRtl}`);
+      continue;
+    }
+    const missingMm = await missingMemoryMap(fixture);
+    if (missingMm) {
+      console.warn(`  SKIP: ${fixture.name} — ${missingMm}`);
       continue;
     }
 
@@ -129,7 +163,7 @@ it('VHDL testbenches pass with GHDL simulator', () => {
   }
 });
 
-it('SystemVerilog testbenches pass with Icarus Verilog simulator', () => {
+it('SystemVerilog testbenches pass with Icarus Verilog simulator', async () => {
   const iverilogAvailable = toolOnPath('iverilog');
   if (guardTier1('iverilog', () => iverilogAvailable)) {
     return;
@@ -153,6 +187,11 @@ it('SystemVerilog testbenches pass with Icarus Verilog simulator', () => {
     const missingRtl = missingHandAuthoredRtl(fixture);
     if (missingRtl) {
       console.warn(`  SKIP: ${fixture.name} — hand-authored RTL not on disk: ${missingRtl}`);
+      continue;
+    }
+    const missingMm = await missingMemoryMap(fixture);
+    if (missingMm) {
+      console.warn(`  SKIP: ${fixture.name} — ${missingMm}`);
       continue;
     }
 

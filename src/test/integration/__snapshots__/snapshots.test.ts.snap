@@ -39313,11 +39313,11 @@ MODULE = avalon_peripheral_test
 # Required for Questa/ModelSim: cocotb reads this env var directly inside vsim
 export COCOTB_TEST_MODULES = $(MODULE)
 
-# Simulator compile flags
-COMPILE_ARGS += --std=08 -frelaxed
-
-# GHDL must see these same flags again at run time (not just at
-# analyse time) or it can't locate the elaborated design
+# Simulator flags — routed through EXTRA_ARGS (not
+# COMPILE_ARGS) because GHDL must see these same
+# flags again at run time (not just at analyse time) or it can't locate the elaborated
+# design; EXTRA_ARGS feeds GHDL_ARGS, which cocotb's Makefile.ghdl
+# applies to both analyse and run
 EXTRA_ARGS += --std=08 -frelaxed
 
 # Generate waveforms by default; suppress with WAVES=0
@@ -39505,11 +39505,11 @@ MODULE = axi_slave_core_test
 # Required for Questa/ModelSim: cocotb reads this env var directly inside vsim
 export COCOTB_TEST_MODULES = $(MODULE)
 
-# Simulator compile flags
-COMPILE_ARGS += --std=08 -frelaxed
-
-# GHDL must see these same flags again at run time (not just at
-# analyse time) or it can't locate the elaborated design
+# Simulator flags — routed through EXTRA_ARGS (not
+# COMPILE_ARGS) because GHDL must see these same
+# flags again at run time (not just at analyse time) or it can't locate the elaborated
+# design; EXTRA_ARGS feeds GHDL_ARGS, which cocotb's Makefile.ghdl
+# applies to both analyse and run
 EXTRA_ARGS += --std=08 -frelaxed
 
 # Generate waveforms by default; suppress with WAVES=0
@@ -39697,11 +39697,11 @@ MODULE = basic_core_test
 # Required for Questa/ModelSim: cocotb reads this env var directly inside vsim
 export COCOTB_TEST_MODULES = $(MODULE)
 
-# Simulator compile flags
-COMPILE_ARGS += --std=08 -frelaxed
-
-# GHDL must see these same flags again at run time (not just at
-# analyse time) or it can't locate the elaborated design
+# Simulator flags — routed through EXTRA_ARGS (not
+# COMPILE_ARGS) because GHDL must see these same
+# flags again at run time (not just at analyse time) or it can't locate the elaborated
+# design; EXTRA_ARGS feeds GHDL_ARGS, which cocotb's Makefile.ghdl
+# applies to both analyse and run
 EXTRA_ARGS += --std=08 -frelaxed
 
 # Generate waveforms by default; suppress with WAVES=0
@@ -39897,11 +39897,11 @@ MODULE = basic_peripheral_test
 # Required for Questa/ModelSim: cocotb reads this env var directly inside vsim
 export COCOTB_TEST_MODULES = $(MODULE)
 
-# Simulator compile flags
-COMPILE_ARGS += --std=08 -frelaxed
-
-# GHDL must see these same flags again at run time (not just at
-# analyse time) or it can't locate the elaborated design
+# Simulator flags — routed through EXTRA_ARGS (not
+# COMPILE_ARGS) because GHDL must see these same
+# flags again at run time (not just at analyse time) or it can't locate the elaborated
+# design; EXTRA_ARGS feeds GHDL_ARGS, which cocotb's Makefile.ghdl
+# applies to both analyse and run
 EXTRA_ARGS += --std=08 -frelaxed
 
 # Generate waveforms by default; suppress with WAVES=0
@@ -40095,11 +40095,11 @@ MODULE = comprehensive_avalon_test
 # Required for Questa/ModelSim: cocotb reads this env var directly inside vsim
 export COCOTB_TEST_MODULES = $(MODULE)
 
-# Simulator compile flags
-COMPILE_ARGS += --std=08 -frelaxed
-
-# GHDL must see these same flags again at run time (not just at
-# analyse time) or it can't locate the elaborated design
+# Simulator flags — routed through EXTRA_ARGS (not
+# COMPILE_ARGS) because GHDL must see these same
+# flags again at run time (not just at analyse time) or it can't locate the elaborated
+# design; EXTRA_ARGS feeds GHDL_ARGS, which cocotb's Makefile.ghdl
+# applies to both analyse and run
 EXTRA_ARGS += --std=08 -frelaxed
 
 # Generate waveforms by default; suppress with WAVES=0
@@ -40295,11 +40295,11 @@ MODULE = comprehensive_axi_test
 # Required for Questa/ModelSim: cocotb reads this env var directly inside vsim
 export COCOTB_TEST_MODULES = $(MODULE)
 
-# Simulator compile flags
-COMPILE_ARGS += --std=08 -frelaxed
-
-# GHDL must see these same flags again at run time (not just at
-# analyse time) or it can't locate the elaborated design
+# Simulator flags — routed through EXTRA_ARGS (not
+# COMPILE_ARGS) because GHDL must see these same
+# flags again at run time (not just at analyse time) or it can't locate the elaborated
+# design; EXTRA_ARGS feeds GHDL_ARGS, which cocotb's Makefile.ghdl
+# applies to both analyse and run
 EXTRA_ARGS += --std=08 -frelaxed
 
 # Generate waveforms by default; suppress with WAVES=0
@@ -40495,11 +40495,11 @@ MODULE = daq_controller_test
 # Required for Questa/ModelSim: cocotb reads this env var directly inside vsim
 export COCOTB_TEST_MODULES = $(MODULE)
 
-# Simulator compile flags
-COMPILE_ARGS += --std=08 -frelaxed
-
-# GHDL must see these same flags again at run time (not just at
-# analyse time) or it can't locate the elaborated design
+# Simulator flags — routed through EXTRA_ARGS (not
+# COMPILE_ARGS) because GHDL must see these same
+# flags again at run time (not just at analyse time) or it can't locate the elaborated
+# design; EXTRA_ARGS feeds GHDL_ARGS, which cocotb's Makefile.ghdl
+# applies to both analyse and run
 EXTRA_ARGS += --std=08 -frelaxed
 
 # Generate waveforms by default; suppress with WAVES=0
@@ -40687,11 +40687,11 @@ MODULE = minimal_ip_test
 # Required for Questa/ModelSim: cocotb reads this env var directly inside vsim
 export COCOTB_TEST_MODULES = $(MODULE)
 
-# Simulator compile flags
-COMPILE_ARGS += --std=08 -frelaxed
-
-# GHDL must see these same flags again at run time (not just at
-# analyse time) or it can't locate the elaborated design
+# Simulator flags — routed through EXTRA_ARGS (not
+# COMPILE_ARGS) because GHDL must see these same
+# flags again at run time (not just at analyse time) or it can't locate the elaborated
+# design; EXTRA_ARGS feeds GHDL_ARGS, which cocotb's Makefile.ghdl
+# applies to both analyse and run
 EXTRA_ARGS += --std=08 -frelaxed
 
 # Generate waveforms by default; suppress with WAVES=0
@@ -40887,11 +40887,11 @@ MODULE = multi_interface_accelerator_test
 # Required for Questa/ModelSim: cocotb reads this env var directly inside vsim
 export COCOTB_TEST_MODULES = $(MODULE)
 
-# Simulator compile flags
-COMPILE_ARGS += --std=08 -frelaxed
-
-# GHDL must see these same flags again at run time (not just at
-# analyse time) or it can't locate the elaborated design
+# Simulator flags — routed through EXTRA_ARGS (not
+# COMPILE_ARGS) because GHDL must see these same
+# flags again at run time (not just at analyse time) or it can't locate the elaborated
+# design; EXTRA_ARGS feeds GHDL_ARGS, which cocotb's Makefile.ghdl
+# applies to both analyse and run
 EXTRA_ARGS += --std=08 -frelaxed
 
 # Generate waveforms by default; suppress with WAVES=0
@@ -41087,11 +41087,11 @@ MODULE = system_controller_test
 # Required for Questa/ModelSim: cocotb reads this env var directly inside vsim
 export COCOTB_TEST_MODULES = $(MODULE)
 
-# Simulator compile flags
-COMPILE_ARGS += --std=08 -frelaxed
-
-# GHDL must see these same flags again at run time (not just at
-# analyse time) or it can't locate the elaborated design
+# Simulator flags — routed through EXTRA_ARGS (not
+# COMPILE_ARGS) because GHDL must see these same
+# flags again at run time (not just at analyse time) or it can't locate the elaborated
+# design; EXTRA_ARGS feeds GHDL_ARGS, which cocotb's Makefile.ghdl
+# applies to both analyse and run
 EXTRA_ARGS += --std=08 -frelaxed
 
 # Generate waveforms by default; suppress with WAVES=0
@@ -41277,11 +41277,11 @@ MODULE = xcvr_loopback_test
 # Required for Questa/ModelSim: cocotb reads this env var directly inside vsim
 export COCOTB_TEST_MODULES = $(MODULE)
 
-# Simulator compile flags
-COMPILE_ARGS += --std=08 -frelaxed
-
-# GHDL must see these same flags again at run time (not just at
-# analyse time) or it can't locate the elaborated design
+# Simulator flags — routed through EXTRA_ARGS (not
+# COMPILE_ARGS) because GHDL must see these same
+# flags again at run time (not just at analyse time) or it can't locate the elaborated
+# design; EXTRA_ARGS feeds GHDL_ARGS, which cocotb's Makefile.ghdl
+# applies to both analyse and run
 EXTRA_ARGS += --std=08 -frelaxed
 
 # Generate waveforms by default; suppress with WAVES=0
@@ -41469,11 +41469,11 @@ MODULE = minimal_core_test
 # Required for Questa/ModelSim: cocotb reads this env var directly inside vsim
 export COCOTB_TEST_MODULES = $(MODULE)
 
-# Simulator compile flags
-COMPILE_ARGS += --std=08 -frelaxed
-
-# GHDL must see these same flags again at run time (not just at
-# analyse time) or it can't locate the elaborated design
+# Simulator flags — routed through EXTRA_ARGS (not
+# COMPILE_ARGS) because GHDL must see these same
+# flags again at run time (not just at analyse time) or it can't locate the elaborated
+# design; EXTRA_ARGS feeds GHDL_ARGS, which cocotb's Makefile.ghdl
+# applies to both analyse and run
 EXTRA_ARGS += --std=08 -frelaxed
 
 # Generate waveforms by default; suppress with WAVES=0
