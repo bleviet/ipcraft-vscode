@@ -32,13 +32,15 @@ import { getIdentifierTokenAtCursor } from '../../../shared/utils/widthExprToken
 import { BUS_VLNV, busSupportsMemoryMap } from '../../../../shared/busVlnv';
 import { isValidVlnv } from '../../../../utils/vlnv';
 import { MapConduitToBusDialog, type MapConduitToBusResult } from './MapConduitToBusDialog';
-import { applyMapConduitToKnownBus } from '../../hooks/useGroupPorts';
+import { applyMapConduitToKnownBus, type BatchUpdate } from '../../hooks/useGroupPorts';
 
 interface CanvasInspectorProps {
   selected: CanvasElement | null;
   ipCore: IpCore;
   imports?: { busLibrary?: unknown; memoryMaps?: unknown[] };
   onUpdate: YamlUpdateHandler;
+  /** Apply several path/value mutations as one atomic edit (single undo entry). */
+  batchUpdate?: BatchUpdate;
   onClose: () => void;
   onDelete?: () => void;
   /** Dissolve a bus interface and restore its signals to the standalone ports list */
@@ -57,6 +59,7 @@ export const CanvasInspector: React.FC<CanvasInspectorProps> = ({
   ipCore,
   imports,
   onUpdate,
+  batchUpdate,
   onClose,
   onDelete,
   onUngroup,
@@ -147,7 +150,7 @@ export const CanvasInspector: React.FC<CanvasInspectorProps> = ({
 
       {/* ── Body ── */}
       <div className="ci-body">
-        {renderPanel(selected, ipCore, onUpdate, imports, onSelectElement)}
+        {renderPanel(selected, ipCore, onUpdate, imports, onSelectElement, batchUpdate)}
       </div>
 
       {/* ── Footer ── */}
@@ -189,7 +192,8 @@ function renderPanel(
   ipCore: IpCore,
   onUpdate: YamlUpdateHandler,
   imports?: { busLibrary?: unknown; memoryMaps?: unknown[] },
-  onSelectElement?: (id: string) => void
+  onSelectElement?: (id: string) => void,
+  batchUpdate?: BatchUpdate
 ): React.ReactNode {
   switch (element.kind) {
     case 'body':
@@ -248,7 +252,13 @@ function renderPanel(
         return <EmptyState label="Parameter not found" />;
       }
       return (
-        <ParameterPanel param={param} index={element.index} ipCore={ipCore} onUpdate={onUpdate} />
+        <ParameterPanel
+          param={param}
+          index={element.index}
+          ipCore={ipCore}
+          onUpdate={onUpdate}
+          batchUpdate={batchUpdate}
+        />
       );
     }
     case 'interrupt': {
@@ -923,6 +933,94 @@ function computeParamGroups(params: Array<Record<string, unknown>>, page: string
   ].sort();
 }
 
+type Mutation = [Array<string | number>, unknown];
+
+/** Apply several parameter mutations as one atomic edit when possible, falling back to
+ *  sequential single-path updates (e.g. in tests that don't pass a `batchUpdate` prop). */
+function applyBulkUpdate(
+  mutations: Mutation[],
+  onUpdate: YamlUpdateHandler,
+  batchUpdate?: BatchUpdate
+): void {
+  if (mutations.length === 0) {
+    return;
+  }
+  if (batchUpdate) {
+    batchUpdate(mutations);
+  } else {
+    mutations.forEach(([path, value]) => onUpdate(path, value));
+  }
+}
+
+/** Rename a Page across every parameter that references it. */
+function renamePage(
+  params: Array<Record<string, unknown>>,
+  oldName: string,
+  newName: string,
+  onUpdate: YamlUpdateHandler,
+  batchUpdate?: BatchUpdate
+): void {
+  const mutations: Mutation[] = [];
+  params.forEach((p, i) => {
+    if (p.uiPage && String(p.uiPage) === oldName) {
+      mutations.push([['parameters', i, 'uiPage'], newName]);
+    }
+  });
+  applyBulkUpdate(mutations, onUpdate, batchUpdate);
+}
+
+/** Delete a Page — clears uiPage (and uiGroup, which requires a page) on every parameter that used it. */
+function deletePage(
+  params: Array<Record<string, unknown>>,
+  name: string,
+  onUpdate: YamlUpdateHandler,
+  batchUpdate?: BatchUpdate
+): void {
+  const mutations: Mutation[] = [];
+  params.forEach((p, i) => {
+    if (p.uiPage && String(p.uiPage) === name) {
+      mutations.push([['parameters', i, 'uiPage'], null]);
+      mutations.push([['parameters', i, 'uiGroup'], null]);
+    }
+  });
+  applyBulkUpdate(mutations, onUpdate, batchUpdate);
+}
+
+/** Rename a Group across every parameter that references it on the given page. */
+function renameGroup(
+  params: Array<Record<string, unknown>>,
+  page: string,
+  oldName: string,
+  newName: string,
+  onUpdate: YamlUpdateHandler,
+  batchUpdate?: BatchUpdate
+): void {
+  const mutations: Mutation[] = [];
+  params.forEach((p, i) => {
+    if (p.uiPage && String(p.uiPage) === page && p.uiGroup && String(p.uiGroup) === oldName) {
+      mutations.push([['parameters', i, 'uiGroup'], newName]);
+    }
+  });
+  applyBulkUpdate(mutations, onUpdate, batchUpdate);
+}
+
+/** Delete a Group — clears uiGroup on every parameter that used it on the given page. */
+function deleteGroup(
+  params: Array<Record<string, unknown>>,
+  page: string,
+  name: string,
+  onUpdate: YamlUpdateHandler,
+  batchUpdate?: BatchUpdate
+): void {
+  const mutations: Mutation[] = [];
+  params.forEach((p, i) => {
+    if (p.uiPage && String(p.uiPage) === page && p.uiGroup && String(p.uiGroup) === name) {
+      mutations.push([['parameters', i, 'uiGroup'], null]);
+    }
+  });
+  applyBulkUpdate(mutations, onUpdate, batchUpdate);
+}
+
 const PLACEMENT_ADD_BTN_STYLE: React.CSSProperties = {
   background: 'none',
   border: 'none',
@@ -1028,6 +1126,83 @@ const PlacementSelectField: React.FC<PlacementSelectFieldProps> = ({
   );
 };
 
+interface PlacementActionsProps {
+  value: string;
+  onRename: (oldName: string, newName: string) => void;
+  onDelete: (name: string) => void;
+  renameTitle: string;
+  deleteTitle: string;
+}
+
+/**
+ * Rename/delete affordance for an existing Page or Group *name* (as opposed to
+ * PlacementSelectField's "assign this parameter to a page/group" control). Renaming
+ * or deleting rewrites every parameter that references the name — see renamePage/
+ * deletePage/renameGroup/deleteGroup below.
+ */
+const PlacementActions: React.FC<PlacementActionsProps> = ({
+  value,
+  onRename,
+  onDelete,
+  renameTitle,
+  deleteTitle,
+}) => {
+  const [renaming, setRenaming] = useState(false);
+  const [draft, setDraft] = useState(value);
+
+  if (renaming) {
+    const commit = () => {
+      const v = draft.trim();
+      if (v && v !== value) {
+        onRename(value, v);
+      }
+      setRenaming(false);
+    };
+    return (
+      <input
+        autoFocus
+        style={PLACEMENT_INLINE_INPUT_STYLE}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            commit();
+          }
+          if (e.key === 'Escape') {
+            setRenaming(false);
+            setDraft(value);
+          }
+        }}
+        onBlur={commit}
+      />
+    );
+  }
+
+  return (
+    <>
+      <button
+        style={PLACEMENT_ADD_BTN_STYLE}
+        title={renameTitle}
+        type="button"
+        onClick={() => {
+          setDraft(value);
+          setRenaming(true);
+        }}
+      >
+        <span className="codicon codicon-edit" style={{ fontSize: 12 }} />
+      </button>
+      <button
+        style={PLACEMENT_ADD_BTN_STYLE}
+        title={deleteTitle}
+        type="button"
+        onClick={() => onDelete(value)}
+      >
+        <span className="codicon codicon-trash" style={{ fontSize: 12 }} />
+      </button>
+    </>
+  );
+};
+
 // ─── GUI Placement tree widget ────────────────────────────────────────────────
 
 interface UiPlacementTreeProps {
@@ -1038,6 +1213,10 @@ interface UiPlacementTreeProps {
   allGroups: string[];
   onPageChange: (v: string) => void;
   onGroupChange: (v: string) => void;
+  onRenamePage: (oldName: string, newName: string) => void;
+  onDeletePage: (name: string) => void;
+  onRenameGroup: (oldName: string, newName: string) => void;
+  onDeleteGroup: (name: string) => void;
 }
 
 const UiPlacementTree: React.FC<UiPlacementTreeProps> = ({
@@ -1048,6 +1227,10 @@ const UiPlacementTree: React.FC<UiPlacementTreeProps> = ({
   allGroups,
   onPageChange,
   onGroupChange,
+  onRenamePage,
+  onDeletePage,
+  onRenameGroup,
+  onDeleteGroup,
 }) => {
   const treeLineStyle: React.CSSProperties = {
     color: 'var(--vscode-editorLineNumber-foreground)',
@@ -1082,6 +1265,16 @@ const UiPlacementTree: React.FC<UiPlacementTreeProps> = ({
           addTitle="New page"
           addPlaceholder="New page name…"
         />
+        {uiPage && (
+          <PlacementActions
+            key={uiPage}
+            value={uiPage}
+            onRename={onRenamePage}
+            onDelete={onDeletePage}
+            renameTitle="Rename this page (updates every parameter on it)"
+            deleteTitle="Delete this page (clears it from every parameter on it)"
+          />
+        )}
       </div>
 
       {/* Tree connector + group row (only when page is set) */}
@@ -1113,6 +1306,16 @@ const UiPlacementTree: React.FC<UiPlacementTreeProps> = ({
                   addTitle="New group"
                   addPlaceholder="New group name…"
                 />
+                {uiGroup && (
+                  <PlacementActions
+                    key={uiGroup}
+                    value={uiGroup}
+                    onRename={onRenameGroup}
+                    onDelete={onDeleteGroup}
+                    renameTitle="Rename this group (updates every parameter in it)"
+                    deleteTitle="Delete this group (clears it from every parameter in it)"
+                  />
+                )}
               </div>
 
               {/* Parameter leaf */}
@@ -1178,9 +1381,16 @@ interface ParameterPanelProps {
   index: number;
   ipCore: IpCore;
   onUpdate: YamlUpdateHandler;
+  batchUpdate?: BatchUpdate;
 }
 
-const ParameterPanel: React.FC<ParameterPanelProps> = ({ param, index, ipCore, onUpdate }) => {
+const ParameterPanel: React.FC<ParameterPanelProps> = ({
+  param,
+  index,
+  ipCore,
+  onUpdate,
+  batchUpdate,
+}) => {
   const params = (ipCore.parameters ?? []) as unknown as Array<Record<string, unknown>>;
   const existingNames = params.map((p) => String(p.name ?? '')).filter((_, i) => i !== index);
 
@@ -1398,6 +1608,14 @@ const ParameterPanel: React.FC<ParameterPanelProps> = ({ param, index, ipCore, o
             }
           }}
           onGroupChange={(v) => onUpdate(['parameters', index, 'uiGroup'], v || null)}
+          onRenamePage={(oldName, newName) =>
+            renamePage(params, oldName, newName, onUpdate, batchUpdate)
+          }
+          onDeletePage={(name) => deletePage(params, name, onUpdate, batchUpdate)}
+          onRenameGroup={(oldName, newName) =>
+            renameGroup(params, uiPage, oldName, newName, onUpdate, batchUpdate)
+          }
+          onDeleteGroup={(name) => deleteGroup(params, uiPage, name, onUpdate, batchUpdate)}
         />
       </Section>
     </>

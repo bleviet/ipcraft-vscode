@@ -1299,6 +1299,7 @@ const IpCoreApp: React.FC = () => {
                 ipCore={typedIpCore}
                 imports={imports}
                 onUpdate={updateIpCore}
+                batchUpdate={batchUpdateIpCore}
                 onClose={canvasDeselect}
                 onDelete={handleInspectorDelete}
                 onUngroup={handleInspectorUngroup}
