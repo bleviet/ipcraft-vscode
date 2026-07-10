@@ -4,6 +4,11 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [0.8.6] - 2026-07-10
+
+### Added
+- **Bus interface clock/reset routing matrix**: a new clickable "Ports" header on the IP Core canvas (positioned below the Generics/Dependencies sections, mirroring the existing Generics overview) opens a matrix panel listing every bus interface with inline Clock/Reset dropdowns and a hover-to-delete action, plus a separate Resets section showing each reset's own associated clock — so clock/reset routing can be audited and fixed across the whole core without clicking through each interface individually. ([#57](https://github.com/bleviet/ipcraft-vscode/issues/57))
+
 ## [0.8.3] - 2026-07-07
 
 ### Fixed
