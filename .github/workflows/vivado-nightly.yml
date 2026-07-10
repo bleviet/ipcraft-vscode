@@ -36,7 +36,7 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends ghdl iverilog verilator libxml2-utils
-          pip3 install --no-cache-dir cocotb pytest
+          pip3 install --no-cache-dir cocotb pytest cocotbext-axi
 
       - run: npm ci
 

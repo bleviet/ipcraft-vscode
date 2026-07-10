@@ -489,7 +489,12 @@ async function collectRtlAbsPaths(
 
   // Scaffold pack generates files in compile order: pkg → regs → core → bus → top
   const generatedRelPaths = Object.keys(files).filter((f) => f.startsWith('rtl/'));
-  const generatedRelPathSet = new Set(generatedRelPaths);
+  // Same-stem check ignores the extension: a fileSets entry left over from a previous
+  // generation in the *other* HDL language (e.g. rtl/foo.vhd on disk while this run
+  // regenerates rtl/foo.sv) names the same conceptual file the pack just (re)generated,
+  // just under its old extension — it must not also be pulled in as "extra" content.
+  const stripExt = (p: string) => p.replace(/\.[^./]+$/, '');
+  const generatedStemSet = new Set(generatedRelPaths.map(stripExt));
 
   // Imported IP cores can contain both VHDL and SV files (e.g. when a _hw.tcl sources
   // subpackage TCLs that contribute files in different languages). Include all HDL files
@@ -502,14 +507,14 @@ async function collectRtlAbsPaths(
   // typically hand-authored user logic (e.g. managed: false) that still needs to be
   // referenced from the vendor packaging output (component.xml, hw.tcl, project TCLs)
   // and the testbench build. De-dupe against the generated set by the fileSets-declared
-  // relative path (both use the same `rtl/...` convention) — not by resolved absolute
-  // path, since fileSets paths resolve against ipCoreDir while generated paths resolve
-  // against outputDir, two directories that are almost never the same.
+  // relative path with its extension stripped (fileSets paths resolve against ipCoreDir
+  // while generated paths resolve against outputDir, two directories that are almost
+  // never the same, so we can't dedupe by resolved absolute path either).
   const extraFileItems = (fileSets ?? [])
     .filter((fs) => fs.name !== 'Simulation_Resources')
     .flatMap((fs) => fs.files ?? [])
     .filter((f) => HDL_TYPES.has(f.type ?? '') && f.path && !isSimPath(f.path))
-    .filter((f) => !generatedRelPathSet.has(f.path!))
+    .filter((f) => !generatedStemSet.has(stripExt(f.path!)))
     .map((f) => ({
       absPath: path.resolve(ipCoreDir, f.path!),
       language: f.type as 'vhdl' | 'systemverilog',

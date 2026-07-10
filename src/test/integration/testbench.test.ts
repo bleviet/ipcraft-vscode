@@ -14,6 +14,7 @@
 
 import * as path from 'path';
 import * as fs from 'fs';
+import * as yaml from 'js-yaml';
 import { spawnSync } from 'child_process';
 import { generateFixtures, Fixture } from './generator';
 import { guardTier1, toolOnPath } from './tier';
@@ -26,6 +27,37 @@ beforeAll(async () => {
 
 function hasMakefile(fixture: Fixture): boolean {
   return 'tb/Makefile' in fixture.files;
+}
+
+/**
+ * Some examples declare a `managed: false` fileSets entry — RTL the tool never
+ * generates because it's meant to be hand-authored. If that file was never actually
+ * added to the source .ip.yml's directory, the example is incomplete data, not a
+ * generator bug: skip it here instead of failing on a Makefile with an unresolvable
+ * source path.
+ */
+function missingHandAuthoredRtl(fixture: Fixture): string | undefined {
+  type FileSetEntry = { files?: Array<{ path?: string; type?: string; managed?: boolean }> };
+  let doc: { fileSets?: FileSetEntry[] };
+  try {
+    doc = yaml.load(fs.readFileSync(fixture.yamlPath, 'utf8')) as typeof doc;
+  } catch {
+    return undefined;
+  }
+  const ipCoreDir = path.dirname(fixture.yamlPath);
+  for (const fset of doc.fileSets ?? []) {
+    for (const f of fset.files ?? []) {
+      if (
+        f.managed === false &&
+        f.path &&
+        (f.type === 'vhdl' || f.type === 'systemverilog') &&
+        !fs.existsSync(path.resolve(ipCoreDir, f.path))
+      ) {
+        return f.path;
+      }
+    }
+  }
+  return undefined;
 }
 
 function cocotbAvailable(): boolean {
@@ -57,6 +89,11 @@ it('VHDL testbenches pass with GHDL simulator', () => {
   for (const fixture of vhdlFixtures) {
     const tbDir = path.join(fixture.outputDir, 'tb');
     if (!fs.existsSync(path.join(tbDir, 'Makefile'))) {
+      continue;
+    }
+    const missingRtl = missingHandAuthoredRtl(fixture);
+    if (missingRtl) {
+      console.warn(`  SKIP: ${fixture.name} — hand-authored RTL not on disk: ${missingRtl}`);
       continue;
     }
 
@@ -111,6 +148,11 @@ it('SystemVerilog testbenches pass with Icarus Verilog simulator', () => {
   for (const fixture of svFixtures) {
     const tbDir = path.join(fixture.outputDir, 'tb');
     if (!fs.existsSync(path.join(tbDir, 'Makefile'))) {
+      continue;
+    }
+    const missingRtl = missingHandAuthoredRtl(fixture);
+    if (missingRtl) {
+      console.warn(`  SKIP: ${fixture.name} — hand-authored RTL not on disk: ${missingRtl}`);
       continue;
     }
 

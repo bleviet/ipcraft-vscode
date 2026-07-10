@@ -10,6 +10,7 @@ export class GhdlEngine implements Engine {
   readonly vunitSimOptionKey = 'ghdl.elab_flags';
   readonly vunitCompileOptionKey = 'ghdl.a_flags';
   readonly cocotbCompileVar = 'COMPILE_ARGS';
+  readonly cocotbRunArgsVar = 'EXTRA_ARGS';
 
   simArgs(entityName: string): string[] {
     return [`--wave=${entityName}.ghw`];

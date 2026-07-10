@@ -47,6 +47,7 @@ export class CocotbFramework implements Framework {
       engine_display_name: engine.displayName,
       engine_compile_args: engine.compileArgs.join(' '),
       engine_cocotb_compile_var: engine.cocotbCompileVar,
+      engine_cocotb_run_args_var: engine.cocotbRunArgsVar,
       engine_wave_ext: engine.waveExt,
       engine_wave_args: engine.waveArgs(name),
       engine_wave_viewer_cmd: engine.waveViewerCmd(name),

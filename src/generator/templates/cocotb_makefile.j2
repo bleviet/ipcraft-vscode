@@ -53,6 +53,12 @@ export COCOTB_TEST_MODULES = $(MODULE)
 # Extra compile flags from simulation.compileArgs in the .ip.yml
 {{ engine_cocotb_compile_var }} += {{ engine_extra_compile_args }}
 {% endif %}
+{% if engine_cocotb_run_args_var %}
+
+# {{ engine_display_name }} must see these same flags again at run time (not just at
+# analyse time) or it can't locate the elaborated design
+{{ engine_cocotb_run_args_var }} += {{ engine_compile_args }}
+{% endif %}
 
 {% if engine_wave_args %}
 # Generate waveforms by default; suppress with WAVES=0

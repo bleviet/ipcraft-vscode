@@ -467,11 +467,6 @@ set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/basic_periph
 set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/basic_peripheral_core.sv]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/basic_peripheral_axil.sv]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/basic_peripheral.sv]
-set_global_assignment -name VHDL_FILE [file join .. ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_pkg.vhd]
-set_global_assignment -name VHDL_FILE [file join .. ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_regs.vhd]
-set_global_assignment -name VHDL_FILE [file join .. ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_core.vhd]
-set_global_assignment -name VHDL_FILE [file join .. ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_axil.vhd]
-set_global_assignment -name VHDL_FILE [file join .. ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral.vhd]
 
 # ---- Timing constraints -----------------------------------------------------
 # sdc_file is a bare filename (the .sdc is written as a sibling of this
@@ -1194,7 +1189,6 @@ set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/multi_interf
 set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/multi_interface_accelerator_core.sv]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/multi_interface_accelerator_axil.sv]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/multi_interface_accelerator.sv]
-set_global_assignment -name VHDL_FILE [file join .. ../../../../../ipcraft-spec/examples/multi_interface_accelerator/rtl/accelerator_top.vhd]
 
 # ---- Timing constraints -----------------------------------------------------
 # sdc_file is a bare filename (the .sdc is written as a sibling of this
@@ -1268,7 +1262,6 @@ set_global_assignment -name VHDL_FILE [file join .. ../rtl/multi_interface_accel
 set_global_assignment -name VHDL_FILE [file join .. ../rtl/multi_interface_accelerator_core.vhd]
 set_global_assignment -name VHDL_FILE [file join .. ../rtl/multi_interface_accelerator_axil.vhd]
 set_global_assignment -name VHDL_FILE [file join .. ../rtl/multi_interface_accelerator.vhd]
-set_global_assignment -name VHDL_FILE [file join .. ../../../../../ipcraft-spec/examples/multi_interface_accelerator/rtl/accelerator_top.vhd]
 
 # ---- Timing constraints -----------------------------------------------------
 # sdc_file is a bare filename (the .sdc is written as a sibling of this
@@ -1342,11 +1335,6 @@ set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/system_contr
 set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/system_controller_core.sv]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/system_controller_axil.sv]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/system_controller.sv]
-set_global_assignment -name VHDL_FILE [file join .. ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_pkg.vhd]
-set_global_assignment -name VHDL_FILE [file join .. ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller.vhd]
-set_global_assignment -name VHDL_FILE [file join .. ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_regs.vhd]
-set_global_assignment -name VHDL_FILE [file join .. ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_core.vhd]
-set_global_assignment -name VHDL_FILE [file join .. ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_axil.vhd]
 
 # ---- Timing constraints -----------------------------------------------------
 # sdc_file is a bare filename (the .sdc is written as a sibling of this
@@ -7095,11 +7083,6 @@ add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir .
 add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../rtl/basic_peripheral_core.sv]]
 add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../rtl/basic_peripheral_axil.sv]]
 add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../rtl/basic_peripheral.sv]]
-add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_pkg.vhd]]
-add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_regs.vhd]]
-add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_core.vhd]]
-add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_axil.vhd]]
-add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral.vhd]]
 
 # Use VHDL-2008 for VHDL source files (skipped when project contains only SystemVerilog)
 # Uses FILE_TYPE filter to capture both .vhd and .vhdl safely
@@ -7972,7 +7955,6 @@ add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir .
 add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../rtl/multi_interface_accelerator_core.sv]]
 add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../rtl/multi_interface_accelerator_axil.sv]]
 add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../rtl/multi_interface_accelerator.sv]]
-add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../../../../../ipcraft-spec/examples/multi_interface_accelerator/rtl/accelerator_top.vhd]]
 
 # Use VHDL-2008 for VHDL source files (skipped when project contains only SystemVerilog)
 # Uses FILE_TYPE filter to capture both .vhd and .vhdl safely
@@ -8061,7 +8043,6 @@ add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir .
 add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../rtl/multi_interface_accelerator_core.vhd]]
 add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../rtl/multi_interface_accelerator_axil.vhd]]
 add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../rtl/multi_interface_accelerator.vhd]]
-add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../../../../../ipcraft-spec/examples/multi_interface_accelerator/rtl/accelerator_top.vhd]]
 
 # Use VHDL-2008 for VHDL source files (skipped when project contains only SystemVerilog)
 # Uses FILE_TYPE filter to capture both .vhd and .vhdl safely
@@ -8150,11 +8131,6 @@ add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir .
 add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../rtl/system_controller_core.sv]]
 add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../rtl/system_controller_axil.sv]]
 add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../rtl/system_controller.sv]]
-add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_pkg.vhd]]
-add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller.vhd]]
-add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_regs.vhd]]
-add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_core.vhd]]
-add_files -fileset sources_1 -norecurse [file normalize [file join $script_dir ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_axil.vhd]]
 
 # Use VHDL-2008 for VHDL source files (skipped when project contains only SystemVerilog)
 # Uses FILE_TYPE filter to capture both .vhd and .vhdl safely
@@ -12636,26 +12612,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         <spirit:name>../rtl/basic_peripheral.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
       </spirit:file>
-      <spirit:file>
-        <spirit:name>../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_pkg.vhd</spirit:name>
-        <spirit:fileType>systemVerilogSource</spirit:fileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_regs.vhd</spirit:name>
-        <spirit:fileType>systemVerilogSource</spirit:fileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_core.vhd</spirit:name>
-        <spirit:fileType>systemVerilogSource</spirit:fileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_axil.vhd</spirit:name>
-        <spirit:fileType>systemVerilogSource</spirit:fileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral.vhd</spirit:name>
-        <spirit:fileType>systemVerilogSource</spirit:fileType>
-      </spirit:file>
     </spirit:fileSet>
     <spirit:fileSet>
       <spirit:name>xilinx_anylanguagebehavioralsimulation_view_fileset</spirit:name>
@@ -12677,26 +12633,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       </spirit:file>
       <spirit:file>
         <spirit:name>../rtl/basic_peripheral.sv</spirit:name>
-        <spirit:fileType>systemVerilogSource</spirit:fileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_pkg.vhd</spirit:name>
-        <spirit:fileType>systemVerilogSource</spirit:fileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_regs.vhd</spirit:name>
-        <spirit:fileType>systemVerilogSource</spirit:fileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_core.vhd</spirit:name>
-        <spirit:fileType>systemVerilogSource</spirit:fileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_axil.vhd</spirit:name>
-        <spirit:fileType>systemVerilogSource</spirit:fileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral.vhd</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
       </spirit:file>
     </spirit:fileSet>
@@ -25472,10 +25408,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         <spirit:name>../rtl/multi_interface_accelerator.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
       </spirit:file>
-      <spirit:file>
-        <spirit:name>../../../../../ipcraft-spec/examples/multi_interface_accelerator/rtl/accelerator_top.vhd</spirit:name>
-        <spirit:fileType>systemVerilogSource</spirit:fileType>
-      </spirit:file>
     </spirit:fileSet>
     <spirit:fileSet>
       <spirit:name>xilinx_anylanguagebehavioralsimulation_view_fileset</spirit:name>
@@ -25497,10 +25429,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       </spirit:file>
       <spirit:file>
         <spirit:name>../rtl/multi_interface_accelerator.sv</spirit:name>
-        <spirit:fileType>systemVerilogSource</spirit:fileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>../../../../../ipcraft-spec/examples/multi_interface_accelerator/rtl/accelerator_top.vhd</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
       </spirit:file>
     </spirit:fileSet>
@@ -27154,10 +27082,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         <spirit:name>../rtl/multi_interface_accelerator.vhd</spirit:name>
         <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
       </spirit:file>
-      <spirit:file>
-        <spirit:name>../../../../../ipcraft-spec/examples/multi_interface_accelerator/rtl/accelerator_top.vhd</spirit:name>
-        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
-      </spirit:file>
     </spirit:fileSet>
     <spirit:fileSet>
       <spirit:name>xilinx_anylanguagebehavioralsimulation_view_fileset</spirit:name>
@@ -27179,10 +27103,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       </spirit:file>
       <spirit:file>
         <spirit:name>../rtl/multi_interface_accelerator.vhd</spirit:name>
-        <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>../../../../../ipcraft-spec/examples/multi_interface_accelerator/rtl/accelerator_top.vhd</spirit:name>
         <spirit:userFileType>vhdlSource-2008</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
@@ -29988,26 +29908,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         <spirit:name>../rtl/system_controller.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
       </spirit:file>
-      <spirit:file>
-        <spirit:name>../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_pkg.vhd</spirit:name>
-        <spirit:fileType>systemVerilogSource</spirit:fileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller.vhd</spirit:name>
-        <spirit:fileType>systemVerilogSource</spirit:fileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_regs.vhd</spirit:name>
-        <spirit:fileType>systemVerilogSource</spirit:fileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_core.vhd</spirit:name>
-        <spirit:fileType>systemVerilogSource</spirit:fileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_axil.vhd</spirit:name>
-        <spirit:fileType>systemVerilogSource</spirit:fileType>
-      </spirit:file>
     </spirit:fileSet>
     <spirit:fileSet>
       <spirit:name>xilinx_anylanguagebehavioralsimulation_view_fileset</spirit:name>
@@ -30029,26 +29929,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       </spirit:file>
       <spirit:file>
         <spirit:name>../rtl/system_controller.sv</spirit:name>
-        <spirit:fileType>systemVerilogSource</spirit:fileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_pkg.vhd</spirit:name>
-        <spirit:fileType>systemVerilogSource</spirit:fileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller.vhd</spirit:name>
-        <spirit:fileType>systemVerilogSource</spirit:fileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_regs.vhd</spirit:name>
-        <spirit:fileType>systemVerilogSource</spirit:fileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_core.vhd</spirit:name>
-        <spirit:fileType>systemVerilogSource</spirit:fileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_axil.vhd</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
       </spirit:file>
     </spirit:fileSet>
@@ -35571,11 +35451,6 @@ add_fileset_file basic_peripheral_regs.sv SYSTEM_VERILOG PATH ../rtl/basic_perip
 add_fileset_file basic_peripheral_core.sv SYSTEM_VERILOG PATH ../rtl/basic_peripheral_core.sv
 add_fileset_file basic_peripheral_axil.sv SYSTEM_VERILOG PATH ../rtl/basic_peripheral_axil.sv
 add_fileset_file basic_peripheral.sv SYSTEM_VERILOG PATH ../rtl/basic_peripheral.sv TOP_LEVEL_FILE
-add_fileset_file basic_peripheral_pkg.vhd VHDL PATH ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_pkg.vhd
-add_fileset_file basic_peripheral_regs.vhd VHDL PATH ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_regs.vhd
-add_fileset_file basic_peripheral_core.vhd VHDL PATH ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_core.vhd
-add_fileset_file basic_peripheral_axil.vhd VHDL PATH ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_axil.vhd
-add_fileset_file basic_peripheral.vhd VHDL PATH ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral.vhd
 
 add_fileset SIM_VERILOG SIM_VERILOG "" ""
 set_fileset_property SIM_VERILOG TOP_LEVEL basic_peripheral
@@ -35586,11 +35461,6 @@ add_fileset_file basic_peripheral_regs.sv SYSTEM_VERILOG PATH ../rtl/basic_perip
 add_fileset_file basic_peripheral_core.sv SYSTEM_VERILOG PATH ../rtl/basic_peripheral_core.sv
 add_fileset_file basic_peripheral_axil.sv SYSTEM_VERILOG PATH ../rtl/basic_peripheral_axil.sv
 add_fileset_file basic_peripheral.sv SYSTEM_VERILOG PATH ../rtl/basic_peripheral.sv TOP_LEVEL_FILE
-add_fileset_file basic_peripheral_pkg.vhd VHDL PATH ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_pkg.vhd
-add_fileset_file basic_peripheral_regs.vhd VHDL PATH ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_regs.vhd
-add_fileset_file basic_peripheral_core.vhd VHDL PATH ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_core.vhd
-add_fileset_file basic_peripheral_axil.vhd VHDL PATH ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_axil.vhd
-add_fileset_file basic_peripheral.vhd VHDL PATH ../../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral.vhd
 ",
   "examples/basic_peripheral_vhdl/basic_peripheral_hw.tcl": "# basic_peripheral_hw.tcl - Altera Platform Designer Component Definition
 # Generated by ipcraft VHDL Generator
@@ -37707,7 +37577,6 @@ add_fileset_file multi_interface_accelerator_regs.sv SYSTEM_VERILOG PATH ../rtl/
 add_fileset_file multi_interface_accelerator_core.sv SYSTEM_VERILOG PATH ../rtl/multi_interface_accelerator_core.sv
 add_fileset_file multi_interface_accelerator_axil.sv SYSTEM_VERILOG PATH ../rtl/multi_interface_accelerator_axil.sv
 add_fileset_file multi_interface_accelerator.sv SYSTEM_VERILOG PATH ../rtl/multi_interface_accelerator.sv TOP_LEVEL_FILE
-add_fileset_file accelerator_top.vhd VHDL PATH ../../../../../ipcraft-spec/examples/multi_interface_accelerator/rtl/accelerator_top.vhd
 
 add_fileset SIM_VERILOG SIM_VERILOG "" ""
 set_fileset_property SIM_VERILOG TOP_LEVEL multi_interface_accelerator
@@ -37718,7 +37587,6 @@ add_fileset_file multi_interface_accelerator_regs.sv SYSTEM_VERILOG PATH ../rtl/
 add_fileset_file multi_interface_accelerator_core.sv SYSTEM_VERILOG PATH ../rtl/multi_interface_accelerator_core.sv
 add_fileset_file multi_interface_accelerator_axil.sv SYSTEM_VERILOG PATH ../rtl/multi_interface_accelerator_axil.sv
 add_fileset_file multi_interface_accelerator.sv SYSTEM_VERILOG PATH ../rtl/multi_interface_accelerator.sv TOP_LEVEL_FILE
-add_fileset_file accelerator_top.vhd VHDL PATH ../../../../../ipcraft-spec/examples/multi_interface_accelerator/rtl/accelerator_top.vhd
 ",
   "examples/multi_interface_accelerator_vhdl/multi_interface_accelerator_hw.tcl": "# multi_interface_accelerator_hw.tcl - Altera Platform Designer Component Definition
 # Generated by ipcraft VHDL Generator
@@ -37983,7 +37851,6 @@ add_fileset_file multi_interface_accelerator_regs.vhd VHDL PATH ../rtl/multi_int
 add_fileset_file multi_interface_accelerator_core.vhd VHDL PATH ../rtl/multi_interface_accelerator_core.vhd
 add_fileset_file multi_interface_accelerator_axil.vhd VHDL PATH ../rtl/multi_interface_accelerator_axil.vhd
 add_fileset_file multi_interface_accelerator.vhd VHDL PATH ../rtl/multi_interface_accelerator.vhd TOP_LEVEL_FILE
-add_fileset_file accelerator_top.vhd VHDL PATH ../../../../../ipcraft-spec/examples/multi_interface_accelerator/rtl/accelerator_top.vhd
 
 add_fileset SIM_VHDL SIM_VHDL "" ""
 set_fileset_property SIM_VHDL TOP_LEVEL multi_interface_accelerator
@@ -37994,7 +37861,6 @@ add_fileset_file multi_interface_accelerator_regs.vhd VHDL PATH ../rtl/multi_int
 add_fileset_file multi_interface_accelerator_core.vhd VHDL PATH ../rtl/multi_interface_accelerator_core.vhd
 add_fileset_file multi_interface_accelerator_axil.vhd VHDL PATH ../rtl/multi_interface_accelerator_axil.vhd
 add_fileset_file multi_interface_accelerator.vhd VHDL PATH ../rtl/multi_interface_accelerator.vhd TOP_LEVEL_FILE
-add_fileset_file accelerator_top.vhd VHDL PATH ../../../../../ipcraft-spec/examples/multi_interface_accelerator/rtl/accelerator_top.vhd
 ",
   "examples/system_controller_sv/system_controller_hw.tcl": "# system_controller_hw.tcl - Altera Platform Designer Component Definition
 # Generated by ipcraft SystemVerilog Generator
@@ -38404,11 +38270,6 @@ add_fileset_file system_controller_regs.sv SYSTEM_VERILOG PATH ../rtl/system_con
 add_fileset_file system_controller_core.sv SYSTEM_VERILOG PATH ../rtl/system_controller_core.sv
 add_fileset_file system_controller_axil.sv SYSTEM_VERILOG PATH ../rtl/system_controller_axil.sv
 add_fileset_file system_controller.sv SYSTEM_VERILOG PATH ../rtl/system_controller.sv TOP_LEVEL_FILE
-add_fileset_file system_controller_pkg.vhd VHDL PATH ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_pkg.vhd
-add_fileset_file system_controller.vhd VHDL PATH ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller.vhd
-add_fileset_file system_controller_regs.vhd VHDL PATH ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_regs.vhd
-add_fileset_file system_controller_core.vhd VHDL PATH ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_core.vhd
-add_fileset_file system_controller_axil.vhd VHDL PATH ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_axil.vhd
 
 add_fileset SIM_VERILOG SIM_VERILOG "" ""
 set_fileset_property SIM_VERILOG TOP_LEVEL system_controller
@@ -38419,11 +38280,6 @@ add_fileset_file system_controller_regs.sv SYSTEM_VERILOG PATH ../rtl/system_con
 add_fileset_file system_controller_core.sv SYSTEM_VERILOG PATH ../rtl/system_controller_core.sv
 add_fileset_file system_controller_axil.sv SYSTEM_VERILOG PATH ../rtl/system_controller_axil.sv
 add_fileset_file system_controller.sv SYSTEM_VERILOG PATH ../rtl/system_controller.sv TOP_LEVEL_FILE
-add_fileset_file system_controller_pkg.vhd VHDL PATH ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_pkg.vhd
-add_fileset_file system_controller.vhd VHDL PATH ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller.vhd
-add_fileset_file system_controller_regs.vhd VHDL PATH ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_regs.vhd
-add_fileset_file system_controller_core.vhd VHDL PATH ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_core.vhd
-add_fileset_file system_controller_axil.vhd VHDL PATH ../../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_axil.vhd
 ",
   "examples/system_controller_vhdl/system_controller_hw.tcl": "# system_controller_hw.tcl - Altera Platform Designer Component Definition
 # Generated by ipcraft VHDL Generator
@@ -39460,6 +39316,10 @@ export COCOTB_TEST_MODULES = $(MODULE)
 # Simulator compile flags
 COMPILE_ARGS += --std=08 -frelaxed
 
+# GHDL must see these same flags again at run time (not just at
+# analyse time) or it can't locate the elaborated design
+EXTRA_ARGS += --std=08 -frelaxed
+
 # Generate waveforms by default; suppress with WAVES=0
 WAVES ?= 1
 ifeq ($(WAVES),1)
@@ -39647,6 +39507,10 @@ export COCOTB_TEST_MODULES = $(MODULE)
 
 # Simulator compile flags
 COMPILE_ARGS += --std=08 -frelaxed
+
+# GHDL must see these same flags again at run time (not just at
+# analyse time) or it can't locate the elaborated design
+EXTRA_ARGS += --std=08 -frelaxed
 
 # Generate waveforms by default; suppress with WAVES=0
 WAVES ?= 1
@@ -39836,6 +39700,10 @@ export COCOTB_TEST_MODULES = $(MODULE)
 # Simulator compile flags
 COMPILE_ARGS += --std=08 -frelaxed
 
+# GHDL must see these same flags again at run time (not just at
+# analyse time) or it can't locate the elaborated design
+EXTRA_ARGS += --std=08 -frelaxed
+
 # Generate waveforms by default; suppress with WAVES=0
 WAVES ?= 1
 ifeq ($(WAVES),1)
@@ -39913,11 +39781,6 @@ VERILOG_SOURCES += $(BASE_DIR)/rtl/basic_peripheral_regs.sv
 VERILOG_SOURCES += $(BASE_DIR)/rtl/basic_peripheral_core.sv
 VERILOG_SOURCES += $(BASE_DIR)/rtl/basic_peripheral_axil.sv
 VERILOG_SOURCES += $(BASE_DIR)/rtl/basic_peripheral.sv
-VERILOG_SOURCES += $(BASE_DIR)/../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_pkg.vhd
-VERILOG_SOURCES += $(BASE_DIR)/../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_regs.vhd
-VERILOG_SOURCES += $(BASE_DIR)/../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_core.vhd
-VERILOG_SOURCES += $(BASE_DIR)/../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral_axil.vhd
-VERILOG_SOURCES += $(BASE_DIR)/../../../../ipcraft-spec/examples/basic_peripheral/rtl/basic_peripheral.vhd
 
 # Top-level module
 TOPLEVEL = basic_peripheral
@@ -40036,6 +39899,10 @@ export COCOTB_TEST_MODULES = $(MODULE)
 
 # Simulator compile flags
 COMPILE_ARGS += --std=08 -frelaxed
+
+# GHDL must see these same flags again at run time (not just at
+# analyse time) or it can't locate the elaborated design
+EXTRA_ARGS += --std=08 -frelaxed
 
 # Generate waveforms by default; suppress with WAVES=0
 WAVES ?= 1
@@ -40230,6 +40097,10 @@ export COCOTB_TEST_MODULES = $(MODULE)
 
 # Simulator compile flags
 COMPILE_ARGS += --std=08 -frelaxed
+
+# GHDL must see these same flags again at run time (not just at
+# analyse time) or it can't locate the elaborated design
+EXTRA_ARGS += --std=08 -frelaxed
 
 # Generate waveforms by default; suppress with WAVES=0
 WAVES ?= 1
@@ -40427,6 +40298,10 @@ export COCOTB_TEST_MODULES = $(MODULE)
 # Simulator compile flags
 COMPILE_ARGS += --std=08 -frelaxed
 
+# GHDL must see these same flags again at run time (not just at
+# analyse time) or it can't locate the elaborated design
+EXTRA_ARGS += --std=08 -frelaxed
+
 # Generate waveforms by default; suppress with WAVES=0
 WAVES ?= 1
 ifeq ($(WAVES),1)
@@ -40623,6 +40498,10 @@ export COCOTB_TEST_MODULES = $(MODULE)
 # Simulator compile flags
 COMPILE_ARGS += --std=08 -frelaxed
 
+# GHDL must see these same flags again at run time (not just at
+# analyse time) or it can't locate the elaborated design
+EXTRA_ARGS += --std=08 -frelaxed
+
 # Generate waveforms by default; suppress with WAVES=0
 WAVES ?= 1
 ifeq ($(WAVES),1)
@@ -40811,6 +40690,10 @@ export COCOTB_TEST_MODULES = $(MODULE)
 # Simulator compile flags
 COMPILE_ARGS += --std=08 -frelaxed
 
+# GHDL must see these same flags again at run time (not just at
+# analyse time) or it can't locate the elaborated design
+EXTRA_ARGS += --std=08 -frelaxed
+
 # Generate waveforms by default; suppress with WAVES=0
 WAVES ?= 1
 ifeq ($(WAVES),1)
@@ -40888,7 +40771,6 @@ VERILOG_SOURCES += $(BASE_DIR)/rtl/multi_interface_accelerator_regs.sv
 VERILOG_SOURCES += $(BASE_DIR)/rtl/multi_interface_accelerator_core.sv
 VERILOG_SOURCES += $(BASE_DIR)/rtl/multi_interface_accelerator_axil.sv
 VERILOG_SOURCES += $(BASE_DIR)/rtl/multi_interface_accelerator.sv
-VERILOG_SOURCES += $(BASE_DIR)/../../../../ipcraft-spec/examples/multi_interface_accelerator/rtl/accelerator_top.vhd
 
 # Top-level module
 TOPLEVEL = multi_interface_accelerator
@@ -40996,7 +40878,6 @@ VHDL_SOURCES += $(BASE_DIR)/rtl/multi_interface_accelerator_regs.vhd
 VHDL_SOURCES += $(BASE_DIR)/rtl/multi_interface_accelerator_core.vhd
 VHDL_SOURCES += $(BASE_DIR)/rtl/multi_interface_accelerator_axil.vhd
 VHDL_SOURCES += $(BASE_DIR)/rtl/multi_interface_accelerator.vhd
-VHDL_SOURCES += $(BASE_DIR)/../../../../ipcraft-spec/examples/multi_interface_accelerator/rtl/accelerator_top.vhd
 
 # Top-level module
 TOPLEVEL = multi_interface_accelerator
@@ -41008,6 +40889,10 @@ export COCOTB_TEST_MODULES = $(MODULE)
 
 # Simulator compile flags
 COMPILE_ARGS += --std=08 -frelaxed
+
+# GHDL must see these same flags again at run time (not just at
+# analyse time) or it can't locate the elaborated design
+EXTRA_ARGS += --std=08 -frelaxed
 
 # Generate waveforms by default; suppress with WAVES=0
 WAVES ?= 1
@@ -41086,11 +40971,6 @@ VERILOG_SOURCES += $(BASE_DIR)/rtl/system_controller_regs.sv
 VERILOG_SOURCES += $(BASE_DIR)/rtl/system_controller_core.sv
 VERILOG_SOURCES += $(BASE_DIR)/rtl/system_controller_axil.sv
 VERILOG_SOURCES += $(BASE_DIR)/rtl/system_controller.sv
-VERILOG_SOURCES += $(BASE_DIR)/../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_pkg.vhd
-VERILOG_SOURCES += $(BASE_DIR)/../../../../ipcraft-spec/examples/system_controller/rtl/system_controller.vhd
-VERILOG_SOURCES += $(BASE_DIR)/../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_regs.vhd
-VERILOG_SOURCES += $(BASE_DIR)/../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_core.vhd
-VERILOG_SOURCES += $(BASE_DIR)/../../../../ipcraft-spec/examples/system_controller/rtl/system_controller_axil.vhd
 
 # Top-level module
 TOPLEVEL = system_controller
@@ -41209,6 +41089,10 @@ export COCOTB_TEST_MODULES = $(MODULE)
 
 # Simulator compile flags
 COMPILE_ARGS += --std=08 -frelaxed
+
+# GHDL must see these same flags again at run time (not just at
+# analyse time) or it can't locate the elaborated design
+EXTRA_ARGS += --std=08 -frelaxed
 
 # Generate waveforms by default; suppress with WAVES=0
 WAVES ?= 1
@@ -41395,6 +41279,10 @@ export COCOTB_TEST_MODULES = $(MODULE)
 
 # Simulator compile flags
 COMPILE_ARGS += --std=08 -frelaxed
+
+# GHDL must see these same flags again at run time (not just at
+# analyse time) or it can't locate the elaborated design
+EXTRA_ARGS += --std=08 -frelaxed
 
 # Generate waveforms by default; suppress with WAVES=0
 WAVES ?= 1
@@ -41583,6 +41471,10 @@ export COCOTB_TEST_MODULES = $(MODULE)
 
 # Simulator compile flags
 COMPILE_ARGS += --std=08 -frelaxed
+
+# GHDL must see these same flags again at run time (not just at
+# analyse time) or it can't locate the elaborated design
+EXTRA_ARGS += --std=08 -frelaxed
 
 # Generate waveforms by default; suppress with WAVES=0
 WAVES ?= 1
