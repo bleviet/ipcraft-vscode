@@ -279,6 +279,8 @@ module {{ entity_name }}_axil
 
   ////////////////////////////////////////////////////////////////////////////
   // Read Valid Generation
+  // rd_invalid_d is checked before rd_valid because the register bank
+  // asserts rd_valid on every rd_en, mapped or not.
   ////////////////////////////////////////////////////////////////////////////
   always_ff @(posedge clk) begin : read_valid_proc
     if (rst) begin
@@ -286,14 +288,14 @@ module {{ entity_name }}_axil
       rresp  <= C_RESP_OKAY;
       rdata  <= '0;
     end else begin
-      if (rd_valid) begin
-        rvalid <= 1'b1;
-        rresp  <= C_RESP_OKAY;
-        rdata  <= rd_data;
-      end else if (rd_invalid_d) begin
+      if (rd_invalid_d) begin
         rvalid <= 1'b1;
         rresp  <= C_RESP_SLVERR;
         rdata  <= '0;
+      end else if (rd_valid) begin
+        rvalid <= 1'b1;
+        rresp  <= C_RESP_OKAY;
+        rdata  <= rd_data;
       end else if (rvalid && rready) begin
         rvalid <= 1'b0;
       end

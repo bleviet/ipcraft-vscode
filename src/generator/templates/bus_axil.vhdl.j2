@@ -335,8 +335,9 @@ begin
 
   ----------------------------------------------------------------------------
   -- Invalid Read Address Detection
-  -- Register bank never asserts rd_valid for unmapped addresses; rd_invalid_d
-  -- provides the alternative trigger for read_valid_proc to return SLVERR.
+  -- The register bank asserts rd_valid on every rd_en, mapped or not, so
+  -- read_valid_proc must check rd_invalid_d ahead of rd_valid to return
+  -- SLVERR for unmapped addresses.
   ----------------------------------------------------------------------------
   rd_invalid_proc : process (clk) is
   begin
@@ -356,7 +357,9 @@ begin
   ----------------------------------------------------------------------------
   -- Read Valid Generation
   -- Assert RVALID when register bank provides valid read data or when the
-  -- address was unmapped (SLVERR, zero data).
+  -- address was unmapped (SLVERR, zero data). rd_invalid_d is checked first
+  -- because rd_valid is asserted by the register bank for every rd_en,
+  -- mapped or not.
   ----------------------------------------------------------------------------
   read_valid_proc : process (clk) is
   begin
@@ -366,16 +369,16 @@ begin
         rresp  <= C_RESP_OKAY;
         rdata  <= (others => '0');
       else
-        if rd_valid = '1' then
-          -- Register bank has valid data
-          rvalid <= '1';
-          rresp  <= C_RESP_OKAY;
-          rdata  <= rd_data;
-        elsif rd_invalid_d = '1' then
+        if rd_invalid_d = '1' then
           -- Unmapped read address: complete transaction with SLVERR and zero data
           rvalid <= '1';
           rresp  <= C_RESP_SLVERR;
           rdata  <= (others => '0');
+        elsif rd_valid = '1' then
+          -- Register bank has valid data
+          rvalid <= '1';
+          rresp  <= C_RESP_OKAY;
+          rdata  <= rd_data;
         elsif (rvalid = '1' and {{ rready_port[0].name if rready_port | length > 0 else "'1'" }} = '1') then
           -- Master accepted read data
           rvalid <= '0';

@@ -1080,4 +1080,46 @@ describe('IpCoreScaffolder', () => {
       fs2.rmSync(tmp, { recursive: true, force: true });
     }
   });
+
+  it('gives SLVERR priority over OKAY for unmapped reads on the AXI-Lite bus wrapper (issue #59)', async () => {
+    const inputPath = path.resolve(__dirname, '../../fixtures/sample-ipcore.yml');
+    const writeMock = fs.writeFile as unknown as jest.Mock;
+    const findContent = (needle: string): string =>
+      writeMock.mock.calls.find((call) => call[0].includes(needle))?.[1] as string;
+
+    // rd_valid is asserted by the register bank for every rd_en, mapped or
+    // not, so the read-response process must check rd_invalid_d ahead of
+    // rd_valid — otherwise an unmapped read always returns OKAY instead of
+    // SLVERR.
+    const vhdlResult = await scaffolder.generateAll(inputPath, '/tmp/test-issue59-vhdl', {
+      includeRegs: true,
+      targets: ['vivado'],
+      scaffoldPack: 'builtin-ipcraft',
+      hdlLanguage: 'vhdl',
+    });
+    expect(vhdlResult.success).toBe(true);
+    const vhdl = findContent('rtl/sample_core_axil.vhd');
+    expect(vhdl).toBeDefined();
+    const vhdlInvalidIdx = vhdl.indexOf("rd_invalid_d = '1'");
+    const vhdlValidIdx = vhdl.indexOf("rd_valid = '1'");
+    expect(vhdlInvalidIdx).toBeGreaterThan(-1);
+    expect(vhdlValidIdx).toBeGreaterThan(-1);
+    expect(vhdlInvalidIdx).toBeLessThan(vhdlValidIdx);
+
+    writeMock.mockClear();
+    const svResult = await scaffolder.generateAll(inputPath, '/tmp/test-issue59-sv', {
+      includeRegs: true,
+      targets: ['vivado'],
+      scaffoldPack: 'builtin-ipcraft',
+      hdlLanguage: 'systemverilog',
+    });
+    expect(svResult.success).toBe(true);
+    const sv = findContent('rtl/sample_core_axil.sv');
+    expect(sv).toBeDefined();
+    const svInvalidIdx = sv.indexOf('if (rd_invalid_d)');
+    const svValidIdx = sv.indexOf('if (rd_valid)');
+    expect(svInvalidIdx).toBeGreaterThan(-1);
+    expect(svValidIdx).toBeGreaterThan(-1);
+    expect(svInvalidIdx).toBeLessThan(svValidIdx);
+  });
 });
