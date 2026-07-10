@@ -132,7 +132,7 @@ export interface CanvasLayout {
   parameters: LayoutParameter[];
   /** Y of separator line above the generics section (only rendered when parameters.length > 0) */
   paramSeparatorY: number;
-  /** Y of separator line below the generics section, above where ports start (only rendered when parameters.length > 0) */
+  /** Y of the clickable "Ports" header (separator + label) below the generics/deps sections, above where ports start (only rendered when there's at least one clock/reset/port/bus/interrupt) */
   portSeparatorY: number;
   /** Wrapped description lines (empty when no description) */
   descLines: string[];
@@ -337,9 +337,26 @@ export function computeLayout(
         ? PARAM_SEPARATOR_Y_OFFSET
         : null;
 
+  // The clickable "Ports" header (separator + label) renders below the generics/deps
+  // sections, right above where port stubs begin — same treatment as the Dependencies
+  // and Generics headers. It only takes up space when there's actually a port-side
+  // item to show (clock/reset/port/bus/interrupt); an otherwise-empty core stays at
+  // MIN_BLOCK_HEIGHT with no dangling header.
+  const PORTS_HEADER_HEIGHT = 26; // separator line + "Ports" label
+  const hasPortItems =
+    clocks.length > 0 ||
+    resets.length > 0 ||
+    ports.length > 0 ||
+    buses.length > 0 ||
+    (ipCore.interrupts ?? []).length > 0;
+
   // portsAreaTopRelative: distance from blockY to where port stubs begin.
   const portsAreaTopRelative =
-    portSeparatorOffset !== null ? portSeparatorOffset + EDGE_PADDING : null;
+    portSeparatorOffset !== null
+      ? portSeparatorOffset + (hasPortItems ? PORTS_HEADER_HEIGHT : 0) + EDGE_PADDING
+      : hasPortItems
+        ? DEP_SEPARATOR_Y_OFFSET + PORTS_HEADER_HEIGHT + EDGE_PADDING
+        : null;
 
   // Build a clock-name → index map for domain colour resolution
   const clockNameToIdx = new Map<string, number>();

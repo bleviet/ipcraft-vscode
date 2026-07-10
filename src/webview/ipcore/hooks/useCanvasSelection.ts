@@ -9,7 +9,8 @@ export type CanvasElementKind =
   | 'parameter'
   | 'interrupt'
   | 'subcore'
-  | 'generics';
+  | 'generics'
+  | 'busInterfaceMatrix';
 
 export interface CanvasElement {
   kind: CanvasElementKind;
@@ -39,6 +40,9 @@ export function parseCanvasId(id: string): CanvasElement | null {
   }
   if (id === 'generics') {
     return { kind: 'generics', index: 0, id: 'generics' };
+  }
+  if (id === 'busInterfaceMatrix') {
+    return { kind: 'busInterfaceMatrix', index: 0, id: 'busInterfaceMatrix' };
   }
 
   const parts = id.split(':');

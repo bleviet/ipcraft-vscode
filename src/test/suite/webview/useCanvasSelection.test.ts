@@ -24,6 +24,25 @@ describe('useCanvasSelection', () => {
       expect(result.current.selectedId).toBe('generics');
     });
 
+    it('parses the index-less "busInterfaceMatrix" id into a busInterfaceMatrix element', () => {
+      expect(parseCanvasId('busInterfaceMatrix')).toEqual({
+        kind: 'busInterfaceMatrix',
+        index: 0,
+        id: 'busInterfaceMatrix',
+      });
+    });
+
+    it('selects the Bus Interface matrix element when select("busInterfaceMatrix") is called', () => {
+      const { result } = renderHook(() => useCanvasSelection());
+      act(() => result.current.select('busInterfaceMatrix'));
+      expect(result.current.selected).toEqual({
+        kind: 'busInterfaceMatrix',
+        index: 0,
+        id: 'busInterfaceMatrix',
+      });
+      expect(result.current.selectedId).toBe('busInterfaceMatrix');
+    });
+
     it('clears selection on select(null)', () => {
       const { result } = renderHook(() => useCanvasSelection());
       act(() => result.current.select('port:0'));

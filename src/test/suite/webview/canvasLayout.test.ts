@@ -412,4 +412,68 @@ describe('computeLayout', () => {
       expect(layoutWithSub.blockRect.height).toBeGreaterThan(layoutNoSub.blockRect.height);
     });
   });
+
+  describe('Ports header (below Generics/Dependencies, above the port stubs)', () => {
+    it('places portSeparatorY below the Generics section and the first port below that', () => {
+      const ip = makeIpCore({
+        parameters: [{ name: 'WIDTH', defaultValue: 8 }] as unknown as IpCore['parameters'],
+        clocks: [{ name: 'clk' }],
+      });
+      const layout = computeLayout(ip);
+
+      expect(layout.portSeparatorY).toBeGreaterThan(layout.paramSeparatorY);
+      expect(layout.ports[0].y).toBeGreaterThan(layout.portSeparatorY);
+    });
+
+    it('sits at a fixed offset below the block header when there is no Generics/Dependencies section', () => {
+      const ip = makeIpCore({ clocks: [{ name: 'clk' }] });
+      const layout = computeLayout(ip);
+
+      // Same anchor Dependencies would use when nothing precedes it.
+      expect(layout.portSeparatorY).toBe(layout.blockRect.y + 86);
+      expect(layout.ports[0].y).toBeGreaterThan(layout.portSeparatorY);
+    });
+
+    it('positions the first port at a consistent offset from the header regardless of port count', () => {
+      const ipFew = makeIpCore({ clocks: [{ name: 'clk' }] });
+      const ipMany = makeIpCore({
+        ports: Array.from({ length: 20 }, (_, i) => ({
+          name: `port_${i}`,
+          direction: 'in' as const,
+          width: 1,
+        })),
+      });
+
+      const layoutFew = computeLayout(ipFew);
+      const layoutMany = computeLayout(ipMany);
+
+      const gapFew = layoutFew.ports[0].y - layoutFew.portSeparatorY;
+      const gapMany = layoutMany.ports[0].y - layoutMany.portSeparatorY;
+      expect(gapFew).toBe(gapMany);
+    });
+
+    it('does not reserve header space for a core with no ports, clocks, resets, buses, or interrupts', () => {
+      const ip = makeIpCore();
+      const layout = computeLayout(ip);
+      expect(layout.blockRect.height).toBe(MIN_BLOCK_HEIGHT);
+    });
+
+    it('still sizes the block to fit the Generics section when there are no ports at all', () => {
+      const ipFewParams = makeIpCore({
+        parameters: [{ name: 'A', defaultValue: 1 }] as unknown as IpCore['parameters'],
+      });
+      const ipManyParams = makeIpCore({
+        parameters: Array.from({ length: 10 }, (_, i) => ({
+          name: `P_${i}`,
+          defaultValue: i,
+        })) as unknown as IpCore['parameters'],
+      });
+
+      const layoutFew = computeLayout(ipFewParams);
+      const layoutMany = computeLayout(ipManyParams);
+
+      expect(layoutFew.ports).toHaveLength(0);
+      expect(layoutMany.blockRect.height).toBeGreaterThan(layoutFew.blockRect.height);
+    });
+  });
 });

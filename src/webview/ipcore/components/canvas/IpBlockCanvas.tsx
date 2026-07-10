@@ -1240,16 +1240,45 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
           );
         })}
 
-        {/* Second separator — below generics/deps, above where port stubs connect */}
-        {(parameters.length > 0 || subcoreDeps.length > 0) && (
-          <line
-            x1={blockRect.x + 8}
-            y1={portSeparatorY}
-            x2={blockRect.x + blockRect.width - 8}
-            y2={portSeparatorY}
-            className="ip-block-param-separator"
-            style={{ pointerEvents: 'none' }}
-          />
+        {/* Ports header — below generics/deps, clickable to open the Bus Interface clock/reset matrix */}
+        {ports.length > 0 && (
+          <g
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelect('busInterfaceMatrix');
+            }}
+            style={{ cursor: 'pointer' }}
+          >
+            {/* Separator */}
+            <line
+              x1={blockRect.x + 8}
+              y1={portSeparatorY}
+              x2={blockRect.x + blockRect.width - 8}
+              y2={portSeparatorY}
+              className="ip-block-param-separator"
+              style={{ pointerEvents: 'none' }}
+            />
+            {/* Hit + selection highlight */}
+            <rect
+              x={blockRect.x + 4}
+              y={portSeparatorY + 3}
+              width={blockRect.width - 8}
+              height={16}
+              rx={3}
+              className={`ip-block-ports-row-bg${selectedId === 'busInterfaceMatrix' ? ' ip-block-ports-row-bg--selected' : ''}`}
+            />
+            {/* Section header */}
+            <text
+              x={blockRect.x + blockRect.width / 2}
+              y={portSeparatorY + 11}
+              textAnchor="middle"
+              dominantBaseline="central"
+              className="ip-block-ports-header"
+              style={{ pointerEvents: 'none' }}
+            >
+              Ports
+            </text>
+          </g>
         )}
 
         {/* Description section — separator + word-wrapped text below the last port */}
