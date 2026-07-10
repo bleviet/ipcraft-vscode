@@ -1984,6 +1984,198 @@
   font-size: 11px;
 }
 
+/* Pages/Groups lifecycle management (create/rename/delete), top of Generics overview */
+.ci-placement-manage__section-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--vscode-descriptionForeground);
+  margin-bottom: 8px;
+  opacity: 0.75;
+}
+
+.ci-placement-manage {
+  display: flex;
+  gap: 12px;
+  padding: 8px;
+  border: 1px solid color-mix(in srgb, var(--vscode-panel-border) 60%, transparent);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--vscode-editorWidget-background) 60%, transparent);
+}
+
+.ci-placement-manage__col {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.ci-placement-manage__title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--vscode-descriptionForeground);
+  opacity: 0.8;
+}
+
+.ci-placement-manage__title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.ci-placement-manage__page-picker {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 120px;
+  background: var(--vscode-dropdown-background);
+  color: var(--vscode-dropdown-foreground);
+  border: 1px solid var(--vscode-dropdown-border, var(--vscode-panel-border));
+  border-radius: 2px;
+  padding: 1px 4px;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.ci-placement-manage__row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--vscode-panel-border) 30%, transparent);
+}
+.ci-placement-manage__row:last-of-type {
+  border-bottom: none;
+}
+
+.ci-placement-manage__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--vscode-foreground);
+}
+
+.ci-placement-manage__empty {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  opacity: 0.6;
+  padding: 3px 0;
+}
+
+.ci-placement-manage__add {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  margin-top: 5px;
+  font-size: 10px;
+  font-family: var(--vscode-font-family);
+  background: transparent;
+  color: var(--vscode-foreground);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 3px;
+  cursor: pointer;
+  opacity: 0.85;
+}
+.ci-placement-manage__add:hover {
+  opacity: 1;
+  background: var(--vscode-list-hoverBackground);
+}
+
+.ci-placement-manage__form {
+  margin-top: 5px;
+  padding: 6px;
+  border: 1px solid var(--vscode-focusBorder);
+  border-radius: 3px;
+  background: var(--vscode-editor-background);
+}
+
+.ci-placement-manage__form-input {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+  border-radius: 2px;
+  padding: 3px 6px;
+  font-size: 11px;
+  outline: none;
+  margin-bottom: 5px;
+}
+
+.ci-placement-manage__form-hint {
+  font-size: 10px;
+  color: var(--vscode-descriptionForeground);
+  opacity: 0.7;
+  margin-bottom: 3px;
+}
+
+.ci-placement-manage__form-list {
+  max-height: 120px;
+  overflow-y: auto;
+  margin-bottom: 6px;
+}
+
+.ci-placement-manage__form-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 0;
+  font-size: 11px;
+  color: var(--vscode-foreground);
+  cursor: pointer;
+}
+
+.ci-placement-manage__form-empty {
+  font-size: 10px;
+  color: var(--vscode-descriptionForeground);
+  opacity: 0.6;
+}
+
+.ci-placement-manage__form-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.ci-placement-manage__form-create,
+.ci-placement-manage__form-cancel {
+  padding: 3px 10px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-family: var(--vscode-font-family);
+  cursor: pointer;
+}
+
+.ci-placement-manage__form-create {
+  border: 1px solid var(--vscode-button-border, transparent);
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+}
+.ci-placement-manage__form-create:hover:not(:disabled) {
+  background: var(--vscode-button-hoverBackground);
+}
+.ci-placement-manage__form-create:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ci-placement-manage__form-cancel {
+  border: 1px solid var(--vscode-panel-border);
+  background: transparent;
+  color: var(--vscode-foreground);
+}
+.ci-placement-manage__form-cancel:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
 .ci-fileset__add {
   display: inline-flex;
   align-items: center;

@@ -93,7 +93,11 @@ describe('CanvasInspector GenericsOverviewPanel', () => {
       />
     );
 
-    const pageSelect = screen.getAllByRole('combobox')[0];
+    const row = screen.getByText('DATA_WIDTH').closest('.ci-generics-row');
+    expect(row).not.toBeNull();
+    const pageCell = (row as HTMLElement).querySelector('.ci-generics-row__page');
+    expect(pageCell).not.toBeNull();
+    const pageSelect = within(pageCell as HTMLElement).getByRole('combobox');
     fireEvent.change(pageSelect, { target: { value: '' } });
 
     expect(onUpdate).toHaveBeenCalledWith(['parameters', 0, 'uiPage'], null);
