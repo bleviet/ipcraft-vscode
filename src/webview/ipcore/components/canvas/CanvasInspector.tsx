@@ -1105,6 +1105,7 @@ const PlacementSelectField: React.FC<PlacementSelectFieldProps> = ({
         className="ci-field__select"
         style={selectStyle ?? { flex: 1 }}
         value={value}
+        title={value || undefined}
         onChange={(e) => onChange(e.target.value)}
       >
         <option value="">— none —</option>
