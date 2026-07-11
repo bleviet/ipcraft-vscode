@@ -21,6 +21,7 @@ import { useDetailsNavigation } from './hooks/useDetailsNavigation';
 import { useYamlUpdateHandler } from './hooks/useYamlUpdateHandler';
 import { useLayoutToggle } from './hooks/useLayoutToggle';
 import { DebugModeProvider } from './hooks/useDebugMode';
+import { LiveRegisterValuesProvider } from './hooks/LiveRegisterValuesContext';
 import { insertElement, deleteElement } from './algorithms/MutationService';
 import { recomputeRegisterLayout } from './algorithms/LayoutEngine';
 import type { LayoutMemoryMap, LayoutRegister } from './algorithms/LayoutEngine';
@@ -837,7 +838,9 @@ if (rootElement) {
   root.render(
     <ErrorBoundary>
       <DebugModeProvider>
-        <App />
+        <LiveRegisterValuesProvider>
+          <App />
+        </LiveRegisterValuesProvider>
       </DebugModeProvider>
     </ErrorBoundary>
   );

@@ -249,6 +249,23 @@ export class WebviewRouter<M extends { type: string } = { type: string }> {
     this.postMessage(msg);
   }
 
+  /**
+   * Push live hardware register values to the webview. Unlike `postUpdate`,
+   * this never stamps `docVersion` and always uses the distinct `liveValues`
+   * message type — the revisioned sync protocol (`update`/`docVersion`/
+   * `editId`) never sees it, so a live hardware read can never be mistaken
+   * for a document change or advance/rewind the FIFO edit pairing. If the
+   * webview isn't ready yet there is no live session to report from (a
+   * connection is only established after the editor is already open), so
+   * unlike `postUpdate` this does not queue — it is simply a no-op.
+   */
+  postLiveValues(payload: Record<string, unknown>) {
+    if (!this.isReady) {
+      return;
+    }
+    this.postMessage({ ...payload, type: 'liveValues' });
+  }
+
   private postMessage(message: unknown) {
     if (!this.isDisposed) {
       void this.webviewPanel.webview.postMessage(message);

@@ -320,6 +320,21 @@
         "command": "fpga-ip-core.openBuildAndVerifyWalkthrough",
         "title": "Synthesize and Check Timing",
         "category": "IPCraft"
+      },
+      {
+        "command": "fpga-ip-core.connectLiveRegistersSystemConsole",
+        "title": "Connect Live Registers (System Console)",
+        "category": "IPCraft"
+      },
+      {
+        "command": "fpga-ip-core.disconnectLiveRegisters",
+        "title": "Disconnect Live Registers",
+        "category": "IPCraft"
+      },
+      {
+        "command": "fpga-ip-core.showRegisterDebugOutput",
+        "title": "Show Register Debug Output",
+        "category": "IPCraft"
       }
     ],
     "submenus": [

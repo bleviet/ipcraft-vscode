@@ -27,6 +27,8 @@ export interface ScaffoldOptions {
   targetPart?: string;
   /** Quartus: target device */
   quartusDevice?: string;
+  /** Quartus: add a JTAG-to-Avalon-MM debug master to `altera/test.qsys` (see GenerateOptions.includeDebugMaster). */
+  includeDebugMaster?: boolean;
 }
 
 /** A runnable build target detected by the toolchain. */

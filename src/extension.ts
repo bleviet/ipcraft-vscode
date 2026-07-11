@@ -13,6 +13,7 @@ import {
 } from './commands/FileCreationCommands';
 import { registerGeneratorCommands } from './commands/GenerateCommands';
 import { registerBuildCommands } from './commands/BuildCommands';
+import { registerLiveDebugCommands } from './commands/LiveDebugCommands';
 import { editInIpPackagerCommand } from './commands/editInIpPackager';
 import { editInPlatformDesignerCommand } from './commands/editInPlatformDesigner';
 import { openInVivadoCommand } from './commands/openInVivado';
@@ -238,6 +239,7 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   registerBuildCommands(context, reportsProvider, statusBarItem);
+  registerLiveDebugCommands(context);
   logger.info('Build commands registered');
 
   // Install custom IPCraft bus definitions (e.g. Avalon Streaming) to the global OS config dir

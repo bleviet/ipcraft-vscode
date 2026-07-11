@@ -209,6 +209,7 @@ export class IpCoreScaffolder {
             rtlFiles: scaffoldRtlFiles.length > 0 ? scaffoldRtlFiles : undefined,
             targetPart: options.targetPart,
             quartusDevice: options.quartusDevice,
+            includeDebugMaster: options.includeDebugMaster,
           }
         );
 

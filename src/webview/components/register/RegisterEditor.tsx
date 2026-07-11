@@ -9,6 +9,7 @@ import {
 import { FieldsTable } from './FieldsTable';
 import { useFieldEditor } from '../../hooks/useFieldEditor';
 import { useDebugMode } from '../../hooks/useDebugMode';
+import { useLiveRegisterValuesContext } from '../../hooks/LiveRegisterValuesContext';
 import type { RegisterDef } from '../../types/memoryMap';
 import { generateUniqueName } from '../../utils/naming';
 import { formatBitsRange } from '../../utils/BitFieldUtils';
@@ -49,6 +50,58 @@ export type RegisterEditorHandle = {
 };
 
 // ---------------------------------------------------------------------------
+// Live hardware value badge (issue #36 Part B)
+// ---------------------------------------------------------------------------
+
+interface LiveRegisterBadgeProps {
+  name: string;
+  status: 'idle' | 'reading' | 'value' | 'error';
+  value?: number;
+  error?: string;
+  onRead: () => void;
+}
+
+/**
+ * "Read from hardware" badge shown above the bit-field visualizer while
+ * Debug Mode is on. Deliberately placed in the visualizer slot (not
+ * EditorHeader) so it renders both standalone (DetailsPanel) and embedded
+ * as a block master-detail pane (BlockEditor, RegisterArrayEditor) — the
+ * two register-view contexts that exist today.
+ */
+function LiveRegisterBadge({ name, status, value, error, onRead }: LiveRegisterBadgeProps) {
+  return (
+    <div
+      className="inline-flex items-center gap-1.5 mx-2 mt-2 px-2 py-0.5 rounded text-[11px] self-start"
+      style={{
+        background: 'var(--vscode-badge-background)',
+        color: 'var(--vscode-badge-foreground)',
+      }}
+    >
+      <button
+        onClick={onRead}
+        title="Read from hardware"
+        aria-label={`Read ${name} from hardware`}
+        type="button"
+        style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}
+      >
+        <span
+          className={`codicon codicon-refresh${status === 'reading' ? ' codicon-modifier-spin' : ''}`}
+          style={{ fontSize: '12px' }}
+        />
+      </button>
+      {status === 'idle' && <span>Not read from hardware</span>}
+      {status === 'reading' && <span>Reading…</span>}
+      {status === 'value' && value !== undefined && (
+        <span data-testid="live-register-value">Live: 0x{value.toString(16).padStart(8, '0')}</span>
+      )}
+      {status === 'error' && (
+        <span style={{ color: 'var(--vscode-errorForeground)' }}>{error ?? 'Read failed'}</span>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
@@ -85,20 +138,47 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
     const { debugMode } = useDebugMode();
     const [debugOverrides, setDebugOverrides] = useState<Record<number, number | null>>({});
 
+    // Live hardware register values (issue #36 Part B): a read-only baseline
+    // layer under debugOverrides, so a user's own typed exploration value
+    // always wins over the last hardware read.
+    const { liveValues, requestRead } = useLiveRegisterValuesContext();
+    const liveState = register?.name ? liveValues[register.name] : undefined;
+
     useEffect(() => {
       setDebugOverrides({});
     }, [debugMode, register?.name]);
 
     const effectiveFields = useMemo(() => {
-      if (!debugMode || Object.keys(debugOverrides).length === 0) {
+      if (!debugMode) {
         return fields;
       }
-      return fields.map((f, i) =>
-        Object.prototype.hasOwnProperty.call(debugOverrides, i)
-          ? { ...f, resetValue: debugOverrides[i] }
-          : f
-      );
-    }, [fields, debugMode, debugOverrides]);
+      let result = fields;
+      if (liveState?.status === 'value' && liveState.value !== undefined) {
+        const liveValue = liveState.value;
+        result = result.map((f) => {
+          if (
+            f.offset === undefined ||
+            f.offset === null ||
+            f.width === undefined ||
+            f.width === null
+          ) {
+            return f;
+          }
+          const width = Number(f.width);
+          const mask = width >= 32 ? 0xffffffff : (1 << width) - 1;
+          const decoded = (liveValue >>> Number(f.offset)) & mask;
+          return { ...f, resetValue: decoded };
+        });
+      }
+      if (Object.keys(debugOverrides).length > 0) {
+        result = result.map((f, i) =>
+          Object.prototype.hasOwnProperty.call(debugOverrides, i)
+            ? { ...f, resetValue: debugOverrides[i] }
+            : f
+        );
+      }
+      return result;
+    }, [fields, debugMode, debugOverrides, liveState]);
 
     const debugAwareUpdate: YamlUpdateHandler = useCallback(
       (path, value) => {
@@ -303,10 +383,21 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
           )
         }
         visualizer={
-          <BitFieldVisualizer
-            {...visualizerProps}
-            layout={registerLayout === 'side-by-side' ? 'vertical' : 'pro'}
-          />
+          <>
+            {debugMode && (
+              <LiveRegisterBadge
+                name={register.name}
+                status={liveState?.status ?? 'idle'}
+                value={liveState?.value}
+                error={liveState?.error}
+                onRead={() => requestRead(register.name)}
+              />
+            )}
+            <BitFieldVisualizer
+              {...visualizerProps}
+              layout={registerLayout === 'side-by-side' ? 'vertical' : 'pro'}
+            />
+          </>
         }
         table={
           <FieldsTable

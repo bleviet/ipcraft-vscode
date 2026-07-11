@@ -264,6 +264,51 @@ describe('WebviewRouter', () => {
     expect(vscode.commands.executeCommand).not.toHaveBeenCalled();
   });
 
+  it('postLiveValues() sends a liveValues message with no docVersion/editId, only after ready', async () => {
+    const router = new WebviewRouter({
+      webviewPanel,
+      document: document as vscode.TextDocument,
+      logger: new Logger('TestRouter'),
+      onReady: onReadyMock,
+    });
+
+    // Before ready: no-op, unlike postUpdate which queues.
+    router.postLiveValues({ values: { VERSION: 0x100 } });
+    expect(webviewPanel.webview.postMessage).not.toHaveBeenCalled();
+
+    if (messageListener) {
+      await messageListener({ type: 'ready' });
+    }
+
+    router.postLiveValues({ values: { VERSION: 0x100 } });
+
+    // toHaveBeenCalledWith is an exact deep match, so this alone proves the
+    // message carries no docVersion/editId/sourceEditId alongside it.
+    expect(webviewPanel.webview.postMessage).toHaveBeenCalledWith({
+      type: 'liveValues',
+      values: { VERSION: 0x100 },
+    });
+  });
+
+  it('postLiveValues() never touches the revisioned update/editId FIFO state', async () => {
+    const router = new WebviewRouter({
+      webviewPanel,
+      document: document as vscode.TextDocument,
+      logger: new Logger('TestRouter'),
+      onReady: onReadyMock,
+    });
+    if (messageListener) {
+      await messageListener({ type: 'ready' });
+    }
+
+    router.postLiveValues({ values: { VERSION: 0x100 } });
+    router.postLiveValues({ values: { LED_PATTERN: 0xff } });
+
+    // popSourceEditId() drains the pendingEditIds FIFO used by the update
+    // protocol; liveValues traffic must never populate it.
+    expect(router.popSourceEditId()).toBeUndefined();
+  });
+
   it('disposes resources on disposal', () => {
     const router = new WebviewRouter({
       webviewPanel,

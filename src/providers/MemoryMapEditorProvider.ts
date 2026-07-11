@@ -5,6 +5,8 @@ import { WebviewRouter } from '../services/WebviewRouter';
 import { DocumentManager } from '../services/DocumentManager';
 import { YamlValidator } from '../services/YamlValidator';
 import { createSharedProviderServices } from './providerServices';
+import { getLiveRegisterSession } from '../commands/LiveDebugCommands';
+import { RegisterTransportError } from '../services/transport/RegisterTransport';
 
 /**
  * Custom editor provider for FPGA memory map YAML files
@@ -55,6 +57,31 @@ export class MemoryMapEditorProvider implements vscode.CustomTextEditorProvider 
     });
 
     router.useStandardDocumentHandlers(this.documentManager, this.yamlValidator);
+
+    // Live hardware register reads (issue #36 Part B) — a distinct message
+    // type from 'update'/'command', kept off the document write-back path.
+    // See WebviewRouter.postLiveValues for why this can never advance
+    // docVersion or the revisioned sync FIFO.
+    router.on('readRegister', async (message) => {
+      const { name } = message as unknown as { name: string };
+      const session = getLiveRegisterSession(document.uri);
+      if (!session) {
+        router.postLiveValues({ errors: { [name]: 'Not connected' } });
+        return;
+      }
+      try {
+        const result = await session.readRegister(name);
+        router.postLiveValues({ values: { [result.name]: result.value } });
+      } catch (err) {
+        const msg =
+          err instanceof RegisterTransportError
+            ? `[${err.category}] ${err.message}`
+            : err instanceof Error
+              ? err.message
+              : String(err);
+        router.postLiveValues({ errors: { [name]: msg } });
+      }
+    });
 
     // Listen for document changes
     const changeDocumentSubscription = vscode.workspace.onDidChangeTextDocument((e) => {

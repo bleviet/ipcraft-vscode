@@ -1,3 +1,4 @@
+import * as path from 'path';
 import {
   QuartusToolchain,
   quartusDeviceFamily,
@@ -9,6 +10,9 @@ import * as fsHelpers from '../../../../utils/fsHelpers';
 import * as buildRunner from '../../../../services/BuildRunner';
 import * as fsPromises from 'fs/promises';
 import * as childProcess from 'child_process';
+import { TemplateLoader } from '../../../../generator/TemplateLoader';
+import { Logger } from '../../../../utils/Logger';
+import type { ScaffoldContext } from '../../../../services/toolchains/SynthesisToolchain';
 
 jest.mock('../../../../utils/quartusResolver');
 jest.mock('../../../../utils/fsHelpers');
@@ -196,6 +200,54 @@ describe('QuartusToolchain', () => {
         expect.objectContaining({ cwd: expect.stringContaining('altera/build') })
       );
     });
+  });
+});
+
+describe('QuartusToolchain.scaffold() — includeDebugMaster', () => {
+  const templatesPath = path.resolve(__dirname, '../../../../generator/templates');
+  const logger = new Logger('test');
+  const templates = new TemplateLoader(logger, templatesPath);
+
+  function makeScaffoldContext(): ScaffoldContext {
+    return {
+      name: 'my_ip',
+      templateContext: {
+        entity_name: 'my_ip',
+        version: '1.0',
+        clock_port: 'clk',
+        reset_port: 'rst',
+        secondary_clocks: [],
+        secondary_resets: [],
+        expanded_bus_interfaces: [{ name: 's_avmm', type: 'avmm', mode: 'slave' }],
+        interrupt_ports: [],
+      },
+      templates,
+      ipCoreData: {} as never,
+      busDefinitions: {},
+      isSv: false,
+      memoryMaps: [],
+    };
+  }
+
+  it('omits the JTAG-to-Avalon-MM debug master by default', () => {
+    const tc = new QuartusToolchain();
+    const files = tc.scaffold(makeScaffoldContext(), {});
+    expect(files['altera/test.qsys']).not.toContain('jtag_debug_master');
+    expect(files['altera/test.qsys']).not.toContain('altera_jtag_avalon_master');
+    // Without the debug master, the Avalon-MM slave stays a top-level export.
+    expect(files['altera/test.qsys']).toContain('my_ip_0_s_avmm');
+  });
+
+  it('adds the JTAG-to-Avalon-MM debug master when includeDebugMaster is true', () => {
+    const tc = new QuartusToolchain();
+    const files = tc.scaffold(makeScaffoldContext(), { includeDebugMaster: true });
+    const qsys = files['altera/test.qsys'];
+    expect(qsys).toContain('kind="altera_jtag_avalon_master"');
+    expect(qsys).toContain(
+      '<connection kind="avalon" start="jtag_debug_master.master" end="my_ip_0.s_avmm">'
+    );
+    // The Avalon-MM slave is now internally connected, not top-level exported.
+    expect(qsys).not.toContain('my_ip_0_s_avmm');
   });
 });
 

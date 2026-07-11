@@ -10,9 +10,23 @@
   <interface name="{{ entity_name }}_0_{{ rst.name }}" internal="{{ entity_name }}_0.{{ rst.name }}" type="reset" dir="end" />
 {% endfor %}
 {% for iface in expanded_bus_interfaces %}
+{% if not (include_debug_master and iface.altera_type == 'avalon' and iface.mode == 'slave') %}
   <interface name="{{ entity_name }}_0_{{ iface.name }}" internal="{{ entity_name }}_0.{{ iface.name }}" type="{{ iface.altera_type }}" dir="{{ 'end' if (iface.altera_type == 'conduit' or iface.mode in ['slave', 'sink']) else 'start' }}" />
+{% endif %}
 {% endfor %}
 {% for intr in interrupt_ports %}
   <interface name="{{ entity_name }}_0_{{ intr.name }}" internal="{{ entity_name }}_0.{{ intr.name }}" type="interrupt" dir="{{ 'end' if intr.direction == 'out' else 'start' }}" />
 {% endfor %}
+{% if include_debug_master %}
+  <interface name="jtag_debug_master_clk" internal="jtag_debug_master.clk" type="clock" dir="end" />
+  <interface name="jtag_debug_master_reset" internal="jtag_debug_master.clk_reset" type="reset" dir="end" />
+  <module name="jtag_debug_master" kind="altera_jtag_avalon_master" version="{{ version | default('1.0') }}" enabled="1" />
+{% for iface in expanded_bus_interfaces %}
+{% if iface.altera_type == 'avalon' and iface.mode == 'slave' %}
+  <connection kind="avalon" start="jtag_debug_master.master" end="{{ entity_name }}_0.{{ iface.name }}">
+    <parameter name="baseAddress" value="0x0000" />
+  </connection>
+{% endif %}
+{% endfor %}
+{% endif %}
 </system>

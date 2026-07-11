@@ -62,6 +62,13 @@ export interface GenerateOptions {
   targetPart?: string;
   includeQuartusProject?: boolean;
   quartusDevice?: string;
+  /**
+   * Quartus: add a JTAG-to-Avalon-MM debug master (altera_jtag_avalon_master)
+   * connected to the IP's Avalon-MM slave interface(s) in the generated
+   * `altera/test.qsys`, enabling System Console register peek/poke on
+   * hardware without a Nios II firmware download.
+   */
+  includeDebugMaster?: boolean;
   updateYaml?: boolean;
   hdlLanguage?: HdlLanguage;
   /** Testbench framework: 'cocotb' (default) or 'vunit'. */
