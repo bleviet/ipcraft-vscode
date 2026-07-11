@@ -86,6 +86,31 @@ export class TemplateLoader {
       return (Array.isArray(items) ? items : []) as unknown[];
     });
 
+    // Renders `value` as a fixed-width VHDL bit-string literal body (no
+    // surrounding quotes), e.g. bin(5, 4) -> "0101". Used instead of
+    // to_unsigned(value, width) for reset-value constants: VHDL's `natural`
+    // argument to to_unsigned is a 32-bit *signed* integer (range
+    // 0 .. 2147483647), so any 32-bit resetValue with bit 31 set (>=
+    // 0x80000000) overflows it and fails GHDL elaboration with "out of
+    // bound expression". A bit-string literal has no such range limit.
+    this.env.addFilter('bin', (value: unknown, width: unknown) => {
+      const num = Number(value ?? 0);
+      const w = Number(width ?? 0);
+      if (!Number.isFinite(num) || !Number.isFinite(w) || w <= 0) {
+        return '0';
+      }
+      const bin = Math.trunc(num).toString(2);
+      return bin.length >= w ? bin.slice(-w) : '0'.repeat(w - bin.length) + bin;
+    });
+
+    // Repeats `char` `count` times (clamped to >= 0). Used to build VHDL
+    // zero-pad bit-string literals inline, e.g. "0" | repeat(2) -> "00".
+    this.env.addFilter('repeat', (char: unknown, count: unknown) => {
+      const c = String(char ?? '');
+      const n = Math.max(0, Math.trunc(Number(count ?? 0)));
+      return c.repeat(n);
+    });
+
     this.logger.info(`Template loader using ${this.templatesPath}`);
   }
 

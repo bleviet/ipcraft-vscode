@@ -61,12 +61,26 @@ describe('register-level resetValue (ipcraft-vscode#32 item 1) — VHDL package 
 
   it('honors a non-zero register-level resetValue for a fieldless register', () => {
     const output = loader.render('package.vhdl.j2', buildContext(0x2a));
-    expect(output).toContain('scratch_raw => std_logic_vector(to_unsigned(42, C_DATA_WIDTH))');
+    // 42 = 0b101010, zero-padded to 32 bits.
+    expect(output).toContain('scratch_raw => "00000000000000000000000000101010"');
     expect(output).not.toContain("scratch_raw => (others => '0')");
   });
 
   it('still resets to all-zero when resetValue is 0 (no regression)', () => {
     const output = loader.render('package.vhdl.j2', buildContext(0));
     expect(output).toContain("scratch_raw => (others => '0')");
+  });
+
+  // Regression test for a real bug found on 16_ipcraft_led_avmm's successor
+  // hardware-conformance project: to_unsigned(<value>, 32) used VHDL's
+  // default `natural` type, which is a 32-bit *signed* integer
+  // (range 0 .. 2147483647). Any 32-bit resetValue with bit 31 set
+  // overflowed it, and GHDL failed elaboration with "out of bound
+  // expression" rather than a compile-time error. A bit-string literal has
+  // no such range limit.
+  it('renders a resetValue >= 0x80000000 without a VHDL integer-range overflow', () => {
+    const output = loader.render('package.vhdl.j2', buildContext(0xc0ffee01));
+    expect(output).toContain('scratch_raw => "11000000111111111110111000000001"');
+    expect(output).not.toContain('to_unsigned');
   });
 });

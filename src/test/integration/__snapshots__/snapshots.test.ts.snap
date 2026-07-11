@@ -3956,8 +3956,8 @@ package comprehensive_avalon_pkg is
   end record;
 
   constant C_REG_VERSION_RESET : t_reg_version := (
-    minor => std_logic_vector(to_unsigned(2, 8)),
-    major => std_logic_vector(to_unsigned(1, 8))
+    minor => "00000010",
+    major => "00000001"
   );
 
   function to_slv(reg : t_reg_version) return std_logic_vector;
@@ -4245,8 +4245,8 @@ package comprehensive_axi_pkg is
   end record;
 
   constant C_REG_ID_RESET : t_reg_id := (
-    revision => std_logic_vector(to_unsigned(1, 8)),
-    device_id => std_logic_vector(to_unsigned(12648430, 24))
+    revision => "00000001",
+    device_id => "110000001111111111101110"
   );
 
   function to_slv(reg : t_reg_id) return std_logic_vector;
@@ -4263,7 +4263,7 @@ package comprehensive_axi_pkg is
   constant C_REG_CTRL_RESET : t_reg_ctrl := (
     enable => '0',
     mode => (others => '0'),
-    prescale => std_logic_vector(to_unsigned(10, 8)),
+    prescale => "00001010",
     soft_rst => '0'
   );
 
@@ -4337,7 +4337,7 @@ package comprehensive_axi_pkg is
   end record;
 
   constant C_REG_CH_GAIN_0_RESET : t_reg_ch_gain_0 := (
-    gain => std_logic_vector(to_unsigned(256, 12)),
+    gain => "000100000000",
     mute => '0'
   );
 
@@ -4351,7 +4351,7 @@ package comprehensive_axi_pkg is
   end record;
 
   constant C_REG_CH_GAIN_1_RESET : t_reg_ch_gain_1 := (
-    gain => std_logic_vector(to_unsigned(256, 12)),
+    gain => "000100000000",
     mute => '0'
   );
 
@@ -4365,7 +4365,7 @@ package comprehensive_axi_pkg is
   end record;
 
   constant C_REG_CH_GAIN_2_RESET : t_reg_ch_gain_2 := (
-    gain => std_logic_vector(to_unsigned(256, 12)),
+    gain => "000100000000",
     mute => '0'
   );
 
@@ -4379,7 +4379,7 @@ package comprehensive_axi_pkg is
   end record;
 
   constant C_REG_CH_GAIN_3_RESET : t_reg_ch_gain_3 := (
-    gain => std_logic_vector(to_unsigned(256, 12)),
+    gain => "000100000000",
     mute => '0'
   );
 
@@ -4984,9 +4984,9 @@ package daq_controller_pkg is
 
   constant C_REG_CONTROL_RESET : t_reg_control := (
     enable => '0',
-    mode => std_logic_vector(to_unsigned(1, 2)),
+    mode => "01",
     irq_en => '0',
-    prescaler => std_logic_vector(to_unsigned(4, 8))
+    prescaler => "00000100"
   );
 
   function to_slv(reg : t_reg_control) return std_logic_vector;

@@ -9,15 +9,22 @@ generation is provably correct end-to-end, not just in simulation.
 > (sibling repo, not in this tree). All 23 conformance checks pass via the
 > System Console host on real silicon (`make test` in that project's
 > `quartus/` dir); the cocotb pre-hardware gate is green (14/14). Found two
-> real generator bugs along the way (not yet fixed here): (1)
-> `package.vhdl.j2`'s `to_unsigned(<value>, 32)` for a 32-bit `resetValue`
-> overflows VHDL's signed `integer` type once bit 31 is set, breaking GHDL
-> elaboration; (2) `bus_avmm.vhdl.j2` always slices `avs_address` as a byte
-> address, which goes out-of-range whenever `portWidthOverrides.address`
+> real generator bugs along the way, **both now fixed** in
+> `src/generator/templates/`: (1) `package.vhdl.j2` used
+> `to_unsigned(<value>, 32)` for a 32-bit `resetValue`, which overflows
+> VHDL's signed `integer` type once bit 31 is set, breaking GHDL elaboration
+> — fixed by emitting a bit-string literal via a new `bin()` filter in
+> `TemplateLoader.ts`; (2) `bus_avmm.vhdl.j2` always sliced `avs_address` as
+> a byte address, going out-of-range whenever `portWidthOverrides.address`
 > narrows the port for WORDS addressing (the same class of bug
-> `16_ipcraft_led_avmm`'s bring-up hand-patched but never upstreamed — any
-> new Avalon-MM IP needing a Nios II-compatible WORDS slave hits it fresh).
-> See `cvsoc/17_ipcraft_regmap_conformance/docs/hardware_validation_results.md`
+> `16_ipcraft_led_avmm`'s bring-up hand-patched but never upstreamed) —
+> fixed by zero-padding instead of slicing when the port is narrower, with a
+> companion fix in `altera_hw_tcl.j2` so the generated `_hw.tcl` auto-declares
+> `addressUnits WORDS` to match. Both fixes were verified by regenerating
+> `regmap_conformance` from a clean scaffold (no hand-patches) with the
+> original problematic values and re-validating on the DE10-Nano: 23/23
+> PASS. See
+> `cvsoc/17_ipcraft_regmap_conformance/docs/hardware_validation_results.md`
 > for full results, including a known JTAG-UART-capture tooling limitation
 > on the Nios II host (execution is confirmed via register readback instead).
 > AXI4-Lite (Variant B) and the Xilinx/xsdb path remain as designed, not yet

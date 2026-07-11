@@ -66,7 +66,15 @@ begin
 {% set readdata_port      = (bus_ports | selectattr('logical_name', 'equalto', 'readdata')      | list) %}
 {% set readdatavalid_port = (bus_ports | selectattr('logical_name', 'equalto', 'readdatavalid') | list) %}
 {% set waitrequest_port   = (bus_ports | selectattr('logical_name', 'equalto', 'waitrequest')   | list) %}
-  address   <= {{ address_port[0].name ~ "(C_ADDR_WIDTH-1 downto 0)" if address_port | length > 0 else "(others => '0')" }};
+{% set addr_port_width = address_port[0].width if address_port | length > 0 else 0 %}
+{% set addr_pad = (addr_width | default(8)) - addr_port_width %}
+{#- portWidthOverrides.address may declare a narrower, WORD-addressed port
+    (addressUnits WORDS in the Platform Designer hw.tcl -- Platform Designer's
+    interconnect generator cannot build a translator between a BYTES custom
+    Avalon-MM slave and altera_nios2_gen2's data_master). Slicing a port
+    narrower than C_ADDR_WIDTH is an out-of-range VHDL slice; reconstruct the
+    byte address instead by zero-padding the word address's low bits. -#}
+  address   <= {{ (address_port[0].name ~ " & \"" ~ ("0" | repeat(addr_pad)) ~ "\"") if address_port | length > 0 and addr_pad > 0 else (address_port[0].name ~ "(C_ADDR_WIDTH-1 downto 0)" if address_port | length > 0 else "(others => '0')") }};
   read      <= {{ read_port[0].name      if read_port      | length > 0 else "'0'" }};
   write     <= {{ write_port[0].name     if write_port     | length > 0 else "'0'" }};
   writedata <= {{ writedata_port[0].name if writedata_port | length > 0 else "(others => '0')" }};

@@ -50,7 +50,7 @@ package {{ entity_name }}_pkg is
 {% if field.width == 1 %}
     {{ field.name | lower }} => '{{ field.reset_value | default(0) }}'{{ "," if not loop.last else "" }}
 {% else %}
-    {{ field.name | lower }} => {{ "(others => '0')" if not field.reset_value else "std_logic_vector(to_unsigned(" ~ field.reset_value ~ ", " ~ field.width ~ "))" }}{{ "," if not loop.last else "" }}
+    {{ field.name | lower }} => {{ "(others => '0')" if not field.reset_value else "\"" ~ (field.reset_value | bin(field.width)) ~ "\"" }}{{ "," if not loop.last else "" }}
 {% endif %}
 {% endfor %}
   );
@@ -144,7 +144,7 @@ package {{ entity_name }}_pkg is
 {% if field.width == 1 %}
     {{ field.name | lower }} => '{{ field.reset_value | default(0) }}'{{ "," if not loop.last else "" }}
 {% else %}
-    {{ field.name | lower }} => {{ "(others => '0')" if not field.reset_value else "std_logic_vector(to_unsigned(" ~ field.reset_value ~ ", " ~ field.width ~ "))" }}{{ "," if not loop.last else "" }}
+    {{ field.name | lower }} => {{ "(others => '0')" if not field.reset_value else "\"" ~ (field.reset_value | bin(field.width)) ~ "\"" }}{{ "," if not loop.last else "" }}
 {% endif %}
 {% endfor %}
   );
@@ -173,7 +173,7 @@ package {{ entity_name }}_pkg is
 {% if reg.fields | length %}
     {{ reg.name | lower }} => C_REG_{{ reg.name | upper }}_RESET{{ "," if not loop.last else "" }}
 {% else %}
-    {{ reg.name | lower }} => {{ "(others => '0')" if not reg.reset_value else "std_logic_vector(to_unsigned(" ~ reg.reset_value ~ ", C_DATA_WIDTH))" }}{{ "," if not loop.last else "" }}
+    {{ reg.name | lower }} => {{ "(others => '0')" if not reg.reset_value else "\"" ~ (reg.reset_value | bin(32)) ~ "\"" }}{{ "," if not loop.last else "" }}
 {% endif %}
 {% endfor %}
   );
@@ -228,7 +228,7 @@ package {{ entity_name }}_pkg is
 {% if reg.fields | length %}
     {{ reg.name | lower }} => C_REG_{{ reg.name | upper }}_RESET{{ "" if is_last else "," }}
 {% else %}
-    {{ reg.name | lower }} => {{ "(others => '0')" if not reg.reset_value else "std_logic_vector(to_unsigned(" ~ reg.reset_value ~ ", C_DATA_WIDTH))" }}{{ "" if is_last else "," }}
+    {{ reg.name | lower }} => {{ "(others => '0')" if not reg.reset_value else "\"" ~ (reg.reset_value | bin(32)) ~ "\"" }}{{ "" if is_last else "," }}
 {% endif %}
 {% endfor %}
 {% for reg in ext_w1c_regs %}

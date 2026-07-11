@@ -117,7 +117,16 @@ set_interface_property {{ iface.name }} SVD_ADDRESS_GROUP ""
 
 # Type-specific properties
 {% if altera_type == 'avalon' %}
-set_interface_property {{ iface.name }} addressUnits BYTES
+{% set address_port = (iface.ports | selectattr('logical_name', 'equalto', 'address') | list) %}
+{% set addr_port_width = address_port[0].width if address_port | length > 0 else (addr_width | default(8)) %}
+{#- portWidthOverrides.address may declare a narrower, WORD-addressed port
+    (Platform Designer's interconnect generator cannot build a translator
+    between a BYTES custom Avalon-MM slave and altera_nios2_gen2's
+    data_master). bus_avmm.vhdl.j2 reconstructs the byte address by
+    zero-padding the word address's low bits in that case, so the declared
+    addressUnits must agree -- BYTES/WORDS mismatched against the actual
+    port width silently breaks address decode on hardware. -#}
+set_interface_property {{ iface.name }} addressUnits {{ "WORDS" if addr_port_width < (addr_width | default(8)) else "BYTES" }}
 {% set readdatavalid_port = (iface.ports | selectattr('logical_name', 'equalto', 'readdatavalid') | list) %}
 set_interface_property {{ iface.name }} maximumPendingReadTransactions {% if readdatavalid_port | length > 0 %}1{% else %}0{% endif %}
 {% endif %}
