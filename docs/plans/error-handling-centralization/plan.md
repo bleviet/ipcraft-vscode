@@ -1,5 +1,6 @@
 # Error Handling Centralization
 
+**Status:** Implemented — `handleErrorWithUserNotification` is now used across the command/service files listed below; remaining direct `showErrorMessage` calls are the guard-clause validation messages this plan intentionally excluded.
 **Branch:** `fix/error-handling-centralization`
 **Description:** Route all catch-block error notifications through `handleErrorWithUserNotification` and add explanatory comments to empty catch blocks.
 

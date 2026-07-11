@@ -156,4 +156,6 @@ the layout is unchanged.
 - For the **exact keyboard shortcuts, callbacks, and function signatures**, see
   the [Bit Field Interaction Reference](../reference/bitfield-interaction.md).
 - For the layout rules registers and blocks must satisfy, see
-  [Memory Layout Invariants](../refactor/memory_layout_invariants.md).
+  `recomputeBitfieldLayout`/`recomputeRegisterLayout`/`recomputeBlockLayout` in
+  [LayoutEngine.ts](../../src/webview/algorithms/LayoutEngine.ts) (CLAUDE.md's
+  "Layout computation" section has the summary).

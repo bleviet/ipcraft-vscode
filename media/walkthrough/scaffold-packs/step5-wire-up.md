@@ -18,7 +18,7 @@ Open any `.ip.yml` in the visual editor and pick your pack from the
 
 The pack name matches the folder under `.vscode/ipcraft/packs/`.
 
-Then run **IPCraft: Generate HDL** or **IPCraft: Scaffold Project** as usual.
+Then run **IPCraft: Generate Top-Level HDL** or **IPCraft: Scaffold Project** as usual.
 The staging panel shows exactly which files will be written before anything
 touches disk.
 

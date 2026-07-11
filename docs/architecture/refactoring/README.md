@@ -1,9 +1,16 @@
 # Architectural Refactoring Concepts (V-Series)
 
+> **Status: all ten items shipped.** This directory is kept as design rationale -- each
+> document explains a bug pattern and the target design that fixed it, in more depth than
+> CLAUDE.md's summary of the resulting architecture. Cross-check against the current
+> `Revisioned sync protocol`, `Table editors`, `Layout computation`, and domain-layer sections
+> of `CLAUDE.md` for what actually shipped; a few implementation details (e.g. exact function
+> names) drifted slightly from these original proposals during implementation.
+
 Concept and task documents for the architectural debt items V-1…V-10 identified in the
 [Software Architecture Document, §7](../architecture.md#7-technical-debt--vibe-code-assessment).
-Each document is self-contained: it explains **why** the current state is a problem, **how**
-to fix it (target design with code sketches), and breaks the work into independently
+Each document is self-contained: it explains **why** the current state was a problem, **how**
+it was fixed (target design with code sketches), and breaks the work into independently
 shippable tasks with acceptance criteria.
 
 These are distinct from [technical-debt.md](../technical-debt.md) (TD-1…TD-5), which tracks

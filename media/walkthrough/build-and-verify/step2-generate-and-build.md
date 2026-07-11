@@ -18,12 +18,12 @@ OOC is the right tool for iterating on your IP core. Run full implementation whe
 1. Generates all RTL and vendor packaging from your `.ip.yml`
 2. Launches `vivado -mode batch` with an OOC synthesis script
 3. Shows a live status bar: `$(loading~spin) Building…`
-4. Displays `✓ WNS +1.23 ns` (or `✗ WNS -0.45 ns`) when done
+4. On success, shows `$(pass) WNS +1.23ns`; on failure, shows `$(error) Build failed` — click the status bar item to open the build output
 
 **Generate & Build (Quartus)** runs the full Quartus flow:
 1. Generates RTL and `_hw.tcl`
 2. Launches `quartus_sh --flow compile`
-3. Shows `✓ Fmax 156 MHz` in the status bar when done
+3. On success, shows `$(pass) Fmax 156 MHz` in the status bar; on failure, shows `$(error) Build failed`
 
 ### Status bar shortcut
 

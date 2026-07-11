@@ -1,5 +1,15 @@
 # Webview Architecture Review -- DRY Violations and Refactor Plan
 
+> **Status: mostly implemented.** `useTableEditorState` (S1), `useLayoutToggle` (S2),
+> `<EditableCell>` (S3), and `BlockTableRow` extracted from `MemoryMapEditor` (S5) all shipped
+> — see CLAUDE.md's "Table editors" section for the current, canonical API. `useFieldEditor`
+> was not split into the sub-hooks S6 proposed; it composes `useTableEditorState` instead
+> (same DRY goal, different shape). The shared `generateUniqueName` utility (S4) and
+> `useExtensionHost` (S7/F9, unifying `useYamlSync`/`useIpCoreSync`) were **not** built --
+> those two remain open. Kept for the rationale behind the shared hooks; treat the "Detailed
+> Solution" code sketches below as historical design intent, not a description of the exact
+> current implementation.
+
 ## Executive Summary
 
 The `src/webview` directory contains two largely independent webview applications:

@@ -45,6 +45,7 @@ The scaffolder produces files organized by category next to the `.ip.yml` file.
     <ip_name>_ooc.xdc        # OOC timing constraints (create_clock entries)
   altera/
     <ip_name>_hw.tcl          # Platform Designer component
+    test.qsys                  # Platform Designer test system (BFM validation)
     <ip_name>_project.tcl    # Creates Quartus project in altera/build/
     <ip_name>.sdc             # SDC timing constraints (virtual pins + clocks)
 ```
@@ -93,7 +94,7 @@ Vendor project files (project TCL, build scripts, constraints) are generated sep
 
 ## Bus Type Detection
 
-The generator reads the IP Core's bus interfaces to determine the bus protocol. It looks for an interface with a `memory_map_ref` and maps its type:
+The generator reads the IP Core's bus interfaces to determine the bus protocol. It looks for an interface with a `memoryMapRef` and maps its type:
 
 | Bus Interface Type | Generator Bus Type | VHDL Template | SV Template |
 |--------------------|-------------------|---------------|-------------|
@@ -130,9 +131,13 @@ Templates use [Nunjucks](https://mozilla.github.io/nunjucks/) (Jinja2-compatible
 
 ### Vivado templates
 
+`xilinx/component.xml` (IP-XACT) is **not** rendered from a template — it is built
+programmatically by `VivadoComponentXmlGenerator.ts` (see Implementation Files below). A
+scaffold pack may override it by supplying its own `component.xml.j2`; if present, that
+template is rendered instead of running the built-in generator.
+
 | Template | Output |
 |----------|--------|
-| `amd_component_xml.j2` | `xilinx/component.xml` (IP-XACT) |
 | `amd_xgui.j2` | `xilinx/xgui/<ip_name>_v*.tcl` |
 | `vivado_project.tcl.j2` | `xilinx/<ip_name>_project.tcl` — creates OOC synthesis project in `build/ooc/` |
 | `vivado_run_ooc.tcl.j2` | `xilinx/<ip_name>_run_ooc.tcl` — batch OOC synthesis runner |
@@ -144,6 +149,7 @@ Templates use [Nunjucks](https://mozilla.github.io/nunjucks/) (Jinja2-compatible
 | Template | Output |
 |----------|--------|
 | `altera_hw_tcl.j2` | `altera/<ip_name>_hw.tcl` |
+| `altera_test_system.qsys.j2` | `altera/test.qsys` — Platform Designer test system wrapping the component, for BFM-based `_hw.tcl` validation |
 | `quartus_project.tcl.j2` | `altera/<ip_name>_project.tcl` |
 | `quartus_sdc.j2` | `altera/<ip_name>.sdc` |
 
@@ -166,6 +172,7 @@ Templates use [Nunjucks](https://mozilla.github.io/nunjucks/) (Jinja2-compatible
 |----------|--------|
 | `vunit_run.py.j2` | `tb/run.py` — VUnit test runner script |
 | `vunit_tb.vhd.j2` | `tb/<ip_name>_tb.vhd` — VHDL testbench entity |
+| `vunit_tb.sv.j2` | `tb/<ip_name>_tb.sv` — SystemVerilog testbench module |
 
 ## Testbench Framework
 

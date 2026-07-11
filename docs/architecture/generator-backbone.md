@@ -89,8 +89,9 @@ src/generator/
     *.j2                           Nunjucks templates (copied to dist/templates/ at build)
 
   testbench/
-    Framework.ts                   testbench generation interface
-    cocotb/  vunit/                framework implementations
+    Framework.ts, Engine.ts        testbench framework x engine interfaces
+    frameworks/                    CocotbFramework.ts, VUnitFramework.ts
+    engines/                       GhdlEngine.ts, IcarusEngine.ts, QuestaEngine.ts, VerilatorEngine.ts
 
 src/shared/
   evalWidthExpr.ts                 single arithmetic parser used by generator and webview

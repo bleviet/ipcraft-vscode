@@ -1,6 +1,6 @@
 # V-1 — Unified Domain Model
 
-> Status: proposed · Severity: High · Effort: L (1–2 weeks, incremental)
+> Status: **Implemented** (see `src/domain/{parse,serialize,internal.types,ipcore.types,memorymap.types}.ts`; `DataNormalizer.ts`/`YamlSanitizer.ts` are deleted) · Severity: High · Effort: L (1–2 weeks, incremental)
 > Depends on: [V-2](V-02-shared-yaml-edit-module.md) (single serializer), [V-10](V-10-spec-versioning.md) (pinned schemas)
 > Source finding: [architecture.md §7 V-1](../architecture.md#v-1--three-key-vocabularies-for-the-same-domain-model)
 

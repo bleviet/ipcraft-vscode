@@ -4,7 +4,7 @@ After parsing, check three areas before generating output for the other vendor.
 
 ### 1. Bus interface port maps
 
-Open **Bus Interfaces** in the left navigation. For each interface:
+Click each bus interface on the canvas and check its fields in the Inspector:
 
 - **physicalPrefix** — the HDL signal prefix (e.g. `s_axi_`, `avmm_`). IPCraft auto-detects this from the port mapping, but verify it matches your RTL exactly.
 - **Port count** — expand the bus bundle on the canvas to see individual signals. Compare against the source file.
@@ -12,7 +12,7 @@ Open **Bus Interfaces** in the left navigation. For each interface:
 
 ### 2. Parameters
 
-Open **Parameters** and check:
+Click each parameter on the canvas and check in the Inspector:
 
 - Data types (`int`, `string`, `boolean`, `std_logic_vector`)
 - Default values — especially for parameters that control port widths

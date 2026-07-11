@@ -11,37 +11,38 @@ Deliver a testing infrastructure that gives us **high confidence** in every rele
 
 ---
 
-## Current State (as of June 2026)
+## Current State (as of July 2026)
 
 | Layer | What exists | Coverage |
 |---|---|---|
-| Unit (Jest, tiers 1-3) | 97 test files across algorithms, components, generator, hooks, parser, services, utils, webview, yamledit | Moderate. 25% statement coverage (by design -- React code unreachable by Jest). |
+| Unit (Jest, tiers 1-3) | 122 test files across algorithms, components, generator, hooks, parser, services, utils, webview, yamledit | Moderate. 25% statement coverage (by design -- React code unreachable by Jest). |
 | VS Code smoke (test-electron, tier 4) | 5 tests: extension present, activates, registers editors, opens .mm.yml, opens .ip.yml | Thin. Activation and file-open only. |
-| Playwright browser (tier 5) | 4 tests: render + edit + postMessage, insert-below via context menu, IP Core canvas render, VLNV header display | Thin. No keyboard nav, no delete, no undo, no field editor, no address block table. |
+| Playwright browser (tier 5) | 4 spec files (~11 scenarios): render + edit + postMessage, insert-below via context menu, IP Core canvas render, VLNV header display | Thin. No keyboard nav, no delete, no undo, no field editor, no address block table. |
 | HDL integration (tier 1) | GHDL analyze/elaborate/synthesize (VHDL), iverilog compile (SV), Verilator lint (SV) | Good for open-source tools. |
 | Vivado integration (tier 2) | ipx::check_integrity on all Xilinx fixtures; project creation for all; OOC synthesis for minimal_vhdl + minimal_sv only | Partial. Synthesis only on 2 of ~14 fixtures. |
 | Quartus integration (tier 2) | hw.tcl stub validation (all Altera fixtures); project creation (all) | Partial. No actual synthesis/fit. |
 | IP-XACT (tier 1) | xmllint well-formedness, SPIRIT namespace, VLNV elements, validate.sh | Good structural validation. |
 | Snapshot / roundtrip (tier 0) | Golden-file snapshots for component.xml + hw.tcl; generate-then-parse round-trip | Good. |
 | Conformance (tier 0) | Pack apiVersion check, contract validation, third-party pack harness | Good. |
-| CI | `ci.yml` (push/PR): lint, type-check, unit, smoke, browser. `vivado-nightly.yml`: tier 0 + tier 1 only. | **Vivado and Quartus never run in CI.** |
+| CI | `ci.yml` (push/PR): lint, type-check, unit, smoke, browser. `vivado-nightly.yml`: tier 0 + tier 1 only. `integration-vendor.yml`: Vivado + Quartus on a self-hosted runner. | Vendor tests run on every push to `main` and on manual dispatch -- **not yet on pull requests.** |
 
 ### Known gaps
 
-- **VerilogParser has no test.** The only parser out of 5 without a `.test.ts`.
 - **Synthesis matrix is too narrow.** Only `minimal_vhdl` and `minimal_sv` get OOC synthesis in Vivado. Quartus has no synthesis at all.
 - **No cocotb testbench execution.** The generator produces `tb/` with Python test files and a Makefile, but they are never run.
-- **Playwright coverage is 4 tests.** Keyboard navigation, field editor, address block table, undo/redo, drag-reorder, format-preserving round-trip -- all untested.
+- **Playwright coverage is thin (~11 scenarios across 4 spec files).** Keyboard navigation, field editor, address block table, undo/redo, drag-reorder, format-preserving round-trip -- all untested.
 - **No parser round-trip pipeline.** Import from VHDL/Verilog/component.xml/hw.tcl into `.ip.yml`, then generate, then validate -- this end-to-end loop does not exist as an automated test.
-- **Vivado and Quartus are absent from CI.** Tier 2 tests self-skip with a warning. No self-hosted runner or Jenkins.
+- **Vivado and Quartus run on push-to-main only, not on PRs.** `integration-vendor.yml` (self-hosted runner) validates every merge but a bad PR can still land and break vendor synthesis before the nightly/push run catches it.
 
 ---
 
 ## Phased Plan
 
-### Phase 1: Close the obvious unit-test gaps
+### Phase 1: Close the obvious unit-test gaps -- DONE
 
 **Scope:** Fast wins. No infrastructure changes.
+
+`VerilogParser.test.ts` and `ReportParser.test.ts` now exist; `yamledit.test.ts` has ~29 cases. Remaining table kept for the original task breakdown.
 
 | Task | Deliverable | Effort |
 |---|---|---|
@@ -125,153 +126,21 @@ External source (VHDL/Verilog/component.xml/hw.tcl)
 
 ---
 
-### Phase 4: Local Jenkins + Docker for vendor tools
+### Phase 4: Self-hosted CI for vendor tools -- DONE (shape differs from the original proposal)
 
-**Scope:** Self-hosted CI that runs Vivado and Quartus on every PR.
+**Scope:** Self-hosted CI that runs Vivado and Quartus automatically.
 
-#### 4a. Jenkins setup
+This phase originally proposed a local Jenkins + Docker setup (see the "Decision" note that used to live here). What actually shipped is the simpler alternative this doc also called out at the time: a **GitHub Actions self-hosted runner** on the machine that already has Vivado and Quartus installed, defined in
+[`.github/workflows/integration-vendor.yml`](../.github/workflows/integration-vendor.yml):
 
-A local Jenkins instance running in Docker, with two agent types:
+- Triggers on push to `main` and on `workflow_dispatch` (**not yet on pull requests** -- see Known gaps above).
+- Runs on a `[self-hosted, Linux, X64, vivado, quartus]` runner with `REQUIRE_VIVADO=1` (fails loudly if Vivado is missing) and native `QUARTUS_TCLSH_BIN`/`QUARTUS_SH_BIN` (no Docker on this host, `SKIP_DOCKER=1`).
+- Runs `npx jest --config config/jest.integration.js --testPathPatterns=vivado` and `...=quartus`.
+- Uploads `skip-telemetry.ndjson` as a build artifact so tier-2 self-skips (e.g. missing `qsys-generate`) stay visible.
 
-| Agent | Tools | Purpose |
-|---|---|---|
-| `ipcraft-oss` | Node.js 20, GHDL, iverilog, Verilator, xmllint, Docker | Open-source tier 0 + tier 1 tests |
-| `ipcraft-vendor` | Node.js 20, Vivado 2024.2 (host install with license), Docker (for Quartus image) | Tier 2 vendor tests |
+No Docker-based Quartus image, no Jenkinsfile, and no version-matrix parameterization were built -- the toolchain versions are pinned to whatever is installed on the one self-hosted runner (`VIVADO_BIN`/`QUARTUS_*_BIN` env vars in the workflow file). Revisit multi-version matrix testing only if a second vendor-tools machine is added.
 
-**Jenkinsfile structure:**
-
-Toolchain versions and Docker images are passed as **Jenkins parameters** so the
-pipeline can be re-run against different versions without editing the Jenkinsfile.
-
-```groovy
-pipeline {
-    agent none
-    parameters {
-        string(name: 'VIVADO_BIN',
-               defaultValue: '/tools/Xilinx/Vivado/2024.2/bin/vivado',
-               description: 'Path to Vivado binary on the vendor agent')
-        string(name: 'VIVADO_VERSION',
-               defaultValue: '2024.2',
-               description: 'Vivado version (for reporting)')
-        string(name: 'QUARTUS_DOCKER_IMAGE',
-               defaultValue: 'cvsoc/quartus:23.1',
-               description: 'Docker image for Quartus tests')
-        string(name: 'QUARTUS_VERSION',
-               defaultValue: '23.1',
-               description: 'Quartus version (for reporting)')
-        string(name: 'VIVADO_LICENSE_SERVER',
-               defaultValue: '',
-               description: 'FlexLM license server (e.g., 2100@host)')
-    }
-    stages {
-        stage('Quick checks') {
-            agent { label 'ipcraft-oss' }
-            steps {
-                sh 'npm ci'
-                sh 'npm run lint'
-                sh 'npm run type-check'
-                sh 'npm run test:unit -- --coverage'
-            }
-        }
-        stage('HDL integration') {
-            agent { label 'ipcraft-oss' }
-            steps {
-                sh 'npm run test:integration:hdl'
-                sh 'npm run test:integration:ipxact'
-                sh 'npm run test:integration:conformance'
-            }
-        }
-        stage('Vendor synthesis') {
-            agent { label 'ipcraft-vendor' }
-            environment {
-                VIVADO_BIN             = "${params.VIVADO_BIN}"
-                VIVADO_VERSION         = "${params.VIVADO_VERSION}"
-                QUARTUS_DOCKER_IMAGE   = "${params.QUARTUS_DOCKER_IMAGE}"
-                QUARTUS_VERSION        = "${params.QUARTUS_VERSION}"
-                VIVADO_LICENSE_SERVER  = "${params.VIVADO_LICENSE_SERVER}"
-            }
-            steps {
-                sh 'REQUIRE_VIVADO=1 npm run test:integration:vivado'
-                sh 'REQUIRE_QUARTUS=1 npm run test:integration:quartus'
-            }
-        }
-        stage('Browser + E2E') {
-            agent { label 'ipcraft-oss' }
-            steps {
-                sh 'npm run compile && npm run compile-tests'
-                sh 'xvfb-run -a npm run test:e2e'
-                sh 'npm run test:browser'
-            }
-        }
-    }
-}
-```
-
-#### 4b. Configurable toolchain versions and Docker images
-
-All Docker image names and toolchain versions are **configurable via environment variables**, not hardcoded. This allows the same test suite to run on different machines with different tool installations.
-
-**Environment variables:**
-
-| Variable | Default | Purpose |
-|---|---|---|
-| `QUARTUS_DOCKER_IMAGE` | `cvsoc/quartus:23.1` | Docker image for Quartus validation and synthesis |
-| `VIVADO_BIN` | `/home/balevision/tools/Xilinx/Vivado/2024.2/bin/vivado` | Path to Vivado binary (host install or Docker-mounted) |
-| `VIVADO_VERSION` | `2024.2` | Vivado version string (used for reporting and version-specific workarounds) |
-| `QUARTUS_VERSION` | `23.1` | Quartus version string (used for reporting) |
-| `VIVADO_LICENSE_SERVER` | _(unset)_ | FlexLM license server URL (e.g., `2100@license.example.com`) |
-| `OSS_DOCKER_IMAGE` | _(none -- runs on host)_ | Optional Docker image for open-source tools (GHDL, iverilog, Verilator) |
-
-**Version matrix testing:**
-
-To test against multiple toolchain versions, run the integration suite in a matrix:
-
-```bash
-# Vivado 2023.2
-VIVADO_BIN=/tools/Xilinx/Vivado/2023.2/bin/vivado \
-VIVADO_VERSION=2023.2 \
-npm run test:integration:vivado
-
-# Vivado 2024.2 (default)
-VIVADO_BIN=/tools/Xilinx/Vivado/2024.2/bin/vivado \
-VIVADO_VERSION=2024.2 \
-npm run test:integration:vivado
-
-# Quartus 22.1
-QUARTUS_DOCKER_IMAGE=cvsoc/quartus:22.1 \
-QUARTUS_VERSION=22.1 \
-npm run test:integration:quartus
-
-# Quartus 24.1
-QUARTUS_DOCKER_IMAGE=myregistry/quartus:24.1 \
-QUARTUS_VERSION=24.1 \
-npm run test:integration:quartus
-```
-
-The Jenkins pipeline (or GitHub Actions matrix) can parameterize these env vars to run the full version matrix nightly or on tag releases.
-
-**Docker image requirements:**
-
-The Quartus Docker image must provide:
-- `tclsh` at a known path (currently `/opt/intelFPGA/quartus/bin/tclsh`)
-- `quartus_sh` for project creation tests
-- `quartus_map`, `quartus_fit`, `quartus_asm` for full compilation (Phase 2b)
-
-The Vivado setup can be either:
-- **Host install:** Vivado installed directly on the CI agent machine, `VIVADO_BIN` points to the binary.
-- **Docker container:** Vivado in a Docker image with the license server configured. The test spawns `docker run` with the image name from `VIVADO_DOCKER_IMAGE` (optional, not yet implemented -- host install is simpler for licensed tools).
-
-**No hardcoded image names in test code.** The existing `quartus.test.ts` and `vivado.test.ts` already read from env vars with defaults. All new tests must follow this pattern.
-
-#### 4c. GitHub Actions bridge
-
-The existing `ci.yml` continues to run on `ubuntu-latest` for fast feedback (lint, unit, browser). The Jenkins pipeline runs the full vendor matrix on PRs and pushes status back to GitHub via the [Jenkins GitHub plugin](https://plugins.jenkins.io/github/).
-
-Alternatively, a **GitHub Actions self-hosted runner** on the vendor-tools machine could replace Jenkins entirely. This is simpler if only one machine has Vivado.
-
-**Decision:** Local Jenkins + Docker for vendor tool CI (dedicated Vivado machine available).
-
-**Exit criteria:** Every PR triggers Vivado OOC synthesis (all target fixtures) and Quartus compile (all target fixtures). Results visible as PR check status. Toolchain versions are configurable via env vars, not hardcoded.
+**Remaining gap:** wiring this workflow (or a lighter subset of it) to run on pull requests, not just post-merge to `main`.
 
 ---
 
@@ -381,9 +250,9 @@ Recommended execution order, based on risk and effort:
 
 | Priority | Phase | Rationale |
 |---|---|---|
-| **P0** | Phase 1 (unit gaps) | Low effort, high value. VerilogParser and yamledit gaps are real bugs waiting to happen. |
+| Done | Phase 1 (unit gaps) | VerilogParser and ReportParser now have tests; yamledit expanded. |
 | **P0** | Phase 2a (Vivado synthesis matrix) | Expanding synthesis from 2 to ~10 fixtures catches bus-interface-specific generator bugs. |
-| **P1** | Phase 4 (Jenkins / self-hosted runner) | Without this, vendor tests never run in CI. The entire tier 2 suite is currently unvalidated. |
+| Done | Phase 4 (self-hosted vendor CI) | `integration-vendor.yml` now runs Vivado + Quartus on push to `main`. Follow-up: extend to PRs. |
 | **P1** | Phase 2b (Quartus synthesis) | Quartus has zero synthesis testing today. |
 | **P2** | Phase 6 (Playwright expansion) | 4 tests is not enough for a complex UI. But UI bugs are less severe than synthesis bugs. |
 | **P2** | Phase 5 (cocotb execution) | Validates the generated testbenches actually work. Important for user trust. |
@@ -397,12 +266,12 @@ Recommended execution order, based on risk and effort:
 
 | Phase | Estimated effort | Dependencies |
 |---|---|---|
-| Phase 1 | 2-3 days | None |
+| Phase 1 | Done | None |
 | Phase 2a | 1-2 days | Vivado available (manual or CI) |
 | Phase 2b | 2-3 days | Quartus Docker image with full toolchain |
 | Phase 2c | 1 day | None |
 | Phase 3 | 3-5 days | Phase 1 (parsers tested individually first) |
-| Phase 4 | 3-5 days | Machine with Vivado license, Docker |
+| Phase 4 | Done | Self-hosted runner with Vivado + Quartus already installed |
 | Phase 5 | 2-3 days | cocotb installed in CI |
 | Phase 6 | 5-7 days | None (can parallelize with other phases) |
 | Phase 7 | 1-2 days | None |
@@ -413,7 +282,7 @@ Recommended execution order, based on risk and effort:
 
 ## Decisions Made
 
-1. **CI platform:** Local Jenkins + Docker. A dedicated machine with Vivado 2024.2 installed will serve as the `ipcraft-vendor` Jenkins agent. Docker orchestrates the open-source tool agent.
+1. **CI platform:** GitHub Actions self-hosted runner (not the originally proposed Jenkins + Docker setup). A dedicated machine with Vivado and Quartus installed runs `.github/workflows/integration-vendor.yml` on push to `main`.
 
 2. **Starting phase:** Phase 1 (unit test gaps) -- VerilogParser, yamledit expansion, corner-case fixtures.
 

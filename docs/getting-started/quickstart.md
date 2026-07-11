@@ -24,7 +24,7 @@ graph LR
 | `src/providers/MemoryMapEditorProvider.ts` | Custom editor for `*.mm.yml` |
 | `src/providers/IpCoreEditorProvider.ts` | Custom editor for `*.ip.yml` |
 | `src/providers/IpCoreGenerateHandler.ts` | VHDL generation message handler |
-| `src/services/MessageHandler.ts` | Routes messages from webview |
+| `src/services/WebviewRouter.ts` | Routes messages from webview, revisioned sync protocol |
 | `src/generator/IpCoreScaffolder.ts` | VHDL + vendor file generation |
 | `src/parser/VhdlParser.ts` | Import VHDL into specs |
 
@@ -33,7 +33,7 @@ graph LR
 | File | Purpose |
 |------|---------|
 | `src/webview/index.tsx` | Main app shell |
-| `src/webview/components/Outline.tsx` | Sidebar tree navigation |
+| `src/webview/components/OutlinePanel.tsx` | Sidebar tree navigation |
 | `src/webview/components/DetailsPanel.tsx` | Routes to sub-editors |
 | `src/webview/components/register/RegisterEditor.tsx` | Register editing UI |
 | `src/webview/components/BitFieldVisualizer.tsx` | Visual bit field diagram |
@@ -42,10 +42,14 @@ graph LR
 
 | File | Purpose |
 |------|---------|
-| `src/webview/ipcore/IpCoreApp.tsx` | IP Core editor app shell |
-| `src/webview/ipcore/components/layout/NavigationSidebar.tsx` | Section navigation sidebar |
-| `src/webview/ipcore/components/layout/EditorPanel.tsx` | Routes to section editors |
-| `src/webview/ipcore/components/sections/GeneratorPanel.tsx` | VHDL generation UI |
+| `src/webview/ipcore/IpCoreApp.tsx` | App shell — toolbar (undo/redo, target picker, generate) and VHDL generation UI |
+| `src/webview/ipcore/components/layout/EditorPanel.tsx` | Renders the canvas |
+| `src/webview/ipcore/components/canvas/IpBlockCanvas.tsx` | Block-diagram canvas (the editor's main surface) |
+| `src/webview/ipcore/components/canvas/CanvasInspector.tsx` | Property panel for the selected canvas element |
+
+`layout/NavigationSidebar.tsx` and every file under `ipcore/components/sections/` (including the old
+`GeneratorPanel.tsx`) still exist but are dead code — not imported by `IpCoreApp.tsx` or
+`EditorPanel.tsx`. See [IP Core Editor Reference](../reference/ip-core-editor.md).
 
 ### Shared Behavior
 

@@ -4,7 +4,7 @@ The parse commands transform a vendor-specific descriptor into an `.ip.yml` that
 
 ### Parse Platform Designer _hw.tcl
 
-Run **IPCraft: Parse Platform Designer (_hw.tcl) to .ip.yml** with a `*_hw.tcl` file open.
+Run **IPCraft: Import from Altera Platform Designer (Experimental)** with a `*_hw.tcl` file open.
 
 **What the parser handles:**
 
@@ -18,7 +18,7 @@ Run **IPCraft: Parse Platform Designer (_hw.tcl) to .ip.yml** with a `*_hw.tcl` 
 
 ### Parse Xilinx component.xml
 
-Run **IPCraft: Parse Xilinx component.xml to .ip.yml** with a `component.xml` file open.
+Run **IPCraft: Import from Xilinx Component XML (Experimental)** with a `component.xml` file open.
 
 **What the parser handles:**
 

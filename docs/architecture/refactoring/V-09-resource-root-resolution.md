@@ -1,6 +1,6 @@
 # V-9 — Centralized Resource Root Resolution
 
-> Status: proposed · Severity: Medium (fails late, environment-dependent) · Effort: S (1 day)
+> Status: **Implemented** (see `src/services/ResourceRoots.ts`) · Severity: Medium (fails late, environment-dependent) · Effort: S (1 day)
 > Independent of other V-items
 > Source finding: [architecture.md §7 V-9](../architecture.md#v-9--path-resolution-heuristics-for-packaged-vs-dev-vs-test-runtime)
 

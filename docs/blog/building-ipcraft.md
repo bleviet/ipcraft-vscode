@@ -62,7 +62,7 @@ When you open a `.mm.yml` file:
 
 1. The extension provider reads the file and waits for the webview to signal ready
 2. The provider sends the raw YAML text to the webview
-3. The webview's `DataNormalizer` parses and normalizes the YAML into an in-memory model
+3. `src/domain/parse.ts` parses the raw YAML into normalized domain types the UI renders
 4. React components render the model
 
 When you edit a field:
@@ -108,7 +108,7 @@ led_controller/
     led_controller_regs.vhd     -- register file with decode
   altera/
     led_controller_hw.tcl       -- Platform Designer component
-  amd/
+  xilinx/
     component.xml               -- Vivado IP-XACT descriptor
     xgui/led_controller_v1_0_0.tcl
   tb/
@@ -156,7 +156,7 @@ ports:
 
 busInterfaces:
   - name: S_AXI_LITE
-    type: AXI4L
+    type: ipcraft:busif:axi4_lite:1.0
     mode: slave
     memoryMapRef: CSR_MAP
 ```
@@ -194,7 +194,7 @@ Open these files in VS Code with IPCraft installed and you get interactive visua
 - **Templates**: Nunjucks (Jinja2-compatible)
 - **YAML**: `js-yaml` for parsing, `yaml` v2 for comment-preserving round-trip editing
 - **Specifications**: JSON Schema validated via `ipcraft-spec` submodule
-- **Testing**: Jest (209 tests across 27 suites)
+- **Testing**: Jest (1,500+ tests across 120+ suites), plus VS Code smoke tests, Playwright browser tests, and opt-in EDA/vendor-tool integration tests
 
 ## Getting Started
 
@@ -207,7 +207,7 @@ npm install
 npm run compile
 ```
 
-Press **F5** in VS Code to launch the Extension Development Host. Create a new `.mm.yml` or `.ip.yml` file using the command palette (`IPCraft: New IP Core` or `IPCraft: New Memory Map`) and start editing.
+Press **F5** in VS Code to launch the Extension Development Host. Create a new `.mm.yml` or `.ip.yml` file using the command palette (`IPCraft: New IP Core` or `IPCraft: New Register Map`) and start editing.
 
 Full documentation is at `docs/index.md`, built with MkDocs:
 

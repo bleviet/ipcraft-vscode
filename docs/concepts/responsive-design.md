@@ -40,14 +40,17 @@ Defined in `:root` of `src/webview/index.css`:
 
 ```text
 div.h-screen.flex.flex-col
-+-- Header (filename, VLNV, validation count)
-+-- div.flex-1.flex
-    +-- <NavigationSidebar> (w-64)
-    +-- <EditorPanel> (section editors)
++-- Toolbar (undo/redo, VLNV, target/scaffold pickers, generate)
++-- div.flex-1.flex.overflow-hidden
+    +-- <LibraryPalette />
+    +-- <EditorPanel> -> <IpBlockCanvas />
+    +-- <CanvasInspector />
 +-- Validation errors (conditional)
 ```
 
-Both editors share the `.sidebar` CSS class for responsive overlay behavior.
+The IP Core editor has no sidebar/overlay breakpoint behavior of its own — the responsive
+breakpoints and `.sidebar` overlay class above apply to the Memory Map editor's `<OutlinePanel />`
+tree only.
 
 ## Mobile Sidebar Overlay
 

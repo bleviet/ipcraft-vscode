@@ -8,7 +8,7 @@ IPCraft VS Code is a complex extension: it runs code on two separate processes s
 
 ## Test architecture
 
-The repo has **five testing tiers**. Each tier covers a different process boundary or concern. Using the right tier for the right problem keeps tests fast, reliable, and easy to maintain.
+The repo has **six testing tiers**. Each tier covers a different process boundary or concern. Using the right tier for the right problem keeps tests fast, reliable, and easy to maintain.
 
 | # | Tier | Runner | What it tests |
 |---|------|--------|---------------|
@@ -40,13 +40,19 @@ src/
       invalid-syntax.yml      #   Invalid YAML for error-path tests
     suite/                    # All Jest test files (tiers 1–3)
       algorithms/             #   Repacking algorithm tests
+      bitfield/               #   Bit-field parsing, reorder, and value-editing tests
       components/             #   React component tests (Memory Map)
+      domain/                 #   Domain parse/serialize round-trip tests
       generator/              #   Generator pipeline tests (IpCoreScaffolder, TemplateLoader, registerProcessor)
       hooks/                  #   React hook tests
+      integrationLike/        #   Cross-module tests (memory map round-trip, revisioned sync protocol)
       parser/                 #   VHDL parser tests
+      providers/               #   Editor provider tests (staging merge)
       services/               #   Extension-host and webview service tests
       shared/                 #   Shared form component tests (FormField, SelectField, etc.)
       utils/                  #   Utility function tests
+      webview/                #   Webview utility tests (rowIdentity, revisionFilter, bus definitions, canvas layout)
+      yamledit/               #   Format-preserving YAML edit tests
     e2e/                      # VS Code smoke tests (tier 4) — NOT run by Jest
       runTests.ts             #   Launches @vscode/test-electron; compiled to out/test/e2e/runTests.js
       fixtures/               #   Fixture files opened inside real VS Code
@@ -58,7 +64,7 @@ src/
     browser/                  # Playwright browser tests (tier 5) — NOT run by Jest
       index.html              #   Memory Map webview harness (loads dist/webview.js)
       ipcore.html             #   IP Core webview harness (loads dist/ipcore.js)
-      integration.test.ts    #   3 Playwright tests: 1 memory-map + 2 IP Core
+      integration.test.ts    #   Playwright tests covering both the Memory Map tree/table UI and the IP Core canvas
 
 __mocks__/
   vscode.ts                   # Sparse VS Code API mock used by Jest (tiers 1–3)
@@ -111,11 +117,13 @@ These tests require external tooling and are **not** included in `test:all`. See
 
 | Command | What it does |
 |---------|-------------|
-| `npm run test:integration` | Run Quartus + Vivado integration tests |
-| `npm run test:integration:quartus` | Run Quartus tests only |
-| `npm run test:integration:vivado` | Run Vivado tests only |
-| `SKIP_VIVADO=1 npm run test:integration` | Run Quartus tests, skip Vivado |
-| `SKIP_QUARTUS=1 npm run test:integration` | Run Vivado tests, skip Quartus |
+| `npm run test:integration` | Run the full `src/test/integration/**/*.test.ts` suite (hdl, vivado, quartus, ipxact, conformance, testbench, roundtrip, parser-roundtrip, snapshots, and more) |
+| `npm run test:integration:hdl` | Run only tests matching `hdl` |
+| `npm run test:integration:quartus` | Run only tests matching `quartus` |
+| `npm run test:integration:vivado` | Run only tests matching `vivado` |
+| `SKIP_VIVADO=1 npm run test:integration:vivado` | Skip the Vivado tests without failing (pass trivially) |
+
+Quartus tests self-skip automatically when neither Docker (with the `cvsoc/quartus:23.1` image) nor `QUARTUS_TCLSH_BIN`/`QUARTUS_SH_BIN` are available — there is no `SKIP_QUARTUS` flag. Set `SKIP_DOCKER=1` to skip the Docker path specifically (falls back to native `QUARTUS_TCLSH_BIN` if set, otherwise skips).
 
 ### Other useful commands
 
@@ -133,7 +141,7 @@ These tests require external tooling and are **not** included in `test:all`. See
 ### "I changed a pure function (algorithm, service, utility)"
 
 ```bash
-npm run test:unit -- --testPathPattern=<path-to-test>
+npm run test:unit -- --testPathPatterns=<path-to-test>
 ```
 
 Pure functions are tested in tiers 1–3. No build step needed for Jest. Run the relevant test file directly and iterate.
@@ -141,7 +149,7 @@ Pure functions are tested in tiers 1–3. No build step needed for Jest. Run the
 ### "I changed a React component"
 
 ```bash
-npm run test:unit -- --testPathPattern=src/test/suite/components
+npm run test:unit -- --testPathPatterns=src/test/suite/components
 ```
 
 Component tests live in `src/test/suite/components/` and `src/test/suite/shared/`. They use React Testing Library (jsdom). No browser build needed.
@@ -164,7 +172,7 @@ npm run test:browser     # Run Playwright tests against the fresh bundles
 ### "I changed generator templates or the scaffolding pipeline"
 
 ```bash
-npm run test:unit -- --testPathPattern=src/test/suite/generator
+npm run test:unit -- --testPathPatterns=src/test/suite/generator
 ```
 
 Template loading and register processing tests live in `src/test/suite/generator/`.
@@ -404,9 +412,9 @@ The Memory Map app mounts at `#root`. The IP Core app mounts at `#ipcore-root`. 
 
 ## CI overview
 
-CI runs on every push to `main` and every pull request targeting `main`. The workflow is in `.github/workflows/ci.yml`.
+CI runs on every push to `main` and every pull request targeting `main`. The workflow is in `.github/workflows/ci.yml` and has two jobs.
 
-Steps in order:
+### `test` job
 
 | Step | Command | What it does |
 |------|---------|-------------|
@@ -420,6 +428,23 @@ Steps in order:
 | Browser tests | `npm run test:browser` | Playwright tests |
 | Upload coverage | `actions/upload-artifact` (always) | `coverage/` retained 14 days |
 | Upload browser failures | `actions/upload-artifact` (on failure only) | `test-results/` + `playwright-report/` retained 7 days |
+
+### `hdl-integration` job
+
+Runs in parallel with `test`, using open-source HDL tools (no Quartus/Vivado license needed):
+
+| Step | Command | What it does |
+|------|---------|-------------|
+| Install HDL tools | `apt-get install ghdl iverilog verilator libxml2-utils` | Open-source simulators + xmllint |
+| Build | `npm run compile` | Webpack copies `resources/bus_definitions` into `dist/` for the fixture generator |
+| Snapshot tests | `npx jest --config config/jest.integration.js --testPathPatterns=snapshots` | Tier 0 |
+| Round-trip tests | `npx jest --config config/jest.integration.js --testPathPatterns=roundtrip` | Tier 0 |
+| Parser round-trip tests | `npx jest --config config/jest.integration.js --testPathPatterns=parser-roundtrip` | Tier 0 |
+| Pack conformance kit | `npm run test:integration:conformance` | |
+| HDL integration tests | `npm run test:integration:hdl` | GHDL, Icarus, Verilator |
+| IP-XACT / SPIRIT validation | `npm run test:integration:ipxact` | `xmllint` structural check |
+
+The Quartus and Vivado integration tests (tier 6) are **not** run in CI — they require proprietary tooling and are opt-in only. See [How to Run the EDA Integration Tests](how-to/run-eda-integration-tests.md).
 
 **Coverage thresholds** are enforced by Jest. The CI unit-test step will fail if any threshold is breached:
 

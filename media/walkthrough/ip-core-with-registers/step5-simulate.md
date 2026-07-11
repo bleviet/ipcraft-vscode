@@ -6,8 +6,10 @@ IPCraft generates a cocotb Python test skeleton alongside your RTL so you can st
 
 ```
 tb/
-  test_my_core.py    ← test skeleton with AXI-Lite driver helpers
-  Makefile           ← one-line simulation launch
+  my_core_test.py       ← test skeleton with AXI-Lite driver helpers
+  conftest.py           ← cocotb/pytest fixtures
+  test_my_core_sim.py   ← pytest entry point that drives the simulation
+  Makefile               ← one-line simulation launch
 ```
 
 ### Running the simulation
@@ -16,6 +18,7 @@ tb/
 cd tb
 make SIM=ghdl        # GHDL (open-source, fastest)
 make SIM=icarus      # Icarus Verilog (SV only)
+make SIM=verilator   # Verilator (SV only)
 make SIM=questa      # ModelSim / Questa
 ```
 
@@ -39,6 +42,6 @@ Extend this skeleton with your functional test cases.
 
 ### Changing the simulation framework
 
-Open the **Project Scaffold** section (or `ipcraft.testbench.framework` in settings) to switch to **VUnit** instead of cocotb if your team prefers VHDL-native testbenches.
+Set `ipcraft.testbench.framework` to `vunit` in IPCraft Settings to switch to **VUnit** instead of cocotb if your team prefers VHDL-native testbenches.
 
 > **Tip:** The `ipcraft.testbench.engine` setting selects the simulator. Set it to `ghdl` for the fastest open-source flow, or `questa` for industry-standard results.

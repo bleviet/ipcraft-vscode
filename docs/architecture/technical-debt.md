@@ -2,9 +2,11 @@
 
 Actionable items identified during the 2026-05-25 architecture review (post-refactor, at commit `2b2cbde`). Each item is independent and self-contained — any one can be shipped as a single PR.
 
+**Status: all five items below (TD-1…TD-5) have since been fixed** — verified against current source, see the "What was done" note on each. Kept as the historical record of the pre-fix state, matching the pattern used for the RV-series findings further down this document.
+
 ---
 
-## TD-1 — `projectCreator.ts` branch-dispatches on vendor string
+## TD-1 — `projectCreator.ts` branch-dispatches on vendor string ✅ Fixed
 
 `src/commands/projectCreator.ts` (`createVendorProject`) uses an `if (toolchainId === 'vivado') ... else if (toolchainId === 'quartus')` dispatch to manually assemble the project-creation launch for each vendor. This is the last callsite that bypasses the `SynthesisToolchain` strategy.
 
@@ -23,9 +25,13 @@ export async function createVendorProject(
 
 **Effort:** ~60 LOC across 3 files. Extend existing `VivadoToolchain.test.ts` and `QuartusToolchain.test.ts`.
 
+**What was done:** `SynthesisToolchain` gained a `createProject(...)` method; `VivadoToolchain` and
+`QuartusToolchain` implement it. `src/commands/projectCreator.ts` is now a thin wrapper that delegates
+to `toolchain.createProject(...)` — no vendor-string branching remains.
+
 ---
 
-## TD-2 — `TEMPLATE_TYPE_TO_ALTERA` embedded in the scaffolder
+## TD-2 — `TEMPLATE_TYPE_TO_ALTERA` embedded in the scaffolder ✅ Fixed
 
 `src/generator/IpCoreScaffolder.ts` (~line 316) contains a bus-type translation table specific to the Altera `_hw.tcl` template:
 
@@ -42,9 +48,13 @@ This table is only consumed by the `altera_hw_tcl.j2` template context. A future
 
 **Effort:** ~30 LOC across 2 files.
 
+**What was done:** `TEMPLATE_TYPE_TO_ALTERA` moved to `QuartusToolchain.ts` as
+`mapBusTypeToAltera(typeName)`; `QuartusToolchain` injects `altera_type` into the template context via
+that method instead of the scaffolder doing it unconditionally.
+
 ---
 
-## TD-3 — `SimulationConfig.compileArgs` / `simArgs` / `env` silently ignored by generator
+## TD-3 — `SimulationConfig.compileArgs` / `simArgs` / `env` silently ignored by generator ✅ Fixed
 
 The `SimulationConfig` type and JSON schema define `compileArgs`, `simArgs`, and `env` fields. `IpCoreScaffolder.generateAll()` reads `simulation.framework` and `simulation.engine` but ignores the rest — the fields are validated by AJV but never forwarded to the template context.
 
@@ -52,9 +62,12 @@ The `SimulationConfig` type and JSON schema define `compileArgs`, `simArgs`, and
 
 **Effort:** ~40 LOC across `Framework.ts`, `CocotbFramework.ts`, `VUnitFramework.ts`, and their templates.
 
+**What was done:** `Framework.ts`'s `TestbenchContext` documents `compileArgs`/`simArgs`/`env` fields;
+`CocotbFramework.generate()` forwards them into the template context (e.g. `engine_compile_args`).
+
 ---
 
-## TD-4 — `QuestaEngine.waveArgs` returns a flag+value as one string element
+## TD-4 — `QuestaEngine.waveArgs` returns a flag+value as one string element ✅ Fixed
 
 `src/generator/testbench/engines/QuestaEngine.ts` (~line 18):
 
@@ -68,9 +81,12 @@ This returns a single string element containing a space-separated flag+value pai
 
 **Effort:** 1 line + 1 test assertion.
 
+**What was done:** `waveArgs` now returns `['-wlf', `${entityName}.wlf`]` as two separate array
+elements.
+
 ---
 
-## TD-5 — Duplicated `fileExists()` utility
+## TD-5 — Duplicated `fileExists()` utility ✅ Fixed
 
 Three copies of the same async `fileExists` helper exist:
 
@@ -81,6 +97,10 @@ Three copies of the same async `fileExists` helper exist:
 **Recommendation:** Extract to `src/utils/fsHelpers.ts` (which already exists) and replace all three inline definitions with an import.
 
 **Effort:** ~15 LOC — one new export + 3 import changes.
+
+**What was done:** Both `VivadoToolchain.ts` and `QuartusToolchain.ts` now import `fileExists` from
+`src/utils/fsHelpers.ts`. `projectCreator.ts` no longer needs its own copy — it lost its file-existence
+checks entirely when TD-1 turned it into a thin delegating wrapper.
 
 ---
 
@@ -520,9 +540,10 @@ work and known gaps are called out inline.
 
 ## Out-of-scope follow-ups
 
-These are lower-priority items that do not block current functionality:
+These were noted as lower-priority items at the time of the review. Re-checked against current
+source: only the first is still open — the other three have since been implemented.
 
-- **`xilinx/` / `altera/` directory names** — `outputSubdir` on `SynthesisToolchain` is already the right home for configurable branding (e.g. `amd/` instead of `xilinx/`). No change needed until branding alignment is required.
-- **`ipcraft.toolbar.targets` multi-select** — currently uses a three-value vendor enum. Needs to become a dynamic multi-select when vendor count exceeds two. Coupled with the `generate.targets` string[] setting already in use.
-- **VUnit SystemVerilog testbench** — `VUnitFramework.generate()` only emits a VHDL testbench (`_tb.vhd`). An SV variant is deferred; VUnit's SV simulator support is limited.
-- **`ToolDetector.ts` sub-tool detection** — `qsys-edit` detection is still special-cased outside the generic toolchain loop. Consider adding a `subTools` property to `LaunchableTool` / `SynthesisToolchain` so each toolchain declares its own sub-tools and their VS Code context keys.
+- **`xilinx/` / `altera/` directory names** — `outputSubdir` on `SynthesisToolchain` is already the right home for configurable branding (e.g. `amd/` instead of `xilinx/`). No change needed until branding alignment is required. (Still open.)
+- **`ipcraft.toolbar.targets` multi-select** ✅ Done — `package.json` now declares it as `"type": "array", "items": {"type": "string"}` (a dynamic list of toolchain ids), not a fixed vendor enum.
+- **VUnit SystemVerilog testbench** ✅ Done — `VUnitFramework.generate()` branches on `ctx.isSv` and renders `vunit_tb.sv.j2` / `tb/<name>_tb.sv` for SystemVerilog IP cores (VHDL path unchanged).
+- **`ToolDetector.ts` sub-tool detection** ✅ Done — `LaunchableTool` declares a `subTools` array (e.g. `qsys-edit` under Quartus); `detectAndSetToolContext()` probes them generically in the same loop as the parent toolchain, with no per-tool special-casing.

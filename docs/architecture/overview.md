@@ -16,21 +16,24 @@ graph TB
     subgraph "Extension Host"
         EXT["extension.ts"]
         PROV["Providers\nMemoryMapEditorProvider\nIpCoreEditorProvider\nIpCoreGenerateHandler\nproviderServices"]
-        SVC["Services\nMessageHandler\nDocumentManager\nYamlValidator\nHtmlGenerator\nImportResolver\nBusLibraryService\nFileSetUpdater\nSubcoreResolver\nVivadoCatalogScanner\nVivadoInterfaceScanner\nToolDetector"]
+        SVC["Services\nWebviewRouter, DocumentManager\nYamlValidator, HtmlGenerator\nImportResolver, BusLibraryService\nFileSetUpdater, SubcoreResolver\nVivadoCatalogScanner, VivadoInterfaceScanner\nWorkspaceBusDefinitionScanner, BusDefScanCache\nToolDetector, BuildRunner\nReportParser, ResourceRoots"]
         CMD["Commands\nFileCreation\nGenerate\nBuild\nVivado/Quartus\nMigrate"]
         GEN["Generator\nIpCoreScaffolder\nregisterProcessor\nTemplateLoader\ntestbench/"]
         TC["Toolchains\nVivadoToolchain\nQuartusToolchain\nregistry"]
         PAR["Parser\nVhdlParser"]
     end
+    subgraph "Domain (shared across the process boundary)"
+        DOMAIN["src/domain/\nparse.ts, serialize.ts\nNormalized*Model types"]
+    end
     subgraph "Webview"
         MM["Memory Map App\nindex.tsx"]
         IP["IP Core App\nIpCoreApp.tsx"]
         MMCOMP["MM Components\nOutline, DetailsPanel\nRegisterEditor\nBlockEditor, etc."]
-        IPCOMP["IP Core Components\nNavigationSidebar, EditorPanel\nMetadataEditor, ClocksTable\nBusInterfacesEditor\nIpBlockCanvas, LibraryPalette\nCanvasInspector, CanvasBusBundle"]
+        IPCOMP["IP Core Components (mounted)\nEditorPanel (renders canvas only)\nIpBlockCanvas, LibraryPalette\nCanvasInspector, StagingOverlay\nCanvasBusBundle, CanvasPort"]
         HOOK["MM Hooks\nuseMemoryMapState\nuseYamlSync\nuseSelection"]
         IPHOOK["IP Core Hooks\nuseIpCoreState\nuseIpCoreSync\nuseCanvasDrop\nuseCanvasUndo\nuseCanvasSelection\nuseCanvasValidation"]
-        WSVC["Services\nDataNormalizer\nYamlPathResolver\nSpatialInsertionService\nFieldOperationService"]
-        ALG["Algorithms\nBitFieldRepacker\nRegisterRepacker\nAddressBlockRepacker"]
+        WSVC["Services\nYamlService, YamlPathResolver\nSpatialInsertionService\nFieldOperationService"]
+        ALG["Algorithms (src/webview/algorithms/)\nLayoutEngine, MutationService\nBitFieldRepacker, RegisterRepacker\nAddressBlockRepacker"]
         SHARED["Shared\nEditableTable, FormField\nvalidation, formatters\ncolors, constants"]
     end
     EXT --> PROV
@@ -42,11 +45,20 @@ graph TB
     CMD --> PAR
     CMD --> TC
     GEN --> TC
+    GEN --> DOMAIN
     MM --> MMCOMP --> HOOK --> WSVC --> ALG
+    HOOK --> DOMAIN
     IP --> IPCOMP --> IPHOOK
+    IPHOOK --> DOMAIN
     MMCOMP --> SHARED
     IPCOMP --> SHARED
 ```
+
+`src/webview/ipcore/components/layout/NavigationSidebar.tsx` and `src/webview/ipcore/components/sections/*.tsx`
+(`MetadataEditor`, `ClocksTable`, `ResetsTable`, `PortsTable`, `ParametersTable`, `MemoryMapsEditor`,
+`FileSetsEditor`, `GeneratorPanel`, `PortMappingTable`) still exist as files but are not imported by
+`IpCoreApp.tsx` — the IP Core editor's canvas replaced the earlier sidebar+form-sections layout and these
+components are dead code, not part of the live render tree.
 
 ## Data Flow
 
@@ -62,7 +74,7 @@ graph TB
 1. User edits in the webview UI
 2. Webview updates in-memory model and serializes YAML
 3. Webview posts `type: 'update'` with full text
-4. Host `MessageHandler` routes to `DocumentManager.updateDocument()`
+4. Host `WebviewRouter` routes to `DocumentManager.updateDocument()`
 5. VS Code document updates and re-syncs
 
 ### Host commands

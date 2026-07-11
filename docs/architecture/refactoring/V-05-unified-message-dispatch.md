@@ -1,6 +1,6 @@
 # V-5 — Unified Message Dispatch
 
-> Status: proposed · Severity: Medium · Effort: M (2–3 days)
+> Status: **Implemented** (see `src/services/WebviewRouter.ts`; `MessageHandler.ts` is deleted) · Severity: Medium · Effort: M (2–3 days)
 > Enables: [V-3](V-03-revisioned-sync-protocol.md) (gives the revision tracker one home)
 > Source finding: [architecture.md §7 V-5](../architecture.md#v-5--dual-message-dispatch-mechanisms-on-the-host)
 

@@ -20,7 +20,7 @@ graph TB
     subgraph "Extension Host (Node.js)"
         E[extension.ts<br/>activate/deactivate]
         P[EditorProvider<br/>resolveCustomEditor]
-        S[Services<br/>MessageHandler, DocumentManager]
+        S[Services<br/>WebviewRouter, DocumentManager]
     end
     subgraph "Webview (Browser)"
         R[React App<br/>index.tsx / IpCoreApp.tsx]
@@ -50,23 +50,27 @@ They **cannot** call each other's APIs directly. All communication uses `postMes
 
 ## Message Protocol
 
-Messages are plain objects with a `type` field:
+Messages are plain objects with a `type` field, routed host-side through
+`WebviewRouter.on(type, handler)`:
 
 | Direction | Type | Purpose |
 |-----------|------|---------|
-| Host -> Webview | `update` | Send YAML text (+ filename, resolved imports for IP Core) |
-| Webview -> Host | `ready` | Signal that webview is mounted and ready for data |
-| Webview -> Host | `update` | Send modified YAML text back |
-| Webview -> Host | `command` | Request host action (`save`, `validate`, `openFile`) |
+| Webview -> Host | `ready` | Signal that webview is mounted and ready for data; flushes any updates queued before it fired |
+| Host -> Webview | `update` | Send YAML text (+ filename, resolved imports for IP Core), stamped with a `docVersion` |
+| Webview -> Host | `update` | Send modified YAML text back, stamped with a monotonic `editId` and the `baseDocVersion` it was edited against |
+| Webview -> Host | `command` | Request host action (`save`, `validate`, `openFile`), checked against a command allow-list |
+
+Every `update` carries a revision stamp so a slow echo or a stale edit can be told apart from a
+genuine change — see [YAML Data Flow](yaml-data-flow.md) for the full protocol.
 
 ### Lifecycle
 
 1. VS Code opens a matching file -> calls `resolveCustomTextEditor`
 2. Provider generates webview HTML (via `HtmlGenerator`) and waits for `type: 'ready'`
-3. Provider sends `type: 'update'` with the document text
+3. Provider sends `type: 'update'` with the document text and current `docVersion`
 4. Webview parses, normalizes, and renders
-5. On user edit: webview posts `type: 'update'` back
-6. Host applies changes via `DocumentManager.updateDocument()`
+5. On user edit: webview posts `type: 'update'` back with `editId` + `baseDocVersion`
+6. Host applies changes via `DocumentManager.updateDocument()`, rejecting stale `baseDocVersion`s
 
 ## Extension Lifecycle
 
@@ -90,9 +94,9 @@ Commands are registered in `package.json` and implemented in `src/commands/`:
 | Command | Title |
 |---------|-------|
 | `fpga-ip-core.createIpCore` | New IP Core |
-| `fpga-ip-core.createMemoryMap` | New Memory Map |
-| `fpga-ip-core.createIpCoreWithMemoryMap` | New IP Core + Memory Map |
-| `fpga-ip-core.generateHdl` | Generate HDL |
+| `fpga-ip-core.createMemoryMap` | New Register Map |
+| `fpga-ip-core.createIpCoreWithMemoryMap` | New IP Core + Register Map |
+| `fpga-ip-core.generateHdl` | Generate Top-Level HDL |
 | `fpga-ip-core.scaffoldProject` | Scaffold Project |
 | `fpga-ip-core.generateTestbench` | Generate CocoTB Testbench |
 | `fpga-ip-core.generateAndBuildVivado` | Generate & Build (Vivado OOC) |
@@ -112,4 +116,4 @@ Commands are registered in `package.json` and implemented in `src/commands/`:
 
 ## Security
 
-Webview HTML is generated with a Content Security Policy (CSP) in `HtmlGenerator`. The current policy permits Tailwind CDN and inline script/style for the runtime styling setup.
+Webview HTML is generated with a Content Security Policy (CSP) in `HtmlGenerator`. The policy is `default-src 'none'` with `style-src`/`font-src`/`script-src` restricted to `webview.cspSource` (the extension's own bundled resources) — no inline script/style and no CDN sources are permitted. Tailwind is compiled at build time into the webpack bundle, not loaded at runtime.

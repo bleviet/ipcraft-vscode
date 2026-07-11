@@ -6,9 +6,9 @@ IPCraft can import from three source formats:
 
 | Source | Command | Output |
 |--------|---------|--------|
-| VHDL entity (`.vhd`, `.vhdl`) | `IPCraft: Parse VHDL to .ip.yml` | `.ip.yml` |
-| Altera Platform Designer (`_hw.tcl`) | `IPCraft: Parse Altera Platform Designer Component (_hw.tcl) to .ip.yml` | `.ip.yml` |
-| Xilinx IP-XACT (`component.xml`) | `IPCraft: Parse Xilinx component.xml to .ip.yml` | `.ip.yml` (+ `.mm.yml` if registers found) |
+| VHDL entity (`.vhd`, `.vhdl`) | `IPCraft: Import from VHDL (Experimental)` | `.ip.yml` |
+| Altera Platform Designer (`_hw.tcl`) | `IPCraft: Import from Altera Platform Designer (Experimental)` | `.ip.yml` |
+| Xilinx IP-XACT (`component.xml`) | `IPCraft: Import from Xilinx Component XML (Experimental)` | `.ip.yml` (+ `.mm.yml` if registers found) |
 
 ---
 
@@ -23,16 +23,16 @@ IPCraft can import from three source formats:
 **Command Palette:**
 
 1. Open the Command Palette (`Ctrl+Shift+P`)
-2. Run `IPCraft: Parse VHDL to .ip.yml`
+2. Run `IPCraft: Import from VHDL (Experimental)`
 3. Select the VHDL file from the file picker
 
 **IPCraft application menu:**
 
-Open the **IPCraft** top-level menu → **Import** group → **Parse VHDL to .ip.yml**
+Open the **IPCraft** top-level menu → **Import** group → **Import from VHDL (Experimental)**
 
 **Editor title bar:**
 
-Open a `.vhd` or `.vhdl` file → click the **Parse VHDL to .ip.yml** icon in the title bar
+Open a `.vhd` or `.vhdl` file → click the **Import from VHDL (Experimental)** icon in the title bar
 
 ### What gets imported
 
@@ -86,12 +86,12 @@ Creates `<entity_name>.ip.yml` in the same directory as the source VHDL file. Op
 
 **Command Palette:**
 
-1. Run `IPCraft: Parse Altera Platform Designer Component (_hw.tcl) to .ip.yml`
+1. Run `IPCraft: Import from Altera Platform Designer (Experimental)`
 2. Select the `_hw.tcl` file from the file picker
 
 **IPCraft application menu:**
 
-Open the **IPCraft** top-level menu → **Import** group → **Parse Altera Platform Designer Component (_hw.tcl) to .ip.yml**
+Open the **IPCraft** top-level menu → **Import** group → **Import from Altera Platform Designer (Experimental)**
 
 **Editor title bar:**
 
@@ -113,12 +113,12 @@ Creates `<component_name>.ip.yml` in the same directory as the `_hw.tcl` file.
 
 **Command Palette:**
 
-1. Run `IPCraft: Parse Xilinx component.xml to .ip.yml`
+1. Run `IPCraft: Import from Xilinx Component XML (Experimental)`
 2. Select the `component.xml` file from the file picker
 
 **IPCraft application menu:**
 
-Open the **IPCraft** top-level menu → **Import** group → **Parse Xilinx component.xml to .ip.yml**
+Open the **IPCraft** top-level menu → **Import** group → **Import from Xilinx Component XML (Experimental)**
 
 **Editor title bar:**
 

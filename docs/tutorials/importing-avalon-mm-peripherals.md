@@ -2,8 +2,8 @@
 
 Part 3 of the [LED Controller on Real Hardware](led-controller-avmm-authoring.md)
 series. Parts 1 and 2 built a new peripheral from scratch. This part runs
-IPCraft's importers — `IPCraft: Import from VHDL` and `IPCraft: Import from
-Platform Designer _hw.tcl` — against
+IPCraft's importers — `IPCraft: Import from VHDL (Experimental)` and
+`IPCraft: Import from Altera Platform Designer (Experimental)` — against
 [`ddr3_test_master.vhd`](https://github.com/bleviet/cvsoc/blob/main/15_ddr3_fpga_hps/hdl/ddr3_test_master.vhd),
 the one hand-written, in-production Avalon-MM peripheral that already exists
 in cvsoc: a component with **two** Avalon-MM interfaces in opposite roles
@@ -29,8 +29,8 @@ VHDL's own comment block, the same exercise a real integration would need.
 
 ## Two independent imports, cross-checked
 
-1. **`IPCraft: Import from VHDL`** against `hdl/ddr3_test_master.vhd`.
-2. **`IPCraft: Import from Platform Designer _hw.tcl`** against the
+1. **`IPCraft: Import from VHDL (Experimental)`** against `hdl/ddr3_test_master.vhd`.
+2. **`IPCraft: Import from Altera Platform Designer (Experimental)`** against the
    already-existing, hand-written
    `qsys/ddr3_test_master_hw.tcl` — an independent, human-authored ground
    truth for the same component.

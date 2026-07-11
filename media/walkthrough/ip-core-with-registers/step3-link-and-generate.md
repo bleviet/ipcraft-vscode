@@ -1,16 +1,16 @@
 ## From spec to RTL in one command
 
-When you run **Scaffold Full Project** from an IP core that has a memory map, IPCraft generates a complete, synthesisable register interface automatically.
+When you run **IPCraft: Scaffold Project** from an IP core that has a memory map, IPCraft generates a complete, synthesisable register interface automatically.
 
 ### What gets generated
 
 ```
 rtl/
-  my_core_pkg.vhd          ← register offset constants, field masks, types
-  my_core_top.vhd          ← top-level entity (instantiates core + wrapper)
-  my_core_core.vhd         ← your logic skeleton (user-owned, never overwritten)
-  my_core_axil_wrap.vhd    ← AXI-Lite bus wrapper (decode + handshake)
-  my_core_regfile.vhd      ← register read/write decoder
+  my_core_pkg.vhd    ← register offset constants, types
+  my_core.vhd         ← top-level entity (instantiates core + wrapper)
+  my_core_core.vhd    ← your logic skeleton (user-owned, never overwritten)
+  my_core_axil.vhd    ← AXI-Lite bus wrapper (decode + handshake)
+  my_core_regs.vhd    ← register read/write decoder
 ```
 
 ### Bus protocol selection
@@ -19,8 +19,8 @@ The generated wrapper matches the bus interfaces in your canvas:
 
 | Canvas interface | Generated wrapper |
 |-----------------|-------------------|
-| AXI4-Lite Slave | `*_axil_wrap.vhd` |
-| Avalon-MM Slave | `*_avmm_wrap.vhd` |
+| AXI4-Lite Slave | `*_axil.vhd` |
+| Avalon-MM Slave | `*_avmm.vhd` |
 
 If no bus interface is present when you scaffold, IPCraft adds an AXI-Lite slave automatically based on the memory map.
 

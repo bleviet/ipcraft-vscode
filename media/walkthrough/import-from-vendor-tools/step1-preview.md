@@ -1,6 +1,6 @@
 ## Preview before you commit
 
-Before converting a vendor file to `.ip.yml`, use **Preview in IPCraft** to see a read-only canvas rendered from the source. This lets you verify that IPCraft's parser understands the file correctly before creating any new files.
+Before converting a vendor file to `.ip.yml`, use **Preview in IPCraft (Experimental)** to see a read-only canvas rendered from the source. This lets you verify that IPCraft's parser understands the file correctly before creating any new files.
 
 ### Supported source formats
 
@@ -15,9 +15,9 @@ Before converting a vendor file to `.ip.yml`, use **Preview in IPCraft** to see 
 
 **Option 1:** Open the file in VS Code and press **Ctrl+Shift+V**
 
-**Option 2:** Right-click the file in the Explorer → **Preview in IPCraft**
+**Option 2:** Right-click the file in the Explorer → **Preview in IPCraft (Experimental)**
 
-**Option 3:** Run **IPCraft: Preview in IPCraft** from the Command Palette with the file open
+**Option 3:** Run **IPCraft: Preview in IPCraft (Experimental)** from the Command Palette with the file open
 
 ### What the preview shows
 

@@ -33,7 +33,7 @@ Use the following commands when you need to regenerate a specific part without t
 
 | Command | What it generates |
 |---------|-------------------|
-| `IPCraft: Generate HDL` | RTL files only (package, top, core, bus wrapper, register file) — respects `ipcraft.generate.hdlLanguage` |
+| `IPCraft: Generate Top-Level HDL` | RTL files only (package, top, core, bus wrapper, register file) — respects `ipcraft.generate.hdlLanguage` |
 | `IPCraft: Generate CocoTB Testbench` | Testbench scaffold in `tb/` — respects `ipcraft.testbench.framework` and `ipcraft.testbench.engine` |
 | `IPCraft: Generate Vivado Project` | Vivado `.tcl` project scripts + `.xdc` constraints (prompts for part number) |
 | `IPCraft: Generate Quartus Project` | Quartus `.tcl` + `.sdc` (prompts for device) |
@@ -67,6 +67,7 @@ The scaffolder produces a structured project next to the `.ip.yml` file. The exa
     <ip_name>_ooc.xdc        # OOC timing constraints (clocks)
   altera/
     <ip_name>_hw.tcl          # Platform Designer component
+    test.qsys                  # Platform Designer test system (BFM validation)
     <ip_name>_project.tcl    # Creates Quartus project
     <ip_name>.sdc             # SDC timing constraints
 ```

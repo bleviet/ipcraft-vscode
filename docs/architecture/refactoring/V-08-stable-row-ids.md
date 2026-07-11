@@ -1,6 +1,6 @@
 # V-8 — Stable Row Identity for Table Editing
 
-> Status: proposed · Severity: High (recurring bug source) · Effort: M (2–3 days)
+> Status: **Implemented** (see `src/webview/utils/rowIdentity.ts` `generateRowId`/`reconcileRowIds`) · Severity: High (recurring bug source) · Effort: M (2–3 days)
 > Independent; complements [V-3](V-03-revisioned-sync-protocol.md) (different layers of the same symptom cluster)
 > Source finding: [architecture.md §7 V-8](../architecture.md#v-8--index--and-name-keyed-draft-state-in-the-field-editor)
 

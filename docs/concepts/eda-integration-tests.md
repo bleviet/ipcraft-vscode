@@ -31,32 +31,32 @@ Tier 6 tests are deliberately **not** part of `npm run test:all`. They require e
 
 Both the Quartus and Vivado test files share a common setup step implemented in `src/test/integration/generator.ts`. Before any assertions run, `generateFixtures()`:
 
-1. Reads every `*.ip.yml` template from `ipcraft-spec/templates/`.
-2. Calls `IpCoreScaffolder.generateAll()` with `vendor: 'both'` and `includeRegs: true`.
-3. Writes the output files to a stable directory under `os.tmpdir()` (`ipcraft-integration-fixtures/<name>/`).
-4. Caches the result in memory so the generation step runs only once per Jest process, even when multiple test files import it.
+1. Reads every `*.ip.yml` template from `ipcraft-spec/templates/`, plus every `*.ip.yml` under each subdirectory of `ipcraft-spec/examples/`.
+2. Calls `IpCoreScaffolder.generateAll()` for each source, once per `hdlLanguage` (`vhdl` and `systemverilog`), with `targets: ['vivado', 'quartus']`, `includeRegs: true`, `includeTestbench: true`, `includeVivadoProject: true`, `includeQuartusProject: true`.
+3. Writes the output files to `.test-fixtures/integration-fixtures-<pid>/` under the repo root (gitignored) — anchored under the repo root rather than `os.tmpdir()` specifically so that RTL files referenced via `fileSets` (resolved relative to the `.ip.yml`'s location inside `ipcraft-spec/`) sit at a fixed, small, machine-independent number of directory levels away, keeping generated `component.xml`/`_hw.tcl`/`project.tcl` content reproducible across machines. The `<pid>` suffix keeps parallel Jest workers from colliding on the same directory.
+4. Caches the result in memory (module-level, process-scoped) so the generation step runs only once per Jest process, even when multiple test files import it.
 
-The output directory for each fixture mirrors what a real user would get:
+The output directory for each fixture mirrors what a real user would get, with one subdirectory per `<name>_<vhdl|sv>` fixture:
 
 ```
-/tmp/ipcraft-integration-fixtures/
-  simple_gpio/
+.test-fixtures/integration-fixtures-<pid>/
+  simple_gpio_vhdl/
     altera/
       simple_gpio_hw.tcl
       test.qsys            # companion system with all interfaces exported
-    amd/
+    xilinx/
       component.xml
       busdef/
         ...
-  axi_lite_slave/
-    altera/
-      axi_lite_slave_hw.tcl
-      test.qsys
-    amd/
-      component.xml
+  simple_gpio_sv/
+    altera/ ...
+    xilinx/ ...
+  examples/axi_lite_slave_vhdl/
+    altera/ ...
+    xilinx/ ...
 ```
 
-The `alteraFixtures()` and `amdFixtures()` helper functions filter the full list to fixtures that actually produced `_hw.tcl` files (Quartus path) or `component.xml` files (Vivado path), respectively.
+The `alteraFixtures()` and `xilinxFixtures()` helper functions filter the full list to fixtures that actually produced `_hw.tcl` files (Quartus path) or `component.xml` files (Vivado path), respectively.
 
 ### Step 2: Quartus validation
 
@@ -156,4 +156,7 @@ The BFM testbench approach solves this by running the actual Platform Designer t
 
 ### Skipping individual tools
 
-Setting `SKIP_QUARTUS=1` or `SKIP_VIVADO=1` causes all tests for that tool to pass trivially rather than fail. This is useful in environments where only one EDA tool is available.
+Setting `SKIP_VIVADO=1` causes all Vivado tests to pass trivially rather than fail — useful when only
+Quartus is available. There is no `SKIP_QUARTUS` flag; Quartus tests self-skip automatically when neither
+Docker (with the `cvsoc/quartus:23.1` image) nor a native `QUARTUS_TCLSH_BIN`/`QUARTUS_SH_BIN` install is
+available. `SKIP_DOCKER=1` skips the Docker path specifically.

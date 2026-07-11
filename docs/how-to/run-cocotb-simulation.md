@@ -276,7 +276,7 @@ FileNotFoundError: RTL sources not found — run the IPCraft scaffolder first:
   /path/to/myip/rtl/myip_pkg.vhd
 ```
 
-The `conftest.py` checks that all source files listed in `VHDL_SOURCES` exist before attempting compilation. Run **IPCraft: Scaffold Project** (or **IPCraft: Generate HDL**) to create them, then run pytest again.
+The `conftest.py` checks that all source files listed in `VHDL_SOURCES` exist before attempting compilation. Run **IPCraft: Scaffold Project** (or **IPCraft: Generate Top-Level HDL**) to create them, then run pytest again.
 
 ### Simulator not found
 

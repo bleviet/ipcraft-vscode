@@ -70,11 +70,16 @@ nav:
       - Building a Project (Headless): how-to/building-a-project.md
       - Building a VSIX Package: how-to/build-vsix.md
       - AI Design Guide: how-to/ai-design-guide.md
+      - Arithmetic Functions in Port Widths: how-to/port-width-functions.md
+      - Running Simulations: how-to/run-cocotb-simulation.md
+      - Running EDA Integration Tests: how-to/run-eda-integration-tests.md
   - Concepts:
       - VS Code Extension Model: concepts/extension-model.md
       - YAML Data Flow: concepts/yaml-data-flow.md
       - Spatial Editing: concepts/spatial-editing.md
       - Responsive Design: concepts/responsive-design.md
+      - Custom Interfaces: concepts/custom-interface.md
+      - EDA Integration Tests: concepts/eda-integration-tests.md
   - Architecture:
       - Overview: architecture/overview.md
       - Extension Host: architecture/extension-host.md

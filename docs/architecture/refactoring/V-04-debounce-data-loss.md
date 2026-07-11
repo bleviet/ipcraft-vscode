@@ -1,6 +1,6 @@
 # V-4 — Debounced Push Data-Loss Window
 
-> Status: proposed · Severity: High (silent data loss, low probability) · Effort: S (≤1 day, given V-3)
+> Status: **Implemented** (landed together with V-3) · Severity: High (silent data loss, low probability) · Effort: S (≤1 day, given V-3)
 > Depends on: [V-3](V-03-revisioned-sync-protocol.md)
 > Source finding: [architecture.md §7 V-4](../architecture.md#v-4--ip-core-debounced-full-text-push-can-drop-concurrent-external-edits)
 

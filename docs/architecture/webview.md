@@ -38,37 +38,28 @@ The webview is an embedded browser that renders the visual editors using React. 
 
 ## IP Core Components
 
-### Layout
+Editing happens entirely on the **block-diagram canvas** plus its Inspector panel — there is no
+separate tabular "form" mode in the current UI. `ipcore/components/layout/NavigationSidebar.tsx`
+and every file under `ipcore/components/sections/` (`MetadataEditor`, `ClocksTable`, `ResetsTable`,
+`PortsTable`, `ParametersTable`, `MemoryMapsEditor`, `SubcoresEditor`, `FileSetsEditor`,
+`GeneratorPanel`, `PortMappingTable`) still exist in the tree but are **not imported by
+`IpCoreApp.tsx` or `EditorPanel.tsx`** — dead code left over from an earlier sidebar-and-tables
+iteration of the editor. `EditorPanel.tsx` itself only renders the canvas.
+
+### Canvas (`ipcore/components/canvas/`)
 
 | Component | File | Role |
 |-----------|------|------|
-| `NavigationSidebar` | `ipcore/components/layout/NavigationSidebar.tsx` | Section navigation with keyboard support |
-| `EditorPanel` | `ipcore/components/layout/EditorPanel.tsx` | Routes to section editors by selected section |
+| `IpBlockCanvas` | `ipcore/components/canvas/IpBlockCanvas.tsx` | Top-level SVG schematic; owns layout and drop handling |
+| `LibraryPalette` | `ipcore/components/canvas/LibraryPalette.tsx` | Draggable primitives (generics, infrastructure, bus protocols) |
+| `CanvasInspector` | `ipcore/components/canvas/CanvasInspector.tsx` | Right-hand property panel for the selected element |
+| `CanvasPort`, `CanvasBusBundle`, `CanvasBusSubPort` | `ipcore/components/canvas/Canvas{Port,BusBundle,BusSubPort}.tsx` | Rendered port / bus-interface / expanded-signal elements |
+| `CanvasSelectionActions` | `ipcore/components/canvas/CanvasSelectionActions.tsx` | Multi-select action bar (e.g. bulk delete/group) |
+| `GroupingMappingStep`, `MapConduitToBusDialog`, `PortMappingDialog` | `ipcore/components/canvas/*.tsx` | Multi-step flows for grouping loose ports into a bus interface, mapping a conduit to a bus (see [Vivado Interface Catalog](vivado-interface-catalog.md)), and physical-to-logical port mapping |
+| `RemoveZone` | `ipcore/components/canvas/RemoveZone.tsx` | Drop target for drag-to-remove |
+| `StagingOverlay` | `ipcore/components/canvas/StagingOverlay.tsx` | Preview overlay shown while reviewing generated/staged output |
 
-### Section Editors
-
-| Component | File | Handles |
-|-----------|------|---------|
-| `MetadataEditor` | `ipcore/components/sections/MetadataEditor.tsx` | VLNV, description, API version |
-| `ClocksTable` | `ipcore/components/sections/ClocksTable.tsx` | Clock definitions |
-| `ResetsTable` | `ipcore/components/sections/ResetsTable.tsx` | Reset signal definitions |
-| `PortsTable` | `ipcore/components/sections/PortsTable.tsx` | User-defined port definitions |
-| `ParametersTable` | `ipcore/components/sections/ParametersTable.tsx` | Generic parameter definitions |
-| `BusInterfacesEditor` | `ipcore/components/sections/BusInterfacesEditor.tsx` | Bus interface cards with arrays |
-| `BusInterfaceCard` | `ipcore/components/sections/BusInterfaceCard.tsx` | Individual bus interface editing |
-| `PortMappingTable` | `ipcore/components/sections/PortMappingTable.tsx` | Physical-to-logical signal mapping |
-| `MemoryMapsEditor` | `ipcore/components/sections/MemoryMapsEditor.tsx` | Memory map references |
-| `FileSetsEditor` | `ipcore/components/sections/FileSetsEditor.tsx` | File set definitions |
-| `GeneratorPanel` | `ipcore/components/sections/GeneratorPanel.tsx` | VHDL generation UI |
-| `InlineEditField` | `ipcore/components/sections/InlineEditField.tsx` | Reusable inline edit component |
-
-### Canvas (IP Core)
-
-The drag-and-drop block canvas (`ipcore/components/canvas/`) — `IpBlockCanvas`, `CanvasInspector`, `CanvasBusBundle`, `LibraryPalette` — is not yet fully catalogued here; see `architecture.md`'s component diagram for the full family. One addition from the Vivado Interface Catalog work:
-
-| Component | File | Role |
-|-----------|------|------|
-| `MapConduitToBusDialog` | `ipcore/components/canvas/MapConduitToBusDialog.tsx` | Maps an already-authored conduit interface's signals onto a newly-recognized library bus type's logical ports — see [Vivado Interface Catalog](vivado-interface-catalog.md) |
+See [IP Core Editor Reference](../reference/ip-core-editor.md) for the full state-management and hook breakdown.
 
 ## Memory Map Hooks
 
@@ -86,9 +77,15 @@ State management and behavior logic for the Memory Map editor:
 | `useOutlineRename` | `hooks/useOutlineRename.ts` | Inline rename in outline tree |
 | `useSelectionResolver` | `hooks/useSelectionResolver.ts` | Resolves selection to data |
 | `useSelectionLifecycle` | `hooks/useSelectionLifecycle.ts` | Selection lifecycle management |
-| `useYamlUpdateHandler` | `hooks/useYamlUpdateHandler.ts` | Handles YAML update coordination |
+| `useYamlUpdateHandler` | `hooks/useYamlUpdateHandler.ts` | Handles YAML update coordination; recognizes `['__op', ...]` structured operations |
 | `useAutoFocus` | `hooks/useAutoFocus.ts` | Ref auto-focus |
 | `useEscapeFocus` | `hooks/useEscapeFocus.ts` | Escape key refocus |
+| `useTableEditorState` | `hooks/useTableEditorState.ts` | Composes navigation/edit-guard/hover-insert into the shared table-editor contract used by `BlockEditor`, `MemoryMapEditor`, and `useFieldEditor` |
+| `useCellEditGuard` | `hooks/useCellEditGuard.ts` | Snapshot/revert and cancel-edit ref for in-progress cell edits |
+| `useHoverInsertBar` | `hooks/useHoverInsertBar.ts` | Hover-based gap insert bar shown between table rows |
+| `useFieldDrafts` | `hooks/useFieldDrafts.ts` | Draft-layer state for in-progress bit-field edits |
+| `useLayoutToggle` | `hooks/useLayoutToggle.ts` | Toggles `BitFieldVisualizer` layout mode (default/pro/vertical) |
+| `usePendingSelect` | `hooks/usePendingSelect.ts` | Post-insert focus targeting (`pendingSelectRef`/`pendingInsertFocusRef` pattern) |
 
 ## IP Core Hooks
 
@@ -104,11 +101,15 @@ State management and behavior logic for the Memory Map editor:
 
 | Service | File | Purpose |
 |---------|------|---------|
-| `DataNormalizer` | `services/DataNormalizer.ts` | Normalizes varying YAML shapes |
 | `YamlPathResolver` | `services/YamlPathResolver.ts` | Path-based YAML updates |
-| `YamlService` | `services/YamlService.ts` | Parse/dump YAML |
+| `YamlService` | `services/YamlService.ts` | Parse/dump YAML; `applyPathEdits` is a thin wrapper around the shared `src/yamledit/` module |
 | `SpatialInsertionService` | `services/SpatialInsertionService.ts` | Insert entities with repacking |
 | `FieldOperationService` | `services/FieldOperationService.ts` | Field-level operations (delete, move, update) |
+
+YAML → normalized model conversion (formerly `DataNormalizer`/`YamlSanitizer`, both removed)
+now lives in `src/domain/parse.ts` (`normalizeMemoryMap`) and `src/domain/serialize.ts`
+(`serializeMemoryMap`) — shared with the IP Core editor, not webview-specific. See
+[architecture.md §2.4](architecture.md#24-the-dual-spelling-problem-schema-vs-webview-internals).
 
 ## Algorithms
 
@@ -166,8 +167,9 @@ Types are auto-generated from JSON schemas in `ipcraft-spec/schemas/` via `npm r
 | `RegisterArrayNode.tsx` | Register array tree node with expand |
 | `FieldNode.tsx` | Bit field tree node |
 | `useOutlineKeyboard.ts` | Keyboard navigation within the tree |
+| `useOutlineDragReorder.tsx` | Drag-to-reorder state for blocks/registers/array registers (`OutlineReorder`) |
 | `buildVisibleSelections.ts` | Computes visible selection state |
-| `outlineIds.ts` | Stable ID generation for tree nodes |
+| `outlineIds.ts` | Encodes/parses tree-node IDs (`blockId`, `registerId`, `arrayElementId`, etc.) |
 | `types.ts` | Outline-specific type definitions |
 | `index.ts` | Barrel exports |
 

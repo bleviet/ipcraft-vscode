@@ -12,7 +12,7 @@ Follow these steps to migrate an existing VHDL component into the IPCraft system
 
 2. **Automated Parsing**
    - Run the builtin `VhdlParser.ts` logic to generate the initial `.ip.yml`.
-   - Use the `IpArchitect` skill to refine the generated specification.
+   - Use the `ip-architect` skill to refine the generated specification.
    - Map remaining signals to logical names.
 
 3. **Register Map Reconstruction**
@@ -25,7 +25,7 @@ Follow these steps to migrate an existing VHDL component into the IPCraft system
    - Use the IPCraft extension to open the new IP Core.
 
 5. **Refactoring**
-   - Optional: Replace the manual VHDL register logic with the IPCraft-generated `ip_core_regs.vhd`.
+   - Optional: replace the manual VHDL register logic with the IPCraft-generated `<ip_name>_regs.vhd` (or `.sv`, per `ipcraft.generate.hdlLanguage`).
    - Connect user signals to the new register block ports.
 
 6. **Validation**

@@ -1,6 +1,6 @@
 # V-6 — Webview Handshake Cleanup
 
-> Status: proposed · Severity: Low (hygiene; blocks V-3 testing) · Effort: S (½ day)
+> Status: **Implemented** (no `setTimeout` handshake timers remain in the providers) · Severity: Low (hygiene; blocks V-3 testing) · Effort: S (½ day)
 > Blocks: [V-3](V-03-revisioned-sync-protocol.md) · Subsumed by [V-5](V-05-unified-message-dispatch.md) task 2 if that lands first
 > Source finding: [architecture.md §7 V-6](../architecture.md#v-6--handshake-belt-and-suspenders)
 

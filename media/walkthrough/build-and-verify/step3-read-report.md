@@ -26,7 +26,7 @@ After a build completes, IPCraft parses the vendor report files and displays the
 ### Clicking into reports
 
 Click any metric row to open the corresponding raw report file:
-- WNS → `timing_summary.rpt`
+- WNS → `timing.rpt`
 - LUT → `utilization.rpt`
 - CDC → `cdc.rpt`
 

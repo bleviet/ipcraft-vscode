@@ -38,6 +38,7 @@ const output = doc.toString();
 
 ## Where They Are Used
 
-- `YamlService` uses `yaml` v2 for document manipulation
-- `DataNormalizer` uses `js-yaml` for initial parsing
-- Host-side services use `js-yaml` for schema validation
+- `src/yamledit/` (`applyPathEdits`, `applyPathDeletes`) is the single format-preserving write-back path, built on `yaml` v2 `parseDocument`
+- `src/webview/services/YamlService.ts` uses `js-yaml` for simple parse/dump (`parse`, `safeParse`, `dump`) and delegates `applyPathEdits` to `src/yamledit` for round-trip writes
+- `src/domain/parse.ts` builds the normalized domain model from `js-yaml`-parsed raw objects
+- Host-side services (`YamlValidator`, `BusLibraryService`, the VHDL/HwTcl/ComponentXml parsers, `ScaffoldPackLoader`) use `js-yaml` for read-only parsing and validation

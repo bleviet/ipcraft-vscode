@@ -4,7 +4,7 @@ After generating vendor packaging, open it in the native GUI for a final sanity 
 
 ### Vivado IP Packager
 
-Run **IPCraft: Edit in Vivado IP Packager** (right-click the `.ip.yml` or from the Command Palette).
+Run **IPCraft: Edit in IP Packager** (right-click the `.ip.yml` or from the Command Palette).
 
 IPCraft opens the generated `component.xml` directly in Vivado's IP Packager GUI. In the IP Packager you can:
 - Verify bus interface port maps in the **Ports and Interfaces** tab

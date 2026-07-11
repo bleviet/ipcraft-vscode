@@ -21,4 +21,4 @@ When you scaffold, IPCraft reads the memory map, derives the required bus slave 
 
 You do not need to manually describe the AXI signals in the canvas — the memory map drives them.
 
-> **Tip:** You can link multiple `.mm.yml` files or inline register definitions directly in `.ip.yml` — see the Memory Maps section in the left navigation.
+> **Tip:** You can link multiple `.mm.yml` files or inline register definitions directly in `.ip.yml` — select the memory-mapped bus interface on the canvas and set its memory map link (`memoryMapRef`) in the Inspector.

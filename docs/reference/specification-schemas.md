@@ -31,15 +31,21 @@ Top-level fields:
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `apiVersion` | string | No | Schema version identifier (e.g., `ipcore/v1.0`) |
+| `apiVersion` | string | No | Schema version for the file, e.g. `'1.0'` |
 | `vlnv` | object | Yes | Vendor, Library, Name, Version identifier |
 | `description` | string | No | Human-readable description |
 | `clocks` | array | No | Clock signal definitions |
 | `resets` | array | No | Reset signal definitions |
+| `interrupts` | array | No | Interrupt output definitions |
 | `ports` | array | No | User-defined port definitions |
 | `parameters` | array | No | Generic parameter definitions |
-| `busInterfaces` | array | No | Bus interface definitions |
+| `busInterfaces` | array | No | Bus interface definitions (`bus_interfaces` is a snake_case alias kept for legacy files) |
 | `memoryMaps` | array | No | Memory map definitions (inline or `$ref`) |
+| `subcores` | array | No | Sub-IP core dependencies, either a `vendor:library:name:version` string or a `SubcoreRef` object |
+| `simulation` | object | No | Testbench framework/engine overrides for this IP core |
+| `targets` | string[] | No | Synthesis vendor targets, e.g. `['vivado', 'quartus']`. Replaces the legacy `vendor:` field |
+| `useBusLibrary` | string | No | Path to a custom bus library directory relative to this file |
+| `scaffold_pack` | string | No | Scaffold pack used to generate this IP core; persisted so the canvas picker restores it on reopen |
 | `fileSets` | array | No | File set definitions |
 
 ### VLNV Object
@@ -56,17 +62,21 @@ Top-level fields:
 | Field | Type | Description |
 |-------|------|-------------|
 | `name` | string | Interface name |
-| `type` | string | Bus protocol VLNV (e.g., `ipcraft:busif:axi4_lite:1.0`) — see [Bus Library](#bus-library) |
-| `mode` | string | Interface mode: `slave`, `master`, `sink`, `source`, or `conduit` |
+| `type` | string | Bus protocol VLNV (e.g., `ipcraft:busif:axi4_lite:1.0`) or a recognized short alias (e.g. `AXI4L`) — see [Bus Library](#bus-library) |
+| `mode` | string | Interface mode: `master`, `slave`, `source`, `sink`, or `conduit` |
 | `physicalPrefix` | string | Signal naming prefix on the RTL port list |
 | `memoryMapRef` | string | Reference to a memory map name (memory-mapped slave/master interfaces only) |
 | `associatedClock` | string | Reference to a clock name |
 | `associatedReset` | string | Reference to a reset name |
+| `description` | string | Interface description |
 | `array` | object | Bus interface array configuration (see below) |
-| `portSelection` | array | Selected optional ports from bus library |
+| `useOptionalPorts` | array | Optional ports from the bus library to include |
+| `absentPorts` | array | Required bus-spec ports (uppercase logical names) absent from the user's HDL; populated automatically by the VHDL parser so the generator doesn't emit ports missing from the source entity |
 | `portWidthOverrides` | object | Per-signal width overrides (signal name → width or generic name) |
-| `useBusLibrary` | string | Path to a custom `.busdef.yml` file (conduit interfaces) |
 | `conduitPorts` | array | Inline signal definitions for conduit interfaces (name, direction, width) |
+
+A custom bus library directory for the whole IP core (used to resolve conduit/custom
+interface types) is set via the top-level `useBusLibrary` field, not per-interface.
 
 #### Array Configuration
 
@@ -81,11 +91,12 @@ When `array` is set, the bus interface represents multiple identical interfaces 
 
 ## Memory Map Schema
 
-A memory map file contains an array of memory maps, each with address blocks:
+A `.mm.yml` file's top level is an **array** of memory map definitions, each with address blocks:
 
 | Field | Type | Description |
 |-------|------|-------------|
 | `name` | string | Memory map name |
+| `description` | string | Memory map description |
 | `addressBlocks` | array | Address block definitions |
 
 ### Address Block
@@ -93,8 +104,12 @@ A memory map file contains an array of memory maps, each with address blocks:
 | Field | Type | Description |
 |-------|------|-------------|
 | `name` | string | Block name |
-| `baseAddress` | integer | Base address offset |
-| `range` | integer | Address range in bytes |
+| `baseAddress` | integer \| null | Block starting address (default 0) |
+| `range` | integer \| string \| null | Block size in bytes, or a shorthand like `4K` / `1M` |
+| `usage` | string | `register`, `memory`, or `reserved` (default `register`) |
+| `access` | string | Default access for registers in the block (default `read-write`) |
+| `defaultRegWidth` | integer | Default register width in bits for registers in the block |
+| `description` | string | Block description |
 | `registers` | array | Register definitions |
 
 ### Register
@@ -102,21 +117,33 @@ A memory map file contains an array of memory maps, each with address blocks:
 | Field | Type | Description |
 |-------|------|-------------|
 | `name` | string | Register name |
-| `addressOffset` | integer | Offset from block base address |
-| `size` | integer | Register size in bytes (default: 4) |
-| `access` | string | Default access type for all fields |
+| `offset` | integer | Offset from the address block base |
+| `size` | integer | Register width **in bits** (default: 32) |
+| `access` | string | Default access type for the register |
+| `resetValue` | integer | Reset value for the entire register |
 | `description` | string | Register description |
 | `fields` | array | Bit field definitions |
+| `registers` | array | Child registers, for register groups |
+| `count` | integer | Array replication count (default 1) — see `RegisterArrayEditor` |
+| `stride` | integer | Address stride between array replicas |
 
 ### Bit Field
+
+The canonical representation is `offset` + `width`; `bits` is an alternate `[MSB:LSB]`-style
+string some tooling accepts. `LayoutEngine.ts` (`recomputeBitfieldLayout`, `reorderBitfieldLayout`)
+operates on `offset`/`width`.
 
 | Field | Type | Description |
 |-------|------|-------------|
 | `name` | string | Field name |
-| `bits` | string | Bit range in `[MSB:LSB]` format |
-| `access` | string | Access type (`read-write`, `read-only`, `write-only`, etc.) |
-| `resetValue` | integer | Reset value |
+| `offset` | integer | Starting bit position (LSB = 0) |
+| `width` | integer | Number of bits |
+| `bits` | string | Alternate bit-range form, e.g. `[7:0]` |
+| `access` | string | Access type (`read-write`, `read-only`, `write-only`, `write-1-to-clear`, `read-write-1-to-clear`, `write-self-clearing`, `read-write-self-clearing`) |
+| `resetValue` | integer | Reset/default value |
 | `description` | string | Field description |
+| `enumeratedValues` | object | Mapping of `{ value: name }` for enumerated fields |
+| `monitorChangeOf` | string | Name of another field in the same register to watch for a change-of-state (write-1-to-clear fields only); the generator creates an internal shadow register and comparator |
 
 ## Bus Library
 

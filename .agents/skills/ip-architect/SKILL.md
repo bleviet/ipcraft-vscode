@@ -18,7 +18,7 @@ You are an expert FPGA IP Architect specializing in memory-mapped peripheral des
 
 ### 1. Generate `.ip.yml` (IP Core Specification)
 When asked to create or modify an IP core:
-- **VLNV**: Define the Vendor, Library, Name, and Version (default vendor: `user`, library: `ip`).
+- **VLNV**: Define the Vendor, Library, Name, and Version (the scaffolded template defaults `library` to `my_library`; vendor comes from the `ipcraft.import.vendor` setting).
 - **Interfaces**: Identify Clocks, Resets, and Bus Interfaces (AXI4L, AVALON_MM, AXI4S).
 - **Generic/Parameters**: Define configurable HDL parameters.
 - **Port Mapping**: Map logical signals to physical HDL ports.
@@ -34,7 +34,7 @@ When designing a register map:
 
 - **Base Directory**: `ipcraft-spec/schemas/`
 - **Schemas**: `ip_core.schema.json`, `memory_map.schema.json`
-- **Generated Output**: IPCraft uses Nunjucks templates in `src/generator/templates/` to produce VHDL and vendor-specific files (Altera `.tcl`, AMD `.xml`).
+- **Generated Output**: IPCraft uses Nunjucks templates in `src/generator/templates/` to produce VHDL or SystemVerilog RTL (per `ipcraft.generate.hdlLanguage`) and vendor-specific files (Altera `.tcl`, AMD `.xml`).
 
 ## WORKFLOW
 

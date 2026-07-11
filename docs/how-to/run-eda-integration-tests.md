@@ -19,11 +19,9 @@ For background on why these tests exist and how they work, see [EDA Integration 
 ### For Vivado tests
 
 - **Vivado** installed on your machine (2024.x recommended).
-- The default binary path assumed by the tests is:
-  ```
-  /home/balevision/tools/Xilinx/Vivado/2024.2/bin/vivado
-  ```
-  If your Vivado is installed elsewhere, set `VIVADO_BIN` before running:
+- `VIVADO_BIN`'s hardcoded fallback in `src/test/integration/vivado.test.ts` is a path from the
+  original developer's machine, so it will not resolve on any other machine — the tests self-skip
+  when it doesn't exist. Set `VIVADO_BIN` before running:
   ```bash
   export VIVADO_BIN=/path/to/Xilinx/Vivado/<version>/bin/vivado
   ```
@@ -65,14 +63,16 @@ npm run test:integration
 
 ## Skipping a Tool You Don't Have
 
-If only one EDA tool is available, skip the other to avoid an unnecessary failure:
+If only one EDA tool is available:
 
 ```bash
 SKIP_VIVADO=1 npm run test:integration       # Run Quartus tests only
-SKIP_QUARTUS=1 npm run test:integration      # Run Vivado tests only
 ```
 
-Setting `SKIP_QUARTUS=1` or `SKIP_VIVADO=1` causes the corresponding tests to pass trivially rather than fail.
+`SKIP_VIVADO=1` causes the Vivado tests to pass trivially rather than fail. There is no `SKIP_QUARTUS`
+flag — Quartus tests self-skip automatically when neither Docker (with the `cvsoc/quartus:23.1` image)
+nor `QUARTUS_TCLSH_BIN`/`QUARTUS_SH_BIN` are available. Use `SKIP_DOCKER=1` to skip the Docker path
+specifically (falls back to a native `QUARTUS_TCLSH_BIN` install if set, otherwise skips).
 
 ---
 
@@ -81,9 +81,9 @@ Setting `SKIP_QUARTUS=1` or `SKIP_VIVADO=1` causes the corresponding tests to pa
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `QUARTUS_DOCKER_IMAGE` | `cvsoc/quartus:23.1` | Docker image containing the Quartus Tcl interpreter |
-| `VIVADO_BIN` | `/home/balevision/tools/Xilinx/Vivado/2024.2/bin/vivado` | Full path to the `vivado` binary |
-| `SKIP_QUARTUS` | *(unset)* | Set to `1` to skip all Quartus tests without failing |
+| `VIVADO_BIN` | hardcoded dev-machine path (see above) | Full path to the `vivado` binary — set this on any machine other than the original developer's |
 | `SKIP_VIVADO` | *(unset)* | Set to `1` to skip all Vivado tests without failing |
+| `SKIP_DOCKER` | *(unset)* | Set to `1` to skip the Docker-based Quartus path (falls back to native `QUARTUS_TCLSH_BIN`/`QUARTUS_SH_BIN` if set, otherwise skips) |
 | `REQUIRE_QSYS_GENERATE` | *(unset)* | Set to `1` to fail (instead of skip) when `qsys-generate` is absent from the Docker image |
 
 ---

@@ -1,98 +1,60 @@
 # IP Core Editor Reference
 
-The IP Core editor is the custom visual editor for `*.ip.yml` files. It provides dedicated section editors for all aspects of an IP Core definition.
+The IP Core editor is the custom visual editor for `*.ip.yml` files. Editing happens
+entirely on the **block-diagram canvas** plus its Inspector panel — there is no separate
+tabular "form" mode in the current UI.
+
+> `src/webview/ipcore/components/sections/` (`MetadataEditor`, `ClocksTable`,
+> `ResetsTable`, `PortsTable`, `ParametersTable`, `MemoryMapsEditor`, `SubcoresEditor`,
+> `FileSetsEditor`, `GeneratorPanel`, `PortMappingTable`) and
+> `src/webview/ipcore/components/layout/NavigationSidebar.tsx` still exist in the tree
+> but are **not imported by `IpCoreApp.tsx` or `EditorPanel.tsx`** — they are leftover
+> from an earlier sidebar-and-tables iteration of the editor and are dead code. Do not
+> use them as a guide to current behavior.
 
 ## Structure
 
-The editor uses a sidebar + panel layout:
-
 ```text
-+---------------------------+------------------------------------------+
-| NavigationSidebar         | EditorPanel                              |
-|                           |                                          |
-| Metadata                  |  (selected section editor)               |
-| Clocks                    |                                          |
-| Resets                    |                                          |
-| Ports                     |                                          |
-| Parameters                |                                          |
-| Bus Interfaces            |                                          |
-| Memory Maps               |                                          |
-| File Sets                 |                                          |
-| Generator                 |                                          |
-+---------------------------+------------------------------------------+
-| Validation Errors (if any)                                           |
-+----------------------------------------------------------------------+
++------------------------------------------------------------------------+
+| Toolbar: Undo/Redo | Scaffold pack picker | Target picker | Generate…  |
++----------------+-------------------------------------------+-----------+
+| Library        | IP Block Canvas (SVG)                     | Canvas    |
+| Palette        |                                           | Inspector |
++----------------+-------------------------------------------+-----------+
 ```
 
-Keyboard shortcuts: `Ctrl+H` focuses the sidebar, `Ctrl+L` focuses the editor panel.
-
-## Section Editors
-
-### MetadataEditor
-
-Edits the IP Core's VLNV (Vendor, Library, Name, Version) and description. Fields use inline editing with save/cancel.
-
-### ClocksTable
-
-Tabular editor for clock definitions. Each clock has a name, logical name, direction, frequency, and description.
-
-### ResetsTable
-
-Tabular editor for reset signals. Each reset has a name, logical name, direction, polarity (active high/low), and description.
-
-### PortsTable
-
-Tabular editor for user-defined ports (non-bus signals). Each port has a name, logical name, direction, width (can reference a parameter for parameterized widths), and description.
-
-### ParametersTable
-
-Tabular editor for generic parameters. Each parameter has a name, value, data type, and description. Parameter names can be referenced in port widths.
-
-### BusInterfacesEditor
-
-Card-based editor for bus interfaces. Each card shows the interface name, type, mode, physical prefix, and associated clock/reset. Supports:
-
-- Bus interface arrays with configurable count, index start, and naming patterns
-- Optional port selection from bus library definitions
-- Port width overrides
-- Port mapping table for physical-to-logical signal mapping
-
-### MemoryMapsEditor
-
-Editor for memory map references. Displays linked memory maps with `$ref` resolution. Shows registers and address blocks from imported memory map files.
-
-### FileSetsEditor
-
-Editor for file set definitions. Organizes generated and source files into named groups (e.g., RTL, Testbench, Integration).
-
-### GeneratorPanel
-
-VHDL project scaffolding UI. See the [Generator Reference](generator.md) for details on generation options, vendor integration, and template system.
-
-### PortMappingTable
-
-Sub-editor within Bus Interfaces for mapping physical port names to logical signal names and configuring port widths.
+VLNV (vendor/library/name/version) is shown read-only in the toolbar header. Keyboard
+shortcuts: `Ctrl+H` focuses the library palette, `Ctrl+L` focuses the canvas.
 
 ## State Management
 
-### Hooks
+### Hooks (`src/webview/ipcore/hooks/`)
 
-| Hook | File | Purpose |
-|------|------|---------|
-| `useIpCoreState` | `ipcore/hooks/useIpCoreState.ts` | Parsed IP Core state, update methods, validation |
-| `useIpCoreSync` | `ipcore/hooks/useIpCoreSync.ts` | Sends YAML updates to extension host |
-| `useNavigation` | `ipcore/hooks/useNavigation.ts` | Section navigation state |
-| `useCanvasDrop` | `ipcore/hooks/useCanvasDrop.ts` | Resolves drag-and-drop payloads into IP Core updates |
-| `useCanvasUndo` | `ipcore/hooks/useCanvasUndo.ts` | Undo/redo stack for canvas changes |
-| `useCanvasSelection` | `ipcore/hooks/useCanvasSelection.ts` | Canvas element selection state |
-| `useCanvasValidation` | `ipcore/hooks/useCanvasValidation.ts` | Real-time canvas constraint checks |
+| Hook | Purpose |
+|------|---------|
+| `useIpCoreState` | Parsed IP Core state, update methods, validation |
+| `useIpCoreSync` | Sends YAML updates to the extension host |
+| `useCanvasDrop` | Resolves drag-and-drop payloads into IP Core updates |
+| `useCanvasUndo` | Undo/redo stack for canvas changes |
+| `useCanvasSelection` | Canvas element selection state |
+| `useCanvasValidation` | Real-time canvas constraint checks |
+| `useGroupPorts` | Groups/batches multi-port updates (e.g. bulk width edits) |
+| `useProtocolSuggestions` | Suggests a bus protocol from dropped/parsed signal names |
 
-### Layout Components
+`useNavigation.ts` also exists but is only consumed by the dead `NavigationSidebar`.
 
-| Component | File | Purpose |
-|-----------|------|---------|
-| `NavigationSidebar` | `ipcore/components/layout/NavigationSidebar.tsx` | Section navigation with keyboard |
-| `EditorPanel` | `ipcore/components/layout/EditorPanel.tsx` | Routes to section editors |
+### Canvas Components (`src/webview/ipcore/components/canvas/`)
+
+| Component | Purpose |
+|-----------|---------|
+| `IpBlockCanvas` | Top-level SVG schematic; owns layout and drop handling |
+| `LibraryPalette` | Draggable primitives (generics, infrastructure, bus protocols) |
+| `CanvasInspector` | Right-hand property panel for the selected element |
+| `CanvasPort`, `CanvasBusBundle`, `CanvasBusSubPort` | Rendered port / bus-interface / expanded-signal elements |
+| `CanvasSelectionActions` | Multi-select action bar (e.g. bulk delete/group) |
+| `GroupingMappingStep`, `MapConduitToBusDialog`, `PortMappingDialog` | Multi-step flows for grouping loose ports into a bus interface, mapping a conduit to a bus, and physical-to-logical port mapping |
+| `RemoveZone` | Drop target for drag-to-remove |
+| `StagingOverlay` | Preview overlay shown while reviewing generated/staged output |
 
 ## Validation
 
@@ -102,22 +64,27 @@ The IP Core editor performs cross-reference validation:
 - Checks that `associatedReset` references an existing reset name
 - Checks that `memoryMapRef` references an existing memory map
 
-Validation errors appear in a panel at the bottom of the editor. Clicking an error navigates to the relevant section and highlights the field.
+Validation errors appear in a panel at the bottom of the editor. Clicking an error navigates to the relevant element and highlights it.
 
 ## Implementation Files
 
 | File | Purpose |
 |------|---------|
-| `src/webview/ipcore/IpCoreApp.tsx` | App shell, message handling, keyboard shortcuts, view-mode toggle |
-| `src/webview/ipcore/components/layout/` | NavigationSidebar, EditorPanel |
-| `src/webview/ipcore/components/sections/` | All section editors (12 files) |
-| `src/webview/ipcore/hooks/` | State management hooks (7 files) |
+| `src/webview/ipcore/IpCoreApp.tsx` | App shell, message handling, keyboard shortcuts, toolbar |
+| `src/webview/ipcore/components/layout/EditorPanel.tsx` | Mounts `IpBlockCanvas` |
+| `src/webview/ipcore/components/canvas/` | Canvas, palette, inspector, and dialog components (see above) |
+| `src/webview/ipcore/hooks/` | State management hooks (see above) |
+
+Scaffolding is triggered from the toolbar or the Command Palette (`IPCraft: Scaffold
+Project` etc.), not from a mounted `GeneratorPanel` component — see the
+[Generator Reference](generator.md) for generation options, vendor integration, and the
+template system.
 
 ---
 
 ## Canvas View
 
-The IP Core editor opens in **Canvas view** by default. A toggle in the toolbar switches between Canvas and Form (table) view. Undo/Redo buttons are available in Canvas view.
+The IP Core editor is the canvas described above. Undo/Redo buttons are in the toolbar.
 
 ```text
 +--------------------------------------------------+

@@ -1,6 +1,6 @@
 # V-10 — Spec Versioning (`ipcraft-spec`)
 
-> Status: proposed · Severity: Medium (silent drift between spec and implementation) · Effort: S (1 day + a process decision)
+> Status: **Implemented** (`ipcraft-spec` is a pinned git submodule; see `.gitmodules` and `scripts/check-submodule.js`) · Severity: Medium (silent drift between spec and implementation) · Effort: S (1 day + a process decision)
 > Enables: [V-1](V-01-unified-domain-model.md) (schema-generated types need a pinned schema)
 > Source finding: [architecture.md §7 V-10](../architecture.md#v-10--ipcraft-spec-is-an-untracked-nested-repo)
 

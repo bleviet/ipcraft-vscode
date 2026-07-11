@@ -1,9 +1,11 @@
 # IPCraft for VS Code — Software Architecture Document
 
-> Reverse-engineered from the codebase at version 0.2.0 (June 2026). Every statement in this
-> document is derived from reading the actual source; where the implementation diverges from
-> the ideal architecture, the divergence is documented as-is and flagged in
-> [§7 Technical Debt](#7-technical-debt--vibe-code-assessment).
+> Originally reverse-engineered from the codebase at version 0.2.0 (June 2026); updated to
+> track the architecture as of 0.8.6. Every statement in this document is derived from reading
+> the actual source; where the implementation still diverges from the ideal architecture, the
+> divergence is documented as-is and flagged in
+> [§7 Technical Debt](#7-technical-debt--vibe-code-assessment) (the V-1…V-10 items there are
+> historical — resolved, kept for context).
 >
 > Companion documents: [overview.md](overview.md), [extension-host.md](extension-host.md),
 > [webview.md](webview.md), [technical-debt.md](technical-debt.md) (actionable TD items TD-1…TD-5).
@@ -175,17 +177,22 @@ erDiagram
 
 The schemas use **camelCase** (`addressBlocks`, `resetValue`, `defaultRegWidth`) but the memory
 map webview internally normalizes to **snake_case** (`address_blocks`, `reset_value`,
-`bit_offset`/`bit_width` instead of `bits`). Conversion happens in three places:
+`bit_offset`/`bit_width` instead of `bits`). Conversion now happens through one boundary module,
+`src/domain/` (this used to be split across a `DataNormalizer`/`YamlSanitizer` pair, since
+removed — see resolved item V-1 in §7):
 
-- `DataNormalizer` (webview): YAML → normalized internal model on every update.
-- `YamlSanitizer` + `YamlService.cleanForYaml` (webview): internal model → schema keys before
-  writing back (`bit_offset`+`bit_width` recombined into a `bits: '[msb:lsb]'` string).
-- `YamlPathResolver.KEY_ALIASES`: path navigation falls back from `addressBlocks` to
-  `address_blocks` so both spellings in user files keep working.
+- `normalizeMemoryMap` / `parseMemoryMap` (`src/domain/parse.ts`): YAML → normalized internal
+  model, adding a UI-only `rowId` (see [CLAUDE.md](../../CLAUDE.md) "rowId is UI-only identity").
+- `serializeValue` / `serializeMemoryMap` (`src/domain/serialize.ts`): internal model → schema
+  keys before writing back (`bit_offset`+`bit_width` recombined into a `bits: '[msb:lsb]'`
+  string; strips `rowId` and `__kind`).
+- `YamlPathResolver.KEY_ALIASES`: path navigation still falls back from `addressBlocks` to
+  `address_blocks` so both spellings in hand-written user files keep working.
 
-This is a deliberate tolerance for hand-written files, but it means **three different key
-vocabularies coexist** (schema camelCase, legacy snake_case in user files, internal normalized
-form) — see TD note V-1.
+This is a deliberate tolerance for hand-written files, but it still means **two key
+vocabularies coexist at the boundary** (schema camelCase, legacy snake_case tolerated on read) —
+narrower than before since the internal normalized form now has exactly one producer/consumer
+pair instead of three independent conversion sites.
 
 ---
 
@@ -230,7 +237,7 @@ C4Context
 Security posture worth noting (both deliberate, post-hoc hardening): the IP Core provider
 restricts `localResourceRoots` to `dist/` + codicons, and the generic `command` message from
 the webview is checked against `WEBVIEW_COMMAND_ALLOWLIST`
-(`IpCoreEditorProvider.ts:48`).
+(`IpCoreEditorProvider.ts`).
 
 ### 3.3 Component diagram
 
@@ -247,7 +254,7 @@ graph TB
             TPP[TemplatePreviewProvider<br/>.j2 live preview]
         end
         subgraph services["Services"]
-            MH[MessageHandler<br/>update/command dispatch]
+            WR[WebviewRouter<br/>revisioned update/command dispatch]
             DM[DocumentManager<br/>serialized WorkspaceEdit queue]
             YV[YamlValidator AJV]
             IR[ImportResolver<br/>mm.yml + fileset + bus lib]
@@ -271,7 +278,7 @@ graph TB
         MMSYNC[useYamlSync<br/>window message listener]
         MMUPD[useYamlUpdateHandler<br/>path edits]
         YS[YamlService.applyPathEdits<br/>comment-preserving merge]
-        DN[DataNormalizer / YamlSanitizer]
+        DN[domain/parse.ts<br/>normalizeMemoryMap / parseMemoryMap]
         ALG[algorithms/<br/>LayoutEngine, Repackers, MutationService]
     end
 
@@ -284,9 +291,9 @@ graph TB
 
     EXT --> providers
     EXT --> CMD
-    MMP --> MH --> DM
+    MMP --> WR --> DM
     MMP --> HG
-    IPP --> MH
+    IPP --> WR
     IPP --> IR
     IPP --> SB
     CMD --> SC
@@ -326,7 +333,7 @@ sequenceDiagram
     participant Y as YamlService.applyPathEdits
     participant S as useMemoryMapState
     participant B as postMessage bridge
-    participant MH as MessageHandler (host)
+    participant WR as WebviewRouter (host)
     participant DM as DocumentManager
     participant DOC as TextDocument (SSOT)
     participant P as MemoryMapEditorProvider
@@ -338,20 +345,24 @@ sequenceDiagram
     Y-->>H: newText (or identical text on no-op)
     H->>S: updateRawText(newText)
     Note over S: optimistic local update:<br/>rawTextRef + re-parse + re-render
-    H->>B: postMessage {type:'update', text:newText}
-    B->>MH: handleUpdate
-    MH->>DM: updateDocument(document, text)
-    Note over DM: per-URI promise chain serializes<br/>concurrent edits, full-range replace
+    H->>B: buildUpdateMessage — postMessage {type:'update', text, editId, baseDocVersion}
+    B->>WR: on('update')
+    WR->>DM: updateDocument(document, text, baseDocVersion)
+    Note over DM: per-URI promise chain serializes<br/>concurrent edits; rejects if baseDocVersion is stale
     DM->>DOC: WorkspaceEdit.replace(entire range)
     DOC-->>P: onDidChangeTextDocument
-    P->>B: postMessage {type:'update', text}
-    B->>S: useYamlSync → updateFromYaml(text)
-    Note over S: echo re-parse, idempotent if<br/>text matches optimistic state
+    P->>WR: handleDocumentChange
+    WR->>B: postUpdate {type:'update', text, docVersion, sourceEditId}
+    B->>S: useYamlSync → shouldApplyUpdate(revisionState, update)
+    Note over S: drops if docVersion <= seenDocVersion<br/>or sourceEditId <= lastSentEditId (echo of our own edit);<br/>forceResync:true always applies (host rejected a stale base)
     Note over DOC: file stays DIRTY —<br/>user saves via Ctrl+S as usual
 ```
 
 Saving is the standard VS Code dirty-document flow; the webview can also request it via
-`{type:'command', command:'save'}`.
+`{type:'command', command:'save'}`. The `editId`/`docVersion` pairing is the revisioned sync
+protocol (`src/services/WebviewRouter.ts` host-side, `src/webview/sync/revisionFilter.ts`
+webview-side pure functions) — see [CLAUDE.md](../../CLAUDE.md#revisioned-sync-protocol-v-3v-4)
+for the FIFO contract it replaces the old byte-equality echo suppression with.
 
 ### 4.2 The two editors implement this loop differently
 
@@ -361,8 +372,8 @@ Saving is the standard VS Code dirty-document flow; the webview can also request
 | Edit serialization | `YamlService.applyPathEdits` — surgical node-reuse merge, preserves comments/hex/format of untouched nodes, restores hex spellings post-stringify | `yaml.parseDocument` + `doc.setIn(path)` + full `toString` per edit (`useIpCoreState.updateIpCore`) |
 | Push to host | Immediate, per edit | **Debounced 500 ms** full-text push (`useIpCoreSync` effect on `rawYaml`) |
 | Undo | VS Code text-document undo only | `useCanvasUndo` snapshot stack **plus** VS Code undo |
-| Host message dispatch | Generic `MessageHandler` (`update`/`command`) | Provider-local `messageHandlers` table (~20 message types) with `MessageHandler` as fallback |
-| Initial handshake | Webview sends `ready`, provider replies | `ready` handler **and** an unconditional `setTimeout(100)` initial push |
+| Host message dispatch | `WebviewRouter.useStandardDocumentHandlers` (`update`/`command`) | Same `WebviewRouter`, plus a provider-local table of IP-core-specific message types registered via `router.on(...)` |
+| Initial handshake | Webview sends `ready`, `WebviewRouter` flushes queued updates | Same `ready`-gated flush (no timer) |
 
 Both providers re-push the full document on `onDidChangeTextDocument`, so external edits
 (raw text editor, git checkout) propagate into open webviews automatically. The IP core
@@ -388,6 +399,12 @@ git history) — they are load-bearing:
 - **Draft state in cells** — editable cells keep keystrokes in local draft maps
   (`nameDrafts`, `bitsDrafts`, …) so the echo re-render does not clobber in-progress typing;
   `useCellEditGuard` snapshots rows on focus for ESC-revert and blur-commit on Enter.
+- **Revisioned sync protocol** — `WebviewRouter` stamps every `update` with `docVersion` and
+  rejects edits whose `baseDocVersion` is stale (replying `forceResync: true`); the webview
+  stamps every edit with a monotonic `editId` and drops echoes/out-of-order updates via
+  `revisionFilter.shouldApplyUpdate`. Both editors share this (`src/services/WebviewRouter.ts`,
+  `src/webview/sync/revisionFilter.ts`) — it replaced the byte-equality echo suppression that
+  used to be the only defense against a slow echo re-parsing stale text after a newer local edit.
 
 ### 4.4 Auxiliary data flows
 
@@ -474,11 +491,13 @@ context keys (`ipcraft.vivadoFound`, …) that grey out commands. `ReportParser`
 | --- | --- |
 | Activation, command registry | `src/extension.ts` |
 | Custom editor providers | `src/providers/{MemoryMap,IpCore}EditorProvider.ts` |
-| Host-side message dispatch | `src/services/MessageHandler.ts` + provider-local table in `IpCoreEditorProvider` |
+| Host-side message dispatch | `src/services/WebviewRouter.ts` (shared by both providers; revisioned `update`/`command` protocol) + provider-local handler table in `IpCoreEditorProvider` registered via `router.on(...)` |
+| Revisioned sync protocol (webview side) | `src/webview/sync/revisionFilter.ts` (pure functions, unit-tested directly) |
 | Serialized document writes | `src/services/DocumentManager.ts` |
-| Comment-preserving YAML edits (webview) | `src/webview/services/YamlService.ts` (`applyPathEdits`, `mergeNode`) |
-| MM normalization / sanitization | `src/webview/services/{DataNormalizer,YamlSanitizer}.ts` |
-| MM layout invariants (bit/register/block packing) | `src/webview/algorithms/` — see `docs/refactor/memory_layout_invariants.md` |
+| Normalized domain model (shared parse/serialize boundary) | `src/domain/{parse,serialize}.ts` |
+| Format-preserving YAML edits (shared module, both editors) | `src/yamledit/` (`applyPathEdits`, `applyPathDeletes`) — `src/webview/services/YamlService.ts` is a thin MM-side static wrapper around it; the IP core editor (`useIpCoreState.ts`) imports it directly |
+| Normalization / sanitization (both editors) | `src/domain/parse.ts` (`normalizeMemoryMap`, `normalizeIpCore`) and `src/domain/serialize.ts` (`serializeValue`, `serializeMemoryMap`, `serializeIpCore`) |
+| MM layout invariants (bit/register/block packing) | `src/webview/algorithms/LayoutEngine.ts` (`recompute*Layout`, `validateLayout`) |
 | IP core canvas state | `src/webview/ipcore/hooks/useIpCoreState.ts`, `useCanvasUndo.ts` |
 | Generation orchestration | `src/commands/GenerateCommands.ts` (`runGenerator`) |
 | Generator core | `src/generator/IpCoreScaffolder.ts`, `registerProcessor.ts` |
@@ -495,81 +514,86 @@ context keys (`ipcraft.vivadoFound`, …) that grey out commands. `ReportParser`
 ## 7. Technical Debt & "Vibe Code" Assessment
 
 The existing [technical-debt.md](technical-debt.md) tracks five scoped items (TD-1…TD-5).
-The items below are **architectural** observations from this review, labelled V-*. Each is
-documented as currently implemented — none of these block current functionality, but they
-shape where bugs keep appearing.
+The items below (V-1…V-10) were **architectural** observations from an earlier review of this
+codebase. All ten have since been implemented as a dedicated refactor pass — kept here as the
+historical record of *why* the current design looks the way it does, since several current
+architecture sections above (§2.4, §3.3, §4) directly describe the post-fix state. Each entry
+below states the original problem, then how it was actually resolved (verified against the
+current source, not just the refactor's stated intent).
 
-### V-1 — Three key vocabularies for the same domain model
+### V-1 — Three key vocabularies for the same domain model (RESOLVED)
 Schema camelCase (`addressBlocks`, `resetValue`), legacy snake_case accepted in user files,
-and the webview's internal normalized form (`bit_offset`/`bit_width`) coexist. Conversions
-are scattered across `DataNormalizer`, `YamlSanitizer`, `YamlService.cleanForYaml`, and
-`YamlPathResolver.KEY_ALIASES`. Symptom: every new feature that touches fields must remember
-both spellings (`reset_value ?? resetValue ?? reset` appears verbatim in `DataNormalizer`).
-**Recommendation:** define one internal TypeScript domain model (generated from the JSON
-schemas — a `generate-types` npm script already exists) and confine all alias handling to a
-single parse/serialize boundary module.
+and the webview's internal normalized form (`bit_offset`/`bit_width`) used to be converted in
+three independent places (`DataNormalizer`, `YamlSanitizer`, `YamlPathResolver.KEY_ALIASES`).
+**Resolution:** `DataNormalizer`/`YamlSanitizer` were deleted; `src/domain/parse.ts`
+(`normalizeMemoryMap`, `normalizeIpCore`) and `src/domain/serialize.ts` (`serializeValue`,
+`serializeMemoryMap`, `serializeIpCore`) are now the single parse/serialize boundary shared by
+both editors — see §2.4.
 
-### V-2 — Two divergent YAML write paths
-The MM editor's `applyPathEdits` (node-reuse merge, comment/hex preservation, indentSeq
-detection) is markedly more careful than the IP core editor's `doc.setIn` + full restringify.
-Both also contain **independent, slightly different `detectIndentSeq` implementations**
-(`YamlService.ts:15` regex-based vs `useIpCoreState.ts:13` line-scanning). Formatting fidelity
-therefore differs between editors. **Recommendation:** extract one shared YAML-edit module
-used by both webviews.
+### V-2 — Two divergent YAML write paths (RESOLVED)
+The MM editor's `applyPathEdits` (node-reuse merge, comment/hex preservation) used to be
+markedly more careful than the IP core editor's `doc.setIn` + full restringify, with two
+independent `detectIndentSeq` implementations. **Resolution:** `src/yamledit/` is now the one
+shared format-preserving edit module (`applyPathEdits`, `applyPathDeletes`,
+`detectIndentSeq.ts`); `src/webview/services/YamlService.ts` is a thin MM-side wrapper around
+it, and `useIpCoreState.ts` imports it directly.
 
-### V-3 — Echo loop is convention, not contract
-The webview optimistically updates local state, then relies on the host echo being byte-equal
-to suppress churn. There is no version/sequence number on messages: a slow echo arriving after
-a newer local edit re-parses stale text. The MM editor's draft maps and the IP core editor's
-500 ms debounce both paper over this. Recent git history (stale `nameDrafts` flashes, blur/Enter
-commit glitches) is the visible symptom — UI drafts and the echo cycle interact non-obviously.
-**Recommendation:** tag `update` messages with a monotonic revision; webview drops echoes older
-than its last sent revision.
+### V-3 — Echo loop was convention, not contract (RESOLVED)
+The webview used to rely on byte-equality with the host echo to suppress churn, with no
+version/sequence number — a slow echo could re-parse stale text after a newer local edit.
+**Resolution:** the revisioned sync protocol. `WebviewRouter` stamps every `update` with
+`docVersion` and rejects stale-`baseDocVersion` edits (`forceResync: true`); the webview
+stamps every edit with a monotonic `editId` via `src/webview/sync/revisionFilter.ts`
+(`shouldApplyUpdate`, `buildUpdateMessage`), dropping echoes and out-of-order updates as a
+FIFO-paired contract rather than an implicit convention. See §4.1's sequence diagram.
 
-### V-4 — IP core debounced full-text push can drop concurrent external edits
-`useIpCoreSync` pushes the entire `rawYaml` 500 ms after any change. If the document changes
-externally (git, text editor) inside that window, the webview's push overwrites it — last
-writer wins on whole-file granularity. The MM editor has the same whole-file write but without
-the delay window. Low probability, silent-data-loss severity.
+### V-4 — IP core debounced full-text push could drop concurrent external edits (RESOLVED)
+`useIpCoreSync`'s 500 ms debounced whole-file push used to be last-writer-wins against
+concurrent external edits (git, text editor) with no version check. **Resolution:** the same
+revisioned protocol from V-3 covers this — `DocumentManager.updateDocument` now takes the
+edit's `baseDocVersion` and rejects it (rather than blindly overwriting) if the document moved
+on since the webview last saw it.
 
-### V-5 — Dual message-dispatch mechanisms on the host
-`MessageHandler` is the "official" dispatcher, but `IpCoreEditorProvider` grew its own ~20-entry
-`messageHandlers` table and uses `MessageHandler` only as a fallback. The MM provider also
-duplicates the `ready` handshake inline rather than through `MessageHandler`. Organic growth:
-each new webview feature added a new message type to the nearest table. **Recommendation:**
-a typed message-routing layer shared by both providers (the message interfaces in
-`MessageHandler.ts` already sketch the shape).
+### V-5 — Dual message-dispatch mechanisms on the host (RESOLVED)
+A generic `MessageHandler` used to be the "official" dispatcher while `IpCoreEditorProvider`
+grew its own ~20-entry ad hoc `messageHandlers` table, falling back to `MessageHandler` only
+when its own table missed. **Resolution:** `MessageHandler.ts` was deleted; `WebviewRouter`
+(`src/services/WebviewRouter.ts`) is now the single typed dispatcher for both providers via
+`.on(type, handler)`. `IpCoreEditorProvider` still registers its own set of IP-core-specific
+message types, but through the router's typed API rather than a separate mechanism.
 
-### V-6 — Handshake belt-and-suspenders
-`IpCoreEditorProvider.resolveCustomTextEditor` both implements the `ready` handshake **and**
-fires an unconditional `setTimeout(100)` initial update — a leftover race fix that masks
-whether the handshake actually works. The MM provider implements `ready` correctly with an
-`isReady` flag and no timer.
+### V-6 — Handshake belt-and-suspenders (RESOLVED)
+`IpCoreEditorProvider.resolveCustomTextEditor` used to implement the `ready` handshake **and**
+fire an unconditional `setTimeout(100)` initial update as a leftover race fix. **Resolution:**
+both providers now rely solely on `WebviewRouter`'s `ready`-gated pending-update flush
+(`isReady` + `pendingUpdates`); the `setTimeout(100)` is gone.
 
-### V-7 — Import resolution duplicated host-side
+### V-7 — Import resolution duplicated host-side (RESOLVED)
 `ImportResolver` (editor display path) and `registerProcessor.resolveMemoryMaps` (generation
-path) independently implement `.mm.yml` import following and merging. They can drift —
-entry-level override semantics live in both.
+path) used to independently implement `.mm.yml` import following and merging. **Resolution:**
+both now import the same `resolveMemoryMapImports` from `src/services/imports/`.
 
-### V-8 — Index- and name-keyed draft state in the field editor
-`useFieldEditor` keys `nameDrafts` by field **name** but `bitsDrafts`/`resetDrafts` by row
-**index**, with two separate cleanup effects (order-signature reset for index-keyed, stale-key
-pruning for name-keyed). Renames, moves, and inserts must keep both schemes coherent; the
-last several fix commits all touched this area. **Recommendation:** one stable per-row ID
-(generated on normalize) keying all draft maps.
+### V-8 — Index- and name-keyed draft state in the field editor (RESOLVED)
+`useFieldEditor` used to key `nameDrafts` by field **name** but `bitsDrafts`/`resetDrafts` by
+row **index**, needing two separate cleanup effects to stay coherent across renames/moves/
+inserts. **Resolution:** stable per-row `rowId` (`generateRowId()` in
+`src/webview/utils/rowIdentity.ts`, assigned during `src/domain/parse.ts` normalization and
+re-matched across reparses by `reconcileRowIds`) now keys draft maps consistently — see
+[CLAUDE.md](../../CLAUDE.md) "rowId is UI-only identity, never schema data."
 
-### V-9 — Path-resolution heuristics for packaged vs dev vs test runtime
-`IP_CORE_SCHEMA_PATH` (3 fallbacks), `ScaffoldPackLoader.BUILTIN_PACKS_DIR` (2 fallbacks), and
-`TemplateLoader.resolveTemplatesPath` (falls back to `process.cwd()`!) each re-derive where
-resources live relative to `__dirname` under webpack/ts-jest/VSIX. A wrong fallback fails at
-generation time, not load time. **Recommendation:** resolve all resource roots once at
-activation from `context.extensionPath` and inject them.
+### V-9 — Path-resolution heuristics for packaged vs dev vs test runtime (RESOLVED)
+`IP_CORE_SCHEMA_PATH`, `ScaffoldPackLoader.BUILTIN_PACKS_DIR`, and
+`TemplateLoader.resolveTemplatesPath` used to each re-derive resource-root paths independently
+relative to `__dirname`, each with its own fallback chain. **Resolution:**
+`src/services/ResourceRoots.ts` now resolves all resource roots once from
+`context.extensionPath` at activation and injects them.
 
-### V-10 — `ipcraft-spec` is an untracked nested repo
-The schema/spec directory sits inside the extension repo but is not tracked by it (appears as
-`?` in git status). Schema and code can silently diverge; the build copies schemas into
-`dist/` at pack time. **Recommendation:** make it a proper git submodule or vendored versioned
-dependency.
+### V-10 — `ipcraft-spec` was an untracked nested repo (RESOLVED)
+The schema/spec directory used to sit inside the extension repo without being tracked by it
+(`?` in git status), risking silent schema/code drift. **Resolution:** `ipcraft-spec` is now a
+proper git submodule (`.gitmodules`); `scripts/check-submodule.js` (run via `npm run pretest`)
+fails the build if it's missing, and `git submodule update --init --recursive` is the
+documented setup step (see [CLAUDE.md](../../CLAUDE.md)).
 
 ### What is genuinely solid
 

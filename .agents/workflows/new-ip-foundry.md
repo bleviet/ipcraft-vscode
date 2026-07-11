@@ -12,7 +12,7 @@ Follow these steps to design and generate a new IP core using IPCraft.
    - List key parameters (e.g., `ADDR_WIDTH`, `DATA_WIDTH`).
 
 2. **Core Specification (`.ip.yml`)**
-   - Use the `IpArchitect` skill to define the VLNV and port mappings.
+   - Use the `ip-architect` skill to define the VLNV and port mappings.
    - Create a clock/reset definition.
    - Map bus interfaces to logical prefixes (e.g., `s00_axi_`).
 
@@ -27,9 +27,9 @@ Follow these steps to design and generate a new IP core using IPCraft.
 
 5. **RTL Generation**
    - Instruct the user to open the IP core in the IPCraft VS Code extension.
-   - Use the "Generator Panel" to select the vendor and target folder.
-   - Click "Generate IP Core" to produce the VHDL and vendor files.
+   - In the canvas's "Project Scaffold" panel, select the vendor and target folder.
+   - Click "Generate Files" (or run `IPCraft: Scaffold Project` / `IPCraft: Generate Top-Level HDL` from the Command Palette) to produce the VHDL/SystemVerilog and vendor files.
 
 6. **Verification**
-   - Use the `CocotbTestGen` skill to create a testbench for the new design.
+   - Use the `cocotb-test-gen` skill to create a testbench for the new design.
    - Run simulation and verify correctness.

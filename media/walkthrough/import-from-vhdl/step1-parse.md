@@ -33,4 +33,4 @@ end entity;
 
 ### Running the command
 
-Open the `.vhd` file in VS Code (or have it open in the active editor), then run **IPCraft: Parse VHDL to .ip.yml**. A Save dialog will ask where to write the output `.ip.yml`.
+Open the `.vhd` file in VS Code (or have it open in the active editor), then run **IPCraft: Import from VHDL (Experimental)**. A Save dialog will ask where to write the output `.ip.yml`.

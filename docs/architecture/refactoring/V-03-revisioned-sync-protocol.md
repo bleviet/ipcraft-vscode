@@ -1,6 +1,6 @@
 # V-3 — Revisioned Sync Protocol
 
-> Status: proposed · Severity: High (correctness) · Effort: M (2–4 days)
+> Status: **Implemented** (see `src/services/WebviewRouter.ts` + `src/webview/sync/revisionFilter.ts`) · Severity: High (correctness) · Effort: M (2–4 days)
 > Depends on: [V-6](V-06-handshake-cleanup.md) · Enables: [V-4](V-04-debounce-data-loss.md) · Best landed after [V-5](V-05-unified-message-dispatch.md)
 > Source finding: [architecture.md §7 V-3](../architecture.md#v-3--echo-loop-is-convention-not-contract)
 

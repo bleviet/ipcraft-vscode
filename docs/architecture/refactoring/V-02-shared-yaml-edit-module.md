@@ -1,6 +1,6 @@
 # V-2 — Shared YAML Edit Module
 
-> Status: proposed · Severity: Medium · Effort: M (2–4 days)
+> Status: **Implemented** (see `src/yamledit/`) · Severity: Medium · Effort: M (2–4 days)
 > Feeds into: [V-1](V-01-unified-domain-model.md) · Related: [V-3](V-03-revisioned-sync-protocol.md)
 > Source finding: [architecture.md §7 V-2](../architecture.md#v-2--two-divergent-yaml-write-paths)
 

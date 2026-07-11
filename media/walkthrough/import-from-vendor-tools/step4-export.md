@@ -14,7 +14,7 @@ The output `*_hw.tcl` includes:
 
 ### Intel → Xilinx: generate component.xml
 
-Start with a `_hw.tcl`, parsed to `.ip.yml`. Now run **IPCraft: Generate Xilinx Component (component.xml)**.
+Start with a `_hw.tcl`, parsed to `.ip.yml`. Now run **IPCraft: Generate Xilinx Vivado Component (component.xml)**.
 
 The output `component.xml` follows IP-XACT 2014 and includes:
 - `<spirit:component>` with VLNV identification
@@ -24,7 +24,7 @@ The output `component.xml` follows IP-XACT 2014 and includes:
 
 ### Generating both at once
 
-Set both targets in your `.ip.yml` and run **Scaffold Full Project**:
+Set both targets in your `.ip.yml` and run **IPCraft: Scaffold Project**:
 
 ```yaml
 targets: [vivado, quartus]

@@ -1,19 +1,14 @@
 ## Inside the generated register file
 
-Open `rtl/my_core_regfile.vhd` (or `*_regfile.sv`) to see the auto-generated register logic. Understanding this file helps you debug register behaviour and write targeted tests.
+Open `rtl/my_core_regs.vhd` (or `*_regs.sv`) to see the auto-generated register logic. Understanding this file helps you debug register behaviour and write targeted tests.
 
 ### Constants package
 
 ```vhdl
 -- my_core_pkg.vhd
-constant REG_CTRL_OFFSET    : natural := 16#00#;
-constant REG_STATUS_OFFSET  : natural := 16#04#;
-constant REG_THRESHOLD_OFFSET : natural := 16#08#;
-
--- Field masks and positions
-constant CTRL_ENABLE_BIT    : natural := 0;
-constant CTRL_MODE_LSB      : natural := 4;
-constant CTRL_MODE_MSB      : natural := 5;
+constant C_REG_CTRL_ADDR      : natural := 0;   -- addr 0x00
+constant C_REG_STATUS_ADDR    : natural := 4;   -- addr 0x04
+constant C_REG_THRESHOLD_ADDR : natural := 8;   -- addr 0x08
 ```
 
 Import this package in your test infrastructure to avoid hard-coded offsets.
@@ -24,8 +19,8 @@ The register file implements:
 
 1. **Write path** — AXI write data latched into register shadows on `wvalid & wready`
 2. **Read path** — multiplexer selects register content by address on `arvalid & arready`
-3. **Hardware override** — RO fields ignore software writes and reflect hardware inputs
-4. **W1C fields** — cleared by the combination of a software write-1 and the hardware not asserting the flag
+3. **Hardware override** — read-only fields ignore software writes and reflect hardware inputs
+4. **write-1-to-clear fields** — cleared by the combination of a software write-1 and the hardware not asserting the flag
 
 ### Synthesisability
 

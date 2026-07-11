@@ -1,6 +1,6 @@
 # V-7 — Import Resolution Consolidation
 
-> Status: proposed · Severity: Medium (silent divergence) · Effort: S–M (1–2 days)
+> Status: **Implemented** (see `src/services/ImportResolver.ts`) · Severity: Medium (silent divergence) · Effort: S–M (1–2 days)
 > Independent of other V-items · Touches V-1's domain module if available
 > Source finding: [architecture.md §7 V-7](../architecture.md#v-7--import-resolution-duplicated-host-side)
 

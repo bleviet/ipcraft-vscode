@@ -33,7 +33,7 @@ This runs webpack with `--mode production --devtool hidden-source-map` and outpu
 npx vsce package
 ```
 
-This produces a file named `ipcraft-vscode-<version>.vsix` in the project root (e.g. `ipcraft-vscode-0.1.0.vsix`).
+This produces a file named `ipcraft-vscode-<version>.vsix` in the project root (e.g. `ipcraft-vscode-0.8.6.vsix`).
 
 !!! tip
     Steps 2 and 3 can be combined since `vscode:prepublish` automatically runs `npm run package` before `vsce package`:
@@ -52,7 +52,7 @@ Install directly in VS Code:
 
 === "Command line"
     ```bash
-    code --install-extension ipcraft-vscode-0.1.0.vsix
+    code --install-extension ipcraft-vscode-0.8.6.vsix
     ```
 
 ## Verifying the package contents

@@ -2,6 +2,15 @@
 
 See [CHANGELOG.md](https://github.com/bleviet/ipcraft-vscode/blob/main/CHANGELOG.md) in the repository root for a record of all notable changes.
 
+## Setup
+
+`ipcraft-spec` (bus definitions and JSON schemas) is a git submodule. After cloning:
+
+```bash
+git submodule update --init --recursive
+npm install
+```
+
 ## Workflow
 
 1. Create a branch from your target base branch

@@ -10,13 +10,13 @@ The file is created with sensible defaults:
 
 ```yaml
 vlnv:
-  vendor: your-company   # reverse-DNS style, e.g. com.acme
-  library: ip
-  name: my_core
+  vendor: user            # from the ipcraft.import.vendor setting
+  library: my_library
+  name: my_core            # taken from the file name you chose
   version: 1.0.0
-description: ""
+description: A new IP Core definition
 ```
 
 **VLNV** stands for Vendor · Library · Name · Version — the four-part identifier that uniquely names your IP core across tools and repositories.
 
-> **Tip:** Set `ipcraft.import.vendor` and `ipcraft.import.library` in settings once and every new file will inherit those values.
+> **Tip:** Set `ipcraft.import.vendor` in settings once and every new blank IP core will inherit it as the default vendor.

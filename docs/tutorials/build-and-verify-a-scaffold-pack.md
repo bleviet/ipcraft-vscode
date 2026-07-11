@@ -260,7 +260,7 @@ the contract version it ships. Make them incompatible on purpose:
    ```json
    { "ipcraft.generate.scaffoldPack": "aurora-rtl" }
    ```
-3. Run **IPCraft: Generate HDL**.
+3. Run **IPCraft: Generate Top-Level HDL**.
 
 Generation stops immediately with a clear, actionable error:
 
@@ -295,7 +295,7 @@ next step.
 With `apiVersion` back to `^1.0` and `aurora-rtl` selected:
 
 1. Open `axi_slave.ip.yml`.
-2. Run **IPCraft: Scaffold Project** (or **IPCraft: Generate HDL** for RTL only).
+2. Run **IPCraft: Scaffold Project** (or **IPCraft: Generate Top-Level HDL** for RTL only).
 
 IPCraft computes the context, validates it against the contract, then renders every
 matching rule. The files that your pack governs:

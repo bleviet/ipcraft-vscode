@@ -151,7 +151,7 @@ IPCraft generates these files automatically for any bus interface whose type is 
 
 When the same custom type appears on more than one interface in the same IP core, the generator deduplicates: it produces a single XML pair regardless of how many instances reference the type.
 
-The built-in bus definitions (AXI, Avalon) are installed to the global IPCraft configuration directory (`~/.ipcraft/vivado/busdefs/`) at extension activation and do not need to be regenerated per project. Custom types are written alongside the `component.xml` into the project's output directory.
+The built-in bus definitions (AXI, Avalon) are installed to the global IPCraft configuration directory (`<ipcraft config dir>/vivado/busdefs/` — resolved by `src/utils/configDir.ts`: `~/.config/ipcraft` on Linux, `~/Library/Application Support/ipcraft` on macOS, `%APPDATA%\ipcraft` on Windows) at extension activation and do not need to be regenerated per project. Custom types are written alongside the `component.xml` into the project's output directory.
 
 ### Quartus (Platform Designer)
 

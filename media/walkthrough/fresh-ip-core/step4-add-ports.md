@@ -1,10 +1,10 @@
 ## Clocks, resets, and ports
 
-Every element you add in the left navigation panels shows up on the canvas immediately.
+Drag each element from the Library Palette's **Infrastructure** category onto the canvas — clocks and resets go on the left edge, ports on the right edge. Click any placed element to edit its fields in the Inspector panel.
 
 ### Clocks
 
-Open the **Clocks** section. Each clock entry has:
+Each clock entry has:
 
 - **Name** — the HDL port name (e.g. `clk`, `axi_clk`)
 - **Frequency** — optional hint used for timing-aware vendor packaging (e.g. `100MHz`)
@@ -12,14 +12,14 @@ Open the **Clocks** section. Each clock entry has:
 
 ### Resets
 
-Open the **Resets** section. Key fields:
+Key fields:
 
 - **Polarity** — `activeLow` (the default, `rst_n`) or `activeHigh` (`rst`)
 - **Associated clock** — which clock domain this reset belongs to
 
 ### Ports
 
-Open the **Ports** section for scalar signals. Each port has a name, direction (`in` / `out` / `inout`), and width.
+Scalar signals. Each port has a name, direction (`in` / `out` / `inout`), and width.
 
 ```
 Example ports:
@@ -30,6 +30,6 @@ Example ports:
 
 ### Parameters
 
-Use the **Parameters** section to expose generics (VHDL) or parameters (SV) that can be set at integration time — useful for data width, FIFO depth, etc.
+Drag a **Parameter** item onto the canvas to expose a generic (VHDL) or parameter (SV) that can be set at integration time — useful for data width, FIFO depth, etc. Pick the integer, boolean, or string variant from the palette.
 
 > **Tip:** The canvas colours each clock domain differently. With two clocks, all ports associated with `clk_a` appear in one colour and `clk_b` ports in another — making clock-domain crossings visible at a glance.

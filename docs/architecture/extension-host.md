@@ -37,8 +37,8 @@ Both use `retainContextWhenHidden: true` for state persistence and share the sam
 
 | Service | File | Role |
 |---------|------|------|
-| `MessageHandler` | `src/services/MessageHandler.ts` | Routes messages from webview to appropriate handlers |
-| `DocumentManager` | `src/services/DocumentManager.ts` | Applies text edits to VS Code documents |
+| `WebviewRouter` | `src/services/WebviewRouter.ts` | Typed `.on(type, handler)` dispatch for webview messages; implements the revisioned `update`/`command` protocol (`docVersion`/`editId`) shared by both providers |
+| `DocumentManager` | `src/services/DocumentManager.ts` | Applies text edits to VS Code documents via a per-URI serialized promise queue; rejects stale-`baseDocVersion` edits |
 | `HtmlGenerator` | `src/services/HtmlGenerator.ts` | Generates webview HTML with CSP headers |
 | `YamlValidator` | `src/services/YamlValidator.ts` | Validates YAML against schemas |
 | `ImportResolver` | `src/services/ImportResolver.ts` | Resolves `$import` directives in IP Core files |
@@ -47,7 +47,12 @@ Both use `retainContextWhenHidden: true` for state persistence and share the sam
 | `SubcoreResolver` | `src/services/SubcoreResolver.ts` | Resolves sub-core references across `.ip.yml` files |
 | `VivadoCatalogScanner` | `src/services/VivadoCatalogScanner.ts` | Scans the Vivado IP catalog and caches results |
 | `VivadoInterfaceScanner` | `src/services/VivadoInterfaceScanner.ts` | Scans the Vivado *interface* catalog (`data/ip/interfaces/`) and caches bus definitions — see [Vivado Interface Catalog](vivado-interface-catalog.md) |
-| `ToolDetector` | `src/services/ToolDetector.ts` | Detects installed vendor toolchains (Vivado, Quartus) |
+| `WorkspaceBusDefinitionScanner` | `src/services/WorkspaceBusDefinitionScanner.ts` | Scans the open workspace for custom bus-definition YAML files (`ipcraft.busLibraryPaths`) |
+| `BusDefScanCache` | `src/services/BusDefScanCache.ts` | Caches bus-definition scan results across scanners |
+| `ToolDetector` | `src/services/ToolDetector.ts` | Detects installed vendor toolchains (Vivado, Quartus) and their sub-tools (e.g. `qsys-edit`) |
+| `BuildRunner` | `src/services/BuildRunner.ts` | Spawns vendor build tools (native or Docker) and streams output |
+| `ReportParser` | `src/services/ReportParser.ts` | Parses Vivado/Quartus timing and utilization reports for the Build Reports tree view |
+| `ResourceRoots` | `src/services/ResourceRoots.ts` | Resolves resource root paths (templates, schemas, packs) once at activation from `context.extensionPath` |
 
 ## Commands
 
@@ -55,17 +60,20 @@ Both use `retainContextWhenHidden: true` for state persistence and share the sam
 |--------|----------|
 | `FileCreationCommands.ts` | Create IP Core, Memory Map, or combined files |
 | `GenerateCommands.ts` | Generate HDL, scaffold project, view bus definitions |
+| `ScaffoldPackCommands.ts` | Export a built-in scaffold pack into the workspace (`.vscode/ipcraft/packs/`) |
 | `BuildCommands.ts` | Build, Build: Vivado OOC, Build: Quartus Compile, Show Build Output |
 | `editInIpPackager.ts` | Edit in IP Packager (opens Vivado GUI) |
-| `editInPlatformDesigner.ts` | Edit in Platform Designer (opens Quartus qsys-edit) |
+| `editInPlatformDesigner.ts` | Open in Platform Designer (opens Quartus qsys-edit) |
 | `openInVivado.ts` | Open in Vivado (generate project if needed, then launch GUI) |
 | `openInQuartus.ts` | Open in Quartus (generate project if needed, then launch GUI) |
+| `copyComponentInstance.ts` | Copy a VHDL/SystemVerilog component instantiation snippet to the clipboard |
 | `scanVivadoCatalog.ts` | Scan Vivado IP Catalog |
 | `scanVivadoInterfaces.ts` | Scan Vivado Interface Catalog |
+| `scanWorkspaceBusDefinitions.ts` | Scan the open workspace for custom bus-definition YAML files |
 | `migrateLegacyIpCore.ts` | Migrate Legacy IP Cores (`vendor:` → `targets:`) |
 | `toggleEditorMode.ts` | Open as Text Editor / Open as Visual Editor |
 | `toolNotConfigured.ts` | "Tool Not Found — Click to Configure" placeholder commands |
-| `projectCreator.ts` | Shared helpers for project creation and board/part selection |
+| `projectCreator.ts` | Thin delegating wrapper: project creation and board/part selection via `SynthesisToolchain.createProject()` |
 
 ## Generator
 
@@ -126,8 +134,12 @@ Located in `src/generator/templates/`:
 | Template | Output |
 |----------|--------|
 | `altera_hw_tcl.j2` | Altera Platform Designer component (`_hw.tcl`) |
-| `amd_component_xml.j2` | AMD Vivado IP-XACT descriptor (`component.xml`) |
+| `altera_test_system.qsys.j2` | Altera Platform Designer test system (`test.qsys`, BFM validation) |
 | `amd_xgui.j2` | AMD Vivado xgui (`.tcl`) |
+
+`xilinx/component.xml` (IP-XACT) is **not** rendered from a template — it is built programmatically by
+`VivadoComponentXmlGenerator.ts`. The legacy `amd_component_xml.j2` template is unused dead code. A
+scaffold pack may still override `component.xml` by supplying its own `component.xml.j2`.
 
 #### Testbench
 

@@ -9,7 +9,8 @@ Read [Spatial Editing](../concepts/spatial-editing.md) first for the mental
 model. For exact shortcuts, callback contracts, and function signatures, use the
 [Bit Field Interaction Reference](../reference/bitfield-interaction.md). For the
 layout rules registers and blocks obey, see
-[Memory Layout Invariants](../refactor/memory_layout_invariants.md).
+[LayoutEngine.ts](../../src/webview/algorithms/LayoutEngine.ts) (CLAUDE.md's
+"Layout computation" section has the summary).
 
 ## Where the data lives
 

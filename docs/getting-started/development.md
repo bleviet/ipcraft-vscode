@@ -62,7 +62,7 @@ ipcraft-spec/               # specification schemas + examples (local package)
 
     ```bash
     cmake --build build --target <target>
-    cmake --build build --target usage   # list all 37 targets
+    cmake --build build --target usage   # list all available targets
     ```
 
 === "npm"
@@ -101,7 +101,7 @@ ipcraft-spec/               # specification schemas + examples (local package)
     | Command | Purpose |
     |---------|---------|
     | `npm run test:unit` | Jest unit tests (`src/test/suite/**`) |
-    | `npm run test:unit -- --testPathPattern <file>` | Run a single test file |
+    | `npm run test:unit -- --testPathPatterns <file>` | Run a single test file |
     | `npm run test:unit:coverage` | Tests with coverage report |
     | `npm run test:browser` | Playwright browser tests (Chromium headless) |
     | `npm run test:e2e` | VS Code E2E tests (requires display / xvfb) |
@@ -131,7 +131,7 @@ See [Building a VSIX Package](../how-to/build-vsix.md) for the full workflow inc
 
 - Open **Developer: Toggle Developer Tools** in the Extension Development Host
 - Inspect console for React webview errors
-- Trace message flow: provider `onDidReceiveMessage` → `useYamlSync` → `MessageHandler`
+- Trace message flow: provider `onDidReceiveMessage` → `WebviewRouter` → `DocumentManager`; on the webview side, `useYamlSync` (Memory Map) / `useIpCoreSync` (IP Core)
 
 ## Common Development Tasks
 
@@ -156,11 +156,18 @@ See [Building a VSIX Package](../how-to/build-vsix.md) for the full workflow inc
 4. Validate with sample specs in `ipcraft-spec/examples/*`
 5. Update the [Generator Reference](../reference/generator.md)
 
-### Add an IP Core section editor
+### Add an IP Core canvas feature
 
-1. Create component in `src/webview/ipcore/components/sections/`
-2. Wire into `EditorPanel` routing
-3. Add navigation entry in `NavigationSidebar`
+The IP Core editor has no sidebar/section-tabs mode — editing happens on the block-diagram canvas
+plus its Inspector panel (`src/webview/ipcore/components/layout/NavigationSidebar.tsx` and
+`ipcore/components/sections/*.tsx` are dead code, not part of the live UI; see
+[IP Core Editor Reference](../reference/ip-core-editor.md)).
+
+1. Add a draggable entry to `src/webview/ipcore/components/canvas/LibraryPalette.tsx` if the feature
+   introduces a new droppable primitive
+2. Handle the drop/update in `useCanvasDrop.ts` (or the relevant `use*` hook under
+   `ipcore/hooks/`)
+3. Render the element on `IpBlockCanvas.tsx` and add its property editor to `CanvasInspector.tsx`
 4. Update the [IP Core Editor Reference](../reference/ip-core-editor.md)
 
 ## Validation Flow
@@ -187,7 +194,7 @@ Run these before submitting a PR:
 |---------|----------|
 | Custom editor does not appear | Verify file extension and `package.json` custom editor selector. Check provider registration in `src/extension.ts`. |
 | Webview opens but no data | Ensure webview posts `{ type: 'ready' }`. Verify provider sends `type: 'update'`. Check `useMemoryMapState`. |
-| YAML updates not persisted | Verify `sendUpdate` call path. Check `MessageHandler.handleUpdate` and `DocumentManager.updateDocument`. |
+| YAML updates not persisted | Verify `sendUpdate` call path. Check `WebviewRouter.useStandardDocumentHandlers`'s `update` handler and `DocumentManager.updateDocument`. |
 | Editor not updating | Check webview console + extension host logs. |
 | Generator produces empty files | Verify IP Core has a bus interface with `memoryMapRef`. Check template context in `IpCoreScaffolder.buildTemplateContext`. |
 | CMake configure fails (`Node.js < 20`) | Install Node.js 20+ from [nodejs.org](https://nodejs.org/). |
