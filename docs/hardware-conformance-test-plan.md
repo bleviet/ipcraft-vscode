@@ -4,6 +4,25 @@ A plan for verifying, on real FPGA hardware, that **every** register and
 bit-field access type IPCraft generates behaves correctly — i.e. that the code
 generation is provably correct end-to-end, not just in simulation.
 
+> **Altera/Avalon-MM (Variant A) implementation status: done, validated on
+> DE10-Nano hardware.** Lives at `cvsoc/17_ipcraft_regmap_conformance/`
+> (sibling repo, not in this tree). All 23 conformance checks pass via the
+> System Console host on real silicon (`make test` in that project's
+> `quartus/` dir); the cocotb pre-hardware gate is green (14/14). Found two
+> real generator bugs along the way (not yet fixed here): (1)
+> `package.vhdl.j2`'s `to_unsigned(<value>, 32)` for a 32-bit `resetValue`
+> overflows VHDL's signed `integer` type once bit 31 is set, breaking GHDL
+> elaboration; (2) `bus_avmm.vhdl.j2` always slices `avs_address` as a byte
+> address, which goes out-of-range whenever `portWidthOverrides.address`
+> narrows the port for WORDS addressing (the same class of bug
+> `16_ipcraft_led_avmm`'s bring-up hand-patched but never upstreamed — any
+> new Avalon-MM IP needing a Nios II-compatible WORDS slave hits it fresh).
+> See `cvsoc/17_ipcraft_regmap_conformance/docs/hardware_validation_results.md`
+> for full results, including a known JTAG-UART-capture tooling limitation
+> on the Nios II host (execution is confirmed via register readback instead).
+> AXI4-Lite (Variant B) and the Xilinx/xsdb path remain as designed, not yet
+> built.
+
 ## Why this plan exists
 
 Today the generator's correctness is verified in **simulation only**:
