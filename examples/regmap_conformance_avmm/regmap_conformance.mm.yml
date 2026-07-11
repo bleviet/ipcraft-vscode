@@ -1,0 +1,215 @@
+# Hardware register-conformance map: exercises every field/register access
+# type IPCraft generates, plus change-of-state, register arrays, byte
+# strobes, mixed registers, and enumerated/non-zero-reset fields.
+#
+# A single software-writable STIMULUS register is wired by the hand-written
+# loopback core (regmap_conformance_core.vhd, managed: false) into the
+# register file's hardware-side inputs, so every hardware-dependent access
+# type becomes triggerable and observable from the bus alone.
+#
+# See docs/hardware-conformance-test-plan.md (ipcraft-vscode repo) for the
+# full design and the coverage matrix this map implements.
+- name: REGMAP_CONFORMANCE_CSR
+  description: Register access-type conformance test IP -- control/status registers
+  addressBlocks:
+    - name: CSR
+      baseAddress: 0
+      usage: register
+      access: read-write
+      defaultRegWidth: 32
+      registers:
+        - name: ID
+          offset: 0x00
+          access: read-only
+          description: Fixed magic/version constant -- RO constant readback self-test
+          fields:
+            - name: MAGIC
+              bits: '[31:0]'
+              access: read-only
+              # Bit 31 set on purpose: this is a regression check for a real
+              # generator bug (package.vhdl.j2 used to emit
+              # to_unsigned(<value>, 32), which overflows VHDL's 32-bit
+              # SIGNED `integer`/`natural` type for any resetValue >=
+              # 0x80000000, failing GHDL elaboration with "out of bound
+              # expression"). Fixed by emitting a bit-string literal instead
+              # (TemplateLoader.ts `bin` filter). See
+              # docs/hardware_validation_results.md.
+              resetValue: 0xC0FFEE01
+
+        - name: SCRATCH
+          offset: 0x04
+          access: read-write
+          description: Plain RW round-trip register, also used for the byte-strobe test
+          fields:
+            - name: VALUE
+              bits: '[31:0]'
+              access: read-write
+              resetValue: 0
+
+        - name: STIMULUS
+          offset: 0x08
+          access: read-write
+          description: >
+            Software-writable loopback control. The hand-written core wires
+            these bits into the register file's hardware-side inputs, making
+            every hardware-dependent access type triggerable from the bus.
+          fields:
+            - name: STATUS_VAL
+              bits: '[3:0]'
+              access: read-write
+              resetValue: 0
+              description: Passed straight through to STATUS.VALUE
+            - name: SAMPLE_EVT_TRIG
+              bits: '[4:4]'
+              access: read-write
+              resetValue: 0
+              description: Rising edge pulses INT_STATUS.SAMPLE_EVT (HW set)
+            - name: ERROR_EVT_TRIG
+              bits: '[5:5]'
+              access: read-write
+              resetValue: 0
+              description: Rising edge pulses INT_STATUS.ERROR_EVT (HW set)
+            - name: LEGACY_TRIG
+              bits: '[6:6]'
+              access: read-write
+              resetValue: 0
+              description: Rising edge pulses IRQ_LEGACY.FLAG (HW set)
+            - name: CMD_DONE_TRIG
+              bits: '[7:7]'
+              access: read-write
+              resetValue: 0
+              description: Rising edge auto-clears COMMAND.START (HW self-clear)
+            - name: BUSY_DONE_TRIG
+              bits: '[8:8]'
+              access: read-write
+              resetValue: 0
+              description: Rising edge auto-clears BUSY.ACTIVE (HW self-clear)
+            - name: LINK_SPEED
+              bits: '[12:9]'
+              access: read-write
+              resetValue: 0
+              description: Passed straight through to LINK.SPEED (drives change-of-state)
+
+        - name: STATUS
+          offset: 0x0C
+          access: read-only
+          description: RO status sourced live from STIMULUS.STATUS_VAL via the core
+          fields:
+            - name: VALUE
+              bits: '[3:0]'
+              access: read-only
+
+        - name: INT_STATUS
+          offset: 0x10
+          access: read-write-1-to-clear
+          description: >
+            Multi-bit sticky interrupt flags. HW pulse (from STIMULUS trigger
+            bits) sets a bit; SW clears by writing 1. HW-set beats a
+            simultaneous SW-clear on the ground-truth register file.
+          fields:
+            - name: SAMPLE_EVT
+              bits: '[0:0]'
+              access: read-write-1-to-clear
+              description: Set by a rising edge on STIMULUS.SAMPLE_EVT_TRIG
+            - name: ERROR_EVT
+              bits: '[1:1]'
+              access: read-write-1-to-clear
+              description: Set by a rising edge on STIMULUS.ERROR_EVT_TRIG
+
+        - name: IRQ_LEGACY
+          offset: 0x14
+          access: write-1-to-clear
+          description: Plain (non-readable) W1C -- reads back 0 regardless of state
+          fields:
+            - name: FLAG
+              bits: '[0:0]'
+              access: write-1-to-clear
+              description: Set by a rising edge on STIMULUS.LEGACY_TRIG
+
+        - name: COMMAND
+          offset: 0x18
+          access: write-self-clearing
+          description: SW sets, HW clears (self-clear beats a lingering SW set); reads 0
+          fields:
+            - name: START
+              bits: '[0:0]'
+              access: write-self-clearing
+              description: Cleared by a rising edge on STIMULUS.CMD_DONE_TRIG
+
+        - name: BUSY
+          offset: 0x1C
+          access: read-write-self-clearing
+          description: As COMMAND, but readable while set
+          fields:
+            - name: ACTIVE
+              bits: '[0:0]'
+              access: read-write-self-clearing
+              description: Cleared by a rising edge on STIMULUS.BUSY_DONE_TRIG
+
+        - name: DIAG
+          offset: 0x20
+          access: write-only
+          description: Write-only diagnostic scratch -- reads 0, but the value reaches hardware
+          fields:
+            - name: SCRATCH
+              bits: '[7:0]'
+              access: write-only
+              resetValue: 0
+
+        - name: WO_MIRROR
+          offset: 0x24
+          access: read-only
+          description: Readable echo of DIAG.SCRATCH -- confirms the WO value landed in hardware
+          fields:
+            - name: SCRATCH
+              bits: '[7:0]'
+              access: read-only
+
+        - name: LINK
+          offset: 0x28
+          description: Mixed register -- RO live field plus a change-of-state W1C flag
+          fields:
+            - name: SPEED
+              bits: '[3:0]'
+              access: read-only
+              description: Sourced live from STIMULUS.LINK_SPEED via the core
+            - name: SPEED_CHANGED
+              bits: '[8:8]'
+              access: read-write-1-to-clear
+              monitorChangeOf: SPEED
+              description: Set whenever SPEED changes value; write 1 to clear; no event at reset
+
+        - name: CONTROL
+          offset: 0x2C
+          access: read-write
+          description: RW register with an enumerated field and a non-zero reset value
+          fields:
+            - name: MODE
+              bits: '[1:0]'
+              access: read-write
+              resetValue: 1
+              enumeratedValues: { 0: IDLE, 1: READY, 2: ACTIVE, 3: FAULT }
+
+        - name: CHANNEL
+          offset: 0x30
+          description: Register array -- addressing + no-aliasing check
+          count: 2
+          stride: 16
+          registers:
+            - name: CONFIG
+              offset: 0
+              access: read-write
+              description: Per-channel RW configuration
+              fields:
+                - name: VALUE
+                  bits: '[7:0]'
+                  access: read-write
+                  resetValue: 0
+            - name: COUNT
+              offset: 4
+              access: read-only
+              description: Per-channel RO constant, distinct per index -- proves no aliasing
+              fields:
+                - name: SAMPLES
+                  bits: '[7:0]'
+                  access: read-only

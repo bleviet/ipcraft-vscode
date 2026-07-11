@@ -1,0 +1,78 @@
+vlnv:
+  vendor: cvsoc
+  library: peripherals
+  name: regmap_conformance_axil
+  version: 1.0.0
+apiVersion: '1.0'
+scaffold_pack: example-with-docs
+description: >
+  Hardware register-conformance test IP, AXI4-Lite variant (cvsoc roadmap,
+  ipcraft-vscode docs/hardware-conformance-test-plan.md, Variant B). Same
+  register map and STIMULUS loopback design as
+  17_ipcraft_regmap_conformance (Avalon-MM), proving the AXI4-Lite wrapper
+  on real hardware via a JTAG-to-Avalon-MM master and Platform Designer's
+  Avalon<->AXI bridging -- no HPS/Nios II required.
+targets:
+  - quartus
+
+clocks:
+  - name: clk
+    logicalName: CLK
+    direction: in
+    frequency: 50MHz
+    description: System clock
+    associatedReset: reset_n
+
+resets:
+  - name: reset_n
+    logicalName: RESET_N
+    direction: in
+    polarity: activeLow
+    description: Asynchronous reset, active low (AXI4-Lite convention)
+    associatedClock: clk
+
+busInterfaces:
+  - name: S_AXI_LITE
+    type: ipcraft:busif:axi4_lite:1.0
+    mode: slave
+    physicalPrefix: s_axil_
+    associatedClock: clk
+    associatedReset: reset_n
+    memoryMapRef: REGMAP_CONFORMANCE_AXIL_CSR
+    portWidthOverrides:
+      AWADDR: 7
+      ARADDR: 7
+      WDATA: 32
+      RDATA: 32
+      WSTRB: 4
+
+memoryMaps:
+  import: regmap_conformance_axil.mm.yml
+
+# `managed: false` marks rtl/regmap_conformance_axil_core.vhd and the cocotb
+# scoreboard as user-owned so a re-scaffold never overwrites the hand-written
+# loopback wiring or the hand-added conformance assertions.
+fileSets:
+  - name: RTL_Sources
+    description: RTL Sources
+    files:
+      - path: rtl/regmap_conformance_axil_pkg.vhd
+        type: vhdl
+      - path: rtl/regmap_conformance_axil_regs.vhd
+        type: vhdl
+      - path: rtl/regmap_conformance_axil_core.vhd
+        type: vhdl
+        managed: false
+      - path: rtl/regmap_conformance_axil_axil.vhd
+        type: vhdl
+      - path: rtl/regmap_conformance_axil.vhd
+        type: vhdl
+  - name: Simulation_Resources
+    description: Simulation Files
+    files:
+      - path: tb/regmap_conformance_axil_test.py
+        type: python
+        managed: false
+      - path: tb/test_regmap_conformance_axil_sim.py
+        type: python
+        managed: false

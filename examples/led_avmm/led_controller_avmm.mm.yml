@@ -1,0 +1,51 @@
+# LED controller Avalon-MM register map: version, LED pattern, and a
+# free-running heartbeat status bit with a sticky change-of-state event
+# (monitorChangeOf automation through the Avalon-MM wrapper).
+- name: LED_AVMM_CSR
+  description: LED controller control/status registers
+  addressBlocks:
+    - name: CSR
+      baseAddress: 0
+      usage: register
+      access: read-write
+      defaultRegWidth: 32
+      registers:
+        - name: VERSION
+          offset: 0
+          access: read-only
+          description: IP version
+          fields:
+            - name: MINOR
+              bits: '[7:0]'
+              access: read-only
+              resetValue: 0
+            - name: MAJOR
+              bits: '[15:8]'
+              access: read-only
+              resetValue: 1
+        - name: LED_PATTERN
+          offset: 4
+          access: read-write
+          description: LED output pattern
+          fields:
+            - name: PATTERN
+              bits: '[7:0]'
+              access: read-write
+              resetValue: 0
+              description: Bit N drives LED[N]
+        - name: EVENTS
+          offset: 8
+          access: read-write-1-to-clear
+          description: >
+            Live heartbeat level plus a sticky change-of-state flag
+            (monitorChangeOf automation through the Avalon-MM wrapper).
+          fields:
+            - name: HEARTBEAT_ACTIVE
+              bits: '[0:0]'
+              access: read-only
+              description: Toggles roughly once per second while clk runs
+            - name: HEARTBEAT_TOGGLED
+              bits: '[1:1]'
+              access: write-1-to-clear
+              monitorChangeOf: HEARTBEAT_ACTIVE
+              description: Sticky flag, set on every HEARTBEAT_ACTIVE transition

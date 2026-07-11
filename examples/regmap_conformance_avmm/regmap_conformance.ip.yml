@@ -1,0 +1,89 @@
+vlnv:
+  vendor: cvsoc
+  library: peripherals
+  name: regmap_conformance
+  version: 1.0.0
+apiVersion: '1.0'
+scaffold_pack: example-with-docs
+description: >
+  Hardware register-conformance test IP (cvsoc roadmap, ipcraft-vscode
+  docs/hardware-conformance-test-plan.md). Exercises all seven IPCraft field
+  access types plus change-of-state, register arrays, byte strobes, mixed
+  registers, and enumerated/non-zero-reset fields, self-checked via a
+  software-writable STIMULUS loopback register.
+targets:
+  - quartus
+
+clocks:
+  - name: clk
+    logicalName: CLK
+    direction: in
+    frequency: 50MHz
+    description: System clock
+    associatedReset: reset
+
+resets:
+  - name: reset
+    logicalName: RESET
+    direction: in
+    polarity: activeHigh
+    description: Synchronous reset
+    associatedClock: clk
+
+busInterfaces:
+  - name: S_AVMM
+    type: ipcraft:busif:avalon_mm:1.0
+    mode: slave
+    physicalPrefix: avs_
+    associatedClock: clk
+    associatedReset: reset
+    memoryMapRef: REGMAP_CONFORMANCE_CSR
+    useOptionalPorts:
+      - read
+      - write
+      - writedata
+      - readdata
+      - address
+      - byteenable
+    portWidthOverrides:
+      address: 5
+
+memoryMaps:
+  import: regmap_conformance.mm.yml
+
+# NOTE: CocotbFramework derives the cocotb Makefile's *entire* VHDL_SOURCES
+# list from this RTL_Sources fileSet once any fileSets are present at all
+# (it does not merge with auto-discovered files) -- so this must be the
+# complete RTL manifest, not just the file(s) being protected below.
+# `managed: false` marks rtl/regmap_conformance_core.vhd and the cocotb
+# scoreboard as user-owned so a re-scaffold never overwrites the hand-written
+# loopback wiring or the hand-added conformance assertions.
+fileSets:
+  - name: RTL_Sources
+    description: RTL Sources
+    files:
+      - path: rtl/regmap_conformance_pkg.vhd
+        type: vhdl
+      - path: rtl/regmap_conformance_regs.vhd
+        type: vhdl
+      - path: rtl/regmap_conformance_core.vhd
+        type: vhdl
+        managed: false
+      - path: rtl/regmap_conformance_avmm.vhd
+        type: vhdl
+      - path: rtl/regmap_conformance.vhd
+        type: vhdl
+  - name: Simulation_Resources
+    description: Simulation Files
+    files:
+      - path: tb/regmap_conformance_test.py
+        type: python
+        managed: false
+      - path: tb/test_regmap_conformance_sim.py
+        type: python
+        managed: false
+  - name: Integration
+    description: Integration Files
+    files:
+      - path: altera/regmap_conformance_hw.tcl
+        type: tcl

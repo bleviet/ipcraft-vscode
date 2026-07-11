@@ -18,3 +18,36 @@ test-results/
 # Belt-and-braces: block loose specimens anywhere in the tree.
 **/*_hw.tcl
 **/component.xml
+# ...except examples/: these are real, hardware-validated IPCraft output
+# committed on purpose (see examples/README.md), not test fixtures.
+!examples/**/*_hw.tcl
+!examples/**/component.xml
+
+# examples/ — Quartus/Platform Designer/cocotb build artifacts (regenerated
+# by `make sim` / `make qsys project compile`; see each example's
+# altera/quartus/Makefile).
+examples/**/db/
+examples/**/incremental_db/
+examples/**/output_files/
+examples/**/*.qsys
+examples/**/*.sopcinfo
+examples/**/*_system_gen/
+examples/**/*.sof
+examples/**/*.qpf
+examples/**/*.qsf
+examples/**/*.qws
+examples/**/*.rpt
+examples/**/*.summary
+examples/**/*.done
+examples/**/*.smsg
+examples/**/*.jdi
+examples/**/*.pin
+examples/**/*.sld
+examples/**/*.elf
+examples/**/software/platform/*/bsp/
+examples/**/tb/sim_build/
+examples/**/tb/__pycache__/
+examples/**/tb/results.xml
+examples/**/tb/*.ghw
+examples/**/quartus/?/
+examples/**/*_dump.txt

@@ -9,11 +9,19 @@
 #   - a loose `component.xml` file
 #
 # These are fetched at test time from public repos and must remain untracked.
+#
+# Exception: examples/ -- the `*_hw.tcl`/`component.xml` files there are
+# IPCraft's OWN generated output for the hardware-validated example
+# projects (see examples/README.md), hand-integrated and committed on
+# purpose, not fixtures fetched from a public repo. .test-fixtures/ is
+# still blocked everywhere, including under examples/.
 
 staged=$(git diff --cached --name-only --diff-filter=ACM)
 [ -z "$staged" ] && exit 0
 
-offenders=$(printf '%s\n' "$staged" | grep -E '(^|/)\.test-fixtures/|(^|/)[^/]*_hw\.tcl$|(^|/)component\.xml$')
+test_fixture_offenders=$(printf '%s\n' "$staged" | grep -E '(^|/)\.test-fixtures/')
+loose_file_offenders=$(printf '%s\n' "$staged" | grep -E '(^|/)[^/]*_hw\.tcl$|(^|/)component\.xml$' | grep -v '^examples/')
+offenders=$(printf '%s\n%s\n' "$test_fixture_offenders" "$loose_file_offenders" | grep -v '^$')
 
 if [ -n "$offenders" ]; then
   echo "ERROR: refusing to commit real-world parser fixtures."

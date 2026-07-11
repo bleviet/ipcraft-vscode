@@ -1,0 +1,99 @@
+vlnv:
+  vendor: cvsoc
+  library: peripherals
+  name: led_controller_avmm
+  version: 1.0.0
+apiVersion: '1.0'
+scaffold_pack: example-with-docs
+description: >
+  Avalon-MM peripheral for the DE10-Nano LED demo (cvsoc roadmap Phase 2.2). Drives 8 board LEDs from a software-writable pattern register and exposes a free-running heartbeat status bit with a sticky change-of-state event.
+targets:
+  - quartus
+
+clocks:
+  - name: clk
+    logicalName: CLK
+    direction: in
+    frequency: 50MHz
+    description: System clock
+    associatedReset: reset
+
+resets:
+  - name: reset
+    logicalName: RESET
+    direction: in
+    polarity: activeHigh
+    description: Synchronous reset
+    associatedClock: clk
+
+ports:
+  - name: led
+    direction: out
+    width: 8
+    description: LED[7:0] output, driven by LED_PATTERN.PATTERN
+
+busInterfaces:
+  - name: S_AVMM
+    type: ipcraft:busif:avalon_mm:1.0
+    mode: slave
+    physicalPrefix: avs_
+    associatedClock: clk
+    associatedReset: reset
+    memoryMapRef: LED_AVMM_CSR
+    useOptionalPorts:
+      - read
+      - write
+      - writedata
+      - readdata
+      - address
+      - byteenable
+    portWidthOverrides:
+      address: 2
+
+memoryMaps:
+  import: led_controller_avmm.mm.yml
+
+# NOTE: CocotbFramework derives the cocotb Makefile's *entire* VHDL_SOURCES
+# list from this RTL_Sources fileSet once any fileSets are present at all
+# (it does not merge with auto-discovered files) -- so this must be the
+# complete RTL manifest, not just the file(s) being protected below.
+# `managed: false` marks rtl/led_controller_avmm_core.vhd and the cocotb test
+# as user-owned so a re-scaffold never overwrites the hand-written heartbeat
+# logic or hand-added test assertions.
+fileSets:
+  - name: RTL_Sources
+    description: RTL Sources
+    files:
+      - path: rtl/led_controller_avmm_pkg.vhd
+        type: vhdl
+      - path: rtl/led_controller_avmm_regs.vhd
+        type: vhdl
+      - path: rtl/led_controller_avmm_core.vhd
+        type: vhdl
+        managed: false
+      - path: rtl/led_controller_avmm_avmm.vhd
+        type: vhdl
+      - path: rtl/led_controller_avmm.vhd
+        type: vhdl
+  - name: Simulation_Resources
+    description: Simulation Files
+    files:
+      - path: tb/led_controller_avmm_test.py
+        type: python
+        managed: false
+      - path: tb/test_led_controller_avmm_sim.py
+        type: python
+        managed: false
+  - name: Integration
+    description: Integration Files
+    files:
+      - path: xilinx/component.xml
+        type: unknown
+      - path: xilinx/led_controller_avmm_project.tcl
+        type: tcl
+      - path: xilinx/led_controller_avmm_run_xpr.tcl
+        type: tcl
+      - path: xilinx/led_controller_avmm_run_ooc.tcl
+        type: tcl
+      - path: xilinx/xgui/led_controller_avmm_v1_0_0.tcl
+        type: tcl
