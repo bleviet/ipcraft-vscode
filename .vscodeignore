@@ -31,3 +31,9 @@ mkdocs.yml
 skills-lock.json
 .agents/**
 .claude/**
+build/**
+docker/**
+Jenkinsfile
+.gitmodules
+AGENTS.md
+CLAUDE.md
