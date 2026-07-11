@@ -15,13 +15,13 @@ package require qsys
 # -----------------------------------------------------------------------------
 # Module Properties
 # -----------------------------------------------------------------------------
-set_module_property DESCRIPTION "Hardware register-conformance test IP, AXI4-Lite variant (cvsoc roadmap, ipcraft-vscode docs/hardware-conformance-test-plan.md, Variant B). Same register map and STIMULUS loopback design as 17_ipcraft_regmap_conformance (Avalon-MM), proving the AXI4-Lite wrapper on real hardware via a JTAG-to-Avalon-MM master and Platform Designer's Avalon<->AXI bridging -- no HPS/Nios II required.
+set_module_property DESCRIPTION "Hardware register-conformance test IP, AXI4-Lite variant (see docs/hardware-conformance-test-plan.md in this repo, Variant B). Same register map and STIMULUS loopback design as the examples/regmap_conformance_avmm Avalon-MM example, proving the AXI4-Lite wrapper on real hardware via a JTAG-to-Avalon-MM master and Platform Designer's Avalon<->AXI bridging -- no HPS/Nios II required.
 "
 set_module_property NAME regmap_conformance_axil
 set_module_property VERSION 1.0.0
 set_module_property INTERNAL false
 set_module_property OPAQUE_ADDRESS_MAP true
-set_module_property AUTHOR "cvsoc"
+set_module_property AUTHOR "ipcraft-examples"
 set_module_property DISPLAY_NAME "Regmap Conformance Axil"
 set_module_property INSTANTIATE_IN_SYSTEM_MODULE true
 set_module_property EDITABLE true

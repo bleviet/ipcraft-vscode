@@ -1,6 +1,6 @@
 """cocotb self-checking scoreboard for regmap_conformance_axil.
 
-AXI4-Lite variant of 17_ipcraft_regmap_conformance's tb/regmap_conformance_test.py
+AXI4-Lite variant of regmap_conformance_avmm's tb/regmap_conformance_test.py
 -- same register map, same assertions, same STIMULUS loopback design; only the
 bus driver differs (cocotbext.axi.AxiLiteMaster instead of raw Avalon-MM pin
 toggling). This is the pre-hardware gate: it must be green before any board step.
@@ -157,7 +157,7 @@ async def test_int_status_hw_set_sw_clear(dut):
 
 
 # NOTE: no test_int_status_hw_set_beats_sw_clear here. On Avalon-MM
-# (17_ipcraft_regmap_conformance) that test issues the HW-set trigger write
+# (regmap_conformance_avmm) that test issues the HW-set trigger write
 # and the SW-clear write with zero cycle gap -- Avalon-MM's single-cycle,
 # no-waitstate transactions let two "adjacent" bus calls land on truly
 # adjacent clock edges, letting the test observe the register file's

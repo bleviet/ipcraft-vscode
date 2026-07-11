@@ -11,7 +11,7 @@
 # cocotb scoreboard: neither a JTAG-driven System Console transaction nor an
 # AXI4-Lite bus transaction can land back-to-back on adjacent clock edges
 # the way a single-cycle Avalon-MM transaction can (see
-# 17_ipcraft_regmap_conformance for that race coverage). Prints PASS/FAIL
+# regmap_conformance_avmm for that race coverage). Prints PASS/FAIL
 # per check, a final sentinel, and exits nonzero on any failure so a CI
 # runner can gate on it.
 #

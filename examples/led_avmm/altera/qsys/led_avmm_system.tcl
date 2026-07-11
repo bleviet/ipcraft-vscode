@@ -4,11 +4,10 @@ package require -exact qsys 12.0
 # Nios II LED demo system for DE10-Nano (Cyclone V 5CSEBA6U23I7)
 # Components: Nios II/e CPU, 32 KB on-chip memory, JTAG UART, System ID,
 #             led_controller_avmm (IPCraft-generated Avalon-MM peripheral,
-#             qsys/led_controller_avmm_hw.tcl -> ../altera/led_controller_avmm_hw.tcl)
+#             qsys/led_controller_avmm_hw.tcl -> ../led_controller_avmm_hw.tcl)
 #
-# This is the cvsoc roadmap Phase 2.2 "Custom Avalon MM Slave Peripheral"
-# (docs/roadmap.md), built with IPCraft instead of hand-written VHDL, in
-# place of 04_nios2_led's stock altera_avalon_pio.
+# A minimal "custom Avalon-MM slave peripheral" reference design, built
+# with IPCraft instead of hand-written VHDL.
 # ---------------------------------------------------------------------------
 
 create_system led_avmm_system

@@ -6,8 +6,8 @@
  * platform_reg_write/platform_delay_ms HAL declared in led_demo.h. See that
  * header for why this file must stay platform-independent.
  *
- * Unlike the stock altera_avalon_pio used in earlier cvsoc demos, a
- * hand-authored Platform Designer component has no matching HAL
+ * Unlike a stock altera_avalon_pio component, a hand-authored Platform
+ * Designer component has no matching HAL
  * register-access header, so registers are poked directly by byte offset.
  * Offsets match led_controller_avmm.mm.yml:
  *   0x00 VERSION       (read-only)

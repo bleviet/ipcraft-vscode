@@ -1,17 +1,17 @@
 vlnv:
-  vendor: cvsoc
+  vendor: ipcraft-examples
   library: peripherals
   name: regmap_conformance_axil
   version: 1.0.0
 apiVersion: '1.0'
 scaffold_pack: example-with-docs
 description: >
-  Hardware register-conformance test IP, AXI4-Lite variant (cvsoc roadmap,
-  ipcraft-vscode docs/hardware-conformance-test-plan.md, Variant B). Same
-  register map and STIMULUS loopback design as
-  17_ipcraft_regmap_conformance (Avalon-MM), proving the AXI4-Lite wrapper
-  on real hardware via a JTAG-to-Avalon-MM master and Platform Designer's
-  Avalon<->AXI bridging -- no HPS/Nios II required.
+  Hardware register-conformance test IP, AXI4-Lite variant (see
+  docs/hardware-conformance-test-plan.md in this repo, Variant B). Same
+  register map and STIMULUS loopback design as the
+  examples/regmap_conformance_avmm Avalon-MM example, proving the AXI4-Lite
+  wrapper on real hardware via a JTAG-to-Avalon-MM master and Platform
+  Designer's Avalon<->AXI bridging -- no HPS/Nios II required.
 targets:
   - quartus
 

@@ -1,4 +1,4 @@
-# 18_ipcraft_regmap_conformance_axil — Hardware Validation Results
+# regmap_conformance_axil — Hardware Validation Results
 
 ## Status: all 24 register access-type conformance checks PASS on DE10-Nano (Quartus 23.1std, Cyclone V), Variant B (AXI4-Lite)
 
@@ -6,7 +6,7 @@ This is the AXI4-Lite implementation of
 [docs/hardware-conformance-test-plan.md](https://github.com/bleviet/ipcraft-vscode/blob/main/docs/hardware-conformance-test-plan.md)
 (ipcraft-vscode repo), "Variant B". It proves the AXI4-Lite bus wrapper on
 real silicon using the **same register map and STIMULUS loopback design**
-as `17_ipcraft_regmap_conformance` (Avalon-MM) -- only the bus wrapper and
+as `regmap_conformance_avmm` (Avalon-MM) -- only the bus wrapper and
 test-host drivers differ.
 
 ## Key simplification over the plan's original Variant B design
@@ -27,7 +27,7 @@ Info: Interconnect is inserted between master jtag_debug_master.master and
 
 This avoids all HPS bring-up complexity (U-Boot/Linux boot flow, bridge
 enable, device tree) entirely, reuses the exact same System Console
-register-access pattern already proven on `17_ipcraft_regmap_conformance`,
+register-access pattern already proven on `regmap_conformance_avmm`,
 and still proves the thing that actually needed proving: the generated
 AXI4-Lite bus wrapper (`bus_axil.vhdl.j2`) is correct on real silicon,
 including its SLVERR response path (no Avalon-MM equivalent).
@@ -87,7 +87,7 @@ specific) the SLVERR response for an unmapped address.
 
 2. **A qsys instance label colliding with the component name breaks Tcl
    parsing differently than expected.** Reusing
-   `17_ipcraft_regmap_conformance`'s lesson (distinct instance label vs.
+   `regmap_conformance_avmm`'s lesson (distinct instance label vs.
    component name), this project used `regmap_axil` from the start -- no
    repeat of that specific bug.
 
@@ -133,7 +133,7 @@ specific) the SLVERR response for an unmapped address.
 ## What differs from the Avalon-MM cocotb gate
 
 `tb/regmap_conformance_axil_test.py` omits the two same-cycle HW-priority
-race tests present in `17_ipcraft_regmap_conformance`'s scoreboard
+race tests present in `regmap_conformance_avmm`'s scoreboard
 (`test_int_status_hw_set_beats_sw_clear`, `test_busy_hw_clear_beats_sw_set`).
 Avalon-MM's single-cycle, no-waitstate transactions let two "adjacent" bus
 calls land on genuinely adjacent clock edges, so the test can observe the
@@ -149,8 +149,8 @@ isn't the property under test. The priority logic itself is bus-agnostic RTL
 ## Reproducing
 
 ```bash
-cd 18_ipcraft_regmap_conformance_axil/tb && make SIM=ghdl WAVES=0   # pre-hardware gate
-cd ../quartus
+cd regmap_conformance_axil/tb && make SIM=ghdl WAVES=0   # pre-hardware gate
+cd ../altera/quartus
 make qsys project compile      # or: make all
 make test                      # reprograms + runs System Console conformance, 24/24 PASS
 ```

@@ -67,8 +67,7 @@ begin
   ----------------------------------------------------------------------------
   -- Bus Interface Connections
   ----------------------------------------------------------------------------
-
-  address   <= avs_address & "00";
+address   <= avs_address & "00";
   read      <= avs_read;
   write     <= avs_write;
   writedata <= avs_writedata;

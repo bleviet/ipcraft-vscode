@@ -32,7 +32,11 @@ MODULE = led_controller_avmm_test
 # Required for Questa/ModelSim: cocotb reads this env var directly inside vsim
 export COCOTB_TEST_MODULES = $(MODULE)
 
-# Simulator compile flags
+# Simulator flags — routed through EXTRA_ARGS (not
+# COMPILE_ARGS) because GHDL must see these same
+# flags again at run time (not just at analyse time) or it can't locate the elaborated
+# design; EXTRA_ARGS feeds GHDL_ARGS, which cocotb's Makefile.ghdl
+# applies to both analyse and run
 EXTRA_ARGS += --std=08 -frelaxed
 
 # Generate waveforms by default; suppress with WAVES=0

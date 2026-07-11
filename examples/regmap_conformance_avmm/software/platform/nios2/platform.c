@@ -7,8 +7,9 @@
  * register file directly by byte offset) and alt_printf for reporting.
  *
  * Uses alt_printf (not printf) -- newlib's printf overflows the 32 KB
- * on-chip RAM (cvsoc/16_ipcraft_led_avmm bring-up, bug #8 of the LED
- * series). alt_printf supports only %x, %s, %c, %%.
+ * on-chip RAM (examples/led_avmm hardware bring-up; see
+ * examples/led_avmm/docs/hardware_debug_process.md). alt_printf supports
+ * only %x, %s, %c, %%.
  */
 
 #include "system.h"

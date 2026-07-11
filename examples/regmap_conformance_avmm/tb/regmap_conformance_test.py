@@ -28,7 +28,7 @@ async def _write_reg(dut, byte_addr: int, value: int) -> None:
     regmap_conformance_hw.tcl -- see the RTL_Sources note in
     regmap_conformance.ip.yml): Platform Designer's interconnect generator
     cannot build a translator between a BYTES custom slave and
-    altera_nios2_gen2's data_master, confirmed on 16_ipcraft_led_avmm
+    altera_nios2_gen2's data_master, confirmed on led_avmm
     hardware bring-up. This driver must shift the byte offset down by 2
     to match, exactly as the fabric does.
     """

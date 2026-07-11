@@ -1,4 +1,4 @@
-# System Console Debug — `16_ipcraft_led_avmm`
+# System Console Debug — `led_avmm`
 
 Register peek/poke on real hardware via Altera System Console, using a
 JTAG-to-Avalon-MM master added to the Platform Designer system. This is the

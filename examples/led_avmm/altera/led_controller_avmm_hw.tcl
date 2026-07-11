@@ -15,13 +15,13 @@ package require qsys
 # -----------------------------------------------------------------------------
 # Module Properties
 # -----------------------------------------------------------------------------
-set_module_property DESCRIPTION "Avalon-MM peripheral for the DE10-Nano LED demo (cvsoc roadmap Phase 2.2). Drives 8 board LEDs from a software-writable pattern register and exposes a free-running heartbeat status bit with a sticky change-of-state event.
+set_module_property DESCRIPTION "Avalon-MM peripheral for the DE10-Nano LED demo. Drives 8 board LEDs from a software-writable pattern register and exposes a free-running heartbeat status bit with a sticky change-of-state event.
 "
 set_module_property NAME led_controller_avmm
 set_module_property VERSION 1.0.0
 set_module_property INTERNAL false
 set_module_property OPAQUE_ADDRESS_MAP true
-set_module_property AUTHOR "cvsoc"
+set_module_property AUTHOR "ipcraft-examples"
 set_module_property DISPLAY_NAME "Led Controller Avmm"
 set_module_property INSTANTIATE_IN_SYSTEM_MODULE true
 set_module_property EDITABLE true

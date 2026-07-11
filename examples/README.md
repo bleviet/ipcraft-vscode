@@ -49,9 +49,7 @@ port) implements that HAL and nothing else. Porting an example to a new CPU
 
 ## Shared resources
 
-`examples/common/` holds board/tooling helpers shared across examples
-(mirroring the equivalent `common/` directory in the cvsoc roadmap repo
-these examples were promoted from):
+`examples/common/` holds board/tooling helpers shared across examples:
 
 - `common/ip/power_on_reset/power_on_reset_generator.vhd` -- the
   power-on-reset generator every `altera/hdl/de10_nano_top.vhd` instantiates.

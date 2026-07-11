@@ -11,7 +11,7 @@ package require -exact qsys 12.0
 # Avalon-MM master connects to an AXI4 slave -- no HPS, no Nios II, no
 # hand-written bridge component needed. System Console then drives the same
 # master_read_32/master_write_32 register-access pattern already proven on
-# 17_ipcraft_regmap_conformance (Variant A).
+# regmap_conformance_avmm (Variant A).
 # ---------------------------------------------------------------------------
 
 create_system regmap_conformance_axil_system
@@ -25,7 +25,7 @@ set_instance_parameter_value clk_0 NUM_CLOCK_OUTPUTS 1
 # ── Reset bridge (active-high input, matching power_on_reset_generator) ──────
 # Platform Designer auto-converts polarity per consumer -- regmap_axil.reset_n
 # is active-low, jtag_debug_master.clk_reset is active-high; the interconnect
-# inserts the inversion itself, same as the Avalon-MM system (17_ipcraft_regmap_conformance).
+# inserts the inversion itself, same as the Avalon-MM system (regmap_conformance_avmm).
 add_instance reset_bridge altera_reset_bridge
 set_instance_parameter_value reset_bridge NUM_RESET_OUTPUTS {1}
 set_instance_parameter_value reset_bridge ACTIVE_LOW_RESET {0}

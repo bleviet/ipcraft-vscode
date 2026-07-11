@@ -1,4 +1,4 @@
-# 17_ipcraft_regmap_conformance — Hardware Validation Results
+# regmap_conformance_avmm — Hardware Validation Results
 
 ## Status: all 23 register access-type conformance checks PASS on DE10-Nano (Quartus 23.1std, Cyclone V), Variant A (Avalon-MM)
 
@@ -77,7 +77,7 @@ hand-patches and re-validating on real hardware (see "Regression test" below).
    `address <= avs_address(C_ADDR_WIDTH-1 downto 0);` (a byte-address slice),
    which is an out-of-range VHDL slice whenever `portWidthOverrides.address`
    narrows the port below `C_ADDR_WIDTH` for WORDS addressing — the exact
-   class of bug `16_ipcraft_led_avmm`'s hardware bring-up hit and hand-patched
+   class of bug `led_avmm`'s hardware bring-up hit and hand-patched
    (`avs_address & "00"`), but that fix was never upstreamed, so it silently
    regressed for any new Avalon-MM IP needing WORDS addressing. **Fix:** the
    template now compares the address port's actual width against
@@ -122,7 +122,7 @@ Both fixes were verified two ways:
 ## Why WORDS addressing was needed here too
 
 Variant A necessarily includes a Nios II CPU (`docs/hardware-conformance-test-plan.md`,
-"Component 4"). `16_ipcraft_led_avmm`'s hardware bring-up found that Platform
+"Component 4"). `led_avmm`'s hardware bring-up found that Platform
 Designer's interconnect generator cannot build a translator between a BYTES
 custom Avalon-MM slave and `altera_nios2_gen2`'s `data_master`. This project
 declares a narrower `portWidthOverrides.address` for exactly that reason, and
@@ -143,9 +143,9 @@ over the JTAG UART.
 **Execution on real hardware is confirmed**, but not via the intended live
 UART capture:
 
-- `nios2-download -g` + `nios2-terminal` (the `16_ipcraft_led_avmm` pattern)
+- `nios2-download -g` + `nios2-terminal` (the `led_avmm` pattern)
   connects but captures no application text — the same class of "UART
-  observation is unreliable" finding `16_ipcraft_led_avmm`'s own
+  observation is unreliable" finding `led_avmm`'s own
   `docs/hardware_debug_process.md` documents (Obstacle B). Sequential,
   separate `docker run` invocations for download vs. terminal are too slow
   relative to the firmware's near-instantaneous execution to catch live
@@ -170,15 +170,15 @@ UART capture:
   directly — the gap is JTAG-UART **text capture tooling**, not firmware or
   hardware correctness.
 
-This mirrors `16_ipcraft_led_avmm`'s own documented experience: use
+This mirrors `led_avmm`'s own documented experience: use
 register/PC-level evidence to confirm execution when live UART text capture
 is unreliable, rather than treating UART silence as a correctness failure.
 
 ## Reproducing
 
 ```bash
-cd 17_ipcraft_regmap_conformance/tb && make SIM=ghdl WAVES=0   # pre-hardware gate
-cd ../quartus
+cd regmap_conformance_avmm/tb && make SIM=ghdl WAVES=0   # pre-hardware gate
+cd ../altera/quartus
 make qsys project compile      # or: make all
 make program-sof
 make conformance-sysconsole    # 23/23 PASS, no firmware needed

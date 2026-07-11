@@ -2,7 +2,7 @@
 # Board-in-the-loop automation for docs/hardware-conformance-test-plan.md,
 # "Component 5", AXI4-Lite variant (Variant B).
 #
-# All steps run inside the cvsoc/quartus:23.1 Docker container. Call any
+# All steps run inside the ipcraft-examples/quartus:23.1 Docker container. Call any
 # target directly from the WSL2 host -- Docker is invoked automatically.
 #
 # Unlike regmap_conformance_avmm (Avalon-MM, Nios II + JTAG debug master),
@@ -24,7 +24,7 @@ QSYS_GEN_DIR  = ../qsys/regmap_conformance_axil_system_gen
 
 DEBUG_DIR     = ../debug
 
-DOCKER_IMAGE ?= cvsoc/quartus:23.1
+DOCKER_IMAGE ?= ipcraft-examples/quartus:23.1
 
 # usbipd-win bus ID for the USB-Blaster II.
 USBIPD       ?= usbipd.exe

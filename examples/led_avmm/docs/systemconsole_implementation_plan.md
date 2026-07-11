@@ -1,13 +1,13 @@
 # System Console Implementation Plan for ipcraft-vscode
 
-## Prepared from issue #36 — hardware-validated using `16_ipcraft_led_avmm`
+## Prepared from issue #36 — hardware-validated using `led_avmm`
 
 **Status: All 8 hardware tests passed on DE10-Nano (Quartus 23.1std, Cyclone V).**
 
 This document is the implementation plan for System Console-based live register
 debug in [ipcraft-vscode](https://github.com/bleviet/ipcraft-vscode), prepared
-by building and testing the full hardware path in cvsoc's
-`16_ipcraft_led_avmm` project on a DE10-Nano.
+by building and testing the full hardware path in this repo's
+`led_avmm` example on a DE10-Nano.
 
 It covers issue #36 **Part B** (TypeScript transport + live Memory Map editor
 values) and **Part D** (hardware fabric plumbing) for the Altera/System Console
@@ -28,18 +28,18 @@ path. Part A (cocotb transport) and the Vivado/xsdb path are out of scope here.
 
 ---
 
-## 1. What was built in cvsoc to validate the plan
+## 1. What was built in this repo to validate the plan
 
-The following artifacts were created in `16_ipcraft_led_avmm/` to prove out the
+The following artifacts were created in `led_avmm/` to prove out the
 full System Console register-access path on hardware:
 
 | Artifact | Path | Purpose |
 |----------|------|---------|
-| Debug qsys variant | `qsys/led_avmm_system_debug.tcl` | Adds `altera_jtag_avalon_master` to the board-level Platform Designer system, connected to `led_ctrl.S_AVMM` as a second Avalon-MM master |
-| System Console Tcl: read all | `debug/read_all_registers.tcl` | Discovers JTAG master via `get_service_paths`, claims it, reads VERSION/LED_PATTERN/EVENTS, decodes fields |
-| System Console Tcl: write LED | `debug/write_led_pattern.tcl` | Writes LED_PATTERN, reads back, verifies — the "write a field and read it back" acceptance criterion |
-| Python transport + driver | `debug/debug_console.py` | Sentinel-framed persistent `system-console --cli` subprocess; `RegisterMap` from `.mm.yml`; `RegisterDriver` with name-based read/write/field/dump/poll |
-| Makefile targets | `quartus/Makefile` | `debug-build`, `debug-program`, `debug-read-all`, `debug-write-led`, `debug-dump`, `debug-poll` |
+| Debug qsys variant | `altera/qsys/led_avmm_system_debug.tcl` | Adds `altera_jtag_avalon_master` to the board-level Platform Designer system, connected to `led_ctrl.S_AVMM` as a second Avalon-MM master |
+| System Console Tcl: read all | `altera/debug/read_all_registers.tcl` | Discovers JTAG master via `get_service_paths`, claims it, reads VERSION/LED_PATTERN/EVENTS, decodes fields |
+| System Console Tcl: write LED | `altera/debug/write_led_pattern.tcl` | Writes LED_PATTERN, reads back, verifies — the "write a field and read it back" acceptance criterion |
+| Python transport + driver | `altera/debug/debug_console.py` | Sentinel-framed persistent `system-console --cli` subprocess; `RegisterMap` from `.mm.yml`; `RegisterDriver` with name-based read/write/field/dump/poll |
+| Makefile targets | `altera/quartus/Makefile` | `debug-build`, `debug-program`, `debug-read-all`, `debug-write-led`, `debug-dump`, `debug-poll` |
 
 ### Register map under test
 
@@ -57,9 +57,9 @@ From `led_controller_avmm.mm.yml`, base `0x00010010`:
 
 ### Current state (before)
 
-The board-level system (`qsys/led_avmm_system.tcl`) has a single Avalon-MM
+The board-level system (`altera/qsys/led_avmm_system.tcl`) has a single Avalon-MM
 master (Nios II `data_master`). Register access on hardware requires a Nios II
-firmware download (`IORD`/`IOWR` in `software/app/main.c`). System Console has
+firmware download (`IORD`/`IOWR` in `software/platform/nios2/platform.c`). System Console has
 no path to the registers.
 
 The IPCraft-generated `altera/test.qsys` (from `altera_test_system.qsys.j2`)
@@ -68,7 +68,7 @@ validation wrapper, not a debug system.
 
 ### What was added
 
-`qsys/led_avmm_system_debug.tcl` — a variant of the board system that adds:
+`altera/qsys/led_avmm_system_debug.tcl` — a variant of the board system that adds:
 
 ```tcl
 add_instance jtag_debug_master altera_jtag_avalon_master
@@ -105,7 +105,7 @@ IP component and its exported interfaces — no master. The issue proposes an
 3. For the **board-level** system (user-authored `.tcl` like
    `led_avmm_system.tcl`), IPCraft doesn't generate the system — it generates
    the IP component (`_hw.tcl`). The JTAG master is added by the user in their
-   own qsys script. The cvsoc `led_avmm_system_debug.tcl` is the reference
+   own qsys script. This repo's `led_avmm_system_debug.tcl` is the reference
    pattern for how to do this.
 
 ### Bring-up caveats validated
@@ -136,7 +136,7 @@ From the issue (and confirmed by the existing `hardware_debug_process.md`):
 
 The transport spawns `system-console --cli` as a **single persistent
 subprocess** and frames each request with a sentinel marker. The Python
-prototype (`debug/debug_console.py`) proves the pattern; the TypeScript
+prototype (`altera/debug/debug_console.py`) proves the pattern; the TypeScript
 implementation maps 1:1:
 
 ```
@@ -308,7 +308,7 @@ async readRegister(regName: string): Promise<number> {
 - [ ] Add `includeDebugMaster` to `IpCoreScaffolder.ts` `buildTemplateContext`
 - [ ] Modify `altera_test_system.qsys.j2` to conditionally emit JTAG master
 - [ ] Structural test: JTAG master present when option on, absent when off
-- [ ] Validate on cvsoc `16_ipcraft_led_avmm` (this repo's debug qsys variant is the reference)
+- [ ] Validate on `led_avmm` (this repo's debug qsys variant is the reference)
 
 ### Phase 2: SystemConsoleTransport (TypeScript)
 - [ ] `RegisterTransport.ts` abstract interface
@@ -346,13 +346,13 @@ async readRegister(regName: string): Promise<number> {
 ### Prerequisites
 - DE10-Nano board with USB-Blaster II connected
 - WSL2 with `usbipd-win` (or native Linux with Quartus)
-- `cvsoc/quartus:23.1` Docker image (or native Quartus 23.1std/25.1std)
+- `ipcraft-examples/quartus:23.1` Docker image (or native Quartus 23.1std/25.1std)
 - USB-Blaster attached to WSL: `make usb-wsl`
 
 ### Step 1: Build the debug variant
 
 ```bash
-cd 16_ipcraft_led_avmm/quartus
+cd led_avmm/altera/quartus
 make debug-build
 ```
 
@@ -446,9 +446,9 @@ Expected: `HEARTBEAT_ACTIVE` (bit 0) toggles ~every 1.3s (25-bit counter at
 
 ```bash
 docker run --rm --privileged -v /dev/bus/usb:/dev/bus/usb \
-  -v $(realpath ../..):/work cvsoc/quartus:23.1 \
+  -v $(realpath ../..):/work ipcraft-examples/quartus:23.1 \
   bash -c 'jtagd && sleep 2 && \
-    python3 /work/16_ipcraft_led_avmm/debug/debug_console.py \
+    python3 /work/led_avmm/altera/debug/debug_console.py \
       --base 0x00010010 read VERSION; \
     kill $$(pgrep jtagd) 2>/dev/null'
 ```
@@ -457,9 +457,9 @@ docker run --rm --privileged -v /dev/bus/usb:/dev/bus/usb \
 
 ```bash
 docker run --rm --privileged -v /dev/bus/usb:/dev/bus/usb \
-  -v $(realpath ../..):/work cvsoc/quartus:23.1 \
+  -v $(realpath ../..):/work ipcraft-examples/quartus:23.1 \
   bash -c 'jtagd && sleep 2 && \
-    python3 /work/16_ipcraft_led_avmm/debug/debug_console.py \
+    python3 /work/led_avmm/altera/debug/debug_console.py \
       --base 0x00010010 write-field LED_PATTERN PATTERN 0x55; \
     kill $$(pgrep jtagd) 2>/dev/null'
 ```
@@ -474,8 +474,8 @@ then reads back and verifies — the exact read-modify-write the TS
 
 | Issue #36 criterion | Validated by |
 |---------------------|-------------|
-| Structural test: `altera_test_system.qsys` includes JTAG master when debug option on | `qsys/led_avmm_system_debug.tcl` — reference implementation |
-| `SystemConsoleTransport` exact Tcl and parsing | `debug/read_all_registers.tcl` + `debug/write_led_pattern.tcl` |
+| Structural test: `altera_test_system.qsys` includes JTAG master when debug option on | `altera/qsys/led_avmm_system_debug.tcl` — reference implementation |
+| `SystemConsoleTransport` exact Tcl and parsing | `altera/debug/read_all_registers.tcl` + `altera/debug/write_led_pattern.tcl` |
 | Sentinel framing tolerates chunked/interleaved stdout | `debug_console.py:_exec_tcl()` — reads line-by-line until sentinel |
 | `revisionFilter` test: `liveValues` never advances `docVersion` | Design validated: `liveValues` is a separate message type, bypasses `DocumentManager` |
 | Live read populates register value bar + `BitFieldVisualizer` | `debug_console.py:dump()` demonstrates field-level decode from hardware reads |
@@ -491,7 +491,7 @@ then reads back and verifies — the exact read-modify-write the TS
 
 ---
 
-## 9. Key findings from the cvsoc implementation
+## 9. Key findings from the led_avmm implementation
 
 1. **No Docker for JTAG** — The issue correctly notes that the Docker runner
    does not apply for JTAG transports (JTAG needs the host's USB). The

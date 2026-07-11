@@ -6,7 +6,7 @@ use ieee.std_logic_1164.all;
 -- variant) on the DE10-Nano board. Instantiates the Platform Designer system
 -- (regmap_conformance_axil_system) and ties the power-on-reset generator
 -- into the system reset input. Same shape as
--- 17_ipcraft_regmap_conformance/hdl/de10_nano_top.vhd.
+-- regmap_conformance_avmm/hdl/de10_nano_top.vhd.
 --------------------------------------------------------------------------------
 entity de10_nano_top is
   port (

@@ -2,7 +2,7 @@
 # System Console CLI script: discover JTAG master, claim it, read all
 # led_controller_avmm registers, and print results with sentinel framing.
 #
-# Usage (inside the cvsoc/quartus Docker image or a native Quartus install):
+# Usage (inside a Quartus Docker image or a native Quartus install):
 #   system-console --cli --script=debug_read_all.tcl
 #
 # Or from the Makefile:

@@ -11,7 +11,7 @@ package require -exact qsys 12.0
 #             and a JTAG-to-Avalon-MM debug master.
 #
 # Nios II and the JTAG-to-Avalon-MM debug master are combined in ONE system
-# (not two separate .sof's) -- the approach 16_ipcraft_led_avmm's debug
+# (not two separate .sof's) -- the approach led_avmm's debug
 # variant (qsys/led_avmm_system_debug.tcl) proved on hardware: Platform
 # Designer's interconnect automatically arbitrates between the two masters.
 # This resolves the plan's "Nios II + JTAG master: one system vs. two" open

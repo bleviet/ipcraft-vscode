@@ -2,7 +2,7 @@
 # Orchestrates: Platform Designer generation -> Quartus compile -> BSP
 # generation -> app build.
 #
-# All steps run inside the cvsoc/quartus:23.1 Docker container.
+# All steps run inside the ipcraft-examples/quartus:23.1 Docker container.
 # Call any target directly from the WSL2 host -- Docker is invoked automatically.
 #
 # led_controller_avmm's RTL/altera/tb are IPCraft-generated
@@ -32,7 +32,7 @@ LED_CTRL_BASE  = 0x00010010
 BSP_DIR       = ../../software/platform/nios2/bsp
 APP_DIR       = ../../software/platform/nios2
 
-DOCKER_IMAGE ?= cvsoc/quartus:23.1
+DOCKER_IMAGE ?= ipcraft-examples/quartus:23.1
 
 # usbipd-win bus ID for the USB-Blaster II.
 # Find yours with: usbipd.exe list  (look for "USB-Blaster")

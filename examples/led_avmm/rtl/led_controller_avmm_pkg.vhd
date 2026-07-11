@@ -38,7 +38,7 @@ package led_controller_avmm_pkg is
 
   constant C_REG_VERSION_RESET : t_reg_version := (
     minor => (others => '0'),
-    major => std_logic_vector(to_unsigned(1, 8))
+    major => "00000001"
   );
 
   function to_slv(reg : t_reg_version) return std_logic_vector;

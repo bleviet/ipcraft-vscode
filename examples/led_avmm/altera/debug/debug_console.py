@@ -22,12 +22,13 @@ single source of truth the ipcraft-vscode extension uses).
 
 Requirements:
     - PyYAML (for .mm.yml parsing)
-    - system-console in PATH (Quartus installation or cvsoc/quartus Docker image)
+    - system-console in PATH (a Quartus installation, or an equivalent Docker image)
 
-Run inside Docker:
+Run inside Docker (adjust the image tag to whatever you built/tagged your
+Quartus Docker image as):
     docker run --rm --privileged -v /dev/bus/usb:/dev/bus/usb \
-      -v $(realpath ../..):/work cvsoc/quartus:23.1 \
-      python3 /work/16_ipcraft_led_avmm/debug/debug_console.py --base 0x00010010 dump
+      -v $(realpath ../../..):/work ipcraft-examples/quartus:23.1 \
+      python3 /work/led_avmm/altera/debug/debug_console.py --base 0x00010010 dump
 """
 
 import argparse
@@ -39,7 +40,7 @@ import tempfile
 import time
 
 # Try PyYAML first; fall back to a minimal parser for the simple .mm.yml
-# structure (the cvsoc/quartus:23.1 Docker image has no PyYAML/setuptools).
+# structure (some minimal Quartus Docker images have no PyYAML/setuptools).
 try:
     import yaml
     _HAS_PYYAML = True

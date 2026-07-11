@@ -4,7 +4,7 @@
 # generation -> app build -> program -> run the conformance self-test ->
 # aggregate PASS/FAIL exit code.
 #
-# All steps run inside the cvsoc/quartus:23.1 Docker container. Call any
+# All steps run inside the ipcraft-examples/quartus:23.1 Docker container. Call any
 # target directly from the WSL2 host -- Docker is invoked automatically.
 #
 # All vendor tooling lives under altera/ (this file's own directory tree) --
@@ -31,7 +31,7 @@ DEBUG_DIR     = ../debug
 BSP_DIR       = ../../software/platform/nios2/bsp
 APP_DIR       = ../../software/platform/nios2
 
-DOCKER_IMAGE ?= cvsoc/quartus:23.1
+DOCKER_IMAGE ?= ipcraft-examples/quartus:23.1
 
 # usbipd-win bus ID for the USB-Blaster II.
 # Find yours with: usbipd.exe list  (look for "USB-Blaster")

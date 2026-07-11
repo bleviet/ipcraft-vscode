@@ -29,8 +29,7 @@ entity led_controller_avmm_avmm is
     avs_write        : in  std_logic;
     avs_byteenable   : in  std_logic_vector(3 downto 0);
     avs_writedata    : in  std_logic_vector(31 downto 0);
-    avs_readdata     : out std_logic_vector(31 downto 0)
-    ;
+    avs_readdata     : out std_logic_vector(31 downto 0);
 
     -- Register interface
     regs_out : out t_regs_sw2hw;  -- To core (SW-writable)
@@ -55,8 +54,7 @@ begin
   ----------------------------------------------------------------------------
   -- Bus Interface Connections
   ----------------------------------------------------------------------------
-  
-  address   <= avs_address & "00";
+address   <= avs_address & "00";
   read      <= avs_read;
   write     <= avs_write;
   writedata <= avs_writedata;

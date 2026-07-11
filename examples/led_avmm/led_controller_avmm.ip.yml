@@ -1,12 +1,12 @@
 vlnv:
-  vendor: cvsoc
+  vendor: ipcraft-examples
   library: peripherals
   name: led_controller_avmm
   version: 1.0.0
 apiVersion: '1.0'
 scaffold_pack: example-with-docs
 description: >
-  Avalon-MM peripheral for the DE10-Nano LED demo (cvsoc roadmap Phase 2.2). Drives 8 board LEDs from a software-writable pattern register and exposes a free-running heartbeat status bit with a sticky change-of-state event.
+  Avalon-MM peripheral for the DE10-Nano LED demo. Drives 8 board LEDs from a software-writable pattern register and exposes a free-running heartbeat status bit with a sticky change-of-state event.
 targets:
   - quartus
 
@@ -84,16 +84,3 @@ fileSets:
       - path: tb/test_led_controller_avmm_sim.py
         type: python
         managed: false
-  - name: Integration
-    description: Integration Files
-    files:
-      - path: xilinx/component.xml
-        type: unknown
-      - path: xilinx/led_controller_avmm_project.tcl
-        type: tcl
-      - path: xilinx/led_controller_avmm_run_xpr.tcl
-        type: tcl
-      - path: xilinx/led_controller_avmm_run_ooc.tcl
-        type: tcl
-      - path: xilinx/xgui/led_controller_avmm_v1_0_0.tcl
-        type: tcl

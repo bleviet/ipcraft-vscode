@@ -1,8 +1,8 @@
-# 16_ipcraft_led_avmm — Hardware Debug Process (LED Not Blinking)
+# led_avmm — Hardware Debug Process (LED Not Blinking)
 
 ## Goal
 
-Investigate why `16_ipcraft_led_avmm` appeared non-functional on real hardware ("cannot see LED blinking"), identify root cause(s), fix them, and verify on board.
+Investigate why `led_avmm` appeared non-functional on real hardware ("cannot see LED blinking"), identify root cause(s), fix them, and verify on board.
 
 ---
 
@@ -11,10 +11,10 @@ Investigate why `16_ipcraft_led_avmm` appeared non-functional on real hardware (
 ### What I ran first
 
 ```bash
-cd 16_ipcraft_led_avmm/quartus
+cd led_avmm/altera/quartus
 make program-sof
 make download-elf
-timeout 10s docker run ... cvsoc/quartus:23.1 nios2-terminal
+timeout 10s docker run ... ipcraft-examples/quartus:23.1 nios2-terminal
 ```
 
 ### Why
@@ -39,7 +39,7 @@ I inspected:
 - `rtl/led_controller_avmm_avmm.vhd`
 - `altera/led_controller_avmm_hw.tcl`
 - `led_controller_avmm.ip.yml`
-- `software/app/main.c`
+- `software/platform/nios2/main.c`
 - generated `qsys` outputs (`led_avmm_system.vhd`, interconnect)
 
 ### Key finding
@@ -102,7 +102,7 @@ This gave direct visibility into:
 Used GDB break/step on hardware:
 
 ```bash
-nios2-download /work/16_ipcraft_led_avmm/software/app/led_avmm_demo.elf --tcpport 2342
+nios2-download /work/led_avmm/software/platform/nios2/led_avmm_demo.elf --tcpport 2342
 nios2-elf-gdb ... \
   -ex "break main" \
   -ex "continue" \
@@ -186,6 +186,12 @@ Updated `software/app/main.c`:
 
 This made LED behavior observable without requiring an attached terminal.
 
+(At the time of this investigation, the LED demo logic lived directly in
+`software/app/main.c`; it has since been split into a portable
+`software/app/led_demo.c` plus a thin `software/platform/nios2/main.c` entry
+point, per [`docs/README.md`](README.md)'s HAL split -- the fixes described
+below still apply to the current file layout.)
+
 ---
 
 ## 6. Rebuild + On-Board Verification After Fix
@@ -193,7 +199,7 @@ This made LED behavior observable without requiring an attached terminal.
 ### Rebuild
 
 ```bash
-cd 16_ipcraft_led_avmm/quartus
+cd led_avmm/altera/quartus
 make qsys project compile
 ```
 
@@ -201,7 +207,7 @@ make qsys project compile
 
 ```bash
 make program-sof
-nios2-download -g /work/16_ipcraft_led_avmm/software/app/led_avmm_demo.elf
+nios2-download -g /work/led_avmm/software/platform/nios2/led_avmm_demo.elf
 ```
 
 ### Hardware proof points captured

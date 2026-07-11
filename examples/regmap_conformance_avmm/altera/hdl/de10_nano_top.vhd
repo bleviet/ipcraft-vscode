@@ -5,7 +5,7 @@ use ieee.std_logic_1164.all;
 -- Top-level wrapper for the register access-type conformance test on the
 -- DE10-Nano board. Instantiates the Platform Designer system
 -- (regmap_conformance_system) and ties the power-on-reset generator into
--- the system reset input. Same shape as 16_ipcraft_led_avmm/hdl/de10_nano_top.vhd.
+-- the system reset input. Same shape as led_avmm/hdl/de10_nano_top.vhd.
 --------------------------------------------------------------------------------
 entity de10_nano_top is
   port (

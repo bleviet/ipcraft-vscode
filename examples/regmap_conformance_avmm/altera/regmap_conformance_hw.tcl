@@ -15,13 +15,13 @@ package require qsys
 # -----------------------------------------------------------------------------
 # Module Properties
 # -----------------------------------------------------------------------------
-set_module_property DESCRIPTION "Hardware register-conformance test IP (cvsoc roadmap, ipcraft-vscode docs/hardware-conformance-test-plan.md). Exercises all seven IPCraft field access types plus change-of-state, register arrays, byte strobes, mixed registers, and enumerated/non-zero-reset fields, self-checked via a software-writable STIMULUS loopback register.
+set_module_property DESCRIPTION "Hardware register-conformance test IP (see docs/hardware-conformance-test-plan.md in this repo). Exercises all seven IPCraft field access types plus change-of-state, register arrays, byte strobes, mixed registers, and enumerated/non-zero-reset fields, self-checked via a software-writable STIMULUS loopback register.
 "
 set_module_property NAME regmap_conformance
 set_module_property VERSION 1.0.0
 set_module_property INTERNAL false
 set_module_property OPAQUE_ADDRESS_MAP true
-set_module_property AUTHOR "cvsoc"
+set_module_property AUTHOR "ipcraft-examples"
 set_module_property DISPLAY_NAME "Regmap Conformance"
 set_module_property INSTANTIATE_IN_SYSTEM_MODULE true
 set_module_property EDITABLE true
@@ -74,7 +74,6 @@ set_interface_property S_AVMM CMSIS_SVD_VARIABLES ""
 set_interface_property S_AVMM SVD_ADDRESS_GROUP ""
 
 # Type-specific properties
-
 set_interface_property S_AVMM addressUnits WORDS
 set_interface_property S_AVMM maximumPendingReadTransactions 0
 # Ports
