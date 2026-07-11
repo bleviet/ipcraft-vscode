@@ -27,8 +27,27 @@ generation is provably correct end-to-end, not just in simulation.
 > `cvsoc/17_ipcraft_regmap_conformance/docs/hardware_validation_results.md`
 > for full results, including a known JTAG-UART-capture tooling limitation
 > on the Nios II host (execution is confirmed via register readback instead).
-> AXI4-Lite (Variant B) and the Xilinx/xsdb path remain as designed, not yet
-> built.
+>
+> **AXI4-Lite (Variant B) implementation status: done, validated on
+> DE10-Nano hardware.** Lives at `cvsoc/18_ipcraft_regmap_conformance_axil/`.
+> All 24 conformance checks pass via System Console (`make test`); the
+> cocotb pre-hardware gate is green (13/13). Simpler than the plan's
+> original design: instead of the HPS lightweight bridge + ARM bare-metal/
+> Linux, a JTAG-to-Avalon-MM debug master connects **directly** to the
+> AXI4-Lite slave — Platform Designer auto-inserts the Avalon-MM<->AXI4
+> protocol bridge (`altera_merlin_axi_slave_ni`) with no manual bridge
+> component, confirmed empirically. This proves the generated AXI4-Lite bus
+> wrapper (`bus_axil.vhdl.j2`) on real silicon, including its SLVERR
+> response path, while skipping all HPS bring-up complexity. Found (but did
+> not fix) two more generator quirks: unescaped double quotes in an
+> `.ip.yml` `description:` field corrupt the generated `_hw.tcl` Tcl string
+> silently (`altera_hw_tcl.j2` doesn't escape the description), and the
+> AXI4-Lite address decode doesn't word-align AWADDR before comparing
+> against register offsets (a spec-legal but uncommon narrow-transfer
+> pattern; not confirmed to matter on real hardware, since no master this
+> project actually drove — cocotbext.axi excepted — exercises it). See
+> `cvsoc/18_ipcraft_regmap_conformance_axil/docs/hardware_validation_results.md`.
+> The Xilinx/xsdb path remains as designed, not yet built.
 
 ## Why this plan exists
 
