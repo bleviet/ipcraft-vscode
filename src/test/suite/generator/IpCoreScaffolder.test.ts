@@ -791,6 +791,63 @@ describe('IpCoreScaffolder', () => {
     }
   });
 
+  it('gates HDL input-version assignments on the actual RTL languages (issue #76)', async () => {
+    // quartus_project.tcl.j2 unconditionally emitted VHDL_INPUT_VERSION VHDL_2008
+    // even for a pure-SystemVerilog design. The Quartus toolchain now derives
+    // has_vhdl / has_sv from rtl_files (with a fallback to is_systemverilog when
+    // rtl_files is empty) so an SV project emits VERILOG_INPUT_VERSION
+    // SYSTEMVERILOG_2005, a VHDL project keeps VHDL_INPUT_VERSION VHDL_2008, and
+    // a mixed-language project sets both. Note: the issue proposed
+    // SYSTEMVERILOG_INPUT_VERSION SYSTEMVERILOG_2012, but Quartus 23.1std rejects
+    // that assignment name ("Illegal assignment"); the legal equivalent is
+    // VERILOG_INPUT_VERSION SYSTEMVERILOG_2005.
+    const baseYaml = [
+      'vlnv:',
+      '  vendor: test',
+      '  library: lib',
+      '  name: hdlver_core',
+      '  version: 1.0.0',
+      'clocks:',
+      '  - name: clk',
+      '    direction: in',
+    ].join('\n');
+
+    const runFor = async (hdlLanguage: 'vhdl' | 'systemverilog') => {
+      const tmpPath = path.join(os.tmpdir(), `ipcraft_hdlver_${hdlLanguage}_${Date.now()}.ip.yml`);
+      await (jest.requireActual('fs/promises') as typeof import('fs/promises')).writeFile(
+        tmpPath,
+        baseYaml,
+        'utf-8'
+      );
+      try {
+        const result = await scaffolder.generateAll(tmpPath, '/tmp/test-output-hdlver', {
+          targets: ['quartus'],
+          includeQuartusProject: true,
+          quartusDevice: '5CSEBA6U23I7',
+          hdlLanguage,
+        });
+        expect(result.success).toBe(true);
+        return (fs.writeFile as unknown as jest.Mock).mock.calls
+          .filter((call) => String(call[0]).endsWith('_project.tcl'))
+          .pop()?.[1] as string;
+      } finally {
+        await (jest.requireActual('fs/promises') as typeof import('fs/promises'))
+          .unlink(tmpPath)
+          .catch(() => {});
+      }
+    };
+
+    const svTcl = await runFor('systemverilog');
+    expect(svTcl).toBeDefined();
+    expect(svTcl).toContain('set_global_assignment -name VERILOG_INPUT_VERSION SYSTEMVERILOG_2005');
+    expect(svTcl).not.toContain('VHDL_INPUT_VERSION');
+
+    const vhdlTcl = await runFor('vhdl');
+    expect(vhdlTcl).toBeDefined();
+    expect(vhdlTcl).toContain('set_global_assignment -name VHDL_INPUT_VERSION VHDL_2008');
+    expect(vhdlTcl).not.toContain('VERILOG_INPUT_VERSION');
+  });
+
   it('surfaces ajv schema error when simulation.engine is invalid', async () => {
     // Write a temp fixture with an invalid simulation.engine value
     const tmpPath = require('path').join(
