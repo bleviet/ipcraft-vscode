@@ -1,0 +1,68 @@
+# Terasic DE10-Nano board definition.
+#
+# Pin values are hardware-verified — see de10-nano-led-comparison/docs/assumptions.md
+# (sources S1: examples/led_avmm/altera/quartus/de10_nano_pin_assignments.tcl,
+# S2: Terasic DE10-Nano golden top-level reference design, S3: DE10-Nano User Manual).
+
+name: DE10-Nano
+device: 5CSEBA6U23I7
+family: Cyclone V SoC
+vendor: Terasic
+
+clocks:
+  - name: FPGA_CLK1_50
+    pin: PIN_V11
+    frequencyHz: 50000000
+    ioStandard: 3.3-V LVTTL
+
+resets:
+  - name: KEY0
+    pin: PIN_AH17
+    polarity: activeLow
+    ioStandard: 3.3-V LVTTL
+  - name: KEY1
+    pin: PIN_AH16
+    polarity: activeLow
+    ioStandard: 3.3-V LVTTL
+
+ios:
+  - name: LED0
+    pin: PIN_W15
+    direction: out
+    polarity: activeHigh
+    ioStandard: 3.3-V LVTTL
+  - name: LED1
+    pin: PIN_AA24
+    direction: out
+    polarity: activeHigh
+    ioStandard: 3.3-V LVTTL
+  - name: LED2
+    pin: PIN_V16
+    direction: out
+    polarity: activeHigh
+    ioStandard: 3.3-V LVTTL
+  - name: LED3
+    pin: PIN_V15
+    direction: out
+    polarity: activeHigh
+    ioStandard: 3.3-V LVTTL
+  - name: LED4
+    pin: PIN_AF26
+    direction: out
+    polarity: activeHigh
+    ioStandard: 3.3-V LVTTL
+  - name: LED5
+    pin: PIN_AE26
+    direction: out
+    polarity: activeHigh
+    ioStandard: 3.3-V LVTTL
+  - name: LED6
+    pin: PIN_Y16
+    direction: out
+    polarity: activeHigh
+    ioStandard: 3.3-V LVTTL
+  - name: LED7
+    pin: PIN_AA23
+    direction: out
+    polarity: activeHigh
+    ioStandard: 3.3-V LVTTL

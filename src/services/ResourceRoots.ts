@@ -6,6 +6,7 @@ export interface ResourceRoots {
   readonly builtinPacksDir: string;
   readonly templatesDir: string;
   readonly busDefinitionsDir: string;
+  readonly boardsDir: string;
 }
 
 export function resolveResourceRoots(extensionPath: string): ResourceRoots {
@@ -14,6 +15,7 @@ export function resolveResourceRoots(extensionPath: string): ResourceRoots {
     builtinPacksDir: path.join(extensionPath, 'dist', 'packs'),
     templatesDir: path.join(extensionPath, 'dist', 'templates'),
     busDefinitionsDir: path.join(extensionPath, 'dist', 'resources', 'bus_definitions'),
+    boardsDir: path.join(extensionPath, 'dist', 'resources', 'boards'),
   };
 
   // Verify that all directories exist to fail fast at activation
@@ -22,6 +24,7 @@ export function resolveResourceRoots(extensionPath: string): ResourceRoots {
     roots.builtinPacksDir,
     roots.templatesDir,
     roots.busDefinitionsDir,
+    roots.boardsDir,
   ];
   for (const dir of dirs) {
     if (!fs.existsSync(dir)) {
@@ -40,6 +43,7 @@ export function devResourceRoots(repoRoot: string): ResourceRoots {
     builtinPacksDir: path.join(repoRoot, 'src', 'generator', 'packs'),
     templatesDir: path.join(repoRoot, 'src', 'generator', 'templates'),
     busDefinitionsDir: path.join(repoRoot, 'ipcraft-spec', 'bus_definitions'),
+    boardsDir: path.join(repoRoot, 'resources', 'boards'),
   };
 
   // Verify that all directories exist to fail fast in tests
@@ -48,6 +52,7 @@ export function devResourceRoots(repoRoot: string): ResourceRoots {
     roots.builtinPacksDir,
     roots.templatesDir,
     roots.busDefinitionsDir,
+    roots.boardsDir,
   ];
   for (const dir of dirs) {
     if (!fs.existsSync(dir)) {

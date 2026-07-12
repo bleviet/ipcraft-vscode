@@ -1,6 +1,7 @@
 ipcraft-spec/**
 demo/**
 examples/**
+de10-nano-led-comparison/**
 .test-fixtures/**
 resources/icon.svg
 .vscode/**

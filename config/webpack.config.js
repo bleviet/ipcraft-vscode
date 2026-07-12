@@ -101,6 +101,14 @@ const extensionConfig = {
           from: path.resolve(projectRoot, "ipcraft-spec", "schemas", "memory_map.schema.json"),
           to: "resources/schemas/memory_map.schema.json",
         },
+        {
+          from: path.resolve(projectRoot, "ipcraft-spec", "schemas", "board.schema.json"),
+          to: "resources/schemas/board.schema.json",
+        },
+        {
+          from: path.resolve(projectRoot, "resources", "boards"),
+          to: "resources/boards",
+        },
       ],
     }),
   ],

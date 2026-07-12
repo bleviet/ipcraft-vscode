@@ -113,6 +113,12 @@
         "icon": "$(circuit-board)"
       },
       {
+        "command": "fpga-ip-core.newBoardProject",
+        "title": "New Board Project",
+        "category": "IPCraft",
+        "icon": "$(circuit-board)"
+      },
+      {
         "command": "fpga-ip-core.generateAndBuildVivado",
         "title": "Generate & Build (Vivado OOC)",
         "category": "IPCraft",
@@ -383,14 +389,19 @@
           "group": "4_build@2"
         },
         {
+          "command": "fpga-ip-core.newBoardProject",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/",
+          "group": "4_build@3"
+        },
+        {
           "command": "fpga-ip-core.build",
           "when": "resourceFilename =~ /\\.ip\\.yml$/ && (ipcraft.vivadoFound || ipcraft.quartusFound)",
-          "group": "4_build@3"
+          "group": "4_build@4"
         },
         {
           "command": "fpga-ip-core.buildNotConfigured",
           "when": "resourceFilename =~ /\\.ip\\.yml$/ && !ipcraft.vivadoFound && !ipcraft.quartusFound",
-          "group": "4_build@3"
+          "group": "4_build@4"
         },
         {
           "command": "fpga-ip-core.showBuildOutput",
@@ -471,6 +482,11 @@
         },
         {
           "command": "fpga-ip-core.generateQuartusProject",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/",
+          "group": "ipcraft@5"
+        },
+        {
+          "command": "fpga-ip-core.newBoardProject",
           "when": "resourceFilename =~ /\\.ip\\.yml$/",
           "group": "ipcraft@5"
         },
@@ -611,6 +627,10 @@
         },
         {
           "command": "fpga-ip-core.generateQuartusProject",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/"
+        },
+        {
+          "command": "fpga-ip-core.newBoardProject",
           "when": "resourceFilename =~ /\\.ip\\.yml$/"
         },
         {

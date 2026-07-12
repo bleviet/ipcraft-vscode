@@ -1,6 +1,5 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import * as yaml from 'js-yaml';
 import * as vscode from 'vscode';
 import { Logger } from '../utils/Logger';
 import { ResourceRoots } from '../services/ResourceRoots';
@@ -12,16 +11,14 @@ import { ScaffoldPackLoader } from './ScaffoldPackLoader';
 import {
   getBusTypeForTemplate,
   hasMemoryMappedSlaveInterface,
-  normalizeIpCoreData,
   prepareRegisters,
   resolveMemoryMaps,
   projectMemoryMapsForTemplate,
 } from './registerProcessor';
-import { normalizeParameterDataType } from '../parser/paramDataType';
+import { loadIpCoreData } from './loadIpCore';
 import { sortByCompilationOrder } from '../utils/compilationOrder';
 import { getToolchain } from '../services/toolchains/registry';
 import { generateTestbenchFiles, DEFAULT_FRAMEWORK, DEFAULT_ENGINE } from './testbench';
-import { YamlValidator } from '../services/YamlValidator';
 import { assertValidContext, CONTRACT_VERSION, checkPackApiVersion } from './contract';
 import type { TemplateContext } from './contract';
 import { BUS_REGISTRY } from './buses/builtin';
@@ -45,7 +42,6 @@ export class IpCoreScaffolder {
   private readonly logger: Logger;
   private readonly templates: TemplateLoader;
   private readonly busLibraryService: BusLibraryService;
-  private readonly validator = new YamlValidator();
   private busDefinitions: BusDefinitions | null = null;
   private readonly resourceRoots: ResourceRoots;
 
@@ -363,29 +359,7 @@ export class IpCoreScaffolder {
   }
 
   private async loadIpCore(inputPath: string): Promise<IpCoreData> {
-    const content = await fs.readFile(inputPath, 'utf8');
-    const parsed = yaml.load(content);
-    if (!parsed || typeof parsed !== 'object') {
-      throw new Error('Invalid IP core YAML');
-    }
-    // Canonicalise HDL parameter types (e.g. `positive` -> `natural`) so that
-    // hand-written specs validate and the generator emits a valid HDL generic
-    // type. Importers already normalise; this covers the direct-YAML path.
-    const params = (parsed as Record<string, unknown>).parameters;
-    if (Array.isArray(params)) {
-      for (const p of params) {
-        if (p && typeof p === 'object' && 'dataType' in p) {
-          const param = p as Record<string, unknown>;
-          param.dataType = normalizeParameterDataType(param.dataType as string | undefined);
-        }
-      }
-    }
-    const schemaPath = path.join(this.resourceRoots.schemasDir, 'ip_core.schema.json');
-    const schemaResult = this.validator.validateAgainstSchema(parsed, schemaPath);
-    if (!schemaResult.valid) {
-      throw new Error(`IP core YAML schema validation failed: ${schemaResult.error}`);
-    }
-    return normalizeIpCoreData(parsed as Record<string, unknown>);
+    return loadIpCoreData(inputPath, this.resourceRoots);
   }
 
   /**
