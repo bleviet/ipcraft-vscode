@@ -8,7 +8,7 @@
 
 module {{ entity_name }} (
 {% if clock_wrapper_port %}
-  input  logic {{ clock_wrapper_port }},
+  input  logic {{ clock_wrapper_port }}{{ "," if reset_wrapper_port or user_ports | length else "" }}
 {% endif %}
 {% if reset_wrapper_port %}
   input  logic {{ reset_wrapper_port }}{{ "," if user_ports | length else "" }}

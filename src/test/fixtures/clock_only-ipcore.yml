@@ -1,0 +1,27 @@
+# Clock-only IP core (no reset, no user ports) for testing the board-top wrapper
+# port-list comma handling. Schema-valid: resets and ports are optional.
+vlnv:
+  vendor: de10-nano-demo
+  library: examples
+  name: clock_only
+  version: 1.0.0
+apiVersion: '1.0'
+description: Clock-only IP for testing board-top port list syntax.
+scaffold_pack: builtin-minimal
+targets:
+  - quartus
+
+clocks:
+  - name: clk
+    logicalName: CLK
+    direction: in
+    frequency: 50MHz
+    description: FPGA_CLK1_50 board oscillator (PIN_V11)
+
+fileSets:
+  - name: RTL_Sources
+    description: RTL Sources (hand-authored)
+    files:
+      - path: ../../common/rtl/clock_only.sv
+        type: systemverilog
+        managed: false

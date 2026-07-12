@@ -16,6 +16,7 @@ const templates = new TemplateLoader(
 );
 
 const ipYamlPath = path.join(repoRoot, 'src', 'test', 'fixtures', 'led_blink-ipcore.yml');
+const clockOnlyIpYamlPath = path.join(repoRoot, 'src', 'test', 'fixtures', 'clock_only-ipcore.yml');
 const boardYamlPath = builtinBoardPath(resourceRoots, 'de10_nano.board.yml');
 
 function baseOptions(): BoardProjectOptions {
@@ -25,6 +26,13 @@ function baseOptions(): BoardProjectOptions {
     resourceRoots,
     templates,
     hdlLanguage: 'systemverilog',
+  };
+}
+
+function clockOnlyOptions(): BoardProjectOptions {
+  return {
+    ...baseOptions(),
+    ipYamlPath: clockOnlyIpYamlPath,
   };
 }
 
@@ -70,5 +78,14 @@ describe('BoardProjectScaffolder', () => {
     const { files } = await scaffoldBoardProject(baseOptions());
     const wrapper = files['altera-board/led_blink_board_top.sv'];
     expect(wrapper).toContain('.rst_n (key0)');
+  });
+
+  it('clock-only IP (no reset, no user ports) produces valid port list with no trailing comma', async () => {
+    const { files } = await scaffoldBoardProject(clockOnlyOptions());
+    const wrapper = files['altera-board/clock_only_board_top.sv'];
+    expect(wrapper).toBeDefined();
+    // The clock line must not end with a comma when there are no subsequent ports.
+    expect(wrapper).toContain('input  logic fpga_clk1_50\n);');
+    expect(wrapper).not.toContain('fpga_clk1_50,');
   });
 });
