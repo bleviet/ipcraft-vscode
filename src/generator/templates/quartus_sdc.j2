@@ -7,10 +7,10 @@
 # Adjust the -period values (in nanoseconds) if the target implementation
 # frequency differs from the specification.
 
-# Automatically derive PLL clocks to ensure internal system clocks are constrained
+{% if has_pll %}# Automatically derive PLL clocks to ensure internal system clocks are constrained
 derive_pll_clocks -create_base_clocks
 
-# Automatically calculate clock uncertainty (jitter, skew) for accurate STA
+{% endif %}# Automatically calculate clock uncertainty (jitter, skew) for accurate STA
 derive_clock_uncertainty
 
 {% if clocks_with_period %}

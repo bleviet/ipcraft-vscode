@@ -89,6 +89,32 @@ export function resolveHwTclRtlFiles(
 }
 
 /**
+ * Detect whether the design instantiates a PLL so the generated .sdc can gate
+ * `derive_pll_clocks -create_base_clocks` (Quartus emits a warning when this
+ * command runs against a design with no PLL). The heuristic: any RTL file in
+ * `rtlFiles` or in the ip.yml `fileSets` whose path contains "pll" (case-
+ * insensitive) is treated as a PLL source (e.g. `my_pll.vhd`, `altera_pll.qip`,
+ * `pll_inst.sv`). Users who need `derive_pll_clocks` for an unconventionally
+ * named PLL can rename or split the file; the trade-off is documented in the
+ * issue (#77) — silently emitting the command on every design was the bug.
+ */
+export function detectPll(rtlFiles: string[] | undefined, ipCoreData: IpCoreData): boolean {
+  const paths: string[] = [...(rtlFiles ?? [])];
+  type FSEntry = { files?: Array<{ path?: string }> };
+  const fileSets = (ipCoreData as Record<string, unknown>).fileSets as FSEntry[] | undefined;
+  if (Array.isArray(fileSets)) {
+    for (const fs of fileSets) {
+      for (const f of fs.files ?? []) {
+        if (f.path) {
+          paths.push(f.path);
+        }
+      }
+    }
+  }
+  return paths.some((p) => /pll/i.test(p));
+}
+
+/**
  * Map a normalized bus template type (axil, axi4, axis, avmm, avst) to the
  * string Platform Designer's `add_interface` command expects. Anything else
  * falls back to 'conduit', the generic Avalon point-to-point interface.
@@ -300,6 +326,7 @@ export class QuartusToolchain implements SynthesisToolchain {
       const hasVhdlFiles = rtlFiles.some((f) => f.endsWith('.vhd') || f.endsWith('.vhdl'));
       const hasSv = hasSvFiles || (!hasVhdlFiles && isSv);
       const hasVhdl = hasVhdlFiles || (!hasSvFiles && !isSv);
+      const hasPll = detectPll(rtlFiles, ipCoreData);
       const quartusCtx = {
         ...templateContext,
         target_device: targetDevice,
@@ -307,6 +334,7 @@ export class QuartusToolchain implements SynthesisToolchain {
         rtl_files: rtlFiles,
         has_sv: hasSv,
         has_vhdl: hasVhdl,
+        has_pll: hasPll,
         sdc_file: sdcRelPath,
       };
       files[`altera/${name}_project.tcl`] = templates.render('quartus_project.tcl.j2', quartusCtx);

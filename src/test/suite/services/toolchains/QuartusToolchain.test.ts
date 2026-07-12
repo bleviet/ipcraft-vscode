@@ -3,6 +3,7 @@ import {
   quartusDeviceFamily,
   mapBusTypeToAltera,
   resolveHwTclRtlFiles,
+  detectPll,
 } from '../../../../services/toolchains/QuartusToolchain';
 import * as quartusResolver from '../../../../utils/quartusResolver';
 import * as fsHelpers from '../../../../utils/fsHelpers';
@@ -316,5 +317,47 @@ describe('resolveHwTclRtlFiles — compile order', () => {
     const provided = ['../rtl/dut.vhd', '../rtl/dut_pkg.vhd'];
     const entries = resolveHwTclRtlFiles(provided, {} as never, false, 'dut');
     expect(entries.map((e) => e.path)).toEqual(provided);
+  });
+});
+
+describe('detectPll — issue #77', () => {
+  // quartus_sdc.j2 used to emit `derive_pll_clocks -create_base_clocks` on
+  // every design even when no PLL was instantiated (Quartus then warns the
+  // command is ignored). detectPll() is the gate: it returns true when any
+  // RTL or fileSet path contains "pll" (case-insensitive) so the SDC only
+  // carries the command for designs that actually have a PLL.
+  it('returns false when no path contains "pll"', () => {
+    expect(detectPll(['rtl/dut.vhd', 'rtl/dut_core.sv'], {} as never)).toBe(false);
+  });
+
+  it('returns true when an rtlFiles path contains "pll" (case-insensitive)', () => {
+    expect(detectPll(['rtl/dut.vhd', 'rtl/my_PLL.sv'], {} as never)).toBe(true);
+    expect(detectPll(['rtl/dut.vhd', 'rtl/pll_clock_gen.vhd'], {} as never)).toBe(true);
+  });
+
+  it('returns true when a fileSets entry path contains "pll"', () => {
+    const ipCore = {
+      fileSets: [
+        {
+          name: 'RTL_Sources',
+          files: [
+            { path: 'rtl/dut.vhd', type: 'vhdl' },
+            { path: 'altera/my_pll.qip', type: 'unknown' },
+          ],
+        },
+      ],
+    };
+    expect(detectPll(undefined, ipCore as never)).toBe(true);
+  });
+
+  it('returns false for an empty design (no rtlFiles, no fileSets)', () => {
+    expect(detectPll(undefined, {} as never)).toBe(false);
+    expect(detectPll([], {} as never)).toBe(false);
+  });
+
+  it('matches "pll" anywhere in the path (substring match, case-insensitive)', () => {
+    expect(detectPll(['rtl/clock_pll_gen.vhd'], {} as never)).toBe(true);
+    expect(detectPll(['rtl/PLL_WRAPPER.vhd'], {} as never)).toBe(true);
+    expect(detectPll(['altera/altera_pll.qip'], {} as never)).toBe(true);
   });
 });
