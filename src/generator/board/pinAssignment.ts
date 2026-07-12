@@ -20,8 +20,12 @@ export interface PinAssignment {
 }
 
 export interface PortMapResult {
-  /** IP port name -> board net name. */
-  map: Record<string, string>;
+  /**
+   * IP port name -> board net name(s). Single-bit ports (clock, reset, width-1 user
+   * ports) map to one net. A width-N user port maps to an ordered array of N nets
+   * (index i = bit i), since each board io is a single physical pin.
+   */
+  map: Record<string, string | string[]>;
   errors: string[];
 }
 
@@ -37,7 +41,7 @@ export interface PinAssignmentResult {
  * the next unused board io of matching direction (LEDs/switches/buttons).
  */
 export function resolveBoardPortMap(ipCoreData: IpCoreData, board: BoardDefinition): PortMapResult {
-  const map: Record<string, string> = {};
+  const map: Record<string, string | string[]> = {};
   const errors: string[] = [];
 
   const primaryClock = ipCoreData.clocks?.[0];
@@ -67,17 +71,25 @@ export function resolveBoardPortMap(ipCoreData: IpCoreData, board: BoardDefiniti
       continue;
     }
     const direction = ipPort.direction === 'in' ? 'in' : 'out';
-    const candidate = board.ios.find(
-      (io: BoardIo) => io.direction === direction && !usedIos.has(io.name)
-    );
-    if (!candidate) {
+    const width = Number(ipPort.width) > 0 ? Number(ipPort.width) : 1;
+
+    const candidates: BoardIo[] = [];
+    for (const io of board.ios) {
+      if (candidates.length >= width) {
+        break;
+      }
+      if (io.direction === direction && !usedIos.has(io.name)) {
+        candidates.push(io);
+      }
+    }
+    if (candidates.length < width) {
       errors.push(
         `No board '${direction}' io net available for port '${name}' — every matching board io is already mapped.`
       );
       continue;
     }
-    usedIos.add(candidate.name);
-    map[name] = candidate.name;
+    candidates.forEach((io) => usedIos.add(io.name));
+    map[name] = width === 1 ? candidates[0].name : candidates.map((io) => io.name);
   }
 
   return { map, errors };
@@ -109,28 +121,40 @@ function findBoardNet(
  */
 export function buildPinAssignments(
   board: BoardDefinition,
-  map: Record<string, string>,
+  map: Record<string, string | string[]>,
   topLevelPorts: string[]
 ): PinAssignmentResult {
   const assignments: PinAssignment[] = [];
   const errors: string[] = [];
   const topLevelSet = new Set(topLevelPorts);
 
-  for (const [port, net] of Object.entries(map)) {
+  for (const [port, nets] of Object.entries(map)) {
     if (!topLevelSet.has(port)) {
+      const netLabel = Array.isArray(nets) ? nets.join(', ') : nets;
       errors.push(
-        `Mapped port '${port}' (board net '${net}') was not found on the top-level design.`
+        `Mapped port '${port}' (board net '${netLabel}') was not found on the top-level design.`
       );
       continue;
     }
-    const boardNet = findBoardNet(board, net);
-    if (!boardNet) {
-      errors.push(
-        `Board net '${net}' (mapped to port '${port}') does not exist on board '${board.name}'.`
-      );
-      continue;
-    }
-    assignments.push({ port, net, pin: boardNet.pin, ioStandard: boardNet.ioStandard });
+    // A width-N port maps to N nets, one physical pin per bit — index the port
+    // (e.g. led[0]) so each bit gets its own set_location_assignment.
+    const netList = Array.isArray(nets) ? nets : [nets];
+    const indexed = netList.length > 1;
+    netList.forEach((net, i) => {
+      const boardNet = findBoardNet(board, net);
+      if (!boardNet) {
+        errors.push(
+          `Board net '${net}' (mapped to port '${port}') does not exist on board '${board.name}'.`
+        );
+        return;
+      }
+      assignments.push({
+        port: indexed ? `${port}[${i}]` : port,
+        net,
+        pin: boardNet.pin,
+        ioStandard: boardNet.ioStandard,
+      });
+    });
   }
 
   return { assignments, errors };

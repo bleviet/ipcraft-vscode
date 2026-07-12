@@ -628,7 +628,7 @@ async function runCreateQuartusProjectStep(name: string, ipDir: string): Promise
   }
 }
 
-async function categorizeFiles(
+export async function categorizeFiles(
   generatedContents: Record<string, string>,
   outputDir: string,
   protectedPaths: string[]

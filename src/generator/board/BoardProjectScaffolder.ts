@@ -68,15 +68,16 @@ export async function scaffoldBoardProject(opts: BoardProjectOptions): Promise<B
   }
 
   // ---- Clock ------------------------------------------------------------------
+  // Clocks and resets always map 1:1 to a single board net (never width > 1).
   const primaryClock = ipCoreData.clocks?.[0];
   const clockIpPort = primaryClock?.name;
-  const clockNet = clockIpPort ? ipPortMap[clockIpPort] : undefined;
+  const clockNet = clockIpPort ? (ipPortMap[clockIpPort] as string | undefined) : undefined;
   const clockWrapperPort = clockNet ? netPortName(clockNet) : undefined;
 
   // ---- Reset: external board reset, or a synthesized power-on reset -----------
   const primaryReset = ipCoreData.resets?.[0];
   const resetIpPort = primaryReset?.name;
-  const resetNet = resetIpPort ? ipPortMap[resetIpPort] : undefined;
+  const resetNet = resetIpPort ? (ipPortMap[resetIpPort] as string | undefined) : undefined;
   const hasPor = Boolean(resetIpPort) && !resetNet;
   const resetWrapperPort = resetNet ? netPortName(resetNet) : undefined;
 
@@ -96,16 +97,21 @@ export async function scaffoldBoardProject(opts: BoardProjectOptions): Promise<B
   }
 
   // ---- User ports ---------------------------------------------------------------
+  // Width-1 ports keep the board net's own name as the wrapper port (e.g. "led0"
+  // for LED0). Width-N ports span multiple nets (one pin per bit), so there is no
+  // single net to name the port after — use the IP's own port name instead.
   const userPorts = (ipCoreData.ports ?? [])
     .filter((p): p is typeof p & { name: string } => Boolean(p.name))
     .map((p) => {
       const net = ipPortMap[p.name];
-      const width = Number(p.width);
+      const width = Number(p.width) > 0 ? Number(p.width) : 1;
+      const wrapperPort =
+        width === 1 && typeof net === 'string' ? netPortName(net) : p.name.toLowerCase();
       return {
         ip_port: p.name,
-        wrapper_port: netPortName(net),
+        wrapper_port: wrapperPort,
         direction: p.direction === 'in' ? 'in' : 'out',
-        width: width > 0 ? width : 1,
+        width,
       };
     });
 
@@ -129,7 +135,7 @@ export async function scaffoldBoardProject(opts: BoardProjectOptions): Promise<B
   });
 
   // ---- Pin assignments (against the wrapper's own port list) --------------------
-  const wrapperPinMap: Record<string, string> = {};
+  const wrapperPinMap: Record<string, string | string[]> = {};
   const wrapperTopLevelPorts: string[] = [];
   if (clockWrapperPort && clockNet) {
     wrapperPinMap[clockWrapperPort] = clockNet;
@@ -183,11 +189,18 @@ export async function scaffoldBoardProject(opts: BoardProjectOptions): Promise<B
     pins_file: pinsFileName,
   });
 
+  // ---- Makefile (terminal-friendly wrapper around the TCL/quartus_pgm commands above) ----
+  const makefileContent = opts.templates.render('board_makefile.j2', {
+    entity_name: wrapperName,
+    board_name: board.name,
+  });
+
   const files: Record<string, string> = {
     [`altera-board/${wrapperFileName}`]: wrapperContent,
     [`altera-board/${pinsFileName}`]: pinsContent,
     [`altera-board/${sdcFileName}`]: sdcContent,
     [`altera-board/${projectFileName}`]: projectContent,
+    [`altera-board/Makefile`]: makefileContent,
   };
 
   return { files, wrapperName };

@@ -496,6 +496,7 @@ const IpCoreApp: React.FC = () => {
   const [hasHwTcl, setHasHwTcl] = useState(false);
   const [hasXpr, setHasXpr] = useState(false);
   const [hasQpf, setHasQpf] = useState(false);
+  const [hasBoardQpf, setHasBoardQpf] = useState(false);
   // HDL language for source generation — mirrors ipcraft.generate.hdlLanguage
   const [hdlLanguage, setHdlLanguage] = useState<'vhdl' | 'systemverilog'>('vhdl');
   // Scaffold pack — mirrors ipcraft.generate.scaffoldPack
@@ -830,6 +831,7 @@ const IpCoreApp: React.FC = () => {
         hasHwTcl?: boolean;
         hasXpr?: boolean;
         hasQpf?: boolean;
+        hasBoardQpf?: boolean;
         hdlLanguage?: 'vhdl' | 'systemverilog';
         scaffoldPack?: string;
         availableScaffoldPacks?: PackSummary[];
@@ -848,6 +850,7 @@ const IpCoreApp: React.FC = () => {
           setHasHwTcl(message.hasHwTcl ?? false);
           setHasXpr(message.hasXpr ?? false);
           setHasQpf(message.hasQpf ?? false);
+          setHasBoardQpf(message.hasBoardQpf ?? false);
           setHdlLanguage(message.hdlLanguage ?? 'vhdl');
           if (message.scaffoldPack !== undefined) {
             setScaffoldPack(message.scaffoldPack);
@@ -1076,6 +1079,24 @@ const IpCoreApp: React.FC = () => {
                           label: 'Build: Quartus full compile',
                           disabled: !hasQpf,
                           command: 'fpga-ip-core.buildQuartusCompile',
+                        },
+                        { separator: true },
+                        {
+                          icon: 'circuit-board',
+                          label: 'Generate Board Project',
+                          command: 'fpga-ip-core.newBoardProject',
+                        },
+                        {
+                          icon: 'folder-opened',
+                          label: 'Open Project',
+                          disabled: !hasBoardQpf,
+                          onClick: () => vscode?.postMessage({ type: 'openBoardProject' }),
+                        },
+                        {
+                          icon: 'tools',
+                          label: 'Build the Project',
+                          disabled: !hasBoardQpf,
+                          command: 'fpga-ip-core.buildBoardProject',
                         },
                       ]}
                     />

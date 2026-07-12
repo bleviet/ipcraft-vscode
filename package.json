@@ -119,6 +119,26 @@
         "icon": "$(circuit-board)"
       },
       {
+        "command": "fpga-ip-core.openBoardProject",
+        "title": "Open Board Project in Quartus",
+        "category": "IPCraft",
+        "icon": "$(folder-opened)",
+        "enablement": "ipcraft.quartusFound"
+      },
+      {
+        "command": "fpga-ip-core.buildBoardProject",
+        "title": "Build: Board Project Compile",
+        "category": "IPCraft",
+        "icon": "$(play)",
+        "enablement": "ipcraft.quartusFound"
+      },
+      {
+        "command": "fpga-ip-core.changeDefaultBoard",
+        "title": "Change Default Board...",
+        "category": "IPCraft",
+        "icon": "$(gear)"
+      },
+      {
         "command": "fpga-ip-core.generateAndBuildVivado",
         "title": "Generate & Build (Vivado OOC)",
         "category": "IPCraft",
@@ -359,6 +379,10 @@
           "group": "2_view@1"
         },
         {
+          "command": "fpga-ip-core.changeDefaultBoard",
+          "group": "2_view@2"
+        },
+        {
           "command": "fpga-ip-core.scaffoldProject",
           "when": "resourceFilename =~ /\\.ip\\.yml$/",
           "group": "3_ipfile@1"
@@ -394,19 +418,29 @@
           "group": "4_build@3"
         },
         {
+          "command": "fpga-ip-core.openBoardProject",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/ && ipcraft.quartusFound",
+          "group": "4_build@4"
+        },
+        {
+          "command": "fpga-ip-core.buildBoardProject",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/ && ipcraft.quartusFound",
+          "group": "4_build@5"
+        },
+        {
           "command": "fpga-ip-core.build",
           "when": "resourceFilename =~ /\\.ip\\.yml$/ && (ipcraft.vivadoFound || ipcraft.quartusFound)",
-          "group": "4_build@4"
+          "group": "4_build@6"
         },
         {
           "command": "fpga-ip-core.buildNotConfigured",
           "when": "resourceFilename =~ /\\.ip\\.yml$/ && !ipcraft.vivadoFound && !ipcraft.quartusFound",
-          "group": "4_build@4"
+          "group": "4_build@6"
         },
         {
           "command": "fpga-ip-core.showBuildOutput",
           "when": "resourceFilename =~ /\\.ip\\.yml$/",
-          "group": "4_build@4"
+          "group": "4_build@6"
         },
         {
           "command": "fpga-ip-core.editInPlatformDesigner",
@@ -491,14 +525,24 @@
           "group": "ipcraft@5"
         },
         {
+          "command": "fpga-ip-core.openBoardProject",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/ && ipcraft.quartusFound",
+          "group": "ipcraft@6"
+        },
+        {
+          "command": "fpga-ip-core.buildBoardProject",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/ && ipcraft.quartusFound",
+          "group": "ipcraft@6"
+        },
+        {
           "command": "fpga-ip-core.build",
           "when": "resourceFilename =~ /\\.ip\\.yml$/ && (ipcraft.vivadoFound || ipcraft.quartusFound)",
-          "group": "ipcraft@6"
+          "group": "ipcraft@7"
         },
         {
           "command": "fpga-ip-core.buildNotConfigured",
           "when": "resourceFilename =~ /\\.ip\\.yml$/ && !ipcraft.vivadoFound && !ipcraft.quartusFound",
-          "group": "ipcraft@6"
+          "group": "ipcraft@7"
         },
         {
           "command": "fpga-ip-core.editInPlatformDesigner",
@@ -632,6 +676,17 @@
         {
           "command": "fpga-ip-core.newBoardProject",
           "when": "resourceFilename =~ /\\.ip\\.yml$/"
+        },
+        {
+          "command": "fpga-ip-core.openBoardProject",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/ && ipcraft.quartusFound"
+        },
+        {
+          "command": "fpga-ip-core.buildBoardProject",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/ && ipcraft.quartusFound"
+        },
+        {
+          "command": "fpga-ip-core.changeDefaultBoard"
         },
         {
           "command": "fpga-ip-core.generateAndBuildVivado",
@@ -776,6 +831,11 @@
             "type": "string",
             "default": "",
             "markdownDescription": "Scaffold pack to use for RTL and testbench code generation. Built-in values: `builtin-minimal`, `builtin-ipcraft`. Example packs: `example-register-only`, `example-no-regfile`, `example-with-docs`. Workspace packs live in `.vscode/ipcraft/packs/<name>/`."
+          },
+          "ipcraft.generate.defaultBoard": {
+            "type": "string",
+            "default": "",
+            "markdownDescription": "Default board (`.board.yml` filename, e.g. `de10-nano.board.yml`) used by 'Generate Board Project' without prompting. Empty means always ask when more than one board is bundled. Use the 'IPCraft: Change Default Board...' command to set or clear this without editing the filename by hand."
           }
         }
       },

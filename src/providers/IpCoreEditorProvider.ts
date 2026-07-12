@@ -28,6 +28,7 @@ import { editInIpPackagerCommand } from '../commands/editInIpPackager';
 import { editInPlatformDesignerCommand } from '../commands/editInPlatformDesigner';
 import { openInVivadoCommand } from '../commands/openInVivado';
 import { openInQuartusCommand } from '../commands/openInQuartus';
+import { openBoardProjectCommand, BOARD_PROJECT_SUBDIR } from '../commands/BoardCommands';
 import { listAll } from '../services/toolchains/registry';
 import { ScaffoldPackLoader } from '../generator/ScaffoldPackLoader';
 import { ResourceRoots } from '../services/ResourceRoots';
@@ -61,6 +62,8 @@ const WEBVIEW_COMMAND_ALLOWLIST = new Set<string>([
   'fpga-ip-core.generateQuartusProject',
   'fpga-ip-core.buildVivadoOoc',
   'fpga-ip-core.buildQuartusCompile',
+  'fpga-ip-core.newBoardProject',
+  'fpga-ip-core.buildBoardProject',
   'fpga-ip-core.openSettings',
 ]);
 
@@ -417,6 +420,10 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
       await openInQuartusCommand(vscode.Uri.file(qpfPath));
     });
 
+    router.on('openBoardProject', async () => {
+      await openBoardProjectCommand(document.uri);
+    });
+
     router.on('stagingResult', async (message) => {
       stagingSideColumn = undefined;
       WebviewStagingBridge.getInstance().resolveStaging(
@@ -534,13 +541,17 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
       // _run_ooc.tcl sources _project.tcl which creates the project in build/ooc/;
       // _run_xpr.tcl creates a separate full project in build/xpr/.
       // Both are valid "open in Vivado" targets.
-      const [hasComponentXml, hasHwTcl, hasXprFull, hasXprOoc, hasQpf] = await Promise.all([
-        accessOk(path.join(baseDir, 'xilinx', 'component.xml')),
-        accessOk(path.join(baseDir, 'altera', `${ipName}_hw.tcl`)),
-        existsAny(path.join(baseDir, 'xilinx', 'build', 'xpr'), /\.xpr$/),
-        existsAny(path.join(baseDir, 'xilinx', 'build', 'ooc'), /\.xpr$/),
-        existsAny(path.join(baseDir, 'altera', 'build'), /\.qpf$/),
-      ]);
+      // Matches BoardProjectScaffolder's own `${name}_board_top` wrapper naming.
+      const boardWrapperName = `${ipName}_board_top`;
+      const [hasComponentXml, hasHwTcl, hasXprFull, hasXprOoc, hasQpf, hasBoardQpf] =
+        await Promise.all([
+          accessOk(path.join(baseDir, 'xilinx', 'component.xml')),
+          accessOk(path.join(baseDir, 'altera', `${ipName}_hw.tcl`)),
+          existsAny(path.join(baseDir, 'xilinx', 'build', 'xpr'), /\.xpr$/),
+          existsAny(path.join(baseDir, 'xilinx', 'build', 'ooc'), /\.xpr$/),
+          existsAny(path.join(baseDir, 'altera', 'build'), /\.qpf$/),
+          accessOk(path.join(baseDir, BOARD_PROJECT_SUBDIR, `${boardWrapperName}.qpf`)),
+        ]);
       const hasXpr = hasXprFull || hasXprOoc;
 
       if (isDisposed()) {
@@ -576,6 +587,7 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
           hasHwTcl,
           hasXpr,
           hasQpf,
+          hasBoardQpf,
           hdlLanguage,
           scaffoldPack,
           availableScaffoldPacks,

@@ -7,7 +7,20 @@ import { CONFIG_KEY_IPCRAFT } from '../utils/configKeys';
 
 const logger = new Logger('OpenInQuartus');
 
-export async function openInQuartusCommand(uri?: vscode.Uri): Promise<void> {
+/**
+ * Open a Quartus project (.qpf) in the Quartus GUI.
+ *
+ * @param uri Path to the .qpf file to open.
+ * @param ipDirOverride Docker mount base to use instead of the default
+ *   two-levels-up heuristic. The IP-OOC project's .qpf lives at
+ *   `{ipDir}/altera/build/`, so that heuristic resolves `ipDir` correctly;
+ *   other .qpf locations (e.g. the board project's `{ipDir}/altera-board/`)
+ *   must pass their own `ipDir` explicitly.
+ */
+export async function openInQuartusCommand(
+  uri?: vscode.Uri,
+  ipDirOverride?: string
+): Promise<void> {
   const targetUri = uri ?? vscode.window.activeTextEditor?.document.uri;
 
   if (!targetUri?.fsPath.endsWith('.qpf')) {
@@ -31,7 +44,7 @@ export async function openInQuartusCommand(uri?: vscode.Uri): Promise<void> {
   // contain absolute paths like /work/rtl/... The .qpf lives in
   // {ipDir}/altera/build/, so ipDir is two levels up. Use that same convention
   // so the GUI can resolve the same paths.
-  const mountBase = path.resolve(path.dirname(qpfPath), '../..');
+  const mountBase = ipDirOverride ?? path.resolve(path.dirname(qpfPath), '../..');
   const docker = toolchain.getDocker(cfg, mountBase);
   const { env, extraMounts } = toolchain.getLaunchEnv(cfg);
 

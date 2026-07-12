@@ -166,6 +166,7 @@ export class IpCoreSourcePreviewProvider implements vscode.CustomTextEditorProvi
           hasHwTcl: false,
           hasXpr: false,
           hasQpf: false,
+          hasBoardQpf: false,
         });
       } catch (error) {
         this.logger.error('Failed to parse source for preview', error as Error);

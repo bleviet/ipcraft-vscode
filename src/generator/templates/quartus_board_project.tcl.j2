@@ -41,6 +41,10 @@ project_new $project_name -revision $project_name -overwrite
 set_global_assignment -name FAMILY "{{ device_family }}"
 set_global_assignment -name DEVICE {{ target_device }}
 set_global_assignment -name TOP_LEVEL_ENTITY {{ entity_name }}
+# Without this, quartus_asm writes the .sof next to the project files instead of
+# output_files/ — the location every path below (and BuildCommands' report parser)
+# assumes.
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
 
 # ---- RTL source files -------------------------------------------------------
 # Board top wrapper is a sibling of this project file; the IP's own RTL is
