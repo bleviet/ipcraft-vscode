@@ -901,6 +901,137 @@ describe('IpCoreScaffolder', () => {
     }
   });
 
+  it('drops Avalon-MM header clause for bus-less IPs and gates derive_pll_clocks (issue #77)', async () => {
+    // altera_hw_tcl.j2 unconditionally printed the header comment
+    // "Provides component integration ... with Avalon-MM slave interface for
+    // register access." even for components with no memory-mapped slave (e.g.
+    // a design with only a clock, a reset, and one LED conduit). The header
+    // is now gated on `has_memory_mapped_slave` so bus-less components drop
+    // the Avalon-MM clause. Separately, quartus_sdc.j2 emitted
+    // `derive_pll_clocks -create_base_clocks` on every design even when no PLL
+    // was instantiated (Quartus then warns: "derive_pll_clocks is ignored
+    // because no PLLs were found"). The SDC template now gates the command
+    // behind `has_pll`, derived by detectPll() from any RTL/fileset path
+    // containing "pll" (case-insensitive) — a no-PLL design's SDC no longer
+    // carries the command.
+    const tmpPath = path.join(os.tmpdir(), `ipcraft_issue77_${Date.now()}.ip.yml`);
+    const yaml = [
+      'vlnv:',
+      '  vendor: test',
+      '  library: lib',
+      '  name: busless_core',
+      '  version: 1.0.0',
+      'clocks:',
+      '  - name: clk',
+      '    direction: in',
+      '    frequency: 50MHz',
+      'resets:',
+      '  - name: rst',
+      '    direction: in',
+      '    polarity: activeHigh',
+      'ports:',
+      '  - name: led',
+      '    direction: out',
+    ].join('\n');
+
+    const realFs = jest.requireActual('fs/promises') as typeof import('fs/promises');
+    await realFs.writeFile(tmpPath, yaml, 'utf-8');
+
+    try {
+      const result = await scaffolder.generateAll(tmpPath, '/tmp/test-output-issue77', {
+        targets: ['quartus'],
+        includeQuartusProject: true,
+        quartusDevice: '5CSEBA6U23I7',
+      });
+      expect(result.success).toBe(true);
+
+      const findContent = (suffix: string) =>
+        (fs.writeFile as unknown as jest.Mock).mock.calls
+          .filter((call) => String(call[0]).endsWith(suffix))
+          .pop()?.[1] as string | undefined;
+
+      // Acceptance criterion 1: bus-less _hw.tcl header drops the Avalon-MM clause.
+      const hwTcl = findContent('_hw.tcl');
+      expect(hwTcl).toBeDefined();
+      expect(hwTcl).toContain(
+        '# Provides component integration for Altera Quartus Platform Designer (Qsys)'
+      );
+      expect(hwTcl).not.toContain('Avalon-MM slave');
+      expect(hwTcl).not.toContain('register access');
+
+      // Acceptance criterion 2: no-PLL design's SDC does not emit derive_pll_clocks.
+      const sdc = findContent('.sdc');
+      expect(sdc).toBeDefined();
+      expect(sdc).not.toContain('derive_pll_clocks');
+      // derive_clock_uncertainty is unconditional and remains.
+      expect(sdc).toContain('derive_clock_uncertainty');
+      // The create_clock constraint is still applied (regression guard).
+      expect(sdc).toMatch(/create_clock -period 20\.000 -name clk/);
+    } finally {
+      await realFs.unlink(tmpPath).catch(() => {});
+    }
+  });
+
+  it('emits derive_pll_clocks only when an RTL path contains "pll" (issue #77)', async () => {
+    // detectPll() walks opts.rtlFiles + ipCoreData.fileSets for any path
+    // matching /pll/i. A design that declares a `pll_clock_gen.sv` source
+    // under fileSets (managed: false, hand-authored) must keep
+    // `derive_pll_clocks -create_base_clocks` in the generated SDC; a sibling
+    // design with no PLL-typed source must not.
+    const baseYaml = [
+      'vlnv:',
+      '  vendor: test',
+      '  library: lib',
+      '  name: pll_core',
+      '  version: 1.0.0',
+      'clocks:',
+      '  - name: clk',
+      '    direction: in',
+      '    frequency: 50MHz',
+    ].join('\n');
+
+    const tmpDir = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-pll-'));
+    try {
+      fs2.mkdirSync(path.join(tmpDir, 'rtl'), { recursive: true });
+      fs2.writeFileSync(
+        path.join(tmpDir, 'rtl', 'my_pll.sv'),
+        [
+          '// Fake PLL wrapper — file name triggers detectPll() heuristic.',
+          'module my_pll(input clk, output pll_clk);',
+          'endmodule',
+        ].join('\n')
+      );
+      const yaml = [
+        ...baseYaml.split('\n'),
+        'fileSets:',
+        '  - name: RTL_Sources',
+        '    files:',
+        '      - path: rtl/my_pll.sv',
+        '        type: systemverilog',
+        '        managed: false',
+      ].join('\n');
+      const yamlPath = path.join(tmpDir, 'pll_core.ip.yml');
+      fs2.writeFileSync(yamlPath, yaml, 'utf-8');
+
+      const result = await scaffolder.generateAll(yamlPath, tmpDir, {
+        targets: ['quartus'],
+        includeQuartusProject: true,
+        quartusDevice: '5CSEBA6U23I7',
+        hdlLanguage: 'systemverilog',
+      });
+      expect(result.success).toBe(true);
+
+      const sdc = (fs.writeFile as unknown as jest.Mock).mock.calls
+        .filter((call) => String(call[0]).endsWith('.sdc'))
+        .pop()?.[1] as string | undefined;
+      expect(sdc).toBeDefined();
+      // Acceptance criterion 3: PLL case keeps the command (existing behavior).
+      expect(sdc).toContain('derive_pll_clocks -create_base_clocks');
+    } finally {
+      fs2.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
   it('surfaces ajv schema error when simulation.engine is invalid', async () => {
     // Write a temp fixture with an invalid simulation.engine value
     const tmpPath = require('path').join(
