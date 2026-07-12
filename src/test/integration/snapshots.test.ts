@@ -22,6 +22,8 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import { generateFixtures, xilinxFixtures, alteraFixtures, hwTclFiles, Fixture } from './generator';
+import { TemplateLoader } from '../../generator/TemplateLoader';
+import { Logger } from '../../utils/Logger';
 
 // Stable fixture key: strip the machine-specific tmpdir prefix
 function stableKey(fixture: Fixture): string {
@@ -203,4 +205,59 @@ it('Quartus project Tcl scripts match snapshot', () => {
   if (Object.keys(tclMap).length > 0) {
     expect(tclMap).toMatchSnapshot();
   }
+});
+
+// ---------------------------------------------------------------------------
+// Quartus SDC timing constraints
+// ---------------------------------------------------------------------------
+
+it('Quartus SDC content matches snapshot for every Altera fixture', () => {
+  // Snapshots the generated .sdc for every fixture that produced a Quartus
+  // project. Guards against regressions in quartus_sdc.j2 — including
+  // issue #77's gate on `derive_pll_clocks -create_base_clocks` (no fixture
+  // in ipcraft-spec instantiates a PLL, so every snapshot must NOT contain
+  // the command).
+  const altera = alteraFixtures(allFixtures);
+  const sdcMap: Record<string, string> = {};
+
+  for (const f of altera) {
+    const alteraDir = path.join(f.outputDir, 'altera');
+    if (!fs.existsSync(alteraDir)) {
+      continue;
+    }
+    for (const file of fs.readdirSync(alteraDir)) {
+      if (file.endsWith('.sdc')) {
+        sdcMap[`${stableKey(f)}/${file}`] = fs.readFileSync(path.join(alteraDir, file), 'utf8');
+      }
+    }
+  }
+
+  if (Object.keys(sdcMap).length > 0) {
+    expect(sdcMap).toMatchSnapshot();
+  }
+});
+
+it('Quartus SDC with has_pll renders derive_pll_clocks (synthetic PLL-present case)', () => {
+  // Every ipcraft-spec fixture is PLL-less, so the snapshot above only covers
+  // the has_pll: false path. This synthetic case renders quartus_sdc.j2
+  // directly with has_pll: true so the derive_pll_clocks branch gets
+  // exact-match regression coverage (not just substring assertions).
+  const repoRoot = path.resolve(__dirname, '../../..');
+  const logger = {
+    info: () => {},
+    warn: () => {},
+    error: () => {},
+    debug: () => {},
+  } as unknown as Logger;
+  const loader = new TemplateLoader(logger, path.join(repoRoot, 'src/generator/templates'));
+
+  const sdc = loader.render('quartus_sdc.j2', {
+    entity_name: 'pll_design',
+    has_pll: true,
+    clocks_with_period: [
+      { name: 'clk', frequency: '50MHz', period_ns: '20.000' },
+      { name: 'pll_clk', frequency: '200MHz', period_ns: '5.000' },
+    ],
+  });
+  expect(sdc).toMatchSnapshot();
 });

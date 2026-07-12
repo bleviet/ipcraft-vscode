@@ -38,14 +38,19 @@ project_new $project_name -revision $project_name -overwrite
 # ---- Device settings --------------------------------------------------------
 set_global_assignment -name FAMILY "{{ device_family }}"
 set_global_assignment -name DEVICE {{ target_device }}
+{% if has_vhdl %}
 set_global_assignment -name VHDL_INPUT_VERSION VHDL_2008
+{% endif %}
+{% if has_sv %}
+set_global_assignment -name VERILOG_INPUT_VERSION SYSTEMVERILOG_2005
+{% endif %}
 set_global_assignment -name TOP_LEVEL_ENTITY {{ entity_name }}
 
 # ---- RTL source files -------------------------------------------------------
 # Paths are relative to this QSF (in build/) so the project is portable across
 # host and Docker environments — no absolute paths are stored.
 {% for file in rtl_files %}
-{% if file.endsWith('.sv') %}
+{% if file.endsWith('.sv') or file.endsWith('.svh') %}
 set_global_assignment -name SYSTEMVERILOG_FILE [file join .. {{ file }}]
 {% elif file.endsWith('.vhd') or file.endsWith('.vhdl') %}
 set_global_assignment -name VHDL_FILE [file join .. {{ file }}]
