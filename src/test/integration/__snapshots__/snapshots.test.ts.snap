@@ -42,7 +42,7 @@ project_new $project_name -revision $project_name -overwrite
 # ---- Device settings --------------------------------------------------------
 set_global_assignment -name FAMILY "Cyclone V"
 set_global_assignment -name DEVICE 5CSEBA6U23I7
-set_global_assignment -name VHDL_INPUT_VERSION VHDL_2008
+set_global_assignment -name VERILOG_INPUT_VERSION SYSTEMVERILOG_2005
 set_global_assignment -name TOP_LEVEL_ENTITY avalon_peripheral
 
 # ---- RTL source files -------------------------------------------------------
@@ -180,7 +180,7 @@ project_new $project_name -revision $project_name -overwrite
 # ---- Device settings --------------------------------------------------------
 set_global_assignment -name FAMILY "Cyclone V"
 set_global_assignment -name DEVICE 5CSEBA6U23I7
-set_global_assignment -name VHDL_INPUT_VERSION VHDL_2008
+set_global_assignment -name VERILOG_INPUT_VERSION SYSTEMVERILOG_2005
 set_global_assignment -name TOP_LEVEL_ENTITY axi_slave_core
 
 # ---- RTL source files -------------------------------------------------------
@@ -318,7 +318,7 @@ project_new $project_name -revision $project_name -overwrite
 # ---- Device settings --------------------------------------------------------
 set_global_assignment -name FAMILY "Cyclone V"
 set_global_assignment -name DEVICE 5CSEBA6U23I7
-set_global_assignment -name VHDL_INPUT_VERSION VHDL_2008
+set_global_assignment -name VERILOG_INPUT_VERSION SYSTEMVERILOG_2005
 set_global_assignment -name TOP_LEVEL_ENTITY basic_core
 
 # ---- RTL source files -------------------------------------------------------
@@ -456,7 +456,7 @@ project_new $project_name -revision $project_name -overwrite
 # ---- Device settings --------------------------------------------------------
 set_global_assignment -name FAMILY "Cyclone V"
 set_global_assignment -name DEVICE 5CSEBA6U23I7
-set_global_assignment -name VHDL_INPUT_VERSION VHDL_2008
+set_global_assignment -name VERILOG_INPUT_VERSION SYSTEMVERILOG_2005
 set_global_assignment -name TOP_LEVEL_ENTITY basic_peripheral
 
 # ---- RTL source files -------------------------------------------------------
@@ -602,7 +602,7 @@ project_new $project_name -revision $project_name -overwrite
 # ---- Device settings --------------------------------------------------------
 set_global_assignment -name FAMILY "Cyclone V"
 set_global_assignment -name DEVICE 5CSEBA6U23I7
-set_global_assignment -name VHDL_INPUT_VERSION VHDL_2008
+set_global_assignment -name VERILOG_INPUT_VERSION SYSTEMVERILOG_2005
 set_global_assignment -name TOP_LEVEL_ENTITY comprehensive_avalon
 
 # ---- RTL source files -------------------------------------------------------
@@ -748,7 +748,7 @@ project_new $project_name -revision $project_name -overwrite
 # ---- Device settings --------------------------------------------------------
 set_global_assignment -name FAMILY "Cyclone V"
 set_global_assignment -name DEVICE 5CSEBA6U23I7
-set_global_assignment -name VHDL_INPUT_VERSION VHDL_2008
+set_global_assignment -name VERILOG_INPUT_VERSION SYSTEMVERILOG_2005
 set_global_assignment -name TOP_LEVEL_ENTITY comprehensive_axi
 
 # ---- RTL source files -------------------------------------------------------
@@ -894,7 +894,7 @@ project_new $project_name -revision $project_name -overwrite
 # ---- Device settings --------------------------------------------------------
 set_global_assignment -name FAMILY "Cyclone V"
 set_global_assignment -name DEVICE 5CSEBA6U23I7
-set_global_assignment -name VHDL_INPUT_VERSION VHDL_2008
+set_global_assignment -name VERILOG_INPUT_VERSION SYSTEMVERILOG_2005
 set_global_assignment -name TOP_LEVEL_ENTITY daq_controller
 
 # ---- RTL source files -------------------------------------------------------
@@ -1040,7 +1040,7 @@ project_new $project_name -revision $project_name -overwrite
 # ---- Device settings --------------------------------------------------------
 set_global_assignment -name FAMILY "Cyclone V"
 set_global_assignment -name DEVICE 5CSEBA6U23I7
-set_global_assignment -name VHDL_INPUT_VERSION VHDL_2008
+set_global_assignment -name VERILOG_INPUT_VERSION SYSTEMVERILOG_2005
 set_global_assignment -name TOP_LEVEL_ENTITY minimal_ip
 
 # ---- RTL source files -------------------------------------------------------
@@ -1178,7 +1178,7 @@ project_new $project_name -revision $project_name -overwrite
 # ---- Device settings --------------------------------------------------------
 set_global_assignment -name FAMILY "Cyclone V"
 set_global_assignment -name DEVICE 5CSEBA6U23I7
-set_global_assignment -name VHDL_INPUT_VERSION VHDL_2008
+set_global_assignment -name VERILOG_INPUT_VERSION SYSTEMVERILOG_2005
 set_global_assignment -name TOP_LEVEL_ENTITY multi_interface_accelerator
 
 # ---- RTL source files -------------------------------------------------------
@@ -1324,7 +1324,7 @@ project_new $project_name -revision $project_name -overwrite
 # ---- Device settings --------------------------------------------------------
 set_global_assignment -name FAMILY "Cyclone V"
 set_global_assignment -name DEVICE 5CSEBA6U23I7
-set_global_assignment -name VHDL_INPUT_VERSION VHDL_2008
+set_global_assignment -name VERILOG_INPUT_VERSION SYSTEMVERILOG_2005
 set_global_assignment -name TOP_LEVEL_ENTITY system_controller
 
 # ---- RTL source files -------------------------------------------------------
@@ -1470,7 +1470,7 @@ project_new $project_name -revision $project_name -overwrite
 # ---- Device settings --------------------------------------------------------
 set_global_assignment -name FAMILY "Cyclone V"
 set_global_assignment -name DEVICE 5CSEBA6U23I7
-set_global_assignment -name VHDL_INPUT_VERSION VHDL_2008
+set_global_assignment -name VERILOG_INPUT_VERSION SYSTEMVERILOG_2005
 set_global_assignment -name TOP_LEVEL_ENTITY xcvr_loopback
 
 # ---- RTL source files -------------------------------------------------------
@@ -1608,7 +1608,7 @@ project_new $project_name -revision $project_name -overwrite
 # ---- Device settings --------------------------------------------------------
 set_global_assignment -name FAMILY "Cyclone V"
 set_global_assignment -name DEVICE 5CSEBA6U23I7
-set_global_assignment -name VHDL_INPUT_VERSION VHDL_2008
+set_global_assignment -name VERILOG_INPUT_VERSION SYSTEMVERILOG_2005
 set_global_assignment -name TOP_LEVEL_ENTITY minimal_core
 
 # ---- RTL source files -------------------------------------------------------
