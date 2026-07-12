@@ -41,6 +41,7 @@ describe('board-mode SDC generation', () => {
     const rendered = loader.render('quartus_sdc.j2', {
       entity_name: 'led_blink',
       clocks_with_period: [{ name: 'clk', frequency: '50MHz', period_ns: '20.000' }],
+      has_pll: true,
     });
 
     expect(rendered).toContain('derive_pll_clocks -create_base_clocks');
@@ -51,6 +52,7 @@ describe('board-mode SDC generation', () => {
     const ipOocRendered = loader.render('quartus_sdc.j2', {
       entity_name: 'led_blink',
       clocks_with_period: [{ name: 'clk', frequency: '50MHz', period_ns: '20.000' }],
+      has_pll: true,
     });
     const boardRendered = loader.render('quartus_board_sdc.j2', {
       entity_name: 'led_blink',
