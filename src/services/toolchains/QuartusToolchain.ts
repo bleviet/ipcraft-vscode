@@ -298,15 +298,15 @@ export class QuartusToolchain implements SynthesisToolchain {
       const rtlFiles = opts.rtlFiles ?? [];
       const hasSvFiles = rtlFiles.some((f) => f.endsWith('.sv') || f.endsWith('.svh'));
       const hasVhdlFiles = rtlFiles.some((f) => f.endsWith('.vhd') || f.endsWith('.vhdl'));
-      const has_sv = hasSvFiles || (!hasVhdlFiles && isSv);
-      const has_vhdl = hasVhdlFiles || (!hasSvFiles && !isSv);
+      const hasSv = hasSvFiles || (!hasVhdlFiles && isSv);
+      const hasVhdl = hasVhdlFiles || (!hasSvFiles && !isSv);
       const quartusCtx = {
         ...templateContext,
         target_device: targetDevice,
         device_family: deviceFamily,
         rtl_files: rtlFiles,
-        has_sv,
-        has_vhdl,
+        has_sv: hasSv,
+        has_vhdl: hasVhdl,
         sdc_file: sdcRelPath,
       };
       files[`altera/${name}_project.tcl`] = templates.render('quartus_project.tcl.j2', quartusCtx);
