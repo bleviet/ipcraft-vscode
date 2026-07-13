@@ -39,6 +39,10 @@ export interface PinAssignmentResult {
  * clock/reset/io nets: primary clock -> board's primary clock, primary reset (if the IP
  * declares one) -> board's primary reset, then each user port in declaration order onto
  * the next unused board io of matching direction (LEDs/switches/buttons).
+ *
+ * A reset with no board net to map onto is left unmapped rather than treated as an error —
+ * unlike a missing clock (which has no fallback), BoardProjectScaffolder synthesizes a
+ * power-on reset for an unmapped reset instead of failing.
  */
 export function resolveBoardPortMap(ipCoreData: IpCoreData, board: BoardDefinition): PortMapResult {
   const map: Record<string, string | string[]> = {};
@@ -57,9 +61,7 @@ export function resolveBoardPortMap(ipCoreData: IpCoreData, board: BoardDefiniti
   const primaryReset = ipCoreData.resets?.[0];
   if (primaryReset?.name) {
     const boardReset = board.resets[0];
-    if (!boardReset) {
-      errors.push(`No board reset available to map IP reset '${primaryReset.name}'.`);
-    } else {
+    if (boardReset) {
       map[primaryReset.name] = boardReset.name;
     }
   }
@@ -83,9 +85,14 @@ export function resolveBoardPortMap(ipCoreData: IpCoreData, board: BoardDefiniti
       }
     }
     if (candidates.length < width) {
-      errors.push(
-        `No board '${direction}' io net available for port '${name}' — every matching board io is already mapped.`
-      );
+      const totalMatching = board.ios.filter((io) => io.direction === direction).length;
+      const reason =
+        totalMatching === 0
+          ? `the board has no '${direction}' io nets at all`
+          : totalMatching < width
+            ? `the board only has ${totalMatching} '${direction}' io net(s), fewer than the ${width} this port needs`
+            : 'every matching board io is already mapped';
+      errors.push(`No board '${direction}' io net available for port '${name}' — ${reason}.`);
       continue;
     }
     candidates.forEach((io) => usedIos.add(io.name));

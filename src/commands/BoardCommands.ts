@@ -18,6 +18,7 @@ import { safeRegisterCommand } from '../utils/vscodeHelpers';
 import { handleErrorWithUserNotification } from '../utils/ErrorHandler';
 import { CONFIG_KEY_IPCRAFT, CONFIG_KEY_IPCRAFT_GENERATE } from '../utils/configKeys';
 import { getToolchain } from '../services/toolchains/registry';
+import { computeMountBase } from '../services/toolchains/QuartusToolchain';
 import { runProcess } from '../services/BuildRunner';
 import { fileExists } from '../utils/fsHelpers';
 import { parseQuartusReports } from '../services/ReportParser';
@@ -319,7 +320,8 @@ async function createBoardQuartusProject(
     return false;
   }
 
-  const docker = toolchain.getDocker(cfg, ipDir);
+  const mountBase = await computeMountBase(ipNameFromWrapperName(wrapperName), ipDir);
+  const docker = toolchain.getDocker(cfg, mountBase);
   const { env, extraMounts } = toolchain.getLaunchEnv(cfg);
 
   const result = await runProcess(launcher.exe, ['-t', projectTcl], {
@@ -336,6 +338,15 @@ async function createBoardQuartusProject(
 export async function resolveBoardWrapperName(ipCoreUri: vscode.Uri): Promise<string | undefined> {
   const name = await readIpCoreName(ipCoreUri);
   return name ? `${name}_board_top` : undefined;
+}
+
+/**
+ * Recovers the plain IP core name (matching the .ip.yml filename, e.g. "led_blink") from a
+ * board wrapper name (e.g. "led_blink_board_top") — computeMountBase needs the former to find
+ * the .ip.yml on disk and read its fileSets.
+ */
+function ipNameFromWrapperName(wrapperName: string): string {
+  return wrapperName.replace(/_board_top$/, '');
 }
 
 export async function openBoardProjectCommand(resourceUri?: vscode.Uri): Promise<void> {
@@ -390,7 +401,8 @@ async function buildBoardProject(resourceUri?: vscode.Uri): Promise<void> {
     void vscode.window.showErrorMessage('Quartus not found. Configure it in IPCraft settings.');
     return;
   }
-  const docker = toolchain.getDocker(cfg, ipDir);
+  const mountBase = await computeMountBase(ipNameFromWrapperName(wrapperName), ipDir);
+  const docker = toolchain.getDocker(cfg, mountBase);
   const { env, extraMounts } = toolchain.getLaunchEnv(cfg);
 
   const ch = getBuildOutputChannel();
@@ -486,7 +498,8 @@ async function programBoardCommand(resourceUri?: vscode.Uri): Promise<void> {
     void vscode.window.showErrorMessage('Quartus not found. Configure it in IPCraft settings.');
     return;
   }
-  const docker = toolchain.getDocker(cfg, ipDir);
+  const mountBase = await computeMountBase(ipNameFromWrapperName(wrapperName), ipDir);
+  const docker = toolchain.getDocker(cfg, mountBase);
   const { env, extraMounts } = toolchain.getLaunchEnv(cfg);
 
   const ch = getBuildOutputChannel();

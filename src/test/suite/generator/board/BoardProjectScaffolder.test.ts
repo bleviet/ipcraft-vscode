@@ -18,7 +18,15 @@ const templates = new TemplateLoader(
 const ipYamlPath = path.join(repoRoot, 'src', 'test', 'fixtures', 'led_blink-ipcore.yml');
 const clockOnlyIpYamlPath = path.join(repoRoot, 'src', 'test', 'fixtures', 'clock_only-ipcore.yml');
 const led8IpYamlPath = path.join(repoRoot, 'src', 'test', 'fixtures', 'led8-ipcore.yml');
+const activeHighResetIpYamlPath = path.join(
+  repoRoot,
+  'src',
+  'test',
+  'fixtures',
+  'led_blink_activehigh-ipcore.yml'
+);
 const boardYamlPath = builtinBoardPath(resourceRoots, 'de10_nano.board.yml');
+const noResetBoardYamlPath = path.join(repoRoot, 'src', 'test', 'fixtures', 'no_reset.board.yml');
 
 function baseOptions(): BoardProjectOptions {
   return {
@@ -41,6 +49,14 @@ function led8Options(): BoardProjectOptions {
   return {
     ...baseOptions(),
     ipYamlPath: led8IpYamlPath,
+  };
+}
+
+function porOptions(ipPath: string): BoardProjectOptions {
+  return {
+    ...baseOptions(),
+    ipYamlPath: ipPath,
+    boardYamlPath: noResetBoardYamlPath,
   };
 }
 
@@ -131,5 +147,27 @@ describe('BoardProjectScaffolder', () => {
     );
     expect(pinTokens).toHaveLength(8);
     expect(new Set(pinTokens).size).toBe(8);
+  });
+
+  // Regression: resetInvert was computed as `!ipResetActiveHigh`, backwards from what the
+  // por_done signal needs — por_done starts low and rises to 1 once released, so an
+  // active-high IP reset (asserted = 1) must be driven by NOT(por_done), not por_done
+  // directly. The bug held any active-high-reset IP with a synthesized POR in permanent
+  // reset forever, since it never inverted.
+  describe('power-on reset (no board reset net mapped)', () => {
+    it('drives an active-low IP reset directly from por_done (no inversion)', async () => {
+      const { files } = await scaffoldBoardProject(porOptions(ipYamlPath));
+      const wrapper = files['altera-board/led_blink_board_top.sv'];
+      expect(wrapper).toContain('por_done');
+      expect(wrapper).toContain('.rst_n (por_done)');
+      expect(wrapper).not.toContain('.rst_n (~por_done)');
+    });
+
+    it('drives an active-high IP reset from the inverted por_done (issue: reset inversion was backwards)', async () => {
+      const { files } = await scaffoldBoardProject(porOptions(activeHighResetIpYamlPath));
+      const wrapper = files['altera-board/led_blink_activehigh_board_top.sv'];
+      expect(wrapper).toContain('por_done');
+      expect(wrapper).toContain('.rst (~por_done)');
+    });
   });
 });

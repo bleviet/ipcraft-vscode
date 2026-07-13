@@ -66,6 +66,11 @@ export async function programBoard(options: ProgramBoardOptions): Promise<Progra
     extraMounts,
   } = options;
 
+  // Deliberately not routed through Docker (unlike quartus_pgm below): a JTAG probe is a USB
+  // device on the host, and passing it through into a container reliably is its own can of
+  // worms (device cgroup rules, udev, host USB stack version skew) — out of scope here. When
+  // only a Docker-runner Quartus is configured, this call fails with ENOENT; the resulting
+  // "Failed to run jtagconfig" error is the accepted limitation for that setup.
   outputChannel.appendLine(`\n> ${jtagconfigExe}`);
   const scan = await execCapture(jtagconfigExe, [], cwd);
   if (scan.error) {

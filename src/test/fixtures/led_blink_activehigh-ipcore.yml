@@ -1,0 +1,53 @@
+# Variant of led_blink-ipcore.yml with an active-high reset instead of active-low, used to
+# exercise BoardProjectScaffolder's synthesized power-on reset (no board reset net mapped) with
+# both reset polarities — see the "power-on reset" tests in BoardProjectScaffolder.test.ts.
+vlnv:
+  vendor: de10-nano-demo
+  library: examples
+  name: led_blink_activehigh
+  version: 1.0.0
+apiVersion: '1.0'
+description: Minimal 1 Hz LED blinker with an active-high reset (test fixture only).
+scaffold_pack: builtin-minimal
+targets:
+  - quartus
+
+clocks:
+  - name: clk
+    logicalName: CLK
+    direction: in
+    frequency: 50MHz
+    description: FPGA_CLK1_50 board oscillator (PIN_V11)
+    associatedReset: rst
+
+resets:
+  - name: rst
+    logicalName: RESET
+    direction: in
+    polarity: activeHigh
+    description: Active-high synchronous reset (test fixture only — no real board pin).
+    associatedClock: clk
+
+ports:
+  - name: led
+    direction: out
+    width: 1
+    description: User LED, active-high on the DE10-Nano (LED[0], PIN_W15)
+
+parameters:
+  - name: CLK_FREQ_HZ
+    dataType: natural
+    value: 50000000
+    description: Input clock frequency in Hz
+  - name: BLINK_HZ
+    dataType: natural
+    value: 1
+    description: Target LED blink frequency in Hz
+
+fileSets:
+  - name: RTL_Sources
+    description: RTL Sources (hand-authored)
+    files:
+      - path: ../../common/rtl/led_blink.sv
+        type: systemverilog
+        managed: false

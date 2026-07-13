@@ -88,7 +88,11 @@ export async function scaffoldBoardProject(opts: BoardProjectOptions): Promise<B
   let resetInvert = false;
   if (hasPor) {
     resetConnectionSignal = 'por_done';
-    resetInvert = !ipResetActiveHigh;
+    // por_done starts low (0) and rises to 1 once the POR counter completes — i.e. it directly
+    // tracks "released", not "asserted". An active-high IP reset (asserted = 1) must therefore
+    // be driven by NOT(por_done): 1 while resetting, 0 once released — invert. An active-low
+    // reset (asserted = 0) already matches por_done's own 0-then-1 shape — no invert.
+    resetInvert = ipResetActiveHigh;
   } else if (resetNet) {
     const boardReset = board.resets.find((r) => r.name === resetNet);
     const boardResetActiveHigh = boardReset?.polarity === 'activeHigh';

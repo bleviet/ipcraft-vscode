@@ -15,7 +15,14 @@ export const window = {
   showWarningMessage: jest.fn(),
   showInformationMessage: jest.fn(),
   showQuickPick: jest.fn(),
+  withProgress: jest.fn(),
 };
+
+export enum ProgressLocation {
+  SourceControl = 1,
+  Window = 10,
+  Notification = 15,
+}
 
 export const workspace = {
   onDidChangeTextDocument: jest.fn(),

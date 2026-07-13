@@ -76,7 +76,12 @@ describe('Spec Conformance Tests', () => {
     ...getYamlFiles(FIXTURES_DIR),
     ...getYamlFiles(TEMPLATES_DIR),
     ...getYamlFiles(EXAMPLES_DIR),
-  ].filter((f) => !f.includes('invalid-syntax'));
+  ].filter(
+    // .board.yml has its own schema (board.schema.json) that this sweep doesn't load —
+    // without this exclusion it falls through to the ip-core/memory-map binary classifier
+    // below and gets validated against the wrong schema.
+    (f) => !f.includes('invalid-syntax') && !f.endsWith('.board.yml')
+  );
 
   for (const filePath of allYamlFiles) {
     const relativePath = path.relative(REPO_ROOT, filePath);

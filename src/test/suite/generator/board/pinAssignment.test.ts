@@ -74,6 +74,20 @@ describe('resolveBoardPortMap / buildPinAssignments', () => {
     ]);
   });
 
+  it('leaves the reset unmapped (not an error) when the board has no reset net, enabling the synthesized power-on reset', () => {
+    const boardWithNoReset: BoardDefinition = { ...de10Nano, resets: [] };
+    const { map, errors } = resolveBoardPortMap(ledBlinkIp, boardWithNoReset);
+    expect(errors).toEqual([]);
+    expect(map).toEqual({ clk: 'FPGA_CLK1_50', led: 'LED0' });
+    expect(map.rst_n).toBeUndefined();
+  });
+
+  it('still errors when the board has no clock (no fallback exists for a missing clock)', () => {
+    const boardWithNoClock: BoardDefinition = { ...de10Nano, clocks: [] };
+    const { errors } = resolveBoardPortMap(ledBlinkIp, boardWithNoClock);
+    expect(errors).toEqual(["No board clock available to map IP clock 'clk'."]);
+  });
+
   it('AC #69.3 — AMD/Vivado xdc target emits the equivalent constraint for the same board', () => {
     const { map } = resolveBoardPortMap(ledBlinkIp, de10Nano);
     const { assignments } = buildPinAssignments(de10Nano, map, ['clk', 'rst_n', 'led']);
@@ -155,7 +169,15 @@ describe('resolveBoardPortMap / buildPinAssignments', () => {
     };
     const { errors } = resolveBoardPortMap(eightLedIp, de10Nano); // only 1 'out' io available
     expect(errors).toEqual([
-      "No board 'out' io net available for port 'led' — every matching board io is already mapped.",
+      "No board 'out' io net available for port 'led' — the board only has 1 'out' io net(s), fewer than the 8 this port needs.",
+    ]);
+  });
+
+  it('reports that the board has no matching io nets at all, not that they are "already mapped" (PR #82 review finding)', () => {
+    const noOutIoBoard: BoardDefinition = { ...de10Nano, ios: [] };
+    const { errors } = resolveBoardPortMap(ledBlinkIp, noOutIoBoard);
+    expect(errors).toEqual([
+      "No board 'out' io net available for port 'led' — the board has no 'out' io nets at all.",
     ]);
   });
 });

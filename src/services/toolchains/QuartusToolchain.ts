@@ -204,7 +204,7 @@ function commonAncestorDir(dirs: string[]): string {
  * referenced RTL file, even when they live outside ipDir (e.g. shared libs).
  * Falls back to ipDir when the YAML cannot be read.
  */
-async function computeMountBase(name: string, ipDir: string): Promise<string> {
+export async function computeMountBase(name: string, ipDir: string): Promise<string> {
   for (const ext of ['ip.yml', 'ip.yaml']) {
     const yamlPath = path.join(ipDir, `${name}.${ext}`);
     try {

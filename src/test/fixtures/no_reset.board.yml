@@ -1,0 +1,23 @@
+# Synthetic test-only board definition with no reset net at all, used to exercise
+# BoardProjectScaffolder's synthesized power-on reset path (see the "power-on reset" tests
+# in BoardProjectScaffolder.test.ts). Reuses the DE10-Nano's clock and LED0 io so the rest of
+# the board-flow pipeline (clock/port mapping) behaves identically to the real board.
+name: NoResetBoard
+device: 5CSEBA6U23I7
+family: Cyclone V SoC
+vendor: Test
+
+clocks:
+  - name: FPGA_CLK1_50
+    pin: PIN_V11
+    frequencyHz: 50000000
+    ioStandard: 3.3-V LVTTL
+
+resets: []
+
+ios:
+  - name: LED0
+    pin: PIN_W15
+    direction: out
+    polarity: activeHigh
+    ioStandard: 3.3-V LVTTL
