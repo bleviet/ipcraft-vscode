@@ -39,6 +39,9 @@
   ],
   "activationEvents": [],
   "main": "./dist/extension.js",
+  "bin": {
+    "ipcraft": "./dist/cli.js"
+  },
   "contributes": {
     "commands": [
       {
@@ -139,11 +142,24 @@
         "icon": "$(gear)"
       },
       {
+        "command": "fpga-ip-core.programBoard",
+        "title": "Program Board",
+        "category": "IPCraft",
+        "icon": "$(chip)",
+        "enablement": "ipcraft.quartusFound"
+      },
+      {
         "command": "fpga-ip-core.generateAndBuildVivado",
         "title": "Generate & Build (Vivado OOC)",
         "category": "IPCraft",
         "icon": "$(zap)",
         "enablement": "ipcraft.vivadoFound"
+      },
+      {
+        "command": "fpga-ip-core.checkHdlConsistency",
+        "title": "Check HDL Consistency (managed:false)",
+        "category": "IPCraft",
+        "icon": "$(checklist)"
       },
       {
         "command": "fpga-ip-core.generateAndBuildQuartus",
@@ -428,19 +444,29 @@
           "group": "4_build@5"
         },
         {
+          "command": "fpga-ip-core.programBoard",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/ && ipcraft.quartusFound",
+          "group": "4_build@6"
+        },
+        {
           "command": "fpga-ip-core.build",
           "when": "resourceFilename =~ /\\.ip\\.yml$/ && (ipcraft.vivadoFound || ipcraft.quartusFound)",
-          "group": "4_build@6"
+          "group": "4_build@7"
         },
         {
           "command": "fpga-ip-core.buildNotConfigured",
           "when": "resourceFilename =~ /\\.ip\\.yml$/ && !ipcraft.vivadoFound && !ipcraft.quartusFound",
-          "group": "4_build@6"
+          "group": "4_build@7"
         },
         {
           "command": "fpga-ip-core.showBuildOutput",
           "when": "resourceFilename =~ /\\.ip\\.yml$/",
-          "group": "4_build@6"
+          "group": "4_build@8"
+        },
+        {
+          "command": "fpga-ip-core.checkHdlConsistency",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/",
+          "group": "6_validate@1"
         },
         {
           "command": "fpga-ip-core.editInPlatformDesigner",
@@ -531,6 +557,11 @@
         },
         {
           "command": "fpga-ip-core.buildBoardProject",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/ && ipcraft.quartusFound",
+          "group": "ipcraft@6"
+        },
+        {
+          "command": "fpga-ip-core.programBoard",
           "when": "resourceFilename =~ /\\.ip\\.yml$/ && ipcraft.quartusFound",
           "group": "ipcraft@6"
         },
@@ -686,7 +717,15 @@
           "when": "resourceFilename =~ /\\.ip\\.yml$/ && ipcraft.quartusFound"
         },
         {
+          "command": "fpga-ip-core.programBoard",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/ && ipcraft.quartusFound"
+        },
+        {
           "command": "fpga-ip-core.changeDefaultBoard"
+        },
+        {
+          "command": "fpga-ip-core.checkHdlConsistency",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/"
         },
         {
           "command": "fpga-ip-core.generateAndBuildVivado",

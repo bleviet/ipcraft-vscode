@@ -22,6 +22,7 @@ import { runProcess } from '../services/BuildRunner';
 import { fileExists } from '../utils/fsHelpers';
 import { parseQuartusReports } from '../services/ReportParser';
 import { openInQuartusCommand } from './openInQuartus';
+import { programBoard as jtagProgramBoard } from '../services/JtagProgrammer';
 import { getBuildOutputChannel } from './BuildCommands';
 import { categorizeFiles } from './GenerateCommands';
 import { StagingPanel } from '../providers/StagingPanel';
@@ -52,6 +53,10 @@ export function registerBoardCommands(
 
   safeRegisterCommand(context, 'fpga-ip-core.changeDefaultBoard', async () => {
     await changeDefaultBoard();
+  });
+
+  safeRegisterCommand(context, 'fpga-ip-core.programBoard', async (uri?: vscode.Uri) => {
+    await programBoardCommand(uri);
   });
 }
 
@@ -96,7 +101,7 @@ async function listBoardCatalog(): Promise<BoardCatalogEntry[]> {
   return boards;
 }
 
-async function pickBoardDefinition(): Promise<string | undefined> {
+export async function pickBoardDefinition(): Promise<string | undefined> {
   const boards = await listBoardCatalog();
   if (boards.length === 0) {
     void vscode.window.showErrorMessage('No board definitions are bundled with IPCraft.');
@@ -141,7 +146,7 @@ async function pickBoardDefinition(): Promise<string | undefined> {
 }
 
 /** Let the user pick a new default board, or clear it so the picker prompts again. */
-async function changeDefaultBoard(): Promise<void> {
+export async function changeDefaultBoard(): Promise<void> {
   const boards = await listBoardCatalog();
   if (boards.length === 0) {
     void vscode.window.showErrorMessage('No board definitions are bundled with IPCraft.');
@@ -434,6 +439,92 @@ async function buildBoardProject(resourceUri?: vscode.Uri): Promise<void> {
   const fmax = reports.timing?.fmax;
   const summary = fmax !== undefined ? `Fmax ${fmax.toFixed(0)} MHz` : 'Done';
   void vscode.window.showInformationMessage(
-    `✓ Board project built (${wrapperName}) — ${summary}. Program with quartus_pgm from altera-board/.`
+    `✓ Board project built (${wrapperName}) — ${summary}. Run "IPCraft: Program Board" to download it.`
   );
+}
+
+/**
+ * Programs the board's compiled .sof over JTAG (issue #79) — runs jtagconfig, matches the
+ * board definition's device against the detected JTAG chain, and derives the quartus_pgm
+ * device index from that match instead of a hand-set `@N`.
+ */
+async function programBoardCommand(resourceUri?: vscode.Uri): Promise<void> {
+  const ipCoreUri = resourceUri ?? getActiveIpCoreFile();
+  if (!ipCoreUri) {
+    return;
+  }
+  const wrapperName = await resolveBoardWrapperName(ipCoreUri);
+  if (!wrapperName) {
+    void vscode.window.showErrorMessage('Cannot read vlnv.name from IP core file.');
+    return;
+  }
+
+  const ipDir = path.dirname(ipCoreUri.fsPath);
+  const boardDir = path.join(ipDir, BOARD_PROJECT_SUBDIR);
+  const sofPath = path.join(boardDir, 'output_files', `${wrapperName}.sof`);
+  if (!(await fileExists(sofPath))) {
+    void vscode.window.showErrorMessage(
+      'No compiled .sof found. Run "Build the Board Project" first.'
+    );
+    return;
+  }
+
+  const boardYamlPath = await pickBoardDefinition();
+  if (!boardYamlPath) {
+    return;
+  }
+  const board = await loadBoardDefinition(boardYamlPath, globalResourceRoots);
+
+  const toolchain = getToolchain('quartus');
+  if (!toolchain) {
+    return;
+  }
+  const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT);
+  const jtagconfigLauncher = toolchain.resolve('jtagconfig', cfg);
+  const quartusPgmLauncher = toolchain.resolve('quartus_pgm', cfg);
+  if (!jtagconfigLauncher?.exe || !quartusPgmLauncher?.exe) {
+    void vscode.window.showErrorMessage('Quartus not found. Configure it in IPCraft settings.');
+    return;
+  }
+  const docker = toolchain.getDocker(cfg, ipDir);
+  const { env, extraMounts } = toolchain.getLaunchEnv(cfg);
+
+  const ch = getBuildOutputChannel();
+  ch.show(true);
+  ch.appendLine(`\n${'='.repeat(60)}`);
+  ch.appendLine('IPCraft Program — JTAG (auto-detected device)');
+  ch.appendLine(`Project : ${wrapperName}`);
+  ch.appendLine(`Board   : ${board.name} (${board.device})`);
+  ch.appendLine('='.repeat(60));
+
+  let result: Awaited<ReturnType<typeof jtagProgramBoard>> | undefined;
+  await vscode.window.withProgress(
+    {
+      location: vscode.ProgressLocation.Notification,
+      title: `Programming board (${wrapperName})…`,
+      cancellable: false,
+    },
+    async () => {
+      result = await jtagProgramBoard({
+        jtagconfigExe: jtagconfigLauncher.exe,
+        quartusPgmExe: quartusPgmLauncher.exe,
+        sofPath,
+        boardDevicePart: board.device,
+        cwd: boardDir,
+        outputChannel: ch,
+        docker,
+        env,
+        extraMounts,
+      });
+    }
+  );
+
+  if (!result?.success) {
+    void vscode.window.showErrorMessage(
+      result?.error ?? 'Programming failed — see IPCraft Build output.'
+    );
+    return;
+  }
+
+  void vscode.window.showInformationMessage(`✓ Board programmed (${wrapperName}).`);
 }

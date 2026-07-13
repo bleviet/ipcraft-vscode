@@ -169,7 +169,7 @@ async function viewBusDefinitions(): Promise<void> {
   }
 }
 
-function getActiveIpCoreFile(): vscode.Uri | undefined {
+export function getActiveIpCoreFile(): vscode.Uri | undefined {
   // Text editor active (e.g. YAML opened as raw text)
   const editor = vscode.window.activeTextEditor;
   if (editor) {

@@ -14,6 +14,7 @@ export const window = {
   showErrorMessage: jest.fn(),
   showWarningMessage: jest.fn(),
   showInformationMessage: jest.fn(),
+  showQuickPick: jest.fn(),
 };
 
 export const workspace = {
@@ -22,6 +23,7 @@ export const workspace = {
   asRelativePath: jest.fn((path) => path.toString()),
   getConfiguration: jest.fn(() => ({
     get: jest.fn((_key: string, defaultValue?: unknown) => defaultValue),
+    update: jest.fn(),
   })),
   fs: {
     readFile: jest.fn(),
@@ -37,8 +39,15 @@ export enum FileType {
   SymbolicLink = 64,
 }
 
+export enum ConfigurationTarget {
+  Global = 1,
+  Workspace = 2,
+  WorkspaceFolder = 3,
+}
+
 export const commands = {
   executeCommand: jest.fn(),
+  registerCommand: jest.fn(() => new Disposable(() => {})),
 };
 
 export const Uri = {

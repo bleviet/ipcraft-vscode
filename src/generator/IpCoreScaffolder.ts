@@ -123,6 +123,14 @@ export class IpCoreScaffolder {
       const packManagedFalse = new Set<string>();
       const name = String(ipCoreData?.vlnv?.name ?? 'ip_core').toLowerCase();
 
+      // User-declared managed:false paths (fileSets in the .ip.yml) that collide with a
+      // scaffold-pack target — e.g. a no-bus IP whose hand-authored top lives at the same
+      // path the pack would otherwise stub out (rtl/<name>.sv). These must never be
+      // (re)generated, even on the very first run before the user has created the file —
+      // unlike pack-declared managed:false rules (see packManagedFalse below), which exist
+      // specifically to seed a first-time stub for the user to then take ownership of.
+      const userManagedPaths = collectUserManagedPaths(ipCoreData);
+
       // ── RTL files — data-driven from scaffold pack ─────────────────────────
       // Minimal packs (fullGeneration: false) suppress bus/register context so the
       // top-level template renders an empty architecture regardless of bus detection.
@@ -135,6 +143,12 @@ export class IpCoreScaffolder {
           }
           const sourceName = packLoader.renderString(rule.source, rtlCtx);
           const relativePath = packLoader.renderString(rule.target, rtlCtx);
+          if (userManagedPaths.has(relativePath)) {
+            this.logger.info(
+              `Skipping scaffold target owned by fileSets managed:false: ${relativePath}`
+            );
+            continue;
+          }
           files[relativePath] = packLoader.render(sourceName, rtlCtx);
           if (rule.managed === false) {
             packManagedFalse.add(relativePath);
@@ -154,6 +168,7 @@ export class IpCoreScaffolder {
           templates: packLoader,
           isSv,
           hasMmSlave: pack.fullGeneration ? hasMmSlave : false,
+          topLevel: simCfg?.topLevel,
           extraCompileArgs: simCfg?.compileArgs,
           extraSimArgs: simCfg?.simArgs,
           extraEnv: simCfg?.env,
@@ -215,18 +230,7 @@ export class IpCoreScaffolder {
 
       // Collect paths marked managed: false — these are user-owned and must not be overwritten.
       // Sources: (1) fileSets entries in the YAML, (2) scaffold pack managed:false rules.
-      type FileSetEntry = { files?: Array<{ path?: string; managed?: boolean }> };
-      const rawFileSets = (ipCoreData as Record<string, unknown>).fileSets as
-        | FileSetEntry[]
-        | undefined;
-      const protectedSet = new Set<string>(packManagedFalse);
-      for (const fset of rawFileSets ?? []) {
-        for (const f of fset.files ?? []) {
-          if (f.managed === false && f.path) {
-            protectedSet.add(f.path);
-          }
-        }
-      }
+      const protectedSet = new Set<string>([...packManagedFalse, ...userManagedPaths]);
 
       // Dry-run: return generated content without writing to disk.
       // Identify which protected paths already exist so the caller can skip them.
@@ -425,6 +429,26 @@ export class IpCoreScaffolder {
         .replace(/\b\w/g, (letter) => letter.toUpperCase()),
     };
   }
+}
+
+/**
+ * Paths declared managed: false in the .ip.yml's fileSets — these are user-owned and, when
+ * they collide with a scaffold-pack target, must never be (re)generated (issue #75).
+ */
+function collectUserManagedPaths(ipCoreData: IpCoreData): Set<string> {
+  type FileSetEntry = { files?: Array<{ path?: string; managed?: boolean }> };
+  const rawFileSets = (ipCoreData as Record<string, unknown>).fileSets as
+    | FileSetEntry[]
+    | undefined;
+  const paths = new Set<string>();
+  for (const fset of rawFileSets ?? []) {
+    for (const f of fset.files ?? []) {
+      if (f.managed === false && f.path) {
+        paths.add(f.path);
+      }
+    }
+  }
+  return paths;
 }
 
 function resolveMemmapRelpath(

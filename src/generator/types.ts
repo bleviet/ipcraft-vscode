@@ -215,6 +215,8 @@ export interface IpCoreData {
 }
 
 export interface SimulationConfig {
+  /** Testbench top-level entity/module override (e.g. a board wrapper). Defaults to the IP core name. */
+  topLevel?: string;
   /** Framework override: 'cocotb' | 'vunit'. */
   framework?: string;
   /** Engine override: 'ghdl' | 'icarus' | 'verilator' | 'questa'. */

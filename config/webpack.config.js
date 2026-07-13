@@ -115,6 +115,38 @@ const extensionConfig = {
 };
 
 /** @type {import('webpack').Configuration} */
+const cliConfig = {
+  name: "cli",
+  mode: "development",
+  devtool: "inline-source-map",
+  target: "node",
+  entry: {
+    cli: path.resolve(projectRoot, "src/cli/index.ts"),
+  },
+  output: {
+    path: path.resolve(projectRoot, "dist"),
+    filename: "[name].js",
+    libraryTarget: "commonjs2",
+  },
+  // The CLI runs outside any VS Code host, so `vscode` is bundled as a lightweight shim
+  // (not left external like the extension bundle) — see src/cli/vscodeShim.ts.
+  resolve: {
+    ...commonResolve,
+    alias: {
+      vscode: path.resolve(projectRoot, "src/cli/vscodeShim.ts"),
+    },
+  },
+  module: extensionModuleRules,
+  ignoreWarnings: [
+    { module: /nunjucks/, message: /Critical dependency/ },
+  ],
+  plugins: [
+    new webpack.IgnorePlugin({ resourceRegExp: /^fsevents$/ }),
+    new webpack.BannerPlugin({ banner: "#!/usr/bin/env node", raw: true }),
+  ],
+};
+
+/** @type {import('webpack').Configuration} */
 const webviewConfig = {
   name: "webview",
   mode: "development",
@@ -137,4 +169,4 @@ const webviewConfig = {
   performance: { hints: false },
 };
 
-module.exports = [extensionConfig, webviewConfig];
+module.exports = [extensionConfig, webviewConfig, cliConfig];

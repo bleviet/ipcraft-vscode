@@ -13,6 +13,7 @@ import {
 } from './commands/FileCreationCommands';
 import { registerGeneratorCommands } from './commands/GenerateCommands';
 import { registerBoardCommands } from './commands/BoardCommands';
+import { registerHdlCrossCheckCommands } from './commands/HdlCrossCheckCommands';
 import { registerBuildCommands } from './commands/BuildCommands';
 import { editInIpPackagerCommand } from './commands/editInIpPackager';
 import { editInPlatformDesignerCommand } from './commands/editInPlatformDesigner';
@@ -198,6 +199,10 @@ export function activate(context: vscode.ExtensionContext): void {
   // Register Board Flow Commands (New Board Project)
   registerBoardCommands(context, resourceRoots);
   logger.info('Board commands registered');
+
+  // Register HDL consistency check (managed:false HDL vs .ip.yml)
+  registerHdlCrossCheckCommands(context, resourceRoots);
+  logger.info('HDL cross-check command registered');
 
   // Register Build Commands + Reports tree view
   const reportsProvider = new ReportsTreeProvider();
