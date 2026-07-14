@@ -39,7 +39,7 @@ VHDL_SOURCES += $(BASE_DIR)/rtl/{{ entity_name }}.vhd
 {% endif %}
 
 # Top-level module
-TOPLEVEL = {{ entity_name }}
+TOPLEVEL = {{ top_level }}
 
 # Test module (Python file without .py extension)
 MODULE = {{ entity_name }}_test

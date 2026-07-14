@@ -60,4 +60,12 @@ module.exports = [
       '@typescript-eslint/no-unsafe-member-access': 'off',
     },
   },
+  {
+    // The standalone ipcraft CLI (src/cli) is a plain Node process, not the extension host or
+    // webview — stdout/stderr via console.* is its actual user-facing output, not debug noise.
+    files: ['src/cli/**/*.ts'],
+    rules: {
+      'no-console': 'off',
+    },
+  },
 ];

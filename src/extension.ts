@@ -12,6 +12,7 @@ import {
   createIpCoreWithMemoryMapCommand,
 } from './commands/FileCreationCommands';
 import { registerGeneratorCommands } from './commands/GenerateCommands';
+import { registerHdlCrossCheckCommands } from './commands/HdlCrossCheckCommands';
 import { registerBuildCommands } from './commands/BuildCommands';
 import { editInIpPackagerCommand } from './commands/editInIpPackager';
 import { editInPlatformDesignerCommand } from './commands/editInPlatformDesigner';
@@ -193,6 +194,10 @@ export function activate(context: vscode.ExtensionContext): void {
   // Register VHDL Generator Commands
   registerGeneratorCommands(context, resourceRoots);
   logger.info('Generator commands registered');
+
+  // Register HDL consistency check (managed:false HDL vs .ip.yml)
+  registerHdlCrossCheckCommands(context, resourceRoots);
+  logger.info('HDL cross-check command registered');
 
   // Register Build Commands + Reports tree view
   const reportsProvider = new ReportsTreeProvider();

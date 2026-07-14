@@ -39,6 +39,9 @@
   ],
   "activationEvents": [],
   "main": "./dist/extension.js",
+  "bin": {
+    "ipcraft": "./dist/cli.js"
+  },
   "contributes": {
     "commands": [
       {
@@ -193,6 +196,12 @@
         "command": "fpga-ip-core.showBuildOutput",
         "title": "Show Build Output",
         "category": "IPCraft"
+      },
+      {
+        "command": "fpga-ip-core.checkHdlConsistency",
+        "title": "Check HDL Consistency (managed:false)",
+        "category": "IPCraft",
+        "icon": "$(checklist)"
       },
       {
         "command": "fpga-ip-core.openInVivado",
@@ -396,6 +405,11 @@
           "command": "fpga-ip-core.showBuildOutput",
           "when": "resourceFilename =~ /\\.ip\\.yml$/",
           "group": "4_build@4"
+        },
+        {
+          "command": "fpga-ip-core.checkHdlConsistency",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/",
+          "group": "6_validate@1"
         },
         {
           "command": "fpga-ip-core.editInPlatformDesigner",
@@ -611,6 +625,10 @@
         },
         {
           "command": "fpga-ip-core.generateQuartusProject",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/"
+        },
+        {
+          "command": "fpga-ip-core.checkHdlConsistency",
           "when": "resourceFilename =~ /\\.ip\\.yml$/"
         },
         {
