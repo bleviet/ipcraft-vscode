@@ -508,6 +508,10 @@ export interface IpCore {
    */
   simulation?: {
     /**
+     * Override the testbench's top-level entity/module (e.g. a board wrapper) instead of the IP core's own top. Defaults to the IP core name.
+     */
+    topLevel?: string;
+    /**
      * Testbench framework (overrides ipcraft.testbench.framework workspace setting).
      */
     framework?: 'cocotb' | 'vunit';

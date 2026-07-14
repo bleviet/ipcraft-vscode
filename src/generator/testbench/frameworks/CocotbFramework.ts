@@ -14,6 +14,7 @@ export class CocotbFramework implements Framework {
 
   generate(ctx: TestbenchContext, engine: Engine): Record<string, string> {
     const { name, templateContext, templates, isSv, hasMmSlave } = ctx;
+    const topLevel = ctx.topLevel ?? name;
     const extraCompileArgs = ctx.extraCompileArgs ?? [];
     const extraSimArgs = ctx.extraSimArgs ?? [];
     const extraEnv = ctx.extraEnv ?? {};
@@ -37,6 +38,7 @@ export class CocotbFramework implements Framework {
       is_sv: isSv,
       rtl_source_files: rtlSourceFiles,
       rtl_include_dirs: rtlIncludeDirs,
+      top_level: topLevel,
     };
 
     // Extend the template context with engine-specific values so templates can

@@ -587,6 +587,190 @@ describe('IpCoreScaffolder', () => {
     }
   });
 
+  it('never emits the top-level stub for a no-bus IP whose top is declared managed:false (issue #75)', async () => {
+    // A no-bus IP whose real top-level logic is hand-authored must never have its scaffold
+    // target (rtl/<name>.sv, matching builtin-minimal's top rule) stubbed out — not even on
+    // the very first generation, before the user has created the file on disk. This differs
+    // from the existing managed:false-on-disk check (which only protects files that already
+    // exist), and from pack-declared managed:false rules (e.g. `_core.vhd`), which are meant
+    // to seed a first-time stub for the user to take over.
+    const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-scaffolder-managed-top-'));
+    try {
+      const inputPath = path.join(tmp, 'blinker.ip.yml');
+      fs2.writeFileSync(
+        inputPath,
+        [
+          'vlnv:',
+          '  vendor: test',
+          '  library: lib',
+          '  name: blinker',
+          '  version: 1.0.0',
+          'apiVersion: "1.0"',
+          'scaffold_pack: builtin-minimal',
+          'clocks:',
+          '  - name: clk',
+          '    direction: in',
+          'busInterfaces: []',
+          'fileSets:',
+          '  - name: RTL_Sources',
+          '    files:',
+          '      - path: rtl/blinker.sv',
+          '        type: systemverilog',
+          '        managed: false',
+        ].join('\n')
+      );
+
+      const outputDir = path.join(tmp, 'out');
+      const result = await scaffolder.generateAll(inputPath, outputDir, {
+        includeRegs: false,
+        includeTestbench: false,
+        targets: [],
+        hdlLanguage: 'systemverilog',
+      });
+
+      expect(result.success).toBe(true);
+      // The stub must not even be generated in memory, let alone written to disk.
+      expect(result.generatedContents?.['rtl/blinker.sv']).toBeUndefined();
+      expect(
+        (fs.writeFile as unknown as jest.Mock).mock.calls.some((call) =>
+          String(call[0]).endsWith(path.join('rtl', 'blinker.sv'))
+        )
+      ).toBe(false);
+    } finally {
+      fs2.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it('still references a managed-top file in vendor packaging RTL file lists (issue #75)', async () => {
+    // Even though the top is never scaffolded, vendor packaging (component.xml, hw.tcl,
+    // project TCLs) must still pick it up from fileSets so the hand-authored top is part of
+    // the compile order and referenced as the top-level entity.
+    const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-scaffolder-managed-top-pkg-'));
+    try {
+      fs2.mkdirSync(path.join(tmp, 'rtl'), { recursive: true });
+      fs2.writeFileSync(
+        path.join(tmp, 'rtl', 'blinker.sv'),
+        ['module blinker(input logic clk);', 'endmodule'].join('\n')
+      );
+      const inputPath = path.join(tmp, 'blinker.ip.yml');
+      fs2.writeFileSync(
+        inputPath,
+        [
+          'vlnv:',
+          '  vendor: test',
+          '  library: lib',
+          '  name: blinker',
+          '  version: 1.0.0',
+          'apiVersion: "1.0"',
+          'scaffold_pack: builtin-minimal',
+          'clocks:',
+          '  - name: clk',
+          '    direction: in',
+          'busInterfaces: []',
+          'fileSets:',
+          '  - name: RTL_Sources',
+          '    files:',
+          '      - path: rtl/blinker.sv',
+          '        type: systemverilog',
+          '        managed: false',
+        ].join('\n')
+      );
+
+      const outputDir = tmp;
+      const result = await scaffolder.generateAll(inputPath, outputDir, {
+        includeRegs: false,
+        includeTestbench: false,
+        targets: ['vivado'],
+        hdlLanguage: 'systemverilog',
+      });
+
+      expect(result.success).toBe(true);
+      const componentXml = (fs.writeFile as unknown as jest.Mock).mock.calls.find((call) =>
+        String(call[0]).includes('xilinx/component.xml')
+      )?.[1] as string;
+      expect(componentXml).toBeDefined();
+      expect(componentXml).toContain('rtl/blinker.sv');
+    } finally {
+      fs2.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it('honours simulation.topLevel to target a board wrapper in the generated cocotb Makefile (issue #78)', async () => {
+    const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-scaffolder-sim-toplevel-'));
+    try {
+      const inputPath = path.join(tmp, 'led_blink.ip.yml');
+      fs2.writeFileSync(
+        inputPath,
+        [
+          'vlnv:',
+          '  vendor: test',
+          '  library: lib',
+          '  name: led_blink',
+          '  version: 1.0.0',
+          'apiVersion: "1.0"',
+          'scaffold_pack: builtin-minimal',
+          'clocks:',
+          '  - name: clk',
+          '    direction: in',
+          'busInterfaces: []',
+          'simulation:',
+          '  topLevel: de10_nano_top',
+        ].join('\n')
+      );
+
+      const outputDir = path.join(tmp, 'out');
+      const result = await scaffolder.generateAll(inputPath, outputDir, {
+        includeRegs: false,
+        includeTestbench: true,
+        targets: [],
+      });
+
+      expect(result.success).toBe(true);
+      const makefile = result.generatedContents?.['tb/Makefile'];
+      expect(makefile).toBeDefined();
+      expect(makefile).toContain('TOPLEVEL = de10_nano_top');
+    } finally {
+      fs2.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it('defaults the cocotb Makefile TOPLEVEL to the IP core name without simulation.topLevel (issue #78)', async () => {
+    const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-scaffolder-sim-toplevel-default-'));
+    try {
+      const inputPath = path.join(tmp, 'led_blink.ip.yml');
+      fs2.writeFileSync(
+        inputPath,
+        [
+          'vlnv:',
+          '  vendor: test',
+          '  library: lib',
+          '  name: led_blink',
+          '  version: 1.0.0',
+          'apiVersion: "1.0"',
+          'scaffold_pack: builtin-minimal',
+          'clocks:',
+          '  - name: clk',
+          '    direction: in',
+          'busInterfaces: []',
+        ].join('\n')
+      );
+
+      const outputDir = path.join(tmp, 'out');
+      const result = await scaffolder.generateAll(inputPath, outputDir, {
+        includeRegs: false,
+        includeTestbench: true,
+        targets: [],
+      });
+
+      expect(result.success).toBe(true);
+      const makefile = result.generatedContents?.['tb/Makefile'];
+      expect(makefile).toBeDefined();
+      expect(makefile).toContain('TOPLEVEL = led_blink');
+    } finally {
+      fs2.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
   it('includes hand-authored fileSets RTL files in the testbench Makefile alongside generated ones', async () => {
     // Same class of bug as issue #43, but in the cocotb Makefile: cocotb_makefile.j2's
     // {% if rtl_source_files %} / {% else %} was all-or-nothing, so declaring even one

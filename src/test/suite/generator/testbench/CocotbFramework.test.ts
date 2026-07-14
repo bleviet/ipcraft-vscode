@@ -169,6 +169,40 @@ describe('CocotbFramework', () => {
     expect(files['tb/Makefile']).toContain('icarus');
   });
 
+  it('defaults TOPLEVEL to the IP core name when simulation.topLevel is absent (issue #78)', () => {
+    const mk = framework.generate(makeCtx(), new GhdlEngine())['tb/Makefile'];
+    expect(mk).toContain('TOPLEVEL = test_core');
+  });
+
+  it('honours a testbench topLevel override (issue #78)', () => {
+    const mk = framework.generate(makeCtx({ topLevel: 'de10_nano_top' }), new GhdlEngine())[
+      'tb/Makefile'
+    ];
+    expect(mk).toContain('TOPLEVEL = de10_nano_top');
+    expect(mk).not.toContain('TOPLEVEL = test_core');
+  });
+
+  it('honours a testbench topLevel override in the SV Makefile (issue #78)', () => {
+    const mk = framework.generate(
+      makeCtx({
+        isSv: true,
+        topLevel: 'de10_nano_top',
+        templateContext: {
+          entity_name: 'test_core',
+          clock_port: 'clk',
+          reset_port: 'rst_n',
+          reset_active_high: false,
+          bus_type: 'none',
+          has_memory_mapped_slave: false,
+          ports: [],
+          parameters: [],
+        },
+      }),
+      new IcarusEngine()
+    )['tb/Makefile'];
+    expect(mk).toContain('TOPLEVEL = de10_nano_top');
+  });
+
   it('forwards extraCompileArgs, extraSimArgs and extraEnv into Makefile', () => {
     const files = framework.generate(
       makeCtx({

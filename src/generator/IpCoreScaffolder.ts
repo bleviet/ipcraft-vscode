@@ -1,6 +1,5 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import * as yaml from 'js-yaml';
 import * as vscode from 'vscode';
 import { Logger } from '../utils/Logger';
 import { ResourceRoots } from '../services/ResourceRoots';
@@ -12,16 +11,14 @@ import { ScaffoldPackLoader } from './ScaffoldPackLoader';
 import {
   getBusTypeForTemplate,
   hasMemoryMappedSlaveInterface,
-  normalizeIpCoreData,
   prepareRegisters,
   resolveMemoryMaps,
   projectMemoryMapsForTemplate,
 } from './registerProcessor';
-import { normalizeParameterDataType } from '../parser/paramDataType';
+import { loadIpCoreData } from './loadIpCore';
 import { sortByCompilationOrder } from '../utils/compilationOrder';
 import { getToolchain } from '../services/toolchains/registry';
 import { generateTestbenchFiles, DEFAULT_FRAMEWORK, DEFAULT_ENGINE } from './testbench';
-import { YamlValidator } from '../services/YamlValidator';
 import { assertValidContext, CONTRACT_VERSION, checkPackApiVersion } from './contract';
 import type { TemplateContext } from './contract';
 import { BUS_REGISTRY } from './buses/builtin';
@@ -45,7 +42,6 @@ export class IpCoreScaffolder {
   private readonly logger: Logger;
   private readonly templates: TemplateLoader;
   private readonly busLibraryService: BusLibraryService;
-  private readonly validator = new YamlValidator();
   private busDefinitions: BusDefinitions | null = null;
   private readonly resourceRoots: ResourceRoots;
 
@@ -127,6 +123,14 @@ export class IpCoreScaffolder {
       const packManagedFalse = new Set<string>();
       const name = String(ipCoreData?.vlnv?.name ?? 'ip_core').toLowerCase();
 
+      // User-declared managed:false paths (fileSets in the .ip.yml) that collide with a
+      // scaffold-pack target — e.g. a no-bus IP whose hand-authored top lives at the same
+      // path the pack would otherwise stub out (rtl/<name>.sv). These must never be
+      // (re)generated, even on the very first run before the user has created the file —
+      // unlike pack-declared managed:false rules (see packManagedFalse below), which exist
+      // specifically to seed a first-time stub for the user to then take ownership of.
+      const userManagedPaths = collectUserManagedPaths(ipCoreData);
+
       // ── RTL files — data-driven from scaffold pack ─────────────────────────
       // Minimal packs (fullGeneration: false) suppress bus/register context so the
       // top-level template renders an empty architecture regardless of bus detection.
@@ -139,6 +143,12 @@ export class IpCoreScaffolder {
           }
           const sourceName = packLoader.renderString(rule.source, rtlCtx);
           const relativePath = packLoader.renderString(rule.target, rtlCtx);
+          if (userManagedPaths.has(relativePath)) {
+            this.logger.info(
+              `Skipping scaffold target owned by fileSets managed:false: ${relativePath}`
+            );
+            continue;
+          }
           files[relativePath] = packLoader.render(sourceName, rtlCtx);
           if (rule.managed === false) {
             packManagedFalse.add(relativePath);
@@ -158,6 +168,7 @@ export class IpCoreScaffolder {
           templates: packLoader,
           isSv,
           hasMmSlave: pack.fullGeneration ? hasMmSlave : false,
+          topLevel: simCfg?.topLevel,
           extraCompileArgs: simCfg?.compileArgs,
           extraSimArgs: simCfg?.simArgs,
           extraEnv: simCfg?.env,
@@ -219,18 +230,7 @@ export class IpCoreScaffolder {
 
       // Collect paths marked managed: false — these are user-owned and must not be overwritten.
       // Sources: (1) fileSets entries in the YAML, (2) scaffold pack managed:false rules.
-      type FileSetEntry = { files?: Array<{ path?: string; managed?: boolean }> };
-      const rawFileSets = (ipCoreData as Record<string, unknown>).fileSets as
-        | FileSetEntry[]
-        | undefined;
-      const protectedSet = new Set<string>(packManagedFalse);
-      for (const fset of rawFileSets ?? []) {
-        for (const f of fset.files ?? []) {
-          if (f.managed === false && f.path) {
-            protectedSet.add(f.path);
-          }
-        }
-      }
+      const protectedSet = new Set<string>([...packManagedFalse, ...userManagedPaths]);
 
       // Dry-run: return generated content without writing to disk.
       // Identify which protected paths already exist so the caller can skip them.
@@ -363,29 +363,7 @@ export class IpCoreScaffolder {
   }
 
   private async loadIpCore(inputPath: string): Promise<IpCoreData> {
-    const content = await fs.readFile(inputPath, 'utf8');
-    const parsed = yaml.load(content);
-    if (!parsed || typeof parsed !== 'object') {
-      throw new Error('Invalid IP core YAML');
-    }
-    // Canonicalise HDL parameter types (e.g. `positive` -> `natural`) so that
-    // hand-written specs validate and the generator emits a valid HDL generic
-    // type. Importers already normalise; this covers the direct-YAML path.
-    const params = (parsed as Record<string, unknown>).parameters;
-    if (Array.isArray(params)) {
-      for (const p of params) {
-        if (p && typeof p === 'object' && 'dataType' in p) {
-          const param = p as Record<string, unknown>;
-          param.dataType = normalizeParameterDataType(param.dataType as string | undefined);
-        }
-      }
-    }
-    const schemaPath = path.join(this.resourceRoots.schemasDir, 'ip_core.schema.json');
-    const schemaResult = this.validator.validateAgainstSchema(parsed, schemaPath);
-    if (!schemaResult.valid) {
-      throw new Error(`IP core YAML schema validation failed: ${schemaResult.error}`);
-    }
-    return normalizeIpCoreData(parsed as Record<string, unknown>);
+    return loadIpCoreData(inputPath, this.resourceRoots);
   }
 
   /**
@@ -451,6 +429,26 @@ export class IpCoreScaffolder {
         .replace(/\b\w/g, (letter) => letter.toUpperCase()),
     };
   }
+}
+
+/**
+ * Paths declared managed: false in the .ip.yml's fileSets — these are user-owned and, when
+ * they collide with a scaffold-pack target, must never be (re)generated (issue #75).
+ */
+function collectUserManagedPaths(ipCoreData: IpCoreData): Set<string> {
+  type FileSetEntry = { files?: Array<{ path?: string; managed?: boolean }> };
+  const rawFileSets = (ipCoreData as Record<string, unknown>).fileSets as
+    | FileSetEntry[]
+    | undefined;
+  const paths = new Set<string>();
+  for (const fset of rawFileSets ?? []) {
+    for (const f of fset.files ?? []) {
+      if (f.managed === false && f.path) {
+        paths.add(f.path);
+      }
+    }
+  }
+  return paths;
 }
 
 function resolveMemmapRelpath(
