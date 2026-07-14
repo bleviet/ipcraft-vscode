@@ -1,4 +1,3 @@
-/* eslint-disable */
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import * as fs2 from 'fs';
@@ -32,7 +31,7 @@ jest.mock('../../../services/BusLibraryService', () => {
   };
 });
 
-const mockVivadoPathExists = jest.fn().mockResolvedValue(false);
+const mockVivadoPathExists = jest.fn<Promise<boolean>, [string]>().mockResolvedValue(false);
 jest.mock('../../../services/VivadoInterfaceScanner', () => ({
   getVivadoInterfaceCacheDir: () => '/fake/vivado/cache/bus_definitions',
   pathExists: (p: string) => mockVivadoPathExists(p),
@@ -44,7 +43,7 @@ jest.mock('../../../services/WorkspaceBusDefinitionScanner', () => ({
 }));
 
 jest.mock('fs/promises', () => {
-  const actual = jest.requireActual('fs/promises');
+  const actual: typeof import('fs/promises') = jest.requireActual('fs/promises');
   return {
     ...actual,
     mkdir: jest.fn().mockResolvedValue(undefined),
