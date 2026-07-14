@@ -14,3 +14,14 @@ set_instance_assignment -name IO_STANDARD "{{ a.ioStandard }}" -to {{ a.port }}
 {% else %}
 # No pin assignments — the board/IP port map produced no matches.
 {% endif %}
+{% if unmapped_ports %}
+
+# ---- Needs manual pin assignment ---------------------------------------------
+# {{ board_name }} has no matching (or not enough) io net(s) for these ports — they
+# are still exposed on {{ entity_name }}, unconnected to any pin. Add a
+# set_location_assignment (and IO_STANDARD, if required) for each below, or in the
+# Quartus Pin Planner, once you know which physical pin(s) to use.
+{% for p in unmapped_ports %}
+# {{ p.direction }} {{ p.name }}{% if p.width > 1 %} [{{ p.width }} bits]{% endif %}
+{% endfor %}
+{% endif %}

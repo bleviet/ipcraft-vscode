@@ -42,7 +42,11 @@ export interface PinAssignmentResult {
  *
  * A reset with no board net to map onto is left unmapped rather than treated as an error —
  * unlike a missing clock (which has no fallback), BoardProjectScaffolder synthesizes a
- * power-on reset for an unmapped reset instead of failing.
+ * power-on reset for an unmapped reset instead of failing. A user port with no board io net
+ * available (wrong direction, not enough of them, or the board simply doesn't have any) is
+ * likewise left unmapped rather than failing the whole board-project generation — the board
+ * flow only wires up what the board definition actually has; the user assigns the rest
+ * manually (see BoardProjectScaffolder's unmappedPorts).
  */
 export function resolveBoardPortMap(ipCoreData: IpCoreData, board: BoardDefinition): PortMapResult {
   const map: Record<string, string | string[]> = {};
@@ -85,14 +89,10 @@ export function resolveBoardPortMap(ipCoreData: IpCoreData, board: BoardDefiniti
       }
     }
     if (candidates.length < width) {
-      const totalMatching = board.ios.filter((io) => io.direction === direction).length;
-      const reason =
-        totalMatching === 0
-          ? `the board has no '${direction}' io nets at all`
-          : totalMatching < width
-            ? `the board only has ${totalMatching} '${direction}' io net(s), fewer than the ${width} this port needs`
-            : 'every matching board io is already mapped';
-      errors.push(`No board '${direction}' io net available for port '${name}' — ${reason}.`);
+      // Not enough matching-direction board io nets (none at all, too few, or the rest are
+      // already used by an earlier port) — leave unmapped rather than failing the whole
+      // board-project generation. No partial mapping either: a width-N port either gets all
+      // N bits or none, so the user isn't left with a confusing half-wired bus.
       continue;
     }
     candidates.forEach((io) => usedIos.add(io.name));

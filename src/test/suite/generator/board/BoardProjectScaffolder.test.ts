@@ -16,6 +16,13 @@ const templates = new TemplateLoader(
 );
 
 const ipYamlPath = path.join(repoRoot, 'src', 'test', 'fixtures', 'led_blink-ipcore.yml');
+const withInputIpYamlPath = path.join(
+  repoRoot,
+  'src',
+  'test',
+  'fixtures',
+  'led_blink_with_input-ipcore.yml'
+);
 const clockOnlyIpYamlPath = path.join(repoRoot, 'src', 'test', 'fixtures', 'clock_only-ipcore.yml');
 const led8IpYamlPath = path.join(repoRoot, 'src', 'test', 'fixtures', 'led8-ipcore.yml');
 const activeHighResetIpYamlPath = path.join(
@@ -168,6 +175,38 @@ describe('BoardProjectScaffolder', () => {
       const wrapper = files['altera-board/led_blink_activehigh_board_top.sv'];
       expect(wrapper).toContain('por_done');
       expect(wrapper).toContain('.rst (~por_done)');
+    });
+  });
+
+  // Regression: "Generate Board Project" used to hard-fail with "Board port mapping failed:
+  // No board 'in' io net available ... the board has no 'in' io nets at all" for any IP with
+  // an input user port, since DE10-Nano's bundled board definition only declares output LEDs.
+  // Board project generation must only wire up what the board definition actually has and
+  // leave the rest for the user to map manually, not block generation entirely.
+  describe('unmapped user ports (board has no matching io net)', () => {
+    it('generates successfully, exposing the unmappable input port unconnected and listing it in unmappedPorts', async () => {
+      const { files, unmappedPorts } = await scaffoldBoardProject({
+        ...baseOptions(),
+        ipYamlPath: withInputIpYamlPath,
+      });
+
+      expect(unmappedPorts).toEqual([{ name: 'i_active_channel', direction: 'in', width: 2 }]);
+
+      const wrapper = files['altera-board/led_blink_with_input_board_top.sv'];
+      // The mappable output port still gets wired to its board net as usual.
+      expect(wrapper).toContain('.led (led0)');
+      // The unmappable port is still exposed on the wrapper (named after the IP port, since
+      // there's no board net to name it after), just not connected to anything else.
+      expect(wrapper).toContain('input  logic [1:0] i_active_channel');
+      expect(wrapper).toContain('.i_active_channel (i_active_channel)');
+
+      const pins = files['altera-board/led_blink_with_input_board_pins.tcl'];
+      // No set_location_assignment was emitted for the unmapped port — only a comment
+      // flagging it for manual assignment.
+      expect(pins).not.toContain('-to i_active_channel');
+      expect(pins).toContain('# in i_active_channel [2 bits]');
+      // The mapped LED still got a real pin assignment.
+      expect(pins).toContain('set_location_assignment PIN_W15 -to led0');
     });
   });
 });

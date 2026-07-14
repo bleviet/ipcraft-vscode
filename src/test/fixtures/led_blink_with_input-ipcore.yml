@@ -1,0 +1,49 @@
+# Variant of led_blink-ipcore.yml with an extra input port that the bundled DE10-Nano board
+# definition has nothing to map it onto (it only declares output LEDs, no switches/buttons as
+# ios) — used to exercise BoardProjectScaffolder's "leave unmapped, don't fail" behavior for
+# unmappable user ports (see the "unmapped user ports" tests in BoardProjectScaffolder.test.ts;
+# regression for a real "Generate Board Project" failure with an input port).
+vlnv:
+  vendor: de10-nano-demo
+  library: examples
+  name: led_blink_with_input
+  version: 1.0.0
+apiVersion: '1.0'
+description: Minimal 1 Hz LED blinker with an extra unmappable input port (test fixture only).
+scaffold_pack: builtin-minimal
+targets:
+  - quartus
+
+clocks:
+  - name: clk
+    logicalName: CLK
+    direction: in
+    frequency: 50MHz
+    description: FPGA_CLK1_50 board oscillator (PIN_V11)
+    associatedReset: rst_n
+
+resets:
+  - name: rst_n
+    logicalName: RESET
+    direction: in
+    polarity: activeLow
+    description: Active-low asynchronous reset (KEY[0], PIN_AH17)
+    associatedClock: clk
+
+ports:
+  - name: led
+    direction: out
+    width: 1
+    description: User LED, active-high on the DE10-Nano (LED[0], PIN_W15)
+  - name: i_active_channel
+    direction: in
+    width: 2
+    description: Channel-select input — no board net available on DE10-Nano (test fixture only).
+
+fileSets:
+  - name: RTL_Sources
+    description: RTL Sources (hand-authored)
+    files:
+      - path: ../../common/rtl/led_blink.sv
+        type: systemverilog
+        managed: false

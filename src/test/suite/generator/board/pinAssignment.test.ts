@@ -103,7 +103,7 @@ describe('resolveBoardPortMap / buildPinAssignments', () => {
     expect(rendered).toContain('set_property IOSTANDARD 3.3-V LVTTL [get_ports { led }]');
   });
 
-  it('errors when the IP has more user ports of a direction than the board has matching ios', () => {
+  it('leaves a port unmapped (not an error) when the board has no more matching ios, once earlier ports have used them up (issue: board project generation must not hard-fail)', () => {
     const twoLedIp: IpCoreData = {
       ...ledBlinkIp,
       ports: [
@@ -111,10 +111,10 @@ describe('resolveBoardPortMap / buildPinAssignments', () => {
         { name: 'led2', direction: 'out', width: 1 },
       ],
     };
-    const { errors } = resolveBoardPortMap(twoLedIp, de10Nano); // de10Nano fixture has only 1 'out' io
-    expect(errors).toEqual([
-      "No board 'out' io net available for port 'led2' — every matching board io is already mapped.",
-    ]);
+    const { map, errors } = resolveBoardPortMap(twoLedIp, de10Nano); // de10Nano fixture has only 1 'out' io
+    expect(errors).toEqual([]);
+    expect(map.led).toBe('LED0');
+    expect(map.led2).toBeUndefined();
   });
 
   const de10NanoEightLeds: BoardDefinition = {
@@ -162,22 +162,40 @@ describe('resolveBoardPortMap / buildPinAssignments', () => {
     expect(new Set(ledAssignments.map((a) => a.pin)).size).toBe(8);
   });
 
-  it('errors when a width-N port needs more board ios than are available', () => {
+  it('leaves a width-N port entirely unmapped (no partial bits) when the board has fewer matching ios than the width needs', () => {
     const eightLedIp: IpCoreData = {
       ...ledBlinkIp,
       ports: [{ name: 'led', direction: 'out', width: 8 }],
     };
-    const { errors } = resolveBoardPortMap(eightLedIp, de10Nano); // only 1 'out' io available
-    expect(errors).toEqual([
-      "No board 'out' io net available for port 'led' — the board only has 1 'out' io net(s), fewer than the 8 this port needs.",
-    ]);
+    const { map, errors } = resolveBoardPortMap(eightLedIp, de10Nano); // only 1 'out' io available
+    expect(errors).toEqual([]);
+    expect(map.led).toBeUndefined();
   });
 
-  it('reports that the board has no matching io nets at all, not that they are "already mapped" (PR #82 review finding)', () => {
+  it('leaves a port unmapped when the board has no io nets of that direction at all — never hard-fails board project generation', () => {
     const noOutIoBoard: BoardDefinition = { ...de10Nano, ios: [] };
-    const { errors } = resolveBoardPortMap(ledBlinkIp, noOutIoBoard);
-    expect(errors).toEqual([
-      "No board 'out' io net available for port 'led' — the board has no 'out' io nets at all.",
-    ]);
+    const { map, errors } = resolveBoardPortMap(ledBlinkIp, noOutIoBoard);
+    expect(errors).toEqual([]);
+    expect(map.led).toBeUndefined();
+    // Clock and reset are unaffected — only the unmappable user port is left out.
+    expect(map.clk).toBe('FPGA_CLK1_50');
+    expect(map.rst_n).toBe('KEY0');
+  });
+
+  it('an IP with an input port generates a board project against a board with only output ios, leaving that port unmapped', () => {
+    // Regression: a real DE10-Nano-style board definition (LEDs only, no switches/buttons
+    // wired as ios) must not hard-fail "Generate Board Project" just because one of the IP's
+    // ports happens to be an input with nothing to map it to.
+    const ipWithInputPort: IpCoreData = {
+      ...ledBlinkIp,
+      ports: [
+        { name: 'led', direction: 'out', width: 1 },
+        { name: 'i_active_channel', direction: 'in', width: 2 },
+      ],
+    };
+    const { map, errors } = resolveBoardPortMap(ipWithInputPort, de10Nano);
+    expect(errors).toEqual([]);
+    expect(map.led).toBe('LED0');
+    expect(map.i_active_channel).toBeUndefined();
   });
 });

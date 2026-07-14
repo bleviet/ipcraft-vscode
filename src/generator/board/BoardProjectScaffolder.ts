@@ -24,6 +24,13 @@ export interface BoardProjectOptions {
 export interface BoardProjectResult {
   files: Record<string, string>;
   wrapperName: string;
+  /**
+   * User ports the board definition had no matching io net for (wrong direction, not
+   * enough, or none at all) — still exposed on the board-top wrapper, but with no pin
+   * assignment; the user wires these up manually (e.g. editing the generated
+   * *_board_pins.tcl or the .qsf directly).
+   */
+  unmappedPorts: Array<{ name: string; direction: string; width: number }>;
 }
 
 /** Cycles a synthesized power-on reset holds after configuration when the IP has an
@@ -149,8 +156,14 @@ export async function scaffoldBoardProject(opts: BoardProjectOptions): Promise<B
     wrapperPinMap[resetWrapperPort] = resetNet;
     wrapperTopLevelPorts.push(resetWrapperPort);
   }
+  const unmappedPorts: BoardProjectResult['unmappedPorts'] = [];
   for (const p of userPorts) {
-    wrapperPinMap[p.wrapper_port] = ipPortMap[p.ip_port];
+    const net = ipPortMap[p.ip_port];
+    if (net === undefined) {
+      unmappedPorts.push({ name: p.ip_port, direction: p.direction, width: p.width });
+      continue;
+    }
+    wrapperPinMap[p.wrapper_port] = net;
     wrapperTopLevelPorts.push(p.wrapper_port);
   }
 
@@ -168,6 +181,7 @@ export async function scaffoldBoardProject(opts: BoardProjectOptions): Promise<B
     entity_name: wrapperName,
     board_name: board.name,
     assignments,
+    unmapped_ports: unmappedPorts,
   });
 
   // ---- Board SDC ------------------------------------------------------------------
@@ -207,5 +221,5 @@ export async function scaffoldBoardProject(opts: BoardProjectOptions): Promise<B
     [`altera-board/Makefile`]: makefileContent,
   };
 
-  return { files, wrapperName };
+  return { files, wrapperName, unmappedPorts };
 }

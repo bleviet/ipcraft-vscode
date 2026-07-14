@@ -203,7 +203,7 @@ async function newBoardProject(resourceUri?: vscode.Uri): Promise<void> {
   const hdlLanguage = genCfg.get<'vhdl' | 'systemverilog'>('hdlLanguage', 'vhdl');
 
   try {
-    const { files, wrapperName } = await vscode.window.withProgress(
+    const { files, wrapperName, unmappedPorts } = await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
         title: 'Generating board project…',
@@ -273,8 +273,12 @@ async function newBoardProject(resourceUri?: vscode.Uri): Promise<void> {
       mergedPaths.size > 0
         ? `; ${mergedPaths.size} opened in the merge editor (resolve and save)`
         : '';
+    const unmappedNote =
+      unmappedPorts.length > 0
+        ? ` — ${unmappedPorts.length} port(s) need manual pin assignment (see altera-board/${ipNameFromWrapperName(wrapperName)}_board_pins.tcl): ${unmappedPorts.map((p) => p.name).join(', ')}`
+        : '';
     const action = await vscode.window.showInformationMessage(
-      `✓ Generated board project (${wrapperName}) — ${filesToWrite.length} file(s) written to altera-board/${mergeNote}${qpfNote}`,
+      `✓ Generated board project (${wrapperName}) — ${filesToWrite.length} file(s) written to altera-board/${mergeNote}${qpfNote}${unmappedNote}`,
       'Open Folder'
     );
     if (action === 'Open Folder') {
