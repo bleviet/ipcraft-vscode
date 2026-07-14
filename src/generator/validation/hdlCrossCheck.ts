@@ -123,6 +123,12 @@ function selectTopLevelFiles(
     return parsedFiles;
   }
   const coreName = ipCoreData.vlnv?.name?.toLowerCase();
+  if (!coreName) {
+    // No IP core name to match against (e.g. schema-invalid .ip.yml) — can't identify the
+    // top, so fall through to checking every file rather than matching every file whose
+    // entityName also failed to parse (undefined === undefined).
+    return parsedFiles;
+  }
   const matches = parsedFiles.filter((f) => f.entityName?.toLowerCase() === coreName);
   return matches.length === 1 ? matches : parsedFiles;
 }

@@ -1,8 +1,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import type { ResourceRoots } from '../services/ResourceRoots';
-import { collectUserManagedPaths } from '../generator/IpCoreScaffolder';
-import { loadIpCoreData } from '../generator/loadIpCore';
+import { listAll } from '../services/toolchains/registry';
 import { buildCliScaffolder, buildGenerateOptions } from './generate';
 import type { CliGenerateArgs } from './generate';
 
@@ -56,11 +55,14 @@ async function listFilesRecursive(dir: string, relPrefix = ''): Promise<string[]
  * relative to a fresh generation by definition.
  *
  * Beyond the forward diff (generated -> disk), also reverse-scans every top-level directory
- * IPCraft generated into (e.g. rtl/, tb/) for files no longer part of a fresh generation —
- * e.g. after switching scaffold_pack or dropping a --target — so those don't sit on disk
- * invisibly. The scan is scoped to directories generatedContents actually touches, rather
- * than the whole of generatedDir, so files unrelated to IPCraft (docs, .git, etc.) aren't
- * flagged.
+ * IPCraft could generate into (e.g. rtl/, tb/, altera/, xilinx/) for files no longer part of
+ * a fresh generation — e.g. after switching scaffold_pack or dropping a --target — so those
+ * don't sit on disk invisibly. Which directories to walk is deliberately computed from a
+ * second, target-superset dry run rather than from `result.generatedContents` alone: dropping
+ * `--target quartus` makes every altera/ path vanish from the *current* args' generatedContents,
+ * so scoping the walk to that would mean stale altera/ files silently go unnoticed — the exact
+ * drift `verify` exists to catch. Staleness itself is still judged against the real
+ * (current-args) generatedContents; the superset run only decides where to look.
  */
 export async function runCliVerify(
   args: CliVerifyArgs,
@@ -100,17 +102,20 @@ export async function runCliVerify(
     }
   }
 
-  // result.protectedPaths only covers managed:false paths that also collide with a scaffold
-  // target (see IpCoreScaffolder's dryRun branch) — too narrow here, since a managed:false
-  // file that ISN'T a scaffold target (e.g. a hand-authored helper alongside generated
-  // files in the same directory) would never appear in generatedContents either, and must
-  // still be exempt from the orphan scan below. Load the full fileSets managed:false set
-  // directly instead.
-  const ipCoreData = await loadIpCoreData(resolvedIpYaml, resourceRoots);
-  const userManagedPaths = collectUserManagedPaths(ipCoreData);
+  const userManagedPaths = new Set(result.userManagedPaths ?? []);
+
+  const allTargetIds = listAll().map((t) => t.id);
+  const unionResult = await scaffolder.generateAll(resolvedIpYaml, generatedDir, {
+    ...buildGenerateOptions({ ...args, targets: allTargetIds }),
+    dryRun: true,
+  });
+  const dirScanSource =
+    unionResult.success && unionResult.generatedContents
+      ? unionResult.generatedContents
+      : result.generatedContents;
 
   const generatedTopLevelDirs = new Set(
-    Object.keys(result.generatedContents)
+    Object.keys(dirScanSource)
       .filter((p) => p.includes('/'))
       .map((p) => p.split('/')[0])
   );

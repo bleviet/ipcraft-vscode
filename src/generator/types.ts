@@ -85,6 +85,11 @@ export interface GenerateResult {
   generatedContents?: Record<string, string>;
   /** Relative paths of managed:false files that already exist on disk (skip on write). */
   protectedPaths?: string[];
+  /**
+   * Every path declared managed: false in the .ip.yml's fileSets, regardless of whether it
+   * collides with a scaffold-pack target — a superset of protectedPaths (dry-run only).
+   */
+  userManagedPaths?: string[];
   /** The scaffold pack id that was actually used (e.g. "builtin-ipcraft"). */
   resolvedPackName?: string;
   count?: number;

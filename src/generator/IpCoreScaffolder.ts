@@ -252,6 +252,7 @@ export class IpCoreScaffolder {
           success: true,
           generatedContents: { ...files },
           protectedPaths: protectedOnDisk,
+          userManagedPaths: [...userManagedPaths],
           resolvedPackName,
           count: Object.keys(files).length,
           busType,
@@ -433,12 +434,11 @@ export class IpCoreScaffolder {
 
 /**
  * Paths declared managed: false in the .ip.yml's fileSets — these are user-owned and, when
- * they collide with a scaffold-pack target, must never be (re)generated (issue #75). Exported
- * so callers that need the *full* set of user-managed paths (not just the subset that also
- * happens to collide with a scaffold target, which is all `GenerateResult.protectedPaths`
- * exposes) can compute it directly — see `ipcraft verify`'s orphaned-file scan.
+ * they collide with a scaffold-pack target, must never be (re)generated (issue #75). The full
+ * set (regardless of collision) is surfaced on GenerateResult.userManagedPaths in dry-run mode
+ * — see `ipcraft verify`'s orphaned-file scan, which needs paths that don't collide too.
  */
-export function collectUserManagedPaths(ipCoreData: IpCoreData): Set<string> {
+function collectUserManagedPaths(ipCoreData: IpCoreData): Set<string> {
   type FileSetEntry = { files?: Array<{ path?: string; managed?: boolean }> };
   const rawFileSets = (ipCoreData as Record<string, unknown>).fileSets as
     | FileSetEntry[]

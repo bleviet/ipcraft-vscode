@@ -184,6 +184,31 @@ describe('runCliVerify', () => {
     }
   });
 
+  it('flags stale files left in a target directory dropped from a later --target invocation', async () => {
+    const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-verify-dropped-target-'));
+    try {
+      const inputPath = writeBlinkerIpYaml(tmp, '50MHz');
+      const genResult = await runCliGenerate(
+        { ipYamlPath: inputPath, outDir: tmp, targets: ['quartus'], hdlLanguage: 'vhdl' },
+        resourceRoots
+      );
+      expect(genResult.success).toBe(true);
+      expect(fs2.existsSync(path.join(tmp, 'altera'))).toBe(true);
+
+      // Re-verify without --target quartus (e.g. a later invocation dropped it, or the .ip.yml
+      // no longer needs a Quartus project) — the altera/ directory is entirely absent from
+      // this run's own generatedContents, but its now-stale files must still be found.
+      const verifyResult = await runCliVerify(
+        { ipYamlPath: inputPath, generatedDir: tmp, targets: [], hdlLanguage: 'vhdl' },
+        resourceRoots
+      );
+      expect(verifyResult.success).toBe(false);
+      expect(verifyResult.staleFiles?.some((f) => f.startsWith('altera' + path.sep))).toBe(true);
+    } finally {
+      fs2.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
   it('does not flag a managed:false file living alongside generated files as orphaned', async () => {
     const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-verify-orphan-managed-'));
     try {

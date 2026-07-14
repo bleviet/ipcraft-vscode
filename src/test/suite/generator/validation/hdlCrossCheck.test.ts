@@ -274,4 +274,36 @@ describe('crossCheckIpCoreAgainstHdl', () => {
     // silently doing nothing.
     expect(findings.filter((f) => f.kind === 'missing-port')).toHaveLength(2);
   });
+
+  it('does not silently skip the real top when the IP core name is undefined and another managed:false file fails to parse a name', async () => {
+    // Without a guard, `undefined === undefined` (missing vlnv.name vs. an unparseable
+    // module) reads as a "match", so the unparseable file would be selected as "the top" and
+    // the real, correctly-named top would be dropped from the check entirely.
+    const ipCore = baseIpCore({
+      vlnv: { vendor: 'test', library: 'lib', version: '1.0.0' } as unknown as IpCoreData['vlnv'],
+      fileSets: [
+        {
+          name: 'RTL_Sources',
+          files: [
+            { path: 'rtl/top.sv', type: 'systemverilog', managed: false },
+            { path: 'rtl/blank.sv', type: 'systemverilog', managed: false },
+          ],
+        },
+      ],
+      ports: [{ name: 'led', direction: 'out', width: 1 }],
+    });
+    const reader = makeMultiReader({
+      // Real top, deliberately width-mismatched so a bug that drops it from the check is
+      // observable (an unchecked file naturally contributes zero findings either way).
+      'top.sv': ['module top(', '  output logic [7:0] led', ');', 'endmodule'].join('\n'),
+      // Fails to parse a module name -- entityName is null, not merely absent.
+      'blank.sv': '',
+    });
+
+    const findings = await crossCheckIpCoreAgainstHdl(ipCore, '/proj', reader);
+
+    expect(findings.some((f) => f.hdlFile === 'rtl/top.sv' && f.kind === 'width-mismatch')).toBe(
+      true
+    );
+  });
 });
