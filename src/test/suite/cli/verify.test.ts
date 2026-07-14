@@ -158,6 +158,83 @@ describe('runCliVerify', () => {
     }
   });
 
+  it('flags an orphaned file left behind in a generated directory (e.g. after a scaffold_pack or --target change)', async () => {
+    const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-verify-orphan-'));
+    try {
+      const inputPath = writeBlinkerIpYaml(tmp, '50MHz');
+      const genResult = await runCliGenerate(
+        { ipYamlPath: inputPath, outDir: tmp, targets: [], hdlLanguage: 'vhdl' },
+        resourceRoots
+      );
+      expect(genResult.success).toBe(true);
+
+      // Simulate a file left over from a previous generation with a different pack/target
+      // (e.g. scaffold_pack changed, or --target quartus dropped) that a fresh generation no
+      // longer produces.
+      fs2.writeFileSync(path.join(tmp, 'rtl', 'orphan.vhd'), '-- stale leftover\n');
+
+      const verifyResult = await runCliVerify(
+        { ipYamlPath: inputPath, generatedDir: tmp, targets: [], hdlLanguage: 'vhdl' },
+        resourceRoots
+      );
+      expect(verifyResult.success).toBe(false);
+      expect(verifyResult.staleFiles).toContain(path.join('rtl', 'orphan.vhd'));
+    } finally {
+      fs2.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it('does not flag a managed:false file living alongside generated files as orphaned', async () => {
+    const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-verify-orphan-managed-'));
+    try {
+      // A managed:false file that is NOT itself a scaffold target (unlike issue #75's
+      // collision case) — e.g. a hand-authored note living alongside the generated top in
+      // the same rtl/ directory. This must be excluded from the orphan scan purely because
+      // it's declared managed:false in fileSets, not because it happens to collide with a
+      // generated path (result.protectedPaths only covers the latter).
+      const inputPath = path.join(tmp, 'led_blink.ip.yml');
+      fs2.writeFileSync(
+        inputPath,
+        [
+          'vlnv:',
+          '  vendor: test',
+          '  library: lib',
+          '  name: led_blink',
+          '  version: 1.0.0',
+          'apiVersion: "1.0"',
+          'scaffold_pack: builtin-minimal',
+          'clocks:',
+          '  - name: clk',
+          '    direction: in',
+          '    frequency: 50MHz',
+          'busInterfaces: []',
+          'fileSets:',
+          '  - name: RTL_Notes',
+          '    files:',
+          '      - path: rtl/notes.vhd',
+          '        type: vhdl',
+          '        managed: false',
+        ].join('\n')
+      );
+      const genResult = await runCliGenerate(
+        { ipYamlPath: inputPath, outDir: tmp, targets: [], hdlLanguage: 'vhdl' },
+        resourceRoots
+      );
+      expect(genResult.success).toBe(true);
+      // Not a scaffold target (led_blink.vhd is), so it wouldn't exist yet unless hand-authored.
+      fs2.writeFileSync(path.join(tmp, 'rtl', 'notes.vhd'), '-- design notes\n');
+
+      const verifyResult = await runCliVerify(
+        { ipYamlPath: inputPath, generatedDir: tmp, targets: [], hdlLanguage: 'vhdl' },
+        resourceRoots
+      );
+      expect(verifyResult.success).toBe(true);
+      expect(verifyResult.staleFiles).toEqual([]);
+    } finally {
+      fs2.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
   it('returns a readable error for a schema-invalid .ip.yml instead of a stale-file list', async () => {
     const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-verify-invalid-'));
     try {

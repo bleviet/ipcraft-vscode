@@ -18,6 +18,18 @@ function makeReader(content: string): (absPath: string) => Promise<string> {
   return async () => content;
 }
 
+/** Keyed by the file's basename so callers don't need to know the ipCoreDir prefix. */
+function makeMultiReader(byBasename: Record<string, string>): (absPath: string) => Promise<string> {
+  return async (absPath: string) => {
+    const basename = absPath.split(/[/\\]/).pop() ?? '';
+    const content = byBasename[basename];
+    if (content === undefined) {
+      throw new Error(`ENOENT: no fixture for ${absPath}`);
+    }
+    return content;
+  };
+}
+
 describe('crossCheckIpCoreAgainstHdl', () => {
   it('reports a width mismatch citing both the .ip.yml and the HDL location (issue #74 AC1)', async () => {
     const ipCore = baseIpCore({
@@ -179,5 +191,87 @@ describe('crossCheckIpCoreAgainstHdl', () => {
     const widthFinding = findings.find((f) => f.kind === 'width-mismatch');
     expect(widthFinding).toBeDefined();
     expect(widthFinding?.hdlEntity).toBe('led_blink');
+  });
+
+  it('does not duplicate findings when the same managed:false file is listed in multiple fileSets', async () => {
+    const ipCore = baseIpCore({
+      fileSets: [
+        {
+          name: 'RTL_Sources',
+          files: [{ path: 'rtl/led_blink.sv', type: 'systemverilog', managed: false }],
+        },
+        {
+          name: 'Simulation_Resources',
+          files: [{ path: 'rtl/led_blink.sv', type: 'systemverilog', managed: false }],
+        },
+      ],
+      ports: [{ name: 'led', direction: 'out', width: 1 }],
+    });
+    const hdl = ['module led_blink(', '  output logic [7:0] led', ');', 'endmodule'].join('\n');
+
+    const findings = await crossCheckIpCoreAgainstHdl(ipCore, '/proj', makeReader(hdl));
+
+    expect(findings.filter((f) => f.kind === 'width-mismatch')).toHaveLength(1);
+  });
+
+  it('only cross-checks the file matching the IP core name when multiple managed:false HDL files exist, leaving other files unchecked', async () => {
+    const ipCore = baseIpCore({
+      vlnv: { vendor: 'test', library: 'lib', name: 'top', version: '1.0.0' },
+      fileSets: [
+        {
+          name: 'RTL_Sources',
+          files: [
+            { path: 'rtl/top.sv', type: 'systemverilog', managed: false },
+            { path: 'rtl/submodule.sv', type: 'systemverilog', managed: false },
+          ],
+        },
+      ],
+      clocks: [{ name: 'clk' }],
+      ports: [{ name: 'data', direction: 'out', width: 1 }],
+    });
+    const reader = makeMultiReader({
+      'top.sv': [
+        'module top(',
+        '  input logic clk,',
+        '  output logic data',
+        ');',
+        'endmodule',
+      ].join('\n'),
+      // A submodule that legitimately doesn't expose clk/data under those names — it must
+      // not be flagged as missing them just because it's also managed:false.
+      'submodule.sv': ['module submodule(', '  input logic enable', ');', 'endmodule'].join('\n'),
+    });
+
+    const findings = await crossCheckIpCoreAgainstHdl(ipCore, '/proj', reader);
+
+    expect(findings).toEqual([]);
+    expect(findings.some((f) => f.hdlFile === 'rtl/submodule.sv')).toBe(false);
+  });
+
+  it('falls back to checking every managed:false file when none match the IP core name', async () => {
+    const ipCore = baseIpCore({
+      vlnv: { vendor: 'test', library: 'lib', name: 'ambiguous_top', version: '1.0.0' },
+      fileSets: [
+        {
+          name: 'RTL_Sources',
+          files: [
+            { path: 'rtl/alpha.sv', type: 'systemverilog', managed: false },
+            { path: 'rtl/beta.sv', type: 'systemverilog', managed: false },
+          ],
+        },
+      ],
+      ports: [{ name: 'led', direction: 'out', width: 1 }],
+    });
+    const reader = makeMultiReader({
+      'alpha.sv': ['module alpha();', 'endmodule'].join('\n'),
+      'beta.sv': ['module beta();', 'endmodule'].join('\n'),
+    });
+
+    const findings = await crossCheckIpCoreAgainstHdl(ipCore, '/proj', reader);
+
+    // Neither file's name matches the IP core, so which is "the top" is ambiguous — every
+    // file is checked (and both report the missing 'led' port) rather than the check
+    // silently doing nothing.
+    expect(findings.filter((f) => f.kind === 'missing-port')).toHaveLength(2);
   });
 });

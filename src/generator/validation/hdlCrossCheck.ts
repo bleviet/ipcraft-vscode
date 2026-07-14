@@ -29,18 +29,23 @@ interface ManagedHdlFile {
 
 const HDL_TYPES = new Set(['vhdl', 'verilog', 'systemverilog']);
 
+/**
+ * The same file commonly appears in more than one fileSet (e.g. `RTL_Sources` and
+ * `Simulation_Resources` both listing the same source) — dedup by path so it isn't
+ * cross-checked, and doesn't produce findings, twice.
+ */
 function collectManagedHdlFiles(ipCoreData: IpCoreData): ManagedHdlFile[] {
   type FileSetEntry = { files?: Array<{ path?: string; type?: string; managed?: boolean }> };
   const fileSets = (ipCoreData as Record<string, unknown>).fileSets as FileSetEntry[] | undefined;
-  const files: ManagedHdlFile[] = [];
+  const files = new Map<string, ManagedHdlFile>();
   for (const fset of fileSets ?? []) {
     for (const f of fset.files ?? []) {
-      if (f.managed === false && f.path && HDL_TYPES.has(f.type ?? '')) {
-        files.push({ path: f.path, type: f.type as string });
+      if (f.managed === false && f.path && HDL_TYPES.has(f.type ?? '') && !files.has(f.path)) {
+        files.set(f.path, { path: f.path, type: f.type as string });
       }
     }
   }
-  return files;
+  return [...files.values()];
 }
 
 /** Scalar ports (std_logic / no explicit range) parse with width undefined — treat as 1 bit. */
@@ -89,9 +94,42 @@ function collectExpectedSignals(ipCoreData: IpCoreData): ExpectedSignal[] {
   return signals;
 }
 
+interface ParsedManagedFile {
+  file: ManagedHdlFile;
+  entityName: string | null;
+  hdlPortsByName: Map<string, ReturnType<typeof extractVhdlInterface>['ports'][number]>;
+  hdlParamsByName: Map<string, ReturnType<typeof extractVhdlInterface>['parameters'][number]>;
+}
+
+/**
+ * A project can have more than one managed:false HDL file (a hand-authored top plus
+ * hand-authored submodules it instantiates). Only the top-level entity/module is expected to
+ * expose the .ip.yml's full ports/clocks/resets/parameters — checking a submodule against
+ * that same full list produces false `missing-port`/`missing-parameter` findings for every
+ * signal the submodule legitimately doesn't have.
+ *
+ * With a single managed:false file there's no ambiguity — that's the file cross-checked
+ * whether or not its name happens to match the IP core's. With more than one, this narrows
+ * to the file whose entity/module name matches the IP core's name (the conventional
+ * top-level); if none or more than one match, which file is the top can't be determined, so
+ * every file is checked (the pre-existing, imperfect-but-non-silent behavior) rather than
+ * silently skipping the cross-check.
+ */
+function selectTopLevelFiles(
+  parsedFiles: ParsedManagedFile[],
+  ipCoreData: IpCoreData
+): ParsedManagedFile[] {
+  if (parsedFiles.length <= 1) {
+    return parsedFiles;
+  }
+  const coreName = ipCoreData.vlnv?.name?.toLowerCase();
+  const matches = parsedFiles.filter((f) => f.entityName?.toLowerCase() === coreName);
+  return matches.length === 1 ? matches : parsedFiles;
+}
+
 /**
  * Cross-checks a .ip.yml's declared ports/clocks/resets/parameters against the top-level
- * entity/module of every HDL file its fileSets mark managed:false — i.e. hand-authored HDL
+ * entity/module of the HDL file(s) its fileSets mark managed:false — i.e. hand-authored HDL
  * that IPCraft never generates and could silently drift from the spec (issue #74).
  *
  * Deliberately scoped to ports/clocks/resets/parameters, not busInterfaces: bus interface
@@ -112,6 +150,7 @@ export async function crossCheckIpCoreAgainstHdl(
   const expectedSignals = collectExpectedSignals(ipCoreData);
   const expectedParams = (ipCoreData.parameters ?? []).map((p, idx) => ({ ...p, idx }));
 
+  const parsedFiles: ParsedManagedFile[] = [];
   for (const file of managedFiles) {
     const absPath = path.resolve(ipCoreDir, file.path);
     let content: string;
@@ -127,11 +166,18 @@ export async function crossCheckIpCoreAgainstHdl(
     const entityName = isVhdl
       ? (parsed as ReturnType<typeof extractVhdlInterface>).entityName
       : (parsed as ReturnType<typeof extractVerilogInterface>).moduleName;
-    const hdlPorts = parsed.ports;
-    const hdlParams = parsed.parameters;
-    const hdlPortsByName = new Map(hdlPorts.map((p) => [p.name.toLowerCase(), p]));
-    const hdlParamsByName = new Map(hdlParams.map((p) => [p.name.toLowerCase(), p]));
+    parsedFiles.push({
+      file,
+      entityName,
+      hdlPortsByName: new Map(parsed.ports.map((p) => [p.name.toLowerCase(), p])),
+      hdlParamsByName: new Map(parsed.parameters.map((p) => [p.name.toLowerCase(), p])),
+    });
+  }
 
+  for (const { file, entityName, hdlPortsByName, hdlParamsByName } of selectTopLevelFiles(
+    parsedFiles,
+    ipCoreData
+  )) {
     for (const expected of expectedSignals) {
       const hdlPort = hdlPortsByName.get(expected.name.toLowerCase());
       if (!hdlPort) {

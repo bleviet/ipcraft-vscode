@@ -433,9 +433,12 @@ export class IpCoreScaffolder {
 
 /**
  * Paths declared managed: false in the .ip.yml's fileSets — these are user-owned and, when
- * they collide with a scaffold-pack target, must never be (re)generated (issue #75).
+ * they collide with a scaffold-pack target, must never be (re)generated (issue #75). Exported
+ * so callers that need the *full* set of user-managed paths (not just the subset that also
+ * happens to collide with a scaffold target, which is all `GenerateResult.protectedPaths`
+ * exposes) can compute it directly — see `ipcraft verify`'s orphaned-file scan.
  */
-function collectUserManagedPaths(ipCoreData: IpCoreData): Set<string> {
+export function collectUserManagedPaths(ipCoreData: IpCoreData): Set<string> {
   type FileSetEntry = { files?: Array<{ path?: string; managed?: boolean }> };
   const rawFileSets = (ipCoreData as Record<string, unknown>).fileSets as
     | FileSetEntry[]
