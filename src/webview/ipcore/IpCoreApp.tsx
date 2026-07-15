@@ -1026,6 +1026,11 @@ const IpCoreApp: React.FC = () => {
                 icon="beaker"
                 command="fpga-ip-core.generateTestbench"
               />
+              <ToolbarButton
+                title="Generate Documentation"
+                icon="book"
+                command="fpga-ip-core.generateDocumentation"
+              />
             </ToolbarGroup>
 
             {/* Zone 5: Single Integration group — stable width via visibility, not conditional rendering */}

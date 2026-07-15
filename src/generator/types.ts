@@ -56,6 +56,8 @@ export interface GenerateOptions {
    */
   targets?: string[];
   includeTestbench?: boolean;
+  /** Generate a Markdown IP datasheet (docs/&lt;name&gt;_datasheet.md). Opt-in; defaults to off. */
+  includeDocs?: boolean;
   includeRegs?: boolean;
   includeVhdl?: boolean;
   includeVivadoProject?: boolean;

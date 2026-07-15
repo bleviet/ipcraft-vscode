@@ -104,6 +104,12 @@
         "icon": "$(beaker)"
       },
       {
+        "command": "fpga-ip-core.generateDocumentation",
+        "title": "Generate Documentation",
+        "category": "IPCraft",
+        "icon": "$(book)"
+      },
+      {
         "command": "fpga-ip-core.generateVivadoProject",
         "title": "Generate Vivado Project",
         "category": "IPCraft",
@@ -387,6 +393,11 @@
           "group": "3_ipfile@4"
         },
         {
+          "command": "fpga-ip-core.generateDocumentation",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/",
+          "group": "3_ipfile@5"
+        },
+        {
           "command": "fpga-ip-core.generateVivadoProject",
           "when": "resourceFilename =~ /\\.ip\\.yml$/",
           "group": "4_build@1"
@@ -482,6 +493,11 @@
           "command": "fpga-ip-core.generateTestbench",
           "when": "resourceFilename =~ /\\.ip\\.yml$/",
           "group": "ipcraft@4"
+        },
+        {
+          "command": "fpga-ip-core.generateDocumentation",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/",
+          "group": "ipcraft@5"
         },
         {
           "command": "fpga-ip-core.generateVivadoProject",
@@ -625,6 +641,10 @@
           "when": "resourceFilename =~ /\\.ip\\.yml$/"
         },
         {
+          "command": "fpga-ip-core.generateDocumentation",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/"
+        },
+        {
           "command": "fpga-ip-core.generateVivadoProject",
           "when": "resourceFilename =~ /\\.ip\\.yml$/"
         },
@@ -761,6 +781,11 @@
             "type": "boolean",
             "default": true,
             "description": "Generate a cocotb testbench (tb/ folder) when scaffolding a project."
+          },
+          "ipcraft.generate.includeDocs": {
+            "type": "boolean",
+            "default": true,
+            "description": "Generate a Markdown IP datasheet (docs/ folder) when scaffolding a project."
           },
           "ipcraft.generate.hdlLanguage": {
             "type": "string",
