@@ -161,7 +161,7 @@ export class WebviewRouter<M extends { type: string } = { type: string }> {
     this.on('command', async (message) => {
       const msg = message as unknown as { command: string; path?: string };
       if (this.commandAllowlist && !this.commandAllowlist.has(msg.command)) {
-        const isStandard = ['save', 'validate', 'openFile'].includes(msg.command);
+        const isStandard = ['save', 'validate', 'openFile', 'reportIssue'].includes(msg.command);
         if (!isStandard) {
           this.logger.warn(`Blocked non-allowlisted command: ${msg.command}`);
           return;
@@ -186,6 +186,9 @@ export class WebviewRouter<M extends { type: string } = { type: string }> {
           }
           break;
         }
+        case 'reportIssue':
+          await vscode.commands.executeCommand('fpga-ip-core.reportIssue');
+          break;
         case 'openFile':
           if (msg.path) {
             try {

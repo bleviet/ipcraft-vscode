@@ -75,7 +75,7 @@ describe('ErrorHandler', () => {
 
       await handleErrorWithUserNotification(error, 'TestContext');
 
-      expect(mockShowErrorMessage).toHaveBeenCalledWith('Test error', 'Show Logs');
+      expect(mockShowErrorMessage).toHaveBeenCalledWith('Test error', 'Show Logs', 'Report Issue');
       expect(mockShowWarningMessage).not.toHaveBeenCalled();
       expect(mockShowInformationMessage).not.toHaveBeenCalled();
     });
@@ -86,7 +86,11 @@ describe('ErrorHandler', () => {
 
       await handleErrorWithUserNotification(error, 'TestContext');
 
-      expect(mockShowWarningMessage).toHaveBeenCalledWith('Test warning', 'Show Logs');
+      expect(mockShowWarningMessage).toHaveBeenCalledWith(
+        'Test warning',
+        'Show Logs',
+        'Report Issue'
+      );
       expect(mockShowErrorMessage).not.toHaveBeenCalled();
     });
 
@@ -96,7 +100,11 @@ describe('ErrorHandler', () => {
 
       await handleErrorWithUserNotification(error, 'TestContext');
 
-      expect(mockShowInformationMessage).toHaveBeenCalledWith('Test info', 'Show Logs');
+      expect(mockShowInformationMessage).toHaveBeenCalledWith(
+        'Test info',
+        'Show Logs',
+        'Report Issue'
+      );
     });
 
     it('should use custom user message when provided', async () => {
@@ -105,7 +113,21 @@ describe('ErrorHandler', () => {
 
       await handleErrorWithUserNotification(error, 'TestContext', 'User-friendly error message');
 
-      expect(mockShowErrorMessage).toHaveBeenCalledWith('User-friendly error message', 'Show Logs');
+      expect(mockShowErrorMessage).toHaveBeenCalledWith(
+        'User-friendly error message',
+        'Show Logs',
+        'Report Issue'
+      );
+    });
+
+    it('should run the reportIssue command when the Report Issue action is selected', async () => {
+      const error = new ExtensionError('Test error', 'TEST_007', 'error');
+      mockShowErrorMessage.mockResolvedValue('Report Issue');
+      const executeCommand = vscode.commands.executeCommand as jest.Mock;
+
+      await handleErrorWithUserNotification(error, 'TestContext');
+
+      expect(executeCommand).toHaveBeenCalledWith('fpga-ip-core.reportIssue');
     });
   });
 });

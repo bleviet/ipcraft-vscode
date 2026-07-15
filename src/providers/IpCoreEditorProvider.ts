@@ -62,6 +62,7 @@ const WEBVIEW_COMMAND_ALLOWLIST = new Set<string>([
   'fpga-ip-core.buildVivadoOoc',
   'fpga-ip-core.buildQuartusCompile',
   'fpga-ip-core.openSettings',
+  'fpga-ip-core.reportIssue',
 ]);
 
 /**

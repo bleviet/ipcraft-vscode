@@ -707,6 +707,15 @@ const App = () => {
             className={`codicon text-base ${sidebarOpen ? 'codicon-layout-sidebar-left' : 'codicon-layout-sidebar-left-off'}`}
           ></span>
         </button>
+        <button
+          className="sidebar-toggle-btn p-2 rounded-md transition-colors vscode-icon-button"
+          style={{ marginTop: 'auto', marginBottom: '8px' }}
+          onClick={() => vscode?.postMessage({ type: 'command', command: 'reportIssue' })}
+          title="Report Issue / Send Feedback"
+          aria-label="Report Issue / Send Feedback"
+        >
+          <span className="codicon codicon-feedback text-base"></span>
+        </button>
       </div>
 
       {/* Sidebar backdrop for mobile */}

@@ -62,22 +62,29 @@ export async function handleErrorWithUserNotification(
     message = userMessage ?? 'An unknown error occurred';
   }
 
-  const action = 'Show Logs';
+  const showLogsAction = 'Show Logs';
+  const reportIssueAction = 'Report Issue';
   let result: string | undefined;
 
   switch (severity) {
     case 'error':
-      result = await vscode.window.showErrorMessage(message, action);
+      result = await vscode.window.showErrorMessage(message, showLogsAction, reportIssueAction);
       break;
     case 'warning':
-      result = await vscode.window.showWarningMessage(message, action);
+      result = await vscode.window.showWarningMessage(message, showLogsAction, reportIssueAction);
       break;
     case 'info':
-      result = await vscode.window.showInformationMessage(message, action);
+      result = await vscode.window.showInformationMessage(
+        message,
+        showLogsAction,
+        reportIssueAction
+      );
       break;
   }
 
-  if (result === action) {
+  if (result === showLogsAction) {
     Logger.show();
+  } else if (result === reportIssueAction) {
+    await vscode.commands.executeCommand('fpga-ip-core.reportIssue');
   }
 }

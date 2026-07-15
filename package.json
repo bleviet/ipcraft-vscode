@@ -280,6 +280,11 @@
         "icon": "$(gear)"
       },
       {
+        "command": "fpga-ip-core.reportIssue",
+        "title": "IPCraft: Report Issue / Send Feedback",
+        "icon": "$(feedback)"
+      },
+      {
         "command": "fpga-ip-core.previewTemplateOutput",
         "title": "Preview Template Output",
         "category": "IPCraft",

@@ -163,6 +163,14 @@ export function activate(context: vscode.ExtensionContext): void {
     'fpga-ip-core.copyComponentInstanceDone',
     copyComponentInstanceDoneCommand
   );
+  safeRegisterCommand(context, 'fpga-ip-core.reportIssue', async () => {
+    // Delegates to VS Code's native issue reporter: it auto-fills extension/VS
+    // Code/OS versions and submits via the user's browser, so no GitHub token
+    // or secrets need to live in the extension.
+    await vscode.commands.executeCommand('workbench.action.openIssueReporter', {
+      extensionId: 'bleviet.ipcraft-vscode',
+    });
+  });
 
   // Register virtual document provider for staging diff previews
   context.subscriptions.push(

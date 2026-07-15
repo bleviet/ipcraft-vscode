@@ -1144,6 +1144,11 @@ const IpCoreApp: React.FC = () => {
                 icon="gear"
                 command="fpga-ip-core.openSettings"
               />
+              <ToolbarButton
+                title="Report Issue / Send Feedback"
+                icon="feedback"
+                command="fpga-ip-core.reportIssue"
+              />
             </ToolbarGroup>
             {validationErrors.length > 0 && (
               <div className="text-sm" style={{ color: 'var(--vscode-errorForeground)' }}>

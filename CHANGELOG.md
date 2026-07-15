@@ -4,6 +4,9 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Added
+- **Report Issue / Send Feedback button**: a feedback button in the IP Core editor toolbar and the Memory Map editor sidebar strip opens VS Code's native issue reporter (pre-filled with extension/VS Code/OS versions), and the same action is now offered alongside "Show Logs" whenever an error notification is shown. No GitHub token or secrets are stored in the extension — submission happens through the user's browser. ([#85](https://github.com/bleviet/ipcraft-vscode/issues/85))
+
 ## [0.8.6] - 2026-07-10
 
 ### Added
