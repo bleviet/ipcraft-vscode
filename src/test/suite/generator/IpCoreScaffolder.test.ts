@@ -1617,4 +1617,176 @@ describe('IpCoreScaffolder', () => {
     expect(svValidIdx).toBeGreaterThan(-1);
     expect(svInvalidIdx).toBeLessThan(svValidIdx);
   });
+
+  describe('documentation generation (issue #87)', () => {
+    it('generates a Markdown datasheet with Overview/Parameters/Ports/Register Map sections when includeDocs is true', async () => {
+      const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-scaffolder-docs-'));
+      try {
+        const inputPath = path.join(tmp, 'docs_core.ip.yml');
+        fs2.writeFileSync(
+          inputPath,
+          [
+            "apiVersion: '1.0'",
+            'vlnv:',
+            '  vendor: acme',
+            '  library: unit',
+            '  name: docs_core',
+            '  version: 1.0.0',
+            'description: Fixture exercising the full IP datasheet generator',
+            'author: Jane Doe',
+            'clocks:',
+            '- name: clk',
+            '  direction: in',
+            'resets:',
+            '- name: rst',
+            '  direction: in',
+            '  polarity: activeHigh',
+            'busInterfaces:',
+            '- name: S_AXI',
+            '  type: AXI4L',
+            '  mode: slave',
+            '  physicalPrefix: s_axi_',
+            '  associatedClock: clk',
+            '  associatedReset: rst',
+            '  memoryMapRef: MAP',
+            'memoryMaps:',
+            '- name: MAP',
+            '  addressBlocks:',
+            '  - name: REGS',
+            '    baseAddress: 0',
+            '    usage: register',
+            '    registers:',
+            '    - name: CTRL',
+            '      description: Control register',
+            '      fields:',
+            '      - name: ENABLE',
+            "        bits: '[0:0]'",
+            '        access: read-write',
+            'parameters:',
+            '- name: DATA_WIDTH',
+            '  value: 32',
+            '  dataType: integer',
+            '  description: Width of the data bus',
+            'ports:',
+            '- name: led',
+            '  direction: out',
+            'interrupts:',
+            '- name: irq',
+            '  direction: out',
+            '  sensitivity: LEVEL_HIGH',
+          ].join('\n')
+        );
+
+        const outputDir = path.join(tmp, 'out');
+        const result = await scaffolder.generateAll(inputPath, outputDir, {
+          includeRegs: true,
+          includeTestbench: false,
+          includeDocs: true,
+          targets: [],
+          scaffoldPack: 'builtin-ipcraft',
+        });
+
+        expect(result.success).toBe(true);
+        const datasheet = result.generatedContents?.['docs/docs_core_datasheet.md'];
+        expect(datasheet).toBeDefined();
+
+        expect(datasheet).toContain('# Docs Core — Datasheet');
+        expect(datasheet).toContain('## Overview');
+        expect(datasheet).toContain('acme');
+        expect(datasheet).toContain('Jane Doe');
+
+        expect(datasheet).toContain('## Parameters');
+        expect(datasheet).toContain('DATA_WIDTH');
+
+        expect(datasheet).toContain('## Ports');
+        expect(datasheet).toContain('led');
+        expect(datasheet).toContain('### Interrupts');
+        expect(datasheet).toContain('irq');
+
+        expect(datasheet).toContain('## Register Map');
+        expect(datasheet).toContain('### Register Summary');
+        expect(datasheet).toContain('CTRL');
+        expect(datasheet).toContain('ENABLE');
+      } finally {
+        fs2.rmSync(tmp, { recursive: true, force: true });
+      }
+    });
+
+    it('still generates a datasheet (without a register-map section) for a core with no memory-mapped slave', async () => {
+      const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-scaffolder-docs-nomm-'));
+      try {
+        const inputPath = path.join(tmp, 'nomm_core.ip.yml');
+        fs2.writeFileSync(
+          inputPath,
+          [
+            "apiVersion: '1.0'",
+            'vlnv:',
+            '  vendor: acme',
+            '  library: unit',
+            '  name: nomm_core',
+            '  version: 1.0.0',
+            'description: Fixture with no memory-mapped slave interface',
+            'clocks:',
+            '- name: clk',
+            '  direction: in',
+            'resets:',
+            '- name: rst',
+            '  direction: in',
+            '  polarity: activeHigh',
+            'busInterfaces: []',
+            'parameters:',
+            '- name: WIDTH',
+            '  value: 8',
+            '  dataType: integer',
+            'ports:',
+            '- name: led',
+            '  direction: out',
+          ].join('\n')
+        );
+
+        const outputDir = path.join(tmp, 'out');
+        const result = await scaffolder.generateAll(inputPath, outputDir, {
+          includeRegs: false,
+          includeTestbench: false,
+          includeDocs: true,
+          targets: [],
+          scaffoldPack: 'builtin-minimal',
+        });
+
+        expect(result.success).toBe(true);
+        const datasheet = result.generatedContents?.['docs/nomm_core_datasheet.md'];
+        expect(datasheet).toBeDefined();
+
+        // Ports/parameters are still present for a register-less core.
+        expect(datasheet).toContain('## Parameters');
+        expect(datasheet).toContain('WIDTH');
+        expect(datasheet).toContain('## Ports');
+        expect(datasheet).toContain('led');
+
+        // No register-map content.
+        expect(datasheet).not.toContain('### Register Summary');
+        expect(datasheet).toContain('no memory-mapped register interface');
+      } finally {
+        fs2.rmSync(tmp, { recursive: true, force: true });
+      }
+    });
+
+    it('does not generate any docs/*.md file when includeDocs is absent or false (regression guard)', async () => {
+      const inputPath = path.resolve(__dirname, '../../fixtures/sample-ipcore.yml');
+      const outputDir = '/tmp/test-output-docs-off';
+
+      const result = await scaffolder.generateAll(inputPath, outputDir, {
+        includeRegs: true,
+        includeTestbench: true,
+        targets: [],
+        scaffoldPack: 'builtin-ipcraft',
+      });
+
+      expect(result.success).toBe(true);
+      const docFiles = Object.keys(result.generatedContents ?? {}).filter(
+        (f) => f.startsWith('docs/') && f.endsWith('.md')
+      );
+      expect(docFiles).toEqual([]);
+    });
+  });
 });

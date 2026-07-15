@@ -88,6 +88,7 @@ export class IpCoreScaffolder {
       assertValidContext(context);
       const includeRegs = options.includeRegs !== false && hasMmSlave;
       const includeTestbench = options.includeTestbench !== false;
+      const includeDocs = options.includeDocs === true;
       const targets = options.targets ?? [];
       // simulation.* in the YAML overrides the workspace-setting defaults
       const simCfg = ipCoreData.simulation;
@@ -178,6 +179,18 @@ export class IpCoreScaffolder {
           rtlSourceFiles: await collectTestbenchRtlFiles(files, ipCoreData, inputPath, outputDir),
         });
         Object.assign(files, tbFiles);
+      }
+
+      // ── Documentation (datasheet) ──────────────────────────────────────────
+      // Pack-independent: rendered directly from the full context (not rtlCtx/tbCtx)
+      // so ports/params/registers are present regardless of fullGeneration. Not gated
+      // on hasMmSlave — a datasheet is still useful for register-less cores; the
+      // register-map section self-guards inside the template.
+      if (includeDocs) {
+        const docTarget = `docs/${name}_datasheet.md`;
+        if (!userManagedPaths.has(docTarget)) {
+          files[docTarget] = packLoader.render('ip_datasheet.md.j2', context);
+        }
       }
 
       // Vendor packaging + optional project files — delegated to toolchain strategies.

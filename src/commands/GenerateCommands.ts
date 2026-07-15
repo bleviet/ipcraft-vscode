@@ -91,6 +91,10 @@ export function registerGeneratorCommands(
     await generateTestbench(context, uri);
   });
 
+  safeRegisterCommand(context, 'fpga-ip-core.generateDocumentation', async (uri?: vscode.Uri) => {
+    await generateDocumentation(context, uri);
+  });
+
   safeRegisterCommand(context, 'fpga-ip-core.openSettings', async () => {
     await vscode.commands.executeCommand(
       'workbench.action.openSettings',
@@ -238,6 +242,7 @@ async function scaffoldProject(
   const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT);
   const genCfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT_GENERATE);
   const includeTestbench = genCfg.get<boolean>('includeTestbench', true);
+  const includeDocs = genCfg.get<boolean>('includeDocs', true);
   const hdlLanguage = genCfg.get<'vhdl' | 'systemverilog'>('hdlLanguage', 'vhdl');
   const scaffoldPack = readScaffoldPackSetting(genCfg);
   // Scaffold bundles the testbench, so honor the same framework/engine settings
@@ -280,6 +285,7 @@ async function scaffoldProject(
       includeVhdl: true,
       includeRegs: true,
       includeTestbench,
+      includeDocs,
       framework,
       engine,
       includeVivadoProject: targets.includes('vivado'),
@@ -391,6 +397,34 @@ async function generateTestbench(
       silent: true,
     },
     `Generating ${framework} testbench...`
+  );
+}
+
+async function generateDocumentation(
+  context: vscode.ExtensionContext,
+  resourceUri?: vscode.Uri
+): Promise<void> {
+  const ipCoreUri = resourceUri ?? getActiveIpCoreFile();
+  if (!ipCoreUri) {
+    return;
+  }
+  const genCfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT_GENERATE);
+  const scaffoldPack = readScaffoldPackSetting(genCfg);
+  const outputDir = path.dirname(ipCoreUri.fsPath);
+  await runGenerator(
+    context,
+    ipCoreUri,
+    outputDir,
+    {
+      targets: [],
+      includeVhdl: false,
+      includeRegs: false,
+      includeTestbench: false,
+      includeDocs: true,
+      scaffoldPack,
+      silent: true,
+    },
+    'Generating documentation...'
   );
 }
 

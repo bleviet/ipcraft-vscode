@@ -55,6 +55,7 @@ const WEBVIEW_COMMAND_ALLOWLIST = new Set<string>([
   'fpga-ip-core.createMemoryMap',
   'fpga-ip-core.generateHdl',
   'fpga-ip-core.generateTestbench',
+  'fpga-ip-core.generateDocumentation',
   'fpga-ip-core.exportAltera',
   'fpga-ip-core.exportXilinx',
   'fpga-ip-core.generateVivadoProject',
