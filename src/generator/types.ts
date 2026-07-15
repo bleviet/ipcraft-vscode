@@ -206,6 +206,7 @@ export interface SubcoreRef {
 export interface IpCoreData {
   vlnv?: VlnvDef;
   description?: string;
+  author?: string;
   scaffoldPack?: string;
   parameters?: ParameterDef[];
   ports?: PortDef[];

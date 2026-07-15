@@ -346,6 +346,12 @@ const BodyPanel: React.FC<{ ipCore: IpCore; onUpdate: YamlUpdateHandler }> = ({
       />
     </Section>
     <Section title="Details">
+      <PropField
+        label="Author"
+        value={ipCore.author ?? ''}
+        onSave={(v) => onUpdate(['author'], v || null)}
+        placeholder="Author name or team"
+      />
       <PropTextArea
         label="Description"
         value={ipCore.description ?? ''}

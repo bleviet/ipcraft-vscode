@@ -4,6 +4,7 @@ import {
   EDGE_PADDING,
   MIN_BLOCK_HEIGHT,
   BLOCK_WIDTH,
+  AUTHOR_ROW_HEIGHT,
 } from '../../../webview/ipcore/components/canvas/canvasLayout';
 import type { IpCore } from '../../../webview/types/ipCore';
 
@@ -214,6 +215,38 @@ describe('computeLayout', () => {
     layoutNoDesc.ports.forEach((p, i) => {
       expect(layoutWithDesc.ports[i].y).toBe(p.y);
     });
+  });
+
+  it('authorLabel is empty and layout is unchanged when author is unset', () => {
+    const ip = makeIpCore({
+      ports: [{ name: 'a', direction: 'in' as const }],
+    });
+    const layout = computeLayout(ip);
+
+    expect(layout.authorLabel).toBe('');
+  });
+
+  it('renders an author subtitle and shifts everything below the header down, unlike description', () => {
+    // Unlike the description section (appended below the ports, see the test above),
+    // author renders inside the header, above the ports — so it MUST shift port Y down.
+    const baseCore = {
+      ports: [
+        { name: 'a', direction: 'in' as const },
+        { name: 'b', direction: 'out' as const },
+      ],
+    };
+    const layoutNoAuthor = computeLayout(makeIpCore(baseCore));
+    const layoutWithAuthor = computeLayout(
+      makeIpCore({ ...baseCore, author: 'Jane Doe' } as Parameters<typeof makeIpCore>[0])
+    );
+
+    expect(layoutWithAuthor.authorLabel).toBe('Jane Doe');
+    layoutNoAuthor.ports.forEach((p, i) => {
+      expect(layoutWithAuthor.ports[i].y).toBe(p.y + AUTHOR_ROW_HEIGHT);
+    });
+    expect(layoutWithAuthor.blockRect.height).toBe(
+      layoutNoAuthor.blockRect.height + AUTHOR_ROW_HEIGHT
+    );
   });
 
   it('generates unique IDs for all ports', () => {

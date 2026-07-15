@@ -25,6 +25,10 @@ export type Version = string;
  */
 export type Description = string | null;
 /**
+ * IP core author
+ */
+export type Author = string | null;
+/**
  * Physical port name (HDL)
  */
 export type Name1 = string;
@@ -478,6 +482,7 @@ export type Filesets = FileSet[];
 export interface IpCore {
   vlnv: VLNV;
   description?: Description;
+  author?: Author;
   /**
    * Scaffold pack used to generate this IP core (e.g. "builtin-ipcraft"). Persisted so the canvas picker restores the correct methodology when the file is reopened.
    */

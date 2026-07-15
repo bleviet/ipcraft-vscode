@@ -1285,6 +1285,76 @@ describe('IpCoreScaffolder', () => {
     }
   });
 
+  it('emits an Author header line and Platform Designer AUTHOR property when author is set, and falls back to vendor when unset (issue #86)', async () => {
+    const writeMock = fs.writeFile as unknown as jest.Mock;
+    const findContent = (needle: string): string =>
+      writeMock.mock.calls.find((call) => String(call[0]).includes(needle))?.[1] as string;
+
+    const realFs = jest.requireActual('fs/promises') as typeof import('fs/promises');
+    const tmpWithAuthor = path.join(os.tmpdir(), `ipcraft_author_${Date.now()}.ip.yml`);
+    const tmpWithoutAuthor = path.join(os.tmpdir(), `ipcraft_noauthor_${Date.now()}.ip.yml`);
+    await realFs.writeFile(
+      tmpWithAuthor,
+      [
+        'vlnv:',
+        '  vendor: acme',
+        '  library: lib',
+        '  name: authored_core',
+        '  version: 1.0.0',
+        'author: Jane Doe',
+        'busInterfaces: []',
+      ].join('\n'),
+      'utf-8'
+    );
+    await realFs.writeFile(
+      tmpWithoutAuthor,
+      [
+        'vlnv:',
+        '  vendor: acme',
+        '  library: lib',
+        '  name: unauthored_core',
+        '  version: 1.0.0',
+        'busInterfaces: []',
+      ].join('\n'),
+      'utf-8'
+    );
+
+    try {
+      const withAuthorResult = await scaffolder.generateAll(tmpWithAuthor, '/tmp/author-out', {
+        includeRegs: false,
+        includeTestbench: false,
+        targets: ['quartus'],
+        scaffoldPack: 'builtin-minimal',
+      });
+      expect(withAuthorResult.success).toBe(true);
+
+      expect(findContent('rtl/authored_core.vhd')).toContain('-- Author: Jane Doe');
+      expect(findContent('authored_core_hw.tcl')).toContain(
+        'set_module_property AUTHOR "Jane Doe"'
+      );
+
+      const withoutAuthorResult = await scaffolder.generateAll(
+        tmpWithoutAuthor,
+        '/tmp/noauthor-out',
+        {
+          includeRegs: false,
+          includeTestbench: false,
+          targets: ['quartus'],
+          scaffoldPack: 'builtin-minimal',
+        }
+      );
+      expect(withoutAuthorResult.success).toBe(true);
+
+      expect(findContent('rtl/unauthored_core.vhd')).not.toContain('-- Author:');
+      // Falls back to vendor when author is unset, preserving the pre-existing
+      // Platform Designer AUTHOR-property behavior.
+      expect(findContent('unauthored_core_hw.tcl')).toContain('set_module_property AUTHOR "acme"');
+    } finally {
+      await realFs.unlink(tmpWithAuthor).catch(() => {});
+      await realFs.unlink(tmpWithoutAuthor).catch(() => {});
+    }
+  });
+
   it('generates _hw.tcl with parameterized conduit interfaces correctly', async () => {
     // BusLibraryService mock returns xcvr bus definition with string-width ports
     (BusLibraryService as jest.Mock).mockImplementation(() => ({

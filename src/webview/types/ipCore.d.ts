@@ -458,6 +458,7 @@ export type Parameters = Parameter[];
 export interface IpCore {
   vlnv: VLNV;
   description?: Description;
+  author?: Description;
   clocks?: Clocks;
   resets?: Resets;
   interrupts?: Interrupts;

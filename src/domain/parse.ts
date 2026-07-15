@@ -359,6 +359,7 @@ export function normalizeIpCore(rootObj: Record<string, unknown>): IpCore {
     ...rootObj,
     vlnv: rootObj.vlnv ?? {},
     description: String(rootObj.description ?? ''),
+    author: String(rootObj.author ?? ''),
     parameters: parameters.map((p: unknown) => {
       const param = p as Record<string, unknown>;
       return {

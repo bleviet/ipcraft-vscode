@@ -424,7 +424,7 @@ export class IpCoreScaffolder {
       library: ipCore?.vlnv?.library,
       version: ipCore?.vlnv?.version,
       description: ipCore?.description ?? '',
-      author: ipCore?.vlnv?.vendor,
+      author: ipCore?.author ?? '',
       display_name: String(ipCore?.vlnv?.name ?? 'ip_core')
         .replace(/_/g, ' ')
         .replace(/\b\w/g, (letter) => letter.toUpperCase()),

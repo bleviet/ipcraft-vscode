@@ -18,9 +18,13 @@ export const EDGE_PADDING = 24;
 /**
  * Minimum Y-offset (relative to blockY) at which the first port may be placed.
  * The block header contains the core name (y+15), vendor (y+42), and library (y+62).
- * 82 keeps a comfortable gap below that text.
+ * 82 keeps a comfortable gap below that text. When an author subtitle is present,
+ * an extra AUTHOR_ROW_HEIGHT is added (see headerHeight) so ports shift down below it.
  */
 const BLOCK_HEADER_HEIGHT = 82;
+
+/** Extra header height when an author subtitle row is present (blockY+82). */
+export const AUTHOR_ROW_HEIGHT = 20;
 
 /** Minimum block height (even with zero ports) */
 export const MIN_BLOCK_HEIGHT = 124;
@@ -128,6 +132,8 @@ export interface CanvasLayout {
   vendorLabel: string;
   /** Library subtitle */
   libraryLabel: string;
+  /** Author subtitle (empty when not set) */
+  authorLabel: string;
   /** Generics rendered inside the block, below the separator */
   parameters: LayoutParameter[];
   /** Y of separator line above the generics section (only rendered when parameters.length > 0) */
@@ -294,6 +300,12 @@ export function computeLayout(
   const buses = ipCore.busInterfaces ?? [];
   const rawParameters = (ipCore.parameters ?? []) as unknown as Array<Record<string, unknown>>;
 
+  // Author subtitle — adds a third header row (below vendor/library) only when set,
+  // pushing everything below the header (deps/params/ports) down by AUTHOR_ROW_HEIGHT.
+  const authorLabel = ipCore.author ?? '';
+  const hasAuthor = Boolean(authorLabel);
+  const headerHeight = BLOCK_HEADER_HEIGHT + (hasAuthor ? AUTHOR_ROW_HEIGHT : 0);
+
   // Build the inline parameter list (shown inside the block, not as stubs)
   const layoutParameters: LayoutParameter[] = rawParameters.map((p, i) => {
     const defVal = p.defaultValue !== undefined ? p.defaultValue : p.value;
@@ -303,7 +315,7 @@ export function computeLayout(
   });
 
   // Build the subcores section (Dependencies) shown inside the block above parameters
-  const DEP_SEPARATOR_Y_OFFSET = 86; // separator from blockY (below VLNV header)
+  const DEP_SEPARATOR_Y_OFFSET = headerHeight + 4; // separator from blockY (below VLNV/author header)
   const DEP_HEADER_HEIGHT = 26; // height occupied by separator line + "Dependencies" label
   const DEP_ROW_HEIGHT = 18;
   const DEP_AFTER_GAP = 8; // gap between last dep row and the parameter separator
@@ -432,14 +444,14 @@ export function computeLayout(
   const maxSideSlots = Math.max(leftSlots, rightSlots, 1);
 
   // Block height must fit the params section AND the ports that follow it.
-  // When there are no params/subcores the port area starts at BLOCK_HEADER_HEIGHT, so we
-  // size the block from that offset: first port at BLOCK_HEADER_HEIGHT, last port at
-  // BLOCK_HEADER_HEIGHT + (N-1)*PORT_PITCH, block bottom EDGE_PADDING below last-port edge.
+  // When there are no params/subcores the port area starts at headerHeight, so we
+  // size the block from that offset: first port at headerHeight, last port at
+  // headerHeight + (N-1)*PORT_PITCH, block bottom EDGE_PADDING below last-port edge.
   const portsBlockHeight = Math.max(
     MIN_BLOCK_HEIGHT,
     portsAreaTopRelative !== null
       ? portsAreaTopRelative + maxSideSlots * PORT_PITCH + EDGE_PADDING
-      : BLOCK_HEADER_HEIGHT + maxSideSlots * PORT_PITCH - PORT_PITCH / 2 + EDGE_PADDING
+      : headerHeight + maxSideSlots * PORT_PITCH - PORT_PITCH / 2 + EDGE_PADDING
   );
 
   // Description section appended below the ports
@@ -468,13 +480,13 @@ export function computeLayout(
       // Force ports to start below the generics section
       currentY = blockY + portsAreaTopRelative + PORT_PITCH / 2;
     } else {
-      // No params — start ports at BLOCK_HEADER_HEIGHT so the first port label never
-      // overlaps the VLNV subtitle rendered at blockY+42.  The centeredY formula is kept
+      // No params — start ports at headerHeight so the first port label never
+      // overlaps the VLNV/author subtitles rendered above it. The centeredY formula is kept
       // as a fallback: when MIN_BLOCK_HEIGHT makes the block taller than needed it centres
-      // the ports, but the clamp ensures we never go above BLOCK_HEADER_HEIGHT.
+      // the ports, but the clamp ensures we never go above headerHeight.
       const totalHeight = maxSideSlots * PORT_PITCH;
       const centeredY = blockY + (portsBlockHeight - totalHeight) / 2 + PORT_PITCH / 2;
-      currentY = Math.max(centeredY, blockY + BLOCK_HEADER_HEIGHT);
+      currentY = Math.max(centeredY, blockY + headerHeight);
     }
 
     items.forEach((item) => {
@@ -717,6 +729,7 @@ export function computeLayout(
     coreName,
     vendorLabel,
     libraryLabel,
+    authorLabel,
     parameters: layoutParameters,
     paramSeparatorY: blockY + PARAM_SEPARATOR_Y_OFFSET,
     portSeparatorY:

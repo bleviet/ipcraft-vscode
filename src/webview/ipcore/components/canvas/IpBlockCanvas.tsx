@@ -823,6 +823,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
     coreName,
     vendorLabel,
     libraryLabel,
+    authorLabel,
     parameters,
     paramSeparatorY,
     portSeparatorY,
@@ -1058,6 +1059,31 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
         >
           {libraryLabel}
         </text>
+
+        {/* Author subtitle — only rendered when set */}
+        {authorLabel && (
+          <>
+            <text
+              x={blockRect.x + 24}
+              y={blockRect.y + 82}
+              dominantBaseline="central"
+              className="ip-block-param-name"
+              style={{ pointerEvents: 'none' }}
+            >
+              author
+            </text>
+            <text
+              x={blockRect.x + blockRect.width - 24}
+              y={blockRect.y + 82}
+              textAnchor="end"
+              dominantBaseline="central"
+              className="ip-block-param-value"
+              style={{ pointerEvents: 'none' }}
+            >
+              {authorLabel}
+            </text>
+          </>
+        )}
 
         {/* Edit hint — visible when block is hovered or body is selected */}
         {(blockHovered || selectedId === 'body') && (

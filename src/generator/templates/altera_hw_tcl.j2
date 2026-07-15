@@ -20,7 +20,7 @@ set_module_property NAME {{ entity_name }}
 set_module_property VERSION {{ version | default('1.0') }}
 set_module_property INTERNAL false
 set_module_property OPAQUE_ADDRESS_MAP true
-set_module_property AUTHOR "{{ author | default('ipcore_lib') }}"
+set_module_property AUTHOR "{{ author | default(vendor, true) }}"
 set_module_property DISPLAY_NAME "{{ display_name | default(entity_name | replace('_', ' ') | title) }}"
 set_module_property INSTANTIATE_IN_SYSTEM_MODULE true
 set_module_property EDITABLE true
