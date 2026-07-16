@@ -6,6 +6,7 @@ import {
 } from './registerProcessor';
 import { parse, serialize, IPXACT_UNSUPPORTED } from '../shared/widthExprAst';
 import { detectVivadoVersion } from '../utils/detectVivadoVersion';
+import { hdlCompileRank } from '../utils/compilationOrder';
 import { parseVlnv, isValidVlnv } from '../utils/vlnv';
 import { BUS_VLNV } from '../shared/busVlnv';
 import type {
@@ -1653,5 +1654,8 @@ function getFileSetPaths(ipCore: IpCoreData, fileSetName: string, prefix: string
   if (!match?.files) {
     return null;
   }
-  return match.files.map((f) => `${prefix}${f.path ?? ''}`);
+  return match.files
+    .slice()
+    .sort((a, b) => hdlCompileRank(a.path ?? '') - hdlCompileRank(b.path ?? ''))
+    .map((f) => `${prefix}${f.path ?? ''}`);
 }

@@ -877,6 +877,38 @@ describe('generateComponentXml', () => {
       expect(xml).toContain('<spirit:name>../rtl/my_core.vhd</spirit:name>');
     });
 
+    it('sorts ip.yml fileSets fallback into compile order (pkg before regs before core)', () => {
+      const xml = generateComponentXml(
+        {
+          ...makeIp(),
+          fileSets: [
+            {
+              name: 'RTL_Sources',
+              files: [
+                { path: 'rtl/my_core_core.vhd', type: 'vhdl' },
+                { path: 'rtl/my_core.vhd', type: 'vhdl' },
+                { path: 'rtl/my_core_regs.vhd', type: 'vhdl' },
+                { path: 'rtl/my_core_pkg.vhd', type: 'vhdl' },
+              ],
+            },
+          ],
+        } as IpCoreData,
+        BUS_DEFS,
+        { filePathPrefix: '../' }
+      );
+      const names = Array.from(xml.matchAll(/<spirit:name>(\.\.\/rtl\/[^<]+)<\/spirit:name>/g)).map(
+        (m) => m[1]
+      );
+      // Both the synthesis and simulation filesets render from the same
+      // (sorted) fallback list, so each path appears once per fileset.
+      expect(names.slice(0, 4)).toEqual([
+        '../rtl/my_core_pkg.vhd',
+        '../rtl/my_core_regs.vhd',
+        '../rtl/my_core_core.vhd',
+        '../rtl/my_core.vhd',
+      ]);
+    });
+
     describe('VHDL version', () => {
       it('defaults unspecified VHDL files to userFileType vhdlSource-2008', () => {
         const xml = gen({}, { rtlFiles: ['../rtl/my_core.vhd'] });
