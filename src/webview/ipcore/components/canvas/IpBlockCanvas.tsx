@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import type { IpCore } from '../../../types/ipCore';
-import { computeLayout } from './canvasLayout';
+import { computeLayout, resolveMemoryMapImportPath } from './canvasLayout';
 import { CanvasPort } from './CanvasPort';
 import { CanvasBusBundle } from './CanvasBusBundle';
 import { CanvasBusSubPort } from './CanvasBusSubPort';
@@ -1418,8 +1418,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
 
         {/* Port stubs */}
         {(() => {
-          const mmImportPath = (ipCore.memoryMaps as unknown as Record<string, unknown> | undefined)
-            ?.import as string | undefined;
+          const memoryMaps = ipCore.memoryMaps as unknown;
           return ports.map((p) => {
             const isSelected = selectedId === p.id;
             const isHovered = hoveredId === p.id;
@@ -1431,7 +1430,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
             const hasBusDef = p.kind === 'bus' && (hasConduitPorts || busDefs(busType) !== null);
 
             if (p.kind === 'bus') {
-              const mmClickPath = p.memoryMapRef ? mmImportPath : undefined;
+              const mmClickPath = resolveMemoryMapImportPath(memoryMaps, p.memoryMapRef);
               return (
                 <g
                   key={p.id}

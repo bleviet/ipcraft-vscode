@@ -278,6 +278,29 @@ function itemSlots(
   return 1 + visibleCount;
 }
 
+/**
+ * Resolve the `.mm.yml` import path for a bus interface's `memoryMapRef`.
+ *
+ * `ipCore.memoryMaps` has two schema-valid shapes: a single `{ import }` object
+ * (one external map for the whole core, not tied to any interface name) or an
+ * array of named `{ name, import? }` entries that interfaces reference by name.
+ */
+export function resolveMemoryMapImportPath(
+  memoryMaps: unknown,
+  refName: string | undefined | null
+): string | undefined {
+  if (!refName) {
+    return undefined;
+  }
+  if (Array.isArray(memoryMaps)) {
+    const entry = (memoryMaps as Array<Record<string, unknown>>).find(
+      (m) => String(m.name ?? '') === refName
+    );
+    return entry?.import ? String(entry.import) : undefined;
+  }
+  return (memoryMaps as Record<string, unknown> | undefined)?.import as string | undefined;
+}
+
 // --- Main layout function ---
 
 /**

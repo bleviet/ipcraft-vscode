@@ -1,5 +1,6 @@
 import {
   computeLayout,
+  resolveMemoryMapImportPath,
   PORT_PITCH,
   EDGE_PADDING,
   MIN_BLOCK_HEIGHT,
@@ -508,5 +509,40 @@ describe('computeLayout', () => {
       expect(layoutFew.ports).toHaveLength(0);
       expect(layoutMany.blockRect.height).toBeGreaterThan(layoutFew.blockRect.height);
     });
+  });
+});
+
+describe('resolveMemoryMapImportPath', () => {
+  it('returns undefined when there is no memoryMapRef', () => {
+    expect(resolveMemoryMapImportPath({ import: 'core.mm.yml' }, undefined)).toBeUndefined();
+    expect(resolveMemoryMapImportPath({ import: 'core.mm.yml' }, null)).toBeUndefined();
+  });
+
+  it('resolves the named entry in the array-of-named-maps form (issue #95)', () => {
+    const memoryMaps = [
+      { name: 'S_AXI_MAP', import: 's_axi.mm.yml' },
+      { name: 'S_AXI2_MAP', import: 's_axi2.mm.yml' },
+    ];
+    expect(resolveMemoryMapImportPath(memoryMaps, 'S_AXI2_MAP')).toBe('s_axi2.mm.yml');
+  });
+
+  it('returns undefined when the ref does not match any named entry', () => {
+    const memoryMaps = [{ name: 'S_AXI_MAP', import: 's_axi.mm.yml' }];
+    expect(resolveMemoryMapImportPath(memoryMaps, 'UNKNOWN')).toBeUndefined();
+  });
+
+  it('returns undefined for an inline (non-import) named entry', () => {
+    const memoryMaps = [{ name: 'CSR_MAP', addressBlocks: [] }];
+    expect(resolveMemoryMapImportPath(memoryMaps, 'CSR_MAP')).toBeUndefined();
+  });
+
+  it('resolves the single global import object form regardless of ref name', () => {
+    expect(resolveMemoryMapImportPath({ import: 'comprehensive_avalon.mm.yml' }, 'ANYTHING')).toBe(
+      'comprehensive_avalon.mm.yml'
+    );
+  });
+
+  it('returns undefined when memoryMaps is entirely absent', () => {
+    expect(resolveMemoryMapImportPath(undefined, 'S_AXI_MAP')).toBeUndefined();
   });
 });
