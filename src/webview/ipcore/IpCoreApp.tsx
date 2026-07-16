@@ -824,9 +824,13 @@ const IpCoreApp: React.FC = () => {
     [handleCanvasSelect]
   );
 
+  // Reuses the exact "Scaffold Project" command (issue #93) rather than the bare `generate`
+  // message: `generate` goes through handleGenerateRequest, which prompts for an output folder
+  // and writes directly with no review step — unlike scaffoldProject's dry-run + staging list,
+  // which is what a user reconciling drift from the Consistency Check overlay actually expects.
   const handleRegenerateFromConsistency = useCallback(() => {
     setShowConsistencyOverlay(false);
-    vscode?.postMessage({ type: 'generate' });
+    vscode?.postMessage({ type: 'command', command: 'fpga-ip-core.scaffoldProject' });
   }, []);
 
   const consistencyAnnotations = useMemo(
