@@ -75,7 +75,7 @@ function busDefPortMaps(
     mode,
     iface.portWidthOverrides ?? {},
     undefined,
-    undefined,
+    iface.portNameOverrides,
     iface.absentPorts
   );
   if (activePorts.length === 0) {
@@ -736,7 +736,7 @@ function renderInterruptInterface(intr: {
 // ── Memory map rendering ──────────────────────────────────────────────────────
 
 /** A register flattened to a single emittable entry with a block-relative byte offset. */
-interface FlatRegister {
+export interface FlatRegister {
   name: string;
   offset: number;
   size: number;
@@ -802,7 +802,15 @@ function registerSpiritAccess(reg: FlatRegister): string {
  * register shape that ComponentXmlParser reads back on import, so a generated
  * memory map round-trips through the parser.
  */
-function flattenRegisters(
+/**
+ * Expands register arrays (`__kind: 'array'`) into individually-named flat registers
+ * (`NAME_0`, `NAME_1`, ... or `NAME_i_` prefixes for nested groups) — the same naming this
+ * generator's XML output uses, and thus what a round-tripped .mm.yml import will name them.
+ * Exported so the Consistency Check's register cross-check (registerCrossCheck.ts) can flatten
+ * the SSOT side identically before comparing against a parsed component.xml's already-flat
+ * registers.
+ */
+export function flattenRegisters(
   registers: NormalizedRegister[],
   baseOffset: number,
   prefix: string,
@@ -1176,7 +1184,7 @@ function renderPorts(
       mode,
       effectiveOverrides,
       typedParams,
-      undefined,
+      iface.portNameOverrides,
       iface.absentPorts
     );
     for (const port of activePorts) {

@@ -5,62 +5,34 @@ import { extractVhdlInterface } from '../../parser/VhdlParser';
 import { extractVerilogInterface } from '../../parser/VerilogParser';
 import { parseHwTclContent } from '../../parser/HwTclParser';
 import { parseComponentXmlText } from '../../parser/ComponentXmlParser';
-import { normalizeIpCoreData, expandBusInterfaces } from '../registerProcessor';
+import {
+  normalizeIpCoreData,
+  expandBusInterfaces,
+  getActiveBusPortsFromDefinition,
+} from '../registerProcessor';
 import { reconstructBusPortNameSet } from '../../shared/busPortNameSet';
+import { lookupBusDef } from '../../webview/ipcore/data/busDefinitions';
+import { crossCheckMemoryMapsAgainstVendor } from './registerCrossCheck';
 import type { IpCoreData, ParameterDef, PortDef } from '../types';
+import {
+  SEVERITY_BY_KIND,
+  type HdlCrossCheckKind,
+  type ConsistencySeverity,
+  type ConsistencySource,
+  type InferredPort,
+  type InferredParameter,
+  type HdlCrossCheckFinding,
+} from './types';
 
-export type HdlCrossCheckKind =
-  | 'missing-port'
-  | 'extra-port'
-  | 'direction-mismatch'
-  | 'width-mismatch'
-  | 'missing-parameter'
-  | 'extra-parameter'
-  | 'parameter-default-mismatch';
-
-/** amber = additive/reconcilable (e.g. a new HDL port not yet in the .ip.yml); red = destructive/conflict. */
-export type ConsistencySeverity = 'amber' | 'red';
-
-export type ConsistencySource = 'hdl' | 'hwTcl' | 'componentXml';
-
-const SEVERITY_BY_KIND: Record<HdlCrossCheckKind, ConsistencySeverity> = {
-  'missing-port': 'red',
-  'extra-port': 'amber',
-  'direction-mismatch': 'red',
-  'width-mismatch': 'amber',
-  'missing-parameter': 'red',
-  'extra-parameter': 'amber',
-  'parameter-default-mismatch': 'amber',
+export {
+  SEVERITY_BY_KIND,
+  type HdlCrossCheckKind,
+  type ConsistencySeverity,
+  type ConsistencySource,
+  type InferredPort,
+  type InferredParameter,
+  type HdlCrossCheckFinding,
 };
-
-export interface InferredPort {
-  name: string;
-  direction?: string;
-  width?: number | string;
-}
-
-export interface InferredParameter {
-  name: string;
-  value?: string;
-}
-
-export interface HdlCrossCheckFinding {
-  kind: HdlCrossCheckKind;
-  message: string;
-  /** Path into the .ip.yml, e.g. ['ports', 2], ['clocks', 0] or ['parameters', 1]. For
-   *  extra-port/extra-parameter (no existing entry yet) this is the collection itself,
-   *  e.g. ['ports'], since there is no index to point at. */
-  ipYmlPath: (string | number)[];
-  /** Path (relative to the ip core dir) of the implementation source this finding came from. */
-  hdlFile: string;
-  /** Top-level entity/module/component name parsed from hdlFile, or null if it couldn't be found. */
-  hdlEntity: string | null;
-  severity: ConsistencySeverity;
-  source: ConsistencySource;
-  /** For extra-port/extra-parameter: the implementation-declared shape, ready to insert into the
-   *  .ip.yml verbatim if the user chooses to adopt it. */
-  inferred?: InferredPort | InferredParameter;
-}
 
 interface ManagedHdlFile {
   path: string;
@@ -193,6 +165,157 @@ function widthsConflict(a: number | string, b: number | string): boolean {
   return typeof a === 'number' && typeof b === 'number' && a !== b;
 }
 
+interface ExpectedBusPort {
+  physicalName: string;
+  direction?: string;
+  width: number;
+  logicalName: string;
+  ifaceName: string;
+  ipYmlPath: (string | number)[];
+}
+
+/**
+ * Reconstructs each recognized (non-conduit) bus interface's active physical ports — name,
+ * direction, width — using the generator's own getActiveBusPortsFromDefinition (mirroring
+ * registerProcessor.ts's expandBusInterfaces + per-interface expansion), so "expected" here is
+ * exactly what the generator itself would emit. Conduit interfaces and unrecognized/custom bus
+ * types (lookupBusDef returns null or an empty array) are skipped — their physical ports remain
+ * excluded from extra-port via collectAccountedForPortNames's conduitPorts/rawPortMaps fallback;
+ * signal-by-signal diffing isn't possible without a known bus definition to diff against.
+ *
+ * Iterates busInterfaces one at a time (rather than expanding the whole list in one call) so an
+ * array interface's expanded copies can still be traced back to their original ipYmlPath index —
+ * expandBusInterfaces itself doesn't retain that mapping once interfaces are flattened together.
+ */
+function collectExpectedBusPorts(ipCoreData: IpCoreData): ExpectedBusPort[] {
+  const result: ExpectedBusPort[] = [];
+  (ipCoreData.busInterfaces ?? []).forEach((rawIface, origIdx) => {
+    const expanded = expandBusInterfaces({
+      ...ipCoreData,
+      busInterfaces: [rawIface],
+    } as IpCoreData);
+
+    for (const iface of expanded) {
+      if ((iface.mode ?? '').toLowerCase() === 'conduit') {
+        continue;
+      }
+      const busDef = lookupBusDef(iface.type ?? '');
+      if (!busDef || busDef.length === 0) {
+        continue;
+      }
+      const activePorts = getActiveBusPortsFromDefinition(
+        busDef,
+        iface.useOptionalPorts ?? [],
+        iface.physicalPrefix ?? '',
+        iface.mode ?? '',
+        iface.portWidthOverrides ?? {},
+        ipCoreData.parameters as
+          | { name: string; value?: number | string; data_type?: string }[]
+          | undefined,
+        iface.portNameOverrides,
+        iface.absentPorts
+      );
+      for (const p of activePorts) {
+        result.push({
+          physicalName: String(p.name),
+          direction: typeof p.direction === 'string' ? p.direction : undefined,
+          width: Number(p.width),
+          logicalName: String(p.logical_name),
+          ifaceName: iface.name ?? rawIface.name ?? '',
+          ipYmlPath: ['busInterfaces', origIdx],
+        });
+      }
+    }
+  });
+  return result;
+}
+
+/**
+ * Diffs a bus interface's expected physical ports (collectExpectedBusPorts) against an
+ * implementation's full (unfiltered) port map, emitting missing-bus-port /
+ * bus-port-direction-mismatch / bus-port-width-mismatch. Matched physical names are removed from
+ * the returned map so callers can still run the regular extra-port pass over what's left without
+ * double-flagging a bus signal that was already diffed here (whether it matched cleanly or not).
+ */
+/**
+ * Reduces a bus interface's active ports to the same name-keyed ImplPort shape used for HDL/
+ * vendor ports, so a vendor's own reconstructed bus interfaces (see collectExpectedBusPorts's
+ * docstring on vendorData below) can be diffed with the same diffBusPorts comparator used for
+ * the .ip.yml side.
+ */
+function busPortsToImplPortMap(busPorts: ExpectedBusPort[]): Map<string, ImplPort> {
+  const map = new Map<string, ImplPort>();
+  for (const p of busPorts) {
+    map.set(p.physicalName.toLowerCase(), {
+      name: p.physicalName,
+      direction: p.direction,
+      width: p.width,
+    });
+  }
+  return map;
+}
+
+function diffBusPorts(
+  expectedBusPorts: ExpectedBusPort[],
+  implPortsByName: Map<string, ImplPort>,
+  sourceFile: string,
+  sourceEntity: string | null,
+  source: ConsistencySource
+): { findings: HdlCrossCheckFinding[]; remainingImplPorts: Map<string, ImplPort> } {
+  const findings: HdlCrossCheckFinding[] = [];
+  const remaining = new Map(implPortsByName);
+
+  const push = (kind: HdlCrossCheckKind, message: string, ipYmlPath: (string | number)[]): void => {
+    findings.push({
+      kind,
+      message,
+      ipYmlPath,
+      hdlFile: sourceFile,
+      hdlEntity: sourceEntity,
+      severity: SEVERITY_BY_KIND[kind],
+      source,
+    });
+  };
+
+  for (const expected of expectedBusPorts) {
+    const key = expected.physicalName.toLowerCase();
+    const implPort = remaining.get(key);
+    remaining.delete(key);
+
+    const label = `'${expected.physicalName}' (${expected.logicalName} on bus interface '${expected.ifaceName}')`;
+
+    if (!implPort) {
+      push(
+        'missing-bus-port',
+        `${label} is declared in the .ip.yml but has no matching port in ${sourceFile}` +
+          `${sourceEntity ? ` (entity/module '${sourceEntity}')` : ''}.`,
+        expected.ipYmlPath
+      );
+      continue;
+    }
+
+    if (expected.direction && implPort.direction && expected.direction !== implPort.direction) {
+      push(
+        'bus-port-direction-mismatch',
+        `${label} is declared direction '${expected.direction}' in the .ip.yml but ` +
+          `'${implPort.direction}' in ${sourceFile}#${implPort.name}.`,
+        expected.ipYmlPath
+      );
+    }
+
+    if (widthsConflict(expected.width, widthOf(implPort.width))) {
+      push(
+        'bus-port-width-mismatch',
+        `${label} is declared width ${expected.width} in the .ip.yml but width ` +
+          `${widthOf(implPort.width)} in ${sourceFile}#${implPort.name}.`,
+        expected.ipYmlPath
+      );
+    }
+  }
+
+  return { findings, remainingImplPorts: remaining };
+}
+
 interface ExpectedSignal {
   name: string;
   direction?: string;
@@ -290,6 +413,9 @@ interface ParsedManagedFile {
   entityName: string | null;
   hdlPortsByName: Map<string, ImplPort>;
   hdlParamsByName: Map<string, ImplParam>;
+  /** Unfiltered port map (before withoutAccountedForPorts) — bus-port diffing needs to see bus
+   *  signals directly rather than the accounted-for-stripped map used for the regular ports diff. */
+  rawHdlPortsByName: Map<string, ImplPort>;
 }
 
 /**
@@ -476,6 +602,7 @@ async function diffAgainstHdlFiles(
   const expectedSignals = collectExpectedSignals(ipCoreData);
   const expectedParams = (ipCoreData.parameters ?? []).map((p, idx) => ({ ...p, idx }));
   const accountedFor = collectAccountedForPortNames(ipCoreData);
+  const expectedBusPorts = collectExpectedBusPorts(ipCoreData);
 
   const parsedFiles: ParsedManagedFile[] = [];
   for (const file of files) {
@@ -493,23 +620,28 @@ async function diffAgainstHdlFiles(
     const entityName = isVhdl
       ? (parsed as ReturnType<typeof extractVhdlInterface>).entityName
       : (parsed as ReturnType<typeof extractVerilogInterface>).moduleName;
+    const rawHdlPortsByName = new Map(parsed.ports.map((p) => [p.name.toLowerCase(), p]));
     parsedFiles.push({
       file,
       entityName,
-      hdlPortsByName: withoutAccountedForPorts(
-        new Map(parsed.ports.map((p) => [p.name.toLowerCase(), p])),
-        accountedFor
-      ),
+      hdlPortsByName: withoutAccountedForPorts(rawHdlPortsByName, accountedFor),
       hdlParamsByName: new Map(
         parsed.parameters.map((p) => [p.name.toLowerCase(), { name: p.name, value: p.value }])
       ),
+      rawHdlPortsByName,
     });
   }
 
-  for (const { file, entityName, hdlPortsByName, hdlParamsByName } of selectTopLevelFiles(
-    parsedFiles,
-    ipCoreData
-  )) {
+  for (const {
+    file,
+    entityName,
+    hdlPortsByName,
+    hdlParamsByName,
+    rawHdlPortsByName,
+  } of selectTopLevelFiles(parsedFiles, ipCoreData)) {
+    findings.push(
+      ...diffBusPorts(expectedBusPorts, rawHdlPortsByName, file.path, entityName, 'hdl').findings
+    );
     findings.push(
       ...diffAgainstImplementation(
         expectedSignals,
@@ -531,12 +663,13 @@ async function diffAgainstHdlFiles(
  * entity/module of the HDL file(s) its fileSets mark managed:false — i.e. hand-authored HDL
  * that IPCraft never generates and could silently drift from the spec (issue #74).
  *
- * Does not validate individual bus-interface ports (missing/mismatched physical signals) —
- * those are a generator-side reconstruction (physicalPrefix + per-port overrides), not something
- * declared directly as a `ports` entry, so verifying them signal-by-signal is out of scope here.
- * Their reconstructed physical names (plus interrupts' and conduit ports') are still excluded
- * from extra-port detection via collectAccountedForPortNames — otherwise every bus/interrupt
- * signal in the HDL would be wrongly reported as an undeclared new port.
+ * Also diffs each recognized bus interface's physical ports signal-by-signal (missing-bus-port /
+ * bus-port-direction-mismatch / bus-port-width-mismatch — issue #96) via collectExpectedBusPorts +
+ * diffBusPorts, reconstructed the same way the generator itself expands physicalPrefix + per-port
+ * overrides. Conduit/custom interfaces (no known bus definition) fall back to the coarser
+ * collectAccountedForPortNames exclusion — their literal port names are still kept out of
+ * extra-port, but aren't diffed signal-by-signal. Interrupts are excluded from extra-port the
+ * same way, also without per-signal diffing.
  *
  * Scoped to managed:false files only — see crossCheckIpCoreAgainstTopLevelHdl for the broader
  * check (issue #84) that also covers generator-owned (managed:true) HDL.
@@ -615,11 +748,15 @@ export async function crossCheckIpCoreAgainstVendor(
   }
 
   let vendorYamlText: string;
+  let vendorMmYamlText: string | undefined;
   try {
-    vendorYamlText =
-      source === 'hwTcl'
-        ? parseHwTclContent(content, absPath).yamlText
-        : parseComponentXmlText(content).ipYamlText;
+    if (source === 'hwTcl') {
+      vendorYamlText = parseHwTclContent(content, absPath).yamlText;
+    } else {
+      const parsedComponent = parseComponentXmlText(content);
+      vendorYamlText = parsedComponent.ipYamlText;
+      vendorMmYamlText = parsedComponent.mmYamlText;
+    }
   } catch {
     // Unparsable vendor artifact (e.g. mid-edit, hand-corrupted) — skip rather than fail the
     // whole consistency check over one bad file.
@@ -637,19 +774,54 @@ export async function crossCheckIpCoreAgainstVendor(
     ...p,
     idx,
   }));
+  const expectedBusPorts = collectExpectedBusPorts(ipCoreData);
+  const rawVendorPorts = collectImplPorts(vendorData);
+  const vendorEntity = vendorData.vlnv?.name ?? null;
 
-  return diffAgainstImplementation(
-    expectedSignals,
-    expectedParams,
-    withoutAccountedForPorts(
-      collectImplPorts(vendorData),
-      collectAccountedForPortNames(ipCoreData)
-    ),
-    collectImplParams(vendorData),
+  // Vendor importers (HwTclParser/ComponentXmlParser) never flatten a recognized bus
+  // interface's physical ports into the top-level `ports:` list — like the .ip.yml side, they
+  // reconstruct physicalPrefix/portNameOverrides/useOptionalPorts from the physical signals they
+  // actually saw. So the vendor's bus ports live in vendorData.busInterfaces, not
+  // collectImplPorts(vendorData); reuse collectExpectedBusPorts on the vendor side too and diff
+  // against that instead — the vendor's derivation is lossless, so its reconstructed physical
+  // names/widths are exactly what the artifact declared.
+  const vendorBusPorts = busPortsToImplPortMap(collectExpectedBusPorts(vendorData));
+
+  const busFindings = diffBusPorts(
+    expectedBusPorts,
+    vendorBusPorts,
     relPath,
-    vendorData.vlnv?.name ?? null,
+    vendorEntity,
     source
-  );
+  ).findings;
+
+  // Register/field comparison (issue #96) only applies to component.xml — Platform Designer's
+  // _hw.tcl carries no memory-map/register data to diff against.
+  const registerFindings =
+    source === 'componentXml' && vendorMmYamlText
+      ? await crossCheckMemoryMapsAgainstVendor(
+          ipCoreData,
+          ipCoreDir,
+          vendorMmYamlText,
+          relPath,
+          source,
+          readFile
+        )
+      : [];
+
+  return [
+    ...busFindings,
+    ...registerFindings,
+    ...diffAgainstImplementation(
+      expectedSignals,
+      expectedParams,
+      withoutAccountedForPorts(rawVendorPorts, collectAccountedForPortNames(ipCoreData)),
+      collectImplParams(vendorData),
+      relPath,
+      vendorEntity,
+      source
+    ),
+  ];
 }
 
 // Re-exported so consumers can build inferred port/parameter shapes without reaching into
