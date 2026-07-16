@@ -1,10 +1,11 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
+  CONSISTENCY_KIND_LABEL,
   type ConsistencyFinding,
-  type ConsistencyKind,
   type ConsistencySummary,
   elementIdForFinding,
   findingKey,
+  formatFindingsForClipboard,
   sourceLabel,
 } from '../../types/consistency';
 
@@ -20,16 +21,6 @@ interface ConsistencyOverlayProps {
   isChecking: boolean;
   onClose: () => void;
 }
-
-const KIND_LABEL: Record<ConsistencyKind, string> = {
-  'missing-port': 'Missing port',
-  'extra-port': 'New port',
-  'direction-mismatch': 'Direction mismatch',
-  'width-mismatch': 'Width mismatch',
-  'missing-parameter': 'Missing parameter',
-  'extra-parameter': 'New parameter',
-  'parameter-default-mismatch': 'Default mismatch',
-};
 
 const SeverityDot: React.FC<{ severity: 'amber' | 'red' }> = ({ severity }) => (
   <span
@@ -66,7 +57,7 @@ const FindingRow: React.FC<{
     <SeverityDot severity={finding.severity} />
     <div style={{ flex: 1, minWidth: 0 }}>
       <div style={{ fontSize: 11, opacity: 0.7 }}>
-        {KIND_LABEL[finding.kind]} · {sourceLabel(finding.source)}
+        {CONSISTENCY_KIND_LABEL[finding.kind]} · {sourceLabel(finding.source)}
       </div>
       <div style={{ fontSize: 12, wordBreak: 'break-word' }}>{finding.message}</div>
     </div>
@@ -123,14 +114,34 @@ export const ConsistencyOverlay: React.FC<ConsistencyOverlayProps> = ({
     return bySource;
   }, [visible]);
 
+  const [copied, setCopied] = useState(false);
+  const handleCopy = () => {
+    const text = formatFindingsForClipboard(visible, summary);
+    void navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  };
+
   return (
     <div className="canvas-inspector" style={{ width: 340 }}>
       <div className="ci-header" style={{ flexDirection: 'column', gap: 6, alignItems: 'stretch' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span className="staging-header-title">Consistency Check</span>
-          <button className="ci-header__close" onClick={onClose} title="Close">
-            <span className="codicon codicon-close" />
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <button
+              className="ci-header__close"
+              onClick={handleCopy}
+              title="Copy all messages to clipboard"
+              disabled={visible.length === 0}
+              style={visible.length === 0 ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}
+            >
+              <span className={`codicon codicon-${copied ? 'check' : 'copy'}`} />
+            </button>
+            <button className="ci-header__close" onClick={onClose} title="Close">
+              <span className="codicon codicon-close" />
+            </button>
+          </div>
         </div>
         {visible.length > 0 ? (
           <div className="staging-summary" style={{ fontSize: 11 }}>

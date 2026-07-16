@@ -5,7 +5,8 @@ import { extractVhdlInterface } from '../../parser/VhdlParser';
 import { extractVerilogInterface } from '../../parser/VerilogParser';
 import { parseHwTclContent } from '../../parser/HwTclParser';
 import { parseComponentXmlText } from '../../parser/ComponentXmlParser';
-import { normalizeIpCoreData } from '../registerProcessor';
+import { normalizeIpCoreData, expandBusInterfaces } from '../registerProcessor';
+import { reconstructBusPortNameSet } from '../../shared/busPortNameSet';
 import type { IpCoreData, ParameterDef, PortDef } from '../types';
 
 export type HdlCrossCheckKind =
@@ -107,6 +108,75 @@ function collectAllHdlFiles(ipCoreData: IpCoreData): ManagedHdlFile[] {
     }
   }
   return [...files.values()];
+}
+
+/**
+ * Physical port names already accounted for by the .ip.yml's busInterfaces/interrupts, so they
+ * must never be flagged extra-port just because they aren't literally in `ports`: bus interface
+ * physical names are a generator-side reconstruction (physicalPrefix + portNameOverrides, mirrored
+ * here via reconstructBusPortNameSet/expandBusInterfaces — the same formula the generator itself
+ * uses), and an interrupt's `name` is its physical port name declared outside `ports` entirely.
+ * Conduit interfaces declare their signals' literal physical names directly in `conduitPorts`.
+ */
+function collectAccountedForPortNames(ipCoreData: IpCoreData): Set<string> {
+  const names = new Set<string>();
+
+  for (const iface of expandBusInterfaces(ipCoreData)) {
+    if ((iface.mode ?? '').toLowerCase() === 'conduit') {
+      for (const cp of iface.conduitPorts ?? []) {
+        const name = (cp as { name?: string }).name;
+        if (name) {
+          names.add(name.toLowerCase());
+        }
+      }
+      continue;
+    }
+    const reconstructed = reconstructBusPortNameSet(iface);
+    if (reconstructed) {
+      for (const name of reconstructed) {
+        names.add(name);
+      }
+    } else {
+      // Unrecognized/custom bus type imported from component.xml — rawPortMaps preserves the
+      // literal physical names verbatim instead of a prefix+suffix formula to reconstruct.
+      for (const portMap of iface.rawPortMaps ?? []) {
+        if (portMap.physical) {
+          names.add(portMap.physical.toLowerCase());
+        }
+      }
+    }
+  }
+
+  const interrupts = (ipCoreData as Record<string, unknown>).interrupts as
+    | Array<{ name?: string }>
+    | undefined;
+  for (const irq of interrupts ?? []) {
+    if (irq.name) {
+      names.add(irq.name.toLowerCase());
+    }
+  }
+
+  return names;
+}
+
+/**
+ * Removes accounted-for physical ports from an implementation's port map before diffing, so
+ * they neither surface as extra-port nor risk shadowing a same-named expected port/parameter.
+ */
+function withoutAccountedForPorts(
+  ports: Map<string, ImplPort>,
+  accountedFor: Set<string>
+): Map<string, ImplPort> {
+  if (accountedFor.size === 0) {
+    return ports;
+  }
+  const filtered = new Map<string, ImplPort>();
+  for (const [key, value] of ports) {
+    if (!accountedFor.has(key)) {
+      filtered.set(key, value);
+    }
+  }
+  return filtered;
 }
 
 /** Scalar ports (std_logic / no explicit range) parse with width undefined — treat as 1 bit. */
@@ -405,6 +475,7 @@ async function diffAgainstHdlFiles(
 
   const expectedSignals = collectExpectedSignals(ipCoreData);
   const expectedParams = (ipCoreData.parameters ?? []).map((p, idx) => ({ ...p, idx }));
+  const accountedFor = collectAccountedForPortNames(ipCoreData);
 
   const parsedFiles: ParsedManagedFile[] = [];
   for (const file of files) {
@@ -425,7 +496,10 @@ async function diffAgainstHdlFiles(
     parsedFiles.push({
       file,
       entityName,
-      hdlPortsByName: new Map(parsed.ports.map((p) => [p.name.toLowerCase(), p])),
+      hdlPortsByName: withoutAccountedForPorts(
+        new Map(parsed.ports.map((p) => [p.name.toLowerCase(), p])),
+        accountedFor
+      ),
       hdlParamsByName: new Map(
         parsed.parameters.map((p) => [p.name.toLowerCase(), { name: p.name, value: p.value }])
       ),
@@ -457,9 +531,12 @@ async function diffAgainstHdlFiles(
  * entity/module of the HDL file(s) its fileSets mark managed:false — i.e. hand-authored HDL
  * that IPCraft never generates and could silently drift from the spec (issue #74).
  *
- * Deliberately scoped to ports/clocks/resets/parameters, not busInterfaces: bus interface
- * physical port names are a generator-side reconstruction (physicalPrefix + per-port
- * overrides), not something declared directly in the .ip.yml, so they're out of scope here.
+ * Does not validate individual bus-interface ports (missing/mismatched physical signals) —
+ * those are a generator-side reconstruction (physicalPrefix + per-port overrides), not something
+ * declared directly as a `ports` entry, so verifying them signal-by-signal is out of scope here.
+ * Their reconstructed physical names (plus interrupts' and conduit ports') are still excluded
+ * from extra-port detection via collectAccountedForPortNames — otherwise every bus/interrupt
+ * signal in the HDL would be wrongly reported as an undeclared new port.
  *
  * Scoped to managed:false files only — see crossCheckIpCoreAgainstTopLevelHdl for the broader
  * check (issue #84) that also covers generator-owned (managed:true) HDL.
@@ -564,7 +641,10 @@ export async function crossCheckIpCoreAgainstVendor(
   return diffAgainstImplementation(
     expectedSignals,
     expectedParams,
-    collectImplPorts(vendorData),
+    withoutAccountedForPorts(
+      collectImplPorts(vendorData),
+      collectAccountedForPortNames(ipCoreData)
+    ),
     collectImplParams(vendorData),
     relPath,
     vendorData.vlnv?.name ?? null,

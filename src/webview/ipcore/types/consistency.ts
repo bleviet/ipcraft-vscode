@@ -50,6 +50,16 @@ export function sourceLabel(source: ConsistencySource): string {
   return SOURCE_LABEL[source];
 }
 
+export const CONSISTENCY_KIND_LABEL: Record<ConsistencyKind, string> = {
+  'missing-port': 'Missing port',
+  'extra-port': 'New port',
+  'direction-mismatch': 'Direction mismatch',
+  'width-mismatch': 'Width mismatch',
+  'missing-parameter': 'Missing parameter',
+  'extra-parameter': 'New parameter',
+  'parameter-default-mismatch': 'Default mismatch',
+};
+
 /** Stable identity for session-local "Ignore" — findings carry no id of their own. */
 export function findingKey(finding: ConsistencyFinding): string {
   return [finding.source, finding.kind, finding.ipYmlPath.join('.'), finding.hdlFile].join('|');
@@ -102,4 +112,24 @@ export function consistencyFindingsToAnnotations(
     });
   }
   return annotations;
+}
+
+/** Plain-text rendering of the results overlay's contents, for the "Copy" toolbar action. */
+export function formatFindingsForClipboard(
+  findings: ConsistencyFinding[],
+  summary: ConsistencySummary
+): string {
+  const lines: string[] = [
+    `IPCraft Consistency Check — ${findings.length} finding(s) ` +
+      `(${summary.added} added, ${summary.removed} removed, ${summary.changed} changed)`,
+    '',
+  ];
+  for (const finding of findings) {
+    lines.push(
+      `[${finding.severity}] ${CONSISTENCY_KIND_LABEL[finding.kind]} · ${sourceLabel(finding.source)}`,
+      finding.message,
+      ''
+    );
+  }
+  return lines.join('\n').trimEnd();
 }

@@ -170,6 +170,49 @@ describe('crossCheckIpCoreAgainstTopLevelHdl — checks the top level regardless
     expect(findings[0].kind).toBe('width-mismatch');
     expect(findings[0].hdlFile).toBe('rtl/led_blink.vhd');
   });
+
+  // Reproduces the false-positive reported against the real comprehensive_avalon fixture: a
+  // bus interface's reconstructed physical ports and an interrupt's physical port were both
+  // being flagged extra-port, even though they ARE declared in the .ip.yml — just not in
+  // `ports`. Only a genuinely undeclared signal should surface.
+  it('does not flag bus-interface physical ports or interrupt ports as extra-port', async () => {
+    const ipCore = baseIpCore({
+      fileSets: [{ name: 'RTL_Sources', files: [{ path: 'rtl/core.vhd', type: 'vhdl' }] }],
+      clocks: [{ name: 'clk' }],
+      resets: [{ name: 'rst' }],
+      interrupts: [{ name: 'o_irq_n', direction: 'out' }],
+      busInterfaces: [
+        {
+          name: 'S_AVMM',
+          type: 'ipcraft:busif:avalon_mm:1.0',
+          mode: 'slave',
+          physicalPrefix: 'avs_',
+          useOptionalPorts: ['address', 'read', 'write', 'readdata', 'writedata'],
+        },
+      ],
+    } as unknown as Partial<IpCoreData>);
+    const hdl = [
+      'entity core is',
+      '  port (',
+      '    clk : in std_logic;',
+      '    rst : in std_logic;',
+      '    o_irq_n : out std_logic;',
+      '    avs_address : in std_logic_vector(11 downto 0);',
+      '    avs_read : in std_logic;',
+      '    avs_write : in std_logic;',
+      '    avs_readdata : out std_logic_vector(31 downto 0);',
+      '    avs_writedata : in std_logic_vector(31 downto 0);',
+      '    new_port : in std_logic',
+      '  );',
+      'end entity core;',
+    ].join('\n');
+
+    const findings = await crossCheckIpCoreAgainstTopLevelHdl(ipCore, '/proj', makeReader(hdl));
+
+    expect(findings).toHaveLength(1);
+    expect(findings[0].kind).toBe('extra-port');
+    expect(findings[0].inferred).toEqual({ name: 'new_port', direction: 'in', width: 1 });
+  });
 });
 
 describe('crossCheckIpCoreAgainstVendor — _hw.tcl (Intel Platform Designer)', () => {
