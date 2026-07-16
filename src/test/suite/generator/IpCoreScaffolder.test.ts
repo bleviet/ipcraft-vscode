@@ -587,6 +587,143 @@ describe('IpCoreScaffolder', () => {
     }
   });
 
+  it('surfaces a fileSets HDL entry the pack has no rule for in generatedContents, protected (issue #93)', async () => {
+    // Repro: a user adds an extra hand-authored module directly to fileSets (no `managed`
+    // flag — the schema default is managed: true) that the scaffold pack itself never
+    // generates. Previously it never appeared in `files` at all — invisible to the
+    // Scaffold/Regenerate review list, indistinguishable from the list having dropped it.
+    const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-scaffolder-extra-file-'));
+    try {
+      fs2.mkdirSync(path.join(tmp, 'rtl'), { recursive: true });
+      fs2.writeFileSync(path.join(tmp, 'rtl', 'test.vhd'), '');
+
+      const inputPath = path.join(tmp, 'user_core.ip.yml');
+      fs2.writeFileSync(
+        inputPath,
+        [
+          'vlnv:',
+          '  vendor: test',
+          '  library: lib',
+          '  name: user_core',
+          '  version: 1.0.0',
+          'clocks:',
+          '  - name: clk',
+          '    direction: in',
+          'busInterfaces: []',
+          'fileSets:',
+          '  - name: RTL_Sources',
+          '    files:',
+          '      - path: rtl/test.vhd',
+          '        type: vhdl',
+        ].join('\n')
+      );
+
+      // Regenerating in place (outputDir === the .ip.yml's own directory) is what makes the
+      // extra file visible — it's read verbatim from where it actually lives.
+      const result = await scaffolder.generateAll(inputPath, tmp, {
+        includeRegs: false,
+        includeTestbench: false,
+        targets: [],
+        dryRun: true,
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.generatedContents?.['rtl/test.vhd']).toBe('');
+      expect(result.protectedPaths).toContain('rtl/test.vhd');
+    } finally {
+      fs2.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it('does not treat a fileSets entry the pack DID generate this run as a duplicate extra', async () => {
+    // fileSets can (redundantly) list the same top-level file the pack itself renders. The
+    // "extra" pass must skip it — otherwise it would clobber the freshly rendered template
+    // content with whatever stale content already happens to sit on disk, and wrongly mark
+    // a pack-generated, freely-regeneratable file as protected.
+    const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-scaffolder-extra-duplicate-'));
+    try {
+      fs2.mkdirSync(path.join(tmp, 'rtl'), { recursive: true });
+      fs2.writeFileSync(path.join(tmp, 'rtl', 'user_core.vhd'), '-- stale on-disk content\n');
+
+      const inputPath = path.join(tmp, 'user_core.ip.yml');
+      fs2.writeFileSync(
+        inputPath,
+        [
+          'vlnv:',
+          '  vendor: test',
+          '  library: lib',
+          '  name: user_core',
+          '  version: 1.0.0',
+          'clocks:',
+          '  - name: clk',
+          '    direction: in',
+          'busInterfaces: []',
+          'fileSets:',
+          '  - name: RTL_Sources',
+          '    files:',
+          '      - path: rtl/user_core.vhd',
+          '        type: vhdl',
+        ].join('\n')
+      );
+
+      const result = await scaffolder.generateAll(inputPath, tmp, {
+        includeRegs: false,
+        includeTestbench: false,
+        targets: [],
+        dryRun: true,
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.generatedContents?.['rtl/user_core.vhd']).not.toBe(
+        '-- stale on-disk content\n'
+      );
+      expect(result.protectedPaths ?? []).not.toContain('rtl/user_core.vhd');
+    } finally {
+      fs2.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it('does not surface an extra file when regenerating into a different output directory', async () => {
+    const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-scaffolder-extra-elsewhere-'));
+    try {
+      fs2.mkdirSync(path.join(tmp, 'rtl'), { recursive: true });
+      fs2.writeFileSync(path.join(tmp, 'rtl', 'test.vhd'), '');
+
+      const inputPath = path.join(tmp, 'user_core.ip.yml');
+      fs2.writeFileSync(
+        inputPath,
+        [
+          'vlnv:',
+          '  vendor: test',
+          '  library: lib',
+          '  name: user_core',
+          '  version: 1.0.0',
+          'clocks:',
+          '  - name: clk',
+          '    direction: in',
+          'busInterfaces: []',
+          'fileSets:',
+          '  - name: RTL_Sources',
+          '    files:',
+          '      - path: rtl/test.vhd',
+          '        type: vhdl',
+        ].join('\n')
+      );
+
+      const result = await scaffolder.generateAll(inputPath, '/tmp/test-output-elsewhere', {
+        includeRegs: false,
+        includeTestbench: false,
+        targets: [],
+        dryRun: true,
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.generatedContents?.['rtl/test.vhd']).toBeUndefined();
+    } finally {
+      fs2.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
   it('never emits the top-level stub for a no-bus IP whose top is declared managed:false (issue #75)', async () => {
     // A no-bus IP whose real top-level logic is hand-authored must never have its scaffold
     // target (rtl/<name>.sv, matching builtin-minimal's top rule) stubbed out — not even on

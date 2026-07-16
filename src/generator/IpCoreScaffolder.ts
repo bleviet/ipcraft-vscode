@@ -241,9 +241,35 @@ export class IpCoreScaffolder {
         }
       }
 
+      // Surface fileSets HDL entries the pack never generates at all (issue #93) so they show
+      // up in the Scaffold/Regenerate review list instead of silently vanishing from it. Only
+      // meaningful when regenerating in place (outputDir is the .ip.yml's own directory) — into
+      // a different directory, the file doesn't exist there yet regardless.
+      const ipCoreDir = path.dirname(inputPath);
+      const extraUserPaths = new Set<string>();
+      if (path.resolve(outputDir) === path.resolve(ipCoreDir)) {
+        const extraPaths = collectUserDeclaredExtraPaths(ipCoreData, files);
+        await Promise.all(
+          extraPaths.map(async (relativePath) => {
+            try {
+              files[relativePath] = await fs.readFile(path.join(ipCoreDir, relativePath), 'utf8');
+              extraUserPaths.add(relativePath);
+            } catch {
+              // Declared in fileSets but not created on disk yet — nothing to show.
+            }
+          })
+        );
+      }
+
       // Collect paths marked managed: false — these are user-owned and must not be overwritten.
-      // Sources: (1) fileSets entries in the YAML, (2) scaffold pack managed:false rules.
-      const protectedSet = new Set<string>([...packManagedFalse, ...userManagedPaths]);
+      // Sources: (1) fileSets entries in the YAML, (2) scaffold pack managed:false rules,
+      // (3) fileSets entries the pack has no rule for at all (always protected — there is no
+      // template to safely regenerate them from).
+      const protectedSet = new Set<string>([
+        ...packManagedFalse,
+        ...userManagedPaths,
+        ...extraUserPaths,
+      ]);
 
       // Dry-run: return generated content without writing to disk.
       // Identify which protected paths already exist so the caller can skip them.
@@ -465,6 +491,38 @@ function collectUserManagedPaths(ipCoreData: IpCoreData): Set<string> {
     }
   }
   return paths;
+}
+
+const EXTRA_HDL_FILE_TYPES = new Set(['vhdl', 'verilog', 'systemverilog']);
+
+/**
+ * fileSets HDL entries the scaffold pack has no rule for at all — e.g. an additional
+ * hand-authored module the user added directly to fileSets, not a stub the pack ever
+ * generated (issue #93). These never appear in `files` above (no template renders them), so
+ * without this they're invisible to the Scaffold/Regenerate review list even though they're a
+ * real, tracked part of the project — indistinguishable, from the user's point of view, from
+ * the list simply having dropped their file.
+ */
+function collectUserDeclaredExtraPaths(
+  ipCoreData: IpCoreData,
+  files: Record<string, string>
+): string[] {
+  type FileSetEntry = { name?: string; files?: Array<{ path?: string; type?: string }> };
+  const rawFileSets = (ipCoreData as Record<string, unknown>).fileSets as
+    | FileSetEntry[]
+    | undefined;
+  const extras: string[] = [];
+  for (const fset of rawFileSets ?? []) {
+    if (fset.name === 'Simulation_Resources') {
+      continue;
+    }
+    for (const f of fset.files ?? []) {
+      if (f.path && EXTRA_HDL_FILE_TYPES.has(f.type ?? '') && !(f.path in files)) {
+        extras.push(f.path);
+      }
+    }
+  }
+  return extras;
 }
 
 function resolveMemmapRelpath(
