@@ -88,18 +88,34 @@ function collectAllHdlFiles(ipCoreData: IpCoreData): ManagedHdlFile[] {
  * physical names are a generator-side reconstruction (physicalPrefix + portNameOverrides, mirrored
  * here via reconstructBusPortNameSet/expandBusInterfaces — the same formula the generator itself
  * uses), and an interrupt's `name` is its physical port name declared outside `ports` entirely.
- * Conduit interfaces declare their signals' literal physical names directly in `conduitPorts`.
+ * Conduit interfaces run their conduitPorts through the same getActiveBusPortsFromDefinition
+ * reconstruction (mirroring VivadoComponentXmlGenerator's busDefPortMaps) rather than treating
+ * conduitPorts[].name as already-final: a conduit can still declare its own physicalPrefix (e.g.
+ * to namespace an interface's signals), in which case the generator prefixes each conduit port's
+ * name exactly as it would a standard bus's logical port.
  */
 function collectAccountedForPortNames(ipCoreData: IpCoreData): Set<string> {
   const names = new Set<string>();
 
   for (const iface of expandBusInterfaces(ipCoreData)) {
     if ((iface.mode ?? '').toLowerCase() === 'conduit') {
-      for (const cp of iface.conduitPorts ?? []) {
-        const name = (cp as { name?: string }).name;
-        if (name) {
-          names.add(name.toLowerCase());
-        }
+      const activeConduitPorts = getActiveBusPortsFromDefinition(
+        (iface.conduitPorts ?? []) as Array<{
+          name: string;
+          width?: number | string;
+          direction?: string;
+          presence?: string;
+        }>,
+        iface.useOptionalPorts ?? [],
+        iface.physicalPrefix ?? '',
+        iface.mode ?? '',
+        iface.portWidthOverrides ?? {},
+        undefined,
+        iface.portNameOverrides,
+        iface.absentPorts
+      );
+      for (const p of activeConduitPorts) {
+        names.add(String(p.name).toLowerCase());
       }
       continue;
     }
@@ -163,6 +179,25 @@ function widthOf(w: number | string | undefined): number | string {
  */
 function widthsConflict(a: number | string, b: number | string): boolean {
   return typeof a === 'number' && typeof b === 'number' && a !== b;
+}
+
+/**
+ * Strips a single layer of literal double-quotes from a string-typed parameter value, mirroring
+ * resolveGenericDefault's convention (generator/resolvers/generics.ts): a .ip.yml author may write
+ * a string default either bare (`COMP`) or already wrapped in VHDL string-literal quotes
+ * (`"COMP"`) — the generator treats both as equivalent. Applied to *both* sides of the comparison
+ * (not just the .ip.yml side) because the implementation side carries the same ambiguity: VhdlParser
+ * already strips quotes at parse time (unquoteVhdlLiteral, issue #94) and HwTclParser's tokenizer
+ * strips TCL's own quote delimiters, but ComponentXmlParser does not — a Vivado `format="string"`
+ * modelParameter's raw XML text is the literal VHDL syntax (`"COMP"`), quotes and all.
+ */
+function normalizeStringParamValue(value: string, dataType: string | undefined): string {
+  if (!/\bstring\b/i.test(dataType ?? '')) {
+    return value;
+  }
+  return value.length >= 2 && value.startsWith('"') && value.endsWith('"')
+    ? value.slice(1, -1)
+    : value;
 }
 
 interface ExpectedBusPort {
@@ -326,6 +361,7 @@ interface ExpectedSignal {
 interface ExpectedParam {
   name?: string;
   value?: number | string;
+  dataType?: string;
   idx: number;
 }
 
@@ -543,7 +579,8 @@ function diffAgainstImplementation(
     if (
       param.value !== undefined &&
       implParam.value !== undefined &&
-      String(param.value).trim() !== implParam.value.trim()
+      normalizeStringParamValue(String(param.value), param.dataType).trim() !==
+        normalizeStringParamValue(implParam.value, param.dataType).trim()
     ) {
       push(
         'parameter-default-mismatch',
