@@ -1,25 +1,64 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import * as yaml from 'js-yaml';
 import { extractVhdlInterface } from '../../parser/VhdlParser';
 import { extractVerilogInterface } from '../../parser/VerilogParser';
-import type { IpCoreData } from '../types';
+import { parseHwTclContent } from '../../parser/HwTclParser';
+import { parseComponentXmlText } from '../../parser/ComponentXmlParser';
+import { normalizeIpCoreData } from '../registerProcessor';
+import type { IpCoreData, ParameterDef, PortDef } from '../types';
 
 export type HdlCrossCheckKind =
   | 'missing-port'
+  | 'extra-port'
   | 'direction-mismatch'
   | 'width-mismatch'
   | 'missing-parameter'
+  | 'extra-parameter'
   | 'parameter-default-mismatch';
+
+/** amber = additive/reconcilable (e.g. a new HDL port not yet in the .ip.yml); red = destructive/conflict. */
+export type ConsistencySeverity = 'amber' | 'red';
+
+export type ConsistencySource = 'hdl' | 'hwTcl' | 'componentXml';
+
+const SEVERITY_BY_KIND: Record<HdlCrossCheckKind, ConsistencySeverity> = {
+  'missing-port': 'red',
+  'extra-port': 'amber',
+  'direction-mismatch': 'red',
+  'width-mismatch': 'amber',
+  'missing-parameter': 'red',
+  'extra-parameter': 'amber',
+  'parameter-default-mismatch': 'amber',
+};
+
+export interface InferredPort {
+  name: string;
+  direction?: string;
+  width?: number | string;
+}
+
+export interface InferredParameter {
+  name: string;
+  value?: string;
+}
 
 export interface HdlCrossCheckFinding {
   kind: HdlCrossCheckKind;
   message: string;
-  /** Path into the .ip.yml, e.g. ['ports', 2], ['clocks', 0] or ['parameters', 1]. */
+  /** Path into the .ip.yml, e.g. ['ports', 2], ['clocks', 0] or ['parameters', 1]. For
+   *  extra-port/extra-parameter (no existing entry yet) this is the collection itself,
+   *  e.g. ['ports'], since there is no index to point at. */
   ipYmlPath: (string | number)[];
-  /** Path (relative to the ip core dir) of the managed:false HDL file this finding came from. */
+  /** Path (relative to the ip core dir) of the implementation source this finding came from. */
   hdlFile: string;
-  /** Top-level entity/module name parsed from hdlFile, or null if it couldn't be found. */
+  /** Top-level entity/module/component name parsed from hdlFile, or null if it couldn't be found. */
   hdlEntity: string | null;
+  severity: ConsistencySeverity;
+  source: ConsistencySource;
+  /** For extra-port/extra-parameter: the implementation-declared shape, ready to insert into the
+   *  .ip.yml verbatim if the user chooses to adopt it. */
+  inferred?: InferredPort | InferredParameter;
 }
 
 interface ManagedHdlFile {
@@ -69,6 +108,12 @@ interface ExpectedSignal {
   ipYmlPath: (string | number)[];
 }
 
+interface ExpectedParam {
+  name?: string;
+  value?: number | string;
+  idx: number;
+}
+
 function collectExpectedSignals(ipCoreData: IpCoreData): ExpectedSignal[] {
   const signals: ExpectedSignal[] = [];
   (ipCoreData.ports ?? []).forEach((port, idx) => {
@@ -94,11 +139,65 @@ function collectExpectedSignals(ipCoreData: IpCoreData): ExpectedSignal[] {
   return signals;
 }
 
+interface ImplPort {
+  name: string;
+  direction?: string;
+  width?: number | string;
+}
+
+interface ImplParam {
+  name: string;
+  value?: string;
+}
+
+/**
+ * Flattens an implementation-side IpCoreData (parsed from a vendor artifact) into the same
+ * name-keyed port shape used for HDL ports, merging in its clocks/resets exactly as
+ * collectExpectedSignals does for the .ip.yml side — otherwise a vendor-declared clock with no
+ * .ip.yml counterpart would never surface as an extra-port finding.
+ */
+function collectImplPorts(coreData: IpCoreData): Map<string, ImplPort> {
+  const ports = new Map<string, ImplPort>();
+  (coreData.ports ?? []).forEach((port) => {
+    if (port.name) {
+      ports.set(port.name.toLowerCase(), {
+        name: port.name,
+        direction: port.direction,
+        width: port.width,
+      });
+    }
+  });
+  (coreData.clocks ?? []).forEach((clock) => {
+    if (clock.name && !ports.has(clock.name.toLowerCase())) {
+      ports.set(clock.name.toLowerCase(), { name: clock.name, direction: 'in', width: 1 });
+    }
+  });
+  (coreData.resets ?? []).forEach((reset) => {
+    if (reset.name && !ports.has(reset.name.toLowerCase())) {
+      ports.set(reset.name.toLowerCase(), { name: reset.name, direction: 'in', width: 1 });
+    }
+  });
+  return ports;
+}
+
+function collectImplParams(coreData: IpCoreData): Map<string, ImplParam> {
+  const params = new Map<string, ImplParam>();
+  (coreData.parameters ?? []).forEach((param) => {
+    if (param.name) {
+      params.set(param.name.toLowerCase(), {
+        name: param.name,
+        value: param.value !== undefined ? String(param.value) : undefined,
+      });
+    }
+  });
+  return params;
+}
+
 interface ParsedManagedFile {
   file: ManagedHdlFile;
   entityName: string | null;
-  hdlPortsByName: Map<string, ReturnType<typeof extractVhdlInterface>['ports'][number]>;
-  hdlParamsByName: Map<string, ReturnType<typeof extractVhdlInterface>['parameters'][number]>;
+  hdlPortsByName: Map<string, ImplPort>;
+  hdlParamsByName: Map<string, ImplParam>;
 }
 
 /**
@@ -134,9 +233,143 @@ function selectTopLevelFiles(
 }
 
 /**
+ * Diffs the .ip.yml's declared ports/clocks/resets/parameters against a single implementation
+ * source (an HDL top-level entity/module, or a vendor artifact reduced to the same name-keyed
+ * port/parameter maps), emitting both directions of drift: SSOT-only (missing-*, declared in the
+ * .ip.yml but absent from the implementation) and implementation-only (extra-*, present in the
+ * implementation but not yet declared in the .ip.yml).
+ */
+function diffAgainstImplementation(
+  expectedSignals: ExpectedSignal[],
+  expectedParams: ExpectedParam[],
+  implPortsByName: Map<string, ImplPort>,
+  implParamsByName: Map<string, ImplParam>,
+  sourceFile: string,
+  sourceEntity: string | null,
+  source: ConsistencySource
+): HdlCrossCheckFinding[] {
+  const findings: HdlCrossCheckFinding[] = [];
+  const matchedPortKeys = new Set<string>();
+  const matchedParamKeys = new Set<string>();
+
+  const push = (
+    kind: HdlCrossCheckKind,
+    message: string,
+    ipYmlPath: (string | number)[],
+    inferred?: InferredPort | InferredParameter
+  ): void => {
+    findings.push({
+      kind,
+      message,
+      ipYmlPath,
+      hdlFile: sourceFile,
+      hdlEntity: sourceEntity,
+      severity: SEVERITY_BY_KIND[kind],
+      source,
+      ...(inferred ? { inferred } : {}),
+    });
+  };
+
+  for (const expected of expectedSignals) {
+    const key = expected.name.toLowerCase();
+    const implPort = implPortsByName.get(key);
+    if (!implPort) {
+      push(
+        'missing-port',
+        `'${expected.name}' is declared in the .ip.yml but has no matching port in ` +
+          `${sourceFile}${sourceEntity ? ` (entity/module '${sourceEntity}')` : ''}.`,
+        expected.ipYmlPath
+      );
+      continue;
+    }
+    matchedPortKeys.add(key);
+
+    if (expected.direction && implPort.direction && expected.direction !== implPort.direction) {
+      push(
+        'direction-mismatch',
+        `'${expected.name}' is declared direction '${expected.direction}' in the .ip.yml ` +
+          `but '${implPort.direction}' in ${sourceFile}#${implPort.name}.`,
+        expected.ipYmlPath
+      );
+    }
+
+    const expectedWidth = widthOf(expected.width);
+    const implWidth = widthOf(implPort.width);
+    if (widthsConflict(expectedWidth, implWidth)) {
+      push(
+        'width-mismatch',
+        `'${expected.name}' is declared width ${expectedWidth} in the .ip.yml but width ` +
+          `${implWidth} in ${sourceFile}#${implPort.name}.`,
+        expected.ipYmlPath
+      );
+    }
+  }
+
+  for (const param of expectedParams) {
+    if (!param.name) {
+      continue;
+    }
+    const key = param.name.toLowerCase();
+    const implParam = implParamsByName.get(key);
+    if (!implParam) {
+      push(
+        'missing-parameter',
+        `Parameter '${param.name}' is declared in the .ip.yml but has no matching generic ` +
+          `in ${sourceFile}${sourceEntity ? ` (entity/module '${sourceEntity}')` : ''}.`,
+        ['parameters', param.idx]
+      );
+      continue;
+    }
+    matchedParamKeys.add(key);
+
+    if (
+      param.value !== undefined &&
+      implParam.value !== undefined &&
+      String(param.value).trim() !== implParam.value.trim()
+    ) {
+      push(
+        'parameter-default-mismatch',
+        `Parameter '${param.name}' default is '${param.value}' in the .ip.yml but ` +
+          `'${implParam.value}' in ${sourceFile}#${implParam.name}.`,
+        ['parameters', param.idx]
+      );
+    }
+  }
+
+  for (const [key, implPort] of implPortsByName) {
+    if (matchedPortKeys.has(key)) {
+      continue;
+    }
+    push(
+      'extra-port',
+      `'${implPort.name}' exists in ${sourceFile}` +
+        `${sourceEntity ? ` (entity/module '${sourceEntity}')` : ''} but is not declared in the .ip.yml.`,
+      ['ports'],
+      { name: implPort.name, direction: implPort.direction, width: implPort.width }
+    );
+  }
+
+  for (const [key, implParam] of implParamsByName) {
+    if (matchedParamKeys.has(key)) {
+      continue;
+    }
+    push(
+      'extra-parameter',
+      `Parameter '${implParam.name}' exists in ${sourceFile}` +
+        `${sourceEntity ? ` (entity/module '${sourceEntity}')` : ''} but is not declared in the .ip.yml.`,
+      ['parameters'],
+      { name: implParam.name, value: implParam.value }
+    );
+  }
+
+  return findings;
+}
+
+/**
  * Cross-checks a .ip.yml's declared ports/clocks/resets/parameters against the top-level
  * entity/module of the HDL file(s) its fileSets mark managed:false — i.e. hand-authored HDL
- * that IPCraft never generates and could silently drift from the spec (issue #74).
+ * that IPCraft never generates and could silently drift from the spec (issue #74), in both
+ * directions (issue #84).
  *
  * Deliberately scoped to ports/clocks/resets/parameters, not busInterfaces: bus interface
  * physical port names are a generator-side reconstruction (physicalPrefix + per-port
@@ -176,7 +409,9 @@ export async function crossCheckIpCoreAgainstHdl(
       file,
       entityName,
       hdlPortsByName: new Map(parsed.ports.map((p) => [p.name.toLowerCase(), p])),
-      hdlParamsByName: new Map(parsed.parameters.map((p) => [p.name.toLowerCase(), p])),
+      hdlParamsByName: new Map(
+        parsed.parameters.map((p) => [p.name.toLowerCase(), { name: p.name, value: p.value }])
+      ),
     });
   }
 
@@ -184,82 +419,103 @@ export async function crossCheckIpCoreAgainstHdl(
     parsedFiles,
     ipCoreData
   )) {
-    for (const expected of expectedSignals) {
-      const hdlPort = hdlPortsByName.get(expected.name.toLowerCase());
-      if (!hdlPort) {
-        findings.push({
-          kind: 'missing-port',
-          message:
-            `'${expected.name}' is declared in the .ip.yml but has no matching port in ` +
-            `${file.path}${entityName ? ` (entity/module '${entityName}')` : ''}.`,
-          ipYmlPath: expected.ipYmlPath,
-          hdlFile: file.path,
-          hdlEntity: entityName,
-        });
-        continue;
-      }
-
-      if (expected.direction && hdlPort.direction && expected.direction !== hdlPort.direction) {
-        findings.push({
-          kind: 'direction-mismatch',
-          message:
-            `'${expected.name}' is declared direction '${expected.direction}' in the .ip.yml ` +
-            `but '${hdlPort.direction}' in ${file.path}#${hdlPort.name}.`,
-          ipYmlPath: expected.ipYmlPath,
-          hdlFile: file.path,
-          hdlEntity: entityName,
-        });
-      }
-
-      const expectedWidth = widthOf(expected.width);
-      const hdlWidth = widthOf(hdlPort.width);
-      if (widthsConflict(expectedWidth, hdlWidth)) {
-        findings.push({
-          kind: 'width-mismatch',
-          message:
-            `'${expected.name}' is declared width ${expectedWidth} in the .ip.yml but width ` +
-            `${hdlWidth} in ${file.path}#${hdlPort.name}.`,
-          ipYmlPath: expected.ipYmlPath,
-          hdlFile: file.path,
-          hdlEntity: entityName,
-        });
-      }
-    }
-
-    for (const param of expectedParams) {
-      if (!param.name) {
-        continue;
-      }
-      const hdlParam = hdlParamsByName.get(param.name.toLowerCase());
-      if (!hdlParam) {
-        findings.push({
-          kind: 'missing-parameter',
-          message:
-            `Parameter '${param.name}' is declared in the .ip.yml but has no matching generic ` +
-            `in ${file.path}${entityName ? ` (entity/module '${entityName}')` : ''}.`,
-          ipYmlPath: ['parameters', param.idx],
-          hdlFile: file.path,
-          hdlEntity: entityName,
-        });
-        continue;
-      }
-      if (
-        param.value !== undefined &&
-        hdlParam.value !== undefined &&
-        String(param.value).trim() !== String(hdlParam.value).trim()
-      ) {
-        findings.push({
-          kind: 'parameter-default-mismatch',
-          message:
-            `Parameter '${param.name}' default is '${param.value}' in the .ip.yml but ` +
-            `'${hdlParam.value}' in ${file.path}#${hdlParam.name}.`,
-          ipYmlPath: ['parameters', param.idx],
-          hdlFile: file.path,
-          hdlEntity: entityName,
-        });
-      }
-    }
+    findings.push(
+      ...diffAgainstImplementation(
+        expectedSignals,
+        expectedParams,
+        hdlPortsByName,
+        hdlParamsByName,
+        file.path,
+        entityName,
+        'hdl'
+      )
+    );
   }
 
   return findings;
 }
+
+export type VendorSource = 'hwTcl' | 'componentXml';
+
+/**
+ * Vendor artifacts live at conventional, non-configurable paths relative to the .ip.yml —
+ * the same locations the toolchains (VivadoToolchain / QuartusToolchain) scaffold them at.
+ */
+function vendorRelPath(ipCoreData: IpCoreData, source: VendorSource): string | null {
+  if (source === 'componentXml') {
+    return path.join('xilinx', 'component.xml');
+  }
+  const name = ipCoreData.vlnv?.name;
+  if (!name) {
+    return null;
+  }
+  return path.join('altera', `${name.toLowerCase()}_hw.tcl`);
+}
+
+/**
+ * Cross-checks a .ip.yml against a vendor-scaffolded artifact (_hw.tcl or component.xml) at its
+ * conventional path, reusing the same importers the manual "Import" commands use and the same
+ * diffAgainstImplementation comparator as the HDL arm. Deliberately uses each importer's pure
+ * string entry point (parseHwTclContent / parseComponentXmlText) rather than its file-reading
+ * wrapper so this stays testable via the injected readFile — the tradeoff is that _hw.tcl
+ * `source`-included sub-files are not flattened here (only IpCoreSourcePreviewProvider's
+ * file-based import path does that); self-contained _hw.tcl files are unaffected.
+ */
+export async function crossCheckIpCoreAgainstVendor(
+  ipCoreData: IpCoreData,
+  ipCoreDir: string,
+  source: VendorSource,
+  readFile: (absPath: string) => Promise<string> = (p) => fs.readFile(p, 'utf8')
+): Promise<HdlCrossCheckFinding[]> {
+  const relPath = vendorRelPath(ipCoreData, source);
+  if (!relPath) {
+    return [];
+  }
+  const absPath = path.resolve(ipCoreDir, relPath);
+
+  let content: string;
+  try {
+    content = await readFile(absPath);
+  } catch {
+    // Vendor artifact not scaffolded yet — nothing to cross-check against.
+    return [];
+  }
+
+  let vendorYamlText: string;
+  try {
+    vendorYamlText =
+      source === 'hwTcl'
+        ? parseHwTclContent(content, absPath).yamlText
+        : parseComponentXmlText(content).ipYamlText;
+  } catch {
+    // Unparsable vendor artifact (e.g. mid-edit, hand-corrupted) — skip rather than fail the
+    // whole consistency check over one bad file.
+    return [];
+  }
+
+  const parsed: unknown = yaml.load(vendorYamlText);
+  if (!parsed || typeof parsed !== 'object') {
+    return [];
+  }
+  const vendorData = normalizeIpCoreData(parsed as Record<string, unknown>);
+
+  const expectedSignals = collectExpectedSignals(ipCoreData);
+  const expectedParams: ExpectedParam[] = (ipCoreData.parameters ?? []).map((p, idx) => ({
+    ...p,
+    idx,
+  }));
+
+  return diffAgainstImplementation(
+    expectedSignals,
+    expectedParams,
+    collectImplPorts(vendorData),
+    collectImplParams(vendorData),
+    relPath,
+    vendorData.vlnv?.name ?? null,
+    source
+  );
+}
+
+// Re-exported so consumers can build inferred port/parameter shapes without reaching into
+// generator internals.
+export type { PortDef, ParameterDef };

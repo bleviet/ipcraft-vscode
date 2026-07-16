@@ -16,6 +16,7 @@ import { isValidVlnv } from '../utils/vlnv';
 import { createNotIpCoreHtml } from './ipCoreErrorHtml';
 import { createSharedProviderServices } from './providerServices';
 import { handleGenerateRequest } from './IpCoreGenerateHandler';
+import { runConsistencyCheck } from '../commands/ConsistencyCheckCommands';
 import {
   IpCoreWebviewMessage,
   GenerateRequestMessage,
@@ -317,6 +318,19 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
 
     router.on('saveCustomBusDefinition', async (message) => {
       await this.handleSaveCustomBusDefinition(message, document, webviewPanel);
+    });
+
+    router.on('checkConsistency', async () => {
+      try {
+        const { findings, summary } = await runConsistencyCheck(document.uri, this.resourceRoots);
+        void webviewPanel.webview.postMessage({ type: 'consistencyResult', findings, summary });
+      } catch (error) {
+        this.logger.error('Consistency check failed', error as Error);
+        void webviewPanel.webview.postMessage({
+          type: 'consistencyResult',
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
     });
 
     // This overrides the standard `command` handler registered by

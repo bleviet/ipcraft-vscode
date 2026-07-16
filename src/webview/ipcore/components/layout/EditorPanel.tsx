@@ -4,6 +4,7 @@ import type { IpCore } from '../../../types/ipCore';
 import { IpBlockCanvas } from '../canvas/IpBlockCanvas';
 import type { BatchUpdate } from '../../hooks/useGroupPorts';
 import type { SuggestionChip } from '../../hooks/useProtocolSuggestions';
+import type { CanvasAnnotations } from '../../hooks/useCanvasValidation';
 
 interface EditorPanelProps {
   ipCore: IpCore | null;
@@ -25,6 +26,7 @@ interface EditorPanelProps {
   suggestionChips?: SuggestionChip[];
   onDismissSelection?: () => void;
   onDismissSuggestion?: (chipId: string) => void;
+  consistencyAnnotations?: CanvasAnnotations;
 }
 
 export const EditorPanel: React.FC<EditorPanelProps> = ({
@@ -47,6 +49,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
   suggestionChips,
   onDismissSelection,
   onDismissSuggestion,
+  consistencyAnnotations,
 }) => {
   if (!ipCore) {
     return (
@@ -86,6 +89,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
         suggestionChips={suggestionChips}
         onDismissSelection={onDismissSelection}
         onDismissSuggestion={onDismissSuggestion}
+        consistencyAnnotations={consistencyAnnotations}
       />
     </div>
   );

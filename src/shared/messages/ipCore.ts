@@ -35,4 +35,5 @@ export type IpCoreWebviewMessage =
   | { type: 'openInQuartus' }
   | { type: 'stagingResult'; confirmed: boolean; overwritePaths?: string[] }
   | { type: 'stagingAction'; action: 'viewDiff' | 'viewPreview' | 'merge'; relativePath: string }
-  | { type: 'saveAsIpYml' };
+  | { type: 'saveAsIpYml' }
+  | { type: 'checkConsistency' };
