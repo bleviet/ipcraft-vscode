@@ -5,7 +5,7 @@ import { CanvasPort } from './CanvasPort';
 import { CanvasBusBundle } from './CanvasBusBundle';
 import { CanvasBusSubPort } from './CanvasBusSubPort';
 import { RemoveZone } from './RemoveZone';
-import { useCanvasValidation } from '../../hooks/useCanvasValidation';
+import { useCanvasValidation, type CanvasAnnotations } from '../../hooks/useCanvasValidation';
 import { lookupBusDef, lookupBusDefFromLibrary, isConduitType } from '../../data/busDefinitions';
 import type { BusPortDef } from '../../data/busDefinitions';
 import type { YamlUpdateHandler } from '../../../types/editor';
@@ -57,6 +57,8 @@ interface IpBlockCanvasProps {
   onDismissSelection?: () => void;
   /** Called when a suggestion chip is dismissed */
   onDismissSuggestion?: (chipId: string) => void;
+  /** Consistency-check findings projected onto canvas element ids, merged with validation dots */
+  consistencyAnnotations?: CanvasAnnotations;
 }
 
 /**
@@ -83,6 +85,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
   suggestionChips,
   onDismissSelection,
   onDismissSuggestion,
+  consistencyAnnotations,
 }) => {
   // Pending port-drop onto a standard (protocol-defined) bus interface
   const [pendingPortDrop, setPendingPortDrop] = useState<{
@@ -466,7 +469,17 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
     };
   }, []);
 
-  const annotations = useCanvasValidation(ipCore);
+  const validationAnnotations = useCanvasValidation(ipCore);
+  const annotations = useMemo<CanvasAnnotations>(() => {
+    if (!consistencyAnnotations) {
+      return validationAnnotations;
+    }
+    const merged: CanvasAnnotations = { ...validationAnnotations };
+    for (const [id, list] of Object.entries(consistencyAnnotations)) {
+      merged[id] = [...(merged[id] ?? []), ...list];
+    }
+    return merged;
+  }, [validationAnnotations, consistencyAnnotations]);
 
   // Group ports hook — only instantiated when batchUpdate is available
   const noopBatch: BatchUpdate = useCallback(() => {}, []);

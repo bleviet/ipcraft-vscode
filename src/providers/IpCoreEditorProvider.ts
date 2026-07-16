@@ -16,6 +16,7 @@ import { isValidVlnv } from '../utils/vlnv';
 import { createNotIpCoreHtml } from './ipCoreErrorHtml';
 import { createSharedProviderServices } from './providerServices';
 import { handleGenerateRequest } from './IpCoreGenerateHandler';
+import { runConsistencyCheck } from '../commands/ConsistencyCheckCommands';
 import {
   IpCoreWebviewMessage,
   GenerateRequestMessage,
@@ -65,6 +66,13 @@ const WEBVIEW_COMMAND_ALLOWLIST = new Set<string>([
   'fpga-ip-core.openSettings',
   'fpga-ip-core.reportIssue',
 ]);
+
+/**
+ * Debounce window for the background consistency check (issue #84): a save of a large HDL file
+ * or a multi-file vendor regeneration can fire several filesystem events in quick succession —
+ * this coalesces them into a single check instead of re-parsing per event.
+ */
+const AUTO_CONSISTENCY_CHECK_DEBOUNCE_MS = 800;
 
 /**
  * Custom editor provider for FPGA IP core YAML files.
@@ -165,6 +173,20 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
     webviewPanel.webview.html = this.htmlGenerator.generateIpCoreHtml(webviewPanel.webview);
 
     let isDisposed = false;
+    let consistencyCheckTimer: ReturnType<typeof setTimeout> | undefined;
+
+    // Debounced background consistency check (issue #84) — coalesces bursts of HDL/vendor file
+    // events (e.g. a multi-file regeneration) into a single check, and keeps the toolbar badge
+    // live without requiring the user to click Check Consistency.
+    const scheduleAutoConsistencyCheck = () => {
+      if (consistencyCheckTimer) {
+        clearTimeout(consistencyCheckTimer);
+      }
+      consistencyCheckTimer = setTimeout(() => {
+        consistencyCheckTimer = undefined;
+        void this.runAutoConsistencyCheck(document, webviewPanel, () => isDisposed);
+      }, AUTO_CONSISTENCY_CHECK_DEBOUNCE_MS);
+    };
 
     const router = new WebviewRouter<IpCoreWebviewMessage>({
       webviewPanel,
@@ -173,6 +195,7 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
       commandAllowlist: WEBVIEW_COMMAND_ALLOWLIST,
       onReady: async () => {
         await updateWebview();
+        scheduleAutoConsistencyCheck();
       },
     });
 
@@ -220,13 +243,21 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
       this.importResolver.clearCache();
       void updateWebview(undefined, true);
     });
-    const fileWatcher = this.watchGeneratedFiles(document, () => updateWebview(undefined, true));
+    const fileWatcher = this.watchGeneratedFiles(document, async () => {
+      await updateWebview(undefined, true);
+      scheduleAutoConsistencyCheck();
+    });
+    const hdlSourceWatcher = this.watchHdlSources(document, scheduleAutoConsistencyCheck);
     this.registerDisposal(webviewPanel, () => {
       isDisposed = true;
+      if (consistencyCheckTimer) {
+        clearTimeout(consistencyCheckTimer);
+      }
       changeDocumentSubscription.dispose();
       configSubscription.dispose();
       workspaceBusDefSubscription.dispose();
       fileWatcher.dispose();
+      hdlSourceWatcher.dispose();
       router.dispose();
     });
     this.registerWebviewMessageHandlers(document, webviewPanel, router, updateWebview);
@@ -278,6 +309,55 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
     };
   }
 
+  /**
+   * Watches every HDL source file under the .ip.yml's directory so a save in the RTL editor —
+   * not just a change to the .ip.yml itself — can trigger a background consistency re-check
+   * (issue #84). Broad, name-agnostic glob rather than the specific fileSets paths: simpler,
+   * and harmless if it also matches files the check doesn't end up using.
+   */
+  private watchHdlSources(document: vscode.TextDocument, onChange: () => void): vscode.Disposable {
+    const baseDir = path.dirname(document.uri.fsPath);
+    const watcher = vscode.workspace.createFileSystemWatcher(
+      new vscode.RelativePattern(baseDir, '**/*.{vhd,vhdl,v,sv,vh,svh}')
+    );
+    watcher.onDidCreate(onChange);
+    watcher.onDidChange(onChange);
+    watcher.onDidDelete(onChange);
+    return watcher;
+  }
+
+  /**
+   * Runs the consistency check (issue #84) in the background — on webview open and whenever a
+   * watched HDL/vendor file changes — and pushes the result to the webview so the toolbar badge
+   * stays live without the user having to click Check Consistency. Unlike the manual check, this
+   * never surfaces an error or opens the results overlay: `auto: true` tells the webview to
+   * update the badge silently (see IpCoreApp.tsx's `consistencyResult` handler).
+   */
+  private async runAutoConsistencyCheck(
+    document: vscode.TextDocument,
+    webviewPanel: vscode.WebviewPanel,
+    isDisposed: () => boolean
+  ): Promise<void> {
+    if (isDisposed()) {
+      return;
+    }
+    try {
+      const { findings, summary } = await runConsistencyCheck(document.uri, this.resourceRoots);
+      if (!isDisposed()) {
+        void webviewPanel.webview.postMessage({
+          type: 'consistencyResult',
+          findings,
+          summary,
+          auto: true,
+        });
+      }
+    } catch (error) {
+      this.logger.debug(
+        `Auto consistency check failed: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
+
   private registerDisposal(webviewPanel: vscode.WebviewPanel, onDispose: () => void): void {
     webviewPanel.onDidDispose(() => {
       onDispose();
@@ -317,6 +397,19 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
 
     router.on('saveCustomBusDefinition', async (message) => {
       await this.handleSaveCustomBusDefinition(message, document, webviewPanel);
+    });
+
+    router.on('checkConsistency', async () => {
+      try {
+        const { findings, summary } = await runConsistencyCheck(document.uri, this.resourceRoots);
+        void webviewPanel.webview.postMessage({ type: 'consistencyResult', findings, summary });
+      } catch (error) {
+        this.logger.error('Consistency check failed', error as Error);
+        void webviewPanel.webview.postMessage({
+          type: 'consistencyResult',
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
     });
 
     // This overrides the standard `command` handler registered by

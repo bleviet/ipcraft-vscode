@@ -13,6 +13,7 @@ import {
 } from './commands/FileCreationCommands';
 import { registerGeneratorCommands } from './commands/GenerateCommands';
 import { registerHdlCrossCheckCommands } from './commands/HdlCrossCheckCommands';
+import { registerConsistencyCheckCommands } from './commands/ConsistencyCheckCommands';
 import { registerBuildCommands } from './commands/BuildCommands';
 import { editInIpPackagerCommand } from './commands/editInIpPackager';
 import { editInPlatformDesignerCommand } from './commands/editInPlatformDesigner';
@@ -206,6 +207,10 @@ export function activate(context: vscode.ExtensionContext): void {
   // Register HDL consistency check (managed:false HDL vs .ip.yml)
   registerHdlCrossCheckCommands(context, resourceRoots);
   logger.info('HDL cross-check command registered');
+
+  // Register full consistency check (HDL + vendor artifacts vs .ip.yml, issue #84)
+  registerConsistencyCheckCommands(context, resourceRoots);
+  logger.info('Consistency check command registered');
 
   // Register Build Commands + Reports tree view
   const reportsProvider = new ReportsTreeProvider();

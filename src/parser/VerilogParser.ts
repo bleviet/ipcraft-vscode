@@ -218,6 +218,40 @@ function extractHashParameters(content: string): VerilogParsedParameter[] {
   return parseParameterBlock(block);
 }
 
+/**
+ * Un-escapes a Verilog string literal (`"foo"`, with `\"` as the escape for an embedded quote) to
+ * its bare content — mirrors VhdlParser's unquoteVhdlLiteral, for the same reason (issue #94): a
+ * parameter's default value should compare equal to the .ip.yml's bare value, not carry the
+ * source language's literal quoting. Returns null when `raw` isn't a single string literal — an
+ * unescaped quote found before the final character means something else (e.g. a `{"a","b"}`
+ * concatenation), so the raw text is left untouched by the caller rather than mangled.
+ */
+function unquoteVerilogStringLiteral(raw: string): string | null {
+  if (raw.length < 2 || raw[0] !== '"' || raw[raw.length - 1] !== '"') {
+    return null;
+  }
+  let result = '';
+  let i = 1;
+  while (i < raw.length - 1) {
+    if (raw[i] === '\\' && i + 1 < raw.length - 1) {
+      const next = raw[i + 1];
+      result += next === '"' || next === '\\' ? next : `\\${next}`;
+      i += 2;
+      continue;
+    }
+    if (raw[i] === '"') {
+      return null;
+    }
+    result += raw[i];
+    i += 1;
+  }
+  return result;
+}
+
+function unquoteVerilogValue(raw: string): string {
+  return unquoteVerilogStringLiteral(raw) ?? raw;
+}
+
 function extractBodyParameters(content: string): VerilogParsedParameter[] {
   const params: VerilogParsedParameter[] = [];
   const seen = new Set<string>();
@@ -228,7 +262,7 @@ function extractBodyParameters(content: string): VerilogParsedParameter[] {
   while ((m = re.exec(content)) !== null) {
     const typeDims = m[1];
     const name = m[2];
-    const val = m[3].trim();
+    const val = unquoteVerilogValue(m[3].trim());
     if (!seen.has(name)) {
       seen.add(name);
       const isVector = /\[[^\]]+\]/.test(typeDims);
@@ -262,7 +296,8 @@ function parseParameterBlock(block: string): VerilogParsedParameter[] {
       ''
     );
     name = name.replace(/^\s*\[[^\]]*\]\s*/, '').trim();
-    const value = eqIdx === -1 ? undefined : rest.slice(eqIdx + 1).trim() || undefined;
+    const rawValue = eqIdx === -1 ? undefined : rest.slice(eqIdx + 1).trim() || undefined;
+    const value = rawValue !== undefined ? unquoteVerilogValue(rawValue) : undefined;
 
     if (!name || !/^\w+$/.test(name) || seen.has(name)) {
       continue;

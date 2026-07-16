@@ -10,11 +10,20 @@ import { useCanvasUndo } from './hooks/useCanvasUndo';
 import { useProtocolSuggestions } from './hooks/useProtocolSuggestions';
 import { LibraryPalette } from './components/canvas/LibraryPalette';
 import { StagingOverlay, type StagedFileView } from './components/canvas/StagingOverlay';
+import { ConsistencyOverlay } from './components/canvas/ConsistencyOverlay';
 import { vscode } from '../vscode';
 import type { IpCore, BusInterface } from '../types/ipCore';
 import { useGroupPorts } from './hooks/useGroupPorts';
 import type { BatchUpdate } from './hooks/useGroupPorts';
 import { lookupBusDef, lookupBusDefFromLibrary } from './data/busDefinitions';
+import {
+  consistencyFindingsToAnnotations,
+  findingKey,
+  type ConsistencyFinding,
+  type ConsistencyInferredParameter,
+  type ConsistencyInferredPort,
+  type ConsistencySummary,
+} from './types/consistency';
 import '@vscode/codicons/dist/codicon.css';
 import '../index.css';
 
@@ -480,6 +489,16 @@ const IpCoreApp: React.FC = () => {
   // the extension on confirm so the bulk apply writes exactly this set.
   const [stagingOverwritePaths, setStagingOverwritePaths] = useState<Set<string>>(new Set());
 
+  // Consistency check (issue #84) — result of the last completed run, session-local ignores,
+  // and whether the results overlay currently occupies the inspector's right slot.
+  const [consistencyResult, setConsistencyResult] = useState<{
+    findings: ConsistencyFinding[];
+    summary: ConsistencySummary;
+  } | null>(null);
+  const [consistencyChecking, setConsistencyChecking] = useState(false);
+  const [ignoredConsistencyKeys, setIgnoredConsistencyKeys] = useState<Set<string>>(new Set());
+  const [showConsistencyOverlay, setShowConsistencyOverlay] = useState(false);
+
   // Transient toast notification
   const [toast, setToast] = useState<string | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -752,6 +771,116 @@ const IpCoreApp: React.FC = () => {
     setSelectedSubPortId(null);
   }, [canvasSelected, ungroupBusInterface, canvasDeselect]);
 
+  // Consistency check (issue #84) — request/response and result-driven actions.
+  const handleCheckConsistency = useCallback(() => {
+    setConsistencyChecking(true);
+    vscode?.postMessage({ type: 'checkConsistency' });
+  }, []);
+
+  const handleIgnoreConsistencyFinding = useCallback((key: string) => {
+    setIgnoredConsistencyKeys((prev) => new Set(prev).add(key));
+  }, []);
+
+  // Adopting an implementation-only port/parameter is a normal structural edit (append to the
+  // array, same path onUpdate already uses for every other insert) — it needs no new backend
+  // message. The finding is suppressed locally via the same ignore mechanism until the user
+  // re-checks and gets a result that no longer includes it.
+  const handleAdoptConsistencyFinding = useCallback(
+    (finding: ConsistencyFinding) => {
+      const ip = ipCore as unknown as IpCore;
+      if (finding.kind === 'extra-port' && finding.inferred) {
+        const inferred = finding.inferred as ConsistencyInferredPort;
+        updateIpCore(
+          ['ports'],
+          [
+            ...((ip.ports as unknown[]) ?? []),
+            { name: inferred.name, direction: inferred.direction ?? 'in', width: inferred.width },
+          ]
+        );
+      } else if (finding.kind === 'extra-parameter' && finding.inferred) {
+        const inferred = finding.inferred as ConsistencyInferredParameter;
+        const numeric = inferred.value !== undefined ? Number(inferred.value) : NaN;
+        const value =
+          inferred.value !== undefined && inferred.value.trim() !== '' && !Number.isNaN(numeric)
+            ? numeric
+            : inferred.value;
+        updateIpCore(
+          ['parameters'],
+          [...((ip.parameters as unknown[]) ?? []), { name: inferred.name, value }]
+        );
+      } else {
+        return;
+      }
+      handleIgnoreConsistencyFinding(findingKey(finding));
+    },
+    [ipCore, updateIpCore, handleIgnoreConsistencyFinding]
+  );
+
+  const handleSelectConsistencyElement = useCallback(
+    (elementId: string) => {
+      setShowConsistencyOverlay(false);
+      handleCanvasSelect(elementId);
+    },
+    [handleCanvasSelect]
+  );
+
+  // Reuses the exact "Scaffold Project" command (issue #93) rather than the bare `generate`
+  // message: `generate` goes through handleGenerateRequest, which prompts for an output folder
+  // and writes directly with no review step — unlike scaffoldProject's dry-run + staging list,
+  // which is what a user reconciling drift from the Consistency Check overlay actually expects.
+  const handleRegenerateFromConsistency = useCallback(() => {
+    setShowConsistencyOverlay(false);
+    vscode?.postMessage({ type: 'command', command: 'fpga-ip-core.scaffoldProject' });
+  }, []);
+
+  const consistencyAnnotations = useMemo(
+    () =>
+      consistencyFindingsToAnnotations(consistencyResult?.findings ?? [], ignoredConsistencyKeys),
+    [consistencyResult, ignoredConsistencyKeys]
+  );
+
+  const consistencyBadge = useMemo((): { label: string; color: string; title: string } => {
+    if (consistencyChecking) {
+      return {
+        label: 'Checking…',
+        color: 'var(--vscode-descriptionForeground)',
+        title: 'Consistency check running',
+      };
+    }
+    if (!consistencyResult) {
+      return {
+        label: 'Not checked',
+        color: 'var(--vscode-descriptionForeground)',
+        title: 'Click Check Consistency to compare against HDL/vendor artifacts',
+      };
+    }
+    const visibleFindings = consistencyResult.findings.filter(
+      (f) => !ignoredConsistencyKeys.has(findingKey(f))
+    );
+    if (visibleFindings.length === 0) {
+      return {
+        label: 'Consistent',
+        color: 'var(--vscode-charts-green, #3aaa5c)',
+        title: 'Consistent with every checked implementation source',
+      };
+    }
+    // "Conflict" vs "Drift" read as two different problems when they're really the same one
+    // (the .ip.yml disagrees with what's on disk) — issue #92. One label, "Drift", for any
+    // non-empty result; the dot color still carries the reconcilable/destructive distinction.
+    if (visibleFindings.some((f) => f.severity === 'red')) {
+      return {
+        label: 'Drift',
+        color: 'var(--vscode-editorError-foreground, #f14c4c)',
+        title: `${visibleFindings.length} finding(s), including a destructive conflict — click to review`,
+      };
+    }
+    return {
+      label: 'Drift',
+      color: 'var(--vscode-editorWarning-foreground, #cca700)',
+      title: `${visibleFindings.length} reconcilable finding(s) — click to review`,
+    };
+  }, [consistencyChecking, consistencyResult, ignoredConsistencyKeys]);
+
   const validationErrors = getValidationErrors();
 
   // Handle global keyboard shortcuts for canvas deletion
@@ -839,6 +968,10 @@ const IpCoreApp: React.FC = () => {
         files?: StagedFileView[];
         rootLabel?: string;
         relativePath?: string;
+        findings?: ConsistencyFinding[];
+        summary?: ConsistencySummary;
+        error?: string;
+        auto?: boolean;
       };
 
       switch (message.type) {
@@ -887,12 +1020,40 @@ const IpCoreApp: React.FC = () => {
             });
           }
           break;
+        case 'consistencyResult': {
+          // Background checks (issue #84) run silently: update the badge, but never surface an
+          // error toast or pop the results overlay open uninvited — only the manual button/badge
+          // click (or a foreground check that finds something) does that.
+          const isAutoCheck = message.auto === true;
+          if (!isAutoCheck) {
+            setConsistencyChecking(false);
+          }
+          if (message.error) {
+            if (!isAutoCheck) {
+              showToast(`Consistency check failed: ${message.error}`);
+            }
+            break;
+          }
+          setConsistencyResult({
+            findings: message.findings ?? [],
+            summary: message.summary ?? { added: 0, removed: 0, changed: 0 },
+          });
+          setIgnoredConsistencyKeys(new Set());
+          if (!isAutoCheck) {
+            if ((message.findings ?? []).length > 0) {
+              setShowConsistencyOverlay(true);
+            } else {
+              showToast('IPCraft: consistent with every checked implementation source.');
+            }
+          }
+          break;
+        }
       }
     };
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [updateFromYaml]);
+  }, [updateFromYaml, showToast]);
 
   const typedIpCore = ipCore as unknown as Parameters<typeof EditorPanel>[0]['ipCore'];
 
@@ -1129,6 +1290,53 @@ const IpCoreApp: React.FC = () => {
               </>
             )}
 
+            {/* Zone 5b: Consistency check (issue #84) */}
+            <div
+              style={{
+                width: '1px',
+                height: '28px',
+                background: 'var(--vscode-panel-border)',
+                opacity: 0.6,
+              }}
+            />
+            <ToolbarGroup label="Consistency">
+              <ToolbarButton
+                title="Check Consistency (HDL + vendor artifacts vs. this .ip.yml)"
+                icon="verified"
+                onClick={handleCheckConsistency}
+                disabled={consistencyChecking}
+              />
+              <button
+                type="button"
+                className="canvas-view-toggle"
+                onClick={() => consistencyResult && setShowConsistencyOverlay((v) => !v)}
+                title={consistencyBadge.title}
+                aria-label={`Consistency status: ${consistencyBadge.label}`}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  fontSize: '9px',
+                  fontWeight: 600,
+                  letterSpacing: '0.02em',
+                  color: consistencyBadge.color,
+                  cursor: consistencyResult ? 'pointer' : 'default',
+                }}
+              >
+                <span
+                  style={{
+                    display: 'inline-block',
+                    width: 7,
+                    height: 7,
+                    borderRadius: '50%',
+                    background: consistencyBadge.color,
+                    flexShrink: 0,
+                  }}
+                />
+                {consistencyBadge.label}
+              </button>
+            </ToolbarGroup>
+
             {/* Zone 6: Utilities */}
             <div
               style={{
@@ -1269,6 +1477,7 @@ const IpCoreApp: React.FC = () => {
               suggestionChips={activeSuggestions}
               onDismissSelection={canvasDeselectAll}
               onDismissSuggestion={handleDismissSuggestion}
+              consistencyAnnotations={consistencyAnnotations}
             />
             {stagingData ? (
               <StagingOverlay
@@ -1302,6 +1511,19 @@ const IpCoreApp: React.FC = () => {
                   vscode?.postMessage({ type: 'stagingResult', confirmed: false });
                   setStagingData(null);
                 }}
+              />
+            ) : showConsistencyOverlay && consistencyResult ? (
+              <ConsistencyOverlay
+                findings={consistencyResult.findings}
+                summary={consistencyResult.summary}
+                ignoredKeys={ignoredConsistencyKeys}
+                onIgnore={handleIgnoreConsistencyFinding}
+                onAdopt={handleAdoptConsistencyFinding}
+                onSelectElement={handleSelectConsistencyElement}
+                onRegenerate={handleRegenerateFromConsistency}
+                onRecheck={handleCheckConsistency}
+                isChecking={consistencyChecking}
+                onClose={() => setShowConsistencyOverlay(false)}
               />
             ) : canvasSelected && typedIpCore ? (
               <CanvasInspector

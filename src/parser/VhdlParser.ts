@@ -188,6 +188,56 @@ function extractEntityName(content: string): string | null {
   return match ? match[1] : null;
 }
 
+/**
+ * Un-escapes a VHDL string literal (`"foo"`, with `""` as VHDL's escape for an embedded quote)
+ * to its bare content, e.g. `"MyVal"` -> `MyVal`. Returns null when `raw` isn't a single string
+ * literal — notably a concatenation expression like `"a" & "b"` also starts and ends with a
+ * quote, so an unescaped quote found before the final character means "not a plain literal" and
+ * the raw text is left untouched by the caller rather than mangled.
+ */
+function unquoteVhdlStringLiteral(raw: string): string | null {
+  if (raw.length < 2 || raw[0] !== '"' || raw[raw.length - 1] !== '"') {
+    return null;
+  }
+  let result = '';
+  let i = 1;
+  while (i < raw.length - 1) {
+    if (raw[i] === '"') {
+      if (raw[i + 1] === '"') {
+        result += '"';
+        i += 2;
+        continue;
+      }
+      return null;
+    }
+    result += raw[i];
+    i += 1;
+  }
+  return result;
+}
+
+/**
+ * Strips VHDL literal quoting from a captured generic default so it carries the same semantic
+ * value the .ip.yml stores (which has no VHDL literal syntax of its own) — otherwise a string
+ * generic's default reads as a mismatch against the .ip.yml purely because of the quote
+ * characters, even when the underlying value is identical (issue #94).
+ *
+ * A character literal (`'x'`) is always safe to unwrap — VHDL uses single quotes for nothing
+ * else. A double-quoted literal (`"..."`) is only unwrapped when `type` is a declared `string`
+ * generic: the same double-quote syntax also encodes a std_logic_vector/bit_vector bit pattern
+ * (e.g. `"1010"`), and unwrapping *that* would let the numeric coercion downstream
+ * (parseParameterValue) misread a 4-bit pattern as the decimal number 1010.
+ */
+function unquoteVhdlLiteral(raw: string, type: string): string {
+  if (raw.length === 3 && raw[0] === "'" && raw[2] === "'") {
+    return raw[1];
+  }
+  if (/\bstring\b/i.test(type)) {
+    return unquoteVhdlStringLiteral(raw) ?? raw;
+  }
+  return raw;
+}
+
 function extractParameters(content: string): ParsedParameter[] {
   const body = extractBlockContent(content, 'generic');
   if (!body) {
@@ -211,7 +261,8 @@ function extractParameters(content: string): ParsedParameter[] {
       .filter(Boolean);
     const typeMatch = typePart.split(':=');
     const type = typeMatch[0].trim();
-    const value = typeMatch[1]?.trim();
+    const rawValue = typeMatch[1]?.trim();
+    const value = rawValue !== undefined ? unquoteVhdlLiteral(rawValue, type) : undefined;
 
     names.forEach((name) => {
       params.push({ name, type, value });

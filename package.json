@@ -210,6 +210,12 @@
         "icon": "$(checklist)"
       },
       {
+        "command": "fpga-ip-core.checkConsistency",
+        "title": "Check Consistency",
+        "category": "IPCraft",
+        "icon": "$(verified)"
+      },
+      {
         "command": "fpga-ip-core.openInVivado",
         "title": "Open in Vivado",
         "category": "IPCraft",
@@ -428,6 +434,11 @@
           "group": "6_validate@1"
         },
         {
+          "command": "fpga-ip-core.checkConsistency",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/",
+          "group": "6_validate@2"
+        },
+        {
           "command": "fpga-ip-core.editInPlatformDesigner",
           "when": "resourceFilename =~ /_hw\\.tcl$/ && ipcraft.qsysEditFound",
           "group": "5_import@1"
@@ -518,6 +529,11 @@
           "command": "fpga-ip-core.buildNotConfigured",
           "when": "resourceFilename =~ /\\.ip\\.yml$/ && !ipcraft.vivadoFound && !ipcraft.quartusFound",
           "group": "ipcraft@6"
+        },
+        {
+          "command": "fpga-ip-core.checkConsistency",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/",
+          "group": "ipcraft@7"
         },
         {
           "command": "fpga-ip-core.editInPlatformDesigner",
@@ -654,6 +670,10 @@
         },
         {
           "command": "fpga-ip-core.checkHdlConsistency",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/"
+        },
+        {
+          "command": "fpga-ip-core.checkConsistency",
           "when": "resourceFilename =~ /\\.ip\\.yml$/"
         },
         {

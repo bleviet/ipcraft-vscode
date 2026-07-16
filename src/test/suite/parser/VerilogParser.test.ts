@@ -185,6 +185,43 @@ endmodule
       expect(params).toHaveLength(1);
       expect(params[0]).toMatchObject({ name: 'WIDTH', value: 8 });
     });
+
+    // Issue #94: a string parameter's default was reported by the consistency check as a
+    // mismatch against an identical .ip.yml value purely because Verilog string literals are
+    // double-quoted and the raw quoted text was compared verbatim.
+    describe('string parameter defaults (issue #94)', () => {
+      const module = `
+module greeter #(
+  parameter string GREETING = "MyVal"
+) (
+  input wire clk
+);
+endmodule
+`;
+
+      it('strips the Verilog string-literal quotes when importing to .ip.yml', async () => {
+        const result = await writeAndParse('greeter.v', module);
+        const parsed = yaml.load(result.yamlText) as Record<string, unknown>;
+        const params = parsed.parameters as Array<Record<string, unknown>>;
+
+        expect(params[0]).toMatchObject({ name: 'GREETING', value: 'MyVal' });
+      });
+
+      it('strips the Verilog string-literal quotes for the consistency-check parser too', () => {
+        const { parameters } = extractVerilogInterface(module);
+        expect(parameters[0]).toMatchObject({ name: 'GREETING', value: 'MyVal' });
+      });
+
+      it('un-escapes \\" inside the literal but leaves a concatenation-style expression untouched', () => {
+        const withEscape = extractVerilogInterface(`
+module greeter #(
+  parameter string GREETING = "She said \\"hi\\""
+) ();
+endmodule
+`);
+        expect(withEscape.parameters[0].value).toBe('She said "hi"');
+      });
+    });
   });
 
   describe('port extraction', () => {
