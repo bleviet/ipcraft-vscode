@@ -210,6 +210,7 @@ describe('crossCheckIpCoreAgainstTopLevelHdl — checks the top level regardless
           mode: 'slave',
           physicalPrefix: 'avs_',
           useOptionalPorts: ['address', 'read', 'write', 'readdata', 'writedata'],
+          portWidthOverrides: { address: 12 },
         },
       ],
     } as unknown as Partial<IpCoreData>);
@@ -234,6 +235,139 @@ describe('crossCheckIpCoreAgainstTopLevelHdl — checks the top level regardless
     expect(findings).toHaveLength(1);
     expect(findings[0].kind).toBe('extra-port');
     expect(findings[0].inferred).toEqual({ name: 'new_port', direction: 'in', width: 1 });
+  });
+});
+
+// Issue #96: bus interfaces' reconstructed physical ports were only ever excluded from
+// extra-port — never diffed signal-by-signal against the implementation. These cases cover the
+// new missing-bus-port / bus-port-width-mismatch / bus-port-direction-mismatch findings.
+describe('crossCheckIpCoreAgainstTopLevelHdl — bus-interface signal diffing (issue #96)', () => {
+  function avmmIpCore(overrides: Partial<IpCoreData> = {}): IpCoreData {
+    return baseIpCore({
+      fileSets: [{ name: 'RTL_Sources', files: [{ path: 'rtl/core.vhd', type: 'vhdl' }] }],
+      clocks: [{ name: 'clk' }],
+      resets: [{ name: 'rst' }],
+      busInterfaces: [
+        {
+          name: 'S_AVMM',
+          type: 'ipcraft:busif:avalon_mm:1.0',
+          mode: 'slave',
+          physicalPrefix: 'avs_',
+          useOptionalPorts: ['address', 'read', 'write', 'readdata', 'writedata'],
+          portWidthOverrides: { address: 12 },
+        },
+      ],
+      ...overrides,
+    } as unknown as Partial<IpCoreData>);
+  }
+
+  it('reports no bus findings for a fully-consistent bus interface', async () => {
+    const hdl = [
+      'entity core is',
+      '  port (',
+      '    clk : in std_logic;',
+      '    rst : in std_logic;',
+      '    avs_address : in std_logic_vector(11 downto 0);',
+      '    avs_read : in std_logic;',
+      '    avs_write : in std_logic;',
+      '    avs_readdata : out std_logic_vector(31 downto 0);',
+      '    avs_writedata : in std_logic_vector(31 downto 0)',
+      '  );',
+      'end entity core;',
+    ].join('\n');
+
+    const findings = await crossCheckIpCoreAgainstTopLevelHdl(
+      avmmIpCore(),
+      '/proj',
+      makeReader(hdl)
+    );
+
+    expect(findings).toEqual([]);
+  });
+
+  it('reports missing-bus-port when a selected optional bus port has no matching HDL port', async () => {
+    // avs_write is entirely absent from the HDL, even though the interface selects it.
+    const hdl = [
+      'entity core is',
+      '  port (',
+      '    clk : in std_logic;',
+      '    rst : in std_logic;',
+      '    avs_address : in std_logic_vector(11 downto 0);',
+      '    avs_read : in std_logic;',
+      '    avs_readdata : out std_logic_vector(31 downto 0);',
+      '    avs_writedata : in std_logic_vector(31 downto 0)',
+      '  );',
+      'end entity core;',
+    ].join('\n');
+
+    const findings = await crossCheckIpCoreAgainstTopLevelHdl(
+      avmmIpCore(),
+      '/proj',
+      makeReader(hdl)
+    );
+
+    expect(findings).toHaveLength(1);
+    expect(findings[0].kind).toBe('missing-bus-port');
+    expect(findings[0].severity).toBe('red');
+    expect(findings[0].ipYmlPath).toEqual(['busInterfaces', 0]);
+    expect(findings[0].message).toContain('avs_write');
+  });
+
+  it('reports bus-port-width-mismatch when a bus data port width drifts', async () => {
+    // avs_writedata is declared 16 bits wide in the HDL instead of the expected 32.
+    const hdl = [
+      'entity core is',
+      '  port (',
+      '    clk : in std_logic;',
+      '    rst : in std_logic;',
+      '    avs_address : in std_logic_vector(11 downto 0);',
+      '    avs_read : in std_logic;',
+      '    avs_write : in std_logic;',
+      '    avs_readdata : out std_logic_vector(31 downto 0);',
+      '    avs_writedata : in std_logic_vector(15 downto 0)',
+      '  );',
+      'end entity core;',
+    ].join('\n');
+
+    const findings = await crossCheckIpCoreAgainstTopLevelHdl(
+      avmmIpCore(),
+      '/proj',
+      makeReader(hdl)
+    );
+
+    expect(findings).toHaveLength(1);
+    expect(findings[0].kind).toBe('bus-port-width-mismatch');
+    expect(findings[0].severity).toBe('amber');
+    expect(findings[0].message).toContain('avs_writedata');
+  });
+
+  it('reports bus-port-direction-mismatch when a bus port direction drifts', async () => {
+    // avs_readdata should be an output (readdata flipped to 'out' for a slave interface) but the
+    // HDL declares it as an input.
+    const hdl = [
+      'entity core is',
+      '  port (',
+      '    clk : in std_logic;',
+      '    rst : in std_logic;',
+      '    avs_address : in std_logic_vector(11 downto 0);',
+      '    avs_read : in std_logic;',
+      '    avs_write : in std_logic;',
+      '    avs_readdata : in std_logic_vector(31 downto 0);',
+      '    avs_writedata : in std_logic_vector(31 downto 0)',
+      '  );',
+      'end entity core;',
+    ].join('\n');
+
+    const findings = await crossCheckIpCoreAgainstTopLevelHdl(
+      avmmIpCore(),
+      '/proj',
+      makeReader(hdl)
+    );
+
+    expect(findings).toHaveLength(1);
+    expect(findings[0].kind).toBe('bus-port-direction-mismatch');
+    expect(findings[0].severity).toBe('red');
+    expect(findings[0].message).toContain('avs_readdata');
   });
 });
 

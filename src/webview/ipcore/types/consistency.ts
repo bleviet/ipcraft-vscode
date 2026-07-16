@@ -7,7 +7,16 @@ export type ConsistencyKind =
   | 'width-mismatch'
   | 'missing-parameter'
   | 'extra-parameter'
-  | 'parameter-default-mismatch';
+  | 'parameter-default-mismatch'
+  | 'missing-bus-port'
+  | 'bus-port-width-mismatch'
+  | 'bus-port-direction-mismatch'
+  | 'missing-register'
+  | 'extra-register'
+  | 'register-address-mismatch'
+  | 'missing-field'
+  | 'extra-field'
+  | 'field-range-mismatch';
 
 export type ConsistencySeverity = 'amber' | 'red';
 export type ConsistencySource = 'hdl' | 'hwTcl' | 'componentXml';
@@ -58,6 +67,15 @@ export const CONSISTENCY_KIND_LABEL: Record<ConsistencyKind, string> = {
   'missing-parameter': 'Missing parameter',
   'extra-parameter': 'New parameter',
   'parameter-default-mismatch': 'Default mismatch',
+  'missing-bus-port': 'Missing bus port',
+  'bus-port-width-mismatch': 'Bus port width mismatch',
+  'bus-port-direction-mismatch': 'Bus port direction mismatch',
+  'missing-register': 'Missing register',
+  'extra-register': 'New register',
+  'register-address-mismatch': 'Register address mismatch',
+  'missing-field': 'Missing field',
+  'extra-field': 'New field',
+  'field-range-mismatch': 'Field range mismatch',
 };
 
 /** Stable identity for session-local "Ignore" — findings carry no id of their own. */

@@ -45,8 +45,14 @@ export interface ConsistencyCheckResult {
   summary: ConsistencySummary;
 }
 
-const ADDED_KINDS = new Set(['extra-port', 'extra-parameter']);
-const REMOVED_KINDS = new Set(['missing-port', 'missing-parameter']);
+const ADDED_KINDS = new Set(['extra-port', 'extra-parameter', 'extra-register', 'extra-field']);
+const REMOVED_KINDS = new Set([
+  'missing-port',
+  'missing-parameter',
+  'missing-bus-port',
+  'missing-register',
+  'missing-field',
+]);
 
 function summarize(findings: HdlCrossCheckFinding[]): ConsistencySummary {
   const summary: ConsistencySummary = { added: 0, removed: 0, changed: 0 };

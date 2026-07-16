@@ -324,6 +324,7 @@ export function parseComponentXmlText(
     memoryMapRef?: string;
     useOptionalPorts?: string[];
     portWidthOverrides?: Record<string, number>;
+    portNameOverrides?: Record<string, string>;
   }
   // Build a lookup of physical port name → direction/width from spirit:model/spirit:ports.
   // Used to annotate rawPortMaps for unknown bus types so the generator can emit
@@ -428,8 +429,10 @@ export function parseComponentXmlText(
     if (rawPortMaps) {
       entry.rawPortMaps = rawPortMaps;
     }
-    if (physicalPrefix) {
+    if (physicalPrefix !== undefined) {
       entry.physicalPrefix = physicalPrefix;
+    } else if (phyPorts.length > 0) {
+      entry.physicalPrefix = '';
     }
     if (associatedClock) {
       entry.associatedClock = associatedClock;
@@ -482,6 +485,35 @@ export function parseComponentXmlText(
           if (Object.keys(portWidthOverrides).length > 0) {
             entry.portWidthOverrides = portWidthOverrides;
           }
+        }
+      }
+
+      // Extract portNameOverrides: physicalPrefix + the logical name's lowercase form
+      // doesn't always reconstruct the original physical port name (e.g. multiple
+      // interfaces of the same protocol sharing one prefix but distinguished by a
+      // renamed suffix). Recording the actual observed suffix keeps physicalPrefix +
+      // portNameOverrides losslessly reconstructing the original physical names on
+      // re-export. With no common prefix, the suffix is the whole physical name.
+      const defByUpper = new Map(busDef.map((def) => [def.name.toUpperCase(), def]));
+      const portMapsEl = childEl(busIf, 'portMaps');
+      if (portMapsEl) {
+        const prefix = physicalPrefix ?? '';
+        const portNameOverrides: Record<string, string> = {};
+        for (const portMap of childEls(portMapsEl, 'portMap')) {
+          const logName = text(childEl(portMap, 'logicalPort') ?? portMap, 'name');
+          const physName = text(childEl(portMap, 'physicalPort') ?? portMap, 'name');
+          if (!logName || !physName) {
+            continue;
+          }
+          const suffix = physName.startsWith(prefix) ? physName.slice(prefix.length) : physName;
+          if (suffix !== logName.toLowerCase()) {
+            const def = defByUpper.get(logName.toUpperCase());
+            const canonicalKey = def ? def.name : logName;
+            portNameOverrides[canonicalKey] = suffix;
+          }
+        }
+        if (Object.keys(portNameOverrides).length > 0) {
+          entry.portNameOverrides = portNameOverrides;
         }
       }
     }

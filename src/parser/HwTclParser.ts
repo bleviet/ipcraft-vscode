@@ -604,8 +604,7 @@ function parseTclTokens(line: string): string[] {
       // Command substitution. Capture the bracket body so we can recover the
       // one form that carries port information: `[get_parameter_value PARAM]`,
       // which Quartus (and our own generator) use for parameter-dependent port
-      // widths inside the elaborate callback. Any other substitution (e.g.
-      // `[file join ...]`) is skipped, preserving prior behaviour.
+      // widths inside the elaborate callback.
       let depth = 1;
       i++;
       let body = '';
@@ -625,6 +624,17 @@ function parseTclTokens(line: string): string[] {
       const paramRef = /^\s*get_parameter_value\s+(\S+)\s*$/.exec(body);
       if (paramRef) {
         tokens.push(paramRef[1]);
+      } else {
+        // A more complex expression this parser can't reduce to a single parameter
+        // reference — e.g. a clog2-style width `[expr int(ceil(log([get_parameter_value
+        // P])/log(2)))]`. Push the raw body as a fallback token rather than dropping
+        // the argument outright: silently vanishing a token shifts every argument
+        // after it, which can drop the enclosing command entirely once its arg count
+        // falls below the command's minimum (e.g. add_interface_port's width arg).
+        // add_interface_port's own width parsing already falls back to keeping a
+        // non-numeric widthStr as-is, so this just surfaces the port with an
+        // unresolved (string) width instead of losing it.
+        tokens.push(body);
       }
       continue;
     }
