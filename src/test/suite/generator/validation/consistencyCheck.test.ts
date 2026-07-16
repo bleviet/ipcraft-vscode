@@ -99,6 +99,28 @@ describe('crossCheckIpCoreAgainstHdl — implementation-only drift (issue #84)',
     expect(findings.find((f) => f.kind === 'width-mismatch')?.severity).toBe('amber');
     expect(findings.every((f) => f.source === 'hdl')).toBe(true);
   });
+
+  // Issue #94: a string generic's default was reported as a parameter-default-mismatch even
+  // though the .ip.yml and HDL agree — the HDL side's captured value still carried VHDL's
+  // double-quote string-literal syntax ("MyVal") while the .ip.yml stores the bare value
+  // (MyVal), so a plain string comparison always disagreed.
+  it('does not report a parameter-default-mismatch for a matching string generic default', async () => {
+    const ipCore = baseIpCore({
+      fileSets: [{ name: 'RTL_Sources', files: [{ path: 'rtl/core.vhd', type: 'vhdl' }] }],
+      parameters: [{ name: 'GREETING_g', dataType: 'string', value: 'MyVal' }],
+    });
+    const hdl = [
+      'entity core is',
+      '  generic (',
+      '    GREETING_g : string := "MyVal"',
+      '  );',
+      'end entity core;',
+    ].join('\n');
+
+    const findings = await crossCheckIpCoreAgainstHdl(ipCore, '/proj', makeReader(hdl));
+
+    expect(findings).toEqual([]);
+  });
 });
 
 describe('crossCheckIpCoreAgainstTopLevelHdl — checks the top level regardless of managed flag', () => {

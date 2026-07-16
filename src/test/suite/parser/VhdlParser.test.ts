@@ -2,7 +2,7 @@ import * as fs from 'fs/promises';
 import * as os from 'os';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
-import { parseVhdlFile } from '../../../parser/VhdlParser';
+import { parseVhdlFile, extractVhdlInterface } from '../../../parser/VhdlParser';
 
 describe('VhdlParser', () => {
   it('parses an entity with ports', async () => {
@@ -526,5 +526,80 @@ describe('VhdlParser', () => {
     expect(result.warnings).toContain(
       "Warning: std_logic_vector generic detected on generic 'BitVectorParam_g'. Convert to integer for cross-vendor GUI compatibility."
     );
+  });
+
+  // Issue #94: a `string` generic's default was reported by the consistency check as a
+  // mismatch against an identical .ip.yml value purely because VHDL string literals are
+  // double-quoted and the raw quoted text was compared verbatim.
+  describe('string generic defaults (issue #94)', () => {
+    const vhdl = `
+      entity greeter is
+        generic (
+          GREETING_g : string := "MyVal"
+        );
+        port (
+          Clk : in std_logic
+        );
+      end entity;
+    `;
+
+    it('strips the VHDL string-literal quotes when importing to .ip.yml', async () => {
+      const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ipcraft-vhdl-'));
+      const filePath = path.join(tempDir, 'greeter.vhd');
+      await fs.writeFile(filePath, vhdl, 'utf8');
+
+      const result = await parseVhdlFile(filePath);
+      const parsed = yaml.load(result.yamlText) as Record<string, unknown>;
+      const params = parsed.parameters as Array<Record<string, unknown>>;
+
+      expect(params).toEqual([{ name: 'GREETING_g', value: 'MyVal', dataType: 'string' }]);
+    });
+
+    it('strips the VHDL string-literal quotes for the consistency-check parser too', () => {
+      const { parameters } = extractVhdlInterface(vhdl);
+      expect(parameters).toEqual([{ name: 'GREETING_g', type: 'string', value: 'MyVal' }]);
+    });
+
+    it('un-escapes a doubled quote inside the literal but leaves a concatenation expression untouched', () => {
+      const withEscape = extractVhdlInterface(`
+        entity greeter is
+          generic (
+            GREETING_g : string := "She said ""hi"""
+          );
+        end entity;
+      `);
+      expect(withEscape.parameters[0].value).toBe('She said "hi"');
+
+      const concatenated = extractVhdlInterface(`
+        entity greeter is
+          generic (
+            GREETING_g : string := "Hello, " & "World"
+          );
+        end entity;
+      `);
+      expect(concatenated.parameters[0].value).toBe('"Hello, " & "World"');
+    });
+
+    it('does not unwrap a std_logic_vector/bit_vector default with the same quote syntax', () => {
+      const { parameters } = extractVhdlInterface(`
+        entity greeter is
+          generic (
+            BitVectorParam_g : bit_vector(3 downto 0) := "1010"
+          );
+        end entity;
+      `);
+      expect(parameters[0].value).toBe('"1010"');
+    });
+
+    it('unwraps a std_logic character-literal default regardless of type', () => {
+      const { parameters } = extractVhdlInterface(`
+        entity greeter is
+          generic (
+            Polarity_g : std_logic := '0'
+          );
+        end entity;
+      `);
+      expect(parameters[0].value).toBe('0');
+    });
   });
 });
