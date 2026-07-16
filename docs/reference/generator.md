@@ -36,6 +36,8 @@ The scaffolder produces files organized by category next to the `.ip.yml` file.
     conftest.py                # pytest session fixture
     test_<ip_name>_sim.py      # pytest wrapper functions
     Makefile                   # GNU Make entry point
+  docs/
+    <ip_name>_datasheet.md    # Generated Markdown IP datasheet (ports, generics, registers)
   xilinx/
     component.xml             # Vivado IP-XACT descriptor
     xgui/<ip_name>_v*.tcl    # Vivado XGUI customization
@@ -73,6 +75,7 @@ The scaffolder produces files organized by category next to the `.ip.yml` file.
 | `includeHdl` | `boolean` | `true` | Generate RTL source files |
 | `includeRegs` | `boolean` | `true` | Generate register file |
 | `includeTestbench` | `boolean` | `true` | Generate testbench scaffold |
+| `includeDocs` | `boolean` | `true` | Generate a Markdown IP datasheet (`docs/<ip_name>_datasheet.md`) |
 | `includeVivadoProject` | `boolean` | `false` | Generate Vivado project and build scripts |
 | `targetPart` | `string` | from settings | FPGA part for Vivado project |
 | `includeQuartusProject` | `boolean` | `false` | Generate Quartus project files |
@@ -253,3 +256,47 @@ Reports are written to `altera/build/output_files/`.
 | `engines/IcarusEngine.ts` | Icarus Verilog engine settings |
 | `engines/VerilatorEngine.ts` | Verilator engine settings |
 | `engines/QuestaEngine.ts` | Questa / ModelSim engine settings |
+
+## Headless CLI
+
+`ipcraft generate` runs this same generator from the command line — no VS Code, no extension source tree. Useful for CI (regenerate-and-diff, see `ipcraft-vscode#73`) or scripting.
+
+```bash
+npx ipcraft generate path/to.ip.yml --target quartus --lang systemverilog --out gen/
+```
+
+| Option | Description |
+|---|---|
+| `--target <quartus\|vivado>[,<...>]` | Vendor target(s) to scaffold a project for (repeatable or comma-separated). Omit for RTL + testbench only. |
+| `--lang <vhdl\|systemverilog>` | HDL language to generate (default: `vhdl`) |
+| `--out <dir>` | Output directory (default: alongside the `.ip.yml`) |
+| `--pack <name>` | Scaffold pack to use (overrides `scaffold_pack` in the `.ip.yml`) |
+| `--quartus-device <part>` | Quartus device part (default: `5CSEBA6U23I7`) |
+| `--vivado-part <part>` | Vivado part (default: `xc7z020clg484-1`) |
+
+A schema-invalid `.ip.yml` prints a readable error and exits non-zero:
+
+```bash
+$ npx ipcraft generate broken.ip.yml
+Generation failed: IP core YAML schema validation failed: simulation.engine: must be equal to one of the allowed values
+$ echo $?
+1
+```
+
+### Stale-output detection: `ipcraft verify`
+
+`ipcraft verify` regenerates a `.ip.yml` in memory and diffs it against what's actually committed in a generated directory — a tooling guarantee that generated output was regenerated after the last spec edit, suitable for CI or a pre-commit hook. It takes the same `--target`/`--lang`/`--pack`/`--quartus-device`/`--vivado-part` options as `generate` (use whatever the directory was originally generated with):
+
+```bash
+npx ipcraft verify path/to.ip.yml gen/ --target quartus --lang systemverilog
+```
+
+Exits `0` when every generated file matches a fresh generation; otherwise exits non-zero and names every stale (or missing) file:
+
+```bash
+$ npx ipcraft verify path/to.ip.yml gen/ --target quartus
+Stale: 1 file(s) differ from a fresh generation:
+  altera/led_blink.sdc
+$ echo $?
+1
+```

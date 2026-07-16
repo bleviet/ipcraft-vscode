@@ -39,6 +39,7 @@ These commands are available on `.ip.yml` files.
 | `IPCraft: Generate Xilinx Vivado Component (component.xml)` | ✓ | ✓ | ✓ |
 | `IPCraft: Generate & Build (Vivado OOC)` | ✓ | ✓ | ✓ |
 | `IPCraft: Generate & Build (Quartus)` | ✓ | ✓ | ✓ |
+| `IPCraft: Generate Documentation` | ✓ | ✓ | ✓ |
 
 **Scaffold Project** — The all-in-one command. Generates RTL files (VHDL or SystemVerilog, controlled by `ipcraft.generate.hdlLanguage`), a testbench, and vendor project files in a single step. Part number and device are read from settings (`ipcraft.vivado.defaultPart`, `ipcraft.quartus.defaultDevice`). The output is written next to the `.ip.yml` file.
 
@@ -54,6 +55,8 @@ These commands are available on `.ip.yml` files.
 
 **Generate Xilinx Vivado Component** — Exports `xilinx/component.xml` and `xilinx/xgui/<ip_name>_v*.tcl` for use in the Vivado IP catalog.
 
+**Generate Documentation** — Renders `docs/<ip_name>_datasheet.md`, a Markdown datasheet covering ports, generics, bus interfaces, and (if present) the linked register map. Same command run by scaffolding when `ipcraft.generate.includeDocs` is enabled.
+
 ---
 
 ### Scaffold Packs
@@ -66,6 +69,21 @@ These commands are available on `.ip.yml` files.
 **Preview Template Output** — Opens a read-only, live-refreshing preview of a `.j2` template's rendered output next to the editor, evaluated against a pinned or auto-detected `.ip.yml` file. See [Scaffold Packs](../how-to/scaffold-packs.md).
 
 **Export Built-in Scaffold Pack** — Copies a built-in or example scaffold pack (and all its templates) into `.vscode/ipcraft/packs/<name>/` in the workspace as a starting point for customization.
+
+---
+
+### Validate
+
+These commands are available on `.ip.yml` files.
+
+| Command | Palette | IPCraft Menu | Editor Title |
+|---------|:-------:|:------------:|:------------:|
+| `IPCraft: Check Consistency` | ✓ | ✓ | ✓ |
+| `IPCraft: Check HDL Consistency (managed:false)` | ✓ | ✓ | |
+
+**Check Consistency** — Cross-references the spec's declared ports, clocks, resets, generics, bus interfaces, and registers against the generated top-level HDL entity/module and, when scaffolded, the Platform Designer (`_hw.tcl`) and Vivado (`component.xml`) vendor artifacts. Reports drift in both directions: implementation-only items (extra port/parameter — a plausible adopt) and spec-only items (missing port/parameter — declared but gone from the implementation), plus property mismatches (direction/width/default) on items both sides declare.
+
+**Check HDL Consistency (managed:false)** — The same cross-check restricted to the top-level HDL entity/module, regardless of the file's `managed:` flag.
 
 ---
 
@@ -245,6 +263,7 @@ Configure via **File → Preferences → Settings** and search for `IPCraft`, or
 | `ipcraft.generate.targets` | string[] | `[]` | Synthesis vendor targets to include when scaffolding (e.g. `["vivado"]`, `["vivado","quartus"]`). Empty array generates HDL and testbench only. |
 | `ipcraft.generate.hdlLanguage` | `"vhdl"` \| `"systemverilog"` | `"vhdl"` | HDL language for RTL file generation. |
 | `ipcraft.generate.includeTestbench` | boolean | `true` | Include a testbench when scaffolding a project. |
+| `ipcraft.generate.includeDocs` | boolean | `true` | Generate a Markdown IP datasheet (`docs/<ip_name>_datasheet.md`) when scaffolding a project. |
 | `ipcraft.generate.scaffoldPack` | string | `""` | Scaffold pack used for RTL/testbench generation. See [Scaffold Packs](../how-to/scaffold-packs.md). |
 
 ### Testbench
@@ -274,6 +293,7 @@ Configure via **File → Preferences → Settings** and search for `IPCraft`, or
 |---------|------|---------|-------------|
 | `ipcraft.busLibraryPaths` | string[] | `[]` | Additional directories to search recursively for custom bus definition YAML files (`.yml`/`.yaml`). |
 | `ipcraft.ipRepositoryPaths` | string[] | `[]` | Additional directories to scan for IP cores (directories containing `.ip.yml` or `component.xml` files). |
+| `ipcraft.scaffoldPackPaths` | string[] | `[]` | Additional directories to scan recursively for custom Scaffold Packs. See [Scaffold Packs](../how-to/scaffold-packs.md). |
 
 ---
 
