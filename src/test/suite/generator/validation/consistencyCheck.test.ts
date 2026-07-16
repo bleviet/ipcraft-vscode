@@ -1,5 +1,6 @@
 import {
   crossCheckIpCoreAgainstHdl,
+  crossCheckIpCoreAgainstTopLevelHdl,
   crossCheckIpCoreAgainstVendor,
 } from '../../../../generator/validation/hdlCrossCheck';
 import type { IpCoreData } from '../../../../generator/types';
@@ -97,6 +98,77 @@ describe('crossCheckIpCoreAgainstHdl — implementation-only drift (issue #84)',
     expect(findings.find((f) => f.kind === 'direction-mismatch')?.severity).toBe('red');
     expect(findings.find((f) => f.kind === 'width-mismatch')?.severity).toBe('amber');
     expect(findings.every((f) => f.source === 'hdl')).toBe(true);
+  });
+});
+
+describe('crossCheckIpCoreAgainstTopLevelHdl — checks the top level regardless of managed flag', () => {
+  // Reproduces a real false negative: comprehensive_avalon.ip.yml's RTL fileSet entries have no
+  // `managed` field (schema default: true, i.e. generator-owned), so a hand-edited top-level
+  // .vhd that has drifted from the .ip.yml was silently reported as consistent.
+  it('catches drift in a top-level HDL file that has no managed:false flag', async () => {
+    const ipCore = baseIpCore({
+      fileSets: [
+        {
+          name: 'RTL_Sources',
+          // No `managed` key at all — the exact shape of the real fixture that triggered this.
+          files: [{ path: 'rtl/led_blink.vhd', type: 'vhdl' }],
+        },
+      ],
+      clocks: [{ name: 'clk' }],
+      ports: [{ name: 'led', direction: 'out', width: 1 }],
+    });
+    const hdl = [
+      'entity led_blink is',
+      '  port (',
+      '    clk : in std_logic;',
+      '    led : out std_logic_vector(7 downto 0);',
+      '    status : out std_logic',
+      '  );',
+      'end entity led_blink;',
+    ].join('\n');
+
+    const broad = await crossCheckIpCoreAgainstTopLevelHdl(ipCore, '/proj', makeReader(hdl));
+    expect(broad.find((f) => f.kind === 'width-mismatch')).toBeDefined();
+    expect(broad.find((f) => f.kind === 'extra-port')?.inferred).toEqual({
+      name: 'status',
+      direction: 'out',
+      width: 1,
+    });
+
+    // The managed:false-only check (issue #74's checkHdlConsistency) must keep ignoring this
+    // file — its whole point is scoping to files the generator promises never to touch.
+    const narrow = await crossCheckIpCoreAgainstHdl(ipCore, '/proj', makeReader(hdl));
+    expect(narrow).toEqual([]);
+  });
+
+  it('still identifies the correct top level by entity name when several HDL files have no managed flag', async () => {
+    const ipCore = baseIpCore({
+      fileSets: [
+        {
+          name: 'RTL_Sources',
+          files: [
+            { path: 'rtl/led_blink.vhd', type: 'vhdl' },
+            { path: 'rtl/led_blink_pkg.vhd', type: 'vhdl' },
+          ],
+        },
+      ],
+      ports: [{ name: 'led', direction: 'out', width: 1 }],
+    });
+    const reader = async (absPath: string) => {
+      if (absPath.endsWith('led_blink.vhd')) {
+        return [
+          'entity led_blink is',
+          '  port (led : out std_logic_vector(3 downto 0));',
+          'end entity led_blink;',
+        ].join('\n');
+      }
+      return 'package led_blink_pkg is end package;';
+    };
+
+    const findings = await crossCheckIpCoreAgainstTopLevelHdl(ipCore, '/proj', reader);
+    expect(findings).toHaveLength(1);
+    expect(findings[0].kind).toBe('width-mismatch');
+    expect(findings[0].hdlFile).toBe('rtl/led_blink.vhd');
   });
 });
 

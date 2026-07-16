@@ -87,6 +87,28 @@ function collectManagedHdlFiles(ipCoreData: IpCoreData): ManagedHdlFile[] {
   return [...files.values()];
 }
 
+/**
+ * Every HDL fileSet entry regardless of `managed` — unlike collectManagedHdlFiles, this also
+ * picks up files the generator considers itself free to overwrite (managed: true, the schema
+ * default). A file being generator-owned doesn't mean its on-disk content still matches the
+ * .ip.yml: a user can hand-edit generated RTL directly without ever flipping the flag, and that
+ * drift is exactly what the consistency check (issue #84) exists to catch — the same file
+ * would otherwise regenerate over their edit with no warning.
+ */
+function collectAllHdlFiles(ipCoreData: IpCoreData): ManagedHdlFile[] {
+  type FileSetEntry = { files?: Array<{ path?: string; type?: string }> };
+  const fileSets = (ipCoreData as Record<string, unknown>).fileSets as FileSetEntry[] | undefined;
+  const files = new Map<string, ManagedHdlFile>();
+  for (const fset of fileSets ?? []) {
+    for (const f of fset.files ?? []) {
+      if (f.path && HDL_TYPES.has(f.type ?? '') && !files.has(f.path)) {
+        files.set(f.path, { path: f.path, type: f.type as string });
+      }
+    }
+  }
+  return [...files.values()];
+}
+
 /** Scalar ports (std_logic / no explicit range) parse with width undefined — treat as 1 bit. */
 function widthOf(w: number | string | undefined): number | string {
   return w ?? 1;
@@ -366,23 +388,18 @@ function diffAgainstImplementation(
 }
 
 /**
- * Cross-checks a .ip.yml's declared ports/clocks/resets/parameters against the top-level
- * entity/module of the HDL file(s) its fileSets mark managed:false — i.e. hand-authored HDL
- * that IPCraft never generates and could silently drift from the spec (issue #74), in both
- * directions (issue #84).
- *
- * Deliberately scoped to ports/clocks/resets/parameters, not busInterfaces: bus interface
- * physical port names are a generator-side reconstruction (physicalPrefix + per-port
- * overrides), not something declared directly in the .ip.yml, so they're out of scope here.
+ * Shared body for both HDL cross-check entry points below: parses each candidate file, narrows
+ * to the top-level entity/module (selectTopLevelFiles), and diffs it against the .ip.yml. The
+ * only thing that differs between the two public functions is which files are candidates.
  */
-export async function crossCheckIpCoreAgainstHdl(
+async function diffAgainstHdlFiles(
+  files: ManagedHdlFile[],
   ipCoreData: IpCoreData,
   ipCoreDir: string,
-  readFile: (absPath: string) => Promise<string> = (p) => fs.readFile(p, 'utf8')
+  readFile: (absPath: string) => Promise<string>
 ): Promise<HdlCrossCheckFinding[]> {
-  const managedFiles = collectManagedHdlFiles(ipCoreData);
   const findings: HdlCrossCheckFinding[] = [];
-  if (managedFiles.length === 0) {
+  if (files.length === 0) {
     return findings;
   }
 
@@ -390,7 +407,7 @@ export async function crossCheckIpCoreAgainstHdl(
   const expectedParams = (ipCoreData.parameters ?? []).map((p, idx) => ({ ...p, idx }));
 
   const parsedFiles: ParsedManagedFile[] = [];
-  for (const file of managedFiles) {
+  for (const file of files) {
     const absPath = path.resolve(ipCoreDir, file.path);
     let content: string;
     try {
@@ -433,6 +450,45 @@ export async function crossCheckIpCoreAgainstHdl(
   }
 
   return findings;
+}
+
+/**
+ * Cross-checks a .ip.yml's declared ports/clocks/resets/parameters against the top-level
+ * entity/module of the HDL file(s) its fileSets mark managed:false — i.e. hand-authored HDL
+ * that IPCraft never generates and could silently drift from the spec (issue #74).
+ *
+ * Deliberately scoped to ports/clocks/resets/parameters, not busInterfaces: bus interface
+ * physical port names are a generator-side reconstruction (physicalPrefix + per-port
+ * overrides), not something declared directly in the .ip.yml, so they're out of scope here.
+ *
+ * Scoped to managed:false files only — see crossCheckIpCoreAgainstTopLevelHdl for the broader
+ * check (issue #84) that also covers generator-owned (managed:true) HDL.
+ */
+export async function crossCheckIpCoreAgainstHdl(
+  ipCoreData: IpCoreData,
+  ipCoreDir: string,
+  readFile: (absPath: string) => Promise<string> = (p) => fs.readFile(p, 'utf8')
+): Promise<HdlCrossCheckFinding[]> {
+  return diffAgainstHdlFiles(collectManagedHdlFiles(ipCoreData), ipCoreData, ipCoreDir, readFile);
+}
+
+/**
+ * The issue #84 Consistency Check's HDL arm: cross-checks against the top-level entity/module
+ * among *every* HDL file in fileSets, regardless of the managed flag. A generator-owned
+ * (managed: true) file is nominally safe to overwrite, but nothing stops a user from
+ * hand-editing it directly without flipping that flag or updating the .ip.yml — and unlike a
+ * managed:false file, that drift is actively dangerous: the next generate silently overwrites
+ * the edit with no warning. crossCheckIpCoreAgainstHdl's managed:false-only scoping (issue #74)
+ * exists to protect hand-authored files from being flagged as generator drift; this function
+ * instead answers "does the .ip.yml still match what's actually on disk", independent of who
+ * owns the file.
+ */
+export async function crossCheckIpCoreAgainstTopLevelHdl(
+  ipCoreData: IpCoreData,
+  ipCoreDir: string,
+  readFile: (absPath: string) => Promise<string> = (p) => fs.readFile(p, 'utf8')
+): Promise<HdlCrossCheckFinding[]> {
+  return diffAgainstHdlFiles(collectAllHdlFiles(ipCoreData), ipCoreData, ipCoreDir, readFile);
 }
 
 export type VendorSource = 'hwTcl' | 'componentXml';

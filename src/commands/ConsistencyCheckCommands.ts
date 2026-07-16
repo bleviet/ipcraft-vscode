@@ -1,9 +1,10 @@
 /**
  * VS Code command surfacing the full consistency check (issue #84): cross-references a
  * .ip.yml's declared ports/clocks/resets/parameters against every implementation source
- * available for it — the managed:false HDL top (issue #74) plus, when scaffolded, the
- * conventional Platform Designer (_hw.tcl) and Vivado (component.xml) vendor artifacts — in
- * both directions (SSOT-only and implementation-only drift).
+ * available for it — the top-level HDL entity/module (regardless of the managed flag — see
+ * crossCheckIpCoreAgainstTopLevelHdl) plus, when scaffolded, the conventional Platform Designer
+ * (_hw.tcl) and Vivado (component.xml) vendor artifacts — in both directions (SSOT-only and
+ * implementation-only drift).
  */
 
 import * as vscode from 'vscode';
@@ -13,7 +14,7 @@ import { Logger } from '../utils/Logger';
 import { ResourceRoots } from '../services/ResourceRoots';
 import { loadIpCoreData } from '../generator/loadIpCore';
 import {
-  crossCheckIpCoreAgainstHdl,
+  crossCheckIpCoreAgainstTopLevelHdl,
   crossCheckIpCoreAgainstVendor,
   HdlCrossCheckFinding,
 } from '../generator/validation/hdlCrossCheck';
@@ -78,7 +79,7 @@ export async function runConsistencyCheck(
   const ipCoreDir = path.dirname(ipCoreUri.fsPath);
 
   const findings: HdlCrossCheckFinding[] = [
-    ...(await crossCheckIpCoreAgainstHdl(ipCoreData, ipCoreDir)),
+    ...(await crossCheckIpCoreAgainstTopLevelHdl(ipCoreData, ipCoreDir)),
   ];
 
   // Vendor artifacts live at conventional paths (see hdlCrossCheck.ts's vendorRelPath) and are
