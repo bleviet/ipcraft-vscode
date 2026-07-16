@@ -1,4 +1,6 @@
 import * as yaml from 'js-yaml';
+import { generateComponentXml } from '../../../generator/VivadoComponentXmlGenerator';
+import type { BusDefinitions, IpCoreData } from '../../../generator/types';
 import { parseComponentXmlText } from '../../../parser/ComponentXmlParser';
 
 function parseYaml(text: string) {
@@ -262,6 +264,45 @@ const AXIS_XML = `<?xml version="1.0" encoding="UTF-8"?>
   </spirit:busInterfaces>
 </spirit:component>`;
 
+const PREFIXLESS_AXIS_XML = `<?xml version="1.0" encoding="UTF-8"?>
+<spirit:component xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009">
+  <spirit:vendor>acme.com</spirit:vendor>
+  <spirit:library>ip</spirit:library>
+  <spirit:name>prefixless_axis</spirit:name>
+  <spirit:version>1.0</spirit:version>
+  <spirit:busInterfaces>
+    <spirit:busInterface>
+      <spirit:name>S_AXIS</spirit:name>
+      <spirit:busType spirit:vendor="xilinx.com" spirit:library="interface" spirit:name="axis" spirit:version="1.0"/>
+      <spirit:slave/>
+      <spirit:portMaps>
+        <spirit:portMap>
+          <spirit:logicalPort><spirit:name>TDATA</spirit:name></spirit:logicalPort>
+          <spirit:physicalPort><spirit:name>input_axis_data</spirit:name></spirit:physicalPort>
+        </spirit:portMap>
+        <spirit:portMap>
+          <spirit:logicalPort><spirit:name>TVALID</spirit:name></spirit:logicalPort>
+          <spirit:physicalPort><spirit:name>input_axis_valid</spirit:name></spirit:physicalPort>
+        </spirit:portMap>
+        <spirit:portMap>
+          <spirit:logicalPort><spirit:name>TREADY</spirit:name></spirit:logicalPort>
+          <spirit:physicalPort><spirit:name>output_axis_ready</spirit:name></spirit:physicalPort>
+        </spirit:portMap>
+      </spirit:portMaps>
+    </spirit:busInterface>
+  </spirit:busInterfaces>
+</spirit:component>`;
+
+const COMPONENT_XML_TEST_BUS_DEFS: BusDefinitions = {
+  AXI_STREAM: {
+    ports: [
+      { name: 'TDATA', width: 32, direction: 'out', presence: 'required' },
+      { name: 'TVALID', direction: 'out', presence: 'required' },
+      { name: 'TREADY', direction: 'in', presence: 'required' },
+    ],
+  },
+};
+
 // ===========================================================================
 // Tests
 // ===========================================================================
@@ -368,6 +409,27 @@ describe('ComponentXmlParser', () => {
       expect(slave?.mode).toBe('slave');
       expect(master?.type).toBe('ipcraft:busif:axi_stream:1.0');
       expect(master?.mode).toBe('master');
+    });
+
+    it('preserves prefixless physical port names with portNameOverrides', () => {
+      const { ipYamlText } = parseComponentXmlText(PREFIXLESS_AXIS_XML);
+      const doc = parseYaml(ipYamlText) as IpCoreData;
+      const iface = doc.busInterfaces?.find((b) => b.name === 'S_AXIS');
+
+      expect(iface?.physicalPrefix).toBe('');
+      expect(iface?.portNameOverrides).toEqual({
+        TDATA: 'input_axis_data',
+        TVALID: 'input_axis_valid',
+        TREADY: 'output_axis_ready',
+      });
+
+      const generatedXml = generateComponentXml(doc, COMPONENT_XML_TEST_BUS_DEFS);
+      expect(generatedXml).toContain('<spirit:name>input_axis_data</spirit:name>');
+      expect(generatedXml).toContain('<spirit:name>input_axis_valid</spirit:name>');
+      expect(generatedXml).toContain('<spirit:name>output_axis_ready</spirit:name>');
+      expect(generatedXml).not.toContain('<spirit:name>tdata</spirit:name>');
+      expect(generatedXml).not.toContain('<spirit:name>tvalid</spirit:name>');
+      expect(generatedXml).not.toContain('<spirit:name>tready</spirit:name>');
     });
 
     it('excludes clock/reset busInterfaces from busInterfaces list', () => {

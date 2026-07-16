@@ -14198,7 +14198,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
             <spirit:name>data</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
-            <spirit:name>asi_data</spirit:name>
+            <spirit:name>asi_rx_bits</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
@@ -14206,7 +14206,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
             <spirit:name>valid</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
-            <spirit:name>asi_valid</spirit:name>
+            <spirit:name>asi_rx_strobe</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
@@ -14214,7 +14214,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
             <spirit:name>ready</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
-            <spirit:name>asi_ready</spirit:name>
+            <spirit:name>asi_rx_ready</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
       </spirit:portMaps>
@@ -14764,7 +14764,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>asi_data</spirit:name>
+        <spirit:name>asi_rx_bits</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
           <spirit:vector>
@@ -14781,7 +14781,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>asi_valid</spirit:name>
+        <spirit:name>asi_rx_strobe</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
           <spirit:wireTypeDefs>
@@ -14794,7 +14794,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>asi_ready</spirit:name>
+        <spirit:name>asi_rx_ready</spirit:name>
         <spirit:wire>
           <spirit:direction>out</spirit:direction>
           <spirit:wireTypeDefs>
@@ -15138,7 +15138,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
             <spirit:name>data</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
-            <spirit:name>asi_data</spirit:name>
+            <spirit:name>asi_rx_bits</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
@@ -15146,7 +15146,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
             <spirit:name>valid</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
-            <spirit:name>asi_valid</spirit:name>
+            <spirit:name>asi_rx_strobe</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
@@ -15154,7 +15154,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
             <spirit:name>ready</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
-            <spirit:name>asi_ready</spirit:name>
+            <spirit:name>asi_rx_ready</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
       </spirit:portMaps>
@@ -15704,7 +15704,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>asi_data</spirit:name>
+        <spirit:name>asi_rx_bits</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
           <spirit:vector>
@@ -15721,7 +15721,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>asi_valid</spirit:name>
+        <spirit:name>asi_rx_strobe</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
           <spirit:wireTypeDefs>
@@ -15734,7 +15734,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>asi_ready</spirit:name>
+        <spirit:name>asi_rx_ready</spirit:name>
         <spirit:wire>
           <spirit:direction>out</spirit:direction>
           <spirit:wireTypeDefs>
