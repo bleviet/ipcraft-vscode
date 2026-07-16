@@ -964,6 +964,7 @@ const IpCoreApp: React.FC = () => {
         findings?: ConsistencyFinding[];
         summary?: ConsistencySummary;
         error?: string;
+        auto?: boolean;
       };
 
       switch (message.type) {
@@ -1012,10 +1013,18 @@ const IpCoreApp: React.FC = () => {
             });
           }
           break;
-        case 'consistencyResult':
-          setConsistencyChecking(false);
+        case 'consistencyResult': {
+          // Background checks (issue #84) run silently: update the badge, but never surface an
+          // error toast or pop the results overlay open uninvited — only the manual button/badge
+          // click (or a foreground check that finds something) does that.
+          const isAutoCheck = message.auto === true;
+          if (!isAutoCheck) {
+            setConsistencyChecking(false);
+          }
           if (message.error) {
-            showToast(`Consistency check failed: ${message.error}`);
+            if (!isAutoCheck) {
+              showToast(`Consistency check failed: ${message.error}`);
+            }
             break;
           }
           setConsistencyResult({
@@ -1023,12 +1032,15 @@ const IpCoreApp: React.FC = () => {
             summary: message.summary ?? { added: 0, removed: 0, changed: 0 },
           });
           setIgnoredConsistencyKeys(new Set());
-          if ((message.findings ?? []).length > 0) {
-            setShowConsistencyOverlay(true);
-          } else {
-            showToast('IPCraft: consistent with every checked implementation source.');
+          if (!isAutoCheck) {
+            if ((message.findings ?? []).length > 0) {
+              setShowConsistencyOverlay(true);
+            } else {
+              showToast('IPCraft: consistent with every checked implementation source.');
+            }
           }
           break;
+        }
       }
     };
 
