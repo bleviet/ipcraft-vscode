@@ -33,4 +33,4 @@ Run **Scaffold Project** with both `vivado` and `quartus` listed in your targets
 targets: [vivado, quartus]
 ```
 
-> **Tip:** You can open the generated `component.xml` in Vivado IP Packager directly with **Edit in IP Packager** for final tweaks — any changes you make there will be preserved on subsequent scaffolds.
+> **Tip:** You can open the generated `component.xml` in Vivado IP Packager directly with **Edit in IP Packager** for final tweaks. By default `component.xml` is regenerated (overwritten) on every scaffold — to keep manual IP Packager edits, add a `fileSets` entry for it in `.ip.yml` with `managed: false`, the same mechanism used to protect hand-edited RTL.

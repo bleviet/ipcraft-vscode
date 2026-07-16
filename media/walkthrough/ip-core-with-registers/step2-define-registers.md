@@ -46,4 +46,4 @@ Each register row expands to show a visual bit-layout bar:
 | `write-1-to-clear` / `read-write-1-to-clear` | Writing 1 clears the bit; useful for status/interrupt flags |
 | `write-self-clearing` / `read-write-self-clearing` | Bit auto-clears the cycle after a write-1 (e.g. one-shot triggers) |
 
-> **Tip:** Add a description to each field — IPCraft can generate a Markdown register reference document from these descriptions using the `example-with-docs` scaffold pack.
+> **Tip:** Add a description to each field — every scaffold run already writes a Markdown datasheet (`docs/<name>_datasheet.md`) covering ports, generics, and these register descriptions, controlled by the `ipcraft.generate.includeDocs` setting (on by default) or the standalone **Generate Documentation** command. For a hand-editable, never-overwritten register reference instead, use the `example-with-docs` scaffold pack.
