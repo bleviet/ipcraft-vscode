@@ -860,9 +860,12 @@ const IpCoreApp: React.FC = () => {
         title: 'Consistent with every checked implementation source',
       };
     }
+    // "Conflict" vs "Drift" read as two different problems when they're really the same one
+    // (the .ip.yml disagrees with what's on disk) — issue #92. One label, "Drift", for any
+    // non-empty result; the dot color still carries the reconcilable/destructive distinction.
     if (visibleFindings.some((f) => f.severity === 'red')) {
       return {
-        label: 'Conflict',
+        label: 'Drift',
         color: 'var(--vscode-editorError-foreground, #f14c4c)',
         title: `${visibleFindings.length} finding(s), including a destructive conflict — click to review`,
       };
