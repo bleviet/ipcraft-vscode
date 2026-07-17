@@ -9,6 +9,14 @@ import {
 import { FieldsTable } from './FieldsTable';
 import { useFieldEditor } from '../../hooks/useFieldEditor';
 import { useDebugMode } from '../../hooks/useDebugMode';
+import { useValueEditing } from '../bitfield/useValueEditing';
+import ValueBar from '../bitfield/ValueBar';
+import {
+  buildBitValues,
+  applyRegisterValueToFields,
+  parseRegisterValue,
+  maxForBits,
+} from '../bitfield/utils';
 import type { RegisterDef } from '../../types/memoryMap';
 import { generateUniqueName } from '../../utils/naming';
 import { formatBitsRange } from '../../utils/BitFieldUtils';
@@ -174,14 +182,74 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
       });
     }, [effectiveFields]);
 
+    const handleUpdateFieldReset = useCallback(
+      (fieldIndex: number, resetValue: number | null) => {
+        debugAwareUpdate(['fields', fieldIndex, 'resetValue'], resetValue);
+      },
+      [debugAwareUpdate]
+    );
+
+    const bitValues = useMemo(
+      () => buildBitValues(normalisedFields, registerSize),
+      [normalisedFields, registerSize]
+    );
+
+    const registerValue = useMemo(() => {
+      let v = 0;
+      for (let bit = 0; bit < registerSize; bit++) {
+        if (bitValues[bit] === 1) {
+          v += Math.pow(2, bit);
+        }
+      }
+      return v;
+    }, [bitValues, registerSize]);
+
+    const applyRegisterValue = useCallback(
+      (v: number) => {
+        applyRegisterValueToFields(normalisedFields, v, handleUpdateFieldReset);
+      },
+      [normalisedFields, handleUpdateFieldReset]
+    );
+
+    const {
+      valueView,
+      setValueView,
+      valueDraft,
+      setValueDraft,
+      setValueEditing,
+      valueError,
+      setValueError,
+      validateRegisterValue,
+      commitRegisterValueDraft,
+    } = useValueEditing({
+      registerSize,
+      registerValue,
+      parseRegisterValue,
+      maxForBits,
+      applyRegisterValue,
+    });
+
+    const valueBar = (
+      <ValueBar
+        valueDraft={valueDraft}
+        valueError={valueError}
+        valueView={valueView}
+        setValueDraft={setValueDraft}
+        setValueEditing={setValueEditing}
+        setValueError={setValueError}
+        setValueView={setValueView}
+        parseRegisterValue={parseRegisterValue}
+        validateRegisterValue={validateRegisterValue}
+        commitRegisterValueDraft={commitRegisterValueDraft}
+      />
+    );
+
     const visualizerProps = {
       fields: normalisedFields,
       hoveredFieldIndex,
       setHoveredFieldIndex,
       registerSize,
-      onUpdateFieldReset: (fieldIndex: number, resetValue: number | null) => {
-        debugAwareUpdate(['fields', fieldIndex, 'resetValue'], resetValue);
-      },
+      onUpdateFieldReset: handleUpdateFieldReset,
       onUpdateFieldRange: (fieldIndex: number, newRange: [number, number]) => {
         const [hi, lo] = newRange;
         const field = fields[fieldIndex];
@@ -314,6 +382,7 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
             registerSize={registerSize}
             onUpdate={debugAwareUpdate}
             fieldEditor={fieldEditor}
+            valueBar={valueBar}
           />
         }
         footer={embedded ? undefined : <KeyboardShortcutsButton context={footerContext} />}

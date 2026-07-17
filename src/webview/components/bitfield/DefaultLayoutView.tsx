@@ -150,7 +150,7 @@ const DefaultLayoutView = ({
         ))}
       </div>
 
-      <div className="w-full">{valueBar}</div>
+      <div className="w-full mt-3">{valueBar}</div>
     </div>
   );
 };

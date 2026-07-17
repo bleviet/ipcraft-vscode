@@ -28,7 +28,7 @@ const ValueBar = ({
 }: ValueBarProps) => {
   return (
     <div
-      className="mt-3 flex items-center justify-start gap-2 p-2 rounded"
+      className="flex items-center justify-start gap-2 p-2 rounded"
       style={{ background: 'var(--vscode-editor-background)' }}
     >
       <div className="text-xs vscode-muted font-mono font-semibold shrink-0">Value:</div>

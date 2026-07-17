@@ -50,7 +50,6 @@ interface LayoutConfig {
   bitOwners: (number | null)[];
   registerSize: number;
   valueView: 'hex' | 'dec';
-  valueBar: React.ReactNode;
 }
 
 interface ProLayoutViewProps {
@@ -150,7 +149,7 @@ const ProLayoutView = ({
     getResizableEdges,
     onFieldContextMenu,
   } = interactions;
-  const { bitOwners, registerSize, valueView, valueBar } = layoutConfig;
+  const { bitOwners, registerSize, valueView } = layoutConfig;
 
   return (
     <div className="w-full">
@@ -472,7 +471,6 @@ const ProLayoutView = ({
           })}
         </div>
       </div>
-      {valueBar}
     </div>
   );
 };

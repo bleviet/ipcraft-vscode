@@ -50,7 +50,6 @@ interface LayoutConfig {
   bitOwners: (number | null)[];
   registerSize: number;
   valueView: 'hex' | 'dec';
-  valueBar: React.ReactNode;
 }
 
 interface ResizeHandleIconProps {
@@ -153,7 +152,7 @@ const VerticalLayoutView = ({
     getResizableEdges,
     onFieldContextMenu,
   } = interactions;
-  const { bitOwners, registerSize, valueView, valueBar } = layoutConfig;
+  const { bitOwners, registerSize, valueView } = layoutConfig;
 
   return (
     <div className="h-full flex flex-col min-h-0">
@@ -474,8 +473,6 @@ const VerticalLayoutView = ({
           })}
         </div>
       </div>
-
-      <div className="shrink-0 border-t vscode-border">{valueBar}</div>
     </div>
   );
 };
