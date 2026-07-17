@@ -423,7 +423,7 @@ const BitFieldVisualizerInner: React.FC<BitFieldVisualizerProps> = ({
           <VerticalLayoutView
             {...sharedProps}
             interactions={{ ...sharedProps.interactions, getResizableEdges }}
-            layoutConfig={{ bitOwners, registerSize, valueView, valueBar }}
+            layoutConfig={{ bitOwners, registerSize, valueView }}
           />
           {fieldContextMenuNode}
         </div>
@@ -436,7 +436,7 @@ const BitFieldVisualizerInner: React.FC<BitFieldVisualizerProps> = ({
         <ProLayoutView
           {...sharedProps}
           interactions={{ ...sharedProps.interactions, getResizableEdges }}
-          layoutConfig={{ bitOwners, registerSize, valueView, valueBar }}
+          layoutConfig={{ bitOwners, registerSize, valueView }}
         />
         {fieldContextMenuNode}
       </div>
