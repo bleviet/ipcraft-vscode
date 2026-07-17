@@ -357,7 +357,7 @@ export async function generateComponentXml(
   const derivedXguiFile = xguiFile ?? `xgui/${name}_v${versionStr}.tcl`;
 
   const fallbackFileSetPaths =
-    rtlFiles === undefined || simFiles === undefined
+    rtlFiles === undefined
       ? await getFileSetPaths(ipCore, 'RTL_Sources', filePathPrefix, ipCoreDir)
       : null;
   const resolvedRtlFiles = rtlFiles ?? fallbackFileSetPaths ?? [];

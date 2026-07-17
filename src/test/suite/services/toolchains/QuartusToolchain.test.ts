@@ -463,6 +463,29 @@ describe('resolveHwTclRtlFiles — compile order', () => {
     expect(entries.find((e) => e.name === 'legacy.v')?.hdl_type).toBe('VERILOG');
   });
 
+  it.each([undefined, 'example'])(
+    'uses the file extension for fallback entries with declared type %s',
+    async (declaredType) => {
+      tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-quartus-extension-type-'));
+      (fsPromises.readFile as jest.Mock).mockImplementation((p: string) =>
+        Promise.resolve(fs2.readFileSync(p, 'utf8'))
+      );
+      writeFile('rtl/legacy.v', 'module legacy;\nendmodule\n');
+
+      const ipCore = {
+        fileSets: [
+          {
+            name: 'RTL_Sources',
+            files: [{ path: 'rtl/legacy.v', type: declaredType }],
+          },
+        ],
+      };
+      const entries = await resolveHwTclRtlFiles(undefined, ipCore as never, false, 'dut', tmp);
+
+      expect(entries[0]?.hdl_type).toBe('VERILOG');
+    }
+  );
+
   it('preserves the declared fileSets order when ipCoreDir is not provided (degrade, no heuristic tiebreak)', async () => {
     // Deliberately out of dependency order (core before pkg): with no ipCoreDir to read
     // real content from, the fallback must not reorder via any naming heuristic — it

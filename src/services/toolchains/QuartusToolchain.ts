@@ -8,7 +8,7 @@ import { runProcess } from '../BuildRunner';
 import { findInInstallDir, getQuartusTool } from '../../utils/quartusResolver';
 import { fileExists } from '../../utils/fsHelpers';
 import { normalizeBusType } from '../../generator/registerProcessor';
-import { resolveFileSetRtlFiles } from '../../utils/compilationOrder';
+import { hdlLanguageFromPath, resolveFileSetRtlFiles } from '../../utils/compilationOrder';
 import type { IpCoreData } from '../../generator/types';
 import type { DockerConfig, LaunchEnv, SubToolDeclaration } from './LaunchableTool';
 import type {
@@ -100,7 +100,12 @@ export async function resolveHwTclRtlFiles(
     ipCoreDir,
     'RTL_Sources'
   );
-  return resolved.map((f) => toEntry(`../${f.path}`, hdlTypeFromFileType(f.type, isSv)));
+  return resolved.map((f) => {
+    const declaredHdlType =
+      f.type === 'vhdl' || f.type === 'systemverilog' || f.type === 'verilog' ? f.type : undefined;
+    const effectiveType = declaredHdlType ?? hdlLanguageFromPath(f.path) ?? f.type;
+    return toEntry(`../${f.path}`, hdlTypeFromFileType(effectiveType, isSv));
+  });
 }
 
 /**

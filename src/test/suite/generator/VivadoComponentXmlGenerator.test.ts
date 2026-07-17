@@ -11,6 +11,10 @@ import { parseComponentXmlText } from '../../../parser/ComponentXmlParser';
 import type { BusDefinitions, IpCoreData } from '../../../generator/types';
 import type { NormalizedMemoryMap } from '../../../domain/internal.types';
 
+const compilationOrder = jest.requireActual<typeof import('../../../utils/compilationOrder')>(
+  '../../../utils/compilationOrder'
+);
+
 // ── Fixtures ─────────────────────────────────────────────────────────────────
 
 const AXI4L_PORTS = [
@@ -849,6 +853,31 @@ describe('generateComponentXml', () => {
         }
       );
       expect(xml).toContain('<spirit:name>../tb/my_core_tb.vhd</spirit:name>');
+    });
+
+    it('does not resolve the fileSets fallback when rtlFiles is provided', async () => {
+      const resolveSpy = jest.spyOn(compilationOrder, 'resolveFileSetRtlFiles');
+      try {
+        await generateComponentXml(
+          makeIp({
+            fileSets: [
+              {
+                name: 'RTL_Sources',
+                files: [{ path: 'rtl/on_disk.vhd', type: 'vhdl' }],
+              },
+            ],
+          }),
+          BUS_DEFS,
+          {
+            rtlFiles: ['../rtl/pre_resolved.vhd'],
+            ipCoreDir: '/unused',
+          }
+        );
+
+        expect(resolveSpy).not.toHaveBeenCalled();
+      } finally {
+        resolveSpy.mockRestore();
+      }
     });
 
     it('emits xgui fileset with tclSource', async () => {
