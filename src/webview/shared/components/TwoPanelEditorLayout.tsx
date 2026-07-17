@@ -3,7 +3,7 @@ import React, { useCallback, useRef, useState } from 'react';
 export interface TwoPanelEditorLayoutProps {
   /** Header bar (use EditorHeader). */
   header: React.ReactNode;
-  /** Visualizer component (BitFieldVisualizer, RegisterMapVisualizer, etc.). */
+  /** Visualizer component (e.g. BitFieldVisualizer, AddressMapVisualizer). */
   visualizer: React.ReactNode;
   /** Main table / editing area. */
   table: React.ReactNode;

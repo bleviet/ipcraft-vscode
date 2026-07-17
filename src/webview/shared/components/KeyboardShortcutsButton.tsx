@@ -51,40 +51,10 @@ const MEMORY_MAP_SHORTCUTS: ShortcutGroup[] = [
   },
 ];
 
-const BLOCK_VIEW_SHORTCUTS: ShortcutGroup[] = [
-  {
-    title: 'Register Map Visualizer',
-    shortcuts: [
-      { keys: 'Ctrl/⌘ + Drag', description: 'Move register (reorder)' },
-      { keys: 'Click register', description: 'Select register' },
-    ],
-  },
-  {
-    title: 'Registers Table',
-    shortcuts: [
-      { keys: '↑ / ↓ (or j / k)', description: 'Navigate rows' },
-      { keys: '← / → (or h / l)', description: 'Navigate columns' },
-      { keys: 'Enter / e', description: 'Edit cell' },
-      { keys: 'o / O', description: 'Insert register below/above' },
-      { keys: 'Shift + A / I', description: 'Insert array below/above' },
-      { keys: 'd / Del', description: 'Delete register' },
-      { keys: 'Alt + ↑/↓ (or j/k)', description: 'Move register up/down' },
-    ],
-  },
-];
-
 const ARRAY_VIEW_SHORTCUTS: ShortcutGroup[] = [
   {
     title: 'Array Properties',
     shortcuts: [{ keys: 'Tab', description: 'Navigate between name/count/stride fields' }],
-  },
-  {
-    title: 'Nested Registers Table',
-    shortcuts: [
-      { keys: '↑ / ↓ (or j / k)', description: 'Navigate rows' },
-      { keys: 'o / O', description: 'Insert register below/above' },
-      { keys: 'd / Del', description: 'Delete register' },
-    ],
   },
 ];
 
@@ -98,10 +68,18 @@ const OUTLINE_SHORTCUTS: ShortcutGroup[] = [
       { keys: 'F2 / e', description: 'Rename item' },
     ],
   },
+  {
+    title: 'Registers (with a register selected)',
+    shortcuts: [
+      { keys: 'o / O', description: 'Insert register below/above' },
+      { keys: 'Shift + A / I', description: 'Insert array below/above' },
+      { keys: 'd / Del', description: 'Delete register' },
+    ],
+  },
 ];
 
 interface KeyboardShortcutsButtonProps {
-  context: 'register' | 'block' | 'memoryMap' | 'outline' | 'array';
+  context: 'register' | 'memoryMap' | 'outline' | 'array';
 }
 
 export const KeyboardShortcutsButton: React.FC<KeyboardShortcutsButtonProps> = ({ context }) => {
@@ -114,8 +92,6 @@ export const KeyboardShortcutsButton: React.FC<KeyboardShortcutsButtonProps> = (
         return REGISTER_SHORTCUTS;
       case 'memoryMap':
         return MEMORY_MAP_SHORTCUTS;
-      case 'block':
-        return BLOCK_VIEW_SHORTCUTS;
       case 'array':
         return ARRAY_VIEW_SHORTCUTS;
       case 'outline':

@@ -385,6 +385,7 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
       startEditing,
       memoryMap,
       setExpanded,
+      onRegisterAction,
     });
 
     const { getDragProps, previewMove } = useOutlineDragReorder(onReorder);
