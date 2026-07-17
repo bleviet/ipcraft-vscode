@@ -19,15 +19,101 @@ export type HdlLanguage = 'vhdl' | 'systemverilog' | 'verilog';
 export interface HdlDependencies {
   /** Primary-design-unit names declared in this file (lower-cased for VHDL). */
   declares: Set<string>;
-  /**
-   * Unit names this file references via a use clause or direct entity
-   * instantiation (lower-cased for VHDL), regardless of library alias.
-   * Matching against `declares` happens by name only in topoSort's declMap,
-   * so a reference to a library with no matching declared unit in the batch
-   * (e.g. `ieee`) simply produces no edge — see resolveFileSetRtlFiles's
-   * doc comment for the fallback-path context this feeds.
-   */
+  /** Referenced unit or macro names (lower-cased for VHDL). */
   uses: Set<string>;
+}
+
+type SymbolKind = 'vhdl-package' | 'vhdl-entity' | 'vhdl-context' | 'sv-package' | 'macro';
+
+interface HdlSymbol {
+  name: string;
+  kind: SymbolKind;
+  library?: string;
+}
+
+interface ParsedHdlDependencies extends HdlDependencies {
+  declaredSymbols: HdlSymbol[];
+  referencedSymbols: HdlSymbol[];
+}
+
+function makeParsedDependencies(
+  declaredSymbols: HdlSymbol[],
+  referencedSymbols: HdlSymbol[],
+  extraDeclarations: string[] = []
+): ParsedHdlDependencies {
+  return {
+    declares: new Set([...declaredSymbols.map((symbol) => symbol.name), ...extraDeclarations]),
+    uses: new Set(referencedSymbols.map((symbol) => symbol.name)),
+    declaredSymbols,
+    referencedSymbols,
+  };
+}
+
+function normalizeVhdlLibrary(logicalName: string | undefined): string {
+  const normalized = logicalName?.trim().toLowerCase();
+  return normalized && normalized.length > 0 ? normalized : 'work';
+}
+
+function parseVhdlDependencies(
+  content: string,
+  logicalName: string | undefined = undefined
+): ParsedHdlDependencies {
+  const declaredSymbols: HdlSymbol[] = [];
+  const referencedSymbols: HdlSymbol[] = [];
+  const source = content
+    .replace(/"(?:[^"]|"")*"/g, ' ')
+    .replace(/--[^\r\n]*/g, ' ')
+    .toLowerCase();
+  const currentLibrary = normalizeVhdlLibrary(logicalName);
+  const resolveLibrary = (library: string): string =>
+    library.toLowerCase() === 'work' ? currentLibrary : library.toLowerCase();
+  const declare = (name: string, kind: SymbolKind): void => {
+    declaredSymbols.push({ name: name.toLowerCase(), kind, library: currentLibrary });
+  };
+  const reference = (library: string, name: string, kind: SymbolKind): void => {
+    referencedSymbols.push({
+      name: name.toLowerCase(),
+      kind,
+      library: resolveLibrary(library),
+    });
+  };
+
+  for (const match of source.matchAll(/\bpackage\s+(?!body\b)(\w+)\s+is\b/g)) {
+    declare(match[1], 'vhdl-package');
+  }
+  for (const match of source.matchAll(/\bentity\s+(\w+)\s+is\b/g)) {
+    declare(match[1], 'vhdl-entity');
+  }
+  for (const match of source.matchAll(/\bcontext\s+(\w+)\s+is\b/g)) {
+    declare(match[1], 'vhdl-context');
+  }
+
+  for (const match of source.matchAll(/\bpackage\s+body\s+(\w+)\s+is\b/g)) {
+    reference('work', match[1], 'vhdl-package');
+  }
+  for (const match of source.matchAll(/\barchitecture\s+\w+\s+of\s+(\w+)\s+is\b/g)) {
+    reference('work', match[1], 'vhdl-entity');
+  }
+  for (const match of source.matchAll(/\bconfiguration\s+\w+\s+of\s+(\w+)\s+is\b/g)) {
+    reference('work', match[1], 'vhdl-entity');
+  }
+  for (const match of source.matchAll(/\bpackage\s+\w+\s+is\s+new\s+(\w+)\s*\.\s*(\w+)/g)) {
+    reference(match[1], match[2], 'vhdl-package');
+  }
+
+  for (const clause of source.matchAll(/\buse\s+([^;]+);/g)) {
+    for (const match of clause[1].matchAll(/(?:^|,)\s*(\w+)\s*\.\s*(\w+)/g)) {
+      reference(match[1], match[2], 'vhdl-package');
+    }
+  }
+  for (const match of source.matchAll(/\bentity\s+(\w+)\s*\.\s*(\w+)/g)) {
+    reference(match[1], match[2], 'vhdl-entity');
+  }
+  for (const match of source.matchAll(/\bcontext\s+(\w+)\s*\.\s*(\w+)\s*;/g)) {
+    reference(match[1], match[2], 'vhdl-context');
+  }
+
+  return makeParsedDependencies(declaredSymbols, referencedSymbols);
 }
 
 /**
@@ -35,49 +121,50 @@ export interface HdlDependencies {
  * Matching is case-insensitive (VHDL is case-insensitive).
  */
 export function extractVhdlDependencies(content: string): HdlDependencies {
-  const declares = new Set<string>();
-  const uses = new Set<string>();
+  const { declares, uses } = parseVhdlDependencies(content);
+  return { declares, uses };
+}
 
-  for (const rawLine of content.split('\n')) {
-    const line = rawLine.replace(/--.*$/, '').trim().toLowerCase();
-    if (!line) {
-      continue;
+function parseSvDependencies(content: string): ParsedHdlDependencies {
+  const declaredSymbols: HdlSymbol[] = [];
+  const referencedSymbols: HdlSymbol[] = [];
+  const moduleNames: string[] = [];
+  const stripped = content
+    .replace(/"(?:\\.|[^"\\])*"/g, ' ')
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .replace(/\/\/[^\r\n]*/g, ' ');
+
+  for (const match of stripped.matchAll(/\bpackage\s+(\w+)\s*(?:#\s*\([^;]*\)\s*)?;/g)) {
+    declaredSymbols.push({ name: match[1], kind: 'sv-package' });
+  }
+  for (const match of stripped.matchAll(/\bmodule\s+(\w+)\b/g)) {
+    moduleNames.push(match[1]);
+  }
+  for (const match of stripped.matchAll(/\b(?:import\s+)?(\w+)\s*::\s*(?:\w+|\*)/g)) {
+    referencedSymbols.push({ name: match[1], kind: 'sv-package' });
+  }
+
+  for (const rawLine of stripped.split(/\r?\n/)) {
+    const define = /^\s*`define\s+(\w+)/.exec(rawLine);
+    let macroText = rawLine;
+    if (define) {
+      declaredSymbols.push({ name: define[1], kind: 'macro' });
+      macroText = rawLine.slice(define.index + define[0].length);
     }
 
-    // package pkg_name is
-    let m = /^package\s+(\w+)\s+is\b/.exec(line);
-    if (m) {
-      declares.add(m[1]);
-      continue;
+    const conditional = /^\s*`(?:ifdef|ifndef|elsif|undef)\s+(\w+)/.exec(rawLine);
+    if (conditional) {
+      referencedSymbols.push({ name: conditional[1], kind: 'macro' });
     }
 
-    // entity entity_name is
-    m = /^entity\s+(\w+)\s+is\b/.exec(line);
-    if (m) {
-      declares.add(m[1]);
-      continue;
-    }
-
-    // use <library>.name[.suffix][;] — the library alias may be `work` or a
-    // named library (e.g. a vendor package compiled as `library neorv32;`).
-    // Matching is by declared-unit name only (see topoSort's declMap), so an
-    // unrelated library (e.g. `ieee`) simply has no match and is ignored.
-    m = /^use\s+\w+\.(\w+)/.exec(line);
-    if (m) {
-      uses.add(m[1]);
-      continue;
-    }
-
-    // direct entity instantiation: label: entity <library>.<entity_name> [(arch)]
-    // Not line-anchored — it follows an instantiation label, e.g.
-    // "u_core: entity work.foo port map (...)". Distinguished from the "entity
-    // NAME is" declaration above by the required library.name dot-form.
-    for (const im of line.matchAll(/\bentity\s+\w+\.(\w+)/g)) {
-      uses.add(im[1]);
+    for (const match of macroText.matchAll(/`(\w+)/g)) {
+      if (!SV_DIRECTIVE_KEYWORDS.has(match[1])) {
+        referencedSymbols.push({ name: match[1], kind: 'macro' });
+      }
     }
   }
 
-  return { declares, uses };
+  return makeParsedDependencies(declaredSymbols, referencedSymbols, moduleNames);
 }
 
 /**
@@ -87,60 +174,7 @@ export function extractVhdlDependencies(content: string): HdlDependencies {
  * values). Matching is case-sensitive (SV/Verilog are case-sensitive).
  */
 export function extractSvDependencies(content: string): HdlDependencies {
-  const declares = new Set<string>();
-  const uses = new Set<string>();
-
-  // Strip block comments before line-by-line processing
-  const stripped = content.replace(/\/\*[\s\S]*?\*\//g, ' ');
-
-  for (const rawLine of stripped.split('\n')) {
-    const line = rawLine.replace(/\/\/.*$/, '').trim();
-    if (!line) {
-      continue;
-    }
-
-    // package pkg_name;  (start of a package declaration)
-    let m = /^package\s+(\w+)\s*;/.exec(line);
-    if (m) {
-      declares.add(m[1]);
-      continue;
-    }
-
-    // module module_name (optional_import_or_params
-    m = /^module\s+(\w+)\b/.exec(line);
-    if (m) {
-      declares.add(m[1]);
-      continue;
-    }
-
-    // import pkg_name::*; or import pkg_name::symbol;
-    m = /^import\s+(\w+)::/.exec(line);
-    if (m) {
-      uses.add(m[1]);
-      continue;
-    }
-
-    // `define MACRO_NAME ...  (also covers function-like `define FOO(a,b) ...)
-    m = /^`define\s+(\w+)/.exec(line);
-    if (m) {
-      declares.add(m[1]);
-      continue;
-    }
-
-    // Bare `MACRO_NAME reference elsewhere in the file (e.g. an expression
-    // using a shared opcode/parameter macro from another file, common in
-    // plain-Verilog designs that predate SV packages). Skips known
-    // compiler-directive keywords so `` `include ``/`` `ifdef `` etc. aren't
-    // mistaken for a use of a same-named declared unit — an unrecognized
-    // directive is harmless too, since declMap lookup silently ignores any
-    // name nothing in the batch declares.
-    for (const dm of line.matchAll(/`(\w+)/g)) {
-      if (!SV_DIRECTIVE_KEYWORDS.has(dm[1])) {
-        uses.add(dm[1]);
-      }
-    }
-  }
-
+  const { declares, uses } = parseSvDependencies(content);
   return { declares, uses };
 }
 
@@ -173,8 +207,16 @@ const SV_DIRECTIVE_KEYWORDS = new Set([
 
 interface CompilationUnit {
   path: string;
-  declares: Set<string>;
-  uses: Set<string>;
+  declaredSymbols: HdlSymbol[];
+  referencedSymbols: HdlSymbol[];
+}
+
+export interface CompilationOrderItem {
+  path: string;
+  language: string;
+  content?: string;
+  /** VHDL logical library for this file. Unset entries compile into `work`. */
+  logicalName?: string;
 }
 
 /**
@@ -191,7 +233,7 @@ interface CompilationUnit {
  * detected the original order is returned unchanged.
  */
 export async function sortByCompilationOrder(
-  items: Array<{ path: string; language: string; content?: string }>,
+  items: CompilationOrderItem[],
   readContent: (path: string) => Promise<string | null | undefined>
 ): Promise<string[]> {
   if (items.length <= 1) {
@@ -202,7 +244,7 @@ export async function sortByCompilationOrder(
     items.map(async (item): Promise<CompilationUnit> => {
       const lang = item.language as HdlLanguage;
       if (lang !== 'vhdl' && lang !== 'systemverilog' && lang !== 'verilog') {
-        return { path: item.path, declares: new Set(), uses: new Set() };
+        return { path: item.path, declaredSymbols: [], referencedSymbols: [] };
       }
 
       let content = item.content;
@@ -214,10 +256,12 @@ export async function sortByCompilationOrder(
         }
       }
 
-      const { declares, uses } =
-        lang === 'vhdl' ? extractVhdlDependencies(content) : extractSvDependencies(content);
+      const { declaredSymbols, referencedSymbols } =
+        lang === 'vhdl'
+          ? parseVhdlDependencies(content, item.logicalName)
+          : parseSvDependencies(content);
 
-      return { path: item.path, declares, uses };
+      return { path: item.path, declaredSymbols, referencedSymbols };
     })
   );
 
@@ -225,11 +269,12 @@ export async function sortByCompilationOrder(
 }
 
 function topoSort(units: CompilationUnit[]): string[] {
-  // Map each declared name to the unit that declares it
+  // Keys include symbol kind and VHDL logical library so same-named units in
+  // different libraries cannot steal one another's dependency edges.
   const declMap = new Map<string, CompilationUnit>();
   for (const unit of units) {
-    for (const name of unit.declares) {
-      declMap.set(name, unit);
+    for (const symbol of unit.declaredSymbols) {
+      declMap.set(symbolKey(symbol), unit);
     }
   }
 
@@ -247,8 +292,8 @@ function topoSort(units: CompilationUnit[]): string[] {
       return;
     }
     visiting.add(unit);
-    for (const usedName of unit.uses) {
-      const dep = declMap.get(usedName);
+    for (const reference of unit.referencedSymbols) {
+      const dep = declMap.get(symbolKey(reference));
       if (dep && dep !== unit) {
         visit(dep);
         if (hasCycle) {
@@ -271,6 +316,10 @@ function topoSort(units: CompilationUnit[]): string[] {
   }
 
   return result;
+}
+
+function symbolKey(symbol: HdlSymbol): string {
+  return `${symbol.kind}\0${symbol.library ?? ''}\0${symbol.name}`;
 }
 
 // ── FileSet resolution (fallback path) ────────────────────────────────────────
@@ -301,6 +350,8 @@ export interface FileSetRtlFile {
   path: string;
   /** Declared `type` field from the fileSet entry (e.g. 'vhdl', 'systemverilog', 'verilog'). */
   type: string | undefined;
+  /** VHDL logical library declared for this file. */
+  logicalName: string | undefined;
 }
 
 /**
@@ -323,7 +374,7 @@ export async function resolveFileSetRtlFiles(
   ipCoreDir: string,
   fileSetName: string
 ): Promise<FileSetRtlFile[]> {
-  type FileEntry = { path?: string; type?: string };
+  type FileEntry = { path?: string; type?: string; logicalName?: string };
   type FileSetEntry = { name?: string; files?: FileEntry[] };
 
   const fileSets = ipCoreData.fileSets as FileSetEntry[] | undefined;
@@ -345,15 +396,22 @@ export async function resolveFileSetRtlFiles(
     return {
       relPath: f.path,
       type: f.type,
+      logicalName: f.logicalName,
       absPath: path.resolve(ipCoreDir, f.path),
       language,
     };
   });
 
-  const infoByAbsPath = new Map(items.map((i) => [i.absPath, { path: i.relPath, type: i.type }]));
+  const infoByAbsPath = new Map(
+    items.map((i) => [i.absPath, { path: i.relPath, type: i.type, logicalName: i.logicalName }])
+  );
 
   const sortedAbsPaths = await sortByCompilationOrder(
-    items.map(({ absPath, language }) => ({ path: absPath, language })),
+    items.map(({ absPath, language, logicalName }) => ({
+      path: absPath,
+      language,
+      logicalName,
+    })),
     async (p) => {
       try {
         return await fs.readFile(p, 'utf8');

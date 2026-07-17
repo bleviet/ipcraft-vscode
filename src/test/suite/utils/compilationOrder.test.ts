@@ -72,6 +72,18 @@ describe('extractVhdlDependencies', () => {
     expect(uses).toContain('my_core');
   });
 
+  it('detects secondary-unit dependencies on their primary units', () => {
+    const { uses: architectureUses } = extractVhdlDependencies(
+      'architecture rtl of my_core is\nbegin\nend architecture;'
+    );
+    const { uses: packageBodyUses } = extractVhdlDependencies(
+      'package body types_pkg is\nend package body;'
+    );
+
+    expect(architectureUses).toContain('my_core');
+    expect(packageBodyUses).toContain('types_pkg');
+  });
+
   it('is case-insensitive for VHDL keywords', () => {
     const content = `
       PACKAGE Foo_Pkg IS
@@ -131,6 +143,16 @@ describe('extractSvDependencies', () => {
     expect(uses).toContain('foo_pkg');
   });
 
+  it('detects inline module imports and scoped package references', () => {
+    const content = `
+      module my_core import foo_pkg::*; (input bar_pkg::word_t data);
+      endmodule
+    `;
+    const { uses } = extractSvDependencies(content);
+    expect(uses).toContain('foo_pkg');
+    expect(uses).toContain('bar_pkg');
+  });
+
   it('strips single-line comments', () => {
     const { declares } = extractSvDependencies('module my_mod // the top module\n(input clk);');
     expect(declares).toContain('my_mod');
@@ -164,7 +186,7 @@ describe('extractSvDependencies', () => {
     expect(uses).toContain('OPCODE_BKP');
   });
 
-  it('does not treat compiler directives (`include, `ifdef, etc.) as macro uses', () => {
+  it('ignores directive keywords while retaining conditional macro references', () => {
     const content = `
       \`include "foo.v"
       \`ifdef SIMULATION
@@ -172,7 +194,10 @@ describe('extractSvDependencies', () => {
       \`timescale 1ns/1ps
     `;
     const { uses } = extractSvDependencies(content);
-    expect(uses.size).toBe(0);
+    expect(uses).toEqual(new Set(['SIMULATION']));
+    expect(uses).not.toContain('include');
+    expect(uses).not.toContain('ifdef');
+    expect(uses).not.toContain('timescale');
   });
 
   it("does not double-count a `define line's own macro name as a use of itself", () => {
@@ -242,12 +267,54 @@ describe('sortByCompilationOrder', () => {
     const result = await sortByCompilationOrder(
       [
         { path: '/top.vhd', language: 'vhdl' },
-        { path: '/pkg.vhd', language: 'vhdl' },
+        { path: '/pkg.vhd', language: 'vhdl', logicalName: 'neorv32' },
       ],
       reader
     );
 
     expect(result.indexOf('/pkg.vhd')).toBeLessThan(result.indexOf('/top.vhd'));
+  });
+
+  it('uses VHDL library identity when multiple libraries declare the same unit name', async () => {
+    const reader = makeReader({
+      '/consumer.vhd': 'library liba;\nuse liba.types.all;\nentity consumer is\nend entity;',
+      '/liba_types.vhd': 'package types is\nend package;',
+      '/libb_types.vhd': 'package types is\nend package;',
+    });
+
+    const result = await sortByCompilationOrder(
+      [
+        { path: '/consumer.vhd', language: 'vhdl' },
+        { path: '/liba_types.vhd', language: 'vhdl', logicalName: 'liba' },
+        { path: '/libb_types.vhd', language: 'vhdl', logicalName: 'libb' },
+      ],
+      reader
+    );
+
+    expect(result.indexOf('/liba_types.vhd')).toBeLessThan(result.indexOf('/consumer.vhd'));
+    expect(result.indexOf('/consumer.vhd')).toBeLessThan(result.indexOf('/libb_types.vhd'));
+  });
+
+  it('orders VHDL primary units before separate architectures and package bodies', async () => {
+    const reader = makeReader({
+      '/architecture.vhd': 'architecture rtl of core is\nbegin\nend architecture;',
+      '/entity.vhd': 'entity core is\nend entity;',
+      '/body.vhd': 'package body types_pkg is\nend package body;',
+      '/spec.vhd': 'package types_pkg is\nend package;',
+    });
+
+    const result = await sortByCompilationOrder(
+      [
+        { path: '/architecture.vhd', language: 'vhdl' },
+        { path: '/body.vhd', language: 'vhdl' },
+        { path: '/entity.vhd', language: 'vhdl' },
+        { path: '/spec.vhd', language: 'vhdl' },
+      ],
+      reader
+    );
+
+    expect(result.indexOf('/entity.vhd')).toBeLessThan(result.indexOf('/architecture.vhd'));
+    expect(result.indexOf('/spec.vhd')).toBeLessThan(result.indexOf('/body.vhd'));
   });
 
   it('orders sub-entities before a top file that directly instantiates them', async () => {
@@ -438,6 +505,23 @@ describe('sortByCompilationOrder', () => {
     expect(result.indexOf('/types.sv')).toBeLessThan(result.indexOf('/top.sv'));
   });
 
+  it('sorts SystemVerilog packages before same-line imports and scoped references', async () => {
+    const reader = makeReader({
+      '/top.sv': 'module top import types_pkg::*; (input types_pkg::word_t data);\nendmodule',
+      '/types.sv': 'package types_pkg;\ntypedef logic [7:0] word_t;\nendpackage',
+    });
+
+    const result = await sortByCompilationOrder(
+      [
+        { path: '/top.sv', language: 'systemverilog' },
+        { path: '/types.sv', language: 'systemverilog' },
+      ],
+      reader
+    );
+
+    expect(result).toEqual(['/types.sv', '/top.sv']);
+  });
+
   it('passes non-HDL files through without reordering', async () => {
     const reader = makeReader({});
     const result = await sortByCompilationOrder(
@@ -537,6 +621,34 @@ describe('resolveFileSetRtlFiles', () => {
 
     const result = await resolveFileSetRtlFiles(ipCoreData, tmp, 'RTL_Sources');
     expect(result.map((f) => f.path)).toEqual(['rtl/weird_types.vhd', 'rtl/main_logic.vhd']);
+  });
+
+  it('preserves logicalName and uses it to resolve named-library dependencies', async () => {
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-resolve-fileset-library-'));
+    writeFile(
+      'rtl/consumer.vhd',
+      'library liba;\nuse liba.types.all;\nentity consumer is\nend entity;'
+    );
+    writeFile('rtl/liba_types.vhd', 'package types is\nend package;');
+    writeFile('rtl/libb_types.vhd', 'package types is\nend package;');
+
+    const ipCoreData = {
+      fileSets: [
+        {
+          name: 'RTL_Sources',
+          files: [
+            { path: 'rtl/consumer.vhd', type: 'vhdl' },
+            { path: 'rtl/liba_types.vhd', type: 'vhdl', logicalName: 'liba' },
+            { path: 'rtl/libb_types.vhd', type: 'vhdl', logicalName: 'libb' },
+          ],
+        },
+      ],
+    };
+
+    const result = await resolveFileSetRtlFiles(ipCoreData, tmp, 'RTL_Sources');
+    const paths = result.map((f) => f.path);
+    expect(paths.indexOf('rtl/liba_types.vhd')).toBeLessThan(paths.indexOf('rtl/consumer.vhd'));
+    expect(result.find((f) => f.path === 'rtl/liba_types.vhd')?.logicalName).toBe('liba');
   });
 
   it('includes type: verilog entries rather than dropping them', async () => {

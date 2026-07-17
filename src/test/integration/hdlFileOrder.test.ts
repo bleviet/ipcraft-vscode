@@ -5,9 +5,8 @@
  * A prior fix (commit 52b7d6f) sorted fallback RTL lists with a filename-suffix
  * heuristic (`hdlCompileRank`: _pkg -> 0, _regs -> 1, _core -> 2, bus-suffix -> 3,
  * else -> 4). That heuristic is blind to real dependencies: two adversarially named
- * files below ('main_logic.vhd', 'weird_types.vhd') sort in the WRONG compile order
- * both alphabetically and under that heuristic, even though 'main_logic.vhd' actually
- * `use work`s a package 'weird_types.vhd' declares.
+ * files below sort in the WRONG compile order both alphabetically and under that
+ * heuristic. The real dependency chain is package -> entity -> architecture.
  *
  * This test proves, with a real `ghdl -a` analyze pass, that:
  *   1. The wrong (declared) order genuinely fails to compile (negative control —
@@ -53,6 +52,9 @@ const MAIN_LOGIC_VHD = [
   '  );',
   'end entity main_logic;',
   '',
+].join('\n');
+
+const IMPLEMENTATION_VHD = [
   'architecture rtl of main_logic is',
   'begin',
   '  state <= idle;',
@@ -67,9 +69,9 @@ function makeIpCoreData(): IpCoreData {
     fileSets: [
       {
         name: 'RTL_Sources',
-        // Declared in the WRONG order — main_logic (the user) before weird_types
-        // (its dependency).
+        // Declared in the WRONG order: architecture, entity, then package.
         files: [
+          { path: 'rtl/implementation.vhd', type: 'vhdl' },
           { path: 'rtl/main_logic.vhd', type: 'vhdl' },
           { path: 'rtl/weird_types.vhd', type: 'vhdl' },
         ],
@@ -100,6 +102,7 @@ describe('GHDL oracle: RTL compile order (issue #91, reopened)', () => {
     fs.mkdirSync(path.join(scratchDir, 'rtl'), { recursive: true });
     fs.writeFileSync(path.join(scratchDir, 'rtl', 'weird_types.vhd'), WEIRD_TYPES_VHD);
     fs.writeFileSync(path.join(scratchDir, 'rtl', 'main_logic.vhd'), MAIN_LOGIC_VHD);
+    fs.writeFileSync(path.join(scratchDir, 'rtl', 'implementation.vhd'), IMPLEMENTATION_VHD);
   });
 
   afterAll(() => {
@@ -115,6 +118,7 @@ describe('GHDL oracle: RTL compile order (issue #91, reopened)', () => {
     // Proves this test can actually discriminate correct vs. incorrect order —
     // if this assertion ever fails, the rest of this suite is not trustworthy.
     const { success, output } = ghdlAnalyze(scratchDir, [
+      'rtl/implementation.vhd',
       'rtl/main_logic.vhd',
       'rtl/weird_types.vhd',
     ]);
@@ -141,7 +145,11 @@ describe('GHDL oracle: RTL compile order (issue #91, reopened)', () => {
         ordered.push(m[1]);
       }
     }
-    expect(ordered).toEqual(['rtl/weird_types.vhd', 'rtl/main_logic.vhd']);
+    expect(ordered).toEqual([
+      'rtl/weird_types.vhd',
+      'rtl/main_logic.vhd',
+      'rtl/implementation.vhd',
+    ]);
 
     const { success, output } = ghdlAnalyze(scratchDir, ordered);
     if (!success) {
@@ -165,7 +173,11 @@ describe('GHDL oracle: RTL compile order (issue #91, reopened)', () => {
     // (hence the leading '../'); scratchDir here doubles as ipCoreDir directly, so
     // strip that prefix back off before resolving relative to scratchDir.
     const ordered = entries.map((e) => e.path.replace(/^\.\.\//, ''));
-    expect(ordered).toEqual(['rtl/weird_types.vhd', 'rtl/main_logic.vhd']);
+    expect(ordered).toEqual([
+      'rtl/weird_types.vhd',
+      'rtl/main_logic.vhd',
+      'rtl/implementation.vhd',
+    ]);
 
     const { success, output } = ghdlAnalyze(scratchDir, ordered);
     if (!success) {

@@ -31,6 +31,9 @@ function hdlTypeFromPath(filePath: string): string {
   if (ext === '.sv' || ext === '.svh') {
     return 'SYSTEM_VERILOG';
   }
+  if (ext === '.v' || ext === '.vh') {
+    return 'VERILOG';
+  }
   return 'VHDL';
 }
 

@@ -457,9 +457,10 @@ describe('resolveHwTclRtlFiles — compile order', () => {
   });
 
   it('uses rtlFiles directly when provided (no sort override)', async () => {
-    const provided = ['../rtl/dut.vhd', '../rtl/dut_pkg.vhd'];
+    const provided = ['../rtl/dut.vhd', '../rtl/dut_pkg.vhd', '../rtl/legacy.v'];
     const entries = await resolveHwTclRtlFiles(provided, {} as never, false, 'dut', undefined);
     expect(entries.map((e) => e.path)).toEqual(provided);
+    expect(entries.find((e) => e.name === 'legacy.v')?.hdl_type).toBe('VERILOG');
   });
 
   it('preserves the declared fileSets order when ipCoreDir is not provided (degrade, no heuristic tiebreak)', async () => {

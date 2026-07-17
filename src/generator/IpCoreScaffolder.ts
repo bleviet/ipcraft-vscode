@@ -572,7 +572,10 @@ export async function collectRtlAbsPaths(
   // Imported IP cores can contain both VHDL and SV files (e.g. when a _hw.tcl sources
   // subpackage TCLs that contribute files in different languages). Include all HDL files
   // and pass the per-file language so the full cross-file dependency graph is built.
-  type FileSetEntry = { name?: string; files?: Array<{ path?: string; type?: string }> };
+  type FileSetEntry = {
+    name?: string;
+    files?: Array<{ path?: string; type?: string; logicalName?: string }>;
+  };
   const fileSets = (ipCoreData as Record<string, unknown>).fileSets as FileSetEntry[] | undefined;
 
   // Resolve a fileSets entry's compile-order language, or undefined when it is genuinely
@@ -602,15 +605,23 @@ export async function collectRtlAbsPaths(
     .filter((fs) => fs.name !== 'Simulation_Resources')
     .flatMap((fs) => fs.files ?? [])
     .filter(
-      (f): f is { path: string; type?: string } =>
+      (f): f is { path: string; type?: string; logicalName?: string } =>
         typeof f.path === 'string' && f.path.length > 0 && !isSimPath(f.path)
     )
     .filter((f) => !generatedStemSet.has(stripExt(f.path)))
-    .map((f) => ({ path: f.path, language: resolveExtraLanguage(f) }))
-    .filter((f): f is { path: string; language: string } => f.language !== undefined)
+    .map((f) => ({
+      path: f.path,
+      language: resolveExtraLanguage(f),
+      logicalName: f.logicalName,
+    }))
+    .filter(
+      (f): f is { path: string; language: string; logicalName: string | undefined } =>
+        f.language !== undefined
+    )
     .map((f) => ({
       absPath: path.resolve(ipCoreDir, f.path),
       language: f.language,
+      logicalName: f.logicalName,
     }));
 
   if (generatedRelPaths.length === 0 && extraFileItems.length === 0) {
@@ -629,6 +640,7 @@ export async function collectRtlAbsPaths(
     absPath: path.resolve(outputDir, relPath),
     relPath: relPath as string | undefined,
     language: relPath.endsWith('.sv') ? ('systemverilog' as const) : ('vhdl' as const),
+    logicalName: undefined as string | undefined,
   }));
   const combined = [
     ...generatedItems,
@@ -637,7 +649,11 @@ export async function collectRtlAbsPaths(
   const relPathByAbsPath = new Map(combined.map((item) => [item.absPath, item.relPath]));
 
   return sortByCompilationOrder(
-    combined.map(({ absPath, language }) => ({ path: absPath, language })),
+    combined.map(({ absPath, language, logicalName }) => ({
+      path: absPath,
+      language,
+      logicalName,
+    })),
     async (p) => {
       const relPath = relPathByAbsPath.get(p);
       if (relPath !== undefined) {
