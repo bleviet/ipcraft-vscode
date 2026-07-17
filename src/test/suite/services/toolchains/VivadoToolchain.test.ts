@@ -3,6 +3,12 @@ import * as vivadoResolver from '../../../../utils/vivadoResolver';
 import * as fsHelpers from '../../../../utils/fsHelpers';
 import * as buildRunner from '../../../../services/BuildRunner';
 import * as childProcess from 'child_process';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import type { ScaffoldContext } from '../../../../services/toolchains/SynthesisToolchain';
+import type { TemplateLoader } from '../../../../generator/TemplateLoader';
+import type { IpCoreData } from '../../../../generator/types';
 
 jest.mock('../../../../utils/vivadoResolver');
 jest.mock('../../../../utils/fsHelpers');
@@ -132,6 +138,88 @@ describe('VivadoToolchain', () => {
         expect.objectContaining({ cwd: expect.stringContaining('xilinx') })
       );
     });
+  });
+});
+
+describe('VivadoToolchain.scaffold() — RTL file fallback (issue #91)', () => {
+  // Real templates.render() isn't needed to prove the fix — only that the
+  // project TCL / XDC set receives the same resolved, compile-ordered rtl_files
+  // that the built-in component.xml generator resolves, instead of silently
+  // falling back to `opts.rtlFiles ?? []` (which was empty whenever the
+  // scaffolder hadn't precomputed rtlFiles for this run).
+  let tmp: string;
+  let renderCalls: Array<{ name: string; ctx: Record<string, unknown> }>;
+  let templates: TemplateLoader;
+
+  beforeEach(() => {
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-vivado-scaffold-fallback-'));
+    fs.writeFileSync(path.join(tmp, 'weird_types.vhd'), 'package internal_types is\nend package;');
+    fs.writeFileSync(
+      path.join(tmp, 'main_logic.vhd'),
+      'use work.internal_types.all;\nentity main_logic is\nend entity;'
+    );
+    renderCalls = [];
+    templates = {
+      hasTemplate: jest.fn().mockReturnValue(false),
+      render: jest.fn((name: string, ctx: Record<string, unknown>) => {
+        renderCalls.push({ name, ctx });
+        return '';
+      }),
+    } as unknown as TemplateLoader;
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  });
+
+  it('resolves rtl_files for the project TCL/XDC set from fileSets when opts.rtlFiles is undefined', async () => {
+    const ipCoreData = {
+      vlnv: { vendor: 'test', library: 'ip', name: 'main_logic', version: '1.0' },
+      fileSets: [
+        {
+          name: 'RTL_Sources',
+          // Declared in the wrong order — proves real dependency parsing, not
+          // just "whatever opts.rtlFiles happened to contain".
+          files: [
+            { path: 'main_logic.vhd', type: 'vhdl' },
+            { path: 'weird_types.vhd', type: 'vhdl' },
+          ],
+        },
+      ],
+    } as unknown as IpCoreData;
+
+    const ctx: ScaffoldContext = {
+      name: 'main_logic',
+      templateContext: {},
+      templates,
+      ipCoreData,
+      busDefinitions: {},
+      isSv: false,
+      memoryMaps: [],
+      ipCoreDir: tmp,
+    };
+
+    const tc = new VivadoToolchain();
+    await tc.scaffold(ctx, {
+      includeProject: true,
+      rtlFiles: undefined,
+      targetPart: 'xc7z020clg484-1',
+    });
+
+    const projectCall = renderCalls.find((c) => c.name === 'vivado_project.tcl.j2');
+    expect(projectCall).toBeDefined();
+    const rtlFiles = projectCall!.ctx.rtl_files as string[];
+    expect(rtlFiles).not.toEqual([]);
+    expect(rtlFiles.some((f) => f.includes('weird_types.vhd'))).toBe(true);
+    expect(rtlFiles.some((f) => f.includes('main_logic.vhd'))).toBe(true);
+    // Real dependency order: the package must come before its consumer.
+    expect(rtlFiles.findIndex((f) => f.includes('weird_types.vhd'))).toBeLessThan(
+      rtlFiles.findIndex((f) => f.includes('main_logic.vhd'))
+    );
+
+    // The XDC template shares the same resolved list.
+    const xdcCall = renderCalls.find((c) => c.name === 'vivado_ooc.xdc.j2');
+    expect(xdcCall!.ctx.rtl_files).toEqual(rtlFiles);
   });
 });
 

@@ -5,6 +5,7 @@ import {
   crc32Hex,
   generateComponentXml,
   generateCustomBusDefs,
+  getFileSetPaths,
 } from '../../generator/VivadoComponentXmlGenerator';
 import { parseVivadoReports } from '../ReportParser';
 import { runProcess } from '../BuildRunner';
@@ -61,7 +62,7 @@ export class VivadoToolchain implements SynthesisToolchain {
     return { env: {}, extraMounts: [] };
   }
 
-  scaffold(ctx: ScaffoldContext, opts: ScaffoldOptions): Record<string, string> {
+  async scaffold(ctx: ScaffoldContext, opts: ScaffoldOptions): Promise<Record<string, string>> {
     const { name, templateContext, templates, ipCoreData, busDefinitions, isSv, memoryMaps } = ctx;
     const files: Record<string, string> = {};
 
@@ -69,6 +70,15 @@ export class VivadoToolchain implements SynthesisToolchain {
     const xguiFile = `xgui/${name}_v${versionStr}.tcl`;
     const xguiContent = templates.render('amd_xgui.j2', templateContext);
     const xguiChecksum = crc32Hex(xguiContent);
+
+    // Resolve once and reuse everywhere below (component.xml, its pack-override
+    // template, and the project TCL/XDC set) so every consumer sees the same
+    // compile-ordered list — falls back to reading real fileSets content only
+    // when the scaffolder didn't already hand us a precomputed rtlFiles list.
+    const resolvedRtlFiles =
+      opts.rtlFiles ??
+      (await getFileSetPaths(ipCoreData, 'RTL_Sources', '../', ctx.ipCoreDir)) ??
+      [];
 
     // component.xml is built programmatically rather than from a template, so it can't
     // be shadowed by dropping a same-named .j2 into the pack dir the way every other
@@ -79,18 +89,19 @@ export class VivadoToolchain implements SynthesisToolchain {
           ...templateContext,
           ip_core: ipCoreData,
           bus_definitions: busDefinitions,
-          rtl_files: opts.rtlFiles ?? [],
+          rtl_files: resolvedRtlFiles,
           xgui_file: xguiFile,
           xgui_checksum: xguiChecksum,
           is_systemverilog: isSv,
           memory_maps: memoryMaps,
         })
-      : generateComponentXml(ipCoreData, busDefinitions, {
-          rtlFiles: opts.rtlFiles,
+      : await generateComponentXml(ipCoreData, busDefinitions, {
+          rtlFiles: resolvedRtlFiles,
           xguiFile,
           xguiChecksum,
           isSv,
           memoryMaps,
+          ipCoreDir: ctx.ipCoreDir,
         });
 
     const customBusDefs = generateCustomBusDefs(ipCoreData, busDefinitions);
@@ -105,7 +116,7 @@ export class VivadoToolchain implements SynthesisToolchain {
       const vivadoCtx = {
         ...templateContext,
         target_part: targetPart,
-        rtl_files: opts.rtlFiles ?? [],
+        rtl_files: resolvedRtlFiles,
         xdc_file: xdcRelPath,
       };
       files[`xilinx/${name}_project.tcl`] = templates.render('vivado_project.tcl.j2', vivadoCtx);

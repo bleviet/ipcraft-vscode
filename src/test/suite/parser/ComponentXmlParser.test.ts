@@ -411,7 +411,7 @@ describe('ComponentXmlParser', () => {
       expect(master?.mode).toBe('master');
     });
 
-    it('preserves prefixless physical port names with portNameOverrides', () => {
+    it('preserves prefixless physical port names with portNameOverrides', async () => {
       const { ipYamlText } = parseComponentXmlText(PREFIXLESS_AXIS_XML);
       const doc = parseYaml(ipYamlText) as IpCoreData;
       const iface = doc.busInterfaces?.find((b) => b.name === 'S_AXIS');
@@ -423,7 +423,7 @@ describe('ComponentXmlParser', () => {
         TREADY: 'output_axis_ready',
       });
 
-      const generatedXml = generateComponentXml(doc, COMPONENT_XML_TEST_BUS_DEFS);
+      const generatedXml = await generateComponentXml(doc, COMPONENT_XML_TEST_BUS_DEFS);
       expect(generatedXml).toContain('<spirit:name>input_axis_data</spirit:name>');
       expect(generatedXml).toContain('<spirit:name>input_axis_valid</spirit:name>');
       expect(generatedXml).toContain('<spirit:name>output_axis_ready</spirit:name>');

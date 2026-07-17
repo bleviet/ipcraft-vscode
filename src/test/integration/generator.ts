@@ -22,9 +22,10 @@
 import * as path from 'path';
 import * as nodefs from 'fs';
 import * as nodefsp from 'fs/promises';
-import { IpCoreScaffolder } from '../../generator/IpCoreScaffolder';
+import { IpCoreScaffolder, collectRtlAbsPaths } from '../../generator/IpCoreScaffolder';
 import { TemplateLoader } from '../../generator/TemplateLoader';
 import { Logger } from '../../utils/Logger';
+import { loadIpCoreData } from '../../generator/loadIpCore';
 
 import { devResourceRoots } from '../../services/ResourceRoots';
 
@@ -55,6 +56,12 @@ export interface Fixture {
   outputDir: string;
   success: boolean;
   files: Record<string, string>;
+  /**
+   * Real, production-computed RTL compile order (relative to outputDir), from the same
+   * collectRtlAbsPaths() the scaffolder itself uses — not a test-local reimplementation.
+   * Empty when generation produced no RTL files.
+   */
+  rtlOrder: string[];
 }
 
 interface YamlSource {
@@ -155,12 +162,35 @@ export async function generateFixtures(): Promise<Fixture[]> {
         hdlLanguage,
       });
 
+      // Real, production-computed compile order — the same function IpCoreScaffolder
+      // itself uses to feed component.xml/hw.tcl/project TCL generation — so the HDL
+      // integration suite validates the order actually shipped, not a reimplementation.
+      //
+      // Uses generatedContents, not files: `files` is relativePath -> fullPath for files
+      // actually written to disk, built by writing all generated files concurrently
+      // (Promise.all) and keying by completion order, which is not the pack's declared
+      // compile order. `generatedContents` is the pre-write, in-memory relativePath ->
+      // content map in true generation order — the same object collectRtlAbsPaths reads
+      // from internally in generateAll() itself.
+      let rtlOrder: string[] = [];
+      if (result.success) {
+        const ipCoreData = await loadIpCoreData(yamlPath, resourceRoots);
+        const absPaths = await collectRtlAbsPaths(
+          result.generatedContents ?? {},
+          ipCoreData,
+          yamlPath,
+          outputDir
+        );
+        rtlOrder = absPaths.map((absPath) => path.relative(outputDir, absPath).replace(/\\/g, '/'));
+      }
+
       fixtures.push({
         name: fixtureName,
         yamlPath,
         outputDir,
         success: result.success,
         files: result.files ?? {},
+        rtlOrder,
       });
 
       if (!result.success) {

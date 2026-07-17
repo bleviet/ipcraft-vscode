@@ -4,7 +4,7 @@ import * as fs from 'fs/promises';
 import * as fs2 from 'fs';
 import * as os from 'os';
 import * as vscode from 'vscode';
-import { IpCoreScaffolder } from '../../../generator/IpCoreScaffolder';
+import { IpCoreScaffolder, collectRtlAbsPaths } from '../../../generator/IpCoreScaffolder';
 import { TemplateLoader } from '../../../generator/TemplateLoader';
 import { Logger } from '../../../utils/Logger';
 import { BusLibraryService } from '../../../services/BusLibraryService';
@@ -678,6 +678,42 @@ describe('IpCoreScaffolder', () => {
         '-- stale on-disk content\n'
       );
       expect(result.protectedPaths ?? []).not.toContain('rtl/user_core.vhd');
+    } finally {
+      fs2.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it('orders generated RTL after named-library fileSet dependencies', async () => {
+    const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-scaffolder-library-order-'));
+    try {
+      const packagePath = path.join(tmp, 'rtl', 'types.vhd');
+      fs2.mkdirSync(path.dirname(packagePath), { recursive: true });
+      fs2.writeFileSync(packagePath, 'package types is\nend package;\n');
+
+      const outputDir = path.join(tmp, 'generated');
+      const generatedConsumerPath = path.join(outputDir, 'rtl', 'consumer.vhd');
+      const result = await collectRtlAbsPaths(
+        {
+          'rtl/consumer.vhd': [
+            'library liba;',
+            'use liba.types.all;',
+            'entity consumer is',
+            'end entity;',
+          ].join('\n'),
+        },
+        {
+          fileSets: [
+            {
+              name: 'RTL_Sources',
+              files: [{ path: 'rtl/types.vhd', type: 'vhdl', logicalName: 'liba' }],
+            },
+          ],
+        } as any,
+        path.join(tmp, 'core.ip.yml'),
+        outputDir
+      );
+
+      expect(result).toEqual([packagePath, generatedConsumerPath]);
     } finally {
       fs2.rmSync(tmp, { recursive: true, force: true });
     }

@@ -8,7 +8,7 @@ import { runProcess } from '../BuildRunner';
 import { findInInstallDir, getQuartusTool } from '../../utils/quartusResolver';
 import { fileExists } from '../../utils/fsHelpers';
 import { normalizeBusType } from '../../generator/registerProcessor';
-import { hdlCompileRank } from '../../utils/compilationOrder';
+import { hdlLanguageFromPath, resolveFileSetRtlFiles } from '../../utils/compilationOrder';
 import type { IpCoreData } from '../../generator/types';
 import type { DockerConfig, LaunchEnv, SubToolDeclaration } from './LaunchableTool';
 import type {
@@ -31,6 +31,9 @@ function hdlTypeFromPath(filePath: string): string {
   if (ext === '.sv' || ext === '.svh') {
     return 'SYSTEM_VERILOG';
   }
+  if (ext === '.v' || ext === '.vh') {
+    return 'VERILOG';
+  }
   return 'VHDL';
 }
 
@@ -42,6 +45,9 @@ function hdlTypeFromFileType(type: string | undefined, isSv: boolean): string {
   if (type === 'vhdl') {
     return 'VHDL';
   }
+  if (type === 'verilog') {
+    return 'VERILOG';
+  }
   return isSv ? 'SYSTEM_VERILOG' : 'VHDL';
 }
 
@@ -51,12 +57,13 @@ function hdlTypeFromFileType(type: string | undefined, isSv: boolean): string {
  *   1. `rtlFiles` — paths provided by the scaffolder (generated this run or from collectRtlFiles).
  *   2. ip.yml `fileSets[RTL_Sources]` — fallback for import/no-generate mode.
  */
-export function resolveHwTclRtlFiles(
+export async function resolveHwTclRtlFiles(
   rtlFiles: string[] | undefined,
   ipCoreData: IpCoreData,
   isSv: boolean,
-  entityName: string
-): RtlFileEntry[] {
+  entityName: string,
+  ipCoreDir: string | undefined
+): Promise<RtlFileEntry[]> {
   // Only the file whose name AND extension matches the primary HDL type is the top-level.
   // This prevents mixed-language projects from marking multiple files as TOP_LEVEL_FILE.
   const topLevelExts = isSv ? ['.sv'] : ['.vhd', '.vhdl'];
@@ -72,20 +79,33 @@ export function resolveHwTclRtlFiles(
     return rtlFiles.map((f) => toEntry(f, hdlTypeFromPath(f)));
   }
 
-  type FSEntry = { name?: string; files?: Array<{ path?: string; type?: string }> };
-  const fileSets = (ipCoreData as Record<string, unknown>).fileSets as FSEntry[] | undefined;
-  if (!Array.isArray(fileSets)) {
-    return [];
+  if (ipCoreDir === undefined) {
+    type FSEntry = { name?: string; files?: Array<{ path?: string; type?: string }> };
+    const fileSets = (ipCoreData as Record<string, unknown>).fileSets as FSEntry[] | undefined;
+    if (!Array.isArray(fileSets)) {
+      return [];
+    }
+    const rtlSources = fileSets.find((fs) => fs.name === 'RTL_Sources');
+    if (!rtlSources?.files) {
+      return [];
+    }
+    // No file content available — preserve the user's declared fileSets order.
+    return rtlSources.files
+      .filter((f) => f.path)
+      .map((f) => toEntry(`../${f.path!}`, hdlTypeFromFileType(f.type, isSv)));
   }
-  const rtlSources = fileSets.find((fs) => fs.name === 'RTL_Sources');
-  if (!rtlSources?.files) {
-    return [];
-  }
-  return rtlSources.files
-    .filter((f) => f.path)
-    .slice()
-    .sort((a, b) => hdlCompileRank(a.path!) - hdlCompileRank(b.path!))
-    .map((f) => toEntry(`../${f.path!}`, hdlTypeFromFileType(f.type, isSv)));
+
+  const resolved = await resolveFileSetRtlFiles(
+    ipCoreData as Record<string, unknown>,
+    ipCoreDir,
+    'RTL_Sources'
+  );
+  return resolved.map((f) => {
+    const declaredHdlType =
+      f.type === 'vhdl' || f.type === 'systemverilog' || f.type === 'verilog' ? f.type : undefined;
+    const effectiveType = declaredHdlType ?? hdlLanguageFromPath(f.path) ?? f.type;
+    return toEntry(`../${f.path}`, hdlTypeFromFileType(effectiveType, isSv));
+  });
 }
 
 /**
@@ -292,7 +312,7 @@ export class QuartusToolchain implements SynthesisToolchain {
     return { env: {}, extraMounts: [] };
   }
 
-  scaffold(ctx: ScaffoldContext, opts: ScaffoldOptions): Record<string, string> {
+  async scaffold(ctx: ScaffoldContext, opts: ScaffoldOptions): Promise<Record<string, string>> {
     const { name, templateContext, templates, ipCoreData, isSv } = ctx;
     const files: Record<string, string> = {};
 
@@ -309,7 +329,13 @@ export class QuartusToolchain implements SynthesisToolchain {
       }
     }
 
-    const rtlFileEntries = resolveHwTclRtlFiles(opts.rtlFiles, ipCoreData, isSv, name);
+    const rtlFileEntries = await resolveHwTclRtlFiles(
+      opts.rtlFiles,
+      ipCoreData,
+      isSv,
+      name,
+      ctx.ipCoreDir
+    );
     files[`altera/${name}_hw.tcl`] = templates.render('altera_hw_tcl.j2', {
       ...templateContext,
       rtl_files: rtlFileEntries,
@@ -321,7 +347,10 @@ export class QuartusToolchain implements SynthesisToolchain {
       const targetDevice = opts.quartusDevice ?? '5CSEBA6U23I7';
       const deviceFamily = quartusDeviceFamily(targetDevice);
       const sdcRelPath = `${name}.sdc`;
-      const rtlFiles = opts.rtlFiles ?? [];
+      // Reuse the already-resolved (and, in the fallback case, real-dependency-ordered)
+      // list computed for hw.tcl above, rather than re-deriving from raw opts.rtlFiles —
+      // opts.rtlFiles is undefined in the same fallback case rtlFileEntries handles.
+      const rtlFiles = rtlFileEntries.map((e) => e.path);
       const hasSvFiles = rtlFiles.some((f) => f.endsWith('.sv') || f.endsWith('.svh'));
       const hasVhdlFiles = rtlFiles.some((f) => f.endsWith('.vhd') || f.endsWith('.vhdl'));
       const hasSv = hasSvFiles || (!hasVhdlFiles && isSv);

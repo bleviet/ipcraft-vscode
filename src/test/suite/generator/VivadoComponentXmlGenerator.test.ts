@@ -1,4 +1,7 @@
 import * as yaml from 'js-yaml';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
 import {
   crc32Hex,
   generateComponentXml,
@@ -7,6 +10,10 @@ import {
 import { parseComponentXmlText } from '../../../parser/ComponentXmlParser';
 import type { BusDefinitions, IpCoreData } from '../../../generator/types';
 import type { NormalizedMemoryMap } from '../../../domain/internal.types';
+
+const compilationOrder = jest.requireActual<typeof import('../../../utils/compilationOrder')>(
+  '../../../utils/compilationOrder'
+);
 
 // ── Fixtures ─────────────────────────────────────────────────────────────────
 
@@ -67,7 +74,7 @@ function makeIp(overrides: Partial<IpCoreData> = {}): IpCoreData {
   };
 }
 
-function gen(overrides: Partial<IpCoreData> = {}, options = {}) {
+async function gen(overrides: Partial<IpCoreData> = {}, options = {}) {
   return generateComponentXml(makeIp(overrides), BUS_DEFS, options);
 }
 
@@ -75,30 +82,30 @@ function gen(overrides: Partial<IpCoreData> = {}, options = {}) {
 
 describe('generateComponentXml', () => {
   describe('VLNV header', () => {
-    it('emits vendor, library, name, version', () => {
-      const xml = gen();
+    it('emits vendor, library, name, version', async () => {
+      const xml = await gen();
       expect(xml).toContain('<spirit:vendor>acme</spirit:vendor>');
       expect(xml).toContain('<spirit:library>ip</spirit:library>');
       expect(xml).toContain('<spirit:name>my_core</spirit:name>');
       expect(xml).toContain('<spirit:version>2.0.0</spirit:version>');
     });
 
-    it('uses default vlnv when absent', () => {
-      const xml = generateComponentXml({ busInterfaces: [] } as IpCoreData, BUS_DEFS);
+    it('uses default vlnv when absent', async () => {
+      const xml = await generateComponentXml({ busInterfaces: [] } as IpCoreData, BUS_DEFS);
       expect(xml).toContain('<spirit:vendor>user</spirit:vendor>');
       expect(xml).toContain('<spirit:library>ip</spirit:library>');
       expect(xml).toContain('<spirit:name>ip_core</spirit:name>');
     });
 
-    it('escapes XML special characters', () => {
-      const xml = gen({ description: 'Core for <test> & "examples"' });
+    it('escapes XML special characters', async () => {
+      const xml = await gen({ description: 'Core for <test> & "examples"' });
       expect(xml).toContain('Core for &lt;test&gt; &amp; &quot;examples&quot;');
     });
   });
 
   describe('AXI4-Lite bus interface', () => {
-    it('uses xilinx.com interface aximm bus type', () => {
-      const xml = gen();
+    it('uses xilinx.com interface aximm bus type', async () => {
+      const xml = await gen();
       expect(xml).toContain(
         'spirit:vendor="xilinx.com" spirit:library="interface" spirit:name="aximm"'
       );
@@ -107,13 +114,13 @@ describe('generateComponentXml', () => {
       );
     });
 
-    it('emits <spirit:slave /> for slave mode', () => {
-      const xml = gen();
+    it('emits <spirit:slave /> for slave mode', async () => {
+      const xml = await gen();
       expect(xml).toContain('<spirit:slave />');
     });
 
-    it('emits <spirit:master /> for master mode', () => {
-      const xml = gen({
+    it('emits <spirit:master /> for master mode', async () => {
+      const xml = await gen({
         busInterfaces: [
           {
             name: 'm_axi',
@@ -128,14 +135,14 @@ describe('generateComponentXml', () => {
       expect(xml).toContain('<spirit:master />');
     });
 
-    it('includes PROTOCOL=AXI4LITE parameter', () => {
-      const xml = gen();
+    it('includes PROTOCOL=AXI4LITE parameter', async () => {
+      const xml = await gen();
       expect(xml).toContain('<spirit:name>PROTOCOL</spirit:name>');
       expect(xml).toContain('>AXI4LITE<');
     });
 
-    it('builds portMaps from bus library', () => {
-      const xml = gen();
+    it('builds portMaps from bus library', async () => {
+      const xml = await gen();
       expect(xml).toContain('<spirit:name>AWADDR</spirit:name>');
       expect(xml).toContain('<spirit:name>s_axi_awaddr</spirit:name>');
       expect(xml).toContain('<spirit:name>WDATA</spirit:name>');
@@ -144,8 +151,8 @@ describe('generateComponentXml', () => {
   });
 
   describe('AXI4 Full bus interface', () => {
-    it('includes PROTOCOL=AXI4', () => {
-      const xml = gen({
+    it('includes PROTOCOL=AXI4', async () => {
+      const xml = await gen({
         busInterfaces: [
           {
             name: 's_axi',
@@ -163,7 +170,7 @@ describe('generateComponentXml', () => {
   });
 
   describe('AXI-Stream bus interface', () => {
-    function makeAxis(mode: string) {
+    async function makeAxis(mode: string) {
       return gen({
         busInterfaces: [
           {
@@ -178,15 +185,15 @@ describe('generateComponentXml', () => {
       });
     }
 
-    it('uses xilinx.com interface axis bus type', () => {
-      const xml = makeAxis('slave');
+    it('uses xilinx.com interface axis bus type', async () => {
+      const xml = await makeAxis('slave');
       expect(xml).toContain(
         'spirit:vendor="xilinx.com" spirit:library="interface" spirit:name="axis"'
       );
     });
 
-    it('does not include PROTOCOL parameter', () => {
-      const xml = makeAxis('slave');
+    it('does not include PROTOCOL parameter', async () => {
+      const xml = await makeAxis('slave');
       const axisBusSection = xml.slice(
         xml.indexOf('<spirit:busInterface>'),
         xml.indexOf('</spirit:busInterface>') + 22
@@ -194,18 +201,18 @@ describe('generateComponentXml', () => {
       expect(axisBusSection).not.toContain('<spirit:name>PROTOCOL</spirit:name>');
     });
 
-    it('emits slave for sink mode', () => {
-      expect(makeAxis('sink')).toContain('<spirit:slave />');
+    it('emits slave for sink mode', async () => {
+      expect(await makeAxis('sink')).toContain('<spirit:slave />');
     });
 
-    it('emits master for source mode', () => {
-      expect(makeAxis('source')).toContain('<spirit:master />');
+    it('emits master for source mode', async () => {
+      expect(await makeAxis('source')).toContain('<spirit:master />');
     });
   });
 
   describe('unknown bus type (no bus definition)', () => {
-    it('splits a well-formed VLNV type into its real components when busTypeVlnv is absent', () => {
-      const xml = gen({
+    it('splits a well-formed VLNV type into its real components when busTypeVlnv is absent', async () => {
+      const xml = await gen({
         busInterfaces: [
           {
             name: 'custom_if',
@@ -223,8 +230,8 @@ describe('generateComponentXml', () => {
       expect(xml).not.toContain('spirit:vendor="user.org"');
     });
 
-    it('emits portMaps from conduitPorts for an unsaved custom interface (no busDefinitions entry)', () => {
-      const xml = gen({
+    it('emits portMaps from conduitPorts for an unsaved custom interface (no busDefinitions entry)', async () => {
+      const xml = await gen({
         busInterfaces: [
           {
             name: 'fifo_write',
@@ -252,7 +259,7 @@ describe('generateComponentXml', () => {
       expect(block).not.toContain('s_axi_');
     });
 
-    it('keeps using already-authored conduitPorts even when the type also matches a known busDefinitions entry', () => {
+    it('keeps using already-authored conduitPorts even when the type also matches a known busDefinitions entry', async () => {
       const defsWithFifoWrite: BusDefinitions = {
         ...BUS_DEFS,
         FIFO_WRITE: {
@@ -286,7 +293,7 @@ describe('generateComponentXml', () => {
           },
         ],
       });
-      const xml = generateComponentXml(ip, defsWithFifoWrite);
+      const xml = await generateComponentXml(ip, defsWithFifoWrite);
       const idx = xml.indexOf('<spirit:name>fifo_write</spirit:name>');
       const block = xml.slice(idx, xml.indexOf('</spirit:busInterface>', idx));
 
@@ -300,8 +307,8 @@ describe('generateComponentXml', () => {
       expect(block).not.toContain('<spirit:name>WR_EN</spirit:name>');
     });
 
-    it('falls back to user.org with the raw type as name when type is not a valid VLNV', () => {
-      const xml = gen({
+    it('falls back to user.org with the raw type as name when type is not a valid VLNV', async () => {
+      const xml = await gen({
         busInterfaces: [
           {
             name: 'custom_if',
@@ -317,8 +324,8 @@ describe('generateComponentXml', () => {
       expect(xml).toContain('spirit:name="mybus"');
     });
 
-    it('uses busTypeVlnv components when present (Avalon Streaming round-trip)', () => {
-      const xml = gen({
+    it('uses busTypeVlnv components when present (Avalon Streaming round-trip)', async () => {
+      const xml = await gen({
         busInterfaces: [
           {
             name: 'st_source',
@@ -342,8 +349,8 @@ describe('generateComponentXml', () => {
       expect(xml).not.toContain('spirit:vendor="user.org"');
     });
 
-    it('emits rawPortMaps verbatim for unknown bus types', () => {
-      const xml = gen({
+    it('emits rawPortMaps verbatim for unknown bus types', async () => {
+      const xml = await gen({
         busInterfaces: [
           {
             name: 'st_source',
@@ -410,8 +417,8 @@ describe('generateComponentXml', () => {
       });
     }
 
-    it('references the custom bus VLNV in component.xml', () => {
-      const xml = generateComponentXml(makeCustomIp(), CUSTOM_BUS_DEFS);
+    it('references the custom bus VLNV in component.xml', async () => {
+      const xml = await generateComponentXml(makeCustomIp(), CUSTOM_BUS_DEFS);
       expect(xml).toContain('spirit:vendor="acme.com"');
       expect(xml).toContain('spirit:library="interface"');
       expect(xml).toContain('spirit:name="my_proto"');
@@ -419,31 +426,31 @@ describe('generateComponentXml', () => {
       expect(xml).not.toContain('spirit:vendor="user.org"');
     });
 
-    it('emits slave for slave mode', () => {
-      const xml = generateComponentXml(makeCustomIp('slave'), CUSTOM_BUS_DEFS);
+    it('emits slave for slave mode', async () => {
+      const xml = await generateComponentXml(makeCustomIp('slave'), CUSTOM_BUS_DEFS);
       expect(xml).toContain('<spirit:slave />');
     });
 
-    it('emits master for master mode', () => {
-      const xml = generateComponentXml(makeCustomIp('master'), CUSTOM_BUS_DEFS);
+    it('emits master for master mode', async () => {
+      const xml = await generateComponentXml(makeCustomIp('master'), CUSTOM_BUS_DEFS);
       expect(xml).toContain('<spirit:master />');
     });
 
-    it('builds portMaps from custom bus definition (slave reverses direction)', () => {
-      const xml = generateComponentXml(makeCustomIp('slave'), CUSTOM_BUS_DEFS);
+    it('builds portMaps from custom bus definition (slave reverses direction)', async () => {
+      const xml = await generateComponentXml(makeCustomIp('slave'), CUSTOM_BUS_DEFS);
       // DATA is out from master → slave receives it (physical input)
       expect(xml).toContain('<spirit:name>DATA</spirit:name>');
       expect(xml).toContain('<spirit:name>data_in_data</spirit:name>');
     });
 
-    it('includes all active ports in model ports', () => {
-      const xml = generateComponentXml(makeCustomIp(), CUSTOM_BUS_DEFS);
+    it('includes all active ports in model ports', async () => {
+      const xml = await generateComponentXml(makeCustomIp(), CUSTOM_BUS_DEFS);
       expect(xml).toContain('<spirit:name>data_in_data</spirit:name>');
       expect(xml).toContain('<spirit:name>data_in_valid</spirit:name>');
       expect(xml).toContain('<spirit:name>data_in_ready</spirit:name>');
     });
 
-    it('resolves parameterized portWidthOverrides using IP core parameters', () => {
+    it('resolves parameterized portWidthOverrides using IP core parameters', async () => {
       const ipWithParams = makeIp({
         parameters: [{ name: 'DATA_W', value: 32 }],
         busInterfaces: [
@@ -457,7 +464,7 @@ describe('generateComponentXml', () => {
           },
         ],
       });
-      const xml = generateComponentXml(ipWithParams, CUSTOM_BUS_DEFS);
+      const xml = await generateComponentXml(ipWithParams, CUSTOM_BUS_DEFS);
       // DATA port should have width=32 (resolved from parameter), not std_logic (width=1)
       const portsSection = xml.slice(xml.indexOf('<spirit:ports>'), xml.indexOf('</spirit:ports>'));
       const dataPortIdx = portsSection.indexOf('<spirit:name>data_in_data</spirit:name>');
@@ -469,8 +476,8 @@ describe('generateComponentXml', () => {
       expect(dataPortXml).toContain('DATA_W');
     });
 
-    it('uses literal numeric widths from bus definition for a standalone master interface with no overrides', () => {
-      const xml = generateComponentXml(makeCustomIp('master'), CUSTOM_BUS_DEFS);
+    it('uses literal numeric widths from bus definition for a standalone master interface with no overrides', async () => {
+      const xml = await generateComponentXml(makeCustomIp('master'), CUSTOM_BUS_DEFS);
       // DATA port is width=32 from the bus definition — should render as vector
       const portsSection = xml.slice(xml.indexOf('<spirit:ports>'), xml.indexOf('</spirit:ports>'));
       const dataPortIdx = portsSection.indexOf('<spirit:name>data_in_data</spirit:name>');
@@ -480,14 +487,14 @@ describe('generateComponentXml', () => {
       expect(dataPortXml).toContain('<spirit:left spirit:format="long">31</spirit:left>');
     });
 
-    it('builds spirit:dependency correctly for complex expression port widths (Rb_ByteEna pattern)', () => {
+    it('builds spirit:dependency correctly for complex expression port widths (Rb_ByteEna pattern)', async () => {
       // Simulates: Rb_ByteEna : out std_logic_vector((AxiDataWidth_g/8) - 1 downto 0)
       // where AxiDataWidth_g is a generic with default 32.
       const ip = makeIp({
         parameters: [{ name: 'AxiDataWidth_g', value: 32 }],
         ports: [{ name: 'Rb_ByteEna', direction: 'out', width: 'AxiDataWidth_g/8' }],
       });
-      const xml = generateComponentXml(ip, BUS_DEFS);
+      const xml = await generateComponentXml(ip, BUS_DEFS);
       const portsSection = xml.slice(xml.indexOf('<spirit:ports>'), xml.indexOf('</spirit:ports>'));
       const portIdx = portsSection.indexOf('<spirit:name>Rb_ByteEna</spirit:name>');
       expect(portIdx).toBeGreaterThan(-1);
@@ -503,13 +510,13 @@ describe('generateComponentXml', () => {
       expect(portXml).not.toContain('MODELPARAM_VALUE.AXIDATAWIDTH_G/8');
     });
 
-    it('resolves complex expression to correct numeric default width', () => {
+    it('resolves complex expression to correct numeric default width', async () => {
       // AxiDataWidth_g=32 → AxiDataWidth_g/8 = 4 bits → left = 3
       const ip = makeIp({
         parameters: [{ name: 'AxiDataWidth_g', value: 32 }],
         ports: [{ name: 'Rb_ByteEna', direction: 'out', width: 'AxiDataWidth_g/8' }],
       });
-      const xml = generateComponentXml(ip, BUS_DEFS);
+      const xml = await generateComponentXml(ip, BUS_DEFS);
       const portsSection = xml.slice(xml.indexOf('<spirit:ports>'), xml.indexOf('</spirit:ports>'));
       const portIdx = portsSection.indexOf('<spirit:name>Rb_ByteEna</spirit:name>');
       const portXml = portsSection.slice(portIdx, portIdx + 600);
@@ -517,7 +524,7 @@ describe('generateComponentXml', () => {
       expect(portXml).toContain('>3<');
     });
 
-    it('each interface uses its own portWidthOverrides independently — no cross-interface inheritance', () => {
+    it('each interface uses its own portWidthOverrides independently — no cross-interface inheritance', async () => {
       const ipWithBoth = makeIp({
         parameters: [{ name: 'DATA_W', value: 32 }],
         busInterfaces: [
@@ -539,7 +546,7 @@ describe('generateComponentXml', () => {
           },
         ],
       });
-      const xml = generateComponentXml(ipWithBoth, CUSTOM_BUS_DEFS);
+      const xml = await generateComponentXml(ipWithBoth, CUSTOM_BUS_DEFS);
       const portsSection = xml.slice(xml.indexOf('<spirit:ports>'), xml.indexOf('</spirit:ports>'));
 
       // Slave has an explicit override: DATA_W expression must appear
@@ -558,7 +565,7 @@ describe('generateComponentXml', () => {
       expect(masterPortXml).toContain('<spirit:left spirit:format="long">31</spirit:left>');
     });
 
-    it('two sibling interfaces with independent portWidthOverrides each render their own widths', () => {
+    it('two sibling interfaces with independent portWidthOverrides each render their own widths', async () => {
       const ipWithBoth = makeIp({
         parameters: [{ name: 'DATA_W', value: 32 }],
         busInterfaces: [
@@ -580,7 +587,7 @@ describe('generateComponentXml', () => {
           },
         ],
       });
-      const xml = generateComponentXml(ipWithBoth, CUSTOM_BUS_DEFS);
+      const xml = await generateComponentXml(ipWithBoth, CUSTOM_BUS_DEFS);
       const portsSection = xml.slice(xml.indexOf('<spirit:ports>'), xml.indexOf('</spirit:ports>'));
 
       // Slave uses DATA_W expression
@@ -596,22 +603,22 @@ describe('generateComponentXml', () => {
       expect(masterPortXml).toContain('<spirit:left spirit:format="long">7</spirit:left>');
     });
 
-    it('builds portMaps for workspace-sourced bus definition (source: workspace)', () => {
+    it('builds portMaps for workspace-sourced bus definition (source: workspace)', async () => {
       // Verifies that a custom bus definition discovered via WorkspaceBusDefinitionScanner
       // (tagged with source: 'workspace') still emits spirit:portMaps in component.xml.
       const defsWithWorkspaceSource: BusDefinitions = {
         ...CUSTOM_BUS_DEFS,
         MY_PROTO: { ...CUSTOM_BUS_DEFS.MY_PROTO, source: 'workspace' },
       };
-      const xml = generateComponentXml(makeCustomIp('slave'), defsWithWorkspaceSource);
+      const xml = await generateComponentXml(makeCustomIp('slave'), defsWithWorkspaceSource);
       expect(xml).toContain('<spirit:name>DATA</spirit:name>');
       expect(xml).toContain('<spirit:name>data_in_data</spirit:name>');
     });
   });
 
   describe('clock bus interface', () => {
-    it('uses xilinx.com signal clock bus type', () => {
-      const xml = gen();
+    it('uses xilinx.com signal clock bus type', async () => {
+      const xml = await gen();
       expect(xml).toContain(
         'spirit:vendor="xilinx.com" spirit:library="signal" spirit:name="clock"'
       );
@@ -620,8 +627,8 @@ describe('generateComponentXml', () => {
       );
     });
 
-    it('portMap CLK -> actual clock port name', () => {
-      const xml = gen();
+    it('portMap CLK -> actual clock port name', async () => {
+      const xml = await gen();
       const clockSection = xml.slice(
         xml.indexOf('spirit:name="clock"') - 200,
         xml.indexOf('spirit:name="clock"') + 1000
@@ -630,14 +637,14 @@ describe('generateComponentXml', () => {
       expect(clockSection).toContain('<spirit:name>clk</spirit:name>');
     });
 
-    it('ASSOCIATED_BUSIF lists bus interfaces using this clock (uppercase)', () => {
-      const xml = gen();
+    it('ASSOCIATED_BUSIF lists bus interfaces using this clock (uppercase)', async () => {
+      const xml = await gen();
       expect(xml).toContain('<spirit:name>ASSOCIATED_BUSIF</spirit:name>');
       expect(xml).toContain('>S_AXI<');
     });
 
-    it('ASSOCIATED_BUSIF is colon-separated when multiple bus interfaces share a clock', () => {
-      const xml = gen({
+    it('ASSOCIATED_BUSIF is colon-separated when multiple bus interfaces share a clock', async () => {
+      const xml = await gen({
         busInterfaces: [
           {
             name: 's_axi0',
@@ -662,14 +669,14 @@ describe('generateComponentXml', () => {
       expect(xml).toContain('>S_AXI0:S_AXI1<');
     });
 
-    it('ASSOCIATED_RESET contains the reset port name', () => {
-      const xml = gen();
+    it('ASSOCIATED_RESET contains the reset port name', async () => {
+      const xml = await gen();
       expect(xml).toContain('<spirit:name>ASSOCIATED_RESET</spirit:name>');
       expect(xml).toContain('>rst_n<');
     });
 
-    it('omits ASSOCIATED_BUSIF when no bus interfaces reference this clock', () => {
-      const xml = gen({
+    it('omits ASSOCIATED_BUSIF when no bus interfaces reference this clock', async () => {
+      const xml = await gen({
         busInterfaces: [
           {
             name: 's_axi',
@@ -688,58 +695,58 @@ describe('generateComponentXml', () => {
   });
 
   describe('reset bus interface', () => {
-    it('uses xilinx.com signal reset bus type', () => {
-      const xml = gen();
+    it('uses xilinx.com signal reset bus type', async () => {
+      const xml = await gen();
       expect(xml).toContain(
         'spirit:vendor="xilinx.com" spirit:library="signal" spirit:name="reset"'
       );
     });
 
-    it('portMap RST -> actual reset port name', () => {
-      const xml = gen();
+    it('portMap RST -> actual reset port name', async () => {
+      const xml = await gen();
       const resetSection = xml.slice(xml.indexOf('"reset"') - 200, xml.indexOf('"reset"') + 800);
       expect(resetSection).toContain('<spirit:name>RST</spirit:name>');
       expect(resetSection).toContain('<spirit:name>rst_n</spirit:name>');
     });
 
-    it('POLARITY=ACTIVE_LOW for activeLow polarity', () => {
-      const xml = gen();
+    it('POLARITY=ACTIVE_LOW for activeLow polarity', async () => {
+      const xml = await gen();
       expect(xml).toContain('<spirit:name>POLARITY</spirit:name>');
       expect(xml).toContain('>ACTIVE_LOW<');
     });
 
-    it('POLARITY=ACTIVE_HIGH for activeHigh polarity', () => {
-      const xml = gen({ resets: [{ name: 'rst', polarity: 'activeHigh' }] });
+    it('POLARITY=ACTIVE_HIGH for activeHigh polarity', async () => {
+      const xml = await gen({ resets: [{ name: 'rst', polarity: 'activeHigh' }] });
       expect(xml).toContain('>ACTIVE_HIGH<');
     });
   });
 
   describe('model ports', () => {
-    it('emits clock port as direction=in with typeName std_logic', () => {
-      const xml = gen();
+    it('emits clock port as direction=in with typeName std_logic', async () => {
+      const xml = await gen();
       const clkPort = extractPort(xml, 'clk');
       expect(clkPort).toContain('<spirit:direction>in</spirit:direction>');
       expect(clkPort).toContain('<spirit:typeName>std_logic</spirit:typeName>');
       expect(clkPort).not.toContain('<spirit:vector>');
     });
 
-    it('emits reset port as direction=in with typeName std_logic', () => {
-      const xml = gen();
+    it('emits reset port as direction=in with typeName std_logic', async () => {
+      const xml = await gen();
       const rstPort = extractPort(xml, 'rst_n');
       expect(rstPort).toContain('<spirit:direction>in</spirit:direction>');
       expect(rstPort).toContain('<spirit:typeName>std_logic</spirit:typeName>');
     });
 
-    it('emits single-bit bus port without vector element', () => {
-      const xml = gen();
+    it('emits single-bit bus port without vector element', async () => {
+      const xml = await gen();
       const awvalidPort = extractPort(xml, 's_axi_awvalid');
       expect(awvalidPort).toContain('<spirit:direction>in</spirit:direction>');
       expect(awvalidPort).toContain('<spirit:typeName>std_logic</spirit:typeName>');
       expect(awvalidPort).not.toContain('<spirit:vector>');
     });
 
-    it('emits multi-bit bus port with vector and std_logic_vector', () => {
-      const xml = gen();
+    it('emits multi-bit bus port with vector and std_logic_vector', async () => {
+      const xml = await gen();
       const awaddrPort = extractPort(xml, 's_axi_awaddr');
       expect(awaddrPort).toContain('<spirit:direction>in</spirit:direction>');
       expect(awaddrPort).toContain('<spirit:vector>');
@@ -747,15 +754,15 @@ describe('generateComponentXml', () => {
       expect(awaddrPort).toContain('<spirit:typeName>std_logic_vector</spirit:typeName>');
     });
 
-    it('emits user port width=1 as std_logic without vector', () => {
-      const xml = gen({ ports: [{ name: 'enable', direction: 'in', width: 1 }] });
+    it('emits user port width=1 as std_logic without vector', async () => {
+      const xml = await gen({ ports: [{ name: 'enable', direction: 'in', width: 1 }] });
       const port = extractPort(xml, 'enable');
       expect(port).toContain('<spirit:typeName>std_logic</spirit:typeName>');
       expect(port).not.toContain('<spirit:vector>');
     });
 
-    it('emits user port width>1 with vector and std_logic_vector', () => {
-      const xml = gen();
+    it('emits user port width>1 with vector and std_logic_vector', async () => {
+      const xml = await gen();
       const port = extractPort(xml, 'out_port');
       expect(port).toContain('<spirit:direction>out</spirit:direction>');
       expect(port).toContain('<spirit:vector>');
@@ -763,23 +770,23 @@ describe('generateComponentXml', () => {
       expect(port).toContain('<spirit:typeName>std_logic_vector</spirit:typeName>');
     });
 
-    it('flips direction for slave bus ports (master-out becomes slave-in)', () => {
-      const xml = gen();
+    it('flips direction for slave bus ports (master-out becomes slave-in)', async () => {
+      const xml = await gen();
       const awaddrPort = extractPort(xml, 's_axi_awaddr');
       // AWADDR is out from master perspective → in for slave
       expect(awaddrPort).toContain('<spirit:direction>in</spirit:direction>');
     });
 
-    it('includes ASSOCIATED_RESET and two view refs in wireTypeDef', () => {
-      const xml = gen();
+    it('includes ASSOCIATED_RESET and two view refs in wireTypeDef', async () => {
+      const xml = await gen();
       expect(xml).toContain('<spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>');
       expect(xml).toContain(
         '<spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>'
       );
     });
 
-    it('emits ports with typeName wire and correct view refs when isSv is true', () => {
-      const xml = gen({}, { isSv: true });
+    it('emits ports with typeName wire and correct view refs when isSv is true', async () => {
+      const xml = await gen({}, { isSv: true });
       const clkPort = extractPort(xml, 'clk');
       expect(clkPort).toContain('<spirit:typeName>wire</spirit:typeName>');
       expect(clkPort).toContain(
@@ -792,30 +799,30 @@ describe('generateComponentXml', () => {
   });
 
   describe('views', () => {
-    it('emits xilinx_anylanguagesynthesis view for VHDL', () => {
-      const xml = gen();
+    it('emits xilinx_anylanguagesynthesis view for VHDL', async () => {
+      const xml = await gen();
       expect(xml).toContain('<spirit:name>xilinx_anylanguagesynthesis</spirit:name>');
       expect(xml).toContain(':vivado.xilinx.com:synthesis');
     });
 
-    it('emits xilinx_anylanguagebehavioralsimulation view for VHDL', () => {
-      const xml = gen();
+    it('emits xilinx_anylanguagebehavioralsimulation view for VHDL', async () => {
+      const xml = await gen();
       expect(xml).toContain('<spirit:name>xilinx_anylanguagebehavioralsimulation</spirit:name>');
       expect(xml).toContain(':vivado.xilinx.com:simulation');
     });
 
-    it('emits xilinx_xpgui view', () => {
-      const xml = gen();
+    it('emits xilinx_xpgui view', async () => {
+      const xml = await gen();
       expect(xml).toContain('<spirit:name>xilinx_xpgui</spirit:name>');
     });
 
-    it('uses entity name as modelName', () => {
-      const xml = gen();
+    it('uses entity name as modelName', async () => {
+      const xml = await gen();
       expect(xml).toContain('<spirit:modelName>my_core</spirit:modelName>');
     });
 
-    it('emits SystemVerilog anylanguage views when isSv is true', () => {
-      const xml = gen({}, { isSv: true });
+    it('emits SystemVerilog anylanguage views when isSv is true', async () => {
+      const xml = await gen({}, { isSv: true });
       expect(xml).toContain('<spirit:name>xilinx_anylanguagesynthesis</spirit:name>');
       expect(xml).toContain(
         '<spirit:envIdentifier>:vivado.xilinx.com:synthesis</spirit:envIdentifier>'
@@ -828,8 +835,8 @@ describe('generateComponentXml', () => {
   });
 
   describe('file sets', () => {
-    it('rtlFiles option populates synthesis and simulation filesets', () => {
-      const xml = gen({}, { rtlFiles: ['../rtl/my_core.vhd', '../rtl/my_core_pkg.vhd'] });
+    it('rtlFiles option populates synthesis and simulation filesets', async () => {
+      const xml = await gen({}, { rtlFiles: ['../rtl/my_core.vhd', '../rtl/my_core_pkg.vhd'] });
       expect(xml).toContain('<spirit:name>xilinx_anylanguagesynthesis_view_fileset</spirit:name>');
       expect(xml).toContain(
         '<spirit:name>xilinx_anylanguagebehavioralsimulation_view_fileset</spirit:name>'
@@ -837,8 +844,8 @@ describe('generateComponentXml', () => {
       expect(xml).toContain('<spirit:name>../rtl/my_core.vhd</spirit:name>');
     });
 
-    it('uses simFiles option for simulation fileset when provided', () => {
-      const xml = gen(
+    it('uses simFiles option for simulation fileset when provided', async () => {
+      const xml = await gen(
         {},
         {
           rtlFiles: ['../rtl/my_core.vhd'],
@@ -848,76 +855,176 @@ describe('generateComponentXml', () => {
       expect(xml).toContain('<spirit:name>../tb/my_core_tb.vhd</spirit:name>');
     });
 
-    it('emits xgui fileset with tclSource', () => {
-      const xml = gen({}, { xguiFile: 'xgui/my_core_v2_0_0.tcl' });
+    it('does not resolve the fileSets fallback when rtlFiles is provided', async () => {
+      const resolveSpy = jest.spyOn(compilationOrder, 'resolveFileSetRtlFiles');
+      try {
+        await generateComponentXml(
+          makeIp({
+            fileSets: [
+              {
+                name: 'RTL_Sources',
+                files: [{ path: 'rtl/on_disk.vhd', type: 'vhdl' }],
+              },
+            ],
+          }),
+          BUS_DEFS,
+          {
+            rtlFiles: ['../rtl/pre_resolved.vhd'],
+            ipCoreDir: '/unused',
+          }
+        );
+
+        expect(resolveSpy).not.toHaveBeenCalled();
+      } finally {
+        resolveSpy.mockRestore();
+      }
+    });
+
+    it('emits xgui fileset with tclSource', async () => {
+      const xml = await gen({}, { xguiFile: 'xgui/my_core_v2_0_0.tcl' });
       expect(xml).toContain('<spirit:name>xilinx_xpgui_view_fileset</spirit:name>');
       expect(xml).toContain('<spirit:name>xgui/my_core_v2_0_0.tcl</spirit:name>');
       expect(xml).toContain('<spirit:fileType>tclSource</spirit:fileType>');
     });
 
-    it('derives default xgui path from name and version', () => {
-      const xml = gen();
+    it('derives default xgui path from name and version', async () => {
+      const xml = await gen();
       expect(xml).toContain('<spirit:name>xgui/my_core_v2_0_0.tcl</spirit:name>');
     });
 
-    it('uses ip.yml fileSets when rtlFiles not provided', () => {
-      const xml = generateComponentXml(
-        {
-          ...makeIp(),
-          fileSets: [
-            {
-              name: 'RTL_Sources',
-              files: [{ path: 'rtl/my_core.vhd', type: 'vhdl' }],
-            },
-          ],
-        } as IpCoreData,
-        BUS_DEFS,
-        { filePathPrefix: '../' }
-      );
-      expect(xml).toContain('<spirit:name>../rtl/my_core.vhd</spirit:name>');
-    });
+    // The fileSets fallback (neither rtlFiles nor simFiles supplied) is exercised in
+    // production whenever a vendor toolchain has no scaffolder-precomputed rtlFiles list
+    // to work from (issue #91, reopened — a prior filename-suffix heuristic mis-sorted
+    // non-conventionally-named files). These tests write real temp .vhd files with
+    // genuine package/use work.X content and assert the real dependency order, following
+    // the fs.mkdtempSync pattern already used in IpCoreScaffolder.test.ts.
+    describe('ip.yml fileSets fallback (no rtlFiles/simFiles provided)', () => {
+      let tmp: string;
 
-    it('sorts ip.yml fileSets fallback into compile order (pkg before regs before core)', () => {
-      const xml = generateComponentXml(
-        {
-          ...makeIp(),
-          fileSets: [
-            {
-              name: 'RTL_Sources',
-              files: [
-                { path: 'rtl/my_core_core.vhd', type: 'vhdl' },
-                { path: 'rtl/my_core.vhd', type: 'vhdl' },
-                { path: 'rtl/my_core_regs.vhd', type: 'vhdl' },
-                { path: 'rtl/my_core_pkg.vhd', type: 'vhdl' },
-              ],
-            },
-          ],
-        } as IpCoreData,
-        BUS_DEFS,
-        { filePathPrefix: '../' }
-      );
-      const names = Array.from(xml.matchAll(/<spirit:name>(\.\.\/rtl\/[^<]+)<\/spirit:name>/g)).map(
-        (m) => m[1]
-      );
-      // Both the synthesis and simulation filesets render from the same
-      // (sorted) fallback list, so each path appears once per fileset.
-      expect(names.slice(0, 4)).toEqual([
-        '../rtl/my_core_pkg.vhd',
-        '../rtl/my_core_regs.vhd',
-        '../rtl/my_core_core.vhd',
-        '../rtl/my_core.vhd',
-      ]);
+      afterEach(() => {
+        if (tmp) {
+          fs.rmSync(tmp, { recursive: true, force: true });
+        }
+      });
+
+      function writeVhd(relPath: string, content: string) {
+        const full = path.join(tmp, relPath);
+        fs.mkdirSync(path.dirname(full), { recursive: true });
+        fs.writeFileSync(full, content);
+      }
+
+      it('uses ip.yml fileSets when rtlFiles not provided, reading real content via ipCoreDir', async () => {
+        tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-vivado-xml-fileset-'));
+        writeVhd('rtl/my_core.vhd', 'entity my_core is\nend entity my_core;\n');
+
+        const xml = await generateComponentXml(
+          {
+            ...makeIp(),
+            fileSets: [
+              {
+                name: 'RTL_Sources',
+                files: [{ path: 'rtl/my_core.vhd', type: 'vhdl' }],
+              },
+            ],
+          } as IpCoreData,
+          BUS_DEFS,
+          { filePathPrefix: '../', ipCoreDir: tmp }
+        );
+        expect(xml).toContain('<spirit:name>../rtl/my_core.vhd</spirit:name>');
+      });
+
+      it('sorts the fallback into real dependency order, defeating a naming-heuristic mis-sort', async () => {
+        tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-vivado-xml-order-'));
+        // Non-conventionally-named pair: 'weird_types.vhd' declares a package that
+        // 'main_logic.vhd' depends on. Neither name matches a _pkg/_regs/_core/_bus
+        // convention, and 'main_logic.vhd' sorts alphabetically BEFORE 'weird_types.vhd'
+        // — a filename heuristic (or the raw declared order, used below) gets this
+        // wrong; only real dependency parsing gets it right.
+        writeVhd(
+          'rtl/main_logic.vhd',
+          [
+            'library ieee;',
+            'use ieee.std_logic_1164.all;',
+            'use work.weird_types_pkg.all;',
+            '',
+            'entity main_logic is',
+            '  port (clk : in std_logic);',
+            'end entity main_logic;',
+            '',
+            'architecture rtl of main_logic is',
+            'begin',
+            'end architecture rtl;',
+          ].join('\n')
+        );
+        writeVhd(
+          'rtl/weird_types.vhd',
+          [
+            'package weird_types_pkg is',
+            '  type my_type is (a, b, c);',
+            'end package weird_types_pkg;',
+          ].join('\n')
+        );
+
+        const xml = await generateComponentXml(
+          {
+            ...makeIp(),
+            fileSets: [
+              {
+                name: 'RTL_Sources',
+                files: [
+                  { path: 'rtl/main_logic.vhd', type: 'vhdl' },
+                  { path: 'rtl/weird_types.vhd', type: 'vhdl' },
+                ],
+              },
+            ],
+          } as IpCoreData,
+          BUS_DEFS,
+          { filePathPrefix: '../', ipCoreDir: tmp }
+        );
+        const names = Array.from(
+          xml.matchAll(/<spirit:name>(\.\.\/rtl\/[^<]+)<\/spirit:name>/g)
+        ).map((m) => m[1]);
+        // Both the synthesis and simulation filesets render from the same
+        // (sorted) fallback list, so each path appears once per fileset.
+        expect(names.slice(0, 2)).toEqual(['../rtl/weird_types.vhd', '../rtl/main_logic.vhd']);
+      });
+
+      it('preserves the declared fileSets order when ipCoreDir is omitted (degrade, no heuristic tiebreak)', async () => {
+        // Same deliberately-wrong-order pair as above, but with no ipCoreDir to read real
+        // content from: the fallback must not reorder via any naming heuristic — it just
+        // preserves exactly what the user declared.
+        const xml = await generateComponentXml(
+          {
+            ...makeIp(),
+            fileSets: [
+              {
+                name: 'RTL_Sources',
+                files: [
+                  { path: 'rtl/main_logic.vhd', type: 'vhdl' },
+                  { path: 'rtl/weird_types.vhd', type: 'vhdl' },
+                ],
+              },
+            ],
+          } as IpCoreData,
+          BUS_DEFS,
+          { filePathPrefix: '../' }
+        );
+        const names = Array.from(
+          xml.matchAll(/<spirit:name>(\.\.\/rtl\/[^<]+)<\/spirit:name>/g)
+        ).map((m) => m[1]);
+        expect(names.slice(0, 2)).toEqual(['../rtl/main_logic.vhd', '../rtl/weird_types.vhd']);
+      });
     });
 
     describe('VHDL version', () => {
-      it('defaults unspecified VHDL files to userFileType vhdlSource-2008', () => {
-        const xml = gen({}, { rtlFiles: ['../rtl/my_core.vhd'] });
+      it('defaults unspecified VHDL files to userFileType vhdlSource-2008', async () => {
+        const xml = await gen({}, { rtlFiles: ['../rtl/my_core.vhd'] });
         expect(xml).toContain('<spirit:userFileType>vhdlSource-2008</spirit:userFileType>');
         expect(xml).not.toContain('<spirit:fileType>vhdlSource</spirit:fileType>');
       });
 
-      it('registers a file marked version 93 as plain vhdlSource', () => {
-        const xml = generateComponentXml(
+      it('registers a file marked version 93 as plain vhdlSource', async () => {
+        const xml = await generateComponentXml(
           {
             ...makeIp(),
             fileSets: [
@@ -934,8 +1041,8 @@ describe('generateComponentXml', () => {
         expect(xml).not.toContain('vhdlSource-93');
       });
 
-      it('registers a file marked version 2002 as userFileType vhdlSource-2002', () => {
-        const xml = generateComponentXml(
+      it('registers a file marked version 2002 as userFileType vhdlSource-2002', async () => {
+        const xml = await generateComponentXml(
           {
             ...makeIp(),
             fileSets: [
@@ -951,25 +1058,42 @@ describe('generateComponentXml', () => {
         expect(xml).toContain('<spirit:userFileType>vhdlSource-2002</spirit:userFileType>');
       });
 
-      it('resolves per-file version from ip.yml fileSets when rtlFiles not provided', () => {
-        const xml = generateComponentXml(
-          {
-            ...makeIp(),
-            fileSets: [
-              {
-                name: 'RTL_Sources',
-                files: [{ path: 'rtl/my_core.vhd', type: 'vhdl', version: '93' }],
-              },
-            ],
-          } as IpCoreData,
-          BUS_DEFS,
-          { filePathPrefix: '../' }
-        );
-        expect(xml).toContain('<spirit:fileType>vhdlSource</spirit:fileType>');
+      describe('resolves per-file version via the fileSets fallback (no rtlFiles)', () => {
+        let tmp: string;
+
+        afterEach(() => {
+          if (tmp) {
+            fs.rmSync(tmp, { recursive: true, force: true });
+          }
+        });
+
+        it('resolves per-file version from ip.yml fileSets when rtlFiles not provided', async () => {
+          tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-vivado-xml-version-'));
+          fs.mkdirSync(path.join(tmp, 'rtl'), { recursive: true });
+          fs.writeFileSync(
+            path.join(tmp, 'rtl', 'my_core.vhd'),
+            'entity my_core is\nend entity my_core;\n'
+          );
+
+          const xml = await generateComponentXml(
+            {
+              ...makeIp(),
+              fileSets: [
+                {
+                  name: 'RTL_Sources',
+                  files: [{ path: 'rtl/my_core.vhd', type: 'vhdl', version: '93' }],
+                },
+              ],
+            } as IpCoreData,
+            BUS_DEFS,
+            { filePathPrefix: '../', ipCoreDir: tmp }
+          );
+          expect(xml).toContain('<spirit:fileType>vhdlSource</spirit:fileType>');
+        });
       });
 
-      it('does not apply VHDL version markers to SystemVerilog files', () => {
-        const xml = gen({}, { rtlFiles: ['../rtl/my_core.sv'], isSv: true });
+      it('does not apply VHDL version markers to SystemVerilog files', async () => {
+        const xml = await gen({}, { rtlFiles: ['../rtl/my_core.sv'], isSv: true });
         expect(xml).toContain('<spirit:fileType>systemVerilogSource</spirit:fileType>');
         expect(xml).not.toContain('vhdlSource');
       });
@@ -977,20 +1101,20 @@ describe('generateComponentXml', () => {
   });
 
   describe('description and parameters', () => {
-    it('emits description element', () => {
-      const xml = gen();
+    it('emits description element', async () => {
+      const xml = await gen();
       expect(xml).toContain('<spirit:description>A test core</spirit:description>');
     });
 
-    it('emits Component_Name parameter', () => {
-      const xml = gen();
+    it('emits Component_Name parameter', async () => {
+      const xml = await gen();
       expect(xml).toContain('<spirit:name>Component_Name</spirit:name>');
       expect(xml).toContain('PARAM_VALUE.Component_Name');
       expect(xml).toContain('>my_core_v2_0_0<');
     });
 
-    it('emits integer parameter with format=long and resolve=user', () => {
-      const xml = gen({
+    it('emits integer parameter with format=long and resolve=user', async () => {
+      const xml = await gen({
         parameters: [{ name: 'C_DATA_WIDTH', value: 32, dataType: 'integer' }],
       });
       expect(xml).toContain('<spirit:name>C_DATA_WIDTH</spirit:name>');
@@ -999,24 +1123,24 @@ describe('generateComponentXml', () => {
       expect(xml).toContain('>32<');
     });
 
-    it('emits string parameter with format=string', () => {
-      const xml = gen({
+    it('emits string parameter with format=string', async () => {
+      const xml = await gen({
         parameters: [{ name: 'C_PROTOCOL', value: 'AXI4', dataType: 'string' }],
       });
       expect(xml).toContain('spirit:format="string"');
       expect(xml).toContain('>AXI4<');
     });
 
-    it('normalizes natural/positive to integer in modelParameter dataType', () => {
-      const xml = gen({
+    it('normalizes natural/positive to integer in modelParameter dataType', async () => {
+      const xml = await gen({
         parameters: [{ name: 'DEPTH', value: 8, dataType: 'natural' }],
       });
       expect(xml).toContain('spirit:dataType="integer"');
       expect(xml).not.toContain('spirit:dataType="natural"');
     });
 
-    it('emits choices and choiceRef elements when parameter has allowed values', () => {
-      const xml = gen({
+    it('emits choices and choiceRef elements when parameter has allowed values', async () => {
+      const xml = await gen({
         parameters: [
           { name: 'C_CHOICE_PARAM', value: 8, dataType: 'integer', allowedValues: [4, 8, 16] },
         ],
@@ -1029,8 +1153,8 @@ describe('generateComponentXml', () => {
       expect(xml).toContain('spirit:choiceRef="choice_C_CHOICE_PARAM"');
     });
 
-    it('does not emit spirit:rangeType when parameter has allowedValues', () => {
-      const xml = gen({
+    it('does not emit spirit:rangeType when parameter has allowedValues', async () => {
+      const xml = await gen({
         parameters: [
           { name: 'C_CHOICE_PARAM', value: 8, dataType: 'integer', allowedValues: [4, 8, 16] },
         ],
@@ -1045,8 +1169,8 @@ describe('generateComponentXml', () => {
       expect(paramValueLine).not.toContain('spirit:rangeType');
     });
 
-    it('emits spirit:rangeType for integer parameter with min/max but not allowedValues', () => {
-      const xml = gen({
+    it('emits spirit:rangeType for integer parameter with min/max but not allowedValues', async () => {
+      const xml = await gen({
         parameters: [{ name: 'DATA_WIDTH', value: 32, dataType: 'integer', min: 8, max: 512 }],
       });
       const paramValueLine = xml.split('\n').find((l) => l.includes('"PARAM_VALUE.DATA_WIDTH"'));
@@ -1057,16 +1181,16 @@ describe('generateComponentXml', () => {
       expect(paramValueLine).not.toContain('spirit:choiceRef');
     });
 
-    it('defaults spirit:displayName to the raw parameter name (no mangling)', () => {
-      const xml = gen({
+    it('defaults spirit:displayName to the raw parameter name (no mangling)', async () => {
+      const xml = await gen({
         parameters: [{ name: 'AXI_ID_WIDTH', value: 4, dataType: 'integer' }],
       });
       expect(xml).toContain('<spirit:displayName>AXI_ID_WIDTH</spirit:displayName>');
       expect(xml).not.toContain('<spirit:displayName>Axi Id Width</spirit:displayName>');
     });
 
-    it('uses an explicit displayName override for spirit:displayName when provided', () => {
-      const xml = gen({
+    it('uses an explicit displayName override for spirit:displayName when provided', async () => {
+      const xml = await gen({
         parameters: [
           { name: 'AXI_ID_WIDTH', value: 4, dataType: 'integer', displayName: 'AXI ID Width' },
         ],
@@ -1077,15 +1201,15 @@ describe('generateComponentXml', () => {
   });
 
   describe('vendorExtensions', () => {
-    it('uses xilinx namespace not amd', () => {
-      const xml = gen();
+    it('uses xilinx namespace not amd', async () => {
+      const xml = await gen();
       expect(xml).toContain('xmlns:xilinx="http://www.xilinx.com"');
       expect(xml).toContain('<xilinx:coreExtensions>');
       expect(xml).not.toContain('<amd:coreExtensions>');
     });
 
-    it('includes standard supported FPGA families', () => {
-      const xml = gen();
+    it('includes standard supported FPGA families', async () => {
+      const xml = await gen();
       expect(xml).toContain('versal');
       expect(xml).toContain('zynquplus');
       expect(xml).toContain('virtex7');
@@ -1095,24 +1219,24 @@ describe('generateComponentXml', () => {
       expect(xml).toContain('kintexu');
     });
 
-    it('includes display name derived from entity name', () => {
-      const xml = gen();
+    it('includes display name derived from entity name', async () => {
+      const xml = await gen();
       expect(xml).toContain('<xilinx:displayName>My Core</xilinx:displayName>');
     });
 
-    it('accepts custom display name option', () => {
-      const xml = gen({}, { displayName: 'Custom Display' });
+    it('accepts custom display name option', async () => {
+      const xml = await gen({}, { displayName: 'Custom Display' });
       expect(xml).toContain('<xilinx:displayName>Custom Display</xilinx:displayName>');
     });
 
-    it('includes xilinx:packagingInfo', () => {
-      const xml = gen();
+    it('includes xilinx:packagingInfo', async () => {
+      const xml = await gen();
       expect(xml).toContain('<xilinx:packagingInfo>');
     });
   });
 
   describe('xgui checksum', () => {
-    it('crc32Hex matches Vivado reference for known content', () => {
+    it('crc32Hex matches Vivado reference for known content', async () => {
       // Standard CRC32 test vector derived from the Vivado-packaged mydff example
       const known = '# Definitional proc to organize widgets for parameters.\n';
       expect(crc32Hex(known)).toMatch(/^[0-9a-f]{8}$/);
@@ -1120,27 +1244,27 @@ describe('generateComponentXml', () => {
       expect(crc32Hex('123456789')).toBe('cbf43926');
     });
 
-    it('embeds CHECKSUM_ and viewChecksum when xguiChecksum is provided', () => {
-      const xml = gen({}, { xguiChecksum: 'abcd1234' });
+    it('embeds CHECKSUM_ and viewChecksum when xguiChecksum is provided', async () => {
+      const xml = await gen({}, { xguiChecksum: 'abcd1234' });
       expect(xml).toContain('<spirit:userFileType>CHECKSUM_abcd1234</spirit:userFileType>');
       expect(xml).toContain('<spirit:name>viewChecksum</spirit:name>');
       expect(xml).toContain('<spirit:value>abcd1234</spirit:value>');
     });
 
-    it('omits CHECKSUM_ and viewChecksum when no xguiChecksum provided', () => {
-      const xml = gen();
+    it('omits CHECKSUM_ and viewChecksum when no xguiChecksum provided', async () => {
+      const xml = await gen();
       expect(xml).not.toContain('CHECKSUM_');
       expect(xml).not.toContain('viewChecksum');
     });
   });
 
   describe('valid XML structure', () => {
-    it('starts with XML declaration', () => {
-      expect(gen()).toMatch(/^<\?xml version="1\.0" encoding="UTF-8"\?>/);
+    it('starts with XML declaration', async () => {
+      expect(await gen()).toMatch(/^<\?xml version="1\.0" encoding="UTF-8"\?>/);
     });
 
-    it('has spirit:component root element', () => {
-      const xml = gen();
+    it('has spirit:component root element', async () => {
+      const xml = await gen();
       expect(xml).toContain('<spirit:component ');
       expect(xml).toContain('</spirit:component>');
     });
@@ -1152,8 +1276,8 @@ describe('generateComponentXml', () => {
       { name: 'irq_in', direction: 'in', sensitivity: 'LEVEL_HIGH' },
     ];
 
-    it('emits interrupt bus interface for output (master)', () => {
-      const xml = gen({ interrupts } as Partial<IpCoreData>);
+    it('emits interrupt bus interface for output (master)', async () => {
+      const xml = await gen({ interrupts } as Partial<IpCoreData>);
       expect(xml).toContain('<spirit:name>irq_out</spirit:name>');
       expect(xml).toContain(
         '<spirit:busType spirit:vendor="xilinx.com" spirit:library="signal" spirit:name="interrupt" spirit:version="1.0" />'
@@ -1164,39 +1288,39 @@ describe('generateComponentXml', () => {
       expect(xml).toContain('<spirit:master />');
     });
 
-    it('emits interrupt bus interface for input (slave)', () => {
-      const xml = gen({ interrupts } as Partial<IpCoreData>);
+    it('emits interrupt bus interface for input (slave)', async () => {
+      const xml = await gen({ interrupts } as Partial<IpCoreData>);
       expect(xml).toContain('<spirit:name>irq_in</spirit:name>');
       expect(xml).toContain('<spirit:slave />');
     });
 
-    it('maps interrupt port to logical INTERRUPT signal', () => {
-      const xml = gen({ interrupts } as Partial<IpCoreData>);
+    it('maps interrupt port to logical INTERRUPT signal', async () => {
+      const xml = await gen({ interrupts } as Partial<IpCoreData>);
       expect(xml).toContain('<spirit:name>INTERRUPT</spirit:name>');
     });
 
-    it('emits SENSITIVITY parameter for interrupt', () => {
-      const xml = gen({ interrupts } as Partial<IpCoreData>);
+    it('emits SENSITIVITY parameter for interrupt', async () => {
+      const xml = await gen({ interrupts } as Partial<IpCoreData>);
       expect(xml).toContain('BUSIFPARAM_VALUE.IRQ_OUT.SENSITIVITY');
       expect(xml).toContain('>LEVEL_HIGH<');
     });
 
-    it('emits physical port in spirit:ports for interrupt output', () => {
-      const xml = gen({ interrupts } as Partial<IpCoreData>);
+    it('emits physical port in spirit:ports for interrupt output', async () => {
+      const xml = await gen({ interrupts } as Partial<IpCoreData>);
       const portsSection = xml.slice(xml.indexOf('<spirit:ports>'), xml.indexOf('</spirit:ports>'));
       expect(portsSection).toContain('<spirit:name>irq_out</spirit:name>');
       expect(portsSection).toContain('<spirit:direction>out</spirit:direction>');
     });
 
-    it('emits physical port in spirit:ports for interrupt input', () => {
-      const xml = gen({ interrupts } as Partial<IpCoreData>);
+    it('emits physical port in spirit:ports for interrupt input', async () => {
+      const xml = await gen({ interrupts } as Partial<IpCoreData>);
       const portsSection = xml.slice(xml.indexOf('<spirit:ports>'), xml.indexOf('</spirit:ports>'));
       expect(portsSection).toContain('<spirit:name>irq_in</spirit:name>');
       expect(portsSection).toContain('<spirit:direction>in</spirit:direction>');
     });
 
-    it('emits no interrupt elements when interrupts array is empty', () => {
-      const xml = gen({ interrupts: [] } as Partial<IpCoreData>);
+    it('emits no interrupt elements when interrupts array is empty', async () => {
+      const xml = await gen({ interrupts: [] } as Partial<IpCoreData>);
       expect(xml).not.toContain('spirit:name="interrupt"');
       expect(xml).not.toContain('SENSITIVITY');
     });
@@ -1235,24 +1359,24 @@ describe('array bus interface expansion', () => {
     parameters: [],
   };
 
-  it('expands array interface into N individual bus interface entries', () => {
-    const xml = generateComponentXml(AXIS_IP, BUS_DEFS);
+  it('expands array interface into N individual bus interface entries', async () => {
+    const xml = await generateComponentXml(AXIS_IP, BUS_DEFS);
     expect(xml).toContain('<spirit:name>S_AXIS_0</spirit:name>');
     expect(xml).toContain('<spirit:name>S_AXIS_1</spirit:name>');
     expect(xml).toContain('<spirit:name>S_AXIS_2</spirit:name>');
     expect(xml).not.toContain('<spirit:name>S_AXIS</spirit:name>');
   });
 
-  it('emits physical ports for all expanded array instances', () => {
-    const xml = generateComponentXml(AXIS_IP, BUS_DEFS);
+  it('emits physical ports for all expanded array instances', async () => {
+    const xml = await generateComponentXml(AXIS_IP, BUS_DEFS);
     // Each expanded instance has its own prefixed physical port (physical names are lowercased)
     expect(xml).toContain('s_axis_0_tdata');
     expect(xml).toContain('s_axis_1_tdata');
     expect(xml).toContain('s_axis_2_tdata');
   });
 
-  it('ASSOCIATED_BUSIF clock parameter lists all expanded instance names', () => {
-    const xml = generateComponentXml(AXIS_IP, BUS_DEFS);
+  it('ASSOCIATED_BUSIF clock parameter lists all expanded instance names', async () => {
+    const xml = await generateComponentXml(AXIS_IP, BUS_DEFS);
     // Clock must associate with all expanded instances
     expect(xml).toContain('S_AXIS_0');
     expect(xml).toContain('S_AXIS_1');
@@ -1261,13 +1385,13 @@ describe('array bus interface expansion', () => {
 });
 
 describe('subcores in vendorExtensions', () => {
-  it('emits no subCoreRef elements when subcores is empty', () => {
-    const xml = gen({ subcores: [] });
+  it('emits no subCoreRef elements when subcores is empty', async () => {
+    const xml = await gen({ subcores: [] });
     expect(xml).not.toContain('subCoreRef');
   });
 
-  it('emits xilinx:subCoreRef for a single subcore', () => {
-    const xml = gen({ subcores: [{ vlnv: 'xilinx.com:ip:fifo_generator:13.2' }] });
+  it('emits xilinx:subCoreRef for a single subcore', async () => {
+    const xml = await gen({ subcores: [{ vlnv: 'xilinx.com:ip:fifo_generator:13.2' }] });
     expect(xml).toContain('<xilinx:subCoreRef>');
     expect(xml).toContain('xilinx:vendor="xilinx.com"');
     expect(xml).toContain('xilinx:library="ip"');
@@ -1275,8 +1399,8 @@ describe('subcores in vendorExtensions', () => {
     expect(xml).toContain('xilinx:version="13.2"');
   });
 
-  it('emits multiple subCoreRef elements for multiple subcores (2 filesets each)', () => {
-    const xml = gen({
+  it('emits multiple subCoreRef elements for multiple subcores (2 filesets each)', async () => {
+    const xml = await gen({
       subcores: [
         { vlnv: 'xilinx.com:ip:fifo_generator:13.2' },
         { vlnv: 'xilinx.com:ip:axi_uartlite:2.0' },
@@ -1286,8 +1410,8 @@ describe('subcores in vendorExtensions', () => {
     expect(count).toBe(4); // 2 subcores × 2 filesets (synthesis + simulation)
   });
 
-  it('emits subCoreRef inside spirit:fileSet vendorExtensions, not in coreExtensions', () => {
-    const xml = gen({ subcores: [{ vlnv: 'xilinx.com:ip:fifo_generator:13.2' }] });
+  it('emits subCoreRef inside spirit:fileSet vendorExtensions, not in coreExtensions', async () => {
+    const xml = await gen({ subcores: [{ vlnv: 'xilinx.com:ip:fifo_generator:13.2' }] });
     const extOpen = xml.indexOf('<xilinx:coreExtensions>');
     const extClose = xml.indexOf('</xilinx:coreExtensions>');
     const refIdx = xml.indexOf('<xilinx:subCoreRef>');
@@ -1296,14 +1420,14 @@ describe('subcores in vendorExtensions', () => {
     expect(extOpen === -1 || refIdx < extOpen || refIdx > extClose).toBe(true);
   });
 
-  it('emits componentRef (not vlnv) inside subCoreRef', () => {
-    const xml = gen({ subcores: [{ vlnv: 'xilinx.com:ip:fifo_generator:13.2' }] });
+  it('emits componentRef (not vlnv) inside subCoreRef', async () => {
+    const xml = await gen({ subcores: [{ vlnv: 'xilinx.com:ip:fifo_generator:13.2' }] });
     expect(xml).toContain('<xilinx:componentRef');
     expect(xml).toContain('<xilinx:mode xilinx:name="create_mode"/>');
   });
 
-  it('adds fileSetRef for synthesis and simulation views', () => {
-    const xml = gen({ subcores: [{ vlnv: 'xilinx.com:ip:fifo_generator:13.2' }] });
+  it('adds fileSetRef for synthesis and simulation views', async () => {
+    const xml = await gen({ subcores: [{ vlnv: 'xilinx.com:ip:fifo_generator:13.2' }] });
     expect(xml).toContain(
       'xilinx_anylanguagesynthesis_xilinx_com_ip_fifo_generator_13_2__ref_view_fileset'
     );
@@ -1352,7 +1476,7 @@ describe('generateCustomBusDefs', () => {
     parameters: [],
   };
 
-  it('returns empty object when all interfaces are standard types', () => {
+  it('returns empty object when all interfaces are standard types', async () => {
     const ip: IpCoreData = {
       ...IP_WITH_CUSTOM,
       busInterfaces: [
@@ -1369,13 +1493,13 @@ describe('generateCustomBusDefs', () => {
     expect(generateCustomBusDefs(ip, BUS_DEFS)).toEqual({});
   });
 
-  it('returns busdef and abstraction XMLs for a custom interface', () => {
+  it('returns busdef and abstraction XMLs for a custom interface', async () => {
     const files = generateCustomBusDefs(IP_WITH_CUSTOM, DEFS_WITH_CUSTOM);
     expect(Object.keys(files)).toContain('busdef/my_proto.xml');
     expect(Object.keys(files)).toContain('busdef/my_proto_rtl.xml');
   });
 
-  it('busDefinition XML contains correct VLNV and directConnection', () => {
+  it('busDefinition XML contains correct VLNV and directConnection', async () => {
     const { 'busdef/my_proto.xml': xml } = generateCustomBusDefs(IP_WITH_CUSTOM, DEFS_WITH_CUSTOM);
     expect(xml).toContain('<spirit:vendor>acme.com</spirit:vendor>');
     expect(xml).toContain('<spirit:library>interface</spirit:library>');
@@ -1386,7 +1510,7 @@ describe('generateCustomBusDefs', () => {
     expect(xml).toContain('Proprietary streaming bus');
   });
 
-  it('abstractionDefinition XML lists ports with correct master/slave directions', () => {
+  it('abstractionDefinition XML lists ports with correct master/slave directions', async () => {
     const { 'busdef/my_proto_rtl.xml': xml } = generateCustomBusDefs(
       IP_WITH_CUSTOM,
       DEFS_WITH_CUSTOM
@@ -1402,7 +1526,7 @@ describe('generateCustomBusDefs', () => {
     expect(dataBlock).toContain('<spirit:direction>in</spirit:direction>'); // onSlave
   });
 
-  it('deduplicates when the same custom type appears on multiple interfaces', () => {
+  it('deduplicates when the same custom type appears on multiple interfaces', async () => {
     const ip: IpCoreData = {
       ...IP_WITH_CUSTOM,
       busInterfaces: [
@@ -1414,7 +1538,7 @@ describe('generateCustomBusDefs', () => {
     expect(Object.keys(files)).toHaveLength(2); // only one bus def pair
   });
 
-  it('skips busdef generation for interfaces discovered from a local Vivado install', () => {
+  it('skips busdef generation for interfaces discovered from a local Vivado install', async () => {
     const ip: IpCoreData = {
       ...IP_WITH_CUSTOM,
       busInterfaces: [
@@ -1439,7 +1563,7 @@ describe('generateCustomBusDefs', () => {
     expect(generateCustomBusDefs(ip, defs)).toEqual({});
   });
 
-  it('still generates busdef files for a user-authored custom type with no source tag', () => {
+  it('still generates busdef files for a user-authored custom type with no source tag', async () => {
     const ip: IpCoreData = {
       ...IP_WITH_CUSTOM,
       busInterfaces: [
@@ -1457,7 +1581,7 @@ describe('generateCustomBusDefs', () => {
     expect(Object.keys(files)).toContain('busdef/my_proto.xml');
   });
 
-  it('generates busdef files for workspace-sourced custom types (source: workspace)', () => {
+  it('generates busdef files for workspace-sourced custom types (source: workspace)', async () => {
     const defs: BusDefinitions = {
       ...BUS_DEFS,
       MY_PROTO: { ...DEFS_WITH_CUSTOM.MY_PROTO, source: 'workspace' },
@@ -1467,7 +1591,7 @@ describe('generateCustomBusDefs', () => {
     expect(Object.keys(files)).toContain('busdef/my_proto_rtl.xml');
   });
 
-  it('generates separate busdef files for two different custom types', () => {
+  it('generates separate busdef files for two different custom types', async () => {
     const ip: IpCoreData = {
       ...IP_WITH_CUSTOM,
       busInterfaces: [
@@ -1577,8 +1701,8 @@ describe('generateComponentXml memory maps', () => {
     };
   }
 
-  it('emits a <spirit:memoryMaps> tree between busInterfaces and model', () => {
-    const xml = gen({}, { memoryMaps: [map()] });
+  it('emits a <spirit:memoryMaps> tree between busInterfaces and model', async () => {
+    const xml = await gen({}, { memoryMaps: [map()] });
     expect(xml).toContain('<spirit:memoryMaps>');
     expect(xml).toContain('<spirit:memoryMap>');
     expect(xml).toContain('<spirit:name>S_AXI</spirit:name>');
@@ -1592,7 +1716,7 @@ describe('generateComponentXml memory maps', () => {
     expect(xml.indexOf('<spirit:memoryMaps>')).toBeLessThan(xml.indexOf('<spirit:model>'));
   });
 
-  it('references the map from its owning slave interface so it is not orphaned', () => {
+  it('references the map from its owning slave interface so it is not orphaned', async () => {
     // IP_Flow 19-1980: a memory map must be referenced by a bus interface.
     const ip = makeIp({
       busInterfaces: [
@@ -1606,7 +1730,7 @@ describe('generateComponentXml memory maps', () => {
         },
       ],
     });
-    const xml = generateComponentXml(ip, BUS_DEFS, { memoryMaps: [map()] });
+    const xml = await generateComponentXml(ip, BUS_DEFS, { memoryMaps: [map()] });
     expect(xml).toContain('<spirit:slave>');
     expect(xml).toContain('<spirit:memoryMapRef spirit:memoryMapRef="S_AXI" />');
     // The referenced name matches the emitted <spirit:memoryMap><spirit:name>.
@@ -1614,12 +1738,12 @@ describe('generateComponentXml memory maps', () => {
     expect(xml.indexOf('<spirit:memoryMapRef')).toBeLessThan(xml.indexOf('<spirit:memoryMaps>'));
   });
 
-  it('keeps a self-closing slave when the interface declares no memoryMapRef', () => {
+  it('keeps a self-closing slave when the interface declares no memoryMapRef', async () => {
     // Default fixture's slave has no memoryMapRef.
-    expect(gen({}, { memoryMaps: [map()] })).toContain('<spirit:slave />');
+    expect(await gen({}, { memoryMaps: [map()] })).toContain('<spirit:slave />');
   });
 
-  it('does not add a memoryMapRef to master interfaces', () => {
+  it('does not add a memoryMapRef to master interfaces', async () => {
     const ip = makeIp({
       busInterfaces: [
         {
@@ -1632,13 +1756,13 @@ describe('generateComponentXml memory maps', () => {
         },
       ],
     });
-    const xml = generateComponentXml(ip, BUS_DEFS, { memoryMaps: [map()] });
+    const xml = await generateComponentXml(ip, BUS_DEFS, { memoryMaps: [map()] });
     expect(xml).toContain('<spirit:master />');
     expect(xml).not.toContain('<spirit:memoryMapRef');
   });
 
-  it('emits registers with offset, size, access and description', () => {
-    const xml = gen({}, { memoryMaps: [map()] });
+  it('emits registers with offset, size, access and description', async () => {
+    const xml = await gen({}, { memoryMaps: [map()] });
     expect(xml).toContain('<spirit:name>CTRL</spirit:name>');
     expect(xml).toContain('<spirit:description>Control register</spirit:description>');
     expect(xml).toContain('<spirit:addressOffset>0x0</spirit:addressOffset>');
@@ -1646,8 +1770,8 @@ describe('generateComponentXml memory maps', () => {
     expect(xml).toContain('<spirit:size spirit:format="long">32</spirit:size>');
   });
 
-  it('emits fields with bitOffset, bitWidth and access (no field-level reset)', () => {
-    const xml = gen({}, { memoryMaps: [map()] });
+  it('emits fields with bitOffset, bitWidth and access (no field-level reset)', async () => {
+    const xml = await gen({}, { memoryMaps: [map()] });
     expect(xml).toContain('<spirit:name>ENABLE</spirit:name>');
     expect(xml).toContain('<spirit:bitOffset>0</spirit:bitOffset>');
     expect(xml).toContain('<spirit:bitOffset>1</spirit:bitOffset>');
@@ -1658,8 +1782,8 @@ describe('generateComponentXml memory maps', () => {
     expect(xml).not.toContain('            <spirit:reset>');
   });
 
-  it('emits a register-level <spirit:reset> composed from field resets, after access and before fields', () => {
-    const xml = gen({}, { memoryMaps: [map()] });
+  it('emits a register-level <spirit:reset> composed from field resets, after access and before fields', async () => {
+    const xml = await gen({}, { memoryMaps: [map()] });
     // MASK register: field BITS resets to 0xFFFFFFFF at offset 0 -> register reset word.
     expect(xml).toContain(
       '<spirit:reset>\n            <spirit:value spirit:format="long">0xFFFFFFFF</spirit:value>\n          </spirit:reset>'
@@ -1675,8 +1799,8 @@ describe('generateComponentXml memory maps', () => {
     expect(resetIdx).toBeLessThan(fieldIdx);
   });
 
-  it('derives register access from fields when the register has no explicit access', () => {
-    const xml = gen({}, { memoryMaps: [map()] });
+  it('derives register access from fields when the register has no explicit access', async () => {
+    const xml = await gen({}, { memoryMaps: [map()] });
     // CTRL mixes read-write + read-only fields -> read-write at register level.
     const ctrl = xml.slice(
       xml.indexOf('<spirit:name>CTRL</spirit:name>'),
@@ -1685,15 +1809,15 @@ describe('generateComponentXml memory maps', () => {
     expect(ctrl).toContain('<spirit:access>read-write</spirit:access>');
   });
 
-  it('omits the section entirely when there are no memory maps', () => {
-    expect(gen()).not.toContain('<spirit:memoryMaps>');
-    expect(gen({}, { memoryMaps: [] })).not.toContain('<spirit:memoryMaps>');
+  it('omits the section entirely when there are no memory maps', async () => {
+    expect(await gen()).not.toContain('<spirit:memoryMaps>');
+    expect(await gen({}, { memoryMaps: [] })).not.toContain('<spirit:memoryMaps>');
     // A map with only empty blocks is also omitted.
     const empty = map({ addressBlocks: [] });
-    expect(gen({}, { memoryMaps: [empty] })).not.toContain('<spirit:memoryMaps>');
+    expect(await gen({}, { memoryMaps: [empty] })).not.toContain('<spirit:memoryMaps>');
   });
 
-  it('expands register arrays into individual flat registers', () => {
+  it('expands register arrays into individual flat registers', async () => {
     const arrayMap = map({
       addressBlocks: [
         {
@@ -1732,15 +1856,15 @@ describe('generateComponentXml memory maps', () => {
         },
       ],
     });
-    const xml = gen({}, { memoryMaps: [arrayMap] });
+    const xml = await gen({}, { memoryMaps: [arrayMap] });
     expect(xml).toContain('<spirit:name>CHANNEL_0_CTRL</spirit:name>');
     expect(xml).toContain('<spirit:name>CHANNEL_1_CTRL</spirit:name>');
     // second instance sits at base + 1 * stride = 8 (0x8)
     expect(xml).toContain('<spirit:addressOffset>0x8</spirit:addressOffset>');
   });
 
-  it('round-trips through ComponentXmlParser (generate -> parse -> .mm.yml)', () => {
-    const xml = gen({}, { memoryMaps: [map()] });
+  it('round-trips through ComponentXmlParser (generate -> parse -> .mm.yml)', async () => {
+    const xml = await gen({}, { memoryMaps: [map()] });
     const parsed = parseComponentXmlText(xml);
     expect(parsed.mmYamlText).toBeTruthy();
     const mm = yaml.load(parsed.mmYamlText as string) as Array<Record<string, unknown>>;
