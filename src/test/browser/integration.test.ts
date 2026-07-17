@@ -412,15 +412,11 @@ addressBlocks:
   });
 
   test('should keyboard insert register after selection with o key', async ({ page }) => {
+    const tree = page.locator('[role="tree"]');
+    await tree.focus();
+
     const ctrlItem = page.locator('[data-outline-id="block-0-reg-0"]');
     await ctrlItem.click();
-
-    const regsTable = page.locator('[data-regs-table]');
-    await expect(regsTable).toBeVisible({ timeout: 5000 });
-
-    // Click the register card to ensure selectedIndex is set before pressing o
-    await regsTable.locator('[data-viz-row="0"]').click();
-    await regsTable.focus();
 
     await page.evaluate(() => {
       (window as any).__last_message = null;
@@ -446,14 +442,11 @@ addressBlocks:
   });
 
   test('should keyboard insert register before selection with shift+o key', async ({ page }) => {
+    const tree = page.locator('[role="tree"]');
+    await tree.focus();
+
     const ctrlItem = page.locator('[data-outline-id="block-0-reg-0"]');
     await ctrlItem.click();
-
-    const regsTable = page.locator('[data-regs-table]');
-    await expect(regsTable).toBeVisible({ timeout: 5000 });
-
-    await regsTable.locator('[data-viz-row="0"]').click();
-    await regsTable.focus();
 
     await page.keyboard.press('Shift+o');
 
@@ -467,14 +460,11 @@ addressBlocks:
   });
 
   test('should keyboard delete selected register with d key', async ({ page }) => {
+    const tree = page.locator('[role="tree"]');
+    await tree.focus();
+
     const ctrlItem = page.locator('[data-outline-id="block-0-reg-0"]');
     await ctrlItem.click();
-
-    const regsTable = page.locator('[data-regs-table]');
-    await expect(regsTable).toBeVisible({ timeout: 5000 });
-
-    await regsTable.locator('[data-viz-row="0"]').click();
-    await regsTable.focus();
 
     await page.evaluate(() => {
       (window as any).__last_message = null;

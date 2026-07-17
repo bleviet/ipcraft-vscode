@@ -1,21 +1,11 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import type { YamlUpdateHandler, BitFieldRecord } from '../../types/editor';
-import {
-  KeyboardShortcutsButton,
-  EditorHeader,
-  TwoPanelEditorLayout,
-  RegisterActionsMenu,
-} from '../../shared/components';
-import RegisterMapVisualizer from '../RegisterMapVisualizer';
+import { KeyboardShortcutsButton, EditorHeader, CellInput } from '../../shared/components';
 import type { RegisterModel } from '../../types/registerModel';
 import type { RegisterDef } from '../../types/memoryMap';
 import { toHex } from '../../utils/formatUtils';
-import { generateUniqueName } from '../../utils/naming';
-import { useAutoFocus } from '../../hooks/useAutoFocus';
-import { useTableEditorState } from '../../hooks/useTableEditorState';
-import { usePendingSelect, type PendingSelectTarget } from '../../hooks/usePendingSelect';
-import { REG_COLUMN_ORDER, type RegEditKey } from './RegisterTableRow';
-import { reconcileRowIds, type TableRowWrapper } from '../../utils/rowIdentity';
+import { validateUniqueName } from '../../shared/utils/validation';
+import { useCellEditGuard } from '../../hooks/useCellEditGuard';
 import { RegisterEditor } from '../register/RegisterEditor';
 
 export interface AddressBlockModel {
@@ -53,15 +43,160 @@ function isArrayReg(reg?: RegisterModel): boolean {
   );
 }
 
+type InlineEditKey = 'name' | 'offset' | 'description';
+
+/**
+ * Compact, editable identity strip for the register currently shown in the
+ * detail pane below (name / offset / description) — the register list itself
+ * is selected, inserted, deleted and reordered from the Outline panel, but
+ * those three fields have no other editable home once a register is open.
+ * Keyed by regIndex from the caller so switching registers resets edit state.
+ */
+function RegisterInlineHeader({
+  reg,
+  regIndex,
+  registers,
+  onUpdate,
+}: {
+  reg: RegisterModel;
+  regIndex: number;
+  registers: RegisterModel[];
+  onUpdate: YamlUpdateHandler;
+}) {
+  const [editingKey, setEditingKey] = useState<InlineEditKey | null>(null);
+  const [nameError, setNameError] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const offset = Number(reg.address_offset ?? reg.offset ?? 0);
+
+  const { cancelEditRef, captureEditSnapshot } = useCellEditGuard<RegisterModel>({
+    rows: registers,
+    rowsPath: ['registers'],
+    onUpdate,
+    containerRef: containerRef as React.RefObject<HTMLElement>,
+  });
+
+  const startEdit = (key: InlineEditKey) => (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingKey(key);
+  };
+
+  const stopEdit = () => setEditingKey(null);
+
+  const commitName = (value: string) => {
+    const siblingNames = registers
+      .filter((_, i) => i !== regIndex)
+      .map((r) => String(r.name ?? ''));
+    const err = validateUniqueName(value, siblingNames, reg.name ?? '');
+    setNameError(err);
+    if (!err) {
+      onUpdate(['registers', regIndex, 'name'], value);
+    }
+  };
+
+  return (
+    <div
+      ref={containerRef}
+      className="vscode-surface border-b vscode-border px-6 py-2 shrink-0 flex items-center gap-4 min-w-0"
+      onBlur={(e) => {
+        if (!containerRef.current?.contains(e.relatedTarget as Node)) {
+          stopEdit();
+        }
+      }}
+    >
+      {editingKey === 'name' ? (
+        <CellInput
+          editKey="name"
+          className="font-mono font-bold text-sm w-48 shrink-0"
+          isEditing
+          value={reg.name ?? ''}
+          onFocus={() => captureEditSnapshot()}
+          cancelEditRef={cancelEditRef}
+          onInput={commitName}
+          onBlur={(value) => {
+            commitName(value);
+            setNameError(null);
+          }}
+        />
+      ) : (
+        <span
+          className="font-mono font-bold text-sm shrink-0 cursor-text"
+          data-tooltip="Double-click to edit"
+          onDoubleClick={startEdit('name')}
+        >
+          {reg.name}
+        </span>
+      )}
+      {nameError ? <span className="text-[11px] vscode-error shrink-0">{nameError}</span> : null}
+
+      <span className="text-xs vscode-muted font-mono flex items-center gap-1 shrink-0">
+        Offset:
+        {editingKey === 'offset' ? (
+          <CellInput
+            editKey="offset"
+            className="w-20 font-mono"
+            isEditing
+            value={toHex(offset)}
+            onFocus={() => captureEditSnapshot()}
+            cancelEditRef={cancelEditRef}
+            onInput={(value) => {
+              const val = Number(value);
+              if (!Number.isNaN(val)) {
+                onUpdate(['registers', regIndex, 'offset'], val);
+              }
+            }}
+            onBlur={stopEdit}
+          />
+        ) : (
+          <span
+            className="cursor-text"
+            data-tooltip="Double-click to edit"
+            onDoubleClick={startEdit('offset')}
+          >
+            {toHex(offset)}
+          </span>
+        )}
+      </span>
+
+      <span className="flex-1 min-w-0 text-xs vscode-muted">
+        {editingKey === 'description' ? (
+          <CellInput
+            editKey="description"
+            className="w-full text-xs"
+            isEditing
+            value={reg.description ?? ''}
+            onFocus={() => captureEditSnapshot()}
+            cancelEditRef={cancelEditRef}
+            onInput={(value) => onUpdate(['registers', regIndex, 'description'], value)}
+            onBlur={stopEdit}
+          />
+        ) : (
+          <span
+            className="cursor-text truncate block"
+            data-tooltip="Double-click to edit"
+            onDoubleClick={startEdit('description')}
+          >
+            {reg.description?.length ? (
+              reg.description
+            ) : (
+              <span className="italic opacity-60">No description</span>
+            )}
+          </span>
+        )}
+      </span>
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 /**
- * Master-detail editor for a single address block:
- * - Left rail: editable register cards (RegisterMapVisualizer), the master list.
- * - Right detail: the selected register's BitFieldVisualizer + FieldsTable
- *   (an embedded RegisterEditor). Register arrays route to their own editor.
+ * Detail editor for a single address block's active register: an editable
+ * identity strip (name/offset/description) plus the selected register's
+ * BitFieldVisualizer + FieldsTable (an embedded RegisterEditor). The register
+ * list itself — select, insert, delete, reorder, rename — lives entirely in
+ * the Outline panel; register arrays route to their own editor.
  */
 export function BlockEditor({
   block,
@@ -79,293 +214,28 @@ export function BlockEditor({
       0
   );
 
-  const [contextMenu, setContextMenu] = useState<{
-    x: number;
-    y: number;
-    regId: string;
-  } | null>(null);
-
-  const liveRegisters = block?.registers ?? [];
-
-  // ---- wrapped rows for row identity ----
-  const [wrappedRegisters, setWrappedRegisters] = useState<Array<TableRowWrapper<RegisterModel>>>(
-    []
-  );
-
-  useEffect(() => {
-    setWrappedRegisters((prev) => reconcileRowIds(prev, liveRegisters));
-  }, [liveRegisters]);
-
-  const pendingSelectRef = useRef<PendingSelectTarget<RegEditKey> | null>(null);
-
-  const insertNewItem = (
-    newIdx: number,
-    kind: 'register' | 'flat-array' | 'array' = 'register'
-  ) => {
-    const newRegs = [...liveRegisters];
-
-    if (kind === 'array') {
-      const arrayName = generateUniqueName(liveRegisters, 'array');
-      newRegs.splice(newIdx, 0, {
-        __kind: 'array',
-        name: arrayName,
-        offset: 0,
-        address_offset: 0,
-        count: 2,
-        stride: 4,
-        description: '',
-        registers: [
-          {
-            name: 'reg0',
-            offset: 0,
-            address_offset: 0,
-            description: '',
-            fields: [{ name: 'data', bits: '[31:0]', access: 'read-write', description: '' }],
-          },
-        ],
-      });
-      pendingSelectRef.current = { name: arrayName, key: 'name' };
-    } else if (kind === 'flat-array') {
-      const name = generateUniqueName(liveRegisters, 'regArray');
-      newRegs.splice(newIdx, 0, {
-        name,
-        offset: 0,
-        address_offset: 0,
-        count: 2,
-        stride: 4,
-        description: '',
-      });
-      pendingSelectRef.current = { name, key: 'name' };
-    } else {
-      const name = generateUniqueName(liveRegisters, 'reg');
-      newRegs.splice(newIdx, 0, {
-        name,
-        description: '',
-        offset: 0,
-        address_offset: 0,
-        fields: [{ name: 'data', bits: '[31:0]', access: 'read-write', description: '' }],
-      });
-      pendingSelectRef.current = { name, key: 'name' };
-    }
-    onUpdate(['registers'], newRegs as unknown[]);
-  };
-
-  const deleteReg = (rowId: string) => {
-    const idx = wrappedRegisters.findIndex((w) => w.rowId === rowId);
-    if (idx < 0 || idx >= liveRegisters.length) {
-      return;
-    }
-    const newRegs = liveRegisters.filter((_: RegisterModel, i: number) => i !== idx);
-    onUpdate(['registers'], newRegs as unknown[]);
-    const nextRow = idx < newRegs.length ? idx : newRegs.length - 1;
-    window.setTimeout(() => {
-      editor.selectRow(nextRow, editor.activeCell.key);
-    }, 0);
-  };
-
-  const editor = useTableEditorState<RegisterModel, RegEditKey>({
-    rows: wrappedRegisters,
-    rowsPath: ['registers'],
-    columnOrder: REG_COLUMN_ORDER,
-    onUpdate,
-    rowSelectorAttr: 'data-viz-row',
-    onInsertAfter: () => {
-      const newIdx = editor.selectedIndex + 1;
-      insertNewItem(newIdx, 'register');
-    },
-    onInsertBefore: () => {
-      const newIdx = Math.max(0, editor.selectedIndex);
-      insertNewItem(newIdx, 'register');
-    },
-    onDelete: deleteReg,
-    onMove: (rowId, delta) => {
-      const fromIndex = wrappedRegisters.findIndex((w) => w.rowId === rowId);
-      const next = fromIndex + delta;
-      if (
-        fromIndex < 0 ||
-        fromIndex >= liveRegisters.length ||
-        next < 0 ||
-        next >= liveRegisters.length
-      ) {
-        return;
-      }
-      const newRegs = [...liveRegisters];
-      const temp = newRegs[fromIndex];
-      newRegs[fromIndex] = newRegs[next];
-      newRegs[next] = temp;
-      onUpdate(['registers'], newRegs as unknown[]);
-    },
-    enableHoverInsert: false,
-    clampDeps: [block?.name],
-  });
-
-  // ---- Select a freshly inserted register once it appears ----
-  usePendingSelect<RegisterModel, RegEditKey>(wrappedRegisters, editor, pendingSelectRef);
-
-  // ---- Seed the active register from an out-of-band selection (Outline) ----
-  const appliedActiveRegRef = useRef<number | null>(null);
-  useEffect(() => {
-    appliedActiveRegRef.current = null;
-  }, [block?.name]);
-  useEffect(() => {
-    const i = selectionMeta?.activeRegisterIndex;
-    if (typeof i !== 'number' || appliedActiveRegRef.current === i) {
-      return;
-    }
-    if (i >= 0 && i < wrappedRegisters.length) {
-      editor.selectRow(i);
-      appliedActiveRegRef.current = i;
-    }
-  }, [selectionMeta?.activeRegisterIndex, wrappedRegisters, editor]);
-
-  useAutoFocus(
-    editor.containerRef as React.RefObject<HTMLDivElement>,
-    !!selectionMeta?.focusDetails,
-    [block?.name]
-  );
-
-  const insertAtGap = (
-    gapIndex: number,
-    kind: 'register' | 'flat-array' | 'array' = 'register'
-  ) => {
-    insertNewItem(gapIndex, kind);
-    editor.clearInsertBar();
-  };
-
-  const closeContextMenu = () => setContextMenu(null);
-
-  // Shift+A / Shift+I: insert register array
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      const keyLower = (e.key || '').toLowerCase();
-      const isInsertArrayAfter = keyLower === 'a' && e.shiftKey;
-      const isInsertArrayBefore = keyLower === 'i' && e.shiftKey;
-      if (!isInsertArrayAfter && !isInsertArrayBefore) {
-        return;
-      }
-      if (e.ctrlKey || e.metaKey) {
-        return;
-      }
-
-      const activeEl = document.activeElement as HTMLElement | null;
-      const container = editor.containerRef.current;
-      const isInRegsArea =
-        !!container && !!activeEl && (activeEl === container || container.contains(activeEl));
-      if (!isInRegsArea) {
-        return;
-      }
-
-      const target = e.target as HTMLElement | null;
-      const isTypingTarget = !!target?.closest(
-        'input, textarea, select, [contenteditable="true"], vscode-text-field, vscode-text-area, vscode-dropdown'
-      );
-      if (isTypingTarget) {
-        return;
-      }
-
-      e.preventDefault();
-      e.stopPropagation();
-
-      const arrayName = generateUniqueName(liveRegisters, 'ARRAY_');
-      const selIdx = editor.selectedIndex >= 0 ? editor.selectedIndex : liveRegisters.length - 1;
-      const selected = liveRegisters[selIdx];
-      const selectedOffset = selected?.address_offset ?? selected?.offset ?? 0;
-      let selectedSize = 4;
-      if (selected?.__kind === 'array') {
-        selectedSize = (selected.count ?? 1) * (selected.stride ?? 4);
-      }
-      const baseOffset = isInsertArrayAfter
-        ? Number(selectedOffset) + Number(selectedSize)
-        : selectedOffset;
-      const newArray = {
-        __kind: 'array',
-        name: arrayName,
-        address_offset: baseOffset,
-        offset: baseOffset,
-        count: 2,
-        stride: 4,
-        description: '',
-        registers: [
-          {
-            name: 'reg0',
-            offset: 0,
-            address_offset: 0,
-            description: '',
-            fields: [{ name: 'data', bits: '[31:0]', access: 'read-write', description: '' }],
-          },
-        ],
-      };
-      let newRegs: RegisterModel[];
-      if (isInsertArrayAfter) {
-        newRegs = [
-          ...liveRegisters.slice(0, selIdx + 1),
-          newArray,
-          ...liveRegisters.slice(selIdx + 1),
-        ];
-      } else {
-        newRegs = [...liveRegisters.slice(0, selIdx), newArray, ...liveRegisters.slice(selIdx)];
-      }
-      pendingSelectRef.current = { name: arrayName, key: 'name' };
-      onUpdate(['registers'], newRegs as unknown[]);
-    };
-
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [liveRegisters, onUpdate, editor]);
+  // The active register is driven entirely by the Outline's selection; there
+  // is no local list state to reconcile (insert/delete/reorder all happen in
+  // the Outline, which re-derives this index fresh after every edit).
+  const selectedIndex =
+    registers.length === 0
+      ? -1
+      : Math.min(Math.max(selectionMeta?.activeRegisterIndex ?? 0, 0), registers.length - 1);
+  const activeReg = selectedIndex >= 0 ? registers[selectedIndex] : undefined;
 
   // ---- Register-scoped update handler for the embedded field detail ----
   const detailUpdate: YamlUpdateHandler = useCallback(
     (p, v) => {
-      const idx = editor.selectedIndex;
-      if (idx < 0) {
+      if (selectedIndex < 0) {
         return;
       }
       if (p[0] === '__op') {
-        onUpdate(p, { ...(v as Record<string, unknown>), __regIndex: idx });
+        onUpdate(p, { ...(v as Record<string, unknown>), __regIndex: selectedIndex });
       } else {
-        onUpdate(['registers', idx, ...p], v);
+        onUpdate(['registers', selectedIndex, ...p], v);
       }
     },
-    [onUpdate, editor.selectedIndex]
-  );
-
-  const activeReg = editor.selectedIndex >= 0 ? registers[editor.selectedIndex] : undefined;
-
-  const rail = (
-    <div
-      ref={editor.containerRef as React.RefObject<HTMLDivElement>}
-      tabIndex={0}
-      data-regs-table="true"
-      className="outline-none focus:outline-none"
-    >
-      <RegisterMapVisualizer
-        registers={registers}
-        hoveredRegIndex={editor.hoveredIndex}
-        setHoveredRegIndex={editor.setHoveredFieldIndex}
-        selectedRegIndex={editor.selectedIndex}
-        onSelectRegister={editor.selectRow}
-        baseAddress={baseAddress}
-        onReorderRegisters={(newRegs) => onUpdate(['registers'], newRegs as unknown[])}
-        onRegisterClick={(idx) => {
-          // Arrays open in their own dedicated editor; plain registers edit in place.
-          if (isArrayReg(registers[idx])) {
-            onNavigateToRegister?.(idx);
-          }
-        }}
-        cardDoubleClickHint={undefined}
-        onInsertAtGap={insertAtGap}
-        onDeleteReg={(idx) => {
-          const rowId = wrappedRegisters[idx]?.rowId;
-          if (rowId) {
-            deleteReg(rowId);
-          }
-        }}
-        onUpdateRegister={onUpdate}
-        cancelEditRef={editor.cancelEditRef}
-        captureEditSnapshot={editor.captureEditSnapshot}
-        layout="vertical"
-      />
-    </div>
+    [onUpdate, selectedIndex]
   );
 
   let detail: React.ReactNode;
@@ -373,7 +243,7 @@ export function BlockEditor({
     detail = (
       <div className="flex items-center justify-center h-full vscode-muted text-sm px-6 text-center">
         {registers.length === 0
-          ? 'No registers yet. Press o to add one.'
+          ? 'No registers yet. Select this block in the outline and press o to add one.'
           : 'Select a register to edit its fields.'}
       </div>
     );
@@ -393,7 +263,7 @@ export function BlockEditor({
               border: 'none',
               cursor: 'pointer',
             }}
-            onClick={() => onNavigateToRegister(editor.selectedIndex)}
+            onClick={() => onNavigateToRegister(selectedIndex)}
           >
             Open array editor
           </button>
@@ -415,32 +285,24 @@ export function BlockEditor({
   }
 
   return (
-    <TwoPanelEditorLayout
-      header={
-        <EditorHeader
-          title={block?.name ?? 'Address Block'}
-          description={`${block?.description ?? `Base: ${toHex(baseAddress)}`} • ${block?.usage ?? 'register'}`}
-          layout={registerLayout}
-          onToggleLayout={toggleRegisterLayout}
+    <div className="flex flex-col w-full h-full min-h-0">
+      <EditorHeader
+        title={block?.name ?? 'Address Block'}
+        description={`${block?.description ?? `Base: ${toHex(baseAddress)}`} • ${block?.usage ?? 'register'}`}
+        layout={registerLayout}
+        onToggleLayout={toggleRegisterLayout}
+      />
+      {activeReg && (
+        <RegisterInlineHeader
+          key={selectedIndex}
+          reg={activeReg}
+          regIndex={selectedIndex}
+          registers={registers}
+          onUpdate={onUpdate}
         />
-      }
-      visualizer={rail}
-      table={detail}
-      footer={
-        <>
-          <KeyboardShortcutsButton context="block" />
-          <RegisterActionsMenu
-            position={contextMenu ? { x: contextMenu.x, y: contextMenu.y } : null}
-            onInsert={(where, kind) => {
-              const idx = wrappedRegisters.findIndex((w) => w.rowId === contextMenu!.regId);
-              insertAtGap(where === 'above' ? idx : idx + 1, kind);
-            }}
-            onDelete={() => deleteReg(contextMenu!.regId)}
-            onClose={closeContextMenu}
-          />
-        </>
-      }
-      layout="side-by-side"
-    />
+      )}
+      <div className="flex-1 min-h-0 flex flex-col overflow-hidden vscode-surface">{detail}</div>
+      <KeyboardShortcutsButton context="register" />
+    </div>
   );
 }

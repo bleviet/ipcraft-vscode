@@ -434,7 +434,7 @@ const FieldTableRow = ({
           columnKey="name"
           isActive={activeCell.rowId === rowId && activeCell.key === 'name'}
           onCellClick={onCellClick(index, 'name')}
-          className="px-6 py-2 font-medium"
+          className="px-4 py-2 font-medium"
         >
           <div className="flex flex-col justify-center">
             <div className="flex items-center gap-2 h-10">

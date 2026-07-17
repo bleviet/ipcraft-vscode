@@ -170,7 +170,7 @@ const ProLayoutView = ({
                   className="relative flex flex-col items-center justify-end select-none"
                   style={{ width: `calc(${width} * 2rem)` }}
                 >
-                  <div className="h-20 w-full rounded-t-md overflow-hidden flex">
+                  <div className="h-20 w-full overflow-hidden flex">
                     {Array.from({ length: width }).map((_, i) => {
                       const bit = segment.end - i;
                       const isInDragRange =
@@ -253,7 +253,6 @@ const ProLayoutView = ({
               field?.resetValue === null || field?.resetValue === undefined
                 ? 0
                 : Number(field.resetValue);
-            const isSingleBit = width === 1;
 
             return (
               <div
@@ -287,7 +286,7 @@ const ProLayoutView = ({
                 }}
               >
                 <div
-                  className="h-20 w-full rounded-t-md overflow-hidden flex relative"
+                  className="h-20 w-full overflow-hidden flex relative"
                   style={{
                     opacity: 1,
                     transform: isHovered ? 'translateY(-2px)' : undefined,
@@ -365,9 +364,6 @@ const ProLayoutView = ({
                       <FieldCell
                         key={i}
                         bitValue={value}
-                        cellIndex={i}
-                        width={width}
-                        isSingleBit={isSingleBit}
                         isOutOfNewRange={isOutOfNewRange}
                         isInNewRange={isInNewRange}
                         color={group.color}
@@ -431,7 +427,7 @@ const ProLayoutView = ({
                   })}
                 </div>
                 <div
-                  className={`absolute -top-12 px-2 py-0.5 rounded border shadow text-xs whitespace-nowrap pointer-events-none ${segIdx === 0 ? 'left-0' : 'left-1/2 -translate-x-1/2'}`}
+                  className={`absolute -top-12 px-2 py-0.5 border shadow text-xs whitespace-nowrap pointer-events-none ${segIdx === 0 ? 'left-0' : 'left-1/2 -translate-x-1/2'}`}
                   style={{
                     background: 'var(--vscode-editorWidget-background)',
                     color: 'var(--vscode-foreground)',

@@ -28,11 +28,11 @@ const ValueBar = ({
 }: ValueBarProps) => {
   return (
     <div
-      className="mt-3 flex items-center justify-start gap-3 p-3 rounded"
+      className="mt-3 flex items-center justify-start gap-2 p-2 rounded"
       style={{ background: 'var(--vscode-editor-background)' }}
     >
-      <div className="text-sm vscode-muted font-mono font-semibold">Value:</div>
-      <div className="min-w-[160px] text-base">
+      <div className="text-xs vscode-muted font-mono font-semibold shrink-0">Value:</div>
+      <div className="flex-1 min-w-[70px] text-base">
         <div
           className="flex items-stretch rounded"
           style={{
@@ -42,7 +42,7 @@ const ValueBar = ({
         >
           {valueView === 'hex' ? (
             <span
-              className="flex items-center pl-2 font-mono select-none"
+              className="flex items-center pl-1.5 font-mono select-none"
               style={{
                 fontSize: 'var(--vscode-font-size, 13px)',
                 color: 'var(--vscode-input-foreground)',
@@ -53,7 +53,7 @@ const ValueBar = ({
             </span>
           ) : null}
           <VSCodeTextField
-            className="vscode-field-bare flex-1 font-mono"
+            className="vscode-field-bare flex-1 min-w-0 font-mono"
             value={valueDraft}
             onFocus={(event) => {
               setValueEditing(true);
@@ -85,7 +85,7 @@ const ValueBar = ({
       </div>
       <button
         type="button"
-        className="px-3 py-2 text-sm font-semibold border rounded"
+        className="shrink-0 px-2 py-1 text-xs font-semibold border rounded"
         style={{
           borderColor: 'var(--vscode-button-border, var(--vscode-panel-border))',
           background: 'var(--vscode-button-background)',

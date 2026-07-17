@@ -492,11 +492,9 @@ body {
    REGISTER SIDE-BY-SIDE LAYOUT
    ======================================== */
 
-.register-visualizer-pane {
+.register-visualizer-pane,
+.register-visualizer-pane-compact {
     flex: 0 0 auto;
-    width: 340px;
-    min-width: 280px;
-    max-width: 460px;
     display: flex;
     flex-direction: column;
     min-height: 0;
@@ -504,15 +502,36 @@ body {
     background: var(--vscode-editor-background);
 }
 
+.register-visualizer-pane {
+    width: 340px;
+    min-width: 280px;
+    max-width: 460px;
+}
+
+/* Narrower default for panes whose content doesn't need as much room as a
+   register/block card list — e.g. the bit-field visualizer's bit-index +
+   value column, which is mostly numbers. Still user-resizable via the drag
+   handle, up to the same max as the standard pane. */
+.register-visualizer-pane-compact {
+    width: 240px;
+    min-width: 200px;
+    max-width: 340px;
+}
+
 @media (min-width: 641px) and (max-width: 900px) {
     .register-visualizer-pane {
         width: 260px;
         min-width: 220px;
     }
+    .register-visualizer-pane-compact {
+        width: 200px;
+        min-width: 180px;
+    }
 }
 
 @media (max-width: 640px) {
-    .register-visualizer-pane {
+    .register-visualizer-pane,
+    .register-visualizer-pane-compact {
         display: none;
     }
 }

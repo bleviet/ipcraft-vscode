@@ -1,21 +1,11 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import type { YamlUpdateHandler, BitFieldRecord } from '../../types/editor';
-import { VSCodeTextField } from '@vscode/webview-ui-toolkit/react';
-import {
-  KeyboardShortcutsButton,
-  EditorHeader,
-  TwoPanelEditorLayout,
-} from '../../shared/components';
-import RegisterMapVisualizer from '../RegisterMapVisualizer';
+import { KeyboardShortcutsButton, EditorHeader, CellInput } from '../../shared/components';
 import type { RegisterModel } from '../../types/registerModel';
 import type { RegisterDef } from '../../types/memoryMap';
 import { toHex } from '../../utils/formatUtils';
-import { generateUniqueName } from '../../utils/naming';
-import { useTableEditorState } from '../../hooks/useTableEditorState';
-import { useAutoFocus } from '../../hooks/useAutoFocus';
-import { useEditableDraft } from '../../shared/hooks/useEditableDraft';
-import { REG_COLUMN_ORDER, type RegEditKey } from './RegisterTableRow';
-import { reconcileRowIds, type TableRowWrapper } from '../../utils/rowIdentity';
+import { validateUniqueName } from '../../shared/utils/validation';
+import { useCellEditGuard } from '../../hooks/useCellEditGuard';
 import { RegisterEditor } from '../register/RegisterEditor';
 
 export interface RegisterArrayEditorProps {
@@ -32,17 +22,165 @@ export interface RegisterArrayEditorProps {
   onUpdate: YamlUpdateHandler;
 }
 
+type InlineEditKey = 'name' | 'offset' | 'description';
+
+/**
+ * Compact, editable identity strip for the template register currently shown
+ * in the detail pane below (name / offset / description) — the register list
+ * itself is selected, inserted, deleted and reordered from the Outline panel
+ * (every array element shares this one template), but those three fields
+ * have no other editable home once a register is open. Keyed by regIndex
+ * from the caller so switching registers resets edit state.
+ */
+function RegisterInlineHeader({
+  reg,
+  regIndex,
+  registers,
+  onUpdate,
+}: {
+  reg: RegisterModel;
+  regIndex: number;
+  registers: RegisterModel[];
+  onUpdate: YamlUpdateHandler;
+}) {
+  const [editingKey, setEditingKey] = useState<InlineEditKey | null>(null);
+  const [nameError, setNameError] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const offset = Number(reg.address_offset ?? reg.offset ?? 0);
+
+  const { cancelEditRef, captureEditSnapshot } = useCellEditGuard<RegisterModel>({
+    rows: registers,
+    rowsPath: ['registers'],
+    onUpdate,
+    containerRef: containerRef as React.RefObject<HTMLElement>,
+  });
+
+  const startEdit = (key: InlineEditKey) => (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingKey(key);
+  };
+
+  const stopEdit = () => setEditingKey(null);
+
+  const commitName = (value: string) => {
+    const siblingNames = registers
+      .filter((_, i) => i !== regIndex)
+      .map((r) => String(r.name ?? ''));
+    const err = validateUniqueName(value, siblingNames, reg.name ?? '');
+    setNameError(err);
+    if (!err) {
+      onUpdate(['registers', regIndex, 'name'], value);
+    }
+  };
+
+  return (
+    <div
+      ref={containerRef}
+      className="vscode-surface border-b vscode-border px-6 py-2 shrink-0 flex items-center gap-4 min-w-0"
+      onBlur={(e) => {
+        if (!containerRef.current?.contains(e.relatedTarget as Node)) {
+          stopEdit();
+        }
+      }}
+    >
+      {editingKey === 'name' ? (
+        <CellInput
+          editKey="name"
+          className="font-mono font-bold text-sm w-48 shrink-0"
+          isEditing
+          value={reg.name ?? ''}
+          onFocus={() => captureEditSnapshot()}
+          cancelEditRef={cancelEditRef}
+          onInput={commitName}
+          onBlur={(value) => {
+            commitName(value);
+            setNameError(null);
+          }}
+        />
+      ) : (
+        <span
+          className="font-mono font-bold text-sm shrink-0 cursor-text"
+          data-tooltip="Double-click to edit"
+          onDoubleClick={startEdit('name')}
+        >
+          {reg.name}
+        </span>
+      )}
+      {nameError ? <span className="text-[11px] vscode-error shrink-0">{nameError}</span> : null}
+
+      <span className="text-xs vscode-muted font-mono flex items-center gap-1 shrink-0">
+        Offset:
+        {editingKey === 'offset' ? (
+          <CellInput
+            editKey="offset"
+            className="w-20 font-mono"
+            isEditing
+            value={toHex(offset)}
+            onFocus={() => captureEditSnapshot()}
+            cancelEditRef={cancelEditRef}
+            onInput={(value) => {
+              const val = Number(value);
+              if (!Number.isNaN(val)) {
+                onUpdate(['registers', regIndex, 'offset'], val);
+              }
+            }}
+            onBlur={stopEdit}
+          />
+        ) : (
+          <span
+            className="cursor-text"
+            data-tooltip="Double-click to edit"
+            onDoubleClick={startEdit('offset')}
+          >
+            {toHex(offset)}
+          </span>
+        )}
+      </span>
+
+      <span className="flex-1 min-w-0 text-xs vscode-muted">
+        {editingKey === 'description' ? (
+          <CellInput
+            editKey="description"
+            className="w-full text-xs"
+            isEditing
+            value={reg.description ?? ''}
+            onFocus={() => captureEditSnapshot()}
+            cancelEditRef={cancelEditRef}
+            onInput={(value) => onUpdate(['registers', regIndex, 'description'], value)}
+            onBlur={stopEdit}
+          />
+        ) : (
+          <span
+            className="cursor-text truncate block"
+            data-tooltip="Double-click to edit"
+            onDoubleClick={startEdit('description')}
+          >
+            {reg.description?.length ? (
+              reg.description
+            ) : (
+              <span className="italic opacity-60">No description</span>
+            )}
+          </span>
+        )}
+      </span>
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 /**
  * Renders and manages editing of a register array definition:
- * - Array name, base offset, count, stride (header)
  * - Flat arrays reuse the register bit-field editor directly.
- * - Register groups (nested registers) use a master-detail: an editable rail of
- *   nested-register cards plus the selected register's BitFieldVisualizer +
- *   FieldsTable.
+ * - Register groups (nested registers) show an editable identity strip plus
+ *   the selected template register's BitFieldVisualizer + FieldsTable.
+ *
+ * The array's own name/count/stride are edited from the Outline panel (a
+ * double-click-to-edit badge on the array's row), not here — that's what
+ * lets this view skip the dimensions header entirely and start directly at
+ * the detail pane.
  */
 export function RegisterArrayEditor({
   registerArray,
@@ -53,192 +191,38 @@ export function RegisterArrayEditor({
 }: RegisterArrayEditorProps) {
   const arr = registerArray;
   const nestedRegisters = arr?.registers ?? [];
-  const baseOffset = arr?.offset ?? arr?.address_offset ?? 0;
-  const baseAddress = selectionMeta?.absoluteAddress ?? Number(baseOffset);
 
   // A flat register array (count/stride + fields, no nested registers) is a
   // single register template replicated N times: it gets the same bit-field
-  // editor a normal register does. Register groups (nested registers) keep the
-  // master-detail rail below.
+  // editor a normal register does. Register groups (nested registers) keep
+  // the master-detail view below.
   const isFlatArray = nestedRegisters.length === 0;
 
-  // Local drafts keep the caret stable in the header fields (see hook).
-  const nameDraft = useEditableDraft(arr?.name ?? '');
-  const countDraft = useEditableDraft(String(arr?.count ?? 1));
-  const strideDraft = useEditableDraft(String(arr?.stride ?? 4));
-
-  // ---- wrapped rows for row identity ----
-  const [wrappedRegisters, setWrappedRegisters] = useState<Array<TableRowWrapper<RegisterModel>>>(
-    []
-  );
-
-  useEffect(() => {
-    setWrappedRegisters((prev) => reconcileRowIds(prev, nestedRegisters));
-  }, [nestedRegisters]);
-
-  // -- Shared table orchestration --
-  const insertNestedReg = (newIdx: number) => {
-    const newName = generateUniqueName(nestedRegisters, 'reg');
-    const selIdx = editor.selectedIndex >= 0 ? editor.selectedIndex : nestedRegisters.length - 1;
-    const selected = nestedRegisters[selIdx];
-    const selectedOffset = selected?.address_offset ?? selected?.offset ?? 0;
-    const after = newIdx > selIdx;
-    const newOffset = after ? Number(selectedOffset) + 4 : Math.max(0, Number(selectedOffset) - 4);
-
-    const newReg = {
-      name: newName,
-      offset: newOffset,
-      address_offset: newOffset,
-      description: '',
-      fields: [{ name: 'data', bits: '[31:0]', access: 'read-write', description: '' }],
-    };
-
-    const newRegs = [...nestedRegisters];
-    newRegs.splice(newIdx, 0, newReg);
-    onUpdate(['registers'], newRegs as unknown[]);
-
-    window.setTimeout(() => {
-      editor.selectRow(newIdx, 'name');
-    }, 0);
-  };
-
-  const editor = useTableEditorState<RegisterModel, RegEditKey>({
-    rows: wrappedRegisters,
-    rowsPath: ['registers'],
-    columnOrder: REG_COLUMN_ORDER,
-    onUpdate,
-    rowSelectorAttr: 'data-viz-row',
-    onInsertAfter: () => {
-      const selIdx = editor.selectedIndex >= 0 ? editor.selectedIndex : nestedRegisters.length - 1;
-      insertNestedReg(selIdx + 1);
-    },
-    onInsertBefore: () => {
-      const selIdx = editor.selectedIndex >= 0 ? editor.selectedIndex : 0;
-      insertNestedReg(selIdx);
-    },
-    onDelete: (rowId) => {
-      const rowIndex = wrappedRegisters.findIndex((w) => w.rowId === rowId);
-      if (rowIndex < 0 || rowIndex >= nestedRegisters.length) {
-        return;
-      }
-      const newRegs = nestedRegisters.filter((_: RegisterModel, i: number) => i !== rowIndex);
-      onUpdate(['registers'], newRegs as unknown[]);
-      const nextRow = rowIndex < newRegs.length ? rowIndex : newRegs.length - 1;
-      window.setTimeout(() => {
-        editor.selectRow(nextRow);
-      }, 0);
-    },
-    onMove: (rowId, delta) => {
-      const fromIndex = wrappedRegisters.findIndex((w) => w.rowId === rowId);
-      const next = fromIndex + delta;
-      if (
-        fromIndex < 0 ||
-        fromIndex >= nestedRegisters.length ||
-        next < 0 ||
-        next >= nestedRegisters.length
-      ) {
-        return;
-      }
-      const newRegs = [...nestedRegisters];
-      const temp = newRegs[fromIndex];
-      newRegs[fromIndex] = newRegs[next];
-      newRegs[next] = temp;
-      onUpdate(['registers'], newRegs as unknown[]);
-    },
-    enableHoverInsert: false,
-    clampDeps: [arr?.name],
-  });
-
-  useAutoFocus(
-    editor.containerRef as React.RefObject<HTMLDivElement>,
-    !isFlatArray && !!selectionMeta?.focusDetails,
-    [arr?.name]
-  );
+  // The active template register is driven entirely by the Outline's
+  // selection; there is no local list state to reconcile (insert/delete/
+  // reorder all happen in the Outline, which re-derives this index fresh
+  // after every edit).
+  const selectedIndex = isFlatArray
+    ? -1
+    : Math.min(Math.max(selectionMeta?.activeRegisterIndex ?? 0, 0), nestedRegisters.length - 1);
+  const activeReg = selectedIndex >= 0 ? nestedRegisters[selectedIndex] : undefined;
 
   // ---- Register-scoped update handler for the embedded field detail ----
   const detailUpdate: YamlUpdateHandler = useCallback(
     (p, v) => {
-      const idx = editor.selectedIndex;
-      if (idx < 0) {
+      if (selectedIndex < 0) {
         return;
       }
       if (p[0] === '__op') {
-        onUpdate(p, { ...(v as Record<string, unknown>), __regIndex: idx });
+        onUpdate(p, { ...(v as Record<string, unknown>), __regIndex: selectedIndex });
       } else {
-        onUpdate(['registers', idx, ...p], v);
+        onUpdate(['registers', selectedIndex, ...p], v);
       }
     },
-    [onUpdate, editor.selectedIndex]
+    [onUpdate, selectedIndex]
   );
 
-  const headerChildren = (
-    <>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 vscode-surface-alt p-4 rounded-lg mt-3">
-        <div>
-          <label className="text-xs vscode-muted block mb-1">Name</label>
-          <VSCodeTextField
-            value={nameDraft.draft}
-            onFocus={nameDraft.markFocused}
-            onBlur={nameDraft.markBlurred}
-            onInput={(e: Event | React.FormEvent<HTMLElement>) => {
-              const next = (e.target as HTMLInputElement).value;
-              nameDraft.setDraft(next);
-              onUpdate(['name'], next);
-            }}
-            className="vscode-field-bare w-full"
-          />
-        </div>
-        <div>
-          <label className="text-xs vscode-muted block mb-1">Base Address</label>
-          <span className="font-mono text-sm">{toHex(baseAddress)}</span>
-        </div>
-        <div>
-          <label className="text-xs vscode-muted block mb-1">Count</label>
-          <VSCodeTextField
-            value={countDraft.draft}
-            onFocus={countDraft.markFocused}
-            onBlur={countDraft.markBlurred}
-            onInput={(e: Event | React.FormEvent<HTMLElement>) => {
-              const raw = (e.target as HTMLInputElement).value;
-              countDraft.setDraft(raw);
-              const val = parseInt(raw, 10);
-              if (!isNaN(val) && val > 0) {
-                onUpdate(['count'], val);
-              }
-            }}
-            className="vscode-field-bare w-24"
-          />
-        </div>
-        <div>
-          <label className="text-xs vscode-muted block mb-1">Stride (bytes)</label>
-          <VSCodeTextField
-            value={strideDraft.draft}
-            onFocus={strideDraft.markFocused}
-            onBlur={strideDraft.markBlurred}
-            onInput={(e: Event | React.FormEvent<HTMLElement>) => {
-              const raw = (e.target as HTMLInputElement).value;
-              strideDraft.setDraft(raw);
-              const val = parseInt(raw, 10);
-              if (!isNaN(val) && val > 0) {
-                onUpdate(['stride'], val);
-              }
-            }}
-            className="vscode-field-bare w-24"
-          />
-        </div>
-      </div>
-      <div className="text-sm vscode-muted mt-2 mb-1">
-        <span className="font-mono">
-          {toHex(baseAddress)} &rarr;{' '}
-          {toHex(baseAddress + Number(arr?.count ?? 1) * Number(arr?.stride ?? 4) - 1)}
-        </span>
-        <span className="ml-2">({(arr?.count ?? 1) * (arr?.stride ?? 4)} bytes total)</span>
-      </div>
-    </>
-  );
-
-  // Flat array: reuse the register bit-field editor, keeping the array
-  // dimension controls (name/count/stride) in the header.
+  // Flat array: reuse the register bit-field editor directly.
   if (isFlatArray) {
     return (
       <RegisterEditor
@@ -249,85 +233,46 @@ export function RegisterArrayEditor({
         selectionMeta={selectionMeta}
         onUpdate={onUpdate}
         title={arr?.name ?? 'Register Array'}
-        headerChildren={headerChildren}
         footerContext="array"
       />
     );
   }
 
-  const activeReg = editor.selectedIndex >= 0 ? nestedRegisters[editor.selectedIndex] : undefined;
-
-  const rail = (
-    <div
-      ref={editor.containerRef as React.RefObject<HTMLDivElement>}
-      tabIndex={0}
-      data-registers-table="true"
-      className="outline-none focus:outline-none"
-    >
-      <RegisterMapVisualizer
-        registers={nestedRegisters}
-        hoveredRegIndex={editor.hoveredIndex}
-        setHoveredRegIndex={editor.setHoveredFieldIndex}
-        selectedRegIndex={editor.selectedIndex}
-        onSelectRegister={editor.selectRow}
-        baseAddress={baseAddress}
-        onReorderRegisters={(newRegs) => onUpdate(['registers'], newRegs)}
-        onDeleteReg={(idx) => {
-          const rowId = wrappedRegisters[idx]?.rowId;
-          if (rowId) {
-            const rowIndex = wrappedRegisters.findIndex((w) => w.rowId === rowId);
-            if (rowIndex >= 0) {
-              const newRegs = nestedRegisters.filter((_, i) => i !== rowIndex);
-              onUpdate(['registers'], newRegs);
-              const nextRow = rowIndex < newRegs.length ? rowIndex : newRegs.length - 1;
-              window.setTimeout(() => {
-                editor.selectRow(nextRow);
-              }, 0);
-            }
-          }
-        }}
-        onUpdateRegister={onUpdate}
-        cancelEditRef={editor.cancelEditRef}
-        captureEditSnapshot={editor.captureEditSnapshot}
-        layout="vertical"
-      />
-    </div>
-  );
-
-  const detail = activeReg ? (
-    <RegisterEditor
-      register={activeReg as unknown as RegisterDef}
-      fields={(activeReg.fields ?? []) as BitFieldRecord[]}
-      registerLayout={arrayLayout}
-      toggleRegisterLayout={toggleArrayLayout}
-      onUpdate={detailUpdate}
-      title={activeReg.name}
-      embedded
-    />
-  ) : (
-    <div className="flex items-center justify-center h-full vscode-muted text-sm px-6 text-center">
-      {nestedRegisters.length === 0
-        ? 'No nested registers. Press o to add one.'
-        : 'Select a register to edit its fields.'}
-    </div>
-  );
-
   return (
-    <TwoPanelEditorLayout
-      header={
-        <EditorHeader
-          title={arr?.name ?? 'Register Array'}
-          description={`${arr?.description ?? 'Register array'} • ${arr?.count ?? 1} instances × ${arr?.stride ?? 4} bytes`}
-          layout={arrayLayout}
-          onToggleLayout={toggleArrayLayout}
-        >
-          {headerChildren}
-        </EditorHeader>
-      }
-      visualizer={rail}
-      table={detail}
-      footer={<KeyboardShortcutsButton context="array" />}
-      layout="side-by-side"
-    />
+    <div className="flex flex-col w-full h-full min-h-0">
+      <EditorHeader
+        title={arr?.name ?? 'Register Array'}
+        description={`${arr?.description ?? 'Register array'} • ${arr?.count ?? 1} instances × ${arr?.stride ?? 4} bytes`}
+        layout={arrayLayout}
+        onToggleLayout={toggleArrayLayout}
+      />
+      {activeReg && (
+        <RegisterInlineHeader
+          key={selectedIndex}
+          reg={activeReg}
+          regIndex={selectedIndex}
+          registers={nestedRegisters}
+          onUpdate={onUpdate}
+        />
+      )}
+      <div className="flex-1 min-h-0 flex flex-col overflow-hidden vscode-surface">
+        {activeReg ? (
+          <RegisterEditor
+            register={activeReg as unknown as RegisterDef}
+            fields={(activeReg.fields ?? []) as BitFieldRecord[]}
+            registerLayout={arrayLayout}
+            toggleRegisterLayout={toggleArrayLayout}
+            onUpdate={detailUpdate}
+            title={activeReg.name}
+            embedded
+          />
+        ) : (
+          <div className="flex items-center justify-center h-full vscode-muted text-sm px-6 text-center">
+            Select a register to edit its fields.
+          </div>
+        )}
+      </div>
+      <KeyboardShortcutsButton context="register" />
+    </div>
   );
 }

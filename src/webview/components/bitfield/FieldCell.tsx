@@ -3,9 +3,6 @@ import { renderBitCellStyle } from './renderBitCellStyle';
 
 interface FieldCellProps {
   bitValue: 0 | 1;
-  cellIndex: number;
-  width: number;
-  isSingleBit: boolean;
   isOutOfNewRange: boolean;
   isInNewRange: boolean;
   color: string;
@@ -20,9 +17,6 @@ interface FieldCellProps {
 
 const FieldCell = ({
   bitValue,
-  cellIndex,
-  width,
-  isSingleBit,
   isOutOfNewRange,
   isInNewRange,
   color,
@@ -49,15 +43,7 @@ const FieldCell = ({
 
   return (
     <div
-      className={`w-10 h-20 flex items-center justify-center touch-none ${cellClassName} ${
-        isSingleBit
-          ? 'rounded-md'
-          : cellIndex === 0
-            ? 'rounded-l-md'
-            : cellIndex === width - 1
-              ? 'rounded-r-md'
-              : ''
-      }`}
+      className={`w-10 h-20 flex items-center justify-center touch-none ${cellClassName}`}
       style={style}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}

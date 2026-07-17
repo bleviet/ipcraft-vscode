@@ -152,7 +152,7 @@ export function FieldsTable({ fields, registerSize, onUpdate, fieldEditor }: Fie
 
   return (
     <div className="flex-1 flex overflow-hidden min-h-0">
-      <div className="flex-1 vscode-surface border-r vscode-border min-h-0 flex flex-col">
+      <div className="flex-1 vscode-surface border-r vscode-border min-h-0 min-w-0 flex flex-col">
         {fields.length === 0 ? (
           <div
             ref={focusRef as React.RefObject<HTMLDivElement>}
@@ -234,7 +234,7 @@ export function FieldsTable({ fields, registerSize, onUpdate, fieldEditor }: Fie
                 showTableBorder={false}
                 containerClassName=""
                 tableWrapperClassName=""
-                tableClassName="w-full text-left border-collapse table-fixed"
+                tableClassName="w-full min-w-[722px] text-left border-collapse table-fixed"
                 renderTableContent={() => (
                   <>
                     <colgroup>

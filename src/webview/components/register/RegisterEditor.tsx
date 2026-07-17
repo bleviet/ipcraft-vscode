@@ -318,6 +318,7 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
         }
         footer={embedded ? undefined : <KeyboardShortcutsButton context={footerContext} />}
         layout={registerLayout}
+        visualizerPaneClassName="register-visualizer-pane-compact"
       />
     );
   }

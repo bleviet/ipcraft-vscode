@@ -13,6 +13,7 @@ import { ROOT_ID, arrayRegisterId, blockId } from './outline/outlineIds';
 import { buildVisibleSelections } from './outline/buildVisibleSelections';
 import { useOutlineKeyboard } from './outline/useOutlineKeyboard';
 import { useOutlineDragReorder } from './outline/useOutlineDragReorder';
+import { useInlineNumberEdit } from './outline/useInlineNumberEdit';
 import OutlineTreeNodes from './outline/OutlineTreeNodes';
 import { useClampedMenuPosition } from '../shared/hooks/useClampedMenuPosition';
 
@@ -289,6 +290,39 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
       );
     };
 
+    // Register array count/stride — double-click to edit in place, so the
+    // array editor's own dimensions header can stay out of the detail view.
+    const countEdit = useInlineNumberEdit({
+      onCommit: (path, value) => onRename?.(path, value),
+    });
+    const strideEdit = useInlineNumberEdit({
+      onCommit: (path, value) => onRename?.(path, value),
+      min: 1,
+    });
+
+    const renderArrayDimsOrEdit = (id: string, count: number, stride: number, path: YamlPath) => (
+      <span className="text-[10px] vscode-muted font-mono shrink-0 flex items-center gap-0.5">
+        <span>&times;</span>
+        {countEdit.render(
+          `${id}-count`,
+          'count',
+          count,
+          path,
+          (v) => String(v),
+          'Double click to change count'
+        )}
+        <span className="opacity-50">&middot;</span>
+        {strideEdit.render(
+          `${id}-stride`,
+          'stride',
+          stride,
+          path,
+          (v) => `${v}B`,
+          'Double click to change stride (bytes)'
+        )}
+      </span>
+    );
+
     const renderNameOrEdit = (id: string, name: string, path: YamlPath, className?: string) => {
       if (editingId === id) {
         return (
@@ -385,6 +419,7 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
       startEditing,
       memoryMap,
       setExpanded,
+      onRegisterAction,
     });
 
     const { getDragProps, previewMove } = useOutlineDragReorder(onReorder);
@@ -459,6 +494,7 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
                 onSelect={onSelect}
                 renderNameOrEdit={renderNameOrEdit}
                 renderBaseAddressOrEdit={renderBaseAddressOrEdit}
+                renderArrayDimsOrEdit={renderArrayDimsOrEdit}
                 startEditing={startEditing}
                 onRegisterContextMenu={
                   onRegisterAction

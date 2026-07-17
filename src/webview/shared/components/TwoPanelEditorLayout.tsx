@@ -3,13 +3,21 @@ import React, { useCallback, useRef, useState } from 'react';
 export interface TwoPanelEditorLayoutProps {
   /** Header bar (use EditorHeader). */
   header: React.ReactNode;
-  /** Visualizer component (BitFieldVisualizer, RegisterMapVisualizer, etc.). */
+  /** Visualizer component (e.g. BitFieldVisualizer, AddressMapVisualizer). */
   visualizer: React.ReactNode;
   /** Main table / editing area. */
   table: React.ReactNode;
   /** Fixed/absolute-positioned overlays: KeyboardShortcutsButton, context menus, etc. */
   footer?: React.ReactNode;
   layout: 'stacked' | 'side-by-side';
+  /**
+   * CSS class controlling the visualizer pane's default/min/max width in
+   * side-by-side layout. Defaults to 'register-visualizer-pane' (340px) —
+   * pass 'register-visualizer-pane-compact' (240px) for visualizers that
+   * don't need as much room, e.g. BitFieldVisualizer's bit-index + value
+   * column. Either way it's still user-resizable via the drag handle.
+   */
+  visualizerPaneClassName?: string;
 }
 
 const MIN_VIZ_WIDTH = 240;
@@ -29,6 +37,7 @@ export function TwoPanelEditorLayout({
   table,
   footer,
   layout,
+  visualizerPaneClassName = 'register-visualizer-pane',
 }: TwoPanelEditorLayoutProps) {
   // null = use the CSS default width (.register-visualizer-pane); a number is
   // the user-driven pixel width.
@@ -75,7 +84,7 @@ export function TwoPanelEditorLayout({
       {layout === 'side-by-side' ? (
         <div ref={containerRef} className="flex-1 flex overflow-hidden min-h-0 relative">
           <div
-            className="register-visualizer-pane overflow-y-auto border-r vscode-border"
+            className={`${visualizerPaneClassName} overflow-y-auto border-r vscode-border`}
             style={
               vizWidth
                 ? { width: vizWidth, flex: '0 0 auto', maxWidth: 'none', minWidth: 0 }
