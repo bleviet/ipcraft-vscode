@@ -13,7 +13,7 @@ npm run lint           # ESLint — zero warnings allowed (eslint src --max-warn
 npm run lint:fix       # Auto-fix
 npm run format         # Prettier over src/**/*.{ts,tsx}
 npm run type-check     # tsc --noEmit
-npm run generate-types # Regenerate src/webview/types/*.d.ts from ipcraft-spec JSON schemas
+npm run generate-types # Regenerate src/domain/*.types.ts from ipcraft-spec JSON schemas
 
 npm run test           # Unit tests (Jest, jsdom)  — alias of test:unit
 npm run test:e2e       # VS Code integration tests (@vscode/test-electron); needs compile first
@@ -117,7 +117,7 @@ When adding register- or block-level layout operations, extend `LayoutEngine.ts`
 
 ### Schema source of truth
 
-`ipcraft-spec/schemas/*.schema.json` define `.ip.yml` / `.mm.yml` structure. `src/webview/types/*.d.ts` are **auto-generated** from them (`npm run generate-types`) — do not hand-edit. Bus definitions and schemas are copied into `dist/resources/` at build time.
+`ipcraft-spec/schemas/*.schema.json` define `.ip.yml` / `.mm.yml` structure. `npm run generate-types` regenerates `src/domain/*.types.ts` and `src/generator/contract/templateContext.types.ts` from them — do not hand-edit those. `src/webview/types/ipCore.d.ts` / `memoryMap.d.ts` are an older, still widely-imported pair of type files from an earlier architecture that the generator script no longer touches; when a schema field changes, update these by hand alongside `src/domain/*.types.ts`. Bus definitions and schemas are copied into `dist/resources/` at build time.
 
 ## Key conventions
 

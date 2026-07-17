@@ -23,8 +23,7 @@ tabular "form" mode in the current UI.
 +----------------+-------------------------------------------+-----------+
 ```
 
-VLNV (vendor/library/name/version) is shown read-only in the toolbar header. Keyboard
-shortcuts: `Ctrl+H` focuses the library palette, `Ctrl+L` focuses the canvas.
+VLNV (vendor/library/name/version) is shown read-only in the toolbar header.
 
 ## State Management
 
@@ -88,7 +87,7 @@ The IP Core editor is the canvas described above. Undo/Redo buttons are in the t
 
 ```text
 +--------------------------------------------------+
-| [Undo] [Redo]              [Canvas] [Form]       |
+| [Undo] [Redo]                                    |
 +----------------+-------------------------+-------+
 | Library        | IP Block Diagram (SVG)  | Insp- |
 | Palette        |                         | ector |
@@ -106,8 +105,8 @@ The palette lists draggable primitives, organised into three collapsible categor
 
 | Category | Items |
 |----------|-------|
-| **Generics** | Integer Generic, Natural Generic, Boolean Generic, String Generic |
-| **Infrastructure** | Clock, Reset, Interrupt (output), Input Port, Output Port, Inout Port |
+| **Generics** | Integer Generic, Boolean Generic, String Generic |
+| **Infrastructure** | Clock, Reset, Interrupt, Port (direction is set afterward in the Inspector) |
 | **Bus Protocols** | AXI4-Lite, AXI4-Full, AXI-Stream, Avalon-MM, Avalon-ST, Custom Interface |
 
 Drag any item from the palette and drop it onto the canvas to add it to the IP Core. The item's default name is auto-assigned from a hint (e.g., `clk`, `axi_lite`, `DATA_WIDTH`) and can be renamed via the inspector.
@@ -128,9 +127,10 @@ Navigation:
 | Interaction | Action |
 |-------------|--------|
 | `Ctrl+Wheel` | Zoom in / out |
-| Plain wheel | Pan vertically |
+| Plain wheel | Pan |
 | Middle-mouse drag | Pan freely |
-| Left-drag on background | Pan freely |
+| Hold `Space` + left-drag on background | Pan freely |
+| Left-drag on background (no `Space`) | Marquee-select multiple ports/interrupts |
 | `Ctrl+0` / `Cmd+0` | Reset zoom to 100 % |
 
 ### Canvas Inspector
@@ -155,12 +155,11 @@ These shortcuts are active when the canvas is visible and no text field is focus
 |-----|--------|
 | `Delete` | Delete the selected element |
 | `Ctrl+D` / `Cmd+D` | Duplicate the selected element (bus interfaces increment their array count) |
-| `Ctrl+Z` / `Cmd+Z` | Undo last canvas change |
+| `Ctrl+Z` / `Cmd+Z` | Undo last canvas change (native VS Code document undo) |
 | `Ctrl+Y` / `Cmd+Y` | Redo |
 | `Ctrl+0` / `Cmd+0` | Reset zoom to 100 % |
-| `Escape` | Deselect current element |
-| `Ctrl+H` | Focus the library palette |
-| `Ctrl+L` | Focus the canvas area |
+| `Ctrl+F` / `Cmd+F` | Open port search |
+| `Escape` | Close port search if open, otherwise deselect current element |
 
 ### Drag-to-Remove
 

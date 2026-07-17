@@ -9,12 +9,10 @@ ipcraft-spec/
   schemas/
     ip_core.schema.json       # IP Core specification schema
     memory_map.schema.json    # Memory Map specification schema
-  common/
-    bus_definitions.yml       # Built-in bus interface definitions
-  examples/
-    led/                      # LED controller example
-    timers/                   # Timer peripheral example
-    test_cases/               # Schema validation test cases
+  bus_definitions/            # Built-in bus interface definitions, one YAML file per protocol
+  examples/                   # Example IP cores (basic_peripheral, comprehensive_axi,
+                               # comprehensive_avalon, daq_controller, minimal,
+                               # multi_interface_accelerator, system_controller, xcvr_loopback)
   templates/                  # Starter YAML templates
 ```
 
@@ -34,6 +32,7 @@ Top-level fields:
 | `apiVersion` | string | No | Schema version for the file, e.g. `'1.0'` |
 | `vlnv` | object | Yes | Vendor, Library, Name, Version identifier |
 | `description` | string | No | Human-readable description |
+| `author` | string | No | IP core author |
 | `clocks` | array | No | Clock signal definitions |
 | `resets` | array | No | Reset signal definitions |
 | `interrupts` | array | No | Interrupt output definitions |
@@ -186,7 +185,7 @@ For additional in-editor validation, install the [Red Hat YAML extension](https:
 
 ## Type Generation
 
-TypeScript types are auto-generated from these schemas:
+TypeScript types are auto-generated from these schemas via `scripts/generate-types.js`:
 
 ```bash
 npm run generate-types
@@ -194,5 +193,11 @@ npm run generate-types
 
 This produces:
 
-- `src/webview/types/memoryMap.d.ts` from `memory_map.schema.json`
-- `src/webview/types/ipCore.d.ts` from `ip_core.schema.json`
+- `src/domain/memorymap.types.ts` from `memory_map.schema.json`
+- `src/domain/ipcore.types.ts` from `ip_core.schema.json`
+- `src/generator/contract/templateContext.types.ts` from `src/generator/contract/template_context.schema.json`
+
+> **Note:** `src/webview/types/ipCore.d.ts` and `memoryMap.d.ts` are an older, still widely-imported
+> pair of type files from an earlier architecture. Despite their "auto-generated, do not modify by
+> hand" header, `npm run generate-types` no longer touches them — when a schema field changes, they
+> currently have to be updated by hand alongside `src/domain/*.types.ts` (see e.g. commit `56124e5`).

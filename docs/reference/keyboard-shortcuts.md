@@ -8,21 +8,21 @@ These shortcuts are active when the canvas view is visible and no text field is 
 |-----|--------|
 | `Delete` | Delete the selected element (port, clock, reset, generic, or bus interface) |
 | `Ctrl+D` / `Cmd+D` | Duplicate selected element; bus interfaces increment their array count instead of adding a copy |
-| `Ctrl+Z` / `Cmd+Z` | Undo last canvas change |
+| `Ctrl+Z` / `Cmd+Z` | Undo last canvas change (native VS Code document undo) |
 | `Ctrl+Y` / `Cmd+Y` | Redo |
 | `Ctrl+0` / `Cmd+0` | Reset zoom to 100 % |
-| `Escape` | Deselect current element |
-| `Ctrl+H` | Focus the library palette |
-| `Ctrl+L` | Focus the canvas / editor panel |
+| `Ctrl+F` / `Cmd+F` | Open port search (works even while another input is focused) |
+| `Escape` | Close port search if open, otherwise deselect current element |
 
 ### Canvas Navigation
 
 | Interaction | Action |
 |-------------|--------|
 | `Ctrl+Wheel` | Zoom in / out |
-| Plain wheel | Pan vertically |
+| Plain wheel | Pan (vertical scroll; trackpads also pan horizontally on shift/2-axis scroll) |
 | Middle-mouse drag | Pan freely |
-| Left-button drag on background | Pan freely |
+| Hold `Space` + left-button drag on background | Pan freely |
+| Left-button drag on background (no `Space`) | Marquee-select multiple ports/interrupts |
 
 ---
 
@@ -47,21 +47,21 @@ When the fields table is focused:
 
 ## Bit Field Visualizer (Pro Layout)
 
-When hovering over a field in the visualizer:
+When a field in the visualizer has keyboard focus (Tab to it, or click then use the keys below):
 
 | Key | Action |
 |-----|--------|
-| `Shift+Left` / `Shift+Right` | Resize hovered field by 1 bit |
-| `Ctrl+Left` / `Ctrl+Right` | Reorder hovered field (swap with neighbor) |
+| `Shift+Left` / `Shift+Right` (horizontal layout) or `Shift+Up` / `Shift+Down` (vertical layout) | Resize focused field by 1 bit |
+| `Alt+Left` / `Alt+Right` (horizontal layout) or `Alt+Up` / `Alt+Down` (vertical layout) | Reorder focused field (swap with neighbor) |
 
 ## Outline Sidebar
 
 | Key | Action |
 |-----|--------|
-| `j` / `k` | Navigate tree items |
-| `F2` | Inline rename |
-| `Ctrl+H` | Focus outline from anywhere |
-| `Ctrl+L` | Focus details panel from anywhere |
+| Arrow keys or `j` / `k` | Navigate tree items |
+| `Enter` / `Space` | Toggle expand/collapse |
+| `→` or `l` | Focus the details panel |
+| `F2` or `e` | Inline rename |
 
 ## Pointer Interactions
 
