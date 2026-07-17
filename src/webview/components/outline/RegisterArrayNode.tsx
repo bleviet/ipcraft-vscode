@@ -153,7 +153,7 @@ const RegisterArrayNode = ({
             'flex-1'
           )}
         </div>
-        <span className="text-[10px] vscode-muted font-mono shrink-0 flex items-center gap-1">
+        <span className="text-xs vscode-muted font-mono shrink-0 flex items-center gap-1">
           <span>@ {toHex(start)}</span>
           {renderArrayDimsOrEdit ? (
             renderArrayDimsOrEdit(id, arrayNode.count ?? 1, arrayNode.stride ?? 4, [

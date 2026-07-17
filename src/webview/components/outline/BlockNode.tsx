@@ -80,7 +80,7 @@ const BlockNode = ({
         {baseAddress !== undefined ? (
           baseAddress
         ) : (
-          <span className="text-[10px] vscode-muted font-mono shrink-0">
+          <span className="text-xs vscode-muted font-mono shrink-0">
             @ 0x{block.baseAddress.toString(16).toUpperCase()}
           </span>
         )}

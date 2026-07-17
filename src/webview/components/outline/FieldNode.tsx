@@ -45,7 +45,7 @@ const FieldNode = ({
         ></span>
         <span className="truncate min-w-[1ch]">{label}</span>
       </div>
-      {suffix && <span className="text-[10px] vscode-muted font-mono shrink-0">{suffix}</span>}
+      {suffix && <span className="text-xs vscode-muted font-mono shrink-0">{suffix}</span>}
       {actionButton}
     </div>
   );

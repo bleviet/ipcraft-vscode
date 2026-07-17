@@ -278,7 +278,7 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
       }
       return (
         <span
-          className="text-[10px] vscode-muted font-mono shrink-0 cursor-pointer hover:underline"
+          className="text-xs vscode-muted font-mono shrink-0 cursor-pointer hover:underline"
           title="Double click to change base address"
           onDoubleClick={(e) => {
             e.stopPropagation();
@@ -301,7 +301,7 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
     });
 
     const renderArrayDimsOrEdit = (id: string, count: number, stride: number, path: YamlPath) => (
-      <span className="text-[10px] vscode-muted font-mono shrink-0 flex items-center gap-0.5">
+      <span className="text-xs vscode-muted font-mono shrink-0 flex items-center gap-0.5">
         <span>&times;</span>
         {countEdit.render(
           `${id}-count`,

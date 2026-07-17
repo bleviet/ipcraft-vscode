@@ -72,7 +72,7 @@ const RegisterNode = ({
         ></span>
         {name}
       </div>
-      <span className="text-[10px] vscode-muted font-mono shrink-0">{offsetLabel}</span>
+      <span className="text-xs vscode-muted font-mono shrink-0">{offsetLabel}</span>
       {actionButton}
     </div>
   );

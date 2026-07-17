@@ -56,7 +56,7 @@ export function useInlineNumberEdit({ onCommit, min = 1 }: UseInlineNumberEditOp
           ref={inputRef}
           type="text"
           inputMode="numeric"
-          className="outline-inline-edit px-1 py-0 text-[10px] font-mono border shrink-0"
+          className="outline-inline-edit px-1 py-0 text-xs font-mono border shrink-0"
           style={{
             background: 'var(--vscode-input-background)',
             color: 'var(--vscode-input-foreground)',
