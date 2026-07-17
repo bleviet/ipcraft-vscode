@@ -10,6 +10,12 @@ import * as fsHelpers from '../../../../utils/fsHelpers';
 import * as buildRunner from '../../../../services/BuildRunner';
 import * as fsPromises from 'fs/promises';
 import * as childProcess from 'child_process';
+import * as fs2 from 'fs';
+import * as path from 'path';
+import * as os from 'os';
+import type { ScaffoldContext } from '../../../../services/toolchains/SynthesisToolchain';
+import type { TemplateLoader } from '../../../../generator/TemplateLoader';
+import type { IpCoreData } from '../../../../generator/types';
 
 jest.mock('../../../../utils/quartusResolver');
 jest.mock('../../../../utils/fsHelpers');
@@ -200,6 +206,95 @@ describe('QuartusToolchain', () => {
   });
 });
 
+describe('QuartusToolchain.scaffold() — RTL file fallback (issue #91)', () => {
+  // Mirrors the equivalent VivadoToolchain test: the project TCL/SDC set must
+  // resolve rtl_files from fileSets when opts.rtlFiles is undefined, reusing
+  // the same resolved, compile-ordered list as the hw.tcl fileset section —
+  // not silently falling back to `opts.rtlFiles ?? []`.
+  let tmp: string;
+  let renderCalls: Array<{ name: string; ctx: Record<string, unknown> }>;
+  let templates: TemplateLoader;
+
+  beforeEach(() => {
+    tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-quartus-scaffold-fallback-'));
+    fs2.writeFileSync(path.join(tmp, 'weird_types.vhd'), 'package internal_types is\nend package;');
+    fs2.writeFileSync(
+      path.join(tmp, 'main_logic.vhd'),
+      'use work.internal_types.all;\nentity main_logic is\nend entity;'
+    );
+    // jest.mock('fs/promises') at the top of this file replaces the real module with
+    // auto-mocks, so resolveFileSetRtlFiles's fs.readFile calls need an explicit real
+    // implementation to read the real temp files written above.
+    (fsPromises.readFile as jest.Mock).mockImplementation((p: string) =>
+      Promise.resolve(fs2.readFileSync(p, 'utf8'))
+    );
+    renderCalls = [];
+    templates = {
+      hasTemplate: jest.fn().mockReturnValue(false),
+      render: jest.fn((name: string, ctx: Record<string, unknown>) => {
+        renderCalls.push({ name, ctx });
+        return '';
+      }),
+    } as unknown as TemplateLoader;
+  });
+
+  afterEach(() => {
+    fs2.rmSync(tmp, { recursive: true, force: true });
+  });
+
+  it('resolves rtl_files for the project TCL/SDC from fileSets when opts.rtlFiles is undefined', async () => {
+    const ipCoreData = {
+      vlnv: { vendor: 'test', library: 'ip', name: 'main_logic', version: '1.0' },
+      fileSets: [
+        {
+          name: 'RTL_Sources',
+          // Declared in the wrong order — proves real dependency parsing.
+          files: [
+            { path: 'main_logic.vhd', type: 'vhdl' },
+            { path: 'weird_types.vhd', type: 'vhdl' },
+          ],
+        },
+      ],
+    } as unknown as IpCoreData;
+
+    const ctx: ScaffoldContext = {
+      name: 'main_logic',
+      templateContext: {},
+      templates,
+      ipCoreData,
+      busDefinitions: {},
+      isSv: false,
+      memoryMaps: [],
+      ipCoreDir: tmp,
+    };
+
+    const tc = new QuartusToolchain();
+    await tc.scaffold(ctx, {
+      includeProject: true,
+      rtlFiles: undefined,
+      quartusDevice: '5CSEBA6U23I7',
+    });
+
+    const hwTclCall = renderCalls.find((c) => c.name === 'altera_hw_tcl.j2');
+    const hwTclRtlFiles = (hwTclCall!.ctx.rtl_files as Array<{ path: string }>).map((f) => f.path);
+
+    const projectCall = renderCalls.find((c) => c.name === 'quartus_project.tcl.j2');
+    expect(projectCall).toBeDefined();
+    const rtlFiles = projectCall!.ctx.rtl_files as string[];
+    expect(rtlFiles).not.toEqual([]);
+    expect(rtlFiles.some((f) => f.includes('weird_types.vhd'))).toBe(true);
+    expect(rtlFiles.some((f) => f.includes('main_logic.vhd'))).toBe(true);
+    expect(rtlFiles.findIndex((f) => f.includes('weird_types.vhd'))).toBeLessThan(
+      rtlFiles.findIndex((f) => f.includes('main_logic.vhd'))
+    );
+    // Same resolved order that fed the hw.tcl fileset section.
+    expect(rtlFiles).toEqual(hwTclRtlFiles);
+
+    const sdcCall = renderCalls.find((c) => c.name === 'quartus_sdc.j2');
+    expect(sdcCall!.ctx.rtl_files).toEqual(rtlFiles);
+  });
+});
+
 describe('QuartusToolchain subTools', () => {
   let tc: QuartusToolchain;
   beforeEach(() => {
@@ -288,35 +383,92 @@ describe('resolveHwTclRtlFiles — compile order', () => {
     ],
   });
 
-  it('sorts fileset fallback path into compile order (pkg→regs→core→bus→top)', () => {
-    const ipCore = makeIpCore([
-      'rtl/dut.vhd',
-      'rtl/dut_axil.vhd',
-      'rtl/dut_core.vhd',
-      'rtl/dut_regs.vhd',
-      'rtl/dut_pkg.vhd',
-    ]);
-    const entries = resolveHwTclRtlFiles(undefined, ipCore as never, false, 'dut');
-    const names = entries.map((e) => e.name);
-    expect(names[0]).toBe('dut_pkg.vhd');
-    expect(names[1]).toBe('dut_regs.vhd');
-    expect(names[2]).toBe('dut_core.vhd');
-    expect(names[3]).toBe('dut_axil.vhd');
-    expect(names[4]).toBe('dut.vhd');
+  // jest.mock('fs/promises') above replaces the real module with auto-mocks, so
+  // resolveFileSetRtlFiles's fs.readFile calls need an explicit real implementation
+  // here — this test exercises genuine file content instead of the filename-suffix
+  // heuristic the previous version of this fallback relied on. jest config sets
+  // resetMocks: true, so this implementation doesn't need manual teardown.
+  let tmp: string;
+
+  afterEach(() => {
+    if (tmp) {
+      fs2.rmSync(tmp, { recursive: true, force: true });
+    }
   });
 
-  it('marks only the top-level entity as is_top', () => {
+  function writeFile(relPath: string, content: string) {
+    const full = path.join(tmp, relPath);
+    fs2.mkdirSync(path.dirname(full), { recursive: true });
+    fs2.writeFileSync(full, content);
+  }
+
+  it('sorts the fileset fallback into real dependency order, defeating a naming-heuristic mis-sort', async () => {
+    tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-quartus-order-'));
+    (fsPromises.readFile as jest.Mock).mockImplementation((p: string) =>
+      Promise.resolve(fs2.readFileSync(p, 'utf8'))
+    );
+
+    // Declared — and named — in the wrong order: 'main_logic.vhd' sorts alphabetically
+    // before 'weird_types.vhd' and neither matches a _pkg/_regs/_core/_bus naming
+    // convention, so any filename-suffix heuristic would leave them in this (broken)
+    // order. main_logic actually `use work`s the package weird_types declares.
+    writeFile(
+      'rtl/main_logic.vhd',
+      [
+        'library ieee;',
+        'use ieee.std_logic_1164.all;',
+        'use work.weird_types_pkg.all;',
+        '',
+        'entity main_logic is',
+        '  port (clk : in std_logic);',
+        'end entity main_logic;',
+        '',
+        'architecture rtl of main_logic is',
+        'begin',
+        'end architecture rtl;',
+      ].join('\n')
+    );
+    writeFile(
+      'rtl/weird_types.vhd',
+      [
+        'package weird_types_pkg is',
+        '  type my_type is (a, b, c);',
+        'end package weird_types_pkg;',
+      ].join('\n')
+    );
+
+    const ipCore = makeIpCore(['rtl/main_logic.vhd', 'rtl/weird_types.vhd']);
+    const entries = await resolveHwTclRtlFiles(
+      undefined,
+      ipCore as never,
+      false,
+      'main_logic',
+      tmp
+    );
+    expect(entries.map((e) => e.name)).toEqual(['weird_types.vhd', 'main_logic.vhd']);
+  });
+
+  it('marks only the top-level entity as is_top', async () => {
     const ipCore = makeIpCore(['rtl/dut_pkg.vhd', 'rtl/dut.vhd', 'rtl/dut_core.vhd']);
-    const entries = resolveHwTclRtlFiles(undefined, ipCore as never, false, 'dut');
+    const entries = await resolveHwTclRtlFiles(undefined, ipCore as never, false, 'dut', undefined);
     expect(entries.find((e) => e.name === 'dut.vhd')?.is_top).toBe(true);
     expect(entries.find((e) => e.name === 'dut_pkg.vhd')?.is_top).toBe(false);
     expect(entries.find((e) => e.name === 'dut_core.vhd')?.is_top).toBe(false);
   });
 
-  it('uses rtlFiles directly when provided (no sort override)', () => {
+  it('uses rtlFiles directly when provided (no sort override)', async () => {
     const provided = ['../rtl/dut.vhd', '../rtl/dut_pkg.vhd'];
-    const entries = resolveHwTclRtlFiles(provided, {} as never, false, 'dut');
+    const entries = await resolveHwTclRtlFiles(provided, {} as never, false, 'dut', undefined);
     expect(entries.map((e) => e.path)).toEqual(provided);
+  });
+
+  it('preserves the declared fileSets order when ipCoreDir is not provided (degrade, no heuristic tiebreak)', async () => {
+    // Deliberately out of dependency order (core before pkg): with no ipCoreDir to read
+    // real content from, the fallback must not reorder via any naming heuristic — it
+    // preserves exactly what the user declared.
+    const ipCore = makeIpCore(['rtl/dut_core.vhd', 'rtl/dut_pkg.vhd', 'rtl/dut.vhd']);
+    const entries = await resolveHwTclRtlFiles(undefined, ipCore as never, false, 'dut', undefined);
+    expect(entries.map((e) => e.name)).toEqual(['dut_core.vhd', 'dut_pkg.vhd', 'dut.vhd']);
   });
 });
 

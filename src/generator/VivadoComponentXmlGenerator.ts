@@ -6,7 +6,7 @@ import {
 } from './registerProcessor';
 import { parse, serialize, IPXACT_UNSUPPORTED } from '../shared/widthExprAst';
 import { detectVivadoVersion } from '../utils/detectVivadoVersion';
-import { hdlCompileRank } from '../utils/compilationOrder';
+import { resolveFileSetRtlFiles } from '../utils/compilationOrder';
 import { parseVlnv, isValidVlnv } from '../utils/vlnv';
 import { BUS_VLNV } from '../shared/busVlnv';
 import type {
@@ -290,6 +290,13 @@ export interface ComponentXmlOptions {
    * is emitted (the Spirit XSD allows it to be omitted).
    */
   memoryMaps?: NormalizedMemoryMap[];
+  /**
+   * Absolute directory containing the .ip.yml, used only as the fallback path when
+   * neither `rtlFiles` nor `simFiles` is supplied — real file content is read from
+   * here to derive compile order via resolveFileSetRtlFiles. When absent, the
+   * fallback preserves the fileSets' declared order unchanged.
+   */
+  ipCoreDir?: string;
 }
 
 /**
@@ -308,11 +315,11 @@ export function crc32Hex(content: string): string {
   return (~crc >>> 0).toString(16).padStart(8, '0');
 }
 
-export function generateComponentXml(
+export async function generateComponentXml(
   ipCore: IpCoreData,
   busDefinitions: BusDefinitions,
   options: ComponentXmlOptions = {}
-): string {
+): Promise<string> {
   const {
     filePathPrefix = '../',
     rtlFiles,
@@ -322,6 +329,7 @@ export function generateComponentXml(
     displayName,
     isSv = false,
     memoryMaps,
+    ipCoreDir,
   } = options;
 
   const vendor = String(ipCore.vlnv?.vendor ?? 'user');
@@ -348,9 +356,12 @@ export function generateComponentXml(
   const versionStr = version.replace(/\./g, '_');
   const derivedXguiFile = xguiFile ?? `xgui/${name}_v${versionStr}.tcl`;
 
-  const resolvedRtlFiles = rtlFiles ?? getFileSetPaths(ipCore, 'RTL_Sources', filePathPrefix) ?? [];
-  const resolvedSimFiles =
-    simFiles ?? rtlFiles ?? getFileSetPaths(ipCore, 'RTL_Sources', filePathPrefix) ?? [];
+  const fallbackFileSetPaths =
+    rtlFiles === undefined || simFiles === undefined
+      ? await getFileSetPaths(ipCore, 'RTL_Sources', filePathPrefix, ipCoreDir)
+      : null;
+  const resolvedRtlFiles = rtlFiles ?? fallbackFileSetPaths ?? [];
+  const resolvedSimFiles = simFiles ?? rtlFiles ?? fallbackFileSetPaths ?? [];
 
   const lines: string[] = [];
 
@@ -1651,7 +1662,12 @@ function buildVhdlVersionLookup(ipCore: IpCoreData): (filePath: string) => strin
   return (filePath: string) => versionByPath.get(normalizeFilePath(filePath));
 }
 
-function getFileSetPaths(ipCore: IpCoreData, fileSetName: string, prefix: string): string[] | null {
+export async function getFileSetPaths(
+  ipCore: IpCoreData,
+  fileSetName: string,
+  prefix: string,
+  ipCoreDir: string | undefined
+): Promise<string[] | null> {
   const fileSets = (ipCore as Record<string, unknown>).fileSets as
     | Array<{ name?: string; files?: Array<{ path?: string; type?: string }> }>
     | undefined;
@@ -1662,8 +1678,16 @@ function getFileSetPaths(ipCore: IpCoreData, fileSetName: string, prefix: string
   if (!match?.files) {
     return null;
   }
-  return match.files
-    .slice()
-    .sort((a, b) => hdlCompileRank(a.path ?? '') - hdlCompileRank(b.path ?? ''))
-    .map((f) => `${prefix}${f.path ?? ''}`);
+
+  if (ipCoreDir === undefined) {
+    // No file content available — preserve the user's declared fileSets order.
+    return match.files.map((f) => `${prefix}${f.path ?? ''}`);
+  }
+
+  const resolved = await resolveFileSetRtlFiles(
+    ipCore as Record<string, unknown>,
+    ipCoreDir,
+    fileSetName
+  );
+  return resolved.map((f) => `${prefix}${f.path}`);
 }

@@ -16,7 +16,7 @@ import {
   projectMemoryMapsForTemplate,
 } from './registerProcessor';
 import { loadIpCoreData } from './loadIpCore';
-import { sortByCompilationOrder } from '../utils/compilationOrder';
+import { sortByCompilationOrder, hdlLanguageFromPath } from '../utils/compilationOrder';
 import { getToolchain } from '../services/toolchains/registry';
 import { generateTestbenchFiles, DEFAULT_FRAMEWORK, DEFAULT_ENGINE } from './testbench';
 import { assertValidContext, CONTRACT_VERSION, checkPackApiVersion } from './contract';
@@ -60,11 +60,12 @@ export class IpCoreScaffolder {
     try {
       await this.ensureBusDefinitions();
       const ipCoreData = await this.loadIpCore(inputPath);
+      const ipCoreDir = path.dirname(inputPath);
 
       // Load per-IP custom bus library (useBusLibrary: ./path) without polluting the global cache
       const useBusLib = String((ipCoreData as Record<string, unknown>).useBusLibrary ?? '');
       if (useBusLib) {
-        const busLibPath = path.resolve(path.dirname(inputPath), useBusLib);
+        const busLibPath = path.resolve(ipCoreDir, useBusLib);
         const extraDefs = await this.busLibraryService.loadFromDirectories([busLibPath]);
         this.busDefinitions = { ...this.busDefinitions, ...extraDefs } as BusDefinitions;
       }
@@ -218,7 +219,7 @@ export class IpCoreScaffolder {
         // included in the vendor packaging output, not just the generated ones.
         const scaffoldRtlFiles = await getRtlFiles();
 
-        const vendorFiles = toolchain.scaffold(
+        const vendorFiles = await toolchain.scaffold(
           {
             name,
             templateContext: context,
@@ -227,6 +228,7 @@ export class IpCoreScaffolder {
             busDefinitions: this.busDefinitions ?? {},
             isSv,
             memoryMaps: resolvedMemoryMaps,
+            ipCoreDir,
           },
           {
             includeProject,
@@ -245,7 +247,6 @@ export class IpCoreScaffolder {
       // up in the Scaffold/Regenerate review list instead of silently vanishing from it. Only
       // meaningful when regenerating in place (outputDir is the .ip.yml's own directory) — into
       // a different directory, the file doesn't exist there yet regardless.
-      const ipCoreDir = path.dirname(inputPath);
       const extraUserPaths = new Set<string>();
       if (path.resolve(outputDir) === path.resolve(ipCoreDir)) {
         const extraPaths = collectUserDeclaredExtraPaths(ipCoreData, files);
@@ -547,7 +548,7 @@ function resolveMemmapRelpath(
  * .ip.yml's fileSets (typically managed: false) that the pack did not itself generate.
  * Returns absolute paths; callers relativize to wherever they need to reference them from.
  */
-async function collectRtlAbsPaths(
+export async function collectRtlAbsPaths(
   files: Record<string, string>,
   ipCoreData: IpCoreData,
   inputPath: string,
@@ -573,7 +574,22 @@ async function collectRtlAbsPaths(
   // and pass the per-file language so the full cross-file dependency graph is built.
   type FileSetEntry = { name?: string; files?: Array<{ path?: string; type?: string }> };
   const fileSets = (ipCoreData as Record<string, unknown>).fileSets as FileSetEntry[] | undefined;
-  const HDL_TYPES = new Set(['vhdl', 'systemverilog']);
+
+  // Resolve a fileSets entry's compile-order language, or undefined when it is genuinely
+  // not an RTL file (xdc/sdc/pdf/...) and must stay excluded. Explicit vhdl/systemverilog/
+  // verilog all win as-is — 'verilog' (plain, non-SV) gets the same real module/`define`
+  // dependency parsing as SystemVerilog (issue #91 — don't silently drop or skip-parse
+  // legitimately-typed RTL files); a missing/unrecognized type is rescued from the file
+  // extension before falling back to exclusion.
+  const resolveExtraLanguage = (f: { path: string; type?: string }): string | undefined => {
+    if (f.type === 'vhdl' || f.type === 'systemverilog') {
+      return f.type;
+    }
+    if (f.type === 'verilog') {
+      return 'verilog';
+    }
+    return hdlLanguageFromPath(f.path);
+  };
 
   // Files declared in fileSets that the scaffold pack did not (re)generate this run —
   // typically hand-authored user logic (e.g. managed: false) that still needs to be
@@ -585,11 +601,16 @@ async function collectRtlAbsPaths(
   const extraFileItems = (fileSets ?? [])
     .filter((fs) => fs.name !== 'Simulation_Resources')
     .flatMap((fs) => fs.files ?? [])
-    .filter((f) => HDL_TYPES.has(f.type ?? '') && f.path && !isSimPath(f.path))
-    .filter((f) => !generatedStemSet.has(stripExt(f.path!)))
+    .filter(
+      (f): f is { path: string; type?: string } =>
+        typeof f.path === 'string' && f.path.length > 0 && !isSimPath(f.path)
+    )
+    .filter((f) => !generatedStemSet.has(stripExt(f.path)))
+    .map((f) => ({ path: f.path, language: resolveExtraLanguage(f) }))
+    .filter((f): f is { path: string; language: string } => f.language !== undefined)
     .map((f) => ({
-      absPath: path.resolve(ipCoreDir, f.path!),
-      language: f.type as 'vhdl' | 'systemverilog',
+      absPath: path.resolve(ipCoreDir, f.path),
+      language: f.language,
     }));
 
   if (generatedRelPaths.length === 0 && extraFileItems.length === 0) {

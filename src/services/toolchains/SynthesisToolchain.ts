@@ -15,6 +15,12 @@ export interface ScaffoldContext {
   isSv: boolean;
   /** Resolved memory maps from the IP's `.mm.yml`, for vendor packaging that emits register definitions. */
   memoryMaps: NormalizedMemoryMap[];
+  /**
+   * Absolute directory containing the .ip.yml. Used only when a toolchain must fall
+   * back to reading real RTL file content to derive compile order (no scaffolder-
+   * precomputed `rtlFiles` list available for this run).
+   */
+  ipCoreDir: string;
 }
 
 /** Per-toolchain scaffold options (superset; each toolchain uses what it needs). */
@@ -62,7 +68,7 @@ export interface SynthesisToolchain extends LaunchableTool {
    * return them as a { relPath → content } map. Relative paths are under
    * `outputSubdir/`.
    */
-  scaffold(ctx: ScaffoldContext, opts: ScaffoldOptions): Record<string, string>;
+  scaffold(ctx: ScaffoldContext, opts: ScaffoldOptions): Promise<Record<string, string>>;
 
   /**
    * Probe the IP directory for available build targets. Returns an empty array

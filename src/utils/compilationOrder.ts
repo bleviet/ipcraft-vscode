@@ -9,45 +9,24 @@
  * On cycle detection the original order is returned unchanged.
  */
 
-export type HdlLanguage = 'vhdl' | 'systemverilog';
+import * as fs from 'fs/promises';
+import * as path from 'path';
 
-// ── Name-based compile-order rank ─────────────────────────────────────────────
-
-/**
- * Fast synchronous rank based on file-name suffix convention.
- * Lower rank = must be compiled first.
- *   0  _pkg.*      — shared-types package
- *   1  _regs.*     — generated register file (uses package)
- *   2  _core.*     — user logic stub (uses package + regs)
- *   3  _<bus>.*    — bus wrapper (axil/avmm/axi4/…) instantiates core
- *   4  everything else (top-level entity or unknown)
- *
- * Used as a quick sort when file content is unavailable for full dependency
- * analysis.  Files at the same rank keep their original relative order.
- */
-export function hdlCompileRank(filePath: string): number {
-  const base = filePath.split('/').pop()?.toLowerCase() ?? '';
-  if (/_pkg\.(vhd|sv|v)$/.test(base)) {
-    return 0;
-  }
-  if (/_regs\.(vhd|sv|v)$/.test(base)) {
-    return 1;
-  }
-  if (/_core\.(vhd|sv|v)$/.test(base)) {
-    return 2;
-  }
-  if (/_(?:axil|avmm|axi4|axi3|apb|wishbone|ahb)\.(vhd|sv|v)$/.test(base)) {
-    return 3;
-  }
-  return 4;
-}
+export type HdlLanguage = 'vhdl' | 'systemverilog' | 'verilog';
 
 // ── Dependency extraction ─────────────────────────────────────────────────────
 
 export interface HdlDependencies {
   /** Primary-design-unit names declared in this file (lower-cased for VHDL). */
   declares: Set<string>;
-  /** work-library names that this file references (lower-cased for VHDL). */
+  /**
+   * Unit names this file references via a use clause or direct entity
+   * instantiation (lower-cased for VHDL), regardless of library alias.
+   * Matching against `declares` happens by name only in topoSort's declMap,
+   * so a reference to a library with no matching declared unit in the batch
+   * (e.g. `ieee`) simply produces no edge — see resolveFileSetRtlFiles's
+   * doc comment for the fallback-path context this feeds.
+   */
   uses: Set<string>;
 }
 
@@ -79,10 +58,22 @@ export function extractVhdlDependencies(content: string): HdlDependencies {
       continue;
     }
 
-    // use work.name[.suffix][;]
-    m = /^use\s+work\.(\w+)/.exec(line);
+    // use <library>.name[.suffix][;] — the library alias may be `work` or a
+    // named library (e.g. a vendor package compiled as `library neorv32;`).
+    // Matching is by declared-unit name only (see topoSort's declMap), so an
+    // unrelated library (e.g. `ieee`) simply has no match and is ignored.
+    m = /^use\s+\w+\.(\w+)/.exec(line);
     if (m) {
       uses.add(m[1]);
+      continue;
+    }
+
+    // direct entity instantiation: label: entity <library>.<entity_name> [(arch)]
+    // Not line-anchored — it follows an instantiation label, e.g.
+    // "u_core: entity work.foo port map (...)". Distinguished from the "entity
+    // NAME is" declaration above by the required library.name dot-form.
+    for (const im of line.matchAll(/\bentity\s+\w+\.(\w+)/g)) {
+      uses.add(im[1]);
     }
   }
 
@@ -90,8 +81,10 @@ export function extractVhdlDependencies(content: string): HdlDependencies {
 }
 
 /**
- * Extract declared and used names from SystemVerilog source text.
- * Matching is case-sensitive (SV is case-sensitive).
+ * Extract declared and used names from SystemVerilog (or plain Verilog —
+ * module/`define`/macro-reference constructs are a subset shared by both, so
+ * the same extraction serves 'systemverilog' and 'verilog' HdlLanguage
+ * values). Matching is case-sensitive (SV/Verilog are case-sensitive).
  */
 export function extractSvDependencies(content: string): HdlDependencies {
   const declares = new Set<string>();
@@ -124,11 +117,57 @@ export function extractSvDependencies(content: string): HdlDependencies {
     m = /^import\s+(\w+)::/.exec(line);
     if (m) {
       uses.add(m[1]);
+      continue;
+    }
+
+    // `define MACRO_NAME ...  (also covers function-like `define FOO(a,b) ...)
+    m = /^`define\s+(\w+)/.exec(line);
+    if (m) {
+      declares.add(m[1]);
+      continue;
+    }
+
+    // Bare `MACRO_NAME reference elsewhere in the file (e.g. an expression
+    // using a shared opcode/parameter macro from another file, common in
+    // plain-Verilog designs that predate SV packages). Skips known
+    // compiler-directive keywords so `` `include ``/`` `ifdef `` etc. aren't
+    // mistaken for a use of a same-named declared unit — an unrecognized
+    // directive is harmless too, since declMap lookup silently ignores any
+    // name nothing in the batch declares.
+    for (const dm of line.matchAll(/`(\w+)/g)) {
+      if (!SV_DIRECTIVE_KEYWORDS.has(dm[1])) {
+        uses.add(dm[1]);
+      }
     }
   }
 
   return { declares, uses };
 }
+
+const SV_DIRECTIVE_KEYWORDS = new Set([
+  'define',
+  'undef',
+  'undefineall',
+  'include',
+  'ifdef',
+  'ifndef',
+  'else',
+  'elsif',
+  'endif',
+  'timescale',
+  'default_nettype',
+  'resetall',
+  'celldefine',
+  'endcelldefine',
+  'unconnected_drive',
+  'nounconnected_drive',
+  'pragma',
+  'line',
+  'begin_keywords',
+  'end_keywords',
+  '__FILE__',
+  '__LINE__',
+]);
 
 // ── Topological sort ──────────────────────────────────────────────────────────
 
@@ -162,7 +201,7 @@ export async function sortByCompilationOrder(
   const units: CompilationUnit[] = await Promise.all(
     items.map(async (item): Promise<CompilationUnit> => {
       const lang = item.language as HdlLanguage;
-      if (lang !== 'vhdl' && lang !== 'systemverilog') {
+      if (lang !== 'vhdl' && lang !== 'systemverilog' && lang !== 'verilog') {
         return { path: item.path, declares: new Set(), uses: new Set() };
       }
 
@@ -232,4 +271,97 @@ function topoSort(units: CompilationUnit[]): string[] {
   }
 
   return result;
+}
+
+// ── FileSet resolution (fallback path) ────────────────────────────────────────
+
+/**
+ * Infer an HDL language from a file's extension. Used only to rescue fileSets
+ * entries whose declared `type` is missing or unrecognized (e.g. imported from
+ * a component.xml with an unmapped spirit:fileType); never overrides an
+ * explicit recognized `type`.
+ */
+export function hdlLanguageFromPath(filePath: string): HdlLanguage | undefined {
+  const ext = filePath.split('.').pop()?.toLowerCase();
+  if (ext === 'vhd' || ext === 'vhdl') {
+    return 'vhdl';
+  }
+  if (ext === 'sv' || ext === 'svh') {
+    return 'systemverilog';
+  }
+  if (ext === 'v' || ext === 'vh') {
+    return 'verilog';
+  }
+  return undefined;
+}
+
+/** One `fileSets[].files[]` entry, resolved to compilation order. */
+export interface FileSetRtlFile {
+  /** Path as declared in the .ip.yml fileSet, relative to ipCoreDir. */
+  path: string;
+  /** Declared `type` field from the fileSet entry (e.g. 'vhdl', 'systemverilog', 'verilog'). */
+  type: string | undefined;
+}
+
+/**
+ * Resolve a named fileSet's files into real compilation order by reading actual
+ * file content and running the VUnit-style dependency-graph topological sort —
+ * the fallback path used when a vendor toolchain has no scaffolder-precomputed
+ * `rtlFiles` list to work from (e.g. import/no-generate mode).
+ *
+ * Language resolution per file: explicit `vhdl`/`systemverilog`/`verilog` type wins;
+ * otherwise the extension is used to rescue a missing/unrecognized type. Files that
+ * still can't be resolved to a parseable HDL language are still included — just
+ * passed through dependency-free with their relative position preserved, exactly
+ * like sortByCompilationOrder already does for non-HDL files such as `.sdc`/`.tcl`.
+ *
+ * Unreadable files degrade to null content (treated as dependency-free) rather than
+ * throwing, so one missing file doesn't fail the whole sort.
+ */
+export async function resolveFileSetRtlFiles(
+  ipCoreData: Record<string, unknown>,
+  ipCoreDir: string,
+  fileSetName: string
+): Promise<FileSetRtlFile[]> {
+  type FileEntry = { path?: string; type?: string };
+  type FileSetEntry = { name?: string; files?: FileEntry[] };
+
+  const fileSets = ipCoreData.fileSets as FileSetEntry[] | undefined;
+  if (!Array.isArray(fileSets)) {
+    return [];
+  }
+  const match = fileSets.find((entry) => entry.name === fileSetName);
+  const rawFiles = (match?.files ?? []).filter(
+    (f): f is FileEntry & { path: string } => typeof f.path === 'string' && f.path.length > 0
+  );
+  if (rawFiles.length === 0) {
+    return [];
+  }
+
+  const items = rawFiles.map((f) => {
+    const explicitLang =
+      f.type === 'vhdl' || f.type === 'systemverilog' || f.type === 'verilog' ? f.type : undefined;
+    const language = explicitLang ?? hdlLanguageFromPath(f.path) ?? f.type ?? 'unknown';
+    return {
+      relPath: f.path,
+      type: f.type,
+      absPath: path.resolve(ipCoreDir, f.path),
+      language,
+    };
+  });
+
+  const infoByAbsPath = new Map(items.map((i) => [i.absPath, { path: i.relPath, type: i.type }]));
+
+  const sortedAbsPaths = await sortByCompilationOrder(
+    items.map(({ absPath, language }) => ({ path: absPath, language })),
+    async (p) => {
+      try {
+        return await fs.readFile(p, 'utf8');
+      } catch {
+        return null;
+      }
+    }
+  );
+
+  return sortedAbsPaths.map((absPath) => infoByAbsPath.get(absPath)!);
 }

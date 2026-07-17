@@ -29,31 +29,6 @@ beforeAll(async () => {
 }, 300_000);
 
 /**
- * Order RTL files for single-pass compilation:
- * package -> register file -> core -> bus wrapper -> everything else -> top.
- */
-function orderRtlFiles(files: string[], ext: string): string[] {
-  const rank = (f: string): number => {
-    if (f.endsWith(`_pkg.${ext}`)) {
-      return 0;
-    }
-    if (f.endsWith(`_regs.${ext}`)) {
-      return 1;
-    }
-    if (f.endsWith(`_core.${ext}`)) {
-      return 2;
-    }
-    if (/_(axil|avmm|axi4)\.(vhd|sv)$/.test(f)) {
-      return 3;
-    }
-    return 4; // top and anything else last
-  };
-  return files
-    .filter((f) => f.startsWith('rtl/') && f.endsWith(`.${ext}`))
-    .sort((a, b) => rank(a) - rank(b));
-}
-
-/**
  * The top unit is the rtl file without a _pkg/_regs/_core/bus-wrapper suffix.
  * Two-pass like vivado.test.ts: fall back to accepting a _core file for IPs
  * whose VLNV name itself ends in _core (minimal-pack top-only fixtures).
@@ -81,7 +56,7 @@ describe('GHDL: generated VHDL compiles for simulation and synthesis', () => {
     const failures: string[] = [];
 
     for (const fixture of vhdlFixtures) {
-      const ordered = orderRtlFiles(Object.keys(fixture.files), 'vhd');
+      const ordered = fixture.rtlOrder.filter((f) => f.startsWith('rtl/') && f.endsWith('.vhd'));
       if (ordered.length === 0) {
         continue;
       }
@@ -134,7 +109,7 @@ describe('Icarus Verilog: generated SystemVerilog compiles', () => {
     const failures: string[] = [];
 
     for (const fixture of svFixtures) {
-      const ordered = orderRtlFiles(Object.keys(fixture.files), 'sv');
+      const ordered = fixture.rtlOrder.filter((f) => f.startsWith('rtl/') && f.endsWith('.sv'));
       if (ordered.length === 0) {
         continue;
       }
@@ -170,7 +145,7 @@ describe('Verilator: generated SystemVerilog passes lint', () => {
     const failures: string[] = [];
 
     for (const fixture of svFixtures) {
-      const ordered = orderRtlFiles(Object.keys(fixture.files), 'sv');
+      const ordered = fixture.rtlOrder.filter((f) => f.startsWith('rtl/') && f.endsWith('.sv'));
       if (ordered.length === 0) {
         continue;
       }
