@@ -179,7 +179,7 @@ const VerticalLayoutView = ({
                     {bitCount > 1 ? <span>{segment.end}</span> : null}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="w-20 h-full rounded-r-md overflow-hidden">
+                    <div className="w-20 h-full overflow-hidden">
                       {Array.from({ length: bitCount }).map((_, i) => {
                         const bit = segment.start + i;
                         const isInDragRange =
@@ -286,7 +286,7 @@ const VerticalLayoutView = ({
                   {bitCount > 1 ? <span>{group.end}</span> : null}
                 </div>
                 <div
-                  className="relative w-20 h-full rounded-r-md overflow-hidden"
+                  className="relative w-20 h-full overflow-hidden"
                   style={{
                     transform: isHovered ? 'translateX(2px)' : undefined,
                     filter: isHovered ? 'saturate(1.1) brightness(1.05)' : undefined,
@@ -343,7 +343,7 @@ const VerticalLayoutView = ({
                     })()}
                   {(ctrlHeld || ctrlDragActive) && isHovered && (
                     <div
-                      className="absolute inset-0 z-20 pointer-events-none border-2 rounded-r-md"
+                      className="absolute inset-0 z-20 pointer-events-none border-2"
                       style={{ borderColor: 'var(--vscode-focusBorder)' }}
                     >
                       <div
