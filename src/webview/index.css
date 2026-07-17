@@ -261,6 +261,7 @@ body {
     flex-shrink: 0;
     border-right: 1px solid var(--vscode-panel-border);
     overflow-y: auto;
+    overflow-x: hidden;
     background-color: var(--vscode-sideBar-background);
     position: relative;
 }

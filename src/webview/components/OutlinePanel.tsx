@@ -1,6 +1,5 @@
 import React, { useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import type { NormalizedMemoryMap, NormalizedRegister } from '../../domain/internal.types';
-import { toHex } from '../utils/formatUtils';
 import { OutlineHeader } from './outline/index';
 import {
   type BlockNode as BlockModel,
@@ -9,7 +8,7 @@ import {
   type YamlPath,
   isArrayNode,
 } from './outline/types';
-import { ROOT_ID, arrayRegisterId, blockId } from './outline/outlineIds';
+import { ROOT_ID, arrayRegisterId, blockId, parseOutlineId } from './outline/outlineIds';
 import { buildVisibleSelections } from './outline/buildVisibleSelections';
 import { useOutlineKeyboard } from './outline/useOutlineKeyboard';
 import { useOutlineDragReorder } from './outline/useOutlineDragReorder';
@@ -47,6 +46,50 @@ function parseAddressString(val: string): number | null {
   }
 
   return null;
+}
+
+function pluralize(count: number, singular: string): string {
+  return `${count} ${singular}${count === 1 ? '' : 's'}`;
+}
+
+/**
+ * The outline footer shows the item count of whatever level is currently
+ * selected (address blocks at the root, registers inside a block, fields
+ * inside a register, etc.), not a fixed "1 item" summary.
+ */
+function getOutlineLevelSummary(
+  memoryMap: NormalizedMemoryMap,
+  selectedId: string | null,
+  blockCount: number
+): string {
+  const blocks = memoryMap.addressBlocks ?? [];
+  const parsed = selectedId ? parseOutlineId(selectedId) : { kind: 'root' as const };
+
+  switch (parsed.kind) {
+    case 'block': {
+      const registers = blocks[parsed.blockIndex]?.registers ?? [];
+      return pluralize(registers.length, 'Register');
+    }
+    case 'register': {
+      const fields = blocks[parsed.blockIndex]?.registers?.[parsed.registerIndex]?.fields ?? [];
+      return pluralize(fields.length, 'Field');
+    }
+    case 'arrayRegister': {
+      const arrayNode = blocks[parsed.blockIndex]?.registers?.[parsed.registerIndex];
+      return pluralize(arrayNode?.count ?? 0, 'Element');
+    }
+    case 'arrayElement': {
+      const arrayNode = blocks[parsed.blockIndex]?.registers?.[parsed.registerIndex];
+      return pluralize(arrayNode?.registers?.length ?? 0, 'Register');
+    }
+    case 'arrayElementRegister': {
+      const arrayNode = blocks[parsed.blockIndex]?.registers?.[parsed.registerIndex];
+      const fields = arrayNode?.registers?.[parsed.childIndex]?.fields ?? [];
+      return pluralize(fields.length, 'Field');
+    }
+    default:
+      return pluralize(blockCount, 'Block');
+  }
 }
 
 interface OutlineProps {
@@ -400,6 +443,11 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
     const isRootExpanded = expanded.has(rootId);
     const isRootSelected = selectedId === rootId;
 
+    const outlineLevelSummary = useMemo(
+      () => getOutlineLevelSummary(memoryMap, selectedId, filteredBlocks.length),
+      [memoryMap, selectedId, filteredBlocks]
+    );
+
     const visibleSelections = useMemo(() => {
       return buildVisibleSelections({
         memoryMap,
@@ -438,7 +486,7 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
             }
           }}
         />
-        <div className="flex-1 overflow-y-auto py-2">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden py-2">
           <div className="px-3 mb-2 text-xs font-bold vscode-muted uppercase tracking-wider">
             Memory Map
           </div>
@@ -519,9 +567,8 @@ const Outline = React.forwardRef<OutlineHandle, OutlineProps>(
             )}
           </div>
         </div>
-        <div className="outline-footer p-3 text-xs vscode-muted flex justify-between">
-          <span>{filteredBlocks.length} Items</span>
-          <span>Base: {toHex(memoryMap.addressBlocks?.[0]?.baseAddress ?? 0)}</span>
+        <div className="outline-footer p-3 text-xs vscode-muted">
+          <span>{outlineLevelSummary}</span>
         </div>
         {outlineContextMenu && (onRegisterAction ?? onBlockAction) && (
           <div

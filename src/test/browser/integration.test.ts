@@ -398,17 +398,22 @@ addressBlocks:
     await expect(regItem).toBeVisible({ timeout: 3000 });
   });
 
-  test('should show base address in outline footer', async ({ page }) => {
+  test('should not show a base address in outline footer', async ({ page }) => {
     const footer = page.locator('.outline-footer');
     await expect(footer).toBeVisible();
-    await expect(footer).toContainText('Base:');
-    await expect(footer).toContainText('0x0');
+    await expect(footer).not.toContainText('Base:');
   });
 
-  test('should show item count in outline footer', async ({ page }) => {
+  test('should show item count for the selected level in outline footer', async ({ page }) => {
     const footer = page.locator('.outline-footer');
     await expect(footer).toBeVisible();
-    await expect(footer).toContainText('1 Items');
+    await expect(footer).toContainText('1 Block');
+
+    await page.locator('[data-outline-id="block-0"]').click();
+    await expect(footer).toContainText('1 Register');
+
+    await page.locator('[data-outline-id="block-0-reg-0"]').click();
+    await expect(footer).toContainText('1 Field');
   });
 
   test('should keyboard insert register after selection with o key', async ({ page }) => {
