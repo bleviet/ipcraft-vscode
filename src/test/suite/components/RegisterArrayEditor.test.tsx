@@ -68,7 +68,9 @@ describe('RegisterArrayEditor — flat array (no nested registers)', () => {
     );
     expect(screen.getByTestId('mock-register-editor')).toBeInTheDocument();
     expect(lastRegisterEditorProps?.embedded).toBeFalsy();
-    expect(lastRegisterEditorProps?.headerChildren).toBeTruthy();
+    // Dimensions (name/count/stride) are edited from the Outline row now, not
+    // a headerChildren grid in the detail view.
+    expect(lastRegisterEditorProps?.headerChildren).toBeFalsy();
   });
 });
 

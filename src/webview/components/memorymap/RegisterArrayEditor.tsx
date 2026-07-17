@@ -1,13 +1,11 @@
 import React, { useCallback, useRef, useState } from 'react';
 import type { YamlUpdateHandler, BitFieldRecord } from '../../types/editor';
-import { VSCodeTextField } from '@vscode/webview-ui-toolkit/react';
 import { KeyboardShortcutsButton, EditorHeader, CellInput } from '../../shared/components';
 import type { RegisterModel } from '../../types/registerModel';
 import type { RegisterDef } from '../../types/memoryMap';
 import { toHex } from '../../utils/formatUtils';
 import { validateUniqueName } from '../../shared/utils/validation';
 import { useCellEditGuard } from '../../hooks/useCellEditGuard';
-import { useEditableDraft } from '../../shared/hooks/useEditableDraft';
 import { RegisterEditor } from '../register/RegisterEditor';
 
 export interface RegisterArrayEditorProps {
@@ -175,13 +173,14 @@ function RegisterInlineHeader({
 
 /**
  * Renders and manages editing of a register array definition:
- * - Array name, base offset, count, stride (header)
  * - Flat arrays reuse the register bit-field editor directly.
  * - Register groups (nested registers) show an editable identity strip plus
- *   the selected template register's BitFieldVisualizer + FieldsTable. The
- *   template register list itself — select, insert, delete, reorder, rename
- *   — lives entirely in the Outline panel (every array element shares one
- *   template).
+ *   the selected template register's BitFieldVisualizer + FieldsTable.
+ *
+ * The array's own name/count/stride are edited from the Outline panel (a
+ * double-click-to-edit badge on the array's row), not here — that's what
+ * lets this view skip the dimensions header entirely and start directly at
+ * the detail pane.
  */
 export function RegisterArrayEditor({
   registerArray,
@@ -192,19 +191,12 @@ export function RegisterArrayEditor({
 }: RegisterArrayEditorProps) {
   const arr = registerArray;
   const nestedRegisters = arr?.registers ?? [];
-  const baseOffset = arr?.offset ?? arr?.address_offset ?? 0;
-  const baseAddress = selectionMeta?.absoluteAddress ?? Number(baseOffset);
 
   // A flat register array (count/stride + fields, no nested registers) is a
   // single register template replicated N times: it gets the same bit-field
   // editor a normal register does. Register groups (nested registers) keep
   // the master-detail view below.
   const isFlatArray = nestedRegisters.length === 0;
-
-  // Local drafts keep the caret stable in the header fields (see hook).
-  const nameDraft = useEditableDraft(arr?.name ?? '');
-  const countDraft = useEditableDraft(String(arr?.count ?? 1));
-  const strideDraft = useEditableDraft(String(arr?.stride ?? 4));
 
   // The active template register is driven entirely by the Outline's
   // selection; there is no local list state to reconcile (insert/delete/
@@ -230,74 +222,7 @@ export function RegisterArrayEditor({
     [onUpdate, selectedIndex]
   );
 
-  const headerChildren = (
-    <>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 vscode-surface-alt p-4 rounded-lg mt-3">
-        <div>
-          <label className="text-xs vscode-muted block mb-1">Name</label>
-          <VSCodeTextField
-            value={nameDraft.draft}
-            onFocus={nameDraft.markFocused}
-            onBlur={nameDraft.markBlurred}
-            onInput={(e: Event | React.FormEvent<HTMLElement>) => {
-              const next = (e.target as HTMLInputElement).value;
-              nameDraft.setDraft(next);
-              onUpdate(['name'], next);
-            }}
-            className="vscode-field-bare w-full"
-          />
-        </div>
-        <div>
-          <label className="text-xs vscode-muted block mb-1">Base Address</label>
-          <span className="font-mono text-sm">{toHex(baseAddress)}</span>
-        </div>
-        <div>
-          <label className="text-xs vscode-muted block mb-1">Count</label>
-          <VSCodeTextField
-            value={countDraft.draft}
-            onFocus={countDraft.markFocused}
-            onBlur={countDraft.markBlurred}
-            onInput={(e: Event | React.FormEvent<HTMLElement>) => {
-              const raw = (e.target as HTMLInputElement).value;
-              countDraft.setDraft(raw);
-              const val = parseInt(raw, 10);
-              if (!isNaN(val) && val > 0) {
-                onUpdate(['count'], val);
-              }
-            }}
-            className="vscode-field-bare w-24"
-          />
-        </div>
-        <div>
-          <label className="text-xs vscode-muted block mb-1">Stride (bytes)</label>
-          <VSCodeTextField
-            value={strideDraft.draft}
-            onFocus={strideDraft.markFocused}
-            onBlur={strideDraft.markBlurred}
-            onInput={(e: Event | React.FormEvent<HTMLElement>) => {
-              const raw = (e.target as HTMLInputElement).value;
-              strideDraft.setDraft(raw);
-              const val = parseInt(raw, 10);
-              if (!isNaN(val) && val > 0) {
-                onUpdate(['stride'], val);
-              }
-            }}
-            className="vscode-field-bare w-24"
-          />
-        </div>
-      </div>
-      <div className="text-sm vscode-muted mt-2 mb-1">
-        <span className="font-mono">
-          {toHex(baseAddress)} &rarr;{' '}
-          {toHex(baseAddress + Number(arr?.count ?? 1) * Number(arr?.stride ?? 4) - 1)}
-        </span>
-        <span className="ml-2">({(arr?.count ?? 1) * (arr?.stride ?? 4)} bytes total)</span>
-      </div>
-    </>
-  );
-
-  // Flat array: reuse the register bit-field editor, keeping the array
-  // dimension controls (name/count/stride) in the header.
+  // Flat array: reuse the register bit-field editor directly.
   if (isFlatArray) {
     return (
       <RegisterEditor
@@ -308,7 +233,6 @@ export function RegisterArrayEditor({
         selectionMeta={selectionMeta}
         onUpdate={onUpdate}
         title={arr?.name ?? 'Register Array'}
-        headerChildren={headerChildren}
         footerContext="array"
       />
     );
@@ -321,9 +245,7 @@ export function RegisterArrayEditor({
         description={`${arr?.description ?? 'Register array'} • ${arr?.count ?? 1} instances × ${arr?.stride ?? 4} bytes`}
         layout={arrayLayout}
         onToggleLayout={toggleArrayLayout}
-      >
-        {headerChildren}
-      </EditorHeader>
+      />
       {activeReg && (
         <RegisterInlineHeader
           key={selectedIndex}

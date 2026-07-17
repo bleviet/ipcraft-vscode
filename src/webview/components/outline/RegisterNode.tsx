@@ -8,6 +8,8 @@ interface RegisterNodeProps {
   onContextMenu?: (e: React.MouseEvent) => void;
   onDoubleClick?: () => void;
   paddingLeft: string;
+  /** Swatch color (hex), stable per register name — see getFieldColor. */
+  color?: string;
   name: React.ReactNode;
   offsetLabel: string;
   actionButton?: React.ReactNode;
@@ -21,6 +23,7 @@ const RegisterNode = ({
   onDoubleClick,
   onContextMenu,
   paddingLeft,
+  color,
   name,
   offsetLabel,
   actionButton,
@@ -55,6 +58,13 @@ const RegisterNode = ({
     >
       <div style={{ paddingLeft }} className="flex items-center gap-2 flex-grow min-w-0">
         {drag?.dragHandle}
+        {color && (
+          <span
+            className="w-2 h-2 shrink-0"
+            style={{ backgroundColor: color }}
+            aria-hidden="true"
+          />
+        )}
         <span
           className={`codicon codicon-symbol-variable text-[16px] shrink-0 ${isSelected ? '' : 'opacity-70'}`}
           title="Register"

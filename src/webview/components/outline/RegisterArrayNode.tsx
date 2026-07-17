@@ -1,6 +1,7 @@
 import React from 'react';
 import type { NormalizedAddressBlock } from '../../../domain/internal.types';
 import { toHex } from '../../utils/formatUtils';
+import { FIELD_COLORS, getFieldColor } from '../../shared/colors';
 import FieldNode from './FieldNode';
 import RegisterNode from './RegisterNode';
 import type { OutlineDragProps, OutlinePreviewMove } from './useOutlineDragReorder';
@@ -24,7 +25,15 @@ interface RegisterArrayNodeProps {
   onFocusTree: () => void;
   onSelect: (selection: OutlineSelection) => void;
   onDoubleClick?: () => void;
+  /** Swatch color (hex), stable per array name — see getFieldColor. */
+  color?: string;
   renderNameOrEdit: RenderNameOrEdit;
+  renderArrayDimsOrEdit?: (
+    id: string,
+    count: number,
+    stride: number,
+    path: YamlPath
+  ) => React.ReactNode;
   startEditing?: (id: string, name: string) => void;
   onRegisterContextMenu?: (
     blockIndex: number,
@@ -52,7 +61,9 @@ const RegisterArrayNode = ({
   onFocusTree,
   onSelect,
   onDoubleClick,
+  color,
   renderNameOrEdit,
+  renderArrayDimsOrEdit,
   startEditing,
   onRegisterContextMenu,
   drag,
@@ -67,7 +78,6 @@ const RegisterArrayNode = ({
   const blockBase = block.baseAddress;
   const arrOff = arrayNode.offset;
   const start = Number(blockBase) + Number(arrOff);
-  const end = start + Math.max(1, arrayNode.count ?? 1) * Math.max(1, arrayNode.stride ?? 4) - 1;
 
   return (
     <div key={id}>
@@ -124,6 +134,13 @@ const RegisterArrayNode = ({
             onClick={(e) => onToggleExpand(id, e)}
             style={{ cursor: 'pointer' }}
           ></span>
+          {color && (
+            <span
+              className="w-2 h-2 shrink-0 border border-dashed"
+              style={{ backgroundColor: color, borderColor: 'var(--ipcraft-pattern-border)' }}
+              aria-hidden="true"
+            />
+          )}
           <span
             className="codicon codicon-symbol-array shrink-0"
             title="Register Array"
@@ -136,8 +153,18 @@ const RegisterArrayNode = ({
             'flex-1'
           )}
         </div>
-        <span className="text-[10px] vscode-muted font-mono shrink-0">
-          {toHex(start)}-{toHex(end)} [{arrayNode.count}]
+        <span className="text-[10px] vscode-muted font-mono shrink-0 flex items-center gap-1">
+          <span>@ {toHex(start)}</span>
+          {renderArrayDimsOrEdit ? (
+            renderArrayDimsOrEdit(id, arrayNode.count ?? 1, arrayNode.stride ?? 4, [
+              'addressBlocks',
+              blockIndex,
+              'registers',
+              regIndex,
+            ])
+          ) : (
+            <span>[{arrayNode.count}]</span>
+          )}
         </span>
         {onRegisterContextMenu && (
           <button
@@ -309,6 +336,7 @@ const RegisterArrayNode = ({
                       }}
                       onDoubleClick={() => startEditing?.(childId, reg.name ?? '')}
                       paddingLeft="80px"
+                      color={FIELD_COLORS[getFieldColor(reg.name ?? '')]}
                       name={renderNameOrEdit(childId, reg.name, path)}
                       offsetLabel={`@ ${toHex(absolute)}`}
                       actionButton={childActionButton}

@@ -1,6 +1,7 @@
 import React from 'react';
 import type { NormalizedMemoryMap, NormalizedRegister } from '../../../domain/internal.types';
 import { toHex } from '../../utils/formatUtils';
+import { FIELD_COLORS, getFieldColor } from '../../shared/colors';
 import { BlockNode as OutlineBlockNode, RegisterArrayNode, RegisterNode } from '.';
 import { calculateBlockSize } from '../../utils/blockSize';
 import {
@@ -26,6 +27,12 @@ interface OutlineTreeNodesProps {
   onSelect: (selection: OutlineSelection) => void;
   renderNameOrEdit: RenderNameOrEdit;
   renderBaseAddressOrEdit?: (id: string, baseAddress: number, path: YamlPath) => React.ReactNode;
+  renderArrayDimsOrEdit?: (
+    id: string,
+    count: number,
+    stride: number,
+    path: YamlPath
+  ) => React.ReactNode;
   startEditing?: (id: string, name: string) => void;
   onRegisterContextMenu?: (
     blockIndex: number,
@@ -61,6 +68,7 @@ function renderLeafRegister(
   ) => void,
   getDragProps?: (id: string) => OutlineDragProps
 ) {
+  const color = FIELD_COLORS[getFieldColor(reg.name ?? '')];
   const id = registerId(blockIndex, regIndex);
   const isSelected = selectedId === id;
   const block = memoryMap.addressBlocks?.[blockIndex];
@@ -116,6 +124,7 @@ function renderLeafRegister(
       }}
       onDoubleClick={() => startEditing?.(id, reg.name ?? '')}
       paddingLeft={paddingLeft}
+      color={color}
       name={renderNameOrEdit(id, reg.name, path, 'flex-1')}
       offsetLabel={`@ ${toHex(absolute)}`}
       actionButton={actionButton}
@@ -144,6 +153,7 @@ const OutlineTreeNodes = ({
   onSelect,
   renderNameOrEdit,
   renderBaseAddressOrEdit,
+  renderArrayDimsOrEdit,
   startEditing,
   onRegisterContextMenu,
   onBlockContextMenu,
@@ -303,7 +313,9 @@ const OutlineTreeNodes = ({
                     onDoubleClick={() =>
                       startEditing?.(arrayRegisterId(blockIndex, idx), node.name ?? '')
                     }
+                    color={FIELD_COLORS[getFieldColor(node.name ?? '')]}
                     renderNameOrEdit={renderNameOrEdit}
+                    renderArrayDimsOrEdit={renderArrayDimsOrEdit}
                     startEditing={startEditing}
                     onRegisterContextMenu={onRegisterContextMenu}
                     drag={getDragProps?.(arrayRegisterId(blockIndex, idx))}
