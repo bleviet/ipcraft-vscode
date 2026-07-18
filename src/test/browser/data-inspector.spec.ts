@@ -48,6 +48,32 @@ test.describe('Data Inspector responsive and accessible workspace', () => {
     expect(await page.locator('.di-lane').count()).toBeLessThanOrEqual(12);
   });
 
+  test('keeps long register layout names inside the source rail', async ({ page }) => {
+    await page.setViewportSize({ width: 900, height: 800 });
+    await page.goto(harnessPath);
+    await decode(page, "32'hDEADBEEF");
+
+    const layoutSelect = page.getByLabel('Import register layout');
+    await layoutSelect.evaluate((select: HTMLSelectElement) => {
+      select.add(
+        new Option(
+          'regmap_conformance.mm.yml · CSR/CHANNEL_CONFIGURATION_REGISTER',
+          'long-layout',
+          true,
+          true
+        )
+      );
+    });
+
+    const [railBox, selectBox] = await Promise.all([
+      page.locator('.di-source-rail').boundingBox(),
+      layoutSelect.boundingBox(),
+    ]);
+    expect(railBox).not.toBeNull();
+    expect(selectBox).not.toBeNull();
+    expect(selectBox!.x + selectBox!.width).toBeLessThanOrEqual(railBox!.x + railBox!.width - 11);
+  });
+
   test('retains visible boundaries and selection patterns in forced colors', async ({ page }) => {
     await page.emulateMedia({ forcedColors: 'active' });
     await page.goto(harnessPath);

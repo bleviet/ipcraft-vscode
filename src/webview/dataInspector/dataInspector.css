@@ -243,6 +243,14 @@ label {
   flex-direction: column;
   gap: 10px;
 }
+.di-source-rail > label {
+  min-width: 0;
+}
+.di-source-rail > label > select {
+  min-width: 0;
+  width: 100%;
+  text-overflow: ellipsis;
+}
 .di-source {
   display: flex;
   align-items: center;
