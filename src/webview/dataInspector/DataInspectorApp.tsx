@@ -46,12 +46,27 @@ const VALUE_EXAMPLES = [
   { label: 'VHDL hex', literal: 'x"0123_ABCD"' },
 ] as const;
 
+function hexDisplayText(value: BitVector): string | null {
+  const exactHex = value.toHex();
+  if (exactHex !== null) {
+    return `0x${exactHex}`;
+  }
+  const knownValue = value.toBigInt();
+  return knownValue === null
+    ? null
+    : `0x${knownValue
+        .toString(16)
+        .toUpperCase()
+        .padStart(Math.ceil(value.width / 4), '0')}`;
+}
+
 function interpretedText(
   value: BitVector,
   field: IPCraftDataInspectorRecipe['fields'][number] | undefined
 ): { text: string; comparison?: 'pass' | 'fail' | 'unknown' } {
   if (!field) {
-    return { text: value.toHex() ? `hex 0x${value.toHex()}` : `binary ${value.toBinary()}` };
+    const hex = hexDisplayText(value);
+    return { text: hex ? `hex ${hex}` : `binary ${value.toBinary()}` };
   }
   const interpretation = field.display.interpretation;
   let result;
@@ -70,7 +85,7 @@ function interpretedText(
   } else {
     result = {
       status: 'ok' as const,
-      text: value.toHex() ? `0x${value.toHex()}` : value.toBinary(),
+      text: hexDisplayText(value) ?? value.toBinary(),
     };
   }
   return {
@@ -272,41 +287,45 @@ export function LaneRibbon({
         </div>
         <div className="di-ribbon-tools">
           {onLaneWidthChange && (
-            <label>
-              Lane
-              <select
-                aria-label="Lane width"
-                value={laneWidth}
-                onChange={(event) =>
-                  onLaneWidthChange(Number(event.target.value) as 8 | 16 | 32 | 64)
-                }
-              >
+            <div className="di-tool-group">
+              <div className="di-segmented-control" role="group" aria-label="Lane width">
                 {[8, 16, 32, 64].map((value) => (
-                  <option value={value} key={value}>
+                  <button
+                    aria-pressed={laneWidth === value}
+                    className={laneWidth === value ? 'is-active' : ''}
+                    key={value}
+                    onClick={() => onLaneWidthChange(value as 8 | 16 | 32 | 64)}
+                    title={`Show ${value} bits per lane`}
+                    type="button"
+                  >
                     {value}
-                  </option>
+                  </button>
                 ))}
-              </select>
-            </label>
+              </div>
+              <span className="di-tool-label">Lane width</span>
+            </div>
           )}
           {onZoomChange && (
-            <label>
-              Zoom
-              <select
-                aria-label="Zoom"
-                value={zoom}
-                onChange={(event) =>
-                  onZoomChange(event.target.value as 'overview' | 'field' | 'bit')
-                }
-              >
-                <option value="overview">overview</option>
-                <option value="field">field</option>
-                <option value="bit">bit</option>
-              </select>
-            </label>
+            <div className="di-tool-group">
+              <div className="di-segmented-control" role="group" aria-label="Zoom">
+                {(['overview', 'field', 'bit'] as const).map((value) => (
+                  <button
+                    aria-pressed={zoom === value}
+                    className={zoom === value ? 'is-active' : ''}
+                    key={value}
+                    onClick={() => onZoomChange(value)}
+                    title={`Use ${value} zoom`}
+                    type="button"
+                  >
+                    {value}
+                  </button>
+                ))}
+              </div>
+              <span className="di-tool-label">Zoom</span>
+            </div>
           )}
           <form
-            className="di-go-to"
+            className="di-go-to di-tool-group"
             noValidate
             onSubmit={(event) => {
               event.preventDefault();
@@ -325,8 +344,10 @@ export function LaneRibbon({
               }
             }}
           >
-            <label htmlFor="go-to-bit">Jump to bit</label>
             <div className="di-jump-control">
+              <label className="sr-only" htmlFor="go-to-bit">
+                Jump to bit
+              </label>
               <input
                 aria-describedby="go-to-bit-status"
                 id="go-to-bit"
@@ -344,11 +365,11 @@ export function LaneRibbon({
               <button type="submit">Jump</button>
             </div>
             <span
-              className={`di-jump-status ${jumpError ? 'is-error' : ''}`}
+              className={`di-tool-label di-jump-status ${jumpError ? 'is-error' : ''}`}
               id="go-to-bit-status"
               aria-live="polite"
             >
-              {jumpMessage}
+              {jumpMessage || 'Jump to bit'}
             </span>
           </form>
         </div>
@@ -1630,6 +1651,7 @@ export function DataInspectorApp() {
                     field.msb < sourceVector.width;
                   const value = valid && sourceVector ? decodeField(sourceVector, field) : null;
                   const shown = value ? interpretedText(value, definition) : { text: 'invalid' };
+                  const raw = value?.toBinary() ?? 'invalid';
                   const sourceName = currentRecipe.sources.find(
                     (source) => source.id === definition?.sourceId
                   )?.name;
@@ -1645,14 +1667,12 @@ export function DataInspectorApp() {
                       key={field.id}
                       onClick={() => setSelectedFieldId(field.id)}
                     >
-                      <span>{field.name}</span>
-                      <span>
+                      <span title={field.name}>{field.name}</span>
+                      <span title={`[${field.msb}:${field.lsb}]`}>
                         [{field.msb}:{field.lsb}]
                       </span>
-                      <span>
-                        {value?.toHex() ? `0x${value.toHex()}` : (value?.toBinary() ?? 'invalid')}
-                      </span>
-                      <span>
+                      <span title={raw}>{raw}</span>
+                      <span title={shown.text}>
                         {shown.text}
                         {shown.comparison && (
                           <b className={`di-compare is-${shown.comparison}`}>{shown.comparison}</b>

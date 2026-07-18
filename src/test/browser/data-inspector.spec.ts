@@ -60,7 +60,7 @@ test.describe('Data Inspector responsive and accessible workspace', () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(harnessPath);
     await decode(page, "32'hDEADBEEF");
-    await page.getByLabel('Lane width').selectOption('64');
+    await page.getByRole('button', { name: '64', exact: true }).click();
     await page.getByRole('button', { name: 'Add field' }).click();
     await page.getByLabel('LSB').fill('28');
 
@@ -82,8 +82,8 @@ test.describe('Data Inspector responsive and accessible workspace', () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(harnessPath);
     await decode(page, "32'hDEADBEEF");
-    await page.getByLabel('Lane width').selectOption('64');
-    await page.getByLabel('Zoom').selectOption('bit');
+    await page.getByRole('button', { name: '64', exact: true }).click();
+    await page.getByRole('button', { name: 'bit', exact: true }).click();
     await page.getByRole('button', { name: 'Add field' }).click();
     await page.getByLabel('LSB').fill('28');
 
@@ -105,8 +105,8 @@ test.describe('Data Inspector responsive and accessible workspace', () => {
     await page.setViewportSize({ width: 1800, height: 900 });
     await page.goto(harnessPath);
     await decode(page, "32'h00000000");
-    await page.getByLabel('Lane width').selectOption('16');
-    await page.getByLabel('Zoom').selectOption('bit');
+    await page.getByRole('button', { name: '16', exact: true }).click();
+    await page.getByRole('button', { name: 'bit', exact: true }).click();
     await page.getByRole('button', { name: 'Add field' }).click();
     await page.getByLabel('MSB').fill('7');
     await page.getByLabel('LSB').fill('0');
@@ -162,6 +162,26 @@ test.describe('Data Inspector responsive and accessible workspace', () => {
     expect(selectBox!.x + selectBox!.width).toBeLessThanOrEqual(
       inspectorBox!.x + inspectorBox!.width - 11
     );
+  });
+
+  test('keeps wide field values in their columns and displays known ranges as hex', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 840, height: 1000 });
+    await page.goto(harnessPath);
+    await decode(page, "32'h12345678");
+    await page.getByRole('button', { name: 'Inspect' }).click();
+    await page.getByRole('button', { name: 'Add field' }).click();
+    await page.getByLabel('LSB').fill('2');
+
+    const row = page.getByRole('row', { name: /FIELD_1/ });
+    const cells = row.locator('span');
+    await expect(cells.nth(2)).toHaveText('000100100011010001010110011110');
+    await expect(cells.nth(2)).toHaveCSS('overflow', 'hidden');
+    await expect(cells.nth(3)).toHaveText('0x048D159E');
+    expect(
+      await row.evaluate((element) => element.scrollWidth - element.clientWidth)
+    ).toBeLessThanOrEqual(1);
   });
 
   test('keeps sources, bits, and workflow tools inside the desktop viewport', async ({ page }) => {

@@ -367,46 +367,78 @@ label {
 }
 .di-ribbon-tools {
   display: flex;
-  align-items: end;
+  align-items: start;
   gap: 7px;
 }
-.di-ribbon-tools > label {
+.di-tool-group {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
+}
+.di-segmented-control {
+  display: inline-flex;
+  height: 28px;
+  overflow: hidden;
+  border: 1px solid var(--di-line);
+  border-radius: 6px;
+  background: var(--vscode-input-background);
+}
+.di-segmented-control button {
+  min-width: 30px;
+  padding: 3px 7px;
+  border: 0;
+  border-right: 1px solid var(--di-line);
+  border-radius: 0;
+  color: var(--di-muted);
+  background: transparent;
+  font-size: 10px;
+  text-transform: capitalize;
+}
+.di-segmented-control button:last-child {
+  border-right: 0;
+}
+.di-segmented-control button:hover:not(:disabled) {
+  color: var(--di-text);
+  background: var(--vscode-toolbar-hoverBackground);
+}
+.di-segmented-control button.is-active {
+  color: var(--vscode-button-foreground);
+  background: var(--di-brand);
+}
+.di-segmented-control button.is-active:hover:not(:disabled) {
+  background: var(--di-brand-hover);
+}
+.di-tool-label {
+  min-height: 11px;
+  color: var(--di-muted);
+  font-size: 9px;
+  line-height: 1;
+  letter-spacing: 0.03em;
   white-space: nowrap;
 }
-.di-ribbon-tools select {
-  min-height: 26px;
-  padding-block: 2px;
-}
 .di-go-to {
-  display: grid;
-  grid-template-columns: auto auto;
-  align-items: center;
-  gap: 3px 5px;
-}
-.di-go-to label {
-  display: inline;
+  margin: 0;
 }
 .di-jump-control {
   display: flex;
+  align-items: center;
   gap: 3px;
+  height: 28px;
 }
 .di-go-to input {
   width: 74px;
-  min-height: 26px;
+  min-height: 28px;
 }
 .di-go-to button {
-  min-height: 26px;
+  min-height: 28px;
   padding-block: 2px;
 }
 .di-jump-status {
-  grid-column: 1 / -1;
-  min-height: 11px;
   color: var(--di-accent);
-  font-size: 9px;
-  text-align: right;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .di-jump-status.is-error {
   color: var(--di-error);
@@ -582,6 +614,13 @@ label {
   padding: 6px;
   text-align: left;
   font: 10px var(--di-mono);
+}
+.di-field-row > span {
+  min-width: 0;
+  overflow: hidden;
+  padding-right: 6px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .di-field-row.is-head {
   color: var(--di-muted);

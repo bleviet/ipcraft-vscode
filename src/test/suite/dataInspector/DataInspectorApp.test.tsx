@@ -97,6 +97,18 @@ describe('DataInspectorApp', () => {
     expect(row.querySelectorAll('span')[2]).toHaveTextContent('1');
     expect(row).toHaveTextContent('-1');
   });
+
+  it('shows a known non-nibble-aligned field as hex while retaining its raw bits', () => {
+    render(<DataInspectorApp />);
+    fireEvent.change(screen.getByLabelText('Literal'), { target: { value: "32'h12345678" } });
+    fireEvent.click(screen.getByRole('button', { name: 'Decode' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add field' }));
+    fireEvent.change(screen.getByLabelText('LSB'), { target: { value: '2' } });
+
+    const cells = screen.getByRole('row', { name: /FIELD_1/ }).querySelectorAll('span');
+    expect(cells[2]).toHaveTextContent('000100100011010001010110011110');
+    expect(cells[3]).toHaveTextContent('0x048D159E');
+  });
 });
 
 describe('LaneRibbon', () => {
