@@ -23,11 +23,6 @@ The product supports two depths:
 The primary first-use flow is: open the inspector, paste a value, define or import
 fields, and decode it exactly.
 
-This document consolidates two former drafts into the single canonical design
-reference and supersedes them. The draft files have been deleted; see "Resolution
-of earlier drafts" at the end for the historical record of how their disagreements
-were settled.
-
 ## Relationship to the existing Memory Map Debug Mode
 
 Debug Mode ships today (issue #39): `src/webview/hooks/useDebugMode.tsx` provides a
@@ -79,7 +74,7 @@ debugging-tool bugs.
 The _recipe_ (field names, bit ranges, the ordered list of transform steps —
 "take these two, mask this, shift that") is small, contains no captured data, and
 is exactly the kind of thing worth saving and sharing with a teammate via git — so
-it gets its own file type (`*.ipcraft-inspect.yml`), separate from any spec file.
+it gets its own file type (`*.ipci.yml`), separate from any spec file.
 The _sample value_ (the actual bits pasted or captured) stays transient and is
 never written to the recipe. Through phases 1–6 the inspector does not persist it
 at all; any later snapshot is an explicit action using a separate
@@ -313,7 +308,7 @@ offsets, and the inspector must never repack a pasted value's layout.
 
 ### Saved recipe interface
 
-After the panel interaction is validated, add `*.ipcraft-inspect.yml`,
+After the panel interaction is validated, add `*.ipci.yml`,
 **IPCraft: New Data Inspector**, **Open Register in Data Inspector**, and a custom
 editor provider. Phase 3 adds
 `ipcraft-spec/schemas/data_inspector.schema.json` as the sole source of truth for
@@ -376,7 +371,7 @@ stale result is ever displayed.
      proves the interaction before any file format or document-provider work.
 
 3. **Shareable recipes**
-   - Add the versioned `*.ipcraft-inspect.yml` custom editor and the canonical
+   - Add the versioned `*.ipci.yml` custom editor and the canonical
      `ipcraft-spec/schemas/data_inspector.schema.json` recipe schema, with
      camelCase properties and generated TypeScript types.
    - Save field layouts, sources, outputs, and view preferences without saving
@@ -467,7 +462,10 @@ stale result is ever displayed.
 
 ## Assumptions and non-goals
 
-- The product name is **Data Inspector**.
+- The product name is **Data Inspector**; the saved recipe suffix is
+  `*.ipci.yml`.
+- Both IEEE-754 float and Q-format fixed-point interpretations are committed
+  deliverables of the numeric decode toolbox (phase 5).
 - The first user-testable release is panel-first; recipe persistence follows
   after interaction validation.
 - Numeric decoding is prioritized before waveform or CSV ingestion.
@@ -484,27 +482,3 @@ stale result is ever displayed.
 - No arbitrary JavaScript/expression evaluation, free-form node graph, temporal
   protocol decoder, simulation control, or live JTAG connection is included in
   the initial phases.
-
-## Resolution of earlier drafts
-
-This document merged two former drafts: a narrative draft with rationale, mockups,
-and open questions, and an alternative structured plan with UX detail, phases,
-and acceptance criteria. Their files were deleted after consolidation. Points of
-disagreement were resolved as follows:
-
-- **Debug Mode premise.** The narrative draft claimed no Memory Map Debug Mode
-  exists in the codebase; that was wrong. It ships today
-  (`src/webview/hooks/useDebugMode.tsx`, issue #39). The alternative's framing —
-  Debug Mode stays a quick look, the inspector is a separate deep tool — is
-  adopted.
-- **Sequencing.** The narrative draft's "panel first, file format second"
-  critique was adopted; recipes are phase 3, after the panel interaction is
-  validated in phase 2.
-- **Float/fixed-point.** The narrative draft's complaint that these were missing
-  was stale; they remain in phase 5 after recipes and composition.
-- **Reuse target.** "Reuse `LayoutEngine.ts`" was corrected to "extract
-  field-range geometry from the visualizer" — `LayoutEngine.ts` repacks field
-  offsets, which the inspector must never do.
-- **Waveforms.** The narrative draft deferred waveform reading as a vague later
-  effort; the alternative's concrete VCD-first phase (justified by IPCraft's own
-  VCD-emitting testbenches) is adopted, with FST split into a separate adapter.
