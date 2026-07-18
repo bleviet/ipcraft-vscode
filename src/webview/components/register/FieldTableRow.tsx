@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import type { YamlUpdateHandler } from '../../types/editor';
-import { VSCodeDropdown, VSCodeOption } from '@vscode/webview-ui-toolkit/react';
-import { ACCESS_OPTIONS } from '../../shared/constants';
+import { ACCESS_OPTIONS, ACCESS_ABBREVIATIONS } from '../../shared/constants';
 import { FIELD_COLORS, getFieldColor } from '../../shared/colors';
 import {
   fieldToBitsString,
@@ -18,7 +17,21 @@ import {
 } from '../../shared/utils/fieldValidation';
 import type { EditKey, FieldEditorState } from '../../hooks/useFieldEditor';
 import type { FieldDef } from './FieldsTable';
-import { EditableCell, CellInput, VectorBoundingInput } from '../../shared/components';
+import {
+  EditableCell,
+  CellInput,
+  VectorBoundingInput,
+  AnchoredPickerMenu,
+} from '../../shared/components';
+
+// Access dropdown options: short token in the closed control, full enum name
+// (via `detail`) shown only in the open listbox. Stored value and the
+// onUpdate payload always remain the full enum string.
+const ACCESS_DROPDOWN_OPTIONS = ACCESS_OPTIONS.map((opt) => ({
+  value: opt,
+  label: ACCESS_ABBREVIATIONS[opt],
+  detail: opt,
+}));
 
 interface FieldTableRowProps {
   field: FieldDef;
@@ -81,6 +94,7 @@ const FieldTableRow = ({
 
   const [nameError, setNameError] = useState<string | null>(null);
   const [editingKey, setEditingKey] = useState<EditKey | null>(null);
+  const [monitorPickerPos, setMonitorPickerPos] = useState<{ x: number; y: number } | null>(null);
 
   const isRowSelected = activeCell.rowId === rowId;
 
@@ -446,7 +460,7 @@ const FieldTableRow = ({
                     ? '0 0 0 1.5px var(--vscode-focusBorder)'
                     : undefined,
                 }}
-                title={
+                data-tooltip={
                   field.monitorChangeOf ? `CoS W1C — monitors: ${field.monitorChangeOf}` : undefined
                 }
               />
@@ -550,53 +564,59 @@ const FieldTableRow = ({
           className="px-4 py-2"
           style={{ overflow: 'visible', position: 'relative' }}
         >
-          <div className="flex flex-col gap-1 py-0.5">
-            <div className="flex items-center h-10">
-              <CellInput
-                editKey="access"
-                variant="dropdown"
-                isEditing={editingKey === 'access'}
-                value={field.access ?? 'read-write'}
-                className="w-full"
-                options={ACCESS_OPTIONS}
-                onFocus={() => {
-                  onCellFocus(index, 'access')();
-                  setEditingKey('access');
-                }}
-                cancelEditRef={fieldEditor.cancelEditRef}
-                onInput={(value) => {
-                  const next = value;
-                  onUpdate(['fields', index, 'access'], next);
-                  if (!W1C_ACCESS.has(next)) {
-                    onUpdate(['fields', index, 'monitorChangeOf'], null);
-                  }
-                }}
-              />
-            </div>
+          <div className="flex items-center gap-1.5 h-10">
+            <CellInput
+              editKey="access"
+              variant="dropdown"
+              isEditing={editingKey === 'access'}
+              value={field.access ?? 'read-write'}
+              className="flex-1 min-w-0"
+              options={ACCESS_DROPDOWN_OPTIONS}
+              position="below"
+              onFocus={() => {
+                onCellFocus(index, 'access')();
+                setEditingKey('access');
+              }}
+              cancelEditRef={fieldEditor.cancelEditRef}
+              onInput={(value) => {
+                const next = value;
+                onUpdate(['fields', index, 'access'], next);
+                if (!W1C_ACCESS.has(next)) {
+                  onUpdate(['fields', index, 'monitorChangeOf'], null);
+                }
+              }}
+            />
             {isW1C && (
-              <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                <span className="text-[10px] vscode-muted whitespace-nowrap shrink-0">
-                  Monitors:
-                </span>
-                <VSCodeDropdown
-                  value={String(field.monitorChangeOf ?? '')}
-                  className="vscode-field-bare flex-1"
-                  position="below"
-                  onInput={(e: Event | React.FormEvent<HTMLElement>) => {
-                    const val = (e.target as HTMLInputElement).value;
-                    onUpdate(['fields', index, 'monitorChangeOf'], val || null);
+              <>
+                <button
+                  type="button"
+                  className={`shrink-0 rounded p-1 codicon codicon-pulse text-sm cursor-pointer vscode-icon-button ${
+                    field.monitorChangeOf ? 'vscode-icon-button-active' : ''
+                  }`}
+                  data-tooltip={
+                    field.monitorChangeOf
+                      ? `Monitors: ${field.monitorChangeOf}`
+                      : 'Set monitored field'
+                  }
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    setMonitorPickerPos({ x: rect.left, y: rect.bottom });
                   }}
-                >
-                  <VSCodeOption value="">— none —</VSCodeOption>
-                  {fields
-                    .filter((f, i) => i !== index && f.name)
-                    .map((f) => (
-                      <VSCodeOption key={String(f.name)} value={String(f.name)}>
-                        {String(f.name)}
-                      </VSCodeOption>
-                    ))}
-                </VSCodeDropdown>
-              </div>
+                />
+                <AnchoredPickerMenu
+                  position={monitorPickerPos}
+                  items={[
+                    { value: null, label: '-- none --' },
+                    ...fields
+                      .filter((f, i) => i !== index && f.name)
+                      .map((f) => ({ value: String(f.name), label: String(f.name) })),
+                  ]}
+                  selectedValue={field.monitorChangeOf ?? null}
+                  onSelect={(value) => onUpdate(['fields', index, 'monitorChangeOf'], value)}
+                  onClose={() => setMonitorPickerPos(null)}
+                />
+              </>
             )}
           </div>
         </EditableCell>

@@ -1,12 +1,20 @@
-/* eslint-disable @typescript-eslint/no-unsafe-return */
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import FieldTableRow from '../../../webview/components/register/FieldTableRow';
 import type { FieldDef } from '../../../webview/components/register/FieldsTable';
+import { ACCESS_OPTIONS, ACCESS_ABBREVIATIONS } from '../../../webview/shared/constants';
+import type { CellInputProps } from '../../../webview/shared/components';
 
-// Mock VectorBoundingInput to simplify testing and directly call onInput/onBlur
+// Mock VectorBoundingInput and (most of) CellInput to simplify testing and
+// directly call onInput/onBlur. The 'dropdown' variant is left to delegate
+// to the real CellInput (which renders VSCodeDropdown/VSCodeOption, globally
+// mocked in test/setup.ts as <select>/<option>) so the access-column tests
+// below can assert on real option text/value/data-option-detail rendering.
 jest.mock('../../../webview/shared/components', () => {
-  const original = jest.requireActual('../../../webview/shared/components');
+  const original = jest.requireActual<{ CellInput: React.ComponentType<CellInputProps> }>(
+    '../../../webview/shared/components'
+  );
+  const RealCellInput = original.CellInput;
   return {
     ...original,
     VectorBoundingInput: ({
@@ -25,24 +33,20 @@ jest.mock('../../../webview/shared/components', () => {
         onBlur={(e) => onBlur?.(e.target.value)}
       />
     ),
-    CellInput: ({
-      onInput,
-      onBlur,
-      value,
-      editKey,
-    }: {
-      onInput: (v: string) => void;
-      onBlur?: (v: string) => void;
-      value: string;
-      editKey: string;
-    }) => (
-      <input
-        data-testid={`cell-input-${editKey}`}
-        defaultValue={value}
-        onInput={(e) => onInput((e.target as HTMLInputElement).value)}
-        onBlur={(e) => onBlur?.((e.target as HTMLInputElement).value)}
-      />
-    ),
+    CellInput: (props: CellInputProps) => {
+      if (props.variant === 'dropdown') {
+        return <RealCellInput {...props} />;
+      }
+      const { onInput, onBlur, value, editKey } = props;
+      return (
+        <input
+          data-testid={`cell-input-${editKey}`}
+          defaultValue={value}
+          onInput={(e) => onInput((e.target as HTMLInputElement).value)}
+          onBlur={(e) => onBlur?.((e.target as HTMLInputElement).value)}
+        />
+      );
+    },
   };
 });
 
@@ -549,5 +553,236 @@ describe('FieldTableRow bitfields cascading', () => {
     expect(lastErrorCall).toBeDefined();
     const errorState = lastErrorCall ? lastErrorCall({}) : {};
     expect(errorState['row-2']).toMatch(/overlap with B/);
+  });
+});
+
+describe('FieldTableRow access column', () => {
+  const defaultFieldEditor: any = {
+    selectedFieldIndex: 0,
+    hoveredFieldIndex: null,
+    setHoveredFieldIndex: jest.fn(),
+    activeCell: { rowId: 'row-0', key: 'access' },
+    bitsDrafts: {},
+    setBitsDrafts: jest.fn(),
+    bitsErrors: {},
+    setBitsErrors: jest.fn(),
+    dragPreviewRanges: {},
+    resetDrafts: {},
+    setResetDrafts: jest.fn(),
+    resetErrors: {},
+    setResetErrors: jest.fn(),
+    wrappedFields: [
+      { rowId: 'row-0', model: {} },
+      { rowId: 'row-1', model: {} },
+      { rowId: 'row-2', model: {} },
+    ],
+  };
+
+  it('renders one option per ACCESS_OPTIONS entry with the token as text and the full enum value/detail', () => {
+    const fields: FieldDef[] = [
+      {
+        name: 'STATUS',
+        bits: '[0:0]',
+        offset: 0,
+        width: 1,
+        bitRange: [0, 0],
+        access: 'read-write',
+      },
+    ];
+    const onUpdate = jest.fn();
+
+    const { container } = render(
+      <table>
+        <tbody>
+          <FieldTableRow
+            field={fields[0]}
+            rowId="row-0"
+            index={0}
+            fields={fields}
+            registerSize={32}
+            onUpdate={onUpdate}
+            fieldEditor={defaultFieldEditor}
+            onRowClick={jest.fn()}
+            onCellClick={jest.fn(() => jest.fn())}
+            onCellFocus={jest.fn(() => jest.fn())}
+          />
+        </tbody>
+      </table>
+    );
+
+    const select = container.querySelector('select[data-edit-key="access"]') as HTMLSelectElement;
+    expect(select).toBeTruthy();
+
+    const optionEls = Array.from(select.querySelectorAll('option'));
+    expect(optionEls).toHaveLength(ACCESS_OPTIONS.length);
+    for (const opt of ACCESS_OPTIONS) {
+      const optionEl = optionEls.find((o) => o.getAttribute('value') === opt);
+      expect(optionEl).toBeTruthy();
+      expect(optionEl!.textContent).toBe(ACCESS_ABBREVIATIONS[opt]);
+      expect(optionEl!.getAttribute('data-option-detail')).toBe(opt);
+    }
+
+    fireEvent.change(select, { target: { value: 'write-only' } });
+    expect(onUpdate).toHaveBeenCalledWith(['fields', 0, 'access'], 'write-only');
+  });
+
+  it('shows the monitor icon button only for W1C access, with no legacy Monitors dropdown', () => {
+    const w1cField: FieldDef = {
+      name: 'IRQ',
+      bits: '[0:0]',
+      offset: 0,
+      width: 1,
+      bitRange: [0, 0],
+      access: 'write-1-to-clear',
+      monitorChangeOf: 'SRC',
+    };
+    const srcField: FieldDef = {
+      name: 'SRC',
+      bits: '[1:1]',
+      offset: 1,
+      width: 1,
+      bitRange: [1, 1],
+      access: 'read-write',
+    };
+    const fields = [w1cField, srcField];
+
+    const { container, rerender } = render(
+      <table>
+        <tbody>
+          <FieldTableRow
+            field={fields[0]}
+            rowId="row-0"
+            index={0}
+            fields={fields}
+            registerSize={32}
+            onUpdate={jest.fn()}
+            fieldEditor={defaultFieldEditor}
+            onRowClick={jest.fn()}
+            onCellClick={jest.fn(() => jest.fn())}
+            onCellFocus={jest.fn(() => jest.fn())}
+          />
+        </tbody>
+      </table>
+    );
+
+    // W1C row: monitor button present, and only the access <select> exists
+    // (no second Monitors dropdown crammed into the cell).
+    expect(container.querySelector('button.codicon-pulse')).toBeTruthy();
+    expect(container.querySelectorAll('select')).toHaveLength(1);
+
+    rerender(
+      <table>
+        <tbody>
+          <FieldTableRow
+            field={fields[1]}
+            rowId="row-1"
+            index={1}
+            fields={fields}
+            registerSize={32}
+            onUpdate={jest.fn()}
+            fieldEditor={{ ...defaultFieldEditor, activeCell: { rowId: 'row-1', key: 'access' } }}
+            onRowClick={jest.fn()}
+            onCellClick={jest.fn(() => jest.fn())}
+            onCellFocus={jest.fn(() => jest.fn())}
+          />
+        </tbody>
+      </table>
+    );
+
+    // Non-W1C row: no monitor button.
+    expect(container.querySelector('button.codicon-pulse')).toBeFalsy();
+    expect(container.querySelectorAll('select')).toHaveLength(1);
+  });
+
+  it('opens the monitor picker listing sibling names plus "-- none --", and selecting an item updates monitorChangeOf', () => {
+    const fields: FieldDef[] = [
+      {
+        name: 'IRQ',
+        bits: '[0:0]',
+        offset: 0,
+        width: 1,
+        bitRange: [0, 0],
+        access: 'write-1-to-clear',
+        monitorChangeOf: 'SRC',
+      },
+      { name: 'SRC', bits: '[1:1]', offset: 1, width: 1, bitRange: [1, 1], access: 'read-write' },
+      { name: 'OTHER', bits: '[2:2]', offset: 2, width: 1, bitRange: [2, 2], access: 'read-write' },
+    ];
+    const onUpdate = jest.fn();
+
+    const { container } = render(
+      <table>
+        <tbody>
+          <FieldTableRow
+            field={fields[0]}
+            rowId="row-0"
+            index={0}
+            fields={fields}
+            registerSize={32}
+            onUpdate={onUpdate}
+            fieldEditor={defaultFieldEditor}
+            onRowClick={jest.fn()}
+            onCellClick={jest.fn(() => jest.fn())}
+            onCellFocus={jest.fn(() => jest.fn())}
+          />
+        </tbody>
+      </table>
+    );
+
+    const button = container.querySelector('button.codicon-pulse') as HTMLButtonElement;
+    fireEvent.click(button);
+
+    expect(screen.getByText('-- none --')).toBeInTheDocument();
+    expect(screen.getByText('SRC')).toBeInTheDocument();
+    expect(screen.getByText('OTHER')).toBeInTheDocument();
+    // Self is excluded from the sibling list.
+    expect(screen.queryByText('IRQ')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('OTHER'));
+    expect(onUpdate).toHaveBeenCalledWith(['fields', 0, 'monitorChangeOf'], 'OTHER');
+
+    fireEvent.click(button);
+    fireEvent.click(screen.getByText('-- none --'));
+    expect(onUpdate).toHaveBeenCalledWith(['fields', 0, 'monitorChangeOf'], null);
+  });
+
+  it('clearing access away from W1C also emits a monitorChangeOf: null companion update', () => {
+    const fields: FieldDef[] = [
+      {
+        name: 'IRQ',
+        bits: '[0:0]',
+        offset: 0,
+        width: 1,
+        bitRange: [0, 0],
+        access: 'write-1-to-clear',
+        monitorChangeOf: 'SRC',
+      },
+    ];
+    const onUpdate = jest.fn();
+
+    const { container } = render(
+      <table>
+        <tbody>
+          <FieldTableRow
+            field={fields[0]}
+            rowId="row-0"
+            index={0}
+            fields={fields}
+            registerSize={32}
+            onUpdate={onUpdate}
+            fieldEditor={defaultFieldEditor}
+            onRowClick={jest.fn()}
+            onCellClick={jest.fn(() => jest.fn())}
+            onCellFocus={jest.fn(() => jest.fn())}
+          />
+        </tbody>
+      </table>
+    );
+
+    const select = container.querySelector('select[data-edit-key="access"]') as HTMLSelectElement;
+    fireEvent.change(select, { target: { value: 'read-write' } });
+
+    expect(onUpdate).toHaveBeenCalledWith(['fields', 0, 'access'], 'read-write');
+    expect(onUpdate).toHaveBeenCalledWith(['fields', 0, 'monitorChangeOf'], null);
   });
 });
