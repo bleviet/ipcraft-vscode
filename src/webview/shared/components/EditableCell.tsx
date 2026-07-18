@@ -11,6 +11,13 @@ export interface EditableCellProps {
   className?: string;
   /** Inline style overrides. */
   style?: React.CSSProperties;
+  /**
+   * Hover tooltip text for the cell. Defaults to "Double-click to edit".
+   * Pass `null` to omit the `data-tooltip` attribute entirely (e.g. a
+   * dropdown cell that opens on a single click and has its own
+   * self-explanatory affordance, so "Double-click to edit" would be wrong).
+   */
+  tooltip?: string | null;
   children: React.ReactNode;
 }
 
@@ -24,12 +31,13 @@ export function EditableCell({
   onCellClick,
   className = '',
   style,
+  tooltip = 'Double-click to edit',
   children,
 }: EditableCellProps) {
   return (
     <td
       data-col-key={columnKey}
-      data-tooltip="Double-click to edit"
+      {...(tooltip !== null ? { 'data-tooltip': tooltip } : {})}
       className={`relative align-middle ${isActive ? 'vscode-cell-active' : ''} ${className}`}
       style={style}
       onClick={(e) => {

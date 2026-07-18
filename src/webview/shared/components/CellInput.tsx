@@ -26,10 +26,24 @@ export interface CellInputProps {
   className?: string;
   /** Inline style overrides. */
   style?: React.CSSProperties;
-  /** Options for dropdown variant. */
-  options?: readonly string[];
-  /** When false (default) pointer events are blocked so single click only selects the row; double-click or keyboard (e/Enter) triggers editing. */
+  /**
+   * Options for dropdown variant. A plain string is both the value and the
+   * displayed label (existing behavior). An object lets the closed control
+   * show a short `label` while `detail` (e.g. the full enum name) is
+   * revealed only in the open listbox via CSS (see
+   * `vscode-option[data-option-detail]::after` in index.css).
+   */
+  options?: readonly (string | { value: string; label: string; detail?: string })[];
+  /**
+   * When false (default) pointer events are blocked so single click only
+   * selects the row; double-click or keyboard (e/Enter) triggers editing.
+   * The `dropdown` variant ignores this for pointer-event gating: opening a
+   * listbox is non-destructive and cancellable (unlike dropping a caret into
+   * text), so it always allows pointer events and opens on a single click.
+   */
   isEditing?: boolean;
+  /** Dropdown popup position, passed through to `VSCodeDropdown`. */
+  position?: 'above' | 'below';
 }
 
 /**
@@ -48,10 +62,15 @@ export function CellInput({
   style,
   options = [],
   isEditing = false,
+  position,
 }: CellInputProps) {
+  // Dropdown cells always accept pointer events: opening a listbox is
+  // non-destructive and cancellable (Esc/outside-click), unlike dropping a
+  // caret into text, so it opens on a single click rather than requiring
+  // double-click-to-edit first. Text/textarea keep the existing gating.
   const pointerStyle: React.CSSProperties = {
     ...style,
-    pointerEvents: isEditing ? 'auto' : 'none',
+    pointerEvents: variant === 'dropdown' || isEditing ? 'auto' : 'none',
   };
   const isTextArea = variant === 'textarea';
   // Text and textarea inputs have a caret; the dropdown does not.
@@ -120,19 +139,46 @@ export function CellInput({
   if (variant === 'dropdown') {
     return (
       <VSCodeDropdown
+        ref={(el) => {
+          // The `position` prop alone cannot force the popup direction: the
+          // underlying fast-foundation Select latches
+          // `forcedPosition = !!this.positionAttribute` once in
+          // connectedCallback, but the React wrapper assigns `position` as a
+          // property only after the element is connected, so forcing never
+          // engages and the listbox keeps auto-flipping (upward when the row
+          // sits in the lower half of the viewport, where the scroll
+          // container clips it). Set both fields directly on the element to
+          // make the forced position real.
+          if (position && el) {
+            const dropdown = el as unknown as {
+              positionAttribute?: 'above' | 'below';
+              forcedPosition?: boolean;
+            };
+            dropdown.positionAttribute = position;
+            dropdown.forcedPosition = true;
+          }
+        }}
         data-edit-key={editKey}
         className={`vscode-field-bare ${className}`}
         style={pointerStyle}
         value={value}
+        position={position}
         onFocus={onFocus}
         onChange={handleInput}
         onBlur={handleBlur}
       >
-        {options.map((opt) => (
-          <VSCodeOption key={opt} value={opt}>
-            {opt}
-          </VSCodeOption>
-        ))}
+        {options.map((opt) => {
+          const normalized = typeof opt === 'string' ? { value: opt, label: opt } : opt;
+          return (
+            <VSCodeOption
+              key={normalized.value}
+              value={normalized.value}
+              data-option-detail={normalized.detail}
+            >
+              {normalized.label}
+            </VSCodeOption>
+          );
+        })}
       </VSCodeDropdown>
     );
   }
