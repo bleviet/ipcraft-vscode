@@ -34,7 +34,13 @@ export interface CellInputProps {
    * `vscode-option[data-option-detail]::after` in index.css).
    */
   options?: readonly (string | { value: string; label: string; detail?: string })[];
-  /** When false (default) pointer events are blocked so single click only selects the row; double-click or keyboard (e/Enter) triggers editing. */
+  /**
+   * When false (default) pointer events are blocked so single click only
+   * selects the row; double-click or keyboard (e/Enter) triggers editing.
+   * The `dropdown` variant ignores this for pointer-event gating: opening a
+   * listbox is non-destructive and cancellable (unlike dropping a caret into
+   * text), so it always allows pointer events and opens on a single click.
+   */
   isEditing?: boolean;
   /** Dropdown popup position, passed through to `VSCodeDropdown`. */
   position?: 'above' | 'below';
@@ -58,9 +64,13 @@ export function CellInput({
   isEditing = false,
   position,
 }: CellInputProps) {
+  // Dropdown cells always accept pointer events: opening a listbox is
+  // non-destructive and cancellable (Esc/outside-click), unlike dropping a
+  // caret into text, so it opens on a single click rather than requiring
+  // double-click-to-edit first. Text/textarea keep the existing gating.
   const pointerStyle: React.CSSProperties = {
     ...style,
-    pointerEvents: isEditing ? 'auto' : 'none',
+    pointerEvents: variant === 'dropdown' || isEditing ? 'auto' : 'none',
   };
   const isTextArea = variant === 'textarea';
   // Text and textarea inputs have a caret; the dropdown does not.

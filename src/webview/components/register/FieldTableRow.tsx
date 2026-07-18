@@ -563,6 +563,7 @@ const FieldTableRow = ({
           onCellClick={onCellClick(index, 'access')}
           className="px-4 py-2"
           style={{ overflow: 'visible', position: 'relative' }}
+          tooltip={null}
         >
           <div className="flex items-center gap-1.5 h-10">
             <CellInput

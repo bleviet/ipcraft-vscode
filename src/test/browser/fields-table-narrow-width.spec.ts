@@ -178,6 +178,27 @@ addressBlocks:
     expect(scrollWidth).toBeLessThanOrEqual(clientWidth);
   });
 
+  test('a single click on a non-selected row opens the access listbox (3-clicks-to-1 regression)', async ({
+    page,
+  }) => {
+    // Previously: double-click the cell to enter edit mode (pointer-events
+    // gating), then a separate click to open the listbox -- 3 clicks total.
+    // Opening a listbox is non-destructive/cancellable (Esc, outside-click),
+    // unlike dropping a caret into text, so the dropdown variant now always
+    // accepts pointer events and a single click opens it directly. Use
+    // RESERVED_1 (third field, index 2) -- not the row selected by default
+    // -- to make sure this holds for a row the user has not touched yet.
+    const dropdown = page
+      .locator('td[data-col-key="access"] vscode-dropdown[data-edit-key="access"]')
+      .nth(2);
+
+    await expect(dropdown).toHaveAttribute('aria-expanded', 'false');
+
+    await dropdown.click();
+
+    await expect(dropdown).toHaveAttribute('aria-expanded', 'true');
+  });
+
   test('opening the access dropdown yields a listbox fully inside the viewport and below the sticky header', async ({
     page,
   }) => {

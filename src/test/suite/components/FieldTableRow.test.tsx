@@ -785,4 +785,87 @@ describe('FieldTableRow access column', () => {
     expect(onUpdate).toHaveBeenCalledWith(['fields', 0, 'access'], 'read-write');
     expect(onUpdate).toHaveBeenCalledWith(['fields', 0, 'monitorChangeOf'], null);
   });
+
+  it('has no "Double-click to edit" tooltip on the access cell (opens on a single click instead)', () => {
+    const fields: FieldDef[] = [
+      {
+        name: 'STATUS',
+        bits: '[0:0]',
+        offset: 0,
+        width: 1,
+        bitRange: [0, 0],
+        access: 'read-write',
+      },
+    ];
+
+    const { container } = render(
+      <table>
+        <tbody>
+          <FieldTableRow
+            field={fields[0]}
+            rowId="row-0"
+            index={0}
+            fields={fields}
+            registerSize={32}
+            onUpdate={jest.fn()}
+            fieldEditor={defaultFieldEditor}
+            onRowClick={jest.fn()}
+            onCellClick={jest.fn(() => jest.fn())}
+            onCellFocus={jest.fn(() => jest.fn())}
+          />
+        </tbody>
+      </table>
+    );
+
+    const accessTd = container.querySelector('td[data-col-key="access"]') as HTMLTableCellElement;
+    expect(accessTd.hasAttribute('data-tooltip')).toBe(false);
+
+    // Other cells are unaffected and keep the default tooltip.
+    const nameTd = container.querySelector('td[data-col-key="name"]') as HTMLTableCellElement;
+    expect(nameTd.getAttribute('data-tooltip')).toBe('Double-click to edit');
+  });
+
+  it('a click on the access dropdown still bubbles to the td and fires the cell-click selection callback', () => {
+    const fields: FieldDef[] = [
+      {
+        name: 'STATUS',
+        bits: '[0:0]',
+        offset: 0,
+        width: 1,
+        bitRange: [0, 0],
+        access: 'read-write',
+      },
+    ];
+    const accessClickHandler = jest.fn();
+    const onCellClick = jest.fn((_index: number, key: string) =>
+      key === 'access' ? accessClickHandler : jest.fn()
+    );
+
+    const { container } = render(
+      <table>
+        <tbody>
+          <FieldTableRow
+            field={fields[0]}
+            rowId="row-0"
+            index={0}
+            fields={fields}
+            registerSize={32}
+            onUpdate={jest.fn()}
+            fieldEditor={defaultFieldEditor}
+            onRowClick={jest.fn()}
+            onCellClick={onCellClick}
+            onCellFocus={jest.fn(() => jest.fn())}
+          />
+        </tbody>
+      </table>
+    );
+
+    const select = container.querySelector('select[data-edit-key="access"]') as HTMLSelectElement;
+    // Sanity-check the pointer-events fix this cell click depends on.
+    expect(select.style.pointerEvents).toBe('auto');
+
+    fireEvent.click(select);
+
+    expect(accessClickHandler).toHaveBeenCalledTimes(1);
+  });
 });
