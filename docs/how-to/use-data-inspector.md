@@ -83,7 +83,8 @@ known bits show `-- (unknown bits)` when the selected range contains `X` or `Z`.
 - Use **overview** zoom for compact hexadecimal lanes.
 - Use **by field** zoom for bits with field overlays.
 - Use **by bit** zoom when individual bit numbers matter.
-- Enter a bit in **Go to bit** to jump through a wide value.
+- Enter an index under **Jump to bit** and select **Jump** to move to and highlight
+  that exact bit in a wide value.
 - Focus a lane and use `ArrowUp`, `ArrowDown`, `Home`, or `End` for keyboard
   navigation.
 

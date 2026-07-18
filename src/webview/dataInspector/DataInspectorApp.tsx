@@ -113,6 +113,9 @@ export function LaneRibbon({
   const [viewportHeight, setViewportHeight] = useState(420);
   const [focusedLane, setFocusedLane] = useState(0);
   const [goToBit, setGoToBit] = useState('');
+  const [targetBit, setTargetBit] = useState<number | null>(null);
+  const [jumpMessage, setJumpMessage] = useState('');
+  const [jumpError, setJumpError] = useState(false);
   const laneCount = Math.ceil(vector.width / laneWidth);
   const overscan = 2;
   const start = Math.max(0, Math.floor(scrollTop / LANE_HEIGHT) - overscan);
@@ -158,7 +161,14 @@ export function LaneRibbon({
     }
     lanes.push(
       <div
-        className="di-lane"
+        aria-current={
+          targetBit !== null && targetBit <= range.laneMsb && targetBit >= range.laneLsb
+        }
+        className={`di-lane ${
+          targetBit !== null && targetBit <= range.laneMsb && targetBit >= range.laneLsb
+            ? 'is-target'
+            : ''
+        }`}
         data-lane={laneIndex}
         key={laneIndex}
         role="row"
@@ -206,7 +216,9 @@ export function LaneRibbon({
                     const separator = bit % 8 === 7 ? 'is-byte' : bit % 4 === 3 ? 'is-nibble' : '';
                     return (
                       <span
-                        className={`${maskedBits?.has(bit) ? 'is-masked' : ''} ${separator}`}
+                        className={`${maskedBits?.has(bit) ? 'is-masked' : ''} ${
+                          targetBit === bit ? 'is-target' : ''
+                        } ${separator}`}
                         data-bit={bit}
                         key={bit}
                       >
@@ -295,23 +307,49 @@ export function LaneRibbon({
           )}
           <form
             className="di-go-to"
+            noValidate
             onSubmit={(event) => {
               event.preventDefault();
               const bit = Number(goToBit);
               if (Number.isInteger(bit) && bit >= 0 && bit < vector.width) {
-                focusLane(Math.floor((vector.width - 1 - bit) / laneWidth));
+                const laneIndex = Math.floor((vector.width - 1 - bit) / laneWidth);
+                const range = getLaneRange(vector.width, laneWidth, laneIndex);
+                setTargetBit(bit);
+                setJumpMessage(`Bit ${bit} · lane [${range.laneMsb}:${range.laneLsb}]`);
+                setJumpError(false);
+                focusLane(laneIndex);
+              } else {
+                setTargetBit(null);
+                setJumpMessage(`Enter a bit from 0 to ${vector.width - 1}`);
+                setJumpError(true);
               }
             }}
           >
-            <label htmlFor="go-to-bit">Go to</label>
-            <input
-              id="go-to-bit"
-              type="number"
-              min={0}
-              max={vector.width - 1}
-              value={goToBit}
-              onChange={(event) => setGoToBit(event.target.value)}
-            />
+            <label htmlFor="go-to-bit">Jump to bit</label>
+            <div className="di-jump-control">
+              <input
+                aria-describedby="go-to-bit-status"
+                id="go-to-bit"
+                type="number"
+                min={0}
+                max={vector.width - 1}
+                placeholder={`0–${vector.width - 1}`}
+                value={goToBit}
+                onChange={(event) => {
+                  setGoToBit(event.target.value);
+                  setJumpMessage('');
+                  setJumpError(false);
+                }}
+              />
+              <button type="submit">Jump</button>
+            </div>
+            <span
+              className={`di-jump-status ${jumpError ? 'is-error' : ''}`}
+              id="go-to-bit-status"
+              aria-live="polite"
+            >
+              {jumpMessage}
+            </span>
           </form>
         </div>
       </header>

@@ -37,7 +37,23 @@ test.describe('Data Inspector responsive and accessible workspace', () => {
     await lanes.first().focus();
     await page.keyboard.press('ArrowDown');
     await expect(lanes.nth(1)).toBeFocused();
-    await expect(page.locator('[aria-live="polite"]')).toContainText('Lane 2');
+    await expect(page.locator('.sr-only[aria-live="polite"]')).toContainText('Lane 2');
+  });
+
+  test('jumps to and highlights an exact bit index with range feedback', async ({ page }) => {
+    await page.goto(harnessPath);
+    await decode(page, "128'h00112233445566778899AABBCCDDEEFF");
+
+    await page.getByLabel('Jump to bit').fill('6');
+    await page.getByRole('button', { name: 'Jump' }).click();
+    await expect(page.locator('.di-lane.is-target')).toHaveAttribute('aria-current', 'true');
+    await expect(page.locator('[data-bit="6"]')).toHaveClass(/is-target/);
+    await expect(page.locator('#go-to-bit-status')).toHaveText('Bit 6 · lane [31:0]');
+
+    await page.getByLabel('Jump to bit').fill('128');
+    await page.getByRole('button', { name: 'Jump' }).click();
+    await expect(page.locator('#go-to-bit-status')).toHaveText('Enter a bit from 0 to 127');
+    await expect(page.locator('.di-lane.is-target')).toHaveCount(0);
   });
 
   test('aligns field overlays with their bit cells in a partial lane', async ({ page }) => {
@@ -83,6 +99,31 @@ test.describe('Data Inspector responsive and accessible workspace', () => {
     expect(
       Math.abs(segmentBox!.x + segmentBox!.width - (lsbBox!.x + lsbBox!.width))
     ).toBeLessThanOrEqual(1);
+  });
+
+  test('expands a 16-bit lane so an eight-bit field matches eight cells', async ({ page }) => {
+    await page.setViewportSize({ width: 1800, height: 900 });
+    await page.goto(harnessPath);
+    await decode(page, "32'h00000000");
+    await page.getByLabel('Lane width').selectOption('16');
+    await page.getByLabel('Zoom').selectOption('bit');
+    await page.getByRole('button', { name: 'Add field' }).click();
+    await page.getByLabel('MSB').fill('7');
+    await page.getByLabel('LSB').fill('0');
+
+    const [segmentBox, msbBox, lsbBox] = await Promise.all([
+      page.getByTitle('FIELD_1 [7:0]').boundingBox(),
+      page.locator('.di-bits.is-bit [data-bit="7"]').boundingBox(),
+      page.locator('.di-bits.is-bit [data-bit="0"]').boundingBox(),
+    ]);
+    expect(segmentBox).not.toBeNull();
+    expect(msbBox).not.toBeNull();
+    expect(lsbBox).not.toBeNull();
+    expect(Math.abs(segmentBox!.x - msbBox!.x)).toBeLessThanOrEqual(1);
+    expect(
+      Math.abs(segmentBox!.x + segmentBox!.width - (lsbBox!.x + lsbBox!.width))
+    ).toBeLessThanOrEqual(1);
+    expect(segmentBox!.width / msbBox!.width).toBeCloseTo(8, 1);
   });
 
   test('keeps a bounded live DOM for 4096 bits', async ({ page }) => {
