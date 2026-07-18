@@ -12,10 +12,9 @@ import { useDebugMode } from '../../hooks/useDebugMode';
 import { useValueEditing } from '../bitfield/useValueEditing';
 import ValueBar from '../bitfield/ValueBar';
 import {
-  buildBitValues,
-  applyRegisterValueToFields,
-  parseRegisterValue,
-  maxForBits,
+  applyRegisterBitVectorToFields,
+  buildRegisterBitVector,
+  parseRegisterBitVector,
 } from '../bitfield/utils';
 import type { RegisterDef } from '../../types/memoryMap';
 import { generateUniqueName } from '../../utils/naming';
@@ -189,24 +188,14 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
       [debugAwareUpdate]
     );
 
-    const bitValues = useMemo(
-      () => buildBitValues(normalisedFields, registerSize),
+    const registerValue = useMemo(
+      () => buildRegisterBitVector(normalisedFields, registerSize),
       [normalisedFields, registerSize]
     );
 
-    const registerValue = useMemo(() => {
-      let v = 0;
-      for (let bit = 0; bit < registerSize; bit++) {
-        if (bitValues[bit] === 1) {
-          v += Math.pow(2, bit);
-        }
-      }
-      return v;
-    }, [bitValues, registerSize]);
-
     const applyRegisterValue = useCallback(
-      (v: number) => {
-        applyRegisterValueToFields(normalisedFields, v, handleUpdateFieldReset);
+      (value: import('../../../dataInspector/BitVector').BitVector) => {
+        applyRegisterBitVectorToFields(normalisedFields, value, handleUpdateFieldReset);
       },
       [normalisedFields, handleUpdateFieldReset]
     );
@@ -224,8 +213,7 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
     } = useValueEditing({
       registerSize,
       registerValue,
-      parseRegisterValue,
-      maxForBits,
+      parseRegisterValue: (text, view) => parseRegisterBitVector(text, view, registerSize),
       applyRegisterValue,
     });
 
@@ -238,7 +226,7 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
         setValueEditing={setValueEditing}
         setValueError={setValueError}
         setValueView={setValueView}
-        parseRegisterValue={parseRegisterValue}
+        parseRegisterValue={(text, view) => parseRegisterBitVector(text, view, registerSize)}
         validateRegisterValue={validateRegisterValue}
         commitRegisterValueDraft={commitRegisterValueDraft}
       />

@@ -1,5 +1,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { useValueEditing } from '../../../webview/components/bitfield/useValueEditing';
+import { BitVector } from '../../../dataInspector/BitVector';
+import { parseRegisterBitVector } from '../../../webview/components/bitfield/utils';
 
 /**
  * Unlike useEditableDraft, this hook only writes registerValue on commit
@@ -11,17 +13,14 @@ import { useValueEditing } from '../../../webview/components/bitfield/useValueEd
 describe('useValueEditing', () => {
   const baseOptions = {
     registerSize: 32,
-    parseRegisterValue: (text: string, view: 'hex' | 'dec') => {
-      const n = view === 'hex' ? parseInt(text, 16) : parseInt(text, 10);
-      return Number.isNaN(n) ? null : n;
-    },
-    maxForBits: (bitCount: number) => 2 ** bitCount - 1,
+    parseRegisterValue: (text: string, view: 'hex' | 'dec') =>
+      parseRegisterBitVector(text, view, 32),
     applyRegisterValue: () => undefined,
   };
 
   it('adopts an external registerValue change while editing (the undo case)', () => {
     const { result, rerender } = renderHook((props) => useValueEditing(props), {
-      initialProps: { ...baseOptions, registerValue: 0x10 },
+      initialProps: { ...baseOptions, registerValue: BitVector.fromBigInt(BigInt(0x10), 32) },
     });
 
     expect(result.current.valueDraft).toBe('00000010');
@@ -32,14 +31,14 @@ describe('useValueEditing', () => {
 
     // Undo elsewhere reverts the field this Value bar aggregates, while the
     // Value bar is still focused.
-    act(() => rerender({ ...baseOptions, registerValue: 0x5 }));
+    act(() => rerender({ ...baseOptions, registerValue: BitVector.fromBigInt(BigInt(0x5), 32) }));
 
     expect(result.current.valueDraft).toBe('00000005');
   });
 
   it('does not disrupt an in-progress edit when only the hex/dec view toggles', () => {
     const { result } = renderHook((props) => useValueEditing(props), {
-      initialProps: { ...baseOptions, registerValue: 0x10 },
+      initialProps: { ...baseOptions, registerValue: BitVector.fromBigInt(BigInt(0x10), 32) },
     });
 
     act(() => result.current.setValueEditing(true));
@@ -52,7 +51,7 @@ describe('useValueEditing', () => {
 
   it('resyncs the draft to the canonical text on commit (editing -> false)', () => {
     const { result, rerender } = renderHook((props) => useValueEditing(props), {
-      initialProps: { ...baseOptions, registerValue: 0x10 },
+      initialProps: { ...baseOptions, registerValue: BitVector.fromBigInt(BigInt(0x10), 32) },
     });
 
     act(() => result.current.setValueEditing(true));
@@ -60,25 +59,44 @@ describe('useValueEditing', () => {
 
     // Commit: registerValue updates and editing flips false in the same batch.
     act(() => result.current.setValueEditing(false));
-    rerender({ ...baseOptions, registerValue: 0x20 });
+    rerender({ ...baseOptions, registerValue: BitVector.fromBigInt(BigInt(0x20), 32) });
 
     expect(result.current.valueDraft).toBe('00000020');
   });
 
   it('adopts registerValue changes when not editing', () => {
     const { result, rerender } = renderHook((props) => useValueEditing(props), {
-      initialProps: { ...baseOptions, registerValue: 0x1 },
+      initialProps: { ...baseOptions, registerValue: BitVector.fromBigInt(BigInt(0x1), 32) },
     });
 
-    rerender({ ...baseOptions, registerValue: 0x2 });
+    rerender({ ...baseOptions, registerValue: BitVector.fromBigInt(BigInt(0x2), 32) });
     expect(result.current.valueDraft).toBe('00000002');
   });
 
   it('pads the hex draft to the register width (e.g. 32 bits -> 8 digits)', () => {
     const { result } = renderHook((props) => useValueEditing(props), {
-      initialProps: { ...baseOptions, registerSize: 8, registerValue: 0xa },
+      initialProps: {
+        ...baseOptions,
+        registerSize: 8,
+        registerValue: BitVector.fromBigInt(BigInt(0xa), 8),
+      },
     });
 
     expect(result.current.valueDraft).toBe('0A');
+  });
+
+  it('keeps transient values above the JavaScript safe integer boundary exact', () => {
+    const value = BitVector.fromBigInt(BigInt('0xFEDCBA9876543210'), 64);
+    const { result } = renderHook((props) => useValueEditing(props), {
+      initialProps: {
+        ...baseOptions,
+        registerSize: 64,
+        registerValue: value,
+        parseRegisterValue: (text: string, view: 'hex' | 'dec') =>
+          parseRegisterBitVector(text, view, 64),
+      },
+    });
+
+    expect(result.current.valueDraft).toBe('FEDCBA9876543210');
   });
 });

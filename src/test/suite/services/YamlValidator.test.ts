@@ -165,6 +165,13 @@ describe('YamlValidator', () => {
   });
 
   describe('validateAgainstSchema', () => {
+    it('reuses a schema validator across repeated validation', () => {
+      const data = { vlnv: { vendor: 'test', library: 'lib', name: 'core', version: '1.0' } };
+
+      expect(validator.validateAgainstSchema(data, IP_CORE_SCHEMA_PATH)).toEqual({ valid: true });
+      expect(validator.validateAgainstSchema(data, IP_CORE_SCHEMA_PATH)).toEqual({ valid: true });
+    });
+
     it('returns valid: true for a minimal conforming IP core', () => {
       const data = { vlnv: { vendor: 'test', library: 'lib', name: 'core', version: '1.0' } };
       const result = validator.validateAgainstSchema(data, IP_CORE_SCHEMA_PATH);

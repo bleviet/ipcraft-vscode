@@ -15,11 +15,18 @@ const MEMORY_MAP_SCHEMA_PATH = path.join(
   'schemas',
   'memory_map.schema.json'
 );
+const DATA_INSPECTOR_SCHEMA_PATH = path.join(
+  REPO_ROOT,
+  'ipcraft-spec',
+  'schemas',
+  'data_inspector.schema.json'
+);
 
 describe('Spec Conformance Tests', () => {
   let ajv: Ajv;
   let validateIpCore: ReturnType<Ajv['compile']>;
   let validateMemoryMap: ReturnType<Ajv['compile']>;
+  let validateDataInspector: ReturnType<Ajv['compile']>;
 
   beforeAll(() => {
     ajv = new Ajv({ strict: false, allowUnionTypes: true });
@@ -35,6 +42,9 @@ describe('Spec Conformance Tests', () => {
       $defs: rawMemoryMapSchema.items?.$defs,
     };
     validateMemoryMap = ajv.compile(memoryMapSchema);
+
+    const dataInspectorSchema = JSON.parse(fs.readFileSync(DATA_INSPECTOR_SCHEMA_PATH, 'utf8'));
+    validateDataInspector = ajv.compile(dataInspectorSchema);
   });
 
   function getYamlFiles(dir: string): string[] {
@@ -93,8 +103,19 @@ describe('Spec Conformance Tests', () => {
         filePath.endsWith('.ip.yml') ||
         relativePath.includes('-ipcore') ||
         (typeof doc === 'object' && !Array.isArray(doc) && 'vlnv' in doc);
+      const isDataInspector = filePath.endsWith('.ipci.yml');
 
-      if (isIpCore) {
+      if (isDataInspector) {
+        const valid = validateDataInspector(doc);
+        if (!valid) {
+          const errors = validateDataInspector.errors
+            ? JSON.stringify(validateDataInspector.errors, null, 2)
+            : 'Unknown validation error';
+          expect(`Data Inspector schema validation errors for ${relativePath}:\n${errors}`).toBe(
+            ''
+          );
+        }
+      } else if (isIpCore) {
         const valid = validateIpCore(doc);
         if (!valid) {
           const errors = validateIpCore.errors

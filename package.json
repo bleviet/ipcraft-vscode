@@ -55,6 +55,24 @@
         "category": "IPCraft"
       },
       {
+        "command": "fpga-ip-core.openDataInspector",
+        "title": "Open Data Inspector",
+        "category": "IPCraft",
+        "icon": "$(symbol-numeric)"
+      },
+      {
+        "command": "fpga-ip-core.createDataInspectorRecipe",
+        "title": "New Data Inspector",
+        "category": "IPCraft",
+        "icon": "$(new-file)"
+      },
+      {
+        "command": "fpga-ip-core.openRegisterInDataInspector",
+        "title": "Open Register in Data Inspector",
+        "category": "IPCraft",
+        "icon": "$(search)"
+      },
+      {
         "command": "fpga-ip-core.createIpCoreWithMemoryMap",
         "title": "New IP Core + Register Map",
         "category": "IPCraft"
@@ -577,7 +595,7 @@
         },
         {
           "command": "fpga-ip-core.openAsText",
-          "when": "activeCustomEditorId == 'fpgaIpCore.editor' || activeCustomEditorId == 'fpgaMemoryMap.editor' || activeCustomEditorId == 'fpgaIpCore.sourcePreview'",
+          "when": "activeCustomEditorId == 'fpgaIpCore.editor' || activeCustomEditorId == 'fpgaMemoryMap.editor' || activeCustomEditorId == 'ipcraft.dataInspectorRecipe' || activeCustomEditorId == 'fpgaIpCore.sourcePreview'",
           "group": "navigation"
         },
         {
@@ -607,7 +625,7 @@
         },
         {
           "command": "fpga-ip-core.openAsVisual",
-          "when": "resourceFilename =~ /\\.ip\\.yml$/ && !activeCustomEditorId || resourceFilename =~ /\\.mm\\.yml$/ && !activeCustomEditorId",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/ && !activeCustomEditorId || resourceFilename =~ /\\.mm\\.yml$/ && !activeCustomEditorId || resourceFilename =~ /\\.ipci\\.yml$/ && !activeCustomEditorId",
           "group": "navigation"
         }
       ],
@@ -738,11 +756,11 @@
         },
         {
           "command": "fpga-ip-core.openAsText",
-          "when": "activeCustomEditorId == 'fpgaIpCore.editor' || activeCustomEditorId == 'fpgaMemoryMap.editor' || activeCustomEditorId == 'fpgaIpCore.sourcePreview'"
+          "when": "activeCustomEditorId == 'fpgaIpCore.editor' || activeCustomEditorId == 'fpgaMemoryMap.editor' || activeCustomEditorId == 'ipcraft.dataInspectorRecipe' || activeCustomEditorId == 'fpgaIpCore.sourcePreview'"
         },
         {
           "command": "fpga-ip-core.openAsVisual",
-          "when": "(resourceFilename =~ /\\.ip\\.yml$/ || resourceFilename =~ /\\.mm\\.yml$/) && !activeCustomEditorId"
+          "when": "(resourceFilename =~ /\\.ip\\.yml$/ || resourceFilename =~ /\\.mm\\.yml$/ || resourceFilename =~ /\\.ipci\\.yml$/) && !activeCustomEditorId"
         }
       ]
     },
@@ -1080,6 +1098,16 @@
         "priority": "default"
       },
       {
+        "viewType": "ipcraft.dataInspectorRecipe",
+        "displayName": "Data Inspector Recipe Editor",
+        "selector": [
+          {
+            "filenamePattern": "*.ipci.yml"
+          }
+        ],
+        "priority": "default"
+      },
+      {
         "viewType": "fpgaIpCore.sourcePreview",
         "displayName": "IPCraft Source Preview",
         "selector": [
@@ -1116,13 +1144,13 @@
         "command": "fpga-ip-core.openAsVisual",
         "key": "ctrl+shift+v",
         "mac": "cmd+shift+v",
-        "when": "!terminalFocus && (resourceFilename =~ /\\.ip\\.yml$/ && !activeCustomEditorId || resourceFilename =~ /\\.mm\\.yml$/ && !activeCustomEditorId)"
+        "when": "!terminalFocus && (resourceFilename =~ /\\.ip\\.yml$/ && !activeCustomEditorId || resourceFilename =~ /\\.mm\\.yml$/ && !activeCustomEditorId || resourceFilename =~ /\\.ipci\\.yml$/ && !activeCustomEditorId)"
       },
       {
         "command": "fpga-ip-core.openAsText",
         "key": "ctrl+shift+v",
         "mac": "cmd+shift+v",
-        "when": "!terminalFocus && (activeCustomEditorId == 'fpgaIpCore.editor' || activeCustomEditorId == 'fpgaMemoryMap.editor' || activeCustomEditorId == 'fpgaIpCore.sourcePreview')"
+        "when": "!terminalFocus && (activeCustomEditorId == 'fpgaIpCore.editor' || activeCustomEditorId == 'fpgaMemoryMap.editor' || activeCustomEditorId == 'ipcraft.dataInspectorRecipe' || activeCustomEditorId == 'fpgaIpCore.sourcePreview')"
       }
     ],
     "walkthroughs": [

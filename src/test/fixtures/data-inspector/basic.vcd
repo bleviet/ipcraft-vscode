@@ -1,0 +1,25 @@
+$date
+  2026-07-18
+$end
+$version IPCraft test fixture $end
+$timescale 1 ns $end
+$scope module top $end
+$var wire 2 ! state [1:0] $end
+$var wire 8 " count [7:0] $end
+$var wire 1 # error $end
+$upscope $end
+$enddefinitions $end
+#0
+b00 !
+b00000000 "
+0#
+#10
+b01 !
+b00000001 "
+#20
+b10 !
+b10000001 "
+1#
+#30
+b1x !
+b10000001 "

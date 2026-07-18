@@ -11,6 +11,7 @@ const mockOutputChannel = {
 
 export const window = {
   createOutputChannel: jest.fn(() => mockOutputChannel),
+  showSaveDialog: jest.fn(),
   showErrorMessage: jest.fn(),
   showWarningMessage: jest.fn(),
   showInformationMessage: jest.fn(),

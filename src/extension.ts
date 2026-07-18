@@ -10,6 +10,7 @@ import {
   createIpCoreCommand,
   createMemoryMapCommand,
   createIpCoreWithMemoryMapCommand,
+  createDataInspectorRecipeCommand,
 } from './commands/FileCreationCommands';
 import { registerGeneratorCommands } from './commands/GenerateCommands';
 import { registerHdlCrossCheckCommands } from './commands/HdlCrossCheckCommands';
@@ -45,10 +46,17 @@ import {
   TemplatePreviewProvider,
   TEMPLATE_PREVIEW_SCHEME,
 } from './providers/TemplatePreviewProvider';
-import { EDITOR_VIEW_TYPE_MEMORY_MAP, EDITOR_VIEW_TYPE_IP_CORE } from './utils/editorViewTypes';
+import {
+  EDITOR_VIEW_TYPE_MEMORY_MAP,
+  EDITOR_VIEW_TYPE_IP_CORE,
+  EDITOR_VIEW_TYPE_DATA_INSPECTOR,
+} from './utils/editorViewTypes';
 import { ScaffoldPackPanel } from './providers/ScaffoldPackPanel';
 import { registerScaffoldPackCommands } from './commands/ScaffoldPackCommands';
 import { handleErrorWithUserNotification } from './utils/ErrorHandler';
+import { DataInspectorPanel } from './providers/DataInspectorPanel';
+import { DataInspectorRecipeEditorProvider } from './providers/DataInspectorRecipeEditorProvider';
+import { selectRegisterLayout } from './commands/DataInspectorCommands';
 
 const SHARED_EDITOR_OPTIONS = {
   webviewOptions: {
@@ -108,6 +116,14 @@ export function activate(context: vscode.ExtensionContext): void {
   registerCustomProvider(
     context,
     logger,
+    EDITOR_VIEW_TYPE_DATA_INSPECTOR,
+    new DataInspectorRecipeEditorProvider(context),
+    'Data Inspector Recipe'
+  );
+
+  registerCustomProvider(
+    context,
+    logger,
     EDITOR_VIEW_TYPE_IP_CORE,
     new IpCoreEditorProvider(context, resourceRoots),
     'IP Core'
@@ -124,6 +140,20 @@ export function activate(context: vscode.ExtensionContext): void {
   // Register File Creation Commands
   safeRegisterCommand(context, 'fpga-ip-core.createIpCore', createIpCoreCommand);
   safeRegisterCommand(context, 'fpga-ip-core.createMemoryMap', createMemoryMapCommand);
+  safeRegisterCommand(context, 'fpga-ip-core.openDataInspector', () =>
+    DataInspectorPanel.show(context)
+  );
+  safeRegisterCommand(
+    context,
+    'fpga-ip-core.createDataInspectorRecipe',
+    createDataInspectorRecipeCommand
+  );
+  safeRegisterCommand(context, 'fpga-ip-core.openRegisterInDataInspector', async () => {
+    const layout = await selectRegisterLayout();
+    if (layout) {
+      DataInspectorPanel.show(context).applyRegisterLayout(layout);
+    }
+  });
   safeRegisterCommand(
     context,
     'fpga-ip-core.createIpCoreWithMemoryMap',

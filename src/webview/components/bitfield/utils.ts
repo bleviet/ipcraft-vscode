@@ -1,24 +1,11 @@
 import { getFieldColor } from '../../shared/colors';
 import type { FieldModel } from '../BitFieldVisualizer';
 import type { ProSegment } from './types';
+import { BitVector } from '../../../dataInspector/BitVector';
+import { normalizeFieldRange } from '../../../dataInspector/fieldGeometry';
 
 export function getFieldRange(field: FieldModel): { lo: number; hi: number } | null {
-  if (field?.bitRange && Array.isArray(field.bitRange) && field.bitRange.length === 2) {
-    const hi = Number(field.bitRange[0]);
-    const lo = Number(field.bitRange[1]);
-    if (!Number.isFinite(hi) || !Number.isFinite(lo)) {
-      return null;
-    }
-    return { lo: Math.min(lo, hi), hi: Math.max(lo, hi) };
-  }
-  if (field?.bit !== undefined) {
-    const b = Number(field.bit);
-    if (!Number.isFinite(b)) {
-      return null;
-    }
-    return { lo: b, hi: b };
-  }
-  return null;
+  return normalizeFieldRange(field);
 }
 
 export function bitAt(value: number, bitIndex: number): 0 | 1 {
@@ -55,6 +42,28 @@ export function parseRegisterValue(text: string, view: 'hex' | 'dec' = 'hex'): n
   // "0x"/"0X" prefix is tolerated rather than rejected.
   const cleaned = s.replace(/^0[xX]/, '');
   return /^[0-9a-fA-F]+$/.test(cleaned) ? parseInt(cleaned, 16) : null;
+}
+
+/** Debug-mode value parser backed by the shared exact-width vector engine. */
+export function parseRegisterBitVector(
+  text: string,
+  view: 'hex' | 'dec',
+  width: number
+): BitVector | null {
+  const source = text.trim();
+  if (!source) {
+    return null;
+  }
+  const cleaned = view === 'hex' ? source.replace(/^0[xX]/, '') : source;
+  if (view === 'hex' ? !/^[0-9a-fA-F]+$/.test(cleaned) : !/^\d+$/.test(cleaned)) {
+    return null;
+  }
+  const value = BigInt(view === 'hex' ? `0x${cleaned}` : cleaned);
+  try {
+    return BitVector.fromBigInt(value, width);
+  } catch {
+    return null;
+  }
 }
 
 export function maxForBits(bitCount: number): number {
@@ -268,7 +277,12 @@ export function buildBitIndexArray(fields: FieldModel[], registerSize: number): 
 }
 
 export function buildBitValues(fields: FieldModel[], registerSize: number): (0 | 1)[] {
-  const values: (0 | 1)[] = Array.from({ length: registerSize }, () => 0);
+  return buildRegisterBitVector(fields, registerSize).bitsMsbFirst().reverse() as (0 | 1)[];
+}
+
+/** Builds the transient register value without passing through JavaScript number arithmetic. */
+export function buildRegisterBitVector(fields: FieldModel[], registerSize: number): BitVector {
+  let vector = BitVector.filled(registerSize, 0);
   fields.forEach((field) => {
     const range = getFieldRange(field);
     if (!range) {
@@ -276,12 +290,19 @@ export function buildBitValues(fields: FieldModel[], registerSize: number): (0 |
     }
     const raw = field?.resetValue;
     const fieldValue = raw === null || raw === undefined ? 0 : Number(raw);
-    for (let bit = range.lo; bit <= range.hi; bit++) {
+    const fieldWidth = range.hi - range.lo + 1;
+    let fieldVector: BitVector;
+    try {
+      fieldVector = BitVector.fromBigInt(BigInt(Math.max(0, Math.trunc(fieldValue))), fieldWidth);
+    } catch {
+      fieldVector = BitVector.filled(fieldWidth, 0);
+    }
+    for (let bit = Math.max(0, range.lo); bit <= Math.min(registerSize - 1, range.hi); bit++) {
       const localBit = bit - range.lo;
-      values[bit] = bitAt(fieldValue, localBit);
+      vector = vector.withBit(bit, fieldVector.bit(localBit));
     }
   });
-  return values;
+  return vector;
 }
 
 export function applyRegisterValueToFields(
@@ -297,5 +318,22 @@ export function applyRegisterValueToFields(
     const width = range.hi - range.lo + 1;
     const subValue = extractBits(registerValue, range.lo, width);
     onFieldReset(fieldIndex, subValue);
+  });
+}
+
+export function applyRegisterBitVectorToFields(
+  fields: FieldModel[],
+  registerValue: BitVector,
+  onFieldReset: (fieldIndex: number, value: number) => void
+): void {
+  fields.forEach((field, fieldIndex) => {
+    const range = getFieldRange(field);
+    if (!range || range.lo < 0 || range.hi >= registerValue.width) {
+      return;
+    }
+    const value = registerValue.slice(range.hi, range.lo).toBigInt();
+    if (value !== null) {
+      onFieldReset(fieldIndex, Number(value));
+    }
   });
 }

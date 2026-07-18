@@ -1,4 +1,8 @@
-import { hexDigitsForBits, parseRegisterValue } from '../../../webview/components/bitfield/utils';
+import {
+  hexDigitsForBits,
+  parseRegisterBitVector,
+  parseRegisterValue,
+} from '../../../webview/components/bitfield/utils';
 
 describe('parseRegisterValue', () => {
   describe('hex view', () => {
@@ -35,6 +39,18 @@ describe('parseRegisterValue', () => {
       expect(parseRegisterValue('1.5', 'dec')).toBeNull();
       expect(parseRegisterValue('', 'dec')).toBeNull();
     });
+  });
+});
+
+describe('parseRegisterBitVector', () => {
+  it('preserves a 64-bit debug value exactly', () => {
+    expect(parseRegisterBitVector('FEDCBA9876543210', 'hex', 64)?.toLiteral()).toBe(
+      "64'hFEDCBA9876543210"
+    );
+  });
+
+  it('rejects values that do not fit instead of truncating', () => {
+    expect(parseRegisterBitVector('100', 'hex', 8)).toBeNull();
   });
 });
 
