@@ -249,6 +249,29 @@ test.describe('Data Inspector responsive and accessible workspace', () => {
     expect(layout.workspaceBottom).toBeLessThanOrEqual(884);
   });
 
+  test('keeps transform presets and pipeline steps free of horizontal scrolling', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 800 });
+    await page.goto(harnessPath);
+    await decode(page, "16'h1234");
+    await page.getByRole('tab', { name: 'Transform' }).click();
+    for (let index = 0; index < 6; index++) {
+      await page.getByRole('button', { name: 'Byte swap', exact: true }).click();
+    }
+
+    const overflow = await page.evaluate(() => ({
+      presets:
+        document.querySelector<HTMLElement>('.di-presets')!.scrollWidth -
+        document.querySelector<HTMLElement>('.di-presets')!.clientWidth,
+      steps:
+        document.querySelector<HTMLElement>('.di-step-list')!.scrollWidth -
+        document.querySelector<HTMLElement>('.di-step-list')!.clientWidth,
+    }));
+    expect(overflow.presets).toBeLessThanOrEqual(1);
+    expect(overflow.steps).toBeLessThanOrEqual(1);
+  });
+
   test('retains visible boundaries and selection patterns in forced colors', async ({ page }) => {
     await page.emulateMedia({ forcedColors: 'active' });
     await page.goto(harnessPath);

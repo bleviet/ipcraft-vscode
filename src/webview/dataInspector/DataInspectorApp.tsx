@@ -50,6 +50,42 @@ const VALUE_EXAMPLES = [
   { label: 'VHDL hex', literal: 'x"0123_ABCD"' },
 ] as const;
 
+type RecipeStep = IPCraftDataInspectorRecipe['steps'][number];
+type RecipeStepType = RecipeStep['type'];
+
+const TRANSFORM_OPERATIONS: ReadonlyArray<{
+  type: RecipeStepType;
+  symbol: string;
+  label: string;
+  description: string;
+}> = [
+  { type: 'concat', symbol: '{ }', label: 'Concat', description: 'Join two values' },
+  { type: 'slice', symbol: '[ ]', label: 'Slice', description: 'Select a bit range' },
+  { type: 'and', symbol: '&', label: 'AND', description: 'Bitwise AND' },
+  { type: 'or', symbol: '|', label: 'OR', description: 'Bitwise OR' },
+  { type: 'xor', symbol: '^', label: 'XOR', description: 'Bitwise XOR' },
+  { type: 'not', symbol: '~', label: 'NOT', description: 'Invert every bit' },
+  { type: 'shiftLeft', symbol: '<<', label: 'Shift left', description: 'Shift toward the MSB' },
+  { type: 'shiftRight', symbol: '>>', label: 'Shift right', description: 'Shift toward the LSB' },
+  { type: 'zeroExtend', symbol: '0+', label: 'Zero extend', description: 'Pad with zeroes' },
+  { type: 'signExtend', symbol: 'S+', label: 'Sign extend', description: 'Repeat the sign bit' },
+  { type: 'truncate', symbol: '[:]', label: 'Truncate', description: 'Reduce the bit width' },
+  { type: 'byteSwap', symbol: 'B<>', label: 'Byte swap', description: 'Reverse byte order' },
+];
+
+const TRANSFORM_PRESETS = [
+  { id: 'hiLo', symbol: '{ }', label: 'HI/LO' },
+  { id: 'maskShift', symbol: '& >>', label: 'Mask + shift' },
+  { id: 'slice', symbol: '[ ]', label: 'Slice' },
+  { id: 'extend', symbol: '0+', label: 'Extend' },
+  { id: 'truncate', symbol: '[:]', label: 'Truncate' },
+  { id: 'byteSwap', symbol: 'B<>', label: 'Byte swap' },
+] as const;
+
+function transformOperation(type: RecipeStepType) {
+  return TRANSFORM_OPERATIONS.find((operation) => operation.type === type)!;
+}
+
 function hexDisplayText(value: BitVector): string | null {
   const exactHex = value.toHex();
   if (exactHex !== null) {
@@ -468,6 +504,10 @@ export function DataInspectorApp() {
     useState<IPCraftDataInspectorRecipe['steps'][number]['type']>('concat');
   const [newStepInputId, setNewStepInputId] = useState('input');
   const [newStepOperandId, setNewStepOperandId] = useState('input');
+  const [draggedStepIndex, setDraggedStepIndex] = useState<number | null>(null);
+  const [stepAnnouncement, setStepAnnouncement] = useState('');
+  const transformPanelRef = useRef<HTMLDivElement>(null);
+  const dragPointerRef = useRef({ x: 0, y: 0 });
   const [vcdCapture, setVcdCapture] = useState<VcdCapture | null>(null);
   const [vcdSignalNames, setVcdSignalNames] = useState<string[]>([]);
   const [vcdSelection, setVcdSelection] = useState<VcdSelection | null>(null);
@@ -749,6 +789,62 @@ export function DataInspectorApp() {
         stepIndex === index ? { ...step, ...patch } : step
       ),
     });
+  };
+
+  const removeStep = (index: number) => {
+    const removed = currentRecipe.steps[index];
+    if (!removed) {
+      return;
+    }
+    const fallbackId = removed.inputId;
+    const steps = currentRecipe.steps
+      .filter((_, stepIndex) => stepIndex !== index)
+      .map((step) => ({
+        ...step,
+        inputId: step.inputId === removed.id ? fallbackId : step.inputId,
+        ...(step.operandId === removed.id ? { operandId: fallbackId } : {}),
+      }));
+    setRecipeBase({
+      ...currentRecipe,
+      steps,
+      outputs: currentRecipe.outputs.map((output) =>
+        output.valueId === removed.id ? { ...output, valueId: fallbackId } : output
+      ),
+    });
+    if (newStepInputId === removed.id) {
+      setNewStepInputId(fallbackId);
+    }
+    if (newStepOperandId === removed.id) {
+      setNewStepOperandId(fallbackId);
+    }
+    setStepAnnouncement(`Removed ${transformOperation(removed.type).label} step ${index + 1}`);
+  };
+
+  const moveStep = (fromIndex: number, toIndex: number) => {
+    if (
+      fromIndex === toIndex ||
+      fromIndex < 0 ||
+      toIndex < 0 ||
+      fromIndex >= currentRecipe.steps.length ||
+      toIndex >= currentRecipe.steps.length
+    ) {
+      return;
+    }
+
+    // IDs and input links describe stable pipeline positions. Move only the
+    // operation payloads so chained recipes stay valid after a visual reorder.
+    const operationPayloads = currentRecipe.steps.map(
+      ({ id: _id, inputId: _inputId, ...payload }) => payload
+    );
+    const [movedPayload] = operationPayloads.splice(fromIndex, 1);
+    operationPayloads.splice(toIndex, 0, movedPayload);
+    const steps = currentRecipe.steps.map((slot, index) => ({
+      id: slot.id,
+      inputId: slot.inputId,
+      ...operationPayloads[index],
+    }));
+    setRecipeBase({ ...currentRecipe, steps });
+    setStepAnnouncement(`Moved step ${fromIndex + 1} to position ${toIndex + 1}`);
   };
 
   const applyVcdSample = (selection: VcdSelection, index: number) => {
@@ -1423,152 +1519,254 @@ export function DataInspectorApp() {
 
             <div
               aria-labelledby="di-inspector-tab-transform"
-              className={`di-inspector-panel di-transform-panel ${inspectorTab === 'transform' ? 'is-active' : ''}`}
+              className={`di-inspector-panel di-transform-panel ${inspectorTab === 'transform' ? 'is-active' : ''} ${draggedStepIndex !== null ? 'is-step-dragging' : ''}`}
               id="di-inspector-panel-transform"
+              ref={transformPanelRef}
               role="tabpanel"
             >
               <div className="di-panel-heading">
                 <span className="di-eyebrow">Compose derived values</span>
                 <h2>Transform recipe</h2>
               </div>
-              <div className="di-output-editor">
-                {currentRecipe.outputs.map((output, index) => (
-                  <div key={output.id}>
-                    <input
-                      aria-label={`Output ${index + 1} name`}
-                      value={output.name}
-                      onChange={(event) =>
-                        setRecipeBase({
-                          ...currentRecipe,
-                          outputs: currentRecipe.outputs.map((candidate) =>
-                            candidate.id === output.id
-                              ? { ...candidate, name: event.target.value }
-                              : candidate
-                          ),
-                        })
-                      }
-                    />
-                    <select
-                      aria-label={`Output ${index + 1} value`}
-                      value={output.valueId}
-                      onChange={(event) =>
-                        setRecipeBase({
-                          ...currentRecipe,
-                          outputs: currentRecipe.outputs.map((candidate) =>
-                            candidate.id === output.id
-                              ? { ...candidate, valueId: event.target.value }
-                              : candidate
-                          ),
-                        })
-                      }
-                    >
-                      {[...currentRecipe.sources, ...currentRecipe.steps].map((value) => (
-                        <option value={value.id} key={value.id}>
-                          {value.id}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                ))}
-                <button
-                  onClick={() => {
-                    const index = currentRecipe.outputs.length + 1;
-                    setRecipeBase({
-                      ...currentRecipe,
-                      outputs: [
-                        ...currentRecipe.outputs,
-                        { id: `output${index}`, name: `OUTPUT_${index}`, valueId: newStepInputId },
-                      ],
-                    });
-                  }}
-                >
-                  Add output
-                </button>
-              </div>
+              <details className="di-output-section">
+                <summary>
+                  <span>Outputs</span>
+                  <small>{currentRecipe.outputs.length}</small>
+                </summary>
+                <div className="di-output-editor">
+                  {currentRecipe.outputs.map((output, index) => (
+                    <div key={output.id}>
+                      <input
+                        aria-label={`Output ${index + 1} name`}
+                        value={output.name}
+                        onChange={(event) =>
+                          setRecipeBase({
+                            ...currentRecipe,
+                            outputs: currentRecipe.outputs.map((candidate) =>
+                              candidate.id === output.id
+                                ? { ...candidate, name: event.target.value }
+                                : candidate
+                            ),
+                          })
+                        }
+                      />
+                      <select
+                        aria-label={`Output ${index + 1} value`}
+                        value={output.valueId}
+                        onChange={(event) =>
+                          setRecipeBase({
+                            ...currentRecipe,
+                            outputs: currentRecipe.outputs.map((candidate) =>
+                              candidate.id === output.id
+                                ? { ...candidate, valueId: event.target.value }
+                                : candidate
+                            ),
+                          })
+                        }
+                      >
+                        {[...currentRecipe.sources, ...currentRecipe.steps].map((value) => (
+                          <option value={value.id} key={value.id}>
+                            {value.id}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
+                  <button
+                    onClick={() => {
+                      const index = currentRecipe.outputs.length + 1;
+                      setRecipeBase({
+                        ...currentRecipe,
+                        outputs: [
+                          ...currentRecipe.outputs,
+                          {
+                            id: `output${index}`,
+                            name: `OUTPUT_${index}`,
+                            valueId: newStepInputId,
+                          },
+                        ],
+                      });
+                    }}
+                  >
+                    <span className="codicon codicon-add" aria-hidden="true" />
+                    Add output
+                  </button>
+                </div>
+              </details>
               <div className="di-presets" aria-label="Transform presets">
                 <span>Presets</span>
-                <button onClick={() => addPreset('hiLo')}>HI/LO concat</button>
-                <button onClick={() => addPreset('maskShift')}>Mask + shift</button>
-                <button onClick={() => addPreset('slice')}>Slice</button>
-                <button onClick={() => addPreset('extend')}>Extend</button>
-                <button onClick={() => addPreset('truncate')}>Truncate</button>
-                <button onClick={() => addPreset('byteSwap')}>Byte swap</button>
+                <div>
+                  {TRANSFORM_PRESETS.map((preset) => (
+                    <button key={preset.id} onClick={() => addPreset(preset.id)}>
+                      <b aria-hidden="true">{preset.symbol}</b>
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
               </div>
               <div className="di-step-builder">
-                <label>
-                  Operation
-                  <select
-                    value={newStepType}
-                    onChange={(event) =>
-                      setNewStepType(
-                        event.target.value as IPCraftDataInspectorRecipe['steps'][number]['type']
-                      )
-                    }
-                  >
-                    {[
-                      'concat',
-                      'slice',
-                      'and',
-                      'or',
-                      'xor',
-                      'not',
-                      'shiftLeft',
-                      'shiftRight',
-                      'zeroExtend',
-                      'signExtend',
-                      'truncate',
-                      'byteSwap',
-                    ].map((type) => (
-                      <option key={type}>{type}</option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  Input (high operand for concat)
-                  <select
-                    value={newStepInputId}
-                    onChange={(event) => setNewStepInputId(event.target.value)}
-                  >
-                    {[
-                      ...currentRecipe.sources.map((source) => source.id),
-                      ...currentRecipe.steps.map((step) => step.id),
-                    ].map((id) => (
-                      <option key={id}>{id}</option>
-                    ))}
-                  </select>
-                </label>
-                {['concat', 'and', 'or', 'xor'].includes(newStepType) && (
-                  <label>
-                    {newStepType === 'concat' ? 'Low operand' : 'Operand'}
-                    <select
-                      value={newStepOperandId}
-                      onChange={(event) => setNewStepOperandId(event.target.value)}
+                <span className="di-builder-label">Choose an operation</span>
+                <div className="di-operation-grid" role="group" aria-label="Operation">
+                  {TRANSFORM_OPERATIONS.map((operation) => (
+                    <button
+                      aria-label={`Select ${operation.label} operation`}
+                      aria-pressed={newStepType === operation.type}
+                      className={newStepType === operation.type ? 'is-selected' : ''}
+                      key={operation.type}
+                      onClick={() => setNewStepType(operation.type)}
+                      title={operation.description}
                     >
-                      {currentRecipe.sources.map((source) => (
-                        <option key={source.id}>{source.id}</option>
+                      <b aria-hidden="true">{operation.symbol}</b>
+                      <span>{operation.label}</span>
+                    </button>
+                  ))}
+                </div>
+                <div className="di-builder-inputs">
+                  <label>
+                    {newStepType === 'concat' ? 'High input' : 'Input'}
+                    <select
+                      value={newStepInputId}
+                      onChange={(event) => setNewStepInputId(event.target.value)}
+                    >
+                      {[
+                        ...currentRecipe.sources.map((source) => source.id),
+                        ...currentRecipe.steps.map((step) => step.id),
+                      ].map((id) => (
+                        <option key={id}>{id}</option>
                       ))}
                     </select>
                   </label>
-                )}
-                <button onClick={addStep}>Add step</button>
+                  {['concat', 'and', 'or', 'xor'].includes(newStepType) && (
+                    <label>
+                      {newStepType === 'concat' ? 'Low input' : 'Operand'}
+                      <select
+                        value={newStepOperandId}
+                        onChange={(event) => setNewStepOperandId(event.target.value)}
+                      >
+                        {currentRecipe.sources.map((source) => (
+                          <option key={source.id}>{source.id}</option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+                  <button className="di-primary di-add-step" onClick={addStep}>
+                    <span className="codicon codicon-add" aria-hidden="true" />
+                    Add step
+                  </button>
+                </div>
               </div>
-              <ol className="di-step-list">
+              <div className="di-pipeline-heading">
+                <span>Pipeline</span>
+                <small>{currentRecipe.steps.length} steps</small>
+              </div>
+              <ol className="di-step-list" aria-label="Transform pipeline">
                 {currentRecipe.steps.map((step, index) => {
                   const result = evaluation.steps[index];
+                  const operation = transformOperation(step.type);
                   return (
-                    <li key={step.id} className={result?.error ? 'is-error' : ''}>
-                      <strong>{step.type}</strong>({step.inputId}
-                      {step.operandId ? `, ${step.operandId}` : ''})
-                      <small>{result?.error ?? result?.widthEquation ?? 'Waiting for input'}</small>
-                      {result?.value && <code>{result.value.value.toLiteral()}</code>}
-                      {result?.transform && result.transform.droppedRanges.length > 0 && (
-                        <em>
-                          Dropped{' '}
-                          {result.transform.droppedRanges
-                            .map((range) => `[${range.msb}:${range.lsb}]`)
-                            .join(', ')}
-                        </em>
-                      )}
+                    <li
+                      key={step.id}
+                      className={`${result?.error ? 'is-error' : ''} ${draggedStepIndex === index ? 'is-dragging' : ''}`}
+                      onDragStart={(event) => {
+                        dragPointerRef.current = { x: event.clientX, y: event.clientY };
+                        setDraggedStepIndex(index);
+                        event.dataTransfer.effectAllowed = 'move';
+                      }}
+                      onDrag={(event) => {
+                        if (event.clientX !== 0 || event.clientY !== 0) {
+                          dragPointerRef.current = { x: event.clientX, y: event.clientY };
+                        }
+                      }}
+                      onDragEnd={(event) => {
+                        const panelBounds = transformPanelRef.current?.getBoundingClientRect();
+                        const pointer =
+                          event.clientX !== 0 || event.clientY !== 0
+                            ? { x: event.clientX, y: event.clientY }
+                            : dragPointerRef.current;
+                        const outsidePanel =
+                          panelBounds !== undefined &&
+                          (pointer.x < panelBounds.left ||
+                            pointer.x > panelBounds.right ||
+                            pointer.y < panelBounds.top ||
+                            pointer.y > panelBounds.bottom);
+                        if (outsidePanel) {
+                          removeStep(index);
+                        }
+                        setDraggedStepIndex(null);
+                      }}
+                      onDragOver={(event) => {
+                        event.preventDefault();
+                        event.dataTransfer.dropEffect = 'move';
+                      }}
+                      onDrop={(event) => {
+                        event.preventDefault();
+                        if (draggedStepIndex !== null) {
+                          moveStep(draggedStepIndex, index);
+                        }
+                        setDraggedStepIndex(null);
+                      }}
+                    >
+                      <div className="di-step-summary">
+                        <button
+                          className="di-drag-handle"
+                          aria-label={`Drag ${operation.label} step ${index + 1} to reorder`}
+                          draggable
+                          title="Drag to reorder"
+                        >
+                          <span className="codicon codicon-gripper" aria-hidden="true" />
+                        </button>
+                        <span className="di-step-number">{index + 1}</span>
+                        <b className="di-operation-symbol" aria-hidden="true">
+                          {operation.symbol}
+                        </b>
+                        <span className="di-step-title">
+                          <strong>{operation.label}</strong>
+                          <small>
+                            {step.inputId}
+                            {step.operandId ? ` + ${step.operandId}` : ''}
+                          </small>
+                        </span>
+                        <span className="di-step-result">
+                          {result?.error ?? result?.widthEquation ?? 'Waiting for input'}
+                        </span>
+                        <span className="di-step-actions">
+                          <button
+                            aria-label={`Move ${operation.label} step up`}
+                            disabled={index === 0}
+                            onClick={() => moveStep(index, index - 1)}
+                            title="Move up"
+                          >
+                            <span className="codicon codicon-chevron-up" aria-hidden="true" />
+                          </button>
+                          <button
+                            aria-label={`Move ${operation.label} step down`}
+                            disabled={index === currentRecipe.steps.length - 1}
+                            onClick={() => moveStep(index, index + 1)}
+                            title="Move down"
+                          >
+                            <span className="codicon codicon-chevron-down" aria-hidden="true" />
+                          </button>
+                          <button
+                            className="di-delete-step"
+                            aria-label={`Delete ${operation.label} step`}
+                            onClick={() => removeStep(index)}
+                            title="Delete step"
+                          >
+                            <span className="codicon codicon-trash" aria-hidden="true" />
+                          </button>
+                        </span>
+                      </div>
+                      <div className="di-step-meta">
+                        {result?.value && <code>{result.value.value.toLiteral()}</code>}
+                        {result?.transform && result.transform.droppedRanges.length > 0 && (
+                          <em>
+                            Dropped{' '}
+                            {result.transform.droppedRanges
+                              .map((range) => `[${range.msb}:${range.lsb}]`)
+                              .join(', ')}
+                          </em>
+                        )}
+                      </div>
                       <div className="di-step-parameters">
                         {step.operandId !== undefined && (
                           <label>
@@ -1646,6 +1844,21 @@ export function DataInspectorApp() {
                   );
                 })}
               </ol>
+              {currentRecipe.steps.length === 0 && (
+                <div className="di-empty-pipeline">
+                  <span className="codicon codicon-git-commit" aria-hidden="true" />
+                  Choose an operation above to start the pipeline.
+                </div>
+              )}
+              {draggedStepIndex !== null && (
+                <div className="di-drag-delete-hint" aria-hidden="true">
+                  <span className="codicon codicon-trash" />
+                  Drag outside this panel to delete
+                </div>
+              )}
+              <div className="sr-only" aria-live="polite">
+                {stepAnnouncement}
+              </div>
             </div>
 
             <div

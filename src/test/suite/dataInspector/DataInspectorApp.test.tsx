@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { createEvent, fireEvent, render, screen, within } from '@testing-library/react';
 import { parseLiteral } from '../../../dataInspector/parseLiteral';
 import { DataInspectorApp, LaneRibbon } from '../../../webview/dataInspector/DataInspectorApp';
 
@@ -84,6 +84,73 @@ describe('DataInspectorApp', () => {
 
     expect(screen.getByText("16'h3412")).toBeInTheDocument();
     expect(screen.getByLabelText('Output 2 name')).toHaveValue('OUTPUT_2');
+  });
+
+  it('reorders transform operations without breaking the pipeline wiring', () => {
+    render(<DataInspectorApp />);
+    fireEvent.change(screen.getByLabelText('Literal'), { target: { value: "16'h1234" } });
+    fireEvent.click(screen.getByRole('button', { name: 'Decode' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Byte swap' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Slice' }));
+
+    const pipeline = screen.getByRole('list', { name: 'Transform pipeline' });
+    expect(within(pipeline).getAllByRole('listitem')[0]).toHaveTextContent('Byte swap');
+    expect(within(pipeline).getAllByRole('listitem')[1]).toHaveTextContent('Slice');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Move Slice step up' }));
+
+    expect(within(pipeline).getAllByRole('listitem')[0]).toHaveTextContent('Slice');
+    expect(within(pipeline).getAllByRole('listitem')[1]).toHaveTextContent('Byte swap');
+    expect(within(pipeline).getAllByRole('listitem')[1]).toHaveTextContent("16'h3412");
+  });
+
+  it('deletes a transform and reconnects dependent steps to its input', () => {
+    render(<DataInspectorApp />);
+    fireEvent.change(screen.getByLabelText('Literal'), { target: { value: "16'h1234" } });
+    fireEvent.click(screen.getByRole('button', { name: 'Decode' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Byte swap' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Slice' }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete Byte swap step' }));
+
+    const pipeline = screen.getByRole('list', { name: 'Transform pipeline' });
+    expect(within(pipeline).getAllByRole('listitem')).toHaveLength(1);
+    expect(within(pipeline).getByRole('listitem')).toHaveTextContent('input');
+    expect(within(pipeline).getByRole('listitem')).toHaveTextContent("16'h1234");
+  });
+
+  it('deletes a transform when its drag ends outside the transform panel', () => {
+    const { container } = render(<DataInspectorApp />);
+    fireEvent.change(screen.getByLabelText('Literal'), { target: { value: "16'h1234" } });
+    fireEvent.click(screen.getByRole('button', { name: 'Decode' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Byte swap' }));
+
+    const panel = container.querySelector<HTMLElement>('.di-transform-panel')!;
+    jest.spyOn(panel, 'getBoundingClientRect').mockReturnValue({
+      bottom: 600,
+      height: 600,
+      left: 0,
+      right: 300,
+      top: 0,
+      width: 300,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    });
+    const dragHandle = screen.getByRole('button', { name: 'Drag Byte swap step 1 to reorder' });
+    const dataTransfer = { dropEffect: 'none', effectAllowed: 'move' };
+    fireEvent.dragStart(dragHandle, { clientX: 100, clientY: 100, dataTransfer });
+    const dragEnd = createEvent.dragEnd(dragHandle, { dataTransfer });
+    Object.defineProperties(dragEnd, {
+      clientX: { value: 340 },
+      clientY: { value: 100 },
+    });
+    fireEvent(dragHandle, dragEnd);
+
+    expect(screen.getByRole('list', { name: 'Transform pipeline' })).toBeEmptyDOMElement();
+    expect(
+      screen.getByText('Choose an operation above to start the pipeline.')
+    ).toBeInTheDocument();
   });
 
   it('changes a selected field interpretation while retaining its raw bits', () => {
