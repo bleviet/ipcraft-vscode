@@ -31,6 +31,20 @@ describe('parseLiteral', () => {
     expect(parseLiteral('42', { width: 8 }).vector.toLiteral()).toBe("8'h2A");
   });
 
+  it.each([
+    ['0x1', "32'h00000001"],
+    ['0xFF', "32'h000000FF"],
+    ['0b101', "32'h00000005"],
+    ['1', "32'h00000001"],
+  ])('zero-extends unsized %s input to the requested width', (literal, expected) => {
+    expect(parseLiteral(literal, { width: 32 }).vector.toLiteral()).toBe(expected);
+  });
+
+  it('does not truncate unsized input that exceeds the requested width', () => {
+    expect(() => parseLiteral('0x1FF', { width: 8 })).toThrow('12 bits but width is 8');
+    expect(() => parseLiteral('0b100000000', { width: 8 })).toThrow('9 bits but width is 8');
+  });
+
   it('does not silently extend or truncate sized digit literals', () => {
     expect(() => parseLiteral("8'h1")).toThrow('4 bits but width is 8');
     expect(() => parseLiteral("4'b00101")).toThrow('5 bits but width is 4');

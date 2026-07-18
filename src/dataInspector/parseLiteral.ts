@@ -86,14 +86,22 @@ function normalizeBinaryDigit(digit: string, warnings: Set<string>): BitState {
   throw new Error(`Invalid binary digit "${digit}"`);
 }
 
-function parseBinary(digits: string, width: number | undefined, warnings: Set<string>): BitVector {
+function parseBinary(
+  digits: string,
+  width: number | undefined,
+  warnings: Set<string>,
+  allowZeroExtension: boolean
+): BitVector {
   const compact = digits.replace(/_/g, '');
   if (!compact) {
     throw new Error('A binary literal must contain digits');
   }
-  const bits = Array.from(compact, (digit) => normalizeBinaryDigit(digit, warnings));
+  let bits = Array.from(compact, (digit) => normalizeBinaryDigit(digit, warnings));
   const targetWidth = width ?? bits.length;
   validateWidth(targetWidth);
+  if (allowZeroExtension && bits.length < targetWidth) {
+    bits = [...Array<BitState>(targetWidth - bits.length).fill(0), ...bits];
+  }
   if (bits.length !== targetWidth) {
     throw new Error(
       `Binary literal has ${bits.length} bits but width is ${targetWidth}; choose an explicit extension or truncation`
@@ -102,7 +110,11 @@ function parseBinary(digits: string, width: number | undefined, warnings: Set<st
   return BitVector.fromBits(bits);
 }
 
-function parseHex(digits: string, width: number | undefined): BitVector {
+function parseHex(
+  digits: string,
+  width: number | undefined,
+  allowZeroExtension: boolean
+): BitVector {
   const compact = digits.replace(/_/g, '');
   if (!compact || !/^[0-9a-fA-FxXzZ]+$/.test(compact)) {
     throw new Error('A hexadecimal literal may contain only hexadecimal, X, or Z digits');
@@ -124,6 +136,9 @@ function parseHex(digits: string, width: number | undefined): BitVector {
   }
   const targetWidth = width ?? bits.length;
   validateWidth(targetWidth);
+  if (allowZeroExtension && bits.length < targetWidth) {
+    bits.unshift(...Array<BitState>(targetWidth - bits.length).fill(0));
+  }
   if (bits.length !== targetWidth) {
     throw new Error(
       `Hexadecimal literal has ${bits.length} bits but width is ${targetWidth}; choose an explicit extension or truncation`
@@ -171,12 +186,13 @@ export function parseLiteral(text: string, options: ParseLiteralOptions = {}): P
     throw new Error(`Literal declares ${parsed.declaredWidth} bits but width is ${options.width}`);
   }
   const width = parsed.declaredWidth ?? options.width;
+  const allowZeroExtension = parsed.declaredWidth === undefined && options.width !== undefined;
   const warnings = new Set<string>();
   const vector =
     parsed.radix === 'binary'
-      ? parseBinary(parsed.digits, width, warnings)
+      ? parseBinary(parsed.digits, width, warnings, allowZeroExtension)
       : parsed.radix === 'hex'
-        ? parseHex(parsed.digits, width)
+        ? parseHex(parsed.digits, width, allowZeroExtension)
         : parseDecimal(parsed.digits, width, options.signed === true);
   return { vector, originalText, radix: parsed.radix, warnings: [...warnings] };
 }
