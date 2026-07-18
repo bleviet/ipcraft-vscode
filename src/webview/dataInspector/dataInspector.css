@@ -21,6 +21,7 @@
 }
 body {
   margin: 0;
+  overflow: hidden;
   background: var(--di-bg);
   color: var(--di-text);
   font-family: var(--di-font);
@@ -85,7 +86,11 @@ label {
 }
 
 .di-shell {
-  min-height: 100vh;
+  display: flex;
+  height: 100vh;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
   padding: 16px;
 }
 .di-topbar {
@@ -116,6 +121,9 @@ label {
   position: sticky;
   top: 8px;
   z-index: 30;
+  max-height: 45vh;
+  flex: none;
+  overflow-y: auto;
   padding: 12px;
   box-shadow: 0 8px 28px color-mix(in srgb, var(--di-bg) 75%, transparent);
 }
@@ -228,20 +236,27 @@ label {
 }
 .di-workspace {
   display: grid;
-  grid-template-columns: minmax(170px, 0.6fr) minmax(390px, 1.8fr) minmax(250px, 1fr);
+  min-height: 0;
+  flex: 1;
+  grid-template-columns: minmax(210px, 260px) minmax(420px, 1fr) minmax(320px, 400px);
+  grid-template-rows: minmax(0, 1fr);
   gap: 10px;
   margin-top: 10px;
 }
 .di-source-rail,
-.di-fields,
-.di-ribbon-card {
+.di-ribbon-card,
+.di-inspector {
   min-width: 0;
+  min-height: 0;
+  overflow: hidden;
   padding: 12px;
 }
 .di-source-rail {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .di-source-rail > label {
   min-width: 0;
@@ -346,6 +361,26 @@ label {
   min-height: 34px;
   margin-bottom: 8px;
 }
+.di-ribbon-card {
+  display: flex;
+  flex-direction: column;
+}
+.di-ribbon-tools {
+  display: flex;
+  align-items: end;
+  gap: 7px;
+}
+.di-ribbon-tools label,
+.di-ribbon-tools .di-go-to {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+.di-ribbon-tools select {
+  min-height: 26px;
+  padding-block: 2px;
+}
 .di-go-to {
   display: flex;
   align-items: center;
@@ -359,7 +394,8 @@ label {
   min-height: 26px;
 }
 .di-lanes {
-  height: min(62vh, 540px);
+  min-height: 0;
+  flex: 1;
   overflow-y: auto;
   overscroll-behavior: contain;
   border-block: 1px solid var(--di-line);
@@ -385,6 +421,13 @@ label {
   position: relative;
   min-width: 0;
   padding: 7px 5px;
+}
+.di-lane__content.is-bit {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.di-lane__track {
+  min-width: 0;
 }
 .di-source-band {
   display: flex;
@@ -423,16 +466,37 @@ label {
   letter-spacing: 0.24em;
   text-align: center;
 }
+.di-bits.is-field {
+  display: flex;
+  padding-inline: 0;
+  letter-spacing: 0;
+}
+.di-bits.is-field span {
+  display: grid;
+  min-width: 0;
+  flex: 1 1 0;
+  place-items: center;
+}
+.di-bits.is-field span.is-nibble,
+.di-bits.is-field span.is-byte {
+  margin-left: 0;
+}
 .di-bits.is-bit {
   display: flex;
-  overflow-x: auto;
-  padding-top: 2px;
+  overflow: visible;
+  padding: 2px 0 3px;
   letter-spacing: 0;
 }
 .di-bits.is-bit span {
   display: inline-grid;
-  min-width: 20px;
+  width: 24px;
+  min-width: 24px;
+  flex: 0 0 24px;
   place-items: center;
+}
+.di-bits.is-bit span.is-nibble,
+.di-bits.is-bit span.is-byte {
+  margin-left: 0;
 }
 .di-bits.is-bit span::after {
   content: attr(data-bit);
@@ -478,7 +542,7 @@ label {
 .di-field-table {
   display: grid;
   gap: 2px;
-  max-height: 53vh;
+  max-height: min(42vh, 390px);
   overflow: auto;
 }
 .di-field-row {
@@ -548,8 +612,11 @@ label {
   padding-top: 9px;
 }
 .di-capture {
-  border-top: 1px solid var(--di-line);
-  padding-top: 9px;
+  margin-top: 8px;
+  padding: 9px;
+  border: 1px solid var(--di-line);
+  border-radius: 8px;
+  background: var(--di-surface);
 }
 .di-capture summary {
   cursor: pointer;
@@ -599,6 +666,59 @@ label {
   color: var(--di-accent);
   font-size: 10px;
   font-weight: 700;
+}
+.di-inspector {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+.di-inspector-tabs {
+  display: grid;
+  flex: none;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 3px;
+  padding: 6px;
+  border-bottom: 1px solid var(--di-line);
+}
+.di-inspector-tabs button {
+  overflow: hidden;
+  border-color: transparent;
+  background: transparent;
+  font-size: 10px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.di-inspector-tabs button.is-active {
+  color: var(--di-accent);
+  border-color: var(--di-line);
+  background: var(--di-surface);
+  box-shadow: inset 0 -2px var(--di-accent);
+}
+.di-inspector-panel {
+  display: none;
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 12px;
+}
+.di-inspector-panel.is-active {
+  display: flex;
+  flex-direction: column;
+}
+.di-panel-heading {
+  margin-bottom: 9px;
+}
+.di-capture-panel > label > select,
+.di-capture-panel > button {
+  width: 100%;
+}
+.di-capture-panel > button {
+  margin-top: 6px;
+}
+.di-transform-panel .di-step-list {
+  padding-bottom: 4px;
 }
 .di-step-builder {
   display: grid;
@@ -658,24 +778,6 @@ label {
 }
 
 @media (max-width: 1100px) {
-  .di-workspace {
-    grid-template-columns: 180px minmax(380px, 1fr);
-  }
-  .di-fields {
-    grid-column: 1 / -1;
-  }
-  .di-field-table {
-    max-height: 260px;
-  }
-}
-
-@media (max-width: 700px) {
-  .di-shell {
-    padding: 8px;
-  }
-  .di-topbar {
-    align-items: end;
-  }
   .di-mobile-tabs {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -690,10 +792,33 @@ label {
     display: none !important;
   }
   .di-mobile-panel.is-mobile-active {
-    display: block !important;
-  }
-  .di-source-rail.is-mobile-active {
     display: flex !important;
+  }
+  .di-composer.is-mobile-active {
+    display: block !important;
+    max-height: none;
+    flex: 1;
+  }
+  .di-workspace {
+    display: flex;
+    min-height: 0;
+    flex-direction: column;
+  }
+  .di-workspace > .is-mobile-active {
+    min-height: 0;
+    flex: 1;
+  }
+  .di-field-table {
+    max-height: min(46vh, 420px);
+  }
+}
+
+@media (max-width: 700px) {
+  .di-shell {
+    padding: 8px;
+  }
+  .di-topbar {
+    align-items: end;
   }
   .di-status {
     max-width: 150px;
@@ -702,21 +827,9 @@ label {
   .di-input-row {
     grid-template-columns: 1fr 74px;
   }
-  .di-workspace {
-    display: flex;
-    flex-direction: column;
-  }
-  .di-ribbon-card {
-    order: 1;
-  }
-  .di-fields {
-    order: 2;
-  }
-  .di-source-rail {
-    order: 3;
-  }
-  .di-lanes {
-    height: 46vh;
+  .di-ribbon-tools {
+    flex-wrap: wrap;
+    justify-content: end;
   }
   .di-lane {
     grid-template-columns: 62px minmax(0, 1fr);

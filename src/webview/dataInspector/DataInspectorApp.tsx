@@ -90,6 +90,8 @@ interface LaneRibbonProps {
   provenance?: Array<ProvenanceBit | null>;
   maskedBits?: ReadonlySet<number>;
   zoom?: 'overview' | 'field' | 'bit';
+  onLaneWidthChange?: (width: 8 | 16 | 32 | 64) => void;
+  onZoomChange?: (zoom: 'overview' | 'field' | 'bit') => void;
   mobileActive?: boolean;
 }
 
@@ -102,6 +104,8 @@ export function LaneRibbon({
   provenance,
   maskedBits,
   zoom = 'field',
+  onLaneWidthChange,
+  onZoomChange,
   mobileActive = false,
 }: LaneRibbonProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -180,59 +184,64 @@ export function LaneRibbon({
         <div className="di-lane__gutter">
           [{range.laneMsb}:{range.laneLsb}]
         </div>
-        <div className="di-lane__content">
-          <div className="di-source-band">
-            {sourceSegments.length > 0
-              ? sourceSegments.map((segment) => (
-                  <span key={`${segment.sourceId}-${segment.msb}`}>
-                    {segment.sourceId} [{segment.msb}:{segment.lsb}]
-                  </span>
-                ))
-              : `INPUT · bits [${range.laneMsb}:${range.laneLsb}]`}
-          </div>
-          <div className={`di-bits is-${zoom}`} aria-hidden="true">
-            {zoom === 'overview'
-              ? laneDisplay
-              : Array.from(laneDisplay, (state, index) => {
-                  const bit = range.laneMsb - index;
-                  const separator = bit % 8 === 7 ? 'is-byte' : bit % 4 === 3 ? 'is-nibble' : '';
-                  return (
-                    <span
-                      className={`${maskedBits?.has(bit) ? 'is-masked' : ''} ${separator}`}
-                      data-bit={zoom === 'bit' ? bit : undefined}
-                      key={bit}
-                    >
-                      {state}
+        <div className={`di-lane__content is-${zoom}`}>
+          <div
+            className="di-lane__track"
+            style={zoom === 'bit' ? { minWidth: `${laneBits.length * 24}px` } : undefined}
+          >
+            <div className="di-source-band">
+              {sourceSegments.length > 0
+                ? sourceSegments.map((segment) => (
+                    <span key={`${segment.sourceId}-${segment.msb}`}>
+                      {segment.sourceId} [{segment.msb}:{segment.lsb}]
                     </span>
-                  );
-                })}
-          </div>
-          <div className="di-field-overlay">
-            {fields.flatMap((field) =>
-              segmentFieldAcrossLanes(vector.width, laneWidth, field.msb, field.lsb)
-                .filter((segment) => segment.laneIndex === laneIndex)
-                .map((segment) => (
-                  <button
-                    className={`di-field-segment ${
-                      selectedFieldId ===
-                      ('sourceFieldId' in field ? field.sourceFieldId : field.id)
-                        ? 'is-selected'
-                        : ''
-                    }`}
-                    key={field.id}
-                    style={{
-                      left: `${segment.startFraction * 100}%`,
-                      width: `${segment.widthFraction * 100}%`,
-                    }}
-                    title={`${field.name} [${field.msb}:${field.lsb}]`}
-                    onClick={() =>
-                      onSelectField('sourceFieldId' in field ? field.sourceFieldId : field.id)
-                    }
-                  >
-                    {field.name}
-                  </button>
-                ))
-            )}
+                  ))
+                : `INPUT · bits [${range.laneMsb}:${range.laneLsb}]`}
+            </div>
+            <div className={`di-bits is-${zoom}`} aria-hidden="true">
+              {zoom === 'overview'
+                ? laneDisplay
+                : Array.from(laneDisplay, (state, index) => {
+                    const bit = range.laneMsb - index;
+                    const separator = bit % 8 === 7 ? 'is-byte' : bit % 4 === 3 ? 'is-nibble' : '';
+                    return (
+                      <span
+                        className={`${maskedBits?.has(bit) ? 'is-masked' : ''} ${separator}`}
+                        data-bit={bit}
+                        key={bit}
+                      >
+                        {state}
+                      </span>
+                    );
+                  })}
+            </div>
+            <div className="di-field-overlay">
+              {fields.flatMap((field) =>
+                segmentFieldAcrossLanes(vector.width, laneWidth, field.msb, field.lsb)
+                  .filter((segment) => segment.laneIndex === laneIndex)
+                  .map((segment) => (
+                    <button
+                      className={`di-field-segment ${
+                        selectedFieldId ===
+                        ('sourceFieldId' in field ? field.sourceFieldId : field.id)
+                          ? 'is-selected'
+                          : ''
+                      }`}
+                      key={field.id}
+                      style={{
+                        left: `${segment.startFraction * 100}%`,
+                        width: `${segment.widthFraction * 100}%`,
+                      }}
+                      title={`${field.name} [${field.msb}:${field.lsb}]`}
+                      onClick={() =>
+                        onSelectField('sourceFieldId' in field ? field.sourceFieldId : field.id)
+                      }
+                    >
+                      {field.name}
+                    </button>
+                  ))
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -249,26 +258,62 @@ export function LaneRibbon({
           <span className="di-eyebrow">Continuous vector</span>
           <h2 id="bits-heading">Bits</h2>
         </div>
-        <form
-          className="di-go-to"
-          onSubmit={(event) => {
-            event.preventDefault();
-            const bit = Number(goToBit);
-            if (Number.isInteger(bit) && bit >= 0 && bit < vector.width) {
-              focusLane(Math.floor((vector.width - 1 - bit) / laneWidth));
-            }
-          }}
-        >
-          <label htmlFor="go-to-bit">Go to bit</label>
-          <input
-            id="go-to-bit"
-            type="number"
-            min={0}
-            max={vector.width - 1}
-            value={goToBit}
-            onChange={(event) => setGoToBit(event.target.value)}
-          />
-        </form>
+        <div className="di-ribbon-tools">
+          {onLaneWidthChange && (
+            <label>
+              Lane
+              <select
+                aria-label="Lane width"
+                value={laneWidth}
+                onChange={(event) =>
+                  onLaneWidthChange(Number(event.target.value) as 8 | 16 | 32 | 64)
+                }
+              >
+                {[8, 16, 32, 64].map((value) => (
+                  <option value={value} key={value}>
+                    {value}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          {onZoomChange && (
+            <label>
+              Zoom
+              <select
+                aria-label="Zoom"
+                value={zoom}
+                onChange={(event) =>
+                  onZoomChange(event.target.value as 'overview' | 'field' | 'bit')
+                }
+              >
+                <option value="overview">overview</option>
+                <option value="field">field</option>
+                <option value="bit">bit</option>
+              </select>
+            </label>
+          )}
+          <form
+            className="di-go-to"
+            onSubmit={(event) => {
+              event.preventDefault();
+              const bit = Number(goToBit);
+              if (Number.isInteger(bit) && bit >= 0 && bit < vector.width) {
+                focusLane(Math.floor((vector.width - 1 - bit) / laneWidth));
+              }
+            }}
+          >
+            <label htmlFor="go-to-bit">Go to</label>
+            <input
+              id="go-to-bit"
+              type="number"
+              min={0}
+              max={vector.width - 1}
+              value={goToBit}
+              onChange={(event) => setGoToBit(event.target.value)}
+            />
+          </form>
+        </div>
       </header>
       <div
         className="di-lanes"
@@ -333,7 +378,8 @@ export function DataInspectorApp() {
   const [csvCapture, setCsvCapture] = useState<CsvCapture | null>(null);
   const [csvSampleIndex, setCsvSampleIndex] = useState(0);
   const [newGroupName, setNewGroupName] = useState('');
-  const [mobileTab, setMobileTab] = useState<'value' | 'bits' | 'fields' | 'recipe'>('value');
+  const [mobileTab, setMobileTab] = useState<'value' | 'bits' | 'sources' | 'inspect'>('value');
+  const [inspectorTab, setInspectorTab] = useState<'fields' | 'capture' | 'transform'>('fields');
 
   useEffect(() => {
     const receive = (event: MessageEvent<DataInspectorToWebviewMessage>) => {
@@ -687,7 +733,7 @@ export function DataInspectorApp() {
       </header>
 
       <nav className="di-mobile-tabs" aria-label="Data Inspector sections">
-        {(['value', 'bits', 'fields', 'recipe'] as const).map((tab) => (
+        {(['value', 'bits', 'sources', 'inspect'] as const).map((tab) => (
           <button
             className={mobileTab === tab ? 'is-active' : ''}
             key={tab}
@@ -815,7 +861,7 @@ export function DataInspectorApp() {
       ) : (
         <div className="di-workspace">
           <aside
-            className={`di-card di-source-rail di-mobile-panel ${mobileTab === 'recipe' ? 'is-mobile-active' : ''}`}
+            className={`di-card di-source-rail di-mobile-panel ${mobileTab === 'sources' ? 'is-mobile-active' : ''}`}
           >
             <span className="di-eyebrow">Physical input</span>
             <h2>Sources</h2>
@@ -916,324 +962,370 @@ export function DataInspectorApp() {
               </div>
             )}
             <button onClick={addSource}>Add source</button>
-            <label>
-              Lane width
-              <select
-                value={laneWidth}
-                onChange={(event) => setLaneWidth(Number(event.target.value) as 8 | 16 | 32 | 64)}
-              >
-                {[8, 16, 32, 64].map((value) => (
-                  <option value={value} key={value}>
-                    {value} bits
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Zoom
-              <select
-                value={zoom}
-                onChange={(event) => setZoom(event.target.value as 'overview' | 'field' | 'bit')}
-              >
-                <option value="overview">overview</option>
-                <option value="field">by field</option>
-                <option value="bit">by bit</option>
-              </select>
-            </label>
-            <label>
-              Import register layout
-              <select value={layoutId} onChange={(event) => setLayoutId(event.target.value)}>
-                <option value="">Choose a register…</option>
-                {layouts.map((layout) => (
-                  <option value={layout.id} key={layout.id}>
-                    {layout.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <button
-              disabled={!layoutId}
-              onClick={() => {
-                const layout = layouts.find((candidate) => candidate.id === layoutId);
-                if (layout) {
-                  setFields(layout.fields.map((field) => ({ ...field })));
-                  setFieldProvenance(
-                    Object.fromEntries(
-                      layout.fields.map((field) => [
-                        field.id,
-                        { sourceFile: layout.sourceFile, registerName: layout.registerName },
-                      ])
-                    )
-                  );
-                  if (layout.width !== vector.width) {
-                    setError(
-                      `Copied ${layout.width}-bit register layout onto a ${vector.width}-bit value; out-of-range fields are flagged below`
-                    );
-                  }
-                }
-              }}
+          </aside>
+
+          <LaneRibbon
+            vector={displayVector ?? vector}
+            fields={ribbonFields.filter(
+              (field) =>
+                field.lsb >= 0 &&
+                field.msb >= field.lsb &&
+                field.msb < (displayVector?.width ?? vector.width)
+            )}
+            laneWidth={laneWidth}
+            selectedFieldId={selectedFieldId}
+            onSelectField={setSelectedFieldId}
+            provenance={evaluatedValue?.provenance}
+            maskedBits={evaluatedValue?.maskedBits}
+            zoom={zoom}
+            onLaneWidthChange={setLaneWidth}
+            onZoomChange={setZoom}
+            mobileActive={mobileTab === 'bits'}
+          />
+
+          <section
+            className={`di-card di-inspector di-mobile-panel ${mobileTab === 'inspect' ? 'is-mobile-active' : ''}`}
+            aria-label="Inspector tools"
+          >
+            <nav className="di-inspector-tabs" aria-label="Inspector tool" role="tablist">
+              {(['fields', 'capture', 'transform'] as const).map((tab) => (
+                <button
+                  aria-controls={`di-inspector-panel-${tab}`}
+                  aria-selected={inspectorTab === tab}
+                  className={inspectorTab === tab ? 'is-active' : ''}
+                  id={`di-inspector-tab-${tab}`}
+                  key={tab}
+                  role="tab"
+                  tabIndex={inspectorTab === tab ? 0 : -1}
+                  onClick={() => setInspectorTab(tab)}
+                >
+                  {tab[0].toUpperCase() + tab.slice(1)}
+                  {tab === 'fields' && fields.length > 0 ? ` ${fields.length}` : ''}
+                  {tab === 'transform' && currentRecipe.steps.length > 0
+                    ? ` ${currentRecipe.steps.length}`
+                    : ''}
+                </button>
+              ))}
+            </nav>
+
+            <div
+              aria-labelledby="di-inspector-tab-capture"
+              className={`di-inspector-panel di-capture-panel ${inspectorTab === 'capture' ? 'is-active' : ''}`}
+              id="di-inspector-panel-capture"
+              role="tabpanel"
             >
-              Copy fields
-            </button>
-            <p className="di-note">
-              Import is a one-way copy. The memory map is never modified or linked.
-            </p>
-            <details className="di-capture" open={vcdCapture !== null}>
-              <summary>VCD capture</summary>
+              <div className="di-panel-heading">
+                <span className="di-eyebrow">Bring in structure or samples</span>
+                <h2>Capture</h2>
+              </div>
               <label>
-                VCD file
-                <input
-                  type="file"
-                  accept=".vcd,text/plain"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    if (!file) {
-                      return;
-                    }
-                    void file
-                      .text()
-                      .then((text) => {
-                        const capture = VcdCapture.parse(text);
-                        setVcdCapture(capture);
-                        setVcdSignalNames(capture.signals.slice(0, 1).map((signal) => signal.name));
-                        setError('');
-                      })
-                      .catch((captureError: unknown) =>
-                        setError(
-                          captureError instanceof Error
-                            ? captureError.message
-                            : String(captureError)
-                        )
-                      );
-                  }}
-                />
-              </label>
-              {vcdCapture && (
-                <div className="di-capture__signals">
-                  {vcdCapture.signals.map((signal) => (
-                    <label key={signal.id}>
-                      <input
-                        type="checkbox"
-                        checked={vcdSignalNames.includes(signal.name)}
-                        onChange={(event) =>
-                          setVcdSignalNames((current) =>
-                            event.target.checked
-                              ? [...current, signal.name]
-                              : current.filter((name) => name !== signal.name)
-                          )
-                        }
-                      />
-                      {signal.name} [{signal.width}]
-                    </label>
+                Import register layout
+                <select value={layoutId} onChange={(event) => setLayoutId(event.target.value)}>
+                  <option value="">Choose a register…</option>
+                  {layouts.map((layout) => (
+                    <option value={layout.id} key={layout.id}>
+                      {layout.label}
+                    </option>
                   ))}
-                  <button
-                    disabled={vcdSignalNames.length === 0}
-                    onClick={() => {
-                      const selection = vcdCapture.selectSignals(vcdSignalNames);
-                      setVcdSelection(selection);
-                      applyVcdSample(selection, 0);
-                    }}
-                  >
-                    Index selected signals
-                  </button>
-                </div>
-              )}
-              {vcdSelection && vcdSample && (
-                <div className="di-timeline">
-                  <button
-                    aria-label="Previous sample"
-                    disabled={vcdSampleIndex === 0}
-                    onClick={() => applyVcdSample(vcdSelection, vcdSampleIndex - 1)}
-                  >
-                    Previous
-                  </button>
-                  <input
-                    aria-label="Capture sample"
-                    type="range"
-                    min={0}
-                    max={vcdSelection.sampleCount - 1}
-                    value={vcdSampleIndex}
-                    onChange={(event) => applyVcdSample(vcdSelection, Number(event.target.value))}
-                  />
-                  <button
-                    aria-label="Next sample"
-                    disabled={vcdSampleIndex === vcdSelection.sampleCount - 1}
-                    onClick={() => applyVcdSample(vcdSelection, vcdSampleIndex + 1)}
-                  >
-                    Next
-                  </button>
-                  <small>
-                    Sample {vcdSampleIndex + 1} of {vcdSelection.sampleCount} · time{' '}
-                    {vcdSample.time.toString()} {vcdCapture?.timescale}
-                  </small>
-                </div>
-              )}
-            </details>
-            <details className="di-capture" open={csvText !== ''}>
-              <summary>CSV / ILA / SignalTap capture</summary>
-              <div className="di-csv-actions">
+                </select>
+              </label>
+              <button
+                disabled={!layoutId}
+                onClick={() => {
+                  const layout = layouts.find((candidate) => candidate.id === layoutId);
+                  if (layout) {
+                    setFields(layout.fields.map((field) => ({ ...field })));
+                    setFieldProvenance(
+                      Object.fromEntries(
+                        layout.fields.map((field) => [
+                          field.id,
+                          { sourceFile: layout.sourceFile, registerName: layout.registerName },
+                        ])
+                      )
+                    );
+                    if (layout.width !== vector.width) {
+                      setError(
+                        `Copied ${layout.width}-bit register layout onto a ${vector.width}-bit value; out-of-range fields are flagged below`
+                      );
+                    }
+                  }
+                }}
+              >
+                Copy fields
+              </button>
+              <p className="di-note">
+                Import is a one-way copy. The memory map is never modified or linked.
+              </p>
+              <details className="di-capture" open={vcdCapture !== null}>
+                <summary>VCD capture</summary>
                 <label>
-                  CSV file
+                  VCD file
                   <input
                     type="file"
-                    accept=".csv,text/csv,text/plain"
+                    accept=".vcd,text/plain"
                     onChange={(event) => {
                       const file = event.target.files?.[0];
-                      if (file) {
-                        void file
-                          .text()
-                          .then(loadCsvText)
-                          .catch((csvError: unknown) =>
-                            setError(
-                              csvError instanceof Error ? csvError.message : String(csvError)
-                            )
-                          );
+                      if (!file) {
+                        return;
                       }
+                      void file
+                        .text()
+                        .then((text) => {
+                          const capture = VcdCapture.parse(text);
+                          setVcdCapture(capture);
+                          setVcdSignalNames(
+                            capture.signals.slice(0, 1).map((signal) => signal.name)
+                          );
+                          setError('');
+                        })
+                        .catch((captureError: unknown) =>
+                          setError(
+                            captureError instanceof Error
+                              ? captureError.message
+                              : String(captureError)
+                          )
+                        );
                     }}
                   />
                 </label>
-                <button
-                  onClick={() =>
-                    void navigator.clipboard
-                      .readText()
-                      .then(loadCsvText)
-                      .catch((csvError: unknown) =>
-                        setError(csvError instanceof Error ? csvError.message : String(csvError))
-                      )
-                  }
-                >
-                  Paste CSV
-                </button>
+                {vcdCapture && (
+                  <div className="di-capture__signals">
+                    {vcdCapture.signals.map((signal) => (
+                      <label key={signal.id}>
+                        <input
+                          type="checkbox"
+                          checked={vcdSignalNames.includes(signal.name)}
+                          onChange={(event) =>
+                            setVcdSignalNames((current) =>
+                              event.target.checked
+                                ? [...current, signal.name]
+                                : current.filter((name) => name !== signal.name)
+                            )
+                          }
+                        />
+                        {signal.name} [{signal.width}]
+                      </label>
+                    ))}
+                    <button
+                      disabled={vcdSignalNames.length === 0}
+                      onClick={() => {
+                        const selection = vcdCapture.selectSignals(vcdSignalNames);
+                        setVcdSelection(selection);
+                        applyVcdSample(selection, 0);
+                      }}
+                    >
+                      Index selected signals
+                    </button>
+                  </div>
+                )}
+                {vcdSelection && vcdSample && (
+                  <div className="di-timeline">
+                    <button
+                      aria-label="Previous sample"
+                      disabled={vcdSampleIndex === 0}
+                      onClick={() => applyVcdSample(vcdSelection, vcdSampleIndex - 1)}
+                    >
+                      Previous
+                    </button>
+                    <input
+                      aria-label="Capture sample"
+                      type="range"
+                      min={0}
+                      max={vcdSelection.sampleCount - 1}
+                      value={vcdSampleIndex}
+                      onChange={(event) => applyVcdSample(vcdSelection, Number(event.target.value))}
+                    />
+                    <button
+                      aria-label="Next sample"
+                      disabled={vcdSampleIndex === vcdSelection.sampleCount - 1}
+                      onClick={() => applyVcdSample(vcdSelection, vcdSampleIndex + 1)}
+                    >
+                      Next
+                    </button>
+                    <small>
+                      Sample {vcdSampleIndex + 1} of {vcdSelection.sampleCount} · time{' '}
+                      {vcdSample.time.toString()} {vcdCapture?.timescale}
+                    </small>
+                  </div>
+                )}
+              </details>
+              <details className="di-capture" open={csvText !== ''}>
+                <summary>CSV / ILA / SignalTap capture</summary>
+                <div className="di-csv-actions">
+                  <label>
+                    CSV file
+                    <input
+                      type="file"
+                      accept=".csv,text/csv,text/plain"
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        if (file) {
+                          void file
+                            .text()
+                            .then(loadCsvText)
+                            .catch((csvError: unknown) =>
+                              setError(
+                                csvError instanceof Error ? csvError.message : String(csvError)
+                              )
+                            );
+                        }
+                      }}
+                    />
+                  </label>
+                  <button
+                    onClick={() =>
+                      void navigator.clipboard
+                        .readText()
+                        .then(loadCsvText)
+                        .catch((csvError: unknown) =>
+                          setError(csvError instanceof Error ? csvError.message : String(csvError))
+                        )
+                    }
+                  >
+                    Paste CSV
+                  </button>
+                </div>
+                {csvText && (
+                  <div className="di-csv-mapping">
+                    {detectCsvCapturePreset(csvHeaders) && (
+                      <p className="di-note">
+                        Detected{' '}
+                        {detectCsvCapturePreset(csvHeaders) === 'vivadoIla'
+                          ? 'Vivado ILA'
+                          : 'SignalTap'}{' '}
+                        export; metadata columns are excluded.
+                      </p>
+                    )}
+                    <label>
+                      Signal column
+                      <select
+                        value={csvColumn}
+                        onChange={(event) => setCsvColumn(event.target.value)}
+                      >
+                        {csvHeaders.map((header) => (
+                          <option key={header}>{header}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      Radix
+                      <select
+                        value={csvRadix}
+                        onChange={(event) =>
+                          setCsvRadix(event.target.value as CsvSignalMapping['radix'])
+                        }
+                      >
+                        {['hex', 'binary', 'decimal'].map((radix) => (
+                          <option key={radix}>{radix}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      Byte order
+                      <select
+                        value={csvByteOrder}
+                        onChange={(event) =>
+                          setCsvByteOrder(event.target.value as CsvSignalMapping['byteOrder'])
+                        }
+                      >
+                        <option value="bigEndian">big endian</option>
+                        <option value="littleEndian">little endian</option>
+                      </select>
+                    </label>
+                    <label>
+                      Word order
+                      <select
+                        value={csvWordOrder}
+                        onChange={(event) =>
+                          setCsvWordOrder(event.target.value as CsvSignalMapping['wordOrder'])
+                        }
+                      >
+                        <option value="highFirst">high word first</option>
+                        <option value="lowFirst">low word first</option>
+                      </select>
+                    </label>
+                    <label>
+                      Word width
+                      <select
+                        value={csvWordWidth}
+                        onChange={(event) =>
+                          setCsvWordWidth(
+                            Number(event.target.value) as CsvSignalMapping['wordWidth']
+                          )
+                        }
+                      >
+                        {[8, 16, 32, 64].map((width) => (
+                          <option key={width}>{width}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <button
+                      onClick={() => {
+                        try {
+                          const source = currentRecipe.sources[0];
+                          const capture = CsvCapture.parse(csvText, [
+                            {
+                              name: source.name,
+                              column: csvColumn,
+                              radix: csvRadix,
+                              width: source.width,
+                              byteOrder: csvByteOrder,
+                              wordOrder: csvWordOrder,
+                              wordWidth: csvWordWidth,
+                            },
+                          ]);
+                          setCsvCapture(capture);
+                          applyCsvSample(capture, 0);
+                          setError('');
+                        } catch (csvError) {
+                          setError(csvError instanceof Error ? csvError.message : String(csvError));
+                        }
+                      }}
+                    >
+                      Import samples
+                    </button>
+                  </div>
+                )}
+                {csvCapture && (
+                  <div className="di-timeline">
+                    <button
+                      disabled={csvSampleIndex === 0}
+                      onClick={() => applyCsvSample(csvCapture, csvSampleIndex - 1)}
+                    >
+                      Previous
+                    </button>
+                    <input
+                      aria-label="CSV sample"
+                      type="range"
+                      min={0}
+                      max={csvCapture.samples.length - 1}
+                      value={csvSampleIndex}
+                      onChange={(event) => applyCsvSample(csvCapture, Number(event.target.value))}
+                    />
+                    <button
+                      disabled={csvSampleIndex === csvCapture.samples.length - 1}
+                      onClick={() => applyCsvSample(csvCapture, csvSampleIndex + 1)}
+                    >
+                      Next
+                    </button>
+                    <small>
+                      Sample {csvSampleIndex + 1} of {csvCapture.samples.length}
+                    </small>
+                  </div>
+                )}
+              </details>
+            </div>
+
+            <div
+              aria-labelledby="di-inspector-tab-transform"
+              className={`di-inspector-panel di-transform-panel ${inspectorTab === 'transform' ? 'is-active' : ''}`}
+              id="di-inspector-panel-transform"
+              role="tabpanel"
+            >
+              <div className="di-panel-heading">
+                <span className="di-eyebrow">Compose derived values</span>
+                <h2>Transform recipe</h2>
               </div>
-              {csvText && (
-                <div className="di-csv-mapping">
-                  {detectCsvCapturePreset(csvHeaders) && (
-                    <p className="di-note">
-                      Detected{' '}
-                      {detectCsvCapturePreset(csvHeaders) === 'vivadoIla'
-                        ? 'Vivado ILA'
-                        : 'SignalTap'}{' '}
-                      export; metadata columns are excluded.
-                    </p>
-                  )}
-                  <label>
-                    Signal column
-                    <select
-                      value={csvColumn}
-                      onChange={(event) => setCsvColumn(event.target.value)}
-                    >
-                      {csvHeaders.map((header) => (
-                        <option key={header}>{header}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    Radix
-                    <select
-                      value={csvRadix}
-                      onChange={(event) =>
-                        setCsvRadix(event.target.value as CsvSignalMapping['radix'])
-                      }
-                    >
-                      {['hex', 'binary', 'decimal'].map((radix) => (
-                        <option key={radix}>{radix}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    Byte order
-                    <select
-                      value={csvByteOrder}
-                      onChange={(event) =>
-                        setCsvByteOrder(event.target.value as CsvSignalMapping['byteOrder'])
-                      }
-                    >
-                      <option value="bigEndian">big endian</option>
-                      <option value="littleEndian">little endian</option>
-                    </select>
-                  </label>
-                  <label>
-                    Word order
-                    <select
-                      value={csvWordOrder}
-                      onChange={(event) =>
-                        setCsvWordOrder(event.target.value as CsvSignalMapping['wordOrder'])
-                      }
-                    >
-                      <option value="highFirst">high word first</option>
-                      <option value="lowFirst">low word first</option>
-                    </select>
-                  </label>
-                  <label>
-                    Word width
-                    <select
-                      value={csvWordWidth}
-                      onChange={(event) =>
-                        setCsvWordWidth(Number(event.target.value) as CsvSignalMapping['wordWidth'])
-                      }
-                    >
-                      {[8, 16, 32, 64].map((width) => (
-                        <option key={width}>{width}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <button
-                    onClick={() => {
-                      try {
-                        const source = currentRecipe.sources[0];
-                        const capture = CsvCapture.parse(csvText, [
-                          {
-                            name: source.name,
-                            column: csvColumn,
-                            radix: csvRadix,
-                            width: source.width,
-                            byteOrder: csvByteOrder,
-                            wordOrder: csvWordOrder,
-                            wordWidth: csvWordWidth,
-                          },
-                        ]);
-                        setCsvCapture(capture);
-                        applyCsvSample(capture, 0);
-                        setError('');
-                      } catch (csvError) {
-                        setError(csvError instanceof Error ? csvError.message : String(csvError));
-                      }
-                    }}
-                  >
-                    Import samples
-                  </button>
-                </div>
-              )}
-              {csvCapture && (
-                <div className="di-timeline">
-                  <button
-                    disabled={csvSampleIndex === 0}
-                    onClick={() => applyCsvSample(csvCapture, csvSampleIndex - 1)}
-                  >
-                    Previous
-                  </button>
-                  <input
-                    aria-label="CSV sample"
-                    type="range"
-                    min={0}
-                    max={csvCapture.samples.length - 1}
-                    value={csvSampleIndex}
-                    onChange={(event) => applyCsvSample(csvCapture, Number(event.target.value))}
-                  />
-                  <button
-                    disabled={csvSampleIndex === csvCapture.samples.length - 1}
-                    onClick={() => applyCsvSample(csvCapture, csvSampleIndex + 1)}
-                  >
-                    Next
-                  </button>
-                  <small>
-                    Sample {csvSampleIndex + 1} of {csvCapture.samples.length}
-                  </small>
-                </div>
-              )}
-            </details>
-            <details className="di-recipe" open={currentRecipe.steps.length > 0}>
-              <summary>Transform recipe · {currentRecipe.steps.length} steps</summary>
               <div className="di-output-editor">
                 {currentRecipe.outputs.map((output, index) => (
                   <div key={output.id}>
@@ -1449,232 +1541,219 @@ export function DataInspectorApp() {
                   );
                 })}
               </ol>
-            </details>
-          </aside>
-
-          <LaneRibbon
-            vector={displayVector ?? vector}
-            fields={ribbonFields.filter(
-              (field) =>
-                field.lsb >= 0 &&
-                field.msb >= field.lsb &&
-                field.msb < (displayVector?.width ?? vector.width)
-            )}
-            laneWidth={laneWidth}
-            selectedFieldId={selectedFieldId}
-            onSelectField={setSelectedFieldId}
-            provenance={evaluatedValue?.provenance}
-            maskedBits={evaluatedValue?.maskedBits}
-            zoom={zoom}
-            mobileActive={mobileTab === 'bits'}
-          />
-
-          <section
-            className={`di-card di-fields di-mobile-panel ${mobileTab === 'fields' ? 'is-mobile-active' : ''}`}
-            aria-labelledby="fields-heading"
-          >
-            <header className="di-section-header">
-              <div>
-                <span className="di-eyebrow">Decoded ranges</span>
-                <h2 id="fields-heading">Fields</h2>
-              </div>
-              <button onClick={addField}>Add field</button>
-            </header>
-            <label className="di-search">
-              <span className="codicon codicon-search" aria-hidden="true" />
-              <span className="sr-only">Search fields</span>
-              <input
-                placeholder="Find field"
-                value={fieldSearch}
-                onChange={(event) => setFieldSearch(event.target.value)}
-              />
-            </label>
-            {layoutErrors.map((layoutError) => (
-              <div className="di-message is-error" key={layoutError}>
-                {layoutError}
-              </div>
-            ))}
-            <div className="di-field-table" role="table">
-              <div className="di-field-row is-head" role="row">
-                <span>Name</span>
-                <span>Bits</span>
-                <span>Raw</span>
-                <span>Shown as</span>
-              </div>
-              {filteredFields.map((field) => {
-                const definition = currentRecipe.fields.find(
-                  (candidate) => candidate.id === field.id
-                );
-                const sourceVector = definition
-                  ? evaluation.values.get(definition.sourceId)?.value
-                  : displayVector;
-                const valid =
-                  sourceVector !== undefined &&
-                  sourceVector !== null &&
-                  field.lsb >= 0 &&
-                  field.msb >= field.lsb &&
-                  field.msb < sourceVector.width;
-                const value = valid && sourceVector ? decodeField(sourceVector, field) : null;
-                const shown = value ? interpretedText(value, definition) : { text: 'invalid' };
-                const sourceName = currentRecipe.sources.find(
-                  (source) => source.id === definition?.sourceId
-                )?.name;
-                const changed = sourceName
-                  ? [...(vcdSample?.changedBits.get(sourceName) ?? [])].some(
-                      (bit) => bit >= field.lsb && bit <= field.msb
-                    )
-                  : false;
-                return (
-                  <button
-                    className={`di-field-row ${selectedFieldId === field.id ? 'is-selected' : ''} ${changed ? 'is-changed' : ''}`}
-                    role="row"
-                    key={field.id}
-                    onClick={() => setSelectedFieldId(field.id)}
-                  >
-                    <span>{field.name}</span>
-                    <span>
-                      [{field.msb}:{field.lsb}]
-                    </span>
-                    <span>
-                      {value?.toHex() ? `0x${value.toHex()}` : (value?.toBinary() ?? 'invalid')}
-                    </span>
-                    <span>
-                      {shown.text}
-                      {shown.comparison && (
-                        <b className={`di-compare is-${shown.comparison}`}>{shown.comparison}</b>
-                      )}
-                      {changed && <b className="di-changed">changed</b>}
-                    </span>
-                  </button>
-                );
-              })}
             </div>
-            {selectedFieldId && (
-              <div className="di-field-decode-controls">
-                <label>
-                  Name
-                  <input
-                    value={fields.find((field) => field.id === selectedFieldId)?.name ?? ''}
-                    onChange={(event) => updateSelectedField({ name: event.target.value })}
-                  />
-                </label>
-                <label>
-                  MSB
-                  <input
-                    type="number"
-                    min={0}
-                    value={fields.find((field) => field.id === selectedFieldId)?.msb ?? 0}
-                    onChange={(event) => updateSelectedField({ msb: Number(event.target.value) })}
-                  />
-                </label>
-                <label>
-                  LSB
-                  <input
-                    type="number"
-                    min={0}
-                    value={fields.find((field) => field.id === selectedFieldId)?.lsb ?? 0}
-                    onChange={(event) => updateSelectedField({ lsb: Number(event.target.value) })}
-                  />
-                </label>
-                <label>
-                  Overlay group
-                  <select
-                    value={
-                      fields.find((field) => field.id === selectedFieldId)?.groupId ?? 'default'
-                    }
-                    onChange={(event) => updateSelectedField({ groupId: event.target.value })}
-                  >
-                    {currentRecipe.overlayGroups.map((group) => (
-                      <option value={group.id} key={group.id}>
-                        {group.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  Interpretation
-                  <select
-                    value={
-                      currentRecipe.fields.find((field) => field.id === selectedFieldId)?.display
-                        .interpretation ?? 'hex'
-                    }
-                    onChange={(event) =>
-                      updateSelectedFieldDisplay({
-                        interpretation: event.target
-                          .value as IPCraftDataInspectorRecipe['fields'][number]['display']['interpretation'],
-                      })
-                    }
-                  >
-                    {['hex', 'binary', 'unsigned', 'signed', 'enum', 'float', 'fixedPoint'].map(
-                      (interpretation) => (
-                        <option key={interpretation}>{interpretation}</option>
+
+            <div
+              aria-labelledby="di-inspector-tab-fields"
+              className={`di-inspector-panel di-fields ${inspectorTab === 'fields' ? 'is-active' : ''}`}
+              id="di-inspector-panel-fields"
+              role="tabpanel"
+            >
+              <header className="di-section-header">
+                <div>
+                  <span className="di-eyebrow">Decoded ranges</span>
+                  <h2 id="fields-heading">Fields</h2>
+                </div>
+                <button onClick={addField}>Add field</button>
+              </header>
+              <label className="di-search">
+                <span className="codicon codicon-search" aria-hidden="true" />
+                <span className="sr-only">Search fields</span>
+                <input
+                  placeholder="Find field"
+                  value={fieldSearch}
+                  onChange={(event) => setFieldSearch(event.target.value)}
+                />
+              </label>
+              {layoutErrors.map((layoutError) => (
+                <div className="di-message is-error" key={layoutError}>
+                  {layoutError}
+                </div>
+              ))}
+              <div className="di-field-table" role="table">
+                <div className="di-field-row is-head" role="row">
+                  <span>Name</span>
+                  <span>Bits</span>
+                  <span>Raw</span>
+                  <span>Shown as</span>
+                </div>
+                {filteredFields.map((field) => {
+                  const definition = currentRecipe.fields.find(
+                    (candidate) => candidate.id === field.id
+                  );
+                  const sourceVector = definition
+                    ? evaluation.values.get(definition.sourceId)?.value
+                    : displayVector;
+                  const valid =
+                    sourceVector !== undefined &&
+                    sourceVector !== null &&
+                    field.lsb >= 0 &&
+                    field.msb >= field.lsb &&
+                    field.msb < sourceVector.width;
+                  const value = valid && sourceVector ? decodeField(sourceVector, field) : null;
+                  const shown = value ? interpretedText(value, definition) : { text: 'invalid' };
+                  const sourceName = currentRecipe.sources.find(
+                    (source) => source.id === definition?.sourceId
+                  )?.name;
+                  const changed = sourceName
+                    ? [...(vcdSample?.changedBits.get(sourceName) ?? [])].some(
+                        (bit) => bit >= field.lsb && bit <= field.msb
                       )
-                    )}
-                  </select>
-                </label>
-                {currentRecipe.fields.find((field) => field.id === selectedFieldId)?.display
-                  .interpretation === 'fixedPoint' && (
+                    : false;
+                  return (
+                    <button
+                      className={`di-field-row ${selectedFieldId === field.id ? 'is-selected' : ''} ${changed ? 'is-changed' : ''}`}
+                      role="row"
+                      key={field.id}
+                      onClick={() => setSelectedFieldId(field.id)}
+                    >
+                      <span>{field.name}</span>
+                      <span>
+                        [{field.msb}:{field.lsb}]
+                      </span>
+                      <span>
+                        {value?.toHex() ? `0x${value.toHex()}` : (value?.toBinary() ?? 'invalid')}
+                      </span>
+                      <span>
+                        {shown.text}
+                        {shown.comparison && (
+                          <b className={`di-compare is-${shown.comparison}`}>{shown.comparison}</b>
+                        )}
+                        {changed && <b className="di-changed">changed</b>}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              {selectedFieldId && (
+                <div className="di-field-decode-controls">
                   <label>
-                    Fractional bits
+                    Name
+                    <input
+                      value={fields.find((field) => field.id === selectedFieldId)?.name ?? ''}
+                      onChange={(event) => updateSelectedField({ name: event.target.value })}
+                    />
+                  </label>
+                  <label>
+                    MSB
                     <input
                       type="number"
                       min={0}
+                      value={fields.find((field) => field.id === selectedFieldId)?.msb ?? 0}
+                      onChange={(event) => updateSelectedField({ msb: Number(event.target.value) })}
+                    />
+                  </label>
+                  <label>
+                    LSB
+                    <input
+                      type="number"
+                      min={0}
+                      value={fields.find((field) => field.id === selectedFieldId)?.lsb ?? 0}
+                      onChange={(event) => updateSelectedField({ lsb: Number(event.target.value) })}
+                    />
+                  </label>
+                  <label>
+                    Overlay group
+                    <select
+                      value={
+                        fields.find((field) => field.id === selectedFieldId)?.groupId ?? 'default'
+                      }
+                      onChange={(event) => updateSelectedField({ groupId: event.target.value })}
+                    >
+                      {currentRecipe.overlayGroups.map((group) => (
+                        <option value={group.id} key={group.id}>
+                          {group.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Interpretation
+                    <select
                       value={
                         currentRecipe.fields.find((field) => field.id === selectedFieldId)?.display
-                          .fractionalBits ?? 0
+                          .interpretation ?? 'hex'
                       }
                       onChange={(event) =>
-                        updateSelectedFieldDisplay({ fractionalBits: Number(event.target.value) })
+                        updateSelectedFieldDisplay({
+                          interpretation: event.target
+                            .value as IPCraftDataInspectorRecipe['fields'][number]['display']['interpretation'],
+                        })
+                      }
+                    >
+                      {['hex', 'binary', 'unsigned', 'signed', 'enum', 'float', 'fixedPoint'].map(
+                        (interpretation) => (
+                          <option key={interpretation}>{interpretation}</option>
+                        )
+                      )}
+                    </select>
+                  </label>
+                  {currentRecipe.fields.find((field) => field.id === selectedFieldId)?.display
+                    .interpretation === 'fixedPoint' && (
+                    <label>
+                      Fractional bits
+                      <input
+                        type="number"
+                        min={0}
+                        value={
+                          currentRecipe.fields.find((field) => field.id === selectedFieldId)
+                            ?.display.fractionalBits ?? 0
+                        }
+                        onChange={(event) =>
+                          updateSelectedFieldDisplay({ fractionalBits: Number(event.target.value) })
+                        }
+                      />
+                    </label>
+                  )}
+                  <label>
+                    Expected literal
+                    <input
+                      placeholder="optional"
+                      value={
+                        currentRecipe.fields.find((field) => field.id === selectedFieldId)?.display
+                          .expectedValue ?? ''
+                      }
+                      onChange={(event) =>
+                        updateSelectedFieldDisplay({
+                          expectedValue: event.target.value || undefined,
+                        })
                       }
                     />
                   </label>
-                )}
-                <label>
-                  Expected literal
-                  <input
-                    placeholder="optional"
-                    value={
-                      currentRecipe.fields.find((field) => field.id === selectedFieldId)?.display
-                        .expectedValue ?? ''
-                    }
-                    onChange={(event) =>
-                      updateSelectedFieldDisplay({ expectedValue: event.target.value || undefined })
-                    }
-                  />
-                </label>
-                <div className="di-new-group">
-                  <input
-                    aria-label="New overlay group"
-                    placeholder="Alternative view"
-                    value={newGroupName}
-                    onChange={(event) => setNewGroupName(event.target.value)}
-                  />
-                  <button
-                    disabled={!newGroupName.trim()}
-                    onClick={() => {
-                      const id = newGroupName
-                        .trim()
-                        .toLowerCase()
-                        .replace(/[^a-z0-9._-]+/g, '-');
-                      setRecipeBase({
-                        ...currentRecipe,
-                        overlayGroups: [
-                          ...currentRecipe.overlayGroups,
-                          { id, name: newGroupName.trim() },
-                        ],
-                      });
-                      updateSelectedField({ groupId: id });
-                      setNewGroupName('');
-                    }}
-                  >
-                    Add group
-                  </button>
+                  <div className="di-new-group">
+                    <input
+                      aria-label="New overlay group"
+                      placeholder="Alternative view"
+                      value={newGroupName}
+                      onChange={(event) => setNewGroupName(event.target.value)}
+                    />
+                    <button
+                      disabled={!newGroupName.trim()}
+                      onClick={() => {
+                        const id = newGroupName
+                          .trim()
+                          .toLowerCase()
+                          .replace(/[^a-z0-9._-]+/g, '-');
+                        setRecipeBase({
+                          ...currentRecipe,
+                          overlayGroups: [
+                            ...currentRecipe.overlayGroups,
+                            { id, name: newGroupName.trim() },
+                          ],
+                        });
+                        updateSelectedField({ groupId: id });
+                        setNewGroupName('');
+                      }}
+                    >
+                      Add group
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )}
-            {fields.length === 0 && (
-              <p className="di-note">Define a field or copy a register layout.</p>
-            )}
+              )}
+              {fields.length === 0 && (
+                <p className="di-note">Define a field or copy a register layout.</p>
+              )}
+            </div>
           </section>
         </div>
       )}

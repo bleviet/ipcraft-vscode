@@ -40,6 +40,51 @@ test.describe('Data Inspector responsive and accessible workspace', () => {
     await expect(page.locator('[aria-live="polite"]')).toContainText('Lane 2');
   });
 
+  test('aligns field overlays with their bit cells in a partial lane', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(harnessPath);
+    await decode(page, "32'hDEADBEEF");
+    await page.getByLabel('Lane width').selectOption('64');
+    await page.getByRole('button', { name: 'Add field' }).click();
+    await page.getByLabel('LSB').fill('28');
+
+    const [segmentBox, msbBox, lsbBox] = await Promise.all([
+      page.getByTitle('FIELD_1 [31:28]').boundingBox(),
+      page.locator('.di-bits.is-field [data-bit="31"]').boundingBox(),
+      page.locator('.di-bits.is-field [data-bit="28"]').boundingBox(),
+    ]);
+    expect(segmentBox).not.toBeNull();
+    expect(msbBox).not.toBeNull();
+    expect(lsbBox).not.toBeNull();
+    expect(Math.abs(segmentBox!.x - msbBox!.x)).toBeLessThanOrEqual(1);
+    expect(
+      Math.abs(segmentBox!.x + segmentBox!.width - (lsbBox!.x + lsbBox!.width))
+    ).toBeLessThanOrEqual(1);
+  });
+
+  test('keeps bit zoom cells and field overlays on the same scroll track', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(harnessPath);
+    await decode(page, "32'hDEADBEEF");
+    await page.getByLabel('Lane width').selectOption('64');
+    await page.getByLabel('Zoom').selectOption('bit');
+    await page.getByRole('button', { name: 'Add field' }).click();
+    await page.getByLabel('LSB').fill('28');
+
+    const [segmentBox, msbBox, lsbBox] = await Promise.all([
+      page.getByTitle('FIELD_1 [31:28]').boundingBox(),
+      page.locator('.di-bits.is-bit [data-bit="31"]').boundingBox(),
+      page.locator('.di-bits.is-bit [data-bit="28"]').boundingBox(),
+    ]);
+    expect(segmentBox).not.toBeNull();
+    expect(msbBox).not.toBeNull();
+    expect(lsbBox).not.toBeNull();
+    expect(Math.abs(segmentBox!.x - msbBox!.x)).toBeLessThanOrEqual(1);
+    expect(
+      Math.abs(segmentBox!.x + segmentBox!.width - (lsbBox!.x + lsbBox!.width))
+    ).toBeLessThanOrEqual(1);
+  });
+
   test('keeps a bounded live DOM for 4096 bits', async ({ page }) => {
     await page.goto(harnessPath);
     await decode(page, `${4096}'h${'A5'.repeat(512)}`);
@@ -48,10 +93,12 @@ test.describe('Data Inspector responsive and accessible workspace', () => {
     expect(await page.locator('.di-lane').count()).toBeLessThanOrEqual(12);
   });
 
-  test('keeps long register layout names inside the source rail', async ({ page }) => {
+  test('keeps long register layout names inside the inspector', async ({ page }) => {
     await page.setViewportSize({ width: 900, height: 800 });
     await page.goto(harnessPath);
     await decode(page, "32'hDEADBEEF");
+    await page.getByRole('button', { name: 'Inspect' }).click();
+    await page.getByRole('tab', { name: 'Capture' }).click();
 
     const layoutSelect = page.getByLabel('Import register layout');
     await layoutSelect.evaluate((select: HTMLSelectElement) => {
@@ -65,13 +112,40 @@ test.describe('Data Inspector responsive and accessible workspace', () => {
       );
     });
 
-    const [railBox, selectBox] = await Promise.all([
-      page.locator('.di-source-rail').boundingBox(),
+    const [inspectorBox, selectBox] = await Promise.all([
+      page.locator('.di-inspector').boundingBox(),
       layoutSelect.boundingBox(),
     ]);
-    expect(railBox).not.toBeNull();
+    expect(inspectorBox).not.toBeNull();
     expect(selectBox).not.toBeNull();
-    expect(selectBox!.x + selectBox!.width).toBeLessThanOrEqual(railBox!.x + railBox!.width - 11);
+    expect(selectBox!.x + selectBox!.width).toBeLessThanOrEqual(
+      inspectorBox!.x + inspectorBox!.width - 11
+    );
+  });
+
+  test('keeps sources, bits, and workflow tools inside the desktop viewport', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(harnessPath);
+    await decode(page, "128'h00112233445566778899AABBCCDDEEFF");
+
+    for (let index = 0; index < 4; index++) {
+      await page.getByRole('button', { name: 'Add source' }).click();
+    }
+    await page.getByRole('tab', { name: 'Capture' }).click();
+    await expect(page.getByRole('heading', { name: 'Capture' })).toBeVisible();
+    await page.getByRole('tab', { name: 'Transform' }).click();
+    await page.getByRole('button', { name: 'Byte swap' }).click();
+
+    const layout = await page.evaluate(() => ({
+      pageOverflow: document.documentElement.scrollHeight - window.innerHeight,
+      sourceOverflow:
+        document.querySelector<HTMLElement>('.di-source-rail')!.scrollHeight -
+        document.querySelector<HTMLElement>('.di-source-rail')!.clientHeight,
+      workspaceBottom: document.querySelector('.di-workspace')!.getBoundingClientRect().bottom,
+    }));
+    expect(layout.pageOverflow).toBeLessThanOrEqual(1);
+    expect(layout.sourceOverflow).toBeGreaterThan(0);
+    expect(layout.workspaceBottom).toBeLessThanOrEqual(884);
   });
 
   test('retains visible boundaries and selection patterns in forced colors', async ({ page }) => {
