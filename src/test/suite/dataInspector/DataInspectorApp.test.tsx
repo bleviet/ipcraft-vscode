@@ -1,5 +1,5 @@
 import React from 'react';
-import { createEvent, fireEvent, render, screen, within } from '@testing-library/react';
+import { createEvent, fireEvent, render, screen } from '@testing-library/react';
 import { parseLiteral } from '../../../dataInspector/parseLiteral';
 import { DataInspectorApp, LaneRibbon } from '../../../webview/dataInspector/DataInspectorApp';
 
@@ -57,75 +57,26 @@ describe('DataInspectorApp', () => {
     expect(screen.getByTitle('FIELD_1 [7:7]')).toHaveClass('is-selected');
   });
 
-  it('combines named sources with explicit concat order and a live width equation', () => {
+  it('deletes a focused field with the Delete key', () => {
     render(<DataInspectorApp />);
-    fireEvent.change(screen.getByLabelText('Literal'), {
-      target: { value: "32'h0001_2000" },
-    });
+    fireEvent.change(screen.getByLabelText('Literal'), { target: { value: "8'hA5" } });
     fireEvent.click(screen.getByRole('button', { name: 'Decode' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Add source' }));
-    fireEvent.change(screen.getByLabelText('INPUT_2 value'), {
-      target: { value: "32'h0000_3F00" },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Decode INPUT_2' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Add step' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add field' }));
 
-    expect(screen.getByText('32 + 32 = 64 bits')).toBeInTheDocument();
-    expect(screen.getByText("64'h0001200000003F00")).toBeInTheDocument();
-    expect(screen.getByText(/input2 \[31:0\]/)).toBeInTheDocument();
+    const row = screen.getByRole('row', { name: /FIELD_1/ });
+    fireEvent.keyDown(row, { key: 'Delete' });
+
+    expect(screen.queryByRole('row', { name: /FIELD_1/ })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Interpretation')).not.toBeInTheDocument();
   });
 
-  it('offers composition presets and multiple named outputs', () => {
-    render(<DataInspectorApp />);
-    fireEvent.change(screen.getByLabelText('Literal'), { target: { value: "16'h1234" } });
-    fireEvent.click(screen.getByRole('button', { name: 'Decode' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Byte swap' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Add output' }));
-
-    expect(screen.getByText("16'h3412")).toBeInTheDocument();
-    expect(screen.getByLabelText('Output 2 name')).toHaveValue('OUTPUT_2');
-  });
-
-  it('reorders transform operations without breaking the pipeline wiring', () => {
-    render(<DataInspectorApp />);
-    fireEvent.change(screen.getByLabelText('Literal'), { target: { value: "16'h1234" } });
-    fireEvent.click(screen.getByRole('button', { name: 'Decode' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Byte swap' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Slice' }));
-
-    const pipeline = screen.getByRole('list', { name: 'Transform pipeline' });
-    expect(within(pipeline).getAllByRole('listitem')[0]).toHaveTextContent('Byte swap');
-    expect(within(pipeline).getAllByRole('listitem')[1]).toHaveTextContent('Slice');
-
-    fireEvent.click(screen.getByRole('button', { name: 'Move Slice step up' }));
-
-    expect(within(pipeline).getAllByRole('listitem')[0]).toHaveTextContent('Slice');
-    expect(within(pipeline).getAllByRole('listitem')[1]).toHaveTextContent('Byte swap');
-    expect(within(pipeline).getAllByRole('listitem')[1]).toHaveTextContent("16'h3412");
-  });
-
-  it('deletes a transform and reconnects dependent steps to its input', () => {
-    render(<DataInspectorApp />);
-    fireEvent.change(screen.getByLabelText('Literal'), { target: { value: "16'h1234" } });
-    fireEvent.click(screen.getByRole('button', { name: 'Decode' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Byte swap' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Slice' }));
-
-    fireEvent.click(screen.getByRole('button', { name: 'Delete Byte swap step' }));
-
-    const pipeline = screen.getByRole('list', { name: 'Transform pipeline' });
-    expect(within(pipeline).getAllByRole('listitem')).toHaveLength(1);
-    expect(within(pipeline).getByRole('listitem')).toHaveTextContent('input');
-    expect(within(pipeline).getByRole('listitem')).toHaveTextContent("16'h1234");
-  });
-
-  it('deletes a transform when its drag ends outside the transform panel', () => {
+  it('deletes a field when its drag ends outside the fields panel', () => {
     const { container } = render(<DataInspectorApp />);
-    fireEvent.change(screen.getByLabelText('Literal'), { target: { value: "16'h1234" } });
+    fireEvent.change(screen.getByLabelText('Literal'), { target: { value: "8'hA5" } });
     fireEvent.click(screen.getByRole('button', { name: 'Decode' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Byte swap' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add field' }));
 
-    const panel = container.querySelector<HTMLElement>('.di-transform-panel')!;
+    const panel = container.querySelector<HTMLElement>('.di-fields')!;
     jest.spyOn(panel, 'getBoundingClientRect').mockReturnValue({
       bottom: 600,
       height: 600,
@@ -137,20 +88,28 @@ describe('DataInspectorApp', () => {
       y: 0,
       toJSON: () => ({}),
     });
-    const dragHandle = screen.getByRole('button', { name: 'Drag Byte swap step 1 to reorder' });
+    const row = screen.getByRole('row', { name: /FIELD_1/ });
     const dataTransfer = { dropEffect: 'none', effectAllowed: 'move' };
-    fireEvent.dragStart(dragHandle, { clientX: 100, clientY: 100, dataTransfer });
-    const dragEnd = createEvent.dragEnd(dragHandle, { dataTransfer });
+    fireEvent.dragStart(row, { clientX: 100, clientY: 100, dataTransfer });
+    const dragEnd = createEvent.dragEnd(row, { dataTransfer });
     Object.defineProperties(dragEnd, {
       clientX: { value: 340 },
       clientY: { value: 100 },
     });
-    fireEvent(dragHandle, dragEnd);
+    fireEvent(row, dragEnd);
 
-    expect(screen.getByRole('list', { name: 'Transform pipeline' })).toBeEmptyDOMElement();
-    expect(
-      screen.getByText('Choose an operation above to start the pipeline.')
-    ).toBeInTheDocument();
+    expect(screen.queryByRole('row', { name: /FIELD_1/ })).not.toBeInTheDocument();
+  });
+
+  it('uses the canvas as the only transform workbench view', () => {
+    render(<DataInspectorApp />);
+    fireEvent.change(screen.getByLabelText('Literal'), {
+      target: { value: "32'h0001_2000" },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Decode' }));
+    expect(screen.getByRole('heading', { name: 'Transform recipe' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'List' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Auto-layout' })).toBeInTheDocument();
   });
 
   it('changes a selected field interpretation while retaining its raw bits', () => {

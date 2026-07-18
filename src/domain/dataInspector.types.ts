@@ -87,4 +87,13 @@ export interface View {
   zoom: 'overview' | 'field' | 'bit';
   selectedOutputId?: StableId;
   selectedGroupId?: StableId;
+  canvas?: CanvasView;
+}
+export interface CanvasView {
+  nodes: CanvasNodePosition[];
+}
+export interface CanvasNodePosition {
+  id: StableId;
+  x: number;
+  y: number;
 }

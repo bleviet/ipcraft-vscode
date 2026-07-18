@@ -1577,6 +1577,7 @@
     "@vscode/codicons": "^0.0.33",
     "@vscode/webview-ui-toolkit": "^1.2.2",
     "@xmldom/xmldom": "^0.9.10",
+    "@xyflow/react": "^12.11.2",
     "ajv": "^8.20.0",
     "js-yaml": "^4.1.0",
     "nunjucks": "^3.2.4",

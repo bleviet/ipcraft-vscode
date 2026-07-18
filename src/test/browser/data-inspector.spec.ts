@@ -9,6 +9,13 @@ async function decode(page: import('@playwright/test').Page, literal: string) {
   await expect(page.getByRole('heading', { name: 'Bits' })).toBeVisible();
 }
 
+async function openFields(page: import('@playwright/test').Page) {
+  if ((page.viewportSize()?.width ?? 1280) <= 1100) {
+    await page.getByRole('button', { name: 'Inspect' }).click();
+  }
+  await page.getByRole('tab', { name: /Fields/ }).click();
+}
+
 test.describe('Data Inspector responsive and accessible workspace', () => {
   for (const width of [640, 900, 1440]) {
     test(`keeps bits visible without page-level horizontal scrolling at ${width}px`, async ({
@@ -37,7 +44,37 @@ test.describe('Data Inspector responsive and accessible workspace', () => {
     await lanes.first().focus();
     await page.keyboard.press('ArrowDown');
     await expect(lanes.nth(1)).toBeFocused();
-    await expect(page.locator('.sr-only[aria-live="polite"]')).toContainText('Lane 2');
+    await expect(
+      page.getByRole('region', { name: 'Bits' }).locator('.sr-only[aria-live="polite"]')
+    ).toContainText('Lane 2');
+  });
+
+  test('deletes fields with the keyboard or by dragging outside the panel', async ({ page }) => {
+    await page.goto(harnessPath);
+    await decode(page, "8'hA5");
+    await openFields(page);
+    await page.getByRole('button', { name: 'Add field' }).click();
+
+    const firstField = page.getByRole('row', { name: /FIELD_1/ });
+    await firstField.focus();
+    await page.keyboard.press('Delete');
+    await expect(firstField).toHaveCount(0);
+
+    await page.getByRole('button', { name: 'Add field' }).click();
+    const secondField = page.getByRole('row', { name: /FIELD_2/ });
+    const rowBounds = await secondField.boundingBox();
+    const panelBounds = await page.locator('.di-fields').boundingBox();
+    expect(rowBounds).not.toBeNull();
+    expect(panelBounds).not.toBeNull();
+    await page.mouse.move(
+      rowBounds!.x + rowBounds!.width / 2,
+      rowBounds!.y + rowBounds!.height / 2
+    );
+    await page.mouse.down();
+    await page.mouse.move(panelBounds!.x - 24, panelBounds!.y + 40, { steps: 12 });
+    await page.mouse.up();
+
+    await expect(secondField).toHaveCount(0);
   });
 
   test('jumps to and highlights an exact bit index with range feedback', async ({ page }) => {
@@ -68,6 +105,7 @@ test.describe('Data Inspector responsive and accessible workspace', () => {
     const zero = page.locator('[data-bit="14"]');
     await expect(one).toHaveClass(/is-one/);
     await expect(one).toHaveCSS('font-weight', '700');
+    await expect(one).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
     await expect(zero).toHaveClass(/is-zero/);
     await zero.evaluate((element) => element.classList.add('is-masked'));
     await expect(zero).toHaveCSS('text-decoration-line', 'none');
@@ -80,8 +118,7 @@ test.describe('Data Inspector responsive and accessible workspace', () => {
     await page.getByRole('button', { name: 'Add source' }).click();
     await page.getByLabel('INPUT_2 value').fill("32'h00FFFFFF");
     await page.getByRole('button', { name: 'Decode INPUT_2' }).click();
-    await page.getByRole('tab', { name: 'Transform' }).click();
-    await page.getByRole('button', { name: 'Mask + shift' }).click();
+    await page.getByRole('button', { name: 'Add Mask + shift preset' }).click();
 
     const inserted = page.getByTitle('Transform-inserted 0 [31:31]').last();
     await expect(inserted).toBeVisible();
@@ -101,6 +138,7 @@ test.describe('Data Inspector responsive and accessible workspace', () => {
     await page.goto(harnessPath);
     await decode(page, "32'hDEADBEEF");
     await page.getByRole('button', { name: '64', exact: true }).click();
+    await openFields(page);
     await page.getByRole('button', { name: 'Add field' }).click();
     await page.getByLabel('LSB').fill('28');
 
@@ -124,6 +162,7 @@ test.describe('Data Inspector responsive and accessible workspace', () => {
     await decode(page, "32'hDEADBEEF");
     await page.getByRole('button', { name: '64', exact: true }).click();
     await page.getByRole('button', { name: 'bit', exact: true }).click();
+    await openFields(page);
     await page.getByRole('button', { name: 'Add field' }).click();
     await page.getByLabel('LSB').fill('28');
 
@@ -147,6 +186,7 @@ test.describe('Data Inspector responsive and accessible workspace', () => {
     await decode(page, "32'h00000000");
     await page.getByRole('button', { name: '16', exact: true }).click();
     await page.getByRole('button', { name: 'bit', exact: true }).click();
+    await openFields(page);
     await page.getByRole('button', { name: 'Add field' }).click();
     await page.getByLabel('MSB').fill('7');
     await page.getByLabel('LSB').fill('0');
@@ -178,10 +218,10 @@ test.describe('Data Inspector responsive and accessible workspace', () => {
     await page.setViewportSize({ width: 900, height: 800 });
     await page.goto(harnessPath);
     await decode(page, "32'hDEADBEEF");
-    await page.getByRole('button', { name: 'Inspect' }).click();
-    await page.getByRole('tab', { name: 'Capture' }).click();
+    await openFields(page);
+    await page.getByText('Import register layout').click();
 
-    const layoutSelect = page.getByLabel('Import register layout');
+    const layoutSelect = page.getByLabel('Register');
     await layoutSelect.evaluate((select: HTMLSelectElement) => {
       select.add(
         new Option(
@@ -210,7 +250,7 @@ test.describe('Data Inspector responsive and accessible workspace', () => {
     await page.setViewportSize({ width: 840, height: 1000 });
     await page.goto(harnessPath);
     await decode(page, "32'h12345678");
-    await page.getByRole('button', { name: 'Inspect' }).click();
+    await openFields(page);
     await page.getByRole('button', { name: 'Add field' }).click();
     await page.getByLabel('LSB').fill('2');
 
@@ -231,51 +271,27 @@ test.describe('Data Inspector responsive and accessible workspace', () => {
 
     for (let index = 0; index < 4; index++) {
       await page.getByRole('button', { name: 'Add source' }).click();
+      await expect(page.locator('.di-flow-source')).toHaveCount(index + 2);
     }
-    await page.getByRole('tab', { name: 'Capture' }).click();
-    await expect(page.getByRole('heading', { name: 'Capture' })).toBeVisible();
-    await page.getByRole('tab', { name: 'Transform' }).click();
-    await page.getByRole('button', { name: 'Byte swap' }).click();
+    await page.getByRole('button', { name: 'Add Byte swap preset' }).click();
 
     const layout = await page.evaluate(() => ({
       pageOverflow: document.documentElement.scrollHeight - window.innerHeight,
-      sourceOverflow:
-        document.querySelector<HTMLElement>('.di-source-rail')!.scrollHeight -
-        document.querySelector<HTMLElement>('.di-source-rail')!.clientHeight,
-      workspaceBottom: document.querySelector('.di-workspace')!.getBoundingClientRect().bottom,
+      libraryOverflow:
+        document.querySelector<HTMLElement>('.di-library')!.scrollHeight -
+        document.querySelector<HTMLElement>('.di-library')!.clientHeight,
+      workspaceBottom: document.querySelector('.di-workbench')!.getBoundingClientRect().bottom,
     }));
     expect(layout.pageOverflow).toBeLessThanOrEqual(1);
-    expect(layout.sourceOverflow).toBeGreaterThan(0);
+    expect(layout.libraryOverflow).toBeGreaterThan(0);
     expect(layout.workspaceBottom).toBeLessThanOrEqual(884);
-  });
-
-  test('keeps transform presets and pipeline steps free of horizontal scrolling', async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width: 1440, height: 800 });
-    await page.goto(harnessPath);
-    await decode(page, "16'h1234");
-    await page.getByRole('tab', { name: 'Transform' }).click();
-    for (let index = 0; index < 6; index++) {
-      await page.getByRole('button', { name: 'Byte swap', exact: true }).click();
-    }
-
-    const overflow = await page.evaluate(() => ({
-      presets:
-        document.querySelector<HTMLElement>('.di-presets')!.scrollWidth -
-        document.querySelector<HTMLElement>('.di-presets')!.clientWidth,
-      steps:
-        document.querySelector<HTMLElement>('.di-step-list')!.scrollWidth -
-        document.querySelector<HTMLElement>('.di-step-list')!.clientWidth,
-    }));
-    expect(overflow.presets).toBeLessThanOrEqual(1);
-    expect(overflow.steps).toBeLessThanOrEqual(1);
   });
 
   test('retains visible boundaries and selection patterns in forced colors', async ({ page }) => {
     await page.emulateMedia({ forcedColors: 'active' });
     await page.goto(harnessPath);
     await decode(page, "32'hDEADBEEF");
+    await openFields(page);
     await page.getByRole('button', { name: 'Add field' }).click();
 
     const segment = page.locator('.di-field-segment').first();

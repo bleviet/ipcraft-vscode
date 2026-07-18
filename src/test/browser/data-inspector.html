@@ -24,22 +24,36 @@
         --vscode-font-family: system-ui, sans-serif;
         --vscode-editor-font-family: ui-monospace, monospace;
       }
+      #data-inspector-root {
+        width: 100vw;
+        height: 100vh;
+      }
     </style>
   </head>
   <body>
     <div id="data-inspector-root"></div>
     <script>
+      window.__vscodeMessages = [];
       window.acquireVsCodeApi = function () {
         return {
           postMessage(message) {
+            window.__vscodeMessages.push(message);
             window.__last_message = message;
             console.log('VSCODE_MESSAGE:', JSON.stringify(message));
+            window.dispatchEvent(new CustomEvent('vscode-post-message', { detail: message }));
           },
+          setState() {},
           getState() {
             return undefined;
           },
-          setState() {},
         };
+      };
+      window.renderRecipe = function (recipe, docVersion = 1) {
+        window.dispatchEvent(
+          new MessageEvent('message', {
+            data: { type: 'recipe', recipe, fileName: 'browser.ipci.yml', docVersion },
+          })
+        );
       };
     </script>
     <script src="../../../dist/dataInspector.js"></script>

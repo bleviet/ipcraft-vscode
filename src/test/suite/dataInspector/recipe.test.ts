@@ -39,6 +39,21 @@ describe('Data Inspector recipes', () => {
     expect(result).toEqual({ valid: true });
   });
 
+  it('accepts optional canvas positions without changing the recipe version', () => {
+    const recipe = createEmptyRecipe('canvas');
+    recipe.view.canvas = {
+      nodes: [
+        { id: 'input', x: 40, y: 120 },
+        { id: 'result', x: 480, y: 160 },
+      ],
+    };
+
+    const result = new YamlValidator().validateAgainstSchema(recipe, schemaPath);
+
+    expect(result).toEqual({ valid: true });
+    expect(recipe.version).toBe(1);
+  });
+
   it('rejects transient samples and capture histories at the schema boundary', () => {
     const recipe = { ...createEmptyRecipe('unsafe'), sample: "32'hDEADBEEF" };
     const result = new YamlValidator().validateAgainstSchema(recipe, schemaPath);
