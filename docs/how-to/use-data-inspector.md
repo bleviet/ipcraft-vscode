@@ -10,16 +10,16 @@ every use case.
 
 ## Choose a workflow
 
-| Goal | Start with | Options you need |
-|------|------------|------------------|
-| Inspect one value | `IPCraft: Open Data Inspector` | Literal, Width, Lane width, Zoom |
-| Decode a register read | `IPCraft: Open Register in Data Inspector` | Literal, imported fields, Interpretation |
-| Describe an ad hoc bit layout | `IPCraft: Open Data Inspector` | Add field, MSB, LSB |
-| Combine high and low words | Add source | HI/LO concat preset or `concat` step |
-| Extract or normalize bits | Transform tab | Slice, mask, shift, extend, truncate, byte swap |
-| Review simulator activity | Capture tab | VCD signal selection and sample timeline |
-| Review ILA, SignalTap, or CSV samples | Capture tab | Column, radix, width, byte order, word order |
-| Reuse a setup | `Save as recipe...` or `IPCraft: New Data Inspector` | Sources, fields, transforms, outputs |
+| Goal                                  | Start with                                           | Options you need                                |
+| ------------------------------------- | ---------------------------------------------------- | ----------------------------------------------- |
+| Inspect one value                     | `IPCraft: Open Data Inspector`                       | Literal, Width, Lane width, Zoom                |
+| Decode a register read                | `IPCraft: Open Register in Data Inspector`           | Literal, imported fields, Interpretation        |
+| Describe an ad hoc bit layout         | `IPCraft: Open Data Inspector`                       | Add field, MSB, LSB                             |
+| Combine high and low words            | Add source                                           | `concat` step                                   |
+| Extract or normalize bits             | Transform tab                                        | Slice, mask, shift, extend, truncate, byte swap |
+| Review simulator activity             | Capture tab                                          | VCD signal selection and sample timeline        |
+| Review ILA, SignalTap, or CSV samples | Capture tab                                          | Column, radix, width, byte order, word order    |
+| Reuse a setup                         | `Save as recipe...` or `IPCraft: New Data Inspector` | Sources, fields, transforms, outputs            |
 
 ## The four parts of an inspection
 
@@ -62,15 +62,15 @@ Use the Command Palette and choose one of these commands:
 
 Common accepted forms include:
 
-| Format | Example | Width behavior |
-|--------|---------|----------------|
-| Verilog hexadecimal | `32'hDEAD_BEEF` | Declared by the literal |
-| Verilog binary | `16'b0000_XXXX_0011_ZZZZ` | Declared by the literal |
-| VHDL hexadecimal | `x"0123_ABCD"` | Four bits per digit |
-| VHDL binary | `b"1010_0011"` | One bit per digit |
-| C-style hexadecimal | `0xDEADBEEF` | Four bits per digit |
-| C-style binary | `0b10100011` | One bit per digit |
-| Decimal | `3735928559` | Requires the **Width** field |
+| Format              | Example                   | Width behavior               |
+| ------------------- | ------------------------- | ---------------------------- |
+| Verilog hexadecimal | `32'hDEAD_BEEF`           | Declared by the literal      |
+| Verilog binary      | `16'b0000_XXXX_0011_ZZZZ` | Declared by the literal      |
+| VHDL hexadecimal    | `x"0123_ABCD"`            | Four bits per digit          |
+| VHDL binary         | `b"1010_0011"`            | One bit per digit            |
+| C-style hexadecimal | `0xDEADBEEF`              | Zero-extends to **Width**    |
+| C-style binary      | `0b10100011`              | Zero-extends to **Width**    |
+| Decimal             | `3735928559`              | Requires the **Width** field |
 
 Underscores are accepted as digit separators. `X` and `Z` states remain visible;
 the inspector does not replace them with zero. Numeric interpretations that need
@@ -110,15 +110,15 @@ using the result.
 
 For each selected field, choose an **Interpretation**:
 
-| Interpretation | Use it for | Constraint |
-|----------------|------------|------------|
-| `hex` | Addresses, masks, raw register fragments | Works with known or unknown states |
-| `binary` | Flags and bit patterns | Works with known or unknown states |
-| `unsigned` | Counts, sizes, indices | All bits must be known |
-| `signed` | Two's-complement integers | All bits must be known |
-| `enum` | State and mode names | Mapping must come from the register layout or recipe |
-| `float` | IEEE-754 values | Field must be 16, 32, or 64 bits |
-| `fixedPoint` | Signed Q-format values | Set **Fractional bits** from 0 to width minus 1 |
+| Interpretation | Use it for                               | Constraint                                           |
+| -------------- | ---------------------------------------- | ---------------------------------------------------- |
+| `hex`          | Addresses, masks, raw register fragments | Works with known or unknown states                   |
+| `binary`       | Flags and bit patterns                   | Works with known or unknown states                   |
+| `unsigned`     | Counts, sizes, indices                   | All bits must be known                               |
+| `signed`       | Two's-complement integers                | All bits must be known                               |
+| `enum`         | State and mode names                     | Mapping must come from the register layout or recipe |
+| `float`        | IEEE-754 values                          | Field must be 16, 32, or 64 bits                     |
+| `fixedPoint`   | Signed Q-format values                   | Set **Fractional bits** from 0 to width minus 1      |
 
 Enter an **Expected literal** to add a `pass`, `fail`, or `unknown` comparison to
 the decoded row. The expected value is parsed at the field's width, so a sized HDL
@@ -159,7 +159,7 @@ To build one 64-bit address:
    select **Set**.
 4. Select the **Transform** inspector tab.
 5. Set the input to the high-word source and the operand to the low-word source.
-6. Select the **HI/LO concat** preset, or add a `concat` operation manually.
+6. Add a `concat` operation and connect both inputs.
 
 Concatenation is explicit: the **Input (high operand for concat)** becomes the
 most significant part, and **Low operand** becomes the least significant part.
@@ -176,24 +176,20 @@ source or step. The output buttons switch the value shown in the ribbon.
 
 ## Use case 5: extract, mask, or reorder a value
 
-Select the **Transform** inspector tab and either select a preset or build steps
-manually.
+Select the **Transform** inspector tab and build the required steps.
 Steps run in order, and a later step can use an earlier step as its input.
 
-| Operation | Result |
-|-----------|--------|
-| `concat` | Places the input above the low operand and adds their widths |
-| `slice` | Keeps the inclusive `[MSB:LSB]` range |
-| `and`, `or`, `xor` | Combines equal-width values bit by bit |
-| `not` | Inverts the input bit by bit |
-| `shiftLeft`, `shiftRight` | Keeps the width, drops shifted-out bits, inserts zeros |
-| `zeroExtend` | Adds known zeros at the high end to reach **Width** |
-| `signExtend` | Repeats the sign bit at the high end to reach **Width** |
-| `truncate` | Keeps the low **Width** bits and reports the dropped range |
-| `byteSwap` | Reverses byte order; input width must be divisible by 8 |
-
-Presets create editable starting steps. Review the generated MSB, LSB, amount,
-width, and operands rather than treating preset defaults as final settings.
+| Operation                 | Result                                                       |
+| ------------------------- | ------------------------------------------------------------ |
+| `concat`                  | Places the input above the low operand and adds their widths |
+| `slice`                   | Keeps the inclusive `[MSB:LSB]` range                        |
+| `and`, `or`, `xor`        | Combines equal-width values bit by bit                       |
+| `not`                     | Inverts the input bit by bit                                 |
+| `shiftLeft`, `shiftRight` | Keeps the width, drops shifted-out bits, inserts zeros       |
+| `zeroExtend`              | Adds known zeros at the high end to reach **Width**          |
+| `signExtend`              | Repeats the sign bit at the high end to reach **Width**      |
+| `truncate`                | Keeps the low **Width** bits and reports the dropped range   |
+| `byteSwap`                | Reverses byte order; input width must be divisible by 8      |
 
 ### Example: extract a masked field
 
@@ -205,8 +201,9 @@ To evaluate `(STATUS & MASK) >> 8`:
 4. Add a `shiftRight` step using the `and` result and set **Amount** to 8.
 5. Point the selected output at the shift result.
 
-The step list shows the width equation, result literal, errors, and any dropped
-ranges. An invalid step prevents downstream values from being presented as valid.
+Each step shows its width equation, result literal, errors, and any dropped
+ranges. Deleting a connected component leaves the consumer port open; that step
+and its downstream chain display `X` until the connection is repaired.
 
 ## Use case 6: inspect a VCD waveform
 
@@ -273,19 +270,19 @@ Recipe edits are written back to the YAML file by the custom editor.
 
 ## Troubleshooting
 
-| Problem | What to check |
-|---------|---------------|
-| Decimal input is rejected | Set an explicit **Width** before decoding |
-| Literal width does not match | Make the Width field and sized literal agree; extension and truncation are never implicit |
-| Field shows `invalid` | Ensure `0 <= LSB <= MSB < source width` |
-| Field layout reports overlap | Move one field or assign the alternative view to another overlay group |
-| Numeric result says unknown | The selected range contains `X` or `Z`; use hex or binary to inspect the raw states |
-| Float interpretation fails | Use a 16-, 32-, or 64-bit field |
-| Bitwise step fails | Make the input and operand widths equal |
-| Byte swap fails | Use a width divisible by 8 |
-| CSV value has the wrong order | Verify word width first, then word order and byte order independently |
-| Imported register fields are out of range | Decode a value with the register width or correct the copied field ranges |
-| Reopened recipe has no value | Samples are transient by design; paste or load a new sample |
+| Problem                                   | What to check                                                                                         |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Decimal input is rejected                 | Set an explicit **Width** before decoding                                                             |
+| Literal width does not match              | Sized HDL literals must match **Width**; unsized hex and binary values zero-extend but never truncate |
+| Field shows `invalid`                     | Ensure `0 <= LSB <= MSB < source width`                                                               |
+| Field layout reports overlap              | Move one field or assign the alternative view to another overlay group                                |
+| Numeric result says unknown               | The selected range contains `X` or `Z`; use hex or binary to inspect the raw states                   |
+| Float interpretation fails                | Use a 16-, 32-, or 64-bit field                                                                       |
+| Bitwise step fails                        | Make the input and operand widths equal                                                               |
+| Byte swap fails                           | Use a width divisible by 8                                                                            |
+| CSV value has the wrong order             | Verify word width first, then word order and byte order independently                                 |
+| Imported register fields are out of range | Decode a value with the register width or correct the copied field ranges                             |
+| Additional input has no sample            | Samples are transient; select the input, enter a value, and choose **Set**                            |
 
 For the design rationale and exact ordering semantics, see
 [Data Inspector design reference](../concepts/data-inspector.md).

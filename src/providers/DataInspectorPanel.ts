@@ -22,7 +22,7 @@ export class DataInspectorPanel {
     this.panel = vscode.window.createWebviewPanel(
       'ipcraft.dataInspector',
       'IPCraft: Data Inspector',
-      vscode.ViewColumn.Beside,
+      vscode.ViewColumn.Active,
       {
         enableScripts: true,
         retainContextWhenHidden: true,
@@ -58,7 +58,7 @@ export class DataInspectorPanel {
     if (DataInspectorPanel.instance === undefined) {
       DataInspectorPanel.instance = new DataInspectorPanel(context);
     } else {
-      DataInspectorPanel.instance.panel.reveal(vscode.ViewColumn.Beside, true);
+      DataInspectorPanel.instance.panel.reveal(vscode.ViewColumn.Active, true);
     }
     return DataInspectorPanel.instance;
   }

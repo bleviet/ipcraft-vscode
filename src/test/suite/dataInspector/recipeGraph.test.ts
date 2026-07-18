@@ -4,7 +4,7 @@ import {
   stableTopologicalSteps,
   wouldCreateCycle,
 } from '../../../dataInspector/recipeGraph';
-import { createEmptyRecipe } from '../../../dataInspector/recipe';
+import { createEmptyRecipe, validateRecipeSemantics } from '../../../dataInspector/recipe';
 
 describe('recipe graph', () => {
   it('projects recipe references into stable graph edges', () => {
@@ -74,7 +74,7 @@ describe('recipe graph', () => {
     ).toThrow('cycle');
   });
 
-  it('blocks deletion while another node still uses the step', () => {
+  it('deletes a used step and leaves its consumers disconnected', () => {
     const recipe = createEmptyRecipe('delete');
     recipe.steps = [
       { id: 'first', type: 'not', inputId: 'input' },
@@ -82,12 +82,21 @@ describe('recipe graph', () => {
     ];
     recipe.outputs[0].valueId = 'second';
 
-    expect(() => applyGraphEdit(recipe, { type: 'deleteSteps', stepIds: ['first'] })).toThrow(
-      'Rewire second'
-    );
-    expect(() => applyGraphEdit(recipe, { type: 'deleteSteps', stepIds: ['second'] })).toThrow(
-      'Rewire output RESULT'
-    );
+    const withoutFirst = applyGraphEdit(recipe, { type: 'deleteSteps', stepIds: ['first'] });
+
+    expect(withoutFirst.steps).toEqual([{ id: 'second', type: 'not', inputId: 'first' }]);
+    expect(recipeToGraph(withoutFirst).edges).toEqual([
+      { id: 'result.value', source: 'second', target: 'result', targetHandle: 'value' },
+    ]);
+    expect(validateRecipeSemantics(withoutFirst)).toEqual([]);
+
+    const withoutSecond = applyGraphEdit(recipe, { type: 'deleteSteps', stepIds: ['second'] });
+
+    expect(withoutSecond.outputs[0].valueId).toBe('second');
+    expect(recipeToGraph(withoutSecond).edges).toEqual([
+      { id: 'first.input', source: 'input', target: 'first', targetHandle: 'input' },
+    ]);
+    expect(validateRecipeSemantics(withoutSecond)).toEqual([]);
   });
 
   it('deletes a selected branch and its saved positions together', () => {

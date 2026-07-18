@@ -83,7 +83,7 @@ describe('evaluateRecipe', () => {
     expect([...(result?.maskedBits ?? [])]).toEqual([4, 5, 6, 7]);
   });
 
-  it('reports dropped ranges and makes downstream dependencies unavailable', () => {
+  it('reports a disconnected dependency and propagates X downstream', () => {
     const recipe = createEmptyRecipe('errors');
     recipe.sources = [{ id: 'input', name: 'INPUT', width: 8 }];
     recipe.steps = [
@@ -97,8 +97,20 @@ describe('evaluateRecipe', () => {
       { msb: 7, lsb: 6 },
       { msb: 1, lsb: 0 },
     ]);
-    expect(evaluation.steps[1].error).toBe('Operand missing is unavailable');
-    expect(evaluation.steps[2].error).toBe('Input invalid is unavailable');
-    expect(evaluation.values.has('downstream')).toBe(false);
+    expect(evaluation.steps[1].error).toBe('Operand missing is disconnected');
+    expect(evaluation.values.get('invalid')?.value.toLiteral()).toBe("4'hX");
+    expect(evaluation.steps[2].error).toBeUndefined();
+    expect(evaluation.values.get('downstream')?.value.toLiteral()).toBe("4'hX");
+  });
+
+  it('distinguishes a connected source without a sample from a disconnected port', () => {
+    const recipe = createEmptyRecipe('missing sample');
+    recipe.sources.push({ id: 'input2', name: 'INPUT_2', width: 32 });
+    recipe.steps = [{ id: 'inverted', type: 'not', inputId: 'input2' }];
+
+    const evaluation = evaluateRecipe(recipe, new Map());
+
+    expect(evaluation.steps[0].error).toBe('Input input2 has no sample');
+    expect(evaluation.values.get('inverted')?.value.toLiteral()).toBe("32'hXXXXXXXX");
   });
 });

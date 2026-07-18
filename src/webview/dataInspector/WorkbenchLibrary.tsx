@@ -1,21 +1,14 @@
 import React, { useMemo, useState } from 'react';
-import {
-  TRANSFORM_OPERATIONS,
-  TRANSFORM_PRESETS,
-  type RecipeStepType,
-  type TransformPresetId,
-} from './transform/operations';
+import { TRANSFORM_OPERATIONS, type RecipeStepType } from './transform/operations';
 
 export const DATA_INSPECTOR_NODE_MIME = 'application/ipcraft-data-node';
 export const DATA_INSPECTOR_OPERATION_MIME = 'application/ipcraft-operation';
-export const DATA_INSPECTOR_PRESET_MIME = 'application/ipcraft-preset';
 
 interface WorkbenchLibraryProps {
   collapsed: boolean;
   onToggleCollapsed: () => void;
   onAddNode: (kind: 'source' | 'output') => void;
   onAddOperation: (type: RecipeStepType) => void;
-  onAddPreset: (preset: TransformPresetId) => void;
 }
 
 function beginDrag(event: React.DragEvent, mime: string, value: string) {
@@ -28,7 +21,6 @@ export function WorkbenchLibrary({
   onToggleCollapsed,
   onAddNode,
   onAddOperation,
-  onAddPreset,
 }: WorkbenchLibraryProps) {
   const [query, setQuery] = useState('');
   const normalizedQuery = query.trim().toLowerCase();
@@ -39,12 +31,6 @@ export function WorkbenchLibrary({
       ),
     [normalizedQuery]
   );
-  const presets = useMemo(
-    () =>
-      TRANSFORM_PRESETS.filter((preset) => preset.label.toLowerCase().includes(normalizedQuery)),
-    [normalizedQuery]
-  );
-
   if (collapsed) {
     return (
       <aside className="di-library is-collapsed" aria-label="Transform Library">
@@ -136,25 +122,6 @@ export function WorkbenchLibrary({
             </button>
           ))}
           {operations.length === 0 && <p className="di-note">No matching operators.</p>}
-        </div>
-      </section>
-
-      <section className="di-library-section">
-        <h3>Presets</h3>
-        <div className="di-library-grid is-presets">
-          {presets.map((preset) => (
-            <button
-              aria-label={`Add ${preset.label} preset`}
-              draggable
-              key={preset.id}
-              onClick={() => onAddPreset(preset.id)}
-              onDragStart={(event) => beginDrag(event, DATA_INSPECTOR_PRESET_MIME, preset.id)}
-              title={`Drag ${preset.label} onto the transform canvas`}
-            >
-              <b aria-hidden="true">{preset.symbol}</b>
-              <span>{preset.label}</span>
-            </button>
-          ))}
         </div>
       </section>
     </aside>

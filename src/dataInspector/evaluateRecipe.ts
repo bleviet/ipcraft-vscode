@@ -37,6 +37,46 @@ function sourceValue(sourceId: string, value: BitVector): EvaluatedValue {
   };
 }
 
+function unknownValue(width: number): EvaluatedValue {
+  return {
+    value: BitVector.filled(width, 'X'),
+    provenance: Array<null>(width).fill(null),
+    maskedBits: new Set(),
+  };
+}
+
+function unknownOutputWidth(
+  step: Step,
+  inputWidth: number,
+  operandWidth: number | undefined
+): number {
+  if (step.type === 'concat') {
+    return inputWidth + (operandWidth ?? inputWidth);
+  }
+  if (step.type === 'slice' && step.msb !== undefined && step.lsb !== undefined) {
+    return step.msb - step.lsb + 1;
+  }
+  if (['zeroExtend', 'signExtend', 'truncate'].includes(step.type) && step.width !== undefined) {
+    return step.width;
+  }
+  return inputWidth;
+}
+
+function dependencyError(
+  kind: 'Input' | 'Operand',
+  id: string,
+  sourceIds: ReadonlySet<string>,
+  stepIds: ReadonlySet<string>
+): string {
+  if (sourceIds.has(id)) {
+    return `${kind} ${id} has no sample`;
+  }
+  if (stepIds.has(id)) {
+    return `${kind} ${id} is unavailable`;
+  }
+  return `${kind} ${id} is disconnected`;
+}
+
 function requireParameter<T>(value: T | undefined, name: string): T {
   if (value === undefined) {
     throw new Error(`Missing ${name}`);
@@ -215,6 +255,8 @@ export function evaluateRecipe(
   samples: ReadonlyMap<string, BitVector>
 ): RecipeEvaluation {
   const values = new Map<string, EvaluatedValue>();
+  const sourceIds = new Set(recipe.sources.map((source) => source.id));
+  const stepIds = new Set(recipe.steps.map((step) => step.id));
   for (const source of recipe.sources) {
     const sample = samples.get(source.id);
     if (sample?.width === source.width) {
@@ -226,15 +268,27 @@ export function evaluateRecipe(
   for (const step of recipe.steps) {
     const input = values.get(step.inputId);
     const operand = step.operandId ? values.get(step.operandId) : undefined;
-    if (!input) {
-      steps.push({ id: step.id, error: `Input ${step.inputId} is unavailable` });
-      continue;
-    }
-    if (step.operandId && !operand) {
+    if (!input || (step.operandId && !operand)) {
+      const inputWidth =
+        input?.value.width ?? operand?.value.width ?? recipe.sources[0]?.width ?? 1;
+      const operandWidth = operand?.value.width ?? (step.operandId ? inputWidth : undefined);
+      const outputWidth = unknownOutputWidth(step, inputWidth, operandWidth);
+      const value = outputWidth <= 4096 ? unknownValue(outputWidth) : undefined;
+      if (value) {
+        values.set(step.id, value);
+      }
       steps.push({
         id: step.id,
-        inputWidth: input.value.width,
-        error: `Operand ${step.operandId} is unavailable`,
+        inputWidth,
+        operandWidth,
+        outputWidth: value?.value.width,
+        value,
+        widthEquation: value
+          ? widthEquation(step, inputWidth, operandWidth, value.value.width)
+          : undefined,
+        error: !input
+          ? dependencyError('Input', step.inputId, sourceIds, stepIds)
+          : dependencyError('Operand', step.operandId!, sourceIds, stepIds),
       });
       continue;
     }

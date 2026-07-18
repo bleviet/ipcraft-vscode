@@ -52,6 +52,7 @@ export function validateRecipeSemantics(recipe: IPCraftDataInspectorRecipe): str
   recipe.outputs.forEach((output) => addId(output.id, 'output'));
 
   const sourceWidths = new Map(recipe.sources.map((source) => [source.id, source.width]));
+  const valueIds = new Set([...sourceWidths.keys(), ...recipe.steps.map((step) => step.id)]);
   const groupIds = new Set(recipe.overlayGroups.map((group) => group.id));
   for (const source of recipe.sources) {
     const fields = recipe.fields.filter((field) => field.sourceId === source.id);
@@ -86,7 +87,9 @@ export function validateRecipeSemantics(recipe: IPCraftDataInspectorRecipe): str
   for (const step of recipe.steps) {
     const inputWidth = valueWidths.get(step.inputId);
     if (inputWidth === undefined) {
-      errors.push(`Step ${step.id} references unavailable input ${step.inputId}`);
+      if (valueIds.has(step.inputId)) {
+        errors.push(`Step ${step.id} references unavailable input ${step.inputId}`);
+      }
       continue;
     }
     let outputWidth = inputWidth;
@@ -95,7 +98,10 @@ export function validateRecipeSemantics(recipe: IPCraftDataInspectorRecipe): str
       parameterError = requiredParameter(step, 'operandId');
       const operandWidth = step.operandId ? valueWidths.get(step.operandId) : undefined;
       if (step.operandId && operandWidth === undefined) {
-        errors.push(`Step ${step.id} references unavailable operand ${step.operandId}`);
+        if (valueIds.has(step.operandId)) {
+          errors.push(`Step ${step.id} references unavailable operand ${step.operandId}`);
+        }
+        continue;
       } else if (step.type === 'concat' && operandWidth !== undefined) {
         outputWidth = inputWidth + operandWidth;
       } else if (operandWidth !== undefined && operandWidth !== inputWidth) {
@@ -138,11 +144,6 @@ export function validateRecipeSemantics(recipe: IPCraftDataInspectorRecipe): str
       errors.push(`Step ${step.id} produces ${outputWidth} bits, above the 4096-bit ceiling`);
     } else {
       valueWidths.set(step.id, outputWidth);
-    }
-  }
-  for (const output of recipe.outputs) {
-    if (!valueWidths.has(output.valueId)) {
-      errors.push(`Output ${output.id} references unavailable value ${output.valueId}`);
     }
   }
   return errors;

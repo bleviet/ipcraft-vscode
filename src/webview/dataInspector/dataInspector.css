@@ -400,8 +400,7 @@ label {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.di-library-grid.is-nodes,
-.di-library-grid.is-presets {
+.di-library-grid.is-nodes {
   grid-template-columns: 1fr;
 }
 .di-library-grid.is-nodes button {
@@ -1246,13 +1245,6 @@ label {
   justify-content: center;
   gap: 5px;
 }
-.di-presets {
-  display: grid;
-  flex: none;
-  gap: 4px;
-  margin-bottom: 8px;
-}
-.di-presets > span,
 .di-builder-label,
 .di-pipeline-heading {
   color: var(--di-muted);
@@ -1260,27 +1252,6 @@ label {
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-}
-.di-presets > div {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 4px;
-  overflow: hidden;
-}
-.di-presets button {
-  display: inline-flex;
-  min-width: 0;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 7px;
-  background: var(--di-surface);
-  font-size: 9px;
-  text-align: left;
-}
-.di-presets button b {
-  flex: none;
-  color: var(--di-accent);
-  font: 700 10px/1 var(--di-mono);
 }
 .di-step-builder {
   display: grid;
@@ -1641,9 +1612,6 @@ label {
   font-size: 7px;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-.di-canvas-palette .di-canvas-presets {
-  grid-template-columns: 1fr;
 }
 .di-canvas-toolbar {
   position: absolute;

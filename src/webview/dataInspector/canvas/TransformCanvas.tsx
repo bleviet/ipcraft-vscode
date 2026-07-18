@@ -1,9 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  DATA_INSPECTOR_NODE_MIME,
-  DATA_INSPECTOR_OPERATION_MIME,
-  DATA_INSPECTOR_PRESET_MIME,
-} from '../WorkbenchLibrary';
+import { DATA_INSPECTOR_NODE_MIME, DATA_INSPECTOR_OPERATION_MIME } from '../WorkbenchLibrary';
 import {
   applyEdgeChanges,
   applyNodeChanges,
@@ -31,12 +27,7 @@ import {
 } from '../../../dataInspector/recipeGraph';
 import { validateRecipeSemantics } from '../../../dataInspector/recipe';
 import type { IPCraftDataInspectorRecipe, Step } from '../../../domain/dataInspector.types';
-import {
-  isBinaryOperation,
-  parameterDefaults,
-  type RecipeStepType,
-  type TransformPresetId,
-} from '../transform/operations';
+import { isBinaryOperation, parameterDefaults, type RecipeStepType } from '../transform/operations';
 import { layoutRecipeGraph, resolveCanvasPositions } from './layout';
 import { OutputNode, type OutputNodeData } from './nodes/OutputNode';
 import { SourceNode, type SourceNodeData } from './nodes/SourceNode';
@@ -64,7 +55,7 @@ interface TransformCanvasProps {
 
 export interface CanvasAddCommand {
   id: number;
-  kind: 'source' | 'output' | 'operation' | 'preset';
+  kind: 'source' | 'output' | 'operation';
   value: string;
 }
 
@@ -114,42 +105,6 @@ function edgeShowsError(targetHandle: string | null | undefined, error: string |
     return targetHandle === 'operand';
   }
   return targetHandle === 'input';
-}
-
-function createPresetSteps(
-  recipe: IPCraftDataInspectorRecipe,
-  preset: TransformPresetId,
-  inputWidth: number
-): Step[] {
-  const inputId = recipe.sources[0]?.id;
-  const operandId = recipe.sources[1]?.id;
-  if (!inputId) {
-    return [];
-  }
-  const firstId = nextStepId(recipe);
-  if (preset === 'hiLo' && operandId) {
-    return [{ id: firstId, type: 'concat', inputId, operandId }];
-  }
-  if (preset === 'maskShift' && operandId) {
-    const secondId = nextStepId(recipe, [firstId]);
-    return [
-      { id: firstId, type: 'and', inputId, operandId },
-      { id: secondId, type: 'shiftRight', inputId: firstId, amount: 1 },
-    ];
-  }
-  if (preset === 'slice') {
-    return [{ id: firstId, type: 'slice', inputId, msb: inputWidth - 1, lsb: 0 }];
-  }
-  if (preset === 'extend' && inputWidth < 4096) {
-    return [{ id: firstId, type: 'zeroExtend', inputId, width: inputWidth + 1 }];
-  }
-  if (preset === 'truncate' && inputWidth > 1) {
-    return [{ id: firstId, type: 'truncate', inputId, width: inputWidth - 1 }];
-  }
-  if (preset === 'byteSwap' && inputWidth % 8 === 0) {
-    return [{ id: firstId, type: 'byteSwap', inputId }];
-  }
-  return [];
 }
 
 function TransformCanvasInner({
@@ -447,40 +402,6 @@ function TransformCanvasInner({
 
   const selectedCount = nodes.filter((node) => node.selected).length;
 
-  const addPresetAt = useCallback(
-    (preset: TransformPresetId, position: { x: number; y: number }) => {
-      const inputId = workingRecipe.sources[0]?.id;
-      const inputWidth = inputId
-        ? (evaluation.values.get(inputId)?.value.width ?? workingRecipe.sources[0].width)
-        : 1;
-      const steps = createPresetSteps(workingRecipe, preset, inputWidth);
-      if (steps.length === 0) {
-        setMessage('This preset does not fit the current sources or width');
-        return;
-      }
-      let candidate = applyGraphEdit(workingRecipe, { type: 'addSteps', steps });
-      const saved = resolveCanvasPositions(
-        recipeToGraph(candidate),
-        workingRecipe.view.canvas?.nodes
-      ).map((item) => {
-        const index = steps.findIndex((step) => step.id === item.id);
-        return index === -1 ? item : { id: item.id, x: position.x + index * 260, y: position.y };
-      });
-      const lastStep = steps[steps.length - 1];
-      candidate = {
-        ...candidate,
-        outputs: candidate.outputs.map((output, index) =>
-          index === 0 ? { ...output, valueId: lastStep.id } : output
-        ),
-        view: { ...candidate.view, canvas: { nodes: saved } },
-      };
-      if (saveCandidate(candidate)) {
-        onInspectValue(lastStep.id, 'step');
-      }
-    },
-    [evaluation.values, onInspectValue, saveCandidate, workingRecipe]
-  );
-
   const addDraftAt = useCallback((type: RecipeStepType, position: { x: number; y: number }) => {
     setDrafts((current) => [
       ...current,
@@ -562,10 +483,8 @@ function TransformCanvasInner({
       addOutputAt(position);
     } else if (addCommand.kind === 'operation') {
       addDraftAt(addCommand.value as RecipeStepType, position);
-    } else {
-      addPresetAt(addCommand.value as TransformPresetId, position);
     }
-  }, [addCommand, addDraftAt, addOutputAt, addPresetAt, addSourceAt]);
+  }, [addCommand, addDraftAt, addOutputAt, addSourceAt]);
 
   return (
     <div
@@ -580,12 +499,9 @@ function TransformCanvasInner({
         const operation = event.dataTransfer.getData(
           DATA_INSPECTOR_OPERATION_MIME
         ) as RecipeStepType;
-        const preset = event.dataTransfer.getData(DATA_INSPECTOR_PRESET_MIME) as TransformPresetId;
         const nodeKind = event.dataTransfer.getData(DATA_INSPECTOR_NODE_MIME);
         if (operation) {
           addDraftAt(operation, position);
-        } else if (preset) {
-          addPresetAt(preset, position);
         } else if (nodeKind === 'source') {
           addSourceAt(position);
         } else if (nodeKind === 'output') {

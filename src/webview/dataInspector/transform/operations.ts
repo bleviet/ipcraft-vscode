@@ -24,17 +24,6 @@ export const TRANSFORM_OPERATIONS: readonly TransformOperation[] = [
   { type: 'byteSwap', symbol: 'B<>', label: 'Byte swap', description: 'Reverse byte order' },
 ];
 
-export const TRANSFORM_PRESETS = [
-  { id: 'hiLo', symbol: '{ }', label: 'HI/LO' },
-  { id: 'maskShift', symbol: '& >>', label: 'Mask + shift' },
-  { id: 'slice', symbol: '[ ]', label: 'Slice' },
-  { id: 'extend', symbol: '0+', label: 'Extend' },
-  { id: 'truncate', symbol: '[:]', label: 'Truncate' },
-  { id: 'byteSwap', symbol: 'B<>', label: 'Byte swap' },
-] as const;
-
-export type TransformPresetId = (typeof TRANSFORM_PRESETS)[number]['id'];
-
 export function transformOperation(type: RecipeStepType): TransformOperation {
   return TRANSFORM_OPERATIONS.find((operation) => operation.type === type)!;
 }

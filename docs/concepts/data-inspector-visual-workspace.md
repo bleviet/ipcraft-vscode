@@ -54,7 +54,7 @@ transient and never persisted.
 ## Implementation status
 
 The workspace described here is implemented in the current change. It includes
-graph editing, saved node positions, operation and preset drops, live values,
+graph editing, saved node positions, operation drops, live values,
 error display, source highlighting, resizable panels, and browser tests for the
 main editing flows.
 
@@ -75,8 +75,8 @@ unavailable when a dependency is invalid. All of those requirements carry over
 verbatim to the canvas; they are simply rendered on node cards and edges instead
 of list rows.
 
-The Library exposes the twelve operations and six presets. Clicking or dropping
-an item creates it on the canvas, while the contextual Inspector edits the
+The Library exposes the twelve operations. Clicking or dropping an item creates
+it on the canvas, while the contextual Inspector edits the
 selected source, operation, or output. There is no parallel list editor.
 
 Both Data Inspector surfaces get the canvas automatically, because both load the
@@ -120,7 +120,7 @@ Decisions are numbered so later work can cite them instead of relitigating.
    validate unchanged and open with deterministic auto-layout. The schema
    `version` stays `1`.
 6. **One valid gesture, one document update.** Connecting an edge, dropping a
-   preset, deleting a step, or finishing a node drag produces at most one
+   operation, deleting a step, or finishing a node drag produces at most one
    `updateRecipe` message through the existing debounced,
    `baseDocVersion`-guarded channel in
    `src/shared/messages/dataInspector.ts`. Before sending, the webview runs
@@ -174,14 +174,12 @@ Decisions are numbered so later work can cite them instead of relitigating.
   the file-backed editor, which accepts only valid recipes. The canvas adds no
   second validator.
 
-### Palette and presets
+### Palette and drafts
 
 The existing twelve-button operation grid becomes the permanent left Library,
 alongside draggable Input and Output primitives. Dragging an item onto the
 canvas creates it at the drop point; clicking an item creates it near the center
 of the visible canvas for keyboard parity.
-The six presets (`hiLo`, `maskShift`, `slice`, `extend`, `truncate`,
-`byteSwap`) drop pre-wired multi-node clusters in a single document update.
 
 A freshly dropped single operation starts as a **draft node** (see the
 dual-view invariant section): it is visible with dashed styling but not yet
@@ -231,7 +229,6 @@ Selection is never persisted.
  | Concat   |  |                                   |  | Fields      |
  | AND      |  | A STATUS -> Slice -> RESULT       |  | Capture     |
  | Shift    |  | B MASK  -----^       [fit] [map]  |  +-------------+
- | Presets  |  |                                   |
  +----------+  +-----------------------------------+
 ```
 
@@ -390,7 +387,7 @@ src/webview/dataInspector/
   canvas/
     TransformCanvas.tsx   React Flow provider, graph wiring, gesture handlers
     nodes/                SourceNode.tsx, StepNode.tsx, OutputNode.tsx
-    palette.tsx           draggable operation palette + presets
+    palette.tsx           draggable operation palette
     layout.ts             pure auto-layout (decision 8)
 ```
 
@@ -467,9 +464,8 @@ view remained functional throughout.
    node cards; multi-select and keyboard delete. The `view.canvas` schema
    change lands in `ipcraft-spec`, the submodule pointer is bumped, types are
    regenerated, and drag-end position persistence ships — all in one change.
-3. **Palette, presets, drafts.** Draggable operation palette; the draft-node
-   lifecycle; presets as pre-wired multi-node drops; the auto-layout button and
-   minimap.
+3. **Palette and drafts.** Draggable operation palette; the draft-node
+   lifecycle; the auto-layout button and minimap.
 4. **Provenance-linked selection and polish.** Node selection drives
    `LaneRibbon` highlighting via `ProvenanceBit`; the keyboard-parity audit; a
    performance pass at the wide end (4096-bit values, dozens of steps); E2E
@@ -494,7 +490,7 @@ view remained functional throughout.
   mounts the `dataInspector` bundle, sends `recipe` messages with a document
   version, and records messages sent through the VS Code API mock. Tests render
   the graph for a fixture recipe; connect two nodes and assert the serialized
-  step array; drop a preset and count nodes and steps; assert a width-mismatch
+  step array; drop an operation and count nodes and steps; assert a width-mismatch
   edge shows the validator's message and sends no update; persist positions
   through a save/reload cycle; resize panels; and exercise the canvas toolbar.
 

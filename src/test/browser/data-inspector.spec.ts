@@ -114,11 +114,27 @@ test.describe('Data Inspector responsive and accessible workspace', () => {
   test('marks transform-inserted high bits beside projected source fields', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(harnessPath);
+    await page.evaluate(() => {
+      (
+        window as unknown as { renderRecipe: (value: unknown, version?: number) => void }
+      ).renderRecipe({
+        version: 1,
+        name: 'shifted-value',
+        description: '',
+        sources: [{ id: 'input', name: 'INPUT', width: 32 }],
+        fields: [],
+        overlayGroups: [{ id: 'default', name: 'Default' }],
+        steps: [{ id: 'shifted', type: 'shiftRight', inputId: 'input', amount: 1 }],
+        outputs: [{ id: 'result', name: 'RESULT', valueId: 'shifted' }],
+        view: {
+          laneWidth: 32,
+          zoom: 'bit',
+          selectedOutputId: 'result',
+          selectedGroupId: 'default',
+        },
+      });
+    });
     await decode(page, "32'h12345678");
-    await page.getByRole('button', { name: 'Add source' }).click();
-    await page.getByLabel('INPUT_2 value').fill("32'h00FFFFFF");
-    await page.getByRole('button', { name: 'Decode INPUT_2' }).click();
-    await page.getByRole('button', { name: 'Add Mask + shift preset' }).click();
 
     const inserted = page.getByTitle('Transform-inserted 0 [31:31]').last();
     await expect(inserted).toBeVisible();
@@ -273,7 +289,7 @@ test.describe('Data Inspector responsive and accessible workspace', () => {
       await page.getByRole('button', { name: 'Add source' }).click();
       await expect(page.locator('.di-flow-source')).toHaveCount(index + 2);
     }
-    await page.getByRole('button', { name: 'Add Byte swap preset' }).click();
+    await page.getByRole('button', { name: 'Add Byte swap draft' }).click();
 
     const layout = await page.evaluate(() => ({
       pageOverflow: document.documentElement.scrollHeight - window.innerHeight,

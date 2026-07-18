@@ -268,12 +268,20 @@ test.describe('Data Inspector transform canvas', () => {
     expect(updateCount).toBe(0);
   });
 
-  test('adds a preset in one recipe update and saves canvas positions', async ({ page }) => {
+  test('wires an operation in one recipe update and saves its canvas position', async ({
+    page,
+  }) => {
     await page.waitForTimeout(250);
     await page.evaluate(() => {
       (window as unknown as { __vscodeMessages: unknown[] }).__vscodeMessages = [];
     });
-    await page.getByRole('button', { name: 'Add Byte swap preset' }).click();
+    await page.getByRole('button', { name: 'Add Byte swap draft' }).click();
+    const source = page.locator('.react-flow__node[data-id="input"] .react-flow__handle-right');
+    const target = page.locator(
+      '.di-flow-step.is-draft .react-flow__handle[data-handleid="input"]'
+    );
+    await expect(target).toBeVisible();
+    await source.dragTo(target, { force: true });
 
     await expect
       .poll(async () =>

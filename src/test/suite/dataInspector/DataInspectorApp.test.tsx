@@ -8,19 +8,15 @@ beforeAll(() => {
 });
 
 describe('DataInspectorApp', () => {
-  it('offers one-click examples for common HDL value formats', () => {
+  it('opens the main workbench with a zero-valued 32-bit input', () => {
     render(<DataInspectorApp />);
 
-    expect(screen.getByRole('button', { name: /Known hex/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Unknown states/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /VHDL hex/ })).toBeInTheDocument();
-
-    fireEvent.change(screen.getByLabelText('Width'), { target: { value: '64' } });
-    fireEvent.click(screen.getByRole('button', { name: /Unknown states/ }));
-
-    expect(screen.getByLabelText('Literal')).toHaveValue("16'b0000_XXXX_0011_ZZZZ");
-    expect(screen.getByLabelText('Width')).toHaveValue(16);
-    expect(screen.getByText('contains X/Z states')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Value composer' })).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Literal')).toHaveValue('0');
+    expect(screen.getByLabelText('Width')).toHaveValue(32);
+    expect(screen.getByLabelText('Displayed value status')).toHaveTextContent('32 bits');
+    expect(screen.getAllByText("32'h00000000")).not.toHaveLength(0);
+    expect(screen.queryByRole('heading', { name: 'Presets' })).not.toBeInTheDocument();
   });
 
   it('uses paste-any-value as the primary flow and exposes X/Z exactly', () => {
@@ -29,7 +25,8 @@ describe('DataInspectorApp', () => {
     fireEvent.change(screen.getByLabelText('Literal'), {
       target: { value: "16'b0000_XXXX_0011_ZZZZ" },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Decode' }));
+    fireEvent.change(screen.getByLabelText('Width'), { target: { value: '16' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Decode INPUT' }));
 
     expect(screen.getAllByText('16 bits')).not.toHaveLength(0);
     expect(screen.getByText('contains X/Z states')).toBeInTheDocument();
@@ -37,19 +34,11 @@ describe('DataInspectorApp', () => {
     expect(screen.getByText('Session only · samples are never saved')).toBeInTheDocument();
   });
 
-  it('rejects decimal input without an explicit width', () => {
-    render(<DataInspectorApp />);
-
-    fireEvent.change(screen.getByLabelText('Literal'), { target: { value: '42' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Decode' }));
-
-    expect(screen.getByText('Decimal input requires an explicit width')).toBeInTheDocument();
-  });
-
   it('creates a manual field and links the decoded row with the ribbon segment', () => {
     render(<DataInspectorApp />);
     fireEvent.change(screen.getByLabelText('Literal'), { target: { value: "8'hA5" } });
-    fireEvent.click(screen.getByRole('button', { name: 'Decode' }));
+    fireEvent.change(screen.getByLabelText('Width'), { target: { value: '8' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Decode INPUT' }));
     fireEvent.click(screen.getByRole('button', { name: 'Add field' }));
 
     const row = screen.getByRole('row', { name: /FIELD_1/ });
@@ -60,7 +49,8 @@ describe('DataInspectorApp', () => {
   it('deletes a focused field with the Delete key', () => {
     render(<DataInspectorApp />);
     fireEvent.change(screen.getByLabelText('Literal'), { target: { value: "8'hA5" } });
-    fireEvent.click(screen.getByRole('button', { name: 'Decode' }));
+    fireEvent.change(screen.getByLabelText('Width'), { target: { value: '8' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Decode INPUT' }));
     fireEvent.click(screen.getByRole('button', { name: 'Add field' }));
 
     const row = screen.getByRole('row', { name: /FIELD_1/ });
@@ -73,7 +63,8 @@ describe('DataInspectorApp', () => {
   it('deletes a field when its drag ends outside the fields panel', () => {
     const { container } = render(<DataInspectorApp />);
     fireEvent.change(screen.getByLabelText('Literal'), { target: { value: "8'hA5" } });
-    fireEvent.click(screen.getByRole('button', { name: 'Decode' }));
+    fireEvent.change(screen.getByLabelText('Width'), { target: { value: '8' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Decode INPUT' }));
     fireEvent.click(screen.getByRole('button', { name: 'Add field' }));
 
     const panel = container.querySelector<HTMLElement>('.di-fields')!;
@@ -106,7 +97,7 @@ describe('DataInspectorApp', () => {
     fireEvent.change(screen.getByLabelText('Literal'), {
       target: { value: "32'h0001_2000" },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Decode' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Decode INPUT' }));
     expect(screen.getByRole('heading', { name: 'Transform recipe' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'List' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Auto-layout' })).toBeInTheDocument();
@@ -115,7 +106,8 @@ describe('DataInspectorApp', () => {
   it('changes a selected field interpretation while retaining its raw bits', () => {
     render(<DataInspectorApp />);
     fireEvent.change(screen.getByLabelText('Literal'), { target: { value: "8'h80" } });
-    fireEvent.click(screen.getByRole('button', { name: 'Decode' }));
+    fireEvent.change(screen.getByLabelText('Width'), { target: { value: '8' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Decode INPUT' }));
     fireEvent.click(screen.getByRole('button', { name: 'Add field' }));
     fireEvent.change(screen.getByLabelText('Interpretation'), { target: { value: 'signed' } });
 
@@ -127,7 +119,7 @@ describe('DataInspectorApp', () => {
   it('shows a known non-nibble-aligned field as hex while retaining its raw bits', () => {
     render(<DataInspectorApp />);
     fireEvent.change(screen.getByLabelText('Literal'), { target: { value: "32'h12345678" } });
-    fireEvent.click(screen.getByRole('button', { name: 'Decode' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Decode INPUT' }));
     fireEvent.click(screen.getByRole('button', { name: 'Add field' }));
     fireEvent.change(screen.getByLabelText('LSB'), { target: { value: '2' } });
 

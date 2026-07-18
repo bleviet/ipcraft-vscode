@@ -382,8 +382,8 @@ stale result is ever displayed.
 
 4. **Composition**
    - Add multiple named inputs and the ordered transform builder.
-   - Provide HI/LO concatenation, mask-and-shift, slice, extension, truncation,
-     and byte-swap presets.
+   - Provide explicit concatenation, masking, shifting, slicing, extension,
+     truncation, and byte-swap operations.
    - Show source provenance directly on the combined ribbon.
    - Require explicit operand order and display a live width equation before
      commit.

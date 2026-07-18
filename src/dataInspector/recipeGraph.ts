@@ -34,16 +34,22 @@ export function recipeToGraph(recipe: IPCraftDataInspectorRecipe): RecipeGraph {
     ...recipe.steps.map((step) => ({ id: step.id, kind: 'step' as const, step })),
     ...recipe.outputs.map((output) => ({ id: output.id, kind: 'output' as const })),
   ];
+  const valueIds = new Set([
+    ...recipe.sources.map((source) => source.id),
+    ...recipe.steps.map((step) => step.id),
+  ]);
   const edges: RecipeGraphEdge[] = [];
 
   for (const step of recipe.steps) {
-    edges.push({
-      id: `${step.id}.input`,
-      source: step.inputId,
-      target: step.id,
-      targetHandle: 'input',
-    });
-    if (step.operandId !== undefined) {
+    if (valueIds.has(step.inputId)) {
+      edges.push({
+        id: `${step.id}.input`,
+        source: step.inputId,
+        target: step.id,
+        targetHandle: 'input',
+      });
+    }
+    if (step.operandId !== undefined && valueIds.has(step.operandId)) {
       edges.push({
         id: `${step.id}.operand`,
         source: step.operandId,
@@ -53,12 +59,14 @@ export function recipeToGraph(recipe: IPCraftDataInspectorRecipe): RecipeGraph {
     }
   }
   for (const output of recipe.outputs) {
-    edges.push({
-      id: `${output.id}.value`,
-      source: output.valueId,
-      target: output.id,
-      targetHandle: 'value',
-    });
+    if (valueIds.has(output.valueId)) {
+      edges.push({
+        id: `${output.id}.value`,
+        source: output.valueId,
+        target: output.id,
+        targetHandle: 'value',
+      });
+    }
   }
 
   return { nodes, edges };
@@ -198,29 +206,11 @@ function deleteNodes(
   const selectedOutputIds = new Set(
     recipe.outputs.filter((output) => selected.has(output.id)).map((output) => output.id)
   );
-  const selectedValueIds = new Set([...selectedSourceIds, ...selectedStepIds]);
-
   if (selectedSourceIds.size === recipe.sources.length && selectedSourceIds.size > 0) {
     throw new Error('A recipe must keep at least one input');
   }
   if (selectedOutputIds.size === recipe.outputs.length && selectedOutputIds.size > 0) {
     throw new Error('A recipe must keep at least one output');
-  }
-
-  const blockingStep = recipe.steps.find(
-    (step) =>
-      !selectedStepIds.has(step.id) &&
-      (selectedValueIds.has(step.inputId) ||
-        (step.operandId !== undefined && selectedValueIds.has(step.operandId)))
-  );
-  const blockingOutput = recipe.outputs.find(
-    (output) => !selectedOutputIds.has(output.id) && selectedValueIds.has(output.valueId)
-  );
-  if (blockingStep) {
-    throw new Error(`Rewire ${blockingStep.id} before deleting the selected component`);
-  }
-  if (blockingOutput) {
-    throw new Error(`Rewire output ${blockingOutput.name} before deleting the selected component`);
   }
 
   const sources = recipe.sources.filter((source) => !selectedSourceIds.has(source.id));

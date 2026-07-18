@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import type { BitVector } from '../../dataInspector/BitVector';
+import { BitVector } from '../../dataInspector/BitVector';
 import {
   decodeField,
   InspectorField,
@@ -52,6 +52,7 @@ declare const acquireVsCodeApi:
 
 const vscode = typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : undefined;
 const LANE_HEIGHT = 74;
+const DEFAULT_VECTOR = BitVector.fromBigInt(BigInt(0), 32);
 const VALUE_EXAMPLES = [
   { label: 'Known hex', literal: "32'hDEAD_BEEF" },
   { label: 'Unknown states', literal: "16'b0000_XXXX_0011_ZZZZ" },
@@ -481,10 +482,10 @@ export function LaneRibbon({
 }
 
 export function DataInspectorApp() {
-  const [draft, setDraft] = useState('');
-  const [widthDraft, setWidthDraft] = useState('');
-  const [vector, setVector] = useState<BitVector | null>(null);
-  const [originalText, setOriginalText] = useState('');
+  const [draft, setDraft] = useState('0');
+  const [widthDraft, setWidthDraft] = useState('32');
+  const [vector, setVector] = useState<BitVector | null>(DEFAULT_VECTOR);
+  const [originalText, setOriginalText] = useState('0');
   const [error, setError] = useState('');
   const [warnings, setWarnings] = useState<string[]>([]);
   const [fields, setFields] = useState<InspectorField[]>([]);
@@ -505,8 +506,8 @@ export function DataInspectorApp() {
     Record<string, { sourceFile: string; registerName: string }>
   >({});
   const [fieldSourceIds, setFieldSourceIds] = useState<Record<string, string>>({});
-  const [samples, setSamples] = useState<Record<string, BitVector>>({});
-  const [sourceDrafts, setSourceDrafts] = useState<Record<string, string>>({});
+  const [samples, setSamples] = useState<Record<string, BitVector>>({ input: DEFAULT_VECTOR });
+  const [sourceDrafts, setSourceDrafts] = useState<Record<string, string>>({ input: '0' });
   const [vcdCapture, setVcdCapture] = useState<VcdCapture | null>(null);
   const [vcdSignalNames, setVcdSignalNames] = useState<string[]>([]);
   const [vcdSelection, setVcdSelection] = useState<VcdSelection | null>(null);
@@ -542,12 +543,23 @@ export function DataInspectorApp() {
   const centerRef = useRef<HTMLDivElement>(null);
   const fieldPanelRef = useRef<HTMLDivElement>(null);
   const fieldDragPointerRef = useRef({ x: 0, y: 0 });
+  const recipeInitializedRef = useRef(false);
 
   useEffect(() => {
     const receive = (event: MessageEvent<DataInspectorToWebviewMessage>) => {
       if (event.data.type === 'registerLayouts') {
         setLayouts(event.data.layouts);
       } else if (event.data.type === 'recipe') {
+        const firstSource = event.data.recipe.sources[0];
+        if (!recipeInitializedRef.current && firstSource) {
+          const initialRecipeVector = BitVector.fromBigInt(BigInt(0), firstSource.width);
+          setDraft('0');
+          setVector(initialRecipeVector);
+          setOriginalText('0');
+          setSamples({ [firstSource.id]: initialRecipeVector });
+          setSourceDrafts({ [firstSource.id]: '0' });
+          recipeInitializedRef.current = true;
+        }
         setRecipeBase(event.data.recipe);
         setRecipeFileName(event.data.fileName);
         setRecipeDocVersion(event.data.docVersion);
@@ -573,7 +585,13 @@ export function DataInspectorApp() {
       } else if (event.data.type === 'applyRegisterLayout') {
         const { layout } = event.data;
         const sourceId = 'input';
+        const initialLayoutVector = BitVector.fromBigInt(BigInt(0), layout.width);
+        setDraft('0');
         setWidthDraft(String(layout.width));
+        setVector(initialLayoutVector);
+        setOriginalText('0');
+        setSamples({ [sourceId]: initialLayoutVector });
+        setSourceDrafts({ [sourceId]: '0' });
         setFields(layout.fields.map((field) => ({ ...field })));
         setFieldSourceIds(Object.fromEntries(layout.fields.map((field) => [field.id, sourceId])));
         setFieldProvenance(
@@ -593,7 +611,7 @@ export function DataInspectorApp() {
   }, []);
 
   const currentRecipe = useMemo<IPCraftDataInspectorRecipe>(() => {
-    const draftWidth = vector?.width ?? (widthDraft === '' ? undefined : Number(widthDraft));
+    const draftWidth = widthDraft === '' ? vector?.width : Number(widthDraft);
     const width = draftWidth ?? recipeBase?.sources[0]?.width ?? 32;
     const base = recipeBase ?? createEmptyRecipe('data-inspector');
     const sourceId = base.sources[0]?.id ?? 'input';
@@ -1256,7 +1274,6 @@ export function DataInspectorApp() {
               onToggleCollapsed={() => setLibraryCollapsed((current) => !current)}
               onAddNode={(kind) => queueCanvasAdd(kind, kind)}
               onAddOperation={(type) => queueCanvasAdd('operation', type)}
-              onAddPreset={(preset) => queueCanvasAdd('preset', preset)}
             />
           </div>
 
