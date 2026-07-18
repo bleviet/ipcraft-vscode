@@ -494,8 +494,23 @@ label {
   letter-spacing: 0.08em;
 }
 .di-source-band span {
+  min-width: 0;
+  overflow: hidden;
   padding-inline: 4px;
   border-right: 1px dashed var(--di-accent);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.di-source-band span.is-inserted {
+  border-inline: 1px dashed var(--di-warning);
+  color: var(--di-warning);
+  background: repeating-linear-gradient(
+    135deg,
+    transparent 0 4px,
+    color-mix(in srgb, var(--di-warning) 12%, transparent) 4px 8px
+  );
+  font-weight: 700;
+  text-align: center;
 }
 .di-bits {
   overflow: hidden;
@@ -512,12 +527,29 @@ label {
 .di-bits span.is-byte {
   margin-left: 0.32em;
 }
+.di-bits span.is-zero {
+  color: color-mix(in srgb, var(--di-text) 48%, transparent);
+}
+.di-bits span.is-one {
+  color: var(--di-accent);
+  font-weight: 700;
+}
+.di-bits span.is-unknown {
+  color: var(--di-warning);
+  font-weight: 700;
+}
+.di-bits.is-field span.is-one,
+.di-bits.is-bit span.is-one {
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--di-accent) 12%, transparent);
+  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--di-accent) 72%, transparent);
+}
 .di-bits span.is-masked {
-  opacity: 0.28;
-  text-decoration: line-through;
+  opacity: 0.42;
 }
 .di-bits span.is-target {
   z-index: 1;
+  opacity: 1;
   border-radius: 2px;
   color: var(--di-text);
   background: color-mix(in srgb, var(--di-accent) 28%, var(--di-card));
@@ -568,6 +600,25 @@ label {
 .di-field-overlay {
   position: relative;
   height: 19px;
+}
+.di-inserted-segment {
+  position: absolute;
+  overflow: hidden;
+  height: 18px;
+  padding: 1px 3px;
+  border: 1px dashed color-mix(in srgb, var(--di-warning) 72%, transparent);
+  border-radius: 3px;
+  color: var(--di-warning);
+  background: repeating-linear-gradient(
+    135deg,
+    transparent 0 4px,
+    color-mix(in srgb, var(--di-warning) 12%, var(--di-card)) 4px 8px
+  );
+  font-size: 8px;
+  font-weight: 700;
+  text-align: center;
+  text-overflow: clip;
+  white-space: nowrap;
 }
 .di-field-segment {
   position: absolute;

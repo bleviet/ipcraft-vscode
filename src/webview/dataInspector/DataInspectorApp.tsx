@@ -7,7 +7,11 @@ import {
   type ProjectedInspectorField,
   validateFieldLayout,
 } from '../../dataInspector/fieldLayout';
-import { getLaneRange, segmentFieldAcrossLanes } from '../../dataInspector/fieldGeometry';
+import {
+  getLaneRange,
+  rangeToLaneFractions,
+  segmentFieldAcrossLanes,
+} from '../../dataInspector/fieldGeometry';
 import { parseLiteral } from '../../dataInspector/parseLiteral';
 import type {
   DataInspectorToExtensionMessage,
@@ -161,17 +165,16 @@ export function LaneRibbon({
     const laneVector = vector.slice(range.laneMsb, range.laneLsb);
     const laneBits = laneVector.toBinary();
     const laneDisplay = zoom === 'overview' ? (laneVector.toHex() ?? laneBits) : laneBits;
-    const sourceSegments: Array<{ sourceId: string; msb: number; lsb: number }> = [];
-    for (let bit = range.laneMsb; bit >= range.laneLsb; bit--) {
-      const sourceId = provenance?.[bit]?.sourceId;
-      if (!sourceId) {
-        continue;
-      }
-      const previous = sourceSegments[sourceSegments.length - 1];
-      if (previous?.sourceId === sourceId && previous.lsb === bit + 1) {
-        previous.lsb = bit;
-      } else {
-        sourceSegments.push({ sourceId, msb: bit, lsb: bit });
+    const sourceSegments: Array<{ sourceId: string | null; msb: number; lsb: number }> = [];
+    if (provenance) {
+      for (let bit = range.laneMsb; bit >= range.laneLsb; bit--) {
+        const sourceId = provenance[bit]?.sourceId ?? null;
+        const previous = sourceSegments[sourceSegments.length - 1];
+        if (previous?.sourceId === sourceId && previous.lsb === bit + 1) {
+          previous.lsb = bit;
+        } else {
+          sourceSegments.push({ sourceId, msb: bit, lsb: bit });
+        }
       }
     }
     lanes.push(
@@ -215,10 +218,26 @@ export function LaneRibbon({
             style={zoom === 'bit' ? { minWidth: `${laneBits.length * 24}px` } : undefined}
           >
             <div className="di-source-band">
-              {sourceSegments.length > 0
+              {provenance
                 ? sourceSegments.map((segment) => (
-                    <span key={`${segment.sourceId}-${segment.msb}`}>
-                      {segment.sourceId} [{segment.msb}:{segment.lsb}]
+                    <span
+                      className={segment.sourceId === null ? 'is-inserted' : ''}
+                      key={`${segment.sourceId ?? 'inserted'}-${segment.msb}`}
+                      style={{
+                        width: `${
+                          ((segment.msb - segment.lsb + 1) / (range.laneMsb - range.laneLsb + 1)) *
+                          100
+                        }%`,
+                      }}
+                      title={
+                        segment.sourceId === null
+                          ? `Transform-inserted ${vector.slice(segment.msb, segment.lsb).toBinary()} [${segment.msb}:${segment.lsb}]`
+                          : `${segment.sourceId} [${segment.msb}:${segment.lsb}]`
+                      }
+                    >
+                      {segment.sourceId === null
+                        ? `+${vector.slice(segment.msb, segment.lsb).toBinary()}`
+                        : `${segment.sourceId} [${segment.msb}:${segment.lsb}]`}
                     </span>
                   ))
                 : `INPUT · bits [${range.laneMsb}:${range.laneLsb}]`}
@@ -229,11 +248,13 @@ export function LaneRibbon({
                 : Array.from(laneDisplay, (state, index) => {
                     const bit = range.laneMsb - index;
                     const separator = bit % 8 === 7 ? 'is-byte' : bit % 4 === 3 ? 'is-nibble' : '';
+                    const stateClass =
+                      state === '1' ? 'is-one' : state === '0' ? 'is-zero' : 'is-unknown';
                     return (
                       <span
                         className={`${maskedBits?.has(bit) ? 'is-masked' : ''} ${
                           targetBit === bit ? 'is-target' : ''
-                        } ${separator}`}
+                        } ${stateClass} ${separator}`}
                         data-bit={bit}
                         key={bit}
                       >
@@ -243,6 +264,31 @@ export function LaneRibbon({
                   })}
             </div>
             <div className="di-field-overlay">
+              {sourceSegments
+                .filter((segment) => segment.sourceId === null)
+                .map((segment) => {
+                  const fractions = rangeToLaneFractions(
+                    range.laneMsb,
+                    range.laneLsb,
+                    segment.msb,
+                    segment.lsb
+                  );
+                  const insertedBits = vector.slice(segment.msb, segment.lsb).toBinary();
+                  return (
+                    <span
+                      aria-label={`Transform-inserted ${insertedBits}, bits ${segment.msb} through ${segment.lsb}`}
+                      className="di-inserted-segment"
+                      key={`inserted-${segment.msb}`}
+                      style={{
+                        left: `${fractions.startFraction * 100}%`,
+                        width: `${fractions.widthFraction * 100}%`,
+                      }}
+                      title={`Transform-inserted ${insertedBits} [${segment.msb}:${segment.lsb}]`}
+                    >
+                      +{insertedBits}
+                    </span>
+                  );
+                })}
               {fields.flatMap((field) =>
                 segmentFieldAcrossLanes(vector.width, laneWidth, field.msb, field.lsb)
                   .filter((segment) => segment.laneIndex === laneIndex)

@@ -146,4 +146,47 @@ describe('LaneRibbon', () => {
     fireEvent.keyDown(first, { key: 'ArrowDown' });
     expect(second).toHaveAttribute('tabindex', '0');
   });
+
+  it('distinguishes active, inactive, and unknown bit states without striking masked bits', () => {
+    const { container } = render(
+      <LaneRibbon
+        vector={parseLiteral("4'b10XZ").vector}
+        fields={[]}
+        laneWidth={8}
+        selectedFieldId={null}
+        onSelectField={() => undefined}
+        maskedBits={new Set([2])}
+        zoom="bit"
+      />
+    );
+
+    expect(container.querySelector('[data-bit="3"]')).toHaveClass('is-one');
+    expect(container.querySelector('[data-bit="2"]')).toHaveClass('is-zero', 'is-masked');
+    expect(container.querySelector('[data-bit="1"]')).toHaveClass('is-unknown');
+    expect(container.querySelector('[data-bit="0"]')).toHaveClass('is-unknown');
+  });
+
+  it('accounts for transform-inserted bits outside projected source fields', () => {
+    const { container } = render(
+      <LaneRibbon
+        vector={parseLiteral("4'b0101").vector}
+        fields={[{ id: 'source-field', name: 'SOURCE', msb: 2, lsb: 0, groupId: 'default' }]}
+        laneWidth={8}
+        selectedFieldId={null}
+        onSelectField={() => undefined}
+        provenance={[
+          { sourceId: 'input', sourceBit: 1 },
+          { sourceId: 'input', sourceBit: 2 },
+          { sourceId: 'input', sourceBit: 3 },
+          null,
+        ]}
+        zoom="bit"
+      />
+    );
+
+    const inserted = container.querySelector('.di-inserted-segment');
+    expect(inserted).toHaveAttribute('title', 'Transform-inserted 0 [3:3]');
+    expect(inserted).toHaveStyle({ left: '0%', width: '25%' });
+    expect(container.querySelector('.di-source-band .is-inserted')).toHaveTextContent('+0');
+  });
 });

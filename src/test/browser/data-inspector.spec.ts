@@ -56,6 +56,46 @@ test.describe('Data Inspector responsive and accessible workspace', () => {
     await expect(page.locator('.di-lane.is-target')).toHaveCount(0);
   });
 
+  test('emphasizes one bits without crossing out inactive or masked zero bits', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(harnessPath);
+    await decode(page, "16'h099A");
+    await page.getByRole('button', { name: 'bit', exact: true }).click();
+
+    const one = page.locator('[data-bit="11"]');
+    const zero = page.locator('[data-bit="14"]');
+    await expect(one).toHaveClass(/is-one/);
+    await expect(one).toHaveCSS('font-weight', '700');
+    await expect(zero).toHaveClass(/is-zero/);
+    await zero.evaluate((element) => element.classList.add('is-masked'));
+    await expect(zero).toHaveCSS('text-decoration-line', 'none');
+  });
+
+  test('marks transform-inserted high bits beside projected source fields', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(harnessPath);
+    await decode(page, "32'h12345678");
+    await page.getByRole('button', { name: 'Add source' }).click();
+    await page.getByLabel('INPUT_2 value').fill("32'h00FFFFFF");
+    await page.getByRole('button', { name: 'Decode INPUT_2' }).click();
+    await page.getByRole('tab', { name: 'Transform' }).click();
+    await page.getByRole('button', { name: 'Mask + shift' }).click();
+
+    const inserted = page.getByTitle('Transform-inserted 0 [31:31]').last();
+    await expect(inserted).toBeVisible();
+    await expect(inserted).toHaveText('+0');
+    const [insertedBox, bitBox] = await Promise.all([
+      inserted.boundingBox(),
+      page.locator('[data-bit="31"]').boundingBox(),
+    ]);
+    expect(insertedBox).not.toBeNull();
+    expect(bitBox).not.toBeNull();
+    expect(Math.abs(insertedBox!.x - bitBox!.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(insertedBox!.width - bitBox!.width)).toBeLessThanOrEqual(1);
+  });
+
   test('aligns field overlays with their bit cells in a partial lane', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(harnessPath);
