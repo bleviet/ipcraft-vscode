@@ -1872,6 +1872,9 @@ label {
 }
 
 @media (max-width: 1100px) {
+  .di-panel-maximize {
+    display: none;
+  }
   .di-vector-status {
     display: none;
   }

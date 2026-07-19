@@ -265,8 +265,8 @@ describe('Data Inspector operators', () => {
     }
 
     expect(onAddOperation).toHaveBeenCalledTimes(TRANSFORM_OPERATIONS.length);
-    expect(onAddOperation.mock.calls.map(([type]) => type)).toEqual(
-      TRANSFORM_OPERATIONS.map((operation) => operation.type)
+    TRANSFORM_OPERATIONS.forEach((operation, index) =>
+      expect(onAddOperation).toHaveBeenNthCalledWith(index + 1, operation.type)
     );
     expect(dataTransfer.setData.mock.calls).toEqual(
       TRANSFORM_OPERATIONS.map((operation) => [DATA_INSPECTOR_OPERATION_MIME, operation.type])

@@ -580,7 +580,7 @@ export function DataInspectorApp() {
   const [newGroupName, setNewGroupName] = useState('');
   const [mobileTab, setMobileTab] = useState<
     'value' | 'bits' | 'transform' | 'library' | 'inspect'
-  >('value');
+  >('bits');
   const [inspectorTab, setInspectorTab] = useState<'properties' | 'fields' | 'capture'>(
     'properties'
   );
@@ -663,6 +663,15 @@ export function DataInspectorApp() {
     vscode?.postMessage({ type: 'requestRegisterLayouts' });
     return () => window.removeEventListener('message', receive);
   }, []);
+
+  useEffect(() => {
+    setMobileTab((current) => {
+      if (!vector) {
+        return 'value';
+      }
+      return current === 'value' ? 'bits' : current;
+    });
+  }, [vector]);
 
   const currentRecipe = useMemo<IPCraftDataInspectorRecipe>(() => {
     const draftWidth = widthDraft === '' ? vector?.width : Number(widthDraft);
@@ -1205,6 +1214,7 @@ export function DataInspectorApp() {
           : (['value'] as const)
         ).map((tab) => (
           <button
+            aria-current={mobileTab === tab ? 'page' : undefined}
             className={mobileTab === tab ? 'is-active' : ''}
             key={tab}
             onClick={() => setMobileTab(tab)}
@@ -1260,6 +1270,7 @@ export function DataInspectorApp() {
                 setDraft('');
                 setWidthDraft('');
                 setVector(null);
+                setMobileTab('value');
                 setSamples({});
                 setSourceOriginalTexts({});
                 setError('');

@@ -17,6 +17,45 @@ async function openFields(page: import('@playwright/test').Page) {
 }
 
 test.describe('Data Inspector responsive and accessible workspace', () => {
+  test('opens a recipe directly to its usable Bits pane on a narrow viewport', async ({ page }) => {
+    await page.setViewportSize({ width: 640, height: 800 });
+    await page.goto(harnessPath);
+    await page.waitForFunction(() =>
+      (window as unknown as { __vscodeMessages: Array<{ type: string }> }).__vscodeMessages.some(
+        (message) => message.type === 'ready'
+      )
+    );
+    await page.evaluate(() => {
+      (
+        window as unknown as { renderRecipe: (value: unknown, version?: number) => void }
+      ).renderRecipe({
+        version: 1,
+        name: 'compact-recipe',
+        description: '',
+        sources: [{ id: 'status', name: 'STATUS', width: 32 }],
+        fields: [],
+        overlayGroups: [{ id: 'default', name: 'Default' }],
+        steps: [],
+        view: { laneWidth: 32, zoom: 'field', selectedGroupId: 'default' },
+      });
+    });
+
+    const bitsTab = page.getByRole('button', { name: 'Bits' });
+    await expect(bitsTab).toHaveAttribute('aria-current', 'page');
+    await expect(page.locator('.di-bits-pane')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Bits' })).toBeVisible();
+    await expect(page.locator('.di-transform-pane')).toBeHidden();
+    await expect(page.getByRole('button', { name: 'Maximize bits view' })).toBeHidden();
+
+    await page.getByRole('button', { name: 'Transform' }).click();
+    await expect(page.getByRole('button', { name: 'Transform' })).toHaveAttribute(
+      'aria-current',
+      'page'
+    );
+    await expect(page.locator('.di-transform-pane')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Maximize transform view' })).toBeHidden();
+  });
+
   for (const width of [640, 900, 1440]) {
     test(`keeps bits visible without page-level horizontal scrolling at ${width}px`, async ({
       page,

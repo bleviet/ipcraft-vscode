@@ -49,7 +49,7 @@ export function TransformTab({
         </span>
         <button
           aria-label={maximized ? 'Restore split view' : 'Maximize transform view'}
-          className="di-icon-button"
+          className="di-icon-button di-panel-maximize"
           onClick={onToggleMaximized}
           data-tooltip={maximized ? 'Restore split view' : 'Maximize transform view'}
           type="button"
