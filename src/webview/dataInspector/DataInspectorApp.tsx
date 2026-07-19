@@ -1,8 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { BitVector } from '../../dataInspector/BitVector';
 import {
-  copyFieldsForSource,
-  decodeField,
   InspectorField,
   projectFieldsToOutput,
   type ProjectedInspectorField,
@@ -17,102 +15,35 @@ import { parseLiteral } from '../../dataInspector/parseLiteral';
 import { formatValue, type ValueRepresentation } from '../../dataInspector/formatValue';
 import type {
   DataInspectorToExtensionMessage,
-  DataInspectorToWebviewMessage,
   RegisterLayoutCopy,
 } from '../../shared/messages/dataInspector';
 import type { IPCraftDataInspectorRecipe } from '../../domain/dataInspector.types';
-import {
-  createEmptyRecipe,
-  recipeFields,
-  validateRecipeSemantics,
-} from '../../dataInspector/recipe';
+import { createEmptyRecipe, validateRecipeSemantics } from '../../dataInspector/recipe';
 import { evaluateRecipe, type ProvenanceBit } from '../../dataInspector/evaluateRecipe';
 import { applyGraphEdit } from '../../dataInspector/recipeGraph';
-import {
-  compareExpected,
-  decodeEnum,
-  decodeFixedPoint,
-  decodeFloat,
-  decodeSigned,
-  decodeUnsigned,
-} from '../../dataInspector/numericDecode';
-import { VcdCapture, VcdSelection, type VcdSample } from '../../dataInspector/vcd';
-import {
-  CsvCapture,
-  csvSignalColumns,
-  detectCsvCapturePreset,
-  getCsvHeaders,
-  type CsvSignalMapping,
-} from '../../dataInspector/csvCapture';
 import { TransformTab } from './transform/TransformTab';
 import { WorkbenchLibrary } from './WorkbenchLibrary';
 import type { CanvasAddCommand } from './canvas/TransformCanvas';
 import { ButtonTooltip } from './ButtonTooltip';
-import { createRevisionState, nextEditRevision, shouldApplyUpdate } from '../sync/revisionFilter';
+import { CapturePanel } from './CapturePanel';
+import { FieldPanel } from './FieldPanel';
+import { ValueComposer } from './ValueComposer';
+import { createRevisionState } from '../sync/revisionFilter';
+import { useCaptureImport } from './hooks/useCaptureImport';
+import { useDataInspectorSync } from './hooks/useDataInspectorSync';
+import { useFieldPanel } from './hooks/useFieldPanel';
+import { useRecipeAutosave } from './hooks/useRecipeAutosave';
+import { useValueInput } from './hooks/useValueInput';
 
 declare const acquireVsCodeApi:
   | undefined
   | (() => { postMessage: (message: DataInspectorToExtensionMessage) => void });
 
 const vscode = typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : undefined;
+const postMessage = vscode
+  ? (message: DataInspectorToExtensionMessage) => vscode.postMessage(message)
+  : undefined;
 const LANE_HEIGHT = 74;
-const DEFAULT_VECTOR = BitVector.fromBigInt(BigInt(0), 32);
-const VALUE_EXAMPLES = [
-  { label: 'Known hex', literal: '0xDEAD_BEEF' },
-  { label: 'Unknown states', literal: '0b0000_XXXX_0011_ZZZZ' },
-  { label: 'Decimal', literal: '305419896' },
-] as const;
-
-function hexDisplayText(value: BitVector): string | null {
-  const exactHex = value.toHex();
-  if (exactHex !== null) {
-    return `0x${exactHex}`;
-  }
-  const knownValue = value.toBigInt();
-  return knownValue === null
-    ? null
-    : `0x${knownValue
-        .toString(16)
-        .toUpperCase()
-        .padStart(Math.ceil(value.width / 4), '0')}`;
-}
-
-function interpretedText(
-  value: BitVector,
-  field: IPCraftDataInspectorRecipe['fields'][number] | undefined
-): { text: string; comparison?: 'pass' | 'fail' | 'unknown' } {
-  if (!field) {
-    const hex = hexDisplayText(value);
-    return { text: hex ? `hex ${hex}` : `binary ${value.toBinary()}` };
-  }
-  const interpretation = field.display.interpretation;
-  let result;
-  if (interpretation === 'unsigned') {
-    result = decodeUnsigned(value);
-  } else if (interpretation === 'signed') {
-    result = decodeSigned(value);
-  } else if (interpretation === 'enum') {
-    result = decodeEnum(value, field.enumValues ?? {});
-  } else if (interpretation === 'float') {
-    result = decodeFloat(value);
-  } else if (interpretation === 'fixedPoint') {
-    result = decodeFixedPoint(value, field.display.fractionalBits ?? -1);
-  } else if (interpretation === 'binary') {
-    result = { status: 'ok' as const, text: value.toBinary() };
-  } else {
-    result = {
-      status: 'ok' as const,
-      text: hexDisplayText(value) ?? value.toBinary(),
-    };
-  }
-  return {
-    text: result.text,
-    comparison: field.display.expectedValue
-      ? compareExpected(value, field.display.expectedValue)
-      : undefined,
-  };
-}
-
 interface LaneRibbonProps {
   vector: BitVector;
   fields: Array<InspectorField | ProjectedInspectorField>;
@@ -536,49 +467,54 @@ function CopyableValue({ label, value, representation }: CopyableValueProps) {
 }
 
 export function DataInspectorApp() {
-  const [draft, setDraft] = useState('0');
-  const [widthDraft, setWidthDraft] = useState('32');
-  const [vector, setVector] = useState<BitVector | null>(DEFAULT_VECTOR);
-  const [valueRepresentation, setValueRepresentation] = useState<ValueRepresentation>('hex');
-  const [error, setError] = useState('');
-  const [warnings, setWarnings] = useState<string[]>([]);
-  const [fields, setFields] = useState<InspectorField[]>([]);
-  const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
+  const [recipeBase, setRecipeBase] = useState<IPCraftDataInspectorRecipe | null>(null);
+  const valueInput = useValueInput(recipeBase?.sources[0]?.id ?? 'input');
+  const {
+    changeValueRepresentation,
+    error,
+    samples,
+    setDraft,
+    setError,
+    setSamples,
+    setSourceDrafts,
+    setSourceOriginalTexts,
+    setVector,
+    setWarnings,
+    setWidthDraft,
+    sourceDrafts,
+    sourceOriginalTexts,
+    valueRepresentation,
+    vector,
+    warnings,
+    widthDraft,
+  } = valueInput;
+  const fieldPanel = useFieldPanel();
+  const {
+    draggedFieldId,
+    fieldAnnouncement,
+    fieldProvenance,
+    fields,
+    fieldSearch,
+    fieldSourceIds,
+    layoutId,
+    newGroupName,
+    selectedFieldId,
+    setDraggedFieldId,
+    setFieldProvenance,
+    setFields,
+    setFieldSearch,
+    setFieldSourceIds,
+    setLayoutId,
+    setNewGroupName,
+    setNextFieldNumber,
+    setSelectedFieldId,
+    updateSelectedField,
+  } = fieldPanel;
   const [laneWidth, setLaneWidth] = useState<8 | 16 | 32 | 64>(32);
   const [zoom, setZoom] = useState<'overview' | 'field' | 'bit'>('field');
   const [layouts, setLayouts] = useState<RegisterLayoutCopy[]>([]);
-  const [layoutId, setLayoutId] = useState('');
-  const [fieldSearch, setFieldSearch] = useState('');
-  const [draggedFieldId, setDraggedFieldId] = useState<string | null>(null);
-  const [fieldAnnouncement, setFieldAnnouncement] = useState('');
-  const [nextFieldNumber, setNextFieldNumber] = useState(1);
-  const [recipeBase, setRecipeBase] = useState<IPCraftDataInspectorRecipe | null>(null);
   const [recipeFileName, setRecipeFileName] = useState('');
   const [recipeError, setRecipeError] = useState('');
-  const [fieldProvenance, setFieldProvenance] = useState<
-    Record<string, { sourceFile: string; registerName: string }>
-  >({});
-  const [fieldSourceIds, setFieldSourceIds] = useState<Record<string, string>>({});
-  const [samples, setSamples] = useState<Record<string, BitVector>>({ input: DEFAULT_VECTOR });
-  const [sourceDrafts, setSourceDrafts] = useState<Record<string, string>>({ input: '0' });
-  const [sourceOriginalTexts, setSourceOriginalTexts] = useState<Record<string, string>>({
-    input: '0',
-  });
-  const [vcdCapture, setVcdCapture] = useState<VcdCapture | null>(null);
-  const [vcdSignalNames, setVcdSignalNames] = useState<string[]>([]);
-  const [vcdSelection, setVcdSelection] = useState<VcdSelection | null>(null);
-  const [vcdSampleIndex, setVcdSampleIndex] = useState(0);
-  const [vcdSample, setVcdSample] = useState<VcdSample | null>(null);
-  const [csvText, setCsvText] = useState('');
-  const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
-  const [csvColumn, setCsvColumn] = useState('');
-  const [csvRadix, setCsvRadix] = useState<CsvSignalMapping['radix']>('hex');
-  const [csvByteOrder, setCsvByteOrder] = useState<CsvSignalMapping['byteOrder']>('bigEndian');
-  const [csvWordOrder, setCsvWordOrder] = useState<CsvSignalMapping['wordOrder']>('highFirst');
-  const [csvWordWidth, setCsvWordWidth] = useState<CsvSignalMapping['wordWidth']>(8);
-  const [csvCapture, setCsvCapture] = useState<CsvCapture | null>(null);
-  const [csvSampleIndex, setCsvSampleIndex] = useState(0);
-  const [newGroupName, setNewGroupName] = useState('');
   const [mobileTab, setMobileTab] = useState<
     'value' | 'bits' | 'transform' | 'library' | 'inspect'
   >('bits');
@@ -598,90 +534,30 @@ export function DataInspectorApp() {
   const centerRef = useRef<HTMLDivElement>(null);
   const fieldPanelRef = useRef<HTMLDivElement>(null);
   const fieldDragPointerRef = useRef({ x: 0, y: 0 });
-  const recipeInitializedRef = useRef(false);
   const revisionStateRef = useRef(createRevisionState());
 
-  useEffect(() => {
-    const receive = (event: MessageEvent<DataInspectorToWebviewMessage>) => {
-      if (event.data.type === 'registerLayouts') {
-        setLayouts(event.data.layouts);
-      } else if (event.data.type === 'recipe') {
-        if (!shouldApplyUpdate(revisionStateRef.current, event.data)) {
-          return;
-        }
-        const recipe = event.data.recipe;
-        const firstSource = recipe.sources[0];
-        if (!recipeInitializedRef.current && firstSource) {
-          const initialRecipeVector = BitVector.fromBigInt(BigInt(0), firstSource.width);
-          setDraft('0');
-          setVector(initialRecipeVector);
-          setSamples({ [firstSource.id]: initialRecipeVector });
-          setSourceDrafts({ [firstSource.id]: '0' });
-          setSourceOriginalTexts({ [firstSource.id]: '0' });
-          recipeInitializedRef.current = true;
-        }
-        setRecipeBase(recipe);
-        setRecipeFileName(event.data.fileName);
-        setFields(recipeFields(recipe));
-        setLaneWidth(recipe.view.laneWidth);
-        setZoom(recipe.view.zoom);
-        setWidthDraft(String(recipe.sources[0]?.width ?? 32));
-        setFieldProvenance(
-          Object.fromEntries(
-            recipe.fields
-              .filter((field) => field.importProvenance !== undefined)
-              .map((field) => [field.id, field.importProvenance!])
-          )
-        );
-        setFieldSourceIds(
-          Object.fromEntries(recipe.fields.map((field) => [field.id, field.sourceId]))
-        );
-        const nextNumber =
-          recipe.fields.reduce((highest, field) => {
-            const match = /^field-(\d+)$/.exec(field.id);
-            return match ? Math.max(highest, Number(match[1])) : highest;
-          }, 0) + 1;
-        setNextFieldNumber((current) => Math.max(current, nextNumber));
-        const valueIds = new Set([
-          ...recipe.sources.map((source) => source.id),
-          ...recipe.steps.map((step) => step.id),
-        ]);
-        setSelectedNodeId((current) =>
-          valueIds.has(current) ? current : (recipe.sources[0]?.id ?? 'input')
-        );
-        setInspectedValueId((current) =>
-          current && valueIds.has(current) ? current : (recipe.sources[0]?.id ?? null)
-        );
-        setRecipeError('');
-      } else if (event.data.type === 'recipeError') {
-        setRecipeError(event.data.error);
-      } else if (event.data.type === 'applyRegisterLayout') {
-        const { layout } = event.data;
-        const sourceId = 'input';
-        const initialLayoutVector = BitVector.fromBigInt(BigInt(0), layout.width);
-        setDraft('0');
-        setWidthDraft(String(layout.width));
-        setVector(initialLayoutVector);
-        setSamples({ [sourceId]: initialLayoutVector });
-        setSourceDrafts({ [sourceId]: '0' });
-        setSourceOriginalTexts({ [sourceId]: '0' });
-        setFields(layout.fields.map((field) => ({ ...field })));
-        setFieldSourceIds(Object.fromEntries(layout.fields.map((field) => [field.id, sourceId])));
-        setFieldProvenance(
-          Object.fromEntries(
-            layout.fields.map((field) => [
-              field.id,
-              { sourceFile: layout.sourceFile, registerName: layout.registerName },
-            ])
-          )
-        );
-      }
-    };
-    window.addEventListener('message', receive);
-    vscode?.postMessage({ type: 'ready' });
-    vscode?.postMessage({ type: 'requestRegisterLayouts' });
-    return () => window.removeEventListener('message', receive);
-  }, []);
+  useDataInspectorSync({
+    postMessage,
+    revisionStateRef,
+    setDraft,
+    setFieldProvenance,
+    setFields,
+    setFieldSourceIds,
+    setInspectedValueId,
+    setLaneWidth,
+    setLayouts,
+    setNextFieldNumber,
+    setRecipeBase,
+    setRecipeError,
+    setRecipeFileName,
+    setSamples,
+    setSelectedNodeId,
+    setSourceDrafts,
+    setSourceOriginalTexts,
+    setVector,
+    setWidthDraft,
+    setZoom,
+  });
 
   useEffect(() => {
     setMobileTab((current) => {
@@ -768,60 +644,13 @@ export function DataInspectorApp() {
     });
   }, [currentRecipe.sources, sourceDrafts]);
 
-  useEffect(() => {
-    if (recipeBase === null || recipeSemanticProblems.length > 0) {
-      return;
-    }
-    const timeout = window.setTimeout(() => {
-      vscode?.postMessage({
-        type: 'updateRecipe',
-        recipe: currentRecipe,
-        ...nextEditRevision(revisionStateRef.current),
-      });
-    }, 120);
-    return () => window.clearTimeout(timeout);
-  }, [currentRecipe, recipeBase, recipeSemanticProblems.length]);
-
-  const parseValue = (literal: string, literalWidth = widthDraft) => {
-    try {
-      const parsed = parseLiteral(literal, {
-        width: literalWidth === '' ? undefined : Number(literalWidth),
-      });
-      const normalizedText = formatValue(parsed.vector, valueRepresentation);
-      setDraft(normalizedText);
-      setVector(parsed.vector);
-      const sourceId = currentRecipe.sources[0]?.id ?? 'input';
-      setSamples((current) => ({ ...current, [sourceId]: parsed.vector }));
-      setSourceDrafts((current) => ({ ...current, [sourceId]: normalizedText }));
-      setSourceOriginalTexts((current) => ({ ...current, [sourceId]: parsed.originalText }));
-      setWarnings(parsed.warnings);
-      setError('');
-      setMobileTab('bits');
-      if (literalWidth === '') {
-        setWidthDraft(String(parsed.vector.width));
-      }
-    } catch (parseError) {
-      setError(parseError instanceof Error ? parseError.message : String(parseError));
-    }
-  };
-
-  const parseDraft = () => parseValue(draft);
-
-  const changeValueRepresentation = (representation: ValueRepresentation) => {
-    setValueRepresentation(representation);
-    if (!vector) {
-      return;
-    }
-    setDraft(formatValue(vector, representation));
-    setSourceDrafts((current) =>
-      Object.fromEntries(
-        Object.entries(current).map(([sourceId, sourceText]) => [
-          sourceId,
-          samples[sourceId] ? formatValue(samples[sourceId], representation) : sourceText,
-        ])
-      )
-    );
-  };
+  useRecipeAutosave({
+    currentRecipe,
+    enabled: recipeBase !== null,
+    postMessage,
+    revisionStateRef,
+    semanticProblemCount: recipeSemanticProblems.length,
+  });
 
   const sampleMap = useMemo(() => new Map(Object.entries(samples)), [samples]);
   const evaluation = useMemo(
@@ -834,6 +663,16 @@ export function DataInspectorApp() {
     : -1;
   const selectedStep = currentRecipe.steps.find((step) => step.id === selectedNodeId);
   const activeSource = selectedSource ?? currentRecipe.sources[0];
+  const capture = useCaptureImport({
+    activeSource,
+    currentRecipe,
+    setError,
+    setRecipeBase,
+    setSamples,
+    setVector,
+    setWidthDraft,
+  });
+  const { vcdSample } = capture;
   const activeSourceVector = activeSource
     ? evaluation.values.get(activeSource.id)?.value
     : undefined;
@@ -947,15 +786,6 @@ export function DataInspectorApp() {
     });
   };
 
-  const updateSelectedField = (patch: Partial<InspectorField>) => {
-    if (!selectedFieldId) {
-      return;
-    }
-    setFields((current) =>
-      current.map((field) => (field.id === selectedFieldId ? { ...field, ...patch } : field))
-    );
-  };
-
   const updateStep = (
     index: number,
     patch: Partial<IPCraftDataInspectorRecipe['steps'][number]>
@@ -1001,113 +831,17 @@ export function DataInspectorApp() {
     setRecipeBase({ ...currentRecipe, steps });
   };
 
-  const applyVcdSample = (selection: VcdSelection, index: number) => {
-    const sample = selection.sample(index);
-    const nextSamples: Record<string, BitVector> = {};
-    const nextSources = selection.signals.map((signal, signalIndex) => {
-      const existing = currentRecipe.sources[signalIndex];
-      const source = existing ?? {
-        id: signalIndex === 0 ? 'input' : `input${signalIndex + 1}`,
-        name: signal.name,
-        width: signal.width,
-      };
-      const value = sample.values.get(signal.name);
-      if (value) {
-        nextSamples[source.id] = value;
-      }
-      return { ...source, name: signal.name, width: signal.width };
+  const addField = () =>
+    fieldPanel.addField({
+      activeSource,
+      activeSourceFields,
+      activeSourceVector,
+      currentRecipe,
+      setError,
+      showFields: () => setInspectorTab('fields'),
     });
-    setRecipeBase({ ...currentRecipe, sources: nextSources });
-    setSamples(nextSamples);
-    setVector(nextSamples[nextSources[0]?.id] ?? null);
-    if (nextSources[0]) {
-      setWidthDraft(String(nextSources[0].width));
-    }
-    setVcdSampleIndex(index);
-    setVcdSample(sample);
-  };
 
-  const loadCsvText = (text: string) => {
-    try {
-      const headers = getCsvHeaders(text);
-      setCsvText(text);
-      setCsvHeaders(headers);
-      setCsvColumn(
-        csvSignalColumns(headers, detectCsvCapturePreset(headers))[0] ?? headers[0] ?? ''
-      );
-      setError('');
-    } catch (csvError) {
-      setError(csvError instanceof Error ? csvError.message : String(csvError));
-    }
-  };
-
-  const applyCsvSample = (capture: CsvCapture, index: number) => {
-    const source = activeSource;
-    const value = capture.samples[index]?.values.get(source?.name ?? 'INPUT');
-    if (!source || !value) {
-      return;
-    }
-    setSamples((current) => ({ ...current, [source.id]: value }));
-    if (source.id === currentRecipe.sources[0]?.id) {
-      setVector(value);
-    }
-    setCsvSampleIndex(index);
-  };
-
-  const addField = () => {
-    if (!activeSource || !activeSourceVector) {
-      return;
-    }
-    const occupied = new Set(
-      activeSourceFields
-        .filter((field) => field.groupId === 'default')
-        .flatMap((field) =>
-          Array.from({ length: field.msb - field.lsb + 1 }, (_, i) => field.lsb + i)
-        )
-    );
-    let bit = activeSourceVector.width - 1;
-    while (bit >= 0 && occupied.has(bit)) {
-      bit--;
-    }
-    if (bit < 0) {
-      setError('The default overlay group has no unassigned bits');
-      return;
-    }
-    const existingIds = new Set([
-      ...currentRecipe.sources.map((source) => source.id),
-      ...currentRecipe.fields.map((field) => field.id),
-      ...currentRecipe.overlayGroups.map((group) => group.id),
-      ...currentRecipe.steps.map((step) => step.id),
-    ]);
-    let fieldNumber = nextFieldNumber;
-    while (existingIds.has(`field-${fieldNumber}`)) {
-      fieldNumber += 1;
-    }
-    const id = `field-${fieldNumber}`;
-    setNextFieldNumber(fieldNumber + 1);
-    setFields((current) => [
-      ...current,
-      { id, name: `FIELD_${fieldNumber}`, msb: bit, lsb: bit, groupId: 'default' },
-    ]);
-    setFieldSourceIds((current) => ({ ...current, [id]: activeSource.id }));
-    setSelectedFieldId(id);
-    setInspectorTab('fields');
-  };
-
-  const removeField = (fieldId: string) => {
-    const removed = fields.find((field) => field.id === fieldId);
-    if (!removed) {
-      return;
-    }
-    setFields((current) => current.filter((field) => field.id !== fieldId));
-    setFieldSourceIds((current) => {
-      const next = { ...current };
-      delete next[fieldId];
-      return next;
-    });
-    setSelectedFieldId((current) => (current === fieldId ? null : current));
-    setFieldAnnouncement(`Removed field ${removed.name}`);
-  };
+  const removeField = fieldPanel.removeField;
 
   const removeSelectedSource = () => {
     if (!selectedSource || currentRecipe.sources.length === 1) {
@@ -1146,43 +880,15 @@ export function DataInspectorApp() {
     setError('');
   };
 
-  const copySelectedRegisterLayout = () => {
-    const layout = layouts.find((candidate) => candidate.id === layoutId);
-    if (!layout || !activeSource) {
-      return;
-    }
-    const activeIds = new Set(activeSourceFields.map((field) => field.id));
-    const reservedIds = new Set([
-      ...currentRecipe.sources.map((source) => source.id),
-      ...currentRecipe.fields.filter((field) => !activeIds.has(field.id)).map((field) => field.id),
-      ...currentRecipe.overlayGroups.map((group) => group.id),
-      ...currentRecipe.steps.map((step) => step.id),
-    ]);
-    const importedFields = copyFieldsForSource(layout.fields, activeSource.id, reservedIds);
-    setFields((current) => [
-      ...current.filter((field) => !activeIds.has(field.id)),
-      ...importedFields,
-    ]);
-    setFieldProvenance((current) => ({
-      ...Object.fromEntries(Object.entries(current).filter(([fieldId]) => !activeIds.has(fieldId))),
-      ...Object.fromEntries(
-        importedFields.map((field) => [
-          field.id,
-          { sourceFile: layout.sourceFile, registerName: layout.registerName },
-        ])
-      ),
-    }));
-    setFieldSourceIds((current) => ({
-      ...Object.fromEntries(Object.entries(current).filter(([fieldId]) => !activeIds.has(fieldId))),
-      ...Object.fromEntries(importedFields.map((field) => [field.id, activeSource.id])),
-    }));
-    if (layout.width !== activeSource.width) {
-      setError(
-        `Copied ${layout.width}-bit register layout onto a ${activeSource.width}-bit value; out-of-range fields are flagged below`
-      );
-    }
-    setInspectorTab('fields');
-  };
+  const copySelectedRegisterLayout = () =>
+    fieldPanel.copySelectedRegisterLayout({
+      activeSource,
+      activeSourceFields,
+      currentRecipe,
+      layout: layouts.find((candidate) => candidate.id === layoutId),
+      setError,
+      showFields: () => setInspectorTab('fields'),
+    });
 
   const beginCenterResize = (event: React.PointerEvent<HTMLDivElement>) => {
     const bounds = centerRef.current?.getBoundingClientRect();
@@ -1292,87 +998,13 @@ export function DataInspectorApp() {
       </nav>
 
       {!vector && (
-        <section
-          className={`di-composer di-mobile-panel ${mobileTab === 'value' ? 'is-mobile-active' : ''}`}
-          aria-labelledby="value-heading"
-        >
-          <div className="di-composer__title">
-            <span className="di-step">1</span>
-            <div>
-              <span className="di-eyebrow">Paste any value</span>
-              <h2 id="value-heading">Value composer</h2>
-            </div>
-          </div>
-          <div className="di-input-row">
-            <label className="di-value-input">
-              <span>Literal</span>
-              <input
-                value={draft}
-                placeholder="0x0001_2000_0000_3F00"
-                spellCheck={false}
-                onChange={(event) => setDraft(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    parseDraft();
-                  }
-                }}
-              />
-            </label>
-            <label className="di-width-input">
-              <span>Width</span>
-              <input
-                type="number"
-                min={1}
-                max={4096}
-                value={widthDraft}
-                placeholder="auto"
-                onChange={(event) => setWidthDraft(event.target.value)}
-              />
-            </label>
-            <button className="di-primary" onClick={parseDraft}>
-              Decode
-            </button>
-            <button
-              onClick={() => {
-                setDraft('');
-                setWidthDraft('');
-                setVector(null);
-                setMobileTab('value');
-                setSamples({});
-                setSourceOriginalTexts({});
-                setError('');
-                setWarnings([]);
-              }}
-            >
-              Clear
-            </button>
-          </div>
-          {!vector && (
-            <div className="di-examples" aria-label="Example values">
-              <span>Try an example</span>
-              {VALUE_EXAMPLES.map((example) => (
-                <button
-                  key={example.label}
-                  onClick={() => {
-                    setDraft(example.literal);
-                    setWidthDraft('');
-                    parseValue(example.literal, '');
-                  }}
-                >
-                  <strong>{example.label}</strong>
-                  <code>{example.literal}</code>
-                </button>
-              ))}
-            </div>
-          )}
-          {error && <div className="di-message is-error">{error}</div>}
-          {recipeError && <div className="di-message is-error">{recipeError}</div>}
-          {warnings.map((warning) => (
-            <div className="di-message is-warning" key={warning}>
-              {warning}
-            </div>
-          ))}
-        </section>
+        <ValueComposer
+          mobileActive={mobileTab === 'value'}
+          onCleared={() => setMobileTab('value')}
+          onDecoded={() => setMobileTab('bits')}
+          recipeError={recipeError}
+          valueInput={valueInput}
+        />
       )}
 
       {!vector ? (
@@ -1884,583 +1516,42 @@ export function DataInspectorApp() {
                   )}
                 </div>
 
-                <div
-                  aria-labelledby="di-inspector-tab-capture"
-                  className={`di-inspector-panel di-capture-panel ${inspectorTab === 'capture' ? 'is-active' : ''}`}
-                  id="di-inspector-panel-capture"
-                  role="tabpanel"
-                >
-                  <div className="di-panel-heading">
-                    <span className="di-eyebrow">Bring in structure or samples</span>
-                    <h2>Capture</h2>
-                  </div>
-                  <details className="di-capture" open={vcdCapture !== null}>
-                    <summary>VCD capture</summary>
-                    <label>
-                      VCD file
-                      <input
-                        type="file"
-                        accept=".vcd,text/plain"
-                        onChange={(event) => {
-                          const file = event.target.files?.[0];
-                          if (!file) {
-                            return;
-                          }
-                          void file
-                            .text()
-                            .then((text) => {
-                              const capture = VcdCapture.parse(text);
-                              setVcdCapture(capture);
-                              setVcdSignalNames(
-                                capture.signals.slice(0, 1).map((signal) => signal.name)
-                              );
-                              setError('');
-                            })
-                            .catch((captureError: unknown) =>
-                              setError(
-                                captureError instanceof Error
-                                  ? captureError.message
-                                  : String(captureError)
-                              )
-                            );
-                        }}
-                      />
-                    </label>
-                    {vcdCapture && (
-                      <div className="di-capture__signals">
-                        {vcdCapture.signals.map((signal) => (
-                          <label key={signal.id}>
-                            <input
-                              type="checkbox"
-                              checked={vcdSignalNames.includes(signal.name)}
-                              onChange={(event) =>
-                                setVcdSignalNames((current) =>
-                                  event.target.checked
-                                    ? [...current, signal.name]
-                                    : current.filter((name) => name !== signal.name)
-                                )
-                              }
-                            />
-                            {signal.name} [{signal.width}]
-                          </label>
-                        ))}
-                        <button
-                          disabled={vcdSignalNames.length === 0}
-                          onClick={() => {
-                            const selection = vcdCapture.selectSignals(vcdSignalNames);
-                            setVcdSelection(selection);
-                            applyVcdSample(selection, 0);
-                          }}
-                        >
-                          Index selected signals
-                        </button>
-                      </div>
-                    )}
-                    {vcdSelection && vcdSample && (
-                      <div className="di-timeline">
-                        <button
-                          aria-label="Previous sample"
-                          disabled={vcdSampleIndex === 0}
-                          onClick={() => applyVcdSample(vcdSelection, vcdSampleIndex - 1)}
-                        >
-                          Previous
-                        </button>
-                        <input
-                          aria-label="Capture sample"
-                          type="range"
-                          min={0}
-                          max={vcdSelection.sampleCount - 1}
-                          value={vcdSampleIndex}
-                          onChange={(event) =>
-                            applyVcdSample(vcdSelection, Number(event.target.value))
-                          }
-                        />
-                        <button
-                          aria-label="Next sample"
-                          disabled={vcdSampleIndex === vcdSelection.sampleCount - 1}
-                          onClick={() => applyVcdSample(vcdSelection, vcdSampleIndex + 1)}
-                        >
-                          Next
-                        </button>
-                        <small>
-                          Sample {vcdSampleIndex + 1} of {vcdSelection.sampleCount} · time{' '}
-                          {vcdSample.time.toString()} {vcdCapture?.timescale}
-                        </small>
-                      </div>
-                    )}
-                  </details>
-                  <details className="di-capture" open={csvText !== ''}>
-                    <summary>CSV / ILA / SignalTap capture</summary>
-                    <div className="di-csv-actions">
-                      <label>
-                        CSV file
-                        <input
-                          type="file"
-                          accept=".csv,text/csv,text/plain"
-                          onChange={(event) => {
-                            const file = event.target.files?.[0];
-                            if (file) {
-                              void file
-                                .text()
-                                .then(loadCsvText)
-                                .catch((csvError: unknown) =>
-                                  setError(
-                                    csvError instanceof Error ? csvError.message : String(csvError)
-                                  )
-                                );
-                            }
-                          }}
-                        />
-                      </label>
-                      <button
-                        onClick={() =>
-                          void navigator.clipboard
-                            .readText()
-                            .then(loadCsvText)
-                            .catch((csvError: unknown) =>
-                              setError(
-                                csvError instanceof Error ? csvError.message : String(csvError)
-                              )
-                            )
-                        }
-                      >
-                        Paste CSV
-                      </button>
-                    </div>
-                    {csvText && (
-                      <div className="di-csv-mapping">
-                        {detectCsvCapturePreset(csvHeaders) && (
-                          <p className="di-note">
-                            Detected{' '}
-                            {detectCsvCapturePreset(csvHeaders) === 'vivadoIla'
-                              ? 'Vivado ILA'
-                              : 'SignalTap'}{' '}
-                            export; metadata columns are excluded.
-                          </p>
-                        )}
-                        <label>
-                          Signal column
-                          <select
-                            value={csvColumn}
-                            onChange={(event) => setCsvColumn(event.target.value)}
-                          >
-                            {csvHeaders.map((header) => (
-                              <option key={header}>{header}</option>
-                            ))}
-                          </select>
-                        </label>
-                        <label>
-                          Radix
-                          <select
-                            value={csvRadix}
-                            onChange={(event) =>
-                              setCsvRadix(event.target.value as CsvSignalMapping['radix'])
-                            }
-                          >
-                            {['hex', 'binary', 'decimal'].map((radix) => (
-                              <option key={radix}>{radix}</option>
-                            ))}
-                          </select>
-                        </label>
-                        <label>
-                          Byte order
-                          <select
-                            value={csvByteOrder}
-                            onChange={(event) =>
-                              setCsvByteOrder(event.target.value as CsvSignalMapping['byteOrder'])
-                            }
-                          >
-                            <option value="bigEndian">big endian</option>
-                            <option value="littleEndian">little endian</option>
-                          </select>
-                        </label>
-                        <label>
-                          Word order
-                          <select
-                            value={csvWordOrder}
-                            onChange={(event) =>
-                              setCsvWordOrder(event.target.value as CsvSignalMapping['wordOrder'])
-                            }
-                          >
-                            <option value="highFirst">high word first</option>
-                            <option value="lowFirst">low word first</option>
-                          </select>
-                        </label>
-                        <label>
-                          Word width
-                          <select
-                            value={csvWordWidth}
-                            onChange={(event) =>
-                              setCsvWordWidth(
-                                Number(event.target.value) as CsvSignalMapping['wordWidth']
-                              )
-                            }
-                          >
-                            {[8, 16, 32, 64].map((width) => (
-                              <option key={width}>{width}</option>
-                            ))}
-                          </select>
-                        </label>
-                        <button
-                          onClick={() => {
-                            try {
-                              const source = activeSource;
-                              if (!source) {
-                                return;
-                              }
-                              const capture = CsvCapture.parse(csvText, [
-                                {
-                                  name: source.name,
-                                  column: csvColumn,
-                                  radix: csvRadix,
-                                  width: source.width,
-                                  byteOrder: csvByteOrder,
-                                  wordOrder: csvWordOrder,
-                                  wordWidth: csvWordWidth,
-                                },
-                              ]);
-                              setCsvCapture(capture);
-                              applyCsvSample(capture, 0);
-                              setError('');
-                            } catch (csvError) {
-                              setError(
-                                csvError instanceof Error ? csvError.message : String(csvError)
-                              );
-                            }
-                          }}
-                        >
-                          Import samples
-                        </button>
-                      </div>
-                    )}
-                    {csvCapture && (
-                      <div className="di-timeline">
-                        <button
-                          disabled={csvSampleIndex === 0}
-                          onClick={() => applyCsvSample(csvCapture, csvSampleIndex - 1)}
-                        >
-                          Previous
-                        </button>
-                        <input
-                          aria-label="CSV sample"
-                          type="range"
-                          min={0}
-                          max={csvCapture.samples.length - 1}
-                          value={csvSampleIndex}
-                          onChange={(event) =>
-                            applyCsvSample(csvCapture, Number(event.target.value))
-                          }
-                        />
-                        <button
-                          disabled={csvSampleIndex === csvCapture.samples.length - 1}
-                          onClick={() => applyCsvSample(csvCapture, csvSampleIndex + 1)}
-                        >
-                          Next
-                        </button>
-                        <small>
-                          Sample {csvSampleIndex + 1} of {csvCapture.samples.length}
-                        </small>
-                      </div>
-                    )}
-                  </details>
-                </div>
+                <CapturePanel
+                  active={inspectorTab === 'capture'}
+                  capture={capture}
+                  setError={setError}
+                />
 
-                <div
-                  aria-labelledby="di-inspector-tab-fields"
-                  className={`di-inspector-panel di-fields ${inspectorTab === 'fields' ? 'is-active' : ''}`}
-                  id="di-inspector-panel-fields"
-                  ref={fieldPanelRef}
-                  role="tabpanel"
-                >
-                  <header className="di-section-header">
-                    <div>
-                      <span className="di-eyebrow">Decoded ranges</span>
-                      <h2 id="fields-heading">Fields</h2>
-                    </div>
-                    <button onClick={addField}>Add field</button>
-                  </header>
-                  <details className="di-field-import">
-                    <summary>Import register layout</summary>
-                    <label>
-                      Register
-                      <select
-                        value={layoutId}
-                        onChange={(event) => setLayoutId(event.target.value)}
-                      >
-                        <option value="">Choose a register…</option>
-                        {layouts.map((layout) => (
-                          <option value={layout.id} key={layout.id}>
-                            {layout.label}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <button disabled={!layoutId} onClick={copySelectedRegisterLayout}>
-                      Copy fields
-                    </button>
-                    <p className="di-note">
-                      One-way copy. The memory map is never modified or linked.
-                    </p>
-                  </details>
-                  <label className="di-search">
-                    <span className="codicon codicon-search" aria-hidden="true" />
-                    <span className="sr-only">Search fields</span>
-                    <input
-                      placeholder="Find field"
-                      value={fieldSearch}
-                      onChange={(event) => setFieldSearch(event.target.value)}
-                    />
-                  </label>
-                  {layoutErrors.map((layoutError) => (
-                    <div className="di-message is-error" key={layoutError}>
-                      {layoutError}
-                    </div>
-                  ))}
-                  <div className="di-field-table" role="table">
-                    <div className="di-field-row is-head" role="row">
-                      <span>Name</span>
-                      <span>Bits</span>
-                      <span>Raw</span>
-                      <span>Shown as</span>
-                    </div>
-                    {filteredFields.map((field) => {
-                      const definition = currentRecipe.fields.find(
-                        (candidate) => candidate.id === field.id
-                      );
-                      const sourceVector = definition
-                        ? evaluation.values.get(definition.sourceId)?.value
-                        : displayVector;
-                      const valid =
-                        sourceVector !== undefined &&
-                        sourceVector !== null &&
-                        field.lsb >= 0 &&
-                        field.msb >= field.lsb &&
-                        field.msb < sourceVector.width;
-                      const value = valid && sourceVector ? decodeField(sourceVector, field) : null;
-                      const shown = value
-                        ? interpretedText(value, definition)
-                        : { text: 'invalid' };
-                      const raw = value?.toBinary() ?? 'invalid';
-                      const sourceName = currentRecipe.sources.find(
-                        (source) => source.id === definition?.sourceId
-                      )?.name;
-                      const changed = sourceName
-                        ? [...(vcdSample?.changedBits.get(sourceName) ?? [])].some(
-                            (bit) => bit >= field.lsb && bit <= field.msb
-                          )
-                        : false;
-                      return (
-                        <button
-                          className={`di-field-row ${selectedFieldId === field.id ? 'is-selected' : ''} ${changed ? 'is-changed' : ''} ${draggedFieldId === field.id ? 'is-dragging' : ''}`}
-                          draggable
-                          role="row"
-                          key={field.id}
-                          title="Select field. Press Delete or drag outside this panel to remove it."
-                          onClick={() => setSelectedFieldId(field.id)}
-                          onDragStart={(event) => {
-                            fieldDragPointerRef.current = { x: event.clientX, y: event.clientY };
-                            setDraggedFieldId(field.id);
-                            setSelectedFieldId(field.id);
-                            event.dataTransfer.effectAllowed = 'move';
-                          }}
-                          onDrag={(event) => {
-                            if (event.clientX !== 0 || event.clientY !== 0) {
-                              fieldDragPointerRef.current = { x: event.clientX, y: event.clientY };
-                            }
-                          }}
-                          onDragEnd={(event) => {
-                            const panelBounds = fieldPanelRef.current?.getBoundingClientRect();
-                            const pointer =
-                              event.clientX !== 0 || event.clientY !== 0
-                                ? { x: event.clientX, y: event.clientY }
-                                : fieldDragPointerRef.current;
-                            const outsidePanel =
-                              panelBounds !== undefined &&
-                              (pointer.x < panelBounds.left ||
-                                pointer.x > panelBounds.right ||
-                                pointer.y < panelBounds.top ||
-                                pointer.y > panelBounds.bottom);
-                            if (outsidePanel) {
-                              removeField(field.id);
-                            }
-                            setDraggedFieldId(null);
-                          }}
-                          onKeyDown={(event) => {
-                            if (event.key === 'Delete' || event.key === 'Backspace') {
-                              event.preventDefault();
-                              removeField(field.id);
-                            }
-                          }}
-                        >
-                          <span title={field.name}>{field.name}</span>
-                          <span title={`[${field.msb}:${field.lsb}]`}>
-                            [{field.msb}:{field.lsb}]
-                          </span>
-                          <span title={raw}>{raw}</span>
-                          <span title={shown.text}>
-                            {shown.text}
-                            {shown.comparison && (
-                              <b className={`di-compare is-${shown.comparison}`}>
-                                {shown.comparison}
-                              </b>
-                            )}
-                            {changed && <b className="di-changed">changed</b>}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {draggedFieldId !== null && (
-                    <div className="di-drag-delete-hint" aria-hidden="true">
-                      <span className="codicon codicon-trash" />
-                      Drag outside this panel to delete field
-                    </div>
-                  )}
-                  <div className="sr-only" aria-live="polite">
-                    {fieldAnnouncement}
-                  </div>
-                  {selectedFieldId && (
-                    <div className="di-field-decode-controls">
-                      <label>
-                        Name
-                        <input
-                          value={fields.find((field) => field.id === selectedFieldId)?.name ?? ''}
-                          onChange={(event) => updateSelectedField({ name: event.target.value })}
-                        />
-                      </label>
-                      <label>
-                        MSB
-                        <input
-                          type="number"
-                          min={0}
-                          value={fields.find((field) => field.id === selectedFieldId)?.msb ?? 0}
-                          onChange={(event) =>
-                            updateSelectedField({ msb: Number(event.target.value) })
-                          }
-                        />
-                      </label>
-                      <label>
-                        LSB
-                        <input
-                          type="number"
-                          min={0}
-                          value={fields.find((field) => field.id === selectedFieldId)?.lsb ?? 0}
-                          onChange={(event) =>
-                            updateSelectedField({ lsb: Number(event.target.value) })
-                          }
-                        />
-                      </label>
-                      <label>
-                        Overlay group
-                        <select
-                          value={
-                            fields.find((field) => field.id === selectedFieldId)?.groupId ??
-                            'default'
-                          }
-                          onChange={(event) => updateSelectedField({ groupId: event.target.value })}
-                        >
-                          {currentRecipe.overlayGroups.map((group) => (
-                            <option value={group.id} key={group.id}>
-                              {group.name}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <label>
-                        Interpretation
-                        <select
-                          value={
-                            currentRecipe.fields.find((field) => field.id === selectedFieldId)
-                              ?.display.interpretation ?? 'hex'
-                          }
-                          onChange={(event) =>
-                            updateSelectedFieldDisplay({
-                              interpretation: event.target
-                                .value as IPCraftDataInspectorRecipe['fields'][number]['display']['interpretation'],
-                            })
-                          }
-                        >
-                          {[
-                            'hex',
-                            'binary',
-                            'unsigned',
-                            'signed',
-                            'enum',
-                            'float',
-                            'fixedPoint',
-                          ].map((interpretation) => (
-                            <option key={interpretation}>{interpretation}</option>
-                          ))}
-                        </select>
-                      </label>
-                      {currentRecipe.fields.find((field) => field.id === selectedFieldId)?.display
-                        .interpretation === 'fixedPoint' && (
-                        <label>
-                          Fractional bits
-                          <input
-                            type="number"
-                            min={0}
-                            value={
-                              currentRecipe.fields.find((field) => field.id === selectedFieldId)
-                                ?.display.fractionalBits ?? 0
-                            }
-                            onChange={(event) =>
-                              updateSelectedFieldDisplay({
-                                fractionalBits: Number(event.target.value),
-                              })
-                            }
-                          />
-                        </label>
-                      )}
-                      <label>
-                        Expected literal
-                        <input
-                          placeholder="optional"
-                          value={
-                            currentRecipe.fields.find((field) => field.id === selectedFieldId)
-                              ?.display.expectedValue ?? ''
-                          }
-                          onChange={(event) =>
-                            updateSelectedFieldDisplay({
-                              expectedValue: event.target.value || undefined,
-                            })
-                          }
-                        />
-                      </label>
-                      <div className="di-new-group">
-                        <input
-                          aria-label="New overlay group"
-                          placeholder="Alternative view"
-                          value={newGroupName}
-                          onChange={(event) => setNewGroupName(event.target.value)}
-                        />
-                        <button
-                          disabled={!newGroupName.trim()}
-                          onClick={() => {
-                            const id = newGroupName
-                              .trim()
-                              .toLowerCase()
-                              .replace(/[^a-z0-9._-]+/g, '-');
-                            setRecipeBase({
-                              ...currentRecipe,
-                              overlayGroups: [
-                                ...currentRecipe.overlayGroups,
-                                { id, name: newGroupName.trim() },
-                              ],
-                            });
-                            updateSelectedField({ groupId: id });
-                            setNewGroupName('');
-                          }}
-                        >
-                          Add group
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                  {fields.length === 0 && (
-                    <p className="di-note">Define a field or copy a register layout.</p>
-                  )}
-                </div>
+                <FieldPanel
+                  addField={addField}
+                  copySelectedRegisterLayout={copySelectedRegisterLayout}
+                  currentRecipe={currentRecipe}
+                  displayVector={displayVector}
+                  draggedFieldId={draggedFieldId}
+                  evaluation={evaluation}
+                  fieldAnnouncement={fieldAnnouncement}
+                  fieldDragPointerRef={fieldDragPointerRef}
+                  fieldPanelRef={fieldPanelRef}
+                  fields={fields}
+                  fieldSearch={fieldSearch}
+                  filteredFields={filteredFields}
+                  inspectorTab={inspectorTab}
+                  layoutErrors={layoutErrors}
+                  layoutId={layoutId}
+                  layouts={layouts}
+                  newGroupName={newGroupName}
+                  removeField={removeField}
+                  selectedFieldId={selectedFieldId}
+                  setDraggedFieldId={setDraggedFieldId}
+                  setFieldSearch={setFieldSearch}
+                  setLayoutId={setLayoutId}
+                  setNewGroupName={setNewGroupName}
+                  setRecipeBase={setRecipeBase}
+                  setSelectedFieldId={setSelectedFieldId}
+                  updateSelectedField={updateSelectedField}
+                  updateSelectedFieldDisplay={updateSelectedFieldDisplay}
+                  vcdSample={vcdSample}
+                />
               </>
             )}
           </section>
