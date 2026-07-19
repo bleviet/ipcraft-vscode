@@ -357,4 +357,38 @@ test.describe('Data Inspector transform canvas', () => {
     );
     expect(updateCount).toBe(0);
   });
+
+  test('keeps an unconnected operation visible when it is moved', async ({ page }) => {
+    await page.getByRole('button', { name: 'Add NOT draft' }).click();
+    const draft = page.locator('.react-flow__node:has(.di-flow-step.is-draft)');
+    await expect(draft).toHaveCount(1);
+    const before = await draft.boundingBox();
+    expect(before).not.toBeNull();
+
+    await page.evaluate(() => {
+      (window as unknown as { __vscodeMessages: unknown[] }).__vscodeMessages = [];
+    });
+    await page.mouse.move(before!.x + before!.width / 2, before!.y + before!.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(
+      before!.x + before!.width / 2 + 120,
+      before!.y + before!.height / 2 + 80,
+      {
+        steps: 8,
+      }
+    );
+    await page.mouse.up();
+
+    await expect(draft).toHaveCount(1);
+    const after = await draft.boundingBox();
+    expect(after).not.toBeNull();
+    expect(after!.x).toBeGreaterThan(before!.x + 80);
+    const updateCount = await page.evaluate(
+      () =>
+        (
+          window as unknown as { __vscodeMessages: Array<{ type: string }> }
+        ).__vscodeMessages.filter((message) => message.type === 'updateRecipe').length
+    );
+    expect(updateCount).toBe(0);
+  });
 });

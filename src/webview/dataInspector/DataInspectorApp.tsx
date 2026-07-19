@@ -481,6 +481,42 @@ export function LaneRibbon({
   );
 }
 
+interface SourceWidthInputProps {
+  width: number;
+  onChange: (width: number) => void;
+}
+
+function SourceWidthInput({ width, onChange }: SourceWidthInputProps) {
+  const [draft, setDraft] = useState(String(width));
+
+  useEffect(() => {
+    setDraft(String(width));
+  }, [width]);
+
+  return (
+    <input
+      type="number"
+      min={1}
+      max={4096}
+      value={draft}
+      onBlur={() => setDraft(String(width))}
+      onChange={(event) => {
+        const nextDraft = event.target.value;
+        const nextWidth = Number(nextDraft);
+        setDraft(nextDraft);
+        if (
+          nextDraft !== '' &&
+          Number.isInteger(nextWidth) &&
+          nextWidth >= 1 &&
+          nextWidth <= 4096
+        ) {
+          onChange(nextWidth);
+        }
+      }}
+    />
+  );
+}
+
 export function DataInspectorApp() {
   const [draft, setDraft] = useState('0');
   const [widthDraft, setWidthDraft] = useState('32');
@@ -643,6 +679,44 @@ export function DataInspectorApp() {
     widthDraft,
     zoom,
   ]);
+
+  useEffect(() => {
+    setSourceDrafts((current) => {
+      const missingSources = currentRecipe.sources.filter(
+        (source) => current[source.id] === undefined
+      );
+      if (missingSources.length === 0) {
+        return current;
+      }
+      return {
+        ...current,
+        ...Object.fromEntries(missingSources.map((source) => [source.id, '0'])),
+      };
+    });
+  }, [currentRecipe.sources]);
+
+  useEffect(() => {
+    setSamples((current) => {
+      let next = current;
+      for (const source of currentRecipe.sources) {
+        if (current[source.id]?.width === source.width) {
+          continue;
+        }
+        try {
+          const value = parseLiteral(sourceDrafts[source.id] ?? '0', {
+            width: source.width,
+          }).vector;
+          if (next === current) {
+            next = { ...current };
+          }
+          next[source.id] = value;
+        } catch {
+          // The Inspector reports invalid explicit literals when the user applies them.
+        }
+      }
+      return next;
+    });
+  }, [currentRecipe.sources, sourceDrafts]);
 
   useEffect(() => {
     if (recipeBase === null || validateRecipeSemantics(currentRecipe).length > 0) {
@@ -1497,13 +1571,9 @@ export function DataInspectorApp() {
                       </label>
                       <label>
                         Width
-                        <input
-                          type="number"
-                          min={1}
-                          max={4096}
-                          value={selectedSource.width}
-                          onChange={(event) => {
-                            const width = Number(event.target.value);
+                        <SourceWidthInput
+                          width={selectedSource.width}
+                          onChange={(width) => {
                             setRecipeBase({
                               ...currentRecipe,
                               sources: currentRecipe.sources.map((source) =>

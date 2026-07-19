@@ -574,6 +574,14 @@ function TransformCanvasInner({
         onConnect={onConnect}
         isValidConnection={isValidConnection}
         onNodeDragStop={(_, movedNode) => {
+          if (movedNode.id.startsWith('draft-')) {
+            setDrafts((current) =>
+              current.map((draft) =>
+                draft.id === movedNode.id ? { ...draft, position: movedNode.position } : draft
+              )
+            );
+            return;
+          }
           const currentNodes = nodes.map((node) =>
             node.id === movedNode.id ? { ...node, position: movedNode.position } : node
           );

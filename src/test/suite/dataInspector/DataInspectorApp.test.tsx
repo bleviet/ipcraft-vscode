@@ -19,6 +19,33 @@ describe('DataInspectorApp', () => {
     expect(screen.queryByRole('heading', { name: 'Presets' })).not.toBeInTheDocument();
   });
 
+  it('keeps the current value while the source width field is temporarily empty', () => {
+    render(<DataInspectorApp />);
+    const width = screen.getByLabelText('Width');
+
+    fireEvent.change(width, { target: { value: '' } });
+
+    expect((width as HTMLInputElement).value).toBe('');
+    expect(screen.getByLabelText('Displayed value status')).toHaveTextContent('32 bits');
+    expect(screen.getAllByText("32'h00000000")).not.toHaveLength(0);
+
+    fireEvent.blur(width);
+    expect(width).toHaveValue(32);
+  });
+
+  it('applies the displayed default zero when a source is added or resized', () => {
+    render(<DataInspectorApp />);
+
+    fireEvent.change(screen.getByLabelText('Width'), { target: { value: '16' } });
+    expect(screen.getByLabelText('Literal')).toHaveValue('0');
+    expect(screen.getByLabelText('Displayed value status')).toHaveTextContent('16 bits');
+    expect(screen.getAllByText("16'h0000")).not.toHaveLength(0);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add source' }));
+    expect(screen.getByLabelText('INPUT_2 value')).toHaveValue('0');
+    expect(screen.queryByText('No sample')).not.toBeInTheDocument();
+  });
+
   it('uses paste-any-value as the primary flow and exposes X/Z exactly', () => {
     render(<DataInspectorApp />);
 
