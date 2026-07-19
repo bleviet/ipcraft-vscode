@@ -1000,6 +1000,7 @@ export function DataInspectorApp() {
       {!vector && (
         <ValueComposer
           mobileActive={mobileTab === 'value'}
+          onCleared={() => setMobileTab('value')}
           onDecoded={() => setMobileTab('bits')}
           recipeError={recipeError}
           valueInput={valueInput}

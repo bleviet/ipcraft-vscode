@@ -9,6 +9,7 @@ const VALUE_EXAMPLES = [
 
 interface ValueComposerProps {
   mobileActive: boolean;
+  onCleared: () => void;
   onDecoded: () => void;
   recipeError: string;
   valueInput: ValueInputState;
@@ -16,6 +17,7 @@ interface ValueComposerProps {
 
 export function ValueComposer({
   mobileActive,
+  onCleared,
   onDecoded,
   recipeError,
   valueInput,
@@ -67,7 +69,14 @@ export function ValueComposer({
         <button className="di-primary" onClick={parseDraft}>
           Decode
         </button>
-        <button onClick={valueInput.clearValue}>Clear</button>
+        <button
+          onClick={() => {
+            valueInput.clearValue();
+            onCleared();
+          }}
+        >
+          Clear
+        </button>
       </div>
       <div className="di-examples" aria-label="Example values">
         <span>Try an example</span>
