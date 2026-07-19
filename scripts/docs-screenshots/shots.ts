@@ -74,6 +74,15 @@ export const shots: Shot[] = [
     viewport: DEFAULT_VIEWPORT,
   },
   {
+    id: 'ipcore-toolbar',
+    harness: 'ipcore',
+    source: IP_SOURCE,
+    fileName: 'led_controller_avmm.ip.yml',
+    mmImportSource: MM_SOURCE,
+    viewport: DEFAULT_VIEWPORT,
+    clip: 'div.flex.items-start.gap-2:has(button[aria-label="Undo"])',
+  },
+  {
     id: 'custom-interface-conduit',
     harness: 'ipcore',
     source: COMPREHENSIVE_IP_SOURCE,

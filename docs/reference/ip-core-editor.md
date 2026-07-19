@@ -87,6 +87,50 @@ The IP Core editor is the canvas described above. Undo/Redo buttons are in the t
 
 ![IP Core visual canvas with ports, bus interfaces, and the inspector panel](../images/ipcore-editor-light.png)
 
+### Canvas Toolbar
+
+The toolbar groups project-wide actions above the canvas. The file name and VLNV at the
+left identify the open IP Core; the controls at the right act on that file or configure
+what its generators produce.
+
+![IP Core canvas toolbar with its seven control groups](../images/ipcore-toolbar-light.png)
+
+Controls appear in the following order from left to right:
+
+| Group | Control or icon | Function |
+|-------|-----------------|----------|
+| **History** | ![Undo icon](../images/codicons/discard.svg) Undo | Reverts the most recent canvas change. It is disabled when the canvas undo stack is empty. |
+| **History** | ![Redo icon](../images/codicons/redo.svg) Redo | Reapplies the most recently undone canvas change. It is disabled when the canvas redo stack is empty. |
+| **Target** | `XILINX` / `ALTERA` | Shows or hides each vendor's **Integration** menu. The selected vendors also become the target toolchains when you scaffold the complete project. Available pills depend on the registered toolchains. |
+| **Target** | `.VHD` / `.SV` | Selects VHDL or SystemVerilog for top-level HDL generation and scaffolding. The highlighted pill is active. |
+| **Scaffold Template** | Pack dropdown | Selects the scaffold pack that controls generated project structure and templates. The choice is written to the IP Core and saved as the global default. |
+| **Generate** | ![Scaffold Project icon](../images/codicons/package.svg) Scaffold Project | Stages the complete output selected by the current pack and settings, including RTL, enabled vendor packaging, testbench, and documentation. |
+| **Generate** | ![Create Register Map icon](../images/codicons/map.svg) Create Register Map | Opens a save dialog for a new `*.mm.yml` file, using the active IP Core's directory and name as defaults. |
+| **Generate** | ![Generate HDL icon](../images/codicons/code.svg) Generate HDL | Generates top-level HDL in the language selected under **Target**. |
+| **Generate** | ![Generate Testbench icon](../images/codicons/beaker.svg) Generate Testbench | Generates the configured testbench framework and simulator files. |
+| **Generate** | ![Generate Documentation icon](../images/codicons/book.svg) Generate Documentation | Generates documentation supplied by the selected scaffold pack. |
+| **Integration** | ![Vendor menu icon](../images/codicons/chevron-down.svg) Vendor menu | Opens the vendor-specific generation, editing, project, and build actions described below. This group appears only for vendors enabled under **Target**. |
+| **Consistency** | ![Check Consistency icon](../images/codicons/verified.svg) Check Consistency | Compares the `*.ip.yml` specification with generated HDL and vendor artifacts. It is disabled while a check is running. |
+| **Consistency** | ![Consistency status indicator](../images/codicons/status-dot.svg) Status | Shows **Not checked**, **Checking**, **Consistent**, or **Drift**. After a completed check, click the status to show or hide the findings. Green means consistent, amber means reconcilable drift, and red means the findings include a destructive conflict. |
+| **Utilities** | ![Walkthroughs icon](../images/codicons/mortar-board.svg) Walkthroughs | Opens the IPCraft walkthrough menu. |
+| **Utilities** | ![Settings icon](../images/codicons/gear.svg) Settings | Opens IPCraft settings. |
+| **Utilities** | ![Feedback icon](../images/codicons/feedback.svg) Feedback | Opens the issue and feedback page. |
+
+The **Integration** dropdowns use the same icons for equivalent Vivado and Quartus
+operations:
+
+| Icon | Quartus action | Vivado action |
+|------|----------------|---------------|
+| ![Generate component icon](../images/codicons/layers.svg) Generate component | Generate a Platform Designer `_hw.tcl` component | Generate a Vivado `component.xml` component |
+| ![Edit component icon](../images/codicons/edit.svg) Edit component | Open the component in Platform Designer | Edit the component in IP Packager |
+| ![Generate project icon](../images/codicons/circuit-board.svg) Generate project | Generate a Quartus project | Generate a Vivado project |
+| ![Open project icon](../images/codicons/folder-opened.svg) Open project | Open the generated project in Quartus | Open the generated project in Vivado |
+| ![Build icon](../images/codicons/tools.svg) Build | Run a Quartus full compile | Run Vivado out-of-context synthesis |
+
+Editing, opening, and building actions stay disabled until their required generated
+artifact exists (`_hw.tcl`, `component.xml`, `.qpf`, or `.xpr`). Hover over any toolbar
+button to see its action name and, where applicable, its keyboard shortcut.
+
 ### Library Palette
 
 The palette lists draggable primitives, organised into three collapsible categories:

@@ -110,6 +110,7 @@ Manifest:
 | `memorymap-editor`                | memorymap     | full, with `CTRL` selected         | `README.md`, `docs/index.md`                            |
 | `led-memorymap-editor`            | memorymap     | full                               | "The register map"                                      |
 | `ipcore-editor`                   | ipcore        | full                               | `README.md`, `docs/index.md`, "Scaffolding the project" |
+| `ipcore-toolbar`                  | ipcore        | toolbar header                     | IP Core Editor reference                                 |
 | `custom-interface-conduit`        | ipcore        | full, with `DBG` conduit selected  | "Defining a Custom Interface"                            |
 | `staging-overlay`                 | ipcore        | `.canvas-inspector`, via a synthetic `stagingStart` message | "Creating Your First IP Core", "Generating a Project" |
 | `consistency-findings`            | ipcore        | `.canvas-inspector`, via a synthetic `consistencyResult` message | "Checking Consistency"                              |
