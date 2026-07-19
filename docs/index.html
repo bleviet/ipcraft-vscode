@@ -751,10 +751,25 @@
       align-items: start;
     }
 
+    /* Sticky element centered vertically in the viewport. `top: 50vh` +
+       `transform: translateY(-50%)` looks equivalent but the transform applies
+       unconditionally -- including while the element is still in normal flow,
+       before it has actually reached its stuck position -- so it visually
+       creeps upward too early and overlaps whatever is still on screen above
+       it (the section heading). Making the sticky box itself span the full
+       viewport height and centering its content with flexbox avoids that: the
+       box only holds once its natural top would otherwise scroll past the
+       real viewport top, exactly like an un-centered sticky element. */
     .studio-sticky {
       position: sticky;
-      top: 50vh;
-      transform: translateY(-50%);
+      top: 0;
+      display: flex;
+      height: 100vh;
+      align-items: center;
+    }
+
+    .studio-window {
+      width: 100%;
     }
 
     .studio-media-stack {
