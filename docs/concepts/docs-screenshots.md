@@ -75,13 +75,14 @@ export interface Shot {
 }
 ```
 
-Source YAML comes from `examples/led_avmm/led_controller_avmm.{ip,mm}.yml` -- real, hardware-validated specs that the LED controller tutorials already walk through, so screenshots and prose describe the same design. The `src/test/fixtures/` files are deliberately minimal and would render a thin, unconvincing UI.
+Most editor source YAML comes from `examples/led_avmm/led_controller_avmm.{ip,mm}.yml` -- real, hardware-validated specs that the LED controller tutorials already walk through. The general Memory Map editor shot uses `ipcraft-spec/examples/comprehensive_axi/comprehensive_axi.mm.yml` and selects its field-rich `CTRL` register. The `src/test/fixtures/` files are deliberately minimal and would render a thin, unconvincing UI.
 
 Manifest:
 
 | id                                | Harness       | Capture                            | Used by                                                 |
 | --------------------------------- | ------------- | ---------------------------------- | ------------------------------------------------------- |
-| `memorymap-editor`                | memorymap     | full                               | `README.md`, `docs/index.md`                            |
+| `memorymap-editor`                | memorymap     | full, with `CTRL` selected         | `README.md`, `docs/index.md`                            |
+| `led-memorymap-editor`            | memorymap     | full                               | "The register map"                                      |
 | `ipcore-editor`                   | ipcore        | full                               | `README.md`, `docs/index.md`, "Scaffolding the project" |
 | `outline-tree`                    | memorymap     | `aside.sidebar`                    | "The register map"                                      |
 | `bitfield-visualizer`             | memorymap     | `main section`                     | "The register map" (LED_PATTERN)                        |
@@ -167,13 +168,13 @@ Both themes are still captured (`-dark.png` and `-light.png` per shot), but docs
 
 Light was chosen over the dark/light toggle because these docs get printed, and a dark screenshot on paper wastes toner and reads poorly. The `-dark.png` files stay in `docs/images/` (harmless, generated automatically) in case the toggle is reinstated later, but no markdown file should reference them.
 
-`README.md` has no theme toggle and stays dark-only. Its two image links move from `resources/screenshots/` to `docs/images/`, and `resources/screenshots/` is deleted so there is a single generated source of truth. Relative README image paths resolve against the repo on both GitHub and the Marketplace, so this keeps working.
+`README.md` has no theme toggle and embeds the light variants of the IP Core, Memory Map, and Data Inspector images. Relative README image paths resolve against the repo on both GitHub and the Marketplace.
 
 At 2x scale these PNGs are large -- the existing hand-captured ones are around 0.5 MB each. If the committed total becomes uncomfortable, run `oxipng` or `pngquant` as a post-step.
 
 ## Verification
 
-1. `npm run docs:screenshots` -- build the current webview source and expect 20 PNGs (10 shots x 2 themes) in `docs/images/`.
+1. `npm run docs:screenshots` -- build the current webview source and expect 22 PNGs (11 shots x 2 themes) in `docs/images/`.
 2. Compare `memorymap-editor-dark.png` against a real VS Code editor under the same theme. Colors, fonts and control chrome should match. Large transparent or black areas, or invisible text, mean a theme variable is missing.
 3. Confirm no image shows `Loading memory map...`.
 4. `pip install -r docs/requirements.txt && mkdocs serve` -- check the light-theme images render correctly on the served pages.

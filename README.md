@@ -4,15 +4,16 @@ Visual editor for FPGA IP Core and Memory Map specifications — design, generat
 
 ## Screenshots
 
-| IP Core Editor | Memory Map Editor |
-|---|---|
-| ![IP Core Editor](docs/images/ipcore-editor-light.png) | ![Memory Map Editor](docs/images/memorymap-editor-light.png) |
+| IP Core Editor                                         | Memory Map Editor                                                                                        | Data Inspector                                                    |
+| ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| ![IP Core Editor](docs/images/ipcore-editor-light.png) | ![Memory Map Editor showing a register with multiple bit fields](docs/images/memorymap-editor-light.png) | ![Data Inspector](docs/images/data-inspector-workspace-light.png) |
 
 Generated from the real editor UI by `npm run docs:screenshots` — see [Automated Docs Screenshots](docs/concepts/docs-screenshots.md).
 
 ## Features
 
 - **Visual Editors** — block-diagram IP Core canvas and tabular Memory Map editor, both with an inline inspector and bit-field visualizer; changes sync instantly to the underlying YAML
+- **Data Inspector** — decode literals and captured CSV data against registers, then transform and combine values in a visual workspace
 - **Custom Interfaces** — define conduit (custom) bus interfaces with user-named signals, stored as reusable `.busdef.yml` files
 - **Consistency Check** — cross-references a spec against the generated top-level HDL and vendor artifacts (`component.xml`, `_hw.tcl`), flagging drift in either direction
 - **HDL Generation** — scaffolds a full RTL project (package, top entity, user-logic skeleton, bus wrapper, register file, testbench) in VHDL or SystemVerilog, plus Vivado and Quartus vendor project files

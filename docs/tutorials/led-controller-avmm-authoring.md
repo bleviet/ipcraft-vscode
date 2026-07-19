@@ -44,7 +44,7 @@ proven in [`comprehensive_avalon.mm.yml`](https://github.com/bleviet/ipcraft-spe
 | `0x04` | LED_PATTERN | read-write | `PATTERN[7:0]` — bit N drives `LED[N]` |
 | `0x08` | EVENTS | read-write-1-to-clear | `HEARTBEAT_ACTIVE[0]` (read-only), `HEARTBEAT_TOGGLED[1]` (write-1-to-clear, `monitorChangeOf: HEARTBEAT_ACTIVE`) |
 
-![Memory Map editor: LED_AVMM_CSR](../images/memorymap-editor-light.png)
+![Memory Map editor: LED_AVMM_CSR](../images/led-memorymap-editor-light.png)
 
 Selecting `LED_PATTERN` drops into the bit-field visualizer — `PATTERN[7:0]`
 drives `led`, and bits 8-31 stay reserved:

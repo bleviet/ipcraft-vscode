@@ -11,6 +11,7 @@ const DEFAULT_VIEWPORT = { width: 1400, height: 900 };
 // deliberately minimal src/test/fixtures/ files, so screenshots and the
 // tutorials that already walk through this design describe the same thing.
 const MM_SOURCE = 'examples/led_avmm/led_controller_avmm.mm.yml';
+const GENERAL_MM_SOURCE = 'ipcraft-spec/examples/comprehensive_axi/comprehensive_axi.mm.yml';
 const IP_SOURCE = 'examples/led_avmm/led_controller_avmm.ip.yml';
 const DATA_INSPECTOR_SPLIT_SOURCE = 'ipcraft-spec/examples/data_inspector/split_address.ipci.yml';
 const DATA_INSPECTOR_STATUS_SOURCE =
@@ -44,12 +45,21 @@ export interface Shot {
   setup?: (page: Page) => Promise<void>;
 }
 
-// LED_AVMM_CSR -> addressBlocks[0] "CSR" -> block-0; registers within it are
-// VERSION(0), LED_PATTERN(1), EVENTS(2) -- see outlineIds.ts's block-N-reg-M
-// convention and examples/led_avmm/led_controller_avmm.mm.yml.
+// Outline IDs follow block-N-reg-M (see outlineIds.ts). In the comprehensive
+// AXI example, CTRL is block-0-reg-1. In LED_AVMM_CSR, VERSION is register 0,
+// LED_PATTERN is register 1, and EVENTS is register 2.
 export const shots: Shot[] = [
   {
     id: 'memorymap-editor',
+    harness: 'memorymap',
+    source: GENERAL_MM_SOURCE,
+    viewport: DEFAULT_VIEWPORT,
+    setup: async (page) => {
+      await page.locator('[data-outline-id="block-0-reg-1"]').click(); // CTRL
+    },
+  },
+  {
+    id: 'led-memorymap-editor',
     harness: 'memorymap',
     source: MM_SOURCE,
     viewport: DEFAULT_VIEWPORT,
