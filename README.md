@@ -6,7 +6,7 @@ Visual editor for FPGA IP Core and Memory Map specifications — design, generat
 
 | IP Core Editor | Memory Map Editor |
 |---|---|
-| ![IP Core Editor](docs/images/ipcore-editor-dark.png) | ![Memory Map Editor](docs/images/memorymap-editor-dark.png) |
+| ![IP Core Editor](docs/images/ipcore-editor-light.png) | ![Memory Map Editor](docs/images/memorymap-editor-light.png) |
 
 Generated from the real editor UI by `npm run docs:screenshots` — see [Automated Docs Screenshots](docs/concepts/docs-screenshots.md).
 
