@@ -125,16 +125,15 @@ test.describe('Data Inspector responsive and accessible workspace', () => {
         fields: [],
         overlayGroups: [{ id: 'default', name: 'Default' }],
         steps: [{ id: 'shifted', type: 'shiftRight', inputId: 'input', amount: 1 }],
-        outputs: [{ id: 'result', name: 'RESULT', valueId: 'shifted' }],
         view: {
           laneWidth: 32,
           zoom: 'bit',
-          selectedOutputId: 'result',
           selectedGroupId: 'default',
         },
       });
     });
     await decode(page, "32'h12345678");
+    await page.locator('.react-flow__node[data-id="shifted"]').click();
 
     const inserted = page.getByTitle('Transform-inserted 0 [31:31]').last();
     await expect(inserted).toBeVisible();
@@ -299,7 +298,7 @@ test.describe('Data Inspector responsive and accessible workspace', () => {
       workspaceBottom: document.querySelector('.di-workbench')!.getBoundingClientRect().bottom,
     }));
     expect(layout.pageOverflow).toBeLessThanOrEqual(1);
-    expect(layout.libraryOverflow).toBeGreaterThan(0);
+    expect(layout.libraryOverflow).toBeLessThanOrEqual(1);
     expect(layout.workspaceBottom).toBeLessThanOrEqual(884);
   });
 

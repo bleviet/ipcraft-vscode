@@ -19,25 +19,24 @@ every use case.
 | Extract or normalize bits             | Transform tab                                        | Slice, mask, shift, extend, truncate, byte swap |
 | Review simulator activity             | Capture tab                                          | VCD signal selection and sample timeline        |
 | Review ILA, SignalTap, or CSV samples | Capture tab                                          | Column, radix, width, byte order, word order    |
-| Reuse a setup                         | `Save as recipe...` or `IPCraft: New Data Inspector` | Sources, fields, transforms, outputs            |
+| Reuse a setup                         | `Save as recipe...` or `IPCraft: New Data Inspector` | Sources, fields, transforms, view settings      |
 
 ## The four parts of an inspection
 
 The interface is easier to understand when treated as a pipeline:
 
 ```text
-transient samples -> named sources -> transform steps -> selected output
-                                                |
-                                                +-> fields decode ranges
+transient samples -> named sources -> transform steps
+                              |
+                              +-> fields decode ranges
 ```
 
 - A **sample** is the value pasted or loaded from a capture. It is temporary.
 - A **source** gives a sample a stable name and width.
 - A **transform step** produces a derived value from one or two earlier values.
-- An **output** names a source or step result and selects what the bit ribbon shows.
 - A **field** assigns a name and interpretation to a bit range.
 
-A saved recipe contains sources, fields, transforms, outputs, and view settings.
+A saved recipe contains sources, fields, transforms, and view settings.
 It deliberately does not contain pasted values or capture history.
 
 ## Open the Data Inspector
@@ -169,10 +168,9 @@ For the values above, the result is:
 64'h0001_2000_0000_3F00
 ```
 
-Source bands above the ribbon identify which source supplied each output range.
-If you need to inspect both an intermediate word and the combined address, select
-**Add output**, give each output a useful name, and point it at the appropriate
-source or step. The output buttons switch the value shown in the ribbon.
+Source bands above the ribbon identify which source supplied each result range.
+Select any source or transform step on the canvas to show that value in the bit
+ribbon.
 
 ## Use case 5: extract, mask, or reorder a value
 
@@ -199,7 +197,7 @@ To evaluate `(STATUS & MASK) >> 8`:
 2. Add a same-width source for `MASK` and set its sample to the mask value.
 3. Add an `and` step with `STATUS` as input and `MASK` as operand.
 4. Add a `shiftRight` step using the `and` result and set **Amount** to 8.
-5. Point the selected output at the shift result.
+5. Select the shift result to inspect it in the bit ribbon.
 
 Each step shows its width equation, result literal, errors, and any dropped
 ranges. Deleting a connected component leaves the consumer port open; that step
@@ -261,7 +259,6 @@ A recipe saves:
 - field ranges, groups, interpretations, and expected values;
 - imported-field provenance;
 - ordered transform steps;
-- named outputs; and
 - lane width and zoom settings.
 
 A recipe does not save pasted samples, VCD data, CSV rows, or capture history.

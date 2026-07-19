@@ -683,27 +683,6 @@ label {
   line-height: 1.45;
 }
 
-.di-derived-outputs,
-.di-output-editor {
-  display: grid;
-  gap: 0.4rem;
-}
-
-.di-derived-outputs button {
-  text-align: left;
-}
-
-.di-derived-outputs button.is-selected {
-  border-color: var(--di-accent);
-  box-shadow: inset 3px 0 var(--di-accent);
-}
-
-.di-output-editor > div {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 0.35rem;
-}
-
 .di-section-header {
   display: flex;
   align-items: center;
@@ -1657,22 +1636,6 @@ label {
   box-shadow: 0 9px 25px color-mix(in srgb, var(--di-bg) 56%, transparent);
   font-family: var(--di-font);
 }
-.di-canvas-shell .react-flow__node-output {
-  width: auto;
-  padding: 0;
-  border: 0;
-  color: inherit;
-  background: transparent;
-  box-shadow: none;
-  font-size: inherit;
-  text-align: left;
-}
-.di-canvas-shell .react-flow__node-output.selectable:hover,
-.di-canvas-shell .react-flow__node-output.selectable.selected,
-.di-canvas-shell .react-flow__node-output.selectable:focus,
-.di-canvas-shell .react-flow__node-output.selectable:focus-visible {
-  box-shadow: none;
-}
 .di-flow-node.is-selected {
   border-color: var(--di-focus);
   box-shadow:
@@ -1746,9 +1709,6 @@ label {
   width: 32px;
   color: var(--di-accent);
   background: color-mix(in srgb, var(--di-accent) 11%, transparent);
-}
-.di-flow-output {
-  border-right: 3px solid var(--di-brand);
 }
 .di-flow-parameters {
   display: flex;

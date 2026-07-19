@@ -11,7 +11,7 @@ interface TransformTabProps {
   resetToken?: string;
   onToggleMaximized: () => void;
   onRecipeChange: (recipe: IPCraftDataInspectorRecipe) => void;
-  onInspectValue: (nodeId: string, kind: 'source' | 'step' | 'output') => void;
+  onInspectValue: (nodeId: string, kind: 'source' | 'step') => void;
   onDeleteNodes: (nodeIds: string[]) => string | undefined;
   addCommand?: CanvasAddCommand;
 }

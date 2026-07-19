@@ -18,11 +18,9 @@ const recipe = {
     { id: 'masked', type: 'and', inputId: 'input', operandId: 'mask' },
     { id: 'resultStep', type: 'shiftRight', inputId: 'masked', amount: 2 },
   ],
-  outputs: [{ id: 'result', name: 'RESULT', valueId: 'resultStep' }],
   view: {
     laneWidth: 16,
     zoom: 'bit',
-    selectedOutputId: 'result',
     selectedGroupId: 'default',
   },
 } as const;
@@ -47,7 +45,6 @@ test.describe('Data Inspector transform canvas', () => {
     await expect(page.getByRole('heading', { name: 'Transform recipe' })).toBeVisible();
     await expect(page.locator('.di-flow-source')).toHaveCount(2);
     await expect(page.locator('.di-flow-step')).toHaveCount(3);
-    await expect(page.locator('.di-flow-output')).toHaveCount(1);
     await expect(page.getByRole('button', { name: 'List' })).toHaveCount(0);
     await expect(page.locator('.react-flow__controls')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Zoom in' })).toBeVisible();
@@ -73,22 +70,13 @@ test.describe('Data Inspector transform canvas', () => {
     expect(bits!.y).toBeLessThan(transform!.y);
     expect(bits!.width).toBeGreaterThan(500);
     expect(transform!.height).toBeGreaterThan(bits!.height);
-    await expect(page.locator('.react-flow__node-output').first()).toHaveCSS(
-      'background-color',
-      'rgba(0, 0, 0, 0)'
-    );
   });
 
-  test('adds inputs and outputs from the Library and opens their Inspector', async ({ page }) => {
+  test('adds inputs from the Library and opens their Inspector', async ({ page }) => {
     await page.getByRole('button', { name: 'Add source' }).click();
     await expect(page.locator('.di-flow-source')).toHaveCount(3);
     await expect(page.getByLabel('Inspector tools').getByRole('heading')).toContainText('INPUT_3');
     await expect(page.getByLabel('INPUT_3 value')).toBeVisible();
-
-    await page.getByRole('button', { name: 'Add output' }).click();
-    await expect(page.locator('.di-flow-output')).toHaveCount(2);
-    await expect(page.getByLabel('Inspector tools').getByRole('heading')).toContainText('OUTPUT_2');
-    await expect(page.getByLabel('Output 2 name')).toBeVisible();
   });
 
   test('deletes selected components from the canvas toolbar', async ({ page }) => {
@@ -101,28 +89,17 @@ test.describe('Data Inspector transform canvas', () => {
     await deleteButton.click();
     await expect(page.locator('.di-flow-source')).toHaveCount(2);
 
-    await page.getByRole('button', { name: 'Add output' }).click();
-    await page.locator('.react-flow__node[data-id="output2"]').click();
-    await deleteButton.click();
-    await expect(page.locator('.di-flow-output')).toHaveCount(1);
-
     await page.locator('.react-flow__node[data-id="inverted"]').click();
     await deleteButton.click();
     await expect(page.locator('.di-flow-step')).toHaveCount(2);
   });
 
-  test('drags new inputs and outputs from the Library onto the canvas', async ({ page }) => {
+  test('drags new inputs from the Library onto the canvas', async ({ page }) => {
     const canvas = page.locator('.react-flow__pane');
     await page.getByRole('button', { name: 'Add source' }).dragTo(canvas, {
       targetPosition: { x: 180, y: 220 },
     });
     await expect(page.locator('.di-flow-source')).toHaveCount(3);
-
-    await page.getByRole('button', { name: 'Add output' }).dragTo(canvas, {
-      targetPosition: { x: 420, y: 180 },
-    });
-    await expect(page.locator('.di-flow-output')).toHaveCount(2);
-    await expect(page.getByLabel('Output 2 name')).toBeVisible();
   });
 
   test('assigns newly defined fields to the selected input', async ({ page }) => {
@@ -311,7 +288,7 @@ test.describe('Data Inspector transform canvas', () => {
       )
     );
     expect(update?.recipe?.steps).toHaveLength(4);
-    expect(update?.recipe?.view.canvas?.nodes.length).toBeGreaterThanOrEqual(7);
+    expect(update?.recipe?.view.canvas?.nodes.length).toBeGreaterThanOrEqual(6);
 
     const addedId = update?.recipe?.steps.at(-1)?.id;
     const savedPosition = update?.recipe?.view.canvas?.nodes.find(

@@ -14,13 +14,10 @@ describe('recipe graph', () => {
       { id: 'masked', type: 'and', inputId: 'input', operandId: 'mask' },
       { id: 'shifted', type: 'shiftRight', inputId: 'masked', amount: 4 },
     ];
-    recipe.outputs[0].valueId = 'shifted';
-
     expect(recipeToGraph(recipe).edges).toEqual([
       { id: 'masked.input', source: 'input', target: 'masked', targetHandle: 'input' },
       { id: 'masked.operand', source: 'mask', target: 'masked', targetHandle: 'operand' },
       { id: 'shifted.input', source: 'masked', target: 'shifted', targetHandle: 'input' },
-      { id: 'result.value', source: 'shifted', target: 'result', targetHandle: 'value' },
     ]);
   });
 
@@ -80,19 +77,14 @@ describe('recipe graph', () => {
       { id: 'first', type: 'not', inputId: 'input' },
       { id: 'second', type: 'not', inputId: 'first' },
     ];
-    recipe.outputs[0].valueId = 'second';
-
     const withoutFirst = applyGraphEdit(recipe, { type: 'deleteSteps', stepIds: ['first'] });
 
     expect(withoutFirst.steps).toEqual([{ id: 'second', type: 'not', inputId: 'first' }]);
-    expect(recipeToGraph(withoutFirst).edges).toEqual([
-      { id: 'result.value', source: 'second', target: 'result', targetHandle: 'value' },
-    ]);
+    expect(recipeToGraph(withoutFirst).edges).toEqual([]);
     expect(validateRecipeSemantics(withoutFirst)).toEqual([]);
 
     const withoutSecond = applyGraphEdit(recipe, { type: 'deleteSteps', stepIds: ['second'] });
 
-    expect(withoutSecond.outputs[0].valueId).toBe('second');
     expect(recipeToGraph(withoutSecond).edges).toEqual([
       { id: 'first.input', source: 'input', target: 'first', targetHandle: 'input' },
     ]);
@@ -105,7 +97,6 @@ describe('recipe graph', () => {
       { id: 'first', type: 'not', inputId: 'input' },
       { id: 'second', type: 'not', inputId: 'first' },
     ];
-    recipe.outputs[0].valueId = 'input';
     recipe.view.canvas = {
       nodes: [
         { id: 'input', x: 0, y: 0 },
@@ -123,10 +114,9 @@ describe('recipe graph', () => {
     expect(next.view.canvas?.nodes).toEqual([{ id: 'input', x: 0, y: 0 }]);
   });
 
-  it('deletes unconnected inputs and outputs with their related view data', () => {
+  it('deletes an unconnected input with its related field and view data', () => {
     const recipe = createEmptyRecipe('delete components');
     recipe.sources.push({ id: 'unused', name: 'UNUSED', width: 8 });
-    recipe.outputs.push({ id: 'unusedOutput', name: 'UNUSED_OUT', valueId: 'input' });
     recipe.fields.push({
       id: 'unusedField',
       name: 'UNUSED_FIELD',
@@ -136,36 +126,28 @@ describe('recipe graph', () => {
       groupId: 'default',
       display: { interpretation: 'hex' },
     });
-    recipe.view.selectedOutputId = 'unusedOutput';
     recipe.view.canvas = {
       nodes: [
         { id: 'input', x: 0, y: 0 },
         { id: 'unused', x: 0, y: 1 },
-        { id: 'result', x: 1, y: 0 },
-        { id: 'unusedOutput', x: 1, y: 1 },
       ],
     };
 
     const next = applyGraphEdit(recipe, {
       type: 'deleteNodes',
-      nodeIds: ['unused', 'unusedOutput'],
+      nodeIds: ['unused'],
     });
 
     expect(next.sources.map((source) => source.id)).toEqual(['input']);
-    expect(next.outputs.map((output) => output.id)).toEqual(['result']);
     expect(next.fields).toEqual([]);
-    expect(next.view.selectedOutputId).toBe('result');
-    expect(next.view.canvas?.nodes.map((node) => node.id)).toEqual(['input', 'result']);
+    expect(next.view.canvas?.nodes.map((node) => node.id)).toEqual(['input']);
   });
 
-  it('keeps at least one input and output in the recipe', () => {
+  it('keeps at least one input in the recipe', () => {
     const recipe = createEmptyRecipe('required components');
 
     expect(() => applyGraphEdit(recipe, { type: 'deleteNodes', nodeIds: ['input'] })).toThrow(
       'at least one input'
-    );
-    expect(() => applyGraphEdit(recipe, { type: 'deleteNodes', nodeIds: ['result'] })).toThrow(
-      'at least one output'
     );
   });
 });

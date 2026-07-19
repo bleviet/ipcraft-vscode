@@ -83,10 +83,6 @@ overlayGroups:
   - id: default
     name: Default
 steps: []
-outputs:
-  - id: result
-    name: RESULT
-    valueId: input
 view:
   laneWidth: 8
   zoom: field
@@ -175,10 +171,6 @@ overlayGroups:
   - id: default
     name: Default
 steps: []
-outputs:
-  - id: result
-    name: RESULT
-    valueId: input
 view:
   laneWidth: 32
   zoom: field

@@ -20,7 +20,6 @@ export interface IPCraftDataInspectorRecipe {
    */
   overlayGroups: [OverlayGroup, ...OverlayGroup[]];
   steps: Step[];
-  outputs: Output[];
   view: View;
 }
 export interface Source {
@@ -77,15 +76,9 @@ export interface Step {
   amount?: number;
   width?: number;
 }
-export interface Output {
-  id: StableId;
-  name: string;
-  valueId: StableId;
-}
 export interface View {
   laneWidth: 8 | 16 | 32 | 64;
   zoom: 'overview' | 'field' | 'bit';
-  selectedOutputId?: StableId;
   selectedGroupId?: StableId;
   canvas?: CanvasView;
 }

@@ -6,11 +6,11 @@ The Data Inspector's transform pipeline is currently edited as a numbered list:
 an operation grid, two builder dropdowns, an "Add step" button, and an ordered
 step list with drag-to-reorder. This works, but it hides the actual shape of the
 computation. A pipeline that concatenates two sources, masks the result, and
-feeds two different outputs is a dataflow graph, and the user has to reconstruct
-that graph mentally from a flat list of ID references.
+feeds two different branches is a dataflow graph, and the user has to
+reconstruct that graph mentally from a flat list of ID references.
 
 This document describes a visual transform workspace in the style of Simulink or
-Scilab/Xcos: sources, transform steps, and outputs appear as blocks on a canvas,
+Scilab/Xcos: sources and transform steps appear as blocks on a canvas,
 the user drags new operations in from a palette, wires blocks together by
 dragging between ports, and every block shows its live evaluated value and
 width. The canvas makes the dataflow visible, makes fan-out (one value feeding
@@ -19,8 +19,8 @@ something a user can demonstrate and reason about at a glance.
 
 The load-bearing insight is that **the recipe model is already a dataflow
 graph**. A saved recipe's `steps` reference earlier values by stable string ID
-(`inputId`, `operandId`), sources seed the value environment, and outputs name
-any value ID — see `evaluateRecipe` in `src/dataInspector/evaluateRecipe.ts`.
+(`inputId`, `operandId`), and sources seed the value environment — see
+`evaluateRecipe` in `src/dataInspector/evaluateRecipe.ts`.
 Only the UI flattens this graph into a list. The canvas is therefore a new
 _projection_ of the existing model, not a new model. The only genuinely new
 persisted data is node positions.
@@ -77,7 +77,7 @@ of list rows.
 
 The Library exposes the twelve operations. Clicking or dropping an item creates
 it on the canvas, while the contextual Inspector edits the
-selected source, operation, or output. There is no parallel list editor.
+selected source or operation. There is no parallel list editor.
 
 Both Data Inspector surfaces get the canvas automatically, because both load the
 same `dataInspector` webpack bundle: the session-only panel
@@ -97,8 +97,8 @@ Decisions are numbered so later work can cite them instead of relitigating.
    changes are needed. The measured development-build sizes are listed in the
    implementation status above.
 2. **The canvas is a projection, not a second model.** Graph structure is
-   derived entirely from `steps[].inputId` / `steps[].operandId` and
-   `outputs[].valueId`. The canvas introduces no parallel graph document. The
+   derived entirely from `steps[].inputId` / `steps[].operandId`. The canvas
+   introduces no parallel graph document. The
    only new persisted state is node x/y positions (decision 5).
 3. **Step array order stays authoritative.** `validateRecipeSemantics`
    (`src/dataInspector/recipe.ts`) and `evaluateRecipe` both walk `steps` in
@@ -115,8 +115,8 @@ Decisions are numbered so later work can cite them instead of relitigating.
    rule in the parent document) and `a` / `b` for and, or, xor. Port labels are
    always rendered; the user never guesses which operand lands where.
 5. **Positions persist in an optional `view.canvas` block.** The recipe schema
-   gains `view.canvas.nodes: [{ id, x, y }]`, covering source, step, and output
-   nodes uniformly. The block is optional and additive: recipes without it
+   gains `view.canvas.nodes: [{ id, x, y }]`, covering source and step nodes
+   uniformly. The block is optional and additive: recipes without it
    validate unchanged and open with deterministic auto-layout. The schema
    `version` stays `1`.
 6. **One valid gesture, one document update.** Connecting an edge, dropping a
@@ -150,21 +150,19 @@ Decisions are numbered so later work can cite them instead of relitigating.
   When `evaluateRecipe` reports a step error, the card shows an error badge with
   the validator's message text, and its value area shows "unavailable" — never
   a stale result, matching the parent's rule.
-- **Output node.** One per `outputs[]` entry. Shows the output name, final
-  width, and hex value. One input port fed by `valueId`; no output ports.
 
 ### Ports and edges
 
 - Unary operations (slice, not, shiftLeft, shiftRight, zeroExtend, signExtend,
   truncate, byteSwap) have one input port. Binary operations (concat, and, or,
-  xor) have two labeled input ports. Every node has one output port.
+  xor) have two labeled input ports. Every source and step has one output port.
 - Fan-out is allowed and encouraged: one output port may feed any number of
   downstream input ports. The model already permits this; the canvas finally
   makes it visible.
 - Each input port accepts at most one edge. Dragging a new connection onto an
   occupied input port replaces the existing edge.
-- Connection attempts that would create a cycle, target an output port as a
-  source, or connect two ports of the same node are rejected live during the
+- Connection attempts that would create a cycle, use an output port as a
+  target, or connect two ports of the same node are rejected live during the
   drag via `isValidConnection`, with the rejected handle rendered inert.
 - Semantic errors that are representable — width mismatches on bitwise
   operands, slice ranges outside the input, extension widths at or below the
@@ -177,7 +175,7 @@ Decisions are numbered so later work can cite them instead of relitigating.
 ### Palette and drafts
 
 The existing twelve-button operation grid becomes the permanent left Library,
-alongside draggable Input and Output primitives. Dragging an item onto the
+alongside a draggable Input primitive. Dragging an item onto the
 canvas creates it at the drop point; clicking an item creates it near the center
 of the visible canvas for keyboard parity.
 
@@ -194,9 +192,9 @@ stays local to the webview.
   deletion live in the canvas's top-right toolbar.
 - Pan and zoom use React Flow behavior with a theme-aware grid background.
 - Multi-select via marquee and shift-click. Delete/Backspace removes selected
-  sources, steps, outputs, or drafts in one update when nothing still refers to
-  them. Referenced values cannot be deleted until disconnected; at least one
-  input and one output are retained.
+  sources, steps, or drafts in one update when nothing still refers to them.
+  Referenced values cannot be deleted until disconnected; at least one input is
+  retained.
 
 ### Keyboard access
 
@@ -212,9 +210,9 @@ the per-bit provenance that `evaluateRecipe` already computes
 (`ProvenanceBit { sourceId, sourceBit }`):
 
 - Selecting a **source node** highlights the bits of the currently displayed
-  output whose provenance traces back to that source.
-- Selecting a **step or output node** shows that value in the ribbon and detail
-  area as the transient inspected value.
+  value whose provenance traces back to that source.
+- Selecting a **step node** shows that value in the ribbon and detail area as
+  the transient inspected value.
 
 Selection is never persisted.
 
@@ -224,7 +222,7 @@ Selection is never persisted.
  Library       Continuous Vector Bits                 Inspector
  +----------+  +-----------------------------------+  +-------------+
  | Input    |  | [31:0]  [OPCODE] [PAYLOAD       ] |  | Input A     |
- | Output   |  +---------------- resize ------------+  | name/width  |
+ | Slice    |  +---------------- resize ------------+  | name/width  |
  | Slice    |  | Transform            Canvas | List |  | value [Set] |
  | Concat   |  |                                   |  | Fields      |
  | AND      |  | A STATUS -> Slice -> RESULT       |  | Capture     |
@@ -234,7 +232,7 @@ Selection is never persisted.
 
 The two large center views stay linked: selecting a graph value changes the bit
 ribbon above it, while the right Inspector exposes only the properties relevant
-to the selected input, operator, or output.
+to the selected input or operator.
 
 ## Architecture and interfaces
 
@@ -244,12 +242,11 @@ A new pure module `src/dataInspector/recipeGraph.ts` sits next to the other
 domain modules so it is unit-testable without React or React Flow:
 
 - `recipeToGraph(recipe)` returns `{ nodes, edges }`. Node IDs are the recipe's
-  stable value IDs (source, step, and output IDs share one namespace already —
-  `validateRecipeSemantics` enforces global uniqueness). Edges are derived
+  stable source and step IDs (`validateRecipeSemantics` enforces global
+  uniqueness). Edges are derived
   one-to-one from references: `steps[].inputId` produces the edge into the
-  step's `input` handle, `steps[].operandId` into its `operand` handle, and
-  `outputs[].valueId` into the output node. Edge IDs follow the convention
-  `<stepId>.input` / `<stepId>.operand` / `<outputId>.value`, so they are
+  step's `input` handle and `steps[].operandId` into its `operand` handle. Edge
+  IDs follow the convention `<stepId>.input` / `<stepId>.operand`, so they are
   stable across re-renders.
 - `applyGraphEdit(recipe, edit)` maps a canvas gesture (connect, rewire,
   add step, or delete steps) to a new `steps` array.
@@ -260,7 +257,7 @@ Normative rules for `applyGraphEdit`:
   algorithm seeded by the previous array order. Steps not affected by the edit
   keep their relative order, so diffs against the `.ipci.yml` document stay
   minimal and saved canvas positions remain stable.
-- Cycles are unrepresentable in the output and must be rejected before commit
+- Cycles are unrepresentable in the recipe and must be rejected before commit
   (at connect time). `applyGraphEdit` never receives a cyclic graph.
 - Position-only gestures do not pass through `applyGraphEdit` and must not
   reorder `steps`.
@@ -269,9 +266,8 @@ Normative rules for `applyGraphEdit`:
 
 ### Deletion rules
 
-- Source and output nodes are read-only on the canvas. The existing source and
-  output list controls remain responsible for adding and removing them.
-- A step can be deleted only when no remaining step or output refers to it. If
+- Source properties are edited in the contextual Inspector.
+- A step can be deleted only when no remaining step refers to it. If
   it is still in use, the canvas explains which nodes must be rewired first.
 - Deleting several selected steps is allowed when all references from outside
   the selected group have been rewired. The selected steps are removed in one
@@ -296,8 +292,8 @@ Normative rules for `applyGraphEdit`:
 | truncate   | `[:]`  | `in`                             | `width`         | `width`; must be below the input width         |
 | byteSwap   | `B<>`  | `in`                             | none            | unchanged; input must be whole bytes           |
 
-Source nodes contribute `sources[].width`; output nodes take the width of their
-`valueId`. Every value is capped by the existing 4096-bit ceiling.
+Source nodes contribute `sources[].width`; step widths follow the operation
+rules above. Every value is capped by the existing 4096-bit ceiling.
 
 One deliberate capability gain: the current builder UI only offers _sources_ in
 its operand dropdown, but the domain model has always allowed an operand to
@@ -341,20 +337,18 @@ In a saved recipe:
 view:
   laneWidth: 16
   zoom: bit
-  selectedOutputId: result
   canvas:
     nodes:
       - { id: input, x: 40, y: 120 }
       - { id: step1, x: 260, y: 120 }
-      - { id: result, x: 480, y: 160 }
 ```
 
 Rules:
 
-- An array of `{ id, x, y }` covers source, step, and output nodes uniformly
+- An array of `{ id, x, y }` covers source and step nodes uniformly
   and matches the recipe's existing array-of-objects-with-id convention. `view`
-  is the right home because it already holds presentation state (`laneWidth`,
-  `zoom`, `selectedOutputId`); positions are view data, not semantics.
+  is the right home because it already holds presentation state (`laneWidth`
+  and `zoom`); positions are view data, not semantics.
 - The block is optional. Recipes without it (including every recipe that exists
   today) validate unchanged and open with deterministic auto-layout. Nodes
   missing an entry are auto-laid-out relative to the placed ones.
@@ -386,7 +380,7 @@ src/webview/dataInspector/
     StepList.tsx          today's linear list, moved not rewritten
   canvas/
     TransformCanvas.tsx   React Flow provider, graph wiring, gesture handlers
-    nodes/                SourceNode.tsx, StepNode.tsx, OutputNode.tsx
+    nodes/                SourceNode.tsx, StepNode.tsx
     palette.tsx           draggable operation palette
     layout.ts             pure auto-layout (decision 8)
 ```
@@ -456,7 +450,7 @@ view remained functional throughout.
 1. **Extraction and read-only canvas.** Extract the Transform tab from
    `DataInspectorApp.tsx` into `transform/` (behavior-neutral). Add
    `@xyflow/react`. Implement `recipeToGraph` and `layout.ts`. Render source,
-   step, and output nodes with live values, width badges, and error states;
+   and step nodes with live values, width badges, and error states;
    fit-view; the `Canvas | List` toggle. No editing, no schema change —
    positions are all auto-laid-out. Shippable as a pipeline visualization.
 2. **Editing and persistence.** `applyGraphEdit` with stable topological

@@ -29,11 +29,10 @@ import { validateRecipeSemantics } from '../../../dataInspector/recipe';
 import type { IPCraftDataInspectorRecipe, Step } from '../../../domain/dataInspector.types';
 import { isBinaryOperation, parameterDefaults, type RecipeStepType } from '../transform/operations';
 import { layoutRecipeGraph, resolveCanvasPositions } from './layout';
-import { OutputNode, type OutputNodeData } from './nodes/OutputNode';
 import { SourceNode, type SourceNodeData } from './nodes/SourceNode';
 import { StepNode, type StepNodeData } from './nodes/StepNode';
 
-type CanvasNode = Node<SourceNodeData | StepNodeData | OutputNodeData>;
+type CanvasNode = Node<SourceNodeData | StepNodeData>;
 
 interface DraftNode {
   id: string;
@@ -48,28 +47,26 @@ interface TransformCanvasProps {
   samples: ReadonlyMap<string, BitVector>;
   resetToken?: string;
   onRecipeChange: (recipe: IPCraftDataInspectorRecipe) => void;
-  onInspectValue: (nodeId: string, kind: 'source' | 'step' | 'output') => void;
+  onInspectValue: (nodeId: string, kind: 'source' | 'step') => void;
   onDeleteNodes: (nodeIds: string[]) => string | undefined;
   addCommand?: CanvasAddCommand;
 }
 
 export interface CanvasAddCommand {
   id: number;
-  kind: 'source' | 'output' | 'operation';
+  kind: 'source' | 'operation';
   value: string;
 }
 
 const nodeTypes: NodeTypes = {
   source: SourceNode,
   step: StepNode,
-  output: OutputNode,
 };
 
 function nextStepId(recipe: IPCraftDataInspectorRecipe, extraIds: readonly string[] = []): string {
   const ids = new Set([
     ...recipe.sources.map((source) => source.id),
     ...recipe.steps.map((step) => step.id),
-    ...recipe.outputs.map((output) => output.id),
     ...extraIds,
   ]);
   let index = recipe.steps.length + 1;
@@ -82,7 +79,7 @@ function nextStepId(recipe: IPCraftDataInspectorRecipe, extraIds: readonly strin
 function stepErrors(recipe: IPCraftDataInspectorRecipe): Map<string, string> {
   const errors = new Map<string, string>();
   for (const error of validateRecipeSemantics(recipe)) {
-    const match = /^(?:Step|Output) ([A-Za-z0-9._-]+)/.exec(error);
+    const match = /^Step ([A-Za-z0-9._-]+)/.exec(error);
     if (match && !errors.has(match[1])) {
       errors.set(match[1], error);
     }
@@ -97,9 +94,6 @@ function valueText(value: BitVector | undefined): string {
 function edgeShowsError(targetHandle: string | null | undefined, error: string | undefined) {
   if (!error) {
     return false;
-  }
-  if (error.startsWith('Output ')) {
-    return targetHandle === 'value';
   }
   if (/operand/i.test(error)) {
     return targetHandle === 'operand';
@@ -184,21 +178,6 @@ function TransformCanvasInner({
             value: valueText(result?.value?.value),
             widthText: result?.outputWidth ? `${result.outputWidth}b` : 'unavailable',
             error: errors.get(step.id) ?? result?.error,
-          },
-        };
-      }),
-      ...workingRecipe.outputs.map((output, index) => {
-        const value = evaluation.values.get(output.valueId)?.value;
-        return {
-          id: output.id,
-          type: 'output',
-          position: positionById.get(output.id) ?? { x: 560, y: index * 164 },
-          deletable: false,
-          data: {
-            name: output.name,
-            widthText: value ? `${value.width}b` : 'unavailable',
-            value: valueText(value),
-            error: errors.get(output.id),
           },
         };
       }),
@@ -332,7 +311,7 @@ function TransformCanvasInner({
           type: 'connect',
           sourceId: connection.source,
           targetId: connection.target,
-          targetHandle: connection.targetHandle as 'input' | 'operand' | 'value',
+          targetHandle: connection.targetHandle as 'input' | 'operand',
         });
         saveCandidate(candidate);
       } catch (error) {
@@ -415,7 +394,6 @@ function TransformCanvasInner({
       const ids = new Set([
         ...workingRecipe.sources.map((source) => source.id),
         ...workingRecipe.steps.map((step) => step.id),
-        ...workingRecipe.outputs.map((output) => output.id),
       ]);
       while (ids.has(`input${index}`)) {
         index += 1;
@@ -437,40 +415,6 @@ function TransformCanvasInner({
     [onInspectValue, saveCandidate, workingRecipe]
   );
 
-  const addOutputAt = useCallback(
-    (position: { x: number; y: number }) => {
-      let index = workingRecipe.outputs.length + 1;
-      const ids = new Set([
-        ...workingRecipe.sources.map((source) => source.id),
-        ...workingRecipe.steps.map((step) => step.id),
-        ...workingRecipe.outputs.map((output) => output.id),
-      ]);
-      while (ids.has(`output${index}`)) {
-        index += 1;
-      }
-      const id = `output${index}`;
-      const valueId =
-        workingRecipe.steps[workingRecipe.steps.length - 1]?.id ?? workingRecipe.sources[0]?.id;
-      if (!valueId) {
-        setMessage('Add an input before adding an output');
-        return;
-      }
-      const positions = [
-        ...(workingRecipe.view.canvas?.nodes ?? []),
-        { id, x: position.x, y: position.y },
-      ];
-      const candidate = {
-        ...workingRecipe,
-        outputs: [...workingRecipe.outputs, { id, name: `OUTPUT_${index}`, valueId }],
-        view: { ...workingRecipe.view, selectedOutputId: id, canvas: { nodes: positions } },
-      };
-      if (saveCandidate(candidate)) {
-        onInspectValue(id, 'output');
-      }
-    },
-    [onInspectValue, saveCandidate, workingRecipe]
-  );
-
   useEffect(() => {
     if (!addCommand || handledCommandRef.current === addCommand.id) {
       return;
@@ -479,12 +423,10 @@ function TransformCanvasInner({
     const position = { x: 180, y: 120 + (addCommand.id % 5) * 36 };
     if (addCommand.kind === 'source') {
       addSourceAt(position);
-    } else if (addCommand.kind === 'output') {
-      addOutputAt(position);
     } else if (addCommand.kind === 'operation') {
       addDraftAt(addCommand.value as RecipeStepType, position);
     }
-  }, [addCommand, addDraftAt, addOutputAt, addSourceAt]);
+  }, [addCommand, addDraftAt, addSourceAt]);
 
   return (
     <div
@@ -504,8 +446,6 @@ function TransformCanvasInner({
           addDraftAt(operation, position);
         } else if (nodeKind === 'source') {
           addSourceAt(position);
-        } else if (nodeKind === 'output') {
-          addOutputAt(position);
         }
       }}
       onKeyDown={(event) => {
@@ -588,9 +528,7 @@ function TransformCanvasInner({
           setNodes(currentNodes);
           savePositions(currentNodes);
         }}
-        onNodeClick={(_, node) =>
-          onInspectValue(node.id, node.type as 'source' | 'step' | 'output')
-        }
+        onNodeClick={(_, node) => onInspectValue(node.id, node.type as 'source' | 'step')}
         onConnectStart={() => setMessage('')}
         proOptions={{ hideAttribution: true }}
       >

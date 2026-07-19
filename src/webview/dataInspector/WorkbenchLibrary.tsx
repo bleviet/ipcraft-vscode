@@ -7,7 +7,7 @@ export const DATA_INSPECTOR_OPERATION_MIME = 'application/ipcraft-operation';
 interface WorkbenchLibraryProps {
   collapsed: boolean;
   onToggleCollapsed: () => void;
-  onAddNode: (kind: 'source' | 'output') => void;
+  onAddSource: () => void;
   onAddOperation: (type: RecipeStepType) => void;
 }
 
@@ -19,7 +19,7 @@ function beginDrag(event: React.DragEvent, mime: string, value: string) {
 export function WorkbenchLibrary({
   collapsed,
   onToggleCollapsed,
-  onAddNode,
+  onAddSource,
   onAddOperation,
 }: WorkbenchLibraryProps) {
   const [query, setQuery] = useState('');
@@ -76,22 +76,17 @@ export function WorkbenchLibrary({
       <section className="di-library-section">
         <h3>Nodes</h3>
         <div className="di-library-grid is-nodes">
-          {(
-            [
-              { kind: 'source', symbol: 'IN', label: 'Input', description: 'Transient bit vector' },
-              { kind: 'output', symbol: 'OUT', label: 'Output', description: 'Named graph result' },
-            ] as const
-          )
+          {[{ symbol: 'IN', label: 'Input', description: 'Transient bit vector' }]
             .filter((item) =>
               `${item.label} ${item.description}`.toLowerCase().includes(normalizedQuery)
             )
             .map((item) => (
               <button
-                aria-label={item.kind === 'source' ? 'Add source' : 'Add output'}
+                aria-label="Add source"
                 draggable
-                key={item.kind}
-                onClick={() => onAddNode(item.kind)}
-                onDragStart={(event) => beginDrag(event, DATA_INSPECTOR_NODE_MIME, item.kind)}
+                key="source"
+                onClick={onAddSource}
+                onDragStart={(event) => beginDrag(event, DATA_INSPECTOR_NODE_MIME, 'source')}
                 title={`Drag ${item.label} onto the transform canvas`}
               >
                 <b aria-hidden="true">{item.symbol}</b>

@@ -122,7 +122,7 @@ layout is an optional accelerator on top of pasting, never a prerequisite.
 - Use a VS Code-native "precision instrument panel": respect the active theme,
   high contrast, reduced motion, and existing IPCraft field colors/patterns.
 - Organize the workspace into:
-  - A source rail containing physical inputs and named derived outputs.
+  - A source rail containing physical inputs.
   - A sticky value composer with width, radix, validation, copy, and clear
     actions.
   - A continuous bit ribbon with field and source overlays.
@@ -320,7 +320,6 @@ types are never edited by hand. A versioned recipe stores:
 - Input names and widths.
 - Copied field definitions and optional import provenance.
 - Ordered typed transform steps.
-- Named outputs.
 - Named field overlay groups.
 - Per-field display interpretations.
 - UI preferences needed to reproduce the view.
@@ -374,7 +373,7 @@ stale result is ever displayed.
    - Add the versioned `*.ipci.yml` custom editor and the canonical
      `ipcraft-spec/schemas/data_inspector.schema.json` recipe schema, with
      camelCase properties and generated TypeScript types.
-   - Save field layouts, sources, outputs, and view preferences without saving
+   - Save field layouts, sources, transforms, and view preferences without saving
      samples.
    - Support opening a recipe directly and saving a panel session as a recipe.
    - Add format-preserving recipe edits and schema validation, independent of

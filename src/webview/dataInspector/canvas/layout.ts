@@ -34,7 +34,7 @@ export function layoutRecipeGraph(graph: RecipeGraph): CanvasNodePosition[] {
 
   const layerCounts = new Map<number, number>();
   return graph.nodes.map((node) => {
-    const rank = ranks.get(node.id) ?? (node.kind === 'output' ? 2 : 1);
+    const rank = ranks.get(node.id) ?? 1;
     const row = layerCounts.get(rank) ?? 0;
     layerCounts.set(rank, row + 1);
     return {

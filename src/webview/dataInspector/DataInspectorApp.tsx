@@ -765,7 +765,6 @@ export function DataInspectorApp() {
     ? currentRecipe.sources.findIndex((source) => source.id === selectedSource.id)
     : -1;
   const selectedStep = currentRecipe.steps.find((step) => step.id === selectedNodeId);
-  const selectedGraphOutput = currentRecipe.outputs.find((output) => output.id === selectedNodeId);
   const activeSource = selectedSource ?? currentRecipe.sources[0];
   const activeSourceVector = activeSource
     ? evaluation.values.get(activeSource.id)?.value
@@ -780,12 +779,8 @@ export function DataInspectorApp() {
   const filteredFields = activeSourceFields.filter((field) =>
     field.name.toLowerCase().includes(fieldSearch.toLowerCase())
   );
-  const selectedOutput =
-    currentRecipe.outputs.find((output) => output.id === currentRecipe.view.selectedOutputId) ??
-    currentRecipe.outputs[0];
   const lastStep = currentRecipe.steps[currentRecipe.steps.length - 1];
-  const selectedValueId =
-    inspectedValueId ?? selectedOutput?.valueId ?? lastStep?.id ?? currentRecipe.sources[0]?.id;
+  const selectedValueId = inspectedValueId ?? lastStep?.id ?? currentRecipe.sources[0]?.id;
   const evaluatedValue = selectedValueId ? evaluation.values.get(selectedValueId) : undefined;
   const displayVector = evaluatedValue?.value ?? vector;
   const ribbonFields = useMemo(
@@ -803,13 +798,9 @@ export function DataInspectorApp() {
     [currentRecipe.fields, evaluatedValue, fields]
   );
 
-  const inspectCanvasValue = (nodeId: string, kind: 'source' | 'step' | 'output') => {
-    const output =
-      kind === 'output'
-        ? currentRecipe.outputs.find((candidate) => candidate.id === nodeId)
-        : undefined;
+  const inspectCanvasValue = (nodeId: string, kind: 'source' | 'step') => {
     setSelectedNodeId(nodeId);
-    setInspectedValueId(output?.valueId ?? nodeId);
+    setInspectedValueId(nodeId);
     setHighlightedSourceId(kind === 'source' ? nodeId : null);
     setInspectorTab('properties');
   };
@@ -820,7 +811,6 @@ export function DataInspectorApp() {
       const remainingNodeIds = new Set([
         ...candidate.sources.map((source) => source.id),
         ...candidate.steps.map((step) => step.id),
-        ...candidate.outputs.map((output) => output.id),
       ]);
       const remainingSourceIds = new Set(candidate.sources.map((source) => source.id));
       const remainingFieldIds = new Set(candidate.fields.map((field) => field.id));
@@ -922,13 +912,7 @@ export function DataInspectorApp() {
         inputId: step.inputId === removed.id ? fallbackId : step.inputId,
         ...(step.operandId === removed.id ? { operandId: fallbackId } : {}),
       }));
-    setRecipeBase({
-      ...currentRecipe,
-      steps,
-      outputs: currentRecipe.outputs.map((output) =>
-        output.valueId === removed.id ? { ...output, valueId: fallbackId } : output
-      ),
-    });
+    setRecipeBase({ ...currentRecipe, steps });
   };
 
   const applyVcdSample = (selection: VcdSelection, index: number) => {
@@ -1030,12 +1014,11 @@ export function DataInspectorApp() {
     if (!selectedSource || currentRecipe.sources.length === 1) {
       return;
     }
-    const referenced =
-      currentRecipe.steps.some(
-        (step) => step.inputId === selectedSource.id || step.operandId === selectedSource.id
-      ) || currentRecipe.outputs.some((output) => output.valueId === selectedSource.id);
+    const referenced = currentRecipe.steps.some(
+      (step) => step.inputId === selectedSource.id || step.operandId === selectedSource.id
+    );
     if (referenced) {
-      setError('Disconnect this input from all operators and outputs before deleting it');
+      setError('Disconnect this input from all operators before deleting it');
       return;
     }
     const removedFieldIds = new Set(
@@ -1057,21 +1040,6 @@ export function DataInspectorApp() {
     setSelectedNodeId(currentRecipe.sources[0].id);
     setInspectedValueId(currentRecipe.sources[0].id);
     setError('');
-  };
-
-  const removeSelectedOutput = () => {
-    if (!selectedGraphOutput || currentRecipe.outputs.length === 1) {
-      return;
-    }
-    const outputs = currentRecipe.outputs.filter((output) => output.id !== selectedGraphOutput.id);
-    setRecipeBase({
-      ...currentRecipe,
-      outputs,
-      view: { ...currentRecipe.view, selectedOutputId: outputs[0]?.id },
-    });
-    const fallback = outputs[0];
-    setSelectedNodeId(fallback?.id ?? currentRecipe.sources[0].id);
-    setInspectedValueId(fallback?.valueId ?? currentRecipe.sources[0].id);
   };
 
   const copySelectedRegisterLayout = () => {
@@ -1346,7 +1314,7 @@ export function DataInspectorApp() {
             <WorkbenchLibrary
               collapsed={libraryCollapsed}
               onToggleCollapsed={() => setLibraryCollapsed((current) => !current)}
-              onAddNode={(kind) => queueCanvasAdd(kind, kind)}
+              onAddSource={() => queueCanvasAdd('source', 'source')}
               onAddOperation={(type) => queueCanvasAdd('operation', type)}
             />
           </div>
@@ -1490,12 +1458,7 @@ export function DataInspectorApp() {
               {!inspectorCollapsed && (
                 <div>
                   <span className="di-eyebrow">Selected node</span>
-                  <h2>
-                    {selectedSource?.name ??
-                      selectedStep?.id ??
-                      selectedGraphOutput?.name ??
-                      'Inspector'}
-                  </h2>
+                  <h2>{selectedSource?.name ?? selectedStep?.id ?? 'Inspector'}</h2>
                 </div>
               )}
               <button
@@ -1775,71 +1738,6 @@ export function DataInspectorApp() {
                         onClick={() => removeStep(currentRecipe.steps.indexOf(selectedStep))}
                       >
                         Delete operator
-                      </button>
-                    </>
-                  )}
-
-                  {selectedGraphOutput && (
-                    <>
-                      <div className="di-node-kind">
-                        <span className="di-operation-badge">OUT</span>
-                        <span>
-                          <small>Output</small>
-                          <strong>{selectedGraphOutput.id}</strong>
-                        </span>
-                      </div>
-                      <label>
-                        Name
-                        <input
-                          aria-label={`Output ${currentRecipe.outputs.indexOf(selectedGraphOutput) + 1} name`}
-                          value={selectedGraphOutput.name}
-                          onChange={(event) =>
-                            setRecipeBase({
-                              ...currentRecipe,
-                              outputs: currentRecipe.outputs.map((output) =>
-                                output.id === selectedGraphOutput.id
-                                  ? { ...output, name: event.target.value }
-                                  : output
-                              ),
-                            })
-                          }
-                        />
-                      </label>
-                      <label>
-                        Connected value
-                        <select
-                          aria-label={`Output ${currentRecipe.outputs.indexOf(selectedGraphOutput) + 1} value`}
-                          value={selectedGraphOutput.valueId}
-                          onChange={(event) => {
-                            const valueId = event.target.value;
-                            setRecipeBase({
-                              ...currentRecipe,
-                              outputs: currentRecipe.outputs.map((output) =>
-                                output.id === selectedGraphOutput.id
-                                  ? { ...output, valueId }
-                                  : output
-                              ),
-                            });
-                            setInspectedValueId(valueId);
-                          }}
-                        >
-                          {[...currentRecipe.sources, ...currentRecipe.steps].map((value) => (
-                            <option value={value.id} key={value.id}>
-                              {value.id}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <code className="di-inspector-value">
-                        {evaluation.values.get(selectedGraphOutput.valueId)?.value.toLiteral() ??
-                          'No value'}
-                      </code>
-                      <button
-                        className="di-danger-button"
-                        disabled={currentRecipe.outputs.length === 1}
-                        onClick={removeSelectedOutput}
-                      >
-                        Delete output
                       </button>
                     </>
                   )}

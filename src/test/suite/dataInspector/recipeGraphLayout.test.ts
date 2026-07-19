@@ -13,8 +13,6 @@ describe('recipe graph layout', () => {
       { id: 'masked', type: 'and', inputId: 'input', operandId: 'mask' },
       { id: 'shifted', type: 'shiftRight', inputId: 'masked', amount: 2 },
     ];
-    recipe.outputs[0].valueId = 'shifted';
-
     const positions = new Map(
       layoutRecipeGraph(recipeToGraph(recipe)).map((position) => [position.id, position])
     );
@@ -22,7 +20,6 @@ describe('recipe graph layout', () => {
     expect(positions.get('input')?.x).toBe(positions.get('mask')?.x);
     expect(positions.get('masked')!.x).toBeGreaterThan(positions.get('input')!.x);
     expect(positions.get('shifted')!.x).toBeGreaterThan(positions.get('masked')!.x);
-    expect(positions.get('result')!.x).toBeGreaterThan(positions.get('shifted')!.x);
     expect(positions.get('mask')!.y).toBeGreaterThan(positions.get('input')!.y);
   });
 

@@ -10,7 +10,6 @@ describe('evaluateRecipe', () => {
       { id: 'b', name: 'B', width: 8 },
     ];
     recipe.steps = [{ id: 'ab', type: 'concat', inputId: 'a', operandId: 'b' }];
-    recipe.outputs = [{ id: 'result', name: 'RESULT', valueId: 'ab' }];
     const evaluation = evaluateRecipe(
       recipe,
       new Map([

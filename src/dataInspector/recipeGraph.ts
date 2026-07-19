@@ -2,14 +2,13 @@ import type { IPCraftDataInspectorRecipe, Step } from '../domain/dataInspector.t
 
 export type RecipeGraphNode =
   | { id: string; kind: 'source' }
-  | { id: string; kind: 'step'; step: Step }
-  | { id: string; kind: 'output' };
+  | { id: string; kind: 'step'; step: Step };
 
 export type RecipeGraphEdge = {
   id: string;
   source: string;
   target: string;
-  targetHandle: 'input' | 'operand' | 'value';
+  targetHandle: 'input' | 'operand';
 };
 
 export interface RecipeGraph {
@@ -32,7 +31,6 @@ export function recipeToGraph(recipe: IPCraftDataInspectorRecipe): RecipeGraph {
   const nodes: RecipeGraphNode[] = [
     ...recipe.sources.map((source) => ({ id: source.id, kind: 'source' as const })),
     ...recipe.steps.map((step) => ({ id: step.id, kind: 'step' as const, step })),
-    ...recipe.outputs.map((output) => ({ id: output.id, kind: 'output' as const })),
   ];
   const valueIds = new Set([
     ...recipe.sources.map((source) => source.id),
@@ -58,17 +56,6 @@ export function recipeToGraph(recipe: IPCraftDataInspectorRecipe): RecipeGraph {
       });
     }
   }
-  for (const output of recipe.outputs) {
-    if (valueIds.has(output.valueId)) {
-      edges.push({
-        id: `${output.id}.value`,
-        source: output.valueId,
-        target: output.id,
-        targetHandle: 'value',
-      });
-    }
-  }
-
   return { nodes, edges };
 }
 
@@ -164,19 +151,6 @@ function connect(
     throw new Error('This connection would create a cycle');
   }
 
-  if (edit.targetHandle === 'value') {
-    const output = recipe.outputs.find((candidate) => candidate.id === edit.targetId);
-    if (!output) {
-      throw new Error(`Unknown output ${edit.targetId}`);
-    }
-    return {
-      ...recipe,
-      outputs: recipe.outputs.map((candidate) =>
-        candidate.id === edit.targetId ? { ...candidate, valueId: edit.sourceId } : candidate
-      ),
-    };
-  }
-
   const target = recipe.steps.find((step) => step.id === edit.targetId);
   if (!target) {
     throw new Error(`Unknown step ${edit.targetId}`);
@@ -203,35 +177,22 @@ function deleteNodes(
   const selectedStepIds = new Set(
     recipe.steps.filter((step) => selected.has(step.id)).map((step) => step.id)
   );
-  const selectedOutputIds = new Set(
-    recipe.outputs.filter((output) => selected.has(output.id)).map((output) => output.id)
-  );
   if (selectedSourceIds.size === recipe.sources.length && selectedSourceIds.size > 0) {
     throw new Error('A recipe must keep at least one input');
   }
-  if (selectedOutputIds.size === recipe.outputs.length && selectedOutputIds.size > 0) {
-    throw new Error('A recipe must keep at least one output');
-  }
-
   const sources = recipe.sources.filter((source) => !selectedSourceIds.has(source.id));
   const steps = recipe.steps.filter((step) => !selectedStepIds.has(step.id));
-  const outputs = recipe.outputs.filter((output) => !selectedOutputIds.has(output.id));
   const existingNodeIds = new Set([
     ...sources.map((source) => source.id),
     ...steps.map((step) => step.id),
-    ...outputs.map((output) => output.id),
   ]);
   return {
     ...recipe,
     sources,
     steps,
-    outputs,
     fields: recipe.fields.filter((field) => !selectedSourceIds.has(field.sourceId)),
     view: {
       ...recipe.view,
-      selectedOutputId: outputs.some((output) => output.id === recipe.view.selectedOutputId)
-        ? recipe.view.selectedOutputId
-        : outputs[0]?.id,
       ...(recipe.view.canvas
         ? {
             canvas: {
@@ -261,7 +222,6 @@ export function applyGraphEdit(
   const existingIds = new Set([
     ...recipe.sources.map((source) => source.id),
     ...recipe.steps.map((step) => step.id),
-    ...recipe.outputs.map((output) => output.id),
   ]);
   const duplicate = edit.steps.find((step) => existingIds.has(step.id));
   if (duplicate) {

@@ -20,8 +20,7 @@ export function createEmptyRecipe(name: string): IPCraftDataInspectorRecipe {
     fields: [],
     overlayGroups: [{ id: 'default', name: 'Default' }],
     steps: [],
-    outputs: [{ id: 'result', name: 'RESULT', valueId: 'input' }],
-    view: { laneWidth: 32, zoom: 'field', selectedOutputId: 'result', selectedGroupId: 'default' },
+    view: { laneWidth: 32, zoom: 'field', selectedGroupId: 'default' },
   };
 }
 
@@ -49,7 +48,6 @@ export function validateRecipeSemantics(recipe: IPCraftDataInspectorRecipe): str
   recipe.fields.forEach((field) => addId(field.id, 'field'));
   recipe.overlayGroups.forEach((group) => addId(group.id, 'overlay group'));
   recipe.steps.forEach((step) => addId(step.id, 'step'));
-  recipe.outputs.forEach((output) => addId(output.id, 'output'));
 
   const sourceWidths = new Map(recipe.sources.map((source) => [source.id, source.width]));
   const valueIds = new Set([...sourceWidths.keys(), ...recipe.steps.map((step) => step.id)]);
