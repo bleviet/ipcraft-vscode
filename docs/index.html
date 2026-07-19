@@ -1,0 +1,1487 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description"
+    content="IPCraft is a visual FPGA IP core workspace for designing, generating, inspecting, and building hardware from VS Code." />
+  <meta name="theme-color" content="#050811" />
+  <title>IPCraft | Visual FPGA IP design in VS Code</title>
+  <link rel="icon" type="image/svg+xml" href="images/ipcraft-logo.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700&amp;family=Space+Grotesk:wght@500;700&amp;display=swap"
+    rel="stylesheet" />
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #050811;
+      --bg-card: #0c1123;
+      --surface: rgba(255, 255, 255, 0.05);
+      --line: rgba(255, 255, 255, 0.08);
+      --text: #d4deee;
+      --muted: #7a8fa8;
+      --accent: #00f2fe;
+      --nav-bg: rgba(5, 8, 17, 0.84);
+      --shadow: 0 20px 60px rgba(0, 0, 0, 0.36);
+      --brand: #ff512f;
+      --brand-2: #dd2476;
+      --grad: linear-gradient(135deg, #ff512f 0%, #dd2476 100%);
+      --node-cyan: #4facfe;
+      --node-pink: #f5576c;
+      --node-purple: #da22ff;
+      --chart-1: #4facfe;
+      --chart-2: #ff7354;
+      --chart-3: #c76bff;
+      --chart-4: #f5576c;
+      --chart-5: #74c7f0;
+      --chart-6: #f4a44a;
+      --chart-7: #56d4b0;
+      --chart-8: #9f7bea;
+      --chart-bg: var(--bg-card);
+      --chart-grid: rgba(255, 255, 255, 0.06);
+      --chart-axis: rgba(255, 255, 255, 0.12);
+      --chart-label: var(--muted);
+      --chart-tooltip-bg: rgba(12, 17, 35, 0.95);
+      --button-text: #ffffff;
+      --code-key: #74c7f0;
+      --code-value: #56d4b0;
+      --r: 20px;
+      --max: 1140px;
+      --nav-height: 76px;
+    }
+
+    [data-theme='light'] {
+      color-scheme: light;
+      --bg: #e8ecf5;
+      --bg-card: #f1f4fb;
+      --surface: rgba(0, 0, 0, 0.07);
+      --line: rgba(0, 0, 0, 0.14);
+      --text: #0d1120;
+      --muted: #3d5370;
+      --accent: #006ea3;
+      --nav-bg: rgba(232, 236, 245, 0.93);
+      --shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
+      --node-cyan: #005e9e;
+      --node-pink: #b51c3c;
+      --node-purple: #8a0ea8;
+      --chart-1: #005e9e;
+      --chart-2: #d63e1a;
+      --chart-3: #8a0ea8;
+      --chart-4: #b51c3c;
+      --chart-5: #0079b3;
+      --chart-6: #b06000;
+      --chart-7: #1a7a62;
+      --chart-8: #5c2e9a;
+      --chart-grid: rgba(0, 0, 0, 0.05);
+      --chart-axis: rgba(0, 0, 0, 0.12);
+      --chart-tooltip-bg: rgba(241, 244, 251, 0.97);
+      --code-key: #005e9e;
+      --code-value: #1a7a62;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      scroll-padding-top: calc(var(--nav-height) + 24px);
+    }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      overflow-x: hidden;
+      background:
+        radial-gradient(circle at 8% 12%,
+          color-mix(in srgb, var(--node-purple) 12%, transparent),
+          transparent 32rem),
+        radial-gradient(circle at 92% 22%,
+          color-mix(in srgb, var(--node-cyan) 10%, transparent),
+          transparent 30rem),
+        var(--bg);
+      color: var(--text);
+      font-family: 'Manrope', system-ui, sans-serif;
+      line-height: 1.6;
+      transition:
+        background-color 180ms ease,
+        color 180ms ease;
+    }
+
+    body::before {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      background-image:
+        linear-gradient(var(--line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--line) 1px, transparent 1px);
+      background-size: 72px 72px;
+      mask-image: linear-gradient(to bottom, black, transparent 72%);
+      opacity: 0.28;
+      content: '';
+      pointer-events: none;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+    }
+
+    h1,
+    h2,
+    h3,
+    .display {
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      letter-spacing: -0.035em;
+      line-height: 1.06;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button,
+    a {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button:focus-visible,
+    a:focus-visible {
+      outline: 3px solid var(--accent);
+      outline-offset: 4px;
+    }
+
+    img {
+      display: block;
+      max-width: 100%;
+    }
+
+    .container {
+      width: min(var(--max), calc(100% - 2.5rem));
+      margin-inline: auto;
+    }
+
+    .skip-link {
+      position: fixed;
+      top: 12px;
+      left: 12px;
+      z-index: 200;
+      padding: 0.7rem 1rem;
+      border-radius: 10px;
+      background: var(--accent);
+      color: var(--bg);
+      font-weight: 700;
+      transform: translateY(-150%);
+    }
+
+    .skip-link:focus {
+      transform: translateY(0);
+    }
+
+    .section-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.65rem;
+      margin-bottom: 1.1rem;
+      color: var(--accent);
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      font-size: 0.76rem;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    .section-label::before {
+      width: 28px;
+      height: 1px;
+      background: currentColor;
+      content: '';
+    }
+
+    .grad-text {
+      background: var(--grad);
+      background-clip: text;
+      color: transparent;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .site-nav {
+      position: fixed;
+      top: 0;
+      right: 0;
+      left: 0;
+      z-index: 100;
+      border-bottom: 1px solid var(--line);
+      background: var(--nav-bg);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+    }
+
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: var(--nav-height);
+      gap: 2rem;
+    }
+
+    .brand-lockup {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.7rem;
+      color: var(--text);
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      font-size: 1.2rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+    }
+
+    .brand-lockup img {
+      width: 38px;
+      height: 38px;
+    }
+
+    .brand-lockup small {
+      padding-left: 0.7rem;
+      border-left: 1px solid var(--line);
+      color: var(--muted);
+      font-family: 'Manrope', system-ui, sans-serif;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .nav-actions,
+    .nav-links,
+    .hero-actions,
+    .proof-row {
+      display: flex;
+      align-items: center;
+    }
+
+    .nav-actions {
+      gap: 1rem;
+    }
+
+    .nav-links {
+      gap: 1.6rem;
+    }
+
+    .nav-links a {
+      color: var(--muted);
+      font-size: 0.86rem;
+      font-weight: 700;
+      transition: color 160ms ease;
+    }
+
+    .nav-links a:hover {
+      color: var(--text);
+    }
+
+    .theme-toggle {
+      display: grid;
+      width: 40px;
+      height: 40px;
+      padding: 0;
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      place-items: center;
+      transition:
+        border-color 160ms ease,
+        transform 160ms ease;
+    }
+
+    .theme-toggle:hover {
+      border-color: var(--accent);
+      transform: rotate(8deg);
+    }
+
+    .theme-toggle svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 48px;
+      padding: 0.78rem 1.25rem;
+      border: 1px solid transparent;
+      border-radius: 14px;
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      font-size: 0.92rem;
+      font-weight: 700;
+      transition:
+        border-color 160ms ease,
+        box-shadow 160ms ease,
+        transform 160ms ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .btn-primary {
+      background: var(--grad);
+      box-shadow: 0 12px 30px color-mix(in srgb, var(--brand) 26%, transparent);
+      color: var(--button-text);
+    }
+
+    .btn-secondary {
+      border-color: var(--line);
+      background: var(--surface);
+      color: var(--text);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--accent);
+    }
+
+    .hero {
+      position: relative;
+      display: grid;
+      min-height: 100svh;
+      padding: calc(var(--nav-height) + 6rem) 0 7rem;
+      align-items: center;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 0.88fr) minmax(480px, 1.12fr);
+      gap: clamp(3rem, 7vw, 6.5rem);
+      align-items: center;
+    }
+
+    .hero-copy {
+      position: relative;
+      z-index: 2;
+    }
+
+    .hero h1 {
+      max-width: 12ch;
+      margin-bottom: 1.5rem;
+      font-size: clamp(3.4rem, 6.8vw, 6.7rem);
+      font-weight: 700;
+      letter-spacing: -0.055em;
+    }
+
+    .hero-copy>p {
+      max-width: 590px;
+      margin-bottom: 2rem;
+      color: var(--muted);
+      font-size: clamp(1.05rem, 1.5vw, 1.22rem);
+    }
+
+    .hero-actions {
+      flex-wrap: wrap;
+      gap: 0.8rem;
+      margin-bottom: 2rem;
+    }
+
+    .proof-row {
+      flex-wrap: wrap;
+      gap: 0.75rem 1.3rem;
+      color: var(--muted);
+      font-size: 0.77rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .proof-row span {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .proof-row span::before {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 12px var(--accent);
+      content: '';
+    }
+
+    .hero-stage {
+      position: relative;
+      min-width: 0;
+      perspective: 1400px;
+    }
+
+    .window {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--r);
+      background: var(--bg-card);
+      box-shadow: var(--shadow);
+    }
+
+    .hero-window {
+      transform: rotateY(-5deg) rotateX(2deg);
+      animation: stage-in 900ms cubic-bezier(0.16, 1, 0.3, 1) both 200ms;
+    }
+
+    .window-bar {
+      display: flex;
+      align-items: center;
+      min-height: 42px;
+      padding: 0 14px;
+      border-bottom: 1px solid var(--line);
+      background: var(--surface);
+      gap: 6px;
+    }
+
+    .window-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--muted);
+      opacity: 0.55;
+    }
+
+    .window-title {
+      margin-left: auto;
+      color: var(--muted);
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+
+    .window img {
+      width: 100%;
+      aspect-ratio: 14 / 9;
+      object-fit: cover;
+      object-position: center;
+    }
+
+    .yaml-card {
+      position: absolute;
+      right: -2.8rem;
+      bottom: -3rem;
+      z-index: 3;
+      width: min(330px, 70%);
+      padding: 1.2rem;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: color-mix(in srgb, var(--bg-card) 92%, transparent);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+      font:
+        500 0.78rem/1.7 ui-monospace,
+        SFMono-Regular,
+        Menlo,
+        monospace;
+      animation: stage-in 900ms cubic-bezier(0.16, 1, 0.3, 1) both 420ms;
+    }
+
+    .yaml-card::before {
+      display: block;
+      margin-bottom: 0.7rem;
+      color: var(--muted);
+      font-family: 'Manrope', system-ui, sans-serif;
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      content: 'core.ip.yml';
+    }
+
+    .code-key {
+      color: var(--code-key);
+    }
+
+    .code-value {
+      color: var(--code-value);
+    }
+
+    .signal-line {
+      position: absolute;
+      top: -4rem;
+      right: -8rem;
+      z-index: -1;
+      width: 320px;
+      height: 320px;
+      border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+      border-radius: 50%;
+      animation: pulse 4s ease-in-out infinite;
+    }
+
+    .signal-line::before,
+    .signal-line::after {
+      position: absolute;
+      border: 1px solid color-mix(in srgb, var(--accent) 24%, transparent);
+      border-radius: inherit;
+      content: '';
+    }
+
+    .signal-line::before {
+      inset: 48px;
+    }
+
+    .signal-line::after {
+      inset: 96px;
+    }
+
+    .section {
+      padding: clamp(5rem, 10vw, 8.5rem) 0;
+    }
+
+    .section-head {
+      display: grid;
+      grid-template-columns: 0.8fr 1.2fr;
+      gap: 4rem;
+      margin-bottom: 3.5rem;
+      align-items: end;
+    }
+
+    .section-head h2 {
+      margin-bottom: 0;
+      font-size: clamp(2.6rem, 5vw, 4.8rem);
+    }
+
+    .section-head p {
+      max-width: 610px;
+      margin-bottom: 0;
+      color: var(--muted);
+      font-size: 1.05rem;
+    }
+
+    .workflow {
+      border-block: 1px solid var(--line);
+      background: color-mix(in srgb, var(--bg-card) 40%, transparent);
+    }
+
+    .workflow-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      border: 1px solid var(--line);
+      border-radius: var(--r);
+      background: var(--bg-card);
+      box-shadow: var(--shadow);
+    }
+
+    .workflow-step {
+      position: relative;
+      min-height: 300px;
+      padding: 2rem;
+    }
+
+    .workflow-step+.workflow-step {
+      border-left: 1px solid var(--line);
+    }
+
+    .step-number {
+      display: grid;
+      width: 42px;
+      height: 42px;
+      margin-bottom: 1.75rem;
+      border-radius: 12px;
+      background: var(--grad);
+      color: var(--button-text);
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      font-weight: 700;
+      place-items: center;
+    }
+
+    .step-icon {
+      display: grid;
+      width: 46px;
+      height: 46px;
+      margin-bottom: 1.75rem;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: var(--surface);
+      color: var(--accent);
+      place-items: center;
+    }
+
+    .step-icon svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    .workflow-step h3 {
+      margin-bottom: 0.8rem;
+      font-size: 1.55rem;
+    }
+
+    .workflow-step p {
+      margin-bottom: 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .step-connector {
+      position: absolute;
+      top: 52px;
+      right: -16px;
+      z-index: 2;
+      display: grid;
+      width: 32px;
+      height: 32px;
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      background: var(--bg-card);
+      color: var(--accent);
+      place-items: center;
+    }
+
+    .studio-shell {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: calc(var(--r) + 6px);
+      background: var(--bg-card);
+      box-shadow: var(--shadow);
+    }
+
+    .studio-view {
+      display: grid;
+      grid-template-columns: 1.5fr 0.5fr;
+      min-height: 420px;
+    }
+
+    .studio-view+.studio-view {
+      border-top: 1px solid var(--line);
+    }
+
+    .studio-media {
+      position: relative;
+      overflow: hidden;
+      border-right: 1px solid var(--line);
+      background: var(--bg);
+    }
+
+    .studio-media img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      transition: opacity 180ms ease;
+    }
+
+    .studio-copy {
+      display: flex;
+      padding: 2rem;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .studio-copy h3 {
+      margin-bottom: 1rem;
+      font-size: 1.75rem;
+    }
+
+    .studio-copy p {
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .studio-copy a {
+      color: var(--accent);
+      font-size: 0.86rem;
+      font-weight: 700;
+    }
+
+    .bento-grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 1rem;
+    }
+
+    .feature-card {
+      position: relative;
+      grid-column: span 4;
+      min-height: 260px;
+      overflow: hidden;
+      padding: 2rem;
+      border: 1px solid var(--line);
+      border-radius: var(--r);
+      background: var(--bg-card);
+      transition:
+        border-color 180ms ease,
+        transform 180ms ease;
+    }
+
+    .feature-card:hover {
+      border-color: color-mix(in srgb, var(--accent) 46%, var(--line));
+      transform: translateY(-4px);
+    }
+
+    .feature-card.wide {
+      grid-column: span 8;
+    }
+
+    .feature-card.half {
+      grid-column: span 6;
+    }
+
+    .feature-card::after {
+      position: absolute;
+      right: -30%;
+      bottom: -50%;
+      width: 280px;
+      height: 280px;
+      border-radius: 50%;
+      background: var(--node-cyan);
+      filter: blur(90px);
+      opacity: 0.08;
+      content: '';
+      pointer-events: none;
+    }
+
+    .feature-icon {
+      display: grid;
+      width: 46px;
+      height: 46px;
+      margin-bottom: 3rem;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: var(--surface);
+      color: var(--accent);
+      place-items: center;
+    }
+
+    .feature-icon svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    .feature-card h3 {
+      margin-bottom: 0.7rem;
+      font-size: 1.4rem;
+    }
+
+    .feature-card p {
+      max-width: 48ch;
+      margin-bottom: 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .vendor-strip {
+      display: flex;
+      margin-top: 1.5rem;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+    }
+
+    .chip {
+      padding: 0.42rem 0.7rem;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--surface);
+      color: var(--text);
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+
+    .feature-link {
+      display: inline-block;
+      margin-top: 1rem;
+      color: var(--accent);
+      font-size: 0.86rem;
+      font-weight: 700;
+    }
+
+    .cta-panel {
+      position: relative;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      overflow: hidden;
+      padding: clamp(2rem, 6vw, 4.5rem);
+      border: 1px solid var(--line);
+      border-radius: calc(var(--r) + 8px);
+      background: var(--bg-card);
+      box-shadow: var(--shadow);
+      gap: 2rem;
+      align-items: center;
+    }
+
+    .cta-panel::before {
+      position: absolute;
+      top: 0;
+      right: 0;
+      left: 0;
+      height: 3px;
+      background: var(--grad);
+      content: '';
+    }
+
+    .cta-panel h2 {
+      max-width: 14ch;
+      margin-bottom: 0.8rem;
+      font-size: clamp(2.5rem, 5vw, 4.4rem);
+    }
+
+    .cta-panel p {
+      max-width: 640px;
+      margin-bottom: 0;
+      color: var(--muted);
+    }
+
+    .site-footer {
+      padding: 2.5rem 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .footer-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 2rem;
+    }
+
+    .footer-inner p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 1.2rem;
+    }
+
+    .footer-links a {
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+
+    .footer-links a:hover {
+      color: var(--accent);
+    }
+
+    .reveal {
+      animation: reveal-in 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    @keyframes stage-in {
+      from {
+        opacity: 0;
+        transform: translateY(28px) rotateY(-5deg) rotateX(2deg);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0) rotateY(-5deg) rotateX(2deg);
+      }
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 0.35;
+        transform: scale(0.96);
+      }
+
+      50% {
+        opacity: 0.8;
+        transform: scale(1.03);
+      }
+    }
+
+    @keyframes reveal-in {
+      from {
+        opacity: 0;
+        transform: translateY(22px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 980px) {
+      .hero {
+        padding-top: calc(var(--nav-height) + 4rem);
+      }
+
+      .hero-grid,
+      .section-head {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-grid {
+        gap: 5rem;
+      }
+
+      .hero h1 {
+        max-width: 11ch;
+      }
+
+      .hero-stage {
+        width: min(760px, 96%);
+      }
+
+      .section-head {
+        gap: 1.3rem;
+      }
+
+      .studio-view {
+        grid-template-columns: 1fr;
+      }
+
+      .studio-media {
+        min-height: 400px;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .feature-card,
+      .feature-card.wide {
+        grid-column: span 6;
+      }
+    }
+
+    @media (max-width: 760px) {
+      :root {
+        --nav-height: 68px;
+      }
+
+      .nav-links {
+        display: none;
+      }
+
+      .brand-lockup small {
+        display: none;
+      }
+
+      .hero {
+        min-height: auto;
+        padding-bottom: 5rem;
+      }
+
+      .hero h1 {
+        font-size: clamp(3rem, 15vw, 4.6rem);
+      }
+
+      .hero-window {
+        transform: none;
+      }
+
+      .yaml-card {
+        right: -0.5rem;
+        bottom: -3.6rem;
+      }
+
+      .workflow-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .workflow-step {
+        min-height: auto;
+      }
+
+      .workflow-step+.workflow-step {
+        border-top: 1px solid var(--line);
+        border-left: 0;
+      }
+
+      .step-number {
+        margin-bottom: 2rem;
+      }
+
+      .step-connector {
+        display: none;
+      }
+
+      .studio-view {
+        min-height: 0;
+      }
+
+      .studio-media {
+        min-height: 300px;
+      }
+
+      .feature-card,
+      .feature-card.wide {
+        grid-column: 1 / -1;
+      }
+
+      .cta-panel {
+        grid-template-columns: 1fr;
+      }
+
+      .footer-inner {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .container {
+        width: min(var(--max), calc(100% - 1.5rem));
+      }
+
+      .nav-actions>.btn {
+        display: none;
+      }
+
+      .hero-actions {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .hero-actions .btn {
+        width: 100%;
+      }
+
+      .hero-stage {
+        width: 100%;
+      }
+
+      .yaml-card {
+        position: relative;
+        right: auto;
+        bottom: auto;
+        width: calc(100% - 1rem);
+        margin: -1.4rem auto 0;
+      }
+
+      .window-title {
+        display: none;
+      }
+
+      .section {
+        padding: 4.5rem 0;
+      }
+
+      .studio-copy,
+      .feature-card {
+        padding: 1.5rem;
+      }
+
+      .footer-links {
+        flex-wrap: wrap;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html {
+        scroll-behavior: auto;
+      }
+
+      *,
+      *::before,
+      *::after {
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 1ms !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <nav class="site-nav" aria-label="Primary navigation">
+    <div class="container nav-inner">
+      <a class="brand-lockup" href="#top" aria-label="IPCraft home">
+        <img src="images/ipcraft-logo.svg" alt="" width="38" height="38" />
+        <span>IPCraft</span>
+        <small>for VS Code</small>
+      </a>
+      <div class="nav-actions">
+        <div class="nav-links">
+          <a href="#workflow">Workflow</a>
+          <a href="#studio">Editors</a>
+          <a href="#capabilities">Capabilities</a>
+          <a href="https://github.com/bleviet/ipcraft-vscode/blob/main/README.md">Docs</a>
+        </div>
+        <a class="btn btn-secondary"
+          href="https://marketplace.visualstudio.com/items?itemName=bleviet.ipcraft-vscode">Get IPCraft</a>
+        <button class="theme-toggle" id="themeToggle" type="button" aria-label="Switch to light theme"
+          aria-pressed="false">
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round">
+            <circle cx="12" cy="12" r="4"></circle>
+            <path
+              d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41">
+            </path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <main id="main">
+    <section class="hero" id="top">
+      <div class="container hero-grid">
+        <div class="hero-copy">
+          <span class="section-label">FPGA IP workspace</span>
+          <h1>Design FPGA IP cores <span class="grad-text">directly in VS Code.</span></h1>
+          <p>
+            Design IP cores and register maps visually, keep readable YAML as the source of truth,
+            then generate and build production-ready RTL without leaving VS Code.
+          </p>
+          <div class="hero-actions">
+            <a class="btn btn-primary"
+              href="https://marketplace.visualstudio.com/items?itemName=bleviet.ipcraft-vscode">Install for VS Code</a>
+            <a class="btn btn-secondary"
+              href="https://github.com/bleviet/ipcraft-vscode/blob/main/docs/getting-started/quickstart.md">Read the
+              quick start</a>
+          </div>
+          <div class="proof-row" aria-label="Supported workflows">
+            <span>VHDL</span>
+            <span>SystemVerilog</span>
+            <span>Vivado</span>
+            <span>Quartus</span>
+          </div>
+        </div>
+
+        <div class="hero-stage" aria-label="IPCraft IP Core editor preview">
+          <div class="signal-line" aria-hidden="true"></div>
+          <div class="window hero-window">
+            <div class="window-bar">
+              <span class="window-dot"></span><span class="window-dot"></span><span class="window-dot"></span>
+              <span class="window-title">IPCraft — IP Core Editor</span>
+            </div>
+            <img class="theme-image" src="images/ipcore-editor-dark.png" data-dark="images/ipcore-editor-dark.png"
+              data-light="images/ipcore-editor-light.png" alt="IP Core visual canvas with ports and bus interfaces" />
+          </div>
+          <div class="yaml-card" aria-label="Example IPCraft IP Core YAML">
+            <span class="code-key">busInterfaces:</span><br />
+            &nbsp;&nbsp;- <span class="code-key">name:</span> <span class="code-value">s_axi</span><br />
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="code-key">busType:</span>
+            <span class="code-value">AXI4-Lite</span><br />
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="code-key">mode:</span>
+            <span class="code-value">slave</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section workflow" id="workflow">
+      <div class="container">
+        <div class="section-head reveal">
+          <div>
+            <span class="section-label">Development workflow</span>
+            <h2>From specification to implementation.</h2>
+          </div>
+          <p>
+            IPCraft connects specification, implementation, and vendor tooling. A structural
+            change propagates to generated HDL, testbenches, documentation, and build projects.
+          </p>
+        </div>
+        <div class="workflow-grid reveal">
+          <article class="workflow-step">
+            <span class="step-number">01</span>
+            <span class="step-connector" aria-hidden="true">→</span>
+            <div class="step-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M12 20h9"></path>
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
+              </svg>
+            </div>
+            <h3>Describe</h3>
+            <p>
+              Model ports, interfaces, address blocks, registers, and fields in focused visual
+              editors backed by reviewable YAML.
+            </p>
+          </article>
+          <article class="workflow-step">
+            <span class="step-number">02</span>
+            <span class="step-connector" aria-hidden="true">→</span>
+            <div class="step-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <rect x="6" y="6" width="12" height="12" rx="2"></rect>
+                <rect x="10" y="10" width="4" height="4"></rect>
+                <path d="M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3"></path>
+              </svg>
+            </div>
+            <h3>Generate</h3>
+            <p>
+              Scaffold VHDL or SystemVerilog, bus wrappers, register files, cocotb tests, docs,
+              and vendor project files.
+            </p>
+          </article>
+          <article class="workflow-step">
+            <span class="step-number">03</span>
+            <div class="step-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M12 22s7-3.5 7-10V5l-7-3-7 3v7c0 6.5 7 10 7 10Z"></path>
+                <path d="m9 12 2 2 4-4"></path>
+              </svg>
+            </div>
+            <h3>Verify and build</h3>
+            <p>
+              Check HDL consistency, inspect captured data, run simulation, and launch headless
+              Vivado or Quartus builds from VS Code.
+            </p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="studio">
+      <div class="container">
+        <div class="section-head reveal">
+          <div>
+            <span class="section-label">Visual editors</span>
+            <h2>A dedicated editor for each part of the specification.</h2>
+          </div>
+          <p>
+            IPCraft provides separate editors for topology, register layout, and captured data,
+            all backed by the same specification.
+          </p>
+        </div>
+
+        <div class="studio-shell reveal">
+          <div class="studio-view">
+            <div class="studio-media">
+              <img class="theme-image" src="images/ipcore-editor-dark.png" data-dark="images/ipcore-editor-dark.png"
+                data-light="images/ipcore-editor-light.png" alt="IP Core visual canvas with ports and bus interfaces" />
+            </div>
+            <div class="studio-copy">
+              <div>
+                <span class="section-label">Architecture</span>
+                <h3>Design IP core topology on a visual canvas.</h3>
+                <p>
+                  Place clocks, resets, ports, bus interfaces, and generics while the inspector
+                  keeps every property close at hand.
+                </p>
+              </div>
+              <a href="https://github.com/bleviet/ipcraft-vscode/blob/main/docs/reference/ip-core-editor.md">Explore the
+                IP Core editor →</a>
+            </div>
+          </div>
+          <div class="studio-view">
+            <div class="studio-media">
+              <img class="theme-image" src="images/memorymap-editor-dark.png"
+                data-dark="images/memorymap-editor-dark.png" data-light="images/memorymap-editor-light.png"
+                alt="Memory map editor with register and bit-field tables" />
+            </div>
+            <div class="studio-copy">
+              <div>
+                <span class="section-label">Register design</span>
+                <h3>Define registers and bit fields visually.</h3>
+                <p>
+                  Edit blocks, registers, and bit fields in keyboard-friendly tables with a visual
+                  bit layout that stays synchronized with YAML.
+                </p>
+              </div>
+              <a href="https://github.com/bleviet/ipcraft-vscode/blob/main/docs/tutorials/memory-mapped-registers.md">Learn
+                memory-mapped registers →</a>
+            </div>
+          </div>
+          <div class="studio-view">
+            <div class="studio-media">
+              <img class="theme-image" src="images/data-inspector-workspace-dark.png"
+                data-dark="images/data-inspector-workspace-dark.png"
+                data-light="images/data-inspector-workspace-light.png"
+                alt="Data Inspector visual workspace with captured hardware values" />
+            </div>
+            <div class="studio-copy">
+              <div>
+                <span class="section-label">Hardware data</span>
+                <h3>Inspect captured data against register definitions.</h3>
+                <p>
+                  Map CSV captures and literals onto register definitions, then decode, combine,
+                  and inspect values in a visual workspace.
+                </p>
+              </div>
+              <a href="https://github.com/bleviet/ipcraft-vscode/blob/main/docs/how-to/use-data-inspector.md">Explore
+                the Data Inspector →</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="capabilities">
+      <div class="container">
+        <div class="section-head reveal">
+          <div>
+            <span class="section-label">Capabilities</span>
+            <h2>Support for the full FPGA project workflow.</h2>
+          </div>
+          <p>
+            IPCraft automates the repetitive work between formats and tools, so you can focus on
+            design decisions.
+          </p>
+        </div>
+
+        <div class="bento-grid">
+          <article class="feature-card wide reveal">
+            <div class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6zM10 7h4M7 10v4M17 10v4M10 17h4"></path>
+              </svg>
+            </div>
+            <h3>Vendor project generation</h3>
+            <p>
+              Generate complete RTL projects with bus wrappers, constraints, packaging metadata,
+              testbenches, and scripts for your chosen toolchain.
+            </p>
+            <div class="vendor-strip" aria-label="Supported formats and tools">
+              <span class="chip">AXI4-Lite</span><span class="chip">Avalon-MM</span><span
+                class="chip">Vivado</span><span class="chip">Quartus</span><span class="chip">cocotb</span>
+            </div>
+          </article>
+          <article class="feature-card reveal">
+            <div class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 6h16M4 12h10M4 18h7"></path>
+                <path d="m16 16 2 2 4-5"></path>
+              </svg>
+            </div>
+            <h3>Consistency checks</h3>
+            <p>
+              Cross-check the specification, top-level HDL, and vendor artifacts to catch
+              inconsistencies before integration.
+            </p>
+          </article>
+          <article class="feature-card reveal">
+            <div class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 19V5M4 19h16"></path>
+                <path d="m7 15 3-4 3 2 4-6"></path>
+              </svg>
+            </div>
+            <h3>Data Inspector</h3>
+            <p>
+              Decode literals and captured CSV data against real register definitions, then
+              transform signals visually.
+            </p>
+          </article>
+          <article class="feature-card wide reveal">
+            <div class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M6 3h12v4H6zM4 17h16v4H4zM8 7v4M16 7v4M8 11h8M12 11v6"></path>
+              </svg>
+            </div>
+            <h3>Import existing designs</h3>
+            <p>
+              Reverse-engineer VHDL entities, Platform Designer components, and Vivado IP-XACT
+              metadata into an IPCraft specification instead of beginning from a blank file.
+            </p>
+            <div class="vendor-strip">
+              <span class="chip">VHDL entity</span><span class="chip">_hw.tcl</span><span
+                class="chip">component.xml</span>
+            </div>
+          </article>
+          <article class="feature-card half reveal">
+            <div class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2 2 7l10 5 10-5-10-5Z"></path>
+                <path d="m2 17 10 5 10-5"></path>
+                <path d="m2 12 10 5 10-5"></path>
+              </svg>
+            </div>
+            <h3>Bring your own templates</h3>
+            <p>
+              Generation is not locked to IPCraft's built-in HDL templates. A scaffold pack is a
+              plain directory of Nunjucks templates, referenced from the IP Core spec, that
+              overrides any built-in template by file name — replace one file or the entire set.
+            </p>
+            <div class="vendor-strip" aria-label="Scaffold pack mechanism">
+              <span class="chip">scaffold_pack</span><span class="chip">Nunjucks .j2</span><span class="chip">Template
+                overrides</span>
+            </div>
+            <a class="feature-link"
+              href="https://github.com/bleviet/ipcraft-vscode/blob/main/docs/how-to/scaffold-packs.md">Read the scaffold
+              packs guide →</a>
+          </article>
+          <article class="feature-card half reveal">
+            <div class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M7 4h10l3 3v13H4V4z"></path>
+                <path d="M8 10h8M8 14h8M8 18h5"></path>
+              </svg>
+            </div>
+            <h3>Readable, version-controlled specification</h3>
+            <p>
+              Keep compact, versionable YAML at the center while visual edits preserve comments
+              and numeric formatting.
+            </p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <div class="cta-panel reveal">
+          <div>
+            <span class="section-label">Next steps</span>
+            <h2>Get started with IPCraft.</h2>
+            <p>
+              Install IPCraft, create an IP Core with a register map, and generate a working
+              project from your first interface.
+            </p>
+          </div>
+          <div class="hero-actions">
+            <a class="btn btn-primary"
+              href="https://marketplace.visualstudio.com/items?itemName=bleviet.ipcraft-vscode">Install IPCraft</a>
+            <a class="btn btn-secondary" href="https://github.com/bleviet/ipcraft-vscode">View on GitHub</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div>
+        <a class="brand-lockup" href="#top"><img src="images/ipcraft-logo.svg" alt="" width="38"
+            height="38" /><span>IPCraft</span></a>
+        <p>Visual FPGA IP design for VS Code. Open source under the MIT license.</p>
+      </div>
+      <div class="footer-links">
+        <a href="https://github.com/bleviet/ipcraft-vscode/blob/main/README.md">Documentation</a>
+        <a href="https://github.com/bleviet/ipcraft-vscode/blob/main/docs/reference/commands.md">Commands</a>
+        <a href="https://github.com/bleviet/ipcraft-vscode/issues">Issues</a>
+        <a href="https://bahonavi.de/">by bahonavi</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    const root = document.documentElement;
+    const themeToggle = document.getElementById('themeToggle');
+    const themeMeta = document.querySelector('meta[name="theme-color"]');
+    const storedTheme = localStorage.getItem('ipcraft-theme');
+    const initialTheme = storedTheme === 'light' || storedTheme === 'dark' ? storedTheme : 'dark';
+
+    function applyTheme(theme) {
+      root.dataset.theme = theme;
+      localStorage.setItem('ipcraft-theme', theme);
+      const isLight = theme === 'light';
+      themeToggle.setAttribute('aria-pressed', String(isLight));
+      themeToggle.setAttribute('aria-label', `Switch to ${isLight ? 'dark' : 'light'} theme`);
+      themeMeta.setAttribute('content', isLight ? '#e8ecf5' : '#050811');
+      document.querySelectorAll('.theme-image').forEach((image) => {
+        image.src = image.dataset[theme];
+      });
+    }
+
+    applyTheme(initialTheme);
+    themeToggle.addEventListener('click', () =>
+      applyTheme(root.dataset.theme === 'dark' ? 'light' : 'dark')
+    );
+  </script>
+</body>
+
+</html>
