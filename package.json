@@ -1483,6 +1483,7 @@
     "test:unit:coverage": "jest --coverage --config config/jest.config.js",
     "test:e2e": "node ./out/test/e2e/runTests.js",
     "test:browser": "playwright test --config config/playwright.config.ts",
+    "predocs:screenshots": "webpack --config config/webpack.config.js --config-name webview",
     "docs:screenshots": "playwright test --config config/playwright.docs.ts",
     "test:integration": "jest --config config/jest.integration.js",
     "test:integration:hdl": "jest --config config/jest.integration.js --testPathPatterns=hdl",

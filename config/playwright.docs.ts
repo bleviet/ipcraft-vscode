@@ -11,13 +11,12 @@ export default defineConfig({
   reporter: [['list']],
   use: {
     headless: true,
-    deviceScaleFactor: 2,
   },
   outputDir: '../test-results/docs-screenshots',
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: { ...devices['Desktop Chrome'], deviceScaleFactor: 2 },
     },
   ],
 });

@@ -126,13 +126,22 @@ To add another installed theme as a screenshot option: repeat step 2 against tha
 
 ```ts
 testDir: '../scripts/docs-screenshots',
-use: { deviceScaleFactor: 2, headless: true },   // 2x for crisp docs images
+use: { headless: true },
+projects: [{
+  name: 'chromium',
+  use: { ...devices['Desktop Chrome'], deviceScaleFactor: 2 },
+}],
 outputDir: '../test-results/docs-screenshots',
 ```
 
-`package.json` gains `"docs:screenshots": "playwright test --config config/playwright.docs.ts"`.
+`package.json` runs the webview webpack build in the `predocs:screenshots`
+lifecycle hook before Playwright. This ensures the ignored `dist/webview.*`
+and `dist/ipcore.*` bundles always reflect the current source when screenshots
+are generated.
 
-`dist/` does not exist in a clean tree and `test:browser` does not build it. Run `npm run compile` first, or `webpack --config config/webpack.config.js --config-name webview` to skip the extension bundle and avoid needing the `ipcraft-spec` submodule.
+`npm run docs:screenshots` therefore works from a clean tree without a separate
+compile step. It builds only the webview webpack configuration, avoiding the
+extension bundle and its `ipcraft-spec` submodule dependency.
 
 ## Wiring images into docs
 
@@ -149,10 +158,9 @@ At 2x scale these PNGs are large -- the existing hand-captured ones are around 0
 
 ## Verification
 
-1. `npm run compile` -- confirm `dist/webview.{js,css}` and `dist/ipcore.{js,css}` exist.
-2. `npm run docs:screenshots` -- expect 10 PNGs (5 shots x 2 themes) in `docs/images/`.
-3. Compare `memorymap-editor-dark.png` against a real VS Code editor under the same theme. Colors, fonts and control chrome should match. Large transparent or black areas, or invisible text, mean a theme variable is missing.
-4. Confirm no image shows `Loading memory map...`.
-5. `pip install -r docs/requirements.txt && mkdocs serve` -- check images render and that the site's light/dark switch swaps them.
-6. `npm run test:browser` -- must still pass unchanged, proving the docs config did not leak into the test run.
-7. Deliberately break one shot's `setup` selector and confirm the run fails rather than emitting a wrong image.
+1. `npm run docs:screenshots` -- build the current webview source and expect 10 PNGs (5 shots x 2 themes) in `docs/images/`.
+2. Compare `memorymap-editor-dark.png` against a real VS Code editor under the same theme. Colors, fonts and control chrome should match. Large transparent or black areas, or invisible text, mean a theme variable is missing.
+3. Confirm no image shows `Loading memory map...`.
+4. `pip install -r docs/requirements.txt && mkdocs serve` -- check images render and that the site's light/dark switch swaps them.
+5. `npm run test:browser` -- must still pass unchanged, proving the docs config did not leak into the test run.
+6. Deliberately break one shot's `setup` selector and confirm the run fails rather than emitting a wrong image.
