@@ -79,6 +79,16 @@ test.describe('Data Inspector transform canvas', () => {
     await expect(page.getByLabel('INPUT_3 value')).toBeVisible();
   });
 
+  test('keeps an unconnected operator when an input is added', async ({ page }) => {
+    await page.getByRole('button', { name: 'Add NOT draft' }).click();
+    await expect(page.locator('.di-flow-step.is-draft')).toHaveCount(1);
+
+    await page.getByRole('button', { name: 'Add source' }).click();
+
+    await expect(page.locator('.di-flow-source')).toHaveCount(3);
+    await expect(page.locator('.di-flow-step.is-draft')).toHaveCount(1);
+  });
+
   test('deletes selected components from the canvas toolbar', async ({ page }) => {
     const deleteButton = page.getByRole('button', { name: 'Delete selected components' });
     await expect(deleteButton).toBeDisabled();

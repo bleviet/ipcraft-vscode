@@ -123,9 +123,13 @@ function TransformCanvasInner({
 
   useEffect(() => {
     setWorkingRecipe(recipe);
+    setMessage('');
+  }, [recipe]);
+
+  useEffect(() => {
     setDrafts([]);
     setMessage('');
-  }, [recipe, resetToken]);
+  }, [resetToken]);
 
   const evaluation = useMemo(
     () => evaluateRecipe(workingRecipe, samples),
