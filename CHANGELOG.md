@@ -4,6 +4,11 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [0.9.2] - 2026-07-19
+
+### Changed
+- **Data Inspector internals decomposed**: the Data Inspector webview's monolithic app component was split into focused hooks (value input/literal parsing, capture import, field panel state, host sync, recipe autosave) and presentational components (value composer, capture panel, field panel), with direct unit test coverage added for each extracted hook, including the host-sync revision protocol. No user-visible behavior change. ([#112](https://github.com/bleviet/ipcraft-vscode/issues/112))
+
 ## [0.9.0] - 2026-07-17
 
 ### Added
