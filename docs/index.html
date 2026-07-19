@@ -374,7 +374,13 @@
     .hero h1 {
       max-width: 12ch;
       margin-bottom: 1.5rem;
-      font-size: clamp(3.4rem, 6.8vw, 6.7rem);
+      /* .container caps out at 1140px (viewport ~1180px+), but this clamp's old
+         6.7rem ceiling wasn't reached until ~1576px viewport -- so between 1180
+         and 1576px the font kept growing against a column that had already
+         stopped, wrapping to an extra line on larger screens. Capping at the
+         size this clamp already produces at 1440px (a verified-good wrap)
+         holds it flat from there instead of continuing to grow. */
+      font-size: clamp(3.4rem, 6.8vw, 6.12rem);
       font-weight: 700;
       letter-spacing: -0.055em;
     }
@@ -562,7 +568,11 @@
 
     .section-head h2 {
       margin-bottom: 0;
-      font-size: clamp(2.6rem, 5vw, 4.8rem);
+      /* Same root cause as .hero h1 above: the old 4.8rem ceiling wasn't reached
+         until ~1536px viewport, well past where .container itself stops growing
+         (~1180px), so the Capabilities headline kept wrapping to an extra line
+         on larger screens. Capped at the 1440px value to hold flat beyond it. */
+      font-size: clamp(2.6rem, 5vw, 4.5rem);
       text-wrap: balance;
     }
 
