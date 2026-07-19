@@ -101,12 +101,24 @@ describe('DataInspectorApp', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Decode INPUT' }));
 
     fireEvent.click(screen.getByRole('button', { name: 'Copy value' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Copy original value' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Copy original entered value' }));
     expect(writeText).toHaveBeenNthCalledWith(1, '0x00012000');
     expect(writeText).toHaveBeenNthCalledWith(2, "32'h0001_2000");
     expect(screen.getByLabelText('Displayed value status')).not.toContainElement(
       screen.getByRole('button', { name: 'Copy value' })
     );
+  });
+
+  it('retains an original entered value for a non-primary input', () => {
+    render(<DataInspectorApp />);
+    fireEvent.click(screen.getByRole('button', { name: 'Add source' }));
+    fireEvent.change(screen.getByLabelText('INPUT_2 value'), {
+      target: { value: "32'h0000_00FF" },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Decode INPUT_2' }));
+
+    expect(screen.getByText('Original entered value')).toBeInTheDocument();
+    expect(screen.getByText("32'h0000_00FF")).toBeInTheDocument();
   });
 
   it('creates a manual field and links the decoded row with the ribbon segment', () => {

@@ -537,7 +537,6 @@ export function DataInspectorApp() {
   const [draft, setDraft] = useState('0');
   const [widthDraft, setWidthDraft] = useState('32');
   const [vector, setVector] = useState<BitVector | null>(DEFAULT_VECTOR);
-  const [originalText, setOriginalText] = useState('0');
   const [valueRepresentation, setValueRepresentation] = useState<ValueRepresentation>('hex');
   const [error, setError] = useState('');
   const [warnings, setWarnings] = useState<string[]>([]);
@@ -561,6 +560,9 @@ export function DataInspectorApp() {
   const [fieldSourceIds, setFieldSourceIds] = useState<Record<string, string>>({});
   const [samples, setSamples] = useState<Record<string, BitVector>>({ input: DEFAULT_VECTOR });
   const [sourceDrafts, setSourceDrafts] = useState<Record<string, string>>({ input: '0' });
+  const [sourceOriginalTexts, setSourceOriginalTexts] = useState<Record<string, string>>({
+    input: '0',
+  });
   const [vcdCapture, setVcdCapture] = useState<VcdCapture | null>(null);
   const [vcdSignalNames, setVcdSignalNames] = useState<string[]>([]);
   const [vcdSelection, setVcdSelection] = useState<VcdSelection | null>(null);
@@ -607,9 +609,9 @@ export function DataInspectorApp() {
           const initialRecipeVector = BitVector.fromBigInt(BigInt(0), firstSource.width);
           setDraft('0');
           setVector(initialRecipeVector);
-          setOriginalText('0');
           setSamples({ [firstSource.id]: initialRecipeVector });
           setSourceDrafts({ [firstSource.id]: '0' });
+          setSourceOriginalTexts({ [firstSource.id]: '0' });
           recipeInitializedRef.current = true;
         }
         setRecipeBase(event.data.recipe);
@@ -641,9 +643,9 @@ export function DataInspectorApp() {
         setDraft('0');
         setWidthDraft(String(layout.width));
         setVector(initialLayoutVector);
-        setOriginalText('0');
         setSamples({ [sourceId]: initialLayoutVector });
         setSourceDrafts({ [sourceId]: '0' });
+        setSourceOriginalTexts({ [sourceId]: '0' });
         setFields(layout.fields.map((field) => ({ ...field })));
         setFieldSourceIds(Object.fromEntries(layout.fields.map((field) => [field.id, sourceId])));
         setFieldProvenance(
@@ -759,7 +761,7 @@ export function DataInspectorApp() {
       const sourceId = currentRecipe.sources[0]?.id ?? 'input';
       setSamples((current) => ({ ...current, [sourceId]: parsed.vector }));
       setSourceDrafts((current) => ({ ...current, [sourceId]: normalizedText }));
-      setOriginalText(parsed.originalText);
+      setSourceOriginalTexts((current) => ({ ...current, [sourceId]: parsed.originalText }));
       setWarnings(parsed.warnings);
       setError('');
       setMobileTab('bits');
@@ -870,6 +872,11 @@ export function DataInspectorApp() {
         )
       );
       setSourceDrafts((current) =>
+        Object.fromEntries(
+          Object.entries(current).filter(([sourceId]) => remainingSourceIds.has(sourceId))
+        )
+      );
+      setSourceOriginalTexts((current) =>
         Object.fromEntries(
           Object.entries(current).filter(([sourceId]) => remainingSourceIds.has(sourceId))
         )
@@ -1067,6 +1074,11 @@ export function DataInspectorApp() {
       delete next[selectedSource.id];
       return next;
     });
+    setSourceOriginalTexts((current) => {
+      const next = { ...current };
+      delete next[selectedSource.id];
+      return next;
+    });
     setSelectedNodeId(currentRecipe.sources[0].id);
     setInspectedValueId(currentRecipe.sources[0].id);
     setError('');
@@ -1249,7 +1261,7 @@ export function DataInspectorApp() {
                 setWidthDraft('');
                 setVector(null);
                 setSamples({});
-                setOriginalText('');
+                setSourceOriginalTexts({});
                 setError('');
                 setWarnings([]);
               }}
@@ -1611,10 +1623,13 @@ export function DataInspectorApp() {
                                   ...current,
                                   [selectedSource.id]: normalizedText,
                                 }));
+                                setSourceOriginalTexts((current) => ({
+                                  ...current,
+                                  [selectedSource.id]: parsed.originalText,
+                                }));
                                 if (selectedSourceIndex === 0) {
                                   setVector(parsed.vector);
                                   setDraft(normalizedText);
-                                  setOriginalText(sourceDrafts[selectedSource.id] ?? '');
                                   setWarnings(parsed.warnings);
                                 }
                                 setError('');
@@ -1638,11 +1653,14 @@ export function DataInspectorApp() {
                           value={formatValue(activeSourceVector, valueRepresentation)}
                         />
                       )}
-                      {selectedSourceIndex === 0 &&
-                        originalText &&
+                      {sourceOriginalTexts[selectedSource.id] &&
                         activeSourceVector &&
-                        originalText !== formatValue(activeSourceVector, valueRepresentation) && (
-                          <CopyableValue label="Original value" value={originalText} />
+                        sourceOriginalTexts[selectedSource.id] !==
+                          formatValue(activeSourceVector, valueRepresentation) && (
+                          <CopyableValue
+                            label="Original entered value"
+                            value={sourceOriginalTexts[selectedSource.id]}
+                          />
                         )}
                       <button
                         className="di-danger-button"
