@@ -1681,6 +1681,24 @@ label {
 .di-canvas-toolbar .di-canvas-delete:not(:disabled):hover {
   background: color-mix(in srgb, var(--di-error) 12%, transparent);
 }
+.di-button-tooltip {
+  position: fixed;
+  z-index: 1000;
+  max-width: 240px;
+  transform: translateX(-50%);
+  padding: 5px 8px;
+  border: 1px solid var(--di-line);
+  border-radius: 5px;
+  color: var(--di-text);
+  background: color-mix(in srgb, var(--di-card) 96%, var(--di-bg));
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--di-bg) 65%, transparent);
+  font: 10px/1.35 var(--di-font);
+  pointer-events: none;
+  white-space: normal;
+}
+.di-button-tooltip.is-above {
+  transform: translate(-50%, -100%);
+}
 .di-flow-node {
   width: 190px;
   overflow: visible;

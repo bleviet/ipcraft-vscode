@@ -49,6 +49,7 @@ interface TransformCanvasProps {
   valueRepresentation: ValueRepresentation;
   onValueRepresentationChange: (representation: ValueRepresentation) => void;
   resetToken?: string;
+  preserveViewport: boolean;
   onRecipeChange: (recipe: IPCraftDataInspectorRecipe) => void;
   onInspectValue: (nodeId: string, kind: 'source' | 'step') => void;
   onDeleteNodes: (nodeIds: string[]) => string | undefined;
@@ -110,6 +111,7 @@ function TransformCanvasInner({
   valueRepresentation,
   onValueRepresentationChange,
   resetToken,
+  preserveViewport,
   onRecipeChange,
   onInspectValue,
   onDeleteNodes,
@@ -118,6 +120,7 @@ function TransformCanvasInner({
   const { fitView, screenToFlowPosition, zoomIn, zoomOut } = useReactFlow();
   const nodesInitialized = useNodesInitialized();
   const fittedGraphRef = useRef('');
+  const preserveViewportRef = useRef(false);
   const handledCommandRef = useRef(0);
   const [workingRecipe, setWorkingRecipe] = useState(recipe);
   const [drafts, setDrafts] = useState<DraftNode[]>([]);
@@ -260,6 +263,10 @@ function TransformCanvasInner({
       return;
     }
     fittedGraphRef.current = graphSignature;
+    if (preserveViewportRef.current) {
+      preserveViewportRef.current = false;
+      return;
+    }
     window.requestAnimationFrame(() => void fitView({ padding: 0.16, duration: 0 }));
   }, [fitView, graphSignature, nodesInitialized]);
 
@@ -299,6 +306,9 @@ function TransformCanvasInner({
         workingRecipe.view.canvas?.nodes
       ).map((position) => (position.id === id ? { id, ...nextDraft.position } : position));
       candidate = { ...candidate, view: { ...candidate.view, canvas: { nodes: positions } } };
+      if (preserveViewport) {
+        preserveViewportRef.current = true;
+      }
       saveCandidate(candidate);
       setDrafts((current) => current.filter((candidateDraft) => candidateDraft.id !== draft.id));
     },
@@ -390,12 +400,18 @@ function TransformCanvasInner({
 
   const selectedCount = nodes.filter((node) => node.selected).length;
 
-  const addDraftAt = useCallback((type: RecipeStepType, position: { x: number; y: number }) => {
-    setDrafts((current) => [
-      ...current,
-      { id: `draft-${Date.now()}-${current.length}`, type, position },
-    ]);
-  }, []);
+  const addDraftAt = useCallback(
+    (type: RecipeStepType, position: { x: number; y: number }) => {
+      if (preserveViewport) {
+        preserveViewportRef.current = true;
+      }
+      setDrafts((current) => [
+        ...current,
+        { id: `draft-${Date.now()}-${current.length}`, type, position },
+      ]);
+    },
+    [preserveViewport]
+  );
 
   const addSourceAt = useCallback(
     (position: { x: number; y: number }) => {
@@ -417,11 +433,14 @@ function TransformCanvasInner({
         sources: [...workingRecipe.sources, { id, name: `INPUT_${index}`, width: 32 }],
         view: { ...workingRecipe.view, canvas: { nodes: positions } },
       };
+      if (preserveViewport) {
+        preserveViewportRef.current = true;
+      }
       if (saveCandidate(candidate)) {
         onInspectValue(id, 'source');
       }
     },
-    [onInspectValue, saveCandidate, workingRecipe]
+    [onInspectValue, preserveViewport, saveCandidate, workingRecipe]
   );
 
   useEffect(() => {
@@ -440,6 +459,7 @@ function TransformCanvasInner({
   return (
     <div
       className="di-canvas-shell"
+      onContextMenu={(event) => event.preventDefault()}
       onDragOver={(event) => {
         event.preventDefault();
         event.dataTransfer.dropEffect = 'copy';
@@ -474,7 +494,7 @@ function TransformCanvasInner({
               aria-pressed={valueRepresentation === representation}
               key={representation}
               onClick={() => onValueRepresentationChange(representation)}
-              title={`Show values as ${representation}`}
+              data-tooltip={`Show values as ${representation}`}
               type="button"
             >
               {representation[0].toUpperCase() + representation.slice(1)}
@@ -486,23 +506,27 @@ function TransformCanvasInner({
           className="di-canvas-delete"
           disabled={selectedCount === 0}
           onClick={deleteSelected}
-          title="Delete selected components (Delete)"
+          data-tooltip="Delete selected components (Delete)"
         >
           <span className="codicon codicon-trash" aria-hidden="true" />
         </button>
-        <button aria-label="Auto-layout" onClick={autoLayout} title="Arrange nodes left to right">
+        <button
+          aria-label="Auto-layout"
+          data-tooltip="Arrange nodes left to right"
+          onClick={autoLayout}
+        >
           <span className="codicon codicon-layout" aria-hidden="true" />
         </button>
-        <button aria-label="Zoom out" onClick={() => void zoomOut()} title="Zoom out">
+        <button aria-label="Zoom out" data-tooltip="Zoom out" onClick={() => void zoomOut()}>
           <span className="codicon codicon-zoom-out" aria-hidden="true" />
         </button>
-        <button aria-label="Zoom in" onClick={() => void zoomIn()} title="Zoom in">
+        <button aria-label="Zoom in" data-tooltip="Zoom in" onClick={() => void zoomIn()}>
           <span className="codicon codicon-zoom-in" aria-hidden="true" />
         </button>
         <button
           aria-label="Fit canvas"
           onClick={() => void fitView({ padding: 0.16, duration: 180 })}
-          title="Fit all components"
+          data-tooltip="Fit all components"
         >
           <span className="codicon codicon-screen-normal" aria-hidden="true" />
         </button>
@@ -510,7 +534,7 @@ function TransformCanvasInner({
           aria-label={showMap ? 'Hide minimap' : 'Show minimap'}
           aria-pressed={showMap}
           onClick={() => setShowMap((current) => !current)}
-          title={showMap ? 'Hide minimap' : 'Show minimap'}
+          data-tooltip={showMap ? 'Hide minimap' : 'Show minimap'}
         >
           <span className="codicon codicon-map" aria-hidden="true" />
         </button>

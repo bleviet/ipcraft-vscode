@@ -38,7 +38,7 @@ export function WorkbenchLibrary({
           className="di-rail-toggle"
           aria-label="Expand Library"
           onClick={onToggleCollapsed}
-          title="Expand Library"
+          data-tooltip="Expand Library"
         >
           <span className="codicon codicon-library" aria-hidden="true" />
         </button>
@@ -57,7 +57,7 @@ export function WorkbenchLibrary({
           className="di-icon-button"
           aria-label="Collapse Library"
           onClick={onToggleCollapsed}
-          title="Collapse Library"
+          data-tooltip="Collapse Library"
         >
           <span className="codicon codicon-layout-sidebar-left-off" aria-hidden="true" />
         </button>
@@ -87,7 +87,7 @@ export function WorkbenchLibrary({
                 key="source"
                 onClick={onAddSource}
                 onDragStart={(event) => beginDrag(event, DATA_INSPECTOR_NODE_MIME, 'source')}
-                title={`Drag ${item.label} onto the transform canvas`}
+                data-tooltip={`Drag ${item.label} onto the transform canvas`}
               >
                 <b aria-hidden="true">{item.symbol}</b>
                 <span>{item.label}</span>
@@ -109,7 +109,7 @@ export function WorkbenchLibrary({
               onDragStart={(event) =>
                 beginDrag(event, DATA_INSPECTOR_OPERATION_MIME, operation.type)
               }
-              title={`Drag ${operation.label} onto the transform canvas`}
+              data-tooltip={`Drag ${operation.label} onto the transform canvas`}
             >
               <b aria-hidden="true">{operation.symbol}</b>
               <span>{operation.label}</span>

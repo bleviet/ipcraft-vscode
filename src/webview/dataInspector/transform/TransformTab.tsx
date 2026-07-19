@@ -13,6 +13,7 @@ interface TransformTabProps {
   onValueRepresentationChange: (representation: ValueRepresentation) => void;
   resetToken?: string;
   onToggleMaximized: () => void;
+  preserveViewport: boolean;
   onRecipeChange: (recipe: IPCraftDataInspectorRecipe) => void;
   onInspectValue: (nodeId: string, kind: 'source' | 'step') => void;
   onDeleteNodes: (nodeIds: string[]) => string | undefined;
@@ -28,6 +29,7 @@ export function TransformTab({
   onValueRepresentationChange,
   resetToken,
   onToggleMaximized,
+  preserveViewport,
   onRecipeChange,
   onInspectValue,
   onDeleteNodes,
@@ -49,7 +51,7 @@ export function TransformTab({
           aria-label={maximized ? 'Restore split view' : 'Maximize transform view'}
           className="di-icon-button"
           onClick={onToggleMaximized}
-          title={maximized ? 'Restore split view' : 'Maximize transform view'}
+          data-tooltip={maximized ? 'Restore split view' : 'Maximize transform view'}
           type="button"
         >
           <span
@@ -64,6 +66,7 @@ export function TransformTab({
         valueRepresentation={valueRepresentation}
         onValueRepresentationChange={onValueRepresentationChange}
         resetToken={resetToken}
+        preserveViewport={preserveViewport}
         onRecipeChange={onRecipeChange}
         onInspectValue={onInspectValue}
         onDeleteNodes={onDeleteNodes}

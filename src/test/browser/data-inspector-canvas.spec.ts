@@ -50,6 +50,24 @@ test.describe('Data Inspector transform canvas', () => {
     await expect(page.getByRole('button', { name: 'Zoom in' })).toBeVisible();
   });
 
+  test('suppresses the native context menu across the Data Inspector', async ({ page }) => {
+    const prevented = await page.locator('.di-shell').evaluate((element) => {
+      const event = new MouseEvent('contextmenu', { bubbles: true, cancelable: true });
+      element.dispatchEvent(event);
+      return event.defaultPrevented;
+    });
+
+    expect(prevented).toBe(true);
+  });
+
+  test('shows reliable canvas button tooltips', async ({ page }) => {
+    await page.getByRole('button', { name: 'Auto-layout' }).hover();
+    await expect(page.getByRole('tooltip')).toHaveText('Arrange nodes left to right');
+
+    await page.getByRole('button', { name: 'Zoom in' }).focus();
+    await expect(page.getByRole('tooltip')).toHaveText('Zoom in');
+  });
+
   test('uses the Library, split center workspace, and contextual Inspector layout', async ({
     page,
   }) => {
@@ -70,6 +88,41 @@ test.describe('Data Inspector transform canvas', () => {
     expect(bits!.y).toBeLessThan(transform!.y);
     expect(bits!.width).toBeGreaterThan(500);
     expect(transform!.height).toBeGreaterThan(bits!.height);
+  });
+
+  test('preserves the maximized transform view when inputs and operators are added', async ({
+    page,
+  }) => {
+    await page.getByRole('button', { name: 'Maximize transform view' }).click();
+    await page.getByRole('button', { name: 'Zoom in' }).click();
+    await page.getByRole('button', { name: 'Zoom in' }).click();
+    const viewport = page.locator('.react-flow__viewport');
+    const before = await viewport.getAttribute('style');
+
+    await page.getByRole('button', { name: 'Add source' }).click();
+    await expect(page.locator('.di-flow-source')).toHaveCount(3);
+    await expect(viewport).toHaveAttribute('style', before!);
+    await expect(page.locator('.di-bits-pane')).toBeHidden();
+
+    await page.getByRole('button', { name: 'Add NOT draft' }).click();
+    await expect(page.locator('.di-flow-step.is-draft')).toHaveCount(1);
+    await expect(viewport).toHaveAttribute('style', before!);
+    await expect(page.locator('.di-bits-pane')).toBeHidden();
+  });
+
+  test('preserves the maximized bits view when inputs and operators are added', async ({
+    page,
+  }) => {
+    await page.getByRole('button', { name: 'Maximize bits view' }).click();
+    await expect(page.locator('.di-transform-pane')).toBeHidden();
+
+    await page.getByRole('button', { name: 'Add source' }).click();
+    await expect(page.locator('.di-flow-source')).toHaveCount(3);
+    await expect(page.locator('.di-transform-pane')).toBeHidden();
+
+    await page.getByRole('button', { name: 'Add NOT draft' }).click();
+    await expect(page.locator('.di-flow-step.is-draft')).toHaveCount(1);
+    await expect(page.locator('.di-transform-pane')).toBeHidden();
   });
 
   test('adds inputs from the Library and opens their Inspector', async ({ page }) => {

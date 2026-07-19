@@ -46,6 +46,7 @@ import {
 import { TransformTab } from './transform/TransformTab';
 import { WorkbenchLibrary } from './WorkbenchLibrary';
 import type { CanvasAddCommand } from './canvas/TransformCanvas';
+import { ButtonTooltip } from './ButtonTooltip';
 
 declare const acquireVsCodeApi:
   | undefined
@@ -355,7 +356,7 @@ export function LaneRibbon({
                     className={laneWidth === value ? 'is-active' : ''}
                     key={value}
                     onClick={() => onLaneWidthChange(value as 8 | 16 | 32 | 64)}
-                    title={`Show ${value} bits per lane`}
+                    data-tooltip={`Show ${value} bits per lane`}
                     type="button"
                   >
                     {value}
@@ -374,7 +375,7 @@ export function LaneRibbon({
                     className={zoom === value ? 'is-active' : ''}
                     key={value}
                     onClick={() => onZoomChange(value)}
-                    title={`Use ${value} zoom`}
+                    data-tooltip={`Use ${value} zoom`}
                     type="button"
                   >
                     {value}
@@ -437,7 +438,7 @@ export function LaneRibbon({
               aria-label={maximized ? 'Restore split view' : 'Maximize bits view'}
               className="di-icon-button di-panel-maximize"
               onClick={onToggleMaximized}
-              title={maximized ? 'Restore split view' : 'Maximize bits view'}
+              data-tooltip={maximized ? 'Restore split view' : 'Maximize bits view'}
               type="button"
             >
               <span
@@ -522,7 +523,7 @@ function CopyableValue({ label, value, representation }: CopyableValueProps) {
         <button
           aria-label={`Copy ${label.toLowerCase()}`}
           onClick={() => void navigator.clipboard.writeText(value)}
-          title={`Copy ${label.toLowerCase()}`}
+          data-tooltip={`Copy ${label.toLowerCase()}`}
           type="button"
         >
           <span className="codicon codicon-copy" aria-hidden="true" />
@@ -1154,12 +1155,12 @@ export function DataInspectorApp() {
 
   const queueCanvasAdd = (kind: CanvasAddCommand['kind'], value: string) => {
     setCanvasAddCommand((current) => ({ id: (current?.id ?? 0) + 1, kind, value }));
-    setCenterMode('both');
     setMobileTab('transform');
   };
 
   return (
-    <main className="di-shell">
+    <main className="di-shell" onContextMenu={(event) => event.preventDefault()}>
+      <ButtonTooltip />
       <header className="di-topbar">
         <div>
           <span className="di-brand">IPCraft</span>
@@ -1439,6 +1440,7 @@ export function DataInspectorApp() {
                 onToggleMaximized={() =>
                   setCenterMode(centerMode === 'transform' ? 'both' : 'transform')
                 }
+                preserveViewport={centerMode === 'transform'}
                 onRecipeChange={setRecipeBase}
                 onInspectValue={inspectCanvasValue}
                 onDeleteNodes={deleteCanvasNodes}
@@ -1483,7 +1485,7 @@ export function DataInspectorApp() {
                 className="di-icon-button"
                 aria-label={inspectorCollapsed ? 'Expand Inspector' : 'Collapse Inspector'}
                 onClick={() => setInspectorCollapsed((current) => !current)}
-                title={inspectorCollapsed ? 'Expand Inspector' : 'Collapse Inspector'}
+                data-tooltip={inspectorCollapsed ? 'Expand Inspector' : 'Collapse Inspector'}
               >
                 <span
                   className={`codicon codicon-${inspectorCollapsed ? 'inspect' : 'layout-sidebar-right-off'}`}
