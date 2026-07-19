@@ -127,6 +127,7 @@ When adding register- or block-level layout operations, extend `LayoutEngine.ts`
 - **Logging:** extension side uses `new Logger('ComponentName')` (`src/utils/Logger.ts`), never `console.log`. Webview may use `console.warn`/`console.error` for error paths.
 - **Styling:** Tailwind v3 utility classes in JSX; theme-aware colors via `var(--vscode-*)` (helpers in `src/webview/shared/colors.ts`).
 - **`vscode` is mocked** via `__mocks__/vscode.ts` (jest maps `^vscode$` to it); use the mock's stubs, don't re-mock per file.
+- **Docs screenshots: light theme only.** `docs/` markdown embeds only the `-light.png` variant of each generated screenshot (see `docs/concepts/docs-screenshots.md`), unsuffixed — no `#only-dark`/`#only-light` pair. Docs get printed, and dark screenshots read poorly on paper. `scripts/docs-screenshots/` still captures both themes; just don't reference the `-dark.png` files from markdown.
 
 ### Tests
 

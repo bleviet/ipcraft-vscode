@@ -145,12 +145,13 @@ extension bundle and its `ipcraft-spec` submodule dependency.
 
 ## Wiring images into docs
 
-MkDocs Material's theme toggle is honoured via suffixes:
+Both themes are still captured (`-dark.png` and `-light.png` per shot), but docs pages embed **only the light PNG**, unsuffixed -- no `#only-dark`/`#only-light` pair and no MkDocs Material theme-toggle switching:
 
 ```md
-![Memory Map editor](../images/memorymap-editor-dark.png#only-dark)
-![Memory Map editor](../images/memorymap-editor-light.png#only-light)
+![Memory Map editor](../images/memorymap-editor-light.png)
 ```
+
+Light was chosen over the dark/light toggle because these docs get printed, and a dark screenshot on paper wastes toner and reads poorly. The `-dark.png` files stay in `docs/images/` (harmless, generated automatically) in case the toggle is reinstated later, but no markdown file should reference them.
 
 `README.md` has no theme toggle and stays dark-only. Its two image links move from `resources/screenshots/` to `docs/images/`, and `resources/screenshots/` is deleted so there is a single generated source of truth. Relative README image paths resolve against the repo on both GitHub and the Marketplace, so this keeps working.
 
@@ -161,6 +162,6 @@ At 2x scale these PNGs are large -- the existing hand-captured ones are around 0
 1. `npm run docs:screenshots` -- build the current webview source and expect 10 PNGs (5 shots x 2 themes) in `docs/images/`.
 2. Compare `memorymap-editor-dark.png` against a real VS Code editor under the same theme. Colors, fonts and control chrome should match. Large transparent or black areas, or invisible text, mean a theme variable is missing.
 3. Confirm no image shows `Loading memory map...`.
-4. `pip install -r docs/requirements.txt && mkdocs serve` -- check images render and that the site's light/dark switch swaps them.
+4. `pip install -r docs/requirements.txt && mkdocs serve` -- check the light-theme images render correctly on the served pages.
 5. `npm run test:browser` -- must still pass unchanged, proving the docs config did not leak into the test run.
 6. Deliberately break one shot's `setup` selector and confirm the run fails rather than emitting a wrong image.
