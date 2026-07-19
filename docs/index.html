@@ -811,12 +811,20 @@
       transition: opacity 400ms ease;
     }
 
+    /* .studio-sticky needs a full 100vh of remaining room in its containing
+       block to stay fully pinned+centered (see its own comment above). At the
+       old 40vh, the first/last steps didn't leave enough lead-in/trailing
+       scroll distance, so the sticky panel was still easing into position (or
+       had already started releasing) by the time each step's own text was
+       naturally centered on screen -- most visible on the last step, where the
+       panel ended up scrolled well above its paired text. Matching each edge
+       step's height to the sticky's own 100vh gives it exactly enough room. */
     .studio-copy-step:first-child {
-      min-height: 40vh;
+      min-height: 100vh;
     }
 
     .studio-copy-step:last-child {
-      min-height: 40vh;
+      min-height: 100vh;
     }
 
     .studio-copy-step.is-active {
