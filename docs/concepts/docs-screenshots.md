@@ -86,13 +86,18 @@ All four tutorial placements are in `docs/tutorials/led-controller-avmm-authorin
 
 ### Capture sequence
 
-The runner reuses the existing harness HTML unmodified -- no duplicate harness code. Per shot:
+The runner reuses the existing harness HTML unmodified on disk -- no duplicate harness code -- but does not load it via a plain `page.goto`. Per shot:
 
-1. Arm a console wait for `VSCODE_MESSAGE:` containing `"ready"`, then `page.goto` the `file://` harness.
-2. Inject the theme with `page.addStyleTag`, plus a stylesheet disabling transitions, animations and the text caret so captures are deterministic.
+1. `page.route` the harness's own `file://` URL and fulfill it with the on-disk HTML plus the theme (and the caret/transition-killing stylesheet) inlined as a `<style>` tag before `</head>`, then `page.goto` that same URL so the route intercepts it. This ordering is load-bearing -- see the callout below.
+2. Arm a console wait for `VSCODE_MESSAGE:` containing `"ready"` before/around the `goto`.
 3. Feed YAML, branching on harness. For IP Core, pass `fileName` and the optional toolbar fields (`hdlLanguage`, `scaffoldPack`, `toolbarTargets`, `allToolchains`) -- `IpCoreApp.tsx` renders toolbar buttons conditionally on these, so omitting them yields a sparser toolbar than a real user sees.
 4. Wait for real content, not just mount: `#root main` **and** the absence of the `Loading memory map...` text. `integration.test.ts` polls on this exact race; a screenshot taken too early captures the loading state.
 5. Run `shot.setup`, then `page.screenshot()` or `page.locator(shot.clip).screenshot()`.
+
+!!! warning "Theme injection must land before the bundle's own `<script>` runs"
+    Text/dropdown inputs are `@vscode/webview-ui-toolkit` custom elements (`<vscode-text-field>`, `<vscode-dropdown>`). Each one reads a `--vscode-*` custom property into its own internal design token (e.g. `--input-background` from `--vscode-input-background`) **once**, the moment it first connects to the DOM -- not as a live `var()` binding. A `page.addStyleTag()` call issued after `page.goto()` (even one that runs before any YAML is rendered) is too late: the app has already mounted, every token has already snapshotted the still-unset variable, and it permanently falls back to the toolkit's own hardcoded default (`#3c3c3c` for `--input-background`) regardless of theme. That default happens to look plausible in a *dark* theme and was easy to miss; in a *light* theme it renders as a dark-gray box no one would mistake for correct.
+
+    `page.addInitScript()` does not fix this either -- content it appends to `document.documentElement` before navigation gets discarded once the real HTML parser starts writing `<head>`/`<body>` for the navigated document. Routing the request and inlining the `<style>` directly into the served HTML is the only ordering that reliably lands before the bundle's `<script>` tag executes.
 
 ### Theming
 

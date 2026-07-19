@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test';
+import fs from 'fs';
 import path from 'path';
 
 export type HarnessKind = 'memorymap' | 'ipcore';
@@ -62,16 +63,35 @@ export async function openHarness(page: Page, opts: OpenOptions): Promise<void> 
     timeout: 15000,
   });
 
-  const harnessPath = `file://${path.join(BROWSER_TEST_DIR, HARNESS_FILE[harness])}`;
+  const harnessFsPath = path.join(BROWSER_TEST_DIR, HARNESS_FILE[harness]);
+  const harnessPath = `file://${harnessFsPath}`;
+
+  // The @vscode/webview-ui-toolkit custom elements (<vscode-text-field> etc.)
+  // read --vscode-* custom properties into their own internal design tokens
+  // (e.g. --input-background) ONCE, when each component first connects --
+  // not as a live var() binding. By the time a post-navigation
+  // page.addStyleTag() call could run, the app has already mounted and every
+  // token has snapshotted the (still unset) variable, permanently falling
+  // back to the toolkit's own hardcoded dark default (--input-background:
+  // #3c3c3c) regardless of theme. Injecting via page.addInitScript() doesn't
+  // fix this either -- content appended to document.documentElement before
+  // navigation gets discarded once the real HTML parser starts writing
+  // <head>/<body> for the navigated document. Routing the request and
+  // inlining the theme <style> directly into the served HTML is the only
+  // ordering that lands before the bundle's own <script> tag runs.
+  const themeCss = fs.readFileSync(path.join(THEME_DIR, `${THEME_FILE[theme]}.css`), 'utf-8');
+  await page.route(harnessPath, async (route) => {
+    const html = fs.readFileSync(harnessFsPath, 'utf-8');
+    const injected = html.replace(
+      '</head>',
+      `<style>${themeCss}</style><style>${STABILIZE_CSS}</style></head>`
+    );
+    await route.fulfill({ body: injected, contentType: 'text/html' });
+  });
+
   await page.goto(harnessPath);
   await page.waitForSelector(ROOT_SELECTOR[harness]);
   await readyPromise;
-
-  // Theme must land before content renders, or the UI paints once with
-  // undefined --vscode-* values (invisible text, transparent panels) and
-  // never repaints just because the variables later exist.
-  await page.addStyleTag({ path: path.join(THEME_DIR, `${THEME_FILE[theme]}.css`) });
-  await page.addStyleTag({ content: STABILIZE_CSS });
 
   if (harness === 'memorymap') {
     // window.__RENDER__ (src/webview/index.tsx) is only wired up once the
