@@ -126,7 +126,7 @@ function TransformCanvasInner({
   const [drafts, setDrafts] = useState<DraftNode[]>([]);
   const [nodes, setNodes] = useState<CanvasNode[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
-  const [showMap, setShowMap] = useState(true);
+  const [showMap, setShowMap] = useState(false);
   const [message, setMessage] = useState('');
 
   useEffect(() => {

@@ -50,6 +50,20 @@ test.describe('Data Inspector transform canvas', () => {
     await expect(page.getByRole('button', { name: 'Zoom in' })).toBeVisible();
   });
 
+  test('keeps the minimap hidden until it is requested', async ({ page }) => {
+    const minimap = page.locator('.react-flow__minimap');
+    const showMinimap = page.getByRole('button', { name: 'Show minimap' });
+
+    await expect(minimap).toHaveCount(0);
+    await expect(showMinimap).toHaveAttribute('aria-pressed', 'false');
+    await showMinimap.click();
+    await expect(minimap).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Hide minimap' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+  });
+
   test('suppresses the native context menu across the Data Inspector', async ({ page }) => {
     const prevented = await page.locator('.di-shell').evaluate((element) => {
       const event = new MouseEvent('contextmenu', { bubbles: true, cancelable: true });
