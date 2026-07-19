@@ -13,6 +13,7 @@ import {
   segmentFieldAcrossLanes,
 } from '../../dataInspector/fieldGeometry';
 import { parseLiteral } from '../../dataInspector/parseLiteral';
+import { formatValue, type ValueRepresentation } from '../../dataInspector/formatValue';
 import type {
   DataInspectorToExtensionMessage,
   DataInspectorToWebviewMessage,
@@ -54,9 +55,9 @@ const vscode = typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : und
 const LANE_HEIGHT = 74;
 const DEFAULT_VECTOR = BitVector.fromBigInt(BigInt(0), 32);
 const VALUE_EXAMPLES = [
-  { label: 'Known hex', literal: "32'hDEAD_BEEF" },
-  { label: 'Unknown states', literal: "16'b0000_XXXX_0011_ZZZZ" },
-  { label: 'VHDL hex', literal: 'x"0123_ABCD"' },
+  { label: 'Known hex', literal: '0xDEAD_BEEF' },
+  { label: 'Unknown states', literal: '0b0000_XXXX_0011_ZZZZ' },
+  { label: 'Decimal', literal: '305419896' },
 ] as const;
 
 function hexDisplayText(value: BitVector): string | null {
@@ -503,11 +504,40 @@ function SourceWidthInput({ width, onChange }: SourceWidthInputProps) {
   );
 }
 
+interface CopyableValueProps {
+  label: string;
+  value: string;
+  representation?: ValueRepresentation;
+}
+
+function CopyableValue({ label, value, representation }: CopyableValueProps) {
+  return (
+    <div className="di-copyable-value">
+      <div className="di-copyable-value__heading">
+        <span>{label}</span>
+        {representation && <small>{representation}</small>}
+      </div>
+      <div className="di-copyable-value__content">
+        <code className={label === 'Value' ? 'di-inspector-value' : undefined}>{value}</code>
+        <button
+          aria-label={`Copy ${label.toLowerCase()}`}
+          onClick={() => void navigator.clipboard.writeText(value)}
+          title={`Copy ${label.toLowerCase()}`}
+          type="button"
+        >
+          <span className="codicon codicon-copy" aria-hidden="true" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function DataInspectorApp() {
   const [draft, setDraft] = useState('0');
   const [widthDraft, setWidthDraft] = useState('32');
   const [vector, setVector] = useState<BitVector | null>(DEFAULT_VECTOR);
   const [originalText, setOriginalText] = useState('0');
+  const [valueRepresentation, setValueRepresentation] = useState<ValueRepresentation>('hex');
   const [error, setError] = useState('');
   const [warnings, setWarnings] = useState<string[]>([]);
   const [fields, setFields] = useState<InspectorField[]>([]);
@@ -722,10 +752,12 @@ export function DataInspectorApp() {
       const parsed = parseLiteral(literal, {
         width: literalWidth === '' ? undefined : Number(literalWidth),
       });
+      const normalizedText = formatValue(parsed.vector, valueRepresentation);
+      setDraft(normalizedText);
       setVector(parsed.vector);
       const sourceId = currentRecipe.sources[0]?.id ?? 'input';
       setSamples((current) => ({ ...current, [sourceId]: parsed.vector }));
-      setSourceDrafts((current) => ({ ...current, [sourceId]: literal }));
+      setSourceDrafts((current) => ({ ...current, [sourceId]: normalizedText }));
       setOriginalText(parsed.originalText);
       setWarnings(parsed.warnings);
       setError('');
@@ -739,6 +771,22 @@ export function DataInspectorApp() {
   };
 
   const parseDraft = () => parseValue(draft);
+
+  const changeValueRepresentation = (representation: ValueRepresentation) => {
+    setValueRepresentation(representation);
+    if (!vector) {
+      return;
+    }
+    setDraft(formatValue(vector, representation));
+    setSourceDrafts((current) =>
+      Object.fromEntries(
+        Object.entries(current).map(([sourceId, sourceText]) => [
+          sourceId,
+          samples[sourceId] ? formatValue(samples[sourceId], representation) : sourceText,
+        ])
+      )
+    );
+  };
 
   const sampleMap = useMemo(() => new Map(Object.entries(samples)), [samples]);
   const evaluation = useMemo(
@@ -1170,7 +1218,7 @@ export function DataInspectorApp() {
               <span>Literal</span>
               <input
                 value={draft}
-                placeholder="64'h0001_2000_0000_3F00"
+                placeholder="0x0001_2000_0000_3F00"
                 spellCheck={false}
                 onChange={(event) => setDraft(event.target.value)}
                 onKeyDown={(event) => {
@@ -1259,18 +1307,6 @@ export function DataInspectorApp() {
               {(displayVector ?? vector).hasUnknown ? 'contains X/Z states' : 'all bits known'}
             </span>
             <span>rightmost digit maps to bit 0</span>
-            <button
-              onClick={() =>
-                void navigator.clipboard.writeText((displayVector ?? vector).toLiteral())
-              }
-            >
-              Copy value
-            </button>
-            {originalText && originalText !== (displayVector ?? vector).toLiteral() && (
-              <button onClick={() => void navigator.clipboard.writeText(originalText)}>
-                Copy original
-              </button>
-            )}
           </div>
           {problemsOpen && (
             <aside className="di-problems-drawer" aria-label="Problems">
@@ -1397,6 +1433,8 @@ export function DataInspectorApp() {
                 maximized={centerMode === 'transform'}
                 recipe={currentRecipe}
                 samples={sampleMap}
+                valueRepresentation={valueRepresentation}
+                onValueRepresentationChange={changeValueRepresentation}
                 resetToken={recipeError}
                 onToggleMaximized={() =>
                   setCenterMode(centerMode === 'transform' ? 'both' : 'transform')
@@ -1536,7 +1574,7 @@ export function DataInspectorApp() {
                             aria-label={
                               selectedSourceIndex === 0 ? 'Literal' : `${selectedSource.name} value`
                             }
-                            placeholder={`${selectedSource.width}'h…`}
+                            placeholder="0x…"
                             value={sourceDrafts[selectedSource.id] ?? ''}
                             onChange={(event) =>
                               setSourceDrafts((current) => ({
@@ -1563,9 +1601,19 @@ export function DataInspectorApp() {
                                   ...current,
                                   [selectedSource.id]: parsed.vector,
                                 }));
+                                const normalizedText = formatValue(
+                                  parsed.vector,
+                                  valueRepresentation
+                                );
+                                setSourceDrafts((current) => ({
+                                  ...current,
+                                  [selectedSource.id]: normalizedText,
+                                }));
                                 if (selectedSourceIndex === 0) {
                                   setVector(parsed.vector);
-                                  setDraft(sourceDrafts[selectedSource.id] ?? '');
+                                  setDraft(normalizedText);
+                                  setOriginalText(sourceDrafts[selectedSource.id] ?? '');
+                                  setWarnings(parsed.warnings);
                                 }
                                 setError('');
                               } catch (sourceError) {
@@ -1582,8 +1630,18 @@ export function DataInspectorApp() {
                         </div>
                       </label>
                       {activeSourceVector && (
-                        <code className="di-inspector-value">{activeSourceVector.toLiteral()}</code>
+                        <CopyableValue
+                          label="Value"
+                          representation={valueRepresentation}
+                          value={formatValue(activeSourceVector, valueRepresentation)}
+                        />
                       )}
+                      {selectedSourceIndex === 0 &&
+                        originalText &&
+                        activeSourceVector &&
+                        originalText !== formatValue(activeSourceVector, valueRepresentation) && (
+                          <CopyableValue label="Original value" value={originalText} />
+                        )}
                       <button
                         className="di-danger-button"
                         disabled={currentRecipe.sources.length === 1}
@@ -1710,9 +1768,18 @@ export function DataInspectorApp() {
                           />
                         </label>
                       )}
-                      <code className="di-inspector-value">
-                        {evaluation.values.get(selectedStep.id)?.value.toLiteral() ?? 'No value'}
-                      </code>
+                      {evaluation.values.get(selectedStep.id)?.value ? (
+                        <CopyableValue
+                          label="Value"
+                          representation={valueRepresentation}
+                          value={formatValue(
+                            evaluation.values.get(selectedStep.id)!.value,
+                            valueRepresentation
+                          )}
+                        />
+                      ) : (
+                        <code className="di-inspector-value">No value</code>
+                      )}
                       <button
                         className="di-danger-button"
                         onClick={() => removeStep(currentRecipe.steps.indexOf(selectedStep))}

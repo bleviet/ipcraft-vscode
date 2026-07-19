@@ -525,7 +525,7 @@ label {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 7px;
 }
-.di-inspector-value {
+.di-properties-panel > .di-inspector-value {
   display: block;
   overflow: hidden;
   padding: 8px;
@@ -536,6 +536,50 @@ label {
   font-size: 10px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.di-copyable-value {
+  display: grid;
+  gap: 4px;
+}
+.di-copyable-value__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--di-muted);
+  font-size: 11px;
+}
+.di-copyable-value__heading small {
+  font-size: 9px;
+  text-transform: capitalize;
+}
+.di-copyable-value__content {
+  display: flex;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--di-line);
+  border-radius: 6px;
+  background: var(--di-surface);
+}
+.di-copyable-value__content code {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  padding: 8px;
+  color: var(--di-accent);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.di-copyable-value__content button {
+  display: grid;
+  width: 30px;
+  min-width: 30px;
+  min-height: 0;
+  place-items: center;
+  border: 0;
+  border-left: 1px solid var(--di-line);
+  border-radius: 0;
+  background: transparent;
 }
 .di-danger-button {
   margin-top: auto;
@@ -1604,6 +1648,17 @@ label {
   border-radius: 8px;
   background: color-mix(in srgb, var(--di-card) 94%, transparent);
   backdrop-filter: blur(8px);
+}
+.di-representation-switch {
+  display: flex;
+  gap: 2px;
+  padding-right: 3px;
+  border-right: 1px solid var(--di-line);
+}
+.di-canvas-toolbar .di-representation-switch button {
+  width: auto;
+  min-width: 0;
+  padding-inline: 7px;
 }
 .di-canvas-toolbar button {
   display: grid;

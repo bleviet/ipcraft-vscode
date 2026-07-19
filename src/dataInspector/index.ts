@@ -4,6 +4,7 @@ export * from './fieldGeometry';
 export * from './evaluateRecipe';
 export * from './fieldLayout';
 export * from './parseLiteral';
+export * from './formatValue';
 export * from './numericDecode';
 export * from './transforms';
 export * from './vcd';

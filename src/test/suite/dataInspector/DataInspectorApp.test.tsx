@@ -15,7 +15,7 @@ describe('DataInspectorApp', () => {
     expect(screen.getByLabelText('Literal')).toHaveValue('0');
     expect(screen.getByLabelText('Width')).toHaveValue(32);
     expect(screen.getByLabelText('Displayed value status')).toHaveTextContent('32 bits');
-    expect(screen.getAllByText("32'h00000000")).not.toHaveLength(0);
+    expect(screen.getAllByText('0x00000000')).not.toHaveLength(0);
     expect(screen.queryByRole('heading', { name: 'Presets' })).not.toBeInTheDocument();
   });
 
@@ -27,7 +27,7 @@ describe('DataInspectorApp', () => {
 
     expect((width as HTMLInputElement).value).toBe('');
     expect(screen.getByLabelText('Displayed value status')).toHaveTextContent('32 bits');
-    expect(screen.getAllByText("32'h00000000")).not.toHaveLength(0);
+    expect(screen.getAllByText('0x00000000')).not.toHaveLength(0);
 
     fireEvent.blur(width);
     expect(width).toHaveValue(32);
@@ -39,11 +39,22 @@ describe('DataInspectorApp', () => {
     fireEvent.change(screen.getByLabelText('Width'), { target: { value: '16' } });
     expect(screen.getByLabelText('Literal')).toHaveValue('0');
     expect(screen.getByLabelText('Displayed value status')).toHaveTextContent('16 bits');
-    expect(screen.getAllByText("16'h0000")).not.toHaveLength(0);
+    expect(screen.getAllByText('0x0000')).not.toHaveLength(0);
 
     fireEvent.click(screen.getByRole('button', { name: 'Add source' }));
     expect(screen.getByLabelText('INPUT_2 value')).toHaveValue('0');
     expect(screen.queryByText('No sample')).not.toBeInTheDocument();
+  });
+
+  it('accepts a short width-qualified Verilog literal in the transient value field', () => {
+    render(<DataInspectorApp />);
+
+    fireEvent.change(screen.getByLabelText('Literal'), { target: { value: "32'h12" } });
+    fireEvent.click(screen.getByRole('button', { name: 'Decode INPUT' }));
+
+    expect(screen.getByLabelText('Literal')).toHaveValue('0x00000012');
+    expect(screen.getAllByText('0x00000012')).not.toHaveLength(0);
+    expect(screen.queryByText(/Hexadecimal literal has/)).not.toBeInTheDocument();
   });
 
   it('uses paste-any-value as the primary flow and exposes X/Z exactly', () => {
@@ -55,10 +66,47 @@ describe('DataInspectorApp', () => {
     fireEvent.change(screen.getByLabelText('Width'), { target: { value: '16' } });
     fireEvent.click(screen.getByRole('button', { name: 'Decode INPUT' }));
 
+    expect(screen.getByLabelText('Literal')).toHaveValue('0x0X3Z');
     expect(screen.getAllByText('16 bits')).not.toHaveLength(0);
     expect(screen.getByText('contains X/Z states')).toBeInTheDocument();
     expect(screen.getByLabelText(/Bits 15 through 0: 0000XXXX0011ZZZZ/)).toBeInTheDocument();
     expect(screen.getByText('Session only · samples are never saved')).toBeInTheDocument();
+  });
+
+  it('switches every displayed value between neutral representations', () => {
+    render(<DataInspectorApp />);
+
+    expect(screen.getAllByText('0x00000000')).not.toHaveLength(0);
+    const hex = screen.getByRole('button', { name: 'Hex' });
+    const binary = screen.getByRole('button', { name: 'Binary' });
+    expect(hex).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(binary);
+    expect(binary).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByLabelText('Literal')).toHaveValue('0b00000000000000000000000000000000');
+    expect(screen.getAllByText('0b00000000000000000000000000000000')).not.toHaveLength(0);
+    fireEvent.click(screen.getByRole('button', { name: 'Decimal' }));
+    expect(screen.getByLabelText('Literal')).toHaveValue('0');
+    expect(screen.getAllByText('0')).not.toHaveLength(0);
+  });
+
+  it('shows copy actions beside the selected input values in Properties', () => {
+    const writeText = jest.fn();
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
+    render(<DataInspectorApp />);
+
+    fireEvent.change(screen.getByLabelText('Literal'), { target: { value: "32'h0001_2000" } });
+    fireEvent.click(screen.getByRole('button', { name: 'Decode INPUT' }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy value' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Copy original value' }));
+    expect(writeText).toHaveBeenNthCalledWith(1, '0x00012000');
+    expect(writeText).toHaveBeenNthCalledWith(2, "32'h0001_2000");
+    expect(screen.getByLabelText('Displayed value status')).not.toContainElement(
+      screen.getByRole('button', { name: 'Copy value' })
+    );
   });
 
   it('creates a manual field and links the decoded row with the ribbon segment', () => {

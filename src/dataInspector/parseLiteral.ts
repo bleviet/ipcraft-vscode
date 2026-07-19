@@ -186,7 +186,7 @@ export function parseLiteral(text: string, options: ParseLiteralOptions = {}): P
     throw new Error(`Literal declares ${parsed.declaredWidth} bits but width is ${options.width}`);
   }
   const width = parsed.declaredWidth ?? options.width;
-  const allowZeroExtension = parsed.declaredWidth === undefined && options.width !== undefined;
+  const allowZeroExtension = width !== undefined;
   const warnings = new Set<string>();
   const vector =
     parsed.radix === 'binary'

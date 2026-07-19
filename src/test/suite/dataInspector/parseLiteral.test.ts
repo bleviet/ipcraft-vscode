@@ -40,13 +40,19 @@ describe('parseLiteral', () => {
     expect(parseLiteral(literal, { width: 32 }).vector.toLiteral()).toBe(expected);
   });
 
+  it.each([
+    ["32'h12", "32'h00000012"],
+    ["8'b101", "8'h05"],
+  ])('zero-extends sized %s input to its declared width', (literal, expected) => {
+    expect(parseLiteral(literal).vector.toLiteral()).toBe(expected);
+  });
+
   it('does not truncate unsized input that exceeds the requested width', () => {
     expect(() => parseLiteral('0x1FF', { width: 8 })).toThrow('12 bits but width is 8');
     expect(() => parseLiteral('0b100000000', { width: 8 })).toThrow('9 bits but width is 8');
   });
 
-  it('does not silently extend or truncate sized digit literals', () => {
-    expect(() => parseLiteral("8'h1")).toThrow('4 bits but width is 8');
+  it('does not truncate sized digit literals that exceed their declared width', () => {
     expect(() => parseLiteral("4'b00101")).toThrow('5 bits but width is 4');
     expect(() => parseLiteral("4'h12")).toThrow('8 bits but width is 4');
   });

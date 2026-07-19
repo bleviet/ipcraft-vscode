@@ -1,5 +1,6 @@
 import React from 'react';
 import type { BitVector } from '../../../dataInspector/BitVector';
+import type { ValueRepresentation } from '../../../dataInspector/formatValue';
 import type { IPCraftDataInspectorRecipe } from '../../../domain/dataInspector.types';
 import { TransformCanvas, type CanvasAddCommand } from '../canvas/TransformCanvas';
 
@@ -8,6 +9,8 @@ interface TransformTabProps {
   maximized: boolean;
   recipe: IPCraftDataInspectorRecipe;
   samples: ReadonlyMap<string, BitVector>;
+  valueRepresentation: ValueRepresentation;
+  onValueRepresentationChange: (representation: ValueRepresentation) => void;
   resetToken?: string;
   onToggleMaximized: () => void;
   onRecipeChange: (recipe: IPCraftDataInspectorRecipe) => void;
@@ -21,6 +24,8 @@ export function TransformTab({
   maximized,
   recipe,
   samples,
+  valueRepresentation,
+  onValueRepresentationChange,
   resetToken,
   onToggleMaximized,
   onRecipeChange,
@@ -56,6 +61,8 @@ export function TransformTab({
       <TransformCanvas
         recipe={recipe}
         samples={samples}
+        valueRepresentation={valueRepresentation}
+        onValueRepresentationChange={onValueRepresentationChange}
         resetToken={resetToken}
         onRecipeChange={onRecipeChange}
         onInspectValue={onInspectValue}

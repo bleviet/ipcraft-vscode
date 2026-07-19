@@ -19,6 +19,7 @@ import {
   type NodeTypes,
 } from '@xyflow/react';
 import type { BitVector } from '../../../dataInspector/BitVector';
+import { formatValue, type ValueRepresentation } from '../../../dataInspector/formatValue';
 import { evaluateRecipe } from '../../../dataInspector/evaluateRecipe';
 import {
   applyGraphEdit,
@@ -45,6 +46,8 @@ interface DraftNode {
 interface TransformCanvasProps {
   recipe: IPCraftDataInspectorRecipe;
   samples: ReadonlyMap<string, BitVector>;
+  valueRepresentation: ValueRepresentation;
+  onValueRepresentationChange: (representation: ValueRepresentation) => void;
   resetToken?: string;
   onRecipeChange: (recipe: IPCraftDataInspectorRecipe) => void;
   onInspectValue: (nodeId: string, kind: 'source' | 'step') => void;
@@ -87,8 +90,8 @@ function stepErrors(recipe: IPCraftDataInspectorRecipe): Map<string, string> {
   return errors;
 }
 
-function valueText(value: BitVector | undefined): string {
-  return value?.toLiteral() ?? 'No sample';
+function valueText(value: BitVector | undefined, representation: ValueRepresentation): string {
+  return value ? formatValue(value, representation) : 'No sample';
 }
 
 function edgeShowsError(targetHandle: string | null | undefined, error: string | undefined) {
@@ -104,6 +107,8 @@ function edgeShowsError(targetHandle: string | null | undefined, error: string |
 function TransformCanvasInner({
   recipe,
   samples,
+  valueRepresentation,
+  onValueRepresentationChange,
   resetToken,
   onRecipeChange,
   onInspectValue,
@@ -167,7 +172,7 @@ function TransformCanvasInner({
           name: source.name,
           badge: String.fromCharCode(65 + (index % 26)),
           width: source.width,
-          value: valueText(evaluation.values.get(source.id)?.value),
+          value: valueText(evaluation.values.get(source.id)?.value, valueRepresentation),
         },
       })),
       ...workingRecipe.steps.map((step) => {
@@ -179,7 +184,7 @@ function TransformCanvasInner({
           deletable: false,
           data: {
             step,
-            value: valueText(result?.value?.value),
+            value: valueText(result?.value?.value, valueRepresentation),
             widthText: result?.outputWidth ? `${result.outputWidth}b` : 'unavailable',
             error: errors.get(step.id) ?? result?.error,
           },
@@ -239,7 +244,7 @@ function TransformCanvasInner({
     }
     setNodes(nextNodes);
     setEdges(nextEdges);
-  }, [drafts, errors, evaluation, workingRecipe]);
+  }, [drafts, errors, evaluation, valueRepresentation, workingRecipe]);
 
   const graphSignature = useMemo(
     () =>
@@ -463,6 +468,19 @@ function TransformCanvasInner({
       }}
     >
       <div className="di-canvas-toolbar">
+        <div className="di-representation-switch" aria-label="Value representation" role="group">
+          {(['hex', 'binary', 'decimal'] as const).map((representation) => (
+            <button
+              aria-pressed={valueRepresentation === representation}
+              key={representation}
+              onClick={() => onValueRepresentationChange(representation)}
+              title={`Show values as ${representation}`}
+              type="button"
+            >
+              {representation[0].toUpperCase() + representation.slice(1)}
+            </button>
+          ))}
+        </div>
         <button
           aria-label="Delete selected components"
           className="di-canvas-delete"

@@ -184,7 +184,7 @@ test.describe('Data Inspector transform canvas', () => {
     await page.getByLabel('MASK value').fill("16'h00FF");
     await page.getByRole('button', { name: 'Decode MASK' }).click();
     await expect(page.getByLabel('Inspector tools').locator('.di-inspector-value')).toHaveText(
-      "16'h00FF"
+      '0x00FF'
     );
     await page.getByRole('tab', { name: 'Fields' }).click();
     await expect(page.getByRole('button', { name: 'Add field' })).toBeVisible();
