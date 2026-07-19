@@ -11,18 +11,18 @@ import { TableContextMenu } from '../shared/components';
 import { getKeyboardReorderUpdates, getKeyboardResizeRange } from './bitfield/keyboardOperations';
 import { computeCtrlDragPreview } from './bitfield/reorderAlgorithm';
 import {
-  applyRegisterValueToFields,
+  applyRegisterBitVectorToFields,
   bitAt,
   buildBitIndexArray,
   buildBitValues,
+  buildRegisterBitVector,
   buildBitOwnerArray,
   buildProLayoutSegments,
   findGapBoundaries,
   findResizeBoundary,
   getFieldRange,
   getResizableEdges,
-  maxForBits,
-  parseRegisterValue,
+  parseRegisterBitVector,
   setBit,
 } from './bitfield/utils';
 
@@ -34,7 +34,7 @@ export interface FieldModel {
   offset?: number | string | null;
   width?: number | string | null;
   access?: string;
-  resetValue?: number | null;
+  resetValue?: number | bigint | null;
   description?: string;
   monitorChangeOf?: string | null;
 }
@@ -86,7 +86,7 @@ interface BitFieldVisualizerProps {
   setHoveredFieldIndex?: (idx: number | null) => void;
   registerSize?: number;
   layout?: 'default' | 'pro' | 'vertical';
-  onUpdateFieldReset?: (fieldIndex: number, resetValue: number | null) => void;
+  onUpdateFieldReset?: (fieldIndex: number, resetValue: number | bigint | null) => void;
   onUpdateFieldRange?: (fieldIndex: number, newRange: [number, number]) => void;
   onBatchUpdateFields?: (updates: { idx: number; range: [number, number] }[]) => void;
   onCreateField?: (field: { bitRange: [number, number]; name: string }) => void;
@@ -327,22 +327,17 @@ const BitFieldVisualizerInner: React.FC<BitFieldVisualizerProps> = ({
 
   const bitOwners = useMemo(() => buildBitOwnerArray(fields, registerSize), [fields, registerSize]);
 
-  const registerValue = useMemo(() => {
-    let v = 0;
-    for (let bit = 0; bit < registerSize; bit++) {
-      if (bitValues[bit] === 1) {
-        v += Math.pow(2, bit);
-      }
-    }
-    return v;
-  }, [bitValues, registerSize]);
+  const registerValue = useMemo(
+    () => buildRegisterBitVector(fields, registerSize),
+    [fields, registerSize]
+  );
 
-  const applyRegisterValue = (v: number) => {
+  const applyRegisterValue = (value: import('../../dataInspector/BitVector').BitVector) => {
     if (!onUpdateFieldReset) {
       return;
     }
-    applyRegisterValueToFields(fields, v, (fieldIndex, value) =>
-      onUpdateFieldReset(fieldIndex, value)
+    applyRegisterBitVectorToFields(fields, value, (fieldIndex, fieldValue) =>
+      onUpdateFieldReset(fieldIndex, fieldValue)
     );
   };
 
@@ -359,8 +354,7 @@ const BitFieldVisualizerInner: React.FC<BitFieldVisualizerProps> = ({
   } = useValueEditing({
     registerSize,
     registerValue,
-    parseRegisterValue,
-    maxForBits,
+    parseRegisterValue: (text, view) => parseRegisterBitVector(text, view, registerSize),
     applyRegisterValue,
   });
 
@@ -373,7 +367,7 @@ const BitFieldVisualizerInner: React.FC<BitFieldVisualizerProps> = ({
       setValueEditing={setValueEditing}
       setValueError={setValueError}
       setValueView={setValueView}
-      parseRegisterValue={parseRegisterValue}
+      parseRegisterValue={(text, view) => parseRegisterBitVector(text, view, registerSize)}
       validateRegisterValue={validateRegisterValue}
       commitRegisterValueDraft={commitRegisterValueDraft}
     />

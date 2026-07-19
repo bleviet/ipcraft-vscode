@@ -35,6 +35,16 @@ export class HtmlGenerator {
     });
   }
 
+  generateDataInspectorHtml(webview: vscode.Webview): string {
+    return this.generateHtmlForEditor(webview, {
+      scriptName: 'dataInspector.js',
+      styleName: 'dataInspector.css',
+      rootId: 'data-inspector-root',
+      title: 'IPCraft Data Inspector',
+      logMessage: 'Generating Data Inspector HTML',
+    });
+  }
+
   private generateHtmlForEditor(
     webview: vscode.Webview,
     options: {

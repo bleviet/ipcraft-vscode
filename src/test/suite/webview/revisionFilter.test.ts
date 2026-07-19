@@ -2,6 +2,7 @@ import {
   createRevisionState,
   shouldApplyUpdate,
   buildUpdateMessage,
+  nextEditRevision,
 } from '../../../webview/sync/revisionFilter';
 
 describe('revisionFilter', () => {
@@ -29,6 +30,16 @@ describe('revisionFilter', () => {
       expect(buildUpdateMessage(state, 'x').editId).toBe(1);
       expect(buildUpdateMessage(state, 'y').editId).toBe(2);
       expect(state.lastSentEditId).toBe(2);
+    });
+  });
+
+  describe('nextEditRevision', () => {
+    it('shares edit IDs and the latest document base with non-text editors', () => {
+      const state = createRevisionState();
+      state.seenDocVersion = 7;
+
+      expect(nextEditRevision(state)).toEqual({ editId: 1, baseDocVersion: 7 });
+      expect(nextEditRevision(state)).toEqual({ editId: 2, baseDocVersion: 7 });
     });
   });
 

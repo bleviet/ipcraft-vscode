@@ -101,6 +101,10 @@ const extensionConfig = {
           from: path.resolve(projectRoot, "ipcraft-spec", "schemas", "memory_map.schema.json"),
           to: "resources/schemas/memory_map.schema.json",
         },
+        {
+          from: path.resolve(projectRoot, "ipcraft-spec", "schemas", "data_inspector.schema.json"),
+          to: "resources/schemas/data_inspector.schema.json",
+        },
       ],
     }),
   ],
@@ -147,6 +151,7 @@ const webviewConfig = {
   entry: {
     webview: path.resolve(projectRoot, "src/webview/index.tsx"),
     ipcore: path.resolve(projectRoot, "src/webview/ipcore/IpCoreApp.tsx"),
+    dataInspector: path.resolve(projectRoot, "src/webview/dataInspector/index.tsx"),
   },
   output: {
     path: path.resolve(projectRoot, "dist"),

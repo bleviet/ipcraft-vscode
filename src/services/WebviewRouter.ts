@@ -112,7 +112,7 @@ export class WebviewRouter<M extends { type: string } = { type: string }> {
       // Cast the message to access properties since update is a standard protocol message type
       const msg = message as unknown as { text: string; editId?: number; baseDocVersion?: number };
       if (msg.editId !== undefined) {
-        this.pendingEditIds.push(msg.editId);
+        this.trackSourceEditId(msg.editId);
       }
       const result = await documentManager.updateDocument(
         this.document,
@@ -122,10 +122,7 @@ export class WebviewRouter<M extends { type: string } = { type: string }> {
 
       if (result.type === 'rejected') {
         if (msg.editId !== undefined) {
-          const idx = this.pendingEditIds.indexOf(msg.editId);
-          if (idx !== -1) {
-            this.pendingEditIds.splice(idx, 1);
-          }
+          this.forgetSourceEditId(msg.editId);
         }
 
         if (result.reason === 'stale-base') {
@@ -150,10 +147,7 @@ export class WebviewRouter<M extends { type: string } = { type: string }> {
         }
       } else if (result.type === 'noop') {
         if (msg.editId !== undefined) {
-          const idx = this.pendingEditIds.indexOf(msg.editId);
-          if (idx !== -1) {
-            this.pendingEditIds.splice(idx, 1);
-          }
+          this.forgetSourceEditId(msg.editId);
         }
       }
     });
@@ -215,6 +209,17 @@ export class WebviewRouter<M extends { type: string } = { type: string }> {
 
   popSourceEditId(): number | undefined {
     return this.pendingEditIds.shift();
+  }
+
+  trackSourceEditId(editId: number): void {
+    this.pendingEditIds.push(editId);
+  }
+
+  forgetSourceEditId(editId: number): void {
+    const index = this.pendingEditIds.indexOf(editId);
+    if (index !== -1) {
+      this.pendingEditIds.splice(index, 1);
+    }
   }
 
   handleDocumentChange(event: vscode.TextDocumentChangeEvent) {

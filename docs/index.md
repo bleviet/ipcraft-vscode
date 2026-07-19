@@ -49,6 +49,7 @@ Visual editor for FPGA IP Core and Memory Map specifications, built as a VS Code
 | New to IPCraft? | [Quick Start](getting-started/quickstart.md) |
 | Setting up a dev environment | [Development Setup](getting-started/development.md) |
 | Import an existing VHDL file | [Importing from VHDL](how-to/vhdl-import.md) |
+| Decode register values and captures | [Using the Data Inspector](how-to/use-data-inspector.md) |
 | Generate a full RTL project | [Generating a Project](how-to/generating-a-project.md) |
 | Compile without opening the GUI | [Building a Project](how-to/building-a-project.md) |
 | Use AI tools with IPCraft | [AI Design Guide](how-to/ai-design-guide.md) |

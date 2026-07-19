@@ -76,14 +76,25 @@ export function shouldApplyUpdate(state: RevisionState, update: IncomingUpdate):
  * can never be -1) and surface a spurious "file changed on disk" warning.
  */
 export function buildUpdateMessage(state: RevisionState, text: string): Record<string, unknown> {
-  state.lastSentEditId += 1;
-  const message: Record<string, unknown> = {
+  const revision = nextEditRevision(state);
+  return {
     type: 'update',
     text,
+    ...revision,
+  };
+}
+
+/** Advances the outbound edit counter and returns the shared revision metadata. */
+export function nextEditRevision(state: RevisionState): {
+  editId: number;
+  baseDocVersion?: number;
+} {
+  state.lastSentEditId += 1;
+  const revision: { editId: number; baseDocVersion?: number } = {
     editId: state.lastSentEditId,
   };
   if (state.seenDocVersion >= 0) {
-    message.baseDocVersion = state.seenDocVersion;
+    revision.baseDocVersion = state.seenDocVersion;
   }
-  return message;
+  return revision;
 }

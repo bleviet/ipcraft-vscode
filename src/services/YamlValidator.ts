@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-import Ajv, { type ErrorObject } from 'ajv';
+import Ajv, { type ErrorObject, type ValidateFunction } from 'ajv';
 import yaml from 'js-yaml';
 import { Logger } from '../utils/Logger';
 import { ExtensionError } from '../utils/ErrorHandler';
@@ -22,6 +22,7 @@ export interface SchemaValidationResult {
 export class YamlValidator {
   private readonly logger = new Logger('YamlValidator');
   private readonly ajv = new Ajv({ allErrors: true, strict: false });
+  private readonly schemaValidators = new Map<string, ValidateFunction>();
 
   /**
    * Validate a parsed data object against a JSON schema file.
@@ -29,10 +30,14 @@ export class YamlValidator {
    */
   validateAgainstSchema(data: unknown, schemaPath: string): SchemaValidationResult {
     try {
-      const schemaText = fs.readFileSync(schemaPath, 'utf-8');
-      const schema = JSON.parse(schemaText) as Record<string, unknown>;
+      let validate = this.schemaValidators.get(schemaPath);
+      if (!validate) {
+        const schemaText = fs.readFileSync(schemaPath, 'utf-8');
+        const schema = JSON.parse(schemaText) as Record<string, unknown>;
 
-      const validate = this.ajv.compile(schema);
+        validate = this.ajv.compile(schema);
+        this.schemaValidators.set(schemaPath, validate);
+      }
       const valid = validate(data);
 
       if (valid) {

@@ -2,9 +2,15 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { resolveVendor } from '../utils/resolveVendor';
 import { isIpCoreFile } from '../utils/fileExtensions';
-import { EDITOR_VIEW_TYPE_IP_CORE, EDITOR_VIEW_TYPE_MEMORY_MAP } from '../utils/editorViewTypes';
+import {
+  EDITOR_VIEW_TYPE_DATA_INSPECTOR,
+  EDITOR_VIEW_TYPE_IP_CORE,
+  EDITOR_VIEW_TYPE_MEMORY_MAP,
+} from '../utils/editorViewTypes';
 import { CONFIG_KEY_IPCRAFT_IMPORT } from '../utils/configKeys';
 import { handleErrorWithUserNotification } from '../utils/ErrorHandler';
+import { stringify } from 'yaml';
+import { createEmptyRecipe } from '../dataInspector/recipe';
 
 function generateMemoryMapTemplate(name: string): string {
   return `- name: ${name}
@@ -163,6 +169,34 @@ export async function createMemoryMapCommand(): Promise<void> {
     defaultDir,
     '.mm.yml'
   );
+}
+
+export async function createDataInspectorRecipeCommand(): Promise<void> {
+  const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+  const rawUri = await vscode.window.showSaveDialog({
+    defaultUri: workspaceFolder
+      ? vscode.Uri.joinPath(workspaceFolder.uri, 'new_data_inspector.ipci.yml')
+      : undefined,
+    saveLabel: 'Create Recipe',
+    title: 'Create new_data_inspector.ipci.yml',
+    filters: { 'IPCraft Data Inspector Recipe': ['ipci.yml'] },
+  });
+  const uri = rawUri ? ensureExtension(rawUri, '.ipci.yml') : undefined;
+  if (!uri) {
+    return;
+  }
+  try {
+    const name = path.basename(uri.fsPath, '.ipci.yml');
+    const text = stringify(createEmptyRecipe(name), { lineWidth: 0 });
+    await vscode.workspace.fs.writeFile(uri, new Uint8Array(Buffer.from(text)));
+    await vscode.commands.executeCommand('vscode.openWith', uri, EDITOR_VIEW_TYPE_DATA_INSPECTOR);
+  } catch (error) {
+    void handleErrorWithUserNotification(
+      error,
+      'createDataInspectorRecipeCommand',
+      `Failed to create recipe: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
 }
 
 export async function createIpCoreWithMemoryMapCommand(): Promise<void> {

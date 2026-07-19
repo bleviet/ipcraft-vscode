@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Data Inspector Browser Harness</title>
+    <link rel="stylesheet" href="../../../dist/dataInspector.css" />
+    <link rel="stylesheet" href="../../../node_modules/@vscode/codicons/dist/codicon.css" />
+    <style>
+      :root {
+        --vscode-editor-background: #0c1123;
+        --vscode-editor-foreground: #d4deee;
+        --vscode-foreground: #d4deee;
+        --vscode-descriptionForeground: #8ea0b8;
+        --vscode-textLink-foreground: #4facfe;
+        --vscode-button-background: #b73855;
+        --vscode-button-hoverBackground: #d24667;
+        --vscode-button-foreground: #ffffff;
+        --vscode-input-background: #11182d;
+        --vscode-focusBorder: #4facfe;
+        --vscode-errorForeground: #ff7354;
+        --vscode-editorWarning-foreground: #f4a44a;
+        --vscode-testing-iconPassed: #56d4b0;
+        --vscode-font-family: system-ui, sans-serif;
+        --vscode-editor-font-family: ui-monospace, monospace;
+      }
+      #data-inspector-root {
+        width: 100vw;
+        height: 100vh;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="data-inspector-root"></div>
+    <script>
+      window.__vscodeMessages = [];
+      window.acquireVsCodeApi = function () {
+        return {
+          postMessage(message) {
+            window.__vscodeMessages.push(message);
+            window.__last_message = message;
+            console.log('VSCODE_MESSAGE:', JSON.stringify(message));
+            window.dispatchEvent(new CustomEvent('vscode-post-message', { detail: message }));
+          },
+          setState() {},
+          getState() {
+            return undefined;
+          },
+        };
+      };
+      window.renderRecipe = function (recipe, docVersion = 1) {
+        window.dispatchEvent(
+          new MessageEvent('message', {
+            data: { type: 'recipe', recipe, fileName: 'browser.ipci.yml', docVersion },
+          })
+        );
+      };
+    </script>
+    <script src="../../../dist/dataInspector.js"></script>
+  </body>
+</html>

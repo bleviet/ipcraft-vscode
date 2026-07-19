@@ -58,7 +58,7 @@ describe('Domain Model Parse/Serialize Round-trips', () => {
   }
 
   const testFiles = [...getYamlFiles(FIXTURES_DIR), ...getYamlFiles(EXAMPLES_DIR)].filter(
-    (f) => !f.includes('invalid-syntax')
+    (f) => !f.includes('invalid-syntax') && !f.endsWith('.ipci.yml')
   );
 
   for (const filePath of testFiles) {

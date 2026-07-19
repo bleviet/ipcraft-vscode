@@ -1,0 +1,124 @@
+import React, { useMemo, useState } from 'react';
+import { TRANSFORM_OPERATIONS, type RecipeStepType } from './transform/operations';
+
+export const DATA_INSPECTOR_NODE_MIME = 'application/ipcraft-data-node';
+export const DATA_INSPECTOR_OPERATION_MIME = 'application/ipcraft-operation';
+
+interface WorkbenchLibraryProps {
+  collapsed: boolean;
+  onToggleCollapsed: () => void;
+  onAddSource: () => void;
+  onAddOperation: (type: RecipeStepType) => void;
+}
+
+function beginDrag(event: React.DragEvent, mime: string, value: string) {
+  event.dataTransfer.setData(mime, value);
+  event.dataTransfer.effectAllowed = 'copy';
+}
+
+export function WorkbenchLibrary({
+  collapsed,
+  onToggleCollapsed,
+  onAddSource,
+  onAddOperation,
+}: WorkbenchLibraryProps) {
+  const [query, setQuery] = useState('');
+  const normalizedQuery = query.trim().toLowerCase();
+  const operations = useMemo(
+    () =>
+      TRANSFORM_OPERATIONS.filter((operation) =>
+        `${operation.label} ${operation.description}`.toLowerCase().includes(normalizedQuery)
+      ),
+    [normalizedQuery]
+  );
+  if (collapsed) {
+    return (
+      <aside className="di-library is-collapsed" aria-label="Transform Library">
+        <button
+          className="di-rail-toggle"
+          aria-label="Expand Library"
+          onClick={onToggleCollapsed}
+          data-tooltip="Expand Library"
+        >
+          <span className="codicon codicon-library" aria-hidden="true" />
+        </button>
+      </aside>
+    );
+  }
+
+  return (
+    <aside className="di-library" aria-label="Transform Library">
+      <header className="di-rail-header">
+        <div>
+          <span className="di-eyebrow">Build the graph</span>
+          <h2>Library</h2>
+        </div>
+        <button
+          className="di-icon-button"
+          aria-label="Collapse Library"
+          onClick={onToggleCollapsed}
+          data-tooltip="Collapse Library"
+        >
+          <span className="codicon codicon-layout-sidebar-left-off" aria-hidden="true" />
+        </button>
+      </header>
+
+      <label className="di-search di-library-search">
+        <span className="codicon codicon-search" aria-hidden="true" />
+        <span className="sr-only">Search Library</span>
+        <input
+          placeholder="Search nodes and operators"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+        />
+      </label>
+
+      <section className="di-library-section">
+        <h3>Nodes</h3>
+        <div className="di-library-grid is-nodes">
+          {[{ symbol: 'IN', label: 'Input', description: 'Transient bit vector' }]
+            .filter((item) =>
+              `${item.label} ${item.description}`.toLowerCase().includes(normalizedQuery)
+            )
+            .map((item) => (
+              <button
+                aria-label="Add source"
+                draggable
+                key="source"
+                onClick={onAddSource}
+                onDragStart={(event) => beginDrag(event, DATA_INSPECTOR_NODE_MIME, 'source')}
+                data-tooltip={`Drag ${item.label} onto the transform canvas`}
+              >
+                <b aria-hidden="true">{item.symbol}</b>
+                <span>{item.label}</span>
+                <small>{item.description}</small>
+              </button>
+            ))}
+        </div>
+      </section>
+
+      <section className="di-library-section">
+        <h3>Operators</h3>
+        <div className="di-library-grid">
+          {operations.map((operation) => (
+            <button
+              aria-label={`Add ${operation.label} draft`}
+              draggable
+              key={operation.type}
+              onClick={() => onAddOperation(operation.type)}
+              onDragStart={(event) =>
+                beginDrag(event, DATA_INSPECTOR_OPERATION_MIME, operation.type)
+              }
+              data-tooltip={`Drag ${operation.label} onto the transform canvas`}
+            >
+              <b aria-hidden="true">{operation.symbol}</b>
+              <span>{operation.label}</span>
+              <small>{operation.description}</small>
+            </button>
+          ))}
+          {operations.length === 0 && <p className="di-note">No matching operators.</p>}
+        </div>
+      </section>
+    </aside>
+  );
+}

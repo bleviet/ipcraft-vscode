@@ -11,6 +11,7 @@ const mockOutputChannel = {
 
 export const window = {
   createOutputChannel: jest.fn(() => mockOutputChannel),
+  showSaveDialog: jest.fn(),
   showErrorMessage: jest.fn(),
   showWarningMessage: jest.fn(),
   showInformationMessage: jest.fn(),
@@ -18,6 +19,7 @@ export const window = {
 
 export const workspace = {
   onDidChangeTextDocument: jest.fn(),
+  findFiles: jest.fn(),
   applyEdit: jest.fn(),
   asRelativePath: jest.fn((path) => path.toString()),
   getConfiguration: jest.fn(() => ({

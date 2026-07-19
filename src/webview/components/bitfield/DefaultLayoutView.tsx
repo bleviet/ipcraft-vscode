@@ -7,7 +7,7 @@ interface DefaultLayoutViewProps {
   bitValues: (0 | 1)[];
   hoveredFieldIndex: number | null;
   setHoveredFieldIndex: (idx: number | null) => void;
-  onUpdateFieldReset?: (fieldIndex: number, resetValue: number | null) => void;
+  onUpdateFieldReset?: (fieldIndex: number, resetValue: number | bigint | null) => void;
   getFieldRange: (field: FieldModel) => { lo: number; hi: number } | null;
   handleShiftPointerDown: (bit: number, e: React.PointerEvent) => void;
   handleShiftPointerMove: (bit: number) => void;

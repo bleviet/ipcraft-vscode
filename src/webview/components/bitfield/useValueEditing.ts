@@ -1,25 +1,25 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { hexDigitsForBits } from './utils';
+import { BitVector } from '../../../dataInspector/BitVector';
 
 interface UseValueEditingOptions {
   registerSize: number;
-  registerValue: number;
-  parseRegisterValue: (text: string, view: 'hex' | 'dec') => number | null;
-  maxForBits: (bitCount: number) => number;
-  applyRegisterValue: (value: number) => void;
+  registerValue: BitVector;
+  parseRegisterValue: (text: string, view: 'hex' | 'dec') => BitVector | null;
+  applyRegisterValue: (value: BitVector) => string | null | void;
 }
 
 export function useValueEditing({
   registerSize,
   registerValue,
   parseRegisterValue,
-  maxForBits,
   applyRegisterValue,
 }: UseValueEditingOptions) {
   const [valueView, setValueView] = useState<'hex' | 'dec'>('hex');
   const [valueDraft, setValueDraft] = useState<string>('');
   const [valueEditing, setValueEditing] = useState(false);
   const [valueError, setValueError] = useState<string | null>(null);
+  const commitErrorRef = useRef<string | null>(null);
 
   // The "0x" prefix is rendered as a static label next to the field (see
   // ValueBar), so the editable draft holds bare digits: hex digits are
@@ -27,9 +27,10 @@ export function useValueEditing({
   // reads "00000000" rather than "0", making it obvious which nibble to edit.
   const registerValueText = useMemo(() => {
     if (valueView === 'dec') {
-      return registerValue.toString(10);
+      return registerValue.toBigInt()?.toString(10) ?? '';
     }
-    return registerValue.toString(16).toUpperCase().padStart(hexDigitsForBits(registerSize), '0');
+    const hex = registerValue.toHex() ?? registerValue.toBigInt()?.toString(16) ?? '';
+    return hex.toUpperCase().padStart(hexDigitsForBits(registerSize), '0');
   }, [registerValue, valueView, registerSize]);
 
   // This hook only writes registerValue on commit (blur/Enter in ValueBar),
@@ -44,29 +45,20 @@ export function useValueEditing({
     if (!valueEditing) {
       lastRegisterValueRef.current = registerValue;
       setValueDraft(registerValueText);
-      setValueError(null);
+      setValueError(commitErrorRef.current);
+      commitErrorRef.current = null;
       return;
     }
-    if (registerValue !== lastRegisterValueRef.current) {
+    if (!registerValue.equals(lastRegisterValueRef.current)) {
       lastRegisterValueRef.current = registerValue;
       setValueDraft(registerValueText);
       setValueError(null);
     }
   }, [registerValueText, valueEditing, registerValue]);
 
-  const validateRegisterValue = (v: number | null): string | null => {
+  const validateRegisterValue = (v: BitVector | null): string | null => {
     if (v === null) {
       return 'Value is required';
-    }
-    if (!Number.isFinite(v)) {
-      return 'Invalid number';
-    }
-    if (v < 0) {
-      return 'Value must be >= 0';
-    }
-    const max = maxForBits(registerSize);
-    if (v > max) {
-      return `Value too large for ${registerSize} bit(s)`;
     }
     return null;
   };
@@ -78,7 +70,9 @@ export function useValueEditing({
     if (err || parsed === null) {
       return;
     }
-    applyRegisterValue(parsed);
+    const applyError = applyRegisterValue(parsed) ?? null;
+    commitErrorRef.current = applyError;
+    setValueError(applyError);
   };
 
   return {
