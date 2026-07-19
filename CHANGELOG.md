@@ -9,6 +9,16 @@ All notable changes to this project are documented in this file.
 ### Changed
 - **Data Inspector internals decomposed**: the Data Inspector webview's monolithic app component was split into focused hooks (value input/literal parsing, capture import, field panel state, host sync, recipe autosave) and presentational components (value composer, capture panel, field panel), with direct unit test coverage added for each extracted hook, including the host-sync revision protocol. No user-visible behavior change. ([#112](https://github.com/bleviet/ipcraft-vscode/issues/112))
 
+## [0.9.1] - 2026-07-17
+
+### Changed
+- **Compact register and register-array editing**: removed the register-card rail from the block and register-array editors — selection, insert, delete, and drag-reorder already existed in the Outline panel, and the rail's fixed width squeezed the fields table on narrow screens (e.g. a 13" laptop). Keyboard insert/delete (`o`/`O`/`Shift+A`/`Shift+I`/`d`/`Delete`) and inline editing of a register's name, offset, and description moved onto the Outline and a new compact register header strip so nothing the rail did was lost; register and array rows also gained a color swatch, and array count/stride became double-click-editable directly on the row. The now-unused `RegisterMapVisualizer` was removed, the bit-field visualizer's default pane width shrank from 340px to 240px to match, its cells were flattened to match the memory map visualizer's style, and `ValueBar` was resized to fit the narrower pane. ([#99](https://github.com/bleviet/ipcraft-vscode/issues/99))
+- **Register Value/Hex input moved to the fields toolbar**: lifted from the bottom of the (now-removed) bit-field rail to sit level with the field move-up/move-down buttons at the top of the fields table, in both the side-by-side and stacked layouts. ([#105](https://github.com/bleviet/ipcraft-vscode/issues/105))
+
+### Fixed
+- **Outline readability and navigation**: base-address, offset, count, and stride labels in the Memory Map outline were too small to read (10px, now matching the app's standard size); the footer's item count and "Base: 0x0" no longer ignore the current selection and instead reflect whatever level is selected (blocks, registers, or fields); and an implicit horizontal scrollbar — caused by `overflow-y: auto` also enabling `overflow-x`, per the CSS spec — no longer clips row content sideways; names now truncate with an ellipsis instead. ([#101](https://github.com/bleviet/ipcraft-vscode/issues/101), [#102](https://github.com/bleviet/ipcraft-vscode/issues/102))
+- **RTL compile order still wrong in some fallback cases**: the topological-sort fix shipped in 0.9.0 (above) covered the common case, but a file whose declared `type` disagreed with its filename-inferred language, or whose `logicalName` went unresolved, could still sort incorrectly; separately, Vivado's `component.xml` generator re-resolved the fileset fallback path even when an explicit `rtlFiles` list was already supplied, silently discarding the caller's intended order. Both are now root-caused: a file's declared language/logical name is honored over path-based inference, and the fallback path only runs when `rtlFiles` is genuinely absent. ([#91](https://github.com/bleviet/ipcraft-vscode/issues/91))
+
 ## [0.9.0] - 2026-07-17
 
 ### Added
