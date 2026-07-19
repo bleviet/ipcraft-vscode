@@ -31,6 +31,9 @@ and blinking LEDs on physical silicon.
 
 ## The register map
 
+![Outline: LED_AVMM_CSR](../images/outline-tree-dark.png#only-dark)
+![Outline: LED_AVMM_CSR](../images/outline-tree-light.png#only-light)
+
 cvsoc's roadmap asked for two registers; we add a third to exercise
 `write-1-to-clear` and `monitorChangeOf` — using the exact pattern already
 proven in [`comprehensive_avalon.mm.yml`](https://github.com/bleviet/ipcraft-spec/blob/main/examples/comprehensive_avalon/comprehensive_avalon.mm.yml)'s
@@ -41,6 +44,15 @@ proven in [`comprehensive_avalon.mm.yml`](https://github.com/bleviet/ipcraft-spe
 | `0x00` | VERSION | read-only | `MINOR[7:0]`, `MAJOR[15:8]` |
 | `0x04` | LED_PATTERN | read-write | `PATTERN[7:0]` — bit N drives `LED[N]` |
 | `0x08` | EVENTS | read-write-1-to-clear | `HEARTBEAT_ACTIVE[0]` (read-only), `HEARTBEAT_TOGGLED[1]` (write-1-to-clear, `monitorChangeOf: HEARTBEAT_ACTIVE`) |
+
+![Memory Map editor: LED_AVMM_CSR](../images/memorymap-editor-dark.png#only-dark)
+![Memory Map editor: LED_AVMM_CSR](../images/memorymap-editor-light.png#only-light)
+
+Selecting `LED_PATTERN` drops into the bit-field visualizer — `PATTERN[7:0]`
+drives `led`, and bits 8-31 stay reserved:
+
+![Bit-field visualizer: LED_PATTERN register](../images/bitfield-visualizer-dark.png#only-dark)
+![Bit-field visualizer: LED_PATTERN register](../images/bitfield-visualizer-light.png#only-light)
 
 `HEARTBEAT_ACTIVE` is a free-running divider driven entirely in hardware — a
 liveness signal, not a readback of a value software wrote. Deliberately, no
@@ -68,6 +80,13 @@ fully bench-verifiable over the Nios II JTAG UART without new board wiring.
               monitorChangeOf: HEARTBEAT_ACTIVE
 ```
 
+This is exactly what the EVENTS register looks like in the fields table —
+the monitor icon on `HEARTBEAT_TOGGLED` is the `monitorChangeOf` link back
+to `HEARTBEAT_ACTIVE`:
+
+![Fields table: EVENTS register](../images/fields-table-access-dark.png#only-dark)
+![Fields table: EVENTS register](../images/fields-table-access-light.png#only-light)
+
 `monitorChangeOf` only supports **sibling fields in the same register** —
 the register file compares `HEARTBEAT_ACTIVE`'s value cycle-to-cycle against
 an internal shadow register and sets `HEARTBEAT_TOGGLED` on any transition,
@@ -88,6 +107,9 @@ Project` (pointed at the phase directory itself, so `rtl/`, `tb/`, and
 `altera/` land as siblings of cvsoc's own `qsys/`/`quartus/`/`software/`
 folders) generates the full layered set: package, register file, bus
 wrapper, core stub, and top entity.
+
+![IP Core editor: led_controller_avmm](../images/ipcore-editor-dark.png#only-dark)
+![IP Core editor: led_controller_avmm](../images/ipcore-editor-light.png#only-light)
 
 ## Three real bugs, found by using it for something real
 

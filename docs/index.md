@@ -2,6 +2,10 @@
 
 Visual editor for FPGA IP Core and Memory Map specifications, built as a VS Code extension.
 
+| IP Core Editor | Memory Map Editor |
+|---|---|
+| ![IP Core Editor](images/ipcore-editor-dark.png#only-dark)![IP Core Editor](images/ipcore-editor-light.png#only-light) | ![Memory Map Editor](images/memorymap-editor-dark.png#only-dark)![Memory Map Editor](images/memorymap-editor-light.png#only-light) |
+
 ## What It Does
 
 ### Visual Editing

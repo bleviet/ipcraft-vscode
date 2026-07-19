@@ -80,6 +80,7 @@ nav:
       - Responsive Design: concepts/responsive-design.md
       - Custom Interfaces: concepts/custom-interface.md
       - EDA Integration Tests: concepts/eda-integration-tests.md
+      - Automated Docs Screenshots: concepts/docs-screenshots.md
   - Architecture:
       - Overview: architecture/overview.md
       - Extension Host: architecture/extension-host.md
