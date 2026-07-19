@@ -163,6 +163,13 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
     // Normalise fields for BitFieldVisualizer (provide bitRange).
     const normalisedFields = useMemo(() => {
       return effectiveFields.map((f: BitFieldRecord, fieldIndex) => {
+        // `effectiveFields` drops bigint debug overrides (they can't round-trip
+        // through the number-typed `.mm.yml` reset value), so reapply them here
+        // regardless of which branch below computes the rest of the field --
+        // otherwise a >53-bit debug value silently reverts on every render.
+        const debugValue = debugMode ? debugOverrides[fieldIndex] : undefined;
+        const resetValue =
+          typeof debugValue === 'bigint' ? debugValue : (f.resetValue ?? undefined);
         const mappedF = {
           ...f,
           name: f.name ?? undefined,
@@ -170,7 +177,7 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
           offset: f.offset ?? undefined,
           width: f.width ?? undefined,
           access: f.access ?? undefined,
-          resetValue: f.resetValue ?? undefined,
+          resetValue,
           description: f.description ?? undefined,
         };
         if (
@@ -184,8 +191,7 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
           const hi = lo + width - 1;
           return { ...mappedF, bitRange: [hi, lo] as [number, number] };
         }
-        const debugValue = debugMode ? debugOverrides[fieldIndex] : undefined;
-        return typeof debugValue === 'bigint' ? { ...mappedF, resetValue: debugValue } : mappedF;
+        return mappedF;
       });
     }, [effectiveFields, debugMode, debugOverrides]);
 

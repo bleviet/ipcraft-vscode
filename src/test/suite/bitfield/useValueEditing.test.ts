@@ -111,4 +111,23 @@ describe('useValueEditing', () => {
 
     expect(result.current.valueDraft).toBe('FEDCBA9876543210');
   });
+
+  it('distinguishes a malformed draft from one that overflows the register width', () => {
+    const { result } = renderHook((props) => useValueEditing(props), {
+      initialProps: { ...baseOptions, registerValue: BitVector.fromBigInt(BigInt(0x10), 32) },
+    });
+
+    act(() => result.current.setValueEditing(true));
+    act(() => result.current.setValueDraft('zz'));
+    act(() => result.current.commitRegisterValueDraft());
+    expect(result.current.valueError).toBe('Invalid number');
+
+    act(() => result.current.setValueDraft('1' + '0'.repeat(8)));
+    act(() => result.current.commitRegisterValueDraft());
+    expect(result.current.valueError).toBe('Value too large for 32 bit(s)');
+
+    act(() => result.current.setValueDraft(''));
+    act(() => result.current.commitRegisterValueDraft());
+    expect(result.current.valueError).toBe('Value is required');
+  });
 });

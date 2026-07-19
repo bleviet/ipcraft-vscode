@@ -44,36 +44,37 @@ export function parseRegisterValue(text: string, view: 'hex' | 'dec' = 'hex'): n
   return /^[0-9a-fA-F]+$/.test(cleaned) ? parseInt(cleaned, 16) : null;
 }
 
+/**
+ * Result of parsing register-value bar text against a target width. `vector` is
+ * non-null exactly when parsing succeeded; otherwise `error` distinguishes an
+ * empty draft from malformed digits from a value that overflows the width, so
+ * callers can surface a specific message instead of a generic one.
+ */
+export interface RegisterValueParse {
+  vector: BitVector | null;
+  error: 'malformed' | 'overflow' | null;
+}
+
 /** Debug-mode value parser backed by the shared exact-width vector engine. */
 export function parseRegisterBitVector(
   text: string,
   view: 'hex' | 'dec',
   width: number
-): BitVector | null {
+): RegisterValueParse {
   const source = text.trim();
   if (!source) {
-    return null;
+    return { vector: null, error: null };
   }
   const cleaned = view === 'hex' ? source.replace(/^0[xX]/, '') : source;
   if (view === 'hex' ? !/^[0-9a-fA-F]+$/.test(cleaned) : !/^\d+$/.test(cleaned)) {
-    return null;
+    return { vector: null, error: 'malformed' };
   }
   const value = BigInt(view === 'hex' ? `0x${cleaned}` : cleaned);
   try {
-    return BitVector.fromBigInt(value, width);
+    return { vector: BitVector.fromBigInt(value, width), error: null };
   } catch {
-    return null;
+    return { vector: null, error: 'overflow' };
   }
-}
-
-export function maxForBits(bitCount: number): number {
-  if (bitCount <= 0) {
-    return 0;
-  }
-  if (bitCount >= 53) {
-    return Number.MAX_SAFE_INTEGER;
-  }
-  return Math.pow(2, bitCount) - 1;
 }
 
 /** Hex digit width that fully represents a register of `bitCount` bits, e.g. 32 -> 8 digits. */
