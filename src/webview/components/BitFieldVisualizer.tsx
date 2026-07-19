@@ -34,7 +34,7 @@ export interface FieldModel {
   offset?: number | string | null;
   width?: number | string | null;
   access?: string;
-  resetValue?: number | null;
+  resetValue?: number | bigint | null;
   description?: string;
   monitorChangeOf?: string | null;
 }
@@ -86,7 +86,7 @@ interface BitFieldVisualizerProps {
   setHoveredFieldIndex?: (idx: number | null) => void;
   registerSize?: number;
   layout?: 'default' | 'pro' | 'vertical';
-  onUpdateFieldReset?: (fieldIndex: number, resetValue: number | null) => void;
+  onUpdateFieldReset?: (fieldIndex: number, resetValue: number | bigint | null) => void;
   onUpdateFieldRange?: (fieldIndex: number, newRange: [number, number]) => void;
   onBatchUpdateFields?: (updates: { idx: number; range: [number, number] }[]) => void;
   onCreateField?: (field: { bitRange: [number, number]; name: string }) => void;

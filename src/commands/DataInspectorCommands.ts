@@ -2,11 +2,16 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { stringify } from 'yaml';
 import type { IPCraftDataInspectorRecipe } from '../domain/dataInspector.types';
+import { validateDataInspectorRecipe } from '../dataInspector/validateRecipe';
 import { DataInspectorRegisterLayoutReader } from '../services/DataInspectorRegisterLayoutReader';
 import type { RegisterLayoutCopy } from '../shared/messages/dataInspector';
 import { EDITOR_VIEW_TYPE_DATA_INSPECTOR } from '../utils/editorViewTypes';
 
-export async function saveDataInspectorRecipeAs(recipe: IPCraftDataInspectorRecipe): Promise<void> {
+export async function saveDataInspectorRecipeAs(
+  recipe: IPCraftDataInspectorRecipe,
+  extensionPath: string
+): Promise<void> {
+  validateDataInspectorRecipe(recipe, extensionPath);
   const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
   const rawUri = await vscode.window.showSaveDialog({
     defaultUri: workspaceFolder

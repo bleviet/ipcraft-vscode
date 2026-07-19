@@ -2,21 +2,53 @@ import { test, expect } from '@playwright/test';
 import path from 'path';
 
 const harnessPath = `file://${path.resolve(__dirname, 'data-inspector.html')}`;
+const vcdFixturePath = path.resolve(__dirname, '..', 'fixtures', 'data-inspector', 'basic.vcd');
 
 async function decode(page: import('@playwright/test').Page, literal: string) {
-  await page.getByLabel('Literal').fill(literal);
-  await page.getByRole('button', { name: 'Decode' }).click();
+  const composerLiteral = page.locator('.di-composer').getByLabel('Literal');
+  if (await composerLiteral.isVisible()) {
+    await composerLiteral.fill(literal);
+    await page.locator('.di-composer').getByRole('button', { name: 'Decode' }).click();
+  } else {
+    const literalInput = page.getByLabel('Literal', { exact: true });
+    if (!(await literalInput.isVisible())) {
+      await page.getByRole('button', { name: 'Inspect' }).click();
+    }
+    const explicitWidth = literal.match(/^(\d+)'/)?.[1];
+    if (explicitWidth) {
+      await page.getByLabel('Width', { exact: true }).fill(explicitWidth);
+    }
+    await literalInput.fill(literal);
+    await page.getByRole('button', { name: /^Decode / }).click();
+  }
+  if (!(await page.getByRole('heading', { name: 'Bits' }).isVisible())) {
+    await page.getByRole('button', { name: 'Bits' }).click();
+  }
   await expect(page.getByRole('heading', { name: 'Bits' })).toBeVisible();
 }
 
 async function openFields(page: import('@playwright/test').Page) {
-  if ((page.viewportSize()?.width ?? 1280) <= 1100) {
+  const fieldsTab = page.getByRole('tab', { name: /Fields/ });
+  if (!(await fieldsTab.isVisible())) {
     await page.getByRole('button', { name: 'Inspect' }).click();
   }
-  await page.getByRole('tab', { name: /Fields/ }).click();
+  await fieldsTab.click();
 }
 
 test.describe('Data Inspector responsive and accessible workspace', () => {
+  test('adopts the selected VCD signal width for the primary source', async ({ page }) => {
+    await page.goto(harnessPath);
+    await page.getByRole('tab', { name: 'Capture' }).click();
+    await page.getByLabel('VCD file').setInputFiles(vcdFixturePath);
+    await expect(page.getByText('top.state [2]')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Index selected signals' }).click();
+
+    await expect(page.getByLabel('Width', { exact: true })).toHaveValue('2');
+    await expect(page.getByLabel('Displayed value status')).toContainText('2 bits');
+    await expect(page.getByRole('button', { name: 'Problems 0' })).toBeVisible();
+  });
+
   test('opens a recipe directly to its usable Bits pane on a narrow viewport', async ({ page }) => {
     await page.setViewportSize({ width: 640, height: 800 });
     await page.goto(harnessPath);

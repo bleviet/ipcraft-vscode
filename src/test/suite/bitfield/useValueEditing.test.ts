@@ -85,6 +85,18 @@ describe('useValueEditing', () => {
     expect(result.current.valueDraft).toBe('0A');
   });
 
+  it('displays known values for register widths that are not whole nibbles', () => {
+    const { result } = renderHook((props) => useValueEditing(props), {
+      initialProps: {
+        ...baseOptions,
+        registerSize: 1,
+        registerValue: BitVector.fromBigInt(BigInt(1), 1),
+      },
+    });
+
+    expect(result.current.valueDraft).toBe('1');
+  });
+
   it('keeps transient values above the JavaScript safe integer boundary exact', () => {
     const value = BitVector.fromBigInt(BigInt('0xFEDCBA9876543210'), 64);
     const { result } = renderHook((props) => useValueEditing(props), {

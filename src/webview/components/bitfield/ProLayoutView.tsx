@@ -25,7 +25,7 @@ interface DragState {
 }
 
 interface InteractionHandlers {
-  onUpdateFieldReset?: (fieldIndex: number, resetValue: number | null) => void;
+  onUpdateFieldReset?: (fieldIndex: number, resetValue: number | bigint | null) => void;
   handleShiftPointerDown: (bit: number, e: React.PointerEvent) => void;
   handleCtrlPointerDown: (bit: number, e: React.PointerEvent) => void;
   handleShiftPointerMove: (bit: number) => void;

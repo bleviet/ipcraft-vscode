@@ -1,5 +1,6 @@
 import { parseLiteral } from '../../../dataInspector/parseLiteral';
 import {
+  copyFieldsForSource,
   decodeField,
   InspectorField,
   projectFieldsToOutput,
@@ -16,6 +17,14 @@ const field = (name: string, msb: number, lsb: number, groupId = 'default'): Ins
 });
 
 describe('inspector field layout', () => {
+  it('allocates imported field IDs in the recipe-wide namespace', () => {
+    const fields = [{ id: 'import-0-ENABLE', name: 'ENABLE', msb: 0, lsb: 0, groupId: 'default' }];
+    const existingIds = new Set(['default', 'input', 'input-import-0-ENABLE']);
+
+    expect(copyFieldsForSource(fields, 'input', existingIds)[0].id).toBe('input-import-0-ENABLE-2');
+    expect(copyFieldsForSource(fields, 'input2', existingIds)[0].id).toBe('input2-import-0-ENABLE');
+  });
+
   it('rejects overlaps within a group and permits them across groups', () => {
     expect(validateFieldLayout([field('A', 7, 4), field('B', 5, 0)], 8)).toEqual([
       'B overlaps A at bit 4 in group default',

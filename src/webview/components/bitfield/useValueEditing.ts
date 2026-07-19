@@ -6,7 +6,7 @@ interface UseValueEditingOptions {
   registerSize: number;
   registerValue: BitVector;
   parseRegisterValue: (text: string, view: 'hex' | 'dec') => BitVector | null;
-  applyRegisterValue: (value: BitVector) => void;
+  applyRegisterValue: (value: BitVector) => string | null | void;
 }
 
 export function useValueEditing({
@@ -19,6 +19,7 @@ export function useValueEditing({
   const [valueDraft, setValueDraft] = useState<string>('');
   const [valueEditing, setValueEditing] = useState(false);
   const [valueError, setValueError] = useState<string | null>(null);
+  const commitErrorRef = useRef<string | null>(null);
 
   // The "0x" prefix is rendered as a static label next to the field (see
   // ValueBar), so the editable draft holds bare digits: hex digits are
@@ -28,9 +29,8 @@ export function useValueEditing({
     if (valueView === 'dec') {
       return registerValue.toBigInt()?.toString(10) ?? '';
     }
-    return (registerValue.toHex() ?? '')
-      .toUpperCase()
-      .padStart(hexDigitsForBits(registerSize), '0');
+    const hex = registerValue.toHex() ?? registerValue.toBigInt()?.toString(16) ?? '';
+    return hex.toUpperCase().padStart(hexDigitsForBits(registerSize), '0');
   }, [registerValue, valueView, registerSize]);
 
   // This hook only writes registerValue on commit (blur/Enter in ValueBar),
@@ -45,7 +45,8 @@ export function useValueEditing({
     if (!valueEditing) {
       lastRegisterValueRef.current = registerValue;
       setValueDraft(registerValueText);
-      setValueError(null);
+      setValueError(commitErrorRef.current);
+      commitErrorRef.current = null;
       return;
     }
     if (!registerValue.equals(lastRegisterValueRef.current)) {
@@ -69,7 +70,9 @@ export function useValueEditing({
     if (err || parsed === null) {
       return;
     }
-    applyRegisterValue(parsed);
+    const applyError = applyRegisterValue(parsed) ?? null;
+    commitErrorRef.current = applyError;
+    setValueError(applyError);
   };
 
   return {

@@ -83,7 +83,16 @@ export class DataInspectorPanel {
       return;
     }
     if (message.type === 'saveRecipe') {
-      await saveDataInspectorRecipeAs(message.recipe);
+      try {
+        await saveDataInspectorRecipeAs(message.recipe, this.context.extensionPath);
+      } catch (error) {
+        this.logger.error('Failed to save Data Inspector recipe', error as Error);
+        const response: DataInspectorToWebviewMessage = {
+          type: 'recipeError',
+          error: error instanceof Error ? error.message : String(error),
+        };
+        await this.panel.webview.postMessage(response);
+      }
       return;
     }
     if (message.type !== 'requestRegisterLayouts') {

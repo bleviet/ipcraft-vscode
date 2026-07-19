@@ -111,6 +111,11 @@ label {
   color: var(--di-muted);
   font-size: 11px;
 }
+.di-save-status {
+  color: var(--di-warning);
+  font-size: 11px;
+  font-weight: 600;
+}
 .di-card,
 .di-composer {
   border: 1px solid var(--di-line);

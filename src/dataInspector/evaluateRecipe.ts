@@ -50,16 +50,18 @@ function unknownOutputWidth(
   inputWidth: number,
   operandWidth: number | undefined
 ): number {
+  let width = inputWidth;
   if (step.type === 'concat') {
-    return inputWidth + (operandWidth ?? inputWidth);
+    width = inputWidth + (operandWidth ?? inputWidth);
+  } else if (step.type === 'slice' && step.msb !== undefined && step.lsb !== undefined) {
+    width = step.msb - step.lsb + 1;
+  } else if (
+    ['zeroExtend', 'signExtend', 'truncate'].includes(step.type) &&
+    step.width !== undefined
+  ) {
+    width = step.width;
   }
-  if (step.type === 'slice' && step.msb !== undefined && step.lsb !== undefined) {
-    return step.msb - step.lsb + 1;
-  }
-  if (['zeroExtend', 'signExtend', 'truncate'].includes(step.type) && step.width !== undefined) {
-    return step.width;
-  }
-  return inputWidth;
+  return Number.isInteger(width) ? Math.max(1, width) : 1;
 }
 
 function dependencyError(

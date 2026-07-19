@@ -14,7 +14,7 @@ describe('Data Inspector commands', () => {
       .mocked(vscode.window.showSaveDialog)
       .mockImplementation(async () => vscode.Uri.file('/workspace/demo'));
 
-    await saveDataInspectorRecipeAs(createEmptyRecipe('address-decode'));
+    await saveDataInspectorRecipeAs(createEmptyRecipe('address-decode'), process.cwd());
 
     expect(vscode.window.showSaveDialog).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -30,5 +30,33 @@ describe('Data Inspector commands', () => {
       expect.objectContaining({ fsPath: '/workspace/demo.ipci.yml' }),
       EDITOR_VIEW_TYPE_DATA_INSPECTOR
     );
+  });
+
+  it('rejects an invalid recipe before offering a save location', async () => {
+    const recipe = createEmptyRecipe('invalid');
+    recipe.sources[0].width = 0;
+
+    await expect(saveDataInspectorRecipeAs(recipe, process.cwd())).rejects.toThrow();
+
+    expect(vscode.window.showSaveDialog).not.toHaveBeenCalled();
+    expect(vscode.workspace.fs.writeFile).not.toHaveBeenCalled();
+  });
+
+  it('rejects a schema-valid recipe with semantic conflicts before writing', async () => {
+    const recipe = createEmptyRecipe('overlapping');
+    recipe.fields = ['field-a', 'field-b'].map((id) => ({
+      id,
+      name: id.toUpperCase(),
+      sourceId: 'input',
+      msb: 1,
+      lsb: 0,
+      groupId: 'default',
+      display: { interpretation: 'hex' as const },
+    }));
+
+    await expect(saveDataInspectorRecipeAs(recipe, process.cwd())).rejects.toThrow('overlaps');
+
+    expect(vscode.window.showSaveDialog).not.toHaveBeenCalled();
+    expect(vscode.workspace.fs.writeFile).not.toHaveBeenCalled();
   });
 });

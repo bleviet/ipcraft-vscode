@@ -1,7 +1,7 @@
-import * as path from 'path';
 import * as vscode from 'vscode';
 import { applyPathEdits } from '../yamledit';
-import { parseRecipe, validateRecipeSemantics } from '../dataInspector/recipe';
+import { parseRecipe } from '../dataInspector/recipe';
+import { validateDataInspectorRecipe } from '../dataInspector/validateRecipe';
 import type {
   DataInspectorToExtensionMessage,
   DataInspectorToWebviewMessage,
@@ -10,6 +10,7 @@ import { DataInspectorRegisterLayoutReader } from '../services/DataInspectorRegi
 import { createSharedProviderServices } from './providerServices';
 import { Logger } from '../utils/Logger';
 import { saveDataInspectorRecipeAs } from '../commands/DataInspectorCommands';
+import { WebviewRouter } from '../services/WebviewRouter';
 
 export class DataInspectorRecipeEditorProvider implements vscode.CustomTextEditorProvider {
   private readonly logger = new Logger('DataInspectorRecipeEditorProvider');
@@ -29,13 +30,16 @@ export class DataInspectorRecipeEditorProvider implements vscode.CustomTextEdito
     webviewPanel.webview.html = this.services.htmlGenerator.generateDataInspectorHtml(
       webviewPanel.webview
     );
-    const disposables: vscode.Disposable[] = [];
-    let ready = false;
 
-    const postRecipe = () => {
-      if (!ready) {
-        return;
-      }
+    const postError = (error: unknown) => {
+      const message: DataInspectorToWebviewMessage = {
+        type: 'recipeError',
+        error: error instanceof Error ? error.message : String(error),
+      };
+      void webviewPanel.webview.postMessage(message);
+    };
+
+    const postRecipe = (sourceEditId?: number, forceResync = false) => {
       try {
         const recipe = this.validate(document.getText());
         const message: DataInspectorToWebviewMessage = {
@@ -43,68 +47,78 @@ export class DataInspectorRecipeEditorProvider implements vscode.CustomTextEdito
           recipe,
           fileName: this.services.documentManager.getRelativePath(document.uri),
           docVersion: document.version,
+          sourceEditId,
+          forceResync,
         };
         void webviewPanel.webview.postMessage(message);
       } catch (error) {
-        const message: DataInspectorToWebviewMessage = {
-          type: 'recipeError',
-          error: error instanceof Error ? error.message : String(error),
-        };
-        void webviewPanel.webview.postMessage(message);
+        postError(error);
       }
     };
 
-    webviewPanel.webview.onDidReceiveMessage(
-      (message: DataInspectorToExtensionMessage) => {
-        void (async () => {
-          if (message.type === 'ready') {
-            ready = true;
-            postRecipe();
-          } else if (message.type === 'requestRegisterLayouts') {
-            const response: DataInspectorToWebviewMessage = {
-              type: 'registerLayouts',
-              layouts: await this.registerLayouts.load(),
-            };
-            await webviewPanel.webview.postMessage(response);
-          } else if (message.type === 'updateRecipe') {
-            this.validateRecipe(message.recipe);
-            const nextText = applyPathEdits(document.getText(), [
-              { path: [], value: message.recipe },
-            ]);
-            const result = await this.services.documentManager.updateDocument(
-              document,
-              nextText,
-              message.baseDocVersion
-            );
-            if (result.type === 'rejected') {
-              postRecipe();
-            }
-          } else if (message.type === 'saveRecipe') {
-            await saveDataInspectorRecipeAs(message.recipe);
-          }
-        })().catch((error: unknown) => {
-          this.logger.error('Recipe editor message failed', error as Error);
+    const router = new WebviewRouter<DataInspectorToExtensionMessage>({
+      webviewPanel,
+      document,
+      logger: this.logger,
+      onReady: () => postRecipe(),
+    });
+
+    router
+      .on('requestRegisterLayouts', async () => {
+        try {
           const response: DataInspectorToWebviewMessage = {
-            type: 'recipeError',
-            error: error instanceof Error ? error.message : String(error),
+            type: 'registerLayouts',
+            layouts: await this.registerLayouts.load(),
           };
-          void webviewPanel.webview.postMessage(response);
-        });
-      },
-      undefined,
-      disposables
-    );
+          await webviewPanel.webview.postMessage(response);
+        } catch (error) {
+          postError(error);
+        }
+      })
+      .on('updateRecipe', async (message) => {
+        try {
+          this.validateRecipe(message.recipe);
+          const nextText = applyPathEdits(document.getText(), [
+            { path: [], value: message.recipe },
+          ]);
+          router.trackSourceEditId(message.editId);
+          const result = await this.services.documentManager.updateDocument(
+            document,
+            nextText,
+            message.baseDocVersion
+          );
+          if (result.type === 'noop') {
+            router.forgetSourceEditId(message.editId);
+          } else if (result.type === 'rejected') {
+            router.forgetSourceEditId(message.editId);
+            if (result.reason === 'stale-base') {
+              void vscode.window.showWarningMessage(
+                `File "${this.services.documentManager.getRelativePath(document.uri)}" has changed on disk. Visual editor has been reloaded.`
+              );
+            }
+            postRecipe(undefined, result.reason === 'stale-base');
+          }
+        } catch (error) {
+          router.forgetSourceEditId(message.editId);
+          postError(error);
+        }
+      })
+      .on('saveRecipe', async (message) => {
+        try {
+          await saveDataInspectorRecipeAs(message.recipe, this.context.extensionPath);
+        } catch (error) {
+          postError(error);
+        }
+      });
 
     const documentChanges = vscode.workspace.onDidChangeTextDocument((event) => {
       if (event.document.uri.toString() === document.uri.toString()) {
-        postRecipe();
+        postRecipe(router.popSourceEditId());
       }
     });
-    disposables.push(documentChanges);
     webviewPanel.onDidDispose(() => {
-      disposables.forEach((disposable) => {
-        disposable.dispose();
-      });
+      documentChanges.dispose();
+      router.dispose();
     });
   }
 
@@ -115,20 +129,6 @@ export class DataInspectorRecipeEditorProvider implements vscode.CustomTextEdito
   }
 
   private validateRecipe(recipe: ReturnType<typeof parseRecipe>): void {
-    const schemaPath = path.join(
-      this.context.extensionPath,
-      'dist',
-      'resources',
-      'schemas',
-      'data_inspector.schema.json'
-    );
-    const schemaResult = this.services.yamlValidator.validateAgainstSchema(recipe, schemaPath);
-    if (!schemaResult.valid) {
-      throw new Error(schemaResult.error ?? 'Recipe schema validation failed');
-    }
-    const semanticErrors = validateRecipeSemantics(recipe);
-    if (semanticErrors.length > 0) {
-      throw new Error(semanticErrors.join('; '));
-    }
+    validateDataInspectorRecipe(recipe, this.context.extensionPath, this.services.yamlValidator);
   }
 }

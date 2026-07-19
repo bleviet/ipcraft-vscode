@@ -90,7 +90,9 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
     // `onUpdate`, so it can't accidentally end up in the .mm.yml file.
     // See https://github.com/bleviet/ipcraft-vscode/issues/39.
     const { debugMode } = useDebugMode();
-    const [debugOverrides, setDebugOverrides] = useState<Record<number, number | null>>({});
+    const [debugOverrides, setDebugOverrides] = useState<Record<number, number | bigint | null>>(
+      {}
+    );
 
     useEffect(() => {
       setDebugOverrides({});
@@ -100,11 +102,13 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
       if (!debugMode || Object.keys(debugOverrides).length === 0) {
         return fields;
       }
-      return fields.map((f, i) =>
-        Object.prototype.hasOwnProperty.call(debugOverrides, i)
-          ? { ...f, resetValue: debugOverrides[i] }
-          : f
-      );
+      return fields.map((f, i) => {
+        const override = debugOverrides[i];
+        return Object.prototype.hasOwnProperty.call(debugOverrides, i) &&
+          typeof override !== 'bigint'
+          ? { ...f, resetValue: override }
+          : f;
+      });
     }, [fields, debugMode, debugOverrides]);
 
     const debugAwareUpdate: YamlUpdateHandler = useCallback(
@@ -112,7 +116,10 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
         if (debugMode) {
           const [seg0, seg1, seg2] = path;
           if (seg0 === 'fields' && typeof seg1 === 'number' && seg2 === 'resetValue') {
-            setDebugOverrides((prev) => ({ ...prev, [seg1]: value as number | null }));
+            setDebugOverrides((prev) => ({
+              ...prev,
+              [seg1]: value as number | bigint | null,
+            }));
           }
           return;
         }
@@ -155,7 +162,7 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
 
     // Normalise fields for BitFieldVisualizer (provide bitRange).
     const normalisedFields = useMemo(() => {
-      return effectiveFields.map((f: BitFieldRecord) => {
+      return effectiveFields.map((f: BitFieldRecord, fieldIndex) => {
         const mappedF = {
           ...f,
           name: f.name ?? undefined,
@@ -177,12 +184,13 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
           const hi = lo + width - 1;
           return { ...mappedF, bitRange: [hi, lo] as [number, number] };
         }
-        return mappedF;
+        const debugValue = debugMode ? debugOverrides[fieldIndex] : undefined;
+        return typeof debugValue === 'bigint' ? { ...mappedF, resetValue: debugValue } : mappedF;
       });
-    }, [effectiveFields]);
+    }, [effectiveFields, debugMode, debugOverrides]);
 
     const handleUpdateFieldReset = useCallback(
-      (fieldIndex: number, resetValue: number | null) => {
+      (fieldIndex: number, resetValue: number | bigint | null) => {
         debugAwareUpdate(['fields', fieldIndex, 'resetValue'], resetValue);
       },
       [debugAwareUpdate]
@@ -195,9 +203,17 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
 
     const applyRegisterValue = useCallback(
       (value: import('../../../dataInspector/BitVector').BitVector) => {
+        let unsafeForYaml = false;
+        applyRegisterBitVectorToFields(normalisedFields, value, (_fieldIndex, fieldValue) => {
+          unsafeForYaml ||= typeof fieldValue === 'bigint';
+        });
+        if (!debugMode && unsafeForYaml) {
+          return "Values above JavaScript's safe integer limit require Debug Mode";
+        }
         applyRegisterBitVectorToFields(normalisedFields, value, handleUpdateFieldReset);
+        return null;
       },
-      [normalisedFields, handleUpdateFieldReset]
+      [normalisedFields, handleUpdateFieldReset, debugMode]
     );
 
     const {

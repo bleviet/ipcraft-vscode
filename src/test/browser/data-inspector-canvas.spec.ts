@@ -295,6 +295,40 @@ test.describe('Data Inspector transform canvas', () => {
     expect(updateCount).toBe(1);
   });
 
+  test('topologically reorders dependencies changed through the Inspector', async ({ page }) => {
+    await page.waitForTimeout(250);
+    await page.evaluate(() => {
+      (window as unknown as { __vscodeMessages: unknown[] }).__vscodeMessages = [];
+    });
+    await page.locator('.react-flow__node[data-id="inverted"]').click();
+    await page.getByLabel('Primary input').selectOption('masked');
+
+    await expect
+      .poll(() =>
+        page.evaluate(() => {
+          const update = (
+            window as unknown as {
+              __vscodeMessages: Array<{
+                type: string;
+                recipe?: { steps: Array<{ id: string; inputId: string }> };
+              }>;
+            }
+          ).__vscodeMessages.find((message) => message.type === 'updateRecipe');
+          const steps = update?.recipe?.steps;
+          if (!steps) {
+            return null;
+          }
+          return {
+            inputId: steps.find((step) => step.id === 'inverted')?.inputId,
+            maskedIndex: steps.findIndex((step) => step.id === 'masked'),
+            invertedIndex: steps.findIndex((step) => step.id === 'inverted'),
+          };
+        })
+      )
+      .toEqual({ inputId: 'masked', maskedIndex: 0, invertedIndex: 1 });
+    await expect(page.getByRole('button', { name: 'Problems 0' })).toBeVisible();
+  });
+
   test('shows a width error without sending the invalid recipe', async ({ page }) => {
     await page.waitForTimeout(250);
     await page.evaluate(
@@ -314,6 +348,8 @@ test.describe('Data Inspector transform canvas', () => {
       page.locator('.react-flow__node[data-id="masked"] .di-flow-step.is-error')
     ).toContainText('operands must have equal widths');
     await expect(page.locator('.react-flow__edge.is-error')).toHaveCount(1);
+    await expect(page.getByRole('status')).toHaveText('Not saved — 1 problem');
+    await expect(page.getByRole('button', { name: 'Save recipe…' })).toBeDisabled();
     await page.waitForTimeout(180);
     const updateCount = await page.evaluate(
       () =>
@@ -322,6 +358,57 @@ test.describe('Data Inspector transform canvas', () => {
         ).__vscodeMessages.filter((message) => message.type === 'updateRecipe').length
     );
     expect(updateCount).toBe(0);
+  });
+
+  test('ignores its own recipe echo without reverting a newer local edit', async ({ page }) => {
+    await page.waitForTimeout(250);
+    await page.evaluate(() => {
+      (window as unknown as { __vscodeMessages: unknown[] }).__vscodeMessages = [];
+    });
+
+    await page.getByLabel('Source 1 name').fill('STATUS_RENAMED');
+    await expect
+      .poll(() =>
+        page.evaluate(() => {
+          const update = (
+            window as unknown as {
+              __vscodeMessages: Array<{ type: string; editId?: number }>;
+            }
+          ).__vscodeMessages.find((message) => message.type === 'updateRecipe');
+          return update?.editId;
+        })
+      )
+      .toBeTruthy();
+    const editId = await page.evaluate(() => {
+      const update = (
+        window as unknown as {
+          __vscodeMessages: Array<{ type: string; editId?: number }>;
+        }
+      ).__vscodeMessages.find((message) => message.type === 'updateRecipe');
+      return update!.editId!;
+    });
+    await page.locator('.react-flow__node[data-id="masked"]').click();
+
+    await page.evaluate(
+      ({ staleRecipe, sourceEditId }) => {
+        window.dispatchEvent(
+          new MessageEvent('message', {
+            data: {
+              type: 'recipe',
+              recipe: staleRecipe,
+              fileName: 'browser.ipci.yml',
+              docVersion: 2,
+              sourceEditId,
+            },
+          })
+        );
+      },
+      { staleRecipe: recipe, sourceEditId: editId }
+    );
+
+    await expect(page.getByLabel('Inspector tools').getByRole('heading')).toHaveText('masked');
+    await page.locator('.react-flow__node[data-id="input"]').click();
+    await expect(page.getByLabel('Source 1 name')).toHaveValue('STATUS_RENAMED');
   });
 
   test('wires an operation in one recipe update and saves its canvas position', async ({
@@ -405,6 +492,8 @@ test.describe('Data Inspector transform canvas', () => {
       );
     });
     await expect(page.locator('.di-flow-step.is-draft')).toHaveCount(0);
+    await expect(page.getByRole('status')).toHaveText('Not saved — 1 problem');
+    await expect(page.getByRole('button', { name: 'Save recipe…' })).toBeDisabled();
     const updateCount = await page.evaluate(
       () =>
         (

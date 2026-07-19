@@ -2,12 +2,15 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { resolveVendor } from '../utils/resolveVendor';
 import { isIpCoreFile } from '../utils/fileExtensions';
-import { EDITOR_VIEW_TYPE_IP_CORE, EDITOR_VIEW_TYPE_MEMORY_MAP } from '../utils/editorViewTypes';
+import {
+  EDITOR_VIEW_TYPE_DATA_INSPECTOR,
+  EDITOR_VIEW_TYPE_IP_CORE,
+  EDITOR_VIEW_TYPE_MEMORY_MAP,
+} from '../utils/editorViewTypes';
 import { CONFIG_KEY_IPCRAFT_IMPORT } from '../utils/configKeys';
 import { handleErrorWithUserNotification } from '../utils/ErrorHandler';
 import { stringify } from 'yaml';
 import { createEmptyRecipe } from '../dataInspector/recipe';
-import { EDITOR_VIEW_TYPE_DATA_INSPECTOR } from '../utils/editorViewTypes';
 
 function generateMemoryMapTemplate(name: string): string {
   return `- name: ${name}

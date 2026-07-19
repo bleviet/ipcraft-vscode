@@ -1,4 +1,5 @@
 import { BitVector } from './BitVector';
+import { uniqueStableId } from './stableId';
 
 export interface InspectorField {
   id: string;
@@ -16,6 +17,20 @@ export interface SourceInspectorField extends InspectorField {
 
 export interface ProjectedInspectorField extends InspectorField {
   sourceFieldId: string;
+}
+
+/** Copies a register layout into one source with IDs unique across the whole recipe. */
+export function copyFieldsForSource(
+  fields: readonly InspectorField[],
+  sourceId: string,
+  existingIds: ReadonlySet<string>
+): InspectorField[] {
+  const usedIds = new Set(existingIds);
+  return fields.map((field) => {
+    const id = uniqueStableId(`${sourceId}-${field.id}`, usedIds);
+    usedIds.add(id);
+    return { ...field, id };
+  });
 }
 
 /** Projects source-local field ranges onto a derived value using per-bit provenance. */

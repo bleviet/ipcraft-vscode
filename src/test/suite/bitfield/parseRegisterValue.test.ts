@@ -1,8 +1,11 @@
 import {
+  applyRegisterBitVectorToFields,
+  buildRegisterBitVector,
   hexDigitsForBits,
   parseRegisterBitVector,
   parseRegisterValue,
 } from '../../../webview/components/bitfield/utils';
+import { BitVector } from '../../../dataInspector/BitVector';
 
 describe('parseRegisterValue', () => {
   describe('hex view', () => {
@@ -51,6 +54,24 @@ describe('parseRegisterBitVector', () => {
 
   it('rejects values that do not fit instead of truncating', () => {
     expect(parseRegisterBitVector('100', 'hex', 8)).toBeNull();
+  });
+});
+
+describe('exact register field values', () => {
+  it('keeps wide field values as bigint instead of rounding through number', () => {
+    const fields = [{ bitRange: [63, 0] as [number, number], resetValue: BigInt(0) }];
+    const value = BitVector.fromBigInt(BigInt('0xFEDCBA9876543210'), 64);
+    const onFieldReset = jest.fn();
+
+    applyRegisterBitVectorToFields(fields, value, onFieldReset);
+
+    expect(onFieldReset).toHaveBeenCalledWith(0, BigInt('0xFEDCBA9876543210'));
+    expect(
+      buildRegisterBitVector(
+        [{ ...fields[0], resetValue: BigInt('0xFEDCBA9876543210') }],
+        64
+      ).toLiteral()
+    ).toBe("64'hFEDCBA9876543210");
   });
 });
 

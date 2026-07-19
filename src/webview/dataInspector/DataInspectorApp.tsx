@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { BitVector } from '../../dataInspector/BitVector';
 import {
+  copyFieldsForSource,
   decodeField,
   InspectorField,
   projectFieldsToOutput,
@@ -47,6 +48,7 @@ import { TransformTab } from './transform/TransformTab';
 import { WorkbenchLibrary } from './WorkbenchLibrary';
 import type { CanvasAddCommand } from './canvas/TransformCanvas';
 import { ButtonTooltip } from './ButtonTooltip';
+import { createRevisionState, nextEditRevision, shouldApplyUpdate } from '../sync/revisionFilter';
 
 declare const acquireVsCodeApi:
   | undefined
@@ -552,7 +554,6 @@ export function DataInspectorApp() {
   const [nextFieldNumber, setNextFieldNumber] = useState(1);
   const [recipeBase, setRecipeBase] = useState<IPCraftDataInspectorRecipe | null>(null);
   const [recipeFileName, setRecipeFileName] = useState('');
-  const [recipeDocVersion, setRecipeDocVersion] = useState<number | undefined>();
   const [recipeError, setRecipeError] = useState('');
   const [fieldProvenance, setFieldProvenance] = useState<
     Record<string, { sourceFile: string; registerName: string }>
@@ -598,13 +599,18 @@ export function DataInspectorApp() {
   const fieldPanelRef = useRef<HTMLDivElement>(null);
   const fieldDragPointerRef = useRef({ x: 0, y: 0 });
   const recipeInitializedRef = useRef(false);
+  const revisionStateRef = useRef(createRevisionState());
 
   useEffect(() => {
     const receive = (event: MessageEvent<DataInspectorToWebviewMessage>) => {
       if (event.data.type === 'registerLayouts') {
         setLayouts(event.data.layouts);
       } else if (event.data.type === 'recipe') {
-        const firstSource = event.data.recipe.sources[0];
+        if (!shouldApplyUpdate(revisionStateRef.current, event.data)) {
+          return;
+        }
+        const recipe = event.data.recipe;
+        const firstSource = recipe.sources[0];
         if (!recipeInitializedRef.current && firstSource) {
           const initialRecipeVector = BitVector.fromBigInt(BigInt(0), firstSource.width);
           setDraft('0');
@@ -614,25 +620,38 @@ export function DataInspectorApp() {
           setSourceOriginalTexts({ [firstSource.id]: '0' });
           recipeInitializedRef.current = true;
         }
-        setRecipeBase(event.data.recipe);
+        setRecipeBase(recipe);
         setRecipeFileName(event.data.fileName);
-        setRecipeDocVersion(event.data.docVersion);
-        setFields(recipeFields(event.data.recipe));
-        setLaneWidth(event.data.recipe.view.laneWidth);
-        setZoom(event.data.recipe.view.zoom);
-        setWidthDraft(String(event.data.recipe.sources[0]?.width ?? 32));
+        setFields(recipeFields(recipe));
+        setLaneWidth(recipe.view.laneWidth);
+        setZoom(recipe.view.zoom);
+        setWidthDraft(String(recipe.sources[0]?.width ?? 32));
         setFieldProvenance(
           Object.fromEntries(
-            event.data.recipe.fields
+            recipe.fields
               .filter((field) => field.importProvenance !== undefined)
               .map((field) => [field.id, field.importProvenance!])
           )
         );
         setFieldSourceIds(
-          Object.fromEntries(event.data.recipe.fields.map((field) => [field.id, field.sourceId]))
+          Object.fromEntries(recipe.fields.map((field) => [field.id, field.sourceId]))
         );
-        setSelectedNodeId(event.data.recipe.sources[0]?.id ?? 'input');
-        setInspectedValueId(event.data.recipe.sources[0]?.id ?? null);
+        const nextNumber =
+          recipe.fields.reduce((highest, field) => {
+            const match = /^field-(\d+)$/.exec(field.id);
+            return match ? Math.max(highest, Number(match[1])) : highest;
+          }, 0) + 1;
+        setNextFieldNumber((current) => Math.max(current, nextNumber));
+        const valueIds = new Set([
+          ...recipe.sources.map((source) => source.id),
+          ...recipe.steps.map((step) => step.id),
+        ]);
+        setSelectedNodeId((current) =>
+          valueIds.has(current) ? current : (recipe.sources[0]?.id ?? 'input')
+        );
+        setInspectedValueId((current) =>
+          current && valueIds.has(current) ? current : (recipe.sources[0]?.id ?? null)
+        );
         setRecipeError('');
       } else if (event.data.type === 'recipeError') {
         setRecipeError(event.data.error);
@@ -706,6 +725,10 @@ export function DataInspectorApp() {
     widthDraft,
     zoom,
   ]);
+  const recipeSemanticProblems = useMemo(
+    () => validateRecipeSemantics(currentRecipe),
+    [currentRecipe]
+  );
 
   useEffect(() => {
     setSourceDrafts((current) => {
@@ -746,18 +769,18 @@ export function DataInspectorApp() {
   }, [currentRecipe.sources, sourceDrafts]);
 
   useEffect(() => {
-    if (recipeBase === null || validateRecipeSemantics(currentRecipe).length > 0) {
+    if (recipeBase === null || recipeSemanticProblems.length > 0) {
       return;
     }
     const timeout = window.setTimeout(() => {
       vscode?.postMessage({
         type: 'updateRecipe',
         recipe: currentRecipe,
-        baseDocVersion: recipeDocVersion,
+        ...nextEditRevision(revisionStateRef.current),
       });
     }, 120);
     return () => window.clearTimeout(timeout);
-  }, [currentRecipe, recipeBase, recipeDocVersion]);
+  }, [currentRecipe, recipeBase, recipeSemanticProblems.length]);
 
   const parseValue = (literal: string, literalWidth = widthDraft) => {
     try {
@@ -945,6 +968,23 @@ export function DataInspectorApp() {
     });
   };
 
+  const connectStepDependency = (
+    stepId: string,
+    targetHandle: 'input' | 'operand',
+    sourceId: string
+  ) => {
+    try {
+      setRecipeBase(
+        applyGraphEdit(currentRecipe, { type: 'connect', sourceId, targetId: stepId, targetHandle })
+      );
+      setError('');
+    } catch (connectionError) {
+      setError(
+        connectionError instanceof Error ? connectionError.message : String(connectionError)
+      );
+    }
+  };
+
   const removeStep = (index: number) => {
     const removed = currentRecipe.steps[index];
     if (!removed) {
@@ -980,6 +1020,9 @@ export function DataInspectorApp() {
     setRecipeBase({ ...currentRecipe, sources: nextSources });
     setSamples(nextSamples);
     setVector(nextSamples[nextSources[0]?.id] ?? null);
+    if (nextSources[0]) {
+      setWidthDraft(String(nextSources[0].width));
+    }
     setVcdSampleIndex(index);
     setVcdSample(sample);
   };
@@ -1030,11 +1073,21 @@ export function DataInspectorApp() {
       setError('The default overlay group has no unassigned bits');
       return;
     }
-    const id = `field-${nextFieldNumber}`;
-    setNextFieldNumber((value) => value + 1);
+    const existingIds = new Set([
+      ...currentRecipe.sources.map((source) => source.id),
+      ...currentRecipe.fields.map((field) => field.id),
+      ...currentRecipe.overlayGroups.map((group) => group.id),
+      ...currentRecipe.steps.map((step) => step.id),
+    ]);
+    let fieldNumber = nextFieldNumber;
+    while (existingIds.has(`field-${fieldNumber}`)) {
+      fieldNumber += 1;
+    }
+    const id = `field-${fieldNumber}`;
+    setNextFieldNumber(fieldNumber + 1);
     setFields((current) => [
       ...current,
-      { id, name: `FIELD_${nextFieldNumber}`, msb: bit, lsb: bit, groupId: 'default' },
+      { id, name: `FIELD_${fieldNumber}`, msb: bit, lsb: bit, groupId: 'default' },
     ]);
     setFieldSourceIds((current) => ({ ...current, [id]: activeSource.id }));
     setSelectedFieldId(id);
@@ -1099,22 +1152,29 @@ export function DataInspectorApp() {
       return;
     }
     const activeIds = new Set(activeSourceFields.map((field) => field.id));
+    const reservedIds = new Set([
+      ...currentRecipe.sources.map((source) => source.id),
+      ...currentRecipe.fields.filter((field) => !activeIds.has(field.id)).map((field) => field.id),
+      ...currentRecipe.overlayGroups.map((group) => group.id),
+      ...currentRecipe.steps.map((step) => step.id),
+    ]);
+    const importedFields = copyFieldsForSource(layout.fields, activeSource.id, reservedIds);
     setFields((current) => [
       ...current.filter((field) => !activeIds.has(field.id)),
-      ...layout.fields.map((field) => ({ ...field })),
+      ...importedFields,
     ]);
     setFieldProvenance((current) => ({
-      ...current,
+      ...Object.fromEntries(Object.entries(current).filter(([fieldId]) => !activeIds.has(fieldId))),
       ...Object.fromEntries(
-        layout.fields.map((field) => [
+        importedFields.map((field) => [
           field.id,
           { sourceFile: layout.sourceFile, registerName: layout.registerName },
         ])
       ),
     }));
     setFieldSourceIds((current) => ({
-      ...current,
-      ...Object.fromEntries(layout.fields.map((field) => [field.id, activeSource.id])),
+      ...Object.fromEntries(Object.entries(current).filter(([fieldId]) => !activeIds.has(fieldId))),
+      ...Object.fromEntries(importedFields.map((field) => [field.id, activeSource.id])),
     }));
     if (layout.width !== activeSource.width) {
       setError(
@@ -1168,11 +1228,12 @@ export function DataInspectorApp() {
   };
 
   const problems = [
-    ...validateRecipeSemantics(currentRecipe),
+    ...recipeSemanticProblems,
     ...(error ? [error] : []),
     ...(recipeError ? [recipeError] : []),
     ...warnings,
   ].filter((problem, index, all) => all.indexOf(problem) === index);
+  const saveProblemCount = recipeSemanticProblems.length + (recipeError ? 1 : 0);
 
   const queueCanvasAdd = (kind: CanvasAddCommand['kind'], value: string) => {
     setCanvasAddCommand((current) => ({ id: (current?.id ?? 0) + 1, kind, value }));
@@ -1189,6 +1250,11 @@ export function DataInspectorApp() {
         </div>
         <div className="di-topbar-actions">
           <span className="di-status">Session only · samples are never saved</span>
+          {recipeBase !== null && saveProblemCount > 0 && (
+            <span className="di-save-status" role="status">
+              Not saved — {saveProblemCount} {saveProblemCount === 1 ? 'problem' : 'problems'}
+            </span>
+          )}
           {vector && (
             <>
               <button
@@ -1199,6 +1265,7 @@ export function DataInspectorApp() {
                 Problems {problems.length}
               </button>
               <button
+                disabled={saveProblemCount > 0}
                 onClick={() => vscode?.postMessage({ type: 'saveRecipe', recipe: currentRecipe })}
               >
                 Save recipe…
@@ -1699,9 +1766,7 @@ export function DataInspectorApp() {
                         <select
                           value={selectedStep.inputId}
                           onChange={(event) =>
-                            updateStep(currentRecipe.steps.indexOf(selectedStep), {
-                              inputId: event.target.value,
-                            })
+                            connectStepDependency(selectedStep.id, 'input', event.target.value)
                           }
                         >
                           {[...currentRecipe.sources, ...currentRecipe.steps]
@@ -1719,9 +1784,7 @@ export function DataInspectorApp() {
                           <select
                             value={selectedStep.operandId}
                             onChange={(event) =>
-                              updateStep(currentRecipe.steps.indexOf(selectedStep), {
-                                operandId: event.target.value,
-                              })
+                              connectStepDependency(selectedStep.id, 'operand', event.target.value)
                             }
                           >
                             {[...currentRecipe.sources, ...currentRecipe.steps]

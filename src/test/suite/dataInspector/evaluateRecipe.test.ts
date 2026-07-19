@@ -112,4 +112,23 @@ describe('evaluateRecipe', () => {
     expect(evaluation.steps[0].error).toBe('Input input2 has no sample');
     expect(evaluation.values.get('inverted')?.value.toLiteral()).toBe("32'hXXXXXXXX");
   });
+
+  it.each([
+    {
+      step: { id: 'invalid', type: 'slice' as const, inputId: 'missing', msb: 0, lsb: 5 },
+      expectedError: 'Input missing is disconnected',
+    },
+    {
+      step: { id: 'invalid', type: 'truncate' as const, inputId: 'missing', width: 0 },
+      expectedError: 'Input missing is disconnected',
+    },
+  ])('does not throw for invalid parameters on a disconnected step', ({ step, expectedError }) => {
+    const recipe = createEmptyRecipe('invalid disconnected step');
+    recipe.steps = [step];
+
+    const evaluation = evaluateRecipe(recipe, new Map());
+
+    expect(evaluation.steps[0].error).toBe(expectedError);
+    expect(evaluation.values.get('invalid')?.value.width).toBe(1);
+  });
 });

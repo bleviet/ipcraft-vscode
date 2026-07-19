@@ -289,11 +289,16 @@ export function buildRegisterBitVector(fields: FieldModel[], registerSize: numbe
       return;
     }
     const raw = field?.resetValue;
-    const fieldValue = raw === null || raw === undefined ? 0 : Number(raw);
     const fieldWidth = range.hi - range.lo + 1;
     let fieldVector: BitVector;
     try {
-      fieldVector = BitVector.fromBigInt(BigInt(Math.max(0, Math.trunc(fieldValue))), fieldWidth);
+      const fieldValue =
+        raw === null || raw === undefined
+          ? BigInt(0)
+          : typeof raw === 'bigint'
+            ? raw
+            : BigInt(Math.max(0, Math.trunc(raw)));
+      fieldVector = BitVector.fromBigInt(fieldValue, fieldWidth);
     } catch {
       fieldVector = BitVector.filled(fieldWidth, 0);
     }
@@ -324,7 +329,7 @@ export function applyRegisterValueToFields(
 export function applyRegisterBitVectorToFields(
   fields: FieldModel[],
   registerValue: BitVector,
-  onFieldReset: (fieldIndex: number, value: number) => void
+  onFieldReset: (fieldIndex: number, value: number | bigint) => void
 ): void {
   fields.forEach((field, fieldIndex) => {
     const range = getFieldRange(field);
@@ -333,7 +338,7 @@ export function applyRegisterBitVectorToFields(
     }
     const value = registerValue.slice(range.hi, range.lo).toBigInt();
     if (value !== null) {
-      onFieldReset(fieldIndex, Number(value));
+      onFieldReset(fieldIndex, value <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(value) : value);
     }
   });
 }

@@ -13,7 +13,12 @@ export interface RegisterLayoutCopy {
 export type DataInspectorToExtensionMessage =
   | { type: 'ready' }
   | { type: 'requestRegisterLayouts' }
-  | { type: 'updateRecipe'; recipe: IPCraftDataInspectorRecipe; baseDocVersion?: number }
+  | {
+      type: 'updateRecipe';
+      recipe: IPCraftDataInspectorRecipe;
+      editId: number;
+      baseDocVersion?: number;
+    }
   | { type: 'saveRecipe'; recipe: IPCraftDataInspectorRecipe };
 
 export type DataInspectorToWebviewMessage =
@@ -23,6 +28,8 @@ export type DataInspectorToWebviewMessage =
       recipe: IPCraftDataInspectorRecipe;
       fileName: string;
       docVersion: number;
+      sourceEditId?: number;
+      forceResync?: boolean;
     }
   | { type: 'recipeError'; error: string }
   | { type: 'applyRegisterLayout'; layout: RegisterLayoutCopy };

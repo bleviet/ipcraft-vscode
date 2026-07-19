@@ -1,6 +1,7 @@
 import React from 'react';
 import { createEvent, fireEvent, render, screen } from '@testing-library/react';
 import { parseLiteral } from '../../../dataInspector/parseLiteral';
+import { createEmptyRecipe } from '../../../dataInspector/recipe';
 import { DataInspectorApp, LaneRibbon } from '../../../webview/dataInspector/DataInspectorApp';
 
 beforeAll(() => {
@@ -131,6 +132,31 @@ describe('DataInspectorApp', () => {
     const row = screen.getByRole('row', { name: /FIELD_1/ });
     expect(row).toHaveClass('is-selected');
     expect(screen.getByTitle('FIELD_1 [7:7]')).toHaveClass('is-selected');
+  });
+
+  it('allocates a new field ID after IDs restored from a recipe', () => {
+    render(<DataInspectorApp />);
+    const recipe = createEmptyRecipe('restored');
+    recipe.fields.push({
+      id: 'field-1',
+      name: 'EXISTING',
+      sourceId: 'input',
+      msb: 7,
+      lsb: 7,
+      groupId: 'default',
+      display: { interpretation: 'unsigned' },
+    });
+    fireEvent(
+      window,
+      new MessageEvent('message', {
+        data: { type: 'recipe', recipe, fileName: 'restored.ipci.yml', docVersion: 1 },
+      })
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add field' }));
+
+    expect(screen.getByRole('row', { name: /FIELD_2/ })).toBeInTheDocument();
+    expect(screen.getByRole('row', { name: /EXISTING/ })).toBeInTheDocument();
   });
 
   it('deletes a focused field with the Delete key', () => {

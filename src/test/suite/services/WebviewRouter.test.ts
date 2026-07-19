@@ -125,6 +125,21 @@ describe('WebviewRouter', () => {
     expect(router.popSourceEditId()).toBe(101);
   });
 
+  it('exposes FIFO edit pairing for custom structured editors', () => {
+    const router = new WebviewRouter({
+      webviewPanel,
+      document: document as vscode.TextDocument,
+      logger: new Logger('TestRouter'),
+      onReady: onReadyMock,
+    });
+
+    router.trackSourceEditId(11);
+    router.trackSourceEditId(12);
+    router.forgetSourceEditId(11);
+
+    expect(router.popSourceEditId()).toBe(12);
+  });
+
   it('force-resyncs the webview when an edit is rejected as stale-base', async () => {
     // Models the V-3/V-4 interleave: a webview edit is based on a version the
     // document has since moved past (e.g. an external edit landed first), so the
