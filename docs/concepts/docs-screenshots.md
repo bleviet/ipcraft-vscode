@@ -4,7 +4,9 @@ Generating documentation images from the real compiled webview, driven by a decl
 
 ## Why
 
-`docs/` has ~50 markdown pages and no images. The only screenshots in the repo are two hand-captured PNGs in `resources/screenshots/`, referenced from `README.md`. Because they are captured by hand, they drift silently whenever the UI changes.
+Documentation screenshots are generated from the current compiled webviews.
+This avoids the silent drift that occurred when the repository relied on a small
+set of hand-captured images.
 
 The browser test harness in `src/test/browser/` already loads the real compiled webview bundles and renders real YAML. Screenshot generation is therefore not new infrastructure -- it is one additional consumer of an existing harness.
 
@@ -18,11 +20,11 @@ The browser test harness in `src/test/browser/` already loads the real compiled 
 
 Everything is driven by a manifest. One entry describes one image; a generic runner loops over the manifest and captures each entry in both themes.
 
-| Situation | What you do |
-|-----------|-------------|
-| New concept needs an image | Append one entry to `shots.ts`, add one markdown image pair |
-| UI changed | Rerun `npm run docs:screenshots`; all images move forward together |
-| UI change breaks a shot | The `setup` selector fails and the run errors |
+| Situation                  | What you do                                                        |
+| -------------------------- | ------------------------------------------------------------------ |
+| New concept needs an image | Append one entry to `shots.ts`, embed its light PNG in markdown    |
+| UI changed                 | Rerun `npm run docs:screenshots`; all images move forward together |
+| UI change breaks a shot    | The `setup` selector fails and the run errors                      |
 
 Images are never hand-edited. The manifest is the source of truth for which images exist; the compiled bundle is the source of truth for how they look.
 
@@ -30,16 +32,19 @@ There is deliberately **no CI staleness gate**. Regenerating on every PR would f
 
 ## Existing harness
 
-Two standalone HTML pages, loaded over `file://` with no dev server:
+Three standalone HTML pages are loaded over `file://` with no dev server:
 
-| Harness | Root | Bundles | Data injection |
-|---------|------|---------|----------------|
-| `src/test/browser/index.html` | `#root` | `dist/webview.{js,css}` | `window.__RENDER__(text)` |
-| `src/test/browser/ipcore.html` | `#ipcore-root` | `dist/ipcore.{js,css}` | `window.postMessage({type:'update', text, fileName}, '*')` |
+| Harness                                | Root                   | Bundles                       | Data injection                                             |
+| -------------------------------------- | ---------------------- | ----------------------------- | ---------------------------------------------------------- |
+| `src/test/browser/index.html`          | `#root`                | `dist/webview.{js,css}`       | `window.__RENDER__(text)`                                  |
+| `src/test/browser/ipcore.html`         | `#ipcore-root`         | `dist/ipcore.{js,css}`        | `window.postMessage({type:'update', text, fileName}, '*')` |
+| `src/test/browser/data-inspector.html` | `#data-inspector-root` | `dist/dataInspector.{js,css}` | `window.renderRecipe(recipe)`                              |
 
 Both stub `acquireVsCodeApi` inline before the bundle script tag -- required, because `src/webview/vscode.ts` calls it at module load. Both signal readiness by posting `{type:'ready'}`, which the stub logs with a `VSCODE_MESSAGE:` prefix.
 
-The asymmetry matters: `__RENDER__` is registered only in `src/webview/index.tsx`. The IP Core app has no equivalent and must be fed through `postMessage`.
+The asymmetry matters: each bundle uses its existing browser-test entry point.
+`__RENDER__` belongs only to the Memory Map app, the IP Core app receives an
+`update` message, and the Data Inspector harness exposes `renderRecipe`.
 
 ## Design
 
@@ -61,26 +66,31 @@ docs/images/          # committed output
 
 ```ts
 export interface Shot {
-  id: string;                             // -> docs/images/<id>-{dark,light}.png
-  harness: 'memorymap' | 'ipcore';
-  source: string;                         // repo-relative YAML path
+  id: string; // -> docs/images/<id>-{dark,light}.png
+  harness: 'memorymap' | 'ipcore' | 'dataInspector';
+  source: string; // repo-relative YAML path
   viewport?: { width: number; height: number };
-  clip?: string;                          // optional selector -> capture one element
-  setup?: (page: Page) => Promise<void>;  // clicks/expansion before capture
+  clip?: string; // optional selector -> capture one element
+  setup?: (page: Page) => Promise<void>; // clicks/expansion before capture
 }
 ```
 
 Source YAML comes from `examples/led_avmm/led_controller_avmm.{ip,mm}.yml` -- real, hardware-validated specs that the LED controller tutorials already walk through, so screenshots and prose describe the same design. The `src/test/fixtures/` files are deliberately minimal and would render a thin, unconvincing UI.
 
-Initial manifest:
+Manifest:
 
-| id | Harness | Capture | Used by |
-|----|---------|---------|---------|
-| `memorymap-editor` | memorymap | full | `README.md`, `docs/index.md` |
-| `ipcore-editor` | ipcore | full | `README.md`, `docs/index.md`, "Scaffolding the project" |
-| `outline-tree` | memorymap | `aside.sidebar` | "The register map" |
-| `bitfield-visualizer` | memorymap | `main section` | "The register map" (LED_PATTERN) |
-| `fields-table-access` | memorymap | `[data-fields-table="true"] table` | "The register map" (EVENTS, `monitorChangeOf`) |
+| id                                | Harness       | Capture                            | Used by                                                 |
+| --------------------------------- | ------------- | ---------------------------------- | ------------------------------------------------------- |
+| `memorymap-editor`                | memorymap     | full                               | `README.md`, `docs/index.md`                            |
+| `ipcore-editor`                   | ipcore        | full                               | `README.md`, `docs/index.md`, "Scaffolding the project" |
+| `outline-tree`                    | memorymap     | `aside.sidebar`                    | "The register map"                                      |
+| `bitfield-visualizer`             | memorymap     | `main section`                     | "The register map" (LED_PATTERN)                        |
+| `fields-table-access`             | memorymap     | `[data-fields-table="true"] table` | "The register map" (EVENTS, `monitorChangeOf`)          |
+| `data-inspector-workspace`        | dataInspector | full                               | "Using the Data Inspector", visual-workspace reference  |
+| `data-inspector-bit-visualizer`   | dataInspector | Continuous Vector Bits             | "Using the Data Inspector", architecture reference      |
+| `data-inspector-operator-library` | dataInspector | Library rail                       | "Using the Data Inspector", visual-workspace reference  |
+| `data-inspector-fields`           | dataInspector | Inspector rail                     | "Using the Data Inspector"                              |
+| `data-inspector-capture`          | dataInspector | Inspector rail                     | capture examples                                        |
 
 All four tutorial placements are in `docs/tutorials/led-controller-avmm-authoring.md` -- not `memory-mapped-registers.md`, whose worked example is `daq_controller`, a different fixture. The `EVENTS` register in the LED example is write-1-to-clear with `monitorChangeOf`, which is exactly what that tutorial's register-map section describes, and its register-map table matches the LED example field-for-field.
 
@@ -95,7 +105,7 @@ The runner reuses the existing harness HTML unmodified on disk -- no duplicate h
 5. Run `shot.setup`, then `page.screenshot()` or `page.locator(shot.clip).screenshot()`.
 
 !!! warning "Theme injection must land before the bundle's own `<script>` runs"
-    Text/dropdown inputs are `@vscode/webview-ui-toolkit` custom elements (`<vscode-text-field>`, `<vscode-dropdown>`). Each one reads a `--vscode-*` custom property into its own internal design token (e.g. `--input-background` from `--vscode-input-background`) **once**, the moment it first connects to the DOM -- not as a live `var()` binding. A `page.addStyleTag()` call issued after `page.goto()` (even one that runs before any YAML is rendered) is too late: the app has already mounted, every token has already snapshotted the still-unset variable, and it permanently falls back to the toolkit's own hardcoded default (`#3c3c3c` for `--input-background`) regardless of theme. That default happens to look plausible in a *dark* theme and was easy to miss; in a *light* theme it renders as a dark-gray box no one would mistake for correct.
+Text/dropdown inputs are `@vscode/webview-ui-toolkit` custom elements (`<vscode-text-field>`, `<vscode-dropdown>`). Each one reads a `--vscode-*` custom property into its own internal design token (e.g. `--input-background` from `--vscode-input-background`) **once**, the moment it first connects to the DOM -- not as a live `var()` binding. A `page.addStyleTag()` call issued after `page.goto()` (even one that runs before any YAML is rendered) is too late: the app has already mounted, every token has already snapshotted the still-unset variable, and it permanently falls back to the toolkit's own hardcoded default (`#3c3c3c` for `--input-background`) regardless of theme. That default happens to look plausible in a _dark_ theme and was easy to miss; in a _light_ theme it renders as a dark-gray box no one would mistake for correct.
 
     `page.addInitScript()` does not fix this either -- content it appends to `document.documentElement` before navigation gets discarded once the real HTML parser starts writing `<head>`/`<body>` for the navigated document. Routing the request and inlining the `<style>` directly into the served HTML is the only ordering that reliably lands before the bundle's `<script>` tag executes.
 
@@ -108,15 +118,19 @@ Two ways to produce one, in order of preference:
 **1. Live devtools dump (pixel-exact, manual).** VS Code injects every `--vscode-*` value as inline style on `document.documentElement`, so a one-time dump captures them exactly. Run in the devtools console of a live IPCraft webview (Help -> Toggle Developer Tools with an editor open, under the color theme you want to capture):
 
 ```js
-copy(':root{' + Array.from(document.documentElement.style)
-  .filter(n => n.startsWith('--vscode-'))
-  .map(n => `${n}:${document.documentElement.style.getPropertyValue(n)}`)
-  .join(';') + '}');
+copy(
+  ':root{' +
+    Array.from(document.documentElement.style)
+      .filter((n) => n.startsWith('--vscode-'))
+      .map((n) => `${n}:${document.documentElement.style.getPropertyValue(n)}`)
+      .join(';') +
+    '}'
+);
 ```
 
 Paste the clipboard contents into the target `theme/*.css` file.
 
-**2. Offline extraction from the installed VS Code app (no live session needed).** `theme/dark.css`, `theme/light.css`, and `theme/dracula.css` were produced this way, not via the dump above. For a bundled theme (Dark Modern, Light Modern), read `extensions/theme-defaults/themes/<name>.json` inside `/Applications/Visual Studio Code.app/Contents/Resources/app`; for an installed theme extension (Dracula), read its own `theme/*.json` under `~/.vscode/extensions/<publisher>.<name>-<version>/`. Either way that JSON's `colors` map only covers what the theme *overrides* -- resolve everything else against VS Code's core color registry, whose literal `dark`/`light` defaults are readable directly out of the shipped `out/vs/workbench/workbench.desktop.main.js` (search for `oe("<colorId>",{dark:"#...",light:"#...",...`). A handful of colors are neither theme-overridden nor a registry literal -- VS Code derives them at runtime via a lighten/opacity blend of another color (e.g. `statusBarItem.warningBackground` is `editorWarning.foreground` at 40% alpha). These are approximated by hand from the theme's own base color and marked `/* APPROXIMATED */` in the generated CSS; everything else is authoritative, not guessed.
+**2. Offline extraction from the installed VS Code app (no live session needed).** `theme/dark.css`, `theme/light.css`, and `theme/dracula.css` were produced this way, not via the dump above. For a bundled theme (Dark Modern, Light Modern), read `extensions/theme-defaults/themes/<name>.json` inside `/Applications/Visual Studio Code.app/Contents/Resources/app`; for an installed theme extension (Dracula), read its own `theme/*.json` under `~/.vscode/extensions/<publisher>.<name>-<version>/`. Either way that JSON's `colors` map only covers what the theme _overrides_ -- resolve everything else against VS Code's core color registry, whose literal `dark`/`light` defaults are readable directly out of the shipped `out/vs/workbench/workbench.desktop.main.js` (search for `oe("<colorId>",{dark:"#...",light:"#...",...`). A handful of colors are neither theme-overridden nor a registry literal -- VS Code derives them at runtime via a lighten/opacity blend of another color (e.g. `statusBarItem.warningBackground` is `editorWarning.foreground` at 40% alpha). These are approximated by hand from the theme's own base color and marked `/* APPROXIMATED */` in the generated CSS; everything else is authoritative, not guessed.
 
 To add another installed theme as a screenshot option: repeat step 2 against that theme's own `colors` map, save as `theme/<name>.css`, and point `THEME_FILE.dark` in `harness.ts` at it.
 
@@ -159,7 +173,7 @@ At 2x scale these PNGs are large -- the existing hand-captured ones are around 0
 
 ## Verification
 
-1. `npm run docs:screenshots` -- build the current webview source and expect 10 PNGs (5 shots x 2 themes) in `docs/images/`.
+1. `npm run docs:screenshots` -- build the current webview source and expect 20 PNGs (10 shots x 2 themes) in `docs/images/`.
 2. Compare `memorymap-editor-dark.png` against a real VS Code editor under the same theme. Colors, fonts and control chrome should match. Large transparent or black areas, or invisible text, mean a theme variable is missing.
 3. Confirm no image shows `Loading memory map...`.
 4. `pip install -r docs/requirements.txt && mkdocs serve` -- check the light-theme images render correctly on the served pages.

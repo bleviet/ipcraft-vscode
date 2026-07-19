@@ -10,16 +10,16 @@ every use case.
 
 ## Choose a workflow
 
-| Goal                                  | Start with                                           | Options you need                                |
-| ------------------------------------- | ---------------------------------------------------- | ----------------------------------------------- |
-| Inspect one value                     | `IPCraft: Open Data Inspector`                       | Literal, Width, Lane width, Zoom                |
-| Decode a register read                | `IPCraft: Open Register in Data Inspector`           | Literal, imported fields, Interpretation        |
-| Describe an ad hoc bit layout         | `IPCraft: Open Data Inspector`                       | Add field, MSB, LSB                             |
-| Combine high and low words            | Add source                                           | `concat` step                                   |
-| Extract or normalize bits             | Transform tab                                        | Slice, mask, shift, extend, truncate, byte swap |
-| Review simulator activity             | Capture tab                                          | VCD signal selection and sample timeline        |
-| Review ILA, SignalTap, or CSV samples | Capture tab                                          | Column, radix, width, byte order, word order    |
-| Reuse a setup                         | `Save as recipe...` or `IPCraft: New Data Inspector` | Sources, fields, transforms, view settings      |
+| Goal                                  | Start with                                      | Options you need                                |
+| ------------------------------------- | ----------------------------------------------- | ----------------------------------------------- |
+| Inspect one value                     | `IPCraft: Open Data Inspector`                  | Literal, Width, Lane width, Zoom                |
+| Decode a register read                | `IPCraft: Open Register in Data Inspector`      | Literal, imported fields, Interpretation        |
+| Describe an ad hoc bit layout         | `IPCraft: Open Data Inspector`                  | Add field, MSB, LSB                             |
+| Combine high and low words            | Add source                                      | `concat` step                                   |
+| Extract or normalize bits             | Transform canvas and Library                    | Slice, mask, shift, extend, truncate, byte swap |
+| Review simulator activity             | Inspector > Capture                             | VCD signal selection and sample timeline        |
+| Review ILA, SignalTap, or CSV samples | Inspector > Capture                             | Column, radix, width, byte order, word order    |
+| Reuse a setup                         | `Save recipe…` or `IPCraft: New Data Inspector` | Sources, fields, transforms, view settings      |
 
 ## The four parts of an inspection
 
@@ -38,6 +38,8 @@ transient samples -> named sources -> transform steps
 
 A saved recipe contains sources, fields, transforms, and view settings.
 It deliberately does not contain pasted values or capture history.
+
+![Data Inspector workbench with two inputs and a concat operation](../images/data-inspector-workspace-light.png)
 
 ## Open the Data Inspector
 
@@ -87,6 +89,31 @@ known bits show `-- (unknown bits)` when the selected range contains `X` or `Z`.
 - Focus a lane and use `ArrowUp`, `ArrowDown`, `Home`, or `End` for keyboard
   navigation.
 
+### Read the bit visualizer
+
+The **Continuous Vector Bits** visualizer always draws the most significant bit
+on the left and bit 0 on the right. Values wider than the selected lane width
+wrap into lanes in descending address order.
+
+![Data Inspector Continuous Vector Bits visualizer](../images/data-inspector-bit-visualizer-light.png)
+
+Each lane contains three aligned layers:
+
+- The top source band identifies where each source contributed bits. A label
+  beginning with `+` marks bits inserted by a transform, such as zeros added by
+  a shift or zero extension.
+- The middle track shows the actual `0`, `1`, `X`, and `Z` states. Nibble and
+  byte boundaries remain visible at field and bit zoom.
+- The field overlay labels decoded ranges. Selecting an overlay selects the
+  corresponding field and its source in the Inspector.
+
+When a transform result is selected on the canvas, the visualizer switches to
+that result and projects source fields through the transform where their ranges
+remain meaningful. Masked-out bits stay present but are visually de-emphasized;
+they are never removed from the vector. The status line reports the displayed
+width, whether unresolved states are present, and the rightmost-digit ordering
+rule.
+
 ## Use case 2: decode a memory-mapped register read
 
 Suppose an ILA, debugger, or software log reports a 32-bit `STATUS` value and the
@@ -95,7 +122,8 @@ register already exists in an IPCraft memory map.
 1. Run **IPCraft: Open Register in Data Inspector**.
 2. Choose the memory-map register.
 3. Paste the captured register value and select **Decode**.
-4. Select a row in **Fields** to change how that range is shown.
+4. Open the **Fields** tab in the right Inspector and select a row to change how
+   that range is shown.
 
 You can also start from an open inspector:
 
@@ -122,6 +150,8 @@ For each selected field, choose an **Interpretation**:
 Enter an **Expected literal** to add a `pass`, `fail`, or `unknown` comparison to
 the decoded row. The expected value is parsed at the field's width, so a sized HDL
 literal must declare the same width.
+
+![Data Inspector Fields tab decoding a status register](../images/data-inspector-fields-light.png)
 
 ## Use case 3: describe an ad hoc bit layout
 
@@ -156,9 +186,10 @@ To build one 64-bit address:
 2. Select **Add source**.
 3. Rename the new source to `ADDR_LO`, set its width to 32, enter its value, and
    select **Set**.
-4. Select the **Transform** inspector tab.
-5. Set the input to the high-word source and the operand to the low-word source.
-6. Add a `concat` operation and connect both inputs.
+4. Add **Concat** from the Library by clicking it or dragging it onto the
+   Transform canvas.
+5. Connect `ADDR_HI` to the concat high input and `ADDR_LO` to its low input.
+6. Select the concat node to inspect the combined value in Bits.
 
 Concatenation is explicit: the **Input (high operand for concat)** becomes the
 most significant part, and **Low operand** becomes the least significant part.
@@ -172,10 +203,29 @@ Source bands above the ribbon identify which source supplied each result range.
 Select any source or transform step on the canvas to show that value in the bit
 ribbon.
 
+### Use the operator Library
+
+The Library is the source of every node that can be added to a transform graph.
+Click an item to create it near the center of the canvas, or drag it to choose its
+initial position. Use **Search nodes and operators** to filter by operation name
+or description.
+
+![Data Inspector input and operator Library](../images/data-inspector-operator-library-light.png)
+
+The **Input** node creates another named transient value. The Operators section
+contains Concat, Slice, AND, OR, XOR, NOT, Shift left, Shift right, Zero extend,
+Sign extend, Truncate, and Byte swap. A newly added operator remains a dashed
+draft until its required ports are connected and its parameters are valid.
+
+Selecting any node opens its settings in the right Inspector. Use the canvas
+toolbar to delete selected components, arrange nodes left to right, zoom, fit the
+graph, or show the minimap.
+
 ## Use case 5: extract, mask, or reorder a value
 
-Select the **Transform** inspector tab and build the required steps.
-Steps run in order, and a later step can use an earlier step as its input.
+Add the required operations from the Library and wire them on the Transform
+canvas. Evaluation follows the graph dependencies, and a later operation can use
+an earlier result as either input.
 
 | Operation                 | Result                                                       |
 | ------------------------- | ------------------------------------------------------------ |
@@ -206,8 +256,8 @@ and its downstream chain display `X` until the connection is repaired.
 ## Use case 6: inspect a VCD waveform
 
 1. Decode any initial value so the workspace is visible.
-2. Select the **Capture** inspector tab, open **VCD capture**, and choose a `.vcd`
-   file.
+2. Select an input node, open the Inspector's **Capture** tab, expand **VCD
+   capture**, and choose a `.vcd` file.
 3. Select one or more signals.
 4. Select **Index selected signals**.
 5. Use **Previous**, **Next**, or the slider to move through samples.
@@ -223,7 +273,8 @@ guessed.
 
 1. Decode an initial value and set the first source width to the captured signal
    width.
-2. Select the **Capture** inspector tab and open **CSV / ILA / SignalTap capture**.
+2. Select an input node, open the Inspector's **Capture** tab, and expand **CSV /
+   ILA / SignalTap capture**.
 3. Choose a CSV file or select **Paste CSV**.
 4. Choose the **Signal column** and its **Radix**.
 5. Set **Byte order**, **Word order**, and **Word width** explicitly.
@@ -250,7 +301,7 @@ settings and expected field values, see
 
 ## Use case 8: save and share the setup
 
-From a temporary panel, select **Save as recipe...**. To start with an empty saved
+From a temporary panel, select **Save recipe…**. To start with an empty saved
 recipe, run **IPCraft: New Data Inspector**. Both create an `*.ipci.yml` file.
 
 A recipe saves:

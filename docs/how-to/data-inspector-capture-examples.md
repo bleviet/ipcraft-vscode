@@ -23,6 +23,8 @@ The capture controls appear after the main workspace is open. For each example:
 The initial literal only establishes the source width and opens the workspace.
 The imported CSV samples replace it as you move along the timeline.
 
+![Data Inspector CSV capture mapping](../images/data-inspector-capture-light.png)
+
 ## Example 1: generic CSV status-register trace
 
 Use this example for logs produced by a script, testbench, firmware test, or any
@@ -42,13 +44,13 @@ sample,STATUS
 
 Start with literal `32'h00000000` and width 32.
 
-| Setting | Value |
-|---------|-------|
-| Signal column | `STATUS` |
-| Radix | `hex` |
-| Byte order | `big endian` |
-| Word order | `high word first` |
-| Word width | `8` |
+| Setting       | Value             |
+| ------------- | ----------------- |
+| Signal column | `STATUS`          |
+| Radix         | `hex`             |
+| Byte order    | `big endian`      |
+| Word order    | `high word first` |
+| Word width    | `8`               |
 
 The generic `sample` column is not treated specially. Select `STATUS` explicitly
 as the signal column.
@@ -57,20 +59,20 @@ as the signal column.
 
 Add these fields manually, or import a compatible 32-bit status-register layout:
 
-| Name | Bits | Interpretation |
-|------|------|----------------|
-| `BUSY` | `[0:0]` | unsigned |
-| `FIFO_LEVEL` | `[15:4]` | unsigned |
-| `FSM_STATE` | `[18:16]` | unsigned or enum |
+| Name         | Bits      | Interpretation   |
+| ------------ | --------- | ---------------- |
+| `BUSY`       | `[0:0]`   | unsigned         |
+| `FIFO_LEVEL` | `[15:4]`  | unsigned         |
+| `FSM_STATE`  | `[18:16]` | unsigned or enum |
 
 ### Expected results
 
-| Sample | Raw value | BUSY | FIFO_LEVEL | FSM_STATE |
-|--------|-----------|------|------------|-----------|
-| 1 | `0x00000000` | 0 | 0 | 0 |
-| 2 | `0x00031211` | 1 | 289 (`0x121`) | 3 |
-| 3 | `0x00043220` | 0 | 802 (`0x322`) | 4 |
-| 4 | `0x00010001` | 1 | 0 | 1 |
+| Sample | Raw value    | BUSY | FIFO_LEVEL    | FSM_STATE |
+| ------ | ------------ | ---- | ------------- | --------- |
+| 1      | `0x00000000` | 0    | 0             | 0         |
+| 2      | `0x00031211` | 1    | 289 (`0x121`) | 3         |
+| 3      | `0x00043220` | 0    | 802 (`0x322`) | 4         |
+| 4      | `0x00010001` | 1    | 0             | 1         |
 
 If an imported register supplies enum values, `FSM_STATE` can show labels such as
 `PROCESS` or `DRAIN` instead of numbers.
@@ -100,33 +102,33 @@ as signals.
 
 Start with literal `32'h00000000` and width 32.
 
-| Setting | Value |
-|---------|-------|
-| Signal column | `ADDR` |
-| Radix | `hex` |
-| Byte order | `big endian` |
-| Word order | `high word first` |
-| Word width | `8` |
+| Setting       | Value             |
+| ------------- | ----------------- |
+| Signal column | `ADDR`            |
+| Radix         | `hex`             |
+| Byte order    | `big endian`      |
+| Word order    | `high word first` |
+| Word width    | `8`               |
 
 ### Suggested field layout
 
-| Name | Bits | Interpretation |
-|------|------|----------------|
-| `PAGE` | `[31:12]` | hex |
-| `OFFSET` | `[11:0]` | hex |
+| Name     | Bits      | Interpretation |
+| -------- | --------- | -------------- |
+| `PAGE`   | `[31:12]` | hex            |
+| `OFFSET` | `[11:0]`  | hex            |
 
 ### Expected results
 
 The first four samples walk through four-byte-aligned offsets in page `0x12`.
 The trigger-window sample then moves to page `0x13`, offset `0xF00`.
 
-| Sample in Window | ADDR | PAGE | OFFSET |
-|------------------|------|------|--------|
-| -4 | `0x00012000` | `0x12` | `0x000` |
-| -3 | `0x00012004` | `0x12` | `0x004` |
-| -2 | `0x00012008` | `0x12` | `0x008` |
-| -1 | `0x0001200C` | `0x12` | `0x00C` |
-| 0 | `0x00013F00` | `0x13` | `0xF00` |
+| Sample in Window | ADDR         | PAGE   | OFFSET  |
+| ---------------- | ------------ | ------ | ------- |
+| -4               | `0x00012000` | `0x12` | `0x000` |
+| -3               | `0x00012004` | `0x12` | `0x004` |
+| -2               | `0x00012008` | `0x12` | `0x008` |
+| -1               | `0x0001200C` | `0x12` | `0x00C` |
+| 0                | `0x00013F00` | `0x13` | `0xF00` |
 
 The Data Inspector timeline currently numbers imported rows; the Vivado metadata
 columns are used for preset detection and are not displayed as timeline labels.
@@ -154,31 +156,31 @@ excluded from the initial signal selection, leaving `BUS`.
 
 Start with literal `16'h0000` and width 16.
 
-| Setting | Value |
-|---------|-------|
-| Signal column | `BUS` |
-| Radix | `hex` |
-| Byte order | `big endian` |
-| Word order | `high word first` |
-| Word width | `8` |
+| Setting       | Value             |
+| ------------- | ----------------- |
+| Signal column | `BUS`             |
+| Radix         | `hex`             |
+| Byte order    | `big endian`      |
+| Word order    | `high word first` |
+| Word width    | `8`               |
 
 ### Suggested field layout
 
-| Name | Bits | Interpretation |
-|------|------|----------------|
-| `UPPER_BYTE` | `[15:8]` | hex |
-| `STATE` | `[7:4]` | unsigned or enum |
-| `FLAGS` | `[3:0]` | binary |
+| Name         | Bits     | Interpretation   |
+| ------------ | -------- | ---------------- |
+| `UPPER_BYTE` | `[15:8]` | hex              |
+| `STATE`      | `[7:4]`  | unsigned or enum |
+| `FLAGS`      | `[3:0]`  | binary           |
 
 ### Expected results
 
-| Time | BUS | UPPER_BYTE | STATE | FLAGS |
-|------|-----|------------|-------|-------|
-| 0 ns | `0x0000` | `0x00` | 0 | `0000` |
-| 10 ns | `0x0001` | `0x00` | 0 | `0001` |
-| 20 ns | `0x00A5` | `0x00` | 10 | `0101` |
-| 30 ns | `0xXXA5` | `0xXX` | 10 | `0101` |
-| 40 ns | `0xZZZZ` | `0xZZ` | unknown | `ZZZZ` |
+| Time  | BUS      | UPPER_BYTE | STATE   | FLAGS  |
+| ----- | -------- | ---------- | ------- | ------ |
+| 0 ns  | `0x0000` | `0x00`     | 0       | `0000` |
+| 10 ns | `0x0001` | `0x00`     | 0       | `0001` |
+| 20 ns | `0x00A5` | `0x00`     | 10      | `0101` |
+| 30 ns | `0xXXA5` | `0xXX`     | 10      | `0101` |
+| 40 ns | `0xZZZZ` | `0xZZ`     | unknown | `ZZZZ` |
 
 At 30 ns, `UPPER_BYTE` is unknown while `STATE` and `FLAGS` still decode because
 their bits are known. At 40 ns, numeric decoding reports `-- (unknown bits)` and
@@ -200,11 +202,11 @@ BUS
 Start with a 32-bit source and select hexadecimal radix. Set **Word width** to 16,
 then compare these mappings:
 
-| Byte order | Word order | Imported result |
-|------------|------------|-----------------|
-| big endian | high word first | `32'h12345678` |
-| big endian | low word first | `32'h56781234` |
-| little endian | high word first | `32'h34127856` |
+| Byte order    | Word order      | Imported result |
+| ------------- | --------------- | --------------- |
+| big endian    | high word first | `32'h12345678`  |
+| big endian    | low word first  | `32'h56781234`  |
+| little endian | high word first | `32'h34127856`  |
 
 Choose the mapping that describes the capture file, not the byte order of the CPU
 that will eventually consume the value. If the result only becomes correct after

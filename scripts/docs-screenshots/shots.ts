@@ -12,6 +12,18 @@ const DEFAULT_VIEWPORT = { width: 1400, height: 900 };
 // tutorials that already walk through this design describe the same thing.
 const MM_SOURCE = 'examples/led_avmm/led_controller_avmm.mm.yml';
 const IP_SOURCE = 'examples/led_avmm/led_controller_avmm.ip.yml';
+const DATA_INSPECTOR_SPLIT_SOURCE = 'ipcraft-spec/examples/data_inspector/split_address.ipci.yml';
+const DATA_INSPECTOR_STATUS_SOURCE =
+  'ipcraft-spec/examples/data_inspector/comprehensive_axi_status.ipci.yml';
+
+async function setupSplitAddress(page: Page): Promise<void> {
+  await page.getByRole('textbox', { name: 'Literal' }).fill("32'h0001_2000");
+  await page.getByRole('button', { name: 'Decode ADDR_HI' }).click();
+  await page.locator('.react-flow__node[data-id="addr-low"]').click();
+  await page.getByLabel('ADDR_LO value').fill("32'h0000_3F00");
+  await page.getByRole('button', { name: 'Decode ADDR_LO' }).click();
+  await page.locator('.react-flow__node[data-id="address"]').click();
+}
 
 export interface Shot {
   /** Output basename -> docs/images/<id>-{dark,light}.png */
@@ -77,6 +89,69 @@ export const shots: Shot[] = [
     clip: '[data-fields-table="true"] table',
     setup: async (page) => {
       await page.locator('[data-outline-id="block-0-reg-2"]').click(); // EVENTS: write-1-to-clear + monitorChangeOf
+    },
+  },
+  {
+    id: 'data-inspector-workspace',
+    harness: 'dataInspector',
+    source: DATA_INSPECTOR_SPLIT_SOURCE,
+    viewport: { width: 1600, height: 1000 },
+    setup: setupSplitAddress,
+  },
+  {
+    id: 'data-inspector-bit-visualizer',
+    harness: 'dataInspector',
+    source: DATA_INSPECTOR_SPLIT_SOURCE,
+    viewport: { width: 1600, height: 1000 },
+    clip: '.di-ribbon-card',
+    setup: async (page) => {
+      await setupSplitAddress(page);
+      await page.locator('.di-ribbon-card').evaluate((element) => {
+        element.setAttribute('style', `${element.getAttribute('style') ?? ''};height:230px`);
+      });
+    },
+  },
+  {
+    id: 'data-inspector-operator-library',
+    harness: 'dataInspector',
+    source: DATA_INSPECTOR_SPLIT_SOURCE,
+    viewport: { width: 1600, height: 1000 },
+    clip: '.di-library',
+    setup: async (page) => {
+      await setupSplitAddress(page);
+      await page.locator('.di-library').evaluate((element) => {
+        element.setAttribute('style', `${element.getAttribute('style') ?? ''};height:600px`);
+      });
+    },
+  },
+  {
+    id: 'data-inspector-fields',
+    harness: 'dataInspector',
+    source: DATA_INSPECTOR_STATUS_SOURCE,
+    viewport: { width: 1600, height: 1000 },
+    clip: '.di-field-table',
+    setup: async (page) => {
+      await page.getByRole('textbox', { name: 'Literal' }).fill("32'h0003_1211");
+      await page.getByRole('button', { name: 'Decode STATUS' }).click();
+      await page.getByRole('tab', { name: /Fields/ }).click();
+    },
+  },
+  {
+    id: 'data-inspector-capture',
+    harness: 'dataInspector',
+    source: DATA_INSPECTOR_STATUS_SOURCE,
+    viewport: { width: 1600, height: 1000 },
+    clip: '.di-capture-panel details:nth-of-type(2)',
+    setup: async (page) => {
+      await page.getByRole('textbox', { name: 'Literal' }).fill("32'h0000_0000");
+      await page.getByRole('button', { name: 'Decode STATUS' }).click();
+      await page.getByRole('tab', { name: 'Capture' }).click();
+      await page
+        .getByLabel('CSV file')
+        .setInputFiles(
+          path.join(REPO_ROOT, 'docs/how-to/examples/data-inspector/generic-status.csv')
+        );
+      await page.getByLabel('Signal column').selectOption('STATUS');
     },
   },
 ];

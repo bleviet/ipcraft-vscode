@@ -1,8 +1,9 @@
 import type { Page } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
+import * as YAML from 'yaml';
 
-export type HarnessKind = 'memorymap' | 'ipcore';
+export type HarnessKind = 'memorymap' | 'ipcore' | 'dataInspector';
 export type ThemeVariant = 'dark' | 'light';
 
 // Reuses the existing Playwright browser-test harness pages unmodified --
@@ -14,11 +15,13 @@ const THEME_DIR = path.resolve(__dirname, 'theme');
 const HARNESS_FILE: Record<HarnessKind, string> = {
   memorymap: 'index.html',
   ipcore: 'ipcore.html',
+  dataInspector: 'data-inspector.html',
 };
 
 const ROOT_SELECTOR: Record<HarnessKind, string> = {
   memorymap: '#root',
   ipcore: '#ipcore-root',
+  dataInspector: '#data-inspector-root',
 };
 
 // The active dark-theme stylesheet -- Dracula rather than VS Code's bundled
@@ -114,7 +117,7 @@ export async function openHarness(page: Page, opts: OpenOptions): Promise<void> 
     }, yamlText);
 
     await page.waitForSelector('#root main', { timeout: 15000 });
-  } else {
+  } else if (harness === 'ipcore') {
     await page.evaluate(
       ({ text, name, memoryMaps }) => {
         window.postMessage(
@@ -142,6 +145,12 @@ export async function openHarness(page: Page, opts: OpenOptions): Promise<void> 
     );
 
     await page.waitForSelector('.ip-canvas-svg', { timeout: 15000 });
+  } else {
+    const recipe = YAML.parse(yamlText) as unknown;
+    await page.evaluate((value) => {
+      (window as unknown as { renderRecipe: (recipe: unknown) => void }).renderRecipe(value);
+    }, recipe);
+    await page.waitForSelector('.di-shell', { timeout: 15000 });
   }
 
   // Let webfonts finish and layout settle after the content swap above.
