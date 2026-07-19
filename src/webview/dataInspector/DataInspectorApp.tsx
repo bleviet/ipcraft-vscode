@@ -116,7 +116,6 @@ interface LaneRibbonProps {
   selectedFieldId: string | null;
   onSelectField: (id: string | null) => void;
   provenance?: Array<ProvenanceBit | null>;
-  highlightedSourceId?: string | null;
   maskedBits?: ReadonlySet<number>;
   zoom?: 'overview' | 'field' | 'bit';
   onLaneWidthChange?: (width: 8 | 16 | 32 | 64) => void;
@@ -133,7 +132,6 @@ export function LaneRibbon({
   selectedFieldId,
   onSelectField,
   provenance,
-  highlightedSourceId,
   maskedBits,
   zoom = 'field',
   onLaneWidthChange,
@@ -236,13 +234,7 @@ export function LaneRibbon({
               {provenance
                 ? sourceSegments.map((segment) => (
                     <span
-                      className={`${segment.sourceId === null ? 'is-inserted' : ''} ${
-                        highlightedSourceId && segment.sourceId === highlightedSourceId
-                          ? 'is-source-highlighted'
-                          : highlightedSourceId
-                            ? 'is-source-dimmed'
-                            : ''
-                      }`}
+                      className={segment.sourceId === null ? 'is-inserted' : ''}
                       key={`${segment.sourceId ?? 'inserted'}-${segment.msb}`}
                       style={{
                         width: `${
@@ -275,12 +267,6 @@ export function LaneRibbon({
                       <span
                         className={`${maskedBits?.has(bit) ? 'is-masked' : ''} ${
                           targetBit === bit ? 'is-target' : ''
-                        } ${
-                          highlightedSourceId && provenance?.[bit]?.sourceId === highlightedSourceId
-                            ? 'is-source-highlighted'
-                            : highlightedSourceId
-                              ? 'is-source-dimmed'
-                              : ''
                         } ${stateClass} ${separator}`}
                         data-bit={bit}
                         key={bit}
@@ -566,7 +552,6 @@ export function DataInspectorApp() {
     'properties'
   );
   const [inspectedValueId, setInspectedValueId] = useState<string | null>(null);
-  const [highlightedSourceId, setHighlightedSourceId] = useState<string | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState('input');
   const [libraryCollapsed, setLibraryCollapsed] = useState(false);
   const [inspectorCollapsed, setInspectorCollapsed] = useState(false);
@@ -798,10 +783,9 @@ export function DataInspectorApp() {
     [currentRecipe.fields, evaluatedValue, fields]
   );
 
-  const inspectCanvasValue = (nodeId: string, kind: 'source' | 'step') => {
+  const inspectCanvasValue = (nodeId: string) => {
     setSelectedNodeId(nodeId);
     setInspectedValueId(nodeId);
-    setHighlightedSourceId(kind === 'source' ? nodeId : null);
     setInspectorTab('properties');
   };
 
@@ -848,9 +832,6 @@ export function DataInspectorApp() {
       }
       if (inspectedValueId && !remainingNodeIds.has(inspectedValueId)) {
         setInspectedValueId(fallbackSource.id);
-      }
-      if (highlightedSourceId && !remainingSourceIds.has(highlightedSourceId)) {
-        setHighlightedSourceId(null);
       }
       if (!remainingSourceIds.has(currentRecipe.sources[0].id)) {
         const nextVector = samples[fallbackSource.id] ?? null;
@@ -1375,7 +1356,6 @@ export function DataInspectorApp() {
                   }
                 }}
                 provenance={evaluatedValue?.provenance}
-                highlightedSourceId={highlightedSourceId}
                 maskedBits={evaluatedValue?.maskedBits}
                 zoom={zoom}
                 onLaneWidthChange={setLaneWidth}

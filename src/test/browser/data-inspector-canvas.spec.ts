@@ -179,6 +179,8 @@ test.describe('Data Inspector transform canvas', () => {
   test('selects a graph input for value and field editing', async ({ page }) => {
     await page.locator('.react-flow__node[data-id="mask"]').click();
     await expect(page.getByLabel('Inspector tools').getByRole('heading')).toContainText('MASK');
+    await expect(page.locator('.di-bits .is-source-highlighted')).toHaveCount(0);
+    await expect(page.locator('.di-bits .is-source-dimmed')).toHaveCount(0);
     await page.getByLabel('MASK value').fill("16'h00FF");
     await page.getByRole('button', { name: 'Decode MASK' }).click();
     await expect(page.getByLabel('Inspector tools').locator('.di-inspector-value')).toHaveText(

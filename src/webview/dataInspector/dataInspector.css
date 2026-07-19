@@ -1789,19 +1789,6 @@ label {
   background: color-mix(in srgb, var(--di-card) 96%, transparent);
   font-size: 9px;
 }
-.di-source-band .is-source-highlighted {
-  color: var(--di-text);
-  background: color-mix(in srgb, var(--di-accent) 28%, transparent);
-  box-shadow: inset 0 -2px var(--di-accent);
-}
-.di-source-band .is-source-dimmed,
-.di-bits .is-source-dimmed {
-  opacity: 0.3;
-}
-.di-bits .is-source-highlighted {
-  outline: 1px solid var(--di-accent);
-  outline-offset: -1px;
-}
 .sr-only {
   position: absolute;
   width: 1px;
