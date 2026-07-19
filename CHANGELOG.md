@@ -6,8 +6,15 @@ All notable changes to this project are documented in this file.
 
 ## [0.9.2] - 2026-07-19
 
+### Added
+- **Data Inspector**: a new standalone tool for decoding an arbitrary-width value — pasted from a waveform, an ILA/SignalTap capture, a register read, or typed by hand — into named bit fields, without ever touching `.mm.yml`/`.ip.yml` or HDL generation. Three new commands: `IPCraft: Open Data Inspector` (a temporary inspection panel), `IPCraft: Open Register in Data Inspector` (pre-loads a register's field layout from a workspace memory map), and `IPCraft: New Data Inspector` (creates a reusable `*.ipci.yml` recipe with its own custom editor). Values are modeled as four-state bit vectors (`0`/`1`/`X`/`Z`, not plain integers), so numeric interpretations correctly report "unknown bits" instead of silently showing a wrong number when a range contains an unresolved bit. Accepts Verilog (`32'hDEAD_BEEF`), VHDL (`x"0123_ABCD"`), and C-style (`0xDEADBEEF`) literals, decimal, and binary, all with underscore digit separators. Supports multiple named sources composed via transform steps (concat, slice, bitwise and/or/xor/not, shift left/right, zero/sign-extend, truncate, byte swap), field overlays with hex/binary/unsigned/signed/enum/float/fixed-point interpretation and an expected-value pass/fail check, VCD signal timelines and CSV/ILA sample import (configurable radix, byte order, word order), and lane-width/zoom (overview, by-field, by-bit) controls with keyboard navigation. A saved recipe holds sources, fields, transforms, and view settings, but deliberately never the pasted value or capture history. ([#107](https://github.com/bleviet/ipcraft-vscode/issues/107))
+
 ### Changed
+- **Fields table access column redesign**: the Memory Map fields table's access-mode dropdown now shows short SVD-style tokens (`RO`/`WO`/`RW`/`W1C`/`RW1C`/`WSC`/`RWSC`) when closed, with full names only in the open listbox, and the popup consistently opens downward and sizes to its content instead of occasionally misdirecting near the viewport edge. The W1C Monitors sub-row (which broke row-height uniformity) is replaced by a compact icon button opening an anchored picker menu.
 - **Data Inspector internals decomposed**: the Data Inspector webview's monolithic app component was split into focused hooks (value input/literal parsing, capture import, field panel state, host sync, recipe autosave) and presentational components (value composer, capture panel, field panel), with direct unit test coverage added for each extracted hook, including the host-sync revision protocol. No user-visible behavior change. ([#112](https://github.com/bleviet/ipcraft-vscode/issues/112))
+
+### Fixed
+- **Data Inspector debug-mode overrides and value-bar validation**: a bit field defined via the common `offset`/`width` schema form lost a committed debug-mode override wider than 53 bits on the very next render (the reapplication only ran in the fallback code path); and the value-bar's parser collapsed malformed, out-of-range, and empty drafts into a single generic "Value is required" message instead of reporting which one actually happened.
 
 ## [0.9.1] - 2026-07-17
 
