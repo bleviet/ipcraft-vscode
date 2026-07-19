@@ -737,12 +737,7 @@
 
     .studio-media-stack {
       position: relative;
-      overflow: hidden;
       aspect-ratio: 14 / 9;
-      border: 1px solid var(--line);
-      border-radius: calc(var(--r) + 6px);
-      background: var(--bg);
-      box-shadow: var(--shadow);
     }
 
     .studio-frame {
@@ -1367,21 +1362,27 @@
 
         <div class="studio-scrolly reveal">
           <div class="studio-sticky">
-            <div class="studio-media-stack">
-              <div class="studio-frame is-active" data-frame="0">
-                <img class="theme-image" src="images/ipcore-editor-dark.png" data-dark="images/ipcore-editor-dark.png"
-                  data-light="images/ipcore-editor-light.png" alt="IP Core visual canvas with ports and bus interfaces" />
+            <div class="window studio-window">
+              <div class="window-bar">
+                <span class="window-dot"></span><span class="window-dot"></span><span class="window-dot"></span>
+                <span class="window-title" data-studio-title>IPCraft — IP Core Editor</span>
               </div>
-              <div class="studio-frame" data-frame="1" aria-hidden="true">
-                <img class="theme-image" src="images/memorymap-editor-dark.png"
-                  data-dark="images/memorymap-editor-dark.png" data-light="images/memorymap-editor-light.png"
-                  alt="Memory map editor with register and bit-field tables" />
-              </div>
-              <div class="studio-frame" data-frame="2" aria-hidden="true">
-                <img class="theme-image" src="images/data-inspector-workspace-dark.png"
-                  data-dark="images/data-inspector-workspace-dark.png"
-                  data-light="images/data-inspector-workspace-light.png"
-                  alt="Data Inspector visual workspace with captured hardware values" />
+              <div class="studio-media-stack">
+                <div class="studio-frame is-active" data-frame="0" data-title="IPCraft — IP Core Editor">
+                  <img class="theme-image" src="images/ipcore-editor-dark.png" data-dark="images/ipcore-editor-dark.png"
+                    data-light="images/ipcore-editor-light.png" alt="IP Core visual canvas with ports and bus interfaces" />
+                </div>
+                <div class="studio-frame" data-frame="1" data-title="IPCraft — Memory Map Editor" aria-hidden="true">
+                  <img class="theme-image" src="images/memorymap-editor-dark.png"
+                    data-dark="images/memorymap-editor-dark.png" data-light="images/memorymap-editor-light.png"
+                    alt="Memory map editor with register and bit-field tables" />
+                </div>
+                <div class="studio-frame" data-frame="2" data-title="IPCraft — Data Inspector" aria-hidden="true">
+                  <img class="theme-image" src="images/data-inspector-workspace-dark.png"
+                    data-dark="images/data-inspector-workspace-dark.png"
+                    data-light="images/data-inspector-workspace-light.png"
+                    alt="Data Inspector visual workspace with captured hardware values" />
+                </div>
               </div>
             </div>
           </div>
@@ -1664,6 +1665,7 @@
 
     const studioSteps = document.querySelectorAll('.studio-copy-step');
     const studioFrames = document.querySelectorAll('.studio-frame');
+    const studioTitle = document.querySelector('[data-studio-title]');
     if (studioSteps.length && studioFrames.length && 'IntersectionObserver' in window) {
       const setActiveFrame = (frameIndex) => {
         studioSteps.forEach((step) => {
@@ -1673,6 +1675,9 @@
           const isActive = frame.dataset.frame === frameIndex;
           frame.classList.toggle('is-active', isActive);
           frame.setAttribute('aria-hidden', String(!isActive));
+          if (isActive && studioTitle) {
+            studioTitle.textContent = frame.dataset.title;
+          }
         });
       };
 
