@@ -68,6 +68,13 @@ Quartus — Compile      ✓
 
 A negative WNS (Worst Negative Slack) means setup timing is violated — the design cannot meet the target clock frequency as constrained.
 
+> **Why this section has no screenshot:** the **IPCraft Build** panel is a native VS Code
+> `TreeDataProvider` (`ReportsTreeProvider.ts`) rendered entirely by VS Code's own Explorer
+> chrome — there is no webview or HTML behind it. It falls outside the
+> [automated screenshot pipeline](../concepts/docs-screenshots.md), which only captures the
+> three React webviews (Memory Map, IP Core, Data Inspector); reproducing this panel would
+> require driving a real running VS Code window rather than a `file://` harness page.
+
 ## Status Bar
 
 The status bar item shows the build state throughout the session:

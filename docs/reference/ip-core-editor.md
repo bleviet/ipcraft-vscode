@@ -85,19 +85,7 @@ template system.
 
 The IP Core editor is the canvas described above. Undo/Redo buttons are in the toolbar.
 
-```text
-+--------------------------------------------------+
-| [Undo] [Redo]                                    |
-+----------------+-------------------------+-------+
-| Library        | IP Block Diagram (SVG)  | Insp- |
-| Palette        |                         | ector |
-|  Generics      |   ┌──────────────────┐  |       |
-|  Infrastr.     |   │   my_core        │  | (prop |
-|  Bus Protocols |   │ clk ──○    ○── irq│  |  erty |
-|                |   │ rst ──○    ○── data│  | panel|
-|                |   └──────────────────┘  |       |
-+----------------+-------------------------+-------+
-```
+![IP Core visual canvas with ports, bus interfaces, and the inspector panel](../images/ipcore-editor-light.png)
 
 ### Library Palette
 

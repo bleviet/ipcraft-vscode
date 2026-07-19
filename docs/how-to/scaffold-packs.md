@@ -36,6 +36,8 @@ Open any `.ip.yml` in the visual editor. The **Scaffold Template** dropdown
 in the toolbar lists every detected pack, grouped by category. Selecting a pack saves
 it to `ipcraft.generate.scaffoldPack` immediately.
 
+![Scaffold Template dropdown in the IP Core editor toolbar](../images/scaffold-template-picker-light.png)
+
 **Option B — VS Code settings**
 
 Set `ipcraft.generate.scaffoldPack` in your workspace `settings.json`:
@@ -77,6 +79,13 @@ You can change the pinned file at any time with **IPCraft: Pin Preview IP Core**
 !!! note "Preview language highlighting"
     The preview document's filename is derived from the template name with `.j2` stripped
     (e.g. `top.vhdl.j2` → `top.vhd`), so VS Code applies the correct syntax highlighting.
+
+!!! note "Why this section has no screenshot"
+    The preview is a real VS Code editor tab (a read-only virtual document), not a webview —
+    it renders with VS Code's own editor chrome and syntax highlighter, not the extension's
+    React UI. It is outside the scope of the automated screenshot pipeline described in
+    [Automated Docs Screenshots](../concepts/docs-screenshots.md), which only captures the
+    three React webviews (Memory Map, IP Core, Data Inspector).
 
 ---
 
@@ -156,6 +165,14 @@ rtl/
 
 If no `.ip.yml` is found in the workspace the panel shows the unevaluated rule targets and
 a banner explaining that conditions were not evaluated.
+
+!!! note "Why this section has no screenshot"
+    This panel is its own small `WebviewPanel` (`ScaffoldPackPanel.ts`), built from a
+    self-contained HTML string rather than the `ipcore`/`webview`/`dataInspector` React
+    bundles the [screenshot pipeline](../concepts/docs-screenshots.md) captures. Its content
+    is exactly the tree shown above — reproduced faithfully from the same status indicators
+    (dot / lock icon / "condition false" badge), just not yet wired into the automated
+    capture manifest.
 
 ---
 

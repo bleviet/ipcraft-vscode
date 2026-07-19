@@ -64,11 +64,16 @@ nav:
           - 4. Headless Quartus Build: tutorials/headless-quartus-build.md
           - 5. Programming the Board: tutorials/led-controller-avmm-on-hardware.md
   - How-to Guides:
+      - Creating Your First IP Core: how-to/create-your-first-ip-core.md
+      - Defining a Custom Interface: how-to/custom-interfaces.md
       - Importing from Existing Files: how-to/vhdl-import.md
       - Generating a Project: how-to/generating-a-project.md
       - Customising Code Generation (Scaffold Packs): how-to/scaffold-packs.md
       - Building a Project (Headless): how-to/building-a-project.md
+      - Checking Consistency: how-to/check-consistency.md
       - Building a VSIX Package: how-to/build-vsix.md
+      - Using the Data Inspector: how-to/use-data-inspector.md
+      - Data Inspector Capture Examples: how-to/data-inspector-capture-examples.md
       - AI Design Guide: how-to/ai-design-guide.md
       - Arithmetic Functions in Port Widths: how-to/port-width-functions.md
       - Running Simulations: how-to/run-cocotb-simulation.md
@@ -79,6 +84,7 @@ nav:
       - Spatial Editing: concepts/spatial-editing.md
       - Responsive Design: concepts/responsive-design.md
       - Custom Interfaces: concepts/custom-interface.md
+      - Vivado Interface Catalog: concepts/vivado-interface-catalog.md
       - EDA Integration Tests: concepts/eda-integration-tests.md
       - Automated Docs Screenshots: concepts/docs-screenshots.md
   - Architecture:

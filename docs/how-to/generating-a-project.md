@@ -14,8 +14,12 @@ How to scaffold a complete RTL project from an IP Core specification.
 1. Open your `.ip.yml` file (visual editor or text editor)
 2. Open the Command Palette (`Ctrl+Shift+P`) and run **IPCraft: Scaffold Project**
    - Also available as a button in the editor title bar and via the **IPCraft** top-level menu
-3. If the output directory already exists, confirm the overwrite prompt
+3. Review the staged files in the **Preview Generated Files** panel and confirm
 4. All files are written next to the `.ip.yml` file
+
+![Preview Generated Files panel showing new, modified, unchanged, and protected files in a project tree](../images/staging-overlay-light.png)
+
+Every generation command stages before writing — nothing touches disk until you click **Confirm & Apply**. Each file is marked new, modified, unchanged, or protected (locked, `managed: false` — excluded from Apply by default). Click **View Diff** next to any modified file first if you want to see exactly what changed. See [Creating Your First IP Core § Review and accept the staged output](create-your-first-ip-core.md#review-and-accept-the-staged-output) for the full status table.
 
 Settings that control scaffold output:
 

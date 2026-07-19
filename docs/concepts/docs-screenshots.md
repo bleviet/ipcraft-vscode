@@ -46,6 +46,32 @@ The asymmetry matters: each bundle uses its existing browser-test entry point.
 `__RENDER__` belongs only to the Memory Map app, the IP Core app receives an
 `update` message, and the Data Inspector harness exposes `renderRecipe`.
 
+Several `ipcore` shots (`staging-overlay`, `consistency-findings`) don't reach their
+target UI state through the canvas at all -- they post a synthetic extension-host
+message (`stagingStart`, `consistencyResult`) directly at the already-mounted app,
+the same messages `WebviewStagingBridge.ts` / `IpCoreEditorProvider.ts` send after a
+real scaffold run or cross-check. This is the same `window.postMessage` mechanism
+`openHarness` already uses for the initial `update` message -- just a second message
+sent from a shot's `setup` callback once the app has mounted.
+
+### Out of scope: native VS Code UI
+
+Not every visual surface is a webview. Three features documented in the how-to guides
+render through VS Code's own native chrome, not through `dist/webview.js` / `ipcore.js` /
+`dataInspector.js`, and so cannot be captured by this pipeline at all:
+
+| Feature | Why it's out of scope |
+| --- | --- |
+| **IPCraft Build** panel (`ReportsTreeProvider.ts`) | A `vscode.TreeDataProvider` -- pure Explorer-sidebar tree items, no HTML |
+| **Preview Template Output** (`TemplatePreviewProvider.ts`) | A read-only virtual text document (`vscode.TextDocumentContentProvider`), opened as a normal editor tab -- not a webview |
+| **Scaffold Pack Preview** panel (`ScaffoldPackPanel.ts`) | *Is* a `WebviewPanel`, but built from a self-contained HTML string outside the three webpack bundle entries this pipeline drives -- capturable in principle with a fourth harness, just not wired in yet |
+
+Capturing any of these would need a real running VS Code window (e.g. `@vscode/test-electron`)
+rather than a `file://` harness page, or -- for the Scaffold Pack Preview panel only -- a new
+harness that serves its generated HTML directly. The affected how-to guides
+([Building a Project](../how-to/building-a-project.md), [Scaffold Packs](../how-to/scaffold-packs.md))
+say so explicitly rather than silently shipping without an image.
+
 ## Design
 
 ```text
@@ -84,6 +110,10 @@ Manifest:
 | `memorymap-editor`                | memorymap     | full, with `CTRL` selected         | `README.md`, `docs/index.md`                            |
 | `led-memorymap-editor`            | memorymap     | full                               | "The register map"                                      |
 | `ipcore-editor`                   | ipcore        | full                               | `README.md`, `docs/index.md`, "Scaffolding the project" |
+| `custom-interface-conduit`        | ipcore        | full, with `DBG` conduit selected  | "Defining a Custom Interface"                            |
+| `staging-overlay`                 | ipcore        | `.canvas-inspector`, via a synthetic `stagingStart` message | "Creating Your First IP Core", "Generating a Project" |
+| `consistency-findings`            | ipcore        | `.canvas-inspector`, via a synthetic `consistencyResult` message | "Checking Consistency"                              |
+| `scaffold-template-picker`         | ipcore        | toolbar `ToolbarGroup` around the Scaffold pack `<select>` | "Customising Code Generation (Scaffold Packs)"       |
 | `outline-tree`                    | memorymap     | `aside.sidebar`                    | "The register map"                                      |
 | `bitfield-visualizer`             | memorymap     | `main section`                     | "The register map" (LED_PATTERN)                        |
 | `fields-table-access`             | memorymap     | `[data-fields-table="true"] table` | "The register map" (EVENTS, `monitorChangeOf`)          |
@@ -172,9 +202,25 @@ Light was chosen over the dark/light toggle because these docs get printed, and 
 
 At 2x scale these PNGs are large -- the existing hand-captured ones are around 0.5 MB each. If the committed total becomes uncomfortable, run `oxipng` or `pngquant` as a post-step.
 
+## Reusing this content outside MkDocs
+
+The docs are deliberately structured so a `docs/how-to/*.md` file plus its `docs/images/*-light.png` screenshots is the reusable unit, not the MkDocs site as a whole. Three concrete paths, in increasing order of manual work:
+
+**MkDocs (this site).** Already true today -- `mkdocs build --strict` renders every how-to guide with no broken links or images; that is the regression check for this whole system (see Verification below).
+
+**A plain static site or hand-built HTML page.** `docs/index.html` is the working proof: it is hand-authored HTML (no MkDocs, no build step) that embeds the exact same `docs/images/*-light.png` files the how-to guides use, with a light/dark toggle swapping `data-dark`/`data-light` attributes. Any static site generator (Jekyll, Hugo, Docusaurus, plain `pandoc`) can render the how-to guides the same way, because they are CommonMark: headers, tables, fenced code, and `![alt](../images/x-light.png)` image links -- nothing MkDocs-specific. The exceptions are a handful of files that opt into MkDocs Material extensions and degrade gracefully rather than break outside it: `!!! note`/`!!! warning` admonitions (`scaffold-packs.md` and several tutorials) render as an ordinary paragraph starting with `!!! note "..."` in plain CommonMark, and `=== "Tab"` blocks (`build-vsix.md`) render as a literal `=== "Tab"` line. The how-to guides that document IPCraft's flagship capabilities -- `create-your-first-ip-core.md`, `custom-interfaces.md`, `check-consistency.md`, `use-data-inspector.md`, `vhdl-import.md`, `generating-a-project.md`, `building-a-project.md` -- use none of these extensions and round-trip through any CommonMark renderer unchanged.
+
+**WordPress (or another CMS without repo-relative image access).** WordPress can't resolve `../images/x-light.png` -- a post needs an absolute media URL. The one-time, per-guide conversion is:
+
+1. Upload the guide's referenced `docs/images/*-light.png` files to the Media Library.
+2. Paste the guide's Markdown body into a Markdown-aware block (the Jetpack Markdown block, or any Markdown-to-blocks importer plugin), or run it through `pandoc guide.md -o guide.html` first and paste the result into a Custom HTML block.
+3. Replace each `../images/<id>-light.png` reference with the uploaded attachment's URL -- a single find-and-replace per image, since every guide follows the same `<id>-light.png` naming convention and never references a `-dark.png` file (see "Wiring images into docs" above).
+
+No image re-export or screenshot re-capture is needed for any of the three paths -- they all consume the same PNGs this pipeline already produces.
+
 ## Verification
 
-1. `npm run docs:screenshots` -- build the current webview source and expect 22 PNGs (11 shots x 2 themes) in `docs/images/`.
+1. `npm run docs:screenshots` -- build the current webview source and expect 30 PNGs (15 shots x 2 themes) in `docs/images/`.
 2. Compare `memorymap-editor-dark.png` against a real VS Code editor under the same theme. Colors, fonts and control chrome should match. Large transparent or black areas, or invisible text, mean a theme variable is missing.
 3. Confirm no image shows `Loading memory map...`.
 4. `pip install -r docs/requirements.txt && mkdocs serve` -- check the light-theme images render correctly on the served pages.

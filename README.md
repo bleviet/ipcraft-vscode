@@ -12,13 +12,13 @@ Generated from the real editor UI by `npm run docs:screenshots` — see [Automat
 
 ## Features
 
-- **Visual Editors** — block-diagram IP Core canvas and tabular Memory Map editor, both with an inline inspector and bit-field visualizer; changes sync instantly to the underlying YAML
-- **Data Inspector** — decode literals and captured CSV data against registers, then transform and combine values in a visual workspace
-- **Custom Interfaces** — define conduit (custom) bus interfaces with user-named signals, stored as reusable `.busdef.yml` files
-- **Consistency Check** — cross-references a spec against the generated top-level HDL and vendor artifacts (`component.xml`, `_hw.tcl`), flagging drift in either direction
-- **HDL Generation** — scaffolds a full RTL project (package, top entity, user-logic skeleton, bus wrapper, register file, testbench) in VHDL or SystemVerilog, plus Vivado and Quartus vendor project files
-- **Headless Build** — runs Vivado or Quartus in batch mode from inside VS Code, with a Build Reports sidebar panel (timing, utilization, CDC) and status bar summary; Docker runner supported
-- **Import** — reverse-engineer an existing VHDL entity, Platform Designer `_hw.tcl`, or Vivado `component.xml` into an `.ip.yml` spec
+- **Visual Editors** — block-diagram IP Core canvas and tabular Memory Map editor, both with an inline inspector and bit-field visualizer; changes sync instantly to the underlying YAML ([Create Your First IP Core](docs/how-to/create-your-first-ip-core.md), [Memory-Mapped Registers](docs/tutorials/memory-mapped-registers.md))
+- **Data Inspector** — decode literals and captured CSV data against registers, then transform and combine values in a visual workspace ([guide](docs/how-to/use-data-inspector.md))
+- **Custom Interfaces** — define conduit (custom) bus interfaces with user-named signals, stored as reusable `.busdef.yml` files ([guide](docs/how-to/custom-interfaces.md))
+- **Consistency Check** — cross-references a spec against the generated top-level HDL and vendor artifacts (`component.xml`, `_hw.tcl`), flagging drift in either direction ([guide](docs/how-to/check-consistency.md))
+- **HDL Generation** — scaffolds a full RTL project (package, top entity, user-logic skeleton, bus wrapper, register file, testbench) in VHDL or SystemVerilog, plus Vivado and Quartus vendor project files ([guide](docs/how-to/generating-a-project.md))
+- **Headless Build** — runs Vivado or Quartus in batch mode from inside VS Code, with a Build Reports sidebar panel (timing, utilization, CDC) and status bar summary; Docker runner supported ([guide](docs/how-to/building-a-project.md))
+- **Import** — reverse-engineer an existing VHDL entity, Platform Designer `_hw.tcl`, or Vivado `component.xml` into an `.ip.yml` spec ([guide](docs/how-to/vhdl-import.md))
 
 See [Commands & Settings](docs/reference/commands.md) for the full command list and every setting's default and description, and [Keyboard Shortcuts](docs/reference/keyboard-shortcuts.md) for canvas/table navigation.
 

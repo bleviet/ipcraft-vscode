@@ -13,6 +13,7 @@ const DEFAULT_VIEWPORT = { width: 1400, height: 900 };
 const MM_SOURCE = 'examples/led_avmm/led_controller_avmm.mm.yml';
 const GENERAL_MM_SOURCE = 'ipcraft-spec/examples/comprehensive_axi/comprehensive_axi.mm.yml';
 const IP_SOURCE = 'examples/led_avmm/led_controller_avmm.ip.yml';
+const COMPREHENSIVE_IP_SOURCE = 'ipcraft-spec/examples/comprehensive_axi/comprehensive_axi.ip.yml';
 const DATA_INSPECTOR_SPLIT_SOURCE = 'ipcraft-spec/examples/data_inspector/split_address.ipci.yml';
 const DATA_INSPECTOR_STATUS_SOURCE =
   'ipcraft-spec/examples/data_inspector/comprehensive_axi_status.ipci.yml';
@@ -71,6 +72,118 @@ export const shots: Shot[] = [
     fileName: 'led_controller_avmm.ip.yml',
     mmImportSource: MM_SOURCE,
     viewport: DEFAULT_VIEWPORT,
+  },
+  {
+    id: 'custom-interface-conduit',
+    harness: 'ipcore',
+    source: COMPREHENSIVE_IP_SOURCE,
+    fileName: 'comprehensive_axi.ip.yml',
+    mmImportSource: GENERAL_MM_SOURCE,
+    viewport: DEFAULT_VIEWPORT,
+    setup: async (page) => {
+      await page.locator('.canvas-bus-bundle__name').filter({ hasText: 'DBG' }).click();
+    },
+  },
+  {
+    id: 'staging-overlay',
+    harness: 'ipcore',
+    source: IP_SOURCE,
+    fileName: 'led_controller_avmm.ip.yml',
+    mmImportSource: MM_SOURCE,
+    viewport: DEFAULT_VIEWPORT,
+    // Drives the ipcore webview's stagingStart handler directly -- see
+    // IpCoreApp.tsx's message switch -- the same way WebviewStagingBridge.ts
+    // does after a real Scaffold Project run. No extension host round trip.
+    clip: '.canvas-inspector',
+    setup: async (page) => {
+      await page.evaluate(() => {
+        window.postMessage(
+          {
+            type: 'stagingStart',
+            rootLabel: 'led_controller_avmm',
+            files: [
+              { relativePath: 'rtl/led_controller_avmm_pkg.vhd', status: 'new', protected: false },
+              { relativePath: 'rtl/led_controller_avmm.vhd', status: 'new', protected: false },
+              {
+                relativePath: 'rtl/led_controller_avmm_core.vhd',
+                status: 'modified',
+                protected: true,
+              },
+              {
+                relativePath: 'rtl/led_controller_avmm_avmm.vhd',
+                status: 'modified',
+                protected: false,
+              },
+              {
+                relativePath: 'rtl/led_controller_avmm_regs.vhd',
+                status: 'unchanged',
+                protected: false,
+              },
+              { relativePath: 'tb/led_controller_avmm_test.py', status: 'new', protected: false },
+            ],
+          },
+          '*'
+        );
+      });
+    },
+  },
+  {
+    id: 'scaffold-template-picker',
+    harness: 'ipcore',
+    source: IP_SOURCE,
+    fileName: 'led_controller_avmm.ip.yml',
+    mmImportSource: MM_SOURCE,
+    viewport: DEFAULT_VIEWPORT,
+    // Scopes to the toolbar's ToolbarGroup wrapper via the dropdown's unique
+    // aria-label -- see IpCoreApp.tsx's Scaffold pack <select> (no unique
+    // class of its own; the ToolbarGroup div class is shared by every group).
+    clip: '.flex.flex-col.items-center.gap-0\\.5:has(select[aria-label="Scaffold pack"])',
+  },
+  {
+    id: 'consistency-findings',
+    harness: 'ipcore',
+    source: IP_SOURCE,
+    fileName: 'led_controller_avmm.ip.yml',
+    mmImportSource: MM_SOURCE,
+    viewport: DEFAULT_VIEWPORT,
+    // Drives IpCoreApp.tsx's 'consistencyResult' handler directly, the same
+    // message IpCoreEditorProvider.ts sends after a real cross-check run.
+    // findings.length > 0 auto-opens the ConsistencyOverlay (both share the
+    // .canvas-inspector wrapper with StagingOverlay).
+    clip: '.canvas-inspector',
+    setup: async (page) => {
+      await page.evaluate(() => {
+        window.postMessage(
+          {
+            type: 'consistencyResult',
+            auto: false,
+            summary: { added: 1, removed: 0, changed: 1 },
+            findings: [
+              {
+                kind: 'extra-port',
+                message: "HDL declares 'o_status[3:0]' but the spec has no matching port",
+                ipYmlPath: ['ports'],
+                hdlFile: 'led_controller_avmm.vhd',
+                hdlEntity: 'led_controller_avmm',
+                severity: 'amber',
+                source: 'hdl',
+                inferred: { name: 'o_status', direction: 'out', width: 4 },
+              },
+              {
+                kind: 'width-mismatch',
+                message: "Port 'o_led' is 1 bit in the spec but 8 bits in the HDL",
+                ipYmlPath: ['ports', 2],
+                hdlFile: 'led_controller_avmm.vhd',
+                hdlEntity: 'led_controller_avmm',
+                severity: 'amber',
+                source: 'hdl',
+              },
+            ],
+          },
+          '*'
+        );
+      });
+    },
   },
   {
     id: 'outline-tree',
