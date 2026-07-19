@@ -1,7 +1,12 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { RegisterEditor } from '../../../webview/components/register/RegisterEditor';
 import type { BitFieldRecord } from '../../../webview/types/editor';
+
+let mockDebugMode = false;
+jest.mock('../../../webview/hooks/useDebugMode', () => ({
+  useDebugMode: () => ({ debugMode: mockDebugMode, toggleDebugMode: jest.fn() }),
+}));
 
 const bitFieldVisualizerMock = jest.fn((props: unknown) => {
   void props;
@@ -97,6 +102,7 @@ describe('RegisterEditor layouts', () => {
   beforeEach(() => {
     bitFieldVisualizerMock.mockClear();
     noop.mockClear();
+    mockDebugMode = false;
   });
 
   it('renders side-by-side mode with vertical visualizer layout', () => {
@@ -316,5 +322,41 @@ describe('RegisterEditor layouts', () => {
       'row-RUN': [1, 1],
       'row-STOP': [0, 0],
     });
+  });
+
+  it('keeps a >53-bit debug-mode value on an offset/width field instead of reverting it', () => {
+    // Regression test: `normalisedFields` used to apply the bigint debug
+    // override only in the fallback branch, but offset/width fields (the
+    // common case) return early with the un-overridden resetValue, so the
+    // committed value silently reverted on the very next render.
+    mockDebugMode = true;
+    bitFieldVisualizerMock.mockClear();
+    const offsetWidthFields: BitFieldRecord[] = [
+      { name: 'WIDE', offset: 0, width: 64, resetValue: 0 },
+    ];
+
+    render(
+      <RegisterEditor
+        register={{ ...register, size: 64 }}
+        fields={offsetWidthFields}
+        registerLayout="stacked"
+        toggleRegisterLayout={jest.fn()}
+        onUpdate={noop}
+      />
+    );
+
+    const props = bitFieldVisualizerMock.mock.calls[
+      bitFieldVisualizerMock.mock.calls.length - 1
+    ]?.[0] as {
+      onUpdateFieldReset?: (fieldIndex: number, value: number | bigint | null) => void;
+    };
+
+    const bigValue = BigInt('0xFEDCBA9876543210');
+    act(() => props.onUpdateFieldReset!(0, bigValue));
+
+    const latestFields = bitFieldVisualizerMock.mock.calls[
+      bitFieldVisualizerMock.mock.calls.length - 1
+    ]?.[0] as { fields: BitFieldRecord[] };
+    expect(latestFields.fields[0].resetValue).toBe(bigValue);
   });
 });

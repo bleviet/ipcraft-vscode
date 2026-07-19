@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { hexDigitsForBits } from './utils';
+import { hexDigitsForBits, type RegisterValueParse } from './utils';
 import { BitVector } from '../../../dataInspector/BitVector';
 
 interface UseValueEditingOptions {
   registerSize: number;
   registerValue: BitVector;
-  parseRegisterValue: (text: string, view: 'hex' | 'dec') => BitVector | null;
+  parseRegisterValue: (text: string, view: 'hex' | 'dec') => RegisterValueParse;
   applyRegisterValue: (value: BitVector) => string | null | void;
 }
 
@@ -56,21 +56,27 @@ export function useValueEditing({
     }
   }, [registerValueText, valueEditing, registerValue]);
 
-  const validateRegisterValue = (v: BitVector | null): string | null => {
-    if (v === null) {
-      return 'Value is required';
+  const validateRegisterValue = (parsed: RegisterValueParse): string | null => {
+    if (parsed.vector !== null) {
+      return null;
     }
-    return null;
+    if (parsed.error === 'malformed') {
+      return 'Invalid number';
+    }
+    if (parsed.error === 'overflow') {
+      return `Value too large for ${registerSize} bit(s)`;
+    }
+    return 'Value is required';
   };
 
   const commitRegisterValueDraft = () => {
     const parsed = parseRegisterValue(valueDraft, valueView);
     const err = validateRegisterValue(parsed);
     setValueError(err);
-    if (err || parsed === null) {
+    if (err || parsed.vector === null) {
       return;
     }
-    const applyError = applyRegisterValue(parsed) ?? null;
+    const applyError = applyRegisterValue(parsed.vector) ?? null;
     commitErrorRef.current = applyError;
     setValueError(applyError);
   };

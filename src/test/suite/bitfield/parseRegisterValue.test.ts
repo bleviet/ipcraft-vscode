@@ -47,13 +47,18 @@ describe('parseRegisterValue', () => {
 
 describe('parseRegisterBitVector', () => {
   it('preserves a 64-bit debug value exactly', () => {
-    expect(parseRegisterBitVector('FEDCBA9876543210', 'hex', 64)?.toLiteral()).toBe(
+    expect(parseRegisterBitVector('FEDCBA9876543210', 'hex', 64).vector?.toLiteral()).toBe(
       "64'hFEDCBA9876543210"
     );
   });
 
   it('rejects values that do not fit instead of truncating', () => {
-    expect(parseRegisterBitVector('100', 'hex', 8)).toBeNull();
+    expect(parseRegisterBitVector('100', 'hex', 8)).toEqual({ vector: null, error: 'overflow' });
+  });
+
+  it('reports malformed digits distinctly from an empty draft', () => {
+    expect(parseRegisterBitVector('zz', 'hex', 8)).toEqual({ vector: null, error: 'malformed' });
+    expect(parseRegisterBitVector('', 'hex', 8)).toEqual({ vector: null, error: null });
   });
 });
 

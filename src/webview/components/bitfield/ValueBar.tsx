@@ -1,6 +1,6 @@
 import React from 'react';
 import { VSCodeTextField } from '@vscode/webview-ui-toolkit/react';
-import type { BitVector } from '../../../dataInspector/BitVector';
+import type { RegisterValueParse } from './utils';
 
 interface ValueBarProps {
   valueDraft: string;
@@ -10,8 +10,8 @@ interface ValueBarProps {
   setValueEditing: (editing: boolean) => void;
   setValueError: (value: string | null) => void;
   setValueView: (updater: (view: 'hex' | 'dec') => 'hex' | 'dec') => void;
-  parseRegisterValue: (text: string, view: 'hex' | 'dec') => BitVector | null;
-  validateRegisterValue: (value: BitVector | null) => string | null;
+  parseRegisterValue: (text: string, view: 'hex' | 'dec') => RegisterValueParse;
+  validateRegisterValue: (value: RegisterValueParse) => string | null;
   commitRegisterValueDraft: () => void;
 }
 
