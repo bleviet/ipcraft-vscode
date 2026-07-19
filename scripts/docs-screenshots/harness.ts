@@ -20,6 +20,15 @@ const ROOT_SELECTOR: Record<HarnessKind, string> = {
   ipcore: '#ipcore-root',
 };
 
+// The active dark-theme stylesheet -- Dracula rather than VS Code's bundled
+// Dark Modern, per the maintainer's own installed theme. dark.css (Dark
+// Modern) is kept in theme/ as a reference/fallback that needs no extension
+// dependency; swap this back to 'dark' to use it instead.
+const THEME_FILE: Record<ThemeVariant, string> = {
+  dark: 'dracula',
+  light: 'light',
+};
+
 // Kills transitions/animations/caret blink so two captures of the same
 // state are pixel-identical.
 const STABILIZE_CSS = `
@@ -61,7 +70,7 @@ export async function openHarness(page: Page, opts: OpenOptions): Promise<void> 
   // Theme must land before content renders, or the UI paints once with
   // undefined --vscode-* values (invisible text, transparent panels) and
   // never repaints just because the variables later exist.
-  await page.addStyleTag({ path: path.join(THEME_DIR, `${theme}.css`) });
+  await page.addStyleTag({ path: path.join(THEME_DIR, `${THEME_FILE[theme]}.css`) });
   await page.addStyleTag({ content: STABILIZE_CSS });
 
   if (harness === 'memorymap') {

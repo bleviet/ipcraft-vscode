@@ -50,8 +50,9 @@ scripts/docs-screenshots/
 +-- harness.ts        # load page, inject theme, feed YAML, wait for ready
 +-- theme/
     +-- dump-theme.js # one-time snippet run in a real VS Code webview
-    +-- dark.css      # committed dump output (Dark Modern)
-    +-- light.css     # committed dump output (Light Modern)
+    +-- dark.css      # Dark Modern (VS Code's bundled default; unused fallback)
+    +-- dracula.css   # Dracula -- the active dark-theme stylesheet
+    +-- light.css     # Light Modern -- the active light-theme stylesheet
 config/playwright.docs.ts
 docs/images/          # committed output
 ```
@@ -76,13 +77,12 @@ Initial manifest:
 | id | Harness | Capture | Used by |
 |----|---------|---------|---------|
 | `memorymap-editor` | memorymap | full | `README.md`, `docs/index.md` |
-| `ipcore-editor` | ipcore | full | `README.md`, `docs/index.md` |
-| `outline-tree` | memorymap | outline panel | Anatomy of a memory map |
-| `bitfield-visualizer` | memorymap | visualizer pane | Bit fields |
-| `fields-table-access` | memorymap | `[data-fields-table="true"]` | Access types, Change-of-state fields |
-| `register-map-visualizer` | memorymap | visualizer | Resulting address map |
+| `ipcore-editor` | ipcore | full | `README.md`, `docs/index.md`, "Scaffolding the project" |
+| `outline-tree` | memorymap | `aside.sidebar` | "The register map" |
+| `bitfield-visualizer` | memorymap | `main section` | "The register map" (LED_PATTERN) |
+| `fields-table-access` | memorymap | `[data-fields-table="true"] table` | "The register map" (EVENTS, `monitorChangeOf`) |
 
-The last four target sections of `docs/tutorials/memory-mapped-registers.md`. The `EVENTS` register in the LED example is write-1-to-clear with `monitorChangeOf`, which is exactly what the change-of-state section describes.
+All four tutorial placements are in `docs/tutorials/led-controller-avmm-authoring.md` -- not `memory-mapped-registers.md`, whose worked example is `daq_controller`, a different fixture. The `EVENTS` register in the LED example is write-1-to-clear with `monitorChangeOf`, which is exactly what that tutorial's register-map section describes, and its register-map table matches the LED example field-for-field.
 
 ### Capture sequence
 
@@ -96,9 +96,11 @@ The runner reuses the existing harness HTML unmodified -- no duplicate harness c
 
 ### Theming
 
-The webview uses **68 distinct `var(--vscode-*)` references with no fallback value**. In a bare browser these resolve to nothing and the UI renders broken. A theme stylesheet is therefore a hard prerequisite, not a polish step.
+The webview uses **68 distinct `var(--vscode-*)` references with no fallback value** (87 counting ones that do have a literal fallback baked into the source). In a bare browser these resolve to nothing and the UI renders broken. A theme stylesheet is therefore a hard prerequisite, not a polish step.
 
-VS Code injects these as inline style on `document.documentElement`, so a one-time dump captures them exactly. Run in the devtools console of a live IPCraft webview (Help -> Toggle Developer Tools with an editor open):
+Two ways to produce one, in order of preference:
+
+**1. Live devtools dump (pixel-exact, manual).** VS Code injects every `--vscode-*` value as inline style on `document.documentElement`, so a one-time dump captures them exactly. Run in the devtools console of a live IPCraft webview (Help -> Toggle Developer Tools with an editor open, under the color theme you want to capture):
 
 ```js
 copy(':root{' + Array.from(document.documentElement.style)
@@ -107,7 +109,11 @@ copy(':root{' + Array.from(document.documentElement.style)
   .join(';') + '}');
 ```
 
-Run once under Dark Modern, save as `theme/dark.css`; switch theme, run again for `theme/light.css`. Committed thereafter, so no manual step recurs.
+Paste the clipboard contents into the target `theme/*.css` file.
+
+**2. Offline extraction from the installed VS Code app (no live session needed).** `theme/dark.css`, `theme/light.css`, and `theme/dracula.css` were produced this way, not via the dump above. For a bundled theme (Dark Modern, Light Modern), read `extensions/theme-defaults/themes/<name>.json` inside `/Applications/Visual Studio Code.app/Contents/Resources/app`; for an installed theme extension (Dracula), read its own `theme/*.json` under `~/.vscode/extensions/<publisher>.<name>-<version>/`. Either way that JSON's `colors` map only covers what the theme *overrides* -- resolve everything else against VS Code's core color registry, whose literal `dark`/`light` defaults are readable directly out of the shipped `out/vs/workbench/workbench.desktop.main.js` (search for `oe("<colorId>",{dark:"#...",light:"#...",...`). A handful of colors are neither theme-overridden nor a registry literal -- VS Code derives them at runtime via a lighten/opacity blend of another color (e.g. `statusBarItem.warningBackground` is `editorWarning.foreground` at 40% alpha). These are approximated by hand from the theme's own base color and marked `/* APPROXIMATED */` in the generated CSS; everything else is authoritative, not guessed.
+
+To add another installed theme as a screenshot option: repeat step 2 against that theme's own `colors` map, save as `theme/<name>.css`, and point `THEME_FILE.dark` in `harness.ts` at it.
 
 ### Config
 
@@ -139,8 +145,8 @@ At 2x scale these PNGs are large -- the existing hand-captured ones are around 0
 ## Verification
 
 1. `npm run compile` -- confirm `dist/webview.{js,css}` and `dist/ipcore.{js,css}` exist.
-2. `npm run docs:screenshots` -- expect 12 PNGs (6 shots x 2 themes) in `docs/images/`.
-3. Compare `memorymap-editor-dark.png` against the old `resources/screenshots/memorymap-editor.png`. Colors, fonts and control chrome should match a real VS Code editor. Large transparent or black areas, or invisible text, mean the variable dump is incomplete.
+2. `npm run docs:screenshots` -- expect 10 PNGs (5 shots x 2 themes) in `docs/images/`.
+3. Compare `memorymap-editor-dark.png` against a real VS Code editor under the same theme. Colors, fonts and control chrome should match. Large transparent or black areas, or invisible text, mean a theme variable is missing.
 4. Confirm no image shows `Loading memory map...`.
 5. `pip install -r docs/requirements.txt && mkdocs serve` -- check images render and that the site's light/dark switch swaps them.
 6. `npm run test:browser` -- must still pass unchanged, proving the docs config did not leak into the test run.
