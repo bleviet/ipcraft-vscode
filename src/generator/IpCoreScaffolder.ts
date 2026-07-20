@@ -7,7 +7,7 @@ import { BusLibraryService } from '../services/BusLibraryService';
 import { getVivadoInterfaceCacheDir, pathExists } from '../services/VivadoInterfaceScanner';
 import { getWorkspaceBusDefinitionScanner } from '../services/WorkspaceBusDefinitionScanner';
 import { TemplateLoader } from './TemplateLoader';
-import { ScaffoldPackLoader } from './ScaffoldPackLoader';
+import { resolveScaffoldOutputPath, ScaffoldPackLoader } from './ScaffoldPackLoader';
 import {
   getBusTypeForTemplate,
   hasMemoryMappedSlaveInterface,
@@ -272,6 +272,15 @@ export class IpCoreScaffolder {
         ...extraUserPaths,
       ]);
 
+      // Resolve every path before any write starts. Validating inside the Promise.all write
+      // callback would allow safe siblings to be written before an unsafe target rejects.
+      const outputPaths = new Map(
+        Object.keys(files).map((relativePath) => [
+          relativePath,
+          resolveScaffoldOutputPath(outputDir, relativePath),
+        ])
+      );
+
       // Dry-run: return generated content without writing to disk.
       // Identify which protected paths already exist so the caller can skip them.
       if (options.dryRun) {
@@ -281,7 +290,7 @@ export class IpCoreScaffolder {
             .filter((p) => p in files)
             .map(async (relPath) => {
               try {
-                await fs.stat(path.join(outputDir, relPath));
+                await fs.stat(outputPaths.get(relPath)!);
                 protectedOnDisk.push(relPath);
               } catch {
                 // not present on disk — not blocking
@@ -302,7 +311,7 @@ export class IpCoreScaffolder {
       const written: Record<string, string> = {};
       await Promise.all(
         Object.entries(files).map(async ([relativePath, content]) => {
-          const fullPath = path.join(outputDir, relativePath);
+          const fullPath = outputPaths.get(relativePath)!;
           if (protectedSet.has(relativePath)) {
             try {
               await fs.stat(fullPath);

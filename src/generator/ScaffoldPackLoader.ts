@@ -3,6 +3,57 @@ import * as path from 'path';
 import * as yaml from 'js-yaml';
 import type { ScaffoldPack, ScaffoldFileRule } from './types';
 
+/**
+ * Resolve a rendered scaffold target beneath the selected output directory.
+ * Both slash styles are treated as separators so a pack cannot become unsafe
+ * when moved between POSIX and Windows hosts.
+ */
+export function resolveScaffoldOutputPath(
+  outputDir: string,
+  target: string,
+  pathApi: path.PlatformPath = path
+): string {
+  const canonicalOutputDir = pathApi.resolve(outputDir);
+  const fail = (reason: string): never => {
+    throw new Error(
+      `Unsafe scaffold output target ${JSON.stringify(target)}: ${reason}. ` +
+        `Target must be a relative file path inside ${JSON.stringify(canonicalOutputDir)}.`
+    );
+  };
+
+  if (!target.trim()) {
+    fail('target is empty');
+  }
+  if (/^[\\/]/.test(target) || /^[A-Za-z]:/.test(target)) {
+    fail('absolute, drive-qualified, and UNC paths are not allowed');
+  }
+
+  const segments = target.split(/[\\/]/);
+  if (segments.includes('..')) {
+    fail('path traversal is not allowed');
+  }
+
+  const relativeTarget = segments
+    .filter((segment) => segment !== '' && segment !== '.')
+    .join(pathApi.sep);
+  if (!relativeTarget) {
+    fail('target resolves to the output directory itself');
+  }
+
+  const resolvedTarget = pathApi.resolve(canonicalOutputDir, relativeTarget);
+  const relativeToOutput = pathApi.relative(canonicalOutputDir, resolvedTarget);
+  if (
+    relativeToOutput === '' ||
+    relativeToOutput === '..' ||
+    relativeToOutput.startsWith(`..${pathApi.sep}`) ||
+    pathApi.isAbsolute(relativeToOutput)
+  ) {
+    fail('resolved path is outside the output directory');
+  }
+
+  return resolvedTarget;
+}
+
 export class ScaffoldPackLoader {
   private readonly builtinPacksDir: string;
 

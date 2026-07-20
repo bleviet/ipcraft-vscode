@@ -405,6 +405,41 @@ describe('IpCoreScaffolder', () => {
     }
   });
 
+  it('rejects a rendered traversal target before writing any scaffold file', async () => {
+    const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-pack-traversal-'));
+    const packDir = path.join(tmp, 'unsafe-pack');
+    fs2.mkdirSync(packDir, { recursive: true });
+    fs2.writeFileSync(
+      path.join(packDir, 'scaffold.yml'),
+      [
+        'name: unsafe-pack',
+        "apiVersion: '^1.0'",
+        'files:',
+        '  - source: top.vhdl.j2',
+        '    target: rtl/{{ name }}.vhd',
+        '  - source: top.vhdl.j2',
+        '    target: rtl/{{ name }}/../../../outside.vhd',
+      ].join('\n')
+    );
+
+    try {
+      const inputPath = path.resolve(__dirname, '../../fixtures/sample-ipcore.yml');
+      const result = await scaffolder.generateAll(inputPath, path.join(tmp, 'output'), {
+        includeTestbench: false,
+        targets: [],
+        scaffoldPack: packDir,
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('rtl/sample_core/../../../outside.vhd');
+      expect(result.error).toContain('path traversal');
+      expect(fs.mkdir).not.toHaveBeenCalled();
+      expect(fs.writeFile).not.toHaveBeenCalled();
+    } finally {
+      fs2.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
   it('lets a scaffold pack override Vivado component.xml generation (issue #4)', async () => {
     // component.xml is built programmatically (VivadoComponentXmlGenerator), not from a
     // .j2 template, so it can't be shadowed by the usual same-named-template convention.
