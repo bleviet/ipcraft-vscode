@@ -146,8 +146,15 @@ Evaluation remains a pure, instantaneous pass in
 per-bit source provenance, masked bits, inserted bits, dropped ranges, and
 errors. There are no simulation clocks or user-defined expressions.
 
-See [Data Inspector visual workspace](data-inspector-visual-workspace.md) for
-the canvas interaction and persistence details.
+New operations begin as dashed, webview-local draft nodes because a persistent recipe step
+requires valid input references. A draft becomes persistent only after all required inputs and
+parameters validate. Connect and rewire gestures reject cycles, self-connections, invalid port
+directions, and incompatible widths before updating a file-backed recipe.
+
+Node positions are optional presentation data under `recipe.view.canvas.nodes`. Recipes without
+positions receive a deterministic left-to-right layout. Dragging commits a position only at drag
+end; viewport zoom, selection, panel sizes, maximized state, and minimap visibility remain session
+state and are not persisted.
 
 ## Capture import
 

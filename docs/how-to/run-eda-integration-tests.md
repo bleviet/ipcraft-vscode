@@ -19,9 +19,7 @@ For background on why these tests exist and how they work, see [EDA Integration 
 ### For Vivado tests
 
 - **Vivado** installed on your machine (2024.x recommended).
-- `VIVADO_BIN`'s hardcoded fallback in `src/test/integration/vivado.test.ts` is a path from the
-  original developer's machine, so it will not resolve on any other machine — the tests self-skip
-  when it doesn't exist. Set `VIVADO_BIN` before running:
+- Set `VIVADO_BIN` to the executable for the version you want to test:
   ```bash
   export VIVADO_BIN=/path/to/Xilinx/Vivado/<version>/bin/vivado
   ```
@@ -40,6 +38,9 @@ For background on why these tests exist and how they work, see [EDA Integration 
 ---
 
 ## Running the Tests
+
+These commands are also used by the dedicated self-hosted vendor CI workflow. Standard pull
+request jobs run the open-source HDL and structural validation suites, but not Vivado or Quartus.
 
 ### Quartus only
 
@@ -94,15 +95,15 @@ specifically (falls back to a native `QUARTUS_TCLSH_BIN` install if set, otherwi
 
 ```
  PASS  src/test/integration/quartus.test.ts (45.2 s)
-   ✓ generates at least one Altera fixture with _hw.tcl (8192 ms)
-   ✓ all Altera _hw.tcl files pass Platform Designer stub validation (36109 ms)
+   PASS generates at least one Altera fixture with _hw.tcl (8192 ms)
+   PASS all Altera _hw.tcl files pass Platform Designer stub validation (36109 ms)
      PASS: 3 hw.tcl file(s) validated
-   ✓ all Altera _hw.tcl files pass Platform Designer BFM testbench validation (120034 ms)
+   PASS all Altera _hw.tcl files pass Platform Designer BFM testbench validation (120034 ms)
      PASS: 3 hw.tcl file(s) validated via BFM testbench
 
  PASS  src/test/integration/vivado.test.ts (78.1 s)
-   ✓ generates at least one AMD fixture with component.xml (8212 ms)
-   ✓ all AMD fixtures pass Vivado ipx::check_integrity (69731 ms)
+   PASS generates at least one AMD fixture with component.xml (8212 ms)
+   PASS all AMD fixtures pass Vivado ipx::check_integrity (69731 ms)
      PASS: simple_gpio
      PASS: axi_lite_slave
 ```
@@ -112,7 +113,7 @@ specifically (falls back to a native `QUARTUS_TCLSH_BIN` install if set, otherwi
 When a `_hw.tcl` file contains a structural error, the stub validator prints the Tcl output and the specific check that failed:
 
 ```
-● all Altera _hw.tcl files pass Platform Designer stub validation
+[generated] all Altera _hw.tcl files pass Platform Designer stub validation
 
   Quartus hw.tcl validation FAILED (exit 1)
   stdout:
@@ -128,7 +129,7 @@ When a `_hw.tcl` file contains a structural error, the stub validator prints the
 When a `_hw.tcl` has an interface-level error that only Platform Designer's full validator can catch (such as an AXI-Stream port role mismatch), the BFM testbench test reports it:
 
 ```
-● all Altera _hw.tcl files pass Platform Designer BFM testbench validation
+[generated] all Altera _hw.tcl files pass Platform Designer BFM testbench validation
 
   Platform Designer qsys-generate validation FAILED (exit 1)
   stdout:
@@ -157,7 +158,7 @@ When `qsys-generate` is not present in the Docker image, the BFM testbench test 
 When a `component.xml` fails Vivado's integrity check, the full Vivado log is included:
 
 ```
-● all AMD fixtures pass Vivado ipx::check_integrity
+[generated] all AMD fixtures pass Vivado ipx::check_integrity
 
   Vivado validation failed for 1 of 2 fixture(s):
 

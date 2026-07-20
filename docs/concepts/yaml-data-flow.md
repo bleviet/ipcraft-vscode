@@ -28,10 +28,9 @@ graph LR
 
 ## Parsing and Normalization
 
-YAML input can vary in shape (e.g. `memory_maps` key, arrays, or direct objects).
-`src/domain/parse.ts` (`normalizeMemoryMap` / `normalizeIpCore`) produces consistent in-app
-structures regardless of the input format — this replaced an earlier `DataNormalizer`/
-`YamlSanitizer` pair that duplicated the conversion logic per editor.
+`src/domain/parse.ts` (`normalizeMemoryMap` / `normalizeIpCore`) converts schema-shaped YAML into
+the consistent normalized structures used by the applications. This replaced an earlier
+`DataNormalizer`/`YamlSanitizer` pair that duplicated conversion logic per editor.
 
 Key modules:
 
@@ -40,7 +39,7 @@ Key modules:
 | `src/domain/parse.ts` | Converts varying YAML shapes into the normalized domain model shared by both editors |
 | `src/domain/serialize.ts` | Converts the normalized model back to schema-valid YAML, stripping computed/UI-only properties (`rowId`, `__kind`) |
 | `src/yamledit/` (`applyPathEdits`) | Format-preserving path-based updates to the parsed YAML document (comments, hex spellings survive); `src/webview/services/YamlService.ts` is a thin wrapper around it |
-| `YamlPathResolver` | Resolves a path against the parsed object, tolerating both camelCase and legacy snake_case keys |
+| `YamlPathResolver` | Resolves canonical editor paths against the parsed object |
 
 ## User Edit (Webview -> Host)
 
@@ -52,8 +51,8 @@ Key modules:
 6. `WebviewRouter` routes it to `DocumentManager.updateDocument()`, rejecting it (`forceResync: true` reply) if `baseDocVersion` is stale
 7. VS Code document is updated; the host echoes `{ type: 'update', text, docVersion, sourceEditId }` back, and `revisionFilter.shouldApplyUpdate` decides whether the webview re-parses it (drops echoes of its own edit and stale/out-of-order updates)
 
-See [CLAUDE.md](../../CLAUDE.md) "Revisioned sync protocol (V-3/V-4)" for the full FIFO contract
-this replaced (byte-equality echo suppression with no version numbers).
+`src/services/WebviewRouter.ts` and `src/webview/sync/revisionFilter.ts` define this paired FIFO
+contract and must change together.
 
 ## Update Path Types
 

@@ -101,30 +101,27 @@ export interface Shot {
 }
 ```
 
-Most editor source YAML comes from `examples/led_avmm/led_controller_avmm.{ip,mm}.yml` -- real, hardware-validated specs that the LED controller tutorials already walk through. The general Memory Map editor shot uses `ipcraft-spec/examples/comprehensive_axi/comprehensive_axi.mm.yml` and selects its field-rich `CTRL` register. The `src/test/fixtures/` files are deliberately minimal and would render a thin, unconvincing UI.
+IP Core screenshots use `examples/led_avmm/led_controller_avmm.{ip,mm}.yml`, while the general
+Memory Map editor shot uses `ipcraft-spec/examples/comprehensive_axi/comprehensive_axi.mm.yml`
+and selects its field-rich `CTRL` register. The `src/test/fixtures/` files are deliberately
+minimal and would render a thin, unconvincing UI.
 
 Manifest:
 
 | id                                | Harness       | Capture                            | Used by                                                 |
 | --------------------------------- | ------------- | ---------------------------------- | ------------------------------------------------------- |
-| `memorymap-editor`                | memorymap     | full, with `CTRL` selected         | `README.md`, `docs/index.md`                            |
-| `led-memorymap-editor`            | memorymap     | full                               | "The register map"                                      |
-| `ipcore-editor`                   | ipcore        | full                               | `README.md`, `docs/index.md`, "Scaffolding the project" |
+| `memorymap-editor`                | memorymap     | full, with `CTRL` selected         | `README.md`, `docs/index.html`                          |
+| `ipcore-editor`                   | ipcore        | full                               | `README.md`, `docs/index.html`, "Scaffolding the project" |
 | `ipcore-toolbar`                  | ipcore        | toolbar header                     | IP Core Editor reference                                 |
 | `custom-interface-conduit`        | ipcore        | full, with `DBG` conduit selected  | "Defining a Custom Interface"                            |
 | `staging-overlay`                 | ipcore        | `.canvas-inspector`, via a synthetic `stagingStart` message | "Creating Your First IP Core", "Generating a Project" |
 | `consistency-findings`            | ipcore        | `.canvas-inspector`, via a synthetic `consistencyResult` message | "Checking Consistency"                              |
 | `scaffold-template-picker`         | ipcore        | toolbar `ToolbarGroup` around the Scaffold pack `<select>` | "Customising Code Generation (Scaffold Packs)"       |
-| `outline-tree`                    | memorymap     | `aside.sidebar`                    | "The register map"                                      |
-| `bitfield-visualizer`             | memorymap     | `main section`                     | "The register map" (LED_PATTERN)                        |
-| `fields-table-access`             | memorymap     | `[data-fields-table="true"] table` | "The register map" (EVENTS, `monitorChangeOf`)          |
-| `data-inspector-workspace`        | dataInspector | full                               | "Using the Data Inspector", visual-workspace reference  |
+| `data-inspector-workspace`        | dataInspector | full                               | "Using the Data Inspector", Data Inspector concept      |
 | `data-inspector-bit-visualizer`   | dataInspector | Continuous Vector Bits             | "Using the Data Inspector", architecture reference      |
-| `data-inspector-operator-library` | dataInspector | Library rail                       | "Using the Data Inspector", visual-workspace reference  |
+| `data-inspector-operator-library` | dataInspector | Library rail                       | "Using the Data Inspector", Data Inspector concept      |
 | `data-inspector-fields`           | dataInspector | Inspector rail                     | "Using the Data Inspector"                              |
 | `data-inspector-capture`          | dataInspector | Inspector rail                     | capture examples                                        |
-
-All four tutorial placements are in `docs/tutorials/led-controller-avmm-authoring.md` -- not `memory-mapped-registers.md`, whose worked example is `daq_controller`, a different fixture. The `EVENTS` register in the LED example is write-1-to-clear with `monitorChangeOf`, which is exactly what that tutorial's register-map section describes, and its register-map table matches the LED example field-for-field.
 
 ### Capture sequence
 

@@ -38,7 +38,7 @@ Top-level fields:
 | `interrupts` | array | No | Interrupt output definitions |
 | `ports` | array | No | User-defined port definitions |
 | `parameters` | array | No | Generic parameter definitions |
-| `busInterfaces` | array | No | Bus interface definitions (`bus_interfaces` is a snake_case alias kept for legacy files) |
+| `busInterfaces` | array | No | Bus interface definitions |
 | `memoryMaps` | array | No | Memory map definitions (inline or `$ref`) |
 | `subcores` | array | No | Sub-IP core dependencies, either a `vendor:library:name:version` string or a `SubcoreRef` object |
 | `simulation` | object | No | Testbench framework/engine overrides for this IP core |
@@ -197,7 +197,5 @@ This produces:
 - `src/domain/ipcore.types.ts` from `ip_core.schema.json`
 - `src/generator/contract/templateContext.types.ts` from `src/generator/contract/template_context.schema.json`
 
-> **Note:** `src/webview/types/ipCore.d.ts` and `memoryMap.d.ts` are an older, still widely-imported
-> pair of type files from an earlier architecture. Despite their "auto-generated, do not modify by
-> hand" header, `npm run generate-types` no longer touches them — when a schema field changes, they
-> currently have to be updated by hand alongside `src/domain/*.types.ts` (see e.g. commit `56124e5`).
+Generated type files must not be edited by hand. Update the JSON Schema source, run
+`npm run generate-types`, and compile the result to catch incompatible generated changes.

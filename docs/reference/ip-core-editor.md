@@ -4,14 +4,6 @@ The IP Core editor is the custom visual editor for `*.ip.yml` files. Editing hap
 entirely on the **block-diagram canvas** plus its Inspector panel — there is no separate
 tabular "form" mode in the current UI.
 
-> `src/webview/ipcore/components/sections/` (`MetadataEditor`, `ClocksTable`,
-> `ResetsTable`, `PortsTable`, `ParametersTable`, `MemoryMapsEditor`, `SubcoresEditor`,
-> `FileSetsEditor`, `GeneratorPanel`, `PortMappingTable`) and
-> `src/webview/ipcore/components/layout/NavigationSidebar.tsx` still exist in the tree
-> but are **not imported by `IpCoreApp.tsx` or `EditorPanel.tsx`** — they are leftover
-> from an earlier sidebar-and-tables iteration of the editor and are dead code. Do not
-> use them as a guide to current behavior.
-
 ## Structure
 
 ```text

@@ -24,7 +24,7 @@ The repo has **six testing tiers**. Each tier covers a different process boundar
 - Jest tiers (1–3) are cheap and fast — they run in seconds. They validate logic that does not depend on a real browser or a real VS Code binary.
 - The VS Code smoke tests (tier 4) spin up a real VS Code binary to answer questions that cannot be faked: does the custom editor provider actually respond when a `.mm.yml` file is opened?
 - The Playwright tests (tier 5) load the real compiled webpack bundles in a real browser to validate that the React UI behaves correctly when the extension host sends YAML data. These tests verify integration across the `postMessage` boundary.
-- The EDA integration tests (tier 6) run the generated Altera and AMD output files through the real vendor tools to confirm that the generator produces structurally valid artefacts. They require external tooling (Docker for Quartus, a host Vivado install) and are opt-in. See [EDA Integration Tests](concepts/eda-integration-tests.md) for details.
+- The EDA integration tests (tier 6) run generated Altera and AMD output through the real vendor tools. They require Docker or local vendor installations, so developers run them on demand and a dedicated self-hosted CI runner executes the vendor suites after changes land on `main`. See [EDA Integration Tests](concepts/eda-integration-tests.md) for details.
 
 ---
 
@@ -64,7 +64,9 @@ src/
     browser/                  # Playwright browser tests (tier 5) — NOT run by Jest
       index.html              #   Memory Map webview harness (loads dist/webview.js)
       ipcore.html             #   IP Core webview harness (loads dist/ipcore.js)
-      integration.test.ts    #   Playwright tests covering both the Memory Map tree/table UI and the IP Core canvas
+      data-inspector.html     #   Data Inspector webview harness
+      *.spec.ts               #   Browser interaction and regression suites
+    integration/              # EDA, HDL, round-trip, conformance, and generated-testbench suites
 
 __mocks__/
   vscode.ts                   # Sparse VS Code API mock used by Jest (tiers 1–3)
@@ -444,7 +446,10 @@ Runs in parallel with `test`, using open-source HDL tools (no Quartus/Vivado lic
 | HDL integration tests | `npm run test:integration:hdl` | GHDL, Icarus, Verilator |
 | IP-XACT / SPIRIT validation | `npm run test:integration:ipxact` | `xmllint` structural check |
 
-The Quartus and Vivado integration tests (tier 6) are **not** run in CI — they require proprietary tooling and are opt-in only. See [How to Run the EDA Integration Tests](how-to/run-eda-integration-tests.md).
+Quartus and Vivado integration tests also run in the dedicated
+`.github/workflows/integration-vendor.yml` workflow on a self-hosted runner after pushes to
+`main`. They do not run on ordinary pull-request runners because the proprietary tools are not
+available there. See [How to Run the EDA Integration Tests](how-to/run-eda-integration-tests.md).
 
 **Coverage thresholds** are enforced by Jest. The CI unit-test step will fail if any threshold is breached:
 

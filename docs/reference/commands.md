@@ -12,9 +12,9 @@ All commands are available in the Command Palette (`Ctrl+Shift+P`) under the **I
 
 | Command | Palette | IPCraft Menu | Editor Title |
 |---------|:-------:|:------------:|:------------:|
-| `IPCraft: New IP Core` | ✓ | ✓ | |
-| `IPCraft: New Register Map` | ✓ | ✓ | |
-| `IPCraft: New IP Core + Register Map` | ✓ | ✓ | |
+| `IPCraft: New IP Core` | Yes | Yes | |
+| `IPCraft: New Register Map` | Yes | Yes | |
+| `IPCraft: New IP Core + Register Map` | Yes | Yes | |
 
 **New IP Core** — Creates a new `.ip.yml` file with a minimal VLNV skeleton and opens it in the IP Core visual editor.
 
@@ -30,16 +30,16 @@ These commands are available on `.ip.yml` files.
 
 | Command | Palette | IPCraft Menu | Editor Title |
 |---------|:-------:|:------------:|:------------:|
-| `IPCraft: Scaffold Project` | ✓ | ✓ | ✓ |
-| `IPCraft: Generate Top-Level HDL` | ✓ | | |
-| `IPCraft: Generate CocoTB Testbench` | ✓ | ✓ | ✓ |
-| `IPCraft: Generate Vivado Project` | ✓ | ✓ | ✓ |
-| `IPCraft: Generate Quartus Project` | ✓ | ✓ | ✓ |
-| `IPCraft: Generate Altera Platform Designer Component (_hw.tcl)` | ✓ | ✓ | ✓ |
-| `IPCraft: Generate Xilinx Vivado Component (component.xml)` | ✓ | ✓ | ✓ |
-| `IPCraft: Generate & Build (Vivado OOC)` | ✓ | ✓ | ✓ |
-| `IPCraft: Generate & Build (Quartus)` | ✓ | ✓ | ✓ |
-| `IPCraft: Generate Documentation` | ✓ | ✓ | ✓ |
+| `IPCraft: Scaffold Project` | Yes | Yes | Yes |
+| `IPCraft: Generate Top-Level HDL` | Yes | | |
+| `IPCraft: Generate CocoTB Testbench` | Yes | Yes | Yes |
+| `IPCraft: Generate Vivado Project` | Yes | Yes | Yes |
+| `IPCraft: Generate Quartus Project` | Yes | Yes | Yes |
+| `IPCraft: Generate Altera Platform Designer Component (_hw.tcl)` | Yes | Yes | Yes |
+| `IPCraft: Generate Xilinx Vivado Component (component.xml)` | Yes | Yes | Yes |
+| `IPCraft: Generate & Build (Vivado OOC)` | Yes | Yes | Yes |
+| `IPCraft: Generate & Build (Quartus)` | Yes | Yes | Yes |
+| `IPCraft: Generate Documentation` | Yes | Yes | Yes |
 
 **Scaffold Project** — The all-in-one command. Generates RTL files (VHDL or SystemVerilog, controlled by `ipcraft.generate.hdlLanguage`), a testbench, and vendor project files in a single step. Part number and device are read from settings (`ipcraft.vivado.defaultPart`, `ipcraft.quartus.defaultDevice`). The output is written next to the `.ip.yml` file.
 
@@ -63,8 +63,8 @@ These commands are available on `.ip.yml` files.
 
 | Command | Palette | Editor Title |
 |---------|:-------:|:------------:|
-| `IPCraft: Preview Template Output` | ✓ | ✓ (`.j2` files) |
-| `IPCraft: Export Built-in Scaffold Pack` | ✓ | |
+| `IPCraft: Preview Template Output` | Yes | Yes (`.j2` files) |
+| `IPCraft: Export Built-in Scaffold Pack` | Yes | |
 
 **Preview Template Output** — Opens a read-only, live-refreshing preview of a `.j2` template's rendered output next to the editor, evaluated against a pinned or auto-detected `.ip.yml` file. See [Scaffold Packs](../how-to/scaffold-packs.md).
 
@@ -78,8 +78,8 @@ These commands are available on `.ip.yml` files.
 
 | Command | Palette | IPCraft Menu | Editor Title |
 |---------|:-------:|:------------:|:------------:|
-| `IPCraft: Check Consistency` | ✓ | ✓ | ✓ |
-| `IPCraft: Check HDL Consistency (managed:false)` | ✓ | ✓ | |
+| `IPCraft: Check Consistency` | Yes | Yes | Yes |
+| `IPCraft: Check HDL Consistency (managed:false)` | Yes | Yes | |
 
 **Check Consistency** — Cross-references the spec's declared ports, clocks, resets, generics, bus interfaces, and registers against the generated top-level HDL entity/module and, when scaffolded, the Platform Designer (`_hw.tcl`) and Vivado (`component.xml`) vendor artifacts. Reports drift in both directions: implementation-only items (extra port/parameter — a plausible adopt) and spec-only items (missing port/parameter — declared but gone from the implementation), plus property mismatches (direction/width/default) on items both sides declare.
 
@@ -93,10 +93,10 @@ These commands are available on `.ip.yml` files and require vendor tools install
 
 | Command | Palette | IPCraft Menu | Editor Title | Status Bar |
 |---------|:-------:|:------------:|:------------:|:----------:|
-| `IPCraft: Build` | ✓ | ✓ | ✓ | |
-| `IPCraft: Build: Vivado OOC Synthesis` | ✓ | ✓ | | |
-| `IPCraft: Build: Quartus Compile` | ✓ | ✓ | | |
-| `IPCraft: Show Build Output` | ✓ | ✓ | | ✓ (click) |
+| `IPCraft: Build` | Yes | Yes | Yes | |
+| `IPCraft: Build: Vivado OOC Synthesis` | Yes | Yes | | |
+| `IPCraft: Build: Quartus Compile` | Yes | Yes | | |
+| `IPCraft: Show Build Output` | Yes | Yes | | Yes (click) |
 
 **Build** — Detects available build targets by checking for `xilinx/<ip_name>_run_ooc.tcl`, `xilinx/<ip_name>_run_xpr.tcl`, and `altera/<ip_name>_project.tcl`. When multiple targets exist, a QuickPick is shown. The selected tool runs in batch mode; output streams live to the *IPCraft Build* Output Channel. On completion, the *IPCraft Build* sidebar panel updates with parsed timing and utilization metrics.
 
@@ -120,9 +120,9 @@ Available build targets:
 
 | Command | Palette | IPCraft Menu | Editor Title |
 |---------|:-------:|:------------:|:------------:|
-| `IPCraft: Import from VHDL (Experimental)` | ✓ | ✓ | ✓ (`.vhd`, `.vhdl`) |
-| `IPCraft: Import from Altera Platform Designer (Experimental)` | ✓ | ✓ | ✓ (`_hw.tcl`) |
-| `IPCraft: Import from Xilinx Component XML (Experimental)` | ✓ | ✓ | ✓ (`component.xml`) |
+| `IPCraft: Import from VHDL (Experimental)` | Yes | Yes | Yes (`.vhd`, `.vhdl`) |
+| `IPCraft: Import from Altera Platform Designer (Experimental)` | Yes | Yes | Yes (`_hw.tcl`) |
+| `IPCraft: Import from Xilinx Component XML (Experimental)` | Yes | Yes | Yes (`component.xml`) |
 
 **Import from VHDL** — Parses a `.vhd` or `.vhdl` file and extracts entity name, generics, clock/reset/port signals, and bus interfaces (AXI4-Full, AXI4-Lite, AXI-Stream, Avalon-MM, Avalon-ST). Creates `<entity_name>.ip.yml` in the same directory.
 
@@ -138,12 +138,12 @@ Available build targets:
 
 | Command | Palette | IPCraft Menu | Editor Title |
 |---------|:-------:|:------------:|:------------:|
-| `IPCraft: Edit in IP Packager` | | ✓ | ✓ (`component.xml`) |
-| `IPCraft: Open in Platform Designer` | | ✓ | ✓ (`_hw.tcl`) |
-| `IPCraft: Scan Vivado IP Catalog` | ✓ | | |
-| `IPCraft: Scan Vivado Interface Catalog` | ✓ | | |
-| `IPCraft: Open in Vivado` | ✓ | ✓ | ✓ (`.ip.yml`) |
-| `IPCraft: Open in Quartus` | ✓ | ✓ | ✓ (`.ip.yml`) |
+| `IPCraft: Edit in IP Packager` | | Yes | Yes (`component.xml`) |
+| `IPCraft: Open in Platform Designer` | | Yes | Yes (`_hw.tcl`) |
+| `IPCraft: Scan Vivado IP Catalog` | Yes | | |
+| `IPCraft: Scan Vivado Interface Catalog` | Yes | | |
+| `IPCraft: Open in Vivado` | Yes | Yes | Yes (`.ip.yml`) |
+| `IPCraft: Open in Quartus` | Yes | Yes | Yes (`.ip.yml`) |
 
 **Edit in IP Packager** — Launches Vivado in GUI mode with the selected `component.xml`, opening it directly in the IP Packager. Requires Vivado to be configured (see `ipcraft.vivado.runner` and `ipcraft.vivado.installDir`).
 
@@ -163,9 +163,9 @@ Available build targets:
 
 | Command | Palette | Editor Title |
 |---------|:-------:|:------------:|
-| `IPCraft: View Bus Definitions` | ✓ | |
-| `IPCraft: Scan Workspace Bus Definitions` | ✓ | |
-| `IPCraft: Copy Component Instance` | ✓ | ✓ (`.vhd`, `.vhdl`, `.v`, `.sv`) |
+| `IPCraft: View Bus Definitions` | Yes | |
+| `IPCraft: Scan Workspace Bus Definitions` | Yes | |
+| `IPCraft: Copy Component Instance` | Yes | Yes (`.vhd`, `.vhdl`, `.v`, `.sv`) |
 
 **View Bus Definitions** — Shows a QuickPick of the built-in bus definition YAML files (AXI4-Lite, AXI4, AXI-Stream, Avalon-MM, Avalon-ST, and custom definitions). Selecting one opens the file in a read-only editor.
 
@@ -179,13 +179,13 @@ Available build targets:
 
 | Command | Palette |
 |---------|:-------:|
-| `IPCraft: Open Walkthrough...` | ✓ |
-| `IPCraft: Get Started with Scaffold Packs` | ✓ |
-| `IPCraft: Design Your First IP Core` | ✓ |
-| `IPCraft: IP Core with a Register Map` | ✓ |
-| `IPCraft: Bring Your VHDL into IPCraft` | ✓ |
-| `IPCraft: Import from Xilinx or Intel Tools` | ✓ |
-| `IPCraft: Synthesize and Check Timing` | ✓ |
+| `IPCraft: Open Walkthrough...` | Yes |
+| `IPCraft: Get Started with Scaffold Packs` | Yes |
+| `IPCraft: Design Your First IP Core` | Yes |
+| `IPCraft: IP Core with a Register Map` | Yes |
+| `IPCraft: Bring Your VHDL into IPCraft` | Yes |
+| `IPCraft: Import from Xilinx or Intel Tools` | Yes |
+| `IPCraft: Synthesize and Check Timing` | Yes |
 
 **Open Walkthrough...** — Shows a QuickPick of all IPCraft walkthroughs. The other commands each jump directly to one.
 
@@ -195,9 +195,9 @@ Available build targets:
 
 | Command | Palette | Editor Title |
 |---------|:-------:|:------------:|
-| `IPCraft: Open as Text Editor` | ✓ | ✓ (`.ip.yml`, `.mm.yml`) |
-| `IPCraft: Open as Visual Editor` | ✓ | ✓ (`.ip.yml`, `.mm.yml`) |
-| `IPCraft: Preview in IPCraft (Experimental)` | ✓ | |
+| `IPCraft: Open as Text Editor` | Yes | Yes (`.ip.yml`, `.mm.yml`) |
+| `IPCraft: Open as Visual Editor` | Yes | Yes (`.ip.yml`, `.mm.yml`) |
+| `IPCraft: Preview in IPCraft (Experimental)` | Yes | |
 
 **Open as Text Editor** — Reopens the current `.ip.yml` or `.mm.yml` file in the default VS Code text editor.
 
@@ -211,7 +211,7 @@ Available build targets:
 
 | Command | Palette |
 |---------|:-------:|
-| `IPCraft: Migrate Legacy IP Cores (vendor: → targets:)` | ✓ |
+| `IPCraft: Migrate Legacy IP Cores (vendor: → targets:)` | Yes |
 
 **Migrate Legacy IP Cores** — Scans the workspace for `.ip.yml` files that use the old `vendor:` field and rewrites them to the new `targets:` array format used by `ipcraft.generate.targets`.
 
@@ -311,10 +311,10 @@ The **IPCraft Build** panel in the Explorer sidebar shows the result of the last
 When a build succeeds, the tree shows:
 
 ```
-Vivado — OOC          ✓
-├── Timing            ✓
-│   ├── WNS +1.234 ns ✓
-│   ├── WHS +0.456 ns ✓
+Vivado — OOC          PASS
+├── Timing            PASS
+│   ├── WNS +1.234 ns PASS
+│   ├── WHS +0.456 ns PASS
 │   └── Failing paths: 0
 └── Utilization
     ├── LUT: 1,234 / 53,200 (2.3%)

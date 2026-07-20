@@ -25,6 +25,19 @@
 
 Launch the Extension Development Host with **F5**.
 
+## Architecture at a Glance
+
+IPCraft runs in two JavaScript environments that communicate through `postMessage`:
+
+- The **extension host** runs in Node.js and owns VS Code APIs, files, commands, importers,
+  generation, and vendor tools.
+- The **webviews** run in embedded browsers and render the Memory Map, IP Core, and Data
+  Inspector React applications.
+
+The main entry points are `src/extension.ts`, `src/webview/index.tsx`,
+`src/webview/ipcore/IpCoreApp.tsx`, and `src/webview/dataInspector/index.tsx`. Start with
+[Architecture Overview](../architecture/overview.md) before changing the message boundary.
+
 ## Repository Layout
 
 ```text
@@ -77,6 +90,18 @@ ipcraft-spec/               # specification schemas + examples (local package)
     | `npm run type-check` | TypeScript check without emit |
     | `npm run format` | Prettier format |
     | `npm run generate-types` | Regenerate types from JSON schemas |
+
+## YAML Editing Rule
+
+IPCraft deliberately uses two YAML libraries:
+
+| Library | Use |
+|---------|-----|
+| `js-yaml` v4 | Read-only parsing or simple output where formatting preservation is irrelevant |
+| `yaml` v2 | Any modify-and-write-back path that must preserve comments and numeric spellings |
+
+Format-preserving writes go through `src/yamledit/` (`applyPathEdits`,
+`applyPathDeletes`). Do not introduce a `js-yaml` dump into an editor write-back path.
 
 ## Testing
 
@@ -135,6 +160,10 @@ See [Building a VSIX Package](../how-to/build-vsix.md) for the full workflow inc
 
 ## Common Development Tasks
 
+Good first contributions include focused unit-test improvements, validation messages,
+small component fixes, and documentation corrections. Keep changes narrow and add a regression
+test when fixing behavior.
+
 ### Add a new command
 
 1. Implement in `src/commands/*`
@@ -159,9 +188,7 @@ See [Building a VSIX Package](../how-to/build-vsix.md) for the full workflow inc
 ### Add an IP Core canvas feature
 
 The IP Core editor has no sidebar/section-tabs mode — editing happens on the block-diagram canvas
-plus its Inspector panel (`src/webview/ipcore/components/layout/NavigationSidebar.tsx` and
-`ipcore/components/sections/*.tsx` are dead code, not part of the live UI; see
-[IP Core Editor Reference](../reference/ip-core-editor.md)).
+plus its Inspector panel. See [IP Core Editor Reference](../reference/ip-core-editor.md).
 
 1. Add a draggable entry to `src/webview/ipcore/components/canvas/LibraryPalette.tsx` if the feature
    introduces a new droppable primitive

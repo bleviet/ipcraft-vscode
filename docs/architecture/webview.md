@@ -38,13 +38,8 @@ The webview is an embedded browser that renders the visual editors using React. 
 
 ## IP Core Components
 
-Editing happens entirely on the **block-diagram canvas** plus its Inspector panel — there is no
-separate tabular "form" mode in the current UI. `ipcore/components/layout/NavigationSidebar.tsx`
-and every file under `ipcore/components/sections/` (`MetadataEditor`, `ClocksTable`, `ResetsTable`,
-`PortsTable`, `ParametersTable`, `MemoryMapsEditor`, `SubcoresEditor`, `FileSetsEditor`,
-`GeneratorPanel`, `PortMappingTable`) still exist in the tree but are **not imported by
-`IpCoreApp.tsx` or `EditorPanel.tsx`** — dead code left over from an earlier sidebar-and-tables
-iteration of the editor. `EditorPanel.tsx` itself only renders the canvas.
+Editing happens on the **block-diagram canvas** plus its Inspector panel. `EditorPanel.tsx`
+mounts the canvas and the surrounding application owns the toolbar, validation, and staging UI.
 
 ### Canvas (`ipcore/components/canvas/`)
 
@@ -55,7 +50,7 @@ iteration of the editor. `EditorPanel.tsx` itself only renders the canvas.
 | `CanvasInspector` | `ipcore/components/canvas/CanvasInspector.tsx` | Right-hand property panel for the selected element |
 | `CanvasPort`, `CanvasBusBundle`, `CanvasBusSubPort` | `ipcore/components/canvas/Canvas{Port,BusBundle,BusSubPort}.tsx` | Rendered port / bus-interface / expanded-signal elements |
 | `CanvasSelectionActions` | `ipcore/components/canvas/CanvasSelectionActions.tsx` | Multi-select action bar (e.g. bulk delete/group) |
-| `GroupingMappingStep`, `MapConduitToBusDialog`, `PortMappingDialog` | `ipcore/components/canvas/*.tsx` | Multi-step flows for grouping loose ports into a bus interface, mapping a conduit to a bus (see [Vivado Interface Catalog](vivado-interface-catalog.md)), and physical-to-logical port mapping |
+| `GroupingMappingStep`, `MapConduitToBusDialog`, `PortMappingDialog` | `ipcore/components/canvas/*.tsx` | Multi-step flows for grouping loose ports into a bus interface, mapping a conduit to a bus (see [Vivado Interface Catalog](../concepts/vivado-interface-catalog.md)), and physical-to-logical port mapping |
 | `RemoveZone` | `ipcore/components/canvas/RemoveZone.tsx` | Drop target for drag-to-remove |
 | `StagingOverlay` | `ipcore/components/canvas/StagingOverlay.tsx` | Preview overlay shown while reviewing generated/staged output |
 
@@ -95,7 +90,7 @@ State management and behavior logic for the Memory Map editor:
 | `useIpCoreSync` | `ipcore/hooks/useIpCoreSync.ts` | Sends YAML updates to extension host |
 | `useNavigation` | `ipcore/hooks/useNavigation.ts` | Section navigation state |
 | `useBusInterfaceEditing` | `ipcore/hooks/useBusInterfaceEditing.ts` | Bus interface editing state and actions |
-| `useGroupPorts` | `ipcore/hooks/useGroupPorts.ts` | Grouping standalone ports into bus interfaces (and the reverse); `applyMapConduitToKnownBus()` converts a conduit interface to `portNameOverrides` once its type resolves to a library definition — see [Vivado Interface Catalog](vivado-interface-catalog.md) |
+| `useGroupPorts` | `ipcore/hooks/useGroupPorts.ts` | Grouping standalone ports into bus interfaces (and the reverse); `applyMapConduitToKnownBus()` converts a conduit interface to `portNameOverrides` once its type resolves to a library definition — see [Vivado Interface Catalog](../concepts/vivado-interface-catalog.md) |
 
 ## Webview Services
 
@@ -109,7 +104,7 @@ State management and behavior logic for the Memory Map editor:
 YAML → normalized model conversion (formerly `DataNormalizer`/`YamlSanitizer`, both removed)
 now lives in `src/domain/parse.ts` (`normalizeMemoryMap`) and `src/domain/serialize.ts`
 (`serializeMemoryMap`) — shared with the IP Core editor, not webview-specific. See
-[architecture.md §2.4](architecture.md#24-the-dual-spelling-problem-schema-vs-webview-internals).
+[YAML Data Flow](../concepts/yaml-data-flow.md).
 
 ## Algorithms
 

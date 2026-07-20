@@ -9,8 +9,7 @@ Read [Spatial Editing](../concepts/spatial-editing.md) first for the mental
 model. For exact shortcuts, callback contracts, and function signatures, use the
 [Bit Field Interaction Reference](../reference/bitfield-interaction.md). For the
 layout rules registers and blocks obey, see
-[LayoutEngine.ts](../../src/webview/algorithms/LayoutEngine.ts) (CLAUDE.md's
-"Layout computation" section has the summary).
+[`LayoutEngine.ts`](https://github.com/bleviet/ipcraft-vscode/blob/main/src/webview/algorithms/LayoutEngine.ts).
 
 ## Where the data lives
 

@@ -27,14 +27,15 @@ The generator uses `builtin-minimal` as the default scaffold pack unless you ove
 
 ## Selecting a Scaffold Pack
 
-The active pack is a workspace setting — it applies to all IP cores in the workspace
-and is independent of the `.ip.yml` spec file.
+The active pack is normally persisted in the current `.ip.yml` as `scaffold_pack`, so each IP
+core can select its own generator layout. If the file does not select a pack, IPCraft falls back
+to the `ipcraft.generate.scaffoldPack` workspace setting and then to `builtin-minimal`.
 
 **Option A — Canvas dropdown (recommended)**
 
 Open any `.ip.yml` in the visual editor. The **Scaffold Template** dropdown
 in the toolbar lists every detected pack, grouped by category. Selecting a pack saves
-it to `ipcraft.generate.scaffoldPack` immediately.
+it to the current `.ip.yml` immediately.
 
 ![Scaffold Template dropdown in the IP Core editor toolbar](../images/scaffold-template-picker-light.png)
 
@@ -146,15 +147,15 @@ would generate against the pinned IP core.
 Scaffold Pack: aurora-rtl
 .vscode/ipcraft/packs/aurora-rtl
 
-● 6 generated  ○ 2 skipped  🔒 1 user-owned
+Generated: 6  Skipped: 2  Protected: 1
 
 rtl/
-  ● spi_controller_pkg.vhd
-  ● spi_controller.vhd
-  🔒 spi_controller_core.vhd              user-owned
-  ● spi_controller_axil.vhd
-  ● spi_controller_regs.vhd
-  ○ spi_controller_regs.sv    condition false
+  [generated] spi_controller_pkg.vhd
+  [generated] spi_controller.vhd
+  [protected] spi_controller_core.vhd              user-owned
+  [generated] spi_controller_axil.vhd
+  [generated] spi_controller_regs.vhd
+  [skipped] spi_controller_regs.sv    condition false
 ```
 
 | Indicator | Meaning |

@@ -46,7 +46,7 @@ Both use `retainContextWhenHidden: true` for state persistence and share the sam
 | `FileSetUpdater` | `src/services/FileSetUpdater.ts` | Updates file set entries after generation |
 | `SubcoreResolver` | `src/services/SubcoreResolver.ts` | Resolves sub-core references across `.ip.yml` files |
 | `VivadoCatalogScanner` | `src/services/VivadoCatalogScanner.ts` | Scans the Vivado IP catalog and caches results |
-| `VivadoInterfaceScanner` | `src/services/VivadoInterfaceScanner.ts` | Scans the Vivado *interface* catalog (`data/ip/interfaces/`) and caches bus definitions — see [Vivado Interface Catalog](vivado-interface-catalog.md) |
+| `VivadoInterfaceScanner` | `src/services/VivadoInterfaceScanner.ts` | Scans the Vivado *interface* catalog (`data/ip/interfaces/`) and caches bus definitions — see [Vivado Interface Catalog](../concepts/vivado-interface-catalog.md) |
 | `WorkspaceBusDefinitionScanner` | `src/services/WorkspaceBusDefinitionScanner.ts` | Scans the open workspace for custom bus-definition YAML files (`ipcraft.busLibraryPaths`) |
 | `BusDefScanCache` | `src/services/BusDefScanCache.ts` | Caches bus-definition scan results across scanners |
 | `ToolDetector` | `src/services/ToolDetector.ts` | Detects installed vendor toolchains (Vivado, Quartus) and their sub-tools (e.g. `qsys-edit`) |
@@ -138,8 +138,8 @@ Located in `src/generator/templates/`:
 | `amd_xgui.j2` | AMD Vivado xgui (`.tcl`) |
 
 `xilinx/component.xml` (IP-XACT) is **not** rendered from a template — it is built programmatically by
-`VivadoComponentXmlGenerator.ts`. The legacy `amd_component_xml.j2` template is unused dead code. A
-scaffold pack may still override `component.xml` by supplying its own `component.xml.j2`.
+`VivadoComponentXmlGenerator.ts`. A scaffold pack may override `component.xml` by supplying its
+own `component.xml.j2`.
 
 #### Testbench
 
@@ -178,9 +178,14 @@ The toolchain abstraction centralises all vendor-tool configuration. Commands su
 
 ## Parser
 
-`src/parser/VhdlParser.ts` -- parses existing VHDL files into IP Core/Memory Map YAML specifications. Accessible via the `Import from VHDL` command or right-click context menu on `.vhd`/`.vhdl` files.
+`src/parser/VhdlParser.ts` and `src/parser/VerilogParser.ts` parse HDL modules into IP Core
+specifications. `src/parser/HwTclParser.ts` imports Altera Platform Designer components, while
+`src/parser/ComponentXmlParser.ts` imports Vivado IP-XACT components.
 
-`src/parser/VivadoInterfaceXmlParser.ts` -- parses Vivado's own IP-XACT `busDefinition`/`abstractionDefinition` XML files (under `data/ip/interfaces/`) into bus definitions usable by `BusLibraryService`. Used by `VivadoInterfaceScanner`, not exposed as a standalone command — see [Vivado Interface Catalog](vivado-interface-catalog.md).
+`src/parser/VivadoInterfaceXmlParser.ts` parses Vivado's own IP-XACT
+`busDefinition`/`abstractionDefinition` XML files into bus definitions usable by
+`BusLibraryService`. It is used by `VivadoInterfaceScanner`, not exposed as a standalone import
+command — see [Vivado Interface Catalog](../concepts/vivado-interface-catalog.md).
 
 ## Utilities
 

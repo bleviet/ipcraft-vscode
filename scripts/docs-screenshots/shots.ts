@@ -47,8 +47,7 @@ export interface Shot {
 }
 
 // Outline IDs follow block-N-reg-M (see outlineIds.ts). In the comprehensive
-// AXI example, CTRL is block-0-reg-1. In LED_AVMM_CSR, VERSION is register 0,
-// LED_PATTERN is register 1, and EVENTS is register 2.
+// AXI example, CTRL is block-0-reg-1.
 export const shots: Shot[] = [
   {
     id: 'memorymap-editor',
@@ -58,12 +57,6 @@ export const shots: Shot[] = [
     setup: async (page) => {
       await page.locator('[data-outline-id="block-0-reg-1"]').click(); // CTRL
     },
-  },
-  {
-    id: 'led-memorymap-editor',
-    harness: 'memorymap',
-    source: MM_SOURCE,
-    viewport: DEFAULT_VIEWPORT,
   },
   {
     id: 'ipcore-editor',
@@ -192,35 +185,6 @@ export const shots: Shot[] = [
           '*'
         );
       });
-    },
-  },
-  {
-    id: 'outline-tree',
-    harness: 'memorymap',
-    source: MM_SOURCE,
-    viewport: DEFAULT_VIEWPORT,
-    clip: 'aside.sidebar',
-  },
-  {
-    id: 'bitfield-visualizer',
-    harness: 'memorymap',
-    source: MM_SOURCE,
-    viewport: DEFAULT_VIEWPORT,
-    clip: 'main section',
-    setup: async (page) => {
-      await page.locator('[data-outline-id="block-0-reg-1"]').click(); // LED_PATTERN
-    },
-  },
-  {
-    id: 'fields-table-access',
-    harness: 'memorymap',
-    source: MM_SOURCE,
-    viewport: DEFAULT_VIEWPORT,
-    // The data-fields-table wrapper is flex-1/min-h-0 (stretches to fill its
-    // panel), so clip the <table> itself for a tight crop around content.
-    clip: '[data-fields-table="true"] table',
-    setup: async (page) => {
-      await page.locator('[data-outline-id="block-0-reg-2"]').click(); // EVENTS: write-1-to-clear + monitorChangeOf
     },
   },
   {

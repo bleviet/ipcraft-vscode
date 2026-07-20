@@ -21,7 +21,10 @@ The EDA integration tests form a sixth tier in the repository's test architectur
 | 5 | Playwright | Compiled React webview UI in a real browser |
 | **6** | **Jest + EDA tools** | **Generated EDA files accepted by the real vendor tools** |
 
-Tier 6 tests are deliberately **not** part of `npm run test:all`. They require external tooling (Docker or a Vivado installation) that is not present in the standard developer or CI environment. They run on demand, or in a dedicated CI job that provisions the required tools.
+Tier 6 tests are deliberately **not** part of `npm run test:all`. They require external tooling
+(Docker or a Vivado installation) that is not present in the standard hosted CI environment.
+Developers can run them on demand, and `.github/workflows/integration-vendor.yml` runs the Vivado
+and Quartus suites on a dedicated self-hosted runner after pushes to `main`.
 
 ---
 

@@ -52,17 +52,11 @@ markdown_extensions:
 nav:
   - Home: index.html
   - Getting Started:
-      - Quick Start: getting-started/quickstart.md
       - Development Setup: getting-started/development.md
   - Tutorials:
       - Build and Verify a Scaffold Pack: tutorials/build-and-verify-a-scaffold-pack.md
       - Memory-Mapped Registers: tutorials/memory-mapped-registers.md
-      - LED Controller on Real Hardware:
-          - 1. Authoring the Peripheral: tutorials/led-controller-avmm-authoring.md
-          - 2. Simulating Before Hardware: tutorials/led-controller-avmm-simulation.md
-          - 3. Importing an Existing Peripheral: tutorials/importing-avalon-mm-peripherals.md
-          - 4. Headless Quartus Build: tutorials/headless-quartus-build.md
-          - 5. Programming the Board: tutorials/led-controller-avmm-on-hardware.md
+      - DE10-Nano Case Study: tutorials/de10-nano-case-study.md
   - How-to Guides:
       - Creating Your First IP Core: how-to/create-your-first-ip-core.md
       - Defining a Custom Interface: how-to/custom-interfaces.md
@@ -74,23 +68,24 @@ nav:
       - Building a VSIX Package: how-to/build-vsix.md
       - Using the Data Inspector: how-to/use-data-inspector.md
       - Data Inspector Capture Examples: how-to/data-inspector-capture-examples.md
-      - AI Design Guide: how-to/ai-design-guide.md
       - Arithmetic Functions in Port Widths: how-to/port-width-functions.md
       - Running Simulations: how-to/run-cocotb-simulation.md
       - Running EDA Integration Tests: how-to/run-eda-integration-tests.md
   - Concepts:
-      - VS Code Extension Model: concepts/extension-model.md
       - YAML Data Flow: concepts/yaml-data-flow.md
       - Spatial Editing: concepts/spatial-editing.md
       - Responsive Design: concepts/responsive-design.md
       - Custom Interfaces: concepts/custom-interface.md
       - Vivado Interface Catalog: concepts/vivado-interface-catalog.md
+      - Data Inspector: concepts/data-inspector.md
+      - Template Context Contract: concepts/generator-backbone.md
       - EDA Integration Tests: concepts/eda-integration-tests.md
-      - Automated Docs Screenshots: concepts/docs-screenshots.md
   - Architecture:
       - Overview: architecture/overview.md
       - Extension Host: architecture/extension-host.md
       - Webview (React): architecture/webview.md
+      - Generator: architecture/generator-backbone.md
+      - Bit Field Handling: architecture/bit-field-handling.md
   - Reference:
       - Commands & Settings: reference/commands.md
       - Keyboard Shortcuts: reference/keyboard-shortcuts.md
@@ -98,8 +93,8 @@ nav:
       - IP Core Editor: reference/ip-core-editor.md
       - Specification Schemas: reference/specification-schemas.md
       - Bit Field Interaction: reference/bitfield-interaction.md
-      - YAML Libraries: reference/yaml-libraries.md
   - Contributing:
       - Guidelines: contributing/guidelines.md
-  - Blog:
-      - Building IPCraft: blog/building-ipcraft.md
+      - Testing: testing.md
+      - Automated Docs Screenshots: concepts/docs-screenshots.md
+      - Codicon Attribution: images/codicons/README.md

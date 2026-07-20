@@ -4,9 +4,7 @@ How IPCraft learns about bus interfaces that Vivado already knows about — and
 why an interface like Xilinx's `fifo_write` should never have been treated as
 a hand-authored Custom Interface in the first place.
 
-See [Vivado Interface Catalog — Architecture](../architecture/vivado-interface-catalog.md)
-for the implementation. See [Custom Interface](custom-interface.md) for the
-narrower concept this work builds on.
+See [Custom Interface](custom-interface.md) for the narrower concept this work builds on.
 
 ---
 
@@ -72,14 +70,12 @@ rest of the system tell the two cases apart wherever it matters:
 
 - **Selection** — the inspector's "Interface Type" field gained the same
   searchable dropdown the "Bus Type" field already had, listing both
-  user-saved and Vivado-discovered interfaces (see
-  [Architecture → Inspector UI](../architecture/vivado-interface-catalog.md#inspector-ui-fuzzyselect-interfacetypefield)).
+  user-saved and Vivado-discovered interfaces.
 - **Width display** — some signals genuinely have no fixed width because
   Vivado leaves them parameterized in the IP-XACT (`fifo_write`'s `WR_DATA`
   is sized by the FIFO's data width, not the protocol). The inspector must
   show these as overridable, not hide them as if they were fixed 1-bit
-  control signals — see
-  [Architecture → Port Widths](../architecture/vivado-interface-catalog.md#the-port-widths-filter-bug).
+  control signals.
 - **Code generation** — the busType/abstractionType VLNV and portMaps in
   the generated `component.xml` must still reference the *real* interface
   (`xilinx.com:interface:fifo_write:1.0`), but the `busdef/` XML pair must
@@ -140,3 +136,17 @@ but the catalog work is what surfaced it: a Vivado-discovered interface like
 `fifo_write` has no meaningful default physical prefix, so the editor needs
 to be able to write `physicalPrefix: null` rather than coercing it to an
 empty string or omitting the key inconsistently.
+
+## Implementation Map
+
+| Concern | Primary implementation |
+|---------|------------------------|
+| Parse Vivado IP-XACT interface files | `src/parser/VivadoInterfaceXmlParser.ts` |
+| Scan and cache a Vivado installation | `src/services/VivadoInterfaceScanner.ts` |
+| Resolve the Vivado installation directory | `src/utils/vivadoResolver.ts` |
+| Merge cached and workspace bus definitions | `src/services/ImportResolver.ts`, `src/services/WorkspaceBusDefinitionScanner.ts` |
+| Select and map interfaces in the canvas | `FuzzySelect.tsx`, `InterfaceTypeField.tsx`, `MapConduitToBusDialog.tsx` |
+| Preserve real Vivado VLNVs during generation | `src/generator/VivadoComponentXmlGenerator.ts` |
+
+Parser, scanner, resolver, mapping-dialog, register-processor, component-generator, and schema
+tests cover this pipeline under `src/test/suite/`.

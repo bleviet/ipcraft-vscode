@@ -20,7 +20,7 @@ graph TB
         CMD["Commands\nFileCreation\nGenerate\nBuild\nVivado/Quartus\nMigrate"]
         GEN["Generator\nIpCoreScaffolder\nregisterProcessor\nTemplateLoader\ntestbench/"]
         TC["Toolchains\nVivadoToolchain\nQuartusToolchain\nregistry"]
-        PAR["Parser\nVhdlParser"]
+        PAR["Importers\nVhdlParser, VerilogParser\nHwTclParser, ComponentXmlParser"]
     end
     subgraph "Domain (shared across the process boundary)"
         DOMAIN["src/domain/\nparse.ts, serialize.ts\nNormalized*Model types"]
@@ -54,12 +54,6 @@ graph TB
     IPCOMP --> SHARED
 ```
 
-`src/webview/ipcore/components/layout/NavigationSidebar.tsx` and `src/webview/ipcore/components/sections/*.tsx`
-(`MetadataEditor`, `ClocksTable`, `ResetsTable`, `PortsTable`, `ParametersTable`, `MemoryMapsEditor`,
-`FileSetsEditor`, `GeneratorPanel`, `PortMappingTable`) still exist as files but are not imported by
-`IpCoreApp.tsx` — the IP Core editor's canvas replaced the earlier sidebar+form-sections layout and these
-components are dead code, not part of the live render tree.
-
 ## Data Flow
 
 ### Document open
@@ -80,6 +74,17 @@ components are dead code, not part of the live render tree.
 ### Host commands
 
 Webview can post `type: 'command'` (`save`, `validate`, `openFile`). Host executes VS Code actions and may show notifications.
+
+### Message lifecycle and revisions
+
+1. VS Code calls `resolveCustomTextEditor` for a matching file.
+2. The provider creates the webview HTML and waits for a `ready` message.
+3. The provider sends the document text with its current `docVersion`.
+4. Webview edits carry a monotonic `editId` and the `baseDocVersion` they were based on.
+5. `DocumentManager` serializes document writes and rejects stale base versions.
+
+The revision pair distinguishes a genuine external update from an echo or a stale edit. See
+[YAML Data Flow](../concepts/yaml-data-flow.md) for the complete protocol.
 
 ### Canvas edit (IP Core only)
 
@@ -109,6 +114,13 @@ Canvas keyboard shortcuts (Delete, Ctrl+D, Ctrl+Z/Y) follow the same update path
 | Compiled tests | `out/**` |
 
 Built with webpack. See [Development Setup](../getting-started/development.md) for commands.
+
+## Webview Security
+
+`HtmlGenerator` applies a Content Security Policy with `default-src 'none'`. Scripts, styles,
+fonts, and other resources are restricted to the extension's own `webview.cspSource`. Webviews
+cannot access the file system directly; all privileged operations cross the typed message bridge,
+and host commands are checked against an allow-list.
 
 ## YAML Libraries
 

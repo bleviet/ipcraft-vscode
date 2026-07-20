@@ -35,10 +35,10 @@ Click any node in the **IPCraft Build** panel to open the corresponding report f
 After a successful build the **IPCraft Build** panel in the Explorer sidebar shows a tree like:
 
 ```
-Vivado — OOC           ✓
-├── Timing             ✓
-│   ├── WNS +1.234 ns  ✓
-│   ├── WHS +0.456 ns  ✓
+Vivado — OOC           PASS
+├── Timing             PASS
+│   ├── WNS +1.234 ns  PASS
+│   ├── WHS +0.456 ns  PASS
 │   └── Failing paths: 0
 └── Utilization
     ├── LUT:  1,234 / 53,200 (2.3%)
@@ -50,8 +50,8 @@ Vivado — OOC           ✓
 For Quartus:
 
 ```
-Quartus — Compile      ✓
-├── Timing             ✓
+Quartus — Compile      PASS
+├── Timing             PASS
 │   └── Fmax: 156.25 MHz
 └── Utilization
     ├── LUT:  1,234 / 41,910 (2.9%)
@@ -59,12 +59,12 @@ Quartus — Compile      ✓
     └── BRAM: 16,384 / 5,662,720 (0%)
 ```
 
-### Timing icons
+### Timing status
 
-| Icon | Meaning |
-|------|---------|
-| ✓ (green) | All timing constraints met |
-| ✗ (red) | One or more timing violations |
+| Status | Meaning |
+|--------|---------|
+| PASS (green) | All timing constraints met |
+| FAIL (red) | One or more timing violations |
 
 A negative WNS (Worst Negative Slack) means setup timing is violated — the design cannot meet the target clock frequency as constrained.
 
