@@ -2,9 +2,34 @@
 import * as assert from 'assert';
 import * as path from 'path';
 import * as vscode from 'vscode';
+import { parseIpCore, parseMemoryMap } from '../../../domain/parse';
+
+const FIXTURES_DIR = path.resolve(__dirname, '../fixtures');
+
+async function readFixture(name: string): Promise<{ text: string; uri: vscode.Uri }> {
+  const uri = vscode.Uri.file(path.join(FIXTURES_DIR, name));
+
+  try {
+    const content = await vscode.workspace.fs.readFile(uri);
+    const text = Buffer.from(content).toString('utf8');
+    assert.ok(text.trim(), `E2E fixture is empty: ${uri.fsPath}`);
+    return { text, uri };
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    assert.fail(`Unable to read E2E fixture ${uri.fsPath}: ${reason}`);
+  }
+}
 
 suite('Extension Activation Test Suite', () => {
   vscode.window.showInformationMessage('Start all tests.');
+
+  setup(async () => {
+    await vscode.commands.executeCommand('workbench.action.closeAllEditors');
+  });
+
+  teardown(async () => {
+    await vscode.commands.executeCommand('workbench.action.closeAllEditors');
+  });
 
   test('Extension should be present', () => {
     assert.ok(vscode.extensions.getExtension('bleviet.ipcraft-vscode'));
@@ -29,10 +54,15 @@ suite('Extension Activation Test Suite', () => {
     assert.strictEqual(hasIpCoreEditor, true, 'IP Core editor should be registered');
   });
 
-  test('Opening .mm.yml resolves to custom editor, not text editor', async () => {
-    const fixtureUri = vscode.Uri.file(path.resolve(__dirname, '../../fixtures/test.mm.yml'));
+  test('Opening .mm.yml loads parsed content in the custom editor', async () => {
+    const { text, uri: fixtureUri } = await readFixture('test.mm.yml');
+    const parsed = parseMemoryMap(text);
 
-    await vscode.commands.executeCommand('workbench.action.closeAllEditors');
+    assert.strictEqual(parsed.map.name, 'TEST_MAP');
+    assert.strictEqual(parsed.map.addressBlocks[0]?.name, 'REGS');
+    assert.strictEqual(parsed.map.addressBlocks[0]?.registers[0]?.name, 'CTRL');
+    assert.strictEqual(parsed.map.addressBlocks[0]?.registers[0]?.fields[0]?.name, 'ENABLE');
+
     await vscode.commands.executeCommand('vscode.open', fixtureUri);
 
     // Give the custom editor provider time to resolve and render
@@ -57,14 +87,17 @@ suite('Extension Activation Test Suite', () => {
       'fpgaMemoryMap.editor',
       `Active tab viewType should be 'fpgaMemoryMap.editor', got '${input?.viewType}'`
     );
-
-    await vscode.commands.executeCommand('workbench.action.closeAllEditors');
   });
 
-  test('Opening .ip.yml resolves to custom editor, not text editor', async () => {
-    const fixtureUri = vscode.Uri.file(path.resolve(__dirname, '../../fixtures/test.ip.yml'));
+  test('Opening .ip.yml loads parsed content in the custom editor', async () => {
+    const { text, uri: fixtureUri } = await readFixture('test.ip.yml');
+    const parsed = parseIpCore(text);
+    const vlnv = parsed.vlnv as Record<string, unknown>;
 
-    await vscode.commands.executeCommand('workbench.action.closeAllEditors');
+    assert.strictEqual(vlnv.name, 'test_core');
+    assert.strictEqual(parsed.description, 'Smoke test IP core');
+    assert.deepStrictEqual(parsed.memoryMaps, { import: 'test.mm.yml' });
+
     await vscode.commands.executeCommand('vscode.open', fixtureUri);
 
     await new Promise((resolve) => setTimeout(resolve, 3000));
@@ -86,7 +119,5 @@ suite('Extension Activation Test Suite', () => {
       'fpgaIpCore.editor',
       `Active tab viewType should be 'fpgaIpCore.editor', got '${input?.viewType}'`
     );
-
-    await vscode.commands.executeCommand('workbench.action.closeAllEditors');
   });
 });

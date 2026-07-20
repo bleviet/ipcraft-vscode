@@ -1497,7 +1497,7 @@
     "compile": "webpack --config config/webpack.config.js",
     "watch": "webpack --watch --config config/webpack.config.js",
     "package": "webpack --mode production --devtool hidden-source-map --config config/webpack.config.js",
-    "compile-tests": "tsc -p . --outDir out",
+    "compile-tests": "tsc -p . --outDir out && node scripts/copy-e2e-fixtures.js",
     "watch-tests": "tsc -p . -w --outDir out",
     "pretest": "node scripts/check-submodule.js && npm run compile-tests && npm run compile && npm run lint",
     "lint": "eslint src --max-warnings 0",
