@@ -24,8 +24,8 @@ Options:
   -h, --help                          Show this help
 
 Examples:
-  npx ipcraft generate path/to.ip.yml --target quartus --lang systemverilog --out gen/
-  npx ipcraft verify path/to.ip.yml gen/ --target quartus --lang systemverilog
+  ipcraft generate path/to.ip.yml --target quartus --lang systemverilog --out gen/
+  ipcraft verify path/to.ip.yml gen/ --target quartus --lang systemverilog
 `;
 }
 

@@ -30,6 +30,12 @@ jobs:
       - name: Build
         run: npm run compile && npm run compile-tests
 
+      - name: Verify CLI distribution contract
+        run: npm run check:cli-distribution
+
+      - name: Test clean CLI package installation
+        run: npm run test:cli-package
+
       - name: Unit tests
         run: npm run test:unit -- --coverage
 

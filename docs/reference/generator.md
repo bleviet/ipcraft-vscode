@@ -154,12 +154,19 @@ Build view.
 For commands, configuration, and report states, see
 [Building a project](../how-to/building-a-project.md).
 
-## Command-line generation
+## Command-line package
 
-The headless command runs without opening VS Code:
+The Marketplace extension does not install a global shell command. The
+standalone `ipcraft` npm package is prepared in this repository but is not yet
+published. Until it is released, use the extension commands documented above.
+
+Contributors can build a local package archive and install that archive in a
+clean environment without publishing it:
 
 ```bash
-npx ipcraft generate path/to/core.ip.yml --target quartus --lang vhdl --out gen/
+npm run package:cli
+npm install --global ./build/ipcraft-0.9.2.tgz
+ipcraft generate path/to/core.ip.yml --target quartus --lang vhdl --out gen/
 ```
 
 | Option | Meaning |
@@ -174,11 +181,18 @@ npx ipcraft generate path/to/core.ip.yml --target quartus --lang vhdl --out gen/
 Use `verify` to compare committed output with a fresh in-memory generation:
 
 ```bash
-npx ipcraft verify path/to/core.ip.yml gen/ --target quartus --lang vhdl
+ipcraft verify path/to/core.ip.yml gen/ --target quartus --lang vhdl
 ```
 
 It exits with a non-zero status and lists stale or missing files when the
 directory differs.
+
+The CLI source was introduced by [issue #72](https://github.com/bleviet/ipcraft-vscode/issues/72)
+and remains in this repository so it uses the same generator as the extension.
+Its npm release is tracked by
+[issue #116](https://github.com/bleviet/ipcraft-vscode/issues/116) and is a
+separate, explicitly manual release after the matching extension version has
+been published.
 
 ## Contributor implementation
 

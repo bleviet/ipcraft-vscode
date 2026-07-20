@@ -68,13 +68,39 @@ Files excluded by `.vscodeignore` (source files, `node_modules`, `docs`, `src`, 
 
 ## Bumping the version
 
-Update the version in `package.json` before packaging a new release:
+Update the version in the extension and CLI package manifests before packaging
+a new release:
 
 ```bash
 npm version patch   # or minor / major
 ```
 
+Then update `packages/ipcraft/package.json` to the same version. The CLI
+packaging and release checks reject mismatched versions.
+
 Then re-run `npx vsce package`.
+
+## Releasing the standalone CLI
+
+The VSIX and npm CLI are separate artifacts. Installing the extension does not
+add `ipcraft` to the user's shell `PATH`.
+
+Build and test the npm archive locally without publishing it:
+
+```bash
+npm run package:cli
+npm run test:cli-package
+```
+
+After the matching extension version has been tested and published, run the
+`Publish CLI to npm` GitHub Actions workflow manually. Enter the matching
+version and confirm that the extension is already published. The workflow
+checks the versions, rebuilds the production bundle, installs the tarball in a
+clean temporary project, and only then runs `npm publish`. The protected `npm`
+environment must provide `NPM_TOKEN`.
+
+Direct publication is locked unless `IPCRAFT_PUBLISH=confirmed` is supplied,
+so normal builds, tests, and `npm pack` cannot publish the package.
 
 ## Troubleshooting
 

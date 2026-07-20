@@ -35,7 +35,11 @@ See [Commands & Settings](docs/reference/commands.md) for the full command list 
 
 Walkthroughs covering these steps (and importing existing VHDL, importing from vendor tools, and synthesizing) are available from **Help → Get Started** or `IPCraft: Open Walkthrough...`.
 
-A CLI (`npx ipcraft generate` / `ipcraft verify`) runs the same generator outside VS Code, for CI and scripting — see [Generator Reference](docs/reference/generator.md#headless-cli).
+Installing the Marketplace extension does not add a shell command to your
+`PATH`. A separate npm CLI package is being prepared for headless CI and
+scripting; until it is published, use the extension commands above. See the
+[Generator Reference](docs/reference/generator.md#command-line-package) for
+local package testing.
 
 ---
 

@@ -4,6 +4,9 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+- **CLI distribution contract**: removed the unavailable `npx ipcraft` claim from Marketplace-facing documentation and separated the `ipcraft` npm artifact from the VSIX. The CLI can now be packed and smoke-tested from a clean temporary installation without publishing; npm publication remains an explicit manual release after the matching extension release. ([#116](https://github.com/bleviet/ipcraft-vscode/issues/116))
+
 ## [0.9.2] - 2026-07-19
 
 ### Added

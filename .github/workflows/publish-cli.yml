@@ -1,0 +1,53 @@
+name: Publish CLI to npm
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Matching published VS Code extension version
+        required: true
+        type: string
+      extension_published:
+        description: Confirm that this extension version is already published
+        required: true
+        type: boolean
+
+jobs:
+  publish:
+    name: Publish ipcraft ${{ inputs.version }}
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+          cache: npm
+
+      - run: npm ci
+
+      - name: Verify requested version
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+          EXTENSION_PUBLISHED: ${{ inputs.extension_published }}
+        run: node scripts/check-cli-release-version.js
+
+      - name: Build production bundles
+        run: npm run package
+
+      - name: Test clean package installation
+        run: npm run test:cli-package
+
+      - name: Publish CLI
+        working-directory: packages/ipcraft
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          IPCRAFT_PUBLISH: confirmed
+        run: npm publish --access public

@@ -6,8 +6,10 @@ resources/icon.svg
 .vscode/**
 .vscode-test/**
 src/**
+packages/**
 node_modules/**
 out/**
+dist/cli.js
 .gitignore
 .prettierrc.js
 .prettierignore

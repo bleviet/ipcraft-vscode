@@ -1,6 +1,8 @@
 out/
 dist/
 build/
+packages/ipcraft/dist/
+packages/ipcraft/LICENSE
 node_modules/
 .vscode-test/
 *.vsix

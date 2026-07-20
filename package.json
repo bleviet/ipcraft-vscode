@@ -39,9 +39,6 @@
   ],
   "activationEvents": [],
   "main": "./dist/extension.js",
-  "bin": {
-    "ipcraft": "./dist/cli.js"
-  },
   "contributes": {
     "commands": [
       {
@@ -1497,6 +1494,7 @@
     "compile": "webpack --config config/webpack.config.js",
     "watch": "webpack --watch --config config/webpack.config.js",
     "package": "webpack --mode production --devtool hidden-source-map --config config/webpack.config.js",
+    "package:cli": "npm run package && node scripts/pack-cli.js",
     "compile-tests": "tsc -p . --outDir out && node scripts/copy-e2e-fixtures.js",
     "watch-tests": "tsc -p . -w --outDir out",
     "pretest": "node scripts/check-submodule.js && npm run compile-tests && npm run compile && npm run lint",
@@ -1504,6 +1502,7 @@
     "lint:fix": "eslint src --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx}\"",
+    "check:cli-distribution": "node scripts/check-cli-distribution.js",
     "check:vscode-compatibility": "node scripts/check-vscode-compatibility.js",
     "pretype-check": "npm run check:vscode-compatibility",
     "type-check": "tsc --noEmit",
@@ -1515,6 +1514,8 @@
     "test:browser": "playwright test --config config/playwright.config.ts",
     "predocs:screenshots": "webpack --config config/webpack.config.js --config-name webview",
     "docs:screenshots": "playwright test --config config/playwright.docs.ts",
+    "docs:build": "mkdocs build --strict",
+    "test:cli-package": "node scripts/test-cli-package.js",
     "test:integration": "jest --config config/jest.integration.js",
     "test:integration:hdl": "jest --config config/jest.integration.js --testPathPatterns=hdl",
     "test:integration:vivado": "jest --config config/jest.integration.js --testPathPatterns=vivado",
