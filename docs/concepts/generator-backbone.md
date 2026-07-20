@@ -1,165 +1,93 @@
-# Template Context Contract and Bring-Your-Own-Template Generation
+# Data Available to Generator Templates
 
-How IPCraft separates the work of *computing* an HDL context from *rendering* it,
-why that separation is necessary for reliable third-party code generation, and
-what guarantees the contract makes to pack authors.
+Templates need stable, predictable data. IPCraft therefore converts an IP core
+and its memory maps into one documented template object before rendering any
+files.
 
----
+Pack authors can use this object without knowing how the editor stores its
+temporary state.
 
-## The problem with an untyped context
+## Why conversion is necessary
 
-Before the refactor, `IpCoreScaffolder.buildTemplateContext()` returned
-`Record<string, unknown>` — an untyped bag of values assembled in a single
-270-line method. Any change to that method could silently rename a variable,
-remove a field, or change the meaning of a number, and templates would fail only
-at render time, with an obscure Nunjucks error or silent empty output.
+Raw YAML is written for people. A template needs additional calculated values,
+such as resolved widths, sorted registers, expanded interface arrays, and the
+selected bus type.
 
-For a built-in pack that is developed alongside the generator this is manageable.
-For a third-party pack author who wrote templates against last month's field names,
-it is a reliability guarantee that does not exist.
+Passing raw YAML directly to templates would make every template repeat those
+calculations and handle missing values differently.
 
-Three concrete problems drove the refactor:
+```mermaid
+flowchart LR
+    A[IP core YAML] --> C[Validate and convert]
+    B[Memory-map YAML] --> C
+    C --> D[Stable template data]
+    D --> E[Built-in templates]
+    D --> F[Custom scaffold packs]
+```
 
-1. **No public API.** The set of variables available inside a `.j2` template was
-   whatever `buildTemplateContext` happened to return. No schema, no stable type,
-   no documented contract.
+## Conversion steps
 
-2. **Semantics entangled with assembly.** W1C/CoS shadow-register logic, bus port
-   resolution, clock-period computation, and generic XGUI page layout all lived
-   inside one method. None could be unit-tested without running a full generation.
+Small resolver modules each calculate one part of the final data:
 
-3. **Two diverging width evaluators.** The webview used a hardened arithmetic
-   parser; the generator path used `new Function`, an `eval`-class hazard that
-   could silently diverge from the webview's result for the same expression.
-
----
-
-## The template context as a public API
-
-The refactor treats the object passed to every Nunjucks template as a **versioned
-public API** — the Template Context. It is:
-
-- **Defined by a JSON Schema** (`src/generator/contract/template_context.schema.json`)
-  that specifies every field, its type, and whether it is required.
-- **Generated into TypeScript types** (`templateContext.types.ts`) from that
-  schema by `npm run generate-types`, so the compiler enforces the shape in code.
-- **Validated at runtime** with AJV before any template render. If the context is
-  missing a required field or has a field with the wrong type, generation fails
-  with an actionable error that names the violated constraint, not a Nunjucks
-  stack trace.
-- **Versioned with SemVer.** The current contract is `1.0.0`. Within a major
-  version the contract is append-only: fields can be added but not renamed,
-  removed, or retyped. A pack written against `1.0.0` must keep working when
-  IPCraft ships `1.3.0`.
-
----
-
-## Resolver decomposition
-
-The 270-line method was replaced by five pure, synchronous *resolvers*, each
-responsible for one slice of the context:
-
-| Resolver | Produces |
+| Resolver | What it adds |
 |---|---|
-| `clockResetResolver` | `clock_port`, `reset_port`, `reset_active_high`, `clocks_with_period` |
-| `genericsResolver` | `generics`, `xgui_pages` |
-| `shadowRegistersResolver` | `registers`, `sw_registers`, `hw_registers`, `w1c_registers`, `cos_registers` |
-| `addressingResolver` | `data_width`, `reg_width`, `addr_width` |
-| `busResolver` | `bus_ports`, `bus_prefix`, `bus_type`, `user_ports`, `interrupt_ports`, `expanded_bus_interfaces`, `secondary_bus_interfaces`, `secondary_bus_ports`, `elaborate_port_widths` |
+| Clock and reset | Active reset level, clock period, and related ports |
+| Parameters | Resolved parameter values and port widths |
+| Registers | Sorted registers, fields, addresses, and access behavior |
+| Addressing | Bus address width and related constants |
+| Bus | Bus type, signal names, and expanded interface arrays |
 
-Each resolver takes a `ResolverInput` (the normalized IP core, the bus definitions
-library, and the bus rule registry) and returns a plain object. They are pure
-functions: no I/O, no side effects, no throws for validation failures. Because
-they are pure and independent, each can be unit-tested in isolation with a fixture
-IP core object — no template rendering required.
+A resolver is simply a focused conversion function. It receives known input
+and returns calculated values without rendering files.
 
-The orchestrator in `buildTemplateContext` runs them in sequence and merges their
-outputs with the remaining scalar fields (`name`, `vendor`, `memory_maps`, etc.)
-before passing the result to the AJV gate.
+## Validation boundary
 
----
+IPCraft validates input before building template data. It also checks the
+template-data version requested by a scaffold pack.
 
-## The bus rule registry
+This version check gives pack authors a clear error when a pack expects a newer
+or incompatible data shape. It is safer than allowing a template to render
+partially with missing values.
 
-Bus protocol knowledge used to be stored in three frozen `Map` literals in
-`registerProcessor.ts`: a VLNV-to-name map, an alias map, and a set of
-memory-mapped template types. Adding or changing a bus protocol meant editing
-core generator source.
+## Bus rules
 
-The `BusRuleRegistry` replaces them with a registry of `BusRuleProvider` objects.
-Each provider declares the VLNV names and aliases it handles and whether it is a
-memory-mapped protocol. The built-in providers (`axil`, `axi4`, `avmm`, `axis`,
-`avst`) are registered at startup. `normalizeBusType` and `isMemoryMapped` become
-registry lookups.
+Bus-specific behavior is kept in a registry rather than spread across every
+template. A rule describes details such as bus family, address behavior, and
+signal naming.
 
----
+Adding a bus normally means adding one rule and the matching templates instead
+of changing each unrelated resolver.
 
-## Shadow registers and W1C / CoS semantics
+## Register behavior
 
-Write-1-to-clear (W1C) and Change-of-State (CoS) register logic was previously
-interleaved with the context assembly loop, making it impossible to test without
-building a full context. It also threw exceptions when a `monitorChangeOf`
-reference was invalid, surfacing the error as a generation failure rather than an
-inline editor warning.
+The converted register data includes information required by generated HDL,
+including software access, hardware access, reset values, and special behavior
+such as write-one-to-clear fields.
 
-`shadowRegistersResolver` encapsulates this logic as a unit-testable function.
-`buildShadowRegisters` still throws for hard structural errors (the contract with
-the templates is unchanged). `validateShadowRegisters` returns
-`ContractDiagnostic[]` for future UI integration so the same rules can be shown
-as inline warnings in the register editor without aborting generation.
+Templates should use these calculated values instead of interpreting raw access
+strings themselves.
 
----
+## What pack authors can rely on
 
-## Consolidated width evaluation
+A compatible scaffold pack can rely on:
 
-There is now exactly one width evaluator: `src/shared/evalWidthExpr.ts`. Both the
-webview canvas preview and the generator import this module. The previous
-`new Function` implementation in the generator path is deleted. This eliminates a
-class of divergence bugs where the canvas would preview a different port width
-than the generator would emit.
+- core identity and selected HDL language;
+- resolved ports, parameters, clocks, and resets;
+- expanded bus interfaces and bus signals;
+- sorted registers and fields;
+- calculated address and width values;
+- documented condition values used by `scaffold.yml`.
 
----
+Internal editor values such as `rowId`, selected cells, and unfinished drafts
+are not part of template data.
 
-## The BYOT contract for pack authors
+For the available values and file-generation options, see the
+[generator reference](../reference/generator.md). For a practical workflow, see
+[scaffold packs](../how-to/customizing-generated-files-with-scaffold-packs.md).
 
-A scaffold pack author interacts with two things:
+## Boundary of compatibility
 
-1. **The template context variables**, documented in the
-   [scaffold packs how-to](../how-to/scaffold-packs.md). These are stable within
-   a contract major version. A field that exists in `1.0.0` will exist in `1.4.0`
-   with the same type and meaning.
-
-2. **The `apiVersion` field in `scaffold.yml`**, which declares the contract range
-   the pack targets:
-
-   ```yaml
-   apiVersion: "^1.0"
-   ```
-
-   IPCraft checks this range against `CONTRACT_VERSION` using semver semantics
-   before any rendering begins. A pack targeting `^2.0` is rejected immediately
-   with a clear error message naming the pack, its declared range, and the running
-   contract version. This means a pack author is informed of a breaking change the
-   first time they try to use the pack after an upgrade, not partway through
-   generation.
-
-The **pack conformance kit** (`src/test/integration/conformance.test.ts`) provides
-a self-service verification harness. A third-party pack author can run it against
-their own pack by setting `CONFORMANCE_PACK_DIR` and `CONFORMANCE_FIXTURE` to
-verify that their pack loads, its `apiVersion` is compatible with the running
-contract, and it generates without a contract violation — all without involving
-IPCraft.
-
----
-
-## What the contract does not cover
-
-The contract governs the *shape* of the context object. It does not:
-
-- Guarantee that a specific template file (e.g. `bus_axil.vhdl.j2`) exists in the
-  built-in library. Template resolution is a separate concern handled by
-  `TemplateLoader`.
-- Constrain what a pack does with the context variables. A pack can ignore most of
-  them and render whatever it needs.
-- Cover the testbench generation path. `generateTestbenchFiles` receives the same
-  context object but is not (yet) subject to the AJV gate.
+The versioned data object protects the information supplied to templates. It
+does not guarantee that every generated file is valid for every external tool.
+Compile generated HDL and run the relevant vendor integration test before
+publishing a pack.

@@ -1,7 +1,8 @@
 # Using Arithmetic Functions in Port Widths
 
-How to derive a port width from a generic using predefined arithmetic functions
-(for example, sizing a FIFO read pointer from the FIFO depth).
+A parameter is a value chosen when the core is integrated. A width expression
+uses that parameter to calculate a port width automatically. For example, a
+FIFO with 1024 entries needs 10 address bits because `clog2(1024)` is 10.
 
 A port `width` may be a literal integer, a parameter name, or an arithmetic
 expression. Expressions may use the following predefined functions:
@@ -18,7 +19,7 @@ expression. Expressions may use the following predefined functions:
 
 Standard arithmetic (`+ - * /`), parentheses, and nesting
 (`clog2(max(A, B))`) are also supported. Function names are matched
-case-insensitively and stored in canonical lowercase.
+without regard to letter case and stored in lowercase.
 
 ---
 

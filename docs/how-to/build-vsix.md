@@ -1,6 +1,7 @@
 # Building a VSIX Package
 
-This guide covers how to produce a `.vsix` installable extension package from the source code.
+A VSIX file is an installable VS Code extension package. This guide builds one
+from the repository source.
 
 ## Prerequisites
 

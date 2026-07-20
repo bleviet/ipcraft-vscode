@@ -59,6 +59,21 @@ export const shots: Shot[] = [
     },
   },
   {
+    id: 'memorymap-responsive-wide',
+    harness: 'memorymap',
+    source: GENERAL_MM_SOURCE,
+    viewport: { width: 1000, height: 800 },
+    setup: async (page) => {
+      await page.locator('[data-outline-id="block-0-reg-1"]').click(); // CTRL
+    },
+  },
+  {
+    id: 'memorymap-responsive-narrow',
+    harness: 'memorymap',
+    source: GENERAL_MM_SOURCE,
+    viewport: { width: 600, height: 800 },
+  },
+  {
     id: 'ipcore-editor',
     harness: 'ipcore',
     source: IP_SOURCE,

@@ -4,6 +4,9 @@ See [CHANGELOG.md](https://github.com/bleviet/ipcraft-vscode/blob/main/CHANGELOG
 
 ## Setup
 
+See [Development setup](../getting-started/development.md) for supported tools,
+debugging, and repository structure.
+
 `ipcraft-spec` (bus definitions and JSON schemas) is a git submodule. After cloning:
 
 ```bash
@@ -71,6 +74,9 @@ Examples:
 - Avoid direct webview/business coupling in providers
 
 ## Testing Expectations
+
+Use the [testing guide](../testing.md) to choose the smallest suite that covers
+your change.
 
 Add or update tests for:
 

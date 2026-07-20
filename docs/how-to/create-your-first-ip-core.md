@@ -24,7 +24,9 @@ vlnv:
 description: A new IP Core definition
 ```
 
-**VLNV** stands for Vendor · Library · Name · Version — the four-part identifier that uniquely names an IP core across tools and repositories. Set `ipcraft.import.vendor` in Settings once and every new blank core inherits it as the default vendor.
+**VLNV** means vendor, library, name, and version. Together they identify the
+core across files and tools. Set `ipcraft.import.vendor` once if you want new
+cores to use your organization by default.
 
 You can switch to the raw YAML at any time with `Ctrl+Shift+V`.
 

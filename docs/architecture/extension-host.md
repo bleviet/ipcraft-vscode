@@ -1,207 +1,125 @@
 # Extension Host
 
-The extension host runs in Node.js within VS Code. It manages file I/O, commands, and the bridge to webviews.
+The extension host is the Node.js side of IPCraft. It can read files, register
+VS Code commands, start external tools, and create webviews. The webviews cannot
+perform these privileged tasks directly.
 
-## Entry Point
+## Responsibilities
 
-`src/extension.ts` registers providers and commands on activation:
-
-```typescript
-export function activate(context: ExtensionContext): void {
-  // Register custom editor providers
-  // Register file creation commands
-  // Register generator commands
-}
+```mermaid
+flowchart TD
+    A[src/extension.ts] --> B[Custom editor providers]
+    A --> C[Commands]
+    B --> D[Document and validation services]
+    C --> E[Generator and importers]
+    C --> F[Vivado and Quartus toolchains]
+    B <-->|typed messages| G[React webviews]
 ```
 
-## Providers
+`src/extension.ts` is the entry point. During activation it registers providers,
+commands, views, and services with the extension context.
 
-Custom editor providers connect VS Code documents to webview panels.
+## Custom editors
 
-| Provider | File | View Type | Selector |
-|----------|------|-----------|----------|
-| `MemoryMapEditorProvider` | `src/providers/MemoryMapEditorProvider.ts` | `fpgaMemoryMap.editor` | `*.mm.yml` |
-| `IpCoreEditorProvider` | `src/providers/IpCoreEditorProvider.ts` | `fpgaIpCore.editor` | `*.ip.yml` |
+| Document | Provider | Webview |
+|---|---|---|
+| `*.mm.yml` | `MemoryMapEditorProvider` | Memory Map editor |
+| `*.ip.yml` | `IpCoreEditorProvider` | IP Core editor |
 
-Both use `retainContextWhenHidden: true` for state persistence and share the same service architecture.
+A provider creates the webview, sends the current document, receives edits, and
+applies accepted changes through VS Code's document API.
 
-### Supporting Modules
+The providers share these central services:
 
-| File | Purpose |
-|------|---------|
-| `IpCoreGenerateHandler.ts` | Handles `type: 'generate'` messages, invokes scaffolder, returns results |
-| `providerServices.ts` | Shared service factory for providers |
-| `ipCoreErrorHtml.ts` | Error page HTML for IP Core parse failures |
+| Service | Plain-language role |
+|---|---|
+| `WebviewRouter` | Sends each incoming message to the matching handler |
+| `DocumentManager` | Applies document writes in order and rejects edits based on old versions |
+| `HtmlGenerator` | Creates secure webview HTML |
+| `YamlValidator` | Checks documents against the IPCraft schemas |
+| `ImportResolver` | Loads `$import` references in IP core files |
+| `BusLibraryService` | Loads known interface definitions |
 
-## Services
+## Document revisions
 
-| Service | File | Role |
-|---------|------|------|
-| `WebviewRouter` | `src/services/WebviewRouter.ts` | Typed `.on(type, handler)` dispatch for webview messages; implements the revisioned `update`/`command` protocol (`docVersion`/`editId`) shared by both providers |
-| `DocumentManager` | `src/services/DocumentManager.ts` | Applies text edits to VS Code documents via a per-URI serialized promise queue; rejects stale-`baseDocVersion` edits |
-| `HtmlGenerator` | `src/services/HtmlGenerator.ts` | Generates webview HTML with CSP headers |
-| `YamlValidator` | `src/services/YamlValidator.ts` | Validates YAML against schemas |
-| `ImportResolver` | `src/services/ImportResolver.ts` | Resolves `$import` directives in IP Core files |
-| `BusLibraryService` | `src/services/BusLibraryService.ts` | Loads bus interface definitions from YAML library |
-| `FileSetUpdater` | `src/services/FileSetUpdater.ts` | Updates file set entries after generation |
-| `SubcoreResolver` | `src/services/SubcoreResolver.ts` | Resolves sub-core references across `.ip.yml` files |
-| `VivadoCatalogScanner` | `src/services/VivadoCatalogScanner.ts` | Scans the Vivado IP catalog and caches results |
-| `VivadoInterfaceScanner` | `src/services/VivadoInterfaceScanner.ts` | Scans the Vivado *interface* catalog (`data/ip/interfaces/`) and caches bus definitions — see [Vivado Interface Catalog](../concepts/vivado-interface-catalog.md) |
-| `WorkspaceBusDefinitionScanner` | `src/services/WorkspaceBusDefinitionScanner.ts` | Scans the open workspace for custom bus-definition YAML files (`ipcraft.busLibraryPaths`) |
-| `BusDefScanCache` | `src/services/BusDefScanCache.ts` | Caches bus-definition scan results across scanners |
-| `ToolDetector` | `src/services/ToolDetector.ts` | Detects installed vendor toolchains (Vivado, Quartus) and their sub-tools (e.g. `qsys-edit`) |
-| `BuildRunner` | `src/services/BuildRunner.ts` | Spawns vendor build tools (native or Docker) and streams output |
-| `ReportParser` | `src/services/ReportParser.ts` | Parses Vivado/Quartus timing and utilization reports for the Build Reports tree view |
-| `ResourceRoots` | `src/services/ResourceRoots.ts` | Resolves resource root paths (templates, schemas, packs) once at activation from `context.extensionPath` |
+Each document update has a version. Each webview edit states which document
+version it was based on.
+
+```mermaid
+sequenceDiagram
+    participant File as VS Code document
+    participant Host as Extension host
+    participant View as Webview
+    Host->>View: Document text and version 12
+    View->>Host: Edit 7 based on version 12
+    Host->>File: Apply edit in write queue
+    File-->>Host: Document version 13
+    Host->>View: Updated text and version 13
+```
+
+If the file changed after the webview's starting version, the host rejects the
+stale edit and sends the current document back. This prevents two updates from
+silently overwriting each other.
+
+See [YAML data flow](../concepts/yaml-data-flow.md) for the paired webview logic.
 
 ## Commands
 
-| Module | Commands |
-|--------|----------|
-| `FileCreationCommands.ts` | Create IP Core, Memory Map, or combined files |
-| `GenerateCommands.ts` | Generate HDL, scaffold project, view bus definitions |
-| `ScaffoldPackCommands.ts` | Export a built-in scaffold pack into the workspace (`.vscode/ipcraft/packs/`) |
-| `BuildCommands.ts` | Build, Build: Vivado OOC, Build: Quartus Compile, Show Build Output |
-| `editInIpPackager.ts` | Edit in IP Packager (opens Vivado GUI) |
-| `editInPlatformDesigner.ts` | Open in Platform Designer (opens Quartus qsys-edit) |
-| `openInVivado.ts` | Open in Vivado (generate project if needed, then launch GUI) |
-| `openInQuartus.ts` | Open in Quartus (generate project if needed, then launch GUI) |
-| `copyComponentInstance.ts` | Copy a VHDL/SystemVerilog component instantiation snippet to the clipboard |
-| `scanVivadoCatalog.ts` | Scan Vivado IP Catalog |
-| `scanVivadoInterfaces.ts` | Scan Vivado Interface Catalog |
-| `scanWorkspaceBusDefinitions.ts` | Scan the open workspace for custom bus-definition YAML files |
-| `migrateLegacyIpCore.ts` | Migrate Legacy IP Cores (`vendor:` → `targets:`) |
-| `toggleEditorMode.ts` | Open as Text Editor / Open as Visual Editor |
-| `toolNotConfigured.ts` | "Tool Not Found — Click to Configure" placeholder commands |
-| `projectCreator.ts` | Thin delegating wrapper: project creation and board/part selection via `SynthesisToolchain.createProject()` |
+Command modules under `src/commands/` group the main workflows:
 
-## Generator
+| Area | Examples |
+|---|---|
+| Create | Create IP core, memory map, or both |
+| Generate | Generate RTL, tests, and vendor projects |
+| Import | Read VHDL, Platform Designer, or IP-XACT files |
+| Build | Run Vivado or Quartus and show reports |
+| Open external tools | Open Vivado, IP Packager, Quartus, or Platform Designer |
+| Maintain | Scan catalogs, migrate older files, switch editor mode |
 
-Located in `src/generator/`:
+The complete user-facing list is in the [commands reference](../reference/commands.md).
 
-| File | Purpose |
-|------|---------|
-| `IpCoreScaffolder.ts` | Orchestrates generation, builds template context, writes files |
-| `registerProcessor.ts` | Processes registers, expands bus interfaces, resolves memory maps |
-| `TemplateLoader.ts` | Loads and renders Nunjucks templates |
-| `VivadoBusDefInstaller.ts` | Installs bus definitions into the Vivado IP catalog |
-| `VivadoComponentXmlGenerator.ts` | Generates IP-XACT `component.xml` for Vivado |
-| `types.ts` | Type definitions (`GenerateOptions`, `IpCoreData`, bus types) |
-| `testbench/` | Testbench framework × engine abstraction |
+## Generation and imports
 
-### Testbench abstraction (`src/generator/testbench/`)
+`src/generator/IpCoreScaffolder.ts` coordinates code generation. It validates
+the source, prepares stable template data, renders the selected scaffold pack,
+and asks vendor toolchains for their output.
 
-| File | Purpose |
-|------|---------|
-| `Framework.ts` / `Engine.ts` | Interfaces for framework and engine implementations |
-| `frameworks/CocotbFramework.ts` | CocoTB framework |
-| `frameworks/VUnitFramework.ts` | VUnit framework |
-| `engines/GhdlEngine.ts` | GHDL simulator settings |
-| `engines/IcarusEngine.ts` | Icarus Verilog simulator settings |
-| `engines/VerilatorEngine.ts` | Verilator simulator settings |
-| `engines/QuestaEngine.ts` | Questa / ModelSim simulator settings |
+Importers under `src/parser/` convert existing files into IPCraft documents:
 
-### Templates
+- `VhdlParser.ts` and `VerilogParser.ts` read HDL modules;
+- `HwTclParser.ts` reads Quartus component metadata;
+- `ComponentXmlParser.ts` reads Vivado IP-XACT component metadata;
+- `VivadoInterfaceXmlParser.ts` reads Vivado interface definitions for catalog
+  discovery.
 
-Located in `src/generator/templates/`:
+Import results still require user review because source formats do not always
+contain design intent.
 
-#### VHDL
+## External tools
 
-| Template | Output |
-|----------|--------|
-| `package.vhdl.j2` | VHDL package (constants, types) |
-| `top.vhdl.j2` | Top-level entity |
-| `core.vhdl.j2` | User logic skeleton |
-| `bus_axil.vhdl.j2` | AXI-Lite bus wrapper |
-| `bus_avmm.vhdl.j2` | Avalon-MM bus wrapper |
-| `register_file.vhdl.j2` | Register file with decode logic |
-| `entity.vhdl.j2` | Entity declaration helper |
-| `architecture.vhdl.j2` | Architecture stub |
+Toolchains under `src/services/toolchains/` provide one interface for local and
+Docker-based tools.
 
-#### SystemVerilog
+```mermaid
+flowchart LR
+    A[Build or open command] --> B[Toolchain registry]
+    B --> C{Selected vendor}
+    C -->|AMD| D[Vivado toolchain]
+    C -->|Intel| E[Quartus toolchain]
+    D --> F[Local process or Docker]
+    E --> F
+```
 
-| Template | Output |
-|----------|--------|
-| `pkg.sv.j2` | SV package (constants, types) |
-| `top.sv.j2` | Top-level module |
-| `core.sv.j2` | User logic skeleton |
-| `bus_axil.sv.j2` | AXI-Lite bus wrapper |
-| `bus_avmm.sv.j2` | Avalon-MM bus wrapper |
-| `register_file.sv.j2` | Register file with decode logic |
+Commands ask the registry for a toolchain instead of reading installation
+settings themselves. `BuildRunner` streams output, and `ReportParser` extracts
+timing and size summaries for the Build view.
 
-#### Vendor integration
+## Resource files
 
-| Template | Output |
-|----------|--------|
-| `altera_hw_tcl.j2` | Altera Platform Designer component (`_hw.tcl`) |
-| `altera_test_system.qsys.j2` | Altera Platform Designer test system (`test.qsys`, BFM validation) |
-| `amd_xgui.j2` | AMD Vivado xgui (`.tcl`) |
+At activation, `ResourceRoots` locates templates, schemas, packs, and interface
+definitions inside the installed extension. Edit their source locations, not
+the copied files under `dist/`:
 
-`xilinx/component.xml` (IP-XACT) is **not** rendered from a template — it is built programmatically by
-`VivadoComponentXmlGenerator.ts`. A scaffold pack may override `component.xml` by supplying its
-own `component.xml.j2`.
-
-#### Testbench
-
-| Template | Output |
-|----------|--------|
-| `cocotb_test.py.j2` | CocoTB Python test skeleton |
-| `cocotb_pytest.py.j2` | pytest wrapper functions |
-| `cocotb_conftest.py.j2` | pytest session fixture |
-| `cocotb_makefile.j2` | VHDL simulation Makefile (GHDL/Questa) |
-| `cocotb_makefile.sv.j2` | SV simulation Makefile (Icarus/Verilator) |
-| `cocotb_dump.v.j2` | VCD dump module for Icarus/Verilator |
-| `mm_loader.py.j2` | Runtime `.mm.yml` reader |
-| `vunit_run.py.j2` | VUnit test runner script |
-| `vunit_tb.vhd.j2` | VUnit VHDL testbench entity |
-| `vscode_settings.json.j2` | `.vscode/settings.json` for pytest discovery |
-
-#### Other
-
-| Template | Output |
-|----------|--------|
-| `memmap.yml.j2` | Memory map YAML skeleton |
-
-## Toolchain Abstraction
-
-Located in `src/services/toolchains/`:
-
-| File | Purpose |
-|------|---------|
-| `SynthesisToolchain.ts` | `SynthesisToolchain` interface — common contract for all vendor tools |
-| `LaunchableTool.ts` | Base class for tools that can be launched locally or via Docker |
-| `VivadoToolchain.ts` | Vivado implementation: `local` (installDir) and `docker` (dockerImage) runners |
-| `QuartusToolchain.ts` | Quartus implementation: `local` and `docker` runners |
-| `registry.ts` | Toolchain registry — resolves a toolchain ID (e.g. `"vivado"`) to its implementation |
-
-The toolchain abstraction centralises all vendor-tool configuration. Commands such as **Build**, **Open in Vivado**, and **Edit in IP Packager** retrieve their tool via `registry.get('vivado')` rather than reading settings directly.
-
-## Parser
-
-`src/parser/VhdlParser.ts` and `src/parser/VerilogParser.ts` parse HDL modules into IP Core
-specifications. `src/parser/HwTclParser.ts` imports Altera Platform Designer components, while
-`src/parser/ComponentXmlParser.ts` imports Vivado IP-XACT components.
-
-`src/parser/VivadoInterfaceXmlParser.ts` parses Vivado's own IP-XACT
-`busDefinition`/`abstractionDefinition` XML files into bus definitions usable by
-`BusLibraryService`. It is used by `VivadoInterfaceScanner`, not exposed as a standalone import
-command — see [Vivado Interface Catalog](../concepts/vivado-interface-catalog.md).
-
-## Utilities
-
-| File | Purpose |
-|------|---------|
-| `src/utils/Logger.ts` | Structured logging with levels |
-| `src/utils/ErrorHandler.ts` | Centralized error handling |
-| `src/utils/vscodeHelpers.ts` | Safe command registration helpers |
-| `src/utils/fsHelpers.ts` | File system helpers (`fileExists`, `ensureDir`, etc.) |
-| `src/utils/compilationOrder.ts` | Topological sort for VHDL compile order |
-| `src/utils/configDir.ts` | IPCraft config directory resolution |
-| `src/utils/detectVivadoVersion.ts` | Parses Vivado version string from install directory |
-| `src/utils/migrateIpCore.ts` | Migrates legacy `vendor:` fields to `targets:` |
-| `src/utils/pickBoard.ts` | Board/part picker QuickPick logic |
-| `src/utils/quartusResolver.ts` | Resolves Quartus binary paths from `installDir` |
-| `src/utils/vivadoResolver.ts` | Resolves Vivado binary paths from `installDir`; `resolveVivadoInstallDir()` resolves the install directory itself, reused by `VivadoInterfaceScanner` |
-| `src/utils/resolveVendor.ts` | Maps `targets[]` entries to vendor toolchain IDs |
-| `src/utils/sourceFileMounts.ts` | Builds Docker volume mount arguments for source files |
-| `src/utils/vlnv.ts` | VLNV string parsing and comparison |
+- templates: `src/generator/templates/`;
+- packs: `src/generator/packs/`;
+- schemas and bus definitions: `ipcraft-spec/`.

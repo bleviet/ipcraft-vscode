@@ -59,17 +59,16 @@ nav:
       - DE10-Nano Case Study: tutorials/de10-nano-case-study.md
   - How-to Guides:
       - Creating Your First IP Core: how-to/create-your-first-ip-core.md
-      - Defining a Custom Interface: how-to/custom-interfaces.md
-      - Importing from Existing Files: how-to/vhdl-import.md
+      - Defining a Custom Interface: how-to/defining-a-custom-interface.md
+      - Importing an Existing Design: how-to/importing-an-existing-design.md
       - Generating a Project: how-to/generating-a-project.md
-      - Customising Code Generation (Scaffold Packs): how-to/scaffold-packs.md
-      - Building a Project (Headless): how-to/building-a-project.md
+      - Customizing Generated Files with Scaffold Packs: how-to/customizing-generated-files-with-scaffold-packs.md
+      - Building a Project: how-to/building-a-project.md
       - Checking Consistency: how-to/check-consistency.md
       - Building a VSIX Package: how-to/build-vsix.md
       - Using the Data Inspector: how-to/use-data-inspector.md
-      - Data Inspector Capture Examples: how-to/data-inspector-capture-examples.md
-      - Arithmetic Functions in Port Widths: how-to/port-width-functions.md
-      - Running Simulations: how-to/run-cocotb-simulation.md
+      - Using Arithmetic Functions in Port Widths: how-to/using-arithmetic-functions-in-port-widths.md
+      - Running a Cocotb Simulation: how-to/run-cocotb-simulation.md
       - Running EDA Integration Tests: how-to/run-eda-integration-tests.md
   - Concepts:
       - YAML Data Flow: concepts/yaml-data-flow.md
@@ -78,7 +77,7 @@ nav:
       - Custom Interfaces: concepts/custom-interface.md
       - Vivado Interface Catalog: concepts/vivado-interface-catalog.md
       - Data Inspector: concepts/data-inspector.md
-      - Template Context Contract: concepts/generator-backbone.md
+      - Generator Template Data: concepts/generator-backbone.md
       - EDA Integration Tests: concepts/eda-integration-tests.md
   - Architecture:
       - Overview: architecture/overview.md
@@ -92,7 +91,7 @@ nav:
       - Generator: reference/generator.md
       - IP Core Editor: reference/ip-core-editor.md
       - Specification Schemas: reference/specification-schemas.md
-      - Bit Field Interaction: reference/bitfield-interaction.md
+      - Bit Field Developer Reference: reference/bitfield-interaction.md
   - Contributing:
       - Guidelines: contributing/guidelines.md
       - Testing: testing.md

@@ -1,3 +1,5 @@
+# Codicon Attribution
+
 These SVGs are Microsoft Visual Studio Code Codicons used by the IP Core toolbar. They are
 copied from the project's `@vscode/codicons` dependency and remain available from the
 [microsoft/vscode-codicons repository](https://github.com/microsoft/vscode-codicons). Codicons

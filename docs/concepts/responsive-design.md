@@ -1,93 +1,74 @@
 # Responsive Design
 
-Layout architecture and responsive behavior of the webview UI.
+IPCraft runs inside editor columns that users can resize. The layout must remain
+usable in a wide editor, a split editor, and a narrow side-by-side view.
 
-## Breakpoints
+## What changes with width
 
-| Range | Label | Key behaviors |
-|-------|-------|---------------|
-| <= 640px | Mobile | Sidebar becomes overlay. Tables switch to card view. Inputs get 44px min-height. |
-| 641-900px | Tablet | Sidebar narrows to 240px. Access column hidden in field tables. |
-| >= 901px | Desktop | Full sidebar (300px). All columns visible. Full bit cell size. |
+| Editor width | User-visible behavior |
+|---|---|
+| Up to 640 px | Memory Map outline becomes an overlay; tables use compact cards |
+| 641–900 px | Outline narrows and less important columns are hidden |
+| 901 px and wider | Full outline and all table columns are visible |
 
-The UI is optimized for desktop-first editing in VS Code and degrades gracefully for smaller panes.
+The editor is designed for desktop use. The narrow layout supports resized VS
+Code panes; it is not a separate mobile application.
 
-## CSS Tokens
+| Wide editor | Narrow editor with outline open |
+|---|---|
+| ![Memory Map editor at desktop width](../images/memorymap-responsive-wide-light.png) | ![Memory Map editor at narrow width with the outline overlay](../images/memorymap-responsive-narrow-light.png) |
 
-Defined in `:root` of `src/webview/index.css`:
-
-| Token | Value | Purpose |
-|-------|-------|---------|
-| `--sidebar-width` | `300px` | Desktop sidebar width |
-| `--sidebar-width-tablet` | `240px` | Tablet sidebar width |
-| `--sidebar-width-mobile` | `280px` | Mobile overlay sidebar width |
-| `--touch-target-min` | `44px` | Minimum touch target size |
-
-## Shell Layouts
-
-### Memory Map Editor
-
-```text
-#root (flex column)
-+-- <main> (flex-1, overflow-hidden)
-    +-- .sidebar-toggle-btn (mobile only)
-    +-- .sidebar-backdrop (mobile only)
-    +-- <aside class="sidebar"> -> <Outline />
-    +-- <section> -> <DetailsPanel />
+```mermaid
+flowchart LR
+    A[Wide editor] -->|Pane narrows| B[Compact table]
+    B -->|Below 641 px| C[Outline moves to overlay]
+    C -->|Pane widens| B
+    B -->|Above 900 px| A
 ```
 
-### IP Core Editor
+## Memory Map layout
 
-```text
-div.h-screen.flex.flex-col
-+-- Toolbar (undo/redo, VLNV, target/scaffold pickers, generate)
-+-- div.flex-1.flex.overflow-hidden
-    +-- <LibraryPalette />
-    +-- <EditorPanel> -> <IpBlockCanvas />
-    +-- <CanvasInspector />
-+-- Validation errors (conditional)
-```
+The wide layout places the outline beside the details panel. In the narrow
+layout, a button opens the outline over the editor and a backdrop closes it.
 
-The IP Core editor has no sidebar/overlay breakpoint behavior of its own — the responsive
-breakpoints and `.sidebar` overlay class above apply to the Memory Map editor's `<OutlinePanel />`
-tree only.
+The overlay must:
 
-## Mobile Sidebar Overlay
+- remain above table and visualizer content;
+- close when the backdrop is selected;
+- return focus to the button that opened it;
+- keep controls large enough for pointer and touch use.
 
-Below 640px, the sidebar becomes a fixed overlay that slides in from the left:
+## IP Core layout
 
-- `.sidebar` gets `position: fixed; left: -300px` with a slide transition
-- `.sidebar.sidebar-open` sets `left: 0`
-- `.sidebar-backdrop.active` renders a semi-transparent overlay
+The IP Core editor contains a toolbar, library palette, canvas, and inspector.
+It does not use the Memory Map outline overlay. When space is limited, its
+panels must shrink or scroll without covering the canvas controls.
 
-## Theme Integration
+## Implementation values
 
-VS Code theme CSS custom properties are used throughout. Key utility classes:
+The shared values are defined in `src/webview/index.css`:
 
-| Class | Maps to |
-|-------|---------|
-| `.vscode-surface` | `var(--vscode-editor-background)` |
-| `.vscode-surface-alt` | `var(--vscode-editorWidget-background)` |
-| `.vscode-border` | `var(--vscode-panel-border)` |
-| `.vscode-muted` | `var(--vscode-descriptionForeground)` |
+| CSS value | Purpose |
+|---|---|
+| `--sidebar-width` | Wide Memory Map outline |
+| `--sidebar-width-tablet` | Medium-width outline |
+| `--sidebar-width-mobile` | Narrow overlay width |
+| `--touch-target-min` | Minimum interactive control size |
 
-## Responsive Utility Classes
+Colors use VS Code theme variables so the layout works in light, dark, and
+high-contrast themes.
 
-| Class | Effect |
-|-------|--------|
-| `.responsive-container` | Full width, overflow-x auto |
-| `.stack-on-mobile` | Column layout, row at >= 641px |
-| `.hide-on-mobile` | Hidden below 641px |
-| `.show-on-mobile-only` | Visible only below 641px |
+## Verification
 
-## Verification Checklist
+When changing layout code, check all three width ranges and confirm:
 
-When changing layout-related code, verify:
+- the selected item remains visible;
+- tables can scroll without covering headers;
+- the outline opens, closes, and returns keyboard focus;
+- visualizers remain readable;
+- labels do not overlap controls;
+- interactive controls meet the minimum target size;
+- light, dark, and high-contrast themes remain readable.
 
-- Sidebar remains visible on desktop during wide content edits
-- Mobile sidebar opens/closes correctly with backdrop
-- Visualizers remain scrollable and legible
-- Table headers do not overlap at tablet widths
-- Touch targets meet 44px minimum on mobile
-- Sticky table headers remain pinned during scroll
-- High-contrast mode renders readable labels
+Automated browser tests should set explicit viewport sizes for behavior that
+depends on a breakpoint.

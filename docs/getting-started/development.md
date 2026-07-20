@@ -9,6 +9,10 @@
 
 ## Setup
 
+Use npm for normal extension development. Use CMake when you want the same
+cross-language target names used by automation or documentation tasks; both
+paths run the same underlying npm commands.
+
 === "CMake (recommended)"
     ```bash
     cmake -B build          # configure once
@@ -132,7 +136,8 @@ Format-preserving writes go through `src/yamledit/` (`applyPathEdits`,
     | `npm run test:e2e` | VS Code E2E tests (requires display / xvfb) |
 
 !!! note
-    `npm run pretest` runs compile + lint before tests. For fast iteration, run `test:unit` directly.
+    `npm run pretest` checks the submodule, compiles tests and bundles, and runs
+    lint. For fast iteration, run `npm run test:unit` directly.
 
 ## Packaging a VSIX
 

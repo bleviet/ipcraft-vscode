@@ -1,10 +1,23 @@
 # Commands & Settings Reference
 
-Complete reference for all IPCraft commands, context menus, and configuration settings.
+Use this page to look up every IPCraft command and setting. Start with the
+common tasks below; the later tables are the complete reference.
 
----
+## Common tasks
 
-## Commands
+| Goal | Command |
+|---|---|
+| Create a core and linked register map | **IPCraft: New IP Core + Register Map** |
+| Generate the complete project | **IPCraft: Scaffold Project** |
+| Check generated files against the specification | **IPCraft: Check Consistency** |
+| Import an existing VHDL entity | **IPCraft: Import from VHDL (Experimental)** |
+| Run the available vendor build | **IPCraft: Build** |
+| Switch from the visual editor to YAML | **IPCraft: Open as Text Editor** |
+
+All commands are in the Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P`). A
+blank cell in the location tables means the command is not available there.
+
+## All commands
 
 All commands are available in the Command Palette (`Ctrl+Shift+P`) under the **IPCraft** category. Many commands are also reachable from the **IPCraft** top-level application menu bar entry or from the editor title bar icon.
 
@@ -64,9 +77,13 @@ These commands are available on `.ip.yml` files.
 | Command | Palette | Editor Title |
 |---------|:-------:|:------------:|
 | `IPCraft: Preview Template Output` | Yes | Yes (`.j2` files) |
+| `IPCraft: Pin Preview IP Core` | Yes | No |
 | `IPCraft: Export Built-in Scaffold Pack` | Yes | |
 
-**Preview Template Output** — Opens a read-only, live-refreshing preview of a `.j2` template's rendered output next to the editor, evaluated against a pinned or auto-detected `.ip.yml` file. See [Scaffold Packs](../how-to/scaffold-packs.md).
+**Preview Template Output** — Opens a read-only, live-refreshing preview of a `.j2` template's rendered output next to the editor, evaluated against a pinned or auto-detected `.ip.yml` file. See [Scaffold Packs](../how-to/customizing-generated-files-with-scaffold-packs.md).
+
+**Pin Preview IP Core** — Chooses the `.ip.yml` file that supplies data for
+template previews until another file is pinned.
 
 **Export Built-in Scaffold Pack** — Copies a built-in or example scaffold pack (and all its templates) into `.vscode/ipcraft/packs/<name>/` in the workspace as a starting point for customization.
 
@@ -217,6 +234,19 @@ Available build targets:
 
 ---
 
+### Help and settings
+
+| Command | Palette | Toolbar |
+|---|:---:|:---:|
+| `IPCraft: Open Extension Settings` | Yes | Yes |
+| `IPCraft: Report Issue / Send Feedback` | Yes | Yes |
+
+**Open Extension Settings** filters VS Code Settings to IPCraft options.
+
+**Report Issue / Send Feedback** opens the project's issue and feedback page.
+
+---
+
 ## Settings
 
 Configure via **File → Preferences → Settings** and search for `IPCraft`, or edit `settings.json` directly.
@@ -264,7 +294,7 @@ Configure via **File → Preferences → Settings** and search for `IPCraft`, or
 | `ipcraft.generate.hdlLanguage` | `"vhdl"` \| `"systemverilog"` | `"vhdl"` | HDL language for RTL file generation. |
 | `ipcraft.generate.includeTestbench` | boolean | `true` | Include a testbench when scaffolding a project. |
 | `ipcraft.generate.includeDocs` | boolean | `true` | Generate a Markdown IP datasheet (`docs/<ip_name>_datasheet.md`) when scaffolding a project. |
-| `ipcraft.generate.scaffoldPack` | string | `""` | Scaffold pack used for RTL/testbench generation. See [Scaffold Packs](../how-to/scaffold-packs.md). |
+| `ipcraft.generate.scaffoldPack` | string | `""` | Scaffold pack used for RTL/testbench generation. See [Scaffold Packs](../how-to/customizing-generated-files-with-scaffold-packs.md). |
 
 ### Testbench
 
@@ -293,7 +323,7 @@ Configure via **File → Preferences → Settings** and search for `IPCraft`, or
 |---------|------|---------|-------------|
 | `ipcraft.busLibraryPaths` | string[] | `[]` | Additional directories to search recursively for custom bus definition YAML files (`.yml`/`.yaml`). |
 | `ipcraft.ipRepositoryPaths` | string[] | `[]` | Additional directories to scan for IP cores (directories containing `.ip.yml` or `component.xml` files). |
-| `ipcraft.scaffoldPackPaths` | string[] | `[]` | Additional directories to scan recursively for custom Scaffold Packs. See [Scaffold Packs](../how-to/scaffold-packs.md). |
+| `ipcraft.scaffoldPackPaths` | string[] | `[]` | Additional directories to scan recursively for custom Scaffold Packs. See [Scaffold Packs](../how-to/customizing-generated-files-with-scaffold-packs.md). |
 
 ---
 

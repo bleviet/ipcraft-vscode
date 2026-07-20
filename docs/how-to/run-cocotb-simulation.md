@@ -1,321 +1,181 @@
-# How to Run Simulations
+# Running a Cocotb Simulation
 
-How to simulate a scaffolded IP core using a testbench framework (cocotb or VUnit) and the VS Code Testing panel.
+Cocotb lets you test generated HDL with Python. IPCraft can generate the HDL,
+a Python test, and the files needed to start a simulator.
 
-> **Framework selection:** IPCraft supports two testbench frameworks: **cocotb** (default) and **VUnit**. The active framework is controlled by the `ipcraft.testbench.framework` setting. This guide covers the cocotb workflow; the generated file structure and helper scripts differ slightly for VUnit but the general principles are identical.
+## Quick start
 
----
+You need:
 
-## Prerequisites
+- Python 3.10 or newer
+- `pytest` and `cocotb`
+- GHDL for VHDL, or Icarus Verilog for SystemVerilog
 
-Install the required Python packages into your project's virtual environment:
-
-```bash
-pip install cocotb pytest pyyaml
-```
-
-For IP cores with an **AXI-Lite or AXI4** bus interface, also install:
+Install the Python packages:
 
 ```bash
-pip install cocotbext-axi
+python3 -m pip install cocotb pytest
 ```
 
-Install a VHDL simulator. [GHDL](https://github.com/ghdl/ghdl) is the recommended open-source option:
+Generate the project in IPCraft, open a terminal in the generated project, and
+run:
 
 ```bash
-# Ubuntu / Debian
-sudo apt install ghdl
-
-# macOS (Homebrew)
-brew install ghdl
+pytest -v
 ```
 
-Other simulators (Icarus, ModelSim, Questa, Riviera-PRO) work too — see [Using a different simulator](#using-a-different-simulator).
+```mermaid
+flowchart LR
+    A[IP core and memory map] --> B[Generate project]
+    B --> C[HDL and Python test]
+    C --> D[pytest starts simulator]
+    D --> E[Test result and waveform]
+```
 
-**Verify the simulator is on your PATH:**
+## Generated files
+
+The exact names depend on the selected scaffold pack. A typical project has:
+
+```text
+generated-project/
+├── rtl/                 # Generated VHDL or SystemVerilog
+├── test/                # Cocotb tests and register-map helper
+├── Makefile             # Optional simulator shortcut
+└── pytest.ini           # Pytest configuration, when supplied by the pack
+```
+
+The register-map helper gives tests named access to registers and fields. This
+is clearer than repeating numeric addresses and masks throughout a test.
+
+## Run tests
+
+Run every test:
 
 ```bash
-ghdl --version
+pytest -v
 ```
 
-> **Compatibility note:** the generated `conftest.py` uses `subprocess` + `make` instead of `cocotb.runner`, so it works with cocotb 1.7+, cocotb 2.x, and any supported simulator.
-
----
-
-## Generated file structure
-
-After running **IPCraft: Scaffold Project** with the `ipcraft.generate.includeTestbench` setting enabled (the default), the following simulation files are placed next to the `.ip.yml` source:
-
-```
-<ip_name>/
-  .vscode/
-    settings.json              # Tells VS Code to discover tests in tb/
-  tb/
-    mm_loader.py               # Generic .mm.yml reader — no ipcraft dependency
-    <ip_name>_test.py          # cocotb @cocotb.test() functions
-    conftest.py                # pytest session fixture: builds HDL once, exposes sim_runner
-    test_<ip_name>_sim.py      # pytest wrapper functions — one per @cocotb.test()
-    Makefile                   # GNU Make entry point — also used by conftest.py internally
-```
-
-| File | Purpose |
-|------|---------|
-| `mm_loader.py` | Reads `<ip_name>.mm.yml` at test startup. No regeneration needed when registers change. |
-| `<ip_name>_test.py` | The actual cocotb coroutines (`@cocotb.test()`). Edit this file to add stimulus. |
-| `conftest.py` | Exposes the `sim_runner` fixture; each test invokes `make TESTCASE=<name>` internally. |
-| `test_<ip_name>_sim.py` | Thin wrappers that call `sim_runner("test_name")`, making each test visible as a separate pytest item in VS Code and the terminal. |
-| `Makefile` | Drives the actual simulation. Used by `conftest.py` internally and directly via `make`. |
-
-The memory map file (`<ip_name>.mm.yml`) sits **one directory above** `tb/` and is the single source of truth. `mm_loader.py` reads it at test startup; you never need to regenerate `mm_loader.py` when you edit the YAML.
-
----
-
-## Running all tests
-
-From the project root (the directory that contains `tb/`):
+Run one file:
 
 ```bash
-pytest tb/
+pytest -v test/test_my_core.py
 ```
 
-pytest loads `conftest.py` and runs each test function by invoking `make TESTCASE=<name>`. make compiles the VHDL on the first run and reuses the cached build for subsequent tests. Expected output:
-
-```
-============================= test session starts ==============================
-collected 2 items
-
-tb/test_myip_sim.py::test_register_access PASSED
-tb/test_myip_sim.py::test_reset_values    PASSED
-
-============================== 2 passed in 12.34s ==============================
-```
-
----
-
-## Running a single test
-
-Use the `-k` flag to select tests by name:
+Run one test function:
 
 ```bash
-pytest tb/ -k test_register_access
-pytest tb/ -k test_reset_values
+pytest -v test/test_my_core.py::test_reset_values
 ```
 
-make's dependency tracking means the HDL is not recompiled if sources are unchanged; only the matching cocotb test function runs.
-
----
-
-## Using a different simulator
-
-Set the `SIM` environment variable before invoking pytest. The value is forwarded to `make SIM=<name>`.
-
-| Simulator | Command |
-|-----------|---------|
-| GHDL (default) | `pytest tb/` |
-| Icarus Verilog | `SIM=icarus pytest tb/` |
-| ModelSim | `SIM=modelsim pytest tb/` |
-| Questa | `SIM=questa pytest tb/` |
-| Riviera-PRO | `SIM=riviera pytest tb/` |
-
-> **Note:** GHDL-specific build flags (`--std=08 -frelaxed`) are configured inside the generated `Makefile`. If your design requires extra flags for a different simulator, edit `COMPILE_ARGS` in the Makefile.
-
----
-
-## Inspecting test results
-
-Each test writes a JUnit-compatible XML file into the `tb/` directory:
-
-```
-tb/results.xml
-```
-
-This file is generated by cocotb via the Makefile and contains pass/fail status plus log messages captured during simulation. It is compatible with CI systems that consume JUnit XML (GitHub Actions, Jenkins, GitLab CI).
-
-Compiled simulation artefacts are cached in `tb/sim_build/`. Delete this directory to force a full recompilation:
+If the generated project provides a Makefile, you can also run:
 
 ```bash
-make -C tb clean
+make
 ```
 
-To see verbose cocotb log output in the terminal:
+## Choose a simulator
+
+Cocotb reads the `SIM` environment variable. Examples:
 
 ```bash
-pytest tb/ -s
+SIM=ghdl pytest -v
+SIM=icarus pytest -v
 ```
 
----
+Use GHDL for generated VHDL and Icarus Verilog for generated SystemVerilog
+unless your scaffold pack documents another simulator.
 
-## VS Code Testing panel
+## Read the result
 
-The generated `.vscode/settings.json` configures the Python test extension to look in `tb/`:
+A successful run reports each test as `PASSED`. A failed assertion includes
+the Python file and line number. Start with the first failure because later
+failures may be a consequence of it.
 
-```json
-{
-  "python.testing.pytestEnabled": true,
-  "python.testing.unittestEnabled": false,
-  "python.testing.pytestArgs": ["tb"]
-}
-```
+Generated tests may also produce a waveform file. Open it with a waveform
+viewer such as GTKWave to inspect signal changes over time.
 
-To use the Testing panel:
+## Use the VS Code Testing view
 
-1. Open the project folder in VS Code (the folder that contains `.vscode/`).
-2. Ensure the [Python extension](https://marketplace.visualstudio.com/items?itemName=ms-python.python) is installed and the correct interpreter (your virtual environment) is selected.
-3. Open the **Testing** panel (flask icon in the Activity Bar, or `Ctrl+Shift+P` → **Testing: Focus on Test Explorer View**).
-4. Click **Refresh Tests** (the circular arrow at the top of the panel).
+With the Python extension installed, VS Code can discover the generated
+`pytest` tests:
 
-Each function in `test_<ip_name>_sim.py` appears as a separate test item. You can:
+1. Open the generated project folder.
+2. Open the **Testing** view.
+3. Choose **Configure Python Tests** if discovery has not run.
+4. Select `pytest` and the generated test directory.
+5. Run or debug a test from the test tree.
 
-- **Run all** — click the run button at the top of the Testing panel.
-- **Run one** — click the run button next to the individual test.
-- **Re-run failed** — click the **Re-run Failed Tests** button after a failed run.
-- **Debug** — click the debug button to attach the VS Code debugger to the pytest process (useful for inspecting `conftest.py` fixture logic; cocotb coroutines run inside the simulator subprocess and are not debuggable this way).
+The terminal command remains the best way to confirm the same tests work in
+automation.
 
-> **Note:** Each test invokes `make` internally. make compiles the HDL only when sources have changed, so the first test in a clean tree is slower; subsequent tests skip recompilation and go straight to simulation.
+## Write a custom register test
 
----
-
-## Writing a custom test using the register map
-
-`mm_loader.py` provides a `RegMap` class that reads `<ip_name>.mm.yml` at runtime and exposes registers and fields as Python attributes.
-
-### Load the register map
+Import the generated register map, then use its names instead of raw numbers.
+The generated module and class names vary by pack; inspect the generated helper
+for the exact import.
 
 ```python
-import os
-from mm_loader import load_regmap
+from my_core_register_map import REGISTER_MAP
 
-_MM_YML = os.path.join(os.path.dirname(__file__), "../my_ip.mm.yml")
-regmap = load_regmap(_MM_YML)
+
+def test_register_layout():
+    control = REGISTER_MAP["CONTROL"]
+    assert control.offset == 0
+
+    enable = control.fields["ENABLE"]
+    assert enable.mask == 0x1
 ```
 
-The path `../my_ip.mm.yml` goes one level up from `tb/` to the project root, where the `.mm.yml` file lives.
-
-### Iterate all registers
+To extract or update a field in a register word:
 
 ```python
-for reg in regmap:
-    print(f"{reg.name} @ 0x{reg.offset:04X}  access={reg.access}")
+enable_value = (register_value & enable.mask) >> enable.lsb
+updated_value = (register_value & ~enable.mask) | (1 << enable.lsb)
 ```
 
-### Access a specific register
-
-```python
-ctrl = regmap.CTRL        # attribute-style — works for valid Python identifiers
-ctrl = regmap["CTRL"]     # dict-style — always works
-
-ctrl.offset               # int byte address
-ctrl.access               # str, e.g. "read-write"
-```
-
-### Access fields within a register
-
-```python
-f = ctrl.fields.ENABLE    # attribute-style
-f = ctrl.fields["ENABLE"] # dict-style
-
-f.bit_offset              # int, LSB position
-f.bit_width               # int, number of bits
-f.mask                    # int, field mask pre-shifted into register position
-f.access                  # str, e.g. "read-write"
-```
-
-### Extract and insert field values
-
-`extract` and `insert` operate on a full 32-bit register word read from or written to the bus. They do not perform any bus transactions themselves.
-
-```python
-reg_val = await _read_reg(master, ctrl.offset)
-
-# Isolate the ENABLE field from the register word
-enable = ctrl.fields.ENABLE.extract(reg_val)
-
-# Set ENABLE=1, leave all other fields unchanged
-new_val = ctrl.fields.ENABLE.insert(reg_val, 1)
-await _write_reg(master, ctrl.offset, new_val)
-```
-
-### Adding the test to pytest
-
-Add a new `@cocotb.test()` function to `<ip_name>_test.py`, then add a corresponding wrapper in `test_<ip_name>_sim.py`:
-
-```python
-# In <ip_name>_test.py
-@cocotb.test()
-async def test_enable_flag(dut):
-    """Set CTRL.ENABLE and verify the output port responds."""
-    cocotb.start_soon(Clock(dut.clk, 10, units="ns").start())
-    await _reset_dut(dut)
-    master = AxiLiteMaster(AxiLiteBus.from_prefix(dut, "s_axil"), dut.clk)
-
-    raw = await _read_reg(master, regmap.CTRL.offset)
-    new = regmap.CTRL.fields.ENABLE.insert(raw, 1)
-    await _write_reg(master, regmap.CTRL.offset, new)
-
-    await RisingEdge(dut.clk)
-    assert dut.enable_out.value == 1
-```
-
-```python
-# In test_<ip_name>_sim.py
-def test_enable_flag(sim_runner):
-    """Set CTRL.ENABLE and verify the output port responds."""
-    sim_runner("test_enable_flag")
-```
-
-The new test appears automatically in the VS Code Testing panel on the next **Refresh Tests**.
-
----
+Keep layout checks separate from bus transactions. A layout test validates the
+generated register description; a cocotb coroutine validates the behavior of
+the simulated hardware.
 
 ## Troubleshooting
 
-### RTL sources not found
+### RTL sources are not found
 
-```
-FileNotFoundError: RTL sources not found — run the IPCraft scaffolder first:
-  /path/to/myip/rtl/myip_pkg.vhd
-```
+Run the test from the generated project root. Check that the paths in the
+generated Makefile or Python runner match the `rtl/` directory.
 
-The `conftest.py` checks that all source files listed in `VHDL_SOURCES` exist before attempting compilation. Run **IPCraft: Scaffold Project** (or **IPCraft: Generate Top-Level HDL**) to create them, then run pytest again.
+### The simulator is not found
 
-### Simulator not found
-
-```
-FileNotFoundError: [Errno 2] No such file or directory: 'ghdl'
-```
-
-The simulator binary is not on `PATH`. Either install GHDL (`apt install ghdl` / `brew install ghdl`) or switch to a different simulator with `SIM=<name> pytest tb/`.
-
-### pytest collects zero tests
-
-```
-no tests ran
-```
-
-This usually means pytest was not pointed at the right directory. From the project root, run:
-
-```bash
-pytest tb/
-```
-
-Do not run `pytest` from inside `tb/` — the fixture and wrapper files use relative paths that assume the working directory is one level above `tb/`.
-
-Also confirm that `.vscode/settings.json` lists `"tb"` in `pytestArgs`, not `"."` or `"tb/"`.
-
-### GHDL VHDL-2008 errors
-
-If GHDL reports syntax or analysis errors, check the GHDL version:
+Confirm it is on `PATH`:
 
 ```bash
 ghdl --version
+iverilog -V
 ```
 
-The generated `conftest.py` passes `--std=08` (VHDL-2008) and `-frelaxed` to GHDL. GHDL 2.0 or newer is recommended. Older versions may not support all VHDL-2008 constructs used by the generated register file.
+### Pytest finds no tests
 
-### `ModuleNotFoundError: No module named 'cocotb.runner'`
+Test filenames normally start with `test_`, and test functions start with
+`test_`. Also check that you are running `pytest` from the generated project.
 
-This error comes from a stale `conftest.py` generated before IPCraft switched to the Makefile-based approach. Regenerate the testbench (**IPCraft: Generate CocoTB Testbench**) and the new `conftest.py` will no longer import `cocotb.runner`.
+### GHDL rejects VHDL syntax
 
-### Test passes in Makefile but fails under pytest
+Generated VHDL uses VHDL-2008. Make sure the generated runner passes
+`--std=08` and that your GHDL version supports it.
 
-`conftest.py` invokes `make` from `TB_DIR` (the `tb/` directory), so the working directory inside the simulation is the same whether you run `make` directly or `pytest tb/`. If a test passes via `make` but fails via `pytest`, check whether your test reads files using a path relative to somewhere other than `TB_DIR`. All filesystem paths in the test should be anchored to `os.path.dirname(__file__)` or `TB_DIR`.
+### `cocotb.runner` cannot be imported
+
+Check the installed version:
+
+```bash
+python3 -m pip show cocotb
+```
+
+Install the version required by the generated project or its requirements
+file.
+
+## Related pages
+
+- [Generating a project](generating-a-project.md)
+- [Memory-mapped registers](../tutorials/memory-mapped-registers.md)
+- [Testing](../testing.md)

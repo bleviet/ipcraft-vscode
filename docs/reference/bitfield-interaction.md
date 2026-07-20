@@ -1,8 +1,8 @@
-# Bit Field Interaction Reference
+# Bit Field Developer Reference
 
-A lookup reference for bit-field editing in the Memory Map register editor:
-keyboard shortcuts, gesture inputs/outputs, callback contracts, data shapes, and
-function signatures.
+This contributor reference lists the data shapes, callbacks, and functions used
+by bit-field editing. Users looking only for commands should use the
+[keyboard shortcuts](keyboard-shortcuts.md).
 
 For the mental model see [Spatial Editing](../concepts/spatial-editing.md); for
 how the pieces fit together see
@@ -213,15 +213,15 @@ When the user edits a bit range in the table:
 
 ## Commit path
 
-```text
-User interaction
-  -> BitFieldVisualizer callback
-  -> RegisterEditor handler (compute derived fields, sort by offset)
-  -> onUpdate -> useYamlUpdateHandler
-  -> YamlService.applyPathEdits (yaml v2, comment-preserving)
-  -> serializeValue (strip rowId / offset / width)
-  -> updateRawText -> useYamlSync.sendUpdate (revisioned V-3/V-4)
-  -> postMessage -> extension DocumentManager -> VS Code document
+```mermaid
+flowchart LR
+    A[User gesture] --> B[Visualizer callback]
+    B --> C[Register editor]
+    C --> D[YAML update handler]
+    D --> E[Comment-preserving edit]
+    E --> F[Serialize without editor-only values]
+    F --> G[Versioned webview message]
+    G --> H[VS Code document]
 ```
 
 ## Test files

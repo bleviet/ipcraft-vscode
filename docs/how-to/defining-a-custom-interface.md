@@ -1,6 +1,7 @@
 # Defining a Custom Interface
 
-How to add a bus interface whose signal set does not match any built-in protocol, and reuse it across IP cores.
+Use a custom interface to keep related signals together when no built-in
+protocol matches them. A **conduit** is a group with no implied bus transaction.
 
 Use this when a connection between cores does not fit a standard protocol — a proprietary streaming link, a diagnostic port grouping unrelated signals, or a chip-level conduit with no bus semantics. See [Custom Interface](../concepts/custom-interface.md) for the full data model this guide walks through.
 
@@ -24,7 +25,7 @@ In the Inspector's **Configuration** section:
 | --- | --- |
 | Mode | `conduit` for a pass-through signal grouping with no transaction semantics; `slave`/`master` if the interface has an initiator/responder distinction (a named proprietary protocol) |
 | Physical Prefix | HDL signal prefix, e.g. `dbg_` → `dbg_trace_data`, `dbg_trigger` |
-| Interface Type | Leave blank for an anonymous conduit, or paste a full VLNV (`vendor.library.name.version`) to give the interface its own protocol identity |
+| Interface Type | Leave blank for a one-off conduit, or enter vendor, library, name, and version to give it a reusable identity |
 
 ## Add signals
 

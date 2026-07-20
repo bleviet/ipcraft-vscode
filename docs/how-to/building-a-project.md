@@ -1,125 +1,105 @@
 # Building a Project
 
-How to compile an IP core headlessly — without opening Vivado or Quartus — and inspect timing and utilization results inside VS Code.
+IPCraft can run Vivado or Quartus without opening the vendor interface. This is
+called a headless build. Tool output, timing, and resource use appear in VS Code.
 
-## Prerequisites
+## Before you build
 
-- An IP Core file (`.ip.yml`) with vendor project files already generated (run `IPCraft: Scaffold Project` or `IPCraft: Generate Vivado Project` / `IPCraft: Generate Quartus Project` first)
-- The vendor tool reachable from VS Code:
-    - **Vivado**: configured via `ipcraft.vivado.runner` + `ipcraft.vivado.installDir` (local) or `ipcraft.vivado.dockerImage` (docker)
-    - **Quartus**: configured via `ipcraft.quartus.runner` + `ipcraft.quartus.installDir` (local) or `ipcraft.quartus.dockerImage` (docker)
+You need:
 
-## Run a Build
+- an `.ip.yml` file;
+- generated Vivado or Quartus project files;
+- the matching tool configured locally or through Docker.
 
-1. Open a `.ip.yml` file in the IP Core editor
-2. Run **IPCraft: Build** from the Command Palette (`Ctrl+Shift+P`), the editor title bar, or the **IPCraft** top-level menu
-3. If multiple targets are available, a QuickPick appears — select one:
-    - **Vivado OOC Synthesis** — fast, synthesis-only; good for checking synthesisability and resource estimates
-    - **Vivado Full Implementation (XPR)** — synthesis + place + route; provides real timing numbers and a routed netlist
-    - **Quartus Compile** — full synthesis + fitting + timing analysis
-4. The *IPCraft Build* Output Channel opens automatically and streams the tool output line by line
-5. When the run completes, the **IPCraft Build** panel in the Explorer sidebar updates with the parsed results
+Run **IPCraft: Scaffold Project**, **Generate Vivado Project**, or
+**Generate Quartus Project** first if no build target exists.
 
-## Build Output Locations
+## Run the build
 
-| Target | Reports written to |
-|--------|-------------------|
-| Vivado OOC Synthesis | `xilinx/build/ooc/timing.rpt`, `utilization.rpt`, `cdc.rpt` |
-| Vivado Full Implementation | `xilinx/build/xpr/timing.rpt`, `utilization.rpt`, `cdc.rpt` |
-| Quartus Compile | `altera/build/output_files/<ip_name>.sta.summary`, `<ip_name>.fit.summary` |
+1. Open the IP core.
+2. Run **IPCraft: Build**.
+3. If prompted, choose a target.
+4. Follow live messages in the **IPCraft Build** output channel.
+5. Review the Build panel in the Explorer when the tool finishes.
 
-Click any node in the **IPCraft Build** panel to open the corresponding report file directly in the editor.
-
-## Reading the Build Panel
-
-After a successful build the **IPCraft Build** panel in the Explorer sidebar shows a tree like:
-
+```mermaid
+flowchart LR
+    A[Generated project scripts] --> B[IPCraft: Build]
+    B --> C[Vivado or Quartus batch process]
+    C --> D[Tool reports]
+    D --> E[Build panel and status bar]
 ```
+
+## Choose a target
+
+| Target | Work performed | Best use |
+|---|---|---|
+| Vivado out-of-context synthesis | Synthesizes the IP core alone | Fast syntax, clock, and resource check |
+| Vivado full implementation | Synthesizes, places, and routes | Final timing for the chosen part |
+| Quartus compile | Synthesizes, fits, and analyzes timing | Complete Quartus result |
+
+Out-of-context means the IP core is built by itself, outside a complete FPGA
+system. XPR is Vivado's saved project format.
+
+## Read the result
+
+The Build panel reports:
+
+- pass, fail, or running state;
+- timing summary;
+- resource use such as lookup tables, registers, memory blocks, and DSP blocks;
+- links to the complete vendor reports.
+
+Timing slack is the margin between the required and actual signal arrival time.
+A negative worst slack means at least one path misses its timing requirement.
+
+```text
 Vivado — OOC           PASS
-├── Timing             PASS
-│   ├── WNS +1.234 ns  PASS
-│   ├── WHS +0.456 ns  PASS
+├── Timing
+│   ├── Worst setup slack: +1.234 ns
 │   └── Failing paths: 0
-└── Utilization
-    ├── LUT:  1,234 / 53,200 (2.3%)
-    ├── FF:   2,891 / 106,400 (2.7%)
-    ├── BRAM: 4 / 140 (2.9%)
-    └── DSP:  0 / 220 (0.0%)
+└── Resources
+    ├── LUT: 1,234 / 53,200
+    ├── FF:  2,891 / 106,400
+    └── BRAM: 4 / 140
 ```
 
-For Quartus:
+Select a report node to open the underlying file.
 
-```
-Quartus — Compile      PASS
-├── Timing             PASS
-│   └── Fmax: 156.25 MHz
-└── Utilization
-    ├── LUT:  1,234 / 41,910 (2.9%)
-    ├── FF:   2,891
-    └── BRAM: 16,384 / 5,662,720 (0%)
-```
+The panel is native VS Code interface, so it is not part of the automated
+webview screenshot pipeline. See [documentation screenshots](../concepts/docs-screenshots.md)
+for the capture boundary.
 
-### Timing status
+## Report locations
 
-| Status | Meaning |
-|--------|---------|
-| PASS (green) | All timing constraints met |
-| FAIL (red) | One or more timing violations |
+| Target | Directory |
+|---|---|
+| Vivado out-of-context | `xilinx/build/ooc/` |
+| Vivado full implementation | `xilinx/build/xpr/` |
+| Quartus compile | `altera/build/output_files/` |
 
-A negative WNS (Worst Negative Slack) means setup timing is violated — the design cannot meet the target clock frequency as constrained.
+## Status bar
 
-> **Why this section has no screenshot:** the **IPCraft Build** panel is a native VS Code
-> `TreeDataProvider` (`ReportsTreeProvider.ts`) rendered entirely by VS Code's own Explorer
-> chrome — there is no webview or HTML behind it. It falls outside the
-> [automated screenshot pipeline](../concepts/docs-screenshots.md), which only captures the
-> three React webviews (Memory Map, IP Core, Data Inspector); reproducing this panel would
-> require driving a real running VS Code window rather than a `file://` harness page.
+The IPCraft status item shows whether a build is running, passed, or failed.
+A successful Vivado build shows worst timing slack; a successful Quartus build
+shows maximum clock frequency. Select the item to reopen the output channel.
 
-## Status Bar
-
-The status bar item shows the build state throughout the session:
-
-| State | Status bar text |
-|-------|----------------|
-| Idle | `$(circuit-board) IPCraft` |
-| Running | `$(loading~spin) Building…` |
-| Vivado passed | `$(pass) WNS +1.23ns` |
-| Quartus passed | `$(pass) Fmax 156 MHz` |
-| Failed | `$(error) Build failed` |
-
-Click the status bar item at any time to open the *IPCraft Build* Output Channel.
-
-## Configuring the Build
-
-### Local installation
-
-| Setting | Default | Purpose |
-|---------|---------|---------|
-| `ipcraft.vivado.runner` | `"local"` | Set to `"local"` to use a native Vivado install |
-| `ipcraft.vivado.installDir` | `""` | Path to Vivado installation directory (e.g. `/tools/Xilinx/Vivado/2024.2`). Leave empty to use `vivado` from PATH. |
-| `ipcraft.quartus.runner` | `"local"` | Set to `"local"` to use a native Quartus install |
-| `ipcraft.quartus.installDir` | `""` | Top-level Quartus installation directory (e.g. `/opt/intelFPGA_pro/23.1`). |
-| `ipcraft.build.jobs` | `4` | Parallel jobs for Vivado `launch_runs` and Quartus compilation |
-
-Example for a non-default Vivado installation on Linux:
+## Configure a local tool
 
 ```json
 {
-  "ipcraft.vivado.installDir": "/tools/Xilinx/Vivado/2024.2"
+  "ipcraft.vivado.runner": "local",
+  "ipcraft.vivado.installDir": "/tools/Xilinx/Vivado/2024.2",
+  "ipcraft.quartus.runner": "local",
+  "ipcraft.quartus.installDir": "/opt/intelFPGA_pro/23.1",
+  "ipcraft.build.jobs": 4
 }
 ```
 
-On Windows:
+Leave an installation directory empty when the tool command is already on
+`PATH`.
 
-```json
-{
-  "ipcraft.vivado.installDir": "C:\\Xilinx\\Vivado\\2024.2"
-}
-```
-
-### Docker
-
-To run Vivado or Quartus inside a Docker container:
+## Configure Docker
 
 ```json
 {
@@ -128,49 +108,18 @@ To run Vivado or Quartus inside a Docker container:
 }
 ```
 
-```json
-{
-  "ipcraft.quartus.runner": "docker",
-  "ipcraft.quartus.dockerImage": "cvsoc/quartus:23.1"
-}
-```
-
-## Under the Hood
-
-The build targets are TCL scripts generated alongside the vendor project files:
-
-| File | Purpose |
-|------|---------|
-| `xilinx/<ip_name>_run_ooc.tcl` | Sources `_project.tcl`, runs `launch_runs synth_1`, generates reports in `build/ooc/` |
-| `xilinx/<ip_name>_run_xpr.tcl` | Creates a standalone XPR project in `build/xpr/`, runs synth + impl, generates reports |
-| `altera/<ip_name>_project.tcl` | Creates the Quartus project (`.qpf`/`.qsf`) in `altera/build/` |
-
-You can run these scripts manually from the command line:
-
-```bash
-# Vivado OOC synthesis
-cd xilinx
-vivado -mode batch -source <ip_name>_run_ooc.tcl -nojournal -nolog
-
-# Vivado OOC synthesis with 8 parallel jobs
-vivado -mode batch -source <ip_name>_run_ooc.tcl -nojournal -nolog -tclargs 8
-
-# Vivado full implementation
-vivado -mode batch -source <ip_name>_run_xpr.tcl -nojournal -nolog
-
-# Quartus compile
-cd altera/build
-quartus_sh -t ../<ip_name>_project.tcl  # create project
-quartus_sh --flow compile <ip_name>     # compile
-```
+Quartus uses the equivalent `ipcraft.quartus.runner` and
+`ipcraft.quartus.dockerImage` settings.
 
 ## Troubleshooting
 
-| Problem | Solution |
-|---------|----------|
-| *No build targets found* | Run `IPCraft: Scaffold Project` or `IPCraft: Generate Vivado Project` / `IPCraft: Generate Quartus Project` first |
-| *Vivado not found* | Set `ipcraft.vivado.installDir` to your Vivado installation directory, or ensure `vivado` is in PATH |
-| *Quartus not found* | Set `ipcraft.quartus.installDir` to your Quartus installation directory, or ensure `quartus_sh` is in PATH |
-| Build exits with non-zero code | Check the *IPCraft Build* Output Channel for error messages from the tool |
-| Reports panel shows no data | The tool ran but the expected report files were not written; check the Output Channel for synthesis/implementation errors |
-| Timing violations (negative WNS) | Tighten the OOC constraints in `<ip_name>_ooc.xdc`, or review the critical paths in `timing.rpt` |
+| Problem | Check |
+|---|---|
+| No build targets | Generate the vendor project first |
+| Tool not found | Installation directory, `PATH`, or Docker image |
+| Build command fails | First vendor error in the IPCraft Build output channel |
+| Panel has no report | Confirm the vendor wrote files to the expected directory |
+| Negative timing slack | Clock constraints and the critical path in the timing report |
+
+For raw commands and every setting, see the
+[commands and settings reference](../reference/commands.md).

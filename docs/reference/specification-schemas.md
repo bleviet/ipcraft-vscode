@@ -1,178 +1,166 @@
 # Specification Schemas
 
-IPCraft specifications are defined by JSON schemas in the `ipcraft-spec` submodule. These schemas are the single source of truth for the YAML format and are used for both validation and TypeScript type generation.
+IPCraft uses two YAML file types. JSON Schemas in the `ipcraft-spec` submodule
+define exactly which fields and values are valid.
 
-## Submodule Structure
+| File | Describes |
+|---|---|
+| `*.ip.yml` | One IP core: identity, ports, parameters, interfaces, and source files |
+| `*.mm.yml` | One or more memory maps: address blocks, registers, and fields |
 
-```text
-ipcraft-spec/
-  schemas/
-    ip_core.schema.json       # IP Core specification schema
-    memory_map.schema.json    # Memory Map specification schema
-  bus_definitions/            # Built-in bus interface definitions, one YAML file per protocol
-  examples/                   # Example IP cores (basic_peripheral, comprehensive_axi,
-                               # comprehensive_avalon, daq_controller, minimal,
-                               # multi_interface_accelerator, system_controller, xcvr_loopback)
-  templates/                  # Starter YAML templates
+The tables below are a readable overview. The JSON Schema files remain the
+authoritative definition.
+
+## Minimal IP core
+
+VLNV means vendor, library, name, and version. Together these values identify a
+core without relying on its filename.
+
+```yaml
+apiVersion: "1.0"
+vlnv:
+  vendor: example.org
+  library: peripherals
+  name: status_reader
+  version: 1.0.0
+
+description: Reads a status input
+
+clocks:
+  - name: clk
+
+resets:
+  - name: rst_n
+    polarity: activeLow
+
+ports:
+  - name: status_i
+    direction: in
+    width: 8
 ```
 
-## File Types
+Common top-level fields:
 
-| Extension | Schema | Purpose |
-|-----------|--------|---------|
-| `*.ip.yml` | `ip_core.schema.json` | IP Core definition (VLNV, clocks, resets, ports, bus interfaces, parameters, file sets) |
-| `*.mm.yml` | `memory_map.schema.json` | Memory map definition (address blocks, registers, bit fields) |
+| Field | Meaning |
+|---|---|
+| `apiVersion` | Specification format version |
+| `vlnv` | Vendor, library, name, and version |
+| `description`, `author` | Human-readable ownership and purpose |
+| `clocks`, `resets`, `interrupts`, `ports` | Individual signals |
+| `parameters` | Configurable values used by widths or generation |
+| `busInterfaces` | Named protocol interfaces |
+| `memoryMaps` | Inline or referenced register maps |
+| `subcores` | Other IP cores used by this one |
+| `simulation` | Per-core test framework and simulator choices |
+| `targets` | Vendor outputs such as `vivado` and `quartus` |
+| `scaffold_pack` | Saved scaffold-pack selection |
+| `fileSets` | Source files grouped by purpose |
 
-## IP Core Schema
+## Bus interfaces
 
-Top-level fields:
+```yaml
+busInterfaces:
+  - name: control
+    type: ipcraft:busif:axi4_lite:1.0
+    mode: slave
+    physicalPrefix: s_axi
+    associatedClock: clk
+    associatedReset: rst_n
+    memoryMapRef: control_map
+```
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `apiVersion` | string | No | Schema version for the file, e.g. `'1.0'` |
-| `vlnv` | object | Yes | Vendor, Library, Name, Version identifier |
-| `description` | string | No | Human-readable description |
-| `author` | string | No | IP core author |
-| `clocks` | array | No | Clock signal definitions |
-| `resets` | array | No | Reset signal definitions |
-| `interrupts` | array | No | Interrupt output definitions |
-| `ports` | array | No | User-defined port definitions |
-| `parameters` | array | No | Generic parameter definitions |
-| `busInterfaces` | array | No | Bus interface definitions |
-| `memoryMaps` | array | No | Memory map definitions (inline or `$ref`) |
-| `subcores` | array | No | Sub-IP core dependencies, either a `vendor:library:name:version` string or a `SubcoreRef` object |
-| `simulation` | object | No | Testbench framework/engine overrides for this IP core |
-| `targets` | string[] | No | Synthesis vendor targets, e.g. `['vivado', 'quartus']`. Replaces the legacy `vendor:` field |
-| `useBusLibrary` | string | No | Path to a custom bus library directory relative to this file |
-| `scaffold_pack` | string | No | Scaffold pack used to generate this IP core; persisted so the canvas picker restores it on reopen |
-| `fileSets` | array | No | File set definitions |
+| Field | Meaning |
+|---|---|
+| `name` | Interface name inside this core |
+| `type` | Full bus identity or supported short name |
+| `mode` | `master`, `slave`, `source`, `sink`, or `conduit` |
+| `physicalPrefix` | Prefix used by physical HDL port names |
+| `associatedClock`, `associatedReset` | Related clock and reset names |
+| `memoryMapRef` | Linked memory map for memory-mapped interfaces |
+| `array` | Count and naming rule for repeated interfaces |
+| `useOptionalPorts` | Optional protocol signals to include |
+| `absentPorts` | Required protocol signals intentionally missing from imported HDL |
+| `portWidthOverrides` | Signal-specific width changes |
+| `conduitPorts` | Inline signals for a custom interface |
 
-### VLNV Object
+## Minimal memory map
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `vendor` | string | Organization or domain name |
-| `library` | string | IP library name |
-| `name` | string | IP core name |
-| `version` | string | Version string |
+A memory-map file contains a YAML list, even when it describes only one map:
 
-### Bus Interface Object
+```yaml
+- name: control_map
+  addressBlocks:
+    - name: control
+      baseAddress: 0x0000
+      range: 4K
+      usage: register
+      defaultRegWidth: 32
+      registers:
+        - name: CONTROL
+          offset: 0x00
+          fields:
+            - name: ENABLE
+              bits: "[0]"
+              access: read-write
+              resetValue: 0
+```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `name` | string | Interface name |
-| `type` | string | Bus protocol VLNV (e.g., `ipcraft:busif:axi4_lite:1.0`) or a recognized short alias (e.g. `AXI4L`) — see [Bus Library](#bus-library) |
-| `mode` | string | Interface mode: `master`, `slave`, `source`, `sink`, or `conduit` |
-| `physicalPrefix` | string | Signal naming prefix on the RTL port list |
-| `memoryMapRef` | string | Reference to a memory map name (memory-mapped slave/master interfaces only) |
-| `associatedClock` | string | Reference to a clock name |
-| `associatedReset` | string | Reference to a reset name |
-| `description` | string | Interface description |
-| `array` | object | Bus interface array configuration (see below) |
-| `useOptionalPorts` | array | Optional ports from the bus library to include |
-| `absentPorts` | array | Required bus-spec ports (uppercase logical names) absent from the user's HDL; populated automatically by the VHDL parser so the generator doesn't emit ports missing from the source entity |
-| `portWidthOverrides` | object | Per-signal width overrides (signal name → width or generic name) |
-| `conduitPorts` | array | Inline signal definitions for conduit interfaces (name, direction, width) |
+### Address blocks
 
-A custom bus library directory for the whole IP core (used to resolve conduit/custom
-interface types) is set via the top-level `useBusLibrary` field, not per-interface.
+| Field | Meaning |
+|---|---|
+| `name` | Block name |
+| `baseAddress` | First address |
+| `range` | Reserved size in bytes, including forms such as `4K` |
+| `usage` | `register`, `memory`, or `reserved` |
+| `access` | Default software access |
+| `defaultRegWidth` | Default register width in bits |
+| `registers` | Registers and register arrays |
 
-#### Array Configuration
+### Registers
 
-When `array` is set, the bus interface represents multiple identical interfaces instantiated in RTL:
+| Field | Meaning |
+|---|---|
+| `name` | Register name |
+| `offset` | Byte offset from the block base |
+| `size` | Register width in bits |
+| `access` | Default access inherited by fields |
+| `resetValue` | Whole-register reset value |
+| `fields` | Bit fields |
+| `count`, `stride` | Repetition count and distance for an array |
+| `registers` | Child registers in a repeated group |
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `count` | integer | Number of interface instances |
-| `indexStart` | integer | Index of the first instance (default 0) |
-| `namingPattern` | string | Port name pattern, e.g. `s_axi_{index}` |
-| `physicalPrefixPattern` | string | Physical prefix pattern per instance |
+### Bit fields
 
-## Memory Map Schema
+A field may use `bits`, or the equivalent `offset` and `width` values. `bits`
+uses the highest bit first: `"[7:4]"` covers four bits.
 
-A `.mm.yml` file's top level is an **array** of memory map definitions, each with address blocks:
+| Field | Meaning |
+|---|---|
+| `name` | Field name |
+| `bits` | Saved range such as `"[7:0]"` |
+| `offset`, `width` | Lowest bit and number of bits |
+| `access` | Read, write, or special write behavior |
+| `resetValue` | Reset value limited to the field width |
+| `enumeratedValues` | Names for known numeric values |
+| `monitorChangeOf` | Field whose changes set this event field |
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `name` | string | Memory map name |
-| `description` | string | Memory map description |
-| `addressBlocks` | array | Address block definitions |
+## Bus library
 
-### Address Block
+Built-in definitions under `ipcraft-spec/bus_definitions/` describe AXI4-Lite,
+AXI4, AXI Stream, Avalon Memory-Mapped, and Avalon Streaming signals.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `name` | string | Block name |
-| `baseAddress` | integer \| null | Block starting address (default 0) |
-| `range` | integer \| string \| null | Block size in bytes, or a shorthand like `4K` / `1M` |
-| `usage` | string | `register`, `memory`, or `reserved` (default `register`) |
-| `access` | string | Default access for registers in the block (default `read-write`) |
-| `defaultRegWidth` | integer | Default register width in bits for registers in the block |
-| `description` | string | Block description |
-| `registers` | array | Register definitions |
+Each definition states the logical signal name, direction, width, and whether
+the signal is required. The canvas uses it to display interfaces, and the
+generator uses it to create physical ports.
 
-### Register
+Custom `.busdef.yml` files use the same model. Point `useBusLibrary` at a custom
+library or let IPCraft discover definitions in the workspace.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `name` | string | Register name |
-| `offset` | integer | Offset from the address block base |
-| `size` | integer | Register width **in bits** (default: 32) |
-| `access` | string | Default access type for the register |
-| `resetValue` | integer | Reset value for the entire register |
-| `description` | string | Register description |
-| `fields` | array | Bit field definitions |
-| `registers` | array | Child registers, for register groups |
-| `count` | integer | Array replication count (default 1) — see `RegisterArrayEditor` |
-| `stride` | integer | Address stride between array replicas |
+## Validation in a text editor
 
-### Bit Field
-
-The canonical representation is `offset` + `width`; `bits` is an alternate `[MSB:LSB]`-style
-string some tooling accepts. `LayoutEngine.ts` (`recomputeBitfieldLayout`, `reorderBitfieldLayout`)
-operates on `offset`/`width`.
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `name` | string | Field name |
-| `offset` | integer | Starting bit position (LSB = 0) |
-| `width` | integer | Number of bits |
-| `bits` | string | Alternate bit-range form, e.g. `[7:0]` |
-| `access` | string | Access type (`read-write`, `read-only`, `write-only`, `write-1-to-clear`, `read-write-1-to-clear`, `write-self-clearing`, `read-write-self-clearing`) |
-| `resetValue` | integer | Reset/default value |
-| `description` | string | Field description |
-| `enumeratedValues` | object | Mapping of `{ value: name }` for enumerated fields |
-| `monitorChangeOf` | string | Name of another field in the same register to watch for a change-of-state (write-1-to-clear fields only); the generator creates an internal shadow register and comparator |
-
-## Bus Library
-
-The built-in bus library ships as individual YAML files under `ipcraft-spec/bus_definitions/`, one per protocol:
-
-| File | VLNV type key | Vendor | Key Signals |
-|------|---------------|--------|-------------|
-| `axi4_lite.yml` | `ipcraft:busif:axi4_lite:1.0` | ARM | AWADDR, AWVALID, AWREADY, WDATA, WSTRB, ARADDR, RDATA, etc. |
-| `axi4_full.yml` | `ipcraft:busif:axi4_full:1.0` | ARM | Full AXI4 with burst, cache, prot, ID signals |
-| `axi_stream.yml` | `ipcraft:busif:axi_stream:1.0` | ARM | TDATA, TVALID, TREADY, TLAST, TKEEP, etc. |
-| `avalon_mm.yml` | `ipcraft:busif:avalon_mm:1.0` | Intel/Altera | address, read, write, writedata, readdata, etc. |
-| `avalon_st.yml` | `ipcraft:busif:avalon_st:1.0` | Intel/Altera | data, valid, ready, startofpacket, endofpacket, etc. |
-
-Each port entry in a bus definition file has:
-
-| Field | Description |
-|-------|-------------|
-| `presence` | `required` or `optional` |
-| `direction` | `in` or `out` (from the perspective of a slave/sink interface) |
-| `width` | Bit width (integer) or omitted for single-bit signals |
-
-The bus library is loaded by `BusLibraryService` and used by the IP Core canvas for port signal display, and by the generator for building template context.
-
-### Custom Bus Definitions
-
-A **Custom Interface** (conduit) is saved as a `<name>.busdef.yml` file in the project directory. These files share the same format as the built-in definitions and can be referenced by any IP Core in the workspace via `useBusLibrary`.
-
-## VS Code YAML Validation
-
-For additional in-editor validation, install the [Red Hat YAML extension](https://marketplace.visualstudio.com/items?itemName=redhat.vscode-yaml) and add to `.vscode/settings.json`:
+The IPCraft visual editors validate these files automatically. For YAML text
+editing, install the Red Hat YAML extension and associate the schemas:
 
 ```jsonc
 {
@@ -183,19 +171,22 @@ For additional in-editor validation, install the [Red Hat YAML extension](https:
 }
 ```
 
-## Type Generation
+## Schema and type changes
 
-TypeScript types are auto-generated from these schemas via `scripts/generate-types.js`:
+The schema sources are:
+
+```text
+ipcraft-spec/schemas/ip_core.schema.json
+ipcraft-spec/schemas/memory_map.schema.json
+src/generator/contract/template_context.schema.json
+```
+
+After changing a schema:
 
 ```bash
 npm run generate-types
+npm run compile
 ```
 
-This produces:
-
-- `src/domain/memorymap.types.ts` from `memory_map.schema.json`
-- `src/domain/ipcore.types.ts` from `ip_core.schema.json`
-- `src/generator/contract/templateContext.types.ts` from `src/generator/contract/template_context.schema.json`
-
-Generated type files must not be edited by hand. Update the JSON Schema source, run
-`npm run generate-types`, and compile the result to catch incompatible generated changes.
+Generated TypeScript files must not be edited by hand. Review the generated
+diff and compile it to find incompatible uses.

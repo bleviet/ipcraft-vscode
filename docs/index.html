@@ -1287,8 +1287,8 @@
           <span class="section-label">FPGA IP workspace</span>
           <h1>Design FPGA IP cores <span class="grad-text">directly in VS Code.</span></h1>
           <p>
-            Design IP cores and register maps visually, keep readable YAML as the source of truth,
-            then generate and build production-ready RTL without leaving VS Code.
+            Design IP cores and register maps visually, keep the design in readable YAML,
+            then generate and build RTL without leaving VS Code.
           </p>
           <div class="hero-actions">
             <a class="btn btn-primary"
@@ -1335,8 +1335,8 @@
             <h2>From specification to implementation.</h2>
           </div>
           <p>
-            IPCraft connects specification, implementation, and vendor tooling. A structural
-            change propagates to generated HDL, testbenches, documentation, and build projects.
+            Describe the design once, then use the same information to generate HDL, tests,
+            documentation, and Vivado or Quartus projects.
           </p>
         </div>
         <div class="workflow-grid reveal">
@@ -1352,8 +1352,8 @@
             </div>
             <h3>Describe</h3>
             <p>
-              Model ports, interfaces, address blocks, registers, and fields in focused visual
-              editors backed by reviewable YAML.
+              Define ports, interfaces, address blocks, registers, and fields in visual editors.
+              Every change remains visible in reviewable YAML.
             </p>
           </article>
           <article class="workflow-step">
@@ -1369,8 +1369,8 @@
             </div>
             <h3>Generate</h3>
             <p>
-              Scaffold VHDL or SystemVerilog, bus wrappers, register files, cocotb tests, docs,
-              and vendor project files.
+              Generate VHDL or SystemVerilog, bus wrappers, register files, Cocotb tests,
+              documentation, and vendor project files.
             </p>
           </article>
           <article class="workflow-step">
@@ -1384,8 +1384,8 @@
             </div>
             <h3>Verify and build</h3>
             <p>
-              Check HDL consistency, inspect captured data, run simulation, and launch headless
-              Vivado or Quartus builds from VS Code.
+              Check generated HDL, inspect captured data, run simulations, and build with Vivado
+              or Quartus from VS Code.
             </p>
           </article>
         </div>
@@ -1400,8 +1400,8 @@
             <h2>A dedicated editor for each part of the specification.</h2>
           </div>
           <p>
-            IPCraft provides separate editors for topology, register layout, and captured data,
-            all backed by the same specification.
+            IPCraft provides separate editors for the IP core, register layout, and captured data.
+            They all use the same YAML design files.
           </p>
         </div>
 
@@ -1435,10 +1435,10 @@
           <div class="studio-copy-track">
             <div class="studio-copy-step is-active" data-frame="0">
               <span class="section-label">Architecture</span>
-              <h3>Design IP core topology on a visual canvas.</h3>
+              <h3>Design an IP core on a visual canvas.</h3>
               <p>
-                Place clocks, resets, ports, bus interfaces, and generics while the inspector
-                keeps every property close at hand.
+                Place clocks, resets, ports, bus interfaces, and parameters. Select an item to
+                edit its properties in the inspector.
               </p>
               <a href="https://github.com/bleviet/ipcraft-vscode/blob/main/docs/reference/ip-core-editor.md">Explore the
                 IP Core editor →</a>
@@ -1476,10 +1476,10 @@
             <div class="studio-copy">
               <div>
                 <span class="section-label">Architecture</span>
-                <h3>Design IP core topology on a visual canvas.</h3>
+                <h3>Design an IP core on a visual canvas.</h3>
                 <p>
-                  Place clocks, resets, ports, bus interfaces, and generics while the inspector
-                  keeps every property close at hand.
+                  Place clocks, resets, ports, bus interfaces, and parameters. Select an item to
+                  edit its properties in the inspector.
                 </p>
               </div>
               <a href="https://github.com/bleviet/ipcraft-vscode/blob/main/docs/reference/ip-core-editor.md">Explore the
@@ -1627,7 +1627,7 @@
                 overrides</span>
             </div>
             <a class="feature-link"
-              href="https://github.com/bleviet/ipcraft-vscode/blob/main/docs/how-to/scaffold-packs.md">Read the scaffold
+              href="https://github.com/bleviet/ipcraft-vscode/blob/main/docs/how-to/customizing-generated-files-with-scaffold-packs.md">Read the scaffold
               packs guide →</a>
           </article>
           <article class="feature-card half reveal">

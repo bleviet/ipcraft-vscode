@@ -1,48 +1,78 @@
 # DE10-Nano Register-Map Case Study
 
-This case study summarizes an end-to-end use of IPCraft on a Terasic DE10-Nano. The complete
-board project, software, build scripts, and hardware-validation results live in the
-[`cvsoc` repository](https://github.com/bleviet/cvsoc), where they can evolve with the board
-design rather than being duplicated here.
+This case study shows where IPCraft fits in a complete Terasic DE10-Nano
+project. The board files, software, build scripts, and hardware results live in
+the [`cvsoc` repository](https://github.com/bleviet/cvsoc).
 
-## What the Case Study Covers
+## System path
 
-The project starts from an IPCraft `.ip.yml` and `.mm.yml`, generates an Avalon-MM peripheral,
-and carries it through four verification stages:
+```mermaid
+flowchart LR
+    A[IPCraft .ip.yml and .mm.yml] --> B[Generated Avalon-MM peripheral]
+    B --> C[Platform Designer system]
+    C --> D[FPGA image]
+    D --> E[DE10-Nano board]
+    F[Nios II software or System Console] --> C
+```
 
-1. Generate VHDL, a register file, an Avalon-MM wrapper, testbench files, and Quartus metadata.
-2. Extend the generated cocotb testbench with assertions for reset values, read/write behavior,
-   and write-one-to-clear events.
-3. Compile the generated project headlessly with Quartus and review timing and utilization.
-4. Integrate the peripheral into a DE10-Nano Platform Designer system and access its registers
-   from Nios II software and System Console.
+The example register map contains:
 
-The register map includes read-only status, read/write control, and a write-one-to-clear event
-field driven by `monitorChangeOf`. Hand-written application logic is marked `managed: false` so
-re-scaffolding cannot overwrite it.
+- read/write control fields;
+- read-only hardware status;
+- an event flag that software clears by writing `1`;
+- hand-written application logic protected from regeneration.
 
-## What IPCraft Verifies
+## Verification stages
 
-IPCraft owns the specification-to-generated-artifact path: normalized YAML, RTL generation,
-vendor component metadata, simulation scaffolding, project creation, and headless builds. The
-board repository owns pin assignments, the Platform Designer system, firmware, programming, and
-hardware-specific automation.
+| Stage | What it proves |
+|---|---|
+| Generate | The YAML inputs produce RTL, tests, and Quartus metadata |
+| Simulate | Reset, reads, writes, and event clearing behave as specified |
+| Compile | Quartus accepts the generated project and reports timing and size |
+| Integrate | Platform Designer connects the peripheral to the system bus |
+| Run on board | Software reaches the same registers through the real interconnect |
 
-This boundary matters: compiling generated RTL is necessary, but exercising the same register
-semantics through a real interconnect catches integration problems that a standalone generator
-fixture cannot.
+```mermaid
+flowchart TD
+    A[Generate] --> B[Simulate]
+    B --> C[Compile in Quartus]
+    C --> D[Connect in Platform Designer]
+    D --> E[Read and write on hardware]
+```
 
-## Reproduce the IPCraft Portion
+Each stage finds a different class of problem. Simulation can validate register
+behavior, but only the board run proves that addresses, interconnect, clocks,
+reset, firmware, and generated hardware work together.
 
-You can exercise the repository-independent part without owning the board:
+## Responsibility boundary
 
-1. Follow [Creating Your First IP Core](../how-to/create-your-first-ip-core.md) to create the IP
-   Core and register-map specifications.
-2. Use [Generating a Project](../how-to/generating-a-project.md) to scaffold the RTL and vendor
-   files.
-3. Run the generated tests using [How to Run Simulations](../how-to/run-cocotb-simulation.md).
-4. If Quartus is installed, follow [Building a Project](../how-to/building-a-project.md) for a
-   headless compile.
+IPCraft owns the path from the IP description to generated component files:
 
-For the physical-board portion and its validation logs, use the `16_ipcraft_led_avmm`,
-`17_ipcraft_regmap_conformance`, and `18_ipcraft_regmap_conformance_axil` examples in `cvsoc`.
+- YAML validation;
+- RTL and register logic generation;
+- Cocotb test scaffolding;
+- Quartus component metadata;
+- headless project creation and builds.
+
+The board repository owns:
+
+- pin assignments and clocks specific to the DE10-Nano;
+- the surrounding Platform Designer system;
+- firmware and programming scripts;
+- hardware test logs.
+
+Keeping this boundary clear prevents board-specific instructions from becoming
+part of the IPCraft generator documentation.
+
+## Reproduce the IPCraft portion
+
+You do not need the board to repeat the first three stages:
+
+1. [Create an IP core and memory map](../how-to/create-your-first-ip-core.md).
+2. [Generate the project](../how-to/generating-a-project.md).
+3. [Run the generated simulation](../how-to/run-cocotb-simulation.md).
+4. If Quartus is available, [run a headless build](../how-to/building-a-project.md).
+
+For the board-specific stages, see the examples named
+`16_ipcraft_led_avmm`, `17_ipcraft_regmap_conformance`, and
+`18_ipcraft_regmap_conformance_axil` in `cvsoc`.

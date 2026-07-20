@@ -1,5 +1,8 @@
 # Keyboard Shortcuts
 
+Shortcuts apply to the editor section that currently has focus. Text fields keep
+normal typing shortcuts unless a table cell is explicitly in navigation mode.
+
 ## IP Core Canvas
 
 These shortcuts are active when the canvas view is visible and no text field is focused.

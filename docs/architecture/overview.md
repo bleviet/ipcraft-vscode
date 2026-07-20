@@ -1,13 +1,15 @@
 # Architecture Overview
 
-## System Overview
+## System overview
 
 `ipcraft-vscode` is a VS Code extension providing two custom visual editors:
 
 - **Memory Map editor** for `*.mm.yml` -- edit address blocks, registers, and bit fields
 - **IP Core editor** for `*.ip.yml` -- edit IP core metadata, clocks, resets, bus interfaces, parameters, file sets, and generate VHDL projects
 
-Both share common extension-host services while keeping editor-specific UI and domain logic separate.
+The **extension host** is the Node.js process that can access VS Code and the
+file system. A **webview** is an embedded browser that renders an editor. They
+share domain types but communicate only through messages.
 
 ## High-Level Structure
 

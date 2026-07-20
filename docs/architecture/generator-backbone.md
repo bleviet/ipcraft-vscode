@@ -1,273 +1,128 @@
 # Generator Architecture
 
-The HDL generator pipeline: how an `.ip.yml` file becomes rendered RTL, vendor
-packaging files, and testbench scaffolding.
+The generator converts an `.ip.yml` file and linked memory maps into HDL,
+tests, and vendor project files. This page describes the contributor-facing
+design. Pack authors should start with [scaffold packs](../how-to/customizing-generated-files-with-scaffold-packs.md).
 
-See [Template Context Contract and BYOT Generation](../concepts/generator-backbone.md)
-for the reasoning behind the design. See [Scaffold Packs](../how-to/scaffold-packs.md)
-for the pack author perspective.
+## Pipeline
 
----
-
-## Pipeline overview
-
-```
-.ip.yml (YAML on disk)
-      |
-      v
-IpCoreScaffolder.generateAll()
-      |
-      +-- loadIpCore()           → raw IpCoreData
-      |
-      +-- normalizeIpCoreData()  → NormalizedIpCore (domain)
-      |
-      +-- buildTemplateContext() → TemplateContext
-      |     |
-      |     +-- clockResetResolver.resolve()
-      |     +-- genericsResolver.resolve()
-      |     +-- shadowRegistersResolver.resolve()
-      |     +-- addressingResolver.resolve()
-      |     +-- busResolver.resolve()
-      |     +-- resolveMemoryMaps()
-      |
-      +-- assertValidContext()   ← AJV gate (throws ContractViolationError)
-      |
-      +-- checkPackApiVersion()  ← semver range check (throws Error)
-      |
-      +-- pack.files loop        → rendered file strings
-      |     |
-      |     +-- packLoader.evaluateCondition()
-      |     +-- packLoader.render()   ← TemplateLoader (Nunjucks)
-      |
-      +-- generateTestbenchFiles()
-      |
-      +-- toolchain.scaffold()   → vendor packaging files (per target)
-      |
-      v
-GenerateResult  { files: Record<string, string>, success, error? }
+```mermaid
+flowchart TD
+    A[Load IP core and linked maps] --> B[Normalize and validate]
+    B --> C[Resolve widths, buses, clocks, and registers]
+    C --> D[Validate template data]
+    D --> E[Check scaffold-pack version]
+    E --> F[Evaluate output rules]
+    F --> G[Render templates]
+    G --> H[Add tests and vendor files]
+    H --> I[Return staged files]
 ```
 
-Entry point: `src/generator/IpCoreScaffolder.ts`.
+`src/generator/IpCoreScaffolder.ts` coordinates the pipeline. It returns file
+contents to the staging workflow; it does not ask React components to write
+files directly.
 
----
+## Main areas
 
-## Module layout
+| Area | Location | Responsibility |
+|---|---|---|
+| Orchestration | `IpCoreScaffolder.ts` | Runs the complete generation flow |
+| Input preparation | `registerProcessor.ts` | Prepares maps, registers, and interfaces |
+| Template data | `contract/` and `resolvers/` | Defines and calculates values supplied to templates |
+| Bus rules | `buses/` | Maps interface names to supported bus behavior |
+| Scaffold packs | `packs/` and `ScaffoldPackLoader.ts` | Chooses output rules |
+| Rendering | `TemplateLoader.ts` and `templates/` | Finds and renders Nunjucks templates |
+| Test generation | `testbench/` | Combines a test framework with a simulator |
 
-```
-src/generator/
-  IpCoreScaffolder.ts        orchestrator — generateAll(), buildTemplateContext()
-  registerProcessor.ts       normalizeIpCoreData(), prepareRegisters(), bus helpers
-  TemplateLoader.ts          Nunjucks render engine; searches pack dir then built-ins
-  ScaffoldPackLoader.ts      parses scaffold.yml; resolves workspace > built-in order
+## Stable template data
 
-  contract/
-    template_context.schema.json   JSON Schema (source of truth; do not edit types directly)
-    templateContext.types.ts       generated from schema — do not hand-edit
-    validate.ts                    AJV gate + ContractViolationError
-    version.ts                     CONTRACT_VERSION, checkPackApiVersion(), satisfiesRange()
-    index.ts                       re-exports
+Templates receive a documented object rather than raw YAML. Its JSON Schema is
+`src/generator/contract/template_context.schema.json`. The generated TypeScript
+file `templateContext.types.ts` must not be edited by hand.
 
-  resolvers/
-    types.ts                       ResolverInput, ContextResolver, ContractDiagnostic
-    clockReset.ts
-    generics.ts
-    shadowRegisters.ts
-    addressing.ts
-    bus.ts
+Before rendering, `assertValidContext` checks the object against the schema. A
+failure stops generation and reports the invalid values. In the source this
+check uses AJV, a JSON Schema validator.
 
-  buses/
-    types.ts                       BusRuleProvider interface
-    registry.ts                    BusRuleRegistry class
-    builtin.ts                     built-in providers (axil, axi4, avmm, axis, avst)
+Scaffold packs may declare `apiVersion`. IPCraft compares that range with the
+current template-data version before rendering:
 
-  packs/
-    builtin-ipcraft/scaffold.yml   full layered generation
-    builtin-minimal/scaffold.yml   top-level stub only
-    example-*/scaffold.yml         annotated examples
-
-  templates/
-    *.j2                           Nunjucks templates (copied to dist/templates/ at build)
-
-  testbench/
-    Framework.ts, Engine.ts        testbench framework x engine interfaces
-    frameworks/                    CocotbFramework.ts, VUnitFramework.ts
-    engines/                       GhdlEngine.ts, IcarusEngine.ts, QuestaEngine.ts, VerilatorEngine.ts
-
-src/shared/
-  evalWidthExpr.ts                 single arithmetic parser used by generator and webview
-```
-
----
-
-## Contract
-
-### Schema and generated types
-
-`src/generator/contract/template_context.schema.json` is the single source of
-truth for the shape of every context object passed to a template. Running
-`npm run generate-types` compiles it into `templateContext.types.ts` via
-`json-schema-to-typescript`. The TypeScript compiler then enforces the contract
-at build time.
-
-The schema uses `additionalProperties: false` at the top level. Adding a field to
-`buildTemplateContext` without adding it to the schema causes `assertValidContext`
-to throw, and causes `npm run generate-types` to produce an updated type. This
-makes undeclared context fields impossible to ship silently.
-
-### AJV gate
-
-`assertValidContext(ctx: unknown): asserts ctx is TemplateContext` is called once,
-in `generateAll`, between context assembly and the pack render loop. It throws
-`ContractViolationError` with a human-readable list of all AJV errors if the
-context fails validation. No template ever runs against an invalid context.
-
-### Version check
-
-`CONTRACT_VERSION` is the semver string declared in `src/generator/contract/version.ts`.
-`checkPackApiVersion(pack)` compares the pack's `apiVersion` field (from
-`scaffold.yml`) against `CONTRACT_VERSION` using a minimal inline range checker
-that supports `^` (caret) and `~` (tilde) prefix ranges. Packs that do not declare
-`apiVersion` are accepted without a check — backwards compatibility for packs
-predating the versioning model.
-
-| `apiVersion` in scaffold.yml | Behaviour |
+| Pack value | Result |
 |---|---|
-| absent | accepted silently |
-| `"^1.0"` | accepted when `CONTRACT_VERSION` is `1.x.x` with `x >= 0` |
-| `"^2.0"` | rejected — major mismatch |
-| `"~1.2"` | accepted when `CONTRACT_VERSION` is `1.2.x` |
-
----
+| Missing | Accepted for older packs |
+| Compatible range such as `^1.0` | Rendered normally |
+| Incompatible major version | Rejected with a version error |
 
 ## Resolvers
 
-Each resolver implements `ContextResolver`:
+A resolver is a small conversion function that calculates one part of the
+template data.
 
-```typescript
-export interface ContextResolver {
-  readonly name: string;
-  resolve(input: ResolverInput): Record<string, unknown>;
-}
+| Resolver | Result |
+|---|---|
+| Clock and reset | Primary names, reset polarity, and clock periods |
+| Parameters | HDL types, defaults, and Vivado UI groups |
+| Register behavior | Software, hardware, write-one-to-clear, and change-event views |
+| Addressing | Data width, byte width, and address width |
+| Bus | Active bus signals, user ports, interrupts, and expanded arrays |
+
+Keep resolvers independent of file writing and template rendering. Their output
+is easier to test when it depends only on their inputs.
+
+## Bus rules
+
+`BusRuleRegistry` accepts full interface identities and short names, then
+returns one known bus rule. The rule supplies the short template name and
+whether the bus is memory mapped.
+
+This keeps bus-name interpretation in one place. Templates should use normalized
+values such as `axil` or `avmm` instead of recognizing aliases themselves.
+
+## Pack and template lookup
+
+```mermaid
+flowchart TD
+    A[Requested pack name] --> B{Workspace pack exists?}
+    B -->|Yes| C[Use workspace pack]
+    B -->|No| D[Use built-in pack]
+    C --> E{Template exists in pack?}
+    D --> E
+    E -->|Yes| F[Render pack template]
+    E -->|No| G[Try built-in template]
 ```
 
-`ResolverInput` carries the normalized IP core, the bus definitions loaded from
-`ipcraft-spec/bus_definitions/`, and the `BusRuleRegistry`.
+A workspace pack can replace a built-in template by using the same filename.
+Unchanged templates fall back to the built-in library.
 
-### clockResetResolver
+Source templates live in `src/generator/templates/` and are copied to
+`dist/templates/` during compilation. Never edit the copied files.
 
-Reads `ipCore.clocks` and `ipCore.resets`. Picks the first clock and reset name
-as the primary port names. Computes `period_ns` from frequency strings (`100MHz`,
-`1GHz`) for the `clocks_with_period` list used in Vivado XCI and VUnit run scripts.
-Falls back to `clk` / `rst` / `reset_active_high: true` when nothing is declared.
+## Width expressions
 
-### genericsResolver
+`src/shared/evalWidthExpr.ts` evaluates arithmetic width expressions for both
+the webview and generator. It supports numbers, parameter names, parentheses,
+and basic arithmetic without JavaScript `eval`.
 
-Maps `ipCore.parameters` to the `generics` array, resolving VHDL and SystemVerilog
-type names and default value formats. Builds the `xgui_pages` structure (Vivado
-XGUI page/group layout) from the `uiPage` and `uiGroup` parameter attributes.
+Keeping one evaluator prevents the canvas preview and generated vendor metadata
+from calculating different widths.
 
-### shadowRegistersResolver
+## Verification
 
-Partitions `registers` into `sw_registers` (software write access), `hw_registers`
-(hardware read access), `w1c_registers` (write-1-to-clear), and `cos_registers`
-(change-of-state — a W1C field with a `monitorChangeOf` reference to another W1C
-field). Annotates each register with `has_cos_fields` and each W1C field with
-`is_cos`.
+Generator changes should prove progressively more:
 
-Two exports serve different call sites:
+```mermaid
+flowchart LR
+    A[Resolver and snapshot tests] --> B[Generated HDL compile]
+    B --> C[Vendor metadata checks]
+    C --> D[Real Quartus or Vivado validation]
+```
 
-| Function | Behaviour on invalid `monitorChangeOf` |
-|---|---|
-| `buildShadowRegisters()` | throws `Error` — used in generation |
-| `validateShadowRegisters()` | returns `ContractDiagnostic[]` — intended for UI |
+Run the focused unit tests, then:
 
-### addressingResolver
+```bash
+npm run generate-types   # only after schema changes
+npm run compile
+npm run test:integration:hdl
+```
 
-Derives `data_width` from the WDATA port width of the primary memory-mapped slave
-interface as declared in the bus definitions library. Falls back to 32 when no
-bus definition is available. Computes `reg_width = data_width / 8`. Computes
-`addr_width` from the highest register offset (minimum 3 bits). Respects an
-explicit `addrWidth` override in the `.ip.yml`.
-
-### busResolver
-
-Produces all bus-related context fields. For each bus interface it calls
-`getActiveBusPortsFromDefinition` (in `registerProcessor.ts`) to resolve the
-physical port list from the bus definitions library, then formats them as
-`TemplatePort` records with VHDL type strings, SystemVerilog type strings, and
-TCL width expressions for Vivado IP-XACT.
-
-Also produces `user_ports` (ports not belonging to a bus interface) and
-`interrupt_ports` (declared interrupt signals), and flattens array bus interfaces
-into individual `expanded_bus_interfaces` entries.
-
----
-
-## Bus rule registry
-
-`BusRuleRegistry` maps bus type strings — whether they arrive as VLNV names
-(`ipcraft:busif:axi4_lite:1.0`) or as short aliases (`AXILITE`, `axil`) — to a
-`BusRuleProvider` that declares the canonical `id` and whether the protocol is
-memory-mapped.
-
-`normalizeBusType(typeName)` performs a two-pass lookup (VLNV first, alias second)
-and returns `{ templateType, busLibraryKey }`. `getBusTypeForTemplate` and
-`hasMemoryMappedSlaveInterface` in `registerProcessor.ts` delegate to this
-registry.
-
----
-
-## Pack loading and render
-
-`ScaffoldPackLoader.resolve(packName, workspacePackDirs)` searches workspace pack
-directories before the built-in packs directory. This lets a workspace pack shadow
-a built-in pack of the same name.
-
-`TemplateLoader` maintains a priority-ordered list of template directories. For
-each file rule in the pack, `packLoader.render(sourceName, context)` searches:
-1. The pack's own directory (enables template overrides).
-2. The extension's built-in template directory.
-
-A template in the pack directory with the same filename as a built-in template
-silently shadows the built-in — the mechanism that makes template customisation
-work without forking.
-
----
-
-## Test pyramid
-
-| Tier | Test files | Tools required | Runs in CI |
-|---|---|---|---|
-| 0 | `snapshots.test.ts`, `roundtrip.test.ts`, `conformance.test.ts` | none (pure Node) | yes (both `test` and `hdl-integration` jobs) |
-| 1 | `hdl.test.ts`, `ipxact.test.ts`, `quartus.test.ts` | GHDL, iverilog, Verilator, xmllint, Docker | yes (`hdl-integration` job) |
-| 2 | `vivado.test.ts` | Vivado | nightly only (`vivado-nightly.yml` workflow) |
-
-Tier 0 tests are pure Node and run as part of every PR. They cover:
-
-- **Snapshots** (`snapshots.test.ts`): golden-file comparison of generated file
-  lists and the full text of `component.xml` and `_hw.tcl` files. A change to any
-  template or resolver that alters generated output causes a snapshot diff.
-- **Round-trip** (`roundtrip.test.ts`): generates `component.xml` for every fixture,
-  parses it back with `ComponentXmlParser`, and asserts that VLNV and bus protocol
-  invariants survive the cycle. Same for `hw.tcl` via `HwTclParser`. Exercises the
-  fragile vendor packager code without any vendor binary.
-- **Conformance** (`conformance.test.ts`): loads every built-in pack, verifies
-  `apiVersion` compatibility, and generates each pack against a representative
-  fixture. Supports `CONFORMANCE_PACK_DIR` + `CONFORMANCE_FIXTURE` for third-party
-  pack self-certification.
-
-Tier 2 tests use `guardTier2`. When Vivado is absent they skip and write a NDJSON
-record to `SKIP_TELEMETRY_FILE` so the nightly artifact shows what was skipped.
-
----
-
-## Width expression evaluation
-
-`src/shared/evalWidthExpr.ts` is the single width evaluator. It accepts a string
-such as `"DATA_WIDTH + 2"` and a map of parameter defaults, and returns the
-evaluated integer. The algorithm is a recursive descent arithmetic parser over
-`[0-9\s+\-*/().]` tokens — no `eval`, no `new Function`.
-
-Both the webview canvas (port width preview) and the generator (TCL width
-expressions in `_hw.tcl` and `component.xml`) import this module. The previous
-generator-side `new Function` implementation is deleted.
+Run the matching EDA integration suite for vendor-specific changes.

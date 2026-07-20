@@ -1,70 +1,65 @@
 # YAML Data Flow
 
-How data moves between the YAML file on disk, the extension host, and the webview UI.
+The extension host owns the VS Code document. The webview owns the visible
+editor state. Versioned messages keep them synchronized without losing external
+edits or repeating the webview's own changes.
 
-## Overview
+## Complete flow
 
 ```mermaid
-graph LR
-    F["YAML File<br/>on disk"] -->|"VS Code opens"| D["DocumentManager"]
-    D -->|"text + docVersion"| P["Provider"]
-    P -->|"postMessage: update"| R["WebviewRouter"]
-    R -->|"postMessage: update"| W["Webview"]
-    W -->|"parse"| N["domain/parse.ts<br/>normalizeMemoryMap"]
-    N -->|"normalized model"| UI["React Components"]
-    UI -->|"user edit"| Y["YamlService.applyPathEdits<br/>(src/yamledit/, comment-preserving)"]
-    Y -->|"YAML update + editId + baseDocVersion"| S["revisionFilter<br/>buildUpdateMessage"]
-    S -->|"postMessage: update"| R
-    R -->|"apply edit"| D
-    D -->|"save"| F
+sequenceDiagram
+    participant File as VS Code document
+    participant Host as Extension host
+    participant View as React webview
+    File->>Host: Open or change document
+    Host->>View: Text and document version
+    View->>View: Parse and add editor-only row IDs
+    View->>Host: Edited text, edit ID, starting version
+    Host->>File: Apply comment-preserving change
+    File-->>Host: New document version
+    Host->>View: Updated text and source edit ID
+    View->>View: Ignore own echo or apply external change
 ```
 
-## Document Open (Host -> Webview)
+## Opening a document
 
-1. VS Code opens a `*.mm.yml` or `*.ip.yml` file
-2. The provider waits for the webview to post `{ type: 'ready' }`
-3. The provider sends `{ type: 'update', text, filename, docVersion }` (IP Core also includes resolved imports via `ImportResolver`)
-4. The webview parses the YAML and normalizes it into an in-memory model
+1. The provider waits for the webview's `ready` message.
+2. The host sends YAML text and the current document version.
+3. `src/domain/parse.ts` converts the YAML object into the normalized editor
+   model.
+4. The parser adds values such as `rowId` that help React keep rows stable.
 
-## Parsing and Normalization
+For IP core files, the host resolves supported imports before sending data to
+the editor.
 
-`src/domain/parse.ts` (`normalizeMemoryMap` / `normalizeIpCore`) converts schema-shaped YAML into
-the consistent normalized structures used by the applications. This replaced an earlier
-`DataNormalizer`/`YamlSanitizer` pair that duplicated conversion logic per editor.
+## Editing
 
-Key modules:
+1. A component requests a path or structured operation.
+2. `src/yamledit/` updates the parsed YAML document while preserving comments
+   and number spellings such as hexadecimal values.
+3. Serialization removes `rowId`, `__kind`, and other editor-only values.
+4. The webview sends an increasing edit ID and the document version it started
+   from.
+5. `DocumentManager` applies accepted writes in order.
 
-| Module | Role |
-|--------|------|
-| `src/domain/parse.ts` | Converts varying YAML shapes into the normalized domain model shared by both editors |
-| `src/domain/serialize.ts` | Converts the normalized model back to schema-valid YAML, stripping computed/UI-only properties (`rowId`, `__kind`) |
-| `src/yamledit/` (`applyPathEdits`) | Format-preserving path-based updates to the parsed YAML document (comments, hex spellings survive); `src/webview/services/YamlService.ts` is a thin wrapper around it |
-| `YamlPathResolver` | Resolves canonical editor paths against the parsed object |
+Simple properties use a path such as `['fields', 0, 'name']`. Structural
+changes replace a complete array or use a named operation such as
+`['__op', 'field-move']` so no invalid intermediate state reaches the file.
 
-## User Edit (Webview -> Host)
+## Stale edits and echoes
 
-1. User modifies a value in the React UI
-2. Component calls `onUpdate(path, value)` -- e.g. `onUpdate(['fields', 0, 'name'], 'status')`
-3. `YamlService.applyPathEdits` (`src/yamledit/`) applies the update to the parsed YAML document
-4. `revisionFilter.buildUpdateMessage` stamps the payload with a monotonic `editId` and the last-seen `baseDocVersion`
-5. Webview posts `{ type: 'update', text, editId, baseDocVersion }` to the host
-6. `WebviewRouter` routes it to `DocumentManager.updateDocument()`, rejecting it (`forceResync: true` reply) if `baseDocVersion` is stale
-7. VS Code document is updated; the host echoes `{ type: 'update', text, docVersion, sourceEditId }` back, and `revisionFilter.shouldApplyUpdate` decides whether the webview re-parses it (drops echoes of its own edit and stale/out-of-order updates)
+If the document changed after the webview's starting version, the host rejects
+the edit and requests a full refresh. The webview also drops:
 
-`src/services/WebviewRouter.ts` and `src/webview/sync/revisionFilter.ts` define this paired FIFO
-contract and must change together.
+- an echo carrying its own completed edit ID;
+- an update older than the newest version already shown.
 
-## Update Path Types
+`src/services/WebviewRouter.ts` and
+`src/webview/sync/revisionFilter.ts` implement the two sides of this rule. Change
+and test them together.
 
-| Change Type | Path | Example |
-|-------------|------|---------|
-| Single property | `['fields', index, 'property']` | Change a field name |
-| Structural (insert, delete, reorder) | `['fields']` | Replace entire fields array |
-| Block-level | `['addressBlocks', index, ...]` | Modify a block property |
-| Structured operation | `['__op', 'field-move']` | Bypasses path-edit logic; routed through `FieldOperationService` + `reorderBitfieldLayout` |
+## YAML libraries
 
-Structural changes replace the entire array to avoid intermediate invalid states (e.g. overlapping bit ranges during a reorder).
-
-## IP Core Import Resolution
-
-For `*.ip.yml` files, `ImportResolver` resolves `memoryMaps[].import` / `fileSets[].import` references to external files before sending data to the webview. This allows the IP Core editor to display linked memory maps inline.
+Use `js-yaml` for read-only parsing or simple output where formatting does not
+matter. Use `yaml` v2 and `src/yamledit/` for edits written back to an existing
+document. The latter preserves comments and hexadecimal spelling.

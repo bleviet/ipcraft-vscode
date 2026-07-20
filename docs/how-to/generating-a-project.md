@@ -1,105 +1,100 @@
 # Generating a Project
 
-How to scaffold a complete RTL project from an IP Core specification.
+Scaffolding means creating a project structure from an IP core description. The
+selected scaffold pack controls the exact files.
 
-## Prerequisites
+## Generate the complete project
 
-- An IP Core file (`.ip.yml`) with at least one bus interface that has a `memoryMapRef`
-- A corresponding memory map file (`.mm.yml`) with registers defined
+1. Open an `.ip.yml` file.
+2. Choose the HDL language, vendor targets, and scaffold pack in the toolbar.
+3. Run **IPCraft: Scaffold Project**.
+4. Review the staged files.
+5. Select **Confirm and Apply**.
 
-## Quick Path: Scaffold Everything at Once
+![Staged generated files before they are written](../images/staging-overlay-light.png)
 
-`IPCraft: Scaffold Project` is the all-in-one command. It generates RTL files (VHDL or SystemVerilog), a testbench, and vendor project files in a single step.
+Nothing is written before confirmation.
 
-1. Open your `.ip.yml` file (visual editor or text editor)
-2. Open the Command Palette (`Ctrl+Shift+P`) and run **IPCraft: Scaffold Project**
-   - Also available as a button in the editor title bar and via the **IPCraft** top-level menu
-3. Review the staged files in the **Preview Generated Files** panel and confirm
-4. All files are written next to the `.ip.yml` file
+| Staged state | Meaning |
+|---|---|
+| New | File will be created |
+| Modified | Existing content will change |
+| Unchanged | No write is needed |
+| Protected | User-owned file is excluded unless explicitly selected |
 
-![Preview Generated Files panel showing new, modified, unchanged, and protected files in a project tree](../images/staging-overlay-light.png)
+Use **View Diff** on a modified file before accepting it. A protected file comes
+from a rule or file-set entry with `managed: false`.
 
-Every generation command stages before writing — nothing touches disk until you click **Confirm & Apply**. Each file is marked new, modified, unchanged, or protected (locked, `managed: false` — excluded from Apply by default). Click **View Diff** next to any modified file first if you want to see exactly what changed. See [Creating Your First IP Core § Review and accept the staged output](create-your-first-ip-core.md#review-and-accept-the-staged-output) for the full status table.
-
-Settings that control scaffold output:
-
-| Setting | Default | Effect |
-|---------|---------|--------|
-| `ipcraft.generate.targets` | `[]` | Which vendor toolchain files to generate (e.g. `["vivado"]`, `["vivado","quartus"]`) |
-| `ipcraft.generate.hdlLanguage` | `vhdl` | HDL language: `vhdl` or `systemverilog` |
-| `ipcraft.generate.includeTestbench` | `true` | Whether to generate a testbench |
-| `ipcraft.vivado.defaultPart` | `xc7z020clg484-1` | FPGA part used for the Vivado project |
-| `ipcraft.quartus.defaultDevice` | `5CSEBA6U23I7` | Device used for the Quartus project |
-
-## Generating Individual Pieces
-
-Use the following commands when you need to regenerate a specific part without touching everything else:
-
-| Command | What it generates |
-|---------|-------------------|
-| `IPCraft: Generate Top-Level HDL` | RTL files only (package, top, core, bus wrapper, register file) — respects `ipcraft.generate.hdlLanguage` |
-| `IPCraft: Generate CocoTB Testbench` | Testbench scaffold in `tb/` — respects `ipcraft.testbench.framework` and `ipcraft.testbench.engine` |
-| `IPCraft: Generate Vivado Project` | Vivado `.tcl` project scripts + `.xdc` constraints (prompts for part number) |
-| `IPCraft: Generate Quartus Project` | Quartus `.tcl` + `.sdc` (prompts for device) |
-| `IPCraft: Generate Altera Platform Designer Component` | `altera/<ip_name>_hw.tcl` |
-| `IPCraft: Generate Xilinx Vivado Component` | `xilinx/component.xml` + `xilinx/xgui/*.tcl` |
-
-## Generated Output
-
-The scaffolder produces a structured project next to the `.ip.yml` file. The exact file extensions depend on `ipcraft.generate.hdlLanguage` (`.vhd` for VHDL, `.sv` for SystemVerilog):
-
-```text
-<ip_name>/
-  rtl/
-    <ip_name>_pkg.vhd/.sv     # Package — register constants and types
-    <ip_name>.vhd/.sv          # Top entity — instantiates core + bus wrapper
-    <ip_name>_core.vhd/.sv     # User logic skeleton (edit this)
-    <ip_name>_axil.vhd/.sv     # AXI-Lite bus wrapper  (or _avmm for Avalon-MM)
-    <ip_name>_regs.vhd/.sv     # Register file with field decode
-  tb/
-    mm_loader.py               # Generic .mm.yml reader
-    <ip_name>_test.py          # cocotb test skeleton
-    conftest.py                # pytest session fixture
-    test_<ip_name>_sim.py      # pytest wrapper functions
-    Makefile                   # Simulation Makefile
-  xilinx/
-    component.xml             # Vivado IP-XACT descriptor
-    xgui/<ip_name>_v*.tcl    # Vivado XGUI customization
-    <ip_name>_project.tcl    # Creates Vivado OOC synthesis project
-    <ip_name>_run_ooc.tcl    # Runs OOC synthesis headlessly
-    <ip_name>_run_xpr.tcl    # Runs full synthesis + implementation headlessly
-    <ip_name>_ooc.xdc        # OOC timing constraints (clocks)
-  altera/
-    <ip_name>_hw.tcl          # Platform Designer component
-    test.qsys                  # Platform Designer test system (BFM validation)
-    <ip_name>_project.tcl    # Creates Quartus project
-    <ip_name>.sdc             # SDC timing constraints
+```mermaid
+flowchart LR
+    A[IP core and memory map] --> B[Selected scaffold pack]
+    B --> C[Generate files in memory]
+    C --> D[Staging review]
+    D -->|Confirm| E[Write project]
+    D -->|Cancel| F[Write nothing]
 ```
 
-## Bus Type Detection
+## Generate one part
 
-The generator selects the bus wrapper template automatically based on the bus interface type in the spec:
+| Command | Output |
+|---|---|
+| **Generate Top-Level HDL** | RTL selected by the pack |
+| **Generate Cocotb Testbench** | Python tests and simulator files |
+| **Generate Documentation** | Markdown supplied by the pack |
+| **Generate Vivado Project** | Vivado Tcl scripts and constraints |
+| **Generate Quartus Project** | Quartus Tcl script and constraints |
+| **Generate Altera Platform Designer Component** | `_hw.tcl` component |
+| **Generate Xilinx Vivado Component** | `component.xml` and XGUI files |
 
-| Bus type in `.ip.yml` | Generated wrapper |
-|-----------------------|-------------------|
-| `AXI4L`, `axi4lite`, `axi*` | AXI-Lite (`bus_axil.vhdl.j2` or `bus_axil.sv.j2`) |
-| `Avalon-MM`, `avmm`, `avalon*` | Avalon-MM (`bus_avmm.vhdl.j2` or `bus_avmm.sv.j2`) |
+Use a focused command when you intentionally want to leave other generated
+areas untouched.
 
-If no bus interface with a `memoryMapRef` is found, the generator defaults to AXI-Lite.
+## Typical output
 
-## After Generation
+```text
+generated-core/
+├── rtl/       HDL and register logic
+├── tb/        generated tests
+├── docs/      generated core documentation
+├── xilinx/    Vivado packaging and project files
+└── altera/    Quartus and Platform Designer files
+```
 
-1. The IP Core's `fileSets` section is automatically updated with the generated file paths
-2. Edit `<ip_name>_core.vhd` (or `.sv`) to implement your custom logic
-3. Run **IPCraft: Build** to synthesize or implement the design headlessly — see [Building a Project](building-a-project.md)
-4. Open `xilinx/<ip_name>_project.tcl` in the Vivado IDE or import `altera/<ip_name>_hw.tcl` into Platform Designer as an alternative
+Small scaffold packs may produce only one or two of these directories.
+
+## Important settings
+
+| Setting | Meaning |
+|---|---|
+| `ipcraft.generate.targets` | Vendor outputs to include |
+| `ipcraft.generate.hdlLanguage` | VHDL or SystemVerilog |
+| `ipcraft.generate.includeTestbench` | Whether complete scaffolding includes tests |
+| `ipcraft.generate.includeDocs` | Whether complete scaffolding includes documentation |
+| `ipcraft.generate.scaffoldPack` | Workspace fallback pack |
+
+The pack selected in the IP core takes priority over the workspace fallback.
+
+## After generation
+
+1. Review changes in version control.
+2. Add custom logic only to files intended to be user-owned.
+3. Compile the generated HDL.
+4. Run the generated tests.
+5. Run a Vivado or Quartus build when vendor files changed.
+
+If a pack regenerates a file that users edit, mark that output `managed: false`
+before relying on it for hand-written logic.
 
 ## Troubleshooting
 
-| Problem | Solution |
-|---------|----------|
-| Empty RTL files | Verify the IP Core has a bus interface with a valid `memoryMapRef` pointing to an existing memory map |
-| Missing register file | Ensure the memory map has at least one register |
-| Wrong bus type | Check the `type` field of the bus interface in the IP Core spec |
-| Vendor files not generated | Check `ipcraft.generate.targets` in Settings, or use the vendor-specific generate commands |
-| cocotb testbench fails to compile after adding `fileSets` | Once an IP Core defines *any* `fileSets`, the cocotb Makefile's `VHDL_SOURCES` is derived **only** from the RTL-type files listed there (it does not merge with the auto-derived file list) — see [Memory-Mapped Registers § the generated hardware contract](../tutorials/memory-mapped-registers.md). If you add a `fileSets` entry just to mark one file `managed: false` (e.g. a hand-edited `_core.vhd`), you must list every RTL file (`_pkg.vhd`, `_regs.vhd`, `_core.vhd`, the bus wrapper, and the top entity) in that same file set, not just the protected one. Prefer running generation with `updateYaml: true` (or the **IPCraft: Scaffold Project** command's default behavior) first, which populates a complete `RTL_Sources` file set automatically — then add `managed: false` on top of the generated entries. |
+| Problem | Check |
+|---|---|
+| Empty or missing register logic | Linked memory map and `memoryMapRef` |
+| Wrong bus wrapper | Interface type and mode |
+| Vendor files missing | Selected targets or vendor-specific command |
+| Template missing | Pack's `source` name and built-in fallback |
+| Hand-written changes would be replaced | Staging diff and `managed: false` |
+| Generated test misses RTL files | Complete `fileSets` entries in the IP core |
+
+See the [generator reference](../reference/generator.md) for output options and
+[scaffold packs](customizing-generated-files-with-scaffold-packs.md) for custom layouts.
