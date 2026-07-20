@@ -33,9 +33,6 @@ jobs:
       - name: Unit tests
         run: npm run test:unit -- --coverage
 
-      - name: Extension Smoke tests
-        run: xvfb-run -a npm run test:e2e
-
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
@@ -59,6 +56,40 @@ jobs:
             test-results/
             playwright-report/
           retention-days: 7
+
+  extension-smoke:
+    name: Extension smoke (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: minimum VS Code 1.80.0
+            vscode-version: 1.80.0
+          - name: stable VS Code
+            vscode-version: stable
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Verify VS Code compatibility contract
+        run: npm run check:vscode-compatibility
+
+      - name: Build extension and E2E tests
+        run: npm run compile && npm run compile-tests
+
+      - name: Run extension smoke tests
+        env:
+          VSCODE_TEST_VERSION: ${{ matrix.vscode-version }}
+        run: xvfb-run -a npm run test:e2e
 
   hdl-integration:
     runs-on: ubuntu-latest

@@ -2,6 +2,8 @@
 
 Visual editor for FPGA IP Core and Memory Map specifications — design, generate, and build from inside VS Code.
 
+Requires VS Code 1.80 or later.
+
 ## Screenshots
 
 | IP Core Editor                                         | Memory Map Editor                                                                                        | Data Inspector                                                    |

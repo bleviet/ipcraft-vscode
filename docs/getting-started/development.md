@@ -3,7 +3,7 @@
 ## Prerequisites
 
 - **Node.js 20+** and **npm**
-- **VS Code**
+- **VS Code 1.80 or later**
 - **Python 3** (optional — needed only for `docs_*` targets)
 - **CMake 3.20+** (optional — provides a unified build interface, see below)
 
@@ -28,6 +28,26 @@ paths run the same underlying npm commands.
     ```
 
 Launch the Extension Development Host with **F5**.
+
+## VS Code Compatibility Policy
+
+The minimum supported version is declared by `engines.vscode` in `package.json`.
+The `@types/vscode` dependency is pinned exactly to that version so extension code
+cannot compile against a newer API by accident. `npm run type-check` verifies that
+the two declarations remain aligned.
+
+`npm run test:e2e` runs against the declared minimum by default. To exercise another
+release explicitly, compile the extension and tests, then set `VSCODE_TEST_VERSION`:
+
+```bash
+npm run compile
+npm run compile-tests
+VSCODE_TEST_VERSION=stable npm run test:e2e
+```
+
+CI runs the extension-host smoke suite against both the declared minimum and the
+current stable release. Raise the minimum only when the extension intentionally uses
+a newer API, and update `engines.vscode` and the exact `@types/vscode` version together.
 
 ## Architecture at a Glance
 

@@ -1,5 +1,20 @@
+import * as fs from 'fs';
 import * as path from 'path';
 import { runTests } from '@vscode/test-electron';
+
+function getMinimumVscodeVersion(extensionDevelopmentPath: string): string {
+  const manifestPath = path.join(extensionDevelopmentPath, 'package.json');
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as {
+    engines?: { vscode?: string };
+  };
+  const engineMatch = /^\^(\d+\.\d+\.\d+)$/.exec(manifest.engines?.vscode ?? '');
+
+  if (!engineMatch) {
+    throw new Error('engines.vscode must be a caret range such as ^1.80.0.');
+  }
+
+  return engineMatch[1];
+}
 
 async function main() {
   try {
@@ -10,10 +25,12 @@ async function main() {
     // The path to test runner
     // Passed to --extensionTestsPath
     const extensionTestsPath = path.resolve(__dirname, './suite/index');
+    const vscodeVersion =
+      process.env.VSCODE_TEST_VERSION ?? getMinimumVscodeVersion(extensionDevelopmentPath);
 
     // Download VS Code, unzip it and run the integration test
     await runTests({
-      version: '1.85.0',
+      version: vscodeVersion,
       extensionDevelopmentPath,
       extensionTestsPath,
       launchArgs: [
