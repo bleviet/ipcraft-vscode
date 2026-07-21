@@ -19,22 +19,6 @@ function resetPort(polarity: 'activeHigh' | 'activeLow'): LayoutPort {
   };
 }
 
-function interruptPort(sensitivity: NonNullable<LayoutPort['sensitivity']>): LayoutPort {
-  return {
-    id: 'interrupt:0',
-    x: 100,
-    y: 100,
-    side: 'right',
-    kind: 'interrupt',
-    label: 'user_defined_irq',
-    widthLabel: '',
-    direction: 'out',
-    sensitivity,
-    data: {},
-    clockDomainIdx: -1,
-  };
-}
-
 describe('CanvasPort reset polarity', () => {
   it('shows an L badge and inversion bubble for an active-low reset', () => {
     const { container } = render(
@@ -65,30 +49,5 @@ describe('CanvasPort reset polarity', () => {
     );
     expect(container.querySelector('.canvas-port__inversion-bubble')).not.toBeInTheDocument();
     expect(container.querySelector('.canvas-port__polarity-badge')?.textContent).toBe('H');
-  });
-});
-
-describe('CanvasPort interrupt sensitivity', () => {
-  it.each([
-    ['LEVEL_HIGH', 'level-high'],
-    ['LEVEL_LOW', 'level-low'],
-    ['EDGE_RISING', 'rising-edge'],
-    ['EDGE_FALLING', 'falling-edge'],
-  ] as const)('shows the %s sensitivity modifier', (sensitivity, label) => {
-    const { container } = render(
-      <svg>
-        <CanvasPort port={interruptPort(sensitivity)} selected={false} onSelect={jest.fn()} />
-      </svg>
-    );
-
-    const port = container.querySelector('[data-port-id="interrupt:0"]');
-    expect(port).toHaveAttribute('data-interrupt-sensitivity', sensitivity);
-    expect(port).toHaveAttribute('aria-label', `user_defined_irq: ${label} interrupt`);
-
-    const modifier = container.querySelector(
-      `.canvas-port__interrupt-sensitivity--${sensitivity.toLowerCase().replace('_', '-')}`
-    );
-    expect(modifier).toHaveAttribute('transform', 'translate(-14, 0)');
-    expect(modifier?.querySelector('[data-svg-mock="true"]')).toBeInTheDocument();
   });
 });

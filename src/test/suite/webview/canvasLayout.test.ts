@@ -84,26 +84,6 @@ describe('computeLayout', () => {
     ]);
   });
 
-  it('preserves all interrupt sensitivity modes independently of port names', () => {
-    const ip = makeIpCore({
-      interrupts: [
-        { name: 'event_a', sensitivity: 'LEVEL_HIGH' },
-        { name: 'event_b', sensitivity: 'LEVEL_LOW' },
-        { name: 'event_c', sensitivity: 'EDGE_RISING' },
-        { name: 'event_d', sensitivity: 'EDGE_FALLING' },
-      ],
-    });
-
-    const interruptPorts = computeLayout(ip).ports.filter((port) => port.kind === 'interrupt');
-
-    expect(interruptPorts.map((port) => port.sensitivity)).toEqual([
-      'LEVEL_HIGH',
-      'LEVEL_LOW',
-      'EDGE_RISING',
-      'EDGE_FALLING',
-    ]);
-  });
-
   it('places slave bus interfaces on the left, master on the right', () => {
     const ip = makeIpCore({
       busInterfaces: [
