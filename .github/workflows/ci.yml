@@ -39,12 +39,6 @@ jobs:
       - name: Unit tests
         run: npm run test:unit -- --coverage
 
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
-
-      - name: Browser tests
-        run: npm run test:browser
-
       - name: Upload coverage
         if: always()
         uses: actions/upload-artifact@v4
@@ -53,11 +47,44 @@ jobs:
           path: coverage/
           retention-days: 14
 
+  browser-tests:
+    name: Browser tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build browser assets
+        run: npm run compile
+
+      - name: Install Chromium with Linux dependencies
+        if: runner.os == 'Linux'
+        run: npx playwright install --with-deps chromium
+
+      - name: Install Chromium
+        if: runner.os != 'Linux'
+        run: npx playwright install chromium
+
+      - name: Run browser tests with parallel workers
+        run: npm run test:browser
+
       - name: Upload browser test failure artifacts
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: browser-test-results
+          name: browser-test-results-${{ matrix.os }}
           path: |
             test-results/
             playwright-report/

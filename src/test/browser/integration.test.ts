@@ -2,6 +2,18 @@
 import { test, expect } from '@playwright/test';
 import path from 'path';
 
+const selectAllShortcut = process.platform === 'darwin' ? 'Meta+A' : 'Control+A';
+
+async function replaceWebComponentValue(
+  page: import('@playwright/test').Page,
+  field: import('@playwright/test').Locator,
+  value: string
+) {
+  await field.click();
+  await page.keyboard.press(selectAllShortcut);
+  await page.keyboard.type(value);
+}
+
 test.describe('IPCraft Webview UI Integration', () => {
   const harnessPath = `file://${path.resolve(__dirname, 'index.html')}`;
 
@@ -100,10 +112,7 @@ addressBlocks:
     await page.locator('td[data-col-key="bits"]').first().dblclick();
     const msbInput = page.getByPlaceholder('MSB').first();
     await expect(msbInput).toBeVisible();
-    await msbInput.click();
-    await page.keyboard.press('Control+A');
-    await page.keyboard.press('Backspace');
-    await page.keyboard.type('1');
+    await msbInput.fill('1');
     await page.keyboard.press('Enter');
 
     await page.waitForFunction(
@@ -360,10 +369,7 @@ addressBlocks:
     await page.locator('td[data-col-key="reset"]').first().dblclick();
     const resetInput = page.locator('td[data-col-key="reset"] [data-edit-key="reset"]').first();
     await expect(resetInput).toBeVisible();
-    await resetInput.click();
-    await page.keyboard.press('Control+A');
-    await page.keyboard.press('Backspace');
-    await page.keyboard.type('0x1');
+    await replaceWebComponentValue(page, resetInput, '0x1');
     await page.keyboard.press('Enter');
 
     await page.waitForFunction(
@@ -762,10 +768,7 @@ resets:
     });
 
     const vendorField = inspector.locator('input').first();
-    await vendorField.click();
-    await page.keyboard.press('Control+A');
-    await page.keyboard.press('Backspace');
-    await page.keyboard.type('new-vendor.com');
+    await replaceWebComponentValue(page, vendorField, 'new-vendor.com');
     await page.keyboard.press('Enter');
 
     await page.waitForFunction(
@@ -859,10 +862,7 @@ resets:
     await expect(inspector).toBeVisible({ timeout: 5000 });
 
     const vendorField = inspector.locator('input').first();
-    await vendorField.click();
-    await page.keyboard.press('Control+A');
-    await page.keyboard.press('Backspace');
-    await page.keyboard.type('edited-vendor.com');
+    await replaceWebComponentValue(page, vendorField, 'edited-vendor.com');
     await page.keyboard.press('Enter');
 
     // Wait for postMessage with the edited vendor value

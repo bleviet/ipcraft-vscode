@@ -39,6 +39,18 @@ test.describe('Data Inspector transform canvas', () => {
     await page.getByRole('textbox', { name: 'Literal' }).fill("16'h1234");
     await page.getByRole('button', { name: 'Decode' }).click();
     await expect(page.getByRole('heading', { name: 'Transform recipe' })).toBeVisible();
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          (
+            window as unknown as { __vscodeMessages: Array<{ type: string }> }
+          ).__vscodeMessages.some((message) => message.type === 'updateRecipe')
+        )
+      )
+      .toBe(true);
+    await page.evaluate(() => {
+      (window as unknown as { __vscodeMessages: unknown[] }).__vscodeMessages = [];
+    });
   });
 
   test('renders the graph as the only workbench view', async ({ page }) => {
@@ -259,10 +271,6 @@ test.describe('Data Inspector transform canvas', () => {
   });
 
   test('rewires a step output into a binary input', async ({ page }) => {
-    await page.waitForTimeout(250);
-    await page.evaluate(() => {
-      (window as unknown as { __vscodeMessages: unknown[] }).__vscodeMessages = [];
-    });
     const source = page.locator('.react-flow__node[data-id="inverted"] .react-flow__handle-right');
     const target = page.locator(
       '.react-flow__node[data-id="masked"] .react-flow__handle[data-handleid="operand"]'
@@ -296,10 +304,6 @@ test.describe('Data Inspector transform canvas', () => {
   });
 
   test('topologically reorders dependencies changed through the Inspector', async ({ page }) => {
-    await page.waitForTimeout(250);
-    await page.evaluate(() => {
-      (window as unknown as { __vscodeMessages: unknown[] }).__vscodeMessages = [];
-    });
     await page.locator('.react-flow__node[data-id="inverted"]').click();
     await page.getByLabel('Primary input').selectOption('masked');
 
@@ -330,7 +334,6 @@ test.describe('Data Inspector transform canvas', () => {
   });
 
   test('shows a width error without sending the invalid recipe', async ({ page }) => {
-    await page.waitForTimeout(250);
     await page.evaluate(
       (invalidRecipe) => {
         (window as unknown as { __vscodeMessages: unknown[] }).__vscodeMessages = [];
@@ -361,12 +364,11 @@ test.describe('Data Inspector transform canvas', () => {
   });
 
   test('ignores its own recipe echo without reverting a newer local edit', async ({ page }) => {
-    await page.waitForTimeout(250);
-    await page.evaluate(() => {
-      (window as unknown as { __vscodeMessages: unknown[] }).__vscodeMessages = [];
-    });
-
-    await page.getByLabel('Source 1 name').fill('STATUS_RENAMED');
+    const sourceNode = page.locator('.react-flow__node[data-id="input"]');
+    await sourceNode.dispatchEvent('click');
+    const sourceName = page.getByLabel('Source 1 name');
+    await expect(sourceName).toBeVisible();
+    await sourceName.fill('STATUS_RENAMED');
     await expect
       .poll(() =>
         page.evaluate(() => {
@@ -407,24 +409,64 @@ test.describe('Data Inspector transform canvas', () => {
     );
 
     await expect(page.getByLabel('Inspector tools').getByRole('heading')).toHaveText('masked');
-    await page.locator('.react-flow__node[data-id="input"]').click();
-    await expect(page.getByLabel('Source 1 name')).toHaveValue('STATUS_RENAMED');
+    await sourceNode.dispatchEvent('click');
+    await expect(sourceName).toHaveValue('STATUS_RENAMED');
   });
 
   test('wires an operation in one recipe update and saves its canvas position', async ({
     page,
   }) => {
-    await page.waitForTimeout(250);
-    await page.evaluate(() => {
-      (window as unknown as { __vscodeMessages: unknown[] }).__vscodeMessages = [];
-    });
+    await page.setViewportSize({ width: 1440, height: 900 });
     await page.getByRole('button', { name: 'Add Byte swap draft' }).click();
-    const source = page.locator('.react-flow__node[data-id="input"] .react-flow__handle-right');
+    const source = page.locator('.react-flow__node[data-id="mask"] .react-flow__handle-right');
     const target = page.locator(
       '.di-flow-step.is-draft .react-flow__handle[data-handleid="input"]'
     );
     await expect(target).toBeVisible();
-    await source.dragTo(target, { force: true });
+    const fitCanvas = page.getByRole('button', { name: 'Fit canvas' });
+    await expect
+      .poll(
+        async () => {
+          const endpointsInView = await Promise.all(
+            [source, target].map((endpoint) =>
+              endpoint.evaluate((element) => {
+                const bounds = element.getBoundingClientRect();
+                return (
+                  bounds.width > 0 &&
+                  bounds.height > 0 &&
+                  bounds.left >= 0 &&
+                  bounds.top >= 0 &&
+                  bounds.right <= window.innerWidth &&
+                  bounds.bottom <= window.innerHeight
+                );
+              })
+            )
+          );
+          if (!endpointsInView.every(Boolean)) {
+            await fitCanvas.click();
+          }
+          return endpointsInView.every(Boolean);
+        },
+        { intervals: [250], timeout: 5000 }
+      )
+      .toBe(true);
+    const [sourceBounds, targetBounds] = await Promise.all([
+      source.boundingBox(),
+      target.boundingBox(),
+    ]);
+    expect(sourceBounds).not.toBeNull();
+    expect(targetBounds).not.toBeNull();
+    await page.mouse.move(
+      sourceBounds!.x + sourceBounds!.width / 2,
+      sourceBounds!.y + sourceBounds!.height / 2
+    );
+    await page.mouse.down();
+    await page.mouse.move(
+      targetBounds!.x + targetBounds!.width / 2,
+      targetBounds!.y + targetBounds!.height / 2,
+      { steps: 12 }
+    );
+    await page.mouse.up();
 
     await expect
       .poll(async () =>
@@ -475,10 +517,6 @@ test.describe('Data Inspector transform canvas', () => {
   });
 
   test('creates a draft with the keyboard and clears it after a recipe error', async ({ page }) => {
-    await page.waitForTimeout(250);
-    await page.evaluate(() => {
-      (window as unknown as { __vscodeMessages: unknown[] }).__vscodeMessages = [];
-    });
     const addNot = page.getByRole('button', { name: 'Add NOT draft' });
     await addNot.focus();
     await page.keyboard.press('Enter');
@@ -507,21 +545,17 @@ test.describe('Data Inspector transform canvas', () => {
     await page.getByRole('button', { name: 'Add NOT draft' }).click();
     const draft = page.locator('.react-flow__node:has(.di-flow-step.is-draft)');
     await expect(draft).toHaveCount(1);
+    await draft.hover({ position: { x: 20, y: 20 } });
     const before = await draft.boundingBox();
     expect(before).not.toBeNull();
 
     await page.evaluate(() => {
       (window as unknown as { __vscodeMessages: unknown[] }).__vscodeMessages = [];
     });
-    await page.mouse.move(before!.x + before!.width / 2, before!.y + before!.height / 2);
     await page.mouse.down();
-    await page.mouse.move(
-      before!.x + before!.width / 2 + 120,
-      before!.y + before!.height / 2 + 80,
-      {
-        steps: 8,
-      }
-    );
+    await page.mouse.move(before!.x + 140, before!.y + 100, {
+      steps: 8,
+    });
     await page.mouse.up();
 
     await expect(draft).toHaveCount(1);
