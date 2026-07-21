@@ -21,6 +21,9 @@ jobs:
 
       - run: npm ci
 
+      - name: Check local Markdown links
+        run: npm run docs:links
+
       - name: Lint
         run: npm run lint
 
