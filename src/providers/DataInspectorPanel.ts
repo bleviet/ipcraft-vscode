@@ -26,10 +26,9 @@ export class DataInspectorPanel {
       {
         enableScripts: true,
         retainContextWhenHidden: true,
-        localResourceRoots: [
-          vscode.Uri.joinPath(context.extensionUri, 'dist'),
-          vscode.Uri.joinPath(context.extensionUri, 'node_modules', '@vscode', 'codicons'),
-        ],
+        // Codicon CSS and its font are bundled into the webview stylesheet, so
+        // only the bundle output needs to be a resource root.
+        localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, 'dist')],
       }
     );
     this.panel.webview.html = new HtmlGenerator(context).generateDataInspectorHtml(

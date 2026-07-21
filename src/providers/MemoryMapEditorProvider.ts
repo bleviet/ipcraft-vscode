@@ -34,9 +34,11 @@ export class MemoryMapEditorProvider implements vscode.CustomTextEditorProvider 
   ): void {
     this.logger.info('Resolving custom text editor for document', document.uri.toString());
 
-    // Configure webview
+    // Configure webview. Restrict resource loading to the bundle output only,
+    // instead of the default that grants read access to every workspace folder.
     webviewPanel.webview.options = {
       enableScripts: true,
+      localResourceRoots: [vscode.Uri.joinPath(this.context.extensionUri, 'dist')],
     };
 
     // Set HTML content

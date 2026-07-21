@@ -129,14 +129,13 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
   }
 
   /**
-   * Restrict webview resource loading to the bundle output and codicons only,
-   * instead of the default that grants read access to every workspace folder.
+   * Restrict webview resource loading to the bundle output only, instead of the
+   * default that grants read access to every workspace folder. Codicon CSS and
+   * its font are bundled into the webview stylesheet, so no node_modules root is
+   * needed (node_modules is excluded from the packaged VSIX).
    */
   private getLocalResourceRoots(): vscode.Uri[] {
-    return [
-      vscode.Uri.joinPath(this.context.extensionUri, 'dist'),
-      vscode.Uri.joinPath(this.context.extensionUri, 'node_modules', '@vscode', 'codicons'),
-    ];
+    return [vscode.Uri.joinPath(this.context.extensionUri, 'dist')];
   }
 
   /**
@@ -155,7 +154,7 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
       this.logger.info('Document is not an IP core file, showing error in webview');
       webviewPanel.webview.options = {
         enableScripts: false,
-        localResourceRoots: this.getLocalResourceRoots(),
+        localResourceRoots: [],
       };
       webviewPanel.webview.html = createNotIpCoreHtml();
       return;
