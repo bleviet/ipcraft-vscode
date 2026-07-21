@@ -35026,7 +35026,7 @@ set_interface_property avalon_st_sink CMSIS_SVD_VARIABLES ""
 set_interface_property avalon_st_sink SVD_ADDRESS_GROUP ""
 
 # Type-specific properties
-
+set_interface_property avalon_st_sink firstSymbolInHighOrderBits false
 # Ports
 add_interface_port avalon_st_sink s_avst_data data Input 32
 add_interface_port avalon_st_sink s_avst_valid valid Input 1
@@ -35046,7 +35046,7 @@ set_interface_property avalon_st_source CMSIS_SVD_VARIABLES ""
 set_interface_property avalon_st_source SVD_ADDRESS_GROUP ""
 
 # Type-specific properties
-
+set_interface_property avalon_st_source firstSymbolInHighOrderBits false
 # Ports
 add_interface_port avalon_st_source m_avst_data data Output 32
 add_interface_port avalon_st_source m_avst_valid valid Output 1
@@ -35174,7 +35174,7 @@ set_interface_property avalon_st_sink CMSIS_SVD_VARIABLES ""
 set_interface_property avalon_st_sink SVD_ADDRESS_GROUP ""
 
 # Type-specific properties
-
+set_interface_property avalon_st_sink firstSymbolInHighOrderBits false
 # Ports
 add_interface_port avalon_st_sink s_avst_data data Input 32
 add_interface_port avalon_st_sink s_avst_valid valid Input 1
@@ -35194,7 +35194,7 @@ set_interface_property avalon_st_source CMSIS_SVD_VARIABLES ""
 set_interface_property avalon_st_source SVD_ADDRESS_GROUP ""
 
 # Type-specific properties
-
+set_interface_property avalon_st_source firstSymbolInHighOrderBits false
 # Ports
 add_interface_port avalon_st_source m_avst_data data Output 32
 add_interface_port avalon_st_source m_avst_valid valid Output 1
@@ -36201,7 +36201,7 @@ set_interface_property SRC_ST CMSIS_SVD_VARIABLES ""
 set_interface_property SRC_ST SVD_ADDRESS_GROUP ""
 
 # Type-specific properties
-
+set_interface_property SRC_ST firstSymbolInHighOrderBits true
 # Ports
 add_interface_port SRC_ST aso_valid valid Output 1
 add_interface_port SRC_ST aso_ready ready Input 1
@@ -36223,7 +36223,7 @@ set_interface_property SNK_ST CMSIS_SVD_VARIABLES ""
 set_interface_property SNK_ST SVD_ADDRESS_GROUP ""
 
 # Type-specific properties
-
+set_interface_property SNK_ST firstSymbolInHighOrderBits false
 # Ports
 add_interface_port SNK_ST asi_rx_bits data Input 16
 add_interface_port SNK_ST asi_rx_strobe valid Input 1
@@ -36404,7 +36404,7 @@ set_interface_property SRC_ST CMSIS_SVD_VARIABLES ""
 set_interface_property SRC_ST SVD_ADDRESS_GROUP ""
 
 # Type-specific properties
-
+set_interface_property SRC_ST firstSymbolInHighOrderBits true
 # Ports
 add_interface_port SRC_ST aso_valid valid Output 1
 add_interface_port SRC_ST aso_ready ready Input 1
@@ -36426,7 +36426,7 @@ set_interface_property SNK_ST CMSIS_SVD_VARIABLES ""
 set_interface_property SNK_ST SVD_ADDRESS_GROUP ""
 
 # Type-specific properties
-
+set_interface_property SNK_ST firstSymbolInHighOrderBits false
 # Ports
 add_interface_port SNK_ST asi_rx_bits data Input 16
 add_interface_port SNK_ST asi_rx_strobe valid Input 1

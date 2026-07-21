@@ -224,6 +224,7 @@ export function expandBusInterfaces(ipCore: IpCoreData): BusInterfaceDef[] {
           conduitPorts: iface.conduitPorts ?? [],
           associatedClock: iface.associatedClock,
           associatedReset: iface.associatedReset,
+          firstSymbolInHighOrderBits: iface.firstSymbolInHighOrderBits,
           memoryMapRef: iface.memoryMapRef,
         });
       }
@@ -244,6 +245,7 @@ export function expandBusInterfaces(ipCore: IpCoreData): BusInterfaceDef[] {
       conduitPorts: iface.conduitPorts ?? [],
       associatedClock: iface.associatedClock,
       associatedReset: iface.associatedReset,
+      firstSymbolInHighOrderBits: iface.firstSymbolInHighOrderBits,
       memoryMapRef: iface.memoryMapRef,
     });
   }

@@ -432,6 +432,9 @@ export function normalizeIpCore(rootObj: Record<string, unknown>): IpCore {
       conduitPorts,
       associatedClock: String(bus.associatedClock ?? bus.associated_clock ?? ''),
       associatedReset: String(bus.associatedReset ?? bus.associated_reset ?? ''),
+      ...(typeof bus.firstSymbolInHighOrderBits === 'boolean'
+        ? { firstSymbolInHighOrderBits: bus.firstSymbolInHighOrderBits }
+        : {}),
       ...(array
         ? {
             array: {

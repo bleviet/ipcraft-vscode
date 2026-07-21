@@ -114,3 +114,53 @@ describe('CanvasInspector ConduitPanel — clock/reset associations', () => {
     expect(onUpdate).not.toHaveBeenCalledWith(['busInterfaces', 0, 'associatedReset'], null);
   });
 });
+
+describe('CanvasInspector BusPanel — Avalon-ST configuration', () => {
+  it('edits firstSymbolInHighOrderBits for Avalon-ST interfaces', () => {
+    const onUpdate = jest.fn();
+    const ipCore = baseIpCore({
+      name: 'stream_out',
+      type: 'ipcraft:busif:avalon_st:1.0',
+      mode: 'source',
+      firstSymbolInHighOrderBits: true,
+    });
+    render(
+      <CanvasInspector
+        selected={BUS_SELECTION}
+        ipCore={ipCore}
+        onUpdate={onUpdate}
+        onClose={jest.fn()}
+      />
+    );
+
+    const checkbox = screen.getByRole('checkbox', {
+      name: 'First Symbol in High-Order Bits',
+    });
+    expect(checkbox).toBeChecked();
+    fireEvent.click(checkbox);
+    expect(onUpdate).toHaveBeenCalledWith(
+      ['busInterfaces', 0, 'firstSymbolInHighOrderBits'],
+      false
+    );
+  });
+
+  it('does not show Avalon-ST configuration for other bus protocols', () => {
+    const ipCore = baseIpCore({
+      name: 'stream_out',
+      type: 'ipcraft:busif:axi_stream:1.0',
+      mode: 'master',
+    });
+    render(
+      <CanvasInspector
+        selected={BUS_SELECTION}
+        ipCore={ipCore}
+        onUpdate={jest.fn()}
+        onClose={jest.fn()}
+      />
+    );
+
+    expect(
+      screen.queryByRole('checkbox', { name: 'First Symbol in High-Order Bits' })
+    ).not.toBeInTheDocument();
+  });
+});

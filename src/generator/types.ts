@@ -159,6 +159,8 @@ export interface BusInterfaceDef {
   absentPorts?: string[];
   associatedClock?: string;
   associatedReset?: string;
+  /** For Avalon-ST, place the first symbol in the most-significant data bits. */
+  firstSymbolInHighOrderBits?: boolean;
   /** Name of the memory map this (slave) interface exposes — matches a map's `name`. */
   memoryMapRef?: string;
   array?: BusInterfaceArrayDef;
