@@ -23,6 +23,15 @@ resets:
     polarity: activeLow
   - name: restart
     polarity: activeHigh
+interrupts:
+  - name: event_high
+    sensitivity: LEVEL_HIGH
+  - name: event_low
+    sensitivity: LEVEL_LOW
+  - name: event_rise
+    sensitivity: EDGE_RISING
+  - name: event_fall
+    sensitivity: EDGE_FALLING
 busInterfaces:
   - name: S_AXI
     type: ipcraft:busif:axi4_lite:1.0
@@ -111,5 +120,23 @@ busInterfaces:
     await expect(activeHigh).toHaveAttribute('aria-label', 'restart: active-high reset');
     await expect(activeHigh.locator('.canvas-port__polarity-badge')).toHaveText('H');
     await expect(activeHigh.locator('.canvas-port__inversion-bubble')).toHaveCount(0);
+  });
+
+  test('shows H, L, R, and F for interrupt sensitivity', async ({ page }) => {
+    await setupIpCore(page, ipCoreYaml);
+
+    const expected = [
+      ['event_high', 'LEVEL_HIGH', 'H', 'level-high'],
+      ['event_low', 'LEVEL_LOW', 'L', 'level-low'],
+      ['event_rise', 'EDGE_RISING', 'R', 'rising-edge'],
+      ['event_fall', 'EDGE_FALLING', 'F', 'falling-edge'],
+    ] as const;
+
+    for (const [index, [name, sensitivity, marker, label]] of expected.entries()) {
+      const port = page.locator(`[data-port-id="interrupt:${index}"]`);
+      await expect(port).toHaveAttribute('data-interrupt-sensitivity', sensitivity);
+      await expect(port).toHaveAttribute('aria-label', `${name}: ${label} interrupt`);
+      await expect(port.locator('.canvas-port__sensitivity-badge')).toHaveText(marker);
+    }
   });
 });
