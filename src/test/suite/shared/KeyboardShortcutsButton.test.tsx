@@ -18,14 +18,14 @@ describe('KeyboardShortcutsButton', () => {
     expect(screen.getByText('Address Map Visualizer')).toBeInTheDocument();
   });
 
-  it('closes modal when X button is clicked', () => {
+  it('closes modal using its accessible close control', () => {
     render(<KeyboardShortcutsButton context="memoryMap" />);
     const button = screen.getByTitle(/Keyboard Shortcuts/i);
 
     fireEvent.click(button);
     expect(screen.getByText('Keyboard Shortcuts')).toBeInTheDocument();
 
-    const closeButton = screen.getByText('✕');
+    const closeButton = screen.getByRole('button', { name: 'Close keyboard shortcuts' });
     fireEvent.click(closeButton);
 
     expect(screen.queryByText('Keyboard Shortcuts')).not.toBeInTheDocument();

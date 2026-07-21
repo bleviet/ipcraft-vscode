@@ -900,7 +900,7 @@ async function showExperimentalParseWarning(context: vscode.ExtensionContext): P
     return true;
   }
   const choice = await vscode.window.showWarningMessage(
-    '⚠️ This import feature is experimental. Results may be incomplete or require manual ' +
+    'This import feature is experimental. Results may be incomplete or require manual ' +
       'adjustments for complex files. Review the generated .ip.yml before using it for code generation.',
     'Continue',
     "Don't show again",

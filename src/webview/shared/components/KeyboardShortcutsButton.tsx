@@ -176,6 +176,8 @@ export const KeyboardShortcutsButton: React.FC<KeyboardShortcutsButtonProps> = (
               </h2>
               <button
                 onClick={() => setIsOpen(false)}
+                aria-label="Close keyboard shortcuts"
+                title="Close keyboard shortcuts"
                 className="w-8 h-8 rounded flex items-center justify-center hover:bg-opacity-10"
                 style={{
                   background: 'transparent',

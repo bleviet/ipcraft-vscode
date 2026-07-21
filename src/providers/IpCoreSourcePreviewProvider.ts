@@ -334,8 +334,8 @@ export class IpCoreSourcePreviewProvider implements vscode.CustomTextEditorProvi
       return;
     }
     void this.context.globalState.update(KEY, true);
-    void vscode.window.showInformationMessage(
-      '⚠️ IPCraft source preview is experimental. The detected IP core structure may be ' +
+    void vscode.window.showWarningMessage(
+      'IPCraft source preview is experimental. The detected IP core structure may be ' +
         'incomplete for complex files. Use "Save as .ip.yml" to persist and refine the result.',
       'Got it'
     );

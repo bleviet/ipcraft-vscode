@@ -199,7 +199,12 @@ export const CanvasSelectionActions: React.FC<CanvasSelectionActionsProps> = ({
         ))}
       </select>
       <div style={STYLE.sep} />
-      <button style={STYLE.btnSecondary} onClick={onDismiss} title="Dismiss (Escape)">
+      <button
+        style={STYLE.btnSecondary}
+        onClick={onDismiss}
+        aria-label="Dismiss selection actions"
+        title="Dismiss selection actions (Escape)"
+      >
         ✕
       </button>
     </div>

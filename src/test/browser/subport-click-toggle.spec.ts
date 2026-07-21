@@ -126,7 +126,7 @@ busInterfaces:
     // through to the whole-element deletion shortcut.
     await expect(page.locator('[data-port-id="bus:0"]')).toHaveCount(1);
 
-    // 🔍 Selecting an already-inactive optional signal and pressing Delete is
+    // Selecting an already-inactive optional signal and pressing Delete is
     // a safe no-op (nothing to deactivate).
     const tkeepRow = page.locator('.canvas-bus-subport', { hasText: /TKEEP/ });
     await tkeepRow.locator('.canvas-bus-subport__logical').click();
@@ -150,7 +150,7 @@ busInterfaces:
     await expect(page.locator('[data-port-id="bus:0"]')).toHaveCount(0);
   });
 
-  test('🔍 selecting a different element clears the prior signal selection', async ({ page }) => {
+  test('selecting a different element clears the prior signal selection', async ({ page }) => {
     await setupIpCore(page, ipCoreYaml);
     await expandBus(page);
 

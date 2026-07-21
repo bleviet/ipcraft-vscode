@@ -309,6 +309,8 @@ export const GroupingMappingStep: React.FC<GroupingMappingStepProps> = ({
         <button
           style={{ ...STYLE.btnSecondary, border: 'none', padding: '2px 6px' }}
           onClick={onCancel}
+          aria-label="Cancel grouping"
+          title="Cancel grouping"
         >
           ✕
         </button>

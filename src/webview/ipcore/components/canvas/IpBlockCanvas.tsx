@@ -1579,7 +1579,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
             {suggestionChips.map((chip) => (
               <div key={chip.id} className="ip-canvas-suggestion-chip">
                 <span>
-                  ⚡ {chip.label} detected ({Math.round(chip.score * 100)}%)
+                  {chip.label} detected ({Math.round(chip.score * 100)}%)
                 </span>
                 <button
                   className="ip-canvas-suggestion-chip__group-btn"
@@ -1596,6 +1596,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
                 <button
                   className="ip-canvas-suggestion-chip__dismiss-btn"
                   onClick={() => onDismissSuggestion?.(chip.id)}
+                  aria-label={`Dismiss ${chip.label} suggestion`}
                   title="Dismiss"
                 >
                   ✕
@@ -1628,6 +1629,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
                 setShowSearch(false);
                 setSearchQuery('');
               }}
+              aria-label="Close port search"
               title="Close search (Escape)"
             >
               ✕
