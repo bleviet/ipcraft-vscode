@@ -1,4 +1,4 @@
-import { parseMemoryMap, normalizeMemoryMap } from '../../../domain/parse';
+import { parseMemoryMap, canonicalizeLegacyKeys } from '../../../domain/parse';
 import { serializeMemoryMap, serializeValue } from '../../../domain/serialize';
 import { insertElement, deleteElement } from '../../../webview/algorithms/MutationService';
 import { YamlService } from '../../../webview/services/YamlService';
@@ -139,8 +139,7 @@ describe('legacy raw-action structural edits (webview handler pipeline)', () => 
     const rawMapObj = (
       selectionRootPath.length > 0 ? YamlPathResolver.getAtPath(root, selectionRootPath) : root
     ) as Record<string, unknown>;
-    const mapObj = normalizeMemoryMap(rawMapObj) as unknown as LayoutMemoryMap;
-    const blocksKey = YamlPathResolver.resolveKey(rawMapObj, 'addressBlocks');
+    const mapObj = canonicalizeLegacyKeys(rawMapObj) as LayoutMemoryMap;
 
     const result = insertElement(mapObj, 'register', 'after', regIndex, { blockIndex });
     expect(result.errors).toEqual([]);
@@ -148,8 +147,9 @@ describe('legacy raw-action structural edits (webview handler pipeline)', () => 
     const blocks = (result.memoryMap.addressBlocks ?? []) as Array<Record<string, unknown>>;
     const regs = (blocks[blockIndex].registers ?? []) as Array<Record<string, unknown>>;
     const value = regs.map((r) => serializeValue(r, 32) as Record<string, unknown>);
+    // Canonical edit path; YamlService.applyPathEdits maps it onto the on-disk key.
     return YamlService.applyPathEdits(text, [
-      { path: [...selectionRootPath, blocksKey, blockIndex, 'registers'], value },
+      { path: [...selectionRootPath, 'addressBlocks', blockIndex, 'registers'], value },
     ]);
   }
 
@@ -177,5 +177,62 @@ describe('legacy raw-action structural edits (webview handler pipeline)', () => 
     expect(twice).not.toMatch(/^\s*addressBlocks:/m);
     const { map } = parseMemoryMap(twice);
     expect(map.addressBlocks[0].registers.length).toBe(4);
+  });
+
+  const TWO_BLOCK_LEGACY = `name: legacy
+address_blocks:
+  - name: A
+    base_address: 0
+    registers:
+      - name: R0
+        address_offset: 0
+  - name: B
+    base_address: 4
+    registers:
+      - name: R0
+        address_offset: 0
+`;
+
+  it('reorders blocks in a legacy file without spawning a duplicate key', () => {
+    // Mirrors handleReorder's block branch, which writes the whole addressBlocks
+    // array via a canonical path.
+    const rootObj = YamlService.safeParse(TWO_BLOCK_LEGACY);
+    const { root, selectionRootPath } = YamlPathResolver.getMapRootInfo(rootObj);
+    const blocks = (YamlPathResolver.getAtPath(root, [...selectionRootPath, 'addressBlocks']) ??
+      []) as Array<Record<string, unknown>>;
+    const reordered = [blocks[1], blocks[0]];
+    const sanitized = reordered.map((b) => serializeValue(b) as Record<string, unknown>);
+    const newText = YamlService.applyPathEdits(TWO_BLOCK_LEGACY, [
+      { path: [...selectionRootPath, 'addressBlocks'], value: sanitized },
+    ]);
+
+    expect(newText).toContain('address_blocks:');
+    expect(newText).not.toMatch(/^\s*addressBlocks:/m);
+    const { map } = parseMemoryMap(newText);
+    expect(map.addressBlocks.map((b) => b.name)).toEqual(['B', 'A']);
+  });
+
+  it('preserves schema-additional custom metadata through a register insert', () => {
+    const withCustom = `name: legacy
+address_blocks:
+  - name: A
+    base_address: 0
+    customBlockData: keep-block
+    registers:
+      - name: R0
+        address_offset: 0
+        customRegisterData: keep-reg
+        fields:
+          - name: F0
+            bit_offset: 0
+            bit_width: 1
+            customFieldData: keep-field
+`;
+    const newText = insertRegisterAfter(withCustom, 0, 0);
+    // The untouched block-level custom key stays put (format-preserving write).
+    expect(newText).toContain('customBlockData: keep-block');
+    // The rewritten register array must retain the custom register/field data.
+    expect(newText).toContain('customRegisterData: keep-reg');
+    expect(newText).toContain('customFieldData: keep-field');
   });
 });

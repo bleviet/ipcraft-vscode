@@ -5,6 +5,7 @@ import {
   type PathEdit as SharedPathEdit,
 } from '../../yamledit';
 import { serializeValue } from '../../domain/serialize';
+import { YamlPathResolver } from './YamlPathResolver';
 
 /** A single path-targeted edit for {@link YamlService.applyPathEdits}. */
 export interface PathEdit {
@@ -21,8 +22,13 @@ export class YamlService {
    * and comments of everything that is not touched.
    */
   static applyPathEdits(text: string, edits: PathEdit[]): string {
+    // Edit paths are always canonical camelCase; a legacy file on disk may still
+    // use snake_case keys. Resolve each path onto the keys that actually exist so
+    // the write edits the legacy key in place rather than creating a duplicate
+    // camelCase key that would shadow it (canonical files resolve to themselves).
+    const root = YamlService.safeParse(text);
     const cleaned: SharedPathEdit[] = edits.map(({ path, value }) => ({
-      path,
+      path: root ? YamlPathResolver.resolvePath(root, path) : path,
       value: YamlService.cleanForYaml(value),
     }));
     return sharedApplyPathEdits(text, cleaned);

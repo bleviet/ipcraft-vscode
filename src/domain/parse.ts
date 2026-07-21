@@ -25,6 +25,58 @@ import type {
 } from './internal.types';
 import { reconcileRowIds, type TableRowWrapper } from '../webview/utils/rowIdentity';
 
+/**
+ * Legacy snake_case -> canonical camelCase property renames for the memory-map
+ * model. Used by {@link canonicalizeLegacyKeys}.
+ */
+const LEGACY_KEY_RENAMES: Record<string, string> = {
+  address_blocks: 'addressBlocks',
+  base_address: 'baseAddress',
+  default_reg_width: 'defaultRegWidth',
+  address_offset: 'offset',
+  reset_value: 'resetValue',
+  bit_offset: 'offset',
+  bit_width: 'width',
+  bit_range: 'bitRange',
+  enumerated_values: 'enumeratedValues',
+  monitor_change_of: 'monitorChangeOf',
+  memory_maps: 'memoryMaps',
+};
+
+/**
+ * Deep-clone a raw memory-map object, renaming legacy snake_case keys to their
+ * canonical camelCase spelling while preserving every other property — including
+ * schema-additional custom metadata.
+ *
+ * Unlike {@link normalizeMemoryMap}, this does not reconstruct nodes to a fixed
+ * field set, so unknown properties survive. It is part of the one compatibility
+ * boundary: callers that must hand a possibly-legacy raw map to the camelCase-only
+ * runtime services use this instead of re-introducing `?? snake_case` fallbacks
+ * downstream. When both the legacy and canonical spelling are present, the legacy
+ * one is dropped so no duplicate spellings are emitted.
+ */
+export function canonicalizeLegacyKeys(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((item) => canonicalizeLegacyKeys(item));
+  }
+  if (value && typeof value === 'object') {
+    const src = value as Record<string, unknown>;
+    const out: Record<string, unknown> = {};
+    for (const [key, child] of Object.entries(src)) {
+      const canonical = LEGACY_KEY_RENAMES[key];
+      if (canonical) {
+        if (!(canonical in src)) {
+          out[canonical] = canonicalizeLegacyKeys(child);
+        }
+      } else {
+        out[key] = canonicalizeLegacyKeys(child);
+      }
+    }
+    return out;
+  }
+  return value;
+}
+
 function parseNumber(value: unknown, fallback = 0): number {
   if (typeof value === 'number' && Number.isFinite(value)) {
     return value;

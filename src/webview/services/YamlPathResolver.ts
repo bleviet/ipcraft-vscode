@@ -4,11 +4,20 @@
 export type YamlPath = Array<string | number>;
 
 /**
- * Aliases for YAML keys that may appear in either camelCase or snake_case.
- * Allows path navigation to work regardless of the YAML format used.
+ * Aliases mapping a canonical camelCase key to the legacy snake_case spelling it
+ * may still have on disk. Lets path navigation and format-preserving writes work
+ * regardless of the spelling a file uses. Only unambiguous keys are listed — the
+ * bit/byte `offset`/`width` renames are intentionally omitted because they are
+ * ambiguous across registers and fields.
  */
 const KEY_ALIASES: Record<string, string> = {
   addressBlocks: 'address_blocks',
+  baseAddress: 'base_address',
+  defaultRegWidth: 'default_reg_width',
+  resetValue: 'reset_value',
+  enumeratedValues: 'enumerated_values',
+  monitorChangeOf: 'monitor_change_of',
+  memoryMaps: 'memory_maps',
 };
 
 /**
@@ -39,16 +48,30 @@ export interface MapRootInfo {
  */
 export class YamlPathResolver {
   /**
-   * Resolve a canonical path key to the spelling actually present in `obj`.
+   * Resolve a canonical camelCase path to the spellings actually present in
+   * `root`, segment by segment.
    *
-   * Structural edits are addressed with canonical camelCase paths (e.g.
-   * `addressBlocks`), but a legacy file on disk may still use the snake_case
-   * spelling (`address_blocks`). Callers building a format-preserving edit path
-   * use this to target the key that really exists so they don't create a
-   * duplicate camelCase key alongside the legacy one.
+   * Structural and property edits are addressed with canonical camelCase paths
+   * (e.g. `['addressBlocks', 0, 'baseAddress']`), but a legacy file on disk may
+   * still use snake_case (`address_blocks` / `base_address`). Mapping the path
+   * onto the existing keys lets a format-preserving write edit the legacy keys in
+   * place instead of creating duplicate camelCase keys that would shadow them.
    */
-  static resolveKey(obj: Record<string | number, unknown>, key: string | number): string | number {
-    return resolveKey(obj, key);
+  static resolvePath(root: unknown, path: YamlPath): YamlPath {
+    const resolved: YamlPath = [];
+    let cursor: unknown = root;
+    for (const key of path) {
+      if (cursor !== null && typeof cursor === 'object') {
+        const obj = cursor as Record<string | number, unknown>;
+        const rk = resolveKey(obj, key);
+        resolved.push(rk);
+        cursor = obj[rk];
+      } else {
+        resolved.push(key);
+        cursor = undefined;
+      }
+    }
+    return resolved;
   }
 
   /**
