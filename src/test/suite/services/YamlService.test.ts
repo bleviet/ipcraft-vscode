@@ -128,6 +128,27 @@ describe('YamlService', () => {
       expect(result.size).toBeUndefined();
     });
 
+    it('should preserve opaque maps containing offset and width keys', () => {
+      const input = {
+        name: 'MODE',
+        bits: '[1:0]',
+        enumeratedValues: {
+          offset: 'enum-offset',
+          width: 'enum-width',
+        },
+        customMetadata: {
+          offset: 3,
+          width: 2,
+          label: 'keep',
+        },
+      };
+
+      const result = asObj(YamlService.cleanForYaml(input));
+
+      expect(result.enumeratedValues).toEqual(input.enumeratedValues);
+      expect(result.customMetadata).toEqual(input.customMetadata);
+    });
+
     it('should handle null and undefined', () => {
       expect(YamlService.cleanForYaml(null)).toBeNull();
       expect(YamlService.cleanForYaml(undefined)).toBeUndefined();
