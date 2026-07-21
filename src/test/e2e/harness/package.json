@@ -1,0 +1,8 @@
+{
+  "name": "ipcraft-vsix-test-harness",
+  "publisher": "bleviet",
+  "version": "0.0.0",
+  "engines": {
+    "vscode": "^1.80.0"
+  }
+}

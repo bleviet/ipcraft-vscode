@@ -85,6 +85,7 @@ nav:
       - Webview (React): architecture/webview.md
       - Generator: architecture/generator-backbone.md
       - Bit Field Handling: architecture/bit-field-handling.md
+      - VSIX Packaging: architecture/vsix-packaging.md
   - Reference:
       - Commands & Settings: reference/commands.md
       - Keyboard Shortcuts: reference/keyboard-shortcuts.md

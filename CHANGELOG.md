@@ -4,6 +4,10 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- Production VSIX packages now exclude nested source maps and are checked in CI against an explicit runtime-content allowlist and size budget. The checked artifact is installed for extension-host smoke testing. ([#123](https://github.com/bleviet/ipcraft-vscode/issues/123))
+
 ### Fixed
 - **CLI distribution contract**: removed the unavailable `npx ipcraft` claim from Marketplace-facing documentation and separated the `ipcraft` npm artifact from the VSIX. The CLI can now be packed and smoke-tested from a clean temporary installation without publishing; npm publication remains an explicit manual release after the matching extension release. ([#116](https://github.com/bleviet/ipcraft-vscode/issues/116))
 
@@ -203,7 +207,6 @@ All notable changes to this project are documented in this file.
 - `npm run lint -- --max-warnings 0` passed.
 - `npm run compile` passed.
 - `npm test` passed (26 suites, 206 tests).
-
 ## 2026-02-21 (decomposition slice 6)
 
 ### Added

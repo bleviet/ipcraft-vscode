@@ -7,6 +7,37 @@ on:
     branches: [main]
 
 jobs:
+  package-extension:
+    name: Package production VSIX
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Package release artifact
+        run: |
+          mkdir -p artifacts
+          npx vsce package --out artifacts/ipcraft-vscode.vsix
+
+      - name: Verify release artifact contents and size
+        run: npm run check:vsix -- artifacts/ipcraft-vscode.vsix
+
+      - name: Upload checked release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ipcraft-vscode-vsix
+          path: artifacts/ipcraft-vscode.vsix
+          if-no-files-found: error
+          retention-days: 14
+
   test:
     runs-on: ubuntu-latest
     steps:
@@ -95,6 +126,7 @@ jobs:
 
   extension-smoke:
     name: Extension smoke (${{ matrix.name }})
+    needs: package-extension
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -116,15 +148,22 @@ jobs:
 
       - run: npm ci
 
+      - name: Download checked release artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ipcraft-vscode-vsix
+          path: artifacts
+
       - name: Verify VS Code compatibility contract
         run: npm run check:vscode-compatibility
 
-      - name: Build extension and E2E tests
-        run: npm run compile && npm run compile-tests
+      - name: Build E2E tests
+        run: npm run compile-tests
 
-      - name: Run extension smoke tests
+      - name: Install release artifact and run extension smoke tests
         env:
           VSCODE_TEST_VERSION: ${{ matrix.vscode-version }}
+          VSIX_PATH: artifacts/ipcraft-vscode.vsix
         run: xvfb-run -a npm run test:e2e
 
   hdl-integration:

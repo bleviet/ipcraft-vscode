@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { runTests } from '@vscode/test-electron';
+import { runTests, runVSCodeCommand } from '@vscode/test-electron';
 
 function getMinimumVscodeVersion(extensionDevelopmentPath: string): string {
   const manifestPath = path.join(extensionDevelopmentPath, 'package.json');
@@ -27,18 +27,30 @@ async function main() {
     const extensionTestsPath = path.resolve(__dirname, './suite/index');
     const vscodeVersion =
       process.env.VSCODE_TEST_VERSION ?? getMinimumVscodeVersion(extensionDevelopmentPath);
+    const vsixPath = process.env.VSIX_PATH ? path.resolve(process.env.VSIX_PATH) : undefined;
+
+    if (vsixPath) {
+      if (!fs.existsSync(vsixPath)) {
+        throw new Error(`VSIX not found: ${vsixPath}`);
+      }
+      await runVSCodeCommand(['--install-extension', vsixPath, '--force'], {
+        version: vscodeVersion,
+      });
+    }
 
     // Download VS Code, unzip it and run the integration test
     await runTests({
       version: vscodeVersion,
-      extensionDevelopmentPath,
+      extensionDevelopmentPath: vsixPath
+        ? path.join(extensionDevelopmentPath, 'src', 'test', 'e2e', 'harness')
+        : extensionDevelopmentPath,
       extensionTestsPath,
       launchArgs: [
         '--disable-gpu',
         '--no-sandbox',
         '--disable-gpu-sandbox',
         '--disable-dev-shm-usage',
-        '--disable-extensions',
+        ...(vsixPath ? [] : ['--disable-extensions']),
       ],
     });
   } catch (err) {

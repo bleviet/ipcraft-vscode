@@ -10,6 +10,7 @@ packages/**
 node_modules/**
 out/**
 dist/cli.js
+dist/cli.js.LICENSE.txt
 .gitignore
 .prettierrc.js
 .prettierignore
@@ -18,7 +19,7 @@ tsconfig.json
 package-lock.json
 *.log
 *.jou
-*.map
+**/*.map
 CMakeLists.txt
 .github/**
 .husky/**
@@ -34,6 +35,7 @@ skills-lock.json
 .agents/**
 .claude/**
 build/**
+artifacts/**
 docker/**
 Jenkinsfile
 .gitmodules
