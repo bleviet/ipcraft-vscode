@@ -62,7 +62,6 @@ export interface BitFieldRuntimeDef {
 /** Runtime register object (regular or array) as used in address blocks. */
 export interface RegisterRuntimeDef {
   name: string;
-  address_offset?: number;
   offset?: number;
   access: string;
   description: string;
@@ -107,9 +106,7 @@ function sortFieldsByLsb(fields: BitFieldRuntimeDef[]): BitFieldRuntimeDef[] {
 
 /** Sort registers ascending by address offset. */
 function sortRegistersByOffset(registers: RegisterRuntimeDef[]): RegisterRuntimeDef[] {
-  return [...registers].sort(
-    (a, b) => (a.address_offset ?? a.offset ?? 0) - (b.address_offset ?? b.offset ?? 0)
-  );
+  return [...registers].sort((a, b) => (a.offset ?? 0) - (b.offset ?? 0));
 }
 
 /** Sort blocks ascending by base address. */
@@ -136,17 +133,10 @@ function toBitFieldRuntime(field: Record<string, unknown>, index: number): BitFi
 }
 
 function toRegisterRuntime(reg: Record<string, unknown>, index: number): RegisterRuntimeDef {
-  // Prefer canonical `offset` (set by the repacker) over legacy `address_offset`.
-  const offset =
-    typeof reg.offset === 'number'
-      ? reg.offset
-      : typeof reg.address_offset === 'number'
-        ? reg.address_offset
-        : index * 4;
+  const offset = typeof reg.offset === 'number' ? reg.offset : index * 4;
   return {
     ...reg,
     name: String(reg.name ?? `reg${index}`),
-    address_offset: offset,
     offset,
     access: String(reg.access ?? 'read-write'),
     description: String(reg.description ?? ''),
@@ -154,14 +144,9 @@ function toRegisterRuntime(reg: Record<string, unknown>, index: number): Registe
 }
 
 function toBlockRuntime(block: Record<string, unknown>, index: number): AddressBlockRuntimeDef {
-  const base =
-    typeof block.baseAddress === 'number'
-      ? block.baseAddress
-      : typeof block.base_address === 'number'
-        ? block.base_address
-        : index * 4;
-  // Strip legacy/redundant fields that don't belong in the YAML source.
-  const { base_address: _ba, offset: _o, size: _s, register_arrays, ...rest } = block;
+  const base = typeof block.baseAddress === 'number' ? block.baseAddress : index * 4;
+  // Strip the runtime-computed `size` field that doesn't belong in the YAML source.
+  const { size: _s, ...rest } = block;
   return {
     ...rest,
     name: String(block.name ?? `block${index}`),
@@ -171,7 +156,6 @@ function toBlockRuntime(block: Record<string, unknown>, index: number): AddressB
           toRegisterRuntime(reg as Record<string, unknown>, regIdx)
         )
       : [],
-    ...(Array.isArray(register_arrays) && register_arrays.length > 0 ? { register_arrays } : {}),
   };
 }
 
@@ -189,7 +173,6 @@ export class SpatialInsertionService {
   private static defaultReg(regName: string, offset: number): RegisterRuntimeDef {
     return {
       name: regName,
-      address_offset: offset,
       offset,
       access: 'read-write',
       description: '',
@@ -206,7 +189,6 @@ export class SpatialInsertionService {
       registers: [
         {
           name: 'reg0',
-          address_offset: 0,
           offset: 0,
           access: 'read-write',
           description: '',
@@ -489,7 +471,7 @@ export class SpatialInsertionService {
 
     const selIdx = selectedIndex >= 0 ? selectedIndex : registers.length - 1;
     const selected = registers[selIdx];
-    const selectedOffset = selected.address_offset ?? selected.offset ?? 0;
+    const selectedOffset = selected.offset ?? 0;
 
     // Compute the size of the selected entry (4 bytes, or array footprint).
     let selectedSize = 4;
@@ -532,7 +514,7 @@ export class SpatialInsertionService {
 
     const selIdx = selectedIndex >= 0 ? selectedIndex : registers.length - 1;
     const selected = registers[selIdx];
-    const selectedOffset = selected.address_offset ?? selected.offset ?? 0;
+    const selectedOffset = selected.offset ?? 0;
     const newOffset = selectedOffset - 4;
 
     if (newOffset < 0) {

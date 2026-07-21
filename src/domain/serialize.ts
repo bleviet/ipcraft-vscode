@@ -4,61 +4,67 @@ function isNil(v: unknown): boolean {
   return v === null || v === undefined;
 }
 
-/**
- * Clean a value before serializing to YAML, ensuring it conforms strictly to the schema.
- * Tolerates any shape and removes runtime-only keys (like rowId, __kind, offsets on fields).
- */
-export function serializeValue(obj: unknown, defaultRegWidth = 32): unknown {
+type SerializationHint = 'auto' | 'field' | 'register' | 'block' | 'opaque';
+
+function childHint(key: string): SerializationHint {
+  if (key === 'fields') {
+    return 'field';
+  }
+  if (key === 'registers') {
+    return 'register';
+  }
+  if (key === 'addressBlocks') {
+    return 'block';
+  }
+  return 'opaque';
+}
+
+function serializeChild(key: string, value: unknown, defaultRegWidth: number): unknown {
+  return serializeValueWithHint(value, defaultRegWidth, childHint(key));
+}
+
+function serializeValueWithHint(
+  obj: unknown,
+  defaultRegWidth: number,
+  hint: SerializationHint
+): unknown {
   if (!obj || typeof obj !== 'object') {
     return obj;
   }
 
   if (Array.isArray(obj)) {
-    return obj.map((item) => serializeValue(item, defaultRegWidth));
+    return obj.map((item) => serializeValueWithHint(item, defaultRegWidth, hint));
+  }
+
+  if (hint === 'opaque') {
+    return obj;
   }
 
   const record = obj as Record<string, unknown>;
   const out: Record<string, unknown> = { ...record };
 
-  // Remove rowId and __kind from all objects
+  // Remove rowId and __kind from schema nodes only. Opaque metadata may
+  // legitimately use those names and is preserved verbatim.
   delete out.rowId;
   delete out.__kind;
 
-  // Determine if it is a BitFieldDef
-  const isField = 'bits' in out || 'bit_offset' in out || 'bitOffset' in out;
+  // A shape check is retained for direct serializeValue(field) calls. Nested
+  // objects are classified by their schema-bearing parent key, so opaque maps
+  // containing keys such as `offset` and `width` are never mistaken for fields.
+  const isField =
+    hint === 'field' || (hint === 'auto' && ('bits' in out || ('offset' in out && 'width' in out)));
   if (isField) {
-    // If bits is not present but offsets are, reconstruct bits string
     if (typeof out.bits !== 'string' || out.bits === '') {
-      const offset = out.offset ?? out.bit_offset ?? out.bitOffset;
-      const width = out.width ?? out.bit_width ?? out.bitWidth;
+      const offset = out.offset;
+      const width = out.width;
       if (typeof offset === 'number' && typeof width === 'number' && width > 0) {
         out.bits = formatBitsRange(offset + width - 1, offset);
       }
     }
 
-    // Drop redundant offsets to follow strict schema validation
     delete out.offset;
     delete out.width;
-    delete out.bit_offset;
-    delete out.bit_width;
-    delete out.bit_range;
     delete out.bitRange;
-    delete out.bitOffset;
-    delete out.bitWidth;
-
-    // Handle aliases and cleanups
-    if ('reset_value' in out) {
-      out.resetValue = out.reset_value;
-      delete out.reset_value;
-    }
-    if ('enumerated_values' in out) {
-      out.enumeratedValues = out.enumerated_values;
-      delete out.enumerated_values;
-    }
-    if ('monitor_change_of' in out) {
-      out.monitorChangeOf = out.monitor_change_of;
-      delete out.monitor_change_of;
-    }
 
     if (isNil(out.resetValue) || out.resetValue === 0) {
       delete out.resetValue;
@@ -76,13 +82,12 @@ export function serializeValue(obj: unknown, defaultRegWidth = 32): unknown {
       delete out.enumeratedValues;
     }
 
-    // Rebuild in canonical schema order: name, bits, access, resetValue, description, then extras
     const canonical: Record<string, unknown> = {};
     if (out.name !== undefined) {
       canonical.name = out.name;
     }
     if (out.bits !== undefined) {
-      canonical.bits = serializeValue(out.bits, defaultRegWidth);
+      canonical.bits = out.bits;
     }
     if (out.access !== undefined) {
       canonical.access = out.access;
@@ -95,29 +100,14 @@ export function serializeValue(obj: unknown, defaultRegWidth = 32): unknown {
     }
     for (const key of Object.keys(out)) {
       if (!(key in canonical)) {
-        canonical[key] = serializeValue(out[key], defaultRegWidth);
+        canonical[key] = serializeChild(key, out[key], defaultRegWidth);
       }
     }
     return canonical;
   }
 
-  // Determine if it is a RegisterDef
-  const isRegister = 'offset' in out || 'address_offset' in out || 'addressOffset' in out;
-  if (isRegister && !('baseAddress' in out || 'base_address' in out)) {
-    if (typeof out.offset !== 'number') {
-      const explicitOffset = out.address_offset ?? out.addressOffset;
-      if (typeof explicitOffset === 'number') {
-        out.offset = explicitOffset;
-      }
-    }
-    delete out.address_offset;
-    delete out.addressOffset;
-
-    if ('reset_value' in out) {
-      out.resetValue = out.reset_value;
-      delete out.reset_value;
-    }
-
+  const isRegister = hint === 'register' || (hint === 'auto' && 'offset' in out);
+  if (isRegister && !('baseAddress' in out)) {
     const size = typeof out.size === 'number' ? out.size : 32;
     if (size === 32 && defaultRegWidth === 32) {
       delete out.size;
@@ -136,33 +126,15 @@ export function serializeValue(obj: unknown, defaultRegWidth = 32): unknown {
       delete out.fields;
     }
 
-    // Recursively clean fields / sub-registers
     for (const key in out) {
-      out[key] = serializeValue(out[key], size);
+      out[key] = serializeChild(key, out[key], size);
     }
     return out;
   }
 
-  // Determine if it is an AddressBlock
   const isBlock =
-    'baseAddress' in out ||
-    'base_address' in out ||
-    'defaultRegWidth' in out ||
-    'default_reg_width' in out;
+    hint === 'block' || (hint === 'auto' && ('baseAddress' in out || 'defaultRegWidth' in out));
   if (isBlock) {
-    if (typeof out.baseAddress !== 'number') {
-      const explicitBase = out.base_address ?? out.offset;
-      if (typeof explicitBase === 'number') {
-        out.baseAddress = explicitBase;
-      }
-    }
-    delete out.base_address;
-    delete out.default_reg_width;
-
-    if ('defaultRegWidth' in out) {
-      out.defaultRegWidth = out.defaultRegWidth;
-    }
-
     if (isNil(out.range)) {
       delete out.range;
     }
@@ -174,33 +146,34 @@ export function serializeValue(obj: unknown, defaultRegWidth = 32): unknown {
       typeof out.defaultRegWidth === 'number' && out.defaultRegWidth > 0 ? out.defaultRegWidth : 32;
 
     for (const key in out) {
-      out[key] = serializeValue(out[key], regWidth);
+      out[key] = serializeChild(key, out[key], regWidth);
     }
     return out;
   }
 
-  // Determine if it is a MemoryMap
-  const isMemoryMap = 'addressBlocks' in out || 'address_blocks' in out;
-  if (isMemoryMap) {
-    if (Array.isArray(out.address_blocks)) {
-      out.addressBlocks = out.address_blocks;
-      delete out.address_blocks;
-    }
+  if ('addressBlocks' in out) {
     if (out.description === '') {
       delete out.description;
     }
 
     for (const key in out) {
-      out[key] = serializeValue(out[key], defaultRegWidth);
+      out[key] = serializeChild(key, out[key], defaultRegWidth);
     }
     return out;
   }
 
-  // General object: recursively clean properties
   for (const key in out) {
-    out[key] = serializeValue(out[key], defaultRegWidth);
+    out[key] = serializeChild(key, out[key], defaultRegWidth);
   }
   return out;
+}
+
+/**
+ * Clean a value before serializing to YAML, ensuring it conforms strictly to the schema.
+ * Tolerates any shape and removes runtime-only keys (like rowId, __kind, offsets on fields).
+ */
+export function serializeValue(obj: unknown, defaultRegWidth = 32): unknown {
+  return serializeValueWithHint(obj, defaultRegWidth, 'auto');
 }
 
 /**

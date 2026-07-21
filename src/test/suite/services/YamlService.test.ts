@@ -12,11 +12,11 @@ function asArr(v: unknown): Array<Record<string, unknown>> {
 
 describe('YamlService', () => {
   describe('cleanForYaml', () => {
-    it('should convert bit_offset and bit_width to bits format', () => {
+    it('should convert offset and width to bits format', () => {
       const input = {
         name: 'ENABLE',
-        bit_offset: 0,
-        bit_width: 1,
+        offset: 0,
+        width: 1,
         access: 'read-write',
         description: 'Enable bit',
       };
@@ -24,8 +24,8 @@ describe('YamlService', () => {
       const result = asObj(YamlService.cleanForYaml(input));
 
       expect(result.bits).toBe('[0:0]');
-      expect(result.bit_offset).toBeUndefined();
-      expect(result.bit_width).toBeUndefined();
+      expect(result.offset).toBeUndefined();
+      expect(result.width).toBeUndefined();
       expect(result.name).toBe('ENABLE');
       expect(result.access).toBe('read-write');
       expect(result.description).toBe('Enable bit');
@@ -34,33 +34,33 @@ describe('YamlService', () => {
     it('should handle multi-bit fields correctly', () => {
       const input = {
         name: 'MODE',
-        bit_offset: 1,
-        bit_width: 2,
+        offset: 1,
+        width: 2,
         access: 'read-write',
       };
 
       const result = asObj(YamlService.cleanForYaml(input));
 
       expect(result.bits).toBe('[2:1]');
-      expect(result.bit_offset).toBeUndefined();
-      expect(result.bit_width).toBeUndefined();
+      expect(result.offset).toBeUndefined();
+      expect(result.width).toBeUndefined();
     });
 
-    it('should remove bit_range field', () => {
+    it('should remove bitRange field', () => {
       const input = {
         name: 'STATUS',
-        bit_offset: 4,
-        bit_width: 4,
-        bit_range: [7, 4],
+        offset: 4,
+        width: 4,
+        bitRange: [7, 4],
         access: 'read-only',
       };
 
       const result = asObj(YamlService.cleanForYaml(input));
 
       expect(result.bits).toBe('[7:4]');
-      expect(result.bit_offset).toBeUndefined();
-      expect(result.bit_width).toBeUndefined();
-      expect(result.bit_range).toBeUndefined();
+      expect(result.offset).toBeUndefined();
+      expect(result.width).toBeUndefined();
+      expect(result.bitRange).toBeUndefined();
     });
 
     it('should handle nested objects with bit fields', () => {
@@ -69,13 +69,13 @@ describe('YamlService', () => {
         fields: [
           {
             name: 'ENABLE',
-            bit_offset: 0,
-            bit_width: 1,
+            offset: 0,
+            width: 1,
           },
           {
             name: 'MODE',
-            bit_offset: 1,
-            bit_width: 2,
+            offset: 1,
+            width: 2,
           },
         ],
       };
@@ -85,22 +85,22 @@ describe('YamlService', () => {
 
       expect(fields).toHaveLength(2);
       expect(fields[0].bits).toBe('[0:0]');
-      expect(fields[0].bit_offset).toBeUndefined();
+      expect(fields[0].offset).toBeUndefined();
       expect(fields[1].bits).toBe('[2:1]');
-      expect(fields[1].bit_offset).toBeUndefined();
+      expect(fields[1].offset).toBeUndefined();
     });
 
     it('should handle arrays of fields', () => {
       const input = [
         {
           name: 'ENABLE',
-          bit_offset: 0,
-          bit_width: 1,
+          offset: 0,
+          width: 1,
         },
         {
           name: 'MODE',
-          bit_offset: 1,
-          bit_width: 2,
+          offset: 1,
+          width: 2,
         },
       ];
 
@@ -128,6 +128,27 @@ describe('YamlService', () => {
       expect(result.size).toBeUndefined();
     });
 
+    it('should preserve opaque maps containing offset and width keys', () => {
+      const input = {
+        name: 'MODE',
+        bits: '[1:0]',
+        enumeratedValues: {
+          offset: 'enum-offset',
+          width: 'enum-width',
+        },
+        customMetadata: {
+          offset: 3,
+          width: 2,
+          label: 'keep',
+        },
+      };
+
+      const result = asObj(YamlService.cleanForYaml(input));
+
+      expect(result.enumeratedValues).toEqual(input.enumeratedValues);
+      expect(result.customMetadata).toEqual(input.customMetadata);
+    });
+
     it('should handle null and undefined', () => {
       expect(YamlService.cleanForYaml(null)).toBeNull();
       expect(YamlService.cleanForYaml(undefined)).toBeUndefined();
@@ -147,8 +168,8 @@ describe('YamlService', () => {
         fields: [
           {
             name: 'ENABLE',
-            bit_offset: 0,
-            bit_width: 1,
+            offset: 0,
+            width: 1,
             access: 'read-write',
           },
         ],
@@ -157,9 +178,9 @@ describe('YamlService', () => {
       const yaml = YamlService.dump(input);
 
       expect(yaml).toContain("bits: '[0:0]'");
-      expect(yaml).not.toContain('bit_offset');
-      expect(yaml).not.toContain('bit_width');
-      expect(yaml).not.toContain('bit_range');
+      expect(yaml).not.toContain('offset');
+      expect(yaml).not.toContain('width');
+      expect(yaml).not.toContain('bitRange');
     });
   });
 
@@ -207,8 +228,8 @@ fields:
     it('should output name before bits in YAML', () => {
       const input = {
         name: 'ENABLE',
-        bit_offset: 0,
-        bit_width: 1,
+        offset: 0,
+        width: 1,
         access: 'read-write',
       };
 
@@ -226,8 +247,8 @@ fields:
     it('should preserve property order for fields with bits', () => {
       const input = {
         name: 'STATUS',
-        bit_offset: 4,
-        bit_width: 4,
+        offset: 4,
+        width: 4,
         access: 'read-only',
         description: 'Status field',
       };

@@ -35,7 +35,7 @@ export function useDetailsNavigation({
         const newPath = [...currentPath, 'registers', regIndex];
         const idSuffix = isArray ? `-arrreg-${regIndex}` : `-reg-${regIndex}`;
         const blockBase = Number(block.baseAddress ?? 0);
-        const regOff = Number(reg.offset ?? reg.address_offset ?? 0);
+        const regOff = Number(reg.offset ?? 0);
         const absolute = blockBase + regOff;
 
         handleSelect({

@@ -24,7 +24,7 @@ function makeField(name: string, lsb: number, width = 1): BitFieldRuntimeDef {
 }
 
 function makeRegister(name: string, offset: number): RegisterRuntimeDef {
-  return { name, address_offset: offset, offset, access: 'read-write', description: '' };
+  return { name, offset, access: 'read-write', description: '' };
 }
 
 function makeBlock(name: string, base: number, size = 4): AddressBlockRuntimeDef {
@@ -145,7 +145,7 @@ describe('SpatialInsertionService — registers', () => {
       expect(result.error).toBeUndefined();
       expect(result.items).toHaveLength(1);
       expect(result.newIndex).toBe(0);
-      expect(result.items[0].address_offset).toBe(0);
+      expect(result.items[0].offset).toBe(0);
     });
 
     it('inserts after the selected register with +4 offset', () => {
@@ -154,7 +154,7 @@ describe('SpatialInsertionService — registers', () => {
       expect(result.error).toBeUndefined();
       expect(result.items).toHaveLength(2);
       const newReg = result.items[result.newIndex];
-      expect(newReg.address_offset).toBe(4);
+      expect(newReg.offset).toBe(4);
     });
 
     it('inserts after the last register when selectedIndex is -1', () => {
@@ -162,13 +162,12 @@ describe('SpatialInsertionService — registers', () => {
       const result = SpatialInsertionService.insertRegisterAfter(regs, -1);
       expect(result.error).toBeUndefined();
       const newReg = result.items[result.newIndex];
-      expect(newReg.address_offset).toBe(8);
+      expect(newReg.offset).toBe(8);
     });
 
     it('accounts for array register footprint (count * stride)', () => {
       const arrayReg: RegisterRuntimeDef = {
         name: 'TIMER',
-        address_offset: 0,
         offset: 0,
         __kind: 'array',
         count: 4,
@@ -180,7 +179,7 @@ describe('SpatialInsertionService — registers', () => {
       expect(result.error).toBeUndefined();
       const newReg = result.items[result.newIndex];
       // TIMER uses 4 * 8 = 32 bytes, so new register starts at offset 32
-      expect(newReg.address_offset).toBe(32);
+      expect(newReg.offset).toBe(32);
     });
 
     it('generates sequential reg names', () => {
@@ -195,7 +194,7 @@ describe('SpatialInsertionService — registers', () => {
       expect(result.error).toBeUndefined();
       // After inserting after reg0 at offset 4, reg2 should be pushed to 8
       const reg2Final = result.items.find((r) => r.name === 'reg2');
-      expect(reg2Final?.address_offset).toBeGreaterThanOrEqual(4);
+      expect(reg2Final?.offset).toBeGreaterThanOrEqual(4);
     });
   });
 
@@ -212,9 +211,9 @@ describe('SpatialInsertionService — registers', () => {
       expect(result.error).toBeUndefined();
       expect(result.items).toHaveLength(2);
       const newReg = result.items[result.newIndex];
-      expect(newReg.address_offset).toBe(0);
+      expect(newReg.offset).toBe(0);
       const pushed = result.items.find((r) => r.name === 'reg0');
-      expect(pushed?.address_offset).toBe(4);
+      expect(pushed?.offset).toBe(4);
     });
 
     it('inserts before the selected register', () => {
@@ -223,7 +222,7 @@ describe('SpatialInsertionService — registers', () => {
       expect(result.error).toBeUndefined();
       expect(result.items).toHaveLength(2);
       const newReg = result.items[result.newIndex];
-      expect(newReg.address_offset).toBe(0);
+      expect(newReg.offset).toBe(0);
     });
   });
 });
@@ -276,8 +275,8 @@ describe('SpatialInsertionService — address blocks', () => {
         name: 'block0',
         baseAddress: 0,
         registers: [
-          { name: 'r0', address_offset: 0, access: 'read-write', description: '' },
-          { name: 'r1', address_offset: 4, access: 'read-write', description: '' },
+          { name: 'r0', offset: 0, access: 'read-write', description: '' },
+          { name: 'r1', offset: 4, access: 'read-write', description: '' },
         ],
       };
       const result = SpatialInsertionService.insertBlockAfter([blockWithRegs], 0);

@@ -39,11 +39,10 @@ interface DragState {
 const DRAG_IDLE: DragState = { active: false, fromRowId: null, toRowId: null, position: null };
 
 export interface MemoryMapEditorProps {
-  /** The memory map object (has name, description, address_blocks / addressBlocks). */
+  /** The memory map object (has name, description, addressBlocks). */
   memoryMap: {
     name?: string;
     description?: string;
-    address_blocks?: MemoryMapBlockDef[];
     addressBlocks?: MemoryMapBlockDef[];
     [k: string]: unknown;
   };
@@ -74,7 +73,7 @@ export function MemoryMapEditor({
   onUpdate,
   onNavigateToBlock,
 }: MemoryMapEditorProps) {
-  const blocks = memoryMap?.address_blocks ?? memoryMap?.addressBlocks ?? [];
+  const blocks = memoryMap?.addressBlocks ?? [];
 
   const [insertError, setInsertError] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<{
@@ -85,7 +84,7 @@ export function MemoryMapEditor({
 
   const tbodyRef = useRef<HTMLTableSectionElement | null>(null);
 
-  const liveBlocks = memoryMap?.address_blocks ?? memoryMap?.addressBlocks ?? [];
+  const liveBlocks = memoryMap?.addressBlocks ?? [];
 
   // ---- wrapped rows for row identity ----
   const [wrappedBlocks, setWrappedBlocks] = useState<Array<TableRowWrapper<MemoryMapBlockDef>>>([]);

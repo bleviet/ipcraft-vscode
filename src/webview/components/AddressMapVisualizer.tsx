@@ -7,8 +7,6 @@ import { useClampedMenuPosition } from '../shared/hooks/useClampedMenuPosition';
 export interface VisualizerAddressBlock {
   name?: string;
   baseAddress?: number | string;
-  base_address?: number | string;
-  offset?: number | string;
   size?: number | string;
   range?: number | string;
   usage?: string;
@@ -90,7 +88,7 @@ const MIN_DISPLAY_PCT = 3.5;
 function useSegments(blocks: VisualizerAddressBlock[]) {
   const rawGroups = useMemo(() => {
     return blocks.map((block, idx) => {
-      const base = block.baseAddress ?? block.base_address ?? block.offset ?? 0;
+      const base = block.baseAddress ?? 0;
       const size = calculateBlockSize(block);
       return {
         idx,

@@ -27,12 +27,13 @@ import type { LayoutMemoryMap, LayoutRegister } from './algorithms/LayoutEngine'
 import { YamlService } from './services/YamlService';
 import { YamlPathResolver } from './services/YamlPathResolver';
 import { serializeValue } from '../domain/serialize';
+import { canonicalizeLegacyKeys } from '../domain/parse';
 import { calculateBlockSize } from './utils/blockSize';
 import type { YamlPath } from './types/editor';
 
 /** Effective register width (bits) of a block-like object. */
 function blockRegWidth(block: Record<string, unknown> | undefined): number {
-  const raw = block?.defaultRegWidth ?? block?.default_reg_width;
+  const raw = block?.defaultRegWidth;
   return typeof raw === 'number' && raw > 0 ? raw : 32;
 }
 import '@vscode/codicons/dist/codicon.css';
@@ -155,10 +156,15 @@ const App = () => {
       return;
     }
     const { root, selectionRootPath } = YamlPathResolver.getMapRootInfo(rootObj);
-    const mapObj =
-      selectionRootPath.length > 0
-        ? (YamlPathResolver.getAtPath(root, selectionRootPath) as LayoutMemoryMap)
-        : (root as LayoutMemoryMap);
+    const rawMapObj = (
+      selectionRootPath.length > 0 ? YamlPathResolver.getAtPath(root, selectionRootPath) : root
+    ) as Record<string, unknown>;
+    // The mutation services operate on the canonical camelCase model. Canonicalize
+    // legacy snake_case keys (preserving any custom metadata) so structural edits
+    // on legacy files work instead of reporting "Block not found". The write path
+    // (YamlService.applyPathEdits) maps the canonical path back onto the on-disk
+    // key, so a legacy file is edited in place without a duplicate key.
+    const mapObj = canonicalizeLegacyKeys(rawMapObj) as LayoutMemoryMap;
 
     const targetIdx = regIndex ?? -1;
 
@@ -182,9 +188,7 @@ const App = () => {
     if (result.errors.length === 0) {
       // Write only the affected registers array so the rest of the
       // document keeps its formatting and comments.
-      const blocks = (result.memoryMap.addressBlocks ??
-        result.memoryMap.address_blocks ??
-        []) as Record<string, unknown>[];
+      const blocks = (result.memoryMap.addressBlocks ?? []) as Record<string, unknown>[];
       const block = blocks[blockIndex];
       if (!block) {
         return;
@@ -247,7 +251,7 @@ const App = () => {
       }
 
       if (action !== 'delete' && result.newIndex !== -1) {
-        const blocks = result.memoryMap.addressBlocks ?? result.memoryMap.address_blocks ?? [];
+        const blocks = result.memoryMap.addressBlocks ?? [];
         const block = blocks[blockIndex];
         const mapName = result.memoryMap.name ?? 'Memory Map';
 
@@ -332,10 +336,13 @@ const App = () => {
       return;
     }
     const { root, selectionRootPath } = YamlPathResolver.getMapRootInfo(rootObj);
-    const mapObj =
-      selectionRootPath.length > 0
-        ? (YamlPathResolver.getAtPath(root, selectionRootPath) as LayoutMemoryMap)
-        : (root as LayoutMemoryMap);
+    const rawMapObj = (
+      selectionRootPath.length > 0 ? YamlPathResolver.getAtPath(root, selectionRootPath) : root
+    ) as Record<string, unknown>;
+    // Canonicalize legacy keys (preserving custom metadata) before the
+    // camelCase-only mutation service. The write path maps canonical paths back
+    // onto the on-disk key.
+    const mapObj = canonicalizeLegacyKeys(rawMapObj) as LayoutMemoryMap;
 
     let result;
     if (action === 'delete') {
@@ -352,9 +359,7 @@ const App = () => {
     }
 
     if (result.errors.length === 0) {
-      const blocks = (result.memoryMap.addressBlocks ??
-        result.memoryMap.address_blocks ??
-        []) as Record<string, unknown>[];
+      const blocks = (result.memoryMap.addressBlocks ?? []) as Record<string, unknown>[];
       const sanitized = blocks.map((b) => serializeValue(b) as Record<string, unknown>);
       const newText = YamlService.applyPathEdits(rawTextRef.current, [
         {
@@ -368,7 +373,7 @@ const App = () => {
       }
 
       if (action !== 'delete' && result.newIndex !== -1) {
-        const blocks = result.memoryMap.addressBlocks ?? result.memoryMap.address_blocks ?? [];
+        const blocks = result.memoryMap.addressBlocks ?? [];
         const newBlock = blocks[result.newIndex];
         if (newBlock) {
           const mapName = result.memoryMap.name ?? 'Memory Map';

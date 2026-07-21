@@ -31,7 +31,6 @@ export interface LayoutField {
 export interface LayoutRegister {
   name?: string;
   offset?: number | null;
-  address_offset?: number;
   size?: number;
   /** Present on register-array nodes. */
   __kind?: string;
@@ -45,11 +44,10 @@ export interface LayoutRegister {
 /** Minimal address-block shape used by the layout engine. */
 export interface LayoutBlock {
   name?: string;
-  base_address?: number;
+  baseAddress?: number;
   size?: number;
   range?: number | string;
   defaultRegWidth?: number;
-  default_reg_width?: number;
   registers?: LayoutRegister[];
   [key: string]: unknown;
 }
@@ -58,7 +56,6 @@ export interface LayoutBlock {
 export interface LayoutMemoryMap {
   name?: string;
   addressBlocks?: LayoutBlock[];
-  address_blocks?: LayoutBlock[];
   [key: string]: unknown;
 }
 
@@ -93,7 +90,7 @@ function registerFootprintBytes(reg: LayoutRegister): number {
 
 /** Get effective register width for the block (bits). */
 function effectiveRegWidth(block: LayoutBlock): number {
-  const raw = block.defaultRegWidth ?? block.default_reg_width;
+  const raw = block.defaultRegWidth;
   const bits = typeof raw === 'number' && raw > 0 ? raw : 32;
   return bits;
 }
@@ -296,7 +293,6 @@ export function recomputeRegisterLayout(
     const updated: LayoutRegister = {
       ...reg,
       offset: offset,
-      address_offset: offset,
     };
 
     // Recurse into register-array template registers.
@@ -339,7 +335,7 @@ export function recomputeBlockLayout(blocks: LayoutBlock[]): LayoutBlock[] {
 
     return {
       ...block,
-      base_address: base,
+      baseAddress: base,
     };
   });
 }
@@ -360,7 +356,7 @@ export function recomputeBlockLayout(blocks: LayoutBlock[]): LayoutBlock[] {
  * @returns          New memory map with corrected offsets only.
  */
 export function recomputeAddressLayout(memoryMap: LayoutMemoryMap): LayoutResult<LayoutMemoryMap> {
-  const blocks = memoryMap.addressBlocks ?? memoryMap.address_blocks ?? [];
+  const blocks = memoryMap.addressBlocks ?? [];
   const errors: LayoutError[] = [];
 
   // Recompute register offsets within each block — no field changes.
@@ -374,8 +370,7 @@ export function recomputeAddressLayout(memoryMap: LayoutMemoryMap): LayoutResult
   // Recompute block base addresses.
   const blocksWithBases = recomputeBlockLayout(updatedBlocks);
 
-  const key = memoryMap.addressBlocks ? 'addressBlocks' : 'address_blocks';
-  const result: LayoutMemoryMap = { ...memoryMap, [key]: blocksWithBases };
+  const result: LayoutMemoryMap = { ...memoryMap, addressBlocks: blocksWithBases };
   return { data: result, errors };
 }
 
@@ -391,7 +386,7 @@ export function recomputeAddressLayout(memoryMap: LayoutMemoryMap): LayoutResult
  *                   plus any validation errors.
  */
 export function recomputeFullLayout(memoryMap: LayoutMemoryMap): LayoutResult<LayoutMemoryMap> {
-  const blocks = memoryMap.addressBlocks ?? memoryMap.address_blocks ?? [];
+  const blocks = memoryMap.addressBlocks ?? [];
   const errors: LayoutError[] = [];
 
   // Phase 1: recompute registers and fields within each block.
@@ -446,12 +441,12 @@ export function recomputeFullLayout(memoryMap: LayoutMemoryMap): LayoutResult<La
     // Check block overlap with next block.
     if (bi < blocksWithBases.length - 1) {
       const nextBlock = blocksWithBases[bi + 1];
-      const blockEnd = (block.base_address ?? 0) + computeBlockSize(block);
-      if (blockEnd > (nextBlock.base_address ?? 0)) {
+      const blockEnd = (block.baseAddress ?? 0) + computeBlockSize(block);
+      if (blockEnd > (nextBlock.baseAddress ?? 0)) {
         errors.push({
           layer: 'block',
           parentPath: blockPath,
-          message: `Block "${block.name}" ends at 0x${blockEnd.toString(16)} but next block "${nextBlock.name}" starts at 0x${(nextBlock.base_address ?? 0).toString(16)}`,
+          message: `Block "${block.name}" ends at 0x${blockEnd.toString(16)} but next block "${nextBlock.name}" starts at 0x${(nextBlock.baseAddress ?? 0).toString(16)}`,
           severity: 'error',
         });
       }
@@ -465,8 +460,8 @@ export function recomputeFullLayout(memoryMap: LayoutMemoryMap): LayoutResult<La
       // Check register overlap with next register.
       if (ri < regs.length - 1) {
         const nextReg = regs[ri + 1];
-        const regEnd = (reg.address_offset ?? reg.offset ?? 0) + registerFootprintBytes(reg);
-        const nextStart = nextReg.address_offset ?? nextReg.offset ?? 0;
+        const regEnd = (reg.offset ?? 0) + registerFootprintBytes(reg);
+        const nextStart = nextReg.offset ?? 0;
         if (regEnd > nextStart) {
           errors.push({
             layer: 'register',
@@ -520,10 +515,9 @@ export function recomputeFullLayout(memoryMap: LayoutMemoryMap): LayoutResult<La
     }
   }
 
-  const key = memoryMap.addressBlocks ? 'addressBlocks' : 'address_blocks';
   const result: LayoutMemoryMap = {
     ...memoryMap,
-    [key]: blocksWithBases,
+    addressBlocks: blocksWithBases,
   };
 
   return { data: result, errors };

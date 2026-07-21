@@ -62,7 +62,7 @@ export function calculateBlockSize(block: BlockLike): number {
   let maxEnd = 0;
   for (const reg of registers) {
     const regRec = reg as Record<string, unknown>;
-    const offset = parseNumeric(regRec.address_offset ?? regRec.offset, 0);
+    const offset = parseNumeric(regRec.offset, 0);
     let size = 4;
     if (reg.__kind === 'array') {
       size = parseNumeric(reg.count, 1) * parseNumeric(reg.stride, 4);
