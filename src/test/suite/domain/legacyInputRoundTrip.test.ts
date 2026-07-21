@@ -235,4 +235,171 @@ address_blocks:
     expect(newText).toContain('customRegisterData: keep-reg');
     expect(newText).toContain('customFieldData: keep-field');
   });
+
+  it('does not rename entries of an opaque enumeratedValues map that collide with legacy key names', () => {
+    // enumeratedValues keys are enum-VALUE names chosen by the user, not schema
+    // property names. A user naming an enum value "reset_value" must not have it
+    // silently rewritten to "resetValue" by key canonicalization.
+    const raw = {
+      addressBlocks: [
+        {
+          name: 'A',
+          baseAddress: 0,
+          registers: [
+            {
+              name: 'R0',
+              offset: 0,
+              fields: [
+                {
+                  name: 'F0',
+                  bits: '[0:0]',
+                  enumeratedValues: {
+                    reset_value: 'means reset',
+                    address_offset: 'means offset',
+                    bit_width: 'means width',
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const out = canonicalizeLegacyKeys(raw) as {
+      addressBlocks: Array<{
+        registers: Array<{ fields: Array<{ enumeratedValues: Record<string, string> }> }>;
+      }>;
+    };
+    const enumMap = out.addressBlocks[0].registers[0].fields[0].enumeratedValues;
+    expect(enumMap).toEqual({
+      reset_value: 'means reset',
+      address_offset: 'means offset',
+      bit_width: 'means width',
+    });
+  });
+
+  it('does not rename keys inside arbitrary nested custom metadata objects', () => {
+    const raw = {
+      addressBlocks: [
+        {
+          name: 'A',
+          base_address: 0,
+          registers: [
+            {
+              name: 'R0',
+              address_offset: 0,
+              customRegisterData: { reset_value: 'not a schema field', nested: { bit_offset: 1 } },
+            },
+          ],
+        },
+      ],
+    };
+
+    const out = canonicalizeLegacyKeys(raw) as {
+      addressBlocks: Array<{
+        registers: Array<{ customRegisterData: Record<string, unknown> }>;
+      }>;
+    };
+    expect(out.addressBlocks[0].registers[0].customRegisterData).toEqual({
+      reset_value: 'not a schema field',
+      nested: { bit_offset: 1 },
+    });
+  });
+});
+
+/**
+ * Scalar (non-structural) edits on legacy register offsets / field offsets and
+ * widths, exercised via useYamlUpdateHandler's write path (YamlService.applyPathEdits
+ * -> YamlPathResolver.resolvePath). `offset` is ambiguous across the model
+ * (`address_offset` on registers vs. `bit_offset` on fields); resolution must use
+ * the target object's own keys, not just the canonical path shape.
+ */
+describe('legacy scalar offset/width edits (BlockEditor / RegisterArrayEditor / RegisterTableRow path)', () => {
+  it('edits a legacy register offset in place without creating a duplicate offset key', () => {
+    const text = `name: legacy
+address_blocks:
+  - name: A
+    base_address: 0
+    registers:
+      - name: R0
+        address_offset: 0
+`;
+    const newText = YamlService.applyPathEdits(text, [
+      { path: ['addressBlocks', 0, 'registers', 0, 'offset'], value: 4 },
+    ]);
+
+    expect(newText).toContain('address_offset: 4');
+    // A standalone `offset:` key (not part of `address_offset:`) would mean a
+    // duplicate canonical key was created alongside the legacy one.
+    expect(newText).not.toMatch(/^\s*offset:/m);
+    expect((newText.match(/offset:/g) ?? []).length).toBe(1);
+  });
+
+  it('edits a legacy field offset in place without creating a duplicate offset key', () => {
+    const text = `name: legacy
+address_blocks:
+  - name: A
+    base_address: 0
+    registers:
+      - name: R0
+        offset: 0
+        fields:
+          - name: F0
+            bit_offset: 0
+            bit_width: 1
+`;
+    const newText = YamlService.applyPathEdits(text, [
+      { path: ['addressBlocks', 0, 'registers', 0, 'fields', 0, 'offset'], value: 2 },
+    ]);
+
+    expect(newText).toContain('bit_offset: 2');
+    expect(newText).not.toMatch(/^\s+offset: 2$/m);
+  });
+
+  it('edits a legacy field width in place without creating a duplicate width key', () => {
+    const text = `name: legacy
+address_blocks:
+  - name: A
+    base_address: 0
+    registers:
+      - name: R0
+        offset: 0
+        fields:
+          - name: F0
+            bit_offset: 0
+            bit_width: 1
+`;
+    const newText = YamlService.applyPathEdits(text, [
+      { path: ['addressBlocks', 0, 'registers', 0, 'fields', 0, 'width'], value: 4 },
+    ]);
+
+    expect(newText).toContain('bit_width: 4');
+    expect(newText).not.toMatch(/^\s+width: 4$/m);
+  });
+
+  it('resolves offset differently for a register vs. a field on the same document', () => {
+    const rootObj = YamlService.safeParse(LEGACY_YAML);
+    const { root } = YamlPathResolver.getMapRootInfo(rootObj);
+
+    const registerPath = YamlPathResolver.resolvePath(root, [
+      'addressBlocks',
+      0,
+      'registers',
+      0,
+      'offset',
+    ]);
+    expect(registerPath[registerPath.length - 1]).toBe('address_offset');
+
+    const fieldPath = YamlPathResolver.resolvePath(root, [
+      'addressBlocks',
+      0,
+      'registers',
+      0,
+      'fields',
+      0,
+      'offset',
+    ]);
+    expect(fieldPath[fieldPath.length - 1]).toBe('bit_offset');
+  });
 });
