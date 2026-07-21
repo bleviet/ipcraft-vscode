@@ -1504,8 +1504,10 @@
 
 .ci-override-empty {
   font-size: 10px;
-  color: var(--vscode-descriptionForeground);
-  opacity: 0.55;
+  color: var(
+    --vscode-descriptionForeground,
+    var(--vscode-editor-foreground, #cccccc)
+  );
   padding: 2px 0 6px;
 }
 
@@ -2933,4 +2935,3 @@
   box-sizing: border-box;
   vertical-align: top;
 }
-
