@@ -31,7 +31,9 @@ describe('CanvasPort reset polarity', () => {
     expect(port).toHaveAttribute('data-reset-polarity', 'activeLow');
     expect(port).toHaveAttribute('aria-label', 'user_defined_reset: active-low reset');
     expect(container.querySelector('.canvas-port__inversion-bubble')).toBeInTheDocument();
-    expect(container.querySelector('.canvas-port__polarity-badge')?.textContent).toBe('L');
+    const badge = container.querySelector('.canvas-port__polarity-badge');
+    expect(badge).toHaveAttribute('transform', 'translate(13, 0)');
+    expect(badge?.textContent).toBe('L');
   });
 
   it('shows an H badge without an inversion bubble for an active-high reset', () => {

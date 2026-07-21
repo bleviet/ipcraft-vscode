@@ -23,6 +23,7 @@ interface CanvasPortProps {
 
 const RENAME_INPUT_W = 100;
 const RENAME_INPUT_H = 14;
+const POLARITY_BADGE_OFFSET = 13;
 
 /**
  * Renders a single port stub on the IP block edge.
@@ -350,7 +351,7 @@ const PortKindIcon: React.FC<{
   }
 
   if (kind === 'reset') {
-    const badgeX = side === 'right' ? -9 : 9;
+    const badgeX = side === 'right' ? -POLARITY_BADGE_OFFSET : POLARITY_BADGE_OFFSET;
     return (
       <g transform={`translate(${x}, ${y})`} className="canvas-port__icon">
         {/* ~270\u00b0 clockwise arc */}
