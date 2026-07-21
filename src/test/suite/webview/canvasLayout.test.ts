@@ -63,8 +63,25 @@ describe('computeLayout', () => {
     expect(rst).toBeDefined();
     expect(clk!.side).toBe('left');
     expect(rst!.side).toBe('left');
+    expect(rst!.polarity).toBe('activeLow');
     // Reset should be below clock
     expect(rst!.y).toBeGreaterThan(clk!.y);
+  });
+
+  it('preserves reset polarity independently of the user-defined port name', () => {
+    const ip = makeIpCore({
+      resets: [
+        { name: 'clear_everything', polarity: 'activeLow' },
+        { name: 'restart', polarity: 'activeHigh' },
+      ],
+    });
+
+    const resetPorts = computeLayout(ip).ports.filter((port) => port.kind === 'reset');
+
+    expect(resetPorts.map((port) => [port.label, port.polarity])).toEqual([
+      ['clear_everything', 'activeLow'],
+      ['restart', 'activeHigh'],
+    ]);
   });
 
   it('places slave bus interfaces on the left, master on the right', () => {

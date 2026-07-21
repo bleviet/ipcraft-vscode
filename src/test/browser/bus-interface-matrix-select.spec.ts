@@ -20,6 +20,9 @@ clocks:
   - name: clk_sys
 resets:
   - name: rst_n
+    polarity: activeLow
+  - name: restart
+    polarity: activeHigh
 busInterfaces:
   - name: S_AXI
     type: ipcraft:busif:axi4_lite:1.0
@@ -93,5 +96,20 @@ busInterfaces:
     await expect(inspector.locator('.ci-badge')).toHaveText('Reset');
 
     await expect(page.locator('[data-port-id="reset:0"]')).toHaveClass(/canvas-port--selected/);
+  });
+
+  test('shows reset polarity on the canvas independently of the port name', async ({ page }) => {
+    await setupIpCore(page, ipCoreYaml);
+
+    const activeLow = page.locator('[data-port-id="reset:0"]');
+    const activeHigh = page.locator('[data-port-id="reset:1"]');
+
+    await expect(activeLow).toHaveAttribute('aria-label', 'rst_n: active-low reset');
+    await expect(activeLow.locator('.canvas-port__polarity-badge')).toHaveText('L');
+    await expect(activeLow.locator('.canvas-port__inversion-bubble')).toBeVisible();
+
+    await expect(activeHigh).toHaveAttribute('aria-label', 'restart: active-high reset');
+    await expect(activeHigh.locator('.canvas-port__polarity-badge')).toHaveText('H');
+    await expect(activeHigh.locator('.canvas-port__inversion-bubble')).toHaveCount(0);
   });
 });

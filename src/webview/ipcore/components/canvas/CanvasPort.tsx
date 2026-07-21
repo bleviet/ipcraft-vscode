@@ -47,6 +47,9 @@ export const CanvasPort: React.FC<CanvasPortProps> = ({
   const isLeft = port.side === 'left';
   const isRight = port.side === 'right';
   const isBottom = port.side === 'bottom';
+  const resetPolarity = port.kind === 'reset' ? (port.polarity ?? 'activeHigh') : undefined;
+  const isActiveLowReset = resetPolarity === 'activeLow';
+  const resetDescription = isActiveLowReset ? 'Active-low reset' : 'Active-high reset';
 
   const hasError = annotations?.some((a) => a.severity === 'error');
   const tooltipText = annotations
@@ -165,6 +168,8 @@ export const CanvasPort: React.FC<CanvasPortProps> = ({
         }
       }}
       data-port-id={port.id}
+      data-reset-polarity={resetPolarity}
+      aria-label={resetPolarity ? `${port.label}: ${resetDescription.toLowerCase()}` : undefined}
       style={{ cursor: isRenaming ? 'default' : 'pointer', opacity: isDragging ? 0.4 : undefined }}
       onContextMenu={handleContextMenu}
       onPointerDown={(e) => {
@@ -178,6 +183,8 @@ export const CanvasPort: React.FC<CanvasPortProps> = ({
         }
       }}
     >
+      {resetPolarity && <title>{`${port.label}: ${resetDescription}`}</title>}
+
       {/* Hit area (invisible, wider for easier clicking) */}
       <line
         x1={x1}
@@ -201,13 +208,23 @@ export const CanvasPort: React.FC<CanvasPortProps> = ({
       />
 
       {/* Connector dot at block edge */}
-      <circle
-        cx={port.x}
-        cy={port.y}
-        r={dotR}
-        className="canvas-port__dot"
-        style={domainColor ? { fill: domainColor } : undefined}
-      />
+      {isActiveLowReset ? (
+        <circle
+          cx={port.x}
+          cy={port.y}
+          r={4}
+          className="canvas-port__dot canvas-port__inversion-bubble"
+          style={domainColor ? { stroke: domainColor } : undefined}
+        />
+      ) : (
+        <circle
+          cx={port.x}
+          cy={port.y}
+          r={dotR}
+          className="canvas-port__dot"
+          style={domainColor ? { fill: domainColor } : undefined}
+        />
+      )}
 
       {/* Direction arrow */}
       {port.direction && (
@@ -227,6 +244,8 @@ export const CanvasPort: React.FC<CanvasPortProps> = ({
           x={isLeft ? port.x + 14 : isRight ? port.x - 14 : port.x}
           y={isBottom ? port.y - 14 : port.y}
           color={domainColor}
+          polarity={resetPolarity}
+          side={port.side}
         />
       )}
 
@@ -306,12 +325,14 @@ export const CanvasPort: React.FC<CanvasPortProps> = ({
   );
 };
 
-const PortKindIcon: React.FC<{ kind: string; x: number; y: number; color?: string }> = ({
-  kind,
-  x,
-  y,
-  color,
-}) => {
+const PortKindIcon: React.FC<{
+  kind: string;
+  x: number;
+  y: number;
+  color?: string;
+  polarity?: 'activeHigh' | 'activeLow';
+  side: PortSide;
+}> = ({ kind, x, y, color, polarity, side }) => {
   const s = color ? { stroke: color } : undefined;
   const f = color ? { fill: color } : undefined;
 
@@ -329,12 +350,22 @@ const PortKindIcon: React.FC<{ kind: string; x: number; y: number; color?: strin
   }
 
   if (kind === 'reset') {
+    const badgeX = side === 'right' ? -9 : 9;
     return (
       <g transform={`translate(${x}, ${y})`} className="canvas-port__icon">
         {/* ~270\u00b0 clockwise arc */}
         <path d="M 0 -4.5 A 4.5 4.5 0 1 1 -4.5 0" className="canvas-port__icon-arc" style={s} />
         {/* Arrowhead at arc end pointing downward */}
         <polygon points="-4.5,0 -6.5,-2 -2.5,-2" className="canvas-port__icon-arrow" style={f} />
+        <g
+          transform={`translate(${badgeX}, 0)`}
+          className={`canvas-port__polarity-badge canvas-port__polarity-badge--${polarity === 'activeLow' ? 'low' : 'high'}`}
+        >
+          <rect x={-5} y={-5} width={10} height={10} rx={3} />
+          <text x={0} y={0} textAnchor="middle" dominantBaseline="central">
+            {polarity === 'activeLow' ? 'L' : 'H'}
+          </text>
+        </g>
       </g>
     );
   }
