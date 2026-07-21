@@ -9,6 +9,7 @@ import type { BuildMode } from '../services/toolchains/SynthesisToolchain';
 import { isIpCoreFile } from '../utils/fileExtensions';
 import { CONFIG_KEY_IPCRAFT } from '../utils/configKeys';
 import { handleErrorWithUserNotification } from '../utils/ErrorHandler';
+import { safeRegisterCommand } from '../utils/vscodeHelpers';
 
 let outputChannel: vscode.OutputChannel | undefined;
 
@@ -203,16 +204,20 @@ export function registerBuildCommands(
     }
   };
 
-  context.subscriptions.push(
-    vscode.commands.registerCommand('fpga-ip-core.build', () => void doRun()),
-    vscode.commands.registerCommand(
-      'fpga-ip-core.buildVivadoOoc',
-      (uri?: vscode.Uri) => void doRun('Vivado OOC Synthesis', uri)
-    ),
-    vscode.commands.registerCommand(
-      'fpga-ip-core.buildQuartusCompile',
-      (uri?: vscode.Uri) => void doRun('Quartus Compile', uri)
-    ),
-    vscode.commands.registerCommand('fpga-ip-core.showBuildOutput', () => getOutputChannel().show())
+  safeRegisterCommand(context, 'fpga-ip-core.build', () => void doRun(), {
+    requiresWorkspaceTrust: true,
+  });
+  safeRegisterCommand(
+    context,
+    'fpga-ip-core.buildVivadoOoc',
+    (uri?: vscode.Uri) => void doRun('Vivado OOC Synthesis', uri),
+    { requiresWorkspaceTrust: true }
   );
+  safeRegisterCommand(
+    context,
+    'fpga-ip-core.buildQuartusCompile',
+    (uri?: vscode.Uri) => void doRun('Quartus Compile', uri),
+    { requiresWorkspaceTrust: true }
+  );
+  safeRegisterCommand(context, 'fpga-ip-core.showBuildOutput', () => getOutputChannel().show());
 }

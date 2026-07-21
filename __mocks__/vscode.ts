@@ -18,6 +18,7 @@ export const window = {
 };
 
 export const workspace = {
+  isTrusted: true,
   onDidChangeTextDocument: jest.fn(),
   findFiles: jest.fn(),
   applyEdit: jest.fn(),
@@ -41,6 +42,10 @@ export enum FileType {
 
 export const commands = {
   executeCommand: jest.fn(),
+  registerCommand: jest.fn((_command: string, handler: (...args: unknown[]) => unknown) => ({
+    dispose: jest.fn(),
+    handler,
+  })),
 };
 
 export const Uri = {

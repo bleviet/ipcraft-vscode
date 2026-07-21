@@ -17,6 +17,31 @@ common tasks below; the later tables are the complete reference.
 All commands are in the Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P`). A
 blank cell in the location tables means the command is not available there.
 
+## Workspace Trust and Restricted Mode
+
+IPCraft has limited support for untrusted workspaces. In Restricted Mode, the
+visual IP Core, Memory Map, and Data Inspector editors remain available for
+local authoring. The following inspection features also remain available and
+do not execute workspace content:
+
+- view built-in bus definitions and scan workspace bus-definition files;
+- run HDL and full consistency checks, which only parse project files;
+- copy a component instance, switch between text and visual editors, and view
+  existing build output;
+- create or migrate IPCraft YAML files and open IPCraft help and settings.
+
+Commands that render templates, generate output, invoke Git during import,
+scan an installed vendor catalog, build a project, or launch Vivado, Quartus,
+or Platform Designer are disabled until the workspace is trusted. Calls from
+the Command Palette, extension API, and IPCraft webviews use the same trust
+check. If a command is invoked programmatically in Restricted Mode, IPCraft
+shows an error with an option to open VS Code's Workspace Trust management.
+
+Workspace values for scaffold-pack selection and paths, vendor runners,
+installation directories, and Docker images are ignored in Restricted Mode.
+Trust the workspace only when you are comfortable allowing its templates,
+generated scripts, and tool configuration to run on your machine.
+
 ## All commands
 
 All commands are available in the Command Palette (`Ctrl+Shift+P`) under the **IPCraft** category. Many commands are also reachable from the **IPCraft** top-level application menu bar entry or from the editor title bar icon.

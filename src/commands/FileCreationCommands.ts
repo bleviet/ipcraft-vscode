@@ -35,7 +35,11 @@ function generateMemoryMapTemplate(name: string): string {
 
 function resolveVendorFromSettings(): string {
   const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT_IMPORT);
-  return resolveVendor(cfg.get<string>('vendor'));
+  const configuredVendor = cfg.get<string>('vendor');
+  if (!vscode.workspace.isTrusted && (!configuredVendor || configuredVendor === 'user')) {
+    return 'ipcraft';
+  }
+  return resolveVendor(configuredVendor);
 }
 
 function nameFromFilePath(fsPath: string): string {

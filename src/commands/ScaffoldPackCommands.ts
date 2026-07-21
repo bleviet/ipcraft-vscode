@@ -26,9 +26,14 @@ export function registerScaffoldPackCommands(
   globalResourceRoots = resourceRoots;
   scaffoldPackLoader = new ScaffoldPackLoader(resourceRoots.builtinPacksDir);
   // ── Command: Preview Template Output ────────────────────────────────────
-  safeRegisterCommand(context, 'fpga-ip-core.previewTemplateOutput', async (uri?: vscode.Uri) => {
-    await previewTemplateOutput(context, previewProvider, uri);
-  });
+  safeRegisterCommand(
+    context,
+    'fpga-ip-core.previewTemplateOutput',
+    async (uri?: vscode.Uri) => {
+      await previewTemplateOutput(context, previewProvider, uri);
+    },
+    { requiresWorkspaceTrust: true }
+  );
 
   // ── Command: Export Built-in Scaffold Pack (Eject) ────────────────────
   safeRegisterCommand(context, 'fpga-ip-core.exportScaffoldPack', async () => {
@@ -124,14 +129,16 @@ export function registerScaffoldPackCommands(
   // ── File watcher: refresh preview when a .j2 template is saved ────────
   const j2Watcher = vscode.workspace.createFileSystemWatcher('**/*.j2');
   j2Watcher.onDidChange(async (uri) => {
-    await refreshTemplatePreview(context, previewProvider, uri);
+    if (vscode.workspace.isTrusted) {
+      await refreshTemplatePreview(context, previewProvider, uri);
+    }
   });
   context.subscriptions.push(j2Watcher);
 
   // ── Document save watcher: refresh scaffold panel when scaffold.yml saved
   context.subscriptions.push(
     vscode.workspace.onDidSaveTextDocument(async (doc) => {
-      if (path.basename(doc.fileName) === 'scaffold.yml') {
+      if (vscode.workspace.isTrusted && path.basename(doc.fileName) === 'scaffold.yml') {
         const panel = ScaffoldPackPanel.instance;
         if (panel) {
           await panel.refresh(doc.fileName);

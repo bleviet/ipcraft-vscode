@@ -1,8 +1,13 @@
 import * as vscode from 'vscode';
 import { VivadoInterfaceScanner } from '../services/VivadoInterfaceScanner';
 import { handleErrorWithUserNotification } from '../utils/ErrorHandler';
+import { requireWorkspaceTrust } from '../utils/workspaceTrust';
 
 export async function scanVivadoInterfacesCommand(): Promise<void> {
+  if (!(await requireWorkspaceTrust())) {
+    return;
+  }
+
   await vscode.window.withProgress(
     {
       location: vscode.ProgressLocation.Notification,

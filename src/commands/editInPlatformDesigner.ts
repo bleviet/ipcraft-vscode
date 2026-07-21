@@ -6,10 +6,15 @@ import { spawnGui } from '../services/BuildRunner';
 import { getToolchain } from '../services/toolchains/registry';
 import { sourceDirsFromHwTcl } from '../utils/sourceFileMounts';
 import { CONFIG_KEY_IPCRAFT } from '../utils/configKeys';
+import { requireWorkspaceTrust } from '../utils/workspaceTrust';
 
 const logger = new Logger('EditInPlatformDesigner');
 
 export async function editInPlatformDesignerCommand(uri?: vscode.Uri): Promise<void> {
+  if (!(await requireWorkspaceTrust())) {
+    return;
+  }
+
   const targetUri = uri ?? vscode.window.activeTextEditor?.document.uri;
 
   if (!targetUri?.fsPath.endsWith('_hw.tcl')) {

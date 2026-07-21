@@ -92,6 +92,17 @@ export class ScaffoldPackPanel {
    * Scans workspace for .ip.yml files to use as preview context.
    */
   async refresh(scaffoldYmlPath: string): Promise<void> {
+    if (!vscode.workspace.isTrusted) {
+      this.panel.webview.html = ScaffoldPackPanel.buildHtml(
+        'Restricted Mode',
+        path.dirname(scaffoldYmlPath),
+        [],
+        undefined,
+        'Scaffold pack preview is disabled until you trust this workspace.'
+      );
+      return;
+    }
+
     const packDir = path.dirname(scaffoldYmlPath);
     const ipCorePath = await findPreviewIpCore(scaffoldYmlPath);
 

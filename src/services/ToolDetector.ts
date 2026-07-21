@@ -21,6 +21,16 @@ import { CONFIG_KEY_IPCRAFT } from '../utils/configKeys';
  * Call on extension activation and whenever any `ipcraft.*` settings change.
  */
 export function detectAndSetToolContext(): void {
+  if (!vscode.workspace.isTrusted) {
+    for (const toolchain of listAll()) {
+      void vscode.commands.executeCommand('setContext', toolchain.contextKey, false);
+      for (const st of toolchain.subTools) {
+        void vscode.commands.executeCommand('setContext', st.contextKey, false);
+      }
+    }
+    return;
+  }
+
   void Promise.resolve().then(() =>
     setImmediate(() => {
       const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT);

@@ -9,6 +9,7 @@ import { DocumentManager } from '../services/DocumentManager';
 import { legacyVendorToTargets } from '../utils/migrateIpCore';
 
 import { ResourceRoots } from '../services/ResourceRoots';
+import { requireWorkspaceTrust } from '../utils/workspaceTrust';
 
 export interface GenerateOptionsMessage {
   vendorFiles?: 'none' | 'altera' | 'xilinx' | 'both';
@@ -46,6 +47,15 @@ export async function handleGenerateRequest({
   message,
   refreshWebview,
 }: HandleGenerateOptions): Promise<void> {
+  if (!(await requireWorkspaceTrust())) {
+    void webview.postMessage({
+      type: 'generateResult',
+      success: false,
+      error: 'Generation is disabled in Restricted Mode.',
+    });
+    return;
+  }
+
   logger.info('Generate request received', message.options as Record<string, unknown> | undefined);
 
   const baseDir = path.dirname(document.uri.fsPath);

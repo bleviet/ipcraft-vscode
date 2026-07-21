@@ -55,45 +55,95 @@ export function registerGeneratorCommands(
   resourceRoots: ResourceRoots
 ): void {
   globalResourceRoots = resourceRoots;
-  safeRegisterCommand(context, 'fpga-ip-core.generateHdl', async (uri?: vscode.Uri) => {
-    await generateHdl(context, uri);
-  });
+  safeRegisterCommand(
+    context,
+    'fpga-ip-core.generateHdl',
+    async (uri?: vscode.Uri) => {
+      await generateHdl(context, uri);
+    },
+    { requiresWorkspaceTrust: true }
+  );
 
-  safeRegisterCommand(context, 'fpga-ip-core.scaffoldProject', async (uri?: vscode.Uri) => {
-    await scaffoldProject(context, uri);
-  });
+  safeRegisterCommand(
+    context,
+    'fpga-ip-core.scaffoldProject',
+    async (uri?: vscode.Uri) => {
+      await scaffoldProject(context, uri);
+    },
+    { requiresWorkspaceTrust: true }
+  );
 
-  safeRegisterCommand(context, 'fpga-ip-core.exportAltera', async (uri?: vscode.Uri) => {
-    await exportAltera(context, uri);
-  });
+  safeRegisterCommand(
+    context,
+    'fpga-ip-core.exportAltera',
+    async (uri?: vscode.Uri) => {
+      await exportAltera(context, uri);
+    },
+    { requiresWorkspaceTrust: true }
+  );
 
-  safeRegisterCommand(context, 'fpga-ip-core.exportXilinx', async (uri?: vscode.Uri) => {
-    await exportXilinx(context, uri);
-  });
+  safeRegisterCommand(
+    context,
+    'fpga-ip-core.exportXilinx',
+    async (uri?: vscode.Uri) => {
+      await exportXilinx(context, uri);
+    },
+    { requiresWorkspaceTrust: true }
+  );
 
-  safeRegisterCommand(context, 'fpga-ip-core.generateVivadoProject', async (uri?: vscode.Uri) => {
-    await generateVivadoProject(context, uri);
-  });
+  safeRegisterCommand(
+    context,
+    'fpga-ip-core.generateVivadoProject',
+    async (uri?: vscode.Uri) => {
+      await generateVivadoProject(context, uri);
+    },
+    { requiresWorkspaceTrust: true }
+  );
 
-  safeRegisterCommand(context, 'fpga-ip-core.generateQuartusProject', async (uri?: vscode.Uri) => {
-    await generateQuartusProject(context, uri);
-  });
+  safeRegisterCommand(
+    context,
+    'fpga-ip-core.generateQuartusProject',
+    async (uri?: vscode.Uri) => {
+      await generateQuartusProject(context, uri);
+    },
+    { requiresWorkspaceTrust: true }
+  );
 
-  safeRegisterCommand(context, 'fpga-ip-core.generateAndBuildVivado', async (uri?: vscode.Uri) => {
-    await generateAndBuildVivado(context, uri);
-  });
+  safeRegisterCommand(
+    context,
+    'fpga-ip-core.generateAndBuildVivado',
+    async (uri?: vscode.Uri) => {
+      await generateAndBuildVivado(context, uri);
+    },
+    { requiresWorkspaceTrust: true }
+  );
 
-  safeRegisterCommand(context, 'fpga-ip-core.generateAndBuildQuartus', async (uri?: vscode.Uri) => {
-    await generateAndBuildQuartus(context, uri);
-  });
+  safeRegisterCommand(
+    context,
+    'fpga-ip-core.generateAndBuildQuartus',
+    async (uri?: vscode.Uri) => {
+      await generateAndBuildQuartus(context, uri);
+    },
+    { requiresWorkspaceTrust: true }
+  );
 
-  safeRegisterCommand(context, 'fpga-ip-core.generateTestbench', async (uri?: vscode.Uri) => {
-    await generateTestbench(context, uri);
-  });
+  safeRegisterCommand(
+    context,
+    'fpga-ip-core.generateTestbench',
+    async (uri?: vscode.Uri) => {
+      await generateTestbench(context, uri);
+    },
+    { requiresWorkspaceTrust: true }
+  );
 
-  safeRegisterCommand(context, 'fpga-ip-core.generateDocumentation', async (uri?: vscode.Uri) => {
-    await generateDocumentation(context, uri);
-  });
+  safeRegisterCommand(
+    context,
+    'fpga-ip-core.generateDocumentation',
+    async (uri?: vscode.Uri) => {
+      await generateDocumentation(context, uri);
+    },
+    { requiresWorkspaceTrust: true }
+  );
 
   safeRegisterCommand(context, 'fpga-ip-core.openSettings', async () => {
     await vscode.commands.executeCommand(
@@ -102,17 +152,32 @@ export function registerGeneratorCommands(
     );
   });
 
-  safeRegisterCommand(context, 'fpga-ip-core.parseVHDL', async (uri?: vscode.Uri) => {
-    await parseVHDL(context, uri);
-  });
+  safeRegisterCommand(
+    context,
+    'fpga-ip-core.parseVHDL',
+    async (uri?: vscode.Uri) => {
+      await parseVHDL(context, uri);
+    },
+    { requiresWorkspaceTrust: true }
+  );
 
-  safeRegisterCommand(context, 'fpga-ip-core.parseHwTcl', async (uri?: vscode.Uri) => {
-    await parseHwTcl(context, uri);
-  });
+  safeRegisterCommand(
+    context,
+    'fpga-ip-core.parseHwTcl',
+    async (uri?: vscode.Uri) => {
+      await parseHwTcl(context, uri);
+    },
+    { requiresWorkspaceTrust: true }
+  );
 
-  safeRegisterCommand(context, 'fpga-ip-core.parseComponentXml', async (uri?: vscode.Uri) => {
-    await parseComponentXml(context, uri);
-  });
+  safeRegisterCommand(
+    context,
+    'fpga-ip-core.parseComponentXml',
+    async (uri?: vscode.Uri) => {
+      await parseComponentXml(context, uri);
+    },
+    { requiresWorkspaceTrust: true }
+  );
 
   safeRegisterCommand(context, 'fpga-ip-core.viewBusDefinitions', async () => {
     await viewBusDefinitions();

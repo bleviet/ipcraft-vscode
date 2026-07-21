@@ -1,7 +1,12 @@
 import * as vscode from 'vscode';
 import { VivadoCatalogScanner } from '../services/VivadoCatalogScanner';
+import { requireWorkspaceTrust } from '../utils/workspaceTrust';
 
 export async function scanVivadoCatalogCommand(): Promise<void> {
+  if (!(await requireWorkspaceTrust())) {
+    return;
+  }
+
   await vscode.window.withProgress(
     { location: vscode.ProgressLocation.Notification, title: 'Scanning Vivado IP catalog...' },
     async () => {

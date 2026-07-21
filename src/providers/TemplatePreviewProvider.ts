@@ -29,6 +29,10 @@ export class TemplatePreviewProvider implements vscode.TextDocumentContentProvid
   }
 
   async provideTextDocumentContent(uri: vscode.Uri): Promise<string> {
+    if (!vscode.workspace.isTrusted) {
+      return '-- Template preview is disabled in Restricted Mode.';
+    }
+
     const params = new URLSearchParams(uri.query);
     const templatePath = params.get('t');
     const ipCorePath = params.get('ip');

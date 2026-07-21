@@ -39,6 +39,22 @@
   ],
   "activationEvents": [],
   "main": "./dist/extension.js",
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "In Restricted Mode, IPCraft editors and read-only inspection remain available. Generation, template rendering, imports that invoke Git, vendor catalog scans, builds, and FPGA tool launches require a trusted workspace.",
+      "restrictedConfigurations": [
+        "ipcraft.scaffoldPackPaths",
+        "ipcraft.generate.scaffoldPack",
+        "ipcraft.vivado.runner",
+        "ipcraft.vivado.installDir",
+        "ipcraft.vivado.dockerImage",
+        "ipcraft.quartus.runner",
+        "ipcraft.quartus.installDir",
+        "ipcraft.quartus.dockerImage"
+      ]
+    }
+  },
   "contributes": {
     "commands": [
       {
@@ -78,109 +94,120 @@
         "command": "fpga-ip-core.editInIpPackager",
         "title": "Edit in IP Packager",
         "category": "IPCraft",
-        "enablement": "ipcraft.vivadoFound"
+        "enablement": "isWorkspaceTrusted && ipcraft.vivadoFound"
       },
       {
         "command": "fpga-ip-core.editInPlatformDesigner",
         "title": "Open in Platform Designer",
         "category": "IPCraft",
-        "enablement": "ipcraft.qsysEditFound"
+        "enablement": "isWorkspaceTrusted && ipcraft.qsysEditFound"
       },
       {
         "command": "fpga-ip-core.generateHdl",
         "title": "Generate Top-Level HDL",
         "shortTitle": "Generate Top-Level HDL",
         "category": "IPCraft",
-        "icon": "$(code)"
+        "icon": "$(code)",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "fpga-ip-core.scaffoldProject",
         "title": "Scaffold Project (RTL + EDA packaging + Testbench)",
         "shortTitle": "Scaffold Project",
         "category": "IPCraft",
-        "icon": "$(package)"
+        "icon": "$(package)",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "fpga-ip-core.exportAltera",
         "title": "Generate Altera Platform Designer Component (_hw.tcl)",
         "category": "IPCraft",
-        "icon": "$(export)"
+        "icon": "$(export)",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "fpga-ip-core.exportXilinx",
         "title": "Generate Xilinx Vivado Component (component.xml)",
         "category": "IPCraft",
-        "icon": "$(export)"
+        "icon": "$(export)",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "fpga-ip-core.generateTestbench",
         "title": "Generate CocoTB Testbench",
         "category": "IPCraft",
-        "icon": "$(beaker)"
+        "icon": "$(beaker)",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "fpga-ip-core.generateDocumentation",
         "title": "Generate Documentation",
         "category": "IPCraft",
-        "icon": "$(book)"
+        "icon": "$(book)",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "fpga-ip-core.generateVivadoProject",
         "title": "Generate Vivado Project",
         "category": "IPCraft",
-        "icon": "$(circuit-board)"
+        "icon": "$(circuit-board)",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "fpga-ip-core.generateQuartusProject",
         "title": "Generate Quartus Project",
         "category": "IPCraft",
-        "icon": "$(circuit-board)"
+        "icon": "$(circuit-board)",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "fpga-ip-core.generateAndBuildVivado",
         "title": "Generate & Build (Vivado OOC)",
         "category": "IPCraft",
         "icon": "$(zap)",
-        "enablement": "ipcraft.vivadoFound"
+        "enablement": "isWorkspaceTrusted && ipcraft.vivadoFound"
       },
       {
         "command": "fpga-ip-core.generateAndBuildQuartus",
         "title": "Generate & Build (Quartus)",
         "category": "IPCraft",
         "icon": "$(zap)",
-        "enablement": "ipcraft.quartusFound"
+        "enablement": "isWorkspaceTrusted && ipcraft.quartusFound"
       },
       {
         "command": "fpga-ip-core.buildVivadoOoc",
         "title": "Build: Vivado OOC Synthesis",
         "category": "IPCraft",
         "icon": "$(play)",
-        "enablement": "ipcraft.vivadoFound"
+        "enablement": "isWorkspaceTrusted && ipcraft.vivadoFound"
       },
       {
         "command": "fpga-ip-core.buildQuartusCompile",
         "title": "Build: Quartus Compile",
         "category": "IPCraft",
         "icon": "$(play)",
-        "enablement": "ipcraft.quartusFound"
+        "enablement": "isWorkspaceTrusted && ipcraft.quartusFound"
       },
       {
         "command": "fpga-ip-core.parseVHDL",
         "title": "Import from VHDL (Experimental)",
         "category": "IPCraft",
-        "icon": "$(file-code)"
+        "icon": "$(file-code)",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "fpga-ip-core.parseHwTcl",
         "title": "Import from Altera Platform Designer (Experimental)",
         "category": "IPCraft",
-        "icon": "$(file-code)"
+        "icon": "$(file-code)",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "fpga-ip-core.parseComponentXml",
         "title": "Import from Xilinx Component XML (Experimental)",
         "category": "IPCraft",
-        "icon": "$(file-code)"
+        "icon": "$(file-code)",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "fpga-ip-core.viewBusDefinitions",
@@ -192,13 +219,13 @@
         "command": "fpga-ip-core.scanVivadoCatalog",
         "title": "Scan Vivado IP Catalog",
         "category": "IPCraft",
-        "enablement": "ipcraft.vivadoFound"
+        "enablement": "isWorkspaceTrusted && ipcraft.vivadoFound"
       },
       {
         "command": "fpga-ip-core.scanVivadoInterfaces",
         "title": "Scan Vivado Interface Catalog",
         "category": "IPCraft",
-        "enablement": "ipcraft.vivadoFound"
+        "enablement": "isWorkspaceTrusted && ipcraft.vivadoFound"
       },
       {
         "command": "fpga-ip-core.scanWorkspaceBusDefinitions",
@@ -211,7 +238,7 @@
         "title": "Build",
         "category": "IPCraft",
         "icon": "$(play)",
-        "enablement": "ipcraft.vivadoFound || ipcraft.quartusFound"
+        "enablement": "isWorkspaceTrusted && (ipcraft.vivadoFound || ipcraft.quartusFound)"
       },
       {
         "command": "fpga-ip-core.showBuildOutput",
@@ -234,13 +261,13 @@
         "command": "fpga-ip-core.openInVivado",
         "title": "Open in Vivado",
         "category": "IPCraft",
-        "enablement": "ipcraft.vivadoFound"
+        "enablement": "isWorkspaceTrusted && ipcraft.vivadoFound"
       },
       {
         "command": "fpga-ip-core.openInQuartus",
         "title": "Open in Quartus",
         "category": "IPCraft",
-        "enablement": "ipcraft.quartusFound"
+        "enablement": "isWorkspaceTrusted && ipcraft.quartusFound"
       },
       {
         "command": "fpga-ip-core.vivadoNotConfigured",
@@ -315,7 +342,8 @@
         "command": "fpga-ip-core.previewTemplateOutput",
         "title": "Preview Template Output",
         "category": "IPCraft",
-        "icon": "$(open-preview)"
+        "icon": "$(open-preview)",
+        "enablement": "isWorkspaceTrusted"
       },
       {
         "command": "fpga-ip-core.exportScaffoldPack",

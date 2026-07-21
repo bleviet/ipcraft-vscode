@@ -159,16 +159,27 @@ export function activate(context: vscode.ExtensionContext): void {
     'fpga-ip-core.createIpCoreWithMemoryMap',
     createIpCoreWithMemoryMapCommand
   );
-  safeRegisterCommand(context, 'fpga-ip-core.editInIpPackager', editInIpPackagerCommand);
+  safeRegisterCommand(context, 'fpga-ip-core.editInIpPackager', editInIpPackagerCommand, {
+    requiresWorkspaceTrust: true,
+  });
   safeRegisterCommand(
     context,
     'fpga-ip-core.editInPlatformDesigner',
-    editInPlatformDesignerCommand
+    editInPlatformDesignerCommand,
+    { requiresWorkspaceTrust: true }
   );
-  safeRegisterCommand(context, 'fpga-ip-core.openInVivado', openInVivadoCommand);
-  safeRegisterCommand(context, 'fpga-ip-core.openInQuartus', openInQuartusCommand);
-  safeRegisterCommand(context, 'fpga-ip-core.scanVivadoCatalog', scanVivadoCatalogCommand);
-  safeRegisterCommand(context, 'fpga-ip-core.scanVivadoInterfaces', scanVivadoInterfacesCommand);
+  safeRegisterCommand(context, 'fpga-ip-core.openInVivado', openInVivadoCommand, {
+    requiresWorkspaceTrust: true,
+  });
+  safeRegisterCommand(context, 'fpga-ip-core.openInQuartus', openInQuartusCommand, {
+    requiresWorkspaceTrust: true,
+  });
+  safeRegisterCommand(context, 'fpga-ip-core.scanVivadoCatalog', scanVivadoCatalogCommand, {
+    requiresWorkspaceTrust: true,
+  });
+  safeRegisterCommand(context, 'fpga-ip-core.scanVivadoInterfaces', scanVivadoInterfacesCommand, {
+    requiresWorkspaceTrust: true,
+  });
   safeRegisterCommand(
     context,
     'fpga-ip-core.scanWorkspaceBusDefinitions',
@@ -220,7 +231,11 @@ export function activate(context: vscode.ExtensionContext): void {
   // Scaffold.yml file-open handler — show the scaffold pack panel automatically
   context.subscriptions.push(
     vscode.window.onDidChangeActiveTextEditor(async (editor) => {
-      if (editor && path.basename(editor.document.fileName) === 'scaffold.yml') {
+      if (
+        vscode.workspace.isTrusted &&
+        editor &&
+        path.basename(editor.document.fileName) === 'scaffold.yml'
+      ) {
         const panel = ScaffoldPackPanel.show(logger, context, resourceRoots);
         await panel.refresh(editor.document.fileName);
       }
@@ -289,18 +304,29 @@ export function activate(context: vscode.ExtensionContext): void {
   logger.info('Build commands registered');
 
   // Install custom IPCraft bus definitions (e.g. Avalon Streaming) to the global OS config dir
-  void import('./generator/VivadoBusDefInstaller').then(({ installGlobalBusDefinitions }) => {
-    installGlobalBusDefinitions(resourceRoots.busDefinitionsDir)
-      .then((busDefsDir) => {
-        logger.info(`Installed global bus definitions to: ${busDefsDir}`);
-      })
-      .catch((err) => {
-        logger.error(`Failed to install global bus definitions: ${err}`);
-      });
-  });
+  const initializeTrustedWorkspaceFeatures = () => {
+    void import('./generator/VivadoBusDefInstaller').then(({ installGlobalBusDefinitions }) => {
+      installGlobalBusDefinitions(resourceRoots.busDefinitionsDir)
+        .then((busDefsDir) => {
+          logger.info(`Installed global bus definitions to: ${busDefsDir}`);
+        })
+        .catch((err) => {
+          logger.error(`Failed to install global bus definitions: ${err}`);
+        });
+    });
+
+    detectAndSetToolContext();
+  };
 
   // Probe for vendor tools and set context keys (controls command greying)
-  detectAndSetToolContext();
+  if (vscode.workspace.isTrusted) {
+    initializeTrustedWorkspaceFeatures();
+  } else {
+    detectAndSetToolContext();
+    context.subscriptions.push(
+      vscode.workspace.onDidGrantWorkspaceTrust(initializeTrustedWorkspaceFeatures)
+    );
+  }
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (

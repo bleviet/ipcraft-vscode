@@ -15,6 +15,7 @@ import { resolveVendor } from '../utils/resolveVendor';
 import { writeImportedFile, describeOutcome } from '../utils/importWrite';
 import { legacyVendorToTargets } from '../utils/migrateIpCore';
 import type { GenerateOptionsMessage } from './IpCoreGenerateHandler';
+import { requireWorkspaceTrust } from '../utils/workspaceTrust';
 
 import { WebviewRouter } from '../services/WebviewRouter';
 import { EDITOR_VIEW_TYPE_IP_CORE } from '../utils/editorViewTypes';
@@ -33,6 +34,13 @@ interface ParsedSource {
 
 interface GenerateMessage {
   options?: GenerateOptionsMessage;
+}
+
+function resolvePreviewVendor(configuredVendor: string | undefined): string {
+  if (!vscode.workspace.isTrusted && (!configuredVendor || configuredVendor === 'user')) {
+    return 'ipcraft';
+  }
+  return resolveVendor(configuredVendor);
 }
 
 function detectKind(fsPath: string): SourceKind | null {
@@ -57,7 +65,7 @@ async function parseSource(fsPath: string, kind: SourceKind): Promise<ParsedSour
     case 'hwTcl': {
       const result = await parseHwTclFile(fsPath, {
         library: cfg.get<string>('library'),
-        vendor: resolveVendor(cfg.get<string>('vendor')),
+        vendor: resolvePreviewVendor(cfg.get<string>('vendor')),
       });
       return { yamlText: result.yamlText, name: result.componentName };
     }
@@ -75,7 +83,7 @@ async function parseSource(fsPath: string, kind: SourceKind): Promise<ParsedSour
     case 'vhdl': {
       const result = await parseVhdlFile(fsPath, {
         detectBus: true,
-        vendor: resolveVendor(cfg.get<string>('vendor')),
+        vendor: resolvePreviewVendor(cfg.get<string>('vendor')),
         library: cfg.get<string>('library'),
         version: cfg.get<string>('version'),
       });
@@ -85,7 +93,7 @@ async function parseSource(fsPath: string, kind: SourceKind): Promise<ParsedSour
     case 'verilog': {
       const result = await parseVerilogFile(fsPath, {
         detectBus: true,
-        vendor: resolveVendor(cfg.get<string>('vendor')),
+        vendor: resolvePreviewVendor(cfg.get<string>('vendor')),
         library: cfg.get<string>('library'),
         version: cfg.get<string>('version'),
       });
@@ -216,6 +224,15 @@ export class IpCoreSourcePreviewProvider implements vscode.CustomTextEditorProvi
     webview: vscode.Webview,
     memoryMap?: { mmYamlText?: string; mmFileName?: string }
   ): Promise<void> {
+    if (!(await requireWorkspaceTrust())) {
+      void webview.postMessage({
+        type: 'generateResult',
+        success: false,
+        error: 'Generation is disabled in Restricted Mode.',
+      });
+      return;
+    }
+
     const folderUris = await vscode.window.showOpenDialog({
       canSelectFiles: false,
       canSelectFolders: true,

@@ -41,6 +41,19 @@ suite('Extension Activation Test Suite', () => {
     assert.strictEqual(extension?.isActive, true);
   });
 
+  test('Declares the active workspace trust contract', () => {
+    const packageJson = vscode.extensions.getExtension('bleviet.ipcraft-vscode')?.packageJSON;
+    const capability = packageJson.capabilities?.untrustedWorkspaces;
+
+    assert.strictEqual(capability?.supported, 'limited');
+    assert.ok(capability?.description.includes('Restricted Mode'));
+    assert.strictEqual(
+      typeof vscode.workspace.isTrusted,
+      'boolean',
+      'The extension host must expose the current workspace trust state'
+    );
+  });
+
   test('Should register custom editors', () => {
     const packageJson = vscode.extensions.getExtension('bleviet.ipcraft-vscode')?.packageJSON;
     const customEditors = packageJson.contributes.customEditors;

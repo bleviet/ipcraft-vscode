@@ -24,6 +24,13 @@ Generated from the real editor UI by `npm run docs:screenshots` — see [Automat
 
 See [Commands & Settings](docs/reference/commands.md) for the full command list and every setting's default and description, and [Keyboard Shortcuts](docs/reference/keyboard-shortcuts.md) for canvas/table navigation.
 
+IPCraft supports VS Code Restricted Mode with limited functionality. Visual
+editing and read-only inspection remain available, while generation, template
+rendering, imports that invoke Git, builds, vendor scans, and FPGA tool launches
+require a trusted workspace. See
+[Workspace Trust and Restricted Mode](docs/reference/commands.md#workspace-trust-and-restricted-mode)
+for the complete behavior.
+
 ---
 
 ## Quick Start
