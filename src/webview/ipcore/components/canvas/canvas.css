@@ -481,6 +481,19 @@
   stroke: none;
 }
 
+.canvas-port__polarity-badge rect {
+  fill: var(--vscode-editor-background);
+  stroke: var(--vscode-charts-orange, #ce9178);
+  stroke-width: 1;
+}
+
+.canvas-port__polarity-badge text {
+  fill: var(--vscode-charts-orange, #ce9178);
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 7px;
+  font-weight: 700;
+}
+
 .canvas-port__selection-ring {
   fill: none;
   stroke: var(--vscode-focusBorder);
@@ -511,6 +524,13 @@
   fill: var(--vscode-charts-orange, #ce9178);
 }
 
+.canvas-port--reset .canvas-port__inversion-bubble {
+  fill: var(--vscode-editor-background);
+  stroke: var(--vscode-charts-orange, #ce9178);
+  stroke-width: 1.5;
+  opacity: 1;
+}
+
 .canvas-port--interrupt .canvas-port__stub {
   stroke: var(--vscode-charts-yellow, #e5c07b);
 }
@@ -521,6 +541,19 @@
 
 .canvas-port__icon--interrupt polygon {
   fill: var(--vscode-charts-yellow, #e5c07b);
+}
+
+.canvas-port__sensitivity-badge rect {
+  fill: var(--vscode-editor-background);
+  stroke: var(--vscode-charts-yellow, #e5c07b);
+  stroke-width: 1;
+}
+
+.canvas-port__sensitivity-badge text {
+  fill: var(--vscode-charts-yellow, #e5c07b);
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 7px;
+  font-weight: 700;
 }
 
 
@@ -547,6 +580,11 @@
 
 .canvas-port--selected .canvas-port__dot {
   fill: var(--vscode-focusBorder);
+}
+
+.canvas-port--selected .canvas-port__inversion-bubble {
+  fill: var(--vscode-editor-background);
+  stroke: var(--vscode-focusBorder);
 }
 
 .canvas-port--selected .canvas-port__label {

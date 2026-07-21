@@ -63,8 +63,45 @@ describe('computeLayout', () => {
     expect(rst).toBeDefined();
     expect(clk!.side).toBe('left');
     expect(rst!.side).toBe('left');
+    expect(rst!.polarity).toBe('activeLow');
     // Reset should be below clock
     expect(rst!.y).toBeGreaterThan(clk!.y);
+  });
+
+  it('preserves reset polarity independently of the user-defined port name', () => {
+    const ip = makeIpCore({
+      resets: [
+        { name: 'clear_everything', polarity: 'activeLow' },
+        { name: 'restart', polarity: 'activeHigh' },
+      ],
+    });
+
+    const resetPorts = computeLayout(ip).ports.filter((port) => port.kind === 'reset');
+
+    expect(resetPorts.map((port) => [port.label, port.polarity])).toEqual([
+      ['clear_everything', 'activeLow'],
+      ['restart', 'activeHigh'],
+    ]);
+  });
+
+  it('preserves all interrupt sensitivity modes independently of port names', () => {
+    const ip = makeIpCore({
+      interrupts: [
+        { name: 'event_a', sensitivity: 'LEVEL_HIGH' },
+        { name: 'event_b', sensitivity: 'LEVEL_LOW' },
+        { name: 'event_c', sensitivity: 'EDGE_RISING' },
+        { name: 'event_d', sensitivity: 'EDGE_FALLING' },
+      ],
+    });
+
+    const interruptPorts = computeLayout(ip).ports.filter((port) => port.kind === 'interrupt');
+
+    expect(interruptPorts.map((port) => port.sensitivity)).toEqual([
+      'LEVEL_HIGH',
+      'LEVEL_LOW',
+      'EDGE_RISING',
+      'EDGE_FALLING',
+    ]);
   });
 
   it('places slave bus interfaces on the left, master on the right', () => {
