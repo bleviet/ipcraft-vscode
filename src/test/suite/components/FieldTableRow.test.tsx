@@ -7,9 +7,8 @@ import type { CellInputProps } from '../../../webview/shared/components';
 
 // Mock VectorBoundingInput and (most of) CellInput to simplify testing and
 // directly call onInput/onBlur. The 'dropdown' variant is left to delegate
-// to the real CellInput (which renders VSCodeDropdown/VSCodeOption, globally
-// mocked in test/setup.ts as <select>/<option>) so the access-column tests
-// below can assert on real option text/value/data-option-detail rendering.
+// to the real CellInput (which renders native select/option controls) so the
+// access-column tests below can assert on option text and values.
 jest.mock('../../../webview/shared/components', () => {
   const original = jest.requireActual<{ CellInput: React.ComponentType<CellInputProps> }>(
     '../../../webview/shared/components'
@@ -619,7 +618,7 @@ describe('FieldTableRow access column', () => {
       const optionEl = optionEls.find((o) => o.getAttribute('value') === opt);
       expect(optionEl).toBeTruthy();
       expect(optionEl!.textContent).toBe(ACCESS_ABBREVIATIONS[opt]);
-      expect(optionEl!.getAttribute('data-option-detail')).toBe(opt);
+      expect(optionEl!.getAttribute('title')).toBe(opt);
     }
 
     fireEvent.change(select, { target: { value: 'write-only' } });

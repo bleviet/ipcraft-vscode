@@ -1565,6 +1565,7 @@
     "prepare": "husky install"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.12.1",
     "@playwright/test": "^1.58.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^14.3.1",
@@ -1611,7 +1612,6 @@
   },
   "dependencies": {
     "@vscode/codicons": "^0.0.33",
-    "@vscode/webview-ui-toolkit": "^1.2.2",
     "@xmldom/xmldom": "^0.9.10",
     "@xyflow/react": "^12.11.2",
     "ajv": "^8.20.0",
@@ -1632,6 +1632,6 @@
       "diff": "^9.0.0",
       "serialize-javascript": "^7.0.5"
     },
-    "brace-expansion@<1.1.13": "1.1.14"
+    "brace-expansion@<1.1.16": "1.1.16"
   }
 }

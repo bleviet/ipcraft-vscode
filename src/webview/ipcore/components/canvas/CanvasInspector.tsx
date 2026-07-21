@@ -4323,6 +4323,8 @@ const PropField: React.FC<PropFieldProps> = ({
   const [draft, setDraft] = useState(value);
   const [focused, setFocused] = useState(false);
   const [liveError, setLiveError] = useState<string | null>(null);
+  const controlId = React.useId();
+  const descriptionId = `${controlId}-description`;
 
   useEffect(() => {
     if (!focused) {
@@ -4364,8 +4366,11 @@ const PropField: React.FC<PropFieldProps> = ({
 
   return (
     <div className="ci-field">
-      <label className="ci-field__label">{label}</label>
+      <label htmlFor={controlId} className="ci-field__label">
+        {label}
+      </label>
       <input
+        id={controlId}
         className={`ci-field__input${showErr ? ' ci-field__input--error' : ''}`}
         value={draft}
         placeholder={placeholder}
@@ -4376,12 +4381,18 @@ const PropField: React.FC<PropFieldProps> = ({
           commit();
         }}
         onKeyDown={handleKeyDown}
+        aria-invalid={showErr ? true : undefined}
+        aria-describedby={showErr || hint ? descriptionId : undefined}
         style={mono ? { fontFamily: 'var(--vscode-editor-font-family, monospace)' } : undefined}
       />
       {showErr ? (
-        <div className="ci-field__error">{showErr}</div>
+        <div id={descriptionId} className="ci-field__error">
+          {showErr}
+        </div>
       ) : hint ? (
-        <div className="ci-field__hint">{hint}</div>
+        <div id={descriptionId} className="ci-field__hint">
+          {hint}
+        </div>
       ) : null}
     </div>
   );
@@ -4395,19 +4406,29 @@ interface PropSelectProps {
   emptyOption?: string;
 }
 
-const PropSelect: React.FC<PropSelectProps> = ({ label, value, options, onSave, emptyOption }) => (
-  <div className="ci-field">
-    <label className="ci-field__label">{label}</label>
-    <select className="ci-field__select" value={value} onChange={(e) => onSave(e.target.value)}>
-      {emptyOption !== undefined && <option value="">{emptyOption}</option>}
-      {options.map((o) => (
-        <option key={o.value} value={o.value}>
-          {o.label}
-        </option>
-      ))}
-    </select>
-  </div>
-);
+const PropSelect: React.FC<PropSelectProps> = ({ label, value, options, onSave, emptyOption }) => {
+  const controlId = React.useId();
+  return (
+    <div className="ci-field">
+      <label htmlFor={controlId} className="ci-field__label">
+        {label}
+      </label>
+      <select
+        id={controlId}
+        className="ci-field__select"
+        value={value}
+        onChange={(e) => onSave(e.target.value)}
+      >
+        {emptyOption !== undefined && <option value="">{emptyOption}</option>}
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+};
 
 interface PropTextAreaProps {
   label: string;
@@ -4419,6 +4440,7 @@ interface PropTextAreaProps {
 const PropTextArea: React.FC<PropTextAreaProps> = ({ label, value, onSave, placeholder }) => {
   const [draft, setDraft] = useState(value);
   const [focused, setFocused] = useState(false);
+  const controlId = React.useId();
 
   useEffect(() => {
     if (!focused) {
@@ -4428,8 +4450,11 @@ const PropTextArea: React.FC<PropTextAreaProps> = ({ label, value, onSave, place
 
   return (
     <div className="ci-field">
-      <label className="ci-field__label">{label}</label>
+      <label htmlFor={controlId} className="ci-field__label">
+        {label}
+      </label>
       <textarea
+        id={controlId}
         className="ci-field__textarea"
         value={draft}
         placeholder={placeholder}

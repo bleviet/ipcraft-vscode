@@ -573,7 +573,6 @@ const FieldTableRow = ({
               value={field.access ?? 'read-write'}
               className="flex-1 min-w-0"
               options={ACCESS_DROPDOWN_OPTIONS}
-              position="below"
               onFocus={() => {
                 onCellFocus(index, 'access')();
                 setEditingKey('access');

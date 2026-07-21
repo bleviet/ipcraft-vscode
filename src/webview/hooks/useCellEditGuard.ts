@@ -79,13 +79,13 @@ export function useCellEditGuard<T>({
       }
 
       // Let Enter insert newlines in multi-line text areas
-      const isTextareaTarget = !!(activeEl as Element).closest?.('vscode-text-area, textarea');
+      const isTextareaTarget = activeEl instanceof HTMLTextAreaElement;
       if (isEnter && isTextareaTarget) {
         return;
       }
 
-      // Let vscode-dropdown handle its own Enter (selects option)
-      const isDropdownTarget = !!(activeEl as Element).closest?.('vscode-dropdown');
+      // Let native selects handle their own Enter and option selection.
+      const isDropdownTarget = activeEl instanceof HTMLSelectElement;
       if (isEnter && isDropdownTarget) {
         return;
       }

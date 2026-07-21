@@ -1,5 +1,4 @@
 import React from 'react';
-import { VSCodeTextField } from '@vscode/webview-ui-toolkit/react';
 import { useEditableDraft } from '../hooks/useEditableDraft';
 
 export interface NumberFieldProps {
@@ -22,7 +21,8 @@ export interface NumberFieldProps {
 
 /**
  * Numeric input field
- * Uses VSCode Web UI Toolkit for native VS Code look and feel
+ * Uses a native text input with a numeric keyboard hint. Keeping text semantics
+ * preserves invalid drafts until the existing parser decides whether to commit.
  */
 export const NumberField: React.FC<NumberFieldProps> = ({
   label,
@@ -40,6 +40,8 @@ export const NumberField: React.FC<NumberFieldProps> = ({
   onCancel,
 }) => {
   const { draft, setDraft, markFocused, markBlurred } = useEditableDraft(String(value));
+  const controlId = React.useId();
+  const errorId = `${controlId}-error`;
 
   const handleChange = (newValue: string) => {
     setDraft(newValue);
@@ -51,9 +53,7 @@ export const NumberField: React.FC<NumberFieldProps> = ({
     }
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleKeyDown = (e: any) => {
-    const event = e as unknown as KeyboardEvent;
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') {
       onSave?.();
     } else if (event.key === 'Escape') {
@@ -64,32 +64,31 @@ export const NumberField: React.FC<NumberFieldProps> = ({
   return (
     <div className="flex flex-col gap-1">
       {label && (
-        <label className="text-sm font-semibold flex items-center gap-1">
+        <label htmlFor={controlId} className="text-sm font-semibold flex items-center gap-1">
           {label}
           {required && <span style={{ color: 'var(--vscode-errorForeground)' }}>*</span>}
         </label>
       )}
-      <VSCodeTextField
+      <input
+        id={controlId}
+        type="text"
+        inputMode="numeric"
         data-edit-key={dataEditKey}
-        className={className}
+        className={`vscode-control ${className ?? ''}`}
         value={draft}
         disabled={disabled}
+        required={required}
+        aria-label={label || dataEditKey}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? errorId : undefined}
         onFocus={markFocused}
         onBlur={markBlurred}
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        onInput={(e: any) => {
-          const event = e as unknown as React.ChangeEvent<HTMLInputElement>;
-          handleChange(event.target.value ?? '');
-        }}
+        onChange={(event) => handleChange(event.target.value)}
         onKeyDown={handleKeyDown}
-        style={
-          {
-            '--input-border-color': error ? 'var(--vscode-inputValidation-errorBorder)' : undefined,
-          } as React.CSSProperties
-        }
+        data-validation={error ? 'error' : undefined}
       />
       {error && (
-        <span className="text-xs" style={{ color: 'var(--vscode-errorForeground)' }}>
+        <span id={errorId} className="text-xs" style={{ color: 'var(--vscode-errorForeground)' }}>
           {error}
         </span>
       )}

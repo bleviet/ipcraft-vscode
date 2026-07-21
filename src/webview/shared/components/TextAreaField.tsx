@@ -1,5 +1,4 @@
 import React from 'react';
-import { VSCodeTextArea } from '@vscode/webview-ui-toolkit/react';
 import { useEditableDraft } from '../hooks/useEditableDraft';
 
 export interface TextAreaFieldProps {
@@ -21,7 +20,7 @@ export interface TextAreaFieldProps {
 
 /**
  * Multi-line text area field
- * Uses VSCode Web UI Toolkit for native VS Code look and feel
+ * Uses a semantic native textarea styled with VS Code theme tokens.
  */
 export const TextAreaField: React.FC<TextAreaFieldProps> = ({
   label,
@@ -38,10 +37,10 @@ export const TextAreaField: React.FC<TextAreaFieldProps> = ({
   onCancel,
 }) => {
   const { draft, setDraft, markFocused, markBlurred } = useEditableDraft(value);
+  const controlId = React.useId();
+  const errorId = `${controlId}-error`;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleKeyDown = (e: any) => {
-    const event = e as unknown as KeyboardEvent;
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
       onSave?.();
     } else if (event.key === 'Escape') {
@@ -52,36 +51,35 @@ export const TextAreaField: React.FC<TextAreaFieldProps> = ({
   return (
     <div className="flex flex-col gap-1">
       {label && (
-        <label className="text-sm font-semibold flex items-center gap-1">
+        <label htmlFor={controlId} className="text-sm font-semibold flex items-center gap-1">
           {label}
           {required && <span style={{ color: 'var(--vscode-errorForeground)' }}>*</span>}
         </label>
       )}
-      <VSCodeTextArea
+      <textarea
+        id={controlId}
         data-edit-key={dataEditKey}
-        className={className}
+        className={`vscode-control ${className ?? ''}`}
         value={draft}
         rows={rows}
         placeholder={placeholder}
         disabled={disabled}
+        required={required}
+        aria-label={label || dataEditKey}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? errorId : undefined}
         onFocus={markFocused}
         onBlur={markBlurred}
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        onInput={(e: any) => {
-          const event = e as unknown as React.ChangeEvent<HTMLTextAreaElement>;
-          const newValue = event.target.value ?? '';
+        onChange={(event) => {
+          const newValue = event.target.value;
           setDraft(newValue);
           onChange(newValue);
         }}
         onKeyDown={handleKeyDown}
-        style={
-          {
-            '--input-border-color': error ? 'var(--vscode-inputValidation-errorBorder)' : undefined,
-          } as React.CSSProperties
-        }
+        data-validation={error ? 'error' : undefined}
       />
       {error && (
-        <span className="text-xs" style={{ color: 'var(--vscode-errorForeground)' }}>
+        <span id={errorId} className="text-xs" style={{ color: 'var(--vscode-errorForeground)' }}>
           {error}
         </span>
       )}
