@@ -6,9 +6,10 @@ agent would otherwise miss or get wrong.
 
 ## Instruction sources, in order of authority
 
-1. `.agents/rules/*.md` — project rules, treat as binding (no emojis ever, no
-   auto add/commit/push, planning docs go in `docs/`, prove root cause with
-   evidence before fixing, must pass `npm run lint` before commit).
+1. `.agents/rules/*.md` — project rules, treat as binding (no emojis in
+   documentation, no auto add/commit/push, planning docs go in `docs/`, prove
+   root cause with evidence before fixing, must pass `npm run lint` before
+   commit). Meaningful emoji usage in UI code is allowed.
 2. `CLAUDE.md` — architecture map and key conventions. Already loaded into the
    session via system prompt.
 3. `docs/architecture/*.md` — deeper design notes; `bit-field-handling.md` is
@@ -119,6 +120,7 @@ Both refs are resolved in the same `useEffect([wrappedRows, editor])`.
 - Extension-side logging uses `new Logger('ComponentName')` from
   `src/utils/Logger.ts`. `console.log` triggers the `no-console` ESLint rule
   (only `warn`/`error` are allowed, and only in webview error paths).
-- No emojis anywhere — code, comments, docs, commit messages.
+- Do not use emojis in documentation. Meaningful emoji usage in UI code is
+  allowed; avoid decorative UI usage that adds no information.
 - Never auto-commit. Run lint/type-check/test and let the developer review.
 - Run compile after code generation to ensure the generated code is correct. Fix errors and regenerate if needed.

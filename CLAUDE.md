@@ -135,7 +135,8 @@ When adding register- or block-level layout operations, extend `LayoutEngine.ts`
 
 ## Project rules (from `.agents/rules/`)
 
-- **No emojis anywhere**, in code, comments, or docs.
+- **No emojis in documentation.** UI code may use an emoji when it conveys
+  meaningful information. Do not use emojis decoratively in documentation.
 - **Never auto add/commit/push** — let the developer review first. Do not commit temporary debug-generated files.
 - All planning/working docs go in `docs/`; never create planning files at the repo root.
 - Before fixing a bug, prove the root cause with evidence, then fix the root cause (not the symptom) and prove it is fixed.
